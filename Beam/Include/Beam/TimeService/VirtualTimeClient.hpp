@@ -1,0 +1,103 @@
+#ifndef BEAM_VIRTUALTIMECLIENT_HPP
+#define BEAM_VIRTUALTIMECLIENT_HPP
+#include <memory>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/noncopyable.hpp>
+#include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/UniquePtr.hpp"
+#include "Beam/TimeService/TimeService.hpp"
+
+namespace Beam {
+namespace TimeService {
+
+  /*! \class VirtualTimeClient
+      \brief Provides a pure virtual interface to a TimeClient.
+   */
+  class VirtualTimeClient : private boost::noncopyable {
+    public:
+      virtual ~VirtualTimeClient();
+
+      virtual boost::posix_time::ptime GetTime() = 0;
+
+      virtual void Open() = 0;
+
+      virtual void Close() = 0;
+
+    protected:
+
+      //! Constructs a VirtualTimeClient.
+      VirtualTimeClient();
+  };
+
+  /*! \class WrapperTimeClient
+      \brief Wraps a TimeClient providing it with a virtual interface.
+      \tparam ClientType The type of TimeClient to wrap.
+   */
+  template<typename ClientType>
+  class WrapperTimeClient : public VirtualTimeClient {
+    public:
+
+      //! The TimeClient to wrap.
+      typedef typename TryDereferenceType<ClientType>::type Client;
+
+      //! Constructs a WrapperTimeClient.
+      /*!
+        \param client The TimeClient to wrap.
+      */
+      template<typename TimeClientForward>
+      WrapperTimeClient(TimeClientForward&& client);
+
+      virtual ~WrapperTimeClient();
+
+      virtual boost::posix_time::ptime GetTime();
+
+      virtual void Open();
+
+      virtual void Close();
+
+    private:
+      typename OptionalLocalPtr<ClientType>::type m_client;
+  };
+
+  //! Wraps a TimeClient into a VirtualTimeClient.
+  /*!
+    \param client The client to wrap.
+  */
+  template<typename TimeClient>
+  std::unique_ptr<VirtualTimeClient> MakeVirtualTimeClient(
+      TimeClient&& client) {
+    return std::make_unique<WrapperTimeClient<TimeClient>>(
+      std::forward<TimeClient>(client));
+  }
+
+  inline VirtualTimeClient::~VirtualTimeClient() {}
+
+  inline VirtualTimeClient::VirtualTimeClient() {}
+
+  template<typename ClientType>
+  template<typename TimeClientForward>
+  WrapperTimeClient<ClientType>::WrapperTimeClient(TimeClientForward&& client)
+      : m_client(std::forward<TimeClientForward>(client)) {}
+
+  template<typename ClientType>
+  WrapperTimeClient<ClientType>::~WrapperTimeClient() {}
+
+  template<typename ClientType>
+  boost::posix_time::ptime WrapperTimeClient<ClientType>::GetTime() {
+    return m_client->GetTime();
+  }
+
+  template<typename ClientType>
+  void WrapperTimeClient<ClientType>::Open() {
+    m_client->Open();
+  }
+
+  template<typename ClientType>
+  void WrapperTimeClient<ClientType>::Close() {
+    m_client->Close();
+  }
+}
+}
+
+#endif

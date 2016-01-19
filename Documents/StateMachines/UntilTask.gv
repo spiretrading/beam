@@ -1,0 +1,32 @@
+digraph UntilTask {
+  rankdir = LR;
+
+  node [shape = circle];
+
+  S0 [color = green, fontcolor = green];
+  S1 [color = blue, fontcolor = blue];
+  S3 [color = red, fontcolor = red];
+
+  S0 -> S1 [label = "E0, E3"];
+  S0 -> S2 [label = "E1"];
+  S0 -> S3 [label = "E2"];
+  S2 -> S4 [label = "&#949;"];
+  S4 -> S1 [label = "E0, E3, E5"];
+  S4 -> S3 [label = "E2, E4"];
+}
+
+S1 - Set state COMPLETE.
+S2 - Set state ACTIVE.
+       Execute task.
+S3 - Set state ERROR.
+
+E0 - Condition is true.
+E1 - Condition is false.
+E2 - Condition is an exception.
+E3 - Cancel.
+E4 - Task is ERROR.
+E5 - Task is COMPLETE.
+
+C0 - Condition is false.
+C1 - Condition is true.
+C2 - Condition is exception.

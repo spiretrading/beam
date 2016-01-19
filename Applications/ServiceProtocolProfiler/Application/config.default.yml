@@ -1,0 +1,4 @@
+---
+server:
+  interface: server_address:server_port
+...

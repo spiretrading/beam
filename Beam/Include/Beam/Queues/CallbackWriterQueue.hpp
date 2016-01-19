@@ -1,0 +1,116 @@
+#ifndef BEAM_CALLBACKWRITERQUEUE_HPP
+#define BEAM_CALLBACKWRITERQUEUE_HPP
+#include <functional>
+#include <boost/thread/locks.hpp>
+#include "Beam/Queues/PipeBrokenException.hpp"
+#include "Beam/Queues/Queues.hpp"
+#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Threading/RecursiveMutex.hpp"
+
+namespace Beam {
+
+  /*! \class CallbackWriterQueue
+      \brief Used to invoke a callback when data is pushed onto this Queue.
+      \tparam T The type of data being pushed onto the Queue.
+   */
+  template<typename T>
+  class CallbackWriterQueue : public QueueWriter<T> {
+    public:
+
+      //! The type of data being pushed onto the Queue.
+      using Source = T;
+
+      //! The function to call when data is pushed onto this Queue.
+      /*!
+        \param value The value that was pushed onto the Queue.
+      */
+      using CallbackFunction = std::function<void (const Source& source)>;
+
+      //! The function to call when this Queue is broken.
+      /*!
+        \param e Stores the reason for the break.
+      */
+      using BreakFunction = std::function<void (const std::exception_ptr& e)>;
+
+      //! Constructs a CallbackWriterQueue.
+      /*!
+        \param callback The function to call when data is pushed onto this
+               Queue.
+      */
+      CallbackWriterQueue(const CallbackFunction& callback);
+
+      //! Constructs a CallbackWriterQueue.
+      /*!
+        \param callback The function to call when data is pushed onto this
+               Queue.
+        \param breakCallback The function to call when this Queue is broken.
+      */
+      CallbackWriterQueue(const CallbackFunction& callback,
+        const BreakFunction& breakCallback);
+
+      virtual ~CallbackWriterQueue();
+
+      virtual void Push(const Source& value);
+
+      virtual void Push(Source&& value);
+
+      virtual void Break(const std::exception_ptr& exception);
+
+      using QueueWriter<T>::Break;
+    private:
+      mutable Threading::RecursiveMutex m_mutex;
+      bool m_isBroken;
+      int m_callbackCount;
+      CallbackFunction m_callback;
+      BreakFunction m_breakCallback;
+  };
+
+  template<typename T>
+  CallbackWriterQueue<T>::CallbackWriterQueue(const CallbackFunction& callback)
+      : CallbackWriterQueue(callback, [] (const std::exception_ptr&) {}) {}
+
+  template<typename T>
+  CallbackWriterQueue<T>::CallbackWriterQueue(const CallbackFunction& callback,
+      const BreakFunction& breakCallback)
+      : m_isBroken(false),
+        m_callbackCount(0),
+        m_callback(callback),
+        m_breakCallback(breakCallback) {}
+
+  template<typename T>
+  CallbackWriterQueue<T>::~CallbackWriterQueue() {
+    Break();
+  }
+
+  template<typename T>
+  void CallbackWriterQueue<T>::Push(const Source& value) {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    if(m_isBroken) {
+      return;
+    }
+    m_callback(value);
+  }
+
+  template<typename T>
+  void CallbackWriterQueue<T>::Push(Source&& value) {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    if(m_isBroken) {
+      return;
+    }
+    m_callback(std::move(value));
+  }
+
+  template<typename T>
+  void CallbackWriterQueue<T>::Break(const std::exception_ptr& exception) {
+    {
+      boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+      if(m_isBroken) {
+        return;
+      }
+      m_isBroken = true;
+    }
+    m_breakCallback(exception);
+  }
+}
+
+#endif

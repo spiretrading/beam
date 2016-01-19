@@ -1,0 +1,27 @@
+digraph WhenTask {
+  rankdir = LR;
+
+  node [shape = circle];
+
+  S0 [color = green, fontcolor = green];
+  S1 [color = blue, fontcolor = blue];
+  S2 [color = red, fontcolor = red];
+
+  S0 -> S1 [label = "E0"];
+  S0 -> S2 [label = "E2"];
+  S0 -> S3 [label = "E1"];
+  S3 -> S4 [label = "&#949;"];
+  S4 -> S1 [label = "E0, E3"];
+  S4 -> S2 [label = "E4"];
+}
+
+E0 - Cancel.
+E1 - Condition is true.
+E2 - Condition is exception.
+E3 - Task is complete.
+E4 - Task has error.
+
+S1 - Set state COMPLETE.
+S2 - Set state ERROR.
+S3 - Set state ACTIVE.
+       Execute task.

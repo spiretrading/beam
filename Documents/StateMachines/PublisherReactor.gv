@@ -1,0 +1,25 @@
+digraph PublisherReactor {
+  rankdir = LR;
+
+  node [shape = circle];
+
+  S0 [color = green, fontcolor = green];
+  S3 [color = blue, fontcolor = blue];
+
+  S0 -> S1 [label = "&#949;"];
+  S1 -> S1 [label = "E0"];
+  S1 -> S2 [label = "C0"];
+  S1 -> S3 [label = "~C0 ^ C1"];
+  S2 -> S1 [label = "E0"];
+  S2 -> S3 [label = "~C0 ^ C1"];
+}
+
+S0 - Subscribe to the Publisher.
+S2 - Pop oldest value and set it to the current evaluation.
+       Increment sequence number.
+S3 - Set state to complete.
+
+E0 - Commit event.
+C0 - Producer commits value.
+C1 - Producer is complete.
+C2 - Queue is broken.

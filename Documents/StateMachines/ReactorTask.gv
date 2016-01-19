@@ -1,0 +1,41 @@
+digraph ReactorTask { 
+  rankdir = LR;
+
+  node [shape = circle];
+
+  S0 [color = green, fontcolor = green];
+  S5 [color = red, fontcolor = red];
+  S6 [color = blue, fontcolor = blue];
+
+  S0 -> S1 [label = "&#949;"];
+  S1 -> S1 [label = "E0"];
+  S1 -> S2 [label = "C1"];
+  S1 -> S5 [label = "C0"];
+  S1 -> S6 [label = "E1"];
+  S2 -> S3 [label = "&#949;"];
+  S3 -> S4 [label = "&#949;"];
+  S4 -> S4 [label = "E0"];
+  S4 -> S5 [label = "C0, E2"];
+  S4 -> S6 [label = "E1, E4"];
+  S4 -> S7 [label = "C1"];
+  S7 -> S5 [label = "E2"];
+  S7 -> S3 [label = "E3"];
+  S7 -> S6 [label = "E1, E4"];
+}
+
+S0 - Initialize properties.
+S2 - Set state ACTIVE.
+S3 - Execute task.
+S5 - Set state ERROR.
+S6 - Set state COMPLETE.
+S7 - Cancel task.
+
+E0 - Property update.
+E1 - Cancel.
+E2 - Task has ERROR.
+E3 - Task is CANCELED.
+E4 - Task is TERMINAL.
+
+C0 - Property has exception.
+C1 - Property has changed value.
+

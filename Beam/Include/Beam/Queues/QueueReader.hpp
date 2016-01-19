@@ -1,0 +1,50 @@
+#ifndef BEAM_QUEUEREADER_HPP
+#define BEAM_QUEUEREADER_HPP
+#include "Beam/Queues/BaseQueue.hpp"
+#include "Beam/Queues/Queues.hpp"
+#include "Beam/Threading/Waitable.hpp"
+
+namespace Beam {
+
+  /*! \class QueueReader
+      \brief Interface for the read-only side of a Queue.
+      \tparam T The data to read from the Queue.
+   */
+  template<typename T>
+  class QueueReader : public virtual BaseQueue, public Threading::Waitable {
+    public:
+
+      //! The type being read.
+      using Target = T;
+
+      virtual ~QueueReader() = default;
+
+      //! Returns <code>true</code> iff the Queue is empty.
+      virtual bool IsEmpty() const = 0;
+
+      //! Returns the top value in the Queue.
+      virtual Target Top() const = 0;
+
+      //! Removes the top value in the Queue.
+      virtual void Pop() = 0;
+  };
+
+  //! Flushes the contents of a QueueReader into an iterator.
+  /*!
+    \param queue The QueueReader to flush.
+    \param destination An iterator to the first position to flush the
+           <i>queue<i> to.
+  */
+  template<typename Queue, typename Iterator>
+  void FlushQueue(const Queue& queue, Iterator destination) {
+    try {
+      while(true) {
+        *destination = queue->Top();
+        queue->Pop();
+        ++destination;
+      }
+    } catch(const std::exception&) {}
+  }
+}
+
+#endif

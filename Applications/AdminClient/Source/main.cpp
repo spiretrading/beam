@@ -24,6 +24,22 @@ namespace {
     return result;
   }
 
+  DirectoryEntry LoadAccount(
+      ApplicationServiceLocatorClient& serviceLocatorClient,
+      const string& name) {
+    if(name.empty()) {
+      throw runtime_error("No name specified.");
+    } else if(name[0] == '@') {
+      return serviceLocatorClient->LoadDirectoryEntry(
+        lexical_cast<int>(name.substr(1)));
+    }
+    auto account = serviceLocatorClient->FindAccount(name);
+    if(account.is_initialized()) {
+      return *account;
+    }
+    throw runtime_error("Account not found.");
+  }
+
   DirectoryEntry LoadPath(ApplicationServiceLocatorClient& serviceLocatorClient,
       const DirectoryEntry& currentDirectory, const string& path) {
     if(path.empty()) {
@@ -122,16 +138,14 @@ int main(int argc, char** argv) {
       } else if(tokens[0] == "mkdir") {
         serviceLocatorClient->MakeDirectory(tokens.at(1), currentDirectory);
       } else if(tokens[0] == "chmod") {
-        DirectoryEntry source = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
+        DirectoryEntry source = LoadAccount(serviceLocatorClient, tokens.at(1));
         DirectoryEntry target = LoadPath(serviceLocatorClient, currentDirectory,
           tokens.at(2));
         Permissions permissions = Permissions::FromRepresentation(
           lexical_cast<int>(tokens.at(3)));
         serviceLocatorClient->StorePermissions(source, target, permissions);
       } else if(tokens[0] == "associate") {
-        DirectoryEntry entry = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
+        DirectoryEntry entry = LoadAccount(serviceLocatorClient, tokens.at(1));
         serviceLocatorClient->Associate(entry, currentDirectory);
       } else if(tokens[0] == "detach") {
         DirectoryEntry child = LoadPath(serviceLocatorClient, currentDirectory,

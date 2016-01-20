@@ -1,6 +1,4 @@
 #!/bin/bash
-set -o errexit
-set -o pipefail
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 
 if [ ! -d "cppunit-1.12.1" ]; then

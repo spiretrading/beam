@@ -1,5 +1,5 @@
 ---
-address: server_address:server_port
+address: local_interface:15050
 message: "hello world"
 rate: 500
 ...

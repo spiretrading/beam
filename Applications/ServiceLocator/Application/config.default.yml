@@ -1,0 +1,11 @@
+---
+server:
+  interface: local_interface:20000
+  addresses: [global_address:20000, local_interface:20000]
+
+data_store:
+  address: local_interface:3306
+  username: spireadmin
+  password: admin_password
+  schema: spire
+...

@@ -1,9 +1,0 @@
----
-server:
-  interface: server_address:20500
-
-service_locator:
-  address: service_locator_address:20000
-  username: registry_service
-  password: admin_password
-...

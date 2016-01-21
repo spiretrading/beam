@@ -1,4 +1,4 @@
 ---
 server:
-  interface: server_address:server_port
+  interface: local_interface:15050
 ...

@@ -16,6 +16,19 @@ namespace Details {
       std::shared_ptr<PythonQueueWriter> monitor) {
     publisher.Monitor(monitor->GetSlot<T>());
   }
+
+  template<typename T, typename SnapshotType>
+  boost::python::object GetSnapshot(
+      SnapshotPublisher<T, SnapshotType>& publisher) {
+    boost::python::object object;
+    publisher.WithSnapshot(
+      [&] (auto snapshot) {
+        if(snapshot.is_initialized()) {
+          object = boost::python::object{*snapshot};
+        }
+      });
+    return object;
+  }
 }
 
   //! Exports the AbstractQueue class.
@@ -46,7 +59,8 @@ namespace Details {
   void ExportSnapshotPublisher(const char* name) {
     boost::python::class_<SnapshotPublisher<T, SnapshotType>,
       boost::noncopyable, boost::python::bases<Publisher<T>,
-      BaseSnapshotPublisher>>(name, boost::python::no_init);
+      BaseSnapshotPublisher>>(name, boost::python::no_init)
+      .def("get_snapshot", &Details::GetSnapshot<T, SnapshotType>);
   }
 
   //! Exports the PythonQueueWriter class.

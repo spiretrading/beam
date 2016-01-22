@@ -9,6 +9,7 @@
 #include "Beam/Python/ServiceLocator.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"
+#include "Beam/Python/Yaml.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/TimerThreadPool.hpp"
 
@@ -48,6 +49,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportServiceLocator();
   ExportThreading();
   ExportTimeService();
+  ExportYaml();
   def("_finalize", &Finalize);
   auto atexit = object{handle<>(PyImport_ImportModule("atexit"))};
   object finalize = scope().attr("_finalize");

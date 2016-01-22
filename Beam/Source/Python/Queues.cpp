@@ -14,6 +14,17 @@ using namespace boost;
 using namespace boost::python;
 using namespace std;
 
+namespace {
+  void FlushPythonQueue(QueueReader<object>& queue, boost::python::list list) {
+    try {
+      while(true) {
+        list.append(queue.Top());
+        queue.Pop();
+      }
+    } catch(const std::exception&) {}
+  }
+}
+
 void Beam::Python::ExportAbstractQueue() {
   class_<AbstractQueue<object>, std::shared_ptr<AbstractQueue<object>>,
     noncopyable, bases<QueueWriter<object>, QueueReader<object>>>(
@@ -64,10 +75,11 @@ void Beam::Python::ExportQueueReader() {
   class_<QueueReader<object>, std::shared_ptr<QueueReader<object>>,
     noncopyable, bases<BaseQueue>>("QueueReader", no_init)
     .add_property("is_empty", &QueueReader<object>::IsEmpty)
-    .def("top", &QueueReader<object>::Top)
+    .def("top", BlockingFunction(&QueueReader<object>::Top))
     .def("pop", &QueueReader<object>::Pop);
   implicitly_convertible<std::shared_ptr<QueueReader<object>>,
     std::shared_ptr<BaseQueue>>();
+  def("flush", &FlushPythonQueue);
 }
 
 void Beam::Python::ExportQueues() {

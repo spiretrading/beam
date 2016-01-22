@@ -21,7 +21,9 @@ target_link_libraries(Python
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug $ENV{PYTHON_LIBRARY_DEBUG_PATH}
-  optimized $ENV{PYTHON_LIBRARY_OPTIMIZED_PATH})
+  optimized $ENV{PYTHON_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{YAML_LIBRARY_DEBUG_PATH}
+  optimized $ENV{YAML_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(Python

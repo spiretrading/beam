@@ -70,9 +70,13 @@ if [ ! -d "yaml-cpp" ]; then
   cd ../../
   mkdir build
   cd build
+  export CFLAGS="-fPIC"
+  export CXXFLAGS="-fPIC"
   cmake ..
   make -j $cores
   make install
+  unset CFLAGS
+  unset CXXFLAGS
   cd ../..
   rm -f yaml-cpp-0.2.6.tar.gz
 fi

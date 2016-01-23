@@ -27,6 +27,8 @@ target_link_libraries(Python
 
 if(UNIX)
   target_link_libraries(Python
+    debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}

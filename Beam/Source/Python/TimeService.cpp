@@ -17,6 +17,7 @@ using namespace Beam::ServiceLocator;
 using namespace Beam::TimeService;
 using namespace boost;
 using namespace boost::local_time;
+using namespace boost::posix_time;
 using namespace boost::python;
 using namespace std;
 
@@ -64,6 +65,13 @@ void Beam::Python::ExportTimeService() {
     borrowed(PyImport_AddModule(nestedName.c_str())))};
   scope().attr("time_service") = nestedModule;
   scope parent = nestedModule;
+  def("get_utc_offset", &GetUtcOffset);
+  def("to_local_time", static_cast<ptime (*)(const ptime&)>(&ToLocalTime));
+  def("to_utc_time", static_cast<ptime (*)(const ptime&)>(&ToUtcTime));
+  def("to_local_time", static_cast<time_duration (*)(const time_duration&)>(
+    &ToLocalTime));
+  def("to_utc_time", static_cast<time_duration (*)(const time_duration&)>(
+    &ToUtcTime));
   def("adjust_date_time", &AdjustDateTime);
   ExportTzDatabase();
   ExportTimeClient();

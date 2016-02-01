@@ -1,0 +1,62 @@
+file(GLOB header_files
+  ./../../../Include/Beam/WebServices/*.hpp)
+file(GLOB source_files
+  ./../../../Source/WebServices/*.cpp)
+
+add_library(WebServices ${header_files} ${source_files})
+set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_target_properties(WebServices PROPERTIES OUTPUT_NAME beam_web_services)
+install(TARGETS WebServices CONFIGURATIONS Debug
+  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
+install(TARGETS WebServices CONFIGURATIONS Release RelWithDebInfo
+  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
+
+file(GLOB test_header_files
+  ./../../../Include/Beam/WebServicesTests/*.hpp)
+file(GLOB test_source_files
+  ./../../../Source/WebServicesTests/*.cpp)
+
+add_library(WebServicesTests ${test_header_files} ${test_source_files})
+set_source_files_properties(${test_header_files}
+  PROPERTIES HEADER_FILE_ONLY TRUE)
+set_target_properties(WebServicesTests PROPERTIES
+  OUTPUT_NAME beam_web_services_tests)
+install(TARGETS WebServicesTests CONFIGURATIONS Debug
+  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
+install(TARGETS WebServicesTests CONFIGURATIONS Release RelWithDebInfo
+  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
+
+add_executable(WebServicesTester
+  ./../../../Source/WebServicesTester/main.cpp)
+target_link_libraries(WebServicesTester WebServicesTests
+  debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
+  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
+  optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
+endif()
+if(UNIX)
+  target_link_libraries(WebServicesTester
+    debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
+    debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
+    debug $ENV{BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
+    debug $ENV{BOOST_REGEX_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_REGEX_LIBRARY_OPTIMIZED_PATH}
+    debug $ENV{BOOST_THREAD_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
+    debug $ENV{BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
+    optimized $ENV{BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
+    pthread rt)
+endif()
+
+add_custom_command(TARGET WebServicesTester POST_BUILD
+  COMMAND WebServicesTester)
+install(TARGETS WebServicesTester CONFIGURATIONS Debug
+  DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Debug)
+install(TARGETS WebServicesTester CONFIGURATIONS Release RelWithDebInfo
+  DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Release)

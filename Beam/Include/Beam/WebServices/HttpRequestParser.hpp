@@ -20,12 +20,10 @@ namespace WebServices {
 
       //! Feeds the parser additional characters to parse.
       /*!
-        \param buffer The buffer containing the characters to parse.
-        \return <code>true</code> iff there is a complete HttpServerRequest
-                available.
+        \param c The first character to feed.
+        \param size The number of characters to feed.
       */
-      template<typename Buffer>
-      bool Feed(const Buffer& buffer);
+      void Feed(const char* c, std::size_t size);
 
       //! Returns the next HttpServerRequest.
       boost::optional<HttpServerRequest> GetNextRequest();
@@ -34,8 +32,7 @@ namespace WebServices {
       std::deque<HttpServerRequest> m_requests;
   };
 
-  template<typename Buffer>
-  bool HttpRequestParser::Feed(const Buffer& buffer) {
+  inline void HttpRequestParser::Feed(const char* c, std::size_t size) {
 
     // TODO
     return false;

@@ -1,14 +1,16 @@
-#ifndef AVALON_HTTPSERVERREQUEST_HPP
-#define AVALON_HTTPSERVERREQUEST_HPP
-#include <map>
+#ifndef BEAM_HTTPSERVERREQUEST_HPP
+#define BEAM_HTTPSERVERREQUEST_HPP
 #include <vector>
-#include <boost/tuple/tuple.hpp>
-#include "Avalon/IO/Buffer.hpp"
-#include "Avalon/WebServices/Cookie.hpp"
-#include "Avalon/WebServices/HttpMethod.hpp"
-#include "Avalon/WebServices/Uri.hpp"
+#include <boost/optional/optional.hpp>
+#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/WebServices/Cookie.hpp"
+#include "Beam/WebServices/HttpHeader.hpp"
+#include "Beam/WebServices/HttpMethod.hpp"
+#include "Beam/WebServices/HttpVersion.hpp"
+#include "Beam/WebServices/Uri.hpp"
+#include "Beam/WebServices/WebServices.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 
   /*! \class HttpServerRequest
@@ -26,15 +28,12 @@ namespace WebServices {
         \param cookies The Cookies.
         \param body The message body.
       */
-      HttpServerRequest(const boost::tuple<int, int>& version,
-        HttpMethod method, const Uri& uri,
-        const std::map<std::string, std::string>& headers,
-        const std::vector<Cookie>& cookies, const IO::Buffer& body);
+      HttpServerRequest(HttpVersion version, HttpMethod method, Uri uri,
+        std::vector<HttpHeader> headers, std::vector<Cookie> cookies,
+        IO::SharedBuffer body);
 
-      ~HttpServerRequest();
-
-      //! Returns the HTTP version in major/minor format.
-      const boost::tuple<int, int>& GetVersion() const;
+      //! Returns the HTTP version.
+      const HttpVersion& GetVersion() const;
 
       //! Returns the HttpMethod to perform.
       HttpMethod GetMethod() const;
@@ -47,13 +46,11 @@ namespace WebServices {
         \param name The name of the header.
         \return The value of the header with the specified <i>name</i>.
       */
-      const std::string& GetHeader(const std::string& name) const;
+      boost::optional<const std::string&> GetHeader(
+        const std::string& name) const;
 
-      //! Returns the headers.
-      const std::map<std::string, std::string>& GetHeaders() const;
-
-      //! Returns the Cookies.
-      const std::vector<Cookie>& GetCookies() const;
+      //! Returns all headers.
+      const std::vector<HttpHeader>& GetHeaders() const;
 
       //! Returns a Cookie with a specified name.
       /*!
@@ -61,20 +58,75 @@ namespace WebServices {
         \return The Cookie with the specified name or an empty Cookie if the
                 Cookie was not found.
       */
-      const Cookie& GetCookie(const std::string& name) const;
+      boost::optional<const Cookie&> GetCookie(const std::string& name) const;
+
+      //! Returns all Cookies.
+      const std::vector<Cookie>& GetCookies() const;
 
       //! Returns the message body.
-      const IO::Buffer& GetBody() const;
+      const IO::SharedBuffer& GetBody() const;
 
     private:
-      boost::tuple<int, int> m_version;
+      HttpVersion m_version;
       HttpMethod m_method;
       Uri m_uri;
-      std::map<std::string, std::string> m_headers;
+      std::vector<HttpHeader> m_headers;
       std::vector<Cookie> m_cookies;
-      IO::Buffer m_body;
+      IO::SharedBuffer m_body;
   };
+
+  inline HttpServerRequest::HttpServerRequest(HttpVersion version,
+      HttpMethod method, Uri uri, std::vector<HttpHeader> headers,
+      std::vector<Cookie> cookies, IO::SharedBuffer body)
+      : m_version{std::move(version)},
+        m_method{std::move(method)},
+        m_uri{std::move(uri)},
+        m_headers{std::move(headers)},
+        m_cookies{std::move(cookies)},
+        m_body{std::move(body)}  {}
+
+  inline const HttpVersion& HttpServerRequest::GetVersion() const {
+    return m_version;
+  }
+
+  inline HttpMethod HttpServerRequest::GetMethod() const {
+    return m_method;
+  }
+
+  inline const Uri& HttpServerRequest::GetUri() const {
+    return m_uri;
+  }
+
+  inline boost::optional<const std::string&> HttpServerRequest::GetHeader(
+      const std::string& name) const {
+    auto header = std::find(m_headers.begin(), m_headers.end(), name);
+    if(header == m_headers.end()) {
+      return boost::none;
+    }
+    return header->GetValue();
+  }
+
+  inline const std::vector<HttpHeader>& HttpServerRequest::GetHeaders() const {
+    return m_headers;
+  }
+
+  inline boost::optional<const Cookie&> HttpServerRequest::GetCookie(
+      const std::string& name) const {
+    auto cookie = std::find(m_cookies.begin(), m_cookies.end(), name);
+    if(cookie == m_cookies.end()) {
+      return boost::none;
+    }
+    return *cookie;
+  }
+
+  inline const std::vector<Cookie>& HttpServerRequest::GetCookies() const {
+    return m_cookies;
+  }
+
+  inline const IO::SharedBuffer& HttpServerRequest::GetBody() const {
+    return m_body;
+  }
 }
 }
 
-#endif // AVALON_HTTPSERVERREQUEST_HPP
+#endif

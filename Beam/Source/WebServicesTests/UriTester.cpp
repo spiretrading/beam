@@ -1,13 +1,16 @@
-#include "Avalon/WebServicesTests/UriTester.hpp"
-#include "Avalon/WebServices/Uri.hpp"
+#include "Beam/WebServicesTests/UriTester.hpp"
+#include <sstream>
+#include <boost/lexical_cast.hpp>
+#include "Beam/WebServices/Uri.hpp"
 
-using namespace Avalon;
-using namespace Avalon::WebServices;
-using namespace Avalon::WebServices::Tests;
+using namespace Beam;
+using namespace Beam::WebServices;
+using namespace Beam::WebServices::Tests;
+using namespace boost;
 using namespace std;
 
 void UriTester::TestSchemeOnly() {
-  Uri uri("tcp:");
+  Uri uri{"tcp:"};
   CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
   CPPUNIT_ASSERT(uri.GetUsername().empty());
   CPPUNIT_ASSERT(uri.GetPassword().empty());
@@ -16,11 +19,11 @@ void UriTester::TestSchemeOnly() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "tcp:");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp:");
 }
 
 void UriTester::TestHostnameOnly() {
-  Uri uri("//localhost");
+  Uri uri{"//localhost"};
   CPPUNIT_ASSERT(uri.GetScheme().empty());
   CPPUNIT_ASSERT(uri.GetUsername().empty());
   CPPUNIT_ASSERT(uri.GetPassword().empty());
@@ -29,11 +32,11 @@ void UriTester::TestHostnameOnly() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "//localhost");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//localhost");
 }
 
 void UriTester::TestSchemeAndEmptyHostname() {
-  Uri uri("tcp:/");
+  Uri uri{"tcp:/"};
   CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
   CPPUNIT_ASSERT(uri.GetUsername().empty());
   CPPUNIT_ASSERT(uri.GetPassword().empty());
@@ -42,11 +45,11 @@ void UriTester::TestSchemeAndEmptyHostname() {
   CPPUNIT_ASSERT(uri.GetPath() == "/");
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "tcp:/");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp:/");
 }
 
 void UriTester::TestSchemeAndHostname() {
-  Uri uri("tcp://localhost");
+  Uri uri{"tcp://localhost"};
   CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
   CPPUNIT_ASSERT(uri.GetUsername().empty());
   CPPUNIT_ASSERT(uri.GetPassword().empty());
@@ -55,11 +58,11 @@ void UriTester::TestSchemeAndHostname() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "tcp://localhost");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp://localhost");
 }
 
 void UriTester::TestUsernameOnly() {
-  Uri uri("//a:@localhost");
+  Uri uri{"//a:@localhost"};
   CPPUNIT_ASSERT(uri.GetScheme().empty());
   CPPUNIT_ASSERT(uri.GetUsername() == "a");
   CPPUNIT_ASSERT(uri.GetPassword().empty());
@@ -68,11 +71,11 @@ void UriTester::TestUsernameOnly() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "//a:@localhost");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//a:@localhost");
 }
 
 void UriTester::TestPasswordOnly() {
-  Uri uri("//:b@localhost");
+  Uri uri{"//:b@localhost"};
   CPPUNIT_ASSERT(uri.GetScheme().empty());
   CPPUNIT_ASSERT(uri.GetUsername().empty());
   CPPUNIT_ASSERT(uri.GetPassword() == "b");
@@ -81,11 +84,11 @@ void UriTester::TestPasswordOnly() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "//:b@localhost");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//:b@localhost");
 }
 
 void UriTester::TestUsernameAndPassword() {
-  Uri uri("//a:b@localhost");
+  Uri uri{"//a:b@localhost"};
   CPPUNIT_ASSERT(uri.GetScheme().empty());
   CPPUNIT_ASSERT(uri.GetUsername() == "a");
   CPPUNIT_ASSERT(uri.GetPassword() == "b");
@@ -94,5 +97,5 @@ void UriTester::TestUsernameAndPassword() {
   CPPUNIT_ASSERT(uri.GetPath().empty());
   CPPUNIT_ASSERT(uri.GetQuery().empty());
   CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(uri.ToString() == "//a:b@localhost");
+  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//a:b@localhost");
 }

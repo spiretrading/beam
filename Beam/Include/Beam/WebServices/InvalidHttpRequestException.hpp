@@ -1,10 +1,10 @@
-#ifndef AVALON_INVALIDHTTPREQUESTEXCEPTION_HPP
-#define AVALON_INVALIDHTTPREQUESTEXCEPTION_HPP
+#ifndef BEAM_INVALIDHTTPREQUESTEXCEPTION_HPP
+#define BEAM_INVALIDHTTPREQUESTEXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
-#include "Avalon/WebServices/WebServices.hpp"
+#include "Beam/WebServices/WebServices.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 
   /*! \class InvalidHttpRequestException
@@ -15,6 +15,9 @@ namespace WebServices {
     public:
 
       //! Constructs an InvalidHttpRequestException.
+      InvalidHttpRequestException();
+
+      //! Constructs an InvalidHttpRequestException.
       /*!
         \param message A message describing the error.
       */
@@ -22,7 +25,16 @@ namespace WebServices {
 
       virtual ~InvalidHttpRequestException() throw();
   };
+
+  inline InvalidHttpRequestException::InvalidHttpRequestException()
+      : InvalidHttpRequestException{"Invalid HTTP Request."} {}
+
+  inline InvalidHttpRequestException::InvalidHttpRequestException(
+      const std::string& message)
+      : std::runtime_error{message} {}
+
+  inline InvalidHttpRequestException::~InvalidHttpRequestException() throw() {}
 }
 }
 
-#endif // AVALON_INVALIDHTTPREQUESTEXCEPTION_HPP
+#endif

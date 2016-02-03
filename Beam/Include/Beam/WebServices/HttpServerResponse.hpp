@@ -1,12 +1,13 @@
-#ifndef AVALON_HTTPSERVERRESPONSE_HPP
-#define AVALON_HTTPSERVERRESPONSE_HPP
-#include <map>
+#ifndef BEAM_HTTPSERVERRESPONSE_HPP
+#define BEAM_HTTPSERVERRESPONSE_HPP
 #include <vector>
-#include "Avalon/IO/Buffer.hpp"
-#include "Avalon/WebServices/Cookie.hpp"
-#include "Avalon/WebServices/HttpStatusCode.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/WebServices/Cookie.hpp"
+#include "Beam/WebServices/HttpHeader.hpp"
+#include "Beam/WebServices/HttpStatusCode.hpp"
+#include "Beam/WebServices/WebServices.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 
   /*! \class HttpServerResponse
@@ -15,52 +16,78 @@ namespace WebServices {
   class HttpServerResponse {
     public:
 
+      //! Constructs an HttpServerResponse with a status of OK.
+      HttpServerResponse();
+
       //! Constructs an HttpServerResponse.
       /*!
-        \param protocol The HttpProtocol from which the request was received.
-        \param request The request being responded to.
+        \param statusCode The HttpStatusCode.
       */
-      HttpServerResponse(HttpProtocol* protocol, HttpServerRequest* request);
-
-      ~HttpServerResponse();
-
-      //! Returns the HttpProtocol from which the request was received.
-      HttpProtocol& GetProtocol();
+      HttpServerResponse(HttpStatusCode statusCode);
 
       //! Sets the status code.
-      void SetStatus(HttpStatusCode statusCode);
+      void SetStatusCode(HttpStatusCode statusCode);
 
-      //! Sets the value of a header, adding it if it doesn't exist.
+      //! Sets a header, adding it if it doesn't exist.
       /*!
-        \param name The name of the header.
-        \param value The header's value.
+        \param header The header to set.
       */
-      void SetHeader(const std::string& name, const std::string& value);
+      void SetHeader(HttpHeader header);
+
+      //! Sets a Cookie, adding it if it doesn't exist.
+      /*!
+        \param cookie The Cookie to set.
+      */
+      void SetCookie(Cookie cookie);
 
       //! Sets the body.
-      void SetBody(const IO::Buffer& body);
-
-      //! Adds a Cookie.
-      /*!
-        \param cookie The Cookie to add.
-      */
-      void AddCookie(const Cookie& cookie);
-
-      //! Serializes this response into its raw representation.
-      IO::Buffer Serialize();
-
-      //! Sends the response and deletes this object.
-      void SendResponse();
+      void SetBody(IO::SharedBuffer body);
 
     private:
-      HttpProtocol* m_protocol;
-      boost::scoped_ptr<HttpServerRequest> m_request;
       HttpStatusCode m_statusCode;
-      std::map<std::string, std::string> m_headers;
+      std::vector<HttpHeader> m_headers;
       std::vector<Cookie> m_cookies;
-      IO::Buffer m_body;
+      IO::SharedBuffer m_body;
   };
+
+  inline HttpServerResponse::HttpServerResponse()
+      : HttpServerResponse{HttpStatusCode::OK} {}
+
+  inline HttpServerResponse::HttpServerResponse(HttpStatusCode statusCode)
+      : m_statusCode{statusCode} {}
+
+  inline void HttpServerResponse::SetStatusCode(HttpStatusCode statusCode) {
+    m_statusCode = statusCode;
+  }
+
+  inline void HttpServerResponse::SetHeader(HttpHeader header) {
+    auto h = std::find_if(m_headers.begin(), m_headers.end(),
+      [&] (const HttpHeader& value) {
+        return value.GetName() == header.GetName();
+      });
+    if(h == m_headers.end()) {
+      m_headers.push_back(std::move(header));
+    } else {
+      *h = std::move(header);
+    }
+  }
+
+  inline void HttpServerResponse::SetCookie(Cookie cookie) {
+    auto c = std::find_if(m_cookies.begin(), m_cookies.end(),
+      [&] (const Cookie& value) {
+        return value.GetName() == cookie.GetName();
+      });
+    if(c == m_cookies.end()) {
+      m_cookies.push_back(std::move(cookie));
+    } else {
+      *c = std::move(cookie);
+    }
+  }
+
+  inline void HttpServerResponse::SetBody(IO::SharedBuffer body) {
+    m_body = std::move(body);
+  }
 }
 }
 
-#endif // AVALON_HTTPSERVERRESPONSE_HPP
+#endif

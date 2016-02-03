@@ -1,9 +1,10 @@
-#ifndef AVALON_URITESTER_HPP
-#define AVALON_URITESTER_HPP
+#ifndef BEAM_URITESTER_HPP
+#define BEAM_URITESTER_HPP
 #include <cppunit/extensions/HelperMacros.h>
-#include "Avalon/WebServicesTests/WebServicesTests.hpp"
+#include "Beam/Utilities/BeamWorkaround.hpp"
+#include "Beam/WebServicesTests/WebServicesTests.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 namespace Tests {
 
@@ -44,10 +45,10 @@ namespace Tests {
         CPPUNIT_TEST(TestUsernameOnly);
         CPPUNIT_TEST(TestPasswordOnly);
         CPPUNIT_TEST(TestUsernameAndPassword);
-      CPPUNIT_TEST_SUITE_END();
+      BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }
 }
 }
 
-#endif // AVALON_URITESTER_HPP
+#endif

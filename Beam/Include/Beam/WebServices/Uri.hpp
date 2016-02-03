@@ -4,6 +4,8 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <boost/exception/exception.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -127,7 +129,12 @@ namespace WebServices {
     if(matcher[PORT_CAPTURE].str().empty()) {
       m_port = 0;
     } else {
-      m_port = std::stoul(matcher[PORT_CAPTURE].str());
+      auto port = std::stoul(matcher[PORT_CAPTURE].str());
+      if(port > std::numeric_limits<unsigned short>::max()) {
+        BOOST_THROW_EXCEPTION(MalformedUriException{"URI is not well formed."});
+      } else {
+        m_port = static_cast<unsigned short>(port);
+      }
     }
     m_scheme = matcher[SCHEME_CAPTURE];
     m_username = matcher[USERNAME_CAPTURE];

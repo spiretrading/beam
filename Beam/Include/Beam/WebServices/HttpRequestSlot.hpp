@@ -1,8 +1,9 @@
-#ifndef AVALON_HTTPREQUESTSLOT_HPP
-#define AVALON_HTTPREQUESTSLOT_HPP
-#include "Avalon/WebServices/WebServices.hpp"
+#ifndef BEAM_HTTPREQUESTSLOT_HPP
+#define BEAM_HTTPREQUESTSLOT_HPP
+#include <functional>
+#include "Beam/WebServices/WebServices.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 
   /*! \struct HttpRequestSlot
@@ -10,16 +11,23 @@ namespace WebServices {
    */
   struct HttpRequestSlot {
 
+    //! Defines the function used to match an HTTP request.
+    /*!
+      \param request The HttpServerRequest to test.
+      \return <code>true</code> iff the <i>request</i> matches the predicate.
+    */
+    using Predicate = std::function<bool (const HttpServerRequest& request)>;
+
     //! Defines the callback invoked if a predicate matches.
     /*!
       \param request The request that satisfied the predicate.
       \param response The response for the specified <i>request</i>.
     */
-    typedef boost::function<void (HttpServerRequest*, HttpServerResponse*)>
-      Slot;
+    using Slot = std::function<HttpServerResponse (
+      const HttpServerRequest& request)>;
 
     //! The predicate to match.
-    HttpRequestPredicate m_predicate;
+    Predicate m_predicate;
 
     //! The slot to call if the predicate matches.
     Slot m_slot;
@@ -29,9 +37,13 @@ namespace WebServices {
       \param predicate The predicate that must be satisfied.
       \param slot The slot to call if the <i>predicate</i> is satisfied.
     */
-    HttpRequestSlot(const HttpRequestPredicate& predicate, const Slot& slot);
+    HttpRequestSlot(Predicate predicate, Slot slot);
   };
+
+  inline HttpRequestSlot::HttpRequestSlot(Predicate predicate, Slot slot)
+      : m_predicate{std::move(predicate)},
+        m_slot{std::move(slot)} {}
 }
 }
 
-#endif // AVALON_HTTPREQUESTSLOT_HPP
+#endif

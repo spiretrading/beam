@@ -1,49 +1,56 @@
-#ifndef AVALON_HTTPREQUESTPARSER_HPP
-#define AVALON_HTTPREQUESTPARSER_HPP
-#include <map>
-#include <vector>
-#include <boost/tuple/tuple.hpp>
-#include "Avalon/IO/Buffer.hpp"
-#include "Avalon/WebServices/HttpMethod.hpp"
-#include "Avalon/WebServices/Uri.hpp"
+#ifndef BEAM_HTTPREQUESTPARSER_HPP
+#define BEAM_HTTPREQUESTPARSER_HPP
+#include <deque>
+#include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
+#include "Beam/WebServices/HttpServerRequest.hpp"
+#include "Beam/WebServices/WebServices.hpp"
 
-namespace Avalon {
+namespace Beam {
 namespace WebServices {
 
   /*! \class HttpRequestParser
       \brief Parses an HTTP request.
    */
-  class HttpRequestParser {
+  class HttpRequestParser : private boost::noncopyable {
     public:
 
       //! Constructs an HttpRequestParser.
-      HttpRequestParser();
+      HttpRequestParser() = default;
 
-      ~HttpRequestParser();
-
-      //! Returns the Buffer storing the HTTP request.
-      IO::Buffer& GetBuffer();
-
-      //! Parses the remaining data stored by this parser.
+      //! Feeds the parser additional characters to parse.
       /*!
-        \return The parsed HTTP request, or <code>NULL</code> iff the currently
-                stored data buffer represents an incomplete request.
-        \throw InvalidHttpRequestException if the request is invalid.
+        \param buffer The buffer containing the characters to parse.
+        \return <code>true</code> iff there is a complete HttpServerRequest
+                available.
       */
-      HttpServerRequest* Parse();
+      template<typename Buffer>
+      bool Feed(const Buffer& buffer);
+
+      //! Returns the next HttpServerRequest.
+      boost::optional<HttpServerRequest> GetNextRequest();
 
     private:
-      IO::Buffer m_buffer;
-      int m_readOffset;
-      HttpMethod m_method;
-      Uri m_uri;
-      boost::tuple<int, int> m_version;
-      std::map<std::string, std::string> m_headers;
-      std::vector<Cookie> m_cookies;
-      IO::Buffer m_body;
-      int m_state;
+      std::deque<HttpServerRequest> m_requests;
   };
+
+  template<typename Buffer>
+  bool HttpRequestParser::Feed(const Buffer& buffer) {
+
+    // TODO
+    return false;
+  }
+
+  inline boost::optional<HttpServerRequest> HttpRequestParser::
+      GetNextRequest() {
+    if(m_requests.empty()) {
+      return boost::none;
+    }
+    auto request = std::move(m_requests.front());
+    m_requests.pop_front();
+    return std::move(request);
+  }
 }
 }
 
-#endif // AVALON_HTTPREQUESTPARSER_HPP
+#endif

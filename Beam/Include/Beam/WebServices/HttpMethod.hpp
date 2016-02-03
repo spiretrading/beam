@@ -1,7 +1,6 @@
 #ifndef BEAM_HTTPMETHOD_HPP
 #define BEAM_HTTPMETHOD_HPP
 #include <ostream>
-#include "Beam/Collections/Enum.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -10,7 +9,7 @@ namespace WebServices {
   /*! \enum HttpMethod
       \brief Enumerates HTTP methods.
    */
-  BEAM_ENUM(HttpMethod,
+  enum class HttpMethod {
 
     //! HEAD method.
     HEAD,
@@ -37,7 +36,8 @@ namespace WebServices {
     CONNECT,
 
     //! PATCH method.
-    PATCH);
+    PATCH
+  };
 
   inline std::ostream& operator <<(std::ostream& sink, HttpMethod method) {
     if(method == HttpMethod::HEAD) {

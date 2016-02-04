@@ -99,7 +99,10 @@ namespace WebServices {
 
   inline boost::optional<const std::string&> HttpServerRequest::GetHeader(
       const std::string& name) const {
-    auto header = std::find(m_headers.begin(), m_headers.end(), name);
+    auto header = std::find_if(m_headers.begin(), m_headers.end(),
+      [&] (const HttpHeader& value) {
+        return value.GetName() == name;
+      });
     if(header == m_headers.end()) {
       return boost::none;
     }
@@ -112,7 +115,10 @@ namespace WebServices {
 
   inline boost::optional<const Cookie&> HttpServerRequest::GetCookie(
       const std::string& name) const {
-    auto cookie = std::find(m_cookies.begin(), m_cookies.end(), name);
+    auto cookie = std::find_if(m_cookies.begin(), m_cookies.end(),
+      [&] (const Cookie& value) {
+        return value.GetName() == name;
+      });
     if(cookie == m_cookies.end()) {
       return boost::none;
     }

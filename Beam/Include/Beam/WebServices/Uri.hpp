@@ -26,6 +26,13 @@ namespace WebServices {
       */
       Uri(const std::string& source);
 
+      //! Constructs a URI from a sequence.
+      /*!
+        \param first The character to parse.
+        \param last One past the last character to parse.
+      */
+      Uri(const char* first, const char* last);
+
       //! Returns the scheme.
       const std::string& GetScheme() const;
 
@@ -109,7 +116,10 @@ namespace WebServices {
   inline Uri::Uri()
       : m_port{0} {}
 
-  inline Uri::Uri(const std::string& source) {
+  inline Uri::Uri(const std::string& source)
+      : Uri{source.c_str(), source.c_str() + source.size()} {}
+
+  inline Uri::Uri(const char* first, const char* last) {
     static const std::regex URI_PATTERN{
       "^((\\w+):)?(\\/\\/(((\\w*):(\\w*)@)?"
       "([^\\/\\?:]*)(:(\\d+))?))?(\\/?([^\\/\\?#][^\\?#]*)"
@@ -122,8 +132,8 @@ namespace WebServices {
     const auto PATHNAME_CAPTURE = 11;
     const auto QUERY_CAPTURE = 14;
     const auto FRAGMENT_CAPTURE = 16;
-    std::smatch matcher;
-    if(!std::regex_match(source, matcher, URI_PATTERN)) {
+    std::cmatch matcher;
+    if(!std::regex_match(first, last, matcher, URI_PATTERN)) {
       BOOST_THROW_EXCEPTION(MalformedUriException{"URI is not well formed."});
     }
     if(matcher[PORT_CAPTURE].str().empty()) {
@@ -145,35 +155,35 @@ namespace WebServices {
     m_fragment = matcher[FRAGMENT_CAPTURE];;
   }
 
-  const std::string& Uri::GetScheme() const {
+  inline const std::string& Uri::GetScheme() const {
     return m_scheme;
   }
 
-  const std::string& Uri::GetUsername() const {
+  inline const std::string& Uri::GetUsername() const {
     return m_username;
   }
 
-  const std::string& Uri::GetPassword() const {
+  inline const std::string& Uri::GetPassword() const {
     return m_password;
   }
 
-  const std::string& Uri::GetHostname() const {
+  inline const std::string& Uri::GetHostname() const {
     return m_hostname;
   }
 
-  unsigned short Uri::GetPort() const {
+  inline unsigned short Uri::GetPort() const {
     return m_port;
   }
 
-  const std::string& Uri::GetPath() const {
+  inline const std::string& Uri::GetPath() const {
     return m_path;
   }
 
-  const std::string& Uri::GetQuery() const {
+  inline const std::string& Uri::GetQuery() const {
     return m_query;
   }
 
-  const std::string& Uri::GetFragment() const {
+  inline const std::string& Uri::GetFragment() const {
     return m_fragment;
   }
 

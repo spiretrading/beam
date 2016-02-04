@@ -36,7 +36,6 @@ namespace Tests {
       void TestUsernameAndPassword();
 
     private:
-
       CPPUNIT_TEST_SUITE(UriTester);
         CPPUNIT_TEST(TestSchemeOnly);
         CPPUNIT_TEST(TestHostnameOnly);

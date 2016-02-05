@@ -3,7 +3,7 @@
 #include <deque>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
-#include "Beam/Pointers/Out.hpp"
+#include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpServerRequest.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/InvalidHttpRequestException.hpp"
@@ -36,23 +36,33 @@ namespace WebServices {
       enum class ParserState {
         METHOD,
         HEADER,
+        BODY,
         ERR
       };
       ParserState m_parserState;
       HttpMethod m_method;
       boost::optional<Uri> m_uri;
       HttpVersion m_version;
+      std::size_t m_contentLength;
+      std::vector<HttpHeader> m_headers;
+      std::vector<Cookie> m_cookies;
+      IO::SharedBuffer m_body;
       std::deque<HttpServerRequest> m_requests;
       IO::SharedBuffer m_buffer;
 
       void ParseMethod(const char* c, std::size_t size);
       void ParseHeader(const char* c, std::size_t size);
+      void ParseCookie(const char* source, int length);
+      void ParseCookies(const std::string& source);
+      void ParseBody(const char* c);
   };
 
   inline HttpRequestParser::HttpRequestParser()
-      : m_parserState{ParserState::METHOD} {}
+      : m_parserState{ParserState::METHOD},
+        m_contentLength{0} {}
 
   inline void HttpRequestParser::Feed(const char* c, std::size_t size) {
+    const auto LINE_LENGTH = 2;
     if(m_parserState == ParserState::METHOD) {
       auto end = static_cast<const char*>(std::memchr(c, '\r', size));
       if(end == nullptr) {
@@ -81,6 +91,11 @@ namespace WebServices {
       if(end == nullptr) {
         m_buffer.Append(c, size);
         return;
+      } else if(end == c + 1) {
+        ++c;
+        --size;
+        m_parserState = ParserState::BODY;
+        break;
       }
       if(m_buffer.IsEmpty()) {
         ParseHeader(c, (end - c));
@@ -95,6 +110,41 @@ namespace WebServices {
       size -= (end - c) + 1;
       c = end + 1;
       m_parserState = ParserState::HEADER;
+    }
+    if(m_parserState == ParserState::BODY) {
+      if(size == 0) {
+        return;
+      }
+      if(m_buffer.GetSize() + size < m_contentLength + LINE_LENGTH) {
+        m_buffer.Append(c, size);
+        return;
+      }
+      if(m_buffer.IsEmpty()) {
+        ParseBody(c);
+        size -= m_contentLength + LINE_LENGTH;
+        c += m_contentLength + LINE_LENGTH;
+      } else {
+        auto length = (m_contentLength + LINE_LENGTH) - m_buffer.GetSize();
+        m_buffer.Append(c, length);
+        ParseBody(c);
+        m_buffer.Reset();
+        size -= length;
+        c += length;
+      }
+      if(m_parserState == ParserState::ERR) {
+        return;
+      }
+      m_requests.emplace_back(m_version, m_method, std::move(*m_uri),
+        std::move(m_headers), std::move(m_cookies), std::move(m_body));
+      m_uri.reset();
+      m_headers.clear();
+      m_cookies.clear();
+      m_body.Reset();
+      m_contentLength = 0;
+      m_parserState = ParserState::METHOD;
+      if(size != 0) {
+        m_buffer.Append(c, size);
+      }
     }
   }
 
@@ -152,6 +202,73 @@ namespace WebServices {
   }
 
   inline void HttpRequestParser::ParseHeader(const char* c, std::size_t size) {
+    if(*c != '\n') {
+      m_parserState = ParserState::ERR;
+      return;
+    }
+    ++c;
+    --size;
+    auto nameEnd = static_cast<const char*>(std::memchr(c, ':', size));
+    if(nameEnd == nullptr) {
+      m_parserState = ParserState::ERR;
+      return;
+    }
+    auto nameLength = static_cast<unsigned int>(nameEnd - c);
+    std::string name{c, nameLength};
+    c += nameLength + 1;
+    size -= nameLength + 1;
+    if(*c != ' ') {
+      m_parserState = ParserState::ERR;
+      return;
+    }
+    ++c;
+    --size;
+    std::string value{c, size};
+    if(m_contentLength == 0) {
+      if(name == "Content-Length") {
+        m_contentLength = std::stoul(value);
+      }
+    }
+    if(m_cookies.empty() && name == "Cookie") {
+      ParseCookies(value);
+    } else {
+      m_headers.emplace_back(std::move(name), std::move(value));
+    }
+  }
+
+  inline void HttpRequestParser::ParseCookie(const char* source, int length) {
+    auto separator = static_cast<const char*>(std::memchr(source, '=', length));
+    if(separator == nullptr) {
+      m_cookies.emplace_back(std::string{},
+        std::string{source, static_cast<unsigned int>(length)});
+    } else {
+      m_cookies.emplace_back(std::string{source, separator},
+        std::string{separator + 1, static_cast<unsigned int>(length) -
+        (separator - source) - 1});
+    }
+  }
+
+  inline void HttpRequestParser::ParseCookies(const std::string& source) {
+    std::string::size_type front = 0;
+    while(front < source.size()) {
+      auto separator = source.find(';', front);
+      if(separator == std::string::npos) {
+        separator = source.size();
+      }
+      ParseCookie(source.c_str() + front, separator - front);
+      front = separator + 2;
+    }
+  }
+
+  inline void HttpRequestParser::ParseBody(const char* c) {
+    auto size = m_contentLength + 2;
+    if(*c != '\r' || *(c + 1) != '\n') {
+      m_parserState = ParserState::ERR;
+      return;
+    }
+    if(m_contentLength != 0) {
+      m_body.Append(c + 2, m_contentLength);
+    }
   }
 }
 }

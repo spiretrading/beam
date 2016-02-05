@@ -26,6 +26,20 @@ namespace WebServices {
       //! Returns the minor version number.
       constexpr int GetMinor() const;
 
+      //! Compares two HttpVersion's for equality.
+      /*!
+        \param version The HttpVersion to compare to.
+        \return <code>true</code> iff the two HttpVersion's are equal.
+      */
+      constexpr bool operator ==(const HttpVersion& version) const;
+
+      //! Compares two HttpVersion's for inequality.
+      /*!
+        \param version The HttpVersion to compare to.
+        \return <code>true</code> iff the two HttpVersion's are not equal.
+      */
+      constexpr bool operator !=(const HttpVersion& version) const;
+
     private:
       int m_major;
       int m_minor;
@@ -51,6 +65,14 @@ namespace WebServices {
 
   constexpr int HttpVersion::GetMinor() const {
     return m_minor;
+  }
+
+  constexpr bool HttpVersion::operator ==(const HttpVersion& version) const {
+    return m_major == version.m_major && m_minor == version.m_minor;
+  }
+
+  constexpr bool HttpVersion::operator !=(const HttpVersion& version) const {
+    return !(*this == version);
   }
 
   constexpr HttpVersion::HttpVersion(int major, int minor)

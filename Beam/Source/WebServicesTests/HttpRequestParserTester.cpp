@@ -9,6 +9,6 @@ using namespace std;
 
 void HttpRequestParserTester::TestValidRequest() {
   HttpRequestParser parser;
-  auto request = "GET /home/ ";
+  auto request = "GET /home/ HTTP/1.1\r\n";
   parser.Feed(request, strlen(request));
 }

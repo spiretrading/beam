@@ -11,6 +11,7 @@
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
+#include "Beam/WebServices/HttpServerResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -118,7 +119,7 @@ namespace WebServices {
       clientRoutines.Spawn(
         [=, &clients] {
           try {
-            channel->Open();
+            channel->GetConnection().Open();
           } catch(const std::exception&) {
             std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
             return;
@@ -136,7 +137,7 @@ namespace WebServices {
                 auto foundSlot = false;
                 for(auto& slot : m_slots) {
                   if(slot.m_predicate(*request)) {
-                    auto response = slot.m_slot(request);
+                    auto response = slot.m_slot(*request);
                     response.Encode(Store(responseBuffer));
                     channel->GetWriter().Write(responseBuffer);
                     responseBuffer.Reset();
@@ -151,13 +152,13 @@ namespace WebServices {
               }
             }
           } catch(const std::exception&) {}
-          clients.Erase(client);
+          clients.Erase(channel);
         });
     }
     std::unordered_set<std::shared_ptr<Channel>> pendingClients;
     clients.Swap(pendingClients);
     for(auto& client : pendingClients) {
-      client->Close();
+      client->GetConnection().Close();
     }
   }
 }

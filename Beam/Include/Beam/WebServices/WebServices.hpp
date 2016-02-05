@@ -6,7 +6,7 @@ namespace WebServices {
   class Cookie;
   class HttpHeader;
   enum class HttpMethod;
-  class HttpRequestSlot;
+  struct HttpRequestSlot;
   class HttpServerRequest;
   class HttpServerResponse;
   enum class HttpStatusCode;

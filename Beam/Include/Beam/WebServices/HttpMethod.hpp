@@ -2,6 +2,9 @@
 #define BEAM_HTTPMETHOD_HPP
 #include <ostream>
 #include "Beam/WebServices/WebServices.hpp"
+#ifdef DELETE
+  #undef DELETE
+#endif
 
 namespace Beam {
 namespace WebServices {

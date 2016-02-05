@@ -17,6 +17,9 @@ namespace WebServices {
       //! Returns HTTP version 1.1
       static HttpVersion Version1_1();
 
+      //! Constructs a default HttpVersion.
+      constexpr HttpVersion();
+
       //! Returns the major version number.
       constexpr int GetMajor() const;
 
@@ -37,6 +40,10 @@ namespace WebServices {
   inline HttpVersion HttpVersion::Version1_1() {
     return HttpVersion{1, 1};
   }
+
+  constexpr HttpVersion::HttpVersion()
+      : m_major{1},
+        m_minor{1} {}
 
   constexpr int HttpVersion::GetMajor() const {
     return m_major;

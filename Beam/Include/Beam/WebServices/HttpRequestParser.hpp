@@ -144,6 +144,8 @@ namespace WebServices {
       m_parserState = ParserState::METHOD;
       if(size != 0) {
         m_buffer.Append(c, size);
+        auto tempBuffer = std::move(m_buffer);
+        Feed(tempBuffer.GetData(), tempBuffer.GetSize());
       }
     }
   }

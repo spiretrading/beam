@@ -103,6 +103,7 @@ namespace WebServices {
     SynchronizedUnorderedSet<std::shared_ptr<Channel>> clients;
     Routines::RoutineHandlerGroup clientRoutines;
     HttpServerResponse NOT_FOUND_RESPONSE{HttpStatusCode::NOT_FOUND};
+    NOT_FOUND_RESPONSE.SetHeader({"Content-Length", "0"});
     typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
     NOT_FOUND_RESPONSE.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
     while(true) {

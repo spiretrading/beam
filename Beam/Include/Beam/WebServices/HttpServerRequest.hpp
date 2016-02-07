@@ -2,7 +2,10 @@
 #define BEAM_HTTPSERVERREQUEST_HPP
 #include <vector>
 #include <boost/optional/optional.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Threading/Sync.hpp"
 #include "Beam/WebServices/Cookie.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpMethod.hpp"
@@ -12,6 +15,42 @@
 
 namespace Beam {
 namespace WebServices {
+
+  /*! \enum ConnectionHeader
+      \brief The set of acceptable Connection header values.
+   */
+  enum class ConnectionHeader {
+
+    //! Close the connection.
+    CLOSE,
+
+    //! Keep the connection open.
+    KEEP_ALIVE,
+
+    //! Upgrade the connection.
+    UPGRADE
+  };
+
+  /*! \struct SpecialHeaders
+      \brief Keeps info about specially designated headers.
+   */
+  struct SpecialHeaders {
+
+    //! The size of the body.
+    std::size_t m_contentLength;
+
+    //! Whether to keep the connection open.
+    ConnectionHeader m_connection;
+
+    //! Constructs a default SpecialHeaders field.
+    SpecialHeaders();
+
+    //! Constructs a default SpecialHeaders field for a specified HTTP version.
+    /*!
+      \param version The HTTP version to get the default headers for.
+    */
+    SpecialHeaders(const HttpVersion& version);
+  };
 
   /*! \class HttpServerRequest
       \brief Represents an HTTP request received by the HttpServer.
@@ -25,12 +64,13 @@ namespace WebServices {
         \param method The HTTP method.
         \param uri The URI to perform the <i>method</i> on.
         \param headers The request headers.
+        \param specialHeaders The set of specially designated headers.
         \param cookies The Cookies.
         \param body The message body.
       */
       HttpServerRequest(HttpVersion version, HttpMethod method, Uri uri,
-        std::vector<HttpHeader> headers, std::vector<Cookie> cookies,
-        IO::SharedBuffer body);
+        std::vector<HttpHeader> headers, const SpecialHeaders& specialHeaders,
+        std::vector<Cookie> cookies, IO::SharedBuffer body);
 
       //! Returns the HTTP version.
       const HttpVersion& GetVersion() const;
@@ -52,6 +92,9 @@ namespace WebServices {
       //! Returns all headers.
       const std::vector<HttpHeader>& GetHeaders() const;
 
+      //! Returns the special headers.
+      const SpecialHeaders& GetSpecialHeaders() const;
+
       //! Returns a Cookie with a specified name.
       /*!
         \param name The name of the Cookie.
@@ -71,19 +114,37 @@ namespace WebServices {
       HttpMethod m_method;
       Uri m_uri;
       std::vector<HttpHeader> m_headers;
+      SpecialHeaders m_specialHeaders;
       std::vector<Cookie> m_cookies;
       IO::SharedBuffer m_body;
+      mutable Threading::Sync<std::string> m_contentLength;
   };
+
+  inline SpecialHeaders::SpecialHeaders()
+      : m_contentLength{0},
+        m_connection{ConnectionHeader::KEEP_ALIVE} {}
+
+  inline SpecialHeaders::SpecialHeaders(const HttpVersion& version) {
+    if(version == HttpVersion::Version1_1()) {
+      m_contentLength = 0;
+      m_connection = ConnectionHeader::KEEP_ALIVE;
+    } else {
+      m_contentLength = 0;
+      m_connection = ConnectionHeader::CLOSE;
+    }
+  }
 
   inline HttpServerRequest::HttpServerRequest(HttpVersion version,
       HttpMethod method, Uri uri, std::vector<HttpHeader> headers,
-      std::vector<Cookie> cookies, IO::SharedBuffer body)
+      const SpecialHeaders& specialHeaders, std::vector<Cookie> cookies,
+      IO::SharedBuffer body)
       : m_version{std::move(version)},
         m_method{std::move(method)},
         m_uri{std::move(uri)},
         m_headers{std::move(headers)},
+        m_specialHeaders{specialHeaders},
         m_cookies{std::move(cookies)},
-        m_body{std::move(body)}  {}
+        m_body{std::move(body)} {}
 
   inline const HttpVersion& HttpServerRequest::GetVersion() const {
     return m_version;
@@ -104,13 +165,38 @@ namespace WebServices {
         return value.GetName() == name;
       });
     if(header == m_headers.end()) {
-      return boost::none;
+      if(name == "Content-Length") {
+        return Threading::With(m_contentLength,
+          [&] (auto& contentLength) -> std::string& {
+            if(contentLength.empty()) {
+              contentLength = std::to_string(m_specialHeaders.m_contentLength);
+            }
+            return contentLength;
+          });
+      } else if(name == "Connection") {
+        if(m_specialHeaders.m_connection == ConnectionHeader::KEEP_ALIVE) {
+          static const std::string VALUE = "keep-alive";
+          return VALUE;
+        } else if(m_specialHeaders.m_connection == ConnectionHeader::CLOSE) {
+          static const std::string VALUE = "close";
+          return VALUE;
+        } else {
+          static const std::string VALUE = "Upgrade";
+          return VALUE;
+        }
+      } else {
+        return boost::none;
+      }
     }
     return header->GetValue();
   }
 
   inline const std::vector<HttpHeader>& HttpServerRequest::GetHeaders() const {
     return m_headers;
+  }
+
+  inline const SpecialHeaders& HttpServerRequest::GetSpecialHeaders() const {
+    return m_specialHeaders;
   }
 
   inline boost::optional<const Cookie&> HttpServerRequest::GetCookie(

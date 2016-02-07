@@ -43,8 +43,8 @@ namespace WebServices {
       HttpMethod m_method;
       boost::optional<Uri> m_uri;
       HttpVersion m_version;
-      std::size_t m_contentLength;
       std::vector<HttpHeader> m_headers;
+      SpecialHeaders m_specialHeaders;
       std::vector<Cookie> m_cookies;
       IO::SharedBuffer m_body;
       std::deque<HttpServerRequest> m_requests;
@@ -58,8 +58,7 @@ namespace WebServices {
   };
 
   inline HttpRequestParser::HttpRequestParser()
-      : m_parserState{ParserState::METHOD},
-        m_contentLength{0} {}
+      : m_parserState{ParserState::METHOD} {}
 
   inline void HttpRequestParser::Feed(const char* c, std::size_t size) {
     const auto LINE_LENGTH = 2;
@@ -115,16 +114,18 @@ namespace WebServices {
       if(size == 0) {
         return;
       }
-      if(m_buffer.GetSize() + size < m_contentLength + LINE_LENGTH) {
+      if(m_buffer.GetSize() + size <
+          m_specialHeaders.m_contentLength + LINE_LENGTH) {
         m_buffer.Append(c, size);
         return;
       }
       if(m_buffer.IsEmpty()) {
         ParseBody(c);
-        size -= m_contentLength + LINE_LENGTH;
-        c += m_contentLength + LINE_LENGTH;
+        size -= m_specialHeaders.m_contentLength + LINE_LENGTH;
+        c += m_specialHeaders.m_contentLength + LINE_LENGTH;
       } else {
-        auto length = (m_contentLength + LINE_LENGTH) - m_buffer.GetSize();
+        auto length = (m_specialHeaders.m_contentLength + LINE_LENGTH) -
+          m_buffer.GetSize();
         m_buffer.Append(c, length);
         ParseBody(c);
         m_buffer.Reset();
@@ -135,12 +136,12 @@ namespace WebServices {
         return;
       }
       m_requests.emplace_back(m_version, m_method, std::move(*m_uri),
-        std::move(m_headers), std::move(m_cookies), std::move(m_body));
+        std::move(m_headers), m_specialHeaders, std::move(m_cookies),
+        std::move(m_body));
       m_uri.reset();
       m_headers.clear();
       m_cookies.clear();
       m_body.Reset();
-      m_contentLength = 0;
       m_parserState = ParserState::METHOD;
       if(size != 0) {
         m_buffer.Append(c, size);
@@ -201,6 +202,7 @@ namespace WebServices {
     } else {
       m_parserState = ParserState::ERR;
     }
+    m_specialHeaders = SpecialHeaders{m_version};
   }
 
   inline void HttpRequestParser::ParseHeader(const char* c, std::size_t size) {
@@ -226,15 +228,23 @@ namespace WebServices {
     ++c;
     --size;
     std::string value{c, size};
-    if(m_contentLength == 0) {
-      if(name == "Content-Length") {
-        m_contentLength = std::stoul(value);
+    if(m_specialHeaders.m_contentLength == 0 &&
+        name == "Content-Length") {
+      m_specialHeaders.m_contentLength = std::stoul(value);
+    } else if(name == "Connection") {
+      if(value == "keep-alive") {
+        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
+      } else if(value == "Upgrade") {
+        m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
+      } else {
+        m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
       }
-    }
-    if(m_cookies.empty() && name == "Cookie") {
-      ParseCookies(value);
     } else {
-      m_headers.emplace_back(std::move(name), std::move(value));
+      if(m_cookies.empty() && name == "Cookie") {
+        ParseCookies(value);
+      } else {
+        m_headers.emplace_back(std::move(name), std::move(value));
+      }
     }
   }
 
@@ -263,13 +273,13 @@ namespace WebServices {
   }
 
   inline void HttpRequestParser::ParseBody(const char* c) {
-    auto size = m_contentLength + 2;
+    auto size = m_specialHeaders.m_contentLength + 2;
     if(*c != '\r' || *(c + 1) != '\n') {
       m_parserState = ParserState::ERR;
       return;
     }
-    if(m_contentLength != 0) {
-      m_body.Append(c + 2, m_contentLength);
+    if(m_specialHeaders.m_contentLength != 0) {
+      m_body.Append(c + 2, m_specialHeaders.m_contentLength);
     }
   }
 }

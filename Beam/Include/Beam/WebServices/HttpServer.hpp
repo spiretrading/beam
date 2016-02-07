@@ -152,7 +152,13 @@ namespace WebServices {
                 if(!foundSlot) {
                   channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
                 }
-                request = parser.GetNextRequest();
+                if(request->GetSpecialHeaders().m_connection ==
+                    ConnectionHeader::CLOSE) {
+                  channel->GetConnection().Close();
+                  break;
+                } else {
+                  request = parser.GetNextRequest();
+                }
               }
             }
           } catch(const std::exception&) {}

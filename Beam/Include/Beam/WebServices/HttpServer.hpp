@@ -35,9 +35,11 @@ namespace WebServices {
       //! Constructs an HttpServer.
       /*!
         \param serverConnection Initializes the ServerConnection.
+        \param slots The slots handling the HttpServerRequests.
       */
       template<typename ServerConnectionForward>
-      HttpServer(ServerConnectionForward&& serverConnection);
+      HttpServer(ServerConnectionForward&& serverConnection,
+        std::vector<HttpRequestSlot> slots);
 
       ~HttpServer();
 
@@ -58,9 +60,11 @@ namespace WebServices {
   template<typename ServerConnectionType>
   template<typename ServerConnectionForward>
   HttpServer<ServerConnectionType>::HttpServer(
-      ServerConnectionForward&& serverConnection)
+      ServerConnectionForward&& serverConnection,
+      std::vector<HttpRequestSlot> slots)
       : m_serverConnection{std::forward<ServerConnectionForward>(
-          serverConnection)} {}
+          serverConnection)},
+        m_slots{std::move(slots)} {}
 
   template<typename ServerConnectionType>
   HttpServer<ServerConnectionType>::~HttpServer() {

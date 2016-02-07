@@ -99,6 +99,22 @@ namespace Details {
     return value;
   }
 
+  //! Parses a value from a buffer.
+  /*!
+    \param source The string to parse.
+    \return The parsed value.
+  */
+  template<typename Parser, typename Buffer>
+  typename Parser::Result Parse(const Buffer& source) {
+    typename Parser::Result value;
+    ReaderParserStream<IO::BufferReader<Buffer>> stream{source};
+    Parser parser;
+    if(!parser.Read(stream, value)) {
+      BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
+    }
+    return value;
+  }
+
   // TODO
   class ParserOperators {};
 }

@@ -143,6 +143,14 @@ namespace Details {
       const T& value) const {
     DataShuttle::Send(shuttle, name, value);
   }
+
+  template<typename Buffer, typename Shuttler, typename T>
+  Buffer Encode(Shuttler& shuttler, const T& data) {
+    Buffer buffer;
+    shuttler.SetSink(Ref(buffer));
+    shuttler.Send(data);
+    return buffer;
+  }
 }
 
   template<typename T>

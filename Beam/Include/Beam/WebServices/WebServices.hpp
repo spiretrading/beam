@@ -4,6 +4,7 @@
 namespace Beam {
 namespace WebServices {
   class Cookie;
+  class FileStore;
   class HttpHeader;
   enum class HttpMethod;
   struct HttpRequestSlot;

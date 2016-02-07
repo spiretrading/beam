@@ -14,6 +14,16 @@ namespace WebServices {
     };
   }
 
+  //! Matches anything with a specified HTTP method.
+  /*!
+    \param method The method to match.
+  */
+  inline HttpRequestSlot::Predicate MatchAny(HttpMethod method) {
+    return [=] (const HttpServerRequest& request) {
+      return request.GetMethod() == method;
+    };
+  }
+
   //! Tests an HTTP's method and URI path.
   /*!
     \param method The HttpMethod to match.

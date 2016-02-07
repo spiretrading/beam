@@ -57,7 +57,9 @@ namespace WebServices {
       : HttpServerResponse{HttpStatusCode::OK} {}
 
   inline HttpServerResponse::HttpServerResponse(HttpStatusCode statusCode)
-      : m_statusCode{statusCode} {}
+      : m_statusCode{statusCode} {
+    SetHeader({"Content-Length", "0"});
+  }
 
   inline void HttpServerResponse::SetStatusCode(HttpStatusCode statusCode) {
     m_statusCode = statusCode;
@@ -116,6 +118,7 @@ namespace WebServices {
       buffer->Append("\r\n", 2);
     }
     buffer->Append("\r\n", 2);
+    buffer->Append(m_body);
   }
 }
 }

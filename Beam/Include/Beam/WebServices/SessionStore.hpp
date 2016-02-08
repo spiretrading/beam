@@ -13,7 +13,7 @@
 namespace Beam {
 namespace WebServices {
 
-  /*! \class SessionStoreConfig
+  /*! \struct SessionStoreConfig
       \brief Stores config needed to manage sessions.
    */
   struct SessionStoreConfig {

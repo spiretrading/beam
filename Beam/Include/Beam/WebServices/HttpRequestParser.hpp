@@ -255,7 +255,7 @@ namespace WebServices {
         std::string{source, static_cast<unsigned int>(length)});
     } else {
       m_cookies.emplace_back(std::string{source, separator},
-        std::string{separator + 1, static_cast<unsigned int>(length) -
+        std::string{separator + 1, static_cast<std::string::size_type>(length) -
         (separator - source) - 1});
     }
   }

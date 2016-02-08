@@ -4,6 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/noncopyable.hpp>
+#include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/HttpServerRequest.hpp"
 #include "Beam/WebServices/HttpServerResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
@@ -40,6 +41,22 @@ namespace WebServices {
       */
       HttpServerResponse Serve(const HttpServerRequest& request);
 
+      //! Serves a file from an HTTP request.
+      /*!
+        \param path The path to the file to serve.
+        \param response Stores the HTTP response containing the file contents.
+      */
+      void Serve(const boost::filesystem::path& path,
+        Out<HttpServerResponse> response);
+
+      //! Serves a file from an HTTP request.
+      /*!
+        \param request The HTTP request to serve.
+        \param response Stores the HTTP response containing the file contents.
+      */
+      void Serve(const HttpServerRequest& request,
+        Out<HttpServerResponse> response);
+
     private:
       boost::filesystem::path m_root;
   };
@@ -53,23 +70,33 @@ namespace WebServices {
 
   inline HttpServerResponse FileStore::Serve(
       const boost::filesystem::path& path) {
-    boost::filesystem::path fullPath = m_root / path;
-    boost::filesystem::ifstream file{fullPath, std::ios::in | std::ios::binary};
     HttpServerResponse response;
-    if(!file) {
-      response.SetStatusCode(HttpStatusCode::NOT_FOUND);
-      return response;
-    }
-    IO::SharedBuffer buffer;
-    buffer.Grow(static_cast<std::size_t>(
-      boost::filesystem::file_size(fullPath)));
-    file.read(buffer.GetMutableData(), buffer.GetSize());
-    response.SetBody(std::move(buffer));
+    Serve(path, Store(response));
     return response;
   }
 
   inline HttpServerResponse FileStore::Serve(const HttpServerRequest& request) {
     return Serve(request.GetUri().GetPath());
+  }
+
+  inline void FileStore::Serve(const boost::filesystem::path& path,
+      Out<HttpServerResponse> response) {
+    boost::filesystem::path fullPath = m_root / path;
+    boost::filesystem::ifstream file{fullPath, std::ios::in | std::ios::binary};
+    if(!file) {
+      response->SetStatusCode(HttpStatusCode::NOT_FOUND);
+      return;
+    }
+    IO::SharedBuffer buffer;
+    buffer.Grow(static_cast<std::size_t>(
+      boost::filesystem::file_size(fullPath)));
+    file.read(buffer.GetMutableData(), buffer.GetSize());
+    response->SetBody(std::move(buffer));
+  }
+
+  inline void FileStore::Serve(const HttpServerRequest& request,
+      Out<HttpServerResponse> response) {
+    Serve(request.GetUri().GetPath(), Store(response));
   }
 }
 }

@@ -1,5 +1,6 @@
 #ifndef BEAM_HTTPHEADER_HPP
 #define BEAM_HTTPHEADER_HPP
+#include <string>
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {

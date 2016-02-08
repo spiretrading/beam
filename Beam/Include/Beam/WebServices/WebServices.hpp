@@ -3,6 +3,7 @@
 
 namespace Beam {
 namespace WebServices {
+  class AuthenticatedSession;
   class Cookie;
   class FileStore;
   class HttpHeader;
@@ -16,6 +17,8 @@ namespace WebServices {
   class HttpVersion;
   class InvalidHttpRequestException;
   class MalformedUriException;
+  class Session;
+  template<typename SessionType> class SessionStore;
   class Uri;
 }
 }

@@ -138,7 +138,7 @@ namespace WebServices {
   template<typename SessionType>
   void SessionStore<SessionType>::SetSessionIdCookie(const Session& session,
       Out<HttpServerResponse> response) const {
-    response->SetCookie({m_sessionName, session.GetId()});
+    response->SetCookie({m_sessionName, session.GetId() + "; path=/"});
   }
 }
 }

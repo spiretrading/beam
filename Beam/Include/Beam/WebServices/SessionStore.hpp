@@ -78,6 +78,12 @@ namespace WebServices {
       */
       std::shared_ptr<Session> Create();
 
+      //! Ends a Session.
+      /*!
+        \param session The Session to end.
+      */
+      void End(Session& session);
+
       //! Sets an HTTP response's session cookie.
       /*!
         \param session The Session to encode.
@@ -161,6 +167,13 @@ namespace WebServices {
     auto session = std::make_shared<Session>(std::move(sessionId));
     m_sessions.Insert(session->GetId(), session);
     return session;
+  }
+
+  template<typename SessionType>
+  void SessionStore<SessionType>::End(Session& session) {
+    session.SetExpired();
+    m_sessions.Erase(session.GetId());
+    m_sessionIds.Erase(session.GetId());
   }
 
   template<typename SessionType>

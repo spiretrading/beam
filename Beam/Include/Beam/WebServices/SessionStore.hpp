@@ -13,6 +13,27 @@
 namespace Beam {
 namespace WebServices {
 
+  /*! \class SessionStoreConfig
+      \brief Stores config needed to manage sessions.
+   */
+  struct SessionStoreConfig {
+
+    //! Returns the default name used for the session cookie.
+    static const std::string& GetDefaultSessionName();
+
+    //! The name of the session Cookie.
+    std::string m_sessionName;
+
+    //! The domain this session is used in.
+    std::string m_domain;
+
+    //! The path the session is valid in.
+    std::string m_path;
+
+    //! Constructs a SessionStoreConfig with default values.
+    SessionStoreConfig();
+  };
+
   /*! \class SessionStore
       \brief Stores and manages HTTP sessions.
       \tparam SessionType The type of session to use.
@@ -24,14 +45,14 @@ namespace WebServices {
       //! The type of session to use.
       using Session = SessionType;
 
-      //! Returns the default name used for the session cookie.
-      static const std::string& GetDefaultSessionName();
-
       //! Constructs a SessionStore with default values.
-      SessionStore();
+      SessionStore() = default;
 
-      //! Constructs a SessionStore with a specified session name.
-      SessionStore(std::string sessionName);
+      //! Constructs a SessionStore.
+      /*!
+        \param config The config to use to manage sessions.
+      */
+      SessionStore(SessionStoreConfig config);
 
       //! Returns a Session associated with an HTTP request, creating it if it
       //! doesn't yet exist.
@@ -66,31 +87,38 @@ namespace WebServices {
         Out<HttpServerResponse> response) const;
 
     private:
-      std::string m_sessionName;
+      SessionStoreConfig m_config;
+      std::string m_cookieAttributes;
       SynchronizedUnorderedSet<std::string> m_sessionIds;
       SynchronizedUnorderedMap<std::string, std::shared_ptr<Session>>
         m_sessions;
   };
 
-  template<typename SessionType>
-  const std::string& SessionStore<SessionType>::GetDefaultSessionName() {
+  inline const std::string& SessionStoreConfig::GetDefaultSessionName() {
     static const std::string value = "sessionid";
     return value;
   }
 
-  template<typename SessionType>
-  SessionStore<SessionType>::SessionStore()
-      : SessionStore{GetDefaultSessionName()} {}
+  inline SessionStoreConfig::SessionStoreConfig()
+      : m_sessionName{GetDefaultSessionName()},
+        m_path{"/"} {}
 
   template<typename SessionType>
-  SessionStore<SessionType>::SessionStore(std::string sessionName)
-      : m_sessionName{std::move(sessionName)} {}
+  SessionStore<SessionType>::SessionStore(SessionStoreConfig config)
+      : m_config{std::move(config)} {
+    if(!m_config.m_domain.empty()) {
+      m_cookieAttributes += "; Domain=" + m_config.m_domain;
+    }
+    if(!m_config.m_path.empty()) {
+      m_cookieAttributes += "; Path=" + m_config.m_path;
+    }
+  }
 
   template<typename SessionType>
   std::shared_ptr<typename SessionStore<SessionType>::Session>
       SessionStore<SessionType>::Get(const HttpServerRequest& request,
       Out<HttpServerResponse> response) {
-    auto sessionCookie = request.GetCookie(m_sessionName);
+    auto sessionCookie = request.GetCookie(m_config.m_sessionName);
     if(!sessionCookie.is_initialized()) {
       auto session = Create();
       SetSessionIdCookie(*session, Store(response));
@@ -108,7 +136,7 @@ namespace WebServices {
   template<typename SessionType>
   std::shared_ptr<typename SessionStore<SessionType>::Session>
       SessionStore<SessionType>::Find(const HttpServerRequest& request) const {
-    auto sessionCookie = request.GetCookie(m_sessionName);
+    auto sessionCookie = request.GetCookie(m_config.m_sessionName);
     if(!sessionCookie.is_initialized()) {
       return nullptr;
     }
@@ -138,7 +166,8 @@ namespace WebServices {
   template<typename SessionType>
   void SessionStore<SessionType>::SetSessionIdCookie(const Session& session,
       Out<HttpServerResponse> response) const {
-    response->SetCookie({m_sessionName, session.GetId() + "; path=/"});
+    response->SetCookie({m_config.m_sessionName,
+      session.GetId() + m_cookieAttributes});
   }
 }
 }

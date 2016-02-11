@@ -1,6 +1,6 @@
 SETLOCAL
-:cppunit_setup
-if exist cppunit-1.12.1 goto cryptopp_setup
+
+if exist cppunit-1.12.1 goto end_cppunit_setup
 wget http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz
 gzip -d -c cppunit-1.12.1.tar.gz | tar -x
 cd cppunit-1.12.1/src
@@ -11,9 +11,9 @@ cp Debug/cppunitd.lib ../../lib/cppunitd.lib
 devenv cppunit.vcxproj /useenv /Build "Release"
 cd ../../../
 rm cppunit-1.12.1.tar.gz
+:end_cppunit_setup
 
-:cryptopp_setup
-if exist cryptopp562 goto zlib_setup
+if exist cryptopp562 goto end_cryptopp_setup
 wget http://www.cryptopp.com/cryptopp562.zip
 mkdir cryptopp562
 cd cryptopp562
@@ -35,9 +35,9 @@ mkdir cryptopp
 cp ../*.h cryptopp
 cd ../../
 rm cryptopp562.zip
+:end_cryptopp_setup
 
-:zlib_setup
-if exist zlib-1.2.8 goto mysqlconnector_setup
+if exist zlib-1.2.8 goto end_zlib_setup
 wget http://zlib.net/zlib-1.2.8.tar.gz
 gzip -d -c zlib-1.2.8.tar.gz | tar -x
 cd zlib-1.2.8/contrib/vstudio/vc9
@@ -48,15 +48,15 @@ devenv zlibstat.vcxproj /useenv /Build "Debug"
 devenv zlibstat.vcxproj /useenv /Build "ReleaseWithoutAsm"
 cd ../../../../
 rm zlib-1.2.8.tar.gz
+:end_zlib_setup
 
-:mysqlconnector_setup
-if exist mysql-connector-c-6.1.6-win32 goto mysqlpp_setup
+if exist mysql-connector-c-6.1.6-win32 goto end_mysqlconnector_setup
 wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.6-win32.zip
 unzip mysql-connector-c-6.1.6-win32.zip
 rm mysql-connector-c-6.1.6-win32.zip
+:end_mysqlconnector_setup
 
-:mysqlpp_setup
-if exist mysql++-3.1.0 goto yaml_setup
+if exist mysql++-3.1.0 goto end_mysqlpp_setup
 wget http://tangentsoft.net/mysql++/releases/mysql++-3.1.0.tar.gz
 gzip -d -c mysql++-3.1.0.tar.gz | tar -x
 cd mysql++-3.1.0/lib
@@ -78,9 +78,9 @@ mkdir mysql++
 cp ../lib/*.h mysql++
 cd ../../
 rm mysql++-3.1.0.tar.gz
+:end_mysqlpp_setup
 
-:yaml_setup
-if exist yaml-cpp goto tclap_setup
+if exist yaml-cpp goto end_yaml_setup
 wget "http://yaml-cpp.googlecode.com/files/yaml-cpp-0.3.0.tar.gz"
 gzip -d -c yaml-cpp-0.3.0.tar.gz | tar -x
 cd yaml-cpp/include/yaml-cpp
@@ -96,15 +96,15 @@ cmake --build . --target ALL_BUILD --config Debug
 cmake --build . --target ALL_BUILD --config Release
 cd ../..
 rm yaml-cpp-0.3.0.tar.gz
+:end_yaml_setup
 
-:tclap_setup
-if exist tclap-1.2.1 goto boost_setup
+if exist tclap-1.2.1 goto end_tclap_setup
 wget "https://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
 gzip -d -c tclap-1.2.1.tar.gz | tar -x
 rm tclap-1.2.1.tar.gz
+:end_tclap_setup
 
-:boost_setup
-if exist boost_1_59_0 goto lua_setup
+if exist boost_1_59_0 goto end_boost_setup
 wget http://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.zip/download -O boost_1_59_0.zip
 unzip boost_1_59_0.zip
 cd boost_1_59_0
@@ -118,9 +118,9 @@ b2 %BJAM_PROCESSORS% --toolset=msvc-14.0 --build-type=complete --stagedir=stage 
 b2 %BJAM_PROCESSORS% --toolset=msvc-14.0 --build-type=complete --with-python --stagedir=stage link=static,shared runtime-link=shared stage
 cd ..
 rm boost_1_59_0.zip
+:end_boost_setup
 
-:lua_setup
-if exist lua-5.3.1 goto end_setup
+if exist lua-5.3.1 goto end_lua_setup
 wget http://www.lua.org/ftp/lua-5.3.1.tar.gz
 gzip -d -c lua-5.3.1.tar.gz | tar -x
 cd lua-5.3.1/src
@@ -130,6 +130,6 @@ cmake --build . --target ALL_BUILD --config Debug
 cmake --build . --target ALL_BUILD --config Release
 cd ../..
 rm lua-5.3.1.tar.gz
+:end_lua_setup
 
-:end_setup
 ENDLOCAL

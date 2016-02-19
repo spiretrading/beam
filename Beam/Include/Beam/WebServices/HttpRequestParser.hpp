@@ -146,6 +146,7 @@ namespace WebServices {
       if(size != 0) {
         m_buffer.Append(c, size);
         auto tempBuffer = std::move(m_buffer);
+        m_buffer = IO::SharedBuffer{};
         Feed(tempBuffer.GetData(), tempBuffer.GetSize());
       }
     }

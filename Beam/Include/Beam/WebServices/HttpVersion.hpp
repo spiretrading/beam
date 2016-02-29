@@ -47,6 +47,18 @@ namespace WebServices {
       constexpr HttpVersion(int major, int minor);
   };
 
+  inline std::ostream& operator <<(std::ostream& sink,
+      const HttpVersion& version) {
+    if(version == HttpVersion::Version1_1()) {
+      sink << "HTTP/1.1";
+    } else if(version == HttpVersion::Version1_0()) {
+      sink << "HTTP/1.0";
+    } else {
+      sink << "HTTP/" << version.GetMajor() << "." << version.GetMinor();
+    }
+    return sink;
+  }
+
   inline HttpVersion HttpVersion::Version1_0() {
     return HttpVersion{1, 0};
   }

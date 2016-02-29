@@ -120,6 +120,34 @@ namespace WebServices {
       mutable Threading::Sync<std::string> m_contentLength;
   };
 
+  inline std::ostream& operator <<(std::ostream& sink,
+      ConnectionHeader connectionHeader) {
+    if(connectionHeader == ConnectionHeader::CLOSE) {
+      sink << "close";
+    } else if(connectionHeader == ConnectionHeader::KEEP_ALIVE) {
+      sink << "keep-alive";
+    } else {
+      sink << "Upgrade";
+    }
+    return sink;
+  }
+
+  inline std::ostream& operator <<(std::ostream& sink,
+      const HttpServerRequest& request) {
+    sink << request.GetMethod() << ' ' << request.GetUri() << ' ' <<
+      request.GetVersion() << "\r\n";
+    for(auto& header : request.GetHeaders()) {
+      sink << header.GetName() << ": " << header.GetValue() << "\r\n";
+    }
+    sink << "Content-Length: " << request.GetSpecialHeaders().m_contentLength <<
+      "\r\n";
+    sink << "Connection: " << request.GetSpecialHeaders().m_connection <<
+      "\r\n";
+    sink << "\r\n";
+    sink << request.GetBody();
+    return sink;
+  }
+
   inline SpecialHeaders::SpecialHeaders()
       : m_contentLength{0},
         m_connection{ConnectionHeader::KEEP_ALIVE} {}

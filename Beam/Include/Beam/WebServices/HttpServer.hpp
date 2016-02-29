@@ -138,7 +138,7 @@ namespace WebServices {
               requestBuffer.Reset();
               auto request = parser.GetNextRequest();
               while(request.is_initialized()) {
-                std::cout << *request << std::endl;
+                std::cout << *request << "\n\n\n" << std::flush;
                 auto foundSlot = false;
                 for(auto& slot : m_slots) {
                   if(slot.m_predicate(*request)) {

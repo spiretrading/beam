@@ -80,7 +80,6 @@ namespace Serialization {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    m_appendComma = true;
     if(name != nullptr) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
@@ -89,6 +88,7 @@ namespace Serialization {
     }
     auto v = ToString(value);
     m_sink->Append(v.c_str(), v.size());
+    m_appendComma = true;
   }
 
   template<typename SinkType>
@@ -97,7 +97,6 @@ namespace Serialization {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    m_appendComma = true;
     if(name != nullptr) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
@@ -108,6 +107,7 @@ namespace Serialization {
     m_sink->Append(value.c_str(), value.size());
     m_sink->Append('\"');
     m_sink->Append(',');
+    m_appendComma = true;
   }
 
   template<typename SinkType>
@@ -115,7 +115,6 @@ namespace Serialization {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    m_appendComma = true;
     if(name != nullptr) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
@@ -123,11 +122,13 @@ namespace Serialization {
       m_sink->Append(':');
     }
     m_sink->Append('{');
+    m_appendComma = false;
   }
 
   template<typename SinkType>
   void JsonSender<SinkType>::EndStructure() {
     m_sink->Append('}');
+    m_appendComma = true;
   }
 
   template<typename SinkType>
@@ -140,7 +141,6 @@ namespace Serialization {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    m_appendComma = true;
     if(name != nullptr) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
@@ -148,11 +148,13 @@ namespace Serialization {
       m_sink->Append(':');
     }
     m_sink->Append('[');
+    m_appendComma = false;
   }
 
   template<typename SinkType>
   void JsonSender<SinkType>::EndSequence() {
     m_sink->Append(']');
+    m_appendComma = true;
   }
 }
 

@@ -106,7 +106,6 @@ namespace Serialization {
     m_sink->Append('\"');
     m_sink->Append(value.c_str(), value.size());
     m_sink->Append('\"');
-    m_sink->Append(',');
     m_appendComma = true;
   }
 

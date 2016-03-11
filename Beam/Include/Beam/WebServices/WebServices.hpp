@@ -4,6 +4,7 @@
 namespace Beam {
 namespace WebServices {
   class AuthenticatedSession;
+  class ContentTypePatterns;
   class Cookie;
   class FileStore;
   class HttpHeader;

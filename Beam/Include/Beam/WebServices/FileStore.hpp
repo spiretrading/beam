@@ -5,6 +5,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/Out.hpp"
+#include "Beam/WebServices/ContentTypePatterns.hpp"
 #include "Beam/WebServices/HttpServerRequest.hpp"
 #include "Beam/WebServices/HttpServerResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
@@ -18,14 +19,19 @@ namespace WebServices {
   class FileStore : private boost::noncopyable {
     public:
 
-      //! Constructs a FileStore with the default current path.
-      FileStore();
-
       //! Constructs a FileStore with a specified path.
       /*!
         \param root The root of the file system.
       */
       FileStore(boost::filesystem::path root);
+
+      //! Constructs a FileStore with a specified path.
+      /*!
+        \param root The root of the file system.
+        \param contentTypePatterns The set of patterns to use for content types.
+      */
+      FileStore(boost::filesystem::path root,
+        ContentTypePatterns contentTypePatterns);
 
       //! Serves a file from a specified path.
       /*!
@@ -59,12 +65,17 @@ namespace WebServices {
 
     private:
       boost::filesystem::path m_root;
+      ContentTypePatterns m_contentTypePatterns;
   };
 
-  inline FileStore::FileStore()
-      : FileStore{boost::filesystem::current_path()} {}
+  inline FileStore::FileStore(boost::filesystem::path root)
+      : m_contentTypePatterns{ContentTypePatterns::GetDefaultPatterns()} {
+    m_root = boost::filesystem::canonical(boost::filesystem::absolute(root));
+  }
 
-  inline FileStore::FileStore(boost::filesystem::path root) {
+  inline FileStore::FileStore(boost::filesystem::path root,
+      ContentTypePatterns contentTypePatterns)
+      : m_contentTypePatterns{std::move(contentTypePatterns)} {
     m_root = boost::filesystem::canonical(boost::filesystem::absolute(root));
   }
 
@@ -91,6 +102,10 @@ namespace WebServices {
     buffer.Grow(static_cast<std::size_t>(
       boost::filesystem::file_size(fullPath)));
     file.read(buffer.GetMutableData(), buffer.GetSize());
+    auto& contentType = m_contentTypePatterns.GetContentType(fullPath);
+    if(!contentType.empty()) {
+      response->SetHeader({"Content-Type", contentType});
+    }
     response->SetBody(std::move(buffer));
   }
 

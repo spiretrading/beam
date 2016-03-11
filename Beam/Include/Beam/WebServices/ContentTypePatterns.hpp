@@ -61,7 +61,7 @@ namespace WebServices {
 
   inline void ContentTypePatterns::AddExtension(std::string extension,
       std::string contentType) {
-    m_fileExtensionContentTypes[extension] = std::move(contentType);
+    m_fileExtensionContentTypes["." + extension] = std::move(contentType);
   }
 }
 }

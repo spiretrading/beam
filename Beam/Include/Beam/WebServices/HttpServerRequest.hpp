@@ -139,6 +139,18 @@ namespace WebServices {
     for(auto& header : request.GetHeaders()) {
       sink << header.GetName() << ": " << header.GetValue() << "\r\n";
     }
+    if(!request.GetCookies().empty()) {
+      sink << "Cookie: ";
+      bool isFirst = true;
+      for(auto& cookie : request.GetCookies()) {
+        if(!isFirst) {
+          sink << "; ";
+        } else {
+          isFirst = false;
+        }
+        sink << cookie.GetName() << '=' << cookie.GetValue();
+      }
+    }
     sink << "Content-Length: " << request.GetSpecialHeaders().m_contentLength <<
       "\r\n";
     sink << "Connection: " << request.GetSpecialHeaders().m_connection <<

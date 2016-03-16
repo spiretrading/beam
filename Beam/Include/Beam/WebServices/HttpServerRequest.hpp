@@ -150,6 +150,7 @@ namespace WebServices {
         }
         sink << cookie.GetName() << '=' << cookie.GetValue();
       }
+      sink << "\r\n";
     }
     sink << "Content-Length: " << request.GetSpecialHeaders().m_contentLength <<
       "\r\n";

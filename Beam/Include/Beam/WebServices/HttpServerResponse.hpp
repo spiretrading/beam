@@ -107,12 +107,12 @@ namespace WebServices {
     buffer->Append("\r\n", 2);
     IO::BufferOutputStream<Buffer> bufferOutputStream{Ref(*buffer)};
     for(auto& header : m_headers) {
-      bufferOutputStream << header;
+      bufferOutputStream << header << std::flush;
       buffer->Append("\r\n", 2);
     }
     for(auto& cookie : m_cookies) {
       buffer->Append("Set-Cookie: ", 12);
-      bufferOutputStream << cookie;
+      bufferOutputStream << cookie << std::flush;
       buffer->Append("\r\n", 2);
     }
     buffer->Append("\r\n", 2);

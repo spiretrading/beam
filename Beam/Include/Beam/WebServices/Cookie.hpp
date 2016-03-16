@@ -66,35 +66,17 @@ namespace WebServices {
 
   inline std::ostream& operator <<(std::ostream& sink, const Cookie& cookie) {
     sink << cookie.GetName() << "=" << cookie.GetValue();
-    bool isFirstAttribute = true;
     if(!cookie.GetDomain().empty()) {
-      sink << "Domain=" << cookie.GetDomain();
-      isFirstAttribute = false;
+      sink << "; Domain=" << cookie.GetDomain();
     }
     if(!cookie.GetPath().empty()) {
-      if(!isFirstAttribute) {
-        sink << "; Path=";
-      } else {
-        sink << "Path=";
-        isFirstAttribute = false;
-      }
-      sink << cookie.GetPath();
+      sink << "; Path=" << cookie.GetPath();
     }
     if(cookie.IsSecure()) {
-      if(!isFirstAttribute) {
-        sink << "; Secure";
-      } else {
-        sink << "Secure";
-        isFirstAttribute = false;
-      }
+      sink << "; Secure";
     }
     if(cookie.IsHttpOnly()) {
-      if(!isFirstAttribute) {
-        sink << "; HttpOnly";
-      } else {
-        sink << "HttpOnly";
-        isFirstAttribute = false;
-      }
+      sink << "; HttpOnly";
     }
     return sink;
   }

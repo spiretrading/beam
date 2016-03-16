@@ -89,6 +89,8 @@ namespace WebServices {
   inline Cookie::Cookie(std::string name, std::string value)
       : m_name{std::move(name)},
         m_value{std::move(value)},
+        m_isSecure{false},
+        m_isHttpOnly{false},
         m_path{"/"} {}
 
   inline const std::string& Cookie::GetName() const {

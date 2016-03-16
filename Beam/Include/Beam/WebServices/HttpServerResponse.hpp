@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTPSERVERRESPONSE_HPP
 #define BEAM_HTTPSERVERRESPONSE_HPP
 #include <vector>
+#include "Beam/IO/BufferOutputStream.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/WebServices/Cookie.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
@@ -104,17 +105,14 @@ namespace WebServices {
     auto& reasonPhrase = GetReasonPhrase(m_statusCode);
     buffer->Append(reasonPhrase.c_str(), reasonPhrase.size());
     buffer->Append("\r\n", 2);
+    IO::BufferOutputStream<Buffer> bufferOutputStream{Ref(*buffer)};
     for(auto& header : m_headers) {
-      buffer->Append(header.GetName().c_str(), header.GetName().size());
-      buffer->Append(": ", 2);
-      buffer->Append(header.GetValue().c_str(), header.GetValue().size());
+      bufferOutputStream << header;
       buffer->Append("\r\n", 2);
     }
     for(auto& cookie : m_cookies) {
       buffer->Append("Set-Cookie: ", 12);
-      buffer->Append(cookie.GetName().c_str(), cookie.GetName().size());
-      buffer->Append('=');
-      buffer->Append(cookie.GetValue().c_str(), cookie.GetValue().size());
+      bufferOutputStream << cookie;
       buffer->Append("\r\n", 2);
     }
     buffer->Append("\r\n", 2);

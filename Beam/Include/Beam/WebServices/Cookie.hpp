@@ -14,7 +14,7 @@ namespace WebServices {
     public:
 
       //! Constructs an empty Cookie.
-      Cookie() = default;
+      Cookie();
 
       //! Constructs a Cookie.
       /*!
@@ -29,18 +29,85 @@ namespace WebServices {
       //! Returns the Cookie's value.
       const std::string& GetValue() const;
 
+      //! Returns the domain.
+      const std::string& GetDomain() const;
+
+      //! Sets the domain.
+      void SetDomain(std::string domain);
+
+      //! Returns the path.
+      const std::string& GetPath() const;
+
+      //! Sets the path.
+      void SetPath(std::string path);
+
+      //! Returns <code>true</code> iff this cookie is to only be sent over a
+      //! secure protocol (such as HTTPS).
+      bool IsSecure() const;
+
+      //! Sets whether this cookie should only be sent over a secure protocol.
+      void SetSecure(bool isSecure);
+
+      //! Returns <code>true</code> iff this cookie is to only be sent over
+      //! HTTP.
+      bool IsHttpOnly() const;
+
+      //! Sets whether this cookie should only be sent over HTTP.
+      void SetHttpOnly(bool isHttpOnly);
+
     private:
       std::string m_name;
       std::string m_value;
+      std::string m_domain;
+      std::string m_path;
+      bool m_isSecure;
+      bool m_isHttpOnly;
   };
 
   inline std::ostream& operator <<(std::ostream& sink, const Cookie& cookie) {
-    return (sink << cookie.GetName() << "=" << cookie.GetValue());
+    sink << cookie.GetName() << "=" << cookie.GetValue();
+    bool isFirstAttribute = true;
+    if(!cookie.GetDomain().empty()) {
+      sink << "Domain=" << cookie.GetDomain();
+      isFirstAttribute = false;
+    }
+    if(!cookie.GetPath().empty()) {
+      if(!isFirstAttribute) {
+        sink << "; Path=";
+      } else {
+        sink << "Path=";
+        isFirstAttribute = false;
+      }
+      sink << cookie.GetPath();
+    }
+    if(cookie.IsSecure()) {
+      if(!isFirstAttribute) {
+        sink << "; Secure";
+      } else {
+        sink << "Secure";
+        isFirstAttribute = false;
+      }
+    }
+    if(cookie.IsHttpOnly()) {
+      if(!isFirstAttribute) {
+        sink << "; HttpOnly";
+      } else {
+        sink << "HttpOnly";
+        isFirstAttribute = false;
+      }
+    }
+    return sink;
   }
+
+  inline Cookie::Cookie()
+      : m_isSecure{false},
+        m_isHttpOnly{false},
+        m_path{"/"} {}
 
   inline Cookie::Cookie(std::string name, std::string value)
       : m_name{std::move(name)},
-        m_value{std::move(value)} {}
+        m_value{std::move(value)},
+        m_path{"/"} {}
 
   inline const std::string& Cookie::GetName() const {
     return m_name;
@@ -48,6 +115,38 @@ namespace WebServices {
 
   inline const std::string& Cookie::GetValue() const {
     return m_value;
+  }
+
+  inline const std::string& Cookie::GetDomain() const {
+    return m_domain;
+  }
+
+  inline void Cookie::SetDomain(std::string domain) {
+    m_domain = std::move(domain);
+  }
+
+  inline const std::string& Cookie::GetPath() const {
+    return m_path;
+  }
+
+  inline void Cookie::SetPath(std::string path) {
+    m_path = std::move(path);
+  }
+
+  inline bool Cookie::IsSecure() const {
+    return m_isSecure;
+  }
+
+  inline void Cookie::SetSecure(bool isSecure) {
+    m_isSecure = isSecure;
+  }
+
+  inline bool Cookie::IsHttpOnly() const {
+    return m_isHttpOnly;
+  }
+
+  inline void Cookie::SetHttpOnly(bool isHttpOnly) {
+    m_isHttpOnly = isHttpOnly;
   }
 }
 }

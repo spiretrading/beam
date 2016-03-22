@@ -10,6 +10,10 @@ namespace Network {
   class MulticastSocketConnection;
   class MulticastSocketReader;
   class MulticastSocketWriter;
+  class SecureSocketChannel;
+  class SecureSocketConnection;
+  class SecureSocketReader;
+  class SecureSocketWriter;
   class SocketException;
   class SocketIdentifier;
   class SocketThreadPool;

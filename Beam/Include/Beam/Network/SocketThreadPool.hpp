@@ -28,6 +28,7 @@ namespace Network {
 
     private:
       friend class MulticastSocket;
+      friend class SecureSocketChannel;
       friend class TcpServerSocket;
       friend class TcpSocketChannel;
       friend class UdpSocket;

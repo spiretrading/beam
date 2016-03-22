@@ -9,6 +9,7 @@ namespace WebServices {
   class FileStore;
   class HttpHeader;
   enum class HttpMethod;
+  class HttpRequest;
   struct HttpRequestSlot;
   class HttpServerRequest;
   class HttpServerResponse;
@@ -18,9 +19,11 @@ namespace WebServices {
   class HttpVersion;
   class InvalidHttpRequestException;
   class MalformedUriException;
+  class SecureSocketChannelFactory;
   class Session;
   template<typename SessionType> class SessionStore;
   class Uri;
+  template<typename ChannelType> class WebSocket;
 }
 }
 

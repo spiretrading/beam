@@ -11,7 +11,6 @@ namespace WebServices {
   enum class HttpMethod;
   class HttpRequest;
   struct HttpRequestSlot;
-  class HttpServerRequest;
   class HttpServerResponse;
   template<typename ServletType, typename ServerConnectionType>
     class HttpServletContainer;

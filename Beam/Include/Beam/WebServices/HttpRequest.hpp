@@ -52,13 +52,13 @@ namespace WebServices {
     SpecialHeaders(const HttpVersion& version);
   };
 
-  /*! \class HttpServerRequest
-      \brief Represents an HTTP request received by the HttpServer.
+  /*! \class HttpRequest
+      \brief Represents an HTTP request.
    */
-  class HttpServerRequest {
+  class HttpRequest {
     public:
 
-      //! Constructs an HttpServerRequest.
+      //! Constructs an HttpRequest.
       /*!
         \param version The HTTP version in major/minor format.
         \param method The HTTP method.
@@ -68,7 +68,7 @@ namespace WebServices {
         \param cookies The Cookies.
         \param body The message body.
       */
-      HttpServerRequest(HttpVersion version, HttpMethod method, Uri uri,
+      HttpRequest(HttpVersion version, HttpMethod method, Uri uri,
         std::vector<HttpHeader> headers, const SpecialHeaders& specialHeaders,
         std::vector<Cookie> cookies, IO::SharedBuffer body);
 
@@ -133,7 +133,7 @@ namespace WebServices {
   }
 
   inline std::ostream& operator <<(std::ostream& sink,
-      const HttpServerRequest& request) {
+      const HttpRequest& request) {
     sink << request.GetMethod() << ' ' << request.GetUri() << ' ' <<
       request.GetVersion() << "\r\n";
     for(auto& header : request.GetHeaders()) {
@@ -175,8 +175,8 @@ namespace WebServices {
     }
   }
 
-  inline HttpServerRequest::HttpServerRequest(HttpVersion version,
-      HttpMethod method, Uri uri, std::vector<HttpHeader> headers,
+  inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
+      Uri uri, std::vector<HttpHeader> headers,
       const SpecialHeaders& specialHeaders, std::vector<Cookie> cookies,
       IO::SharedBuffer body)
       : m_version{std::move(version)},
@@ -187,19 +187,19 @@ namespace WebServices {
         m_cookies{std::move(cookies)},
         m_body{std::move(body)} {}
 
-  inline const HttpVersion& HttpServerRequest::GetVersion() const {
+  inline const HttpVersion& HttpRequest::GetVersion() const {
     return m_version;
   }
 
-  inline HttpMethod HttpServerRequest::GetMethod() const {
+  inline HttpMethod HttpRequest::GetMethod() const {
     return m_method;
   }
 
-  inline const Uri& HttpServerRequest::GetUri() const {
+  inline const Uri& HttpRequest::GetUri() const {
     return m_uri;
   }
 
-  inline boost::optional<const std::string&> HttpServerRequest::GetHeader(
+  inline boost::optional<const std::string&> HttpRequest::GetHeader(
       const std::string& name) const {
     auto header = std::find_if(m_headers.begin(), m_headers.end(),
       [&] (const HttpHeader& value) {
@@ -232,15 +232,15 @@ namespace WebServices {
     return header->GetValue();
   }
 
-  inline const std::vector<HttpHeader>& HttpServerRequest::GetHeaders() const {
+  inline const std::vector<HttpHeader>& HttpRequest::GetHeaders() const {
     return m_headers;
   }
 
-  inline const SpecialHeaders& HttpServerRequest::GetSpecialHeaders() const {
+  inline const SpecialHeaders& HttpRequest::GetSpecialHeaders() const {
     return m_specialHeaders;
   }
 
-  inline boost::optional<const Cookie&> HttpServerRequest::GetCookie(
+  inline boost::optional<const Cookie&> HttpRequest::GetCookie(
       const std::string& name) const {
     auto cookie = std::find_if(m_cookies.begin(), m_cookies.end(),
       [&] (const Cookie& value) {
@@ -252,11 +252,11 @@ namespace WebServices {
     return *cookie;
   }
 
-  inline const std::vector<Cookie>& HttpServerRequest::GetCookies() const {
+  inline const std::vector<Cookie>& HttpRequest::GetCookies() const {
     return m_cookies;
   }
 
-  inline const IO::SharedBuffer& HttpServerRequest::GetBody() const {
+  inline const IO::SharedBuffer& HttpRequest::GetBody() const {
     return m_body;
   }
 }

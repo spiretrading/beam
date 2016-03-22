@@ -6,6 +6,7 @@
 #include "Beam/IO/BufferOutputStream.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/Uri.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 

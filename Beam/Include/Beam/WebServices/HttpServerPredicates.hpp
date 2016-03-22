@@ -1,7 +1,7 @@
 #ifndef BEAM_HTTPSERVERPREDICATES_HPP
 #define BEAM_HTTPSERVERPREDICATES_HPP
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
-#include "Beam/WebServices/HttpServerRequest.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -9,7 +9,7 @@ namespace WebServices {
 
   //! Matches anything.
   inline HttpRequestSlot::Predicate MatchAny() {
-    return [] (const HttpServerRequest& request) {
+    return [] (const HttpRequest& request) {
       return true;
     };
   }
@@ -19,7 +19,7 @@ namespace WebServices {
     \param method The method to match.
   */
   inline HttpRequestSlot::Predicate MatchAny(HttpMethod method) {
-    return [=] (const HttpServerRequest& request) {
+    return [=] (const HttpRequest& request) {
       return request.GetMethod() == method;
     };
   }
@@ -31,7 +31,7 @@ namespace WebServices {
   */
   inline HttpRequestSlot::Predicate MatchesPath(HttpMethod method,
       const std::string& path) {
-    return [=] (const HttpServerRequest& request) {
+    return [=] (const HttpRequest& request) {
       return request.GetUri().GetPath() == path &&
         request.GetMethod() == method;
     };

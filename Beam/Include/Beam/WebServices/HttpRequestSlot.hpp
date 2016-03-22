@@ -13,18 +13,17 @@ namespace WebServices {
 
     //! Defines the function used to match an HTTP request.
     /*!
-      \param request The HttpServerRequest to test.
+      \param request The HttpRequest to test.
       \return <code>true</code> iff the <i>request</i> matches the predicate.
     */
-    using Predicate = std::function<bool (const HttpServerRequest& request)>;
+    using Predicate = std::function<bool (const HttpRequest& request)>;
 
     //! Defines the callback invoked if a predicate matches.
     /*!
       \param request The request that satisfied the predicate.
       \param response The response for the specified <i>request</i>.
     */
-    using Slot = std::function<HttpServerResponse (
-      const HttpServerRequest& request)>;
+    using Slot = std::function<HttpServerResponse (const HttpRequest& request)>;
 
     //! The predicate to match.
     Predicate m_predicate;

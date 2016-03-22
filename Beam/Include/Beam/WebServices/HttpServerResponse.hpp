@@ -12,7 +12,7 @@ namespace Beam {
 namespace WebServices {
 
   /*! \class HttpServerResponse
-      \brief Handles the response to an HttpServerRequest.
+      \brief Handles the response to an HttpRequest.
    */
   class HttpServerResponse {
     public:

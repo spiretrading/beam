@@ -104,6 +104,17 @@ gzip -d -c tclap-1.2.1.tar.gz | tar -x
 rm tclap-1.2.1.tar.gz
 :end_tclap_setup
 
+if exist openssl-1.0.2g goto end_openssl_setup
+wget --no-check-certificate https://www.openssl.org/source/openssl-1.0.2g.tar.gz
+gzip -d -c openssl-1.0.2g.tar.gz | tar -x
+cd openssl-1.0.2g
+perl Configure VC-WIN32 no-asm --prefix=C:/Development/Libraries/openssl-1.0.2g
+CALL ./ms/do_ms
+nmake -f ./ms/nt.mak
+cd ..
+rm openssl-1.0.2g.tar.gz
+:end_openssl_setup
+
 if exist boost_1_59_0 goto end_boost_setup
 wget http://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.zip/download -O boost_1_59_0.zip
 unzip boost_1_59_0.zip

@@ -4,7 +4,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/WebServices/HttpHeader.hpp"
-#include "Beam/WebServices/HttpServerRequest.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/InvalidHttpRequestException.hpp"
 #include "Beam/WebServices/Uri.hpp"
@@ -29,8 +29,8 @@ namespace WebServices {
       */
       void Feed(const char* c, std::size_t size);
 
-      //! Returns the next HttpServerRequest.
-      boost::optional<HttpServerRequest> GetNextRequest();
+      //! Returns the next HttpRequest.
+      boost::optional<HttpRequest> GetNextRequest();
 
     private:
       enum class ParserState {
@@ -47,7 +47,7 @@ namespace WebServices {
       SpecialHeaders m_specialHeaders;
       std::vector<Cookie> m_cookies;
       IO::SharedBuffer m_body;
-      std::deque<HttpServerRequest> m_requests;
+      std::deque<HttpRequest> m_requests;
       IO::SharedBuffer m_buffer;
 
       void ParseMethod(const char* c, std::size_t size);
@@ -152,8 +152,7 @@ namespace WebServices {
     }
   }
 
-  inline boost::optional<HttpServerRequest> HttpRequestParser::
-      GetNextRequest() {
+  inline boost::optional<HttpRequest> HttpRequestParser::GetNextRequest() {
     if(m_requests.empty()) {
       if(m_parserState == ParserState::ERR) {
         BOOST_THROW_EXCEPTION(InvalidHttpRequestException{});

@@ -6,7 +6,7 @@
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Utilities/SynchronizedMap.hpp"
 #include "Beam/Utilities/SynchronizedSet.hpp"
-#include "Beam/WebServices/HttpServerRequest.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/Session.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
@@ -61,7 +61,7 @@ namespace WebServices {
         \param response Sets the session id Cookie if the session doesn't exist.
         \return The Session associated with the <i>request</i>.
       */
-      std::shared_ptr<Session> Get(const HttpServerRequest& request,
+      std::shared_ptr<Session> Get(const HttpRequest& request,
         Out<HttpServerResponse> response);
 
       //! Finds a Session associated with an HTTP request.
@@ -70,7 +70,7 @@ namespace WebServices {
         \return The Session associated with the <i>request</i> or
                 <code>nullptr</code> iff no Session exists.
       */
-      std::shared_ptr<Session> Find(const HttpServerRequest& request) const;
+      std::shared_ptr<Session> Find(const HttpRequest& request) const;
 
       //! Creates a Session.
       /*!
@@ -122,7 +122,7 @@ namespace WebServices {
 
   template<typename SessionType>
   std::shared_ptr<typename SessionStore<SessionType>::Session>
-      SessionStore<SessionType>::Get(const HttpServerRequest& request,
+      SessionStore<SessionType>::Get(const HttpRequest& request,
       Out<HttpServerResponse> response) {
     auto sessionCookie = request.GetCookie(m_config.m_sessionName);
     if(!sessionCookie.is_initialized()) {
@@ -141,7 +141,7 @@ namespace WebServices {
 
   template<typename SessionType>
   std::shared_ptr<typename SessionStore<SessionType>::Session>
-      SessionStore<SessionType>::Find(const HttpServerRequest& request) const {
+      SessionStore<SessionType>::Find(const HttpRequest& request) const {
     auto sessionCookie = request.GetCookie(m_config.m_sessionName);
     if(!sessionCookie.is_initialized()) {
       return nullptr;

@@ -6,7 +6,7 @@
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/ContentTypePatterns.hpp"
-#include "Beam/WebServices/HttpServerRequest.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpServerResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
@@ -45,7 +45,7 @@ namespace WebServices {
         \param request The HTTP request to serve.
         \return The HTTP response containing the file contents.
       */
-      HttpServerResponse Serve(const HttpServerRequest& request);
+      HttpServerResponse Serve(const HttpRequest& request);
 
       //! Serves a file from an HTTP request.
       /*!
@@ -60,8 +60,7 @@ namespace WebServices {
         \param request The HTTP request to serve.
         \param response Stores the HTTP response containing the file contents.
       */
-      void Serve(const HttpServerRequest& request,
-        Out<HttpServerResponse> response);
+      void Serve(const HttpRequest& request, Out<HttpServerResponse> response);
 
     private:
       boost::filesystem::path m_root;
@@ -86,7 +85,7 @@ namespace WebServices {
     return response;
   }
 
-  inline HttpServerResponse FileStore::Serve(const HttpServerRequest& request) {
+  inline HttpServerResponse FileStore::Serve(const HttpRequest& request) {
     return Serve(request.GetUri().GetPath());
   }
 
@@ -109,7 +108,7 @@ namespace WebServices {
     response->SetBody(std::move(buffer));
   }
 
-  inline void FileStore::Serve(const HttpServerRequest& request,
+  inline void FileStore::Serve(const HttpRequest& request,
       Out<HttpServerResponse> response) {
     Serve(request.GetUri().GetPath(), Store(response));
   }

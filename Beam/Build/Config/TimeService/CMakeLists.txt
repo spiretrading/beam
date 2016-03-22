@@ -29,7 +29,11 @@ install(TARGETS TimeServiceTests CONFIGURATIONS Release RelWithDebInfo
 add_executable(TimeServiceTester ./../../../Source/TimeServiceTester/main.cpp)
 target_link_libraries(TimeServiceTester TimeServiceTests
   debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH})
+  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+  optimized $ENV{OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{OPEN_SSL_LIBRARY_DEBUG_PATH}
+  optimized $ENV{OPEN_SSL_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(TimeServiceTester

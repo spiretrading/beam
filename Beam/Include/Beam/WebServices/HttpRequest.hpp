@@ -63,6 +63,14 @@ namespace WebServices {
         \param version The HTTP version in major/minor format.
         \param method The HTTP method.
         \param uri The URI to perform the <i>method</i> on.
+      */
+      HttpRequest(HttpVersion version, HttpMethod method, Uri uri);
+
+      //! Constructs an HttpRequest.
+      /*!
+        \param version The HTTP version in major/minor format.
+        \param method The HTTP method.
+        \param uri The URI to perform the <i>method</i> on.
         \param headers The request headers.
         \param specialHeaders The set of specially designated headers.
         \param cookies The Cookies.
@@ -94,6 +102,12 @@ namespace WebServices {
 
       //! Returns the special headers.
       const SpecialHeaders& GetSpecialHeaders() const;
+
+      //! Adds a header.
+      /*!
+        \param header The header to add.
+      */
+      void Add(HttpHeader header);
 
       //! Returns a Cookie with a specified name.
       /*!
@@ -176,6 +190,10 @@ namespace WebServices {
   }
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
+      Uri uri)
+      : HttpRequest{version, method, std::move(uri), {}, {}, {}, {}} {}
+
+  inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri, std::vector<HttpHeader> headers,
       const SpecialHeaders& specialHeaders, std::vector<Cookie> cookies,
       IO::SharedBuffer body)
@@ -238,6 +256,11 @@ namespace WebServices {
 
   inline const SpecialHeaders& HttpRequest::GetSpecialHeaders() const {
     return m_specialHeaders;
+  }
+
+  inline void HttpRequest::Add(HttpHeader header) {
+
+    // TODO
   }
 
   inline boost::optional<const Cookie&> HttpRequest::GetCookie(

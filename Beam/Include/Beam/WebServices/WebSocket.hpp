@@ -15,9 +15,10 @@ namespace WebServices {
 
   /*! \class WebSocket
       \brief Implements a WebSocket connection to a server.
-      \tparam ChannelType The type of Channel used to connect to the server.
+      \tparam ChannelBuilderType The type of factory building Channels used to
+              connect to the server.
    */
-  template<typename ChannelType>
+  template<typename ChannelBuilderType>
   class WebSocket : private boost::noncopyable {
     public:
 
@@ -52,7 +53,7 @@ namespace WebServices {
       Uri m_uri;
       std::vector<std::string> m_protocols;
       int m_version;
-      GetOptionalLocalPtr<ChannelType> m_channel;
+      std::unique_ptr<ChannelType> m_channel;
   };
 
   template<typename ChannelType>
@@ -67,8 +68,7 @@ namespace WebServices {
       ChannelForward&& channel)
       : m_uri{std::move(uri)},
         m_protocols{std::move(protocols)},
-        m_version{0},
-        m_channel{std::move(channel)} {}
+        m_version{0} {}
 
   template <typename ChannelType>
   WebSocket<ChannelType>::~WebSocket() {
@@ -77,8 +77,7 @@ namespace WebServices {
 
   template<typename ChannelType>
   void WebSocket<ChannelType>::Open() {
-    HttpRequest request{HttpMethod::GET, m_uri.GetPath(),
-      HttpVersion::Version1_1()};
+    HttpRequest request{HttpVersion::Version1_1(), HttpMethod::GET, m_uri};
     request.Add(HttpHeader{"Upgrade", "websocket"});
     request.Add(HttpHeader{"Connection", "Upgrade"});
     auto key = "x3JJHMbDL1EzLkh9GBhXDw==";
@@ -105,7 +104,7 @@ namespace WebServices {
       Ref(sendBuffer)};
     sendStream << request;
     sendStream.flush();
-    m_channel->Open();
+    m_channel->GetConnection().Open();
     m_channel->GetWriter().Write(sendBuffer);
     typename Channel::Reader::Buffer receiveBuffer;
     m_channel->GetReader().Read(Store(receiveBuffer));
@@ -114,7 +113,7 @@ namespace WebServices {
 
   template<typename ChannelType>
   void WebSocket<ChannelType>::Close() {
-    m_channel->Close();
+    m_channel->GetConnection().Close();
   }
 }
 }

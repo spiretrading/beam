@@ -8,6 +8,7 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpResponseParser.hpp"
 #include "Beam/WebServices/Uri.hpp"
@@ -53,6 +54,18 @@ namespace WebServices {
 
       ~WebSocket();
 
+      //! Reads from the web socket.
+      /*!
+        \param buffer The buffer to store the data into.
+      */
+      void Read(Out<typename Channel::Reader::Buffer> buffer);
+
+      //! Writes to the web socket.
+      /*!
+        \param buffer The buffer to write.
+      */
+      void Write(const typename Channel::Writer::Buffer& buffer);
+
       void Open();
 
       void Close();
@@ -64,6 +77,7 @@ namespace WebServices {
       ChannelBuilder m_channelBuilder;
       HttpResponseParser m_parser;
       std::unique_ptr<ChannelType> m_channel;
+      IO::SharedBuffer m_residual;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -93,6 +107,23 @@ namespace WebServices {
   template <typename ChannelType>
   WebSocket<ChannelType>::~WebSocket() {
     Close();
+  }
+
+  template<typename ChannelType>
+  void WebSocket<ChannelType>::Read(
+      Out<typename Channel::Reader::Buffer> buffer) {
+    if(!m_residual.IsEmpty()) {
+      *buffer = std::move(m_residual);
+      m_residual = IO::SharedBuffer{};
+      return;
+    }
+    m_channel->GetReader().Read(Store(buffer));
+  }
+
+  template<typename ChannelType>
+  void WebSocket<ChannelType>::Write(
+      const typename Channel::Writer::Buffer& buffer) {
+    m_channel->GetWriter().Write(buffer);
   }
 
   template<typename ChannelType>

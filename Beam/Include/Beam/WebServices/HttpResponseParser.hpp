@@ -32,6 +32,9 @@ namespace WebServices {
       //! Returns the next HttpResponse.
       boost::optional<HttpResponse> GetNextResponse();
 
+      //! Returns the remaining unparsed Buffer.
+      IO::SharedBuffer GetRemainingBuffer() const;
+
     private:
       enum class ParserState {
         VERSION,
@@ -159,6 +162,10 @@ namespace WebServices {
     auto response = std::move(m_responses.front());
     m_responses.pop_front();
     return std::move(response);
+  }
+
+  inline IO::SharedBuffer HttpResponseParser::GetRemainingBuffer() const {
+    return m_buffer;
   }
 
   inline void HttpResponseParser::ParseVersion(const char* c,

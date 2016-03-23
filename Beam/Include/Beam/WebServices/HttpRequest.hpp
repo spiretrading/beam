@@ -148,8 +148,13 @@ namespace WebServices {
 
   inline std::ostream& operator <<(std::ostream& sink,
       const HttpRequest& request) {
-    sink << request.GetMethod() << ' ' << request.GetUri() << ' ' <<
-      request.GetVersion() << "\r\n";
+    sink << request.GetMethod() << ' ';
+    if(request.GetUri().GetPath().empty()) {
+      sink << '/' << ' ';
+    } else {
+      sink << request.GetUri().GetPath() << ' ';
+    }
+    sink << request.GetVersion() << "\r\n";
     for(auto& header : request.GetHeaders()) {
       sink << header.GetName() << ": " << header.GetValue() << "\r\n";
     }

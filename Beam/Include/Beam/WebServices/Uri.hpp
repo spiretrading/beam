@@ -48,6 +48,9 @@ namespace WebServices {
       //! Returns the port.
       unsigned short GetPort() const;
 
+      //! Sets the port.
+      void SetPort(unsigned short port);
+
       //! Returns the path.
       const std::string& GetPath() const;
 
@@ -173,6 +176,10 @@ namespace WebServices {
 
   inline unsigned short Uri::GetPort() const {
     return m_port;
+  }
+
+  inline void Uri::SetPort(unsigned short port) {
+    m_port = port;
   }
 
   inline const std::string& Uri::GetPath() const {

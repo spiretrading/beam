@@ -1,30 +1,46 @@
-#ifndef BEAM_HTTPSERVERRESPONSE_HPP
-#define BEAM_HTTPSERVERRESPONSE_HPP
+#ifndef BEAM_HTTPRESPONSE_HPP
+#define BEAM_HTTPRESPONSE_HPP
 #include <vector>
 #include "Beam/IO/BufferOutputStream.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/WebServices/Cookie.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpStatusCode.hpp"
+#include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
 namespace WebServices {
 
-  /*! \class HttpServerResponse
+  /*! \class HttpResponse
       \brief Handles the response to an HttpRequest.
    */
-  class HttpServerResponse {
+  class HttpResponse {
     public:
 
-      //! Constructs an HttpServerResponse with a status of OK.
-      HttpServerResponse();
+      //! Constructs an HttpResponse with a status of OK.
+      HttpResponse();
 
-      //! Constructs an HttpServerResponse.
+      //! Constructs an HttpResponse.
       /*!
         \param statusCode The HttpStatusCode.
       */
-      HttpServerResponse(HttpStatusCode statusCode);
+      HttpResponse(HttpStatusCode statusCode);
+
+      //! Constructs an HttpResponse.
+      /*!
+        \param version The HTTP version.
+        \param statusCode The HttpStatusCode.
+        \param headers The response headers.
+        \param cookies The response Cookies.
+        \param body The body.
+      */
+      HttpResponse(HttpVersion version, HttpStatusCode statusCode,
+        std::vector<HttpHeader> headers, std::vector<Cookie> cookies,
+        IO::SharedBuffer body);
+
+      //! Returns the status code.
+      HttpStatusCode GetStatusCode() const;
 
       //! Sets the status code.
       void SetStatusCode(HttpStatusCode statusCode);
@@ -48,25 +64,40 @@ namespace WebServices {
       void Encode(Out<Buffer> buffer) const;
 
     private:
+      HttpVersion m_version;
       HttpStatusCode m_statusCode;
       std::vector<HttpHeader> m_headers;
       std::vector<Cookie> m_cookies;
       IO::SharedBuffer m_body;
   };
 
-  inline HttpServerResponse::HttpServerResponse()
-      : HttpServerResponse{HttpStatusCode::OK} {}
+  inline HttpResponse::HttpResponse()
+      : HttpResponse{HttpStatusCode::OK} {}
 
-  inline HttpServerResponse::HttpServerResponse(HttpStatusCode statusCode)
-      : m_statusCode{statusCode} {
+  inline HttpResponse::HttpResponse(HttpStatusCode statusCode)
+      : m_version{HttpVersion::Version1_1()},
+        m_statusCode{statusCode} {
     SetHeader({"Content-Length", "0"});
   }
 
-  inline void HttpServerResponse::SetStatusCode(HttpStatusCode statusCode) {
+  inline HttpResponse::HttpResponse(HttpVersion version,
+      HttpStatusCode statusCode, std::vector<HttpHeader> headers,
+      std::vector<Cookie> cookies, IO::SharedBuffer body)
+      : m_version{version},
+        m_statusCode{statusCode},
+        m_headers{std::move(headers)},
+        m_cookies{std::move(cookies)},
+        m_body{std::move(body)} {}
+
+  inline HttpStatusCode HttpResponse::GetStatusCode() const {
+    return m_statusCode;
+  }
+
+  inline void HttpResponse::SetStatusCode(HttpStatusCode statusCode) {
     m_statusCode = statusCode;
   }
 
-  inline void HttpServerResponse::SetHeader(HttpHeader header) {
+  inline void HttpResponse::SetHeader(HttpHeader header) {
     auto h = std::find_if(m_headers.begin(), m_headers.end(),
       [&] (const HttpHeader& value) {
         return value.GetName() == header.GetName();
@@ -78,7 +109,7 @@ namespace WebServices {
     }
   }
 
-  inline void HttpServerResponse::SetCookie(Cookie cookie) {
+  inline void HttpResponse::SetCookie(Cookie cookie) {
     auto c = std::find_if(m_cookies.begin(), m_cookies.end(),
       [&] (const Cookie& value) {
         return value.GetName() == cookie.GetName();
@@ -90,22 +121,23 @@ namespace WebServices {
     }
   }
 
-  inline void HttpServerResponse::SetBody(IO::SharedBuffer body) {
+  inline void HttpResponse::SetBody(IO::SharedBuffer body) {
     m_body = std::move(body);
     SetHeader({"Content-Length", std::to_string(m_body.GetSize())});
   }
 
   template<typename Buffer>
-  void HttpServerResponse::Encode(Out<Buffer> buffer) const {
+  void HttpResponse::Encode(Out<Buffer> buffer) const {
     char conversionBuffer[64];
-    buffer->Append("HTTP/1.1 ", 9);
+    IO::BufferOutputStream<Buffer> bufferOutputStream{Ref(*buffer)};
+    bufferOutputStream << m_version;
+    bufferOutputStream.flush();
     auto conversionLength =
       std::sprintf(conversionBuffer, "%d ", static_cast<int>(m_statusCode));
     buffer->Append(conversionBuffer, conversionLength);
     auto& reasonPhrase = GetReasonPhrase(m_statusCode);
     buffer->Append(reasonPhrase.c_str(), reasonPhrase.size());
     buffer->Append("\r\n", 2);
-    IO::BufferOutputStream<Buffer> bufferOutputStream{Ref(*buffer)};
     for(auto& header : m_headers) {
       bufferOutputStream << header << std::flush;
       buffer->Append("\r\n", 2);

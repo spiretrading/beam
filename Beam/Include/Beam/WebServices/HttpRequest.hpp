@@ -203,7 +203,10 @@ namespace WebServices {
         m_headers{std::move(headers)},
         m_specialHeaders{specialHeaders},
         m_cookies{std::move(cookies)},
-        m_body{std::move(body)} {}
+        m_body{std::move(body)} {
+    Add(HttpHeader{"Host", m_uri.GetHostname() + ":" +
+      std::to_string(m_uri.GetPort())});
+  }
 
   inline const HttpVersion& HttpRequest::GetVersion() const {
     return m_version;
@@ -259,8 +262,23 @@ namespace WebServices {
   }
 
   inline void HttpRequest::Add(HttpHeader header) {
-
-    // TODO
+    if(header.GetName() == "Content-Length") {
+      m_specialHeaders.m_contentLength = static_cast<std::size_t>(
+        std::stoull(header.GetValue()));
+      m_contentLength = std::string{};
+    } else if(header.GetName() == "Connection") {
+      if(header.GetValue() == "keep-alive") {
+        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
+      } else if(header.GetValue() == "close") {
+        m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
+      } else if(header.GetValue() == "Upgrade") {
+        m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
+      } else {
+        BOOST_THROW_EXCEPTION(std::runtime_error{"Invalid Connection header."});
+      }
+    } else {
+      m_headers.push_back(std::move(header));
+    }
   }
 
   inline boost::optional<const Cookie&> HttpRequest::GetCookie(

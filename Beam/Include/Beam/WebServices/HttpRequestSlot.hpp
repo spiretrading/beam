@@ -23,7 +23,7 @@ namespace WebServices {
       \param request The request that satisfied the predicate.
       \param response The response for the specified <i>request</i>.
     */
-    using Slot = std::function<HttpServerResponse (const HttpRequest& request)>;
+    using Slot = std::function<HttpResponse (const HttpRequest& request)>;
 
     //! The predicate to match.
     Predicate m_predicate;

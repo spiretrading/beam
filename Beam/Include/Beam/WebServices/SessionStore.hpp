@@ -62,7 +62,7 @@ namespace WebServices {
         \return The Session associated with the <i>request</i>.
       */
       std::shared_ptr<Session> Get(const HttpRequest& request,
-        Out<HttpServerResponse> response);
+        Out<HttpResponse> response);
 
       //! Finds a Session associated with an HTTP request.
       /*!
@@ -90,7 +90,7 @@ namespace WebServices {
         \param response Stores the cookie.
       */
       void SetSessionIdCookie(const Session& session,
-        Out<HttpServerResponse> response) const;
+        Out<HttpResponse> response) const;
 
     private:
       SessionStoreConfig m_config;
@@ -123,7 +123,7 @@ namespace WebServices {
   template<typename SessionType>
   std::shared_ptr<typename SessionStore<SessionType>::Session>
       SessionStore<SessionType>::Get(const HttpRequest& request,
-      Out<HttpServerResponse> response) {
+      Out<HttpResponse> response) {
     auto sessionCookie = request.GetCookie(m_config.m_sessionName);
     if(!sessionCookie.is_initialized()) {
       auto session = Create();
@@ -178,7 +178,7 @@ namespace WebServices {
 
   template<typename SessionType>
   void SessionStore<SessionType>::SetSessionIdCookie(const Session& session,
-      Out<HttpServerResponse> response) const {
+      Out<HttpResponse> response) const {
     response->SetCookie({m_config.m_sessionName,
       session.GetId() + m_cookieAttributes});
   }

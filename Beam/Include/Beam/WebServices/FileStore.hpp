@@ -7,7 +7,7 @@
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/ContentTypePatterns.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
-#include "Beam/WebServices/HttpServerResponse.hpp"
+#include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -38,14 +38,14 @@ namespace WebServices {
         \param path The path to the file to serve.
         \return The HTTP response containing the file contents.
       */
-      HttpServerResponse Serve(const boost::filesystem::path& path);
+      HttpResponse Serve(const boost::filesystem::path& path);
 
       //! Serves a file from an HTTP request.
       /*!
         \param request The HTTP request to serve.
         \return The HTTP response containing the file contents.
       */
-      HttpServerResponse Serve(const HttpRequest& request);
+      HttpResponse Serve(const HttpRequest& request);
 
       //! Serves a file from an HTTP request.
       /*!
@@ -53,14 +53,14 @@ namespace WebServices {
         \param response Stores the HTTP response containing the file contents.
       */
       void Serve(const boost::filesystem::path& path,
-        Out<HttpServerResponse> response);
+        Out<HttpResponse> response);
 
       //! Serves a file from an HTTP request.
       /*!
         \param request The HTTP request to serve.
         \param response Stores the HTTP response containing the file contents.
       */
-      void Serve(const HttpRequest& request, Out<HttpServerResponse> response);
+      void Serve(const HttpRequest& request, Out<HttpResponse> response);
 
     private:
       boost::filesystem::path m_root;
@@ -78,19 +78,18 @@ namespace WebServices {
     m_root = boost::filesystem::canonical(boost::filesystem::absolute(root));
   }
 
-  inline HttpServerResponse FileStore::Serve(
-      const boost::filesystem::path& path) {
-    HttpServerResponse response;
+  inline HttpResponse FileStore::Serve(const boost::filesystem::path& path) {
+    HttpResponse response;
     Serve(path, Store(response));
     return response;
   }
 
-  inline HttpServerResponse FileStore::Serve(const HttpRequest& request) {
+  inline HttpResponse FileStore::Serve(const HttpRequest& request) {
     return Serve(request.GetUri().GetPath());
   }
 
   inline void FileStore::Serve(const boost::filesystem::path& path,
-      Out<HttpServerResponse> response) {
+      Out<HttpResponse> response) {
     boost::filesystem::path fullPath = m_root / path;
     boost::filesystem::ifstream file{fullPath, std::ios::in | std::ios::binary};
     if(!file) {
@@ -109,7 +108,7 @@ namespace WebServices {
   }
 
   inline void FileStore::Serve(const HttpRequest& request,
-      Out<HttpServerResponse> response) {
+      Out<HttpResponse> response) {
     Serve(request.GetUri().GetPath(), Store(response));
   }
 }

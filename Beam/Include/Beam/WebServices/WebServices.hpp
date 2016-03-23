@@ -11,12 +11,14 @@ namespace WebServices {
   enum class HttpMethod;
   class HttpRequest;
   struct HttpRequestSlot;
-  class HttpServerResponse;
+  class HttpResponse;
+  class HttpResponseParser;
   template<typename ServletType, typename ServerConnectionType>
     class HttpServletContainer;
   enum class HttpStatusCode;
   class HttpVersion;
   class InvalidHttpRequestException;
+  class InvalidHttpResponseException;
   class MalformedUriException;
   class SecureSocketChannelFactory;
   class Session;

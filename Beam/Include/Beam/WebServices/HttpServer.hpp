@@ -11,7 +11,7 @@
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
-#include "Beam/WebServices/HttpServerResponse.hpp"
+#include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -106,7 +106,7 @@ namespace WebServices {
   void HttpServer<ServerConnectionType>::AcceptLoop() {
     SynchronizedUnorderedSet<std::shared_ptr<Channel>> clients;
     Routines::RoutineHandlerGroup clientRoutines;
-    HttpServerResponse NOT_FOUND_RESPONSE{HttpStatusCode::NOT_FOUND};
+    HttpResponse NOT_FOUND_RESPONSE{HttpStatusCode::NOT_FOUND};
     typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
     NOT_FOUND_RESPONSE.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
     while(true) {

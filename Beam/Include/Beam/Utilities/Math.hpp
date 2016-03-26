@@ -1,7 +1,10 @@
 #ifndef BEAM_MATH_HPP
 #define BEAM_MATH_HPP
+#include <cmath>
 #include <cstdint>
+#include <stdexcept>
 #include <type_traits>
+#include <boost/rational.hpp>
 #include "Beam/Utilities/MathDetails.hpp"
 
 namespace Beam {
@@ -96,6 +99,35 @@ namespace Beam {
     double d = static_cast<double>(value) / point;
     d = Details::RoundDouble(d) + 0.5;
     return static_cast<int>(d) * point;
+  }
+}
+
+namespace boost {
+  template<typename I>
+  boost::rational<I> rational_cast(double value) {
+    static_assert(std::numeric_limits<double>::is_iec559,
+      "Invalid floating point format.");
+    auto classification = std::fpclassify(value);
+    if(classification == FP_ZERO || classification == FP_SUBNORMAL) {
+      return {};
+    } else if(classification != FP_NORMAL) {
+      BOOST_THROW_EXCEPTION(std::range_error{"Float out of range."});
+    }
+    int exponent;
+    auto fraction = std::frexp(value, &exponent);
+    for(auto i = 0; i < 300 && fraction != std::floor(fraction); ++i) {
+      fraction *= 2.0;
+      --exponent;
+    }
+    std::int64_t numerator = static_cast<std::int64_t>(fraction);
+    std::int64_t denominator;
+    if(exponent > 0) {
+      numerator *= 1LL << std::abs(exponent);
+      denominator = 1;
+    } else {
+      denominator = 1LL << std::abs(exponent);
+    }
+    return {numerator, denominator};
   }
 }
 

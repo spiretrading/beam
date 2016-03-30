@@ -6,6 +6,10 @@ file(GLOB source_files
 add_executable(QueryStressTest ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(QueryStressTest
+  debug $ENV{OPEN_SSL_LIBRARY_DEBUG_PATH}
+  optimized $ENV{OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+  optimized $ENV{OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug $ENV{YAML_LIBRARY_DEBUG_PATH}
   optimized $ENV{YAML_LIBRARY_OPTIMIZED_PATH})
 
@@ -23,7 +27,7 @@ if(UNIX)
     optimized $ENV{BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
-    pthread rt)
+    dl pthread rt)
 endif(UNIX)
 
 install(TARGETS QueryStressTest DESTINATION $ENV{INSTALL_DIRECTORY})

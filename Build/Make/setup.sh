@@ -90,6 +90,17 @@ if [ ! -d "tclap-1.2.1" ]; then
   cd ..
   rm -f tclap-1.2.1.tar.gz
 fi
+if [ ! -d "openssl-1.0.2g" ]; then
+  wget --no-check-certificate https://www.openssl.org/source/openssl-1.0.2g.tar.gz
+  gzip -d -c openssl-1.0.2g.tar.gz | tar -x
+  cd openssl-1.0.2g
+  ./config
+  make
+  make test
+  make install
+  cd ..
+  rm openssl-1.0.2g.tar.gz
+fi
 if [ ! -d "boost_1_59_0" ]; then
   wget http://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.tar.gz/download -O boost_1_59_0.tar.gz
   tar xvf boost_1_59_0.tar.gz

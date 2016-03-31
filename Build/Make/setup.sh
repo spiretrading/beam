@@ -94,10 +94,12 @@ if [ ! -d "openssl-1.0.2g" ]; then
   wget --no-check-certificate https://www.openssl.org/source/openssl-1.0.2g.tar.gz
   gzip -d -c openssl-1.0.2g.tar.gz | tar -x
   cd openssl-1.0.2g
-  ./config
+  export LDFLAGS=-ldl
+  ./config no-shared threads -fPIC -ldl
   make
   make test
   make install
+  unset LDFLAGS
   cd ..
   rm openssl-1.0.2g.tar.gz
 fi

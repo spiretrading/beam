@@ -137,12 +137,12 @@ namespace Beam {
       : m_bitset{set} {}
 
   template<typename T>
-  EnumSet<T>::operator const std::bitset<EnumSet<T>::Type::COUNT>& () const {
+  EnumSet<T>::operator const std::bitset<Type::COUNT>& () const {
     return m_bitset;
   }
 
   template<typename T>
-  EnumSet<T>::operator std::bitset<EnumSet<T>::Type::COUNT>& () {
+  EnumSet<T>::operator std::bitset<Type::COUNT>& () {
     return m_bitset;
   }
 

@@ -82,40 +82,6 @@ namespace Queries {
     return query.execute();
   }
 
-  //! Queries an SQL database for a Range of Sequences matching a timestamp.
-  /*!
-    \param timestamp The timestamp to search for.
-    \param table The table query.
-    \param indexQuery The SQL query fragment containing the index.
-    \param connection The SQL connection.
-    \return The Range of Sequences matching the <i>timestamp</i>.
-  */
-  inline Range LoadSequenceHint(const boost::posix_time::ptime& timestamp,
-      const std::string& table, const std::string& indexQuery,
-      mysqlpp::Connection& connection) {
-    auto sqlQuery = connection.query();
-    sqlQuery << "SELECT MAX(query_sequence) FROM " << table << " WHERE " <<
-      indexQuery << " AND timestamp <= " << MySql::ToMySqlTimestamp(timestamp);
-    auto result = sqlQuery.store();
-    Sequence start;
-    if(!result || result.size() != 1 || result[0][0].is_null()) {
-      start = Sequence::First();
-    } else {
-      start = Sequence(result[0][0].conv<std::uint64_t>(0));
-    }
-    sqlQuery.reset();
-    sqlQuery << "SELECT MIN(query_sequence) FROM " << table << " WHERE " <<
-      indexQuery << " AND timestamp >= " << MySql::ToMySqlTimestamp(timestamp);
-    result = sqlQuery.store();
-    Sequence end;
-    if(!result || result.size() != 1 || result[0][0].is_null()) {
-      end = Sequence::Last();
-    } else {
-      end = Sequence(result[0][0].conv<std::uint64_t>(0));
-    }
-    return Range(start, end);
-  }
-
   //! Stores a Sequence hint for a value.
   /*!
     \param table The table to store the hint in.
@@ -153,15 +119,10 @@ namespace Queries {
       auto connection = connectionPool.Acquire();
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetStart());
-      auto rangeHint = LoadSequenceHint(timestamp, table + "_sequences",
-        indexQuery, *connection);
       auto sqlQuery = connection->query();
       sqlQuery << "SELECT MIN(query_sequence) FROM " << table << " WHERE " <<
-        indexQuery << " AND query_sequence >= " <<
-        boost::get<Sequence>(rangeHint.GetStart()).GetOrdinal() <<
-        " AND query_sequence <= " <<
-        boost::get<Sequence>(rangeHint.GetEnd()).GetOrdinal() <<
-        " AND timestamp >= " << MySql::ToMySqlTimestamp(timestamp);
+        indexQuery << " AND timestamp >= " <<
+        MySql::ToMySqlTimestamp(timestamp);
       auto result = sqlQuery.store();
       if(!result || result.size() != 1 || result[0][0].is_null()) {
         start = Sequence::Last();
@@ -176,15 +137,10 @@ namespace Queries {
       auto connection = connectionPool.Acquire();
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetEnd());
-      auto rangeHint = LoadSequenceHint(timestamp, table + "_sequences",
-        indexQuery, *connection);
       auto sqlQuery = connection->query();
       sqlQuery << "SELECT MAX(query_sequence) FROM " << table << " WHERE " <<
         indexQuery << " AND timestamp <= " <<
-        MySql::ToMySqlTimestamp(timestamp) << " AND query_sequence >= " <<
-        boost::get<Sequence>(rangeHint.GetStart()).GetOrdinal() <<
-        " AND query_sequence <= " <<
-        boost::get<Sequence>(rangeHint.GetEnd()).GetOrdinal();
+        MySql::ToMySqlTimestamp(timestamp);
       auto result = sqlQuery.store();
       if(!result || result.size() != 1 || result[0][0].is_null()) {
         end = Sequence::First();

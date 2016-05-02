@@ -17,8 +17,14 @@ namespace Python {
   //! Exports the ServiceLocator namespace.
   void ExportServiceLocator();
 
+  //! Exports the ServiceLocator::Tests namespace.
+  void ExportServiceLocatorTests();
+
   //! Exports the ServiceLocatorClient class.
   void ExportServiceLocatorClient();
+
+  //! Exports the ServiceLocatorTestInstance class.
+  void ExportServiceLocatorTestInstance();
 }
 }
 

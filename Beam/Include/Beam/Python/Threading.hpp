@@ -13,6 +13,9 @@ namespace Python {
 
   //! Exports the Timer class.
   void ExportTimer();
+
+  //! Exports the TriggerTimer class.
+  void ExportTriggerTimer();
 }
 }
 

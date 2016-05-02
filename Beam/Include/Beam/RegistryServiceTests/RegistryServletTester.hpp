@@ -32,8 +32,7 @@ namespace Tests {
     public:
 
       //! The type of ServiceLocatorClient.
-      using ServiceLocatorClient =
-        ServiceLocator::Tests::ServiceLocatorTestInstance::ServiceLocatorClient;
+      using ServiceLocatorClient = ServiceLocator::VirtualServiceLocatorClient;
 
       //! The type of ServerConnection.
       using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;

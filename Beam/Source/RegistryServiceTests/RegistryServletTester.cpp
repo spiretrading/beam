@@ -29,8 +29,8 @@ void RegistryServletTester::setUp() {
   RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
   RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
   RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
-  std::unique_ptr<ServiceLocatorTestInstance::ServiceLocatorClient>
-    registryServiceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  std::unique_ptr<VirtualServiceLocatorClient> registryServiceLocatorClient =
+    m_serviceLocatorInstance->BuildClient();
   registryServiceLocatorClient->SetCredentials("root", "");
   registryServiceLocatorClient->Open();
   m_container.Initialize(Initialize(std::move(registryServiceLocatorClient),
@@ -49,8 +49,7 @@ void RegistryServletTester::TestMakeDirectory() {
   auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
-  OpenAndAuthenticate(
-    SessionAuthenticator<ServiceLocatorTestInstance::ServiceLocatorClient>(
+  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
     Ref(*serviceLocatorClient)), *m_clientProtocol);
   auto directoryName = string{"directory"};
   RegistryEntry directory = m_clientProtocol->SendRequest<MakeDirectoryService>(
@@ -61,8 +60,7 @@ void RegistryServletTester::TestMakeValue() {
   auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
-  OpenAndAuthenticate(
-    SessionAuthenticator<ServiceLocatorTestInstance::ServiceLocatorClient>(
+  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
     Ref(*serviceLocatorClient)), *m_clientProtocol);
   auto key = string{"key"};
   auto value = BufferFromString<SharedBuffer>("value");
@@ -74,8 +72,7 @@ void RegistryServletTester::TestLoadPath() {
   auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
-  OpenAndAuthenticate(
-    SessionAuthenticator<ServiceLocatorTestInstance::ServiceLocatorClient>(
+  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
     Ref(*serviceLocatorClient)), *m_clientProtocol);
   RegistryEntry directory(RegistryEntry::Type::DIRECTORY, 0, "directory", 0);
   directory = m_dataStore->Copy(directory, RegistryEntry::GetRoot());
@@ -88,8 +85,7 @@ void RegistryServletTester::TestLoadValue() {
   auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
-  OpenAndAuthenticate(
-    SessionAuthenticator<ServiceLocatorTestInstance::ServiceLocatorClient>(
+  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
     Ref(*serviceLocatorClient)), *m_clientProtocol);
   RegistryEntry valueEntry(RegistryEntry::Type::VALUE, 0, "value", 0);
   valueEntry = m_dataStore->Copy(valueEntry, RegistryEntry::GetRoot());

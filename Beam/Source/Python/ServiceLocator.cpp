@@ -16,6 +16,7 @@
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/ServiceLocatorTests/ServiceLocatorTestInstance.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include <boost/noncopyable.hpp>
@@ -26,6 +27,7 @@ using namespace Beam::Network;
 using namespace Beam::Python;
 using namespace Beam::Serialization;
 using namespace Beam::ServiceLocator;
+using namespace Beam::ServiceLocator::Tests;
 using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
@@ -128,6 +130,16 @@ void Beam::Python::ExportServiceLocator() {
   ExportServiceLocatorClient();
 }
 
+void Beam::Python::ExportServiceLocatorTests() {
+  string nestedName = extract<string>(scope().attr("__name__") +
+    ".service_locator.tests");
+  object nestedModule{handle<>(
+    borrowed(PyImport_AddModule(nestedName.c_str())))};
+  scope().attr("tests") = nestedModule;
+  scope parent = nestedModule;
+  ExportServiceLocatorTestInstance();
+}
+
 void Beam::Python::ExportServiceLocatorClient() {
   class_<VirtualServiceLocatorClient, boost::noncopyable>(
     "ServiceLocatorClient", no_init)
@@ -179,4 +191,15 @@ void Beam::Python::ExportServiceLocatorClient() {
       BlockingFunction(&VirtualServiceLocatorClient::SetCredentials))
     .def("open", BlockingFunction(&VirtualServiceLocatorClient::Open))
     .def("close", BlockingFunction(&VirtualServiceLocatorClient::Close));
+}
+
+void Beam::Python::ExportServiceLocatorTestInstance() {
+  class_<ServiceLocatorTestInstance, boost::noncopyable>(
+      "ServiceLocatorTestInstance", init<>())
+    .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
+    .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
+    .def("get_root", &ServiceLocatorTestInstance::GetRoot,
+      return_value_policy<reference_existing_object>())
+    .def("build_client",
+      ReleaseUniquePtr(&ServiceLocatorTestInstance::BuildClient));
 }

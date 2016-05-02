@@ -14,6 +14,7 @@
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
+#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 #include "Beam/ServiceLocatorTests/ServiceLocatorTests.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -67,16 +68,16 @@ namespace Tests {
       void Close();
 
       //! Returns a ServiceLocatorClient logged in as the root account.
-      ServiceLocatorClient& GetRoot();
+      VirtualServiceLocatorClient& GetRoot();
 
       //! Builds a new ServiceLocatorClient.
-      std::unique_ptr<ServiceLocatorClient> BuildClient();
+      std::unique_ptr<VirtualServiceLocatorClient> BuildClient();
 
     private:
       LocalServiceLocatorDataStore m_dataStore;
       ServerConnection m_serverConnection;
       ServiceProtocolServletContainer m_container;
-      std::unique_ptr<ServiceLocatorClient> m_root;
+      std::unique_ptr<VirtualServiceLocatorClient> m_root;
   };
 
   inline ServiceLocatorTestInstance::ServiceLocatorTestInstance()
@@ -99,12 +100,11 @@ namespace Tests {
     m_container.Close();
   }
 
-  inline ServiceLocatorTestInstance::ServiceLocatorClient&
-      ServiceLocatorTestInstance::GetRoot() {
+  inline VirtualServiceLocatorClient& ServiceLocatorTestInstance::GetRoot() {
     return *m_root;
   }
 
-  inline std::unique_ptr<ServiceLocatorTestInstance::ServiceLocatorClient>
+  inline std::unique_ptr<VirtualServiceLocatorClient>
       ServiceLocatorTestInstance::BuildClient() {
     ServiceProtocolClientBuilder builder(
       [&] {
@@ -115,7 +115,7 @@ namespace Tests {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
     auto client = std::make_unique<ServiceLocatorClient>(builder);
-    return client;
+    return MakeVirtualServiceLocatorClient(std::move(client));
   }
 }
 }

@@ -6,6 +6,7 @@
 #include <boost/python/object.hpp>
 #include <boost/python/make_function.hpp>
 #include <boost/python/manage_new_object.hpp>
+#include <boost/python/return_value_policy.hpp>
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 

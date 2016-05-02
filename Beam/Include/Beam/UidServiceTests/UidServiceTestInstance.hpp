@@ -16,6 +16,7 @@
 #include "Beam/UidService/LocalUidDataStore.hpp"
 #include "Beam/UidService/UidClient.hpp"
 #include "Beam/UidService/UidServlet.hpp"
+#include "Beam/UidService/VirtualUidClient.hpp"
 #include "Beam/UidServiceTests/UidServiceTests.hpp"
 
 namespace Beam {
@@ -29,29 +30,6 @@ namespace Tests {
   class UidServiceTestInstance : private boost::noncopyable {
     public:
 
-      //! The type of ServerConnection.
-      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
-
-      //! The type of Channel from the client to the server.
-      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
-
-      //! The type of ServiceProtocolServer.
-      using ServiceProtocolServletContainer =
-        Services::ServiceProtocolServletContainer<
-        MetaUidServlet<LocalUidDataStore*>, ServerConnection*,
-        Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
-
-      //! The type used to build UidClient sessions.
-      using ServiceProtocolClientBuilder =
-        Services::ServiceProtocolClientBuilder<
-        Services::MessageProtocol<std::unique_ptr<ClientChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-        Threading::TriggerTimer>;
-
-      //! The type of UidClient used.
-      using UidClient = UidService::UidClient<ServiceProtocolClientBuilder>;
-
       //! Constructs a UidServiceTestInstance.
       UidServiceTestInstance();
 
@@ -64,9 +42,21 @@ namespace Tests {
       void Close();
 
       //! Builds a new UidClient.
-      std::unique_ptr<UidClient> BuildClient();
+      std::unique_ptr<VirtualUidClient> BuildClient();
 
     private:
+      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
+      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
+      using ServiceProtocolServletContainer =
+        Services::ServiceProtocolServletContainer<
+        MetaUidServlet<LocalUidDataStore*>, ServerConnection*,
+        Serialization::BinarySender<IO::SharedBuffer>,
+        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
+      using ServiceProtocolClientBuilder =
+        Services::ServiceProtocolClientBuilder<
+        Services::MessageProtocol<std::unique_ptr<ClientChannel>,
+        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+        Threading::TriggerTimer>;
       LocalUidDataStore m_dataStore;
       ServerConnection m_serverConnection;
       ServiceProtocolServletContainer m_container;
@@ -88,7 +78,7 @@ namespace Tests {
     m_container.Close();
   }
 
-  inline std::unique_ptr<UidServiceTestInstance::UidClient>
+  inline std::unique_ptr<VirtualUidClient>
       UidServiceTestInstance::BuildClient() {
     ServiceProtocolClientBuilder builder(
       [&] {
@@ -98,8 +88,9 @@ namespace Tests {
       [&] {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
-    auto client = std::make_unique<UidClient>(builder);
-    return client;
+    auto client = std::make_unique<UidService::UidClient<
+      ServiceProtocolClientBuilder>>(builder);
+    return MakeVirtualUidClient(std::move(client));
   }
 }
 }

@@ -32,30 +32,6 @@ namespace Tests {
   class ServiceLocatorTestInstance : private boost::noncopyable {
     public:
 
-      //! The type of ServerConnection.
-      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
-
-      //! The type of Channel from the client to the server.
-      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
-
-      //! The type of ServiceProtocolServer.
-      using ServiceProtocolServletContainer =
-        Services::ServiceProtocolServletContainer<
-        MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>,
-        ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
-
-      //! The type used to build ServiceLocatorClient sessions.
-      using ServiceProtocolClientBuilder =
-        Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
-        std::unique_ptr<ClientChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-        Threading::TriggerTimer>;
-
-      //! The type of ServiceLocatorClient used.
-      using ServiceLocatorClient = ServiceLocator::ServiceLocatorClient<
-        ServiceProtocolClientBuilder>;
-
       //! Constructs a ServiceLocatorTestInstance.
       ServiceLocatorTestInstance();
 
@@ -74,6 +50,18 @@ namespace Tests {
       std::unique_ptr<VirtualServiceLocatorClient> BuildClient();
 
     private:
+      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
+      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
+      using ServiceProtocolServletContainer =
+        Services::ServiceProtocolServletContainer<
+        MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>,
+        ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
+        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
+      using ServiceProtocolClientBuilder =
+        Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
+        std::unique_ptr<ClientChannel>,
+        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+        Threading::TriggerTimer>;
       LocalServiceLocatorDataStore m_dataStore;
       ServerConnection m_serverConnection;
       ServiceProtocolServletContainer m_container;
@@ -114,7 +102,8 @@ namespace Tests {
       [&] {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
-    auto client = std::make_unique<ServiceLocatorClient>(builder);
+    auto client = std::make_unique<ServiceLocator::ServiceLocatorClient<
+      ServiceProtocolClientBuilder>>(builder);
     return MakeVirtualServiceLocatorClient(std::move(client));
   }
 }

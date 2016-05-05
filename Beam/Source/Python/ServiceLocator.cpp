@@ -128,16 +128,14 @@ void Beam::Python::ExportServiceLocator() {
   ExportDirectoryEntry();
   ExportServiceEntry();
   ExportServiceLocatorClient();
-}
-
-void Beam::Python::ExportServiceLocatorTests() {
-  string nestedName = extract<string>(scope().attr("__name__") +
-    ".service_locator.tests");
-  object nestedModule{handle<>(
-    borrowed(PyImport_AddModule(nestedName.c_str())))};
-  scope().attr("tests") = nestedModule;
-  scope parent = nestedModule;
-  ExportServiceLocatorTestInstance();
+  {
+    string nestedName = extract<string>(parent.attr("__name__") + ".tests");
+    object nestedModule{handle<>(
+      borrowed(PyImport_AddModule(nestedName.c_str())))};
+    parent.attr("tests") = nestedModule;
+    scope child = nestedModule;
+    ExportServiceLocatorTestInstance();
+  }
 }
 
 void Beam::Python::ExportServiceLocatorClient() {

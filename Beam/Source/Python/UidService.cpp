@@ -68,16 +68,14 @@ void Beam::Python::ExportUidService() {
   scope().attr("uid_service") = nestedModule;
   scope parent = nestedModule;
   ExportUidClient();
-}
-
-void Beam::Python::ExportUidServiceTests() {
-  string nestedName = extract<string>(scope().attr("__name__") +
-    ".uid_service.tests");
-  object nestedModule{handle<>(
-    borrowed(PyImport_AddModule(nestedName.c_str())))};
-  scope().attr("tests") = nestedModule;
-  scope parent = nestedModule;
-  ExportUidServiceTestInstance();
+  {
+    string nestedName = extract<string>(parent.attr("__name__") + ".tests");
+    object nestedModule{handle<>(
+      borrowed(PyImport_AddModule(nestedName.c_str())))};
+    parent.attr("tests") = nestedModule;
+    scope child = nestedModule;
+    ExportUidServiceTestInstance();
+  }
 }
 
 void Beam::Python::ExportUidClient() {

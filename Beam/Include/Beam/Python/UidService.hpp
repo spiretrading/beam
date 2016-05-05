@@ -11,9 +11,6 @@ namespace Python {
   //! Exports the UidService namespace.
   void ExportUidService();
 
-  //! Exports the UidService::Tests namespace.
-  void ExportUidServiceTests();
-
   //! Exports the UidServiceTestInstance class.
   void ExportUidServiceTestInstance();
 }

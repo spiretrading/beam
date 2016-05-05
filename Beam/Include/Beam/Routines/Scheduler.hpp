@@ -78,12 +78,10 @@ namespace Details {
       typedef std::unordered_map<Routine::Id, ScheduledRoutine*> RoutineIds;
       friend class Beam::Routines::ScheduledRoutine;
       friend void Resume(ScheduledRoutine*& routine);
-      mutable boost::mutex m_mutex;
       std::vector<boost::thread> m_threads;
       std::size_t m_threadCount;
       Threading::Sync<RoutineIds> m_routineIds;
       std::vector<Context> m_contexts;
-      boost::condition_variable m_pendingRoutinesEmptyCondition;
 
       void Queue(ScheduledRoutine& routine);
       void Suspend(ScheduledRoutine& routine);
@@ -92,18 +90,18 @@ namespace Details {
   };
 
   inline Scheduler::Context::Context()
-      : m_mutex(std::make_shared<boost::mutex>()),
-        m_isRunning(true),
-        m_pendingRoutinesAvailableCondition(
-          std::make_shared<boost::condition_variable>()) {}
+      : m_mutex{std::make_shared<boost::mutex>()},
+        m_isRunning{true},
+        m_pendingRoutinesAvailableCondition{
+          std::make_shared<boost::condition_variable>()} {}
 
   inline Scheduler::Scheduler()
-      : m_threadCount(boost::thread::hardware_concurrency()),
-        m_contexts(m_threadCount) {
+      : m_threadCount{boost::thread::hardware_concurrency()},
+        m_contexts{m_threadCount} {
     for(std::size_t i = 0; i < m_threadCount; ++i) {
       m_threads.emplace_back(
         [=] {
-          this->Run(m_contexts[i]);
+          Run(m_contexts[i]);
         });
     }
   }
@@ -191,11 +189,8 @@ namespace Details {
       context.m_isRunning = false;
       context.m_pendingRoutinesAvailableCondition->notify_all();
     }
-    {
-      boost::unique_lock<boost::mutex> lock(m_mutex);
-      while(m_threadCount != 0) {
-        m_pendingRoutinesEmptyCondition.wait(lock);
-      }
+    for(auto& thread : m_threads) {
+      thread.join();
     }
     for(Context& context : m_contexts) {
       boost::lock_guard<boost::mutex> contextLock(*context.m_mutex);
@@ -210,11 +205,6 @@ namespace Details {
         while(context.m_pendingRoutines.empty()) {
           if(!context.m_isRunning && context.m_pendingRoutines.empty() &&
               context.m_suspendedRoutines.empty()) {
-            boost::lock_guard<boost::mutex> schedulerLock(m_mutex);
-            --m_threadCount;
-            if(m_threadCount == 0) {
-              m_pendingRoutinesEmptyCondition.notify_all();
-            }
             return;
           }
           context.m_pendingRoutinesAvailableCondition->wait(lock);

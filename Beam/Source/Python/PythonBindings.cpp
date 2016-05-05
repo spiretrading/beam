@@ -22,12 +22,6 @@ using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::python;
 
-namespace {
-  void Finalize() {
-    Routines::Details::Scheduler::GetInstance().Stop();
-  }
-}
-
 SocketThreadPool* Beam::Python::GetSocketThreadPool() {
   static auto pool = new SocketThreadPool{
     boost::thread::hardware_concurrency()};
@@ -54,8 +48,4 @@ BOOST_PYTHON_MODULE(beam) {
   ExportUidService();
   ExportUidServiceTests();
   ExportYaml();
-  def("_finalize", &Finalize);
-  auto atexit = object{handle<>(PyImport_ImportModule("atexit"))};
-  object finalize = scope().attr("_finalize");
-  atexit.attr("register")(finalize);
 }

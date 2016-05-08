@@ -58,47 +58,6 @@ namespace Queries {
     return query;
   }
 
-  //! Loads the table storing hints used to retrieve query Sequences, creating
-  //! it if it doesn't yet exist.
-  /*!
-    \param schema The schema to load the table from.
-    \param table The name of the table to load.
-    \param indexFragment Specifies the index to use.
-    \param connection The SQL connection.
-    \return <code>true</code> iff the table was loaded.
-  */
-  inline bool LoadSequencesTable(const std::string& schema,
-      const std::string& table, const std::string& indexFragment,
-      mysqlpp::Connection& connection) {
-    if(MySql::TestTable(schema, table + "_sequences", connection)) {
-      return true;
-    }
-    auto query = connection.query();
-    query << "CREATE TABLE " << (table + "_sequences") << ("("
-      "timestamp BIGINT UNSIGNED NOT NULL,"
-      "query_sequence BIGINT UNSIGNED NOT NULL," +
-      indexFragment +
-      ", INDEX(timestamp))");
-    return query.execute();
-  }
-
-  //! Stores a Sequence hint for a value.
-  /*!
-    \param table The table to store the hint in.
-    \param value The value providing the Sequence and timestamp hint.
-    \param index The hint's SQL index.
-    \param connection The MySQL connection to use.
-  */
-  template<typename T>
-  void StoreSequenceHint(const std::string& table, const T& value,
-      const std::string& index, mysqlpp::Connection& connection) {
-    auto sqlQuery = connection.query();
-    sqlQuery << "INSERT INTO " << table << " VALUES (" <<
-      MySql::ToMySqlTimestamp(GetTimestamp(**value)) << ", " <<
-      value.GetSequence().GetOrdinal() << ", " << index << ")";
-    sqlQuery.execute();
-  };
-
   //! Sanitizes a query for use with an SQL database.
   /*!
     \param query The query to sanitize.
@@ -187,46 +146,6 @@ namespace Queries {
         return transformedRows;
       }, result.GetEval());
     return result.Get();
-  }
-
-  //! Loads the minimum Sequence stored for a given index.
-  /*!
-    \param table The SQL table to query.
-    \param indexQuery The SQL query fragment containing the data's index.
-    \param connection The SQL connect to use for the query.
-    \return The minimum Sequence stored.
-  */
-  inline Sequence GetMinSequence(const std::string& table,
-      const std::string& indexQuery, mysqlpp::Connection& connection) {
-    auto sqlQuery = connection.query();
-    sqlQuery << "SELECT MIN(query_sequence) FROM " << table << " WHERE " <<
-      indexQuery;
-    auto result = sqlQuery.store();
-    if(!result || result.size() != 1 || result[0][0].is_null()) {
-      return Sequence(1);
-    } else {
-      return Sequence(result[0][0].conv<std::uint64_t>(0));
-    }
-  }
-
-  //! Loads the maximum Sequence stored for a given index.
-  /*!
-    \param table The SQL table to query.
-    \param indexQuery The SQL query fragment containing the data's index.
-    \param connection The SQL connect to use for the query.
-    \return The maximum Sequence stored.
-  */
-  inline Sequence GetMaxSequence(const std::string& table,
-      const std::string& indexQuery, mysqlpp::Connection& connection) {
-    auto sqlQuery = connection.query();
-    sqlQuery << "SELECT MAX(query_sequence) FROM " << table << " WHERE " <<
-      indexQuery;
-    auto result = sqlQuery.store();
-    if(!result || result.size() != 1 || result[0][0].is_null()) {
-      return Sequence(1);
-    } else {
-      return Sequence(result[0][0].conv<std::uint64_t>(0));
-    }
   }
 
   //! Loads SequencedValue's from an SQL database.

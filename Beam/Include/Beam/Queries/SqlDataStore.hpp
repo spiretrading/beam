@@ -174,10 +174,6 @@ namespace Queries {
         auto query = connection.query();
         query.insert(row);
         query.execute();
-        if(value.GetSequence().GetOrdinal() % m_sequenceHintInterval == 0) {
-          StoreSequenceHint(m_table + "_sequences", value,
-            m_functor.InsertKey(value->GetIndex()), connection);
-        }
       });
   }
 
@@ -205,12 +201,6 @@ namespace Queries {
             insertStart = rows.end();
           }
           query.execute();
-        }
-        for(const auto& value : values) {
-          if(value.GetSequence().GetOrdinal() % m_sequenceHintInterval == 0) {
-            StoreSequenceHint(m_table + "_sequences", value,
-              m_functor.InsertKey(value->GetIndex()), connection);
-          }
         }
       });
   }

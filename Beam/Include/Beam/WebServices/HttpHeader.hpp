@@ -21,10 +21,10 @@ namespace WebServices {
       HttpHeader(std::string name, std::string value);
 
       //! Returns the header's name.
-      const std::string GetName() const;
+      const std::string& GetName() const;
 
       //! Returns the header's value.
-      const std::string GetValue() const;
+      const std::string& GetValue() const;
 
     private:
       std::string m_name;
@@ -40,11 +40,11 @@ namespace WebServices {
       : m_name{std::move(name)},
         m_value{std::move(value)} {}
 
-  inline const std::string HttpHeader::GetName() const {
+  inline const std::string& HttpHeader::GetName() const {
     return m_name;
   }
 
-  inline const std::string HttpHeader::GetValue() const {
+  inline const std::string& HttpHeader::GetValue() const {
     return m_value;
   }
 }

@@ -46,6 +46,7 @@ namespace WebServices {
     patterns.AddExtension("css", "text/css");
     patterns.AddExtension("html", "text/html");
     patterns.AddExtension("js", "application/javascript");
+    patterns.AddExtension("svg", "image/svg+xml");
     return patterns;
   }
 

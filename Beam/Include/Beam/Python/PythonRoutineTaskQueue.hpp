@@ -117,6 +117,9 @@ namespace Python {
 
   inline PythonRoutineTaskQueue::~PythonRoutineTaskQueue() {
     Break();
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock(gil);
+    m_routine.Wait();
   }
 
   inline boost::python::object PythonRoutineTaskQueue::GetSlot(

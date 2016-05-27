@@ -48,7 +48,7 @@ void Beam::Python::ExportBaseSnapshotPublisher() {
 void Beam::Python::ExportBaseQueue() {
   class_<BaseQueue, std::shared_ptr<BaseQueue>, noncopyable>("BaseQueue",
     no_init)
-    .def("break", static_cast<void (BaseQueue::*)()>(&BaseQueue::Break));
+    .def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::Break));
 }
 
 void Beam::Python::ExportPythonQueueWriter() {

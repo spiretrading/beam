@@ -71,15 +71,15 @@ namespace Python {
 
   inline PythonRoutineTaskQueue::Converter::~Converter() {
     Break();
-    GilLock gil;
-    boost::lock_guard<GilLock> lock(gil);
-    m_slot.reset();
   }
 
   inline void PythonRoutineTaskQueue::Converter::Push(const Source& value) {
+    auto slot = m_slot;
     std::function<void ()> callable =
       [=] {
-        (*m_slot)(value);
+        if(slot != boost::none) {
+          (*slot)(value);
+        }
       };
     using signature = boost::mpl::vector<void>;
     m_queue->Push(boost::python::make_function(callable,
@@ -91,7 +91,11 @@ namespace Python {
   }
 
   inline void PythonRoutineTaskQueue::Converter::Break(
-      const std::exception_ptr& e) {}
+      const std::exception_ptr& e) {
+    GilLock gil;
+    boost::lock_guard<GilLock> lock(gil);
+    m_slot = boost::none;
+  }
 
   inline PythonRoutineTaskQueue::PythonRoutineTaskQueue()
       : m_isBroken(false),

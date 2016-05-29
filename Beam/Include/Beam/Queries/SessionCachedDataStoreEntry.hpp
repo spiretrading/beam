@@ -116,6 +116,17 @@ namespace Queries {
         return cache->m_dataStore.Load(query);
       }
     }
+    if(auto end = boost::get<Sequence>(&query.GetRange().GetEnd())) {
+      auto size = cache->m_size.load();
+      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::TAIL &&
+          (*end == Sequence::Present() || *end == Sequence::Last()) &&
+          query.GetSnapshotLimit().GetSize() <= size) {
+        auto result = cache->m_dataStore.Load(query);
+        if(result.size() == query.GetSnapshotLimit().GetSize()) {
+          return result;
+        }
+      }
+    }
     return m_dataStore->Load(query);
   }
 

@@ -134,8 +134,8 @@ namespace Queries {
           m_cache = std::make_shared<DataStoreEntry>(
             boost::posix_time::neg_infin, Sequence::First());
         } else {
-          m_cache = std::make_shared<DataStoreEntry>(
-            GetTimestamp(*data.front()), data.front().GetSequence());
+          m_cache = std::make_shared<DataStoreEntry>(GetTimestamp(*data.back()),
+            data.back().GetSequence());
         }
       });
     auto cache =
@@ -147,9 +147,10 @@ namespace Queries {
     if(size > 2 * m_blockSize) {
       boost::lock_guard<boost::mutex> lock{m_mutex};
       auto data = cache->m_dataStore.LoadAll();
+      auto referenceValue = data[m_blockSize - 1];
       data.erase(data.begin(), data.begin() + m_blockSize);
       m_cache = std::make_shared<DataStoreEntry>(
-        GetTimestamp(*data.front()), data.front().GetSequence());
+        GetTimestamp(*referenceValue), referenceValue.GetSequence());
       m_cache->m_dataStore.Store(data);
     }
     cache->m_dataStore.Store(value);

@@ -148,6 +148,7 @@ namespace Queries {
           m_cache = std::make_shared<DataStoreEntry>(GetTimestamp(*data.back()),
             data.back().GetSequence());
         }
+        m_isInitialized = true;
       });
     auto cache =
       [&] {

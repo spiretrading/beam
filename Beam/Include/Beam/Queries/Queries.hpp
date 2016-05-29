@@ -63,6 +63,10 @@ namespace Queries {
   template<typename T> class SequencedValue;
   template<typename QueryType, typename ValueType>
     class SequencedValuePublisher;
+  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
+    class SessionCachedDataStore;
+  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
+    class SessionCachedDataStoreEntry;
   class SetVariableExpression;
   class SnapshotLimit;
   class SnapshotLimitedQuery;

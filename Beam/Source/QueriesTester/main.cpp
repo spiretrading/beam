@@ -32,6 +32,7 @@
 #include "Beam/QueriesTests/SequenceTester.hpp"
 #include "Beam/QueriesTests/SequencedValueTester.hpp"
 #include "Beam/QueriesTests/SequencedValuePublisherTester.hpp"
+#include "Beam/QueriesTests/SessionCachedDataStoreTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitedQueryTester.hpp"
 #include "Beam/QueriesTests/SubscriptionsTester.hpp"
@@ -72,6 +73,7 @@ int main() {
   runner.addTest(LocalDataStoreTester::suite());
   runner.addTest(BufferedDataStoreTester::suite());
   runner.addTest(CachedDataStoreTester::suite());
+  runner.addTest(SessionCachedDataStoreTester::suite());
   runner.addTest(ExpressionSubscriptionsTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),

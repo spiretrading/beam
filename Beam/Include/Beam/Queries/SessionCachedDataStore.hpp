@@ -6,6 +6,7 @@
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SessionCachedDataStoreEntry.hpp"
+#include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Utilities/SynchronizedMap.hpp"
 
 namespace Beam {
@@ -73,6 +74,7 @@ namespace Queries {
       int m_blockSize;
       SynchronizedUnorderedMap<Index, SessionCachedDataStoreEntry> m_caches;
       IO::OpenState m_openState;
+      RoutineTaskQueue m_tasks;
 
       void Shutdown();
       SessionCachedDataStoreEntry& LoadCache(const Index& index);
@@ -110,18 +112,24 @@ namespace Queries {
   void SessionCachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       Store(const IndexedValue& value) {
     m_dataStore->Store(value);
-    auto& cache = LoadCache(value->GetIndex());
-    cache.Store(value);
+    m_tasks.Push(
+      [=] {
+        auto& cache = LoadCache(value->GetIndex());
+        cache.Store(value);
+      });
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   void SessionCachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       Store(const std::vector<IndexedValue>& values) {
     m_dataStore->Store(values);
-    for(const auto& value : values) {
-      auto& cache = LoadCache(value->GetIndex());
-      cache.Store(value);
-    }
+    m_tasks.Push(
+      [=] {
+        for(const auto& value : values) {
+          auto& cache = LoadCache(value->GetIndex());
+          cache.Store(value);
+        }
+      });
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

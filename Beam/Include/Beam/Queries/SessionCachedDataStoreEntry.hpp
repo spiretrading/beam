@@ -139,7 +139,7 @@ namespace Queries {
         Query query;
         query.SetIndex(value->GetIndex());
         query.SetRange(Range::Total());
-        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, m_blockSize);
+        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, m_blockSize / 10);
         auto data = m_dataStore->Load(query);
         if(data.empty()) {
           m_cache = std::make_shared<DataStoreEntry>(
@@ -166,6 +166,7 @@ namespace Queries {
       m_cache = std::make_shared<DataStoreEntry>(
         GetTimestamp(*referenceValue), referenceValue.GetSequence());
       m_cache->m_dataStore.Store(data);
+      cache = m_cache;
     }
     cache->m_dataStore.Store(value);
     ++cache->m_size;

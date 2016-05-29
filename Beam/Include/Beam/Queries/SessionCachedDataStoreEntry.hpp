@@ -116,14 +116,19 @@ namespace Queries {
         return cache->m_dataStore.Load(query);
       }
     }
-    if(auto end = boost::get<Sequence>(&query.GetRange().GetEnd())) {
+    if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::TAIL) {
       auto size = cache->m_size.load();
-      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::TAIL &&
-          (*end == Sequence::Present() || *end == Sequence::Last()) &&
-          query.GetSnapshotLimit().GetSize() <= size) {
-        auto result = cache->m_dataStore.Load(query);
-        if(result.size() == query.GetSnapshotLimit().GetSize()) {
-          return result;
+      if(query.GetSnapshotLimit().GetSize() <= size) {
+        auto endRange = boost::get<Sequence>(&query.GetRange().GetEnd());
+        auto endTimestamp = boost::get<boost::posix_time::ptime>(
+          &query.GetRange().GetEnd());
+        if(endRange != nullptr && *endRange > cache->m_sequence ||
+            endTimestamp != nullptr && *endTimestamp > cache->m_timestamp) {
+          auto result = cache->m_dataStore.Load(query);
+          if(result.size() >= static_cast<std::size_t>(
+              query.GetSnapshotLimit().GetSize())) {
+            return result;
+          }
         }
       }
     }

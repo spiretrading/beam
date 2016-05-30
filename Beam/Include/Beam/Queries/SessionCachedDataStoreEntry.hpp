@@ -1,12 +1,13 @@
 #ifndef BEAM_SESSIONCACHEDDATASTOREENTRY_HPP
 #define BEAM_SESSIONCACHEDDATASTOREENTRY_HPP
 #include <atomic>
+#include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Sequence.hpp"
-#include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
@@ -73,9 +74,10 @@ namespace Queries {
       GetOptionalLocalPtr<DataStoreType> m_dataStore;
       int m_blockSize;
       Threading::CallOnce<Threading::Mutex> m_initializer;
+      Threading::CallOnce<boost::mutex> m_loadInitializer;
       std::atomic_bool m_isInitialized;
       std::shared_ptr<DataStoreEntry> m_cache;
-      RoutineTaskQueue m_tasks;
+      Routines::RoutineHandler m_loadRoutine;
 
       void InitializeCache(const Index& index);
   };
@@ -103,17 +105,17 @@ namespace Queries {
       EvaluatorTranslatorFilterType>::Load(const Query& query) {
     auto isInitialized = m_isInitialized.load();
     if(!isInitialized) {
-      auto result = m_dataStore->Load(query);
-      if(!result.empty()) {
-        m_tasks.Push(
-          [=, index = query.GetIndex()] {
-            m_initializer.Call(
-              [&] {
-                InitializeCache(index);
-              });
-          });
-      }
-      return result;
+      m_loadInitializer.Call(
+        [=, index = query.GetIndex()] {
+          m_loadRoutine = Routines::Spawn(
+            [=] {
+              m_initializer.Call(
+                [=] {
+                  InitializeCache(index);
+                });
+            });
+        });
+      return m_dataStore->Load(query);
     }
     auto cache =
       [&] {

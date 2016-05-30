@@ -195,6 +195,7 @@ namespace Queries {
         GetTimestamp(*data.front()), data.front().GetSequence());
       data.erase(data.begin());
       m_cache->m_dataStore.Store(data);
+      m_cache->m_size = data.size();
     }
     m_isInitialized = true;
   }

@@ -6,6 +6,7 @@
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Sequence.hpp"
+#include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
@@ -74,6 +75,9 @@ namespace Queries {
       Threading::CallOnce<Threading::Mutex> m_initializer;
       std::atomic_bool m_isInitialized;
       std::shared_ptr<DataStoreEntry> m_cache;
+      RoutineTaskQueue m_tasks;
+
+      void InitializeCache(const Index& index);
   };
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
@@ -99,7 +103,17 @@ namespace Queries {
       EvaluatorTranslatorFilterType>::Load(const Query& query) {
     auto isInitialized = m_isInitialized.load();
     if(!isInitialized) {
-      return m_dataStore->Load(query);
+      auto result = m_dataStore->Load(query);
+      if(!result.empty()) {
+        m_tasks.Push(
+          [=, index = query.GetIndex()] {
+            m_initializer.Call(
+              [&] {
+                InitializeCache(index);
+              });
+          });
+      }
+      return result;
     }
     auto cache =
       [&] {
@@ -141,21 +155,7 @@ namespace Queries {
     m_dataStore->Store(value);
     m_initializer.Call(
       [&] {
-        Query query;
-        query.SetIndex(value->GetIndex());
-        query.SetRange(Range::Total());
-        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, m_blockSize);
-        auto data = m_dataStore->Load(query);
-        if(data.empty()) {
-          m_cache = std::make_shared<DataStoreEntry>(
-            boost::posix_time::neg_infin, Sequence::First());
-        } else {
-          m_cache = std::make_shared<DataStoreEntry>(
-            GetTimestamp(*data.front()), data.front().GetSequence());
-          data.erase(data.begin());
-          m_cache->m_dataStore.Store(data);
-        }
-        m_isInitialized = true;
+        InitializeCache(value->GetIndex());
       });
     auto cache =
       [&] {
@@ -175,6 +175,26 @@ namespace Queries {
     }
     cache->m_dataStore.Store(value);
     ++cache->m_size;
+  }
+
+  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
+  void SessionCachedDataStoreEntry<DataStoreType,
+      EvaluatorTranslatorFilterType>::InitializeCache(const Index& index) {
+    Query query;
+    query.SetIndex(index);
+    query.SetRange(Range::Total());
+    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, m_blockSize);
+    auto data = m_dataStore->Load(query);
+    if(data.empty()) {
+      m_cache = std::make_shared<DataStoreEntry>(
+        boost::posix_time::neg_infin, Sequence::First());
+    } else {
+      m_cache = std::make_shared<DataStoreEntry>(
+        GetTimestamp(*data.front()), data.front().GetSequence());
+      data.erase(data.begin());
+      m_cache->m_dataStore.Store(data);
+    }
+    m_isInitialized = true;
   }
 }
 }

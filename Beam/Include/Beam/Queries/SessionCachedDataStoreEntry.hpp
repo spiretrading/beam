@@ -103,6 +103,9 @@ namespace Queries {
       EvaluatorTranslatorFilterType>::SequencedValue>
       SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Load(const Query& query) {
+    if(m_blockSize == 0) {
+      return m_dataStore->Load(query);
+    }
     auto isInitialized = m_isInitialized.load();
     if(!isInitialized) {
       m_loadInitializer.Call(
@@ -155,6 +158,9 @@ namespace Queries {
   void SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Store(const IndexedValue& value) {
     m_dataStore->Store(value);
+    if(m_blockSize == 0) {
+      return;
+    }
     m_initializer.Call(
       [&] {
         InitializeCache(value->GetIndex());

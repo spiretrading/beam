@@ -173,6 +173,7 @@ namespace Queries {
       m_cache = std::make_shared<DataStoreEntry>(
         GetTimestamp(*referenceValue), referenceValue.GetSequence());
       m_cache->m_dataStore.Store(data);
+      m_cache->m_size = data.size();
       cache = m_cache;
     }
     cache->m_dataStore.Store(value);

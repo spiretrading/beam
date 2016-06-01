@@ -1,10 +1,13 @@
 #include <fstream>
 #include <iostream>
 #include <tclap/CmdLine.h>
-#include "Beam/Utilities/YamlConfig.hpp"
+#include <Beam/MySql/MySqlConfig.hpp>
+#include <Beam/Utilities/YamlConfig.hpp>
+#include "DataStoreProfiler/MySqlDataStore.hpp"
 #include "DataStoreProfiler/Version.hpp"
 
 using namespace Beam;
+using namespace Beam::MySql;
 using namespace std;
 using namespace TCLAP;
 
@@ -36,5 +39,14 @@ int main(int argc, const char** argv) {
       (e.mark.column + 1) << ": " << e.msg << endl;
     return -1;
   }
+  MySqlConfig mySqlConfig;
+  try {
+    mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));
+  } catch(const std::exception& e) {
+    cerr << "Error parsing section 'data_store': " << e.what() << endl;
+    return -1;
+  }
+  MySqlDataStore mysqlDataStore{mySqlConfig.m_address, mySqlConfig.m_schema,
+    mySqlConfig.m_username, mySqlConfig.m_password};
   return 0;
 }

@@ -1,5 +1,6 @@
 #ifndef BEAM_REMOTE_HPP
 #define BEAM_REMOTE_HPP
+#include <atomic>
 #include <functional>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
@@ -12,16 +13,22 @@ namespace Beam {
   /*! \class Remote
       \brief Represents a value that must be loaded remotely using blocking
              calls.
+      \tparam T The type of value to load.
+      \tparam MutexType The type of mutex used to synchronize the
+              initialization.
    */
   template<typename T, typename MutexType = boost::mutex>
   class Remote : private boost::noncopyable {
     public:
 
+      //! The type of mutex used to synchronize the initialization.
+      using Mutex = MutexType;
+
       //! Defines the function used to initialize the Remote value.
       /*!
         \param value The value to initialize.
       */
-      typedef std::function<void (DelayPtr<T>& value)> InitializationFunction;
+      using InitializationFunction = std::function<void (DelayPtr<T>& value)>;
 
       //! Constructs a Remote object.
       Remote();
@@ -51,7 +58,7 @@ namespace Beam {
       mutable MutexType m_mutex;
       InitializationFunction m_initialize;
       mutable DelayPtr<T> m_value;
-      mutable bool m_isAvailable;
+      mutable std::atomic_bool m_isAvailable;
       mutable bool m_isLoading;
       mutable typename Threading::PreferredConditionVariable<MutexType>::type
         m_isAvailableCondition;
@@ -59,14 +66,14 @@ namespace Beam {
 
   template<typename T, typename MutexType>
   Remote<T, MutexType>::Remote()
-      : m_isAvailable(false),
-        m_isLoading(false) {}
+      : m_isAvailable{false},
+        m_isLoading{false} {}
 
   template<typename T, typename MutexType>
   Remote<T, MutexType>::Remote(const InitializationFunction& initializer)
-      : m_isAvailable(false),
-        m_isLoading(false),
-        m_initialize(initializer) {}
+      : m_isAvailable{false},
+        m_isLoading{false},
+        m_initialize{initializer} {}
 
   template<typename T, typename MutexType>
   void Remote<T, MutexType>::SetInitializationFunction(
@@ -76,14 +83,16 @@ namespace Beam {
 
   template<typename T, typename MutexType>
   bool Remote<T, MutexType>::IsAvailable() const {
-    boost::lock_guard<MutexType> lock(m_mutex);
-    return m_isAvailable;
+    return m_isAvailable.load();
   }
 
   template<typename T, typename MutexType>
   T& Remote<T, MutexType>::operator *() const {
+    if(m_isAvailable.load()) {
+      return *m_value;
+    }
     boost::unique_lock<MutexType> lock(m_mutex);
-    if(!m_isAvailable) {
+    if(!m_isAvailable.load()) {
       if(!m_isLoading) {
         m_isLoading = true;
         {

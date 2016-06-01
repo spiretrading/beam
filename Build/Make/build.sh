@@ -23,7 +23,13 @@ popd
 export -f build_function
 export directory
 export config
-applications="AdminClient ClientTemplate QueryStressTest RegistryServer"
-applications+=" ServiceLocator ServiceProtocolProfiler ServletTemplate"
+applications="AdminClient"
+applications+=" ClientTemplate"
+applications+=" DataStoreProfiler"
+applications+=" QueryStressTest"
+applications+=" RegistryServer"
+applications+=" ServiceLocator"
+applications+=" ServiceProtocolProfiler"
+applications+=" ServletTemplate"
 applications+=" UidServer"
 parallel -j$cores --no-notice build_function ::: $applications

@@ -12,8 +12,14 @@ pushd $directory/../../Beam/Build/Make
 ./run_cmake.sh $build_type
 popd
 
-applications="AdminClient ClientTemplate QueryStressTest RegistryServer"
-applications+=" ServiceLocator ServiceProtocolProfiler ServletTemplate"
+applications="AdminClient"
+applications+=" ClientTemplate"
+applications+=" DataStoreProfiler"
+applications+=" QueryStressTest"
+applications+=" RegistryServer"
+applications+=" ServiceLocator"
+applications+=" ServiceProtocolProfiler"
+applications+=" ServletTemplate"
 applications+=" UidServer"
 
 for i in $applications; do

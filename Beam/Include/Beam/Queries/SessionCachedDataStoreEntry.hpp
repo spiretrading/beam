@@ -7,7 +7,6 @@
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Sequence.hpp"
-#include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
@@ -74,10 +73,8 @@ namespace Queries {
       GetOptionalLocalPtr<DataStoreType> m_dataStore;
       int m_blockSize;
       Threading::CallOnce<Threading::Mutex> m_initializer;
-      Threading::CallOnce<boost::mutex> m_loadInitializer;
       std::atomic_bool m_isInitialized;
       std::shared_ptr<DataStoreEntry> m_cache;
-      Routines::RoutineHandler m_loadRoutine;
 
       void InitializeCache(const Index& index);
   };
@@ -103,21 +100,7 @@ namespace Queries {
       EvaluatorTranslatorFilterType>::SequencedValue>
       SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Load(const Query& query) {
-    if(m_blockSize == 0) {
-      return m_dataStore->Load(query);
-    }
-    auto isInitialized = m_isInitialized.load();
-    if(!isInitialized) {
-      m_loadInitializer.Call(
-        [=, index = query.GetIndex()] {
-          m_loadRoutine = Routines::Spawn(
-            [=] {
-              m_initializer.Call(
-                [=] {
-                  InitializeCache(index);
-                });
-            });
-        });
+    if(m_blockSize == 0 || !m_isInitialized) {
       return m_dataStore->Load(query);
     }
     auto cache =

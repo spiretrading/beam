@@ -4,4 +4,8 @@ data_store:
   username: spireadmin
   password: admin_password
   schema: data_store_profiler
+
+index_count: 3000
+seed_count: 100
+growth_factor: 2
 ...

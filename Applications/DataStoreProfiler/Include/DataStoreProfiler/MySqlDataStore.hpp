@@ -33,6 +33,9 @@ namespace Beam {
 
       ~MySqlDataStore();
 
+      //! Clears the contents of the database.
+      void Clear();
+
       Queries::Sequence LoadInitialSequence(const std::string& index);
 
       std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
@@ -79,6 +82,17 @@ namespace Beam {
 
   inline MySqlDataStore::~MySqlDataStore() {
     Close();
+  }
+
+  inline void MySqlDataStore::Clear() {
+    m_writerDatabaseConnection.With(
+      [&] (auto& connection) {
+        auto query = connection.query();
+        query << "TRUNCATE TABLE";
+        if(!query.execute()) {
+          BOOST_THROW_EXCEPTION(std::runtime_error{query.error()});
+        }
+      });
   }
 
   inline Queries::Sequence MySqlDataStore::LoadInitialSequence(

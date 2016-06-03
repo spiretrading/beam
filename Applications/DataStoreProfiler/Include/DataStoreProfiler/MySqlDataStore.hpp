@@ -88,7 +88,7 @@ namespace Beam {
     m_writerDatabaseConnection.With(
       [&] (auto& connection) {
         auto query = connection.query();
-        query << "TRUNCATE TABLE";
+        query << "TRUNCATE TABLE entries";
         if(!query.execute()) {
           BOOST_THROW_EXCEPTION(std::runtime_error{query.error()});
         }

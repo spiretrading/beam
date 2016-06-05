@@ -75,8 +75,6 @@ namespace Queries {
       Threading::CallOnce<Threading::Mutex> m_initializer;
       std::atomic_bool m_isInitialized;
       std::shared_ptr<DataStoreEntry> m_cache;
-
-      void InitializeCache(const Index& index);
   };
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
@@ -140,14 +138,22 @@ namespace Queries {
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   void SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Store(const IndexedValue& value) {
-    m_dataStore->Store(value);
     if(m_blockSize == 0) {
       return;
     }
+    auto skipCache = false;
     m_initializer.Call(
       [&] {
-        InitializeCache(value->GetIndex());
+        m_cache = std::make_shared<DataStoreEntry>(
+          GetTimestamp(value), Decrement(value.GetSequence()));
+        m_cache->m_dataStore.Store(value);
+        ++m_cache->m_size;
+        m_isInitialized = true;
+        skipCache = true;
       });
+    if(skipCache) {
+      return;
+    }
     auto cache =
       [&] {
         boost::lock_guard<boost::mutex> lock{m_mutex};
@@ -167,27 +173,6 @@ namespace Queries {
     }
     cache->m_dataStore.Store(value);
     ++cache->m_size;
-  }
-
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void SessionCachedDataStoreEntry<DataStoreType,
-      EvaluatorTranslatorFilterType>::InitializeCache(const Index& index) {
-    Query query;
-    query.SetIndex(index);
-    query.SetRange(Range::Total());
-    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, m_blockSize);
-    auto data = m_dataStore->Load(query);
-    if(data.empty()) {
-      m_cache = std::make_shared<DataStoreEntry>(
-        boost::posix_time::neg_infin, Sequence::First());
-    } else {
-      m_cache = std::make_shared<DataStoreEntry>(
-        GetTimestamp(*data.front()), data.front().GetSequence());
-      data.erase(data.begin());
-      m_cache->m_dataStore.Store(data);
-      m_cache->m_size = data.size();
-    }
-    m_isInitialized = true;
   }
 }
 }

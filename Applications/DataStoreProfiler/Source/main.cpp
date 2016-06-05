@@ -7,6 +7,7 @@
 #include <Beam/Utilities/YamlConfig.hpp>
 #include <boost/optional/optional.hpp>
 #include "DataStoreProfiler/BufferedDataStore.hpp"
+#include "DataStoreProfiler/SessionCachedDataStore.hpp"
 #include "DataStoreProfiler/Entry.hpp"
 #include "DataStoreProfiler/MySqlDataStore.hpp"
 #include "DataStoreProfiler/Version.hpp"
@@ -166,9 +167,11 @@ int main(int argc, const char** argv) {
   }
   MySqlDataStore mysqlDataStore{mySqlConfig.m_address, mySqlConfig.m_schema,
     mySqlConfig.m_username, mySqlConfig.m_password};
-  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
-    profileConfig.m_bufferSize, Ref(threadPool)};
-  ProfileWrites(bufferedDataStore, profileConfig);
-  ProfileReads(mysqlDataStore, profileConfig);
+//  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
+//    profileConfig.m_bufferSize, Ref(threadPool)};
+  Beam::SessionCachedDataStore<MySqlDataStore*> sessionCachedDataStore{
+    &mysqlDataStore, 1000000};
+  ProfileWrites(sessionCachedDataStore, profileConfig);
+  ProfileReads(sessionCachedDataStore, profileConfig);
   return 0;
 }

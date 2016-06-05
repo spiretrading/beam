@@ -138,7 +138,6 @@ namespace Queries {
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   void SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Store(const IndexedValue& value) {
-    m_dataStore->Store(value);
     if(m_blockSize == 0) {
       return;
     }

@@ -89,7 +89,34 @@ namespace {
     auto end = boost::posix_time::microsec_clock::universal_time();
     auto elapsed = end - start;
     auto rate = config.m_iterations / elapsed.total_seconds();
-    std::cout << (end - start) << " " << rate << std::endl;
+    std::cout << "ProfileWrites: " << (end - start) << " " << rate << std::endl;
+  }
+
+  template<typename DataStore>
+  void ProfileReads(DataStore& dataStore, const ProfileConfig& config) {
+    dataStore.Open();
+    auto endTimestamp = config.m_startTime +
+      config.m_timeStep * config.m_iterations;
+    auto start = boost::posix_time::microsec_clock::universal_time();
+    auto count = 0;
+    for(auto i = 0; i < config.m_iterations; ++i) {
+      const auto& name = config.m_names[rand() % config.m_indexCount];
+      auto startTime = config.m_startTime + milliseconds(rand() %
+        (endTimestamp - config.m_startTime).total_milliseconds());
+      auto endTime = startTime + milliseconds(rand() %
+        (endTimestamp - startTime).total_milliseconds());
+      EntryQuery query;
+      query.SetIndex(name);
+      query.SetRange(startTime, endTime);
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto result = dataStore.LoadEntries(query);
+      count += result.size();
+    }
+    dataStore.Close();
+    auto end = boost::posix_time::microsec_clock::universal_time();
+    auto elapsed = end - start;
+    auto rate = config.m_iterations / elapsed.total_seconds();
+    std::cout << "ProfileReads: " << (end - start) << " " << rate << std::endl;
   }
 }
 
@@ -142,5 +169,6 @@ int main(int argc, const char** argv) {
   Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
     profileConfig.m_bufferSize, Ref(threadPool)};
   ProfileWrites(bufferedDataStore, profileConfig);
+  ProfileReads(mysqlDataStore, profileConfig);
   return 0;
 }

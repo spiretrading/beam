@@ -8,8 +8,17 @@ namespace Python {
   //! Exports the tz_database class.
   void ExportTzDatabase();
 
+  //! Exports the FixedTimeClient class.
+  void ExportFixedTimeClient();
+
+  //! Exports the IncrementalTimeClient class.
+  void ExportIncrementalTimeClient();
+
+  //! Exports the LocalTimeClient class.
+  void ExportLocalTimeClient();
+
   //! Exports the LiveNtpTimeClient class.
-  void ExportTimeClient();
+  void ExportNtpTimeClient();
 
   //! Exports the TimeService namespace.
   void ExportTimeService();

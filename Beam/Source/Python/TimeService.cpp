@@ -5,6 +5,9 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/TimeService/FixedTimeClient.hpp"
+#include "Beam/TimeService/IncrementalTimeClient.hpp"
+#include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
 #include "Beam/TimeService/ToLocalTime.hpp"
 #include "Beam/TimeService/VirtualTimeClient.hpp"
@@ -49,9 +52,33 @@ void Beam::Python::ExportTzDatabase() {
   class_<tz_database>("TimeZoneDatabase", no_init);
 }
 
-void Beam::Python::ExportTimeClient() {
-  class_<VirtualTimeClient, boost::noncopyable>(
-    "TimeClient", no_init)
+void Beam::Python::ExportFixedTimeClient() {
+  class_<FixedTimeClient, boost::noncopyable>("FixedTimeClient", init<>())
+    .def(init<const ptime&>())
+    .def("set_time", &FixedTimeClient::SetTime)
+    .def("get_time", &FixedTimeClient::GetTime)
+    .def("open", &FixedTimeClient::Open)
+    .def("close", &FixedTimeClient::Close);
+}
+
+void Beam::Python::ExportIncrementalTimeClient() {
+  class_<IncrementalTimeClient, boost::noncopyable>("IncrementalTimeClient",
+      init<>())
+    .def(init<const ptime&, const time_duration&>())
+    .def("get_time", &IncrementalTimeClient::GetTime)
+    .def("open", &IncrementalTimeClient::Open)
+    .def("close", &IncrementalTimeClient::Close);
+}
+
+void Beam::Python::ExportLocalTimeClient() {
+  class_<LocalTimeClient, boost::noncopyable>("LocalTimeClient", init<>())
+    .def("get_time", &LocalTimeClient::GetTime)
+    .def("open", &LocalTimeClient::Open)
+    .def("close", &LocalTimeClient::Close);
+}
+
+void Beam::Python::ExportNtpTimeClient() {
+  class_<VirtualTimeClient, boost::noncopyable>("NtpTimeClient", no_init)
     .def("__init__", make_constructor(&BuildClient))
     .def("get_time", &VirtualTimeClient::GetTime)
     .def("open", BlockingFunction(&VirtualTimeClient::Open))
@@ -74,5 +101,8 @@ void Beam::Python::ExportTimeService() {
     &ToUtcTime));
   def("adjust_date_time", &AdjustDateTime);
   ExportTzDatabase();
-  ExportTimeClient();
+  ExportFixedTimeClient();
+  ExportIncrementalTimeClient();
+  ExportLocalTimeClient();
+  ExportNtpTimeClient();
 }

@@ -169,9 +169,9 @@ int main(int argc, const char** argv) {
     mySqlConfig.m_username, mySqlConfig.m_password};
 //  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
 //    profileConfig.m_bufferSize, Ref(threadPool)};
-  Beam::SessionCachedDataStore<MySqlDataStore*> sessionCachedDataStore{
-    &mysqlDataStore, 1000000};
-  ProfileWrites(sessionCachedDataStore, profileConfig);
-  ProfileReads(sessionCachedDataStore, profileConfig);
+//  Beam::SessionCachedDataStore<MySqlDataStore*> sessionCachedDataStore{
+//    &mysqlDataStore, 1000000};
+  ProfileWrites(mysqlDataStore, profileConfig);
+  ProfileReads(mysqlDataStore, profileConfig);
   return 0;
 }

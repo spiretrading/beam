@@ -1,7 +1,7 @@
 SETLOCAL
 
 if exist cppunit-1.12.1 goto end_cppunit_setup
-wget http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz
+wget http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz --no-check-certificate
 gzip -d -c cppunit-1.12.1.tar.gz | tar -x
 cd cppunit-1.12.1/src
 devenv /Upgrade CppUnitLibraries.dsw
@@ -14,7 +14,7 @@ rm cppunit-1.12.1.tar.gz
 :end_cppunit_setup
 
 if exist cryptopp562 goto end_cryptopp_setup
-wget http://www.cryptopp.com/cryptopp562.zip
+wget http://www.cryptopp.com/cryptopp562.zip --no-check-certificate
 mkdir cryptopp562
 cd cryptopp562
 unzip ../cryptopp562.zip
@@ -38,7 +38,7 @@ rm cryptopp562.zip
 :end_cryptopp_setup
 
 if exist zlib-1.2.8 goto end_zlib_setup
-wget http://zlib.net/zlib-1.2.8.tar.gz
+wget http://zlib.net/zlib-1.2.8.tar.gz --no-check-certificate
 gzip -d -c zlib-1.2.8.tar.gz | tar -x
 cd zlib-1.2.8/contrib/vstudio/vc9
 devenv /Upgrade zlibstat.vcproj
@@ -51,13 +51,13 @@ rm zlib-1.2.8.tar.gz
 :end_zlib_setup
 
 if exist mysql-connector-c-6.1.6-win32 goto end_mysqlconnector_setup
-wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.6-win32.zip
+wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.6-win32.zip --no-check-certificate
 unzip mysql-connector-c-6.1.6-win32.zip
 rm mysql-connector-c-6.1.6-win32.zip
 :end_mysqlconnector_setup
 
 if exist mysql++-3.1.0 goto end_mysqlpp_setup
-wget http://tangentsoft.net/mysql++/releases/mysql++-3.1.0.tar.gz
+wget http://tangentsoft.net/mysql++/releases/mysql++-3.1.0.tar.gz --no-check-certificate
 gzip -d -c mysql++-3.1.0.tar.gz | tar -x
 cd mysql++-3.1.0/lib
 sed "90d" common.h > common.h.bak
@@ -81,7 +81,7 @@ rm mysql++-3.1.0.tar.gz
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup
-wget "http://yaml-cpp.googlecode.com/files/yaml-cpp-0.3.0.tar.gz"
+wget "http://yaml-cpp.googlecode.com/files/yaml-cpp-0.3.0.tar.gz" --no-check-certificate
 gzip -d -c yaml-cpp-0.3.0.tar.gz | tar -x
 cd yaml-cpp/include/yaml-cpp
 head -7 noncopyable.h > noncopyable.h.new
@@ -105,7 +105,7 @@ rm tclap-1.2.1.tar.gz
 :end_tclap_setup
 
 if exist openssl-1.0.2g goto end_openssl_setup
-wget --no-check-certificate https://www.openssl.org/source/openssl-1.0.2g.tar.gz
+wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz
 gzip -d -c openssl-1.0.2g.tar.gz | tar -x
 cd openssl-1.0.2g
 perl Configure VC-WIN32 no-asm --prefix=C:/Development/Libraries/openssl-1.0.2g
@@ -116,7 +116,7 @@ rm openssl-1.0.2g.tar.gz
 :end_openssl_setup
 
 if exist boost_1_59_0 goto end_boost_setup
-wget http://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.zip/download -O boost_1_59_0.zip
+wget --no-check-certificate https://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.zip/download -O boost_1_59_0.zip
 unzip boost_1_59_0.zip
 cd boost_1_59_0
 CALL bootstrap.bat
@@ -132,7 +132,7 @@ rm boost_1_59_0.zip
 :end_boost_setup
 
 if exist lua-5.3.1 goto end_lua_setup
-wget http://www.lua.org/ftp/lua-5.3.1.tar.gz
+wget --no-check-certificate http://www.lua.org/ftp/lua-5.3.1.tar.gz
 gzip -d -c lua-5.3.1.tar.gz | tar -x
 cd lua-5.3.1/src
 cp %~dp0/lua_cmakelists.txt CMakeLists.txt

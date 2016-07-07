@@ -24,3 +24,20 @@ void HttpRequestParserTester::TestValidRequest() {
   CPPUNIT_ASSERT(request->GetCookie("theme")->GetValue() == "light");
   CPPUNIT_ASSERT(request->GetCookie("sessionToken")->GetValue() == "abc123");
 }
+
+void HttpRequestParserTester::TestRequestHeaderCaseSensitivity() {
+  HttpRequestParser parser;
+  auto requestString =
+    "GET /path/file.html HTTP/1.0\r\n"
+    "host: 127.0.0.1\r\n"
+    "user-AGENT: HTTPTool/1.0\r\n"
+    "cookiE: theme=light; sessionToken=abc123\r\n"
+    "\r\n";
+  parser.Feed(requestString, strlen(requestString));
+  auto request = parser.GetNextRequest();
+  CPPUNIT_ASSERT(request.is_initialized());
+  CPPUNIT_ASSERT(*request->GetHeader("Host") == "127.0.0.1");
+  CPPUNIT_ASSERT(*request->GetHeader("User-Agent") == "HTTPTool/1.0");
+  CPPUNIT_ASSERT(request->GetCookie("theme")->GetValue() == "light");
+  CPPUNIT_ASSERT(request->GetCookie("sessionToken")->GetValue() == "abc123");
+}

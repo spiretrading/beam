@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTPSERVERREQUEST_HPP
 #define BEAM_HTTPSERVERREQUEST_HPP
 #include <vector>
+#include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -229,7 +230,7 @@ namespace WebServices {
       const std::string& name) const {
     auto header = std::find_if(m_headers.begin(), m_headers.end(),
       [&] (const HttpHeader& value) {
-        return value.GetName() == name;
+        return boost::iequals(value.GetName(), name);
       });
     if(header == m_headers.end()) {
       if(name == "Content-Length") {

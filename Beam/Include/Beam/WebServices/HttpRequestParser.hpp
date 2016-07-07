@@ -220,7 +220,6 @@ namespace WebServices {
     }
     auto nameLength = static_cast<unsigned int>(nameEnd - c);
     std::string name{c, nameLength};
-    boost::to_lower(name);
     c += nameLength + 1;
     size -= nameLength + 1;
     if(*c != ' ') {
@@ -231,18 +230,18 @@ namespace WebServices {
     --size;
     std::string value{c, size};
     if(m_specialHeaders.m_contentLength == 0 &&
-        name == "content-length") {
+        boost::iequals(name, "content-length")) {
       m_specialHeaders.m_contentLength = std::stoul(value);
-    } else if(name == "connection") {
+    } else if(boost::iequals(name, "connection")) {
       if(value == "keep-alive") {
         m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
-      } else if(value == "upgrade") {
+      } else if(value == "Upgrade") {
         m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
       } else {
         m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
       }
     } else {
-      if(m_cookies.empty() && name == "cookie") {
+      if(m_cookies.empty() && boost::iequals(name, "cookie")) {
         ParseCookies(value);
       } else {
         m_headers.emplace_back(std::move(name), std::move(value));

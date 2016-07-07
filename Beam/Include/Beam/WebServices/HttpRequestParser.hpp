@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTPREQUESTPARSER_HPP
 #define BEAM_HTTPREQUESTPARSER_HPP
 #include <deque>
+#include <boost/algorithm/string.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/WebServices/HttpHeader.hpp"
@@ -219,6 +220,7 @@ namespace WebServices {
     }
     auto nameLength = static_cast<unsigned int>(nameEnd - c);
     std::string name{c, nameLength};
+    boost::to_lower(name);
     c += nameLength + 1;
     size -= nameLength + 1;
     if(*c != ' ') {
@@ -229,18 +231,18 @@ namespace WebServices {
     --size;
     std::string value{c, size};
     if(m_specialHeaders.m_contentLength == 0 &&
-        name == "Content-Length") {
+        name == "content-length") {
       m_specialHeaders.m_contentLength = std::stoul(value);
-    } else if(name == "Connection") {
+    } else if(name == "connection") {
       if(value == "keep-alive") {
         m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
-      } else if(value == "Upgrade") {
+      } else if(value == "upgrade") {
         m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
       } else {
         m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
       }
     } else {
-      if(m_cookies.empty() && name == "Cookie") {
+      if(m_cookies.empty() && name == "cookie") {
         ParseCookies(value);
       } else {
         m_headers.emplace_back(std::move(name), std::move(value));

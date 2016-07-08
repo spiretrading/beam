@@ -7,6 +7,7 @@
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/NativeDataType.hpp"
 #include "Beam/Queries/NativeValue.hpp"
+#include "Beam/Queries/SequencedValue.hpp"
 
 namespace Beam {
 namespace Python {
@@ -107,6 +108,27 @@ namespace Details {
     boost::python::implicitly_convertible<T, Queries::Value>();
     boost::python::def("make_value",
       &Details::MakeNativeValue<typename T::Type>);
+  }
+
+  //! Exports a SequencedValue.
+  /*!
+    \param name The name to give to the SequencedValue.
+  */
+  template<typename T>
+  void ExportSequencedValue(const char* name) {
+    boost::python::class_<Queries::SequencedValue<T>>(name,
+        boost::python::init<>())
+      .def(boost::python::init<const T&, Queries::Sequence>())
+      .add_property("value", boost::python::make_function(
+        static_cast<const T& (Queries::SequencedValue<T>::*)() const>(
+        &Queries::SequencedValue<T>::GetValue),
+        boost::python::return_value_policy<
+        boost::python::copy_const_reference>()))
+      .add_property("sequence", boost::python::make_function(
+        static_cast<Queries::Sequence (Queries::SequencedValue<T>::*)() const>(
+        &Queries::SequencedValue<T>::GetSequence)))
+      .def(boost::python::self == boost::python::self)
+      .def(boost::python::self != boost::python::self);
   }
 }
 }

@@ -17,13 +17,9 @@ namespace Tests {
       //! Tests parsing a valid request.
       void TestValidRequest();
 
-      //! Tests case sensitivity of request headers.
-      void TestRequestHeaderCaseSensitivity();
-
     private:
       CPPUNIT_TEST_SUITE(HttpRequestParserTester);
         CPPUNIT_TEST(TestValidRequest);
-        CPPUNIT_TEST(TestRequestHeaderCaseSensitivity);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

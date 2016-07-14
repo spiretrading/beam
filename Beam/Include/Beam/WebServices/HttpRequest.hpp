@@ -208,10 +208,7 @@ namespace WebServices {
         m_headers{std::move(headers)},
         m_specialHeaders{specialHeaders},
         m_cookies{std::move(cookies)},
-        m_body{std::move(body)} {
-    Add(HttpHeader{"Host", m_uri.GetHostname() + ":" +
-      std::to_string(m_uri.GetPort())});
-  }
+        m_body{std::move(body)} {}
 
   inline const HttpVersion& HttpRequest::GetVersion() const {
     return m_version;

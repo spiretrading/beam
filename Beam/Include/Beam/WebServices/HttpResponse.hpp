@@ -78,6 +78,7 @@ namespace WebServices {
       : m_version{HttpVersion::Version1_1()},
         m_statusCode{statusCode} {
     SetHeader({"Content-Length", "0"});
+    SetHeader({"Connection", "keep-alive"});
   }
 
   inline HttpResponse::HttpResponse(HttpVersion version,

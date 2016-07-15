@@ -98,6 +98,13 @@ namespace Beam {
   }
 
   template<>
+  inline std::string Convert(const long unsigned int& source) {
+    char buffer[16];
+    std::sprintf(buffer, "%lu", source);
+    return buffer;
+  }
+
+  template<>
   inline std::string Convert(const long int& source) {
     char buffer[16];
     std::sprintf(buffer, "%ld", source);

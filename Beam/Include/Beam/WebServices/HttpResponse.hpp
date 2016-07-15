@@ -134,7 +134,7 @@ namespace WebServices {
     bufferOutputStream << m_version;
     bufferOutputStream.flush();
     auto conversionLength =
-      std::sprintf(conversionBuffer, "%d ", static_cast<int>(m_statusCode));
+      std::sprintf(conversionBuffer, " %d ", static_cast<int>(m_statusCode));
     buffer->Append(conversionBuffer, conversionLength);
     auto& reasonPhrase = GetReasonPhrase(m_statusCode);
     buffer->Append(reasonPhrase.c_str(), reasonPhrase.size());

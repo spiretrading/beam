@@ -26,6 +26,7 @@ export config
 applications="AdminClient"
 applications+=" ClientTemplate"
 applications+=" DataStoreProfiler"
+applications+=" HttpFileServer"
 applications+=" QueryStressTest"
 applications+=" RegistryServer"
 applications+=" ServiceLocator"

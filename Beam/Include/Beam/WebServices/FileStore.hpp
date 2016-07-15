@@ -7,6 +7,7 @@
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/ContentTypePatterns.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
+#include "Beam/WebServices/HttpRequestSlot.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
@@ -66,6 +67,24 @@ namespace WebServices {
       boost::filesystem::path m_root;
       ContentTypePatterns m_contentTypePatterns;
   };
+
+  //! Returns an HttpRequestSlot to serve index.html.
+  /*!
+    \param fileStore The FileStore serving the index.html file.
+    \return An HttpRequestSlot that serves index.html.
+  */
+  inline HttpRequestSlot ServeIndex(FileStore& fileStore) {
+    return {[] (const HttpRequest& request) {
+      return (request.GetUri().GetPath() == "/" ||
+        request.GetUri().GetPath() == "") &&
+        request.GetMethod() == HttpMethod::GET;
+    },
+    [&] (const HttpRequest& request) {
+      HttpResponse response;
+      fileStore.Serve("index.html", Store(response));
+      return response;
+    }};
+  }
 
   inline FileStore::FileStore(boost::filesystem::path root)
       : m_contentTypePatterns{ContentTypePatterns::GetDefaultPatterns()} {

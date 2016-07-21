@@ -1,7 +1,7 @@
 #ifndef BEAM_SCHEDULEDROUTINE_HPP
 #define BEAM_SCHEDULEDROUTINE_HPP
 #include <iostream>
-#include <boost/context/fcontext.hpp>
+#include <boost/context/detail/fcontext.hpp>
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/simple_stack_allocator.hpp"
@@ -57,14 +57,14 @@ namespace Routines {
       Details::Scheduler* m_scheduler;
       std::size_t m_stackSize;
       void* m_stackPointer;
-      boost::context::fcontext_t m_parentContext;
-      boost::context::fcontext_t m_context;
+      boost::context::detail::fcontext_t m_parentContext;
+      boost::context::detail::fcontext_t m_context;
       std::string m_stackPrint;
 
       bool IsPendingResume() const;
       void SetPendingResume(bool value);
 
-      static void InitializeRoutine(std::intptr_t r);
+      static void InitializeRoutine(boost::context::detail::transfer_t r);
   };
 
   inline ScheduledRoutine::~ScheduledRoutine() {
@@ -86,13 +86,13 @@ namespace Routines {
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
       SetState(State::RUNNING);
-      m_context = boost::context::make_fcontext(m_stackPointer, m_stackSize,
-        ScheduledRoutine::InitializeRoutine);
-      boost::context::jump_fcontext(&m_parentContext, m_context,
-        reinterpret_cast<std::intptr_t>(this));
+      m_context = boost::context::detail::make_fcontext(m_stackPointer,
+        m_stackSize, ScheduledRoutine::InitializeRoutine);
+      m_context = boost::context::detail::jump_fcontext(m_context, this).fctx;
     } else {
       SetState(State::RUNNING);
-      boost::context::jump_fcontext(&m_parentContext, m_context, 0);
+      m_context = boost::context::detail::jump_fcontext(
+        m_context, nullptr).fctx;
     }
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
   }
@@ -113,7 +113,8 @@ namespace Routines {
 #ifdef _DEBUG
 //    m_stackPrint = CaptureStackPrint();
 #endif
-    boost::context::jump_fcontext(&m_context, m_parentContext, 0);
+    m_parentContext = boost::context::detail::jump_fcontext(
+      m_parentContext, nullptr).fctx;
   }
 
   inline void ScheduledRoutine::PendingSuspend() {
@@ -126,7 +127,8 @@ namespace Routines {
 #ifdef _DEBUG
 //    m_stackPrint = CaptureStackPrint();
 #endif
-    boost::context::jump_fcontext(&m_context, m_parentContext, 0);
+    m_parentContext = boost::context::detail::jump_fcontext(
+      m_parentContext, nullptr).fctx;
   }
 
   inline bool ScheduledRoutine::IsPendingResume() const {
@@ -137,8 +139,10 @@ namespace Routines {
     m_isPendingResume = value;
   }
 
-  inline void ScheduledRoutine::InitializeRoutine(std::intptr_t r) {
-    auto routine = reinterpret_cast<ScheduledRoutine*>(r);
+  inline void ScheduledRoutine::InitializeRoutine(
+      boost::context::detail::transfer_t r) {
+    auto routine = reinterpret_cast<ScheduledRoutine*>(r.data);
+    routine->m_parentContext = r.fctx;
     try {
       routine->Execute();
     } catch(...) {

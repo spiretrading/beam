@@ -284,7 +284,7 @@ int main() {
                 query.SetIndex(rand() % 200);
                 query.SetRange(Range::Total());
                 query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1000);
-                auto queue = make_shared<Queue<Data>>();
+                auto queue = std::make_shared<Queue<Data>>();
                 publisher.SubmitQuery(query, queue);
                 timer.Start();
                 timer.Wait();

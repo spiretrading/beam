@@ -103,14 +103,14 @@ if [ ! -d "openssl-1.0.2g" ]; then
   cd ..
   rm openssl-1.0.2g.tar.gz
 fi
-if [ ! -d "boost_1_59_0" ]; then
-  wget http://sourceforge.net/projects/boost/files/boost/1.59.0/boost_1_59_0.tar.gz/download -O boost_1_59_0.tar.gz
-  tar xvf boost_1_59_0.tar.gz
-  cd boost_1_59_0
+if [ ! -d "boost_1_61_0" ]; then
+  wget http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz/download -O boost_1_61_0.tar.gz
+  tar xvf boost_1_61_0.tar.gz
+  cd boost_1_61_0
   ./bootstrap.sh
   ./bjam -j$cores cxxflags="-std=c++14 -fPIC" install
   cd ..
-  rm -f boost_1_59_0.tar.gz
+  rm -f boost_1_61_0.tar.gz
 fi
 if [ ! -d "lua-5.3.1" ]; then
   wget http://www.lua.org/ftp/lua-5.3.1.tar.gz

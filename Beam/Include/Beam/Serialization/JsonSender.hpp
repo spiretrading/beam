@@ -36,6 +36,10 @@ namespace Serialization {
       typename std::enable_if<std::is_fundamental<T>::value>::type Send(
         const char* name, const T& value);
 
+      template<typename T>
+      typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
+        Send(const char* name, const T& value);
+
       void Send(const char* name, const std::string& value,
         unsigned int version);
 
@@ -87,6 +91,24 @@ namespace Serialization {
       m_sink->Append(':');
     }
     auto v = ToString(value);
+    m_sink->Append(v.c_str(), v.size());
+    m_appendComma = true;
+  }
+
+  template<typename SinkType>
+  template<typename T>
+  typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
+      JsonSender<SinkType>::Send(const char* name, const T& value) {
+    if(m_appendComma) {
+      m_sink->Append(',');
+    }
+    if(name != nullptr) {
+      m_sink->Append('\"');
+      m_sink->Append(name, std::strlen(name));
+      m_sink->Append('\"');
+      m_sink->Append(':');
+    }
+    auto v = std::string{"\"\""};
     m_sink->Append(v.c_str(), v.size());
     m_appendComma = true;
   }

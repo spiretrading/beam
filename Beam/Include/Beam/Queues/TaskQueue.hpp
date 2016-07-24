@@ -42,6 +42,8 @@ namespace Beam {
 
       virtual bool IsEmpty() const;
 
+      virtual void Wait() const;
+
       virtual std::function<void ()> Top() const;
 
       virtual void Emplace(Out<std::function<void ()>> value);
@@ -55,7 +57,7 @@ namespace Beam {
       virtual void Break(const std::exception_ptr& exception);
 
       using QueueWriter<std::function<void ()>>::Break;
-    protected:
+
       virtual bool IsAvailable() const;
 
     private:
@@ -138,6 +140,10 @@ namespace Beam {
 
   inline bool TaskQueue::IsEmpty() const {
     return m_tasks.IsEmpty();
+  }
+
+  inline void TaskQueue::Wait() const {
+    return m_tasks.Wait();
   }
 
   inline std::function<void ()> TaskQueue::Top() const {

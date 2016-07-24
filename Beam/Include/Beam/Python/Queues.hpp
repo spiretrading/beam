@@ -83,6 +83,9 @@ namespace Details {
 
   //! Exports the PythonStateQueue class.
   void ExportStateQueue();
+
+  //! Exports the PythonTaskQueue class.
+  void ExportTaskQueue();
 }
 }
 

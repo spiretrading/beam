@@ -4,6 +4,7 @@
 #include "Beam/Python/PythonQueue.hpp"
 #include "Beam/Python/PythonRoutineTaskQueue.hpp"
 #include "Beam/Python/PythonStateQueue.hpp"
+#include "Beam/Python/PythonTaskQueue.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -22,6 +23,14 @@ namespace {
         queue.Pop();
       }
     } catch(const std::exception&) {}
+  }
+
+  void HandlePythonTasks(PythonTaskQueue& tasks) {
+    while(!tasks.IsEmpty()) {
+      auto task = tasks.Top();
+      tasks.Pop();
+      task();
+    }
   }
 }
 
@@ -93,6 +102,7 @@ void Beam::Python::ExportQueues() {
   ExportQueue();
   ExportRoutineTaskQueue();
   ExportStateQueue();
+  ExportTaskQueue();
 }
 
 void Beam::Python::ExportQueueWriter() {
@@ -127,4 +137,15 @@ void Beam::Python::ExportStateQueue() {
     std::shared_ptr<BaseQueue>>();
   implicitly_convertible<std::shared_ptr<PythonStateQueue>,
     std::shared_ptr<PythonQueueWriter>>();
+}
+
+void Beam::Python::ExportTaskQueue() {
+  class_<PythonTaskQueue, std::shared_ptr<PythonTaskQueue>, noncopyable,
+    bases<QueueWriter<object>>>("TaskQueue", init<>())
+    .def("get_slot", &PythonTaskQueue::GetSlot);
+  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
+    std::shared_ptr<BaseQueue>>();
+  def("handle_tasks", &HandlePythonTasks);
 }

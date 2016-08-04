@@ -128,7 +128,7 @@ namespace WebServices {
         auto length = (m_specialHeaders.m_contentLength + LINE_LENGTH) -
           m_buffer.GetSize();
         m_buffer.Append(c, length);
-        ParseBody(c);
+        ParseBody(m_buffer.GetData());
         m_buffer.Reset();
         size -= length;
         c += length;

@@ -43,6 +43,10 @@ namespace Serialization {
       void Send(const char* name, const std::string& value,
         unsigned int version);
 
+      template<std::size_t N>
+      void Send(const char* name, const FixedString<N>& value,
+        unsigned int version);
+
       void StartStructure(const char* name);
 
       void EndStructure();
@@ -129,6 +133,13 @@ namespace Serialization {
     m_sink->Append(value.c_str(), value.size());
     m_sink->Append('\"');
     m_appendComma = true;
+  }
+
+  template<typename SinkType>
+  template<std::size_t N>
+  void JsonSender<SinkType>::Send(const char* name, const FixedString<N>& value,
+      unsigned int version) {
+    Send(name, std::string{value.GetData()});
   }
 
   template<typename SinkType>

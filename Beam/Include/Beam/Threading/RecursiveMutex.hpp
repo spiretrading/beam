@@ -5,6 +5,7 @@
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Threading.hpp"
 
@@ -36,37 +37,37 @@ namespace Threading {
       int m_counter;
       int m_depth;
       Routines::Routine* m_owner;
-      std::deque<Routines::Routine*> m_suspendedRoutines;
+      Routines::SuspendedRoutineQueue m_suspendedRoutines;
   };
 
   inline RecursiveMutex::RecursiveMutex()
-      : m_counter(0),
-        m_depth(0),
-        m_owner(nullptr) {}
+      : m_counter{0},
+        m_depth{0},
+        m_owner{nullptr} {}
 
   inline RecursiveMutex::~RecursiveMutex() {
     assert(m_counter == 0);
   }
 
   inline void RecursiveMutex::lock() {
-    auto currentRoutine = &Routines::GetCurrentRoutine();
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    Routines::SuspendedRoutineNode currentRoutine;
+    boost::unique_lock<boost::mutex> lock{m_mutex};
     ++m_counter;
     if(m_counter > 1) {
-      if(currentRoutine != m_owner) {
+      if(currentRoutine.m_routine != m_owner) {
         m_suspendedRoutines.push_back(currentRoutine);
-        currentRoutine->PendingSuspend();
+        currentRoutine.m_routine->PendingSuspend();
         auto release = Release(lock);
         Routines::Suspend();
       }
     }
     ++m_depth;
-    m_owner = currentRoutine;
+    m_owner = currentRoutine.m_routine;
   }
 
   inline bool RecursiveMutex::try_lock() {
     auto currentRoutine = &Routines::GetCurrentRoutine();
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     ++m_counter;
     if(m_counter > 1) {
       if(currentRoutine != m_owner) {
@@ -80,7 +81,7 @@ namespace Threading {
   }
 
   inline void RecursiveMutex::unlock() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     --m_depth;
     if(m_depth == 0) {
       m_owner = nullptr;
@@ -91,7 +92,7 @@ namespace Threading {
         if(m_suspendedRoutines.empty()) {
           return;
         }
-        auto routine = m_suspendedRoutines.front();
+        auto routine = m_suspendedRoutines.front().m_routine;
         m_suspendedRoutines.pop_front();
         Routines::Resume(routine);
       }

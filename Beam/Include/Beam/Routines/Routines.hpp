@@ -13,6 +13,7 @@ namespace Routines {
   class RoutineException;
   class RoutineHandler;
   class ScheduledRoutine;
+  struct SuspendedRoutineNode;
 namespace Details {
   class Scheduler;
 }

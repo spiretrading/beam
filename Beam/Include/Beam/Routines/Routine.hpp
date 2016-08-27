@@ -106,6 +106,9 @@ namespace Details {
       //! The type used to identify a Routine.
       using Id = std::uint64_t;
 
+      //! Constructs a Routine.
+      Routine();
+
       virtual ~Routine();
 
       //! Returns this Routine's identifier.
@@ -119,11 +122,6 @@ namespace Details {
         \param result Used to signal completion of this Routine.
       */
       void Wait(Eval<void> result);
-
-    protected:
-
-      //! Constructs a Routine.
-      Routine();
 
       //! Implements the body of this Routine.
       virtual void Execute() = 0;
@@ -213,23 +211,6 @@ namespace Details {
     Suspend();
   }
 
-  //! Suspends the currently running Routine.
-  /*!
-    \param suspendedRoutine Stores the Routine being suspended.
-    \param lock The lock to release while the Routine is suspended.
-  */
-  template<typename Container, typename... Lock>
-  void Suspend(Out<Threading::Sync<Container>> suspendedRoutines,
-      Lock&... lock) {
-    Threading::With(*suspendedRoutines,
-      [&] (Container& r) {
-        r.push_back(&GetCurrentRoutine());
-      });
-    GetCurrentRoutine().PendingSuspend();
-    auto releases = std::make_tuple(Threading::Release(lock)...);
-    Suspend();
-  }
-
   //! Resumes execution of a suspended Routine.
   /*!
     \param routine The Routine to resume.
@@ -243,39 +224,9 @@ namespace Details {
     initialRoutine->Resume();
   }
 
-  //! Resumes execution of the first element in a list of suspended Routines.
-  /*!
-    \param routines The list of Routines.
-  */
-  template<typename Container>
-  inline void ResumeFront(Out<Threading::Sync<Container>> routines) {
-    auto routine = With(*routines,
-      [] (Container& routines) -> Routine* {
-        if(routines.empty()) {
-          return nullptr;
-        }
-        auto routine = routines.front();
-        routines.pop_front();
-        return routine;
-      });
-    Resume(routine);
-  }
-
-  //! Resumes execution of a list of suspended Routines.
-  /*!
-    \param routines The Routines to resume.
-  */
-  template<typename Container>
-  inline void Resume(Out<Threading::Sync<Container>> routines) {
-    Container resumedRoutines;
-    Threading::With(*routines,
-      [&] (Container& r) {
-        resumedRoutines.swap(r);
-      });
-    for(auto& routine : resumedRoutines) {
-      Resume(routine);
-    }
-  }
+  inline Routine::Routine()
+      : m_id(++Details::NextId<void>::GetInstance()),
+        m_state(State::PENDING) {}
 
   inline Routine::~Routine() {
     Threading::With(m_waitResults,
@@ -307,10 +258,6 @@ namespace Details {
     m_state = state;
   }
 
-  inline Routine::Routine()
-      : m_id(++Details::NextId<void>::GetInstance()),
-        m_state(State::PENDING) {}
-
   inline void Routine::Defer() {}
 
   inline void Routine::PendingSuspend() {}
@@ -322,6 +269,7 @@ namespace Details {
 }
 
 #include "Beam/Routines/ExternalRoutine.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.inl"
 #include "Beam/Routines/Async.inl"
 #include "Beam/Routines/Scheduler.hpp"
 

@@ -9,6 +9,7 @@
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Routines.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/StorageType.hpp"
 
@@ -68,7 +69,7 @@ namespace Routines {
       friend class Eval<T>;
       mutable boost::mutex m_mutex;
       State m_state;
-      Threading::Sync<std::vector<Routines::Routine*>> m_suspendedRoutines;
+      Threading::Sync<SuspendedRoutineQueue> m_suspendedRoutines;
       DelayPtr<typename StorageType<T>::type> m_result;
       std::exception_ptr m_exception;
 

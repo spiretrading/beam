@@ -1,7 +1,6 @@
 #ifndef BEAM_CONDITIONVARIABLE_HPP
 #define BEAM_CONDITIONVARIABLE_HPP
-#include <deque>
-#include "Beam/Routines/Routine.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Threading/Sync.hpp"
 
@@ -31,7 +30,7 @@ namespace Threading {
       void notify_all();
 
     private:
-      Sync<std::deque<Routines::Routine*>> m_suspendedRoutines;
+      Sync<Routines::SuspendedRoutineQueue> m_suspendedRoutines;
   };
 
   template<typename... Lock>
@@ -40,17 +39,7 @@ namespace Threading {
   }
 
   inline void ConditionVariable::notify_one() {
-    Routines::Routine* routine;
-    With(m_suspendedRoutines,
-      [&] (std::deque<Routines::Routine*>& suspendedRoutines) {
-        if(suspendedRoutines.empty()) {
-          routine = nullptr;
-          return;
-        }
-        routine = suspendedRoutines.front();
-        suspendedRoutines.pop_front();
-      });
-    Routines::Resume(routine);
+    Routines::ResumeFront(Store(m_suspendedRoutines));
   }
 
   inline void ConditionVariable::notify_all() {
@@ -58,5 +47,7 @@ namespace Threading {
   }
 }
 }
+
+#include "Beam/Routines/SuspendedRoutineQueue.inl"
 
 #endif

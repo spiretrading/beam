@@ -1,6 +1,7 @@
 #ifndef BEAM_ASYNC_INL
 #define BEAM_ASYNC_INL
 #include "Beam/Routines/Async.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 
 namespace Beam {
 namespace Routines {

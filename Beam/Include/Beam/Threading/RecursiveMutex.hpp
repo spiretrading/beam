@@ -1,7 +1,6 @@
 #ifndef BEAM_RECURSIVEMUTEX_HPP
 #define BEAM_RECURSIVEMUTEX_HPP
 #include <cstdint>
-#include <deque>
 #include <boost/thread/lock_types.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Routines/Routine.hpp"

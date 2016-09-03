@@ -60,8 +60,9 @@ if [ ! -d "mysql++-3.2.2" ]; then
   rm -f mysql++-3.2.2.tar.gz
 fi
 if [ ! -d "yaml-cpp" ]; then
-  wget "http://yaml-cpp.googlecode.com/files/yaml-cpp-0.2.6.tar.gz"
-  gzip -d -c yaml-cpp-0.2.6.tar.gz | tar -x
+  wget https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip
+  unzip release-0.2.7.zip
+  mv yaml-cpp-release-0.2.7 yaml-cpp
   cd yaml-cpp/include/yaml-cpp
   head -7 noncopyable.h > noncopyable.h.new
   printf "#include <stdlib.h>" >> noncopyable.h.new
@@ -78,7 +79,7 @@ if [ ! -d "yaml-cpp" ]; then
   unset CFLAGS
   unset CXXFLAGS
   cd ../..
-  rm -f yaml-cpp-0.2.6.tar.gz
+  rm -f release-0.2.7.zip
 fi
 if [ ! -d "tclap-1.2.1" ]; then
   wget "https://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate

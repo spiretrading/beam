@@ -42,6 +42,15 @@ namespace Beam {
   }
 
   template<>
+  inline std::string Convert(const bool& source) {
+    if(source) {
+      return "true";
+    } else {
+      return "false";
+    }
+  }
+
+  template<>
   inline std::string Convert(const short& source) {
     char buffer[16];
     std::sprintf(buffer, "%hd", source);

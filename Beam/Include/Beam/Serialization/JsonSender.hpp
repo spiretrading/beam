@@ -9,6 +9,19 @@
 
 namespace Beam {
 namespace Serialization {
+namespace Details {
+  std::string Escape(const std::string& source) {
+    std::string result;
+    for(auto c : source) {
+      if(c == '\\') {
+        result += "\\";
+      } else {
+        result += c;
+      }
+    }
+    return result;
+  }
+}
 
   /*! \class JsonSender
       \brief Implements a Sender using JSON.
@@ -130,7 +143,8 @@ namespace Serialization {
       m_sink->Append(':');
     }
     m_sink->Append('\"');
-    m_sink->Append(value.c_str(), value.size());
+    auto escapedValue = Escape(value);
+    m_sink->Append(escapedValue.c_str(), escapedValue.size());
     m_sink->Append('\"');
     m_appendComma = true;
   }

@@ -137,10 +137,13 @@ namespace Queries {
     typename SqlTranslatorFilterType, typename FunctorType>
   Sequence SqlDataStore<QueryType, ValueType, RowType, SqlTranslatorFilterType,
       FunctorType>::LoadInitialSequence(const Index& index) {
-    return Threading::With(*m_readConnection,
-      [&] (mysqlpp::Connection& connection) {
-        return LoadSqlInitialSequence(m_table, m_functor(index), connection);
-      });
+    auto connection = m_connectionPool->Acquire();
+    Routines::Async<Sequence> result;
+    m_threadPool->Queue(
+      [&] {
+        return LoadSqlInitialSequence(m_table, m_functor(index), *connection);
+      }, result.GetEval());
+    return result.Get();
   }
 
   template<typename QueryType, typename ValueType, typename RowType,

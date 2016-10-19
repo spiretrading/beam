@@ -10,7 +10,7 @@
 namespace Beam {
 namespace Serialization {
 namespace Details {
-  std::string Escape(const std::string& source) {
+  inline std::string Escape(const std::string& source) {
     std::string result;
     for(auto c : source) {
       if(c == '\\') {

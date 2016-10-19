@@ -143,7 +143,7 @@ namespace Details {
       m_sink->Append(':');
     }
     m_sink->Append('\"');
-    auto escapedValue = Escape(value);
+    auto escapedValue = Details::Escape(value);
     m_sink->Append(escapedValue.c_str(), escapedValue.size());
     m_sink->Append('\"');
     m_appendComma = true;

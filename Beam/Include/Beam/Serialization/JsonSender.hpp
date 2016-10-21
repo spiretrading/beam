@@ -14,7 +14,7 @@ namespace Details {
     std::string result;
     for(auto c : source) {
       if(c == '\\') {
-        result += "\\";
+        result += "\\\\";
       } else {
         result += c;
       }

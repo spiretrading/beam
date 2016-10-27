@@ -1,7 +1,7 @@
 SETLOCAL
 
 if exist cppunit-1.12.1 goto end_cppunit_setup
-wget http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz --no-check-certificate
+wget https://sourceforge.net/projects/cppunit/files/cppunit/1.12.1/cppunit-1.12.1.tar.gz/download --no-check-certificate
 gzip -d -c cppunit-1.12.1.tar.gz | tar -x
 cd cppunit-1.12.1/src
 devenv /Upgrade CppUnitLibraries.dsw

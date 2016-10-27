@@ -96,7 +96,7 @@ cmake ..
 cmake --build . --target ALL_BUILD --config Debug
 cmake --build . --target ALL_BUILD --config Release
 cd ../..
-rm yaml-cpp-0.3.0.tar.gz
+rm master
 :end_yaml_setup
 
 if exist tclap-1.2.1 goto end_tclap_setup

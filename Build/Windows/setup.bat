@@ -81,8 +81,9 @@ rm mysql++-3.1.0.tar.gz
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup
-wget "http://yaml-cpp.googlecode.com/files/yaml-cpp-0.3.0.tar.gz" --no-check-certificate
-gzip -d -c yaml-cpp-0.3.0.tar.gz | tar -x
+wget "https://github.com/jbeder/yaml-cpp/archive/master.zip" --no-check-certificate
+unzip master
+mv yaml-cpp-master yaml-cpp
 cd yaml-cpp/include/yaml-cpp
 head -7 noncopyable.h > noncopyable.h.new
 printf "#include <stdlib.h>" >> noncopyable.h.new

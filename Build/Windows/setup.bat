@@ -82,7 +82,7 @@ rm mysql++-3.1.0.tar.gz
 
 if exist yaml-cpp goto end_yaml_setup
 wget "https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip" --no-check-certificate
-unzip release-0.2.7.zip
+unzip release-0.2.7
 mv yaml-cpp-release-0.2.7 yaml-cpp
 cd yaml-cpp/include/yaml-cpp
 head -7 noncopyable.h > noncopyable.h.new

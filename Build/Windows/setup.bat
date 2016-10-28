@@ -81,9 +81,9 @@ rm mysql++-3.1.0.tar.gz
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup
-wget "https://github.com/jbeder/yaml-cpp/archive/release-0.3.0.zip" --no-check-certificate
-unzip release-0.3.0
-mv yaml-cpp-release-0.3.0 yaml-cpp
+wget "https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip" --no-check-certificate
+unzip release-0.2.7.zip
+mv yaml-cpp-release-0.2.7 yaml-cpp
 cd yaml-cpp/include/yaml-cpp
 head -7 noncopyable.h > noncopyable.h.new
 printf "#include <stdlib.h>" >> noncopyable.h.new
@@ -96,7 +96,7 @@ cmake ..
 cmake --build . --target ALL_BUILD --config Debug
 cmake --build . --target ALL_BUILD --config Release
 cd ../..
-rm master
+rm release-0.2.7
 :end_yaml_setup
 
 if exist tclap-1.2.1 goto end_tclap_setup

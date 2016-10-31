@@ -72,6 +72,27 @@ namespace Beam {
   }
 
   template<>
+  inline std::string Convert(const unsigned char& source) {
+    std::string value;
+    value += source;
+    return value;
+  }
+
+  template<>
+  inline std::string Convert(const signed char& source) {
+    std::string value;
+    value += source;
+    return value;
+  }
+
+  template<>
+  inline std::string Convert(const char& source) {
+    std::string value;
+    value += source;
+    return value;
+  }
+
+  template<>
   inline unsigned short Convert(const std::string& source) {
     unsigned short value;
     std::sscanf(source.c_str(), "%hu", &value);
@@ -117,6 +138,13 @@ namespace Beam {
   inline std::string Convert(const long int& source) {
     char buffer[16];
     std::sprintf(buffer, "%ld", source);
+    return buffer;
+  }
+
+  template<>
+  inline std::string Convert(const float& source) {
+    char buffer[32];
+    std::sprintf(buffer, "%f", source);
     return buffer;
   }
 

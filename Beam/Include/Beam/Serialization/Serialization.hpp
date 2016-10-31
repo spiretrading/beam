@@ -11,6 +11,8 @@ namespace Serialization {
   template<typename T, typename Enabled = void> struct IsSender;
   template<typename T> struct IsSequence;
   template<typename T, typename Enabled> struct IsStructure;
+  template<typename SourceType> class JsonReceiver;
+  template<typename SinkType> class JsonSender;
   template<typename SourceType> struct Receiver;
   template<typename ReceiverType> class ReceiverMixin;
   template<typename SinkType> struct Sender;

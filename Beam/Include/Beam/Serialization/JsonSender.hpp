@@ -45,6 +45,12 @@ namespace Details {
 
       void SetSink(RefType<Sink> sink);
 
+      void Send(const char* name, const unsigned char& value);
+
+      void Send(const char* name, const signed char& value);
+
+      void Send(const char* name, const char& value);
+
       template<typename T>
       typename std::enable_if<std::is_fundamental<T>::value>::type Send(
         const char* name, const T& value);
@@ -92,6 +98,39 @@ namespace Details {
   void JsonSender<SinkType>::SetSink(RefType<Sink> sink) {
     m_appendComma = false;
     m_sink = sink.Get();
+  }
+
+  template<typename SinkType>
+  void JsonSender<SinkType>::Send(const char* name,
+      const unsigned char& value) {
+    Send(name, static_cast<int>(value));
+  }
+
+  template<typename SinkType>
+  void JsonSender<SinkType>::Send(const char* name, const signed char& value) {
+    Send(name, static_cast<int>(value));
+  }
+
+  template<typename SinkType>
+  void JsonSender<SinkType>::Send(const char* name, const char& value) {
+    if(value == '\0') {
+      Send(name, static_cast<int>(value));
+      return;
+    }
+    if(m_appendComma) {
+      m_sink->Append(',');
+    }
+    if(name != nullptr) {
+      m_sink->Append('\"');
+      m_sink->Append(name, std::strlen(name));
+      m_sink->Append('\"');
+      m_sink->Append(':');
+    }
+    auto v = ToString(value);
+    m_sink->Append('\"');
+    m_sink->Append(v.c_str(), v.size());
+    m_sink->Append('\"');
+    m_appendComma = true;
   }
 
   template<typename SinkType>
@@ -202,6 +241,11 @@ namespace Details {
     m_sink->Append(']');
     m_appendComma = true;
   }
+
+  template<typename SinkType>
+  struct Inverse<JsonSender<SinkType>> {
+    using type = JsonReceiver<SinkType>;
+  };
 }
 
   template<typename SinkType>

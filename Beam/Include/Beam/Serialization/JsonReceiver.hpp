@@ -77,7 +77,11 @@ namespace Serialization {
       boost::optional<Parsers::ReaderParserStream<IO::BufferReader<Source>>>
         m_parserStream;
       JsonParser m_parser;
-      std::deque<JsonObject> m_objectQueue;
+      using AggregateType = boost::variant<JsonObject, std::vector<JsonValue>>;
+      std::deque<AggregateType> m_aggregateQueue;
+
+      const JsonValue& ExtractValue(const char* name,
+        boost::optional<JsonValue>& storage);
   };
 
   template<typename SourceType>
@@ -92,20 +96,8 @@ namespace Serialization {
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::Shuttle(const char* name, bool& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
     try {
       value = boost::get<bool>(jsonValue);
     } catch(const boost::bad_get&) {
@@ -138,20 +130,8 @@ namespace Serialization {
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::Shuttle(const char* name, char& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::string>(&jsonValue)) {
       if(s->size() != 1) {
         BOOST_THROW_EXCEPTION(SerializationException{"Length out of range."});
@@ -177,20 +157,8 @@ namespace Serialization {
   template<typename T>
   typename std::enable_if<std::is_floating_point<T>::value>::type
       JsonReceiver<SourceType>::Shuttle(const char* name, T& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<double>(&jsonValue)) {
       value = static_cast<T>(*s);
     } else {
@@ -205,20 +173,8 @@ namespace Serialization {
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::Shuttle(const char* name, std::string& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::string>(&jsonValue)) {
       value = std::move(*s);
     } else {
@@ -230,20 +186,8 @@ namespace Serialization {
   template<std::size_t N>
   void JsonReceiver<SourceType>::Shuttle(const char* name,
       FixedString<N>& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::string>(&jsonValue)) {
       if(s->size() > N) {
         BOOST_THROW_EXCEPTION(SerializationException{"Length out of range."});
@@ -256,32 +200,62 @@ namespace Serialization {
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::StartStructure(const char* name) {
-    if(name == nullptr) {
-      JsonValue jsonValue;
-      if(!m_parser.Read(*m_parserStream, jsonValue)) {
-        BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
-      }
-      if(auto s = boost::get<JsonObject>(&jsonValue)) {
-        m_objectQueue.push_back(*s);
-      } else {
-        BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
-      }
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
+    if(auto s = boost::get<JsonObject>(&jsonValue)) {
+      m_aggregateQueue.push_back(*s);
+    } else {
+      BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }
   }
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::EndStructure() {
-    m_objectQueue.pop_back();
+    m_aggregateQueue.pop_back();
   }
 
   template<typename SourceType>
-  void JsonReceiver<SourceType>::StartSequence(const char* name, int& size) {}
+  void JsonReceiver<SourceType>::StartSequence(const char* name, int& size) {
+    boost::optional<JsonValue> storage;
+    auto& jsonValue = ExtractValue(name, storage);
+    if(auto s = boost::get<std::vector<JsonValue>>(&jsonValue)) {
+      m_aggregateQueue.push_back(*s);
+      size = static_cast<int>(s->size());
+    } else {
+      BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
+    }
+  }
 
   template<typename SourceType>
-  void JsonReceiver<SourceType>::StartSequence(const char* name) {}
+  void JsonReceiver<SourceType>::StartSequence(const char* name) {
+    int dummy;
+    StartSequence(name, dummy);
+  }
 
   template<typename SourceType>
-  void JsonReceiver<SourceType>::EndSequence() {}
+  void JsonReceiver<SourceType>::EndSequence() {
+    m_aggregateQueue.pop_back();
+  }
+
+  template<typename SourceType>
+  const JsonValue& JsonReceiver<SourceType>::ExtractValue(const char* name,
+      boost::optional<JsonValue>& storage) {
+    if(name == nullptr) {
+      storage.emplace();
+      if(!m_parser.Read(*m_parserStream, *storage)) {
+        BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
+      }
+      return *storage;
+    } else if(auto aggregate =
+        boost::get<JsonObject>(&m_aggregateQueue.back()))  {
+      return aggregate->At(name);
+    } else if(auto aggregate =
+        boost::get<std::vector<JsonValue>>(&m_aggregateQueue.back())) {
+      aggregate->emplace_back();
+      return aggregate->back();
+    }
+    BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
+  }
 
   template<typename SourceType>
   struct Inverse<JsonReceiver<SourceType>> {

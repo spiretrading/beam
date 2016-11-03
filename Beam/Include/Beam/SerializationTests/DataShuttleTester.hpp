@@ -2,6 +2,7 @@
 #define BEAM_DATASHUTTLETESTER_HPP
 #include <string>
 #include <cppunit/extensions/HelperMacros.h>
+#include "Beam/Serialization/ShuttleArray.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
@@ -59,6 +60,9 @@ namespace Tests {
 
       //! Tests shuttling a string.
       void TestShuttlingString();
+
+      //! Tests shuttling a sequence.
+      void TestShuttlingSequence();
 
       //! Tests shuttling a class with a Send/Receive free functions.
       void TestShuttlingStructWithFreeShuttle();
@@ -122,6 +126,7 @@ namespace Tests {
         CPPUNIT_TEST(TestShuttlingFloat);
         CPPUNIT_TEST(TestShuttlingDouble);
         CPPUNIT_TEST(TestShuttlingString);
+        CPPUNIT_TEST(TestShuttlingSequence);
         CPPUNIT_TEST(TestShuttlingStructWithFreeShuttle);
         CPPUNIT_TEST(TestShuttlingClassShuttleMethod);
         CPPUNIT_TEST(TestShuttlingClassSendReceiveMethods);
@@ -261,6 +266,16 @@ namespace Tests {
     TestShuttlingReference(MakeSender(), MakeReceiver(), std::string(""));
     TestShuttlingConstant(MakeSender(), MakeReceiver(),
       std::string("hello world"));
+  }
+
+  template<typename SenderType, typename ReceiverType>
+  void DataShuttleTester<SenderType, ReceiverType>::TestShuttlingSequence() {
+    TestShuttlingReference(MakeSender(), MakeReceiver(),
+      std::array<int, 5>{5, 4, 3, 2, 1});
+    TestShuttlingReference(MakeSender(), MakeReceiver(),
+      std::array<int, 3>{1, 2, 3});
+    TestShuttlingConstant(MakeSender(), MakeReceiver(),
+      std::array<int, 4>{4, 1, 2, 3});
   }
 
   template<typename SenderType, typename ReceiverType>

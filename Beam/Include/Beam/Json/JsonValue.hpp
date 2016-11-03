@@ -25,8 +25,8 @@ namespace Beam {
   };
 
 namespace Details {
-  typedef boost::variant<std::string, JsonNull, bool, std::int64_t, double,
-    JsonObject, std::vector<JsonValue>> JsonVariant;
+  typedef boost::variant<std::string, JsonNull, bool, double, JsonObject,
+    std::vector<JsonValue>> JsonVariant;
 }
 
   /*! \class JsonValue
@@ -230,10 +230,10 @@ namespace Details {
       : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(int value)
-      : Details::JsonVariant(static_cast<std::int64_t>(value)) {}
+      : Details::JsonVariant(static_cast<double>(value)) {}
 
   inline JsonValue::JsonValue(std::int64_t value)
-      : Details::JsonVariant(value) {}
+      : Details::JsonVariant(static_cast<double>(value)) {}
 
   inline JsonValue::JsonValue(double value)
       : Details::JsonVariant(value) {}
@@ -276,12 +276,12 @@ namespace Details {
   }
 
   inline JsonValue& JsonValue::operator =(int value) {
-    Details::JsonVariant::operator =(static_cast<std::int64_t>(value));
+    Details::JsonVariant::operator =(static_cast<double>(value));
     return *this;
   }
 
   inline JsonValue& JsonValue::operator =(std::int64_t value) {
-    Details::JsonVariant::operator =(value);
+    Details::JsonVariant::operator =(static_cast<double>(value));
     return *this;
   }
 
@@ -316,9 +316,6 @@ namespace Details {
         } else {
           sink << "false";
         }
-      },
-      [&] (std::int64_t value) {
-        sink << value;
       },
       [&] (double value) {
         sink << ToString(value);

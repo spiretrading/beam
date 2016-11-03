@@ -157,7 +157,7 @@ namespace Serialization {
         BOOST_THROW_EXCEPTION(SerializationException{"Length out of range."});
       }
       value = s->front();
-    } else if(boost::get<std::int64_t>(&jsonValue)) {
+    } else if(boost::get<double>(&jsonValue)) {
       value = '\0';
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
@@ -168,25 +168,9 @@ namespace Serialization {
   template<typename T>
   typename std::enable_if<std::is_integral<T>::value>::type
       JsonReceiver<SourceType>::Shuttle(const char* name, T& value) {
-    boost::optional<JsonValue> outValue;
-    auto& jsonValue =
-      [&]() -> const JsonValue& {
-        if(name == nullptr) {
-          outValue.emplace();
-          if(!m_parser.Read(*m_parserStream, *outValue)) {
-            BOOST_THROW_EXCEPTION(
-              SerializationException{"Invalid JSON format."});
-          }
-          return *outValue;
-        } else {
-          return m_objectQueue.back().At(name);
-        }
-      }();
-    if(auto s = boost::get<std::int64_t>(&jsonValue)) {
-      value = static_cast<T>(*s);
-    } else {
-      BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
-    }
+    double rawValue;
+    Shuttle(name, rawValue);
+    value = static_cast<T>(rawValue);
   }
 
   template<typename SourceType>
@@ -208,8 +192,6 @@ namespace Serialization {
         }
       }();
     if(auto s = boost::get<double>(&jsonValue)) {
-      value = static_cast<T>(*s);
-    } else if(auto s = boost::get<std::int64_t>(&jsonValue)) {
       value = static_cast<T>(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});

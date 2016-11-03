@@ -43,15 +43,15 @@ namespace Parsers {
       return false;
     }
     if(context.GetChar() == '-') {
-      decimalBuffer[0] = '-';
-      count = 1;
+      decimalBuffer[count] = '-';
+      ++count;
       if(!context.Read()) {
         return false;
       }
     }
     if(std::isdigit(context.GetChar())) {
-      decimalBuffer[0] = context.GetChar();
-      count = 1;
+      decimalBuffer[count] = context.GetChar();
+      ++count;
       state = INTEGER_DIGITS;
     } else {
       return false;

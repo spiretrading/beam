@@ -5,6 +5,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include "Beam/ParsersTests/DateParserTester.hpp"
 #include "Beam/ParsersTests/DateTimeParserTester.hpp"
+#include "Beam/ParsersTests/DecimalParserTester.hpp"
 #include "Beam/ParsersTests/ConcatenateParserTester.hpp"
 #include "Beam/ParsersTests/EnumeratorParserTester.hpp"
 #include "Beam/ParsersTests/IntegralParserTester.hpp"
@@ -21,6 +22,7 @@ int main() {
   CppUnit::BriefTestProgressListener listener;
   runner.eventManager().addListener(&listener);
   runner.addTest(IntegralParserTester::suite());
+  runner.addTest(DecimalParserTester::suite());
   runner.addTest(ConcatenateParserTester::suite());
   runner.addTest(OrParserTester::suite());
   runner.addTest(ListParserTester::suite());

@@ -263,8 +263,8 @@ namespace IO {
     static const auto CODES =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
     std::string result;
-    for(int i = 0; i < source.GetSize(); i += 3) {
-      int b = (source.GetData()[i] & 0xFC) >> 2;
+    for(std::size_t i = 0; i < source.GetSize(); i += 3) {
+      auto b = (source.GetData()[i] & 0xFC) >> 2;
       result += CODES[b];
       b = (source.GetData()[i] & 0x03) << 4;
       if(i + 1 < source.GetSize()) {

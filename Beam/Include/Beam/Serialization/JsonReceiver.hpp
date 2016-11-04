@@ -68,7 +68,7 @@ namespace Details {
       */
       JsonReceiver(RefType<TypeRegistry<JsonSender<SourceType>>> registry);
 
-      void SetSource(RefType<Source> source);
+      void SetSource(RefType<const Source> source);
 
       void Shuttle(const char* name, bool& value);
 
@@ -128,7 +128,7 @@ namespace Details {
       : ReceiverMixin<JsonReceiver<SourceType>>(Ref(registry)) {}
 
   template<typename SourceType>
-  void JsonReceiver<SourceType>::SetSource(RefType<Source> source) {
+  void JsonReceiver<SourceType>::SetSource(RefType<const Source> source) {
     m_parserStream.emplace(*source);
   }
 

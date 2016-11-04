@@ -1,5 +1,7 @@
 #ifndef BEAM_WEBSERVICES_AUTHENTICATEDSESSION_HPP
 #define BEAM_WEBSERVICES_AUTHENTICATEDSESSION_HPP
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/WebServices/Session.hpp"
 #include "Beam/WebServices/WebServices.hpp"
@@ -23,7 +25,7 @@ namespace WebServices {
       bool IsLoggedIn() const;
 
       //! Returns the account.
-      const ServiceLocator::DirectoryEntry& GetAccount() const;
+      ServiceLocator::DirectoryEntry GetAccount() const;
 
       //! Sets the account, establishing it as having logged in.
       /*!
@@ -35,6 +37,7 @@ namespace WebServices {
       void ResetAccount();
 
     private:
+      mutable boost::mutex m_mutex;
       ServiceLocator::DirectoryEntry m_account;
   };
 
@@ -42,22 +45,26 @@ namespace WebServices {
       : Session{std::move(id)} {}
 
   inline bool AuthenticatedSession::IsLoggedIn() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_account.m_id != -1;
   }
 
-  inline const ServiceLocator::DirectoryEntry&
+  inline ServiceLocator::DirectoryEntry
       AuthenticatedSession::GetAccount() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_account;
   }
 
   inline void AuthenticatedSession::SetAccount(
       ServiceLocator::DirectoryEntry account) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     assert(m_account.m_id == -1);
     m_account = std::move(account);
   }
 
   inline void AuthenticatedSession::ResetAccount() {
-    m_account = ServiceLocator::DirectoryEntry();
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    m_account = {};
   }
 }
 }

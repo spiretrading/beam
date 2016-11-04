@@ -241,6 +241,9 @@ namespace Details {
     boost::optional<JsonValue> storage;
     auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<JsonObject>(&jsonValue)) {
+      if(!s->Get("__version").is_initialized()) {
+        const_cast<JsonObject&>(*s).Set("__version", 0.0);
+      }
       m_aggregateQueue.push_back(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});

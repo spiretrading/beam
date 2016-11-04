@@ -10,11 +10,23 @@
 namespace Beam {
 namespace Serialization {
 namespace Details {
-  inline std::string Escape(const std::string& source) {
+  inline std::string JsonEscape(const std::string& source) {
     std::string result;
     for(auto c : source) {
       if(c == '\\') {
         result += "\\\\";
+      } else if(c == '\n') {
+        result += "\\n";
+      } else if(c == '\r') {
+        result += "\\r";
+      } else if(c == '\"') {
+        result += "\\\"";
+      } else if(c == '\b') {
+        result += "\\b";
+      } else if(c == '\f') {
+        result += "\\f";
+      } else if(c == '\t') {
+        result += "\\t";
       } else {
         result += c;
       }
@@ -155,18 +167,8 @@ namespace Details {
   template<typename T>
   typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
       JsonSender<SinkType>::Send(const char* name, const T& value) {
-    if(m_appendComma) {
-      m_sink->Append(',');
-    }
-    if(name != nullptr) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
-    }
-    auto v = std::string{"\"\""};
-    m_sink->Append(v.c_str(), v.size());
-    m_appendComma = true;
+    auto base64String = IO::Base64Encode(value);
+    Send(name, base64String);
   }
 
   template<typename SinkType>
@@ -182,7 +184,7 @@ namespace Details {
       m_sink->Append(':');
     }
     m_sink->Append('\"');
-    auto escapedValue = Details::Escape(value);
+    auto escapedValue = Details::JsonEscape(value);
     m_sink->Append(escapedValue.c_str(), escapedValue.size());
     m_sink->Append('\"');
     m_appendComma = true;

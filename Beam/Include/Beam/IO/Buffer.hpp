@@ -252,6 +252,49 @@ namespace IO {
     stream.write(buffer.GetData(), buffer.GetSize());
     return stream;
   }
+
+  //! Encodes a Buffer to base64.
+  /*!
+    \param source The Buffer to encode.
+    \return The base64 encoding of the <i>source</i>.
+  */
+  template<typename BufferType>
+  std::string Base64Encode(const BufferType& source) {
+    static const auto CODES =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    std::string result;
+    for(int i = 0; i < source.GetSize(); i += 3) {
+      int b = (source.GetData()[i] & 0xFC) >> 2;
+      result += CODES[b];
+      b = (source.GetData()[i] & 0x03) << 4;
+      if(i + 1 < source.GetSize()) {
+        b |= (source.GetData()[i + 1] & 0xF0) >> 4;
+        result += CODES[b];
+        b = (source.GetData()[i + 1] & 0x0F) << 2;
+        if(i + 2 < source.GetSize()) {
+          b |= (source.GetData()[i + 2] & 0xC0) >> 6;
+          result += CODES[b];
+          b = source.GetData()[i + 2] & 0x3F;
+          result += CODES[b];
+        } else  {
+          result += CODES[b];
+          result += '=';
+        }
+      } else {
+        result += CODES[b];
+        result += "==";
+      }
+    }
+    return result;
+  }
+
+  //! Decodes a base64 string into a Buffer.
+  /*!
+    \param source The string to decode.
+    \param buffer The Buffer to append the data to.
+  */
+  template<typename BufferType>
+  void Base64Decode(const std::string& source, Out<BufferType> buffer) {}
 }
 }
 

@@ -13,6 +13,40 @@
 
 namespace Beam {
 namespace Serialization {
+namespace Details {
+  inline std::string JsonUnescape(const std::string& source) {
+    std::string result;
+    for(std::size_t i = 0; i < source.size(); ++i) {
+      if(source[i] != '\\') {
+        result += source[i];
+      } else {
+        ++i;
+        if(i == source.size()) {
+          BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON string."});
+        }
+        if(source[i] == 'n') {
+          result += '\n';
+        } else if(source[i] == 'r') {
+          result += '\r';
+        } else if(source[i] == '\"') {
+          result += '\"';
+        } else if(source[i] == '\\') {
+          result += '\\';
+        } else if(source[i] == 'b') {
+          result += '\b';
+        } else if(source[i] == 'f') {
+          result += '\f';
+        } else if(source[i] == 't') {
+          result += '\t';
+        } else {
+          BOOST_THROW_EXCEPTION(
+            SerializationException{"Invalid escape character."});
+        }
+      }
+    }
+    return result;
+  }
+}
 
   /*! \class JsonReceiver
       \brief Implements a Receiver using the JSON format.
@@ -74,10 +108,14 @@ namespace Serialization {
       using ReceiverMixin<JsonReceiver<SourceType>>::Shuttle;
 
     private:
+      struct Sequence {
+        std::vector<JsonValue> m_list;
+        std::size_t m_index;
+      };
       boost::optional<Parsers::ReaderParserStream<IO::BufferReader<Source>>>
         m_parserStream;
       JsonParser m_parser;
-      using AggregateType = boost::variant<JsonObject, std::vector<JsonValue>>;
+      using AggregateType = boost::variant<JsonObject, Sequence>;
       std::deque<AggregateType> m_aggregateQueue;
 
       const JsonValue& ExtractValue(const char* name,
@@ -176,7 +214,7 @@ namespace Serialization {
     boost::optional<JsonValue> storage;
     auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::string>(&jsonValue)) {
-      value = std::move(*s);
+      value = Details::JsonUnescape(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }
@@ -192,7 +230,7 @@ namespace Serialization {
       if(s->size() > N) {
         BOOST_THROW_EXCEPTION(SerializationException{"Length out of range."});
       }
-      value = *s;
+      value = Details::JsonUnescape(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }
@@ -219,8 +257,11 @@ namespace Serialization {
     boost::optional<JsonValue> storage;
     auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::vector<JsonValue>>(&jsonValue)) {
-      m_aggregateQueue.push_back(*s);
-      size = static_cast<int>(s->size());
+      Sequence sequence;
+      sequence.m_list = std::move(*s);
+      sequence.m_index = 0;
+      size = static_cast<int>(sequence.m_list.size());
+      m_aggregateQueue.push_back(std::move(sequence));
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }
@@ -240,7 +281,7 @@ namespace Serialization {
   template<typename SourceType>
   const JsonValue& JsonReceiver<SourceType>::ExtractValue(const char* name,
       boost::optional<JsonValue>& storage) {
-    if(name == nullptr) {
+    if(m_aggregateQueue.empty()) {
       storage.emplace();
       if(!m_parser.Read(*m_parserStream, *storage)) {
         BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
@@ -248,11 +289,19 @@ namespace Serialization {
       return *storage;
     } else if(auto aggregate =
         boost::get<JsonObject>(&m_aggregateQueue.back()))  {
-      return aggregate->At(name);
-    } else if(auto aggregate =
-        boost::get<std::vector<JsonValue>>(&m_aggregateQueue.back())) {
-      aggregate->emplace_back();
-      return aggregate->back();
+      if(name != nullptr) {
+        return aggregate->At(name);
+      } else {
+        BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
+      }
+    } else if(auto aggregate = boost::get<Sequence>(&m_aggregateQueue.back())) {
+      if(aggregate->m_index >= aggregate->m_list.size()) {
+        BOOST_THROW_EXCEPTION(
+          SerializationException{"JSON sequence out of range."});
+      }
+      auto& value = aggregate->m_list[aggregate->m_index];
+      ++aggregate->m_index;
+      return value;
     }
     BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON format."});
   }

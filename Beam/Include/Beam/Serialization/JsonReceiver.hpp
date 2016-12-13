@@ -129,6 +129,7 @@ namespace Details {
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::SetSource(RefType<const Source> source) {
+    m_aggregateQueue.clear();
     m_parserStream.emplace(*source);
   }
 

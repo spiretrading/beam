@@ -57,8 +57,10 @@ namespace Beam {
       std::string m_username;
       std::string m_password;
       MySql::DatabaseConnectionPool m_readerDatabaseConnectionPool;
-      Threading::Sync<mysqlpp::Connection> m_readerDatabaseConnection;
-      Threading::Sync<mysqlpp::Connection> m_writerDatabaseConnection;
+      Threading::Sync<mysqlpp::Connection, Threading::Mutex>
+        m_readerDatabaseConnection;
+      Threading::Sync<mysqlpp::Connection, Threading::Mutex>
+        m_writerDatabaseConnection;
       Threading::ThreadPool m_readerThreadPool;
       DataStore<EntryQuery, Entry, Details::entries> m_entryDataStore;
       IO::OpenState m_openState;

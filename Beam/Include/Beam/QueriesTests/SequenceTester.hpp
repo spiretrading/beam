@@ -50,6 +50,9 @@ namespace Tests {
       //! Tests decrementing a Sequence.
       void TestDecrement();
 
+      //! Tests encoding a timestamp into a Sequence.
+      void TestEncodingTimestamp();
+
     private:
       CPPUNIT_TEST_SUITE(SequenceTester);
         CPPUNIT_TEST(TestDefaultConstructor);
@@ -64,6 +67,7 @@ namespace Tests {
         CPPUNIT_TEST(TestGreaterThanOperator);
         CPPUNIT_TEST(TestIncrement);
         CPPUNIT_TEST(TestDecrement);
+        CPPUNIT_TEST(TestEncodingTimestamp);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

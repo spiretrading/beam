@@ -4,6 +4,9 @@
 using namespace Beam;
 using namespace Beam::Queries;
 using namespace Beam::Queries::Tests;
+using namespace boost;
+using namespace boost::gregorian;
+using namespace boost::posix_time;
 using namespace std;
 
 void SequenceTester::TestDefaultConstructor() {
@@ -86,4 +89,15 @@ void SequenceTester::TestDecrement() {
   CPPUNIT_ASSERT(Decrement(Sequence(2)) == Sequence(1));
   CPPUNIT_ASSERT(Decrement(Sequence(3)) == Sequence(2));
   CPPUNIT_ASSERT(Decrement(Sequence::First()) == Sequence::First());
+}
+
+void SequenceTester::TestEncodingTimestamp() {
+  ptime timestamp{date{1984, May, 6}, hours(12) + minutes(44) + seconds(53)};
+  auto sequence = EncodeTimestamp(timestamp);
+  Sequence::Ordinal encoding =
+    static_cast<Sequence::Ordinal>(0b00111110000000101000110) <<
+    (CHAR_BIT * sizeof(Sequence::Ordinal) - 23);
+  CPPUNIT_ASSERT(encoding == sequence.GetOrdinal());
+  CPPUNIT_ASSERT(DecodeTimestamp(Sequence{encoding}).date() ==
+    timestamp.date());
 }

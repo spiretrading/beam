@@ -1,8 +1,10 @@
 #ifndef BEAM_SEQUENCE_HPP
 #define BEAM_SEQUENCE_HPP
+#include <climits>
 #include <cstdint>
 #include <limits>
 #include <ostream>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
@@ -134,6 +136,93 @@ namespace Queries {
       return sequence;
     }
     return Sequence(sequence.GetOrdinal() - 1);
+  }
+
+  //! Encodes a timestamp into a Sequence.
+  /*!
+    \param timestamp The timestamp to encode.
+    \return The Sequence number with the <i>timestamp</i> encoded into it.
+  */
+  inline Sequence EncodeTimestamp(const boost::posix_time::ptime& timestamp) {
+    const auto YEAR_SIZE = 13;
+    const auto MONTH_SIZE = 4;
+    const auto DAY_SIZE = 6;
+    const auto ENCODING_SIZE = YEAR_SIZE + MONTH_SIZE + DAY_SIZE;
+    if(timestamp == boost::posix_time::neg_infin) {
+      return Sequence::First();
+    } else if(timestamp == boost::posix_time::pos_infin) {
+      return Sequence::Last();
+    } else if(timestamp.is_special()) {
+      BOOST_THROW_EXCEPTION(std::out_of_range{"Invalid timestamp."});
+    } else {
+      auto yearComponent =
+        static_cast<Sequence::Ordinal>(timestamp.date().year()) <<
+        (CHAR_BIT * sizeof(Sequence::Ordinal) - YEAR_SIZE);
+      auto monthComponent =
+        static_cast<Sequence::Ordinal>(timestamp.date().month()) <<
+        (CHAR_BIT * sizeof(Sequence::Ordinal) - (YEAR_SIZE + MONTH_SIZE));
+      auto dayComponent =
+        static_cast<Sequence::Ordinal>(timestamp.date().day()) <<
+        (CHAR_BIT * sizeof(Sequence::Ordinal) -
+        (YEAR_SIZE + MONTH_SIZE + DAY_SIZE));
+      Sequence sequence{yearComponent + monthComponent + dayComponent};
+      return sequence;
+    }
+  }
+
+  //! Encodes a timestamp into a Sequence.
+  /*!
+    \param timestamp The timestamp to encode.
+    \return The Sequence number with the <i>timestamp</i> encoded into it.
+  */
+  inline Sequence EncodeTimestamp(const boost::posix_time::ptime& timestamp,
+      const Sequence& sequence) {
+    if(timestamp == boost::posix_time::neg_infin) {
+      return Sequence::First();
+    } else if(timestamp == boost::posix_time::pos_infin) {
+      return Sequence::Last();
+    } else {
+      Sequence sequence{EncodeTimestamp(timestamp).GetOrdinal() +
+        sequence.GetOrdinal()};
+      return sequence;
+    }
+  }
+
+  //! Decodes the timestamp within a Sequence.
+  /*!
+    \param sequence The Sequence to decode.
+    \return The timestamp encoded within the <i>sequence</i>
+  */
+  inline boost::posix_time::ptime DecodeTimestamp(const Sequence& sequence) {
+    const auto YEAR_SIZE = 13;
+    const auto MONTH_SIZE = 4;
+    const auto DAY_SIZE = 6;
+    const auto ENCODING_SIZE = YEAR_SIZE + MONTH_SIZE + DAY_SIZE;
+    if(sequence == Sequence::First()) {
+      return boost::posix_time::neg_infin;
+    } else if(sequence == Sequence::Last()) {
+      return boost::posix_time::pos_infin;
+    } else if(sequence == Sequence::Present()) {
+      return boost::posix_time::not_a_date_time;
+    } else {
+      auto dateEncoding = static_cast<std::uint32_t>(
+        ((static_cast<Sequence::Ordinal>(-1) <<
+        (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE)) &
+        sequence.GetOrdinal()) >>
+        (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE));
+      auto day = ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding;
+      dateEncoding >>= DAY_SIZE;
+      auto month = ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) &
+        dateEncoding;
+      dateEncoding >>= MONTH_SIZE;
+      auto year = ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding;
+      boost::posix_time::ptime timestamp{boost::gregorian::date{
+        static_cast<boost::gregorian::greg_year>(year),
+        static_cast<boost::gregorian::greg_month>(month),
+        static_cast<boost::gregorian::greg_day>(day)},
+        boost::posix_time::seconds(0)};
+      return timestamp;
+    }
   }
 
   inline std::ostream& operator <<(std::ostream& out,

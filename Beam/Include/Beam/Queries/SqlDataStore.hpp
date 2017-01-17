@@ -120,10 +120,10 @@ namespace Queries {
   SqlDataStore<QueryType, ValueType, RowType, SqlTranslatorFilterType,
       FunctorType>::SqlDataStore(
       Beam::RefType<MySql::DatabaseConnectionPool> connectionPool,
-      Beam::RefType<Threading::Sync<mysqlpp::Connection>> readConnection,
-      Beam::RefType<Threading::Sync<mysqlpp::Connection>> writeConnection,
-      Beam::RefType<Threading::ThreadPool> threadPool,
-      const Functor& functor)
+      Beam::RefType<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
+      readConnection, Beam::RefType<Threading::Sync<mysqlpp::Connection,
+      Threading::Mutex>> writeConnection,
+      Beam::RefType<Threading::ThreadPool> threadPool, const Functor& functor)
       : m_connectionPool{connectionPool.Get()},
         m_readConnection{readConnection.Get()},
         m_writeConnection{writeConnection.Get()},

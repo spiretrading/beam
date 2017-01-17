@@ -30,18 +30,18 @@ if [ ! -d "cryptopp565" ]; then
     rm -f cryptopp565.zip
   fi
 fi
-if [ ! -d "zlib-1.2.8" ]; then
-  wget http://zlib.net/zlib-1.2.8.tar.gz
-  if [ -f zlib-1.2.8.tar.gz ]; then
-    gzip -d -c zlib-1.2.8.tar.gz | tar -x
-    cd zlib-1.2.8
+if [ ! -d "zlib-1.2.11" ]; then
+  wget http://www.zlib.net/zlib-1.2.11.tar.gz
+  if [ -f zlib-1.2.11.tar.gz ]; then
+    gzip -d -c zlib-1.2.11.tar.gz | tar -x
+    cd zlib-1.2.11
     export CFLAGS="-fPIC"
     cmake -G "Unix Makefiles" -DAMD64=ON
     make -j $cores
     make install
     unset CFLAGS
     cd ..
-    rm -f zlib-1.2.8.tar.gz
+    rm -f zlib-1.2.11.tar.gz
   fi
 fi
 if [ ! -d "mysql-connector-c-6.1.6" ]; then

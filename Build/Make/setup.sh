@@ -16,18 +16,18 @@ if [ ! -d "cppunit-1.12.1" ]; then
     rm -f cppunit-1.12.1.tar.gz
   fi
 fi
-if [ ! -d "cryptopp562" ]; then
-  wget http://www.cryptopp.com/cryptopp562.zip
-  if [ -f cryptopp562.zip ]; then
-    mkdir cryptopp562
-    cd cryptopp562
-    unzip ../cryptopp562.zip
+if [ ! -d "cryptopp565" ]; then
+  wget http://www.cryptopp.com/cryptopp565.zip
+  if [ -f cryptopp565.zip ]; then
+    mkdir cryptopp565
+    cd cryptopp565
+    unzip ../cryptopp565.zip
     cat GNUmakefile | sed "s/# CXXFLAGS += -fPIC/CXXFLAGS += -fPIC/" > GNUmakefile.new
     mv GNUmakefile.new GNUmakefile
     make -j $cores
     make install
     cd ..
-    rm -f cryptopp562.zip
+    rm -f cryptopp565.zip
   fi
 fi
 if [ ! -d "zlib-1.2.8" ]; then

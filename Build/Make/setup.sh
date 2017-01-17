@@ -58,8 +58,8 @@ if [ ! -d "mysql-connector-c-6.1.6" ]; then
   fi
 fi
 if [ ! -d "mysql++-3.2.2" ]; then
+  wget http://tangentsoft.net/mysql++/releases/mysql++-3.2.2.tar.gz
   if [ -f mysql++-3.2.2.tar.gz ]; then
-    wget http://tangentsoft.net/mysql++/releases/mysql++-3.2.2.tar.gz
     gzip -d -c mysql++-3.2.2.tar.gz | tar -x
     cd mysql++-3.2.2
     ./configure

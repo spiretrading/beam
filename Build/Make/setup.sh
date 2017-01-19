@@ -42,8 +42,8 @@ if [ ! -d "zlib-1.2.11" ]; then
     chown -R $(logname):$(logname) zlib-1.2.11
     cd zlib-1.2.11
     export CFLAGS="-fPIC"
-    sudo -u $(logname) cmake -G "Unix Makefiles" -DAMD64=ON
-    sudo -u $(logname) make -j $cores
+    sudo -E -u $(logname) cmake -G "Unix Makefiles" -DAMD64=ON
+    sudo -E -u $(logname) make -j $cores
     make install
     unset CFLAGS
     cd ..
@@ -92,8 +92,8 @@ if [ ! -d "yaml-cpp" ]; then
     cd build
     export CFLAGS="-fPIC"
     export CXXFLAGS="-fPIC"
-    sudo -u $(logname) cmake ..
-    sudo -u $(logname) make -j $cores
+    sudo -E -u $(logname) cmake ..
+    sudo -E -u $(logname) make -j $cores
     make install
     unset CFLAGS
     unset CXXFLAGS
@@ -123,9 +123,9 @@ if [ ! -d "openssl-1.0.2g" ]; then
     chown -R $(logname):$(logname) openssl-1.0.2g
     cd openssl-1.0.2g
     export LDFLAGS=-ldl
-    sudo -u $(logname) ./config no-shared threads -fPIC -ldl
-    sudo -u $(logname) make
-    sudo -u $(logname) make test
+    sudo -E -u $(logname) ./config no-shared threads -fPIC -ldl
+    sudo -E -u $(logname) make
+    sudo -E -u $(logname) make test
     make install
     unset LDFLAGS
     cd ..

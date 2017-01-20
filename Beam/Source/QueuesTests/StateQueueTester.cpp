@@ -1,5 +1,5 @@
-#include "Beam/QueuesTests/QueueTester.hpp"
-#include "Beam/Queues/Queue.hpp"
+#include "Beam/QueuesTests/StateQueueTester.hpp"
+#include "Beam/Queues/StateQueue.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 using namespace Beam;
@@ -7,8 +7,8 @@ using namespace Beam::Routines;
 using namespace Beam::Tests;
 using namespace std;
 
-void QueueTester::TestBreak() {
-  Queue<int> q;
+void StateQueueTester::TestBreak() {
+  StateQueue<int> q;
   RoutineHandler r1 = Spawn(
     [&] {
       q.Top();

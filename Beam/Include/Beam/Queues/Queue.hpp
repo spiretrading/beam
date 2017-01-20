@@ -60,25 +60,25 @@ namespace Beam {
 
   template<typename T>
   bool Queue<T>::IsBroken() const {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     return m_breakException != nullptr && m_queue.empty();
   }
 
   template<typename T>
   bool Queue<T>::IsEmpty() const {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     return m_queue.empty();
   }
 
   template<typename T>
   void Queue<T>::Wait() const {
-    boost::unique_lock<boost::mutex> lock(this->GetMutex());
+    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
     this->Wait(lock);
   }
 
   template<typename T>
   T Queue<T>::Top() const {
-    boost::unique_lock<boost::mutex> lock(this->GetMutex());
+    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
     this->Wait(lock);
     if(m_queue.empty()) {
       std::rethrow_exception(m_breakException);
@@ -88,7 +88,7 @@ namespace Beam {
 
   template<typename T>
   bool Queue<T>::TryEmplace(Out<T> value) {
-    boost::unique_lock<boost::mutex> lock(this->GetMutex());
+    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
     if(m_queue.empty()) {
       if(m_breakException == nullptr) {
         return false;
@@ -102,7 +102,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Emplace(Out<T> value) {
-    boost::unique_lock<boost::mutex> lock(this->GetMutex());
+    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
     this->Wait(lock);
     if(m_queue.empty()) {
       std::rethrow_exception(m_breakException);
@@ -113,7 +113,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Push(const T& value) {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -125,7 +125,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Push(T&& value) {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -137,7 +137,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Break(const std::exception_ptr& exception) {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     if(m_breakException != nullptr) {
       return;
     }
@@ -147,7 +147,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Pop() {
-    boost::lock_guard<boost::mutex> lock(this->GetMutex());
+    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
     m_queue.pop_front();
   }
 

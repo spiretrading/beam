@@ -287,7 +287,7 @@ namespace ServiceLocator {
           auto rootAccount = m_dataStore->MakeAccount("root", "", starDirectory,
             boost::posix_time::second_clock::universal_time());
           m_dataStore->SetPermissions(rootAccount, starDirectory,
-            Permissions{~0});
+            static_cast<Permissions>(~0));
         });
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();

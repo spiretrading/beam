@@ -142,7 +142,7 @@ namespace Beam {
       return;
     }
     m_breakException = exception;
-    this->NotifyOne();
+    this->NotifyAll();
   }
 
   template<typename T>

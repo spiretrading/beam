@@ -51,7 +51,7 @@ namespace Details {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
       m_isReadPending = false;
       if(!m_isOpen) {
-        m_isPendingCondition.notify_one();
+        m_isPendingCondition.notify_all();
       }
     }
 
@@ -67,7 +67,7 @@ namespace Details {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
       --m_pendingWrites;
       if(m_pendingWrites == 0 && !m_isOpen) {
-        m_isPendingCondition.notify_one();
+        m_isPendingCondition.notify_all();
       }
     }
   };
@@ -113,7 +113,7 @@ namespace Details {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
       m_isReadPending = false;
       if(!m_isOpen) {
-        m_isPendingCondition.notify_one();
+        m_isPendingCondition.notify_all();
       }
     }
 
@@ -129,7 +129,7 @@ namespace Details {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
       --m_pendingWrites;
       if(m_pendingWrites == 0 && !m_isOpen) {
-        m_isPendingCondition.notify_one();
+        m_isPendingCondition.notify_all();
       }
     }
   };

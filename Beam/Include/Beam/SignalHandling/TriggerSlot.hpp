@@ -72,7 +72,7 @@ namespace SignalHandling {
   void TriggerSlot::operator ()(Args&&... args) {
     boost::lock_guard<boost::mutex> lock(m_implementation->m_mutex);
     m_implementation->m_triggered = true;
-    m_implementation->m_isTriggeredCondition.notify_one();
+    m_implementation->m_isTriggeredCondition.notify_all();
   }
 }
 }

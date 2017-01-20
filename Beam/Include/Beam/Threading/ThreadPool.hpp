@@ -213,7 +213,7 @@ namespace Threading {
     m_available = false;
     m_stopped = true;
     m_task = nullptr;
-    m_taskAvailableCondition.notify_one();
+    m_taskAvailableCondition.notify_all();
   }
 
   inline ThreadPool::ThreadPool()
@@ -291,7 +291,7 @@ namespace Threading {
       --m_activeThreads;
       --m_runningThreads;
       if(m_activeThreads == 0) {
-        m_threadsFinishedCondition.notify_one();
+        m_threadsFinishedCondition.notify_all();
       }
       return false;
     }
@@ -299,7 +299,7 @@ namespace Threading {
       m_threads.push_back(&taskThread);
       --m_activeThreads;
       if(m_isWaitingForCompletion && m_activeThreads == 0) {
-        m_threadsFinishedCondition.notify_one();
+        m_threadsFinishedCondition.notify_all();
       }
       return true;
     }

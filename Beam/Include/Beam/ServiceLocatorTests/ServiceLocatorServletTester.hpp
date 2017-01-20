@@ -121,6 +121,9 @@ namespace Tests {
       //! Tests creating an account using an unavailable name.
       void TestCreateAccountUnavailableName();
 
+      //! Tests creating an account with an empty name.
+      void TestCreateAccountEmptyName();
+
       //! Tests creating a valid account.
       void TestValidCreateAccount();
 
@@ -129,6 +132,9 @@ namespace Tests {
 
       //! Tests creating without permissions.
       void TestCreateDirectoryWithoutPermissions();
+
+      //! Tests creating a directory with an empty name.
+      void TestCreateDirectoryEmptyName();
 
       //! Tests creating a valid directory.
       void TestValidCreateDirectory();
@@ -193,9 +199,11 @@ namespace Tests {
         CPPUNIT_TEST(TestCreateAccountWithoutLogin);
         CPPUNIT_TEST(TestCreateAccountWithoutPermissions);
         CPPUNIT_TEST(TestCreateAccountUnavailableName);
+        CPPUNIT_TEST(TestCreateAccountEmptyName);
         CPPUNIT_TEST(TestValidCreateAccount);
         CPPUNIT_TEST(TestCreateDirectoryWithoutLogin);
         CPPUNIT_TEST(TestCreateDirectoryWithoutPermissions);
+        CPPUNIT_TEST(TestCreateDirectoryEmptyName);
         CPPUNIT_TEST(TestValidCreateDirectory);
         CPPUNIT_TEST(TestDeleteEntryWithoutLogin);
         CPPUNIT_TEST(TestDeleteNonExistingEntry);

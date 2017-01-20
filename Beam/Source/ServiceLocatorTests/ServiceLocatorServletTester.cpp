@@ -356,6 +356,18 @@ void ServiceLocatorServletTester::TestCreateAccountUnavailableName() {
     ServiceRequestException);
 }
 
+void ServiceLocatorServletTester::TestCreateAccountEmptyName() {
+  DirectoryEntry account;
+  string sessionId;
+  CreateAccountAndLogin(Store(account), Store(sessionId));
+  m_dataStore->SetPermissions(account, DirectoryEntry::GetStarDirectory(),
+    Permission::ADMINISTRATE);
+  string accountName = "";
+  CPPUNIT_ASSERT_THROW(m_clientProtocol->SendRequest<MakeAccountService>(
+    accountName, "", DirectoryEntry::GetStarDirectory()),
+    ServiceRequestException);
+}
+
 void ServiceLocatorServletTester::TestValidCreateAccount() {
   DirectoryEntry account;
   string sessionId;
@@ -387,6 +399,18 @@ void ServiceLocatorServletTester::TestCreateDirectoryWithoutPermissions() {
     Permission::READ);
   CPPUNIT_ASSERT_THROW(m_clientProtocol->SendRequest<MakeDirectoryService>(
     "directory", DirectoryEntry::GetStarDirectory()), ServiceRequestException);
+}
+
+void ServiceLocatorServletTester::TestCreateDirectoryEmptyName() {
+  DirectoryEntry account;
+  string sessionId;
+  CreateAccountAndLogin(Store(account), Store(sessionId));
+  m_dataStore->SetPermissions(account, DirectoryEntry::GetStarDirectory(),
+    Permission::ADMINISTRATE);
+  string directoryName = "";
+  CPPUNIT_ASSERT_THROW(m_clientProtocol->SendRequest<MakeDirectoryService>(
+    directoryName, DirectoryEntry::GetStarDirectory()),
+    ServiceRequestException);
 }
 
 void ServiceLocatorServletTester::TestValidCreateDirectory() {

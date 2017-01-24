@@ -43,6 +43,9 @@ namespace Routines {
       */
       RoutineHandler& operator =(RoutineHandler&& routineHandler);
 
+      //! Returns the Routine's id.
+      Routine::Id GetId() const;
+
       //! Detaches the current Routine from this handler.
       void Detach();
 
@@ -99,6 +102,10 @@ namespace Routines {
     *this = routineHandler.m_id;
     routineHandler.Detach();
     return *this;
+  }
+
+  inline Routine::Id RoutineHandler::GetId() const {
+    return m_id;
   }
 
   inline void RoutineHandler::Detach() {

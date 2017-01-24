@@ -50,6 +50,9 @@ namespace Python {
     return ReleaseUniquePtr(f,
       boost::python::return_value_policy<boost::python::manage_new_object>());
   }
+
+  //! Prints a Python error message.
+  void PrintError();
 }
 }
 

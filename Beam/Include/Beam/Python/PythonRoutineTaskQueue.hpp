@@ -66,8 +66,8 @@ namespace Python {
   inline PythonRoutineTaskQueue::Converter::Converter(
       std::shared_ptr<Queue<boost::python::object>> queue,
       boost::python::object slot)
-      : m_queue(std::move(queue)),
-        m_slot(std::move(slot)) {}
+      : m_queue{std::move(queue)},
+        m_slot{std::move(slot)} {}
 
   inline PythonRoutineTaskQueue::Converter::~Converter() {
     Break();
@@ -93,7 +93,7 @@ namespace Python {
   inline void PythonRoutineTaskQueue::Converter::Break(
       const std::exception_ptr& e) {
     GilLock gil;
-    boost::lock_guard<GilLock> lock(gil);
+    boost::lock_guard<GilLock> lock{gil};
     m_slot = boost::none;
   }
 
@@ -106,10 +106,15 @@ namespace Python {
           GilLock gil;
           while(true) {
             m_queue->Wait();
-            boost::lock_guard<GilLock> lock(gil);
+            boost::lock_guard<GilLock> lock{gil};
             auto callable = m_queue->Top();
             m_queue->Pop();
-            callable();
+            try {
+              callable();
+            } catch(const boost::python::error_already_set&) {
+              PrintError();
+              return;
+            }
           }
         } catch(const PipeBrokenException&) {
           return;
@@ -121,9 +126,11 @@ namespace Python {
 
   inline PythonRoutineTaskQueue::~PythonRoutineTaskQueue() {
     Break();
-    GilRelease gil;
-    boost::lock_guard<GilRelease> lock(gil);
-    m_routine.Wait();
+    if(Routines::GetCurrentRoutine().GetId() != m_routine.GetId()) {
+      GilRelease gil;
+      boost::lock_guard<GilRelease> lock{gil};
+      m_routine.Wait();
+    }
   }
 
   inline boost::python::object PythonRoutineTaskQueue::GetSlot(
@@ -131,11 +138,11 @@ namespace Python {
     std::shared_ptr<PythonQueueWriter> converter;
     {
       GilRelease gil;
-      boost::lock_guard<GilRelease> lock(gil);
+      boost::lock_guard<GilRelease> lock{gil};
       converter = std::make_shared<Converter>(m_queue, slot);
       bool isBroken;
       {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
+        boost::lock_guard<boost::mutex> lock{m_mutex};
         m_queues.push_back(converter);
         isBroken = m_isBroken;
       }
@@ -143,7 +150,7 @@ namespace Python {
         converter->Break();
       }
     }
-    return boost::python::object(converter);
+    return boost::python::object{converter};
   }
 
   inline void PythonRoutineTaskQueue::Push(const boost::python::object& value) {
@@ -157,10 +164,10 @@ namespace Python {
   inline void PythonRoutineTaskQueue::Break(
       const std::exception_ptr& exception) {
     GilRelease gil;
-    boost::lock_guard<GilRelease> lock(gil);
+    boost::lock_guard<GilRelease> lock{gil};
     std::vector<std::shared_ptr<PythonQueueWriter>> queues;
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      boost::lock_guard<boost::mutex> lock{m_mutex};
       m_isBroken = true;
       queues = m_queues;
     }

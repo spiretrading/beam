@@ -33,6 +33,37 @@ namespace Python {
   //! Python GIL.
   /*!
     \param f The function to wrap.
+    \param callPolicies The function's call policies.
+    \return A Python callable that invokes <i>f</i>.
+  */
+  template<typename R, typename... Args, typename CallPolicies>
+  boost::python::object BlockingFunction(R (*f)(Args...),
+      CallPolicies callPolicies) {
+    std::function<R (Args...)> callable = [=] (Args... args) -> R {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock(gil);
+        return (*f)(std::forward<Args>(args)...);
+      };
+    using signature = boost::mpl::vector<R, Args...>;
+    return boost::python::make_function(callable, callPolicies, signature());
+  }
+
+  //! Wraps a blocking function into a Python callable that releases the
+  //! Python GIL.
+  /*!
+    \param f The function to wrap.
+    \return A Python callable that invokes <i>f</i>.
+  */
+  template<typename R, typename... Args>
+  boost::python::object BlockingFunction(R (*f)(Args...)) {
+    return BlockingFunction(f, boost::python::default_call_policies());
+  }
+
+  //! Wraps a blocking function into a Python callable that releases the
+  //! Python GIL.
+  /*!
+    \param f The function to wrap.
+    \param callPolicies The function's call policies.
     \return A Python callable that invokes <i>f</i>.
   */
   template<typename R, typename T, typename... Args, typename CallPolicies>
@@ -63,6 +94,7 @@ namespace Python {
   //! Python GIL.
   /*!
     \param f The function to wrap.
+    \param callPolicies The function's call policies.
     \return A Python callable that invokes <i>f</i>.
   */
   template<typename Q, typename R, typename T, typename... Args,
@@ -94,6 +126,7 @@ namespace Python {
   //! Python GIL.
   /*!
     \param f The function to wrap.
+    \param callPolicies The function's call policies.
     \return A Python callable that invokes <i>f</i>.
   */
   template<typename R, typename T, typename... Args, typename CallPolicies>

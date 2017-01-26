@@ -6,6 +6,7 @@
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"

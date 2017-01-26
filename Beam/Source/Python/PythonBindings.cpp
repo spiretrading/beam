@@ -41,6 +41,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportNetwork();
   ExportQueries();
   ExportQueues();
+  ExportRoutines();
   ExportServiceLocator();
   ExportThreading();
   ExportTimeService();

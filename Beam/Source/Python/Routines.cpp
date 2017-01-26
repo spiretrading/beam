@@ -1,5 +1,6 @@
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 using namespace Beam;
@@ -15,5 +16,5 @@ void Beam::Python::ExportRoutines() {
     borrowed(PyImport_AddModule(nestedName.c_str())))};
   scope().attr("routines") = nestedModule;
   scope parent = nestedModule;
-  def("flush_pending_routines", &FlushPendingRoutines);
+  def("flush_pending_routines", BlockingFunction(&FlushPendingRoutines));
 }

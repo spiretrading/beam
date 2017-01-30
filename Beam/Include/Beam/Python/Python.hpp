@@ -21,6 +21,7 @@ BEAM_EXTERN template struct BEAM_EXPORT_DLL
 
 namespace Beam {
 namespace Python {
+  class PythonQueueWriter;
 
   //! Wraps a function returning a unique_ptr into a Python callable managing
   //! that object.

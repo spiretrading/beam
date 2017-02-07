@@ -23,6 +23,9 @@ namespace Threading {
       //! Triggers the Timer to expire.
       void Trigger();
 
+      //! Causes the Timer to fail.
+      void Fail();
+
       void Start();
 
       void Cancel();
@@ -39,21 +42,28 @@ namespace Threading {
   };
 
   inline TriggerTimer::TriggerTimer()
-    : m_isPending(false) {}
+    : m_isPending{false} {}
 
   inline TriggerTimer::~TriggerTimer() {
     Cancel();
   }
 
   inline void TriggerTimer::Trigger() {
-    boost::lock_guard<Mutex> lock(m_mutex);
+    boost::lock_guard<Mutex> lock{m_mutex};
     m_isPending = false;
     m_publisher.Push(Timer::Result::EXPIRED);
     m_trigger.notify_all();
   }
 
+  inline void TriggerTimer::Fail() {
+    boost::lock_guard<Mutex> lock{m_mutex};
+    m_isPending = false;
+    m_publisher.Push(Timer::Result::FAIL);
+    m_trigger.notify_all();
+  }
+
   inline void TriggerTimer::Start() {
-    boost::lock_guard<Mutex> lock(m_mutex);
+    boost::lock_guard<Mutex> lock{m_mutex};
     if(m_isPending) {
       return;
     }
@@ -61,7 +71,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Cancel() {
-    boost::lock_guard<Mutex> lock(m_mutex);
+    boost::lock_guard<Mutex> lock{m_mutex};
     if(!m_isPending) {
       return;
     }
@@ -71,7 +81,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Wait() {
-    boost::unique_lock<Mutex> lock(m_mutex);
+    boost::unique_lock<Mutex> lock{m_mutex};
     while(m_isPending) {
       m_trigger.wait(lock);
     }

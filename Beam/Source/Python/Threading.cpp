@@ -60,6 +60,7 @@ void Beam::Python::ExportTimer() {
 void Beam::Python::ExportTriggerTimer() {
   class_<TriggerTimer, boost::noncopyable>("TriggerTimer", init<>())
     .def("trigger", BlockingFunction(&TriggerTimer::Trigger))
+    .def("fail", BlockingFunction(&TriggerTimer::Fail))
     .def("start", BlockingFunction(&TriggerTimer::Start))
     .def("cancel", BlockingFunction(&TriggerTimer::Cancel))
     .def("wait", BlockingFunction(&TriggerTimer::Wait))

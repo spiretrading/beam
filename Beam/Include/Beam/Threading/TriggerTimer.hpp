@@ -36,13 +36,16 @@ namespace Threading {
 
     private:
       mutable Mutex m_mutex;
-      bool m_isPending;
+      int m_state;
+      Timer::Result m_result;
       MultiQueueWriter<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
+
+      void Publish();
   };
 
   inline TriggerTimer::TriggerTimer()
-    : m_isPending{false} {}
+      : m_state{0} {}
 
   inline TriggerTimer::~TriggerTimer() {
     Cancel();
@@ -50,45 +53,60 @@ namespace Threading {
 
   inline void TriggerTimer::Trigger() {
     boost::lock_guard<Mutex> lock{m_mutex};
-    m_isPending = false;
-    m_publisher.Push(Timer::Result::EXPIRED);
-    m_trigger.notify_all();
+    m_result = Timer::Result::EXPIRED;
+    if(m_state == 0) {
+      m_state = 2;
+    } else if(m_state == 1) {
+      Publish();
+    }
   }
 
   inline void TriggerTimer::Fail() {
     boost::lock_guard<Mutex> lock{m_mutex};
-    m_isPending = false;
-    m_publisher.Push(Timer::Result::FAIL);
-    m_trigger.notify_all();
+    m_result = Timer::Result::FAIL;
+    if(m_state == 0) {
+      m_state = 2;
+    } else if(m_state == 1) {
+      Publish();
+    }
   }
 
   inline void TriggerTimer::Start() {
     boost::lock_guard<Mutex> lock{m_mutex};
-    if(m_isPending) {
-      return;
+    if(m_state == 0) {
+      m_state = 1;
+    } else if(m_state == 2) {
+      Publish();
     }
-    m_isPending = true;
   }
 
   inline void TriggerTimer::Cancel() {
     boost::lock_guard<Mutex> lock{m_mutex};
-    if(!m_isPending) {
-      return;
+    if(m_state == 0) {
+      m_state = 1;
+    } else if(m_state == 1) {
+      m_result = Timer::Result::CANCELED;
+      Publish();
+    } else if(m_state == 2) {
+      Publish();
     }
-    m_isPending = false;
-    m_publisher.Push(Timer::Result::CANCELED);
-    m_trigger.notify_all();
   }
 
   inline void TriggerTimer::Wait() {
     boost::unique_lock<Mutex> lock{m_mutex};
-    while(m_isPending) {
+    while(m_state != 0) {
       m_trigger.wait(lock);
     }
   }
 
   inline const Publisher<Timer::Result>& TriggerTimer::GetPublisher() const {
     return m_publisher;
+  }
+
+  inline void TriggerTimer::Publish() {
+    m_publisher.Push(m_result);
+    m_state = 0;
+    m_trigger.notify_all();
   }
 }
 

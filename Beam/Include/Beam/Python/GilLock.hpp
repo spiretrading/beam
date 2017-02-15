@@ -24,7 +24,6 @@ namespace Python {
       void unlock();
 
     private:
-      bool m_hasThread;
       PyGILState_STATE m_state;
   };
 

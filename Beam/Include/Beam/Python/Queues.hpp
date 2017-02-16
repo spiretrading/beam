@@ -17,16 +17,34 @@ namespace Details {
     publisher.Monitor(monitor->GetSlot<T>());
   }
 
+  template<typename T>
+  void PublisherWith(Publisher<T>& publisher, boost::python::object callable) {
+    GilRelease release;
+    boost::lock_guard<GilRelease> lock{release};
+    publisher.With(
+      [&] {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        callable();
+      });
+  }
+
   template<typename T, typename SnapshotType>
   boost::python::object GetSnapshot(
       SnapshotPublisher<T, SnapshotType>& publisher) {
     boost::python::object object;
-    publisher.WithSnapshot(
-      [&] (auto snapshot) {
-        if(snapshot.is_initialized()) {
-          object = boost::python::object{*snapshot};
-        }
-      });
+    {
+      GilRelease release;
+      boost::lock_guard<GilRelease> lock{release};
+      publisher.WithSnapshot(
+        [&] (auto snapshot) {
+          if(snapshot.is_initialized()) {
+            GilLock gil;
+            boost::lock_guard<GilLock> lock{gil};
+            object = boost::python::object{*snapshot};
+          }
+        });
+    }
     return object;
   }
 }
@@ -50,9 +68,7 @@ namespace Details {
       boost::python::bases<BasePublisher>>(name, boost::python::no_init)
       .def("lock", BlockingFunction(&Publisher<T>::Lock))
       .def("unlock", BlockingFunction(&Publisher<T>::Unlock))
-
-      // TODO: Blocking function.
-      .def("with", &Publisher<T>::With)
+      .def("with", &Details::PublisherWith<T>)
       .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
   }
 
@@ -62,8 +78,6 @@ namespace Details {
     boost::python::class_<SnapshotPublisher<T, SnapshotType>,
       boost::noncopyable, boost::python::bases<Publisher<T>,
       BaseSnapshotPublisher>>(name, boost::python::no_init)
-
-      // TODO: Blocking function.
       .def("get_snapshot", &Details::GetSnapshot<T, SnapshotType>);
   }
 

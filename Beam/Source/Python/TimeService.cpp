@@ -39,7 +39,7 @@ namespace {
         timeService.GetProperties().At("addresses")));
       timeClient = MakeLiveNtpTimeClient(ntpPool, Ref(*GetSocketThreadPool()),
         Ref(*GetTimerThreadPool()));
-    } catch(const  std::exception&) {
+    } catch(const std::exception&) {
       BOOST_THROW_EXCEPTION(ConnectException(
         "Unable to initialize NTP time client."));
     }
@@ -57,8 +57,8 @@ void Beam::Python::ExportFixedTimeClient() {
     .def(init<const ptime&>())
     .def("set_time", &FixedTimeClient::SetTime)
     .def("get_time", &FixedTimeClient::GetTime)
-    .def("open", &FixedTimeClient::Open)
-    .def("close", &FixedTimeClient::Close);
+    .def("open", BlockingFunction(&FixedTimeClient::Open))
+    .def("close", BlockingFunction(&FixedTimeClient::Close));
 }
 
 void Beam::Python::ExportIncrementalTimeClient() {
@@ -66,15 +66,15 @@ void Beam::Python::ExportIncrementalTimeClient() {
       init<>())
     .def(init<const ptime&, const time_duration&>())
     .def("get_time", &IncrementalTimeClient::GetTime)
-    .def("open", &IncrementalTimeClient::Open)
-    .def("close", &IncrementalTimeClient::Close);
+    .def("open", BlockingFunction(&IncrementalTimeClient::Open))
+    .def("close", BlockingFunction(&IncrementalTimeClient::Close));
 }
 
 void Beam::Python::ExportLocalTimeClient() {
   class_<LocalTimeClient, boost::noncopyable>("LocalTimeClient", init<>())
     .def("get_time", &LocalTimeClient::GetTime)
-    .def("open", &LocalTimeClient::Open)
-    .def("close", &LocalTimeClient::Close);
+    .def("open", BlockingFunction(&LocalTimeClient::Open))
+    .def("close", BlockingFunction(&LocalTimeClient::Close));
 }
 
 void Beam::Python::ExportNtpTimeClient() {

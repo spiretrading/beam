@@ -50,8 +50,10 @@ namespace Details {
       boost::python::bases<BasePublisher>>(name, boost::python::no_init)
       .def("lock", BlockingFunction(&Publisher<T>::Lock))
       .def("unlock", BlockingFunction(&Publisher<T>::Unlock))
+
+      // TODO: Blocking function.
       .def("with", &Publisher<T>::With)
-      .def("monitor", &Details::PublisherMonitor<T>);
+      .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
   }
 
   //! Exports a SnapshotPublisher class.
@@ -60,6 +62,8 @@ namespace Details {
     boost::python::class_<SnapshotPublisher<T, SnapshotType>,
       boost::noncopyable, boost::python::bases<Publisher<T>,
       BaseSnapshotPublisher>>(name, boost::python::no_init)
+
+      // TODO: Blocking function.
       .def("get_snapshot", &Details::GetSnapshot<T, SnapshotType>);
   }
 

@@ -1,7 +1,6 @@
 #ifndef BEAM_LIVETIMER_HPP
 #define BEAM_LIVETIMER_HPP
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/logic/tribool.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Pointers/Ref.hpp"

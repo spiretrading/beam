@@ -19,7 +19,9 @@ namespace Threading {
   struct Timer;
   class TimerThreadPool;
   class TriggerTimer;
+  class VirtualTimer;
   class Waitable;
+  template<typename TimerType> class WrapperTimer;
 }
 }
 

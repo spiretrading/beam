@@ -11,6 +11,7 @@
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Pointers/ClonePtr.hpp"
 #include "Beam/Queues/Publisher.hpp"
+#include <Beam/Queues/Queue.hpp>
 #include "Beam/Tasks/Tasks.hpp"
 #include "Beam/Utilities/NotSupportedException.hpp"
 
@@ -209,20 +210,38 @@ namespace Details {
       state == Task::State::COMPLETE;
   }
 
+  //! Blocks until a Task enters a terminal state.
+  /*!
+    \param task The Task to wait for.
+  */
+  inline void Wait(const Task& task) {
+    auto queue = std::make_shared<Queue<Task::StateEntry>>();
+    task.GetPublisher().Monitor(queue);
+    try {
+      while(true) {
+        auto entry = queue->Top();
+        queue->Pop();
+        if(IsTerminal(entry.m_state)) {
+          break;
+        }
+      }
+    } catch(const std::exception&) {}
+  }
+
   inline Task::StateEntry::StateEntry(State state)
-      : m_state(state) {}
+      : m_state{state} {}
 
   inline Task::StateEntry::StateEntry(State state,
       const std::string& message)
-      : m_state(state),
-        m_message(message) {}
+      : m_state{state},
+        m_message{message} {}
 
   inline long long Task::GetId() const {
     return m_id;
   }
 
   inline Task::Task()
-      : m_id(++Details::TaskDetails<void>::m_nextId) {}
+      : m_id{++Details::TaskDetails<void>::m_nextId} {}
 
   inline const boost::any& VirtualTaskFactory::FindProperty(
       const std::string& name) const {
@@ -230,12 +249,12 @@ namespace Details {
   }
 
   inline void VirtualTaskFactory::PrepareContinuation(const Task& task) {
-    BOOST_THROW_EXCEPTION(NotSupportedException("Task::PrepareContinuation"));
+    BOOST_THROW_EXCEPTION(NotSupportedException{"Task::PrepareContinuation"});
   }
 
   template<typename T>
   void VirtualTaskFactory::Set(const std::string& name, const T& value) {
-    boost::any& property = FindProperty(name);
+    auto& property = FindProperty(name);
     *boost::any_cast<T>(&property) = value;
   }
 

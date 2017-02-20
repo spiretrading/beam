@@ -9,6 +9,7 @@
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
+#include "Beam/Python/Tasks.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"
 #include "Beam/Python/UidService.hpp"
@@ -49,6 +50,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportQueues();
   ExportRoutines();
   ExportServiceLocator();
+  ExportTasks();
   ExportThreading();
   ExportTimeService();
   ExportUidService();

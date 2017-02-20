@@ -19,11 +19,11 @@ namespace Tasks {
    */
   class BasicTask : public Task {
     public:
-      virtual void Execute();
+      virtual void Execute() final;
 
-      virtual void Cancel();
+      virtual void Cancel() final;
 
-      virtual const Publisher<StateEntry>& GetPublisher() const;
+      virtual const Publisher<StateEntry>& GetPublisher() const final;
 
     protected:
 
@@ -44,6 +44,9 @@ namespace Tasks {
         \param message The message describing the change in State.
       */
       void SetActive(const std::string& message);
+
+      //! Sets the State of this Task to COMPLETE.
+      void SetTerminal();
 
       //! Sets the State of this Task to some terminal state.
       /*!
@@ -86,8 +89,6 @@ namespace Tasks {
       RoutineTaskQueue m_taskQueue;
 
       void SetState(State state, const std::string& message);
-      void HandleExecute();
-      void HandleCancel();
       void OnTaskUpdate(std::size_t entryIndex, const StateEntry& update);
   };
 
@@ -174,6 +175,10 @@ namespace Tasks {
         assert(m_state == State::INITIALIZING);
         SetState(State::ACTIVE, message);
       });
+  }
+
+  inline void BasicTask::SetTerminal() {
+    SetTerminal(State::COMPLETE);
   }
 
   inline void BasicTask::SetTerminal(const StateEntry& state) {

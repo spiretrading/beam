@@ -1,4 +1,5 @@
 #include "Beam/Python/Tasks.hpp"
+#include <boost/python/suite/indexing/indexing_suite.hpp>
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Task.hpp"
 #include "Beam/Python/BoostPython.hpp"
@@ -14,6 +15,14 @@ using namespace Beam::Tasks;
 using namespace boost;
 using namespace boost::python;
 using namespace std;
+
+namespace Beam {
+namespace Tasks {
+  bool operator ==(const TaskFactory& lhs, const TaskFactory& rhs) {
+    return &*lhs == &*rhs;
+  }
+}
+}
 
 namespace {
   struct TaskWrapper : Task, wrapper<Task> {
@@ -101,6 +110,10 @@ namespace {
       PythonTaskFactory::DefineProperty(name, value);
     }
   };
+
+  TaskFactory MakeCloneableTaskFactory(const VirtualTaskFactory& factory) {
+    return TaskFactory{factory};
+  }
 }
 
 void Beam::Python::ExportBasicTask() {
@@ -166,6 +179,10 @@ void Beam::Python::ExportTaskFactory() {
     .def("get", &PythonTaskFactory::Get)
     .def("set", &PythonTaskFactory::Set)
     .def("define_property", &PythonTaskFactoryWrapper::DefineProperty);
+  class_<TaskFactory>("CloneableTaskFactory", no_init)
+    .def("__init__", &MakeCloneableTaskFactory);
+  class_<vector<TaskFactory>>("TaskFactoryVector")
+    .def(vector_indexing_suite<vector<TaskFactory>>());
 }
 
 void Beam::Python::ExportTasks() {

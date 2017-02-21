@@ -11,6 +11,9 @@ namespace Python {
   //! Exports the Task class.
   void ExportTask();
 
+  //! Exports the TaskFactory class.
+  void ExportTaskFactory();
+
   //! Exports the Tasks namespace.
   void ExportTasks();
 }

@@ -5,6 +5,7 @@
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/PythonTaskFactory.hpp"
 #include "Beam/Python/Queues.hpp"
 
 using namespace Beam;
@@ -71,6 +72,35 @@ namespace {
       BasicTask::Manage(task);
     }
   };
+
+  struct PythonTaskFactoryWrapper : PythonTaskFactory,
+      wrapper<PythonTaskFactory>, CloneableMixin<PythonTaskFactoryWrapper> {
+    virtual std::shared_ptr<Task> Create() override {
+      return this->get_override("create")();
+    }
+
+    boost::python::object FindPythonProperty(const std::string& name) {
+      auto& property = PythonTaskFactory::FindProperty(name);
+      return *any_cast<boost::python::object>(&property);
+    }
+
+    virtual void PrepareContinuation(const Task& task) override {
+      if(auto f = this->get_override("prepare_continuation")) {
+        f();
+        return;
+      }
+      PythonTaskFactory::PrepareContinuation(task);
+    }
+
+    void DefaultPrepareContinuation(const Task& task) {
+      this->PythonTaskFactory::PrepareContinuation(task);
+    }
+
+    void DefineProperty(const string& name,
+        const boost::python::object& value) {
+      PythonTaskFactory::DefineProperty(name, value);
+    }
+  };
 }
 
 void Beam::Python::ExportBasicTask() {
@@ -127,6 +157,17 @@ void Beam::Python::ExportTask() {
   }
 }
 
+void Beam::Python::ExportTaskFactory() {
+  class_<PythonTaskFactoryWrapper, boost::noncopyable>("TaskFactory")
+    .def("create", pure_virtual(&PythonTaskFactory::Create))
+    .def("find_property", &PythonTaskFactoryWrapper::FindPythonProperty)
+    .def("prepare_continuation", &PythonTaskFactory::PrepareContinuation,
+      &PythonTaskFactoryWrapper::DefaultPrepareContinuation)
+    .def("get", &PythonTaskFactory::Get)
+    .def("set", &PythonTaskFactory::Set)
+    .def("define_property", &PythonTaskFactoryWrapper::DefineProperty);
+}
+
 void Beam::Python::ExportTasks() {
   string nestedName = extract<string>(scope().attr("__name__") + ".tasks");
   object nestedModule{handle<>(
@@ -134,6 +175,7 @@ void Beam::Python::ExportTasks() {
   scope().attr("tasks") = nestedModule;
   scope parent = nestedModule;
   ExportTask();
+  ExportTaskFactory();
   ExportBasicTask();
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));

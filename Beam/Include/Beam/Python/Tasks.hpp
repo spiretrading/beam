@@ -5,6 +5,9 @@
 namespace Beam {
 namespace Python {
 
+  //! Exports the AggregateTask class.
+  void ExportAggregateTask();
+
   //! Exports the BasicTask class.
   void ExportBasicTask();
 

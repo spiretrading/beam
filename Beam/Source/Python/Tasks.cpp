@@ -1,5 +1,6 @@
 #include "Beam/Python/Tasks.hpp"
 #include <boost/python/suite/indexing/indexing_suite.hpp>
+#include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Task.hpp"
 #include "Beam/Python/BoostPython.hpp"
@@ -116,6 +117,15 @@ namespace {
   }
 }
 
+void Beam::Python::ExportAggregateTask() {
+  class_<AggregateTask, std::shared_ptr<AggregateTask>,
+    boost::noncopyable, bases<Task>>("AggregateTask",
+    init<const vector<TaskFactory>&>());
+  class_<AggregateTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
+    "AggregateTaskFactory", init<const vector<TaskFactory>&>());
+  implicitly_convertible<AggregateTaskFactory, TaskFactory>();
+}
+
 void Beam::Python::ExportBasicTask() {
   class_<BasicTaskWrapper, std::shared_ptr<BasicTaskWrapper>,
     boost::noncopyable, bases<Task>>("BasicTask")
@@ -171,8 +181,10 @@ void Beam::Python::ExportTask() {
 }
 
 void Beam::Python::ExportTaskFactory() {
-  class_<PythonTaskFactoryWrapper, boost::noncopyable>("TaskFactory")
-    .def("create", pure_virtual(&PythonTaskFactory::Create))
+  class_<VirtualTaskFactory, boost::noncopyable>("VirtualTaskFactory", no_init)
+    .def("create", pure_virtual(&VirtualTaskFactory::Create));
+  class_<PythonTaskFactoryWrapper, boost::noncopyable,
+    bases<VirtualTaskFactory>>("TaskFactory")
     .def("find_property", &PythonTaskFactoryWrapper::FindPythonProperty)
     .def("prepare_continuation", &PythonTaskFactory::PrepareContinuation,
       &PythonTaskFactoryWrapper::DefaultPrepareContinuation)
@@ -183,6 +195,7 @@ void Beam::Python::ExportTaskFactory() {
     .def("__init__", &MakeCloneableTaskFactory);
   class_<vector<TaskFactory>>("TaskFactoryVector")
     .def(vector_indexing_suite<vector<TaskFactory>>());
+  implicitly_convertible<PythonTaskFactoryWrapper, TaskFactory>();
 }
 
 void Beam::Python::ExportTasks() {
@@ -194,6 +207,7 @@ void Beam::Python::ExportTasks() {
   ExportTask();
   ExportTaskFactory();
   ExportBasicTask();
+  ExportAggregateTask();
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));
 }

@@ -12,18 +12,8 @@ namespace Python {
   /*! \class PythonTaskFactory
       \brief Implements a TaskFactory for use within Python.
    */
-  class PythonTaskFactory : public Tasks::VirtualTaskFactory,
-      public CloneableMixin<PythonTaskFactory> {
+  class PythonTaskFactory : public Tasks::VirtualTaskFactory {
     public:
-
-      //! Copies a PythonTaskFactory.
-      PythonTaskFactory(const PythonTaskFactory& factory) = default;
-
-      virtual std::shared_ptr<Tasks::Task> Create() override {
-        return nullptr;
-      }
-
-      virtual boost::any& FindProperty(const std::string& name) override final;
 
       //! Returns a property value.
       /*!
@@ -39,10 +29,15 @@ namespace Python {
       */
       void Set(const std::string& name, const boost::python::object& value);
 
+      virtual boost::any& FindProperty(const std::string& name) override final;
+
     protected:
 
       //! Constructs a PythonTaskFactory.
       PythonTaskFactory() = default;
+
+      //! Copies a PythonTaskFactory.
+      PythonTaskFactory(const PythonTaskFactory& factory) = default;
 
       //! Adds a property to this factory.
       /*!
@@ -56,14 +51,6 @@ namespace Python {
       std::unordered_map<std::string, boost::any> m_properties;
   };
 
-  inline boost::any& PythonTaskFactory::FindProperty(const std::string& name) {
-    auto propertyIterator = m_properties.find(name);
-    if(propertyIterator == m_properties.end()) {
-      BOOST_THROW_EXCEPTION(Tasks::TaskPropertyNotFoundException{name});
-    }
-    return propertyIterator->second;
-  }
-
   inline boost::python::object PythonTaskFactory::Get(
       const std::string& name) const {
     return VirtualTaskFactory::Get<boost::python::object>(name);
@@ -72,6 +59,14 @@ namespace Python {
   inline void PythonTaskFactory::Set(const std::string& name,
       const boost::python::object& value) {
     VirtualTaskFactory::Set(name, value);
+  }
+
+  inline boost::any& PythonTaskFactory::FindProperty(const std::string& name) {
+    auto propertyIterator = m_properties.find(name);
+    if(propertyIterator == m_properties.end()) {
+      BOOST_THROW_EXCEPTION(Tasks::TaskPropertyNotFoundException{name});
+    }
+    return propertyIterator->second;
   }
 
   inline void PythonTaskFactory::DefineProperty(const std::string& name,

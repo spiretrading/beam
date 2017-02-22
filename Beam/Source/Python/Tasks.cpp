@@ -84,9 +84,11 @@ namespace {
 
   struct PythonTaskFactoryWrapper : PythonTaskFactory,
       wrapper<PythonTaskFactory> {
-
-    virtual void* Clone() const {
-      return new PythonTaskFactoryWrapper{*this};
+    virtual void* Clone() const override {
+      auto wrapper = new PythonTaskFactoryWrapper{*this};
+      auto pyObject = boost::python::detail::wrapper_base_::get_owner(*wrapper);
+      Py_IncRef(pyObject);
+      return wrapper;
     }
 
     virtual std::shared_ptr<Task> Create() override {
@@ -145,7 +147,11 @@ void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
     boost::noncopyable, bases<BasicTask>>("AggregateTask",
     init<const vector<TaskFactory>&>())
-    .def("__init__", make_constructor(&MakeAggregateTask));
+    .def("__init__", make_constructor(&MakeAggregateTask))
+    .def("execute", &AggregateTask::Execute)
+    .def("cancel", &AggregateTask::Cancel)
+    .def("get_publisher", &AggregateTask::GetPublisher,
+      return_value_policy<reference_existing_object>());
   class_<AggregateTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
     "AggregateTaskFactory", init<const vector<TaskFactory>&>())
     .def("__init__", make_constructor(&MakeAggregateTaskFactory))
@@ -219,6 +225,7 @@ void Beam::Python::ExportTaskFactory() {
     .def("create", pure_virtual(&VirtualTaskFactory::Create));
   class_<PythonTaskFactoryWrapper, boost::noncopyable,
     bases<VirtualTaskFactory>>("TaskFactory")
+    .enable_pickling()
     .def("find_property", &PythonTaskFactoryWrapper::FindPythonProperty)
     .def("prepare_continuation", &PythonTaskFactory::PrepareContinuation,
       &PythonTaskFactoryWrapper::DefaultPrepareContinuation)

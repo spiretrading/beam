@@ -84,6 +84,11 @@ namespace {
 
   struct PythonTaskFactoryWrapper : PythonTaskFactory,
       wrapper<PythonTaskFactory> {
+
+    virtual void* Clone() const {
+      return new PythonTaskFactoryWrapper{*this};
+    }
+
     virtual std::shared_ptr<Task> Create() override {
       return this->get_override("create")();
     }

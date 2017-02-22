@@ -12,8 +12,17 @@ namespace Python {
   /*! \class PythonTaskFactory
       \brief Implements a TaskFactory for use within Python.
    */
-  class PythonTaskFactory : public Tasks::VirtualTaskFactory {
+  class PythonTaskFactory : public Tasks::VirtualTaskFactory,
+      public CloneableMixin<PythonTaskFactory> {
     public:
+
+      //! Copies a PythonTaskFactory.
+      PythonTaskFactory(const PythonTaskFactory& factory) = default;
+
+      virtual std::shared_ptr<Tasks::Task> Create() override {
+        return nullptr;
+      }
+
       virtual boost::any& FindProperty(const std::string& name) override final;
 
       //! Returns a property value.
@@ -34,9 +43,6 @@ namespace Python {
 
       //! Constructs a PythonTaskFactory.
       PythonTaskFactory() = default;
-
-      //! Copies a PythonTaskFactory.
-      PythonTaskFactory(const PythonTaskFactory& factory) = default;
 
       //! Adds a property to this factory.
       /*!

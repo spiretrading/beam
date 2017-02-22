@@ -1,5 +1,8 @@
 #include "Beam/Python/Tasks.hpp"
+#include <boost/function_types/components.hpp>
+#include <boost/function_types/result_type.hpp>
 #include <boost/python/suite/indexing/indexing_suite.hpp>
+#include <boost/mpl/insert.hpp>
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Task.hpp"
@@ -43,14 +46,10 @@ namespace {
 
   struct BasicTaskWrapper : BasicTask, wrapper<BasicTask> {
     virtual void OnExecute() override {
-      GilLock gil;
-      boost::lock_guard<GilLock> lock{gil};
       this->get_override("on_execute")();
     }
 
     virtual void OnCancel() override {
-      GilLock gil;
-      boost::lock_guard<GilLock> lock{gil};
       this->get_override("on_cancel")();
     }
 
@@ -84,7 +83,7 @@ namespace {
   };
 
   struct PythonTaskFactoryWrapper : PythonTaskFactory,
-      wrapper<PythonTaskFactory>, CloneableMixin<PythonTaskFactoryWrapper> {
+      wrapper<PythonTaskFactory> {
     virtual std::shared_ptr<Task> Create() override {
       return this->get_override("create")();
     }
@@ -115,24 +114,48 @@ namespace {
   TaskFactory MakeCloneableTaskFactory(const VirtualTaskFactory& factory) {
     return TaskFactory{factory};
   }
+
+  std::shared_ptr<AggregateTask> MakeAggregateTask(
+      const boost::python::list& tasks) {
+    vector<TaskFactory> virtualTasks;
+    for(int i = 0; i < boost::python::len(tasks); ++i) {
+      virtualTasks.push_back(
+        *boost::python::extract<VirtualTaskFactory*>(tasks[i]));
+    }
+    return std::make_shared<AggregateTask>(std::move(virtualTasks));
+  }
+
+  AggregateTaskFactory* MakeAggregateTaskFactory(
+      const boost::python::list& tasks) {
+    vector<TaskFactory> virtualTasks;
+    for(int i = 0; i < boost::python::len(tasks); ++i) {
+      virtualTasks.push_back(
+        *boost::python::extract<VirtualTaskFactory*>(tasks[i]));
+    }
+    return new AggregateTaskFactory{std::move(virtualTasks)};
+  }
 }
 
 void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
-    boost::noncopyable, bases<Task>>("AggregateTask",
-    init<const vector<TaskFactory>&>());
+    boost::noncopyable, bases<BasicTask>>("AggregateTask",
+    init<const vector<TaskFactory>&>())
+    .def("__init__", make_constructor(&MakeAggregateTask));
   class_<AggregateTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
-    "AggregateTaskFactory", init<const vector<TaskFactory>&>());
+    "AggregateTaskFactory", init<const vector<TaskFactory>&>())
+    .def("__init__", make_constructor(&MakeAggregateTaskFactory))
+    .def("create", &AggregateTaskFactory::Create)
+    .def("prepare_continuation", &AggregateTaskFactory::PrepareContinuation);
   implicitly_convertible<AggregateTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<AggregateTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<AggregateTask>,
+    std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportBasicTask() {
   class_<BasicTaskWrapper, std::shared_ptr<BasicTaskWrapper>,
     boost::noncopyable, bases<Task>>("BasicTask")
-    .def("execute", BlockingFunction(&BasicTaskWrapper::Execute))
-    .def("cancel", BlockingFunction(&BasicTaskWrapper::Cancel))
-    .def("get_publisher", &BasicTaskWrapper::GetPublisher,
-      return_value_policy<reference_existing_object>())
     .def("on_execute", pure_virtual(&BasicTaskWrapper::OnExecute))
     .def("on_cancel", pure_virtual(&BasicTaskWrapper::OnCancel))
     .def("set_active",
@@ -152,6 +175,10 @@ void Beam::Python::ExportBasicTask() {
       static_cast<void (BasicTaskWrapper::*)(Task::State, const string&)>(
       &BasicTaskWrapper::SetTerminal))
     .def("manage", &BasicTaskWrapper::Manage);
+  register_ptr_to_python<std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<BasicTaskWrapper>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<BasicTask>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTask() {
@@ -178,6 +205,8 @@ void Beam::Python::ExportTask() {
       .def_readwrite("state", &Task::StateEntry::m_state)
       .def_readwrite("message", &Task::StateEntry::m_message);
   }
+  register_ptr_to_python<std::shared_ptr<Task>>();
+  implicitly_convertible<std::shared_ptr<TaskWrapper>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTaskFactory() {
@@ -195,6 +224,7 @@ void Beam::Python::ExportTaskFactory() {
     .def("__init__", &MakeCloneableTaskFactory);
   class_<vector<TaskFactory>>("TaskFactoryVector")
     .def(vector_indexing_suite<vector<TaskFactory>>());
+  implicitly_convertible<VirtualTaskFactory, TaskFactory>();
   implicitly_convertible<PythonTaskFactoryWrapper, TaskFactory>();
 }
 

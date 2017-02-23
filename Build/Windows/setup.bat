@@ -116,10 +116,10 @@ cd ..
 rm openssl-1.0.2g.tar.gz
 :end_openssl_setup
 
-if exist boost_1_61_0 goto end_boost_setup
-wget --no-check-certificate https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.zip/download -O boost_1_61_0.zip
-unzip boost_1_61_0.zip
-cd boost_1_61_0
+if exist boost_1_63_0 goto end_boost_setup
+wget --no-check-certificate https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.zip/download -O boost_1_63_0.zip
+unzip boost_1_63_0.zip
+cd boost_1_63_0
 CALL bootstrap.bat
 if "%NUMBER_OF_PROCESSORS%" == "" (
   SET BJAM_PROCESSORS=
@@ -129,7 +129,7 @@ if "%NUMBER_OF_PROCESSORS%" == "" (
 b2 %BJAM_PROCESSORS% --toolset=msvc-14.0 --build-type=complete --stagedir=stage link=static,shared runtime-link=shared stage
 b2 %BJAM_PROCESSORS% --toolset=msvc-14.0 --build-type=complete --with-python --stagedir=stage link=static,shared runtime-link=shared stage
 cd ..
-rm boost_1_61_0.zip
+rm boost_1_63_0.zip
 :end_boost_setup
 
 if exist lua-5.3.1 goto end_lua_setup

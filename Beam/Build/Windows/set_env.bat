@@ -1,9 +1,9 @@
 SET BEAM_INCLUDE_PATH=%~dp0../../Include
 SET BEAM_PYTHON_LIBRARY_DEBUG_PATH=%~dp0../../Library/Debug/beam.lib
 SET BEAM_PYTHON_LIBRARY_OPTIMIZED_PATH=%~dp0../../Library/Release/beam.lib
-SET BOOST_INCLUDE_PATH=C:/Development/Libraries/boost_1_61_0
-SET BOOST_DEBUG_PATH=C:/Development/Libraries/boost_1_61_0/stage/lib
-SET BOOST_OPTIMIZED_PATH=C:/Development/Libraries/boost_1_61_0/stage/lib
+SET BOOST_INCLUDE_PATH=C:/Development/Libraries/boost_1_63_0
+SET BOOST_DEBUG_PATH=C:/Development/Libraries/boost_1_63_0/stage/lib
+SET BOOST_OPTIMIZED_PATH=C:/Development/Libraries/boost_1_63_0/stage/lib
 SET CPPUNIT_INCLUDE_PATH=C:/Development/Libraries/cppunit-1.12.1/include
 SET CPPUNIT_LIBRARY_DEBUG_PATH=C:/Development/Libraries/cppunit-1.12.1/lib/cppunitd.lib
 SET CPPUNIT_LIBRARY_OPTIMIZED_PATH=C:/Development/Libraries/cppunit-1.12.1/lib/cppunit.lib

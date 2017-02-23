@@ -92,7 +92,8 @@ namespace {
     }
 
     virtual std::shared_ptr<Task> Create() override {
-      return this->get_override("create")();
+      return extract<std::shared_ptr<Task>>(
+        boost::python::object{this->get_override("create")()});
     }
 
     boost::python::object FindPythonProperty(const std::string& name) {
@@ -158,15 +159,13 @@ void Beam::Python::ExportAggregateTask() {
     .def("create", &AggregateTaskFactory::Create)
     .def("prepare_continuation", &AggregateTaskFactory::PrepareContinuation);
   implicitly_convertible<AggregateTaskFactory, TaskFactory>();
-  implicitly_convertible<std::shared_ptr<AggregateTask>,
-    std::shared_ptr<BasicTask>>();
-  implicitly_convertible<std::shared_ptr<AggregateTask>,
-    std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportBasicTask() {
   class_<BasicTaskWrapper, std::shared_ptr<BasicTaskWrapper>,
     boost::noncopyable, bases<Task>>("BasicTask")
+    .def("execute", &BasicTask::Execute)
+    .def("cancel", &BasicTask::Cancel)
     .def("on_execute", pure_virtual(&BasicTaskWrapper::OnExecute))
     .def("on_cancel", pure_virtual(&BasicTaskWrapper::OnCancel))
     .def("set_active",
@@ -186,10 +185,6 @@ void Beam::Python::ExportBasicTask() {
       static_cast<void (BasicTaskWrapper::*)(Task::State, const string&)>(
       &BasicTaskWrapper::SetTerminal))
     .def("manage", &BasicTaskWrapper::Manage);
-  register_ptr_to_python<std::shared_ptr<BasicTask>>();
-  implicitly_convertible<std::shared_ptr<BasicTaskWrapper>,
-    std::shared_ptr<BasicTask>>();
-  implicitly_convertible<std::shared_ptr<BasicTask>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTask() {
@@ -216,8 +211,6 @@ void Beam::Python::ExportTask() {
       .def_readwrite("state", &Task::StateEntry::m_state)
       .def_readwrite("message", &Task::StateEntry::m_message);
   }
-  register_ptr_to_python<std::shared_ptr<Task>>();
-  implicitly_convertible<std::shared_ptr<TaskWrapper>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTaskFactory() {
@@ -225,7 +218,6 @@ void Beam::Python::ExportTaskFactory() {
     .def("create", pure_virtual(&VirtualTaskFactory::Create));
   class_<PythonTaskFactoryWrapper, boost::noncopyable,
     bases<VirtualTaskFactory>>("TaskFactory")
-    .enable_pickling()
     .def("find_property", &PythonTaskFactoryWrapper::FindPythonProperty)
     .def("prepare_continuation", &PythonTaskFactory::PrepareContinuation,
       &PythonTaskFactoryWrapper::DefaultPrepareContinuation)

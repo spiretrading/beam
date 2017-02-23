@@ -159,6 +159,10 @@ void Beam::Python::ExportAggregateTask() {
     .def("create", &AggregateTaskFactory::Create)
     .def("prepare_continuation", &AggregateTaskFactory::PrepareContinuation);
   implicitly_convertible<AggregateTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<AggregateTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<AggregateTask>,
+    std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportBasicTask() {
@@ -185,6 +189,10 @@ void Beam::Python::ExportBasicTask() {
       static_cast<void (BasicTaskWrapper::*)(Task::State, const string&)>(
       &BasicTaskWrapper::SetTerminal))
     .def("manage", &BasicTaskWrapper::Manage);
+  register_ptr_to_python<std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<BasicTaskWrapper>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<BasicTask>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTask() {
@@ -211,6 +219,8 @@ void Beam::Python::ExportTask() {
       .def_readwrite("state", &Task::StateEntry::m_state)
       .def_readwrite("message", &Task::StateEntry::m_message);
   }
+  register_ptr_to_python<std::shared_ptr<Task>>();
+  implicitly_convertible<std::shared_ptr<TaskWrapper>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTaskFactory() {

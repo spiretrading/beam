@@ -44,17 +44,25 @@ namespace {
   VirtualTimer* BuildTriggerTimer() {
     return new WrapperTimer<TriggerTimer>{Initialize()};
   }
+
+  void WrapperTimerTrigger(WrapperTimer<TriggerTimer>& timer) {
+    timer.GetTimer().Trigger();
+  }
+
+  void WrapperTimerFail(WrapperTimer<TriggerTimer>& timer) {
+    timer.GetTimer().Fail();
+  }
 }
 
 void Beam::Python::ExportLiveTimer() {
   class_<WrapperTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "LiveTimer", no_init)
     .def("__init__", make_constructor(&BuildLiveTimer))
-    .def("start", BlockingFunction(&LiveTimer::Start))
-    .def("cancel", BlockingFunction(&LiveTimer::Cancel))
-    .def("wait", BlockingFunction(&LiveTimer::Wait))
-    .def("get_publisher", &LiveTimer::GetPublisher,
-      return_value_policy<reference_existing_object>());
+    .def("start", BlockingFunction(&WrapperTimer<LiveTimer>::Start))
+    .def("cancel", BlockingFunction(&WrapperTimer<LiveTimer>::Cancel))
+    .def("wait", BlockingFunction(&WrapperTimer<LiveTimer>::Wait))
+    .def("get_publisher", &WrapperTimer<LiveTimer>::GetPublisher,
+      return_internal_reference<>());
 }
 
 void Beam::Python::ExportThreading() {
@@ -76,7 +84,7 @@ void Beam::Python::ExportTimer() {
       .def("cancel", pure_virtual(&VirtualTimer::Cancel))
       .def("wait", pure_virtual(&VirtualTimer::Wait))
       .def("get_publisher", pure_virtual(&VirtualTimer::GetPublisher),
-        return_value_policy<reference_existing_object>());
+        return_internal_reference<>());
     enum_<Timer::Result::Type>("Result")
       .value("NONE", Timer::Result::NONE)
       .value("EXPIRED", Timer::Result::EXPIRED)
@@ -91,11 +99,11 @@ void Beam::Python::ExportTriggerTimer() {
   class_<WrapperTimer<TriggerTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "TriggerTimer", no_init)
     .def("__init__", make_constructor(&BuildTriggerTimer))
-    .def("trigger", BlockingFunction(&TriggerTimer::Trigger))
-    .def("fail", BlockingFunction(&TriggerTimer::Fail))
-    .def("start", BlockingFunction(&TriggerTimer::Start))
-    .def("cancel", BlockingFunction(&TriggerTimer::Cancel))
-    .def("wait", BlockingFunction(&TriggerTimer::Wait))
+    .def("trigger", BlockingFunction(&WrapperTimerTrigger))
+    .def("fail", BlockingFunction(&WrapperTimerFail))
+    .def("start", BlockingFunction(&WrapperTimer<TriggerTimer>::Start))
+    .def("cancel", BlockingFunction(&WrapperTimer<TriggerTimer>::Cancel))
+    .def("wait", BlockingFunction(&WrapperTimer<TriggerTimer>::Wait))
     .def("get_publisher", &TriggerTimer::GetPublisher,
-      return_value_policy<reference_existing_object>());
+      return_internal_reference<>());
 }

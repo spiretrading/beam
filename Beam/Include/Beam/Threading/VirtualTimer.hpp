@@ -47,6 +47,12 @@ namespace Threading {
       template<typename TimerForward>
       WrapperTimer(TimerForward&& timer);
 
+      //! Returns the Timer being wrapped.
+      const Timer& GetTimer() const;
+
+      //! Returns the Timer being wrapped.
+      Timer& GetTimer();
+
       virtual void Start() override;
 
       virtual void Cancel() override;
@@ -73,6 +79,17 @@ namespace Threading {
   template<typename TimerForward>
   WrapperTimer<TimerType>::WrapperTimer(TimerForward&& timer)
       : m_timer{std::forward<TimerForward>(timer)} {}
+
+  template<typename TimerType>
+  const typename WrapperTimer<TimerType>::Timer&
+      WrapperTimer<TimerType>::GetTimer() const {
+    return *m_timer;
+  }
+
+  template<typename TimerType>
+  typename WrapperTimer<TimerType>::Timer& WrapperTimer<TimerType>::GetTimer() {
+    return *m_timer;
+  }
 
   template<typename TimerType>
   void WrapperTimer<TimerType>::Start() {

@@ -247,7 +247,7 @@ void Beam::Python::ExportTask() {
       .def("execute", pure_virtual(&Task::Execute))
       .def("cancel", pure_virtual(&Task::Cancel))
       .def("get_publisher", pure_virtual(&Task::GetPublisher),
-        return_value_policy<reference_existing_object>());
+        return_internal_reference<>());
     enum_<Task::State::Type>("State")
       .value("NONE", Task::State::NONE)
       .value("INITIALIZING", Task::State::INITIALIZING)

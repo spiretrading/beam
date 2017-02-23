@@ -48,6 +48,12 @@ namespace TimeService {
       template<typename TimeClientForward>
       WrapperTimeClient(TimeClientForward&& client);
 
+      //! Returns the wrapped client.
+      const Client& GetClient() const;
+
+      //! Returns the wrapped client.
+      Client& GetClient();
+
       virtual boost::posix_time::ptime GetTime() override;
 
       virtual void Open() override;
@@ -73,6 +79,18 @@ namespace TimeService {
   template<typename TimeClientForward>
   WrapperTimeClient<ClientType>::WrapperTimeClient(TimeClientForward&& client)
       : m_client{std::forward<TimeClientForward>(client)} {}
+
+  template<typename ClientType>
+  const typename WrapperTimeClient<ClientType>::Client&
+      WrapperTimeClient<ClientType>::GetClient() const {
+    return *m_client;
+  }
+
+  template<typename ClientType>
+  typename WrapperTimeClient<ClientType>::Client&
+      WrapperTimeClient<ClientType>::GetClient() {
+    return *m_client;
+  }
 
   template<typename ClientType>
   boost::posix_time::ptime WrapperTimeClient<ClientType>::GetTime() {

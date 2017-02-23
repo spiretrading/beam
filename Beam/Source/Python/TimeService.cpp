@@ -86,6 +86,11 @@ namespace {
   VirtualTimeClient* BuildLocalTimeClient() {
     return new WrapperTimeClient<LocalTimeClient>{Initialize()};
   }
+
+  void WrapperFixedTimeClientSetTime(WrapperTimeClient<FixedTimeClient>& client,
+      ptime time) {
+    client.GetClient().SetTime(time);
+  }
 }
 
 void Beam::Python::ExportTzDatabase() {
@@ -99,10 +104,10 @@ void Beam::Python::ExportFixedTimeClient() {
       static_cast<VirtualTimeClient* (*)()>(&BuildFixedTimeClient)))
     .def("__init__", make_constructor(
       static_cast<VirtualTimeClient* (*)(ptime)>(&BuildFixedTimeClient)))
-    .def("set_time", &FixedTimeClient::SetTime)
-    .def("get_time", &FixedTimeClient::GetTime)
-    .def("open", BlockingFunction(&FixedTimeClient::Open))
-    .def("close", BlockingFunction(&FixedTimeClient::Close));
+    .def("set_time", &WrapperFixedTimeClientSetTime)
+    .def("get_time", &WrapperTimeClient<FixedTimeClient>::GetTime)
+    .def("open", BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Open))
+    .def("close", BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Close));
 }
 
 void Beam::Python::ExportIncrementalTimeClient() {
@@ -113,27 +118,32 @@ void Beam::Python::ExportIncrementalTimeClient() {
     .def("__init__", make_constructor(
       static_cast<VirtualTimeClient* (*)(ptime, time_duration)>(
       &BuildIncrementalTimeClient)))
-    .def("get_time", &IncrementalTimeClient::GetTime)
-    .def("open", BlockingFunction(&IncrementalTimeClient::Open))
-    .def("close", BlockingFunction(&IncrementalTimeClient::Close));
+    .def("get_time", &WrapperTimeClient<IncrementalTimeClient>::GetTime)
+    .def("open", BlockingFunction(
+      &WrapperTimeClient<IncrementalTimeClient>::Open))
+    .def("close", BlockingFunction(
+      &WrapperTimeClient<IncrementalTimeClient>::Close));
 }
 
 void Beam::Python::ExportLocalTimeClient() {
   class_<WrapperTimeClient<LocalTimeClient>, boost::noncopyable,
       bases<VirtualTimeClient>>("LocalTimeClient", no_init)
     .def("__init__", make_constructor(&BuildLocalTimeClient))
-    .def("get_time", &LocalTimeClient::GetTime)
-    .def("open", BlockingFunction(&LocalTimeClient::Open))
-    .def("close", BlockingFunction(&LocalTimeClient::Close));
+    .def("get_time", &WrapperTimeClient<LocalTimeClient>::GetTime)
+    .def("open", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Open))
+    .def("close", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Close));
 }
 
 void Beam::Python::ExportNtpTimeClient() {
   class_<WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>,
       boost::noncopyable, bases<VirtualTimeClient>>("NtpTimeClient", no_init)
     .def("__init__", make_constructor(&BuildNtpTimeClient))
-    .def("get_time", &LiveNtpTimeClient::GetTime)
-    .def("open", BlockingFunction(&LiveNtpTimeClient::Open))
-    .def("close", BlockingFunction(&LiveNtpTimeClient::Close));
+    .def("get_time",
+      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::GetTime)
+    .def("open", BlockingFunction(
+      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::Open))
+    .def("close", BlockingFunction(
+      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::Close));
 }
 
 void Beam::Python::ExportTimeClient() {

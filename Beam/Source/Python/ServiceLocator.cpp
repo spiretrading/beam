@@ -197,7 +197,7 @@ void Beam::Python::ExportServiceLocatorTestInstance() {
     .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
     .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
     .def("get_root", &ServiceLocatorTestInstance::GetRoot,
-      return_value_policy<reference_existing_object>())
+      return_internal_reference<>())
     .def("build_client",
       ReleaseUniquePtr(&ServiceLocatorTestInstance::BuildClient));
 }

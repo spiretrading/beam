@@ -92,8 +92,12 @@ namespace {
     }
 
     virtual std::shared_ptr<Task> Create() override {
-      return extract<std::shared_ptr<Task>>(
-        boost::python::object{this->get_override("create")()});
+      object result = this->get_override("create")();
+
+      // TODO: Memory leak here.
+      Py_IncRef(result.ptr());
+      std::shared_ptr<Task> task = extract<std::shared_ptr<Task>>(result);
+      return task;
     }
 
     boost::python::object FindPythonProperty(const std::string& name) {

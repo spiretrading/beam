@@ -132,15 +132,15 @@ if [ ! -d "openssl-1.0.2g" ]; then
     rm openssl-1.0.2g.tar.gz
   fi
 fi
-if [ ! -d "boost_1_61_0" ]; then
-  sudo -u $(logname) wget http://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz/download -O boost_1_61_0.tar.gz
-  if [ -f boost_1_61_0.tar.gz ]; then
-    sudo -u $(logname) tar xvf boost_1_61_0.tar.gz
-    cd boost_1_61_0
+if [ ! -d "boost_1_63_0" ]; then
+  sudo -u $(logname) wget http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz/download -O boost_1_63_0.tar.gz
+  if [ -f boost_1_63_0.tar.gz ]; then
+    sudo -u $(logname) tar xvf boost_1_63_0.tar.gz
+    cd boost_1_63_0
     sudo -u $(logname) ./bootstrap.sh
     ./bjam -j$cores cxxflags="-std=c++14 -fPIC" install
     cd ..
-    rm -f boost_1_61_0.tar.gz
+    rm -f boost_1_63_0.tar.gz
   fi
 fi
 if [ ! -d "lua-5.3.1" ]; then

@@ -5,6 +5,7 @@
 #include <boost/mpl/insert.hpp>
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
+#include "Beam/Tasks/IdleTask.hpp"
 #include "Beam/Tasks/Task.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
@@ -82,6 +83,36 @@ namespace {
     }
   };
 
+  struct PythonTask : Task {
+    PyObject* m_object;
+    std::shared_ptr<Task> m_task;
+
+    PythonTask(PyObject& o)
+        : m_object{&o} {
+      Py_IncRef(m_object);
+      Py_IncRef(m_object);
+      m_task = extract<std::shared_ptr<Task>>(object{handle<>(m_object)});
+    }
+
+    ~PythonTask() {
+      Py_DecRef(m_object);
+      Py_DecRef(m_object);
+      m_task.reset();
+    }
+
+    virtual void Execute() override {
+      m_task->Execute();
+    }
+
+    virtual void Cancel() override {
+      m_task->Cancel();
+    }
+
+    virtual const Publisher<StateEntry>& GetPublisher() const override {
+      return m_task->GetPublisher();
+    }
+  };
+
   struct PythonTaskFactoryWrapper : PythonTaskFactory,
       wrapper<PythonTaskFactory> {
     virtual void* Clone() const override {
@@ -93,11 +124,7 @@ namespace {
 
     virtual std::shared_ptr<Task> Create() override {
       object result = this->get_override("create")();
-
-      // TODO: Memory leak here.
-      Py_IncRef(result.ptr());
-      std::shared_ptr<Task> task = extract<std::shared_ptr<Task>>(result);
-      return task;
+      return std::make_shared<PythonTask>(*result.ptr());
     }
 
     boost::python::object FindPythonProperty(const std::string& name) {
@@ -152,11 +179,7 @@ void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
     boost::noncopyable, bases<BasicTask>>("AggregateTask",
     init<const vector<TaskFactory>&>())
-    .def("__init__", make_constructor(&MakeAggregateTask))
-    .def("execute", &AggregateTask::Execute)
-    .def("cancel", &AggregateTask::Cancel)
-    .def("get_publisher", &AggregateTask::GetPublisher,
-      return_value_policy<reference_existing_object>());
+    .def("__init__", make_constructor(&MakeAggregateTask));
   class_<AggregateTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
     "AggregateTaskFactory", init<const vector<TaskFactory>&>())
     .def("__init__", make_constructor(&MakeAggregateTaskFactory))
@@ -174,6 +197,8 @@ void Beam::Python::ExportBasicTask() {
     boost::noncopyable, bases<Task>>("BasicTask")
     .def("execute", &BasicTask::Execute)
     .def("cancel", &BasicTask::Cancel)
+    .def("get_publisher", &BasicTask::GetPublisher,
+      return_internal_reference<>())
     .def("on_execute", pure_virtual(&BasicTaskWrapper::OnExecute))
     .def("on_cancel", pure_virtual(&BasicTaskWrapper::OnCancel))
     .def("set_active",
@@ -196,7 +221,22 @@ void Beam::Python::ExportBasicTask() {
   register_ptr_to_python<std::shared_ptr<BasicTask>>();
   implicitly_convertible<std::shared_ptr<BasicTaskWrapper>,
     std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<BasicTaskWrapper>,
+    std::shared_ptr<Task>>();
   implicitly_convertible<std::shared_ptr<BasicTask>, std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportIdleTask() {
+  class_<IdleTask, std::shared_ptr<IdleTask>, boost::noncopyable,
+    bases<BasicTask>>("IdleTask", init<>());
+  class_<IdleTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
+    "IdleTaskFactory", init<>())
+    .def("create", &IdleTaskFactory::Create)
+    .def("prepare_continuation", &IdleTaskFactory::PrepareContinuation);
+  implicitly_convertible<IdleTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<IdleTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<IdleTask>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTask() {
@@ -256,6 +296,7 @@ void Beam::Python::ExportTasks() {
   ExportTaskFactory();
   ExportBasicTask();
   ExportAggregateTask();
+  ExportIdleTask();
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));
 }

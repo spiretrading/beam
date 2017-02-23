@@ -38,6 +38,12 @@ void Beam::Python::ExportAbstractQueue() {
   class_<AbstractQueue<object>, std::shared_ptr<AbstractQueue<object>>,
     noncopyable, bases<QueueWriter<object>, QueueReader<object>>>(
     "AbstractQueue", no_init);
+  implicitly_convertible<std::shared_ptr<AbstractQueue<object>>,
+    std::shared_ptr<QueueReader<object>>>();
+  implicitly_convertible<std::shared_ptr<AbstractQueue<object>>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<AbstractQueue<object>>,
+    std::shared_ptr<BaseQueue>>();
 }
 
 void Beam::Python::ExportBasePublisher() {
@@ -62,6 +68,16 @@ void Beam::Python::ExportPythonQueueWriter() {
 void Beam::Python::ExportQueue() {
   class_<PythonQueue, std::shared_ptr<PythonQueue>, noncopyable,
     bases<AbstractQueue<object>, PythonQueueWriter>>("Queue", init<>());
+  implicitly_convertible<std::shared_ptr<PythonQueue>,
+    std::shared_ptr<AbstractQueue<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonQueue>,
+    std::shared_ptr<QueueReader<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonQueue>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonQueue>,
+    std::shared_ptr<BaseQueue>>();
+  implicitly_convertible<std::shared_ptr<PythonQueue>,
+    std::shared_ptr<PythonQueueWriter>>();
 }
 
 void Beam::Python::ExportQueueReader() {
@@ -70,6 +86,8 @@ void Beam::Python::ExportQueueReader() {
     .add_property("is_empty", &QueueReader<object>::IsEmpty)
     .def("top", BlockingFunction(&QueueReader<object>::Top))
     .def("pop", &QueueReader<object>::Pop);
+  implicitly_convertible<std::shared_ptr<QueueReader<object>>,
+    std::shared_ptr<BaseQueue>>();
   def("flush", BlockingFunction(&FlushPythonQueue));
 }
 
@@ -92,22 +110,42 @@ void Beam::Python::ExportQueueWriter() {
     noncopyable, bases<BaseQueue>>("QueueWriter", no_init)
     .def("push", static_cast<void (QueueWriter<object>::*)(const object&)>(
       &QueueWriter<object>::Push));
+  implicitly_convertible<std::shared_ptr<QueueWriter<object>>,
+    std::shared_ptr<BaseQueue>>();
 }
 
 void Beam::Python::ExportRoutineTaskQueue() {
   class_<PythonRoutineTaskQueue, std::shared_ptr<PythonRoutineTaskQueue>,
     noncopyable, bases<QueueWriter<object>>>("RoutineTaskQueue", init<>())
     .def("get_slot", &PythonRoutineTaskQueue::GetSlot);
+  implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
+    std::shared_ptr<BaseQueue>>();
 }
 
 void Beam::Python::ExportStateQueue() {
   class_<PythonStateQueue, std::shared_ptr<PythonStateQueue>, noncopyable,
     bases<AbstractQueue<object>, PythonQueueWriter>>("StateQueue", init<>());
+  implicitly_convertible<std::shared_ptr<PythonStateQueue>,
+    std::shared_ptr<AbstractQueue<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonStateQueue>,
+    std::shared_ptr<QueueReader<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonStateQueue>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonStateQueue>,
+    std::shared_ptr<BaseQueue>>();
+  implicitly_convertible<std::shared_ptr<PythonStateQueue>,
+    std::shared_ptr<PythonQueueWriter>>();
 }
 
 void Beam::Python::ExportTaskQueue() {
   class_<PythonTaskQueue, std::shared_ptr<PythonTaskQueue>, noncopyable,
     bases<QueueWriter<object>>>("TaskQueue", init<>())
     .def("get_slot", &PythonTaskQueue::GetSlot);
+  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
+    std::shared_ptr<QueueWriter<object>>>();
+  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
+    std::shared_ptr<BaseQueue>>();
   def("handle_tasks", BlockingFunction(&HandlePythonTasks));
 }

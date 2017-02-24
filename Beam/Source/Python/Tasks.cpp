@@ -8,6 +8,7 @@
 #include "Beam/Tasks/IdleTask.hpp"
 #include "Beam/Tasks/Task.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
@@ -265,9 +266,14 @@ void Beam::Python::ExportTask() {
     class_<Task::StateEntry>("StateEntry", init<>())
       .def(init<Task::State>())
       .def(init<Task::State, const string&>())
-      .def_readwrite("state", &Task::StateEntry::m_state)
+      .add_property("state",
+        make_getter(&Task::StateEntry::m_state,
+        return_value_policy<return_by_value>()),
+        make_setter(&Task::StateEntry::m_state,
+        return_value_policy<return_by_value>()))
       .def_readwrite("message", &Task::StateEntry::m_message);
   }
+  ExportPublisher<Task::StateEntry>("TaskStateEntryPublisher");
   register_ptr_to_python<std::shared_ptr<Task>>();
   implicitly_convertible<std::shared_ptr<TaskWrapper>, std::shared_ptr<Task>>();
 }
@@ -277,6 +283,8 @@ void Beam::Python::ExportTaskFactory() {
     .def("create", pure_virtual(&VirtualTaskFactory::Create));
   class_<PythonTaskFactoryWrapper, boost::noncopyable,
     bases<VirtualTaskFactory>>("TaskFactory")
+    .def("__copy__", &MakeCopy<PythonTaskFactoryWrapper>)
+    .def("__deepcopy__", &MakeDeepCopy<PythonTaskFactoryWrapper>)
     .def("find_property", &PythonTaskFactoryWrapper::FindPythonProperty)
     .def("prepare_continuation", &PythonTaskFactory::PrepareContinuation,
       &PythonTaskFactoryWrapper::DefaultPrepareContinuation)

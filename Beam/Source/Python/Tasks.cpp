@@ -47,6 +47,8 @@ namespace {
 
   struct BasicTaskWrapper : BasicTask, wrapper<BasicTask> {
     virtual void OnExecute() override {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       this->get_override("on_execute")();
     }
 
@@ -195,8 +197,8 @@ void Beam::Python::ExportAggregateTask() {
 void Beam::Python::ExportBasicTask() {
   class_<BasicTaskWrapper, std::shared_ptr<BasicTaskWrapper>,
     boost::noncopyable, bases<Task>>("BasicTask")
-    .def("execute", &BasicTask::Execute)
-    .def("cancel", &BasicTask::Cancel)
+    .def("execute", BlockingFunction(&BasicTask::Execute))
+    .def("cancel", BlockingFunction(&BasicTask::Cancel))
     .def("get_publisher", &BasicTask::GetPublisher,
       return_internal_reference<>())
     .def("on_execute", pure_virtual(&BasicTaskWrapper::OnExecute))

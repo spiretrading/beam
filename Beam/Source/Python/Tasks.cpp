@@ -53,6 +53,8 @@ namespace {
     }
 
     virtual void OnCancel() override {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       this->get_override("on_cancel")();
     }
 
@@ -259,6 +261,7 @@ void Beam::Python::ExportTask() {
       .value("FAILED", Task::State::FAILED)
       .value("EXPIRED", Task::State::EXPIRED)
       .value("COMPLETE", Task::State::COMPLETE);
+    ExportEnum<Task::State>();
     class_<Task::StateEntry>("StateEntry", init<>())
       .def(init<Task::State>())
       .def(init<Task::State, const string&>())

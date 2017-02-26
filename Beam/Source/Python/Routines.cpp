@@ -27,6 +27,14 @@ namespace {
         object();
       });
   }
+
+  void DeleteRoutineHandler(RoutineHandler& routine) {
+    routine.Wait();
+  }
+
+  void DeleteRoutineHandlerGroup(RoutineHandlerGroup& routines) {
+    routines.Wait();
+  }
 }
 
 void Beam::Python::ExportBaseAsync() {
@@ -55,6 +63,7 @@ void Beam::Python::ExportPythonEval() {
 void Beam::Python::ExportRoutineHandler() {
   class_<RoutineHandler, noncopyable>("RoutineHandler", init<>())
     .def(init<Routine::Id>())
+    .def("__del__", BlockingFunction(&DeleteRoutineHandler))
     .add_property("id", &RoutineHandler::GetId)
     .def("detach", &RoutineHandler::Detach)
     .def("wait", BlockingFunction(&RoutineHandler::Wait));
@@ -63,6 +72,7 @@ void Beam::Python::ExportRoutineHandler() {
 
 void Beam::Python::ExportRoutineHandlerGroup() {
   class_<RoutineHandlerGroup, noncopyable>("RoutineHandlerGroup", init<>())
+    .def("__del__", BlockingFunction(&DeleteRoutineHandlerGroup))
     .def("add", static_cast<void (RoutineHandlerGroup::*)(Routine::Id)>(
       &RoutineHandlerGroup::Add))
     .def("add", &RoutineHandlerGroupAddRoutineHandler)

@@ -29,6 +29,29 @@ namespace {
   }
 }
 
+void Beam::Python::ExportBaseAsync() {
+  {
+    scope outer = class_<BaseAsync, noncopyable>("BaseAsync", no_init);
+    enum_<BaseAsync::State>("State")
+      .value("PENDING", BaseAsync::State::PENDING)
+      .value("COMPLETE", BaseAsync::State::COMPLETE)
+      .value("EXCEPTION", BaseAsync::State::EXCEPTION);
+  }
+}
+
+void Beam::Python::ExportBaseEval() {
+  class_<BaseEval, noncopyable>("BaseEval", no_init)
+    .def("set_exception", &Routines::BaseEval::SetException);
+}
+
+void Beam::Python::ExportPythonAsync() {
+  ExportAsync<object>("Async");
+}
+
+void Beam::Python::ExportPythonEval() {
+  ExportEval<object>("Eval");
+}
+
 void Beam::Python::ExportRoutineHandler() {
   class_<RoutineHandler, noncopyable>("RoutineHandler", init<>())
     .def(init<Routine::Id>())
@@ -53,6 +76,10 @@ void Beam::Python::ExportRoutines() {
     borrowed(PyImport_AddModule(nestedName.c_str())))};
   scope().attr("routines") = nestedModule;
   scope parent = nestedModule;
+  ExportBaseAsync();
+  ExportBaseEval();
+  ExportPythonEval();
+  ExportPythonAsync();
   ExportRoutineHandler();
   ExportRoutineHandlerGroup();
 }

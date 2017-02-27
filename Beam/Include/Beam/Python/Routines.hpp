@@ -1,5 +1,7 @@
 #ifndef BEAM_PYTHONROUTINES_HPP
 #define BEAM_PYTHONROUTINES_HPP
+#include <boost/python.hpp>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Python.hpp"
 #include "Beam/Routines/Async.hpp"
 

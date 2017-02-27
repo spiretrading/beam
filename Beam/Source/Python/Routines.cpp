@@ -1,7 +1,6 @@
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/GilLock.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 
@@ -48,8 +47,7 @@ void Beam::Python::ExportBaseAsync() {
 }
 
 void Beam::Python::ExportBaseEval() {
-  class_<BaseEval, noncopyable>("BaseEval", no_init)
-    .def("set_exception", &Routines::BaseEval::SetException);
+  class_<BaseEval, noncopyable>("BaseEval", no_init);
 }
 
 void Beam::Python::ExportPythonAsync() {

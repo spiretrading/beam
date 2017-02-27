@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHONCOPY_HPP
 #define BEAM_PYTHONCOPY_HPP
+#include <cstdint>
 #include <boost/python.hpp>
 #include "Beam/Python/Python.hpp"
 
@@ -30,7 +31,8 @@ namespace Python {
       copyable)};
     boost::python::object result{boost::python::detail::new_reference(
       GetManagingObject(newCopyable))};
-    auto copyableId = (int)(copyable.ptr());
+    auto copyableId = static_cast<int>(
+      reinterpret_cast<std::uintptr_t>(copyable.ptr()));
     memo[copyableId] = result;
     boost::python::extract<boost::python::dict>(
       result.attr("__dict__"))().update(deepcopy(

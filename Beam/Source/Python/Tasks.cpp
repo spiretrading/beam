@@ -1,7 +1,6 @@
 #include "Beam/Python/Tasks.hpp"
 #include <boost/function_types/components.hpp>
 #include <boost/function_types/result_type.hpp>
-#include <boost/python/suite/indexing/indexing_suite.hpp>
 #include <boost/mpl/insert.hpp>
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
@@ -14,7 +13,7 @@
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
 #include "Beam/Python/Queues.hpp"
-#include "Beam/Python/ListToVector.hpp"
+#include "Beam/Python/Vector.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -169,28 +168,6 @@ namespace {
   TaskFactory MakeCloneableTaskFactory(const VirtualTaskFactory& factory) {
     return TaskFactory{factory};
   }
-
-/*
-  std::shared_ptr<AggregateTask> MakeAggregateTask(
-      const boost::python::list& tasks) {
-    vector<TaskFactory> virtualTasks;
-    for(int i = 0; i < boost::python::len(tasks); ++i) {
-      virtualTasks.push_back(
-        *boost::python::extract<VirtualTaskFactory*>(tasks[i]));
-    }
-    return std::make_shared<AggregateTask>(std::move(virtualTasks));
-  }
-
-  AggregateTaskFactory* MakeAggregateTaskFactory(
-      const boost::python::list& tasks) {
-    vector<TaskFactory> virtualTasks;
-    for(int i = 0; i < boost::python::len(tasks); ++i) {
-      virtualTasks.push_back(
-        *boost::python::extract<VirtualTaskFactory*>(tasks[i]));
-    }
-    return new AggregateTaskFactory{std::move(virtualTasks)};
-  }
-*/
 }
 
 void Beam::Python::ExportAggregateTask() {
@@ -304,9 +281,7 @@ void Beam::Python::ExportTaskFactory() {
     .def("define_property", &PythonTaskFactoryWrapper::DefineProperty);
   class_<TaskFactory>("CloneableTaskFactory", no_init)
     .def("__init__", &MakeCloneableTaskFactory);
-  class_<vector<TaskFactory>>("TaskFactoryVector")
-    .def(vector_indexing_suite<vector<TaskFactory>>());
-  ExportVector<vector<TaskFactory>>();
+  ExportVector<vector<TaskFactory>>("TaskFactoryVector");
   implicitly_convertible<VirtualTaskFactory, TaskFactory>();
   implicitly_convertible<PythonTaskFactoryWrapper, TaskFactory>();
 }

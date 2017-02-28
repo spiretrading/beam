@@ -9,6 +9,7 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/Vector.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
@@ -88,8 +89,7 @@ void Beam::Python::ExportDirectoryEntry() {
   }
   ExportEnum<DirectoryEntry::Type>();
   python_optional<DirectoryEntry>();
-  class_<vector<DirectoryEntry>>("VectorDirectoryEntry")
-    .def(vector_indexing_suite<vector<DirectoryEntry>>());
+  ExportVector<vector<DirectoryEntry>>("VectorDirectoryEntry");
 }
 
 void Beam::Python::ExportPermissions() {
@@ -113,8 +113,7 @@ void Beam::Python::ExportServiceEntry() {
       return_value_policy<copy_const_reference>()))
     .def(self == self)
     .def(self != self);
-  class_<vector<ServiceEntry>>("VectorServiceEntry")
-    .def(vector_indexing_suite<vector<ServiceEntry>>());
+  ExportVector<vector<ServiceEntry>>("VectorServiceEntry");
 }
 
 void Beam::Python::ExportServiceLocator() {
@@ -142,6 +141,7 @@ void Beam::Python::ExportServiceLocatorClient() {
   class_<VirtualServiceLocatorClient, boost::noncopyable>(
     "ServiceLocatorClient", no_init)
     .def("__init__", make_constructor(&BuildServiceLocator))
+    .def("__del__", BlockingFunction(&VirtualServiceLocatorClient::Close))
     .add_property("account", &VirtualServiceLocatorClient::GetAccount)
     .add_property("session_id", &VirtualServiceLocatorClient::GetSessionId)
     .def("get_encrypted_session_id",
@@ -194,6 +194,7 @@ void Beam::Python::ExportServiceLocatorClient() {
 void Beam::Python::ExportServiceLocatorTestInstance() {
   class_<ServiceLocatorTestInstance, boost::noncopyable>(
       "ServiceLocatorTestInstance", init<>())
+    .def("__del__", BlockingFunction(&ServiceLocatorTestInstance::Close))
     .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
     .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
     .def("get_root", &ServiceLocatorTestInstance::GetRoot,

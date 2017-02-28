@@ -1,8 +1,8 @@
 #include "Beam/Python/Queries.hpp"
 #include <sstream>
-#include <boost/python/suite/indexing/indexing_suite.hpp>
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Variant.hpp"
+#include "Beam/Python/Vector.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
@@ -69,8 +69,7 @@ void Beam::Python::ExportExpression() {
     .def("apply", &VirtualExpression::Apply);
   class_<Expression>("CloneableExpression", no_init)
     .def("__init__", &MakeCloneableExpression);
-  class_<vector<Expression>>("VectorExpression")
-    .def(vector_indexing_suite<vector<Expression>>());
+  ExportVector<vector<Expression>>("VectorExpression");
 }
 
 void Beam::Python::ExportConstantExpression() {

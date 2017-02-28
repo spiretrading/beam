@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHONLISTTOVECTOR_HPP
 #define BEAM_PYTHONLISTTOVECTOR_HPP
 #include <vector>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include "Beam/Python/BoostPython.hpp"
 
 namespace Beam {
@@ -33,8 +34,13 @@ namespace Python {
   };
 
   //! Exports a vector.
+  /*!
+    \param name The name of the class to export.
+  */
   template<typename T>
-  void ExportVector() {
+  void ExportVector(const char* name) {
+    boost::python::class_<T>(name)
+      .def(boost::python::vector_indexing_suite<T>());
     boost::python::converter::registry::push_back(
       &VectorFromPythonConverter<T>::convertible,
       &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());

@@ -147,5 +147,5 @@ void Beam::Python::ExportTaskQueue() {
     std::shared_ptr<QueueWriter<object>>>();
   implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
     std::shared_ptr<BaseQueue>>();
-  def("handle_tasks", BlockingFunction(&HandlePythonTasks));
+  def("handle_tasks", &HandlePythonTasks);
 }

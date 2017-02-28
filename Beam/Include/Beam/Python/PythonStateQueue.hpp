@@ -47,7 +47,7 @@ namespace Python {
   inline PythonStateQueue::~PythonStateQueue() {
     Break();
     GilLock gil;
-    boost::lock_guard<GilLock> lock(gil);
+    boost::lock_guard<GilLock> lock{gil};
     while(!m_queue.IsEmpty()) {
       m_queue.Pop();
     }
@@ -60,7 +60,7 @@ namespace Python {
   inline boost::python::object PythonStateQueue::Top() const {
     if(IsEmpty()) {
       GilRelease gil;
-      boost::unique_lock<GilRelease> release(gil);
+      boost::lock_guard<GilRelease> release{gil};
       m_queue.Wait();
     }
     return m_queue.Top();
@@ -80,7 +80,7 @@ namespace Python {
 
   inline void PythonStateQueue::Break(const std::exception_ptr& exception) {
     GilRelease gil;
-    boost::lock_guard<GilRelease> release(gil);
+    boost::lock_guard<GilRelease> release{gil};
     PythonQueueWriter::Break(exception);
     m_queue.Break(exception);
   }

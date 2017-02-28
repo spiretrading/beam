@@ -18,15 +18,15 @@ namespace Beam {
     public:
 
       //! The type of data published.
-      typedef typename Publisher<T>::Type Type;
+      using Type = typename Publisher<T>::Type;
 
       //! The type of snapshot stored.
-      typedef SnapshotType Snapshot;
+      using Snapshot = SnapshotType;
 
       //! Constructs a SnapshotPublisher.
-      SnapshotPublisher();
+      SnapshotPublisher() = default;
 
-      virtual ~SnapshotPublisher();
+      virtual ~SnapshotPublisher() = default;
 
       //! Performs a synchronized action with this Publisher's Snapshot.
       /*!
@@ -47,44 +47,38 @@ namespace Beam {
       using Publisher<T>::Monitor;
   };
 
-  template<typename T, typename SnapshotType>
-  SnapshotPublisher<T, SnapshotType>::SnapshotPublisher() {}
-
-  template<typename T, typename SnapshotType>
-  SnapshotPublisher<T, SnapshotType>::~SnapshotPublisher() {}
-
 namespace Details {
   template<typename PublisherType, bool IsSnapshot = false>
   struct GetPublisherTypeHelper {
-    typedef Publisher<typename PublisherType::Type> type;
+    using type = Publisher<typename PublisherType::Type>;
   };
 
   template<typename PublisherType>
   struct GetPublisherTypeHelper<PublisherType, true> {
-    typedef SnapshotPublisher<typename PublisherType::Type,
-      typename PublisherType::Snapshot> type;
+    using type = SnapshotPublisher<typename PublisherType::Type,
+      typename PublisherType::Snapshot>;
   };
 
   template<typename PublisherType>
   struct GetPublisherType {
-    typedef typename GetPublisherTypeHelper<PublisherType,
-      std::is_base_of<BaseSnapshotPublisher, PublisherType>::value>::type type;
+    using type = typename GetPublisherTypeHelper<PublisherType,
+      std::is_base_of<BaseSnapshotPublisher, PublisherType>::value>::type;
   };
 
   template<typename PublisherType, bool IsSnapshot = false>
   struct GetSnapshotTypeHelper {
-    typedef int type;
+    using type = int;
   };
 
   template<typename PublisherType>
   struct GetSnapshotTypeHelper<PublisherType, true> {
-    typedef typename PublisherType::Snapshot type;
+    using type = typename PublisherType::Snapshot;
   };
 
   template<typename PublisherType>
   struct GetSnapshotType {
-    typedef typename GetSnapshotTypeHelper<PublisherType,
-      std::is_base_of<BaseSnapshotPublisher, PublisherType>::value>::type type;
+    using type = typename GetSnapshotTypeHelper<PublisherType,
+      std::is_base_of<BaseSnapshotPublisher, PublisherType>::value>::type;
   };
 }
 }

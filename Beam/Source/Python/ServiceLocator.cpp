@@ -141,7 +141,6 @@ void Beam::Python::ExportServiceLocatorClient() {
   class_<VirtualServiceLocatorClient, boost::noncopyable>(
     "ServiceLocatorClient", no_init)
     .def("__init__", make_constructor(&BuildServiceLocator))
-    .def("__del__", BlockingFunction(&VirtualServiceLocatorClient::Close))
     .add_property("account", &VirtualServiceLocatorClient::GetAccount)
     .add_property("session_id", &VirtualServiceLocatorClient::GetSessionId)
     .def("get_encrypted_session_id",

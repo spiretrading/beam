@@ -58,7 +58,6 @@ void Beam::Python::ExportLiveTimer() {
   class_<WrapperTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "LiveTimer", no_init)
     .def("__init__", make_constructor(&BuildLiveTimer))
-    .def("__del__", BlockingFunction(&WrapperTimer<LiveTimer>::Cancel))
     .def("start", BlockingFunction(&WrapperTimer<LiveTimer>::Start))
     .def("cancel", BlockingFunction(&WrapperTimer<LiveTimer>::Cancel))
     .def("wait", BlockingFunction(&WrapperTimer<LiveTimer>::Wait))
@@ -100,12 +99,11 @@ void Beam::Python::ExportTriggerTimer() {
   class_<WrapperTimer<TriggerTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "TriggerTimer", no_init)
     .def("__init__", make_constructor(&BuildTriggerTimer))
-    .def("__del__", BlockingFunction(&WrapperTimer<TriggerTimer>::Cancel))
     .def("trigger", BlockingFunction(&WrapperTimerTrigger))
     .def("fail", BlockingFunction(&WrapperTimerFail))
     .def("start", BlockingFunction(&WrapperTimer<TriggerTimer>::Start))
     .def("cancel", BlockingFunction(&WrapperTimer<TriggerTimer>::Cancel))
     .def("wait", BlockingFunction(&WrapperTimer<TriggerTimer>::Wait))
-    .def("get_publisher", &TriggerTimer::GetPublisher,
+    .def("get_publisher", &WrapperTimer<TriggerTimer>::GetPublisher,
       return_internal_reference<>());
 }

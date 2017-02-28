@@ -81,7 +81,6 @@ void Beam::Python::ExportUidService() {
 void Beam::Python::ExportUidClient() {
   class_<VirtualUidClient, boost::noncopyable>("UidClient", no_init)
     .def("__init__", make_constructor(&BuildUidClient))
-    .def("__del__", BlockingFunction(&VirtualUidClient::Close))
     .def("load_next_uid", BlockingFunction(&VirtualUidClient::LoadNextUid))
     .def("open", BlockingFunction(&VirtualUidClient::Open))
     .def("close", BlockingFunction(&VirtualUidClient::Close));

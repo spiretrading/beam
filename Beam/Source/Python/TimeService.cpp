@@ -104,8 +104,6 @@ void Beam::Python::ExportFixedTimeClient() {
       static_cast<VirtualTimeClient* (*)()>(&BuildFixedTimeClient)))
     .def("__init__", make_constructor(
       static_cast<VirtualTimeClient* (*)(ptime)>(&BuildFixedTimeClient)))
-    .def("__del__",
-      BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Close))
     .def("set_time", &WrapperFixedTimeClientSetTime)
     .def("get_time", &WrapperTimeClient<FixedTimeClient>::GetTime)
     .def("open", BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Open))
@@ -120,8 +118,6 @@ void Beam::Python::ExportIncrementalTimeClient() {
     .def("__init__", make_constructor(
       static_cast<VirtualTimeClient* (*)(ptime, time_duration)>(
       &BuildIncrementalTimeClient)))
-    .def("__del__",
-      BlockingFunction(&WrapperTimeClient<IncrementalTimeClient>::Close))
     .def("get_time", &WrapperTimeClient<IncrementalTimeClient>::GetTime)
     .def("open", BlockingFunction(
       &WrapperTimeClient<IncrementalTimeClient>::Open))
@@ -133,8 +129,6 @@ void Beam::Python::ExportLocalTimeClient() {
   class_<WrapperTimeClient<LocalTimeClient>, boost::noncopyable,
       bases<VirtualTimeClient>>("LocalTimeClient", no_init)
     .def("__init__", make_constructor(&BuildLocalTimeClient))
-    .def("__del__",
-      BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Close))
     .def("get_time", &WrapperTimeClient<LocalTimeClient>::GetTime)
     .def("open", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Open))
     .def("close", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Close));
@@ -144,8 +138,6 @@ void Beam::Python::ExportNtpTimeClient() {
   class_<WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>,
       boost::noncopyable, bases<VirtualTimeClient>>("NtpTimeClient", no_init)
     .def("__init__", make_constructor(&BuildNtpTimeClient))
-    .def("__del__", BlockingFunction(&WrapperTimeClient<
-      std::unique_ptr<LiveNtpTimeClient>>::Close))
     .def("get_time",
       &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::GetTime)
     .def("open", BlockingFunction(

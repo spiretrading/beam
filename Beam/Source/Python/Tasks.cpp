@@ -14,6 +14,7 @@
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/ListToVector.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -121,6 +122,8 @@ namespace {
   struct PythonTaskFactoryWrapper : PythonTaskFactory,
       wrapper<PythonTaskFactory> {
     virtual void* Clone() const override {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       auto wrapper = new PythonTaskFactoryWrapper{*this};
       auto pyObject = boost::python::detail::wrapper_base_::get_owner(*wrapper);
       Py_IncRef(pyObject);
@@ -128,16 +131,22 @@ namespace {
     }
 
     virtual std::shared_ptr<Task> Create() override {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       object result = this->get_override("create")();
       return std::make_shared<PythonTask>(*result.ptr());
     }
 
     boost::python::object FindPythonProperty(const std::string& name) {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       auto& property = PythonTaskFactory::FindProperty(name);
       return *any_cast<boost::python::object>(&property);
     }
 
     virtual void PrepareContinuation(const Task& task) override {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       if(auto f = this->get_override("prepare_continuation")) {
         f();
         return;
@@ -151,6 +160,8 @@ namespace {
 
     void DefineProperty(const string& name,
         const boost::python::object& value) {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
       PythonTaskFactory::DefineProperty(name, value);
     }
   };
@@ -159,6 +170,7 @@ namespace {
     return TaskFactory{factory};
   }
 
+/*
   std::shared_ptr<AggregateTask> MakeAggregateTask(
       const boost::python::list& tasks) {
     vector<TaskFactory> virtualTasks;
@@ -178,16 +190,15 @@ namespace {
     }
     return new AggregateTaskFactory{std::move(virtualTasks)};
   }
+*/
 }
 
 void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
     boost::noncopyable, bases<BasicTask>>("AggregateTask",
-    init<const vector<TaskFactory>&>())
-    .def("__init__", make_constructor(&MakeAggregateTask));
+    init<const vector<TaskFactory>&>());
   class_<AggregateTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
     "AggregateTaskFactory", init<const vector<TaskFactory>&>())
-    .def("__init__", make_constructor(&MakeAggregateTaskFactory))
     .def("create", &AggregateTaskFactory::Create)
     .def("prepare_continuation", &AggregateTaskFactory::PrepareContinuation);
   implicitly_convertible<AggregateTaskFactory, TaskFactory>();
@@ -295,6 +306,7 @@ void Beam::Python::ExportTaskFactory() {
     .def("__init__", &MakeCloneableTaskFactory);
   class_<vector<TaskFactory>>("TaskFactoryVector")
     .def(vector_indexing_suite<vector<TaskFactory>>());
+  ExportVector<vector<TaskFactory>>();
   implicitly_convertible<VirtualTaskFactory, TaskFactory>();
   implicitly_convertible<PythonTaskFactoryWrapper, TaskFactory>();
 }

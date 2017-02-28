@@ -4,6 +4,7 @@
 #include <ceval.h>
 #include <pystate.h>
 #include <pythread.h>
+#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/Python.hpp"
 
 namespace Beam {
@@ -25,7 +26,7 @@ namespace Python {
       void unlock();
 
     private:
-      bool m_hasThread;
+      bool m_hasGil;
       PyThreadState* m_state;
   };
 
@@ -154,16 +155,14 @@ namespace Python {
   }
 
   inline void GilRelease::lock() {
-    auto threadState = _PyThreadState_Current;
-    m_hasThread = threadState != nullptr &&
-      (threadState == PyGILState_GetThisThreadState());
-    if(m_hasThread) {
+    m_hasGil = HasGil();
+    if(m_hasGil) {
       m_state = PyEval_SaveThread();
     }
   }
 
   inline void GilRelease::unlock() {
-    if(m_hasThread) {
+    if(m_hasGil) {
       PyEval_RestoreThread(m_state);
     }
   }

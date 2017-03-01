@@ -4,6 +4,7 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/GilRelease.hpp"
@@ -69,6 +70,8 @@ void Beam::Python::ExportDirectoryEntry() {
     scope outer =
       class_<DirectoryEntry>("DirectoryEntry", init<>())
         .def(init<DirectoryEntry::Type, unsigned int, std::string>())
+        .def("__copy__", &MakeCopy<DirectoryEntry>)
+        .def("__deepcopy__", &MakeDeepCopy<DirectoryEntry>)
         .add_property("type", make_getter(&DirectoryEntry::m_type,
           return_value_policy<return_by_value>()), make_setter(
           &DirectoryEntry::m_type, return_value_policy<return_by_value>()))
@@ -103,7 +106,10 @@ void Beam::Python::ExportPermissions() {
 }
 
 void Beam::Python::ExportServiceEntry() {
-  class_<ServiceEntry>("ServiceEntry")
+  class_<ServiceEntry>("ServiceEntry", init<>())
+    .def(init<const string&, const JsonObject&, int, const DirectoryEntry&>())
+    .def("__copy__", &MakeCopy<ServiceEntry>)
+    .def("__deepcopy__", &MakeDeepCopy<ServiceEntry>)
     .add_property("name", make_function(&ServiceEntry::GetName,
       return_value_policy<copy_const_reference>()))
     .add_property("properties", make_function(&ServiceEntry::GetProperties,

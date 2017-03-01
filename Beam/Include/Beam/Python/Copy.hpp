@@ -13,8 +13,8 @@ namespace Python {
 
   template<class Copyable>
   boost::python::object MakeCopy(boost::python::object copyable) {
-    auto newCopyable = new Copyable{boost::python::extract<const Copyable&>(
-      copyable)};
+    auto newCopyable = new Copyable(boost::python::extract<const Copyable&>(
+      copyable));
     boost::python::object result{boost::python::detail::new_reference(
       GetManagingObject(newCopyable))};
     boost::python::extract<boost::python::dict>(
@@ -27,8 +27,8 @@ namespace Python {
       boost::python::dict memo) {
     boost::python::object copyMod = boost::python::import("copy");
     boost::python::object deepcopy = copyMod.attr("deepcopy");
-    auto newCopyable = new Copyable{boost::python::extract<const Copyable&>(
-      copyable)};
+    auto newCopyable = new Copyable(boost::python::extract<const Copyable&>(
+      copyable));
     boost::python::object result{boost::python::detail::new_reference(
       GetManagingObject(newCopyable))};
     auto copyableId = static_cast<int>(

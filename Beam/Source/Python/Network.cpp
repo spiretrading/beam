@@ -1,5 +1,6 @@
 #include "Beam/Python/Network.hpp"
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Python/Copy.hpp"
 #include "Beam/Python/BoostPython.hpp"
 
 using namespace Beam;
@@ -12,6 +13,8 @@ using namespace std;
 void Beam::Python::ExportIpAddress() {
   class_<IpAddress>("IpAddress", init<>())
     .def(init<std::string, unsigned short>())
+    .def("__copy__", &MakeCopy<IpAddress>)
+    .def("__deepcopy__", &MakeDeepCopy<IpAddress>)
     .add_property("host", make_function(&IpAddress::GetHost,
       return_value_policy<copy_const_reference>()))
     .add_property("port", &IpAddress::GetPort);

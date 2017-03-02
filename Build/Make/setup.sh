@@ -155,3 +155,11 @@ if [ ! -d "lua-5.3.1" ]; then
     rm -f lua-5.3.1.tar.gz
   fi
 fi
+if [ ! -d "mysql-connector-python-2.1.5" ]; then
+  sudo -u $(logname) wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip --no-check-certificate
+  sudo -u $(logname) unzip mysql-connector-python-2.1.5.zip
+  cd mysql-connector-python-2.1.5
+  python setup.py install
+  cd ..
+  rm -f mysql-connector-python-2.1.5.zip
+fi

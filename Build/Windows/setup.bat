@@ -144,4 +144,13 @@ cd ../..
 rm lua-5.3.1.tar.gz
 :end_lua_setup
 
+if exist mysql-connector-python-2.1.5 goto end_mysql_python:
+wget --no-check-certificate https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip
+unzip mysql-connector-python-2.1.5.zip
+cd mysql-connector-python-2.1.5
+python setup.py install
+cd ..
+rm -f mysql-connector-python-2.1.5.zip
+:end_mysql_python
+
 ENDLOCAL

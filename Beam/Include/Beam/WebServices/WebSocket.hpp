@@ -81,6 +81,13 @@ namespace WebServices {
 
       //! Writes to the web socket.
       /*!
+        \param data The raw data to write.
+        \param size The number of bytes to write.
+      */
+      void Write(const void* data, std::size_t size);
+
+      //! Writes to the web socket.
+      /*!
         \param buffer The buffer to write.
       */
       template<typename Buffer>
@@ -204,23 +211,28 @@ namespace WebServices {
   }
 
   template<typename ChannelType>
-  template<typename Buffer>
-  void WebSocket<ChannelType>::Write(const Buffer& buffer) {
+  void WebSocket<ChannelType>::Write(const void* data, std::size_t size) {
     typename Channel::Writer::Buffer frame;
     std::uint8_t code = (1 << 7) | 1;
     frame.Append(&code, sizeof(code));
-    std::uint8_t length = (1 << 7) |
-      static_cast<std::uint8_t>(buffer.GetSize());
+    std::uint8_t length = (1 << 7) | static_cast<std::uint8_t>(size);
     frame.Append(&length, sizeof(length));
     std::uint32_t maskingKey = m_randomEngine();
     frame.Append(&maskingKey, sizeof(maskingKey));
-    auto size = frame.GetSize();
-    frame.Append(buffer);
-    for(std::size_t i = 0; i < buffer.GetSize(); ++i) {
-      frame.GetMutableData()[i + size] = frame.GetMutableData()[i + size] ^
+    auto frameSize = frame.GetSize();
+    frame.Append(data, size);
+    for(std::size_t i = 0; i < size; ++i) {
+      frame.GetMutableData()[i + frameSize] =
+        frame.GetMutableData()[i + frameSize] ^
         (reinterpret_cast<unsigned char*>(&maskingKey)[i % sizeof(maskingKey)]);
     }
     m_channel->GetWriter().Write(frame);
+  }
+
+  template<typename ChannelType>
+  template<typename Buffer>
+  void WebSocket<ChannelType>::Write(const Buffer& buffer) {
+    Write(buffer.GetData(), buffer.GetSize());
   }
 
   template<typename ChannelType>
@@ -230,6 +242,7 @@ namespace WebServices {
     }
     try {
       HttpRequest request{HttpVersion::Version1_1(), HttpMethod::GET, m_uri};
+      request.Add(HttpHeader{"Host", m_uri.GetHostname()});
       request.Add(HttpHeader{"Upgrade", "websocket"});
       request.Add(HttpHeader{"Connection", "Upgrade"});
       auto key = "x3JJHMbDL1EzLkh9GBhXDw==";

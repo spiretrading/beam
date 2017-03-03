@@ -1,7 +1,9 @@
 #ifndef BEAM_WEBSOCKETREADER_HPP
 #define BEAM_WEBSOCKETREADER_HPP
 #include <boost/noncopyable.hpp>
+#include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/Reader.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 #include "Beam/WebServices/WebSocket.hpp"
 
@@ -17,7 +19,7 @@ namespace WebServices {
 
       //! The type of WebSocket to read from.
       using WebSocket = WebSocketType;
-      using Buffer = WebSocket::Channel::Reader::Buffer;
+      using Buffer = IO::SharedBuffer;
 
       bool IsDataAvailable() const;
 
@@ -28,38 +30,74 @@ namespace WebServices {
       std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
-      friend class WebSocketChannel<WebSocket>;
+      friend class WebSocketChannel<typename WebSocket::Channel>;
       std::shared_ptr<WebSocket> m_socket;
+      boost::optional<IO::BufferReader<IO::SharedBuffer>> m_reader;
 
       WebSocketReader(const std::shared_ptr<WebSocket>& socket);
+      void ReadFromWebSocket();
   };
 
   template<typename WebSocketType>
   bool WebSocketReader<WebSocketType>::IsDataAvailable() const {
+    if(m_reader.is_initialized()) {
+      if(m_reader->IsDataAvailable()) {
+        return true;
+      }
+    }
     return false;
   }
 
   template<typename WebSocketType>
   std::size_t WebSocketReader<WebSocketType>::Read(Out<Buffer> destination) {
-    return 0;
+    if(!m_reader.is_initialized()) {
+      ReadFromWebSocket();
+    }
+    try {
+      return m_reader->Read(Store(destination));
+    } catch(const IO::EndOfFileException&) {
+      m_reader.reset();
+      return Read(Store(destination));
+    }
   }
 
   template<typename WebSocketType>
-  std::size_t WebSocketReader<WebSocketType>::::Read(char* destination,
+  std::size_t WebSocketReader<WebSocketType>::Read(char* destination,
       std::size_t size) {
-    return 0;
+    if(!m_reader.is_initialized()) {
+      ReadFromWebSocket();
+    }
+    try {
+      return m_reader->Read(destination, size);
+    } catch(const IO::EndOfFileException&) {
+      m_reader.reset();
+      return Read(destination, size);
+    }
   }
 
   template<typename WebSocketType>
   std::size_t WebSocketReader<WebSocketType>::Read(Out<Buffer> destination,
       std::size_t size) {
-    return 0;
+    if(!m_reader.is_initialized()) {
+      ReadFromWebSocket();
+    }
+    try {
+      return m_reader->Read(Store(destination), size);
+    } catch(const IO::EndOfFileException&) {
+      m_reader.reset();
+      return Read(Store(destination), size);
+    }
   }
 
   template<typename WebSocketType>
   WebSocketReader<WebSocketType>::WebSocketReader(
       const std::shared_ptr<WebSocket>& socket)
       : m_socket{socket} {}
+
+  template<typename WebSocketType>
+  void WebSocketReader<WebSocketType>::ReadFromWebSocket() {
+    m_reader.emplace(m_socket->Read());
+  }
 }
 
   template<typename WebSocketType>

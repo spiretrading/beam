@@ -14,10 +14,10 @@ namespace WebServices {
   /*! \class WebSocketChannel
       \brief Implements the Channel interface for a WebSocket.
    */
-  template<typename WebSocketType>
+  template<typename ChannelType>
   class WebSocketChannel : private boost::noncopyable {
     public:
-      using WebSocket = WebSocketType;
+      using WebSocket = WebSocket<ChannelType>;
       using Identifier = typename WebSocket::Channel::Identifier;
       using Connection = WebSocketConnection<WebSocket>;
       using Reader = WebSocketReader<WebSocket>;
@@ -29,7 +29,7 @@ namespace WebServices {
         \param channelBuilder Builds the Channel used to connect to the server.
       */
       WebSocketChannel(WebSocketConfig config,
-        WebSocket::ChannelBuilder channelBuilder);
+        typename WebSocket::ChannelBuilder channelBuilder);
 
       //! Returns the underlying WebSocket.
       WebSocket& GetSocket();
@@ -49,53 +49,53 @@ namespace WebServices {
       Writer m_writer;
   };
 
-  template<typename WebSocketType>
-  WebSocketChannel<WebSocketType>::WebSocketChannel(WebSocketConfig config,
-      WebSocket::ChannelBuilder channelBuilder)
+  template<typename ChannelType>
+  WebSocketChannel<ChannelType>::WebSocketChannel(WebSocketConfig config,
+      typename WebSocketChannel::WebSocket::ChannelBuilder channelBuilder)
       : m_socket{std::make_shared<WebSocket>(std::move(config),
-          std::move(channelBuilder)},
+          std::move(channelBuilder))},
         m_connection{m_socket},
         m_reader{m_socket},
         m_writer{m_socket} {}
 
-  template<typename WebSocketType>
-  typename WebSocketChannel<WebSocketType>::WebSocket&
-      WebSocketChannel<WebSocketType>::WebSocketChannel::GetSocket() {
+  template<typename ChannelType>
+  typename WebSocketChannel<ChannelType>::WebSocket&
+      WebSocketChannel<ChannelType>::WebSocketChannel::GetSocket() {
     return *m_socket;
   }
 
-  template<typename WebSocketType>
-  const typename WebSocketChannel<WebSocketType>::Identifier&
-      WebSocketChannel<WebSocketType>::GetIdentifier() const {
+  template<typename ChannelType>
+  const typename WebSocketChannel<ChannelType>::Identifier&
+      WebSocketChannel<ChannelType>::GetIdentifier() const {
     return m_identifier;
   }
 
-  template<typename WebSocketType>
-  typename WebSocketChannel<WebSocketType>::Connection&
-      WebSocketChannel<WebSocketType>::GetConnection() {
+  template<typename ChannelType>
+  typename WebSocketChannel<ChannelType>::Connection&
+      WebSocketChannel<ChannelType>::GetConnection() {
     return m_connection;
   }
 
-  template<typename WebSocketType>
-  typename WebSocketChannel<WebSocketType>::Reader&
-      WebSocketChannel<WebSocketType>::GetReader() {
+  template<typename ChannelType>
+  typename WebSocketChannel<ChannelType>::Reader&
+      WebSocketChannel<ChannelType>::GetReader() {
     return m_reader;
   }
 
-  template<typename WebSocketType>
-  typename WebSocketChannel<WebSocketType>::Writer&
-      WebSocketChannel<WebSocketType>::GetWriter() {
+  template<typename ChannelType>
+  typename WebSocketChannel<ChannelType>::Writer&
+      WebSocketChannel<ChannelType>::GetWriter() {
     return m_writer;
   }
 }
 
-  template<typename WebSocketType>
-  struct ImplementsConcept<WebServices::WebSocketChannel<WebSocketType>,
+  template<typename ChannelType>
+  struct ImplementsConcept<WebServices::WebSocketChannel<ChannelType>,
       IO::Channel<
-      typename WebServices::WebSocketChannel<WebSocketType>::Identifier,
-      typename WebServices::WebSocketChannel<WebSocketType>::Connection,
-      typename WebServices::WebSocketChannel<WebSocketType>::Reader,
-      typename WebServices::WebSocketChannel<WebSocketType>::Writer>>
+      typename WebServices::WebSocketChannel<ChannelType>::Identifier,
+      typename WebServices::WebSocketChannel<ChannelType>::Connection,
+      typename WebServices::WebSocketChannel<ChannelType>::Reader,
+      typename WebServices::WebSocketChannel<ChannelType>::Writer>>
       : std::true_type {};
 }
 

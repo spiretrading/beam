@@ -1,6 +1,7 @@
 #ifndef BEAM_WEBSOCKETWRITER_HPP
 #define BEAM_WEBSOCKETWRITER_HPP
 #include <boost/noncopyable.hpp>
+#include <Beam/IO/SharedBuffer.hpp>
 #include "Beam/IO/Writer.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 #include "Beam/WebServices/WebSocket.hpp"
@@ -17,14 +18,14 @@ namespace WebServices {
 
       //! The type of WebSocket to write to.
       using WebSocket = WebSocketType;
-      using Buffer = WebSocket::Channel::Writer::Buffer;
+      using Buffer = IO::SharedBuffer;
 
       void Write(const void* data, std::size_t size);
 
       void Write(const Buffer& data);
 
     private:
-      friend class WebSocketChannel<WebSocket>;
+      friend class WebSocketChannel<typename WebSocket::Channel>;
       std::shared_ptr<WebSocket> m_socket;
 
       WebSocketWriter(const std::shared_ptr<WebSocket>& socket);
@@ -32,7 +33,9 @@ namespace WebServices {
 
   template<typename WebSocketType>
   void WebSocketWriter<WebSocketType>::Write(const void* data,
-      std::size_t size) {}
+      std::size_t size) {
+    m_socket->Write(data, size);
+  }
 
   template<typename WebSocketType>
   void WebSocketWriter<WebSocketType>::Write(const Buffer& data) {
@@ -40,7 +43,7 @@ namespace WebServices {
   }
 
   template<typename WebSocketType>
-  void WebSocketWriter<WebSocketType>::WebSocketWriter(
+  WebSocketWriter<WebSocketType>::WebSocketWriter(
       const std::shared_ptr<WebSocket>& socket)
       : m_socket{socket} {}
 }

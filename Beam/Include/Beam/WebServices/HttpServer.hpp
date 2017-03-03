@@ -48,6 +48,13 @@ namespace WebServices {
       void Close();
 
     private:
+      enum class Protocol {
+        CLOSE = 0,
+        HTTP,
+        WEB_SOCKET
+      };
+      typename Channel::Writer::Buffer BAD_REQUEST_RESPONSE_BUFFER;
+      typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
       GetOptionalLocalPtr<ServerConnectionType> m_serverConnection;
       std::vector<HttpRequestSlot> m_slots;
       Routines::RoutineHandler m_acceptRoutine;
@@ -55,6 +62,8 @@ namespace WebServices {
 
       void Shutdown();
       void AcceptLoop();
+      Protocol HttpRequestLoop(Channel& channel);
+      Protocol WebSocketLoop(Channel& channel);
   };
 
   template<typename ServerConnectionType>
@@ -64,7 +73,12 @@ namespace WebServices {
       std::vector<HttpRequestSlot> slots)
       : m_serverConnection{std::forward<ServerConnectionForward>(
           serverConnection)},
-        m_slots{std::move(slots)} {}
+        m_slots{std::move(slots)} {
+    HttpResponse badRequestResponse{HttpStatusCode::BAD_REQUEST};
+    badRequestResponse.Encode(Store(BAD_REQUEST_RESPONSE_BUFFER));
+    HttpResponse notFoundResponse{HttpStatusCode::NOT_FOUND};
+    notFoundResponse.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
+  }
 
   template<typename ServerConnectionType>
   HttpServer<ServerConnectionType>::~HttpServer() {
@@ -106,9 +120,6 @@ namespace WebServices {
   void HttpServer<ServerConnectionType>::AcceptLoop() {
     SynchronizedUnorderedSet<std::shared_ptr<Channel>> clients;
     Routines::RoutineHandlerGroup clientRoutines;
-    HttpResponse NOT_FOUND_RESPONSE{HttpStatusCode::NOT_FOUND};
-    typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
-    NOT_FOUND_RESPONSE.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
     while(true) {
       std::shared_ptr<Channel> channel;
       try {
@@ -128,41 +139,16 @@ namespace WebServices {
             std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
             return;
           }
-          try {
-            HttpRequestParser parser;
-            typename Channel::Reader::Buffer requestBuffer;
-            typename Channel::Writer::Buffer responseBuffer;
-            while(true) {
-              channel->GetReader().Read(Store(requestBuffer));
-              parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
-              requestBuffer.Reset();
-              auto request = parser.GetNextRequest();
-              while(request.is_initialized()) {
-                std::cout << *request << "\n\n\n" << std::flush;
-                auto foundSlot = false;
-                for(auto& slot : m_slots) {
-                  if(slot.m_predicate(*request)) {
-                    auto response = slot.m_slot(*request);
-                    response.Encode(Store(responseBuffer));
-                    channel->GetWriter().Write(responseBuffer);
-                    responseBuffer.Reset();
-                    foundSlot = true;
-                    break;
-                  }
-                }
-                if(!foundSlot) {
-                  channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
-                }
-                if(request->GetSpecialHeaders().m_connection ==
-                    ConnectionHeader::CLOSE) {
-                  channel->GetConnection().Close();
-                  break;
-                } else {
-                  request = parser.GetNextRequest();
-                }
-              }
+          auto protocol = Protocol::HTTP;
+          while(protocol != Protocol::CLOSE) {
+            if(protocol == Protocol::HTTP) {
+              protocol = HttpRequestLoop(*channel);
+            } else if(protocol == Protocol::WEB_SOCKET) {
+              protocol = WebSocketLoop(*channel);
+            } else {
+              protocol = Protocol::CLOSE;
             }
-          } catch(const std::exception&) {}
+          }
           clients.Erase(channel);
         });
     }
@@ -171,6 +157,86 @@ namespace WebServices {
     for(auto& client : pendingClients) {
       client->GetConnection().Close();
     }
+  }
+
+  template<typename ServerConnectionType>
+  typename HttpServer<ServerConnectionType>::Protocol
+      HttpServer<ServerConnectionType>::HttpRequestLoop(Channel& channel) {
+    try {
+      HttpRequestParser parser;
+      typename Channel::Reader::Buffer requestBuffer;
+      typename Channel::Writer::Buffer responseBuffer;
+      while(true) {
+        channel.GetReader().Read(Store(requestBuffer));
+        parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
+        requestBuffer.Reset();
+        auto request = parser.GetNextRequest();
+        while(request.is_initialized()) {
+          std::cout << *request << "\n\n\n" << std::flush;
+          if(request->GetSpecialHeaders().m_connection ==
+              ConnectionHeader::UPGRADE) {
+            auto protocol = request->GetHeader("Upgrade");
+            if(!protocol.is_initialized()) {
+              channel.GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
+            } else if(*protocol == "websocket") {
+              auto foundSlot = false;
+              auto accepted = false;
+              for(auto& slot : m_slots) {
+                if(slot.m_predicate(*request)) {
+                  auto response = slot.m_slot(*request);
+                  if(response.GetStatusCode() ==
+                      HttpStatusCode::SWITCHING_PROTOCOLS) {
+                    accepted = true;
+
+                    // TODO: Add proper response headers for websocket.
+                  }
+                  response.Encode(Store(responseBuffer));
+                  channel.GetWriter().Write(responseBuffer);
+                  responseBuffer.Reset();
+                  foundSlot = true;
+                  break;
+                }
+              }
+              if(!foundSlot) {
+                channel.GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
+              }
+              if(accepted) {
+                return Protocol::WEB_SOCKET;
+              }
+            }
+          } else {
+            auto foundSlot = false;
+            for(auto& slot : m_slots) {
+              if(slot.m_predicate(*request)) {
+                auto response = slot.m_slot(*request);
+                response.Encode(Store(responseBuffer));
+                channel.GetWriter().Write(responseBuffer);
+                responseBuffer.Reset();
+                foundSlot = true;
+                break;
+              }
+            }
+            if(!foundSlot) {
+              channel.GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
+            }
+            if(request->GetSpecialHeaders().m_connection ==
+                ConnectionHeader::CLOSE) {
+              channel.GetConnection().Close();
+              break;
+            } else {
+              request = parser.GetNextRequest();
+            }
+          }
+        }
+      }
+    } catch(const std::exception&) {}
+    return Protocol::CLOSE;
+  }
+
+  template<typename ServerConnectionType>
+  typename HttpServer<ServerConnectionType>::Protocol
+      HttpServer<ServerConnectionType>::WebSocketLoop(Channel& channel) {
+    return Protocol::CLOSE;
   }
 }
 }

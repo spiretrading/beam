@@ -181,9 +181,9 @@ namespace WebServices {
             } else if(*protocol == "websocket") {
               auto foundSlot = false;
               auto accepted = false;
-              for(auto& slot : m_slots) {
+              for(auto& slot : m_webSocketSlots) {
                 if(slot.m_predicate(*request)) {
-                  auto response = slot.m_slot(*request);
+                  auto response = slot.m_slot(*request, *webSocket);
                   if(response.GetStatusCode() ==
                       HttpStatusCode::SWITCHING_PROTOCOLS) {
                     accepted = true;

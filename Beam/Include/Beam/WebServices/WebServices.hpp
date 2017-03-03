@@ -23,8 +23,13 @@ namespace WebServices {
   class SecureSocketChannelFactory;
   class Session;
   template<typename SessionType> class SessionStore;
+  class ServerWebSocketChannel;
   class Uri;
   template<typename ChannelType> class WebSocket;
+  template<typename WebSocketType> class WebSocketChannel;
+  template<typename WebSocketType> class WebSocketConnection;
+  template<typename WebSocketType> class WebSocketReader;
+  template<typename WebSocketType> class WebSocketWriter;
 }
 }
 

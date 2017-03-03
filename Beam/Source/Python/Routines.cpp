@@ -27,6 +27,15 @@ namespace {
       });
   }
 
+  Routine::Id PythonSpawn(object object) {
+    return Spawn(
+      [=] {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        object();
+      });
+  }
+
   void DeleteRoutineHandler(RoutineHandler& routine) {
     routine.Wait();
   }
@@ -90,4 +99,6 @@ void Beam::Python::ExportRoutines() {
   ExportPythonAsync();
   ExportRoutineHandler();
   ExportRoutineHandlerGroup();
+  def("spawn", &PythonSpawn);
+  def("wait", &Wait);
 }

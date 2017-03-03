@@ -36,6 +36,9 @@ namespace WebServices {
    */
   struct SpecialHeaders {
 
+    //! The host.
+    std::string m_host;
+
     //! The size of the body.
     std::size_t m_contentLength;
 
@@ -171,6 +174,7 @@ namespace WebServices {
       }
       sink << "\r\n";
     }
+    sink << "Host: " << request.GetSpecialHeaders().m_host << "\r\n";
     sink << "Content-Length: " << request.GetSpecialHeaders().m_contentLength <<
       "\r\n";
     sink << "Connection: " << request.GetSpecialHeaders().m_connection <<
@@ -208,7 +212,14 @@ namespace WebServices {
         m_headers{std::move(headers)},
         m_specialHeaders{specialHeaders},
         m_cookies{std::move(cookies)},
-        m_body{std::move(body)} {}
+        m_body{std::move(body)} {
+    if(m_specialHeaders.m_host.empty()) {
+      m_specialHeaders.m_host = m_uri.GetHostname();
+      if(m_uri.GetPort() != 0) {
+        m_specialHeaders.m_host += ":" + std::to_string(m_uri.GetPort());
+      }
+    }
+  }
 
   inline const HttpVersion& HttpRequest::GetVersion() const {
     return m_version;
@@ -229,7 +240,9 @@ namespace WebServices {
         return value.GetName() == name;
       });
     if(header == m_headers.end()) {
-      if(name == "Content-Length") {
+      if(name == "Host") {
+        return m_specialHeaders.m_host;
+      } else if(name == "Content-Length") {
         return Threading::With(m_contentLength,
           [&] (auto& contentLength) -> std::string& {
             if(contentLength.empty()) {
@@ -264,7 +277,9 @@ namespace WebServices {
   }
 
   inline void HttpRequest::Add(HttpHeader header) {
-    if(header.GetName() == "Content-Length") {
+    if(header.GetName() == "Host") {
+      m_specialHeaders.m_host = header.GetValue();
+    } else if(header.GetName() == "Content-Length") {
       m_specialHeaders.m_contentLength = static_cast<std::size_t>(
         std::stoull(header.GetValue()));
       m_contentLength = std::string{};

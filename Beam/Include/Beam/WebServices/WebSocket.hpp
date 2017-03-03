@@ -242,7 +242,6 @@ namespace WebServices {
     }
     try {
       HttpRequest request{HttpVersion::Version1_1(), HttpMethod::GET, m_uri};
-      request.Add(HttpHeader{"Host", m_uri.GetHostname()});
       request.Add(HttpHeader{"Upgrade", "websocket"});
       request.Add(HttpHeader{"Connection", "Upgrade"});
       auto key = "x3JJHMbDL1EzLkh9GBhXDw==";

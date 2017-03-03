@@ -40,12 +40,7 @@ namespace WebServices {
 
   template<typename WebSocketType>
   bool WebSocketReader<WebSocketType>::IsDataAvailable() const {
-    if(m_reader.is_initialized()) {
-      if(m_reader->IsDataAvailable()) {
-        return true;
-      }
-    }
-    return false;
+    return m_reader.is_initialized() && m_reader->IsDataAvailable();
   }
 
   template<typename WebSocketType>

@@ -17,7 +17,7 @@ namespace WebServices {
   template<typename ChannelType>
   class WebSocketChannel : private boost::noncopyable {
     public:
-      using WebSocket = WebSocket<ChannelType>;
+      using WebSocket = ::Beam::WebServices::WebSocket<ChannelType>;
       using Identifier = typename WebSocket::Channel::Identifier;
       using Connection = WebSocketConnection<WebSocket>;
       using Reader = WebSocketReader<WebSocket>;

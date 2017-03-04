@@ -18,7 +18,7 @@ namespace WebServices {
   class WebSocketChannel : private boost::noncopyable {
     public:
       using WebSocket = ::Beam::WebServices::WebSocket<ChannelType>;
-      using Identifier = typename WebSocket::Channel::Identifier;
+      using Identifier = Uri;
       using Connection = WebSocketConnection<WebSocket>;
       using Reader = WebSocketReader<WebSocket>;
       using Writer = WebSocketWriter<WebSocket>;
@@ -81,7 +81,7 @@ namespace WebServices {
   template<typename ChannelType>
   const typename WebSocketChannel<ChannelType>::Identifier&
       WebSocketChannel<ChannelType>::GetIdentifier() const {
-    return m_identifier;
+    return m_socket->GetUri();
   }
 
   template<typename ChannelType>

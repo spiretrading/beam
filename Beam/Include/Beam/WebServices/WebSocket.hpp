@@ -84,6 +84,9 @@ namespace WebServices {
 
       ~WebSocket();
 
+      //! Returns the Uri this socket connects to.
+      const Uri& GetUri() const;
+
       //! Reads the next frame from the web socket.
       IO::SharedBuffer Read();
 
@@ -173,6 +176,11 @@ namespace WebServices {
   template <typename ChannelType>
   WebSocket<ChannelType>::~WebSocket() {
     Close();
+  }
+
+  template<typename ChannelType>
+  const Uri& WebSocket<ChannelType>::GetUri() const {
+    return m_uri;
   }
 
   template<typename ChannelType>

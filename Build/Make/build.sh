@@ -33,4 +33,5 @@ applications+=" ServiceLocator"
 applications+=" ServiceProtocolProfiler"
 applications+=" ServletTemplate"
 applications+=" UidServer"
+applications+=" WebSocketEchoServer"
 parallel -j$cores --no-notice build_function ::: $applications

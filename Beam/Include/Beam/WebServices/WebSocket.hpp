@@ -110,6 +110,7 @@ namespace WebServices {
 
     private:
       template<typename> friend class HttpServer;
+      bool m_isServerMode;
       Uri m_uri;
       std::vector<std::string> m_protocols;
       std::vector<std::string> m_extensions;
@@ -152,7 +153,8 @@ namespace WebServices {
   template<typename ChannelType>
   WebSocket<ChannelType>::WebSocket(WebSocketConfig config,
       ChannelBuilder channelBuilder)
-      : m_uri{std::move(config.m_uri)},
+      : m_isServerMode{false},
+        m_uri{std::move(config.m_uri)},
         m_protocols{std::move(config.m_protocols)},
         m_extensions{std::move(config.m_extensions)},
         m_version{std::move(config.m_version)},
@@ -170,7 +172,8 @@ namespace WebServices {
   template<typename ChannelType>
   template<typename ChannelForward>
   WebSocket<ChannelType>::WebSocket(ChannelForward&& channel, ServerTag)
-      : m_channel{std::forward<ChannelForward>(channel)},
+      : m_isServerMode{true},
+        m_channel{std::forward<ChannelForward>(channel)},
         m_openState{true} {}
 
   template <typename ChannelType>
@@ -235,19 +238,49 @@ namespace WebServices {
 
   template<typename ChannelType>
   void WebSocket<ChannelType>::Write(const void* data, std::size_t size) {
+    const std::size_t MAX_PAYLOAD_LENGTH = 125;
+    const std::size_t MAX_TWO_BYTE_PAYLOAD_LENGTH = (1 << 16);
     typename Channel::Writer::Buffer frame;
     std::uint8_t code = (1 << 7) | 1;
     frame.Append(&code, sizeof(code));
-    std::uint8_t length = (1 << 7) | static_cast<std::uint8_t>(size);
-    frame.Append(&length, sizeof(length));
-    std::uint32_t maskingKey = m_randomEngine();
-    frame.Append(&maskingKey, sizeof(maskingKey));
-    auto frameSize = frame.GetSize();
-    frame.Append(data, size);
-    for(std::size_t i = 0; i < size; ++i) {
-      frame.GetMutableData()[i + frameSize] =
-        frame.GetMutableData()[i + frameSize] ^
-        (reinterpret_cast<unsigned char*>(&maskingKey)[i % sizeof(maskingKey)]);
+    auto payloadLength =
+      [&] {
+        if(size <= MAX_PAYLOAD_LENGTH) {
+          return static_cast<std::uint8_t>(size);
+        } else if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
+          return std::uint8_t{126};
+        } else {
+          return std::uint8_t{127};
+        }
+      }();
+    if(!m_isServerMode) {
+      payloadLength |= (1 << 7);
+    }
+    frame.Append(&payloadLength, sizeof(payloadLength));
+    if(size > MAX_PAYLOAD_LENGTH) {
+      if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
+        auto extendedPayloadLength = ToBigEndian(
+          static_cast<std::uint16_t>(size));
+        frame.Append(&extendedPayloadLength, sizeof(extendedPayloadLength));
+      } else {
+        auto extendedPayloadLength = ToBigEndian(
+          static_cast<std::uint64_t>(size));
+        frame.Append(&extendedPayloadLength, sizeof(extendedPayloadLength));
+      }
+    }
+    if(m_isServerMode) {
+      frame.Append(data, size);
+    } else {
+      std::uint32_t maskingKey = m_randomEngine();
+      frame.Append(&maskingKey, sizeof(maskingKey));
+      frame.Append(data, size);
+      auto frameSize = frame.GetSize();
+      for(std::size_t i = 0; i < size; ++i) {
+        auto index = i + frameSize;
+        frame.GetMutableData()[index] = frame.GetMutableData()[index] ^
+          (reinterpret_cast<unsigned char*>(&maskingKey)[
+          i % sizeof(maskingKey)]);
+      }
     }
     m_channel->GetWriter().Write(frame);
   }

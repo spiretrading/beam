@@ -29,7 +29,7 @@ namespace WebServices {
       \param request The request that satisfied the predicate.
       \param channel The Channel that submitted the request.
     */
-    using Slot = std::function<HttpResponse (const HttpRequest& request,
+    using Slot = std::function<void (const HttpRequest& request,
       std::unique_ptr<ChannelType> channel)>;
 
     //! The predicate to match.

@@ -11,7 +11,6 @@ namespace Beam {
 namespace WebServices {
 namespace Details {
   BEAM_DEFINE_HAS_METHOD(IsServletClass, Open, void);
-  BEAM_DEFINE_HAS_METHOD(HasWebSocketSlots, GetWebSocketSlots, void);
   template<typename ContainerType, typename ServletType,
     bool dummy = IsServletClass<ServletType>::value>
   struct GetServletHelper;
@@ -30,15 +29,77 @@ namespace Details {
   using GetServlet = typename GetServletHelper<
     ContainerType, ServletType>::type;
 
-  template<typename Container, typename Servlet>
-  auto GetWebSocketSlots(Servlet& servlet) ->
-      decltype(servlet.GetWebSocketSlots()) {
-    return servlet.GetWebSocketSlots();
+  template<typename T>
+  struct HasSlots {
+    template<typename C>
+    static auto test() ->
+      decltype(std::declval<C>().GetSlots(), std::true_type());
+
+    template<typename>
+    static std::false_type test(...);
+
+    using type = decltype(test<T>());
+    static const bool value = std::is_same<
+      std::true_type, decltype(test<T>())>::value;
+  };
+
+  template<typename Servlet, bool dummy = HasSlots<Servlet>::value>
+  struct GetSlotsHelper {};
+
+  template<typename Servlet>
+  struct GetSlotsHelper<Servlet, true> {
+    auto operator ()(Servlet& servlet) {
+      return servlet.GetSlots();
+    }
+  };
+
+  template<typename Servlet>
+  struct GetSlotsHelper<Servlet, false> {
+    auto operator ()(Servlet& servlet) {
+      return std::vector<HttpRequestSlot>();
+    }
+  };
+
+  template<typename Servlet>
+  auto GetSlots(Servlet& servlet) {
+    return GetSlotsHelper<Servlet>()(servlet);
   }
+
+  template<typename T>
+  struct HasWebSocketSlots {
+    template<typename C>
+    static auto test() ->
+      decltype(std::declval<C>().GetWebSocketSlots(), std::true_type());
+
+    template<typename>
+    static std::false_type test(...);
+
+    using type = decltype(test<T>());
+    static const bool value = std::is_same<
+      std::true_type, decltype(test<T>())>::value;
+  };
+
+  template<typename Container, typename Servlet,
+    bool dummy = HasWebSocketSlots<Servlet>::value>
+  struct GetWebSocketsSlotsHelper {};
+
+  template<typename Container, typename Servlet>
+  struct GetWebSocketsSlotsHelper<Container, Servlet, true> {
+    auto operator ()(Servlet& servlet) {
+      return servlet.GetWebSocketSlots();
+    }
+  };
+
+  template<typename Container, typename Servlet>
+  struct GetWebSocketsSlotsHelper<Container, Servlet, false> {
+    auto operator ()(Servlet& servlet) {
+      return std::vector<Container::HttpServer::WebSocketSlot>();
+    }
+  };
 
   template<typename Container, typename Servlet>
   auto GetWebSocketSlots(Servlet& servlet) {
-    return std::vector<Container::HttpServer::HttpUpgradeSlot>();
+    return GetWebSocketsSlotsHelper<Container, Servlet>()(servlet);
   }
 }
 
@@ -60,6 +121,12 @@ namespace Details {
 
       //! The type of HttpServer used.
       using HttpServer = ::Beam::WebServices::HttpServer<ServerConnectionType>;
+
+      //! The type of WebSocketChannel used.
+      using WebSocketChannel = typename HttpServer::WebSocketChannel;
+
+      //! The type of HttpUpgradeSlot's used for WebSockets.
+      using WebSocketSlot = typename HttpServer::WebSocketSlot;
 
       //! Constructs the HttpServletContainer.
       /*!
@@ -87,7 +154,7 @@ namespace Details {
       ServletForward&& servlet, ServerConnectionForward&& serverConnection)
       : m_servlet{std::forward<ServletForward>(servlet)},
         m_server{std::forward<ServerConnectionForward>(serverConnection),
-          m_servlet->GetSlots(),
+          Details::GetSlots(*m_servlet),
           Details::GetWebSocketSlots<HttpServletContainer>(*m_servlet)} {}
 
   template<typename ServletType, typename ServerConnectionType>

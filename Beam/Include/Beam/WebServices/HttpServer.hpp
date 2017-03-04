@@ -2,13 +2,15 @@
 #define BEAM_HTTPSERVER_HPP
 #include <vector>
 #include <boost/noncopyable.hpp>
+#include <cryptopp/sha.h>
+#include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
@@ -19,6 +21,16 @@
 
 namespace Beam {
 namespace WebServices {
+namespace Details {
+  inline std::string ComputeShaDigest(const std::string& source) {
+    CryptoPP::SHA sha;
+    byte digest[CryptoPP::SHA::DIGESTSIZE];
+    sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),
+      source.length());
+    return std::string(reinterpret_cast<const char*>(&digest),
+      CryptoPP::SHA::DIGESTSIZE);
+  }
+}
 
   /*! \class HttpServer
       \brief Implements an HTTP server.
@@ -43,8 +55,8 @@ namespace WebServices {
       using WebSocketChannel = ::Beam::WebServices::WebSocketChannel<
         std::shared_ptr<Channel>>;
 
-      //! The type of HttpUpgradeSlot used.
-      using HttpUpgradeSlot =
+      //! The type of slot used to upgrade to a WebSocket.
+      using WebSocketSlot =
         ::Beam::WebServices::HttpUpgradeSlot<WebSocketChannel>;
 
       //! Constructs an HttpServer.
@@ -65,7 +77,7 @@ namespace WebServices {
       template<typename ServerConnectionForward>
       HttpServer(ServerConnectionForward&& serverConnection,
         std::vector<HttpRequestSlot> slots,
-        std::vector<HttpUpgradeSlot> webSocketSlots);
+        std::vector<WebSocketSlot> webSocketSlots);
 
       ~HttpServer();
 
@@ -78,7 +90,7 @@ namespace WebServices {
       typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
       GetOptionalLocalPtr<ServerConnectionType> m_serverConnection;
       std::vector<HttpRequestSlot> m_slots;
-      std::vector<HttpUpgradeSlot> m_webSocketSlots;
+      std::vector<WebSocketSlot> m_webSocketSlots;
       Routines::RoutineHandler m_acceptRoutine;
       IO::OpenState m_openState;
 
@@ -97,14 +109,14 @@ namespace WebServices {
       ServerConnectionForward&& serverConnection,
       std::vector<HttpRequestSlot> slots)
       : HttpServer{std::forward<ServerConnectionForward>(serverConnection),
-          std::move(slots), std::vector<HttpUpgradeSlot>()} {}
+          std::move(slots), std::vector<WebSocketSlot>()} {}
 
   template<typename ServerConnectionType>
   template<typename ServerConnectionForward>
   HttpServer<ServerConnectionType>::HttpServer(
       ServerConnectionForward&& serverConnection,
       std::vector<HttpRequestSlot> slots,
-      std::vector<HttpUpgradeSlot> webSocketSlots)
+      std::vector<WebSocketSlot> webSocketSlots)
       : m_serverConnection{std::forward<ServerConnectionForward>(
           serverConnection)},
         m_slots{std::move(slots)},
@@ -233,14 +245,15 @@ namespace WebServices {
         channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
         return false;
       }
-      auto acceptToken = ServiceLocator::ComputeSHA(
-        *key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+      auto acceptToken = IO::Base64Encode(
+        IO::BufferFromString<IO::SharedBuffer>(Details::ComputeShaDigest(
+        *key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
       for(auto& slot : m_webSocketSlots) {
         if(slot.m_predicate(request)) {
           HttpResponse response{HttpStatusCode::SWITCHING_PROTOCOLS};
           response.SetHeader({"Connection", "Upgrade"});
           response.SetHeader({"Upgrade", "websocket"});
-          response.SetHeader({"Sec-WebSocket-Accept", acceptToken);
+          response.SetHeader({"Sec-WebSocket-Accept", acceptToken});
           response.Encode(Store(responseBuffer));
           channel->GetWriter().Write(responseBuffer);
           auto webSocket = std::make_unique<WebSocket>(channel,

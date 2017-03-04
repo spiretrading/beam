@@ -34,7 +34,7 @@ namespace Details {
     \param source The source string to hash.
     \return An uppercase, hexadecimal SHA hash-code of the <i>source</i>.
   */
-  inline std::string ComputeSHA(std::string source) {
+  inline std::string ComputeSHA(const std::string& source) {
     CryptoPP::SHA sha;
     byte digest[CryptoPP::SHA::DIGESTSIZE];
     sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),

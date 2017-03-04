@@ -22,6 +22,7 @@ applications+=" ServiceLocator"
 applications+=" ServiceProtocolProfiler"
 applications+=" ServletTemplate"
 applications+=" UidServer"
+applications+=" WebSocketEchoServer"
 
 for i in $applications; do
   pushd $directory/../../Applications/$i/Build/Make

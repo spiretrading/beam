@@ -9,3 +9,4 @@ CALL %~dp0../../Applications/ServiceLocator/Build/Windows/run_cmake.bat
 CALL %~dp0../../Applications/ServiceProtocolProfiler/Build/Windows/run_cmake.bat
 CALL %~dp0../../Applications/ServletTemplate/Build/Windows/run_cmake.bat
 CALL %~dp0../../Applications/UidServer/Build/Windows/run_cmake.bat
+CALL %~dp0../../Applications/WebSocketEchoServer/Build/Windows/run_cmake.bat

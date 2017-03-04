@@ -1,16 +1,16 @@
 file(GLOB header_files
-  ./../../../Include/HttpFileServer/HttpFileServer/*.hpp)
+  ./../../../Include/WebSocketEchoServer/WebSocketEchoServer/*.hpp)
 file(GLOB source_files
-  ./../../../Source/HttpFileServer/*.cpp)
+  ./../../../Source/WebSocketEchoServer/*.cpp)
 
-add_executable(HttpFileServer ${header_files} ${source_files})
+add_executable(WebSocketEchoServer ${header_files} ${source_files})
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
 endif()
 
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(HttpFileServer
+target_link_libraries(WebSocketEchoServer
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug $ENV{OPEN_SSL_LIBRARY_DEBUG_PATH}
@@ -21,7 +21,7 @@ target_link_libraries(HttpFileServer
   optimized $ENV{YAML_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
-  target_link_libraries(HttpFileServer
+  target_link_libraries(WebSocketEchoServer
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
@@ -39,4 +39,4 @@ if(UNIX)
     dl pthread rt)
 endif(UNIX)
 
-install(TARGETS HttpFileServer DESTINATION $ENV{INSTALL_DIRECTORY})
+install(TARGETS WebSocketEchoServer DESTINATION $ENV{INSTALL_DIRECTORY})

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(HttpFileServer)
+project(WebSocketEchoServer)
 
 include_directories(./../../Include)
 include_directories($ENV{BEAM_INCLUDE_PATH})
@@ -46,4 +46,4 @@ if(NOT EXISTS $ENV{INSTALL_DIRECTORY})
   file(MAKE_DIRECTORY $ENV{INSTALL_DIRECTORY})
 endif()
 
-add_subdirectory(HttpFileServer)
+add_subdirectory(WebSocketEchoServer)

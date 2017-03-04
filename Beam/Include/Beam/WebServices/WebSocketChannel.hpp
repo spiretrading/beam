@@ -31,6 +31,12 @@ namespace WebServices {
       WebSocketChannel(WebSocketConfig config,
         typename WebSocket::ChannelBuilder channelBuilder);
 
+      //! Constructs a WebSocketChannel from an existing WebSocket.
+      /*!
+        \param webSocket The WebSocket to adapt.
+      */
+      WebSocketChannel(std::unique_ptr<WebSocket> webSocket);
+
       //! Returns the underlying WebSocket.
       WebSocket& GetSocket();
 
@@ -54,6 +60,14 @@ namespace WebServices {
       typename WebSocketChannel::WebSocket::ChannelBuilder channelBuilder)
       : m_socket{std::make_shared<WebSocket>(std::move(config),
           std::move(channelBuilder))},
+        m_connection{m_socket},
+        m_reader{m_socket},
+        m_writer{m_socket} {}
+
+  template<typename ChannelType>
+  WebSocketChannel<ChannelType>::WebSocketChannel(
+      std::unique_ptr<WebSocket> webSocket)
+      : m_socket{std::move(webSocket)},
         m_connection{m_socket},
         m_reader{m_socket},
         m_writer{m_socket} {}

@@ -20,6 +20,12 @@ namespace IO {
       //! Constructs an OpenState.
       OpenState();
 
+      //! Constructs an OpenState.
+      /*!
+        \param isOpen Whether the initial state is open.
+      */
+      explicit OpenState(bool isOpen);
+
       ~OpenState();
 
       //! Returns <code>true</code> iff the state is opening.
@@ -80,40 +86,43 @@ namespace IO {
   };
 
   inline OpenState::OpenState()
-      : m_isOpen(false),
-        m_isTransitioning(false) {}
+      : OpenState{false} {}
+
+  inline OpenState::OpenState(bool isOpen)
+      : m_isOpen{isOpen},
+        m_isTransitioning{false} {}
 
   inline OpenState::~OpenState() {
     assert(IsClosed());
   }
 
   inline bool OpenState::IsOpening() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return LockedIsOpening();
   }
 
   inline bool OpenState::IsOpen() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return LockedIsOpen();
   }
 
   inline bool OpenState::IsRunning() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return LockedIsOpening() || LockedIsOpen();
   }
 
   inline bool OpenState::IsClosing() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return LockedIsClosing();
   }
 
   inline bool OpenState::IsClosed() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return LockedIsClosed();
   }
 
   inline bool OpenState::SetOpening() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    boost::unique_lock<boost::mutex> lock{m_mutex};
     if(LockedIsOpen()) {
       return true;
     } else if(LockedIsOpening()) {
@@ -123,7 +132,7 @@ namespace IO {
       Rethrow(m_exception);
       return true;
     } else if(LockedIsClosing()) {
-      BOOST_THROW_EXCEPTION(ConnectException("Connection is closing."));
+      BOOST_THROW_EXCEPTION(ConnectException{"Connection is closing."});
     } else {
       assert(LockedIsClosed());
       m_isTransitioning = true;
@@ -136,7 +145,7 @@ namespace IO {
   }
 
   inline void OpenState::SetOpenFailure(const std::exception_ptr& exception) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     m_exception = exception;
   }
 
@@ -146,7 +155,7 @@ namespace IO {
   }
 
   inline void OpenState::SetOpen() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     if(LockedIsOpen()) {
       return;
     }
@@ -156,7 +165,7 @@ namespace IO {
   }
 
   inline bool OpenState::SetClosing() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    boost::unique_lock<boost::mutex> lock{m_mutex};
     if(LockedIsOpen()) {
       m_isTransitioning = true;
       return false;
@@ -171,15 +180,15 @@ namespace IO {
   }
 
   inline void OpenState::SetClosed() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     if(LockedIsClosed()) {
       return;
     }
     m_isTransitioning = false;
     m_isOpen = false;
     m_isTransitioningCondition.notify_all();
-    std::exception_ptr exception = m_exception;
-    m_exception = std::exception_ptr();
+    auto exception = m_exception;
+    m_exception = std::exception_ptr{};
     Rethrow(exception);
   }
 

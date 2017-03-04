@@ -30,7 +30,7 @@ namespace WebServices {
       std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
-      friend class WebSocketChannel<typename WebSocket::Channel>;
+      template<typename> friend class WebSocketChannel;
       std::shared_ptr<WebSocket> m_socket;
       boost::optional<IO::BufferReader<IO::SharedBuffer>> m_reader;
 

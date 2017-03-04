@@ -26,7 +26,7 @@ namespace WebServices {
       void Close();
 
     private:
-      friend class WebSocketChannel<typename WebSocket::Channel>;
+      template<typename> friend class WebSocketChannel;
       std::shared_ptr<WebSocket> m_socket;
 
       WebSocketConnection(const std::shared_ptr<WebSocket>& socket);

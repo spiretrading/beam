@@ -16,6 +16,7 @@ namespace WebServices {
   template<typename ServletType, typename ServerConnectionType>
     class HttpServletContainer;
   enum class HttpStatusCode;
+  template<typename ChannelType> struct HttpUpgradeSlot;
   class HttpVersion;
   class InvalidHttpRequestException;
   class InvalidHttpResponseException;

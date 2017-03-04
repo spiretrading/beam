@@ -25,7 +25,7 @@ namespace WebServices {
       void Write(const Buffer& data);
 
     private:
-      friend class WebSocketChannel<typename WebSocket::Channel>;
+      template<typename> friend class WebSocketChannel;
       std::shared_ptr<WebSocket> m_socket;
 
       WebSocketWriter(const std::shared_ptr<WebSocket>& socket);

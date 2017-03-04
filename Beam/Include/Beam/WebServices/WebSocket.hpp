@@ -54,6 +54,7 @@ namespace WebServices {
    */
   template<typename ChannelType>
   class WebSocket : private boost::noncopyable {
+    struct ServerTag{};
     public:
 
       //! The type of Channel used to connect to the server.
@@ -64,8 +65,7 @@ namespace WebServices {
         \param uri The URI to connect to.
         \return A Channel able to connect to the specified <i>uri</i>.
       */
-      using ChannelBuilder =
-        std::function<std::unique_ptr<Channel> (const Uri& uri)>;
+      using ChannelBuilder = std::function<ChannelType (const Uri& uri)>;
 
       //! Constructs a WebSocket.
       /*!
@@ -73,6 +73,14 @@ namespace WebServices {
         \param channelBuilder Builds the Channel used to connect to the server.
       */
       WebSocket(WebSocketConfig config, ChannelBuilder channelBuilder);
+
+      //! Constructs a WebSocket operating in server-mode for internal use only.
+      /*!
+        \param channel The existing Channel to adapt.
+        \param tag Internal use only.
+      */
+      template<typename ChannelForward>
+      WebSocket(ChannelForward&& channel, ServerTag tag);
 
       ~WebSocket();
 
@@ -98,13 +106,14 @@ namespace WebServices {
       void Close();
 
     private:
+      template<typename> friend class HttpServer;
       Uri m_uri;
       std::vector<std::string> m_protocols;
       std::vector<std::string> m_extensions;
       std::string m_version;
       ChannelBuilder m_channelBuilder;
       HttpResponseParser m_parser;
-      std::unique_ptr<ChannelType> m_channel;
+      GetOptionalLocalPtr<ChannelType> m_channel;
       std::mt19937 m_randomEngine;
       typename Channel::Reader::Buffer m_frameBuffer;
       IO::OpenState m_openState;
@@ -154,6 +163,12 @@ namespace WebServices {
       }
     }
   }
+
+  template<typename ChannelType>
+  template<typename ChannelForward>
+  WebSocket<ChannelType>::WebSocket(ChannelForward&& channel, ServerTag)
+      : m_channel{std::forward<ChannelForward>(channel)},
+        m_openState{true} {}
 
   template <typename ChannelType>
   WebSocket<ChannelType>::~WebSocket() {

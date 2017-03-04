@@ -8,6 +8,7 @@
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
+#include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
@@ -81,6 +82,11 @@ namespace WebServices {
 
       void Shutdown();
       void AcceptLoop();
+      bool UpgradeConnection(const HttpRequest& request,
+        const std::shared_ptr<Channel>& channel,
+        typename Channel::Writer::Buffer& responseBuffer);
+      bool HandleHttpRequest(const HttpRequest& request, Channel& channel,
+        typename Channel::Writer::Buffer& responseBuffer);
   };
 
   template<typename ServerConnectionType>
@@ -164,12 +170,13 @@ namespace WebServices {
             channel->GetConnection().Open();
           } catch(const std::exception&) {
             std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+            clients.Erase(channel);
             return;
           }
+          HttpRequestParser parser;
+          typename Channel::Reader::Buffer requestBuffer;
+          typename Channel::Writer::Buffer responseBuffer;
           try {
-            HttpRequestParser parser;
-            typename Channel::Reader::Buffer requestBuffer;
-            typename Channel::Writer::Buffer responseBuffer;
             while(true) {
               channel->GetReader().Read(Store(requestBuffer));
               parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
@@ -177,62 +184,25 @@ namespace WebServices {
               auto request = parser.GetNextRequest();
               while(request.is_initialized()) {
                 std::cout << *request << "\n\n\n" << std::flush;
+                responseBuffer.Reset();
                 if(request->GetSpecialHeaders().m_connection ==
                     ConnectionHeader::UPGRADE) {
-                  auto protocol = request->GetHeader("Upgrade");
-                  if(!protocol.is_initialized()) {
-                    channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
-                  } else if(*protocol == "websocket") {
-                    auto foundSlot = false;
-                    for(auto& slot : m_webSocketSlots) {
-                      if(slot.m_predicate(*request)) {
-                        foundSlot = true;
-                        HttpResponse response{
-                          HttpStatusCode::SWITCHING_PROTOCOLS};
-                        // TODO: Add proper response headers for websocket.
-                        response.Encode(Store(responseBuffer));
-                        channel->GetWriter().Write(responseBuffer);
-                        responseBuffer.Reset();
-                        clients.Erase(channel);
-                        auto webSocket = std::make_unique<WebSocket>(channel,
-                          typename WebSocket::ServerTag{});
-                        auto webSocketChannel = std::make_unique<
-                          WebSocketChannel>(std::move(webSocket));
-                        slot.m_slot(*request, std::move(webSocketChannel));
-                        break;
-                      }
-                    }
-                    if(foundSlot) {
-                      return;
-                    } else {
-                      channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
-                    }
-                  } else {
-                    channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
+                  auto wasUpgraded = UpgradeConnection(*request, channel,
+                    responseBuffer);
+                  if(wasUpgraded) {
+                    clients.Erase(channel);
+                    return;
                   }
                 } else {
-                  auto foundSlot = false;
-                  for(auto& slot : m_slots) {
-                    if(slot.m_predicate(*request)) {
-                      auto response = slot.m_slot(*request);
-                      response.Encode(Store(responseBuffer));
-                      channel->GetWriter().Write(responseBuffer);
-                      responseBuffer.Reset();
-                      foundSlot = true;
-                      break;
-                    }
-                  }
-                  if(!foundSlot) {
-                    channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
-                  }
-                  if(request->GetSpecialHeaders().m_connection ==
-                      ConnectionHeader::CLOSE) {
+                  auto keepAlive = HandleHttpRequest(*request, *channel,
+                    responseBuffer);
+                  if(!keepAlive) {
+                    clients.Erase(channel);
                     channel->GetConnection().Close();
-                    break;
-                  } else {
-                    request = parser.GetNextRequest();
+                    return;
                   }
                 }
+                request = parser.GetNextRequest();
               }
             }
           } catch(const std::exception&) {}
@@ -244,6 +214,64 @@ namespace WebServices {
     for(auto& client : pendingClients) {
       client->GetConnection().Close();
     }
+  }
+
+  template<typename ServerConnectionType>
+  bool HttpServer<ServerConnectionType>::UpgradeConnection(
+      const HttpRequest& request, const std::shared_ptr<Channel>& channel,
+      typename Channel::Writer::Buffer& responseBuffer) {
+    auto protocol = request.GetHeader("Upgrade");
+    if(!protocol.is_initialized()) {
+      channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
+      return false;
+    }
+    if(*protocol == "websocket") {
+      auto key = request.GetHeader("Sec-WebSocket-Key");
+      if(!key.is_initialized()) {
+        channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
+        return false;
+      }
+      auto acceptToken = ServiceLocator::ComputeSHA(
+        *key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+      for(auto& slot : m_webSocketSlots) {
+        if(slot.m_predicate(request)) {
+          HttpResponse response{HttpStatusCode::SWITCHING_PROTOCOLS};
+          response.SetHeader({"Connection", "Upgrade"});
+          response.SetHeader({"Upgrade", "websocket"});
+          response.SetHeader({"Sec-WebSocket-Accept", acceptToken);
+          response.Encode(Store(responseBuffer));
+          channel->GetWriter().Write(responseBuffer);
+          auto webSocket = std::make_unique<WebSocket>(channel,
+            typename WebSocket::ServerTag{});
+          auto webSocketChannel = std::make_unique<WebSocketChannel>(
+            std::move(webSocket));
+          slot.m_slot(request, std::move(webSocketChannel));
+          return true;
+        }
+      }
+    }
+    channel->GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
+    return false;
+  }
+
+  template<typename ServerConnectionType>
+  bool HttpServer<ServerConnectionType>::HandleHttpRequest(
+      const HttpRequest& request, Channel& channel,
+      typename Channel::Writer::Buffer& responseBuffer) {
+    auto foundSlot = false;
+    for(auto& slot : m_slots) {
+      if(slot.m_predicate(request)) {
+        auto response = slot.m_slot(request);
+        response.Encode(Store(responseBuffer));
+        channel.GetWriter().Write(responseBuffer);
+        foundSlot = true;
+        break;
+      }
+    }
+    if(!foundSlot) {
+      channel.GetWriter().Write(NOT_FOUND_RESPONSE_BUFFER);
+    }
+    return request.GetSpecialHeaders().m_connection != ConnectionHeader::CLOSE;
   }
 }
 }

@@ -59,7 +59,7 @@ namespace Details {
       using ServerConnection = GetTryDereferenceType<ServerConnectionType>;
 
       //! The type of HttpServer used.
-      using HttpServer = Beam::WebServices::HttpServer<ServerConnectionType>;
+      using HttpServer = ::Beam::WebServices::HttpServer<ServerConnectionType>;
 
       //! Constructs the HttpServletContainer.
       /*!

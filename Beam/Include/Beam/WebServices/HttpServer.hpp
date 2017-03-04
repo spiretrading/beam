@@ -36,14 +36,16 @@ namespace WebServices {
       using Channel = typename ServerConnection::Channel;
 
       //! The type of WebSocket used.
-      using WebSocket = WebServices::WebSocket<std::shared_ptr<Channel>>;
+      using WebSocket =
+        ::Beam::WebServices::WebSocket<std::shared_ptr<Channel>>;
 
       //! The type of WebSocketChannel used.
-      using WebSocketChannel = WebServices::WebSocketChannel<
+      using WebSocketChannel = ::Beam::WebServices::WebSocketChannel<
         std::shared_ptr<Channel>>;
 
       //! The type of HttpUpgradeSlot used.
-      using HttpUpgradeSlot = WebServices::HttpUpgradeSlot<WebSocketChannel>;
+      using HttpUpgradeSlot =
+        ::Beam::WebServices::HttpUpgradeSlot<WebSocketChannel>;
 
       //! Constructs an HttpServer.
       /*!

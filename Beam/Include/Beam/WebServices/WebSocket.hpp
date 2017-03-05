@@ -6,8 +6,11 @@
 #include <string>
 #include <vector>
 #include <boost/noncopyable.hpp>
+#include <cryptopp/osrng.h>
+#include <cryptopp/sha.h>
 #include "Beam/IO/BufferOutputStream.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -18,6 +21,24 @@
 
 namespace Beam {
 namespace WebServices {
+namespace Details {
+  inline std::string ComputeShaDigest(const std::string& source) {
+    CryptoPP::SHA sha;
+    byte digest[CryptoPP::SHA::DIGESTSIZE];
+    sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),
+      source.length());
+    return std::string(reinterpret_cast<const char*>(&digest),
+      CryptoPP::SHA::DIGESTSIZE);
+  }
+
+  inline std::string GenerateKey() {
+    static CryptoPP::AutoSeededRandomPool randomPool;
+    const auto KEY_LENGTH = 16;
+    char randomBytes[KEY_LENGTH];
+    randomPool.GenerateBlock(reinterpret_cast<byte*>(randomBytes), KEY_LENGTH);
+    return std::string(randomBytes, KEY_LENGTH);
+  }
+}
 
   /*! \class WebSocketConfig
       \brief Contains the configuration needed to construct a WebSocket.
@@ -273,8 +294,8 @@ namespace WebServices {
     } else {
       std::uint32_t maskingKey = m_randomEngine();
       frame.Append(&maskingKey, sizeof(maskingKey));
-      frame.Append(data, size);
       auto frameSize = frame.GetSize();
+      frame.Append(data, size);
       for(std::size_t i = 0; i < size; ++i) {
         auto index = i + frameSize;
         frame.GetMutableData()[index] = frame.GetMutableData()[index] ^
@@ -293,6 +314,7 @@ namespace WebServices {
 
   template<typename ChannelType>
   void WebSocket<ChannelType>::Open() {
+    static auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     if(m_openState.SetOpening()) {
       return;
     }
@@ -300,8 +322,10 @@ namespace WebServices {
       HttpRequest request{HttpVersion::Version1_1(), HttpMethod::GET, m_uri};
       request.Add(HttpHeader{"Upgrade", "websocket"});
       request.Add(HttpHeader{"Connection", "Upgrade"});
-      auto key = "x3JJHMbDL1EzLkh9GBhXDw==";
-      request.Add(HttpHeader{"Sec-WebSocket-Key", key});
+      auto key = Details::GenerateKey();
+      auto base64Key = IO::Base64Encode(
+        IO::BufferFromString<IO::SharedBuffer>(key));
+      request.Add(HttpHeader{"Sec-WebSocket-Key", base64Key});
       if(!m_protocols.empty()) {
         std::string protocols;
         auto isFirst = true;
@@ -346,12 +370,21 @@ namespace WebServices {
         auto response = m_parser.GetNextResponse();
         receiveBuffer.Reset();
         if(response.is_initialized()) {
-          if(response->GetStatusCode() == HttpStatusCode::SWITCHING_PROTOCOLS) {
-            break;
-          } else {
+          if(response->GetStatusCode() != HttpStatusCode::SWITCHING_PROTOCOLS) {
             BOOST_THROW_EXCEPTION(IO::ConnectException{"Invalid status code: " +
               GetReasonPhrase(response->GetStatusCode())});
           }
+          auto acceptHeader = response->GetHeader("Sec-WebSocket-Accept");
+          if(!acceptHeader.is_initialized()) {
+            BOOST_THROW_EXCEPTION(IO::ConnectException{"Invalid accept key."});
+          }
+          auto acceptToken = IO::Base64Encode(
+            IO::BufferFromString<IO::SharedBuffer>(Details::ComputeShaDigest(
+            base64Key + MAGIC_TOKEN)));
+          if(acceptToken != *acceptHeader) {
+            BOOST_THROW_EXCEPTION(IO::ConnectException{"Invalid accept key."});
+          }
+          break;
         }
       }
     } catch(const std::exception&) {

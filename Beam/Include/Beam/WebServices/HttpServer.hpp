@@ -2,7 +2,6 @@
 #define BEAM_HTTPSERVER_HPP
 #include <vector>
 #include <boost/noncopyable.hpp>
-#include <cryptopp/sha.h>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -21,16 +20,6 @@
 
 namespace Beam {
 namespace WebServices {
-namespace Details {
-  inline std::string ComputeShaDigest(const std::string& source) {
-    CryptoPP::SHA sha;
-    byte digest[CryptoPP::SHA::DIGESTSIZE];
-    sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),
-      source.length());
-    return std::string(reinterpret_cast<const char*>(&digest),
-      CryptoPP::SHA::DIGESTSIZE);
-  }
-}
 
   /*! \class HttpServer
       \brief Implements an HTTP server.
@@ -234,6 +223,7 @@ namespace Details {
   bool HttpServer<ServerConnectionType>::UpgradeConnection(
       const HttpRequest& request, const std::shared_ptr<Channel>& channel,
       typename Channel::Writer::Buffer& responseBuffer) {
+    static auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     auto protocol = request.GetHeader("Upgrade");
     if(!protocol.is_initialized()) {
       channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
@@ -247,7 +237,7 @@ namespace Details {
       }
       auto acceptToken = IO::Base64Encode(
         IO::BufferFromString<IO::SharedBuffer>(Details::ComputeShaDigest(
-        *key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+        *key + MAGIC_TOKEN)));
       for(auto& slot : m_webSocketSlots) {
         if(slot.m_predicate(request)) {
           HttpResponse response{HttpStatusCode::SWITCHING_PROTOCOLS};

@@ -45,6 +45,17 @@ namespace WebServices {
       //! Sets the status code.
       void SetStatusCode(HttpStatusCode statusCode);
 
+      //! Returns the value of a header.
+      /*!
+        \param name The name of the header.
+        \return The value of the header with the specified <i>name</i>.
+      */
+      boost::optional<const std::string&> GetHeader(
+        const std::string& name) const;
+
+      //! Returns all headers.
+      const std::vector<HttpHeader>& GetHeaders() const;
+
       //! Sets a header, adding it if it doesn't exist.
       /*!
         \param header The header to set.
@@ -96,6 +107,22 @@ namespace WebServices {
 
   inline void HttpResponse::SetStatusCode(HttpStatusCode statusCode) {
     m_statusCode = statusCode;
+  }
+
+  inline boost::optional<const std::string&> HttpResponse::GetHeader(
+      const std::string& name) const {
+    auto header = std::find_if(m_headers.begin(), m_headers.end(),
+      [&] (const HttpHeader& value) {
+        return value.GetName() == name;
+      });
+    if(header == m_headers.end()) {
+      return boost::none;
+    }
+    return header->GetValue();
+  }
+
+  inline const std::vector<HttpHeader>& HttpResponse::GetHeaders() const {
+    return m_headers;
   }
 
   inline void HttpResponse::SetHeader(HttpHeader header) {

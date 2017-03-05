@@ -92,7 +92,7 @@ namespace WebSocketEchoServer {
     Beam::Routines::Spawn(
       [=, channel = std::move(channel)] {
         while(true) {
-          WebSocketChannel::Reader::Buffer buffer;
+          typename WebSocketChannel::Reader::Buffer buffer;
           channel->GetReader().Read(Beam::Store(buffer));
           std::cout << buffer << std::endl;
           channel->GetWriter().Write(buffer);

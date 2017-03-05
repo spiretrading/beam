@@ -32,15 +32,15 @@ namespace Details {
   template<typename T>
   struct HasSlots {
     template<typename C>
-    static auto test() ->
+    static auto test(int) ->
       decltype(std::declval<C>().GetSlots(), std::true_type());
 
     template<typename>
     static std::false_type test(...);
 
-    using type = decltype(test<T>());
+    using type = decltype(test<T>(0));
     static const bool value = std::is_same<
-      std::true_type, decltype(test<T>())>::value;
+      std::true_type, decltype(test<T>(0))>::value;
   };
 
   template<typename Servlet, bool dummy = HasSlots<Servlet>::value>
@@ -68,15 +68,15 @@ namespace Details {
   template<typename T>
   struct HasWebSocketSlots {
     template<typename C>
-    static auto test() ->
+    static auto test(int) ->
       decltype(std::declval<C>().GetWebSocketSlots(), std::true_type());
 
     template<typename>
     static std::false_type test(...);
 
-    using type = decltype(test<T>());
+    using type = decltype(test<T>(0));
     static const bool value = std::is_same<
-      std::true_type, decltype(test<T>())>::value;
+      std::true_type, decltype(test<T>(0))>::value;
   };
 
   template<typename Container, typename Servlet,
@@ -93,7 +93,7 @@ namespace Details {
   template<typename Container, typename Servlet>
   struct GetWebSocketsSlotsHelper<Container, Servlet, false> {
     auto operator ()(Servlet& servlet) {
-      return std::vector<Container::HttpServer::WebSocketSlot>();
+      return std::vector<typename Container::HttpServer::WebSocketSlot>();
     }
   };
 

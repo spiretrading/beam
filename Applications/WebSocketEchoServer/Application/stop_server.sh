@@ -1,27 +1,27 @@
 #!/bin/bash
 # stop_server.sh
 # 
-# Use this script to stop a HttpFileServer.
+# Use this script to stop a WebSocketEchoServer.
 #
-# Usage: ./stop_server.sh    Stops the HttpFileServer.
+# Usage: ./stop_server.sh    Stops the WebSocketEchoServer.
 
 reset=$(tput sgr0)
 red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
 echo
-# HttpFileServer is present.
-processes=$(ps -ef | grep -i "HttpFileServer" | grep -v "grep" | grep -v "bash" | awk '{ print $8 }')
-check_run=$(awk -v a="$processes" -v b="HttpFileServer" 'BEGIN { print index(a, b) }')
+# WebSocketEchoServer is present.
+processes=$(ps -ef | grep -i "WebSocketEchoServer" | grep -v "grep" | grep -v "bash" | awk '{ print $8 }')
+check_run=$(awk -v a="$processes" -v b="WebSocketEchoServer" 'BEGIN { print index(a, b) }')
 if [ "$check_run" = "0" ]; then
-  # HttpFileServer is not running.
-  echo "${red}[ERROR]${reset} Could not terminate ${yellow}HttpFileServer${reset}."
-  echo "        ${yellow}HttpFileServer${reset} is not active."
+  # WebSocketEchoServer is not running.
+  echo "${red}[ERROR]${reset} Could not terminate ${yellow}WebSocketEchoServer${reset}."
+  echo "        ${yellow}WebSocketEchoServer${reset} is not active."
 else
-  # HttpFileServer is already running.
-  pid=$(ps -ef | grep -i "HttpFileServer" | grep -v "grep" | grep -v "bash" | awk '{ print $2 }')
+  # WebSocketEchoServer is already running.
+  pid=$(ps -ef | grep -i "WebSocketEchoServer" | grep -v "grep" | grep -v "bash" | awk '{ print $2 }')
   kill -s INT $pid
-  echo "${yellow}HttpFileServer${reset} terminated."
+  echo "${yellow}WebSocketEchoServer${reset} terminated."
   srv_logs=$(ls srv_*.log 2>/dev/null)
   if [ -n "srv_logs" ]; then
     if [ ! -d "logs" ]; then

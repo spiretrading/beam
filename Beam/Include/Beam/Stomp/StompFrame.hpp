@@ -14,13 +14,42 @@ namespace Stomp {
    */
   class StompFrame {
     public:
+
+      //! Constructs a STOMP frame.
+      /*!
+        \param command The StompCommand represented.
+      */
       StompFrame(StompCommand command);
 
+      //! Adds a header.
+      /*!
+        \param name The name of the header.
+        \param value The header's value.
+      */
+      void AddHeader(const std::string& name, const std::string& value);
+
+      //! Sets the body.
+      /*!
+        \param body The body.
+      */
+      template<typename Buffer>
+      void SetBody(const Buffer& body);
+
+      //! Sets the body.
+      /*!
+        \param contentType The content-type of the body.
+        \param body The body.
+      */
+      template<typename Buffer>
+      void SetBody(const std::string& contentType, Buffer& body);
+
     private:
+      StompCommand m_command;
       IO::SharedBuffer m_buffer;
   };
 
-  inline StompFrame::StompFrame(StompCommand command) {
+  inline StompFrame::StompFrame(StompCommand command)
+      : m_command{command} {
     if(command == StompCommand::CONNECT) {
       m_buffer.Append("CONNECT\n", 8);
     } else if(command == StompCommand::STOMP) {

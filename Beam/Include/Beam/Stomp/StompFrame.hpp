@@ -48,6 +48,15 @@ namespace Stomp {
       IO::SharedBuffer m_buffer;
   };
 
+  //! Builds a CONNECT frame.
+  /*!
+    \param host The name of the virtual host to connect to.
+    \return A StompFrame representing a CONNECT.
+  */
+  inline StompFrame BuildConnectFrame(const std::string& host) {
+    return StompFrame{StompCommand::CONNECT};
+  }
+
   inline StompFrame::StompFrame(StompCommand command)
       : m_command{command} {
     if(command == StompCommand::CONNECT) {
@@ -83,7 +92,7 @@ namespace Stomp {
     } else if(command == StompCommand::RECEIPT) {
       m_buffer.Append("RECEIPT\n", 8);
     } else {
-      BOOST_THROW_EXCEPTION(StompProtocolException{"Unknown command."});
+      BOOST_THROW_EXCEPTION(StompException{"Unknown command."});
     }
   }
 }

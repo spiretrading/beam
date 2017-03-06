@@ -20,7 +20,7 @@ namespace Stomp {
     CONNECTED,
 
     //! Server indicates a protocol level error.
-    ERROR,
+    ERR,
 
     //! Empty frame.
     EOL,

@@ -23,15 +23,15 @@ namespace IO {
     public:
 
       //! The type of Buffer to use.
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
       //! The type of LocalServerConnection this connects to.
-      typedef IO::LocalServerConnection<Buffer> LocalServerConnection;
+      using LocalServerConnection = IO::LocalServerConnection<Buffer>;
 
-      typedef NamedChannelIdentifier Identifier;
-      typedef LocalConnection<Buffer> Connection;
-      typedef PipedReader<Buffer> Reader;
-      typedef PipedWriter<Buffer> Writer;
+      using Identifier = NamedChannelIdentifier;
+      using Connection = LocalConnection<Buffer>;
+      using Reader = PipedReader<Buffer>;
+      using Writer = PipedWriter<Buffer>;
 
       //! Constructs a LocalClientChannel.
       /*!

@@ -1,10 +1,11 @@
 #ifndef BEAM_STOMPFRAME_HPP
 #define BEAM_STOMPFRAME_HPP
-#include <boost/throw_exception.hpp>
+#include <algorithm>
+#include <vector>
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Stomp/StompCommand.hpp"
 #include "Beam/Stomp/Stomp.hpp"
-#include "Beam/Stomp/StompException.hpp"
+#include "Beam/Stomp/StompCommand.hpp"
+#include "Beam/Stomp/StompHeader.hpp"
 
 namespace Beam {
 namespace Stomp {
@@ -21,19 +22,53 @@ namespace Stomp {
       */
       StompFrame(StompCommand command);
 
+      //! Constructs a STOMP frame.
+      /*!
+        \param command The StompCommand represented.
+        \param headers The list of StompHeaders.
+      */
+      StompFrame(StompCommand command, std::vector<StompHeader> headers);
+
+      //! Returns the command.
+      StompCommand GetCommand() const;
+
+      //! Constructs a STOMP frame.
+      /*!
+        \param command The StompCommand represented.
+        \param headers The list of StompHeaders.
+        \param body The body of the frame.
+      */
+      template<typename Buffer>
+      StompFrame(StompCommand command, std::vector<StompHeader> headers,
+        Buffer&& body);
+
+      //! Returns the list of headers.
+      const std::vector<StompHeader>& GetHeaders() const;
+
       //! Adds a header.
       /*!
-        \param name The name of the header.
-        \param value The header's value.
+        \param header The StompHeader to add.
       */
-      void AddHeader(const std::string& name, const std::string& value);
+      void AddHeader(StompHeader header);
+
+      //! Finds a header with a specified name.
+      /*!
+        \param name The name of the header.
+        \return The value associated with the header with the specified
+                <i>name</i>.
+      */
+      boost::optional<const std::string&> FindHeader(
+        const std::string& name) const;
+
+      //! Returns the body.
+      const IO::SharedBuffer& GetBody() const;
 
       //! Sets the body.
       /*!
         \param body The body.
       */
       template<typename Buffer>
-      void SetBody(const Buffer& body);
+      void SetBody(Buffer&& body);
 
       //! Sets the body.
       /*!
@@ -41,59 +76,86 @@ namespace Stomp {
         \param body The body.
       */
       template<typename Buffer>
-      void SetBody(const std::string& contentType, Buffer& body);
+      void SetBody(const std::string& contentType, Buffer&& body);
 
     private:
       StompCommand m_command;
-      IO::SharedBuffer m_buffer;
+      std::vector<StompHeader> m_headers;
+      IO::SharedBuffer m_body;
   };
 
-  //! Builds a CONNECT frame.
-  /*!
-    \param host The name of the virtual host to connect to.
-    \return A StompFrame representing a CONNECT.
-  */
-  inline StompFrame BuildConnectFrame(const std::string& host) {
-    return StompFrame{StompCommand::CONNECT};
+  template<typename Buffer>
+  void Serialize(const StompFrame& frame, Out<Buffer> buffer) {
+    auto& command = ToString(frame.GetCommand());
+    buffer->Append(command.c_str(), command.size());
+    buffer->Append("\n", 1);
+    for(auto& header : frame.GetHeaders()) {
+      buffer->Append(header.GetName().c_str(), header.GetName().size());
+      buffer->Append(":", 1);
+      buffer->Append(header.GetValue().c_str(), header.GetValue().size());
+      buffer->Append("\n", 1);
+    }
+    buffer->Append("\n", 1);
+    buffer->Append(frame.GetBody());
+    buffer->Append("\n", 1);
   }
 
   inline StompFrame::StompFrame(StompCommand command)
-      : m_command{command} {
-    if(command == StompCommand::CONNECT) {
-      m_buffer.Append("CONNECT\n", 8);
-    } else if(command == StompCommand::STOMP) {
-      m_buffer.Append("STOMP\n", 6);
-    } else if(command == StompCommand::STOMP) {
-      m_buffer.Append("CONNECTED\n", 10);
-    } else if(command == StompCommand::STOMP) {
-      m_buffer.Append("ERROR\n", 6);
-    } else if(command == StompCommand::EOL) {
-      m_buffer.Append("\n", 1);
-    } else if(command == StompCommand::SEND) {
-      m_buffer.Append("SEND\n", 5);
-    } else if(command == StompCommand::SUBSCRIBE) {
-      m_buffer.Append("SUBSCRIBE\n", 10);
-    } else if(command == StompCommand::UNSUBSCRIBE) {
-      m_buffer.Append("UNSUBSCRIBE\n", 12);
-    } else if(command == StompCommand::ACK) {
-      m_buffer.Append("ACK\n", 4);
-    } else if(command == StompCommand::NACK) {
-      m_buffer.Append("NACK\n", 5);
-    } else if(command == StompCommand::BEGIN) {
-      m_buffer.Append("BEGIN\n", 6);
-    } else if(command == StompCommand::COMMIT) {
-      m_buffer.Append("COMMIT\n", 7);
-    } else if(command == StompCommand::ABORT) {
-      m_buffer.Append("ABORT\n", 6);
-    } else if(command == StompCommand::DISCONNECT) {
-      m_buffer.Append("DISCONNECT\n", 11);
-    } else if(command == StompCommand::MESSAGE) {
-      m_buffer.Append("MESSAGE\n", 8);
-    } else if(command == StompCommand::RECEIPT) {
-      m_buffer.Append("RECEIPT\n", 8);
-    } else {
-      BOOST_THROW_EXCEPTION(StompException{"Unknown command."});
+      : m_command{command} {}
+
+  inline StompFrame::StompFrame(StompCommand command,
+      std::vector<StompHeader> headers)
+      : m_command{command},
+        m_headers{std::move(headers)} {}
+
+  template<typename Buffer>
+  StompFrame::StompFrame(StompCommand command, std::vector<StompHeader> headers,
+      Buffer&& body)
+      : m_command{command},
+        m_headers{std::move(headers)} {
+    SetBody(std::move(body));
+  }
+
+  inline StompCommand StompFrame::GetCommand() const {
+    return m_command;
+  }
+
+  inline const std::vector<StompHeader>& StompFrame::GetHeaders() const {
+    return m_headers;
+  }
+
+  inline void StompFrame::AddHeader(StompHeader header) {
+    m_headers.push_back(std::move(header));
+  }
+
+  inline boost::optional<const std::string&> StompFrame::FindHeader(
+      const std::string& name) const {
+    auto header = std::find_if(m_headers.begin(), m_headers.end(),
+      [&] (const StompHeader& header) {
+        return header.GetName() == name;
+      });
+    if(header == m_headers.end()) {
+      return boost::none;
     }
+    return header->GetValue();
+  }
+
+  inline const IO::SharedBuffer& StompFrame::GetBody() const {
+    return m_body;
+  }
+
+  template<typename Buffer>
+  void StompFrame::SetBody(Buffer&& body) {
+    m_body = std::move(body);
+    if(m_body.GetSize() != 0) {
+      AddHeader({"content-length", m_body.GetSize()});
+    }
+  }
+
+  template<typename Buffer>
+  void StompFrame::SetBody(const std::string& contentType, Buffer&& body) {
+    SetBody(std::move(body));
+    AddHeader({"content-type", contentType});
   }
 }
 }

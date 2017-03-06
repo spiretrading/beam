@@ -6,6 +6,8 @@ namespace Stomp {
   enum class StompCommand;
   class StompException;
   class StompFrame;
+  class StompFrameParser;
+  class StompHeader;
   template<typename ChannelType> class StompServer;
 }
 }

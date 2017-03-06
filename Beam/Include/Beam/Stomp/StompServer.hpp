@@ -1,12 +1,15 @@
 #ifndef BEAM_STOMPSERVER_HPP
 #define BEAM_STOMPSERVER_HPP
 #include <boost/noncopyable.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/Channel.hpp"
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Stomp/Stomp.hpp"
 #include "Beam/Stomp/StompFrame.hpp"
+#include "Beam/Stomp/StompFrameParser.hpp"
 
 namespace Beam {
 namespace Stomp {
@@ -46,6 +49,9 @@ namespace Stomp {
 
     private:
       GetOptionalLocalPtr<ChannelType> m_channel;
+      StompFrameParser m_parser;
+      typename Channel::Reader::Buffer m_readBuffer;
+      typename Channel::Writer::Buffer m_writeBuffer;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -63,7 +69,15 @@ namespace Stomp {
 
   template<typename ChannelType>
   StompFrame StompServer<ChannelType>::Read() {
-    return StompFrame{StompCommand::EOL};
+    while(true) {
+      auto frame = m_parser.GetNextFrame();
+      if(frame.is_initialized()) {
+        return *frame;
+      }
+      m_channel->GetReader().Read(Beam::Store(m_readBuffer));
+      m_parser.Feed(m_readBuffer.GetData(), m_readBuffer.GetSize());
+      m_readBuffer.Reset();
+    }
   }
 
   template<typename ChannelType>
@@ -76,6 +90,16 @@ namespace Stomp {
     }
     try {
       m_channel->GetConnection().Open();
+      auto connectFrame = Read();
+      if(connectFrame.GetCommand() != StompCommand::CONNECT &&
+          connectFrame.GetCommand() != StompCommand::STOMP) {
+        BOOST_THROW_EXCEPTION(IO::ConnectException{"CONNECT expected."});
+      }
+      StompFrame connectedFrame{StompCommand::CONNECTED};
+      connectedFrame.AddHeader({"version", "1.2"});
+      m_writeBuffer.Reset();
+      Serialize(connectedFrame, Store(m_writeBuffer));
+      m_channel->GetWriter().Write(m_writeBuffer);
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();

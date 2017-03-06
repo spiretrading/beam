@@ -5,6 +5,7 @@
 namespace Beam {
 namespace Stomp {
 namespace Tests {
+  class StompFrameParserTester;
   class StompServerTester;
 }
 }

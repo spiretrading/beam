@@ -1,6 +1,7 @@
 #include "Beam/StompTests/StompServerTester.hpp"
 
 using namespace Beam;
+using namespace Beam::IO;
 using namespace Beam::Stomp;
 using namespace Beam::Stomp::Tests;
 
@@ -14,7 +15,6 @@ void StompServerTester::setUp() {
     });
   auto serverChannel = m_serverConnection->Accept();
   m_server.emplace(std::move(serverChannel));
-  m_server->Open();
 }
 
 void StompServerTester::tearDown() {
@@ -24,4 +24,20 @@ void StompServerTester::tearDown() {
 }
 
 void StompServerTester::TestReceivingConnectCommand() {
+  auto contents = BufferFromString<SharedBuffer>(
+    "CONNECT\n"
+    "accept-version:1.2\n"
+    "host:testhost\n\n\n");
+  m_clientChannel->GetWriter().Write(contents);
+  m_server->Open();
+  SharedBuffer responseBuffer;
+  m_clientChannel->GetReader().Read(Store(responseBuffer));
+  StompFrameParser parser;
+  parser.Feed(responseBuffer.GetData(), responseBuffer.GetSize());
+  auto response = parser.GetNextFrame();
+  CPPUNIT_ASSERT(response.is_initialized());
+  CPPUNIT_ASSERT(response->GetCommand() == StompCommand::CONNECTED);
+  auto versionHeader = response->FindHeader("version");
+  CPPUNIT_ASSERT(versionHeader.is_initialized());
+  CPPUNIT_ASSERT(*versionHeader == "1.2");
 }

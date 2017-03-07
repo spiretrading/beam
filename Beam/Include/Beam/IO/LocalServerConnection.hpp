@@ -28,9 +28,9 @@ namespace IO {
     public:
 
       //! The type of Buffer used by the Channel's Readers and Writers.
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
-      typedef IO::LocalServerChannel<Buffer> Channel;
+      using Channel = IO::LocalServerChannel<Buffer>;
 
       //! Constructs a LocalServerConnection.
       LocalServerConnection();
@@ -45,8 +45,8 @@ namespace IO {
 
     private:
       friend class IO::LocalServerChannel<Buffer>;
-      typedef std::unordered_map<LocalClientChannel<Buffer>*,
-        std::unique_ptr<Channel>> ClientToServerChannels;
+      using ClientToServerChannels = std::unordered_map<
+        LocalClientChannel<Buffer>*, std::unique_ptr<Channel>>;
       struct PendingChannelEntry {
         LocalClientChannel<Buffer>* m_clientChannel;
         Routines::Eval<void> m_result;
@@ -67,12 +67,12 @@ namespace IO {
   LocalServerConnection<BufferType>::PendingChannelEntry::PendingChannelEntry(
       RefType<LocalClientChannel<Buffer>> clientChannel,
       Routines::Eval<void>&& result)
-      : m_clientChannel(clientChannel.Get()),
-        m_result(std::move(result)) {}
+      : m_clientChannel{clientChannel.Get()},
+        m_result{std::move(result)} {}
 
   template<typename BufferType>
   LocalServerConnection<BufferType>::LocalServerConnection()
-      : m_pendingChannels(std::make_shared<Queue<PendingChannelEntry*>>()) {}
+      : m_pendingChannels{std::make_shared<Queue<PendingChannelEntry*>>()} {}
 
   template<typename BufferType>
   LocalServerConnection<BufferType>::~LocalServerConnection() {

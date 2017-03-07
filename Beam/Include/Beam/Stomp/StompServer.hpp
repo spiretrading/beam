@@ -10,6 +10,7 @@
 #include "Beam/Stomp/Stomp.hpp"
 #include "Beam/Stomp/StompFrame.hpp"
 #include "Beam/Stomp/StompFrameParser.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace Stomp {
@@ -48,6 +49,7 @@ namespace Stomp {
       void Close();
 
     private:
+      mutable Threading::Mutex m_writeMutex;
       GetOptionalLocalPtr<ChannelType> m_channel;
       StompFrameParser m_parser;
       typename Channel::Reader::Buffer m_readBuffer;
@@ -81,7 +83,12 @@ namespace Stomp {
   }
 
   template<typename ChannelType>
-  void StompServer<ChannelType>::Write(const StompFrame& frame) {}
+  void StompServer<ChannelType>::Write(const StompFrame& frame) {
+    boost::lock_guard<Threading::Mutex> lock{m_writeMutex};
+    m_writeBuffer.Reset();
+    Serialize(frame, Store(m_writeBuffer));
+    m_channel->GetWriter().Write(m_writeBuffer);
+  }
 
   template<typename ChannelType>
   void StompServer<ChannelType>::Open() {
@@ -97,9 +104,7 @@ namespace Stomp {
       }
       StompFrame connectedFrame{StompCommand::CONNECTED};
       connectedFrame.AddHeader({"version", "1.2"});
-      m_writeBuffer.Reset();
-      Serialize(connectedFrame, Store(m_writeBuffer));
-      m_channel->GetWriter().Write(m_writeBuffer);
+      Write(connectedFrame);
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();

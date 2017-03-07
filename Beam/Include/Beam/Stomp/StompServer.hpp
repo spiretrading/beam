@@ -74,6 +74,22 @@ namespace Stomp {
     while(true) {
       auto frame = m_parser.GetNextFrame();
       if(frame.is_initialized()) {
+        if(frame->GetCommand() == StompCommand::EOL ||
+            frame->GetCommand() == StompCommand::ACK ||
+            frame->GetCommand() == StompCommand::NACK ||
+            frame->GetCommand() == StompCommand::DISCONNECT) {
+          auto receipt = frame->FindHeader("receipt");
+          if(receipt.is_initialized()) {
+            StompFrame receiptFrame{StompCommand::RECEIPT};
+            receiptFrame.AddHeader({"receipt-id", *receipt});
+            Write(receiptFrame);
+          }
+          if(frame->GetCommand() == StompCommand::DISCONNECT) {
+            Close();
+            BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+          }
+          continue;
+        }
         return *frame;
       }
       m_channel->GetReader().Read(Beam::Store(m_readBuffer));
@@ -104,6 +120,7 @@ namespace Stomp {
       }
       StompFrame connectedFrame{StompCommand::CONNECTED};
       connectedFrame.AddHeader({"version", "1.2"});
+      connectedFrame.AddHeader({"heart-beat", "0,0"});
       Write(connectedFrame);
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();

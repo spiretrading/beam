@@ -20,10 +20,14 @@ namespace Tests {
       //! Tests parsing a frame with new line and carriage return characters.
       void TestCarriageAndNewLineCharacter();
 
+      //! Tests parsing EOL frames.
+      void TestEolFrame();
+
     private:
       CPPUNIT_TEST_SUITE(StompFrameParserTester);
         CPPUNIT_TEST(TestNewLineCharacter);
         CPPUNIT_TEST(TestCarriageAndNewLineCharacter);
+        CPPUNIT_TEST(TestEolFrame);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

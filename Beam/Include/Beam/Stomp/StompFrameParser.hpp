@@ -77,11 +77,20 @@ namespace Stomp {
       }
       m_parserState = ParserState::COMMAND;
     }
-    if(m_parserState == ParserState::COMMAND) {
+    while(m_parserState == ParserState::COMMAND) {
       auto end = static_cast<const char*>(std::memchr(c, '\n', size));
       if(end == nullptr) {
         m_buffer.Append(c, size);
         return;
+      }
+      if(end == c) {
+        ++c;
+        --size;
+        continue;
+      } else if(end == c + 1 && *c == '\r') {
+        c += 2;
+        size -= 2;
+        continue;
       }
       if(m_buffer.IsEmpty()) {
         ParseCommand(c, (end - c));

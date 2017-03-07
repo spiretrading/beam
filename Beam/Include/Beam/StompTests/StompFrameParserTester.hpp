@@ -23,11 +23,15 @@ namespace Tests {
       //! Tests parsing EOL frames.
       void TestEolFrame();
 
+      //! Test escaping characters in headers.
+      void TestEscapeCharacters();
+
     private:
       CPPUNIT_TEST_SUITE(StompFrameParserTester);
         CPPUNIT_TEST(TestNewLineCharacter);
         CPPUNIT_TEST(TestCarriageAndNewLineCharacter);
         CPPUNIT_TEST(TestEolFrame);
+        CPPUNIT_TEST(TestEscapeCharacters);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

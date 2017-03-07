@@ -4,13 +4,42 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Stomp/StompCommand.hpp"
+#include "Beam/Stomp/StompException.hpp"
 #include "Beam/Stomp/StompFrame.hpp"
 #include "Beam/Stomp/Stomp.hpp"
 
 namespace Beam {
 namespace Stomp {
+namespace Details {
+  inline std::string Unescape(const char* c, unsigned int length) {
+    std::string result;
+    for(unsigned int i = 0; i < length; ++i) {
+      if(c[i] != '\\') {
+        result += c[i];
+      } else {
+        ++i;
+        if(i == length) {
+          BOOST_THROW_EXCEPTION(StompException{"Invalid escape character"});
+        }
+        if(c[i] == 'n') {
+          result += '\n';
+        } else if(c[i] == 'r') {
+          result += '\r';
+        } else if(c[i] == 'c') {
+          result += ':';
+        } else if(c[i] == '\\') {
+          result += '\\';
+        } else {
+          BOOST_THROW_EXCEPTION(StompException{"Invalid escape character."});
+        }
+      }
+    }
+    return result;
+  }
+}
 
   /*! \class StompFrameParser
       \brief Parses StompFrames.
@@ -306,10 +335,10 @@ namespace Stomp {
       return;
     }
     auto nameLength = static_cast<unsigned int>(nameEnd - c);
-    std::string name{c, nameLength};
+    auto name = Details::Unescape(c, nameLength);
     c += nameLength + 1;
     size -= nameLength + 1;
-    std::string value{c, size};
+    auto value = Details::Unescape(c, size);
     if(m_contentLength == -1 && name == "content-length") {
       m_contentLength = std::stoul(value);
     } else {

@@ -1,6 +1,7 @@
 #ifndef BEAM_STOMPFRAME_HPP
 #define BEAM_STOMPFRAME_HPP
 #include <algorithm>
+#include <string>
 #include <vector>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Stomp/Stomp.hpp"
@@ -9,6 +10,24 @@
 
 namespace Beam {
 namespace Stomp {
+namespace Details {
+  template<typename Buffer>
+  void Escape(const std::string& value, Out<Buffer> buffer) {
+    for(auto c : value) {
+      if(c == '\r') {
+        buffer->Append("\\r", 2);
+      } else if(c == '\n') {
+        buffer->Append("\\n", 2);
+      } else if(c == ':') {
+        buffer->Append("\\c", 2);
+      } else if(c == '\\') {
+        buffer->Append("\\\\", 2);
+      } else {
+        buffer->Append<char>(c);
+      }
+    }
+  }
+}
 
   /*! \class StompFrame
       \brief Represents a STOMP frame.
@@ -90,9 +109,9 @@ namespace Stomp {
     buffer->Append(command.c_str(), command.size());
     buffer->Append("\n", 1);
     for(auto& header : frame.GetHeaders()) {
-      buffer->Append(header.GetName().c_str(), header.GetName().size());
+      Details::Escape(header.GetName(), Store(*buffer));
       buffer->Append(":", 1);
-      buffer->Append(header.GetValue().c_str(), header.GetValue().size());
+      Details::Escape(header.GetValue(), Store(*buffer));
       buffer->Append("\n", 1);
     }
     buffer->Append("\n", 1);

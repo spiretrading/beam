@@ -92,3 +92,18 @@ void StompFrameParserTester::TestEolFrame() {
     CPPUNIT_ASSERT(message == "goodbye sky");
   }
 }
+
+void StompFrameParserTester::TestEscapeCharacters() {
+  StompFrameParser parser;
+  string contents =
+    "SEND\r\n"
+    "destination:/test/server\r\n"
+    "a\\nb:a\\cb\r\n"
+    "content-length:0\r\n\r\n\r\n";
+  parser.Feed(contents.c_str(), contents.size());
+  auto frame = parser.GetNextFrame();
+  CPPUNIT_ASSERT(frame.is_initialized());
+  auto header = frame->FindHeader("a\nb");
+  CPPUNIT_ASSERT(header.is_initialized());
+  CPPUNIT_ASSERT(*header == "a:b");
+}

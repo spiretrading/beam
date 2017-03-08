@@ -239,6 +239,24 @@ namespace Details {
       stackSize);
   }
 
+  template<typename F>
+  Routine::Id Spawn(F&& f, Eval<decltype(f())> result) {
+    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
+      std::move(result));
+  }
+
+  template<typename F>
+  Routine::Id Spawn(F&& f, std::size_t stackSize, Eval<decltype(f())> result) {
+    return Spawn(
+      [f = std::move(f), result = std::move(result)] {
+        try {
+          result.SetResult(f());
+        } catch(...) {
+          result.SetException(std::current_exception());
+        }
+      }, stackSize);
+  }
+
   inline void Wait(Routine::Id id) {
     Details::Scheduler::GetInstance().Wait(id);
   }

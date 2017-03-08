@@ -168,6 +168,12 @@ namespace Details {
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize);
 
+  template<typename F>
+  Routine::Id Spawn(F&& f, Eval<decltype(f())> result);
+
+  template<typename F>
+  Routine::Id Spawn(F&& f, std::size_t stackSize, Eval<decltype(f())> result);
+
   //! Returns the currently executing Routine.
   Routine& GetCurrentRoutine();
 

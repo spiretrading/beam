@@ -252,7 +252,7 @@ namespace ServiceLocator {
           RemoveAll(listing.m_subscribers, &client);
         }
       });
-    auto& monitors = session.GetMonitors();
+    auto monitors = session.GetMonitors();
     Threading::With(m_directoryEntryMonitorEntries,
       [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
         for(auto& entry : monitors) {

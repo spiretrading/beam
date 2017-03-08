@@ -23,7 +23,7 @@ namespace Details {
       } else if(c == '\\') {
         buffer->Append("\\\\", 2);
       } else {
-        buffer->Append<char>(c);
+        buffer->Append(c);
       }
     }
   }

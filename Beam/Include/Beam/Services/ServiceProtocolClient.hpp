@@ -16,6 +16,7 @@
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
+#include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Serialization/ShuttleClone.hpp"
 #include "Beam/Serialization/ShuttleUniquePtr.hpp"
 #include "Beam/Serialization/TypeNotFoundException.hpp"

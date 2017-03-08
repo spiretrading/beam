@@ -235,8 +235,8 @@ namespace ServiceLocator {
   void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
       HandleClientClosed(ServiceProtocolClient& client) {
     auto& session = client.GetSession();
-    auto& registeredServices = session.GetRegisteredServices();
-    auto& serviceSubscriptions = session.GetServiceSubscriptions();
+    auto registeredServices = session.GetRegisteredServices();
+    auto serviceSubscriptions = session.GetServiceSubscriptions();
     Threading::With(m_serviceEntryListings,
       [&] (ServiceEntryListings& serviceEntryListings) {
         for(auto& registeredService : registeredServices) {
@@ -421,7 +421,7 @@ namespace ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException{"Not logged in."};
     }
-    auto& registeredServices = session.GetRegisteredServices();
+    auto registeredServices = session.GetRegisteredServices();
     auto serviceFound = false;
     for(auto& registeredService : registeredServices) {
       if(registeredService.GetId() == serviceId) {

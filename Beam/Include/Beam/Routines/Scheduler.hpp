@@ -247,12 +247,15 @@ namespace Details {
 
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize, Eval<decltype(f())> result) {
+
+    // TODO: Stupid MSVC
+    auto r = std::make_unique<Eval<decltype(f())>>(std::move(result));
     return Spawn(
-      [f = std::move(f), result = std::move(result)] {
+      [f = std::move(f), r2 = std::move(r)] {
         try {
-          result.SetResult(f());
+          r2->SetResult(f());
         } catch(...) {
-          result.SetException(std::current_exception());
+          r2->SetException(std::current_exception());
         }
       }, stackSize);
   }

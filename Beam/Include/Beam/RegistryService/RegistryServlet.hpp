@@ -18,12 +18,11 @@ namespace RegistryService {
   template<typename ContainerType, typename RegistryDataStoreType>
   class RegistryServlet : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
       //! The type of RegistryDataStore used.
-      typedef typename TryDereferenceType<RegistryDataStoreType>::type
-        RegistryDataStore;
+      using RegistryDataStore = GetTryDereferenceType<RegistryDataStoreType>;
 
       //! Constructs a RegistryServlet.
       /*!
@@ -40,7 +39,7 @@ namespace RegistryService {
       void Close();
 
     private:
-      typename OptionalLocalPtr<RegistryDataStoreType>::type m_dataStore;
+      GetOptionalLocalPtr<RegistryDataStoreType> m_dataStore;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -70,10 +69,10 @@ namespace RegistryService {
 
   template<typename RegistryDataStoreType>
   struct MetaRegistryServlet {
-    typedef RegistrySession Session;
+    using Session = RegistrySession;
     template<typename ContainerType>
     struct apply {
-      typedef RegistryServlet<ContainerType, RegistryDataStoreType> type;
+      using type = RegistryServlet<ContainerType, RegistryDataStoreType>;
     };
   };
 
@@ -81,7 +80,7 @@ namespace RegistryService {
   template<typename DataStoreForward>
   RegistryServlet<ContainerType, RegistryDataStoreType>::RegistryServlet(
       DataStoreForward&& dataStore)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)) {}
+      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
 
   template<typename ContainerType, typename RegistryDataStoreType>
   void RegistryServlet<ContainerType, RegistryDataStoreType>::RegisterServices(

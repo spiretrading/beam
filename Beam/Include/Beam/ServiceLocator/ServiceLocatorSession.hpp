@@ -1,6 +1,8 @@
 #ifndef BEAM_SERVICELOCATORSESSION_HPP
 #define BEAM_SERVICELOCATORSESSION_HPP
 #include <vector>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include "Beam/ServiceLocator/AuthenticatedSession.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
@@ -15,7 +17,7 @@ namespace ServiceLocator {
     public:
 
       //! Constructs a ServiceLocatorSession.
-      ServiceLocatorSession();
+      ServiceLocatorSession() = default;
 
       //! Acquires a ServiceLocatorSession.
       /*!
@@ -24,13 +26,13 @@ namespace ServiceLocator {
       ServiceLocatorSession(ServiceLocatorSession&& session);
 
       //! Returns the session id.
-      const std::string& GetSessionId() const;
+      std::string GetSessionId() const;
 
       //! Sets the session id.
       void SetSessionId(const std::string& sessionId);
 
       //! Returns the services being subscribed to by this Channel.
-      const std::vector<std::string>& GetServiceSubscriptions() const;
+      std::vector<std::string> GetServiceSubscriptions() const;
 
       //! Subscribes to a service.
       /*!
@@ -45,7 +47,7 @@ namespace ServiceLocator {
       void UnsubscribeService(const std::string& serviceName);
 
       //! Returns the ServiceEntries registered by this Channel.
-      const std::vector<ServiceEntry>& GetRegisteredServices() const;
+      std::vector<ServiceEntry> GetRegisteredServices() const;
 
       //! Registers a service.
       /*!
@@ -72,59 +74,68 @@ namespace ServiceLocator {
       void Unmonitor(const DirectoryEntry& entry);
 
       //! Returns the list of all DirectoryEntries being monitored.
-      const std::vector<DirectoryEntry>& GetMonitors() const;
+      std::vector<DirectoryEntry> GetMonitors() const;
 
     private:
+      mutable boost::mutex m_mutex;
       std::string m_sessionId;
       std::vector<ServiceEntry> m_registeredServices;
       std::vector<std::string> m_serviceSubscriptions;
       std::vector<DirectoryEntry> m_monitors;
   };
 
-  inline ServiceLocatorSession::ServiceLocatorSession() {}
-
   inline ServiceLocatorSession::ServiceLocatorSession(
       ServiceLocatorSession&& session)
-      : AuthenticatedSession(std::move(session)),
-        m_sessionId(std::move(session.m_sessionId)),
-        m_registeredServices(std::move(session.m_registeredServices)),
-        m_serviceSubscriptions(std::move(session.m_serviceSubscriptions)) {}
+      : AuthenticatedSession(std::move(session)) {
+    boost::lock_guard<boost::mutex> lock{session.m_mutex};
+    m_sessionId = std::move(session.m_sessionId);
+    m_registeredServices = std::move(session.m_registeredServices);
+    m_serviceSubscriptions = std::move(session.m_serviceSubscriptions);
+  }
 
-  inline const std::string& ServiceLocatorSession::GetSessionId() const {
+  inline std::string ServiceLocatorSession::GetSessionId() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_sessionId;
   }
 
   inline void ServiceLocatorSession::SetSessionId(
       const std::string& sessionId) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     m_sessionId = sessionId;
   }
 
-  inline const std::vector<std::string>&
+  inline std::vector<std::string>
       ServiceLocatorSession::GetServiceSubscriptions() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_serviceSubscriptions;
   }
 
   inline void ServiceLocatorSession::SubscribeService(
       const std::string& serviceName) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     m_serviceSubscriptions.push_back(serviceName);
   }
 
   inline void ServiceLocatorSession::UnsubscribeService(
       const std::string& serviceName) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     RemoveAll(m_serviceSubscriptions, serviceName);
   }
 
-  inline const std::vector<ServiceEntry>&
+  inline std::vector<ServiceEntry>
       ServiceLocatorSession::GetRegisteredServices() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_registeredServices;
   }
 
   inline void ServiceLocatorSession::RegisterService(
       const ServiceEntry& serviceEntry) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     m_registeredServices.push_back(serviceEntry);
   }
 
   inline void ServiceLocatorSession::UnregisterService(int serviceId) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     for(auto i = m_registeredServices.begin();
         i != m_registeredServices.end(); ++i) {
       if(i->GetId() == serviceId) {
@@ -135,15 +146,18 @@ namespace ServiceLocator {
   }
 
   inline void ServiceLocatorSession::Monitor(const DirectoryEntry& entry) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     m_monitors.push_back(entry);
   }
 
   inline void ServiceLocatorSession::Unmonitor(const DirectoryEntry& entry) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     RemoveAll(m_monitors, entry);
   }
 
-  inline const std::vector<DirectoryEntry>&
+  inline std::vector<DirectoryEntry>
       ServiceLocatorSession::GetMonitors() const {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return m_monitors;
   }
 }

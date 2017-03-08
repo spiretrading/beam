@@ -179,12 +179,20 @@ namespace Services {
   */
   template<typename ServiceProtocolClientType>
   void HandleMessagesLoop(ServiceProtocolClientType& client) {
+    Routines::RoutineHandlerGroup routines;
     try {
       while(true) {
         auto message = client.ReadMessage();
         auto slot = client.GetSlots().Find(*message);
         if(slot != nullptr) {
-          message->EmitSignal(slot, Ref(client));
+          routines.Spawn(
+            [&, message = std::move(message), slot = std::move(slot)] {
+              try {
+                message->EmitSignal(slot, Ref(client));
+              } catch(...) {
+                client.Close();
+              }
+            });
         }
       }
     } catch(const IO::EndOfFileException&) {

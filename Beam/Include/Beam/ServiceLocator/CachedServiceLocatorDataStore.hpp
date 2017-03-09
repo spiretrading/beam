@@ -271,6 +271,12 @@ namespace ServiceLocator {
       for(auto& parent : parents) {
         m_cache.Associate(account, parent);
       }
+      for(auto& directory : directories) {
+        auto permissions = m_dataStore->LoadPermissions(account, directory);
+        if(permissions != Permissions{}) {
+          m_cache.SetPermissions(account, directory, permissions);
+        }
+      }
     }
   }
 

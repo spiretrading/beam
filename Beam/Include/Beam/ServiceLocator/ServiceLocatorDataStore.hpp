@@ -50,6 +50,12 @@ namespace ServiceLocator {
       */
       virtual std::vector<DirectoryEntry> LoadAllAccounts() = 0;
 
+      //! Loads all directories.
+      /*!
+        \return The list of all DirectoryEntries representing directories.
+      */
+      virtual std::vector<DirectoryEntry> LoadAllDirectories() = 0;
+
       //! Loads an account from its name.
       /*!
         \param name The name of the account.

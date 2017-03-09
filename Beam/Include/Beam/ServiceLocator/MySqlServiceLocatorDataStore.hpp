@@ -41,6 +41,8 @@ namespace ServiceLocator {
 
       virtual std::vector<DirectoryEntry> LoadAllAccounts();
 
+      virtual std::vector<DirectoryEntry> LoadAllDirectories();
+
       virtual DirectoryEntry LoadAccount(const std::string& name);
 
       virtual DirectoryEntry MakeAccount(const std::string& name,
@@ -182,6 +184,23 @@ namespace ServiceLocator {
         static_cast<unsigned int>((*i)[0])));
     }
     return accounts;
+  }
+
+  inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::
+      LoadAllDirectories() {
+    mysqlpp::Query query = m_databaseConnection.query();
+    query << "SELECT * FROM directories";
+    mysqlpp::StoreQueryResult result = query.store();
+    if(!result) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+    }
+    std::vector<DirectoryEntry> directories;
+    for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
+        i != result.end(); ++i) {
+      directories.push_back(LoadDirectoryEntry(
+        static_cast<unsigned int>((*i)[0])));
+    }
+    return directories;
   }
 
   inline DirectoryEntry MySqlServiceLocatorDataStore::LoadAccount(

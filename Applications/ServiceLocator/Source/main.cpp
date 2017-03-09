@@ -10,6 +10,7 @@
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
+#include "Beam/ServiceLocator/CachedServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/MySqlServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
@@ -34,7 +35,8 @@ using namespace TCLAP;
 
 namespace {
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
-    MetaServiceLocatorServlet<MySqlServiceLocatorDataStore>, TcpServerSocket,
+    MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
+    MySqlServiceLocatorDataStore*>>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 
   struct ServerConnectionInitializer {
@@ -96,9 +98,9 @@ int main(int argc, const char** argv) {
   }
   SocketThreadPool socketThreadPool;
   TimerThreadPool timerThreadPool;
-  ServiceLocatorServletContainer server(Initialize(Initialize(
-    mySqlConfig.m_address, mySqlConfig.m_schema, mySqlConfig.m_username,
-    mySqlConfig.m_password)),
+  MySqlServiceLocatorDataStore mysqlDataStore{mySqlConfig.m_address,
+    mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password};
+  ServiceLocatorServletContainer server(Initialize(Initialize(&mysqlDataStore)),
     Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
     std::bind(factory<std::shared_ptr<LiveTimer>>{}, seconds{10},
     Ref(timerThreadPool)));

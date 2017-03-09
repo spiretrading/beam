@@ -25,6 +25,23 @@ namespace ServiceLocator {
 
       virtual ~LocalServiceLocatorDataStore();
 
+      //! Stores an account.
+      /*!
+        \param account The account to store.
+        \param password The account's password.
+        \param registration The time the account was registered.
+        \param lastLoginTime The last time the account logged in.
+      */
+      void Store(DirectoryEntry account, std::string password,
+        boost::posix_time::ptime registrationTime,
+        boost::posix_time::ptime lastLoginTime);
+
+      //! Stores a directory.
+      /*!
+        \param directory The directory to store.
+      */
+      void Store(DirectoryEntry directory);
+
       virtual std::vector<DirectoryEntry> LoadParents(
         const DirectoryEntry& entry);
 
@@ -34,6 +51,8 @@ namespace ServiceLocator {
       virtual DirectoryEntry LoadDirectoryEntry(unsigned int id);
 
       virtual std::vector<DirectoryEntry> LoadAllAccounts();
+
+      virtual std::vector<DirectoryEntry> LoadAllDirectories();
 
       virtual DirectoryEntry LoadAccount(const std::string& name);
 
@@ -103,6 +122,19 @@ namespace ServiceLocator {
     Close();
   }
 
+  inline void LocalServiceLocatorDataStore::Store(DirectoryEntry account,
+      std::string password, boost::posix_time::ptime registrationTime,
+      boost::posix_time::ptime lastLoginTime) {
+    m_accounts.push_back(std::move(account));
+    m_passwords[m_accounts.back()] = std::move(password);
+    m_registrationTimes[m_accounts.back()] = registrationTime;
+    m_lastLoginTimes[m_accounts.back()] = lastLoginTime;
+  }
+
+  inline void LocalServiceLocatorDataStore::Store(DirectoryEntry directory) {
+    m_directories.push_back(std::move(directory));
+  }
+
   inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::LoadParents(
       const DirectoryEntry& entry) {
     auto parentsIterator = m_parents.find(entry);
@@ -140,6 +172,11 @@ namespace ServiceLocator {
   inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::
       LoadAllAccounts() {
     return m_accounts;
+  }
+
+  inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::
+      LoadAllDirectories() {
+    return m_directories;
   }
 
   inline DirectoryEntry LocalServiceLocatorDataStore::LoadAccount(

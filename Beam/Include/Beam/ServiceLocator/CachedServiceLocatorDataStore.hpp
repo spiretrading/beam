@@ -64,6 +64,9 @@ namespace ServiceLocator {
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target) override;
 
+      virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
+        LoadAllPermissions(const DirectoryEntry& account);
+
       virtual void SetPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target, Permissions permissions) override;
 
@@ -146,7 +149,7 @@ namespace ServiceLocator {
     auto account = m_dataStore->MakeAccount(
       name, password, parent, registrationTime);
     m_cache.Store(account, password, registrationTime,
-      boost::posix_time::not_a_date_time);
+      boost::posix_time::neg_infin);
     m_cache.Associate(account, parent);
     return account;
   }
@@ -202,6 +205,13 @@ namespace ServiceLocator {
   Permissions CachedServiceLocatorDataStore<DataStoreType>::LoadPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
     return m_cache.LoadPermissions(source, target);
+  }
+
+  template<typename DataStoreType>
+  std::vector<std::tuple<DirectoryEntry, Permissions>>
+      CachedServiceLocatorDataStore<DataStoreType>::LoadAllPermissions(
+      const DirectoryEntry& account) {
+    return m_cache.LoadAllPermissions(account);
   }
 
   template<typename DataStoreType>
@@ -271,11 +281,10 @@ namespace ServiceLocator {
       for(auto& parent : parents) {
         m_cache.Associate(account, parent);
       }
-      for(auto& directory : directories) {
-        auto permissions = m_dataStore->LoadPermissions(account, directory);
-        if(permissions != Permissions{}) {
-          m_cache.SetPermissions(account, directory, permissions);
-        }
+      auto permissions = m_dataStore->LoadAllPermissions(account);
+      for(auto& permission : permissions) {
+        m_cache.SetPermissions(account, std::get<0>(permission),
+          std::get<1>(permission));
       }
     }
   }

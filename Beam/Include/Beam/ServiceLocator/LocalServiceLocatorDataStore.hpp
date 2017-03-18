@@ -228,13 +228,15 @@ namespace ServiceLocator {
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent,
       const boost::posix_time::ptime& registrationTime) {
-    bool accountExists;
-    try {
-      auto existingAccount = LoadAccount(name);
-      accountExists = true;
-    } catch(const ServiceLocatorDataStoreException&) {
-      accountExists = false;
-    }
+    auto accountExists =
+      [&] {
+        try {
+          LoadAccount(name);
+          return true;
+        } catch(const ServiceLocatorDataStoreException&) {
+          return false;
+        }
+      }();
     if(accountExists) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
         "An account with the specified name exists."});
@@ -248,13 +250,15 @@ namespace ServiceLocator {
 
   inline DirectoryEntry LocalServiceLocatorDataStore::MakeDirectory(
       const std::string& name, const DirectoryEntry& parent) {
-    bool accountExists;
-    try {
-      auto existingAccount = LoadAccount(name);
-      accountExists = true;
-    } catch(const ServiceLocatorDataStoreException&) {
-      accountExists = false;
-    }
+    auto accountExists =
+      [&] {
+        try {
+          LoadAccount(name);
+          return true;
+        } catch(const ServiceLocatorDataStoreException&) {
+          return false;
+        }
+      }();
     if(accountExists) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
         "An account with the specified name exists."});

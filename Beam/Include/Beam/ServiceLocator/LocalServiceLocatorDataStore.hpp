@@ -2,6 +2,7 @@
 #define BEAM_LOCALSERVICELOCATORDATASTORE_HPP
 #include <tuple>
 #include <unordered_map>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
@@ -100,21 +101,28 @@ namespace ServiceLocator {
       virtual void Close();
 
     private:
+      struct AccountEntry {
+        DirectoryEntry m_entry;
+        boost::posix_time::ptime m_registrationTime;
+        boost::posix_time::ptime m_lastLoginTime;
+        std::string m_password;
+        std::unordered_map<DirectoryEntry, Permissions> m_permissions;
+      };
       using DirectoryEntryPair = std::tuple<DirectoryEntry, DirectoryEntry>;
       mutable boost::mutex m_mutex;
       unsigned int m_nextId;
-      std::vector<DirectoryEntry> m_accounts;
-      std::vector<DirectoryEntry> m_directories;
-      std::unordered_map<DirectoryEntry, boost::posix_time::ptime>
-        m_registrationTimes;
-      std::unordered_map<DirectoryEntry, boost::posix_time::ptime>
-        m_lastLoginTimes;
+      std::unordered_map<unsigned int, std::shared_ptr<AccountEntry>>
+        m_idToAccounts;
+      std::unordered_map<std::string, std::shared_ptr<AccountEntry>>
+        m_nameToAccounts;
+      std::unordered_map<unsigned int, DirectoryEntry> m_idToDirectories;
       std::unordered_map<DirectoryEntry, std::vector<DirectoryEntry>> m_parents;
       std::unordered_map<DirectoryEntry, std::vector<DirectoryEntry>>
         m_children;
-      std::unordered_map<DirectoryEntryPair, Permissions> m_permissions;
-      std::unordered_map<DirectoryEntry, std::string> m_passwords;
       IO::OpenState m_openState;
+
+      std::shared_ptr<AccountEntry> FindAccountEntry(
+        const DirectoryEntry& entry);
   };
 
   inline LocalServiceLocatorDataStore::LocalServiceLocatorDataStore()
@@ -127,14 +135,27 @@ namespace ServiceLocator {
   inline void LocalServiceLocatorDataStore::Store(DirectoryEntry account,
       std::string password, boost::posix_time::ptime registrationTime,
       boost::posix_time::ptime lastLoginTime) {
-    m_accounts.push_back(std::move(account));
-    m_passwords[m_accounts.back()] = std::move(password);
-    m_registrationTimes[m_accounts.back()] = registrationTime;
-    m_lastLoginTimes[m_accounts.back()] = lastLoginTime;
+    if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
+      BOOST_THROW_EXCEPTION(
+        ServiceLocatorDataStoreException{"Invalid account."});
+    }
+    auto entry = std::make_shared<AccountEntry>();
+    entry->m_entry = std::move(account);
+    entry->m_registrationTime = registrationTime;
+    entry->m_lastLoginTime = lastLoginTime;
+    entry->m_password = std::move(password);
+    m_nextId = std::max(m_nextId, entry->m_entry.m_id + 1);
+    m_idToAccounts.insert(std::make_pair(entry->m_entry.m_id, entry));
+    m_nameToAccounts.insert(std::make_pair(entry->m_entry.m_name, entry));
   }
 
   inline void LocalServiceLocatorDataStore::Store(DirectoryEntry directory) {
-    m_directories.push_back(std::move(directory));
+    if(directory.m_type != DirectoryEntry::Type::DIRECTORY) {
+      BOOST_THROW_EXCEPTION(
+        ServiceLocatorDataStoreException{"Invalid directory."});
+    }
+    m_nextId = std::max(m_nextId, directory.m_id + 1);
+    m_idToDirectories.insert(std::make_pair(directory.m_id, directory));
   }
 
   inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::LoadParents(
@@ -157,15 +178,13 @@ namespace ServiceLocator {
 
   inline DirectoryEntry LocalServiceLocatorDataStore::LoadDirectoryEntry(
       unsigned int id) {
-    for(auto& account : m_accounts) {
-      if(account.m_id == id) {
-        return account;
-      }
+    auto accountIterator = m_idToAccounts.find(id);
+    if(accountIterator != m_idToAccounts.end()) {
+      return accountIterator->second->m_entry;
     }
-    for(auto& directory : m_directories) {
-      if(directory.m_id == id) {
-        return directory;
-      }
+    auto directoryIterator = m_idToDirectories.find(id);
+    if(directoryIterator != m_idToDirectories.end()) {
+      return directoryIterator->second;
     }
     BOOST_THROW_EXCEPTION(
       ServiceLocatorDataStoreException{"Directory entry not found."});
@@ -173,23 +192,36 @@ namespace ServiceLocator {
 
   inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::
       LoadAllAccounts() {
-    return m_accounts;
+    std::vector<DirectoryEntry> accounts;
+    accounts.reserve(m_idToAccounts.size());
+    std::transform(m_idToAccounts.begin(), m_idToAccounts.end(),
+      std::back_inserter(accounts),
+      [] (auto& account) {
+        return account.second->m_entry;
+      });
+    return accounts;
   }
 
   inline std::vector<DirectoryEntry> LocalServiceLocatorDataStore::
       LoadAllDirectories() {
-    return m_directories;
+    std::vector<DirectoryEntry> directories;
+    directories.reserve(m_idToDirectories.size());
+    std::transform(m_idToDirectories.begin(), m_idToDirectories.end(),
+      std::back_inserter(directories),
+      [] (auto& directory) {
+        return directory.second;
+      });
+    return directories;
   }
 
   inline DirectoryEntry LocalServiceLocatorDataStore::LoadAccount(
       const std::string& name) {
-    for(auto& account : m_accounts) {
-      if(account.m_name == name) {
-        return account;
-      }
+    auto accountIterator = m_nameToAccounts.find(name);
+    if(accountIterator == m_nameToAccounts.end()) {
+      BOOST_THROW_EXCEPTION(
+        ServiceLocatorDataStoreException{"Account not found."});
     }
-    BOOST_THROW_EXCEPTION(
-      ServiceLocatorDataStoreException{"Account not found."});
+    return accountIterator->second->m_entry;
   }
 
   inline DirectoryEntry LocalServiceLocatorDataStore::MakeAccount(
@@ -208,13 +240,8 @@ namespace ServiceLocator {
         "An account with the specified name exists."});
     }
     DirectoryEntry newEntry{DirectoryEntry::Type::ACCOUNT, m_nextId, name};
-    ++m_nextId;
-    m_accounts.push_back(newEntry);
-    m_passwords.insert(std::make_pair(newEntry,
-      HashPassword(newEntry, password)));
-    m_registrationTimes.insert(std::make_pair(newEntry, registrationTime));
-    m_lastLoginTimes.insert(std::make_pair(newEntry,
-      boost::posix_time::neg_infin));
+    Store(newEntry, HashPassword(newEntry, password), registrationTime,
+      boost::posix_time::neg_infin);
     Associate(newEntry, parent);
     return newEntry;
   }
@@ -223,7 +250,7 @@ namespace ServiceLocator {
       const std::string& name, const DirectoryEntry& parent) {
     bool accountExists;
     try {
-      DirectoryEntry existingAccount = LoadAccount(name);
+      auto existingAccount = LoadAccount(name);
       accountExists = true;
     } catch(const ServiceLocatorDataStoreException&) {
       accountExists = false;
@@ -233,8 +260,7 @@ namespace ServiceLocator {
         "An account with the specified name exists."});
     }
     DirectoryEntry newEntry{DirectoryEntry::Type::DIRECTORY, m_nextId, name};
-    ++m_nextId;
-    m_directories.push_back(newEntry);
+    Store(newEntry);
     Associate(newEntry, parent);
     return newEntry;
   }
@@ -246,15 +272,8 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
         "Directory entry is not empty."});
     }
-    auto permissionsIterator = m_permissions.begin();
-    while(permissionsIterator != m_permissions.end()) {
-      auto& permissionsPair = permissionsIterator->first;
-      if(std::get<0>(permissionsPair) == entry ||
-          std::get<1>(permissionsPair) == entry) {
-        permissionsIterator = m_permissions.erase(permissionsIterator);
-      } else {
-        ++permissionsIterator;
-      }
+    for(auto& accountEntry : m_idToAccounts | boost::adaptors::map_values) {
+      accountEntry->m_permissions.erase(entry);
     }
     auto parentsIterator = m_parents.find(entry);
     if(parentsIterator != m_parents.end()) {
@@ -264,22 +283,12 @@ namespace ServiceLocator {
       }
       m_parents.erase(parentsIterator);
     }
-    if(entry.m_type == DirectoryEntry::Type::ACCOUNT) {
-      for(auto i = m_accounts.begin(); i != m_accounts.end(); ++i) {
-        if(*i == entry) {
-          m_accounts.erase(i);
-          m_passwords.erase(entry);
-          break;
-        }
-      }
-    } else {
-      for(auto i = m_directories.begin(); i != m_directories.end(); ++i) {
-        if(*i == entry) {
-          m_directories.erase(i);
-          break;
-        }
-      }
+    auto accountEntry = m_idToAccounts.find(entry.m_id);
+    if(accountEntry != m_idToAccounts.end()) {
+      m_nameToAccounts.erase(accountEntry->second->m_entry.m_name);
     }
+    m_idToAccounts.erase(entry.m_id);
+    m_idToDirectories.erase(entry.m_id);
   }
 
   inline bool LocalServiceLocatorDataStore::Associate(
@@ -287,9 +296,8 @@ namespace ServiceLocator {
     if(parent.m_id == -1) {
       return false;
     }
-    auto parentIterator = std::find(m_directories.begin(), m_directories.end(),
-      parent);
-    if(parentIterator == m_directories.end()) {
+    auto parentIterator = m_idToDirectories.find(parent.m_id);
+    if(parentIterator == m_idToDirectories.end()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
         "Parent not found."});
     }
@@ -316,8 +324,7 @@ namespace ServiceLocator {
 
   inline bool LocalServiceLocatorDataStore::Detach(const DirectoryEntry& entry,
       const DirectoryEntry& parent) {
-    if(std::find(m_directories.begin(), m_directories.end(), parent) ==
-        m_directories.end()) {
+    if(m_idToDirectories.find(parent.m_id) == m_idToDirectories.end()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
         "Parent not found."});
     }
@@ -342,29 +349,24 @@ namespace ServiceLocator {
 
   inline std::string LocalServiceLocatorDataStore::LoadPassword(
       const DirectoryEntry& account) {
-    auto passwordIterator = m_passwords.find(account);
-    if(passwordIterator == m_passwords.end()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
-    }
-    return passwordIterator->second;
+    auto accountEntry = FindAccountEntry(account);
+    return accountEntry->m_password;
   }
 
   inline void LocalServiceLocatorDataStore::SetPassword(
       const DirectoryEntry& account, const std::string& password) {
-    auto passwordIterator = m_passwords.find(account);
-    if(passwordIterator == m_passwords.end()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
-    }
-    passwordIterator->second = password;
+    auto accountEntry = FindAccountEntry(account);
+    accountEntry->m_password = password;
   }
 
   inline Permissions LocalServiceLocatorDataStore::LoadPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
-    DirectoryEntryPair key{source, target};
-    auto permissionsIterator = m_permissions.find(key);
-    if(permissionsIterator == m_permissions.end()) {
+    auto accountEntry = m_idToAccounts.find(source.m_id);
+    if(accountEntry == m_idToAccounts.end()) {
+      return Permission::NONE;
+    }
+    auto permissionsIterator = accountEntry->second->m_permissions.find(target);
+    if(permissionsIterator == accountEntry->second->m_permissions.end()) {
       return Permission::NONE;
     }
     return permissionsIterator->second;
@@ -373,11 +375,13 @@ namespace ServiceLocator {
   inline std::vector<std::tuple<DirectoryEntry, Permissions>>
       LocalServiceLocatorDataStore::LoadAllPermissions(
       const DirectoryEntry& account) {
+    auto accountEntry = m_idToAccounts.find(account.m_id);
+    if(accountEntry == m_idToAccounts.end()) {
+      return {};
+    }
     std::vector<std::tuple<DirectoryEntry, Permissions>> permissions;
-    for(auto& pair : m_permissions) {
-      if(std::get<0>(pair.first) == account) {
-        permissions.emplace_back(std::get<1>(pair.first), pair.second);
-      }
+    for(auto& pair : accountEntry->second->m_permissions) {
+      permissions.emplace_back(pair.first, pair.second);
     }
     return permissions;
   }
@@ -385,55 +389,39 @@ namespace ServiceLocator {
   inline void LocalServiceLocatorDataStore::SetPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
-    DirectoryEntryPair pair{source, target};
+    auto accountEntry = m_idToAccounts.find(source.m_id);
+    if(accountEntry == m_idToAccounts.end()) {
+      return;
+    }
     if(permissions == Permissions{}) {
-      m_permissions.erase(pair);
+      accountEntry->second->m_permissions.erase(target);
     } else {
-      m_permissions[pair] = permissions;
+      accountEntry->second->m_permissions[target] = permissions;
     }
   }
 
   inline boost::posix_time::ptime LocalServiceLocatorDataStore::
       LoadRegistrationTime(const DirectoryEntry& account) {
-    auto accountIterator = std::find(m_accounts.begin(), m_accounts.end(),
-      account);
-    if(accountIterator == m_accounts.end()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
-    }
-    return m_registrationTimes[*accountIterator];
+    auto accountEntry = FindAccountEntry(account);
+    return accountEntry->m_registrationTime;
   }
 
   inline boost::posix_time::ptime LocalServiceLocatorDataStore::
       LoadLastLoginTime(const DirectoryEntry& account) {
-    auto accountIterator = std::find(m_accounts.begin(), m_accounts.end(),
-      account);
-    if(accountIterator == m_accounts.end()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
-    }
-    auto lastLoginTimesIterator = m_lastLoginTimes.find(*accountIterator);
-    if(lastLoginTimesIterator == m_lastLoginTimes.end()) {
-      return boost::posix_time::neg_infin;
-    }
-    return lastLoginTimesIterator->second;
+    auto accountEntry = FindAccountEntry(account);
+    return accountEntry->m_lastLoginTime;
   }
 
   inline void LocalServiceLocatorDataStore::StoreLastLoginTime(
       const DirectoryEntry& account,
       const boost::posix_time::ptime& loginTime) {
-    auto accountIterator = std::find(m_accounts.begin(), m_accounts.end(),
-      account);
-    if(accountIterator == m_accounts.end()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
-    }
-    m_lastLoginTimes[*accountIterator] = loginTime;
+    auto accountEntry = FindAccountEntry(account);
+    accountEntry->m_lastLoginTime = loginTime;
   }
 
   inline void LocalServiceLocatorDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     transaction();
   }
 
@@ -449,6 +437,17 @@ namespace ServiceLocator {
       return;
     }
     m_openState.SetClosed();
+  }
+
+  inline std::shared_ptr<LocalServiceLocatorDataStore::AccountEntry>
+      LocalServiceLocatorDataStore::FindAccountEntry(
+      const DirectoryEntry& entry) {
+    auto accountIterator = m_idToAccounts.find(entry.m_id);
+    if(accountIterator == m_idToAccounts.end()) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Account not found."});
+    }
+    return accountIterator->second;
   }
 }
 }

@@ -1,6 +1,7 @@
 #ifndef BEAM_CACHEDSERVICELOCATORDATASTORE_HPP
 #define BEAM_CACHEDSERVICELOCATORDATASTORE_HPP
 #include <unordered_set>
+#include "Beam/IO/OpenState.hpp"
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
@@ -93,7 +94,9 @@ namespace ServiceLocator {
       GetOptionalLocalPtr<DataStoreType> m_dataStore;
       std::unordered_set<unsigned int> m_unavailableEntries;
       LocalServiceLocatorDataStore m_cache;
+      IO::OpenState m_openState;
 
+      void Shutdown();
       bool IsCached(const DirectoryEntry& entry);
       bool IsCached(unsigned int entry);
   };
@@ -360,40 +363,58 @@ namespace ServiceLocator {
 
   template<typename DataStoreType>
   void CachedServiceLocatorDataStore<DataStoreType>::Open() {
-    m_dataStore->Open();
-    m_cache.Open();
-    auto directories = m_dataStore->LoadAllDirectories();
-    for(auto& directory : directories) {
-      m_cache.Store(directory);
+    if(m_openState.SetOpening()) {
+      return;
     }
-    for(auto& directory : directories) {
-      auto parents = m_dataStore->LoadParents(directory);
-      for(auto& parent : parents) {
-        m_cache.Associate(directory, parent);
+    try {
+      m_dataStore->Open();
+      m_cache.Open();
+      auto directories = m_dataStore->LoadAllDirectories();
+      for(auto& directory : directories) {
+        m_cache.Store(directory);
       }
+      for(auto& directory : directories) {
+        auto parents = m_dataStore->LoadParents(directory);
+        for(auto& parent : parents) {
+          m_cache.Associate(directory, parent);
+        }
+      }
+      auto accounts = m_dataStore->LoadAllAccounts();
+      for(auto& account : accounts) {
+        auto password = m_dataStore->LoadPassword(account);
+        auto registrationTime = m_dataStore->LoadRegistrationTime(account);
+        auto lastLoginTime = m_dataStore->LoadLastLoginTime(account);
+        m_cache.Store(account, password, registrationTime, lastLoginTime);
+        auto parents = m_dataStore->LoadParents(account);
+        for(auto& parent : parents) {
+          m_cache.Associate(account, parent);
+        }
+        auto permissions = m_dataStore->LoadAllPermissions(account);
+        for(auto& permission : permissions) {
+          m_cache.SetPermissions(account, std::get<0>(permission),
+            std::get<1>(permission));
+        }
+      }
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
     }
-    auto accounts = m_dataStore->LoadAllAccounts();
-    for(auto& account : accounts) {
-      auto password = m_dataStore->LoadPassword(account);
-      auto registrationTime = m_dataStore->LoadRegistrationTime(account);
-      auto lastLoginTime = m_dataStore->LoadLastLoginTime(account);
-      m_cache.Store(account, password, registrationTime, lastLoginTime);
-      auto parents = m_dataStore->LoadParents(account);
-      for(auto& parent : parents) {
-        m_cache.Associate(account, parent);
-      }
-      auto permissions = m_dataStore->LoadAllPermissions(account);
-      for(auto& permission : permissions) {
-        m_cache.SetPermissions(account, std::get<0>(permission),
-          std::get<1>(permission));
-      }
-    }
+    m_openState.SetOpen();
   }
 
   template<typename DataStoreType>
   void CachedServiceLocatorDataStore<DataStoreType>::Close() {
+    if(m_openState.SetClosing()) {
+      return;
+    }
+    Shutdown();
+  }
+
+  template<typename DataStoreType>
+  void CachedServiceLocatorDataStore<DataStoreType>::Shutdown() {
     m_dataStore->Close();
     m_cache.Close();
+    m_openState.SetClosed();
   }
 
   template<typename DataStoreType>

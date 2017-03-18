@@ -4,9 +4,6 @@ file(GLOB source_files
   ./../../../Source/UidService/*.cpp)
 
 add_library(UidService ${header_files} ${source_files})
-if(MSVC)
-  add_definitions(-DMYSQLPP_NO_DLL)
-endif(MSVC)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(UidService PROPERTIES OUTPUT_NAME beam_uid_service)
 install(TARGETS UidService CONFIGURATIONS Debug

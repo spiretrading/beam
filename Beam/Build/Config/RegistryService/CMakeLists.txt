@@ -34,9 +34,6 @@ target_link_libraries(RegistryServiceTester RegistryServiceTests IOTests
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
-endif()
 if(UNIX)
   target_link_libraries(RegistryServiceTester
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}

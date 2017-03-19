@@ -7,6 +7,7 @@
 #include "Beam/Utilities/SynchronizedMap.hpp"
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
+#include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/Session.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 

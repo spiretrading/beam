@@ -6,6 +6,7 @@ file(GLOB source_files
 add_library(ServiceLocator ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(ServiceLocator PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
   OUTPUT_NAME beam_service_locator)
 install(TARGETS ServiceLocator CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
@@ -21,6 +22,7 @@ add_library(ServiceLocatorTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(ServiceLocatorTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
   OUTPUT_NAME beam_service_locator_tests)
 install(TARGETS ServiceLocatorTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)

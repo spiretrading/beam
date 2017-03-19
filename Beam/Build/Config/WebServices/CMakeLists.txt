@@ -5,7 +5,9 @@ file(GLOB source_files
 
 add_library(WebServices ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(WebServices PROPERTIES OUTPUT_NAME beam_web_services)
+set_target_properties(WebServices PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
+  OUTPUT_NAME beam_web_services)
 install(TARGETS WebServices CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS WebServices CONFIGURATIONS Release RelWithDebInfo
@@ -20,6 +22,7 @@ add_library(WebServicesTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(WebServicesTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
   OUTPUT_NAME beam_web_services_tests)
 install(TARGETS WebServicesTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)

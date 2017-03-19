@@ -41,6 +41,8 @@ namespace ServiceLocator {
 
       virtual std::vector<DirectoryEntry> LoadAllAccounts();
 
+      virtual std::vector<DirectoryEntry> LoadAllDirectories();
+
       virtual DirectoryEntry LoadAccount(const std::string& name);
 
       virtual DirectoryEntry MakeAccount(const std::string& name,
@@ -65,6 +67,9 @@ namespace ServiceLocator {
 
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target);
+
+      virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
+        LoadAllPermissions(const DirectoryEntry& account);
 
       virtual void SetPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target, Permissions permissions);
@@ -182,6 +187,23 @@ namespace ServiceLocator {
         static_cast<unsigned int>((*i)[0])));
     }
     return accounts;
+  }
+
+  inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::
+      LoadAllDirectories() {
+    mysqlpp::Query query = m_databaseConnection.query();
+    query << "SELECT * FROM directories";
+    mysqlpp::StoreQueryResult result = query.store();
+    if(!result) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+    }
+    std::vector<DirectoryEntry> directories;
+    for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
+        i != result.end(); ++i) {
+      directories.push_back(LoadDirectoryEntry(
+        static_cast<unsigned int>((*i)[0])));
+    }
+    return directories;
   }
 
   inline DirectoryEntry MySqlServiceLocatorDataStore::LoadAccount(
@@ -392,6 +414,24 @@ namespace ServiceLocator {
       return Permission::NONE;
     }
     return Permissions::FromRepresentation(result[0][0].conv<int>(0));
+  }
+
+  inline std::vector<std::tuple<DirectoryEntry, Permissions>>
+      MySqlServiceLocatorDataStore::LoadAllPermissions(
+      const DirectoryEntry& account) {
+    std::vector<std::tuple<DirectoryEntry, Permissions>> permissions;
+    mysqlpp::Query query = m_databaseConnection.query();
+    query << "SELECT * FROM permissions WHERE source = " << account.m_id;
+    mysqlpp::StoreQueryResult result = query.store();
+    if(!result) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+    }
+    for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
+        i != result.end(); ++i) {
+      permissions.emplace_back(LoadDirectoryEntry(static_cast<int>((*i)[1])),
+        Permissions::FromRepresentation((*i)[2].conv<int>(0)));
+    }
+    return permissions;
   }
 
   inline void MySqlServiceLocatorDataStore::SetPermissions(

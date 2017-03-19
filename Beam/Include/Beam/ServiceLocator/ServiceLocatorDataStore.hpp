@@ -50,6 +50,12 @@ namespace ServiceLocator {
       */
       virtual std::vector<DirectoryEntry> LoadAllAccounts() = 0;
 
+      //! Loads all directories.
+      /*!
+        \return The list of all DirectoryEntries representing directories.
+      */
+      virtual std::vector<DirectoryEntry> LoadAllDirectories() = 0;
+
       //! Loads an account from its name.
       /*!
         \param name The name of the account.
@@ -128,6 +134,14 @@ namespace ServiceLocator {
       */
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target) = 0;
+
+      //! Loads all of the Permissions an account has.
+      /*!
+        \param account The DirectoryEntry to check.
+        \return The list of Permissions the <i>account</i> has.
+      */
+      virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
+        LoadAllPermissions(const DirectoryEntry& account) = 0;
 
       //! Sets the Permissions of one DirectoryEntry over another.
       /*!

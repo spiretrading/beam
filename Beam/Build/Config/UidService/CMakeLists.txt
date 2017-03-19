@@ -6,7 +6,7 @@ file(GLOB source_files
 add_library(UidService ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(UidService PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_uid_service)
 install(TARGETS UidService CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
@@ -22,7 +22,7 @@ add_library(UidServiceTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(UidServiceTests PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "/LTCG"
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_uid_service_tests)
 install(TARGETS UidServiceTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)

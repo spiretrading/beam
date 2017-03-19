@@ -45,6 +45,15 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile Eval<object>* get_pointer(
+      const volatile Eval<object>* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportBaseAsync() {
   {
     scope outer = class_<BaseAsync, noncopyable>("BaseAsync", no_init);

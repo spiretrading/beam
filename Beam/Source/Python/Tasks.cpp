@@ -170,6 +170,49 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile AggregateTask* get_pointer(
+      const volatile AggregateTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile BasicTask* get_pointer(
+      const volatile BasicTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile BasicTaskWrapper* get_pointer(
+      const volatile BasicTaskWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile IdleTask* get_pointer(
+      const volatile IdleTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonTaskFactoryWrapper* get_pointer(
+      const volatile PythonTaskFactoryWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile Publisher<Task::StateEntry>*
+      get_pointer(const volatile Publisher<Task::StateEntry>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Task* get_pointer(const volatile Task* p) {
+    return p;
+  }
+
+  template<> inline const volatile TaskWrapper* get_pointer(
+      const volatile TaskWrapper* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
     boost::noncopyable, bases<BasicTask>>("AggregateTask",

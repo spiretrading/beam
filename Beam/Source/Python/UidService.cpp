@@ -60,6 +60,15 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile VirtualUidClient* get_pointer(
+      const volatile VirtualUidClient* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportUidService() {
   string nestedName = extract<string>(scope().attr("__name__") +
     ".uid_service");

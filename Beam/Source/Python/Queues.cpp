@@ -34,6 +34,55 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile AbstractQueue<object>* get_pointer(
+      const volatile AbstractQueue<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile BaseQueue* get_pointer(
+      const volatile BaseQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonQueue* get_pointer(
+      const volatile PythonQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonQueueWriter* get_pointer(
+      const volatile PythonQueueWriter* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonRoutineTaskQueue* get_pointer(
+      const volatile PythonRoutineTaskQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonStateQueue* get_pointer(
+      const volatile PythonStateQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonTaskQueue* get_pointer(
+      const volatile PythonTaskQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile QueueReader<object>* get_pointer(
+      const volatile QueueReader<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile QueueWriter<object>* get_pointer(
+      const volatile QueueWriter<object>* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportAbstractQueue() {
   class_<AbstractQueue<object>, std::shared_ptr<AbstractQueue<object>>,
     noncopyable, bases<QueueWriter<object>, QueueReader<object>>>(

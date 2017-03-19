@@ -65,6 +65,15 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile VirtualServiceLocatorClient* get_pointer(
+      const volatile VirtualServiceLocatorClient* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportDirectoryEntry() {
   {
     scope outer =

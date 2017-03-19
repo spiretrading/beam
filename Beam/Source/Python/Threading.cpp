@@ -54,6 +54,15 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile Publisher<Timer::Result>*
+      get_pointer(const volatile Publisher<Timer::Result>* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportLiveTimer() {
   class_<WrapperTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "LiveTimer", no_init)

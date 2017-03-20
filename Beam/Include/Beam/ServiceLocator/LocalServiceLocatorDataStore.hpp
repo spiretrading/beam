@@ -3,12 +3,12 @@
 #include <tuple>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
+#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Utilities/HashTuple.hpp"
 
 namespace Beam {
@@ -23,7 +23,7 @@ namespace ServiceLocator {
       //! Constructs a LocalServiceLocatorDataStore.
       LocalServiceLocatorDataStore();
 
-      virtual ~LocalServiceLocatorDataStore();
+      virtual ~LocalServiceLocatorDataStore() override;
 
       //! Stores an account.
       /*!
@@ -43,62 +43,63 @@ namespace ServiceLocator {
       void Store(DirectoryEntry directory);
 
       virtual std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry);
+        const DirectoryEntry& entry) override;
 
       virtual std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& directory);
+        const DirectoryEntry& directory) override;
 
-      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id);
+      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
 
-      virtual std::vector<DirectoryEntry> LoadAllAccounts();
+      virtual std::vector<DirectoryEntry> LoadAllAccounts() override;
 
-      virtual std::vector<DirectoryEntry> LoadAllDirectories();
+      virtual std::vector<DirectoryEntry> LoadAllDirectories() override;
 
-      virtual DirectoryEntry LoadAccount(const std::string& name);
+      virtual DirectoryEntry LoadAccount(const std::string& name) override;
 
       virtual DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password, const DirectoryEntry& parent,
-        const boost::posix_time::ptime& registrationTime);
+        const boost::posix_time::ptime& registrationTime) override;
 
       virtual DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
-      virtual void Delete(const DirectoryEntry& entry);
+      virtual void Delete(const DirectoryEntry& entry) override;
 
       virtual bool Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
       virtual bool Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
-      virtual std::string LoadPassword(const DirectoryEntry& account);
+      virtual std::string LoadPassword(const DirectoryEntry& account) override;
 
       virtual void SetPassword(const DirectoryEntry& account,
-        const std::string& password);
+        const std::string& password) override;
 
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target);
+        const DirectoryEntry& target) override;
 
       virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
-        LoadAllPermissions(const DirectoryEntry& account);
+        LoadAllPermissions(const DirectoryEntry& account) override;
 
       virtual void SetPermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions);
+        const DirectoryEntry& target, Permissions permissions) override;
 
       virtual boost::posix_time::ptime LoadRegistrationTime(
-        const DirectoryEntry& account);
+        const DirectoryEntry& account) override;
 
       virtual boost::posix_time::ptime LoadLastLoginTime(
-        const DirectoryEntry& account);
+        const DirectoryEntry& account) override;
 
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
-        const boost::posix_time::ptime& loginTime);
+        const boost::posix_time::ptime& loginTime) override;
 
-      virtual void WithTransaction(const std::function<void ()>& transaction);
+      virtual void WithTransaction(
+        const std::function<void ()>& transaction) override;
 
-      virtual void Open();
+      virtual void Open() override;
 
-      virtual void Close();
+      virtual void Close() override;
 
     private:
       struct AccountEntry {
@@ -109,7 +110,7 @@ namespace ServiceLocator {
         std::unordered_map<DirectoryEntry, Permissions> m_permissions;
       };
       using DirectoryEntryPair = std::tuple<DirectoryEntry, DirectoryEntry>;
-      mutable boost::mutex m_mutex;
+      mutable Threading::Mutex m_mutex;
       unsigned int m_nextId;
       std::unordered_map<unsigned int, std::shared_ptr<AccountEntry>>
         m_idToAccounts;
@@ -425,7 +426,7 @@ namespace ServiceLocator {
 
   inline void LocalServiceLocatorDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     transaction();
   }
 

@@ -1,6 +1,5 @@
 #ifndef BEAM_MYSQLSERVICELOCATORDATASTORE_HPP
 #define BEAM_MYSQLSERVICELOCATORDATASTORE_HPP
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/MySql/PosixTimeToMySqlDateTime.hpp"
@@ -8,6 +7,7 @@
 #include "Beam/ServiceLocator/MySqlServiceLocatorDataStoreDetails.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace ServiceLocator {
@@ -29,68 +29,69 @@ namespace ServiceLocator {
         const std::string& schema, const std::string& username,
         const std::string& password);
 
-      virtual ~MySqlServiceLocatorDataStore();
+      virtual ~MySqlServiceLocatorDataStore() override;
 
       virtual std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry);
+        const DirectoryEntry& entry) override;
 
       virtual std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& directory);
+        const DirectoryEntry& directory) override;
 
-      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id);
+      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
 
-      virtual std::vector<DirectoryEntry> LoadAllAccounts();
+      virtual std::vector<DirectoryEntry> LoadAllAccounts() override;
 
-      virtual std::vector<DirectoryEntry> LoadAllDirectories();
+      virtual std::vector<DirectoryEntry> LoadAllDirectories() override;
 
-      virtual DirectoryEntry LoadAccount(const std::string& name);
+      virtual DirectoryEntry LoadAccount(const std::string& name) override;
 
       virtual DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password, const DirectoryEntry& parent,
-        const boost::posix_time::ptime& registrationTime);
+        const boost::posix_time::ptime& registrationTime) override;
 
       virtual DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
-      virtual void Delete(const DirectoryEntry& entry);
+      virtual void Delete(const DirectoryEntry& entry) override;
 
       virtual bool Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
       virtual bool Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+        const DirectoryEntry& parent) override;
 
-      virtual std::string LoadPassword(const DirectoryEntry& account);
+      virtual std::string LoadPassword(const DirectoryEntry& account) override;
 
       virtual void SetPassword(const DirectoryEntry& account,
-        const std::string& password);
+        const std::string& password) override;
 
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target);
+        const DirectoryEntry& target) override;
 
       virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
-        LoadAllPermissions(const DirectoryEntry& account);
+        LoadAllPermissions(const DirectoryEntry& account) override;
 
       virtual void SetPermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions);
+        const DirectoryEntry& target, Permissions permissions) override;
 
       virtual boost::posix_time::ptime LoadRegistrationTime(
-        const DirectoryEntry& account);
+        const DirectoryEntry& account) override;
 
       virtual boost::posix_time::ptime LoadLastLoginTime(
-        const DirectoryEntry& account);
+        const DirectoryEntry& account) override;
 
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
-        const boost::posix_time::ptime& loginTime);
+        const boost::posix_time::ptime& loginTime) override;
 
-      virtual void WithTransaction(const std::function<void ()>& transaction);
+      virtual void WithTransaction(
+        const std::function<void ()>& transaction) override;
 
-      virtual void Open();
+      virtual void Open() override;
 
-      virtual void Close();
+      virtual void Close() override;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable Threading::Mutex m_mutex;
       Network::IpAddress m_address;
       std::string m_schema;
       std::string m_username;
@@ -106,11 +107,11 @@ namespace ServiceLocator {
   inline MySqlServiceLocatorDataStore::MySqlServiceLocatorDataStore(
       const Network::IpAddress& address, const std::string& schema,
       const std::string& username, const std::string& password)
-      : m_address(address),
-        m_schema(schema),
-        m_username(username),
-        m_password(password),
-        m_databaseConnection(false) {}
+      : m_address{address},
+        m_schema{schema},
+        m_username{username},
+        m_password{password},
+        m_databaseConnection{false} {}
 
   inline MySqlServiceLocatorDataStore::~MySqlServiceLocatorDataStore() {
     Close();
@@ -118,11 +119,11 @@ namespace ServiceLocator {
 
   inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::LoadParents(
       const DirectoryEntry& entry) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT parent FROM parents WHERE entry = " << entry.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     std::vector<DirectoryEntry> parents;
     for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
@@ -134,11 +135,11 @@ namespace ServiceLocator {
 
   inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::LoadChildren(
       const DirectoryEntry& entry) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT child FROM children WHERE entry = " << entry.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     std::vector<DirectoryEntry> children;
     for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
@@ -151,34 +152,34 @@ namespace ServiceLocator {
 
   inline DirectoryEntry MySqlServiceLocatorDataStore::LoadDirectoryEntry(
       unsigned int id) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT type, id, name FROM "
       "(SELECT " << DirectoryEntry::Type::ACCOUNT << " AS type, id, name "
       "FROM accounts UNION ALL SELECT " << DirectoryEntry::Type::DIRECTORY <<
       " AS type, id, name FROM directories) AS directory_entries WHERE id = " <<
       id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     if(result.empty()) {
       BOOST_THROW_EXCEPTION(
-        ServiceLocatorDataStoreException("Directory entry not found."));
+        ServiceLocatorDataStoreException{"Directory entry not found."});
     }
     assert(result.size() == 1);
-    DirectoryEntry entry(static_cast<DirectoryEntry::Type>(
+    DirectoryEntry entry{static_cast<DirectoryEntry::Type>(
       static_cast<int>(result[0][0])), static_cast<unsigned int>(result[0][1]),
-      result[0][2].c_str());
+      result[0][2].c_str()};
     return entry;
   }
 
   inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::
       LoadAllAccounts() {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT * FROM accounts";
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     std::vector<DirectoryEntry> accounts;
     for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
@@ -191,11 +192,11 @@ namespace ServiceLocator {
 
   inline std::vector<DirectoryEntry> MySqlServiceLocatorDataStore::
       LoadAllDirectories() {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT * FROM directories";
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     std::vector<DirectoryEntry> directories;
     for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
@@ -208,19 +209,19 @@ namespace ServiceLocator {
 
   inline DirectoryEntry MySqlServiceLocatorDataStore::LoadAccount(
       const std::string& name) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT id FROM accounts WHERE name = " << mysqlpp::quote << name;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     if(result.empty()) {
       BOOST_THROW_EXCEPTION(
-        ServiceLocatorDataStoreException("Account not found."));
+        ServiceLocatorDataStoreException{"Account not found."});
     }
     assert(result.size() == 1);
-    DirectoryEntry entry(DirectoryEntry::Type::ACCOUNT, result[0][0],
-      name);
+    DirectoryEntry entry{DirectoryEntry::Type::ACCOUNT, result[0][0],
+      name};
     return entry;
   }
 
@@ -229,8 +230,8 @@ namespace ServiceLocator {
       const DirectoryEntry& parent,
       const boost::posix_time::ptime& registrationTime) {
     if(parent.m_type != DirectoryEntry::Type::DIRECTORY) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Parent must be a directory."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Parent must be a directory."});
     }
     bool accountExists;
     try {
@@ -240,18 +241,18 @@ namespace ServiceLocator {
       accountExists = false;
     }
     if(accountExists) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "An account with the specified name exists."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "An account with the specified name exists."});
     }
-    unsigned int entryId = LoadNextEntryId();
-    DirectoryEntry newEntry(DirectoryEntry::Type::ACCOUNT, entryId, name);
-    mysqlpp::Query query = m_databaseConnection.query();
-    Details::SqlInsert::accounts accountRow(newEntry.m_id, newEntry.m_name,
+    auto entryId = LoadNextEntryId();
+    DirectoryEntry newEntry{DirectoryEntry::Type::ACCOUNT, entryId, name};
+    auto query = m_databaseConnection.query();
+    Details::SqlInsert::accounts accountRow{newEntry.m_id, newEntry.m_name,
       HashPassword(newEntry, password), MySql::ToDateTime(registrationTime),
-      MySql::ToDateTime(boost::posix_time::neg_infin));
+      MySql::ToDateTime(boost::posix_time::neg_infin)};
     query.insert(accountRow);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     Associate(newEntry, parent);
     return newEntry;
@@ -260,8 +261,8 @@ namespace ServiceLocator {
   inline DirectoryEntry MySqlServiceLocatorDataStore::MakeDirectory(
       const std::string& name, const DirectoryEntry& parent) {
     if(parent.m_type != DirectoryEntry::Type::DIRECTORY) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Parent must be a directory."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Parent must be a directory."});
     }
     bool accountExists;
     try {
@@ -271,17 +272,17 @@ namespace ServiceLocator {
       accountExists = false;
     }
     if(accountExists) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "An account with the specified name exists."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "An account with the specified name exists."});
     }
-    unsigned int entryId = LoadNextEntryId();
-    DirectoryEntry newEntry(DirectoryEntry::Type::DIRECTORY, entryId, name);
-    mysqlpp::Query query = m_databaseConnection.query();
-    Details::SqlInsert::directories directoryRow(newEntry.m_id,
-      newEntry.m_name);
+    auto entryId = LoadNextEntryId();
+    DirectoryEntry newEntry{DirectoryEntry::Type::DIRECTORY, entryId, name};
+    auto query = m_databaseConnection.query();
+    Details::SqlInsert::directories directoryRow{newEntry.m_id,
+      newEntry.m_name};
     query.insert(directoryRow);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     Associate(newEntry, parent);
     return newEntry;
@@ -289,32 +290,32 @@ namespace ServiceLocator {
 
   inline void MySqlServiceLocatorDataStore::Delete(
       const DirectoryEntry& entry) {
-    std::vector<DirectoryEntry> children = LoadChildren(entry);
+    auto children = LoadChildren(entry);
     if(!children.empty()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Directory entry is not empty."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Directory entry is not empty."});
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "DELETE FROM permissions WHERE source = " << entry.m_id <<
       " OR " << " target = " << entry.m_id;
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     query.reset();
-    std::vector<DirectoryEntry> parents = LoadParents(entry);
-    for(const DirectoryEntry& parent : parents) {
+    auto parents = LoadParents(entry);
+    for(auto& parent : parents) {
       Detach(entry, parent);
     }
     if(entry.m_type == DirectoryEntry::Type::ACCOUNT) {
       query << "DELETE FROM accounts WHERE id = " << entry.m_id;
       if(!query.execute()) {
-        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
       }
       query.reset();
     } else {
       query << "DELETE FROM directories WHERE id = " << entry.m_id;
       if(!query.execute()) {
-        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
       }
       query.reset();
     }
@@ -326,27 +327,27 @@ namespace ServiceLocator {
       return false;
     }
     if(parent.m_type != DirectoryEntry::Type::DIRECTORY) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Parent not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Parent not found."});
     }
     if(entry == parent) {
       return false;
     }
-    std::vector<DirectoryEntry> parents = LoadParents(entry);
+    auto parents = LoadParents(entry);
     if(std::find(parents.begin(), parents.end(), parent) != parents.end()) {
       return false;
     }
-    mysqlpp::Query query = m_databaseConnection.query();
-    Details::SqlInsert::parents parentsRow(entry.m_id, parent.m_id);
+    auto query = m_databaseConnection.query();
+    Details::SqlInsert::parents parentsRow{entry.m_id, parent.m_id};
     query.insert(parentsRow);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     query.reset();
-    Details::SqlInsert::children childrenRow(parent.m_id, entry.m_id);
+    Details::SqlInsert::children childrenRow{parent.m_id, entry.m_id};
     query.insert(childrenRow);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     return true;
   }
@@ -354,23 +355,23 @@ namespace ServiceLocator {
   inline bool MySqlServiceLocatorDataStore::Detach(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
     if(parent.m_type != DirectoryEntry::Type::DIRECTORY) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Parent not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Parent not found."});
     }
     if(entry == parent) {
       return false;
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "DELETE FROM parents WHERE entry = " << entry.m_id <<
       " AND parent = " << parent.m_id;
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     query.reset();
     query << "DELETE FROM children WHERE entry = " << parent.m_id <<
       " AND child = " << entry.m_id;
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     return query.affected_rows() > 0;
   }
@@ -378,14 +379,14 @@ namespace ServiceLocator {
   inline std::string MySqlServiceLocatorDataStore::LoadPassword(
       const DirectoryEntry& account) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Account not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Account not found."});
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT password FROM accounts WHERE id = " << account.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
     return result[0][0].c_str();
@@ -393,22 +394,22 @@ namespace ServiceLocator {
 
   inline void MySqlServiceLocatorDataStore::SetPassword(
       const DirectoryEntry& account, const std::string& password) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "UPDATE accounts SET password = " << mysqlpp::quote << password <<
       " WHERE id = " << account.m_id;
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
   }
 
   inline Permissions MySqlServiceLocatorDataStore::LoadPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT permission FROM permissions WHERE source = " <<
       source.m_id << " AND target = " << target.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     if(result.empty()) {
       return Permission::NONE;
@@ -420,11 +421,11 @@ namespace ServiceLocator {
       MySqlServiceLocatorDataStore::LoadAllPermissions(
       const DirectoryEntry& account) {
     std::vector<std::tuple<DirectoryEntry, Permissions>> permissions;
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT * FROM permissions WHERE source = " << account.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
         i != result.end(); ++i) {
@@ -437,17 +438,17 @@ namespace ServiceLocator {
   inline void MySqlServiceLocatorDataStore::SetPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT * FROM permissions WHERE source = " << source.m_id <<
       " AND target = " << target.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     query.reset();
     if(result.empty()) {
-      Details::SqlInsert::permissions permissionRow(source.m_id, target.m_id,
-        permissions.GetBitset().to_ulong());
+      Details::SqlInsert::permissions permissionRow{source.m_id, target.m_id,
+        permissions.GetBitset().to_ulong()};
       query.insert(permissionRow);
     } else {
       query << "UPDATE permissions SET permission = " <<
@@ -455,22 +456,22 @@ namespace ServiceLocator {
         source.m_id << " AND target = " << target.m_id;
     }
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
   }
 
   inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
       LoadRegistrationTime(const DirectoryEntry& account) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Account not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Account not found."});
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT registration_time FROM accounts WHERE id = " <<
       account.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
     return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
@@ -479,14 +480,14 @@ namespace ServiceLocator {
   inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
       LoadLastLoginTime(const DirectoryEntry& account) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Account not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Account not found."});
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT last_login_time FROM accounts WHERE id = " << account.m_id;
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
     return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
@@ -496,21 +497,21 @@ namespace ServiceLocator {
       const DirectoryEntry& account,
       const boost::posix_time::ptime& loginTime) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
-        "Account not found."));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
+        "Account not found."});
     }
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "UPDATE accounts SET last_login_time = " << mysqlpp::quote <<
       MySql::ToDateTime(loginTime) << " WHERE id = " << account.m_id;
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
   }
 
   inline void MySqlServiceLocatorDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
-    mysqlpp::Transaction t(m_databaseConnection);
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
+    mysqlpp::Transaction t{m_databaseConnection};
     try {
       transaction();
     } catch(...) {
@@ -525,28 +526,28 @@ namespace ServiceLocator {
       return;
     }
     try {
-      bool connectionResult = m_databaseConnection.set_option(
-        new mysqlpp::ReconnectOption(true));
+      auto connectionResult = m_databaseConnection.set_option(
+        new mysqlpp::ReconnectOption{true});
       if(!connectionResult) {
         BOOST_THROW_EXCEPTION(
-          IO::IOException("Unable to set MySQL reconnect option."));
+          IO::IOException{"Unable to set MySQL reconnect option."});
         return;
       }
       connectionResult = m_databaseConnection.connect(m_schema.c_str(),
         m_address.GetHost().c_str(), m_username.c_str(), m_password.c_str(),
         m_address.GetPort());
       if(!connectionResult) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(std::string(
+        BOOST_THROW_EXCEPTION(IO::ConnectException{std::string(
           "Unable to connect to MySQL database - ") +
-          m_databaseConnection.error()));
+          m_databaseConnection.error()});
       }
       if(!Details::LoadTables(m_databaseConnection, m_schema)) {
         BOOST_THROW_EXCEPTION(
-          IO::IOException("Unable to load database tables."));
+          IO::IOException{"Unable to load database tables."});
       }
       if(!Details::LoadSettings(m_databaseConnection, Store(m_nextEntryId))) {
-        BOOST_THROW_EXCEPTION(IO::IOException(
-          "Unable to load database settings."));
+        BOOST_THROW_EXCEPTION(IO::IOException{
+          "Unable to load database settings."});
       }
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
@@ -568,11 +569,11 @@ namespace ServiceLocator {
   }
 
   inline unsigned int MySqlServiceLocatorDataStore::LoadNextEntryId() {
-    unsigned int result = m_nextEntryId;
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto result = m_nextEntryId;
+    auto query = m_databaseConnection.query();
     query << "UPDATE settings SET next_entry_id = " << (m_nextEntryId + 1);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(query.error()));
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     ++m_nextEntryId;
     return result;

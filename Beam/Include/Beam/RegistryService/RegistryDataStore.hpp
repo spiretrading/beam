@@ -17,7 +17,7 @@ namespace RegistryService {
    */
   class RegistryDataStore : private boost::noncopyable {
     public:
-      virtual ~RegistryDataStore();
+      virtual ~RegistryDataStore() = default;
 
       //! Loads a RegistryEntry's parent.
       /*!
@@ -128,17 +128,15 @@ namespace RegistryService {
         }
       }
     }
-    BOOST_THROW_EXCEPTION(RegistryDataStoreException(
-      "Registry entry not found."));
+    BOOST_THROW_EXCEPTION(RegistryDataStoreException{
+      "Registry entry not found."});
   }
-
-  inline RegistryDataStore::~RegistryDataStore() {}
 
   inline RegistryEntry RegistryDataStore::Validate(const RegistryEntry& entry) {
     RegistryEntry validatedEntry = LoadRegistryEntry(entry.m_id);
     if(validatedEntry != entry) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException(
-        "Registry entry not found."));
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException{
+        "Registry entry not found."});
     }
     return validatedEntry;
   }

@@ -27,7 +27,7 @@ namespace ServiceLocator {
       template<typename DataStoreForward>
       CachedServiceLocatorDataStore(DataStoreForward&& dataStore);
 
-      virtual ~CachedServiceLocatorDataStore();
+      virtual ~CachedServiceLocatorDataStore() override;
 
       virtual std::vector<DirectoryEntry> LoadParents(
         const DirectoryEntry& entry) override;

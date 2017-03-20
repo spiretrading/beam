@@ -92,7 +92,7 @@ namespace RegistryService {
     std::transform(record.m_children.begin(), record.m_children.end(),
       std::back_inserter(children),
       [&] (auto id) {
-        return LoadRegistryEntry(id);
+        return this->LoadRegistryEntry(id);
       });
     return children;
   }

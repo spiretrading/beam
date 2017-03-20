@@ -448,7 +448,8 @@ namespace ServiceLocator {
     query.reset();
     if(result.empty()) {
       Details::SqlInsert::permissions permissionRow{source.m_id, target.m_id,
-        permissions.GetBitset().to_ulong()};
+        static_cast<mysqlpp::sql_int_unsigned>(
+        permissions.GetBitset().to_ulong())};
       query.insert(permissionRow);
     } else {
       query << "UPDATE permissions SET permission = " <<

@@ -63,7 +63,7 @@ namespace RegistryService {
 
   inline LocalRegistryDataStore::LocalRegistryDataStore()
       : m_nextId{1} {
-    auto& root = RegistryEntry::GetRoot();
+    auto root = RegistryEntry::GetRoot();
     m_entries.insert(std::make_pair(root.m_id, root));
     m_parents.insert(std::make_pair(root.m_id, root.m_id));
     m_children.insert(std::make_pair(root.m_id, std::vector<std::uint64_t>()));

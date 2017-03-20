@@ -131,7 +131,11 @@ namespace Queries {
       [&] {
         auto connection = connectionPool.Acquire();
         auto sqlQuery = connection->query();
-        sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
+        if(query.empty()) {
+          sqlQuery << "SELECT * FROM " << table << " WHERE FALSE";
+        } else {
+          sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
+        }
         std::vector<Row> rows;
         sqlQuery.storein(rows);
         if(sqlQuery.errnum() != 0) {

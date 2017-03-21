@@ -35,6 +35,7 @@
 #include "Beam/QueriesTests/SessionCachedDataStoreTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitedQueryTester.hpp"
+#include "Beam/QueriesTests/SqlTranslatorTester.hpp"
 #include "Beam/QueriesTests/SubscriptionsTester.hpp"
 
 using namespace Beam::Queries::Tests;
@@ -75,6 +76,7 @@ int main() {
   runner.addTest(CachedDataStoreTester::suite());
   runner.addTest(SessionCachedDataStoreTester::suite());
   runner.addTest(ExpressionSubscriptionsTester::suite());
+  runner.addTest(SqlTranslatorTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

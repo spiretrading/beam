@@ -26,7 +26,7 @@ namespace {
 
   struct PtimeFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(PyDateTime_Check(object)) {
+      if(object == Py_None || PyDateTime_Check(object)) {
         return object;
       }
       return nullptr;
@@ -36,12 +36,17 @@ namespace {
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto storage = reinterpret_cast<converter::rvalue_from_python_storage<
           ptime>*>(data)->storage.bytes;
-      date d(PyDateTime_GET_YEAR(object), PyDateTime_GET_MONTH(object),
-        PyDateTime_GET_DAY(object));
-      time_duration timeOfDay(PyDateTime_DATE_GET_HOUR(object),
-        PyDateTime_DATE_GET_MINUTE(object), PyDateTime_DATE_GET_SECOND(object));
-      timeOfDay += microsec(PyDateTime_DATE_GET_MICROSECOND(object));
-      new(storage) ptime(d, timeOfDay);
+      if(object == Py_None) {
+        new(storage) ptime{not_a_date_time};
+      } else {
+        date d(PyDateTime_GET_YEAR(object), PyDateTime_GET_MONTH(object),
+          PyDateTime_GET_DAY(object));
+        time_duration timeOfDay(PyDateTime_DATE_GET_HOUR(object),
+          PyDateTime_DATE_GET_MINUTE(object),
+          PyDateTime_DATE_GET_SECOND(object));
+        timeOfDay += microsec(PyDateTime_DATE_GET_MICROSECOND(object));
+        new(storage) ptime(d, timeOfDay);
+      }
       data->convertible = storage;
     }
   };

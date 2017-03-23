@@ -90,6 +90,10 @@ namespace Details {
 
   inline void StompFrameParser::Feed(const char* c, std::size_t size) {
     if(m_parserState == ParserState::END) {
+      while(size != 0 && *c == '\0') {
+        ++c;
+        --size;
+      }
       if(size == 0) {
         return;
       }
@@ -225,6 +229,10 @@ namespace Details {
       m_contentLength = -1;
       m_body.Reset();
       m_parserState = ParserState::END;
+      while(size != 0 && *c == '\0') {
+        ++c;
+        --size;
+      }
       if(size != 0) {
         if(*c == '\r') {
           ++c;

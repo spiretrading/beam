@@ -116,7 +116,7 @@ namespace Details {
     }
     buffer->Append("\n", 1);
     buffer->Append(frame.GetBody());
-    buffer->Append("\n", 1);
+    buffer->Append("\n\0", 2);
   }
 
   inline StompFrame::StompFrame(StompCommand command)

@@ -10,7 +10,7 @@
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
-#include "Beam/ServiceLocatorTests/ServiceLocatorTestInstance.hpp"
+#include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/RegistryService/LocalRegistryDataStore.hpp"
 #include "Beam/RegistryService/RegistryServlet.hpp"
@@ -71,8 +71,8 @@ namespace Tests {
       void TestLoadValue();
 
     private:
-      DelayPtr<ServiceLocator::Tests::ServiceLocatorTestInstance>
-        m_serviceLocatorInstance;
+      DelayPtr<ServiceLocator::Tests::ServiceLocatorTestEnvironment>
+        m_serviceLocatorEnvironment;
       std::shared_ptr<LocalRegistryDataStore> m_dataStore;
       DelayPtr<ServerConnection> m_serverConnection;
       DelayPtr<ServletContainer> m_container;

@@ -1,5 +1,5 @@
-#ifndef BEAM_SERVICELOCATORTESTINSTANCE_HPP
-#define BEAM_SERVICELOCATORTESTINSTANCE_HPP
+#ifndef BEAM_SERVICELOCATORTESTENVIRONMENT_HPP
+#define BEAM_SERVICELOCATORTESTENVIRONMENT_HPP
 #include <boost/functional/factory.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
@@ -25,17 +25,17 @@ namespace Beam {
 namespace ServiceLocator {
 namespace Tests {
 
-  /*! \class ServiceLocatorTestInstance
+  /*! \class ServiceLocatorTestEnvironment
       \brief Wraps most components needed to run an instance of the
              ServiceLocator with helper functions.
    */
-  class ServiceLocatorTestInstance : private boost::noncopyable {
+  class ServiceLocatorTestEnvironment : private boost::noncopyable {
     public:
 
-      //! Constructs a ServiceLocatorTestInstance.
-      ServiceLocatorTestInstance();
+      //! Constructs a ServiceLocatorTestEnvironment.
+      ServiceLocatorTestEnvironment();
 
-      ~ServiceLocatorTestInstance();
+      ~ServiceLocatorTestEnvironment();
 
       //! Opens the servlet.
       void Open();
@@ -68,32 +68,32 @@ namespace Tests {
       std::unique_ptr<VirtualServiceLocatorClient> m_root;
   };
 
-  inline ServiceLocatorTestInstance::ServiceLocatorTestInstance()
+  inline ServiceLocatorTestEnvironment::ServiceLocatorTestEnvironment()
       : m_container(&m_dataStore, &m_serverConnection,
           boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {}
 
-  inline ServiceLocatorTestInstance::~ServiceLocatorTestInstance() {
+  inline ServiceLocatorTestEnvironment::~ServiceLocatorTestEnvironment() {
     Close();
   }
 
-  inline void ServiceLocatorTestInstance::Open() {
+  inline void ServiceLocatorTestEnvironment::Open() {
     m_container.Open();
     m_root = BuildClient();
     m_root->SetCredentials("root", "");
     m_root->Open();
   }
 
-  inline void ServiceLocatorTestInstance::Close() {
+  inline void ServiceLocatorTestEnvironment::Close() {
     m_root.reset();
     m_container.Close();
   }
 
-  inline VirtualServiceLocatorClient& ServiceLocatorTestInstance::GetRoot() {
+  inline VirtualServiceLocatorClient& ServiceLocatorTestEnvironment::GetRoot() {
     return *m_root;
   }
 
   inline std::unique_ptr<VirtualServiceLocatorClient>
-      ServiceLocatorTestInstance::BuildClient() {
+      ServiceLocatorTestEnvironment::BuildClient() {
     ServiceProtocolClientBuilder builder(
       [&] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(

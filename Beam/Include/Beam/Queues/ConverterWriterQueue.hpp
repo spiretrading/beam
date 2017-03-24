@@ -19,17 +19,17 @@ namespace Beam {
     public:
 
       //! The type of data being pushed onto the Queue.
-      typedef SourceType Source;
+      using Source = SourceType;
 
       //! The Queue to push the converted data to.
-      typedef TargetQueueType TargetQueue;
+      using TargetQueue = TargetQueueType;
 
       //! The type of function performing the conversion.
       /*!
         \param source The data that was pushed onto the Queue.
         \return The converted data to push onto the TargetQueue.
       */
-      typedef ConverterType Converter;
+      using Converter = ConverterType;
 
       //! Constructs a ConverterQueue.
       /*!
@@ -40,13 +40,13 @@ namespace Beam {
       ConverterWriterQueue(const std::shared_ptr<TargetQueue>& target,
         ConverterForward&& converter);
 
-      virtual ~ConverterWriterQueue();
+      virtual ~ConverterWriterQueue() override;
 
-      virtual void Push(const Source& value);
+      virtual void Push(const Source& value) override;
 
-      virtual void Push(Source&& value);
+      virtual void Push(Source&& value) override;
 
-      virtual void Break(const std::exception_ptr& e);
+      virtual void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<Source>::Break;
     private:
@@ -61,12 +61,10 @@ namespace Beam {
   */
   template<typename SourceType, typename TargetQueueType,
     typename ConverterType>
-  std::shared_ptr<ConverterWriterQueue<SourceType, TargetQueueType,
-      ConverterType>> MakeConverterWriterQueue(
-      const std::shared_ptr<TargetQueueType>& target,
+  auto MakeConverterWriterQueue(const std::shared_ptr<TargetQueueType>& target,
       ConverterType&& converter) {
     return std::make_shared<ConverterWriterQueue<SourceType, TargetQueueType,
-      typename std::decay<ConverterType>::type>>(target,
+      std::decay_t<ConverterType>>>(target,
       std::forward<ConverterType>(converter));
   }
 
@@ -76,9 +74,7 @@ namespace Beam {
     \param task The task to perform when a value is pushed onto the Queue.
   */
   template<typename SourceType, typename TargetQueueType>
-  std::shared_ptr<ConverterWriterQueue<SourceType, TargetQueueType,
-      std::function<void (const SourceType&)>>>
-      MakeTaskConverterQueue(const std::shared_ptr<TargetQueueType>& target,
+  auto MakeTaskConverterQueue(const std::shared_ptr<TargetQueueType>& target,
       const std::function<void (const SourceType&)>& task) {
     auto converter =
       [=] (const SourceType& source) -> std::function<void ()> {

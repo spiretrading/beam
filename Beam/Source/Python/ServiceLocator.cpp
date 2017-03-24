@@ -208,7 +208,6 @@ void Beam::Python::ExportServiceLocatorClient() {
 void Beam::Python::ExportServiceLocatorTestInstance() {
   class_<ServiceLocatorTestInstance, boost::noncopyable>(
       "ServiceLocatorTestInstance", init<>())
-    .def("__del__", BlockingFunction(&ServiceLocatorTestInstance::Close))
     .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
     .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
     .def("get_root", &ServiceLocatorTestInstance::GetRoot,

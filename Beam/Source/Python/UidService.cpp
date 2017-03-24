@@ -98,7 +98,6 @@ void Beam::Python::ExportUidClient() {
 void Beam::Python::ExportUidServiceTestInstance() {
   class_<UidServiceTestInstance, boost::noncopyable>("UidServiceTestInstance",
       init<>())
-    .def("__del__", BlockingFunction(&UidServiceTestInstance::Close))
     .def("open", BlockingFunction(&UidServiceTestInstance::Open))
     .def("close", BlockingFunction(&UidServiceTestInstance::Close))
     .def("build_client",

@@ -132,7 +132,7 @@ void Beam::Python::ExportQueue() {
 void Beam::Python::ExportQueueReader() {
   class_<QueueReader<object>, std::shared_ptr<QueueReader<object>>,
     noncopyable, bases<BaseQueue>>("QueueReader", no_init)
-    .add_property("is_empty", &QueueReader<object>::IsEmpty)
+    .def("is_empty", &QueueReader<object>::IsEmpty)
     .def("top", BlockingFunction(&QueueReader<object>::Top))
     .def("pop", &QueueReader<object>::Pop);
   implicitly_convertible<std::shared_ptr<QueueReader<object>>,

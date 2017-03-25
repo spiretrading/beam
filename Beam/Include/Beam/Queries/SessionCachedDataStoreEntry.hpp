@@ -54,6 +54,16 @@ namespace Queries {
       template<typename DataStoreForward>
       SessionCachedDataStoreEntry(DataStoreForward&& dataStore, int blockSize);
 
+      //! Initializes the Range over which this cache is valid.
+      /*!
+        \param timestamp The timestamp marking the beginning (exclusive) of this
+               cache's range.
+        \param sequence The Sequence marking the beginning (exclusive) of this
+               cache's range.
+      */
+      void Initialize(boost::posix_time::ptime timestamp,
+        Sequence sequence);
+
       std::vector<SequencedValue> Load(const Query& query);
 
       void Store(const IndexedValue& value);
@@ -92,6 +102,20 @@ namespace Queries {
       : m_dataStore{std::forward<DataStoreForward>(dataStore)},
         m_blockSize{blockSize},
         m_isInitialized{false} {}
+
+  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
+  void SessionCachedDataStoreEntry<DataStoreType,
+      EvaluatorTranslatorFilterType>::Initialize(
+      boost::posix_time::ptime timestamp, Sequence sequence) {
+    if(m_blockSize == 0) {
+      return;
+    }
+    m_initializer.Call(
+      [&] {
+        m_cache = std::make_shared<DataStoreEntry>(timestamp, sequence);
+        m_isInitialized = true;
+      });
+  }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   std::vector<typename SessionCachedDataStoreEntry<DataStoreType,

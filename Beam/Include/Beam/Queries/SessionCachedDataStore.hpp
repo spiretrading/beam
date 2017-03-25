@@ -94,7 +94,18 @@ namespace Queries {
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   Sequence SessionCachedDataStore<DataStoreType,
       EvaluatorTranslatorFilterType>::LoadInitialSequence(const Index& index) {
-    return m_dataStore->LoadInitialSequence(index);
+    Query query;
+    query.SetIndex(index);
+    query.SetRange(Range::Total());
+    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
+    auto& cache = LoadCache(index);
+    auto result = m_dataStore->Load(query);
+    if(result.empty()) {
+      cache.Initialize(boost::posix_time::neg_infin, Sequence::First());
+      return Sequence{1};
+    }
+    cache.Store(result.back());
+    return Increment(result.back().GetSequence());
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

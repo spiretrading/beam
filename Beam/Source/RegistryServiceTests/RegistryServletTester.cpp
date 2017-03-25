@@ -20,8 +20,8 @@ using namespace boost::posix_time;
 using namespace std;
 
 void RegistryServletTester::setUp() {
-  m_serviceLocatorInstance.Initialize();
-  m_serviceLocatorInstance->Open();
+  m_serviceLocatorEnvironment.Initialize();
+  m_serviceLocatorEnvironment->Open();
   m_dataStore = std::make_shared<LocalRegistryDataStore>();
   m_serverConnection.Initialize();
   m_clientProtocol.Initialize(Initialize(string("test"),
@@ -30,7 +30,7 @@ void RegistryServletTester::setUp() {
   RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
   RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
   std::unique_ptr<VirtualServiceLocatorClient> registryServiceLocatorClient =
-    m_serviceLocatorInstance->BuildClient();
+    m_serviceLocatorEnvironment->BuildClient();
   registryServiceLocatorClient->SetCredentials("root", "");
   registryServiceLocatorClient->Open();
   m_container.Initialize(Initialize(std::move(registryServiceLocatorClient),
@@ -46,7 +46,7 @@ void RegistryServletTester::tearDown() {
 }
 
 void RegistryServletTester::TestMakeDirectory() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -57,7 +57,7 @@ void RegistryServletTester::TestMakeDirectory() {
 }
 
 void RegistryServletTester::TestMakeValue() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -69,7 +69,7 @@ void RegistryServletTester::TestMakeValue() {
 }
 
 void RegistryServletTester::TestLoadPath() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -82,7 +82,7 @@ void RegistryServletTester::TestLoadPath() {
 }
 
 void RegistryServletTester::TestLoadValue() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(

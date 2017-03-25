@@ -6,7 +6,7 @@ namespace Beam {
 namespace UidService {
 namespace Tests {
   class UidClientTester;
-  class UidServiceTestInstance;
+  class UidServiceTestEnvironment;
   class UidServletTester;
 }
 }

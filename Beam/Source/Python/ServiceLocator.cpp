@@ -18,7 +18,7 @@
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
-#include "Beam/ServiceLocatorTests/ServiceLocatorTestInstance.hpp"
+#include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include <boost/noncopyable.hpp>
@@ -148,7 +148,7 @@ void Beam::Python::ExportServiceLocator() {
       borrowed(PyImport_AddModule(nestedName.c_str())))};
     parent.attr("tests") = nestedModule;
     scope child = nestedModule;
-    ExportServiceLocatorTestInstance();
+    ExportServiceLocatorTestEnvironment();
   }
 }
 
@@ -205,13 +205,13 @@ void Beam::Python::ExportServiceLocatorClient() {
     .def("close", BlockingFunction(&VirtualServiceLocatorClient::Close));
 }
 
-void Beam::Python::ExportServiceLocatorTestInstance() {
-  class_<ServiceLocatorTestInstance, boost::noncopyable>(
-      "ServiceLocatorTestInstance", init<>())
-    .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
-    .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
-    .def("get_root", &ServiceLocatorTestInstance::GetRoot,
+void Beam::Python::ExportServiceLocatorTestEnvironment() {
+  class_<ServiceLocatorTestEnvironment, boost::noncopyable>(
+      "ServiceLocatorTestEnvironment", init<>())
+    .def("open", BlockingFunction(&ServiceLocatorTestEnvironment::Open))
+    .def("close", BlockingFunction(&ServiceLocatorTestEnvironment::Close))
+    .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_internal_reference<>())
     .def("build_client",
-      ReleaseUniquePtr(&ServiceLocatorTestInstance::BuildClient));
+      ReleaseUniquePtr(&ServiceLocatorTestEnvironment::BuildClient));
 }

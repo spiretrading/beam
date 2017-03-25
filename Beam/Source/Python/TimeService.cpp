@@ -5,19 +5,25 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
 #include "Beam/TimeService/ToLocalTime.hpp"
 #include "Beam/TimeService/VirtualTimeClient.hpp"
+#include "Beam/TimeServiceTests/TestTimeClient.hpp"
+#include "Beam/TimeServiceTests/TestTimer.hpp"
+#include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Network;
 using namespace Beam::Python;
 using namespace Beam::ServiceLocator;
+using namespace Beam::Threading;
 using namespace Beam::TimeService;
+using namespace Beam::TimeService::Tests;
 using namespace boost;
 using namespace boost::local_time;
 using namespace boost::posix_time;
@@ -91,6 +97,50 @@ namespace {
       ptime time) {
     client.GetClient().SetTime(time);
   }
+
+  class PythonTestTimer : public WrapperTimer<TestTimer> {
+    public:
+      PythonTestTimer(time_duration expiry,
+          std::shared_ptr<TimeServiceTestEnvironment> environment)
+          : WrapperTimer<TestTimer>(Initialize(expiry, Ref(*environment))),
+            m_environment{std::move(environment)} {}
+
+      virtual ~PythonTestTimer() override {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        Cancel();
+      }
+
+    private:
+      std::shared_ptr<TimeServiceTestEnvironment> m_environment;
+  };
+
+  class PythonTestTimeClient : public WrapperTimeClient<TestTimeClient> {
+    public:
+      PythonTestTimeClient(
+          std::shared_ptr<TimeServiceTestEnvironment> environment)
+          : WrapperTimeClient<TestTimeClient>(Initialize(Ref(*environment))),
+            m_environment{std::move(environment)} {}
+
+      virtual ~PythonTestTimeClient() override {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        Close();
+      }
+
+    private:
+      std::shared_ptr<TimeServiceTestEnvironment> m_environment;
+  };
+
+  VirtualTimer* BuildTestTimer(time_duration expiry,
+      std::shared_ptr<TimeServiceTestEnvironment> environment) {
+    return new PythonTestTimer{expiry, environment};
+  }
+
+  VirtualTimeClient* BuildTestTimeClient(
+      std::shared_ptr<TimeServiceTestEnvironment> environment) {
+    return new PythonTestTimeClient{environment};
+  }
 }
 
 void Beam::Python::ExportTzDatabase() {
@@ -146,6 +196,26 @@ void Beam::Python::ExportNtpTimeClient() {
       &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::Close));
 }
 
+void Beam::Python::ExportTestTimeClient() {
+  class_<PythonTestTimeClient, boost::noncopyable, bases<VirtualTimeClient>>(
+      "TestTimeClient", no_init)
+    .def("__init__", make_constructor(&BuildTestTimeClient))
+    .def("get_time", &PythonTestTimeClient::GetTime)
+    .def("open", BlockingFunction<PythonTestTimeClient>(
+      &PythonTestTimeClient::Open))
+    .def("close", BlockingFunction<PythonTestTimeClient>(
+      &PythonTestTimeClient::Close));
+}
+
+void Beam::Python::ExportTestTimer() {
+  class_<PythonTestTimer, boost::noncopyable, bases<VirtualTimer>>("TestTimer",
+      no_init)
+    .def("__init__", make_constructor(&BuildTestTimer))
+    .def("start", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Start))
+    .def("cancel", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Cancel))
+    .def("wait", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Wait));
+}
+
 void Beam::Python::ExportTimeClient() {
   class_<VirtualTimeClientWrapper, boost::noncopyable>("TimeClient")
     .def("get_time", pure_virtual(&VirtualTimeClient::GetTime))
@@ -174,4 +244,26 @@ void Beam::Python::ExportTimeService() {
   ExportIncrementalTimeClient();
   ExportLocalTimeClient();
   ExportNtpTimeClient();
+  {
+    string nestedName = extract<string>(parent.attr("__name__") + ".tests");
+    object nestedModule{handle<>(
+      borrowed(PyImport_AddModule(nestedName.c_str())))};
+    parent.attr("tests") = nestedModule;
+    scope child = nestedModule;
+    ExportTimeServiceTestEnvironment();
+    ExportTestTimeClient();
+    ExportTestTimer();
+  }
+}
+
+void Beam::Python::ExportTimeServiceTestEnvironment() {
+  class_<TimeServiceTestEnvironment,
+      std::shared_ptr<TimeServiceTestEnvironment>, boost::noncopyable>(
+      "TimeServiceTestEnvironment", init<>())
+    .def("set_time", BlockingFunction(&TimeServiceTestEnvironment::SetTime))
+    .def("advance_time", BlockingFunction(
+      &TimeServiceTestEnvironment::AdvanceTime))
+    .def("get_time", BlockingFunction(&TimeServiceTestEnvironment::GetTime))
+    .def("open", BlockingFunction(&TimeServiceTestEnvironment::Open))
+    .def("close", BlockingFunction(&TimeServiceTestEnvironment::Close));
 }

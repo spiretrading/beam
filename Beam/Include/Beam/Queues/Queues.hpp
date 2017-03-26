@@ -5,6 +5,7 @@ namespace Beam {
   template<typename T> class AbstractQueue;
   template<typename PublisherType> class AggregatePublisher;
   template<typename T> class AggregateQueue;
+  template<typename T> class AliasQueue;
   class BaseCallbackWriterQueue;
   class BasePublisher;
   class BaseQueue;

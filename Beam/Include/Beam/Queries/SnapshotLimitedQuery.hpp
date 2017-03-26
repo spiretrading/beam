@@ -1,5 +1,6 @@
 #ifndef BEAM_SNAPSHOTLIMITEDQUERY_HPP
 #define BEAM_SNAPSHOTLIMITEDQUERY_HPP
+#include <ostream>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
@@ -40,8 +41,13 @@ namespace Queries {
       SnapshotLimit m_snapshotLimit;
   };
 
+  inline std::ostream& operator <<(std::ostream& out,
+      const SnapshotLimitedQuery& query) {
+    return out << query.GetSnapshotLimit();
+  }
+
   inline SnapshotLimitedQuery::SnapshotLimitedQuery(const SnapshotLimit& limit)
-      : m_snapshotLimit(limit) {}
+      : m_snapshotLimit{limit} {}
 
   inline const SnapshotLimit& SnapshotLimitedQuery::GetSnapshotLimit() const {
     return m_snapshotLimit;

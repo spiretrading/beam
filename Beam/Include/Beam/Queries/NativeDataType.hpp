@@ -28,12 +28,12 @@ namespace Queries {
       //! Copies a NativeDataType.
       NativeDataType(const NativeDataType& type) = default;
 
-      virtual ~NativeDataType() = default;
+      virtual ~NativeDataType() override = default;
 
-      virtual const std::type_info& GetNativeType() const;
+      virtual const std::type_info& GetNativeType() const override;
 
     protected:
-      virtual bool IsEqual(const VirtualDataType& dataType) const;
+      virtual bool IsEqual(const VirtualDataType& dataType) const override;
 
       template<typename Shuttler>
       void Shuttle(Shuttler& shuttle, unsigned int version);

@@ -2,6 +2,7 @@
 #define BEAM_STREAMABLE_HPP
 #include <ostream>
 #include <typeinfo>
+#include <boost/core/demangle.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
@@ -25,7 +26,7 @@ namespace Beam {
   };
 
   inline std::ostream& Streamable::ToStream(std::ostream& out) const {
-    return out << typeid(*this).name();
+    return out << boost::core::demangle(typeid(*this).name());
   }
 
   inline std::ostream& operator <<(std::ostream& out,

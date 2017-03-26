@@ -37,11 +37,11 @@ namespace Queries {
 
   template<typename T>
   QueryResult<T>::QueryResult()
-      : m_queryId(-1) {}
+      : m_queryId{-1} {}
 
   template<typename T>
   QueryResult<T>::QueryResult(int queryId, std::vector<Type> snapshot)
-      : m_queryId(queryId),
+      : m_queryId{queryId},
         m_snapshot(std::move(snapshot)) {}
 }
 }

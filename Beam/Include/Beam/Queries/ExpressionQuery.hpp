@@ -1,5 +1,6 @@
 #ifndef BEAM_EXPRESSIONQUERY_HPP
 #define BEAM_EXPRESSIONQUERY_HPP
+#include <ostream>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/Queries.hpp"
@@ -56,13 +57,29 @@ namespace Queries {
       Expression m_expression;
   };
 
+  inline std::ostream& operator <<(std::ostream& out,
+      ExpressionQuery::UpdatePolicy value) {
+    if(value == ExpressionQuery::UpdatePolicy::ALL) {
+      return out << "ALL";
+    } else if(value == ExpressionQuery::UpdatePolicy::CHANGE) {
+      return out << "CHANGE";
+    }
+    return out << "NONE";
+  }
+
+  inline std::ostream& operator <<(std::ostream& out,
+      const ExpressionQuery& query) {
+    return out << "(" << query.GetUpdatePolicy() << " " <<
+      query.GetExpression() << ")";
+  }
+
   inline ExpressionQuery::ExpressionQuery()
-      : m_updatePolicy(UpdatePolicy::ALL),
-        m_expression(MakeConstantExpression(true)) {}
+      : m_updatePolicy{UpdatePolicy::ALL},
+        m_expression{MakeConstantExpression(true)} {}
 
   inline ExpressionQuery::ExpressionQuery(const Expression& expression)
-      : m_updatePolicy(UpdatePolicy::ALL),
-        m_expression(expression) {}
+      : m_updatePolicy{UpdatePolicy::ALL},
+        m_expression{expression} {}
 
   inline ExpressionQuery::UpdatePolicy ExpressionQuery::
       GetUpdatePolicy() const {

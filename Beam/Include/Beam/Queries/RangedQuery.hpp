@@ -1,5 +1,6 @@
 #ifndef BEAM_RANGEDQUERY_HPP
 #define BEAM_RANGEDQUERY_HPP
+#include <ostream>
 #include <utility>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
@@ -42,8 +43,13 @@ namespace Queries {
       Range m_range;
   };
 
+  inline std::ostream& operator <<(std::ostream& out,
+      const RangedQuery& query) {
+    return out << query.GetRange();
+  }
+
   inline RangedQuery::RangedQuery(const Range& range)
-      : m_range(range) {}
+      : m_range{range} {}
 
   inline const Range& RangedQuery::GetRange() const {
     return m_range;
@@ -55,7 +61,7 @@ namespace Queries {
 
   template<typename StartType, typename EndType>
   inline void RangedQuery::SetRange(StartType&& start, EndType&& end) {
-    m_range = Range(std::forward<StartType>(start), std::forward<EndType>(end));
+    m_range = Range{std::forward<StartType>(start), std::forward<EndType>(end)};
   }
 }
 }

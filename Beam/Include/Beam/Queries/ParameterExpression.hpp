@@ -44,8 +44,8 @@ namespace Queries {
 
   inline ParameterExpression::ParameterExpression(int index,
       const DataType& type)
-      : m_index(index),
-        m_type(type) {}
+      : m_index{index},
+        m_type{type} {}
 
   inline int ParameterExpression::GetIndex() const {
     return m_index;
@@ -64,7 +64,7 @@ namespace Queries {
   }
 
   inline ParameterExpression::ParameterExpression()
-      : m_type(BoolType()) {}
+      : m_type{BoolType()} {}
 
   template<typename Shuttler>
   void ParameterExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

@@ -104,7 +104,9 @@ namespace Queries {
       cache.Initialize(boost::posix_time::neg_infin, Sequence::First());
       return Sequence{1};
     }
-    cache.Store(result.back());
+    cache.Store(MakeSequencedValue(MakeIndexedValue(
+      std::move(result.back().GetValue()), index),
+      result.back().GetSequence()));
     return Increment(result.back().GetSequence());
   }
 

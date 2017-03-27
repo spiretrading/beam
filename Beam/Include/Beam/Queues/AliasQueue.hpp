@@ -14,8 +14,7 @@ namespace Beam {
       \tparam T The data to write to the Queue.
    */
   template<typename T>
-  class AliasQueue : public QueueWriter<T>,
-      private std::enable_shared_from_this<AliasQueue<T>> {
+  class AliasQueue : public QueueWriter<T> {
     private:
       struct Guard {};
 
@@ -40,8 +39,8 @@ namespace Beam {
 
       using QueueWriter<T>::Break;
     private:
-      template<typename T> friend std::shared_ptr<AliasQueue<T>> MakeAliasQueue(
-        std::shared_ptr<QueueWriter<T>> queue, std::shared_ptr<void> alias);
+      template<typename U> friend std::shared_ptr<AliasQueue<U>> MakeAliasQueue(
+        std::shared_ptr<QueueWriter<U>> queue, std::shared_ptr<void> alias);
       std::shared_ptr<void> m_self;
       std::shared_ptr<QueueWriter<T>> m_queue;
       std::weak_ptr<void> m_alias;

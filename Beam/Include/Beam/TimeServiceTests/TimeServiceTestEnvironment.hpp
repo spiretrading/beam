@@ -105,6 +105,10 @@ namespace Tests {
     if(m_openState.SetOpening()) {
       return;
     }
+    if(m_currentTime == boost::posix_time::not_a_date_time) {
+      m_currentTime = boost::posix_time::ptime{
+        boost::gregorian::date{2016, 7, 31}, boost::posix_time::seconds(0)};
+    }
     m_openState.SetOpen();
   }
 

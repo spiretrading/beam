@@ -30,6 +30,7 @@
 #include "Beam/QueriesTests/ReduceEvaluatorNodeTester.hpp"
 #include "Beam/QueriesTests/ReduceExpressionTester.hpp"
 #include "Beam/QueriesTests/SequenceTester.hpp"
+#include "Beam/QueriesTests/SequencerTester.hpp"
 #include "Beam/QueriesTests/SequencedValueTester.hpp"
 #include "Beam/QueriesTests/SequencedValuePublisherTester.hpp"
 #include "Beam/QueriesTests/SessionCachedDataStoreTester.hpp"
@@ -77,6 +78,7 @@ int main() {
   runner.addTest(SessionCachedDataStoreTester::suite());
   runner.addTest(ExpressionSubscriptionsTester::suite());
   runner.addTest(SqlTranslatorTester::suite());
+  runner.addTest(SequencerTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

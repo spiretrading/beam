@@ -182,9 +182,9 @@ namespace Queries {
     } else if(timestamp == boost::posix_time::pos_infin) {
       return Sequence::Last();
     } else {
-      Sequence sequence{EncodeTimestamp(timestamp).GetOrdinal() +
+      Sequence encodedSequence{EncodeTimestamp(timestamp).GetOrdinal() +
         sequence.GetOrdinal()};
-      return sequence;
+      return encodedSequence;
     }
   }
 

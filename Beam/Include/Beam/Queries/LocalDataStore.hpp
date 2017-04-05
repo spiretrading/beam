@@ -128,7 +128,7 @@ namespace Queries {
       LoadInitialSequence(const Index& index) const {
     auto entry = m_entries.Find(index);
     if(!entry.is_initialized()) {
-      return Sequence{1};
+      return Sequence::First();
     }
     return entry->LoadInitialSequence();
   }

@@ -37,9 +37,9 @@ namespace Queries {
       indexQuery << " ORDER BY query_sequence DESC LIMIT 1";
     auto result = query.store();
     if(!result || result.size() != 1) {
-      return Sequence(1);
+      return Sequence::First();
     } else {
-      return Increment(Sequence(result[0][0].conv<std::uint64_t>(0)));
+      return Increment(Sequence{result[0][0].conv<std::uint64_t>(0)});
     }
   }
 

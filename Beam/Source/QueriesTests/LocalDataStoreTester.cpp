@@ -65,7 +65,7 @@ void LocalDataStoreTester::TestLoadInitialSequence() {
   TestDataStore dataStore;
   IncrementalTimeClient timeClient;
   Sequence sequenceA = dataStore.LoadInitialSequence("hello");
-  CPPUNIT_ASSERT(sequenceA == Sequence(1));
+  CPPUNIT_ASSERT(sequenceA == Sequence::First());
   dataStore.Store(MakeSequencedValue(
     MakeIndexedValue(Entry(123, timeClient.GetTime()), "hello"), Sequence(5)));
   Sequence sequenceB = dataStore.LoadInitialSequence("hello");
@@ -91,7 +91,8 @@ void LocalDataStoreTester::TestStoreAndLoad() {
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
+    SnapshotLimit(SnapshotLimit::Type::HEAD, 0),
+    std::vector<SequencedEntry>());
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -101,7 +102,8 @@ void LocalDataStoreTester::TestStoreAndLoad() {
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
+    SnapshotLimit(SnapshotLimit::Type::TAIL, 0),
+    std::vector<SequencedEntry>());
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),

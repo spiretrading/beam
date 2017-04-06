@@ -53,8 +53,8 @@ namespace Beam {
             const std::tuple<std::string, JsonValue>& value) {
           object.Set(std::get<0>(value), std::get<1>(value));
         }) >> '}';
-    arrayParser = Parsers::tokenize >> '[' >> Parsers::List(valueParser, ',') >>
-      ']';
+    arrayParser = Parsers::tokenize >> '[' >>
+      Parsers::List(valueParser, ',') >> ']';
     SetParser(valueParser);
   }
 

@@ -58,16 +58,19 @@ namespace Routines {
 
   //! Waits for all pending Routines to complete.
   inline void FlushPendingRoutines() {
-    RoutineHandler r = Spawn(
-      [] {
-        std::vector<RoutineHandler> routines;
-        for(std::size_t i = 0; i < boost::thread::hardware_concurrency(); ++i) {
-          routines.push_back(Spawn([]{}));
-        }
-        for(RoutineHandler& routine : routines) {
-          routine.Wait();
-        }
-      });
+    for(auto i = 0; i < 100; ++i) {
+      RoutineHandler r = Spawn(
+        [] {
+          std::vector<RoutineHandler> routines;
+          for(std::size_t i = 0;
+              i < boost::thread::hardware_concurrency(); ++i) {
+            routines.push_back(Spawn([]{}));
+          }
+          for(auto& routine : routines) {
+            routine.Wait();
+          }
+        });
+    }
   }
 
   inline RoutineHandler::RoutineHandler()

@@ -12,7 +12,6 @@
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Queries/SqlUtilities.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 
@@ -57,6 +56,8 @@ namespace Queries {
       std::string m_parameter;
       Expression m_expression;
       std::string m_query;
+
+      static std::string Escape(const std::string& source);
   };
 
   //! Translates an Expression into an SQL query.
@@ -95,14 +96,14 @@ namespace Queries {
       std::string escapeValue;
       escapeValue += value->GetValue<char>();
       GetQuery() += "\'";
-      GetQuery() += EscapeSql(escapeValue);
+      GetQuery() += Escape(escapeValue);
       GetQuery() += + "\'";
     } else if(value->GetType()->GetNativeType() == typeid(int)) {
       GetQuery() += boost::lexical_cast<std::string>(value->GetValue<int>());
     } else if(value->GetType()->GetNativeType() == typeid(double)) {
       GetQuery() += boost::lexical_cast<std::string>(value->GetValue<double>());
     } else if(value->GetType()->GetNativeType() == typeid(std::string)) {
-      GetQuery() += "\'" + EscapeSql(value->GetValue<std::string>()) + "\'";
+      GetQuery() += "\'" + Escape(value->GetValue<std::string>()) + "\'";
     } else if(value->GetType()->GetNativeType() ==
         typeid(boost::posix_time::ptime)) {
       auto timestamp = MySql::ToMySqlTimestamp(
@@ -173,6 +174,34 @@ namespace Queries {
 
   inline const std::string& SqlTranslator::GetParameter() const {
     return m_parameter;
+  }
+
+  inline std::string SqlTranslator::Escape(const std::string& source) {
+    std::string result;
+    for(auto c : source) {
+      if(c == '\0') {
+        result += "\\0";
+      } else if(c == '\'') {
+        result += "\\'";
+      } else if(c == '\"') {
+        result += "\\\"";
+      } else if(c == '\x08') {
+        result += "\\b";
+      } else if(c == '\n') {
+        result += "\\n";
+      } else if(c == '\r') {
+        result += "\\r";
+      } else if(c == '\t') {
+        result += "\\t";
+      } else if(c == '\x1A') {
+        result += "\\n";
+      } else if(c == '\\') {
+        result += "\\\\";
+      } else {
+        result += c;
+      }
+    }
+    return result;
   }
 }
 }

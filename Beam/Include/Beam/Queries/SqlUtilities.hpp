@@ -23,6 +23,39 @@
 namespace Beam {
 namespace Queries {
 
+  //! Escapes special/reserved characters in an SQL string.
+  /*!
+    \param source The string to escape.
+    \return A copy of <i>source</i> with special characters escaped.
+  */
+  inline std::string EscapeSql(const std::string& source) {
+    std::string result;
+    for(auto c : source) {
+      if(c == '\0') {
+        result += "\\0";
+      } else if(c == '\'') {
+        result += "\\'";
+      } else if(c == '\"') {
+        result += "\\\"";
+      } else if(c == '\x08') {
+        result += "\\b";
+      } else if(c == '\n') {
+        result += "\\n";
+      } else if(c == '\r') {
+        result += "\\r";
+      } else if(c == '\t') {
+        result += "\\t";
+      } else if(c == '\x1A') {
+        result += "\\n";
+      } else if(c == '\\') {
+        result += "\\\\";
+      } else {
+        result += c;
+      }
+    }
+    return result;
+  }
+
   //! Loads the initial Sequence to use from an SQL database.
   /*!
     \param table The table to query.

@@ -283,7 +283,9 @@ namespace ServiceLocator {
         "No " + serviceName + " services available."));
     }
     services.erase(std::remove_if(services.begin(), services.end(),
-      servicePredicate), services.end());
+      [&] (auto& entry) {
+        return !servicePredicate(entry);
+      }), services.end());
     if(services.empty()) {
       BOOST_THROW_EXCEPTION(IO::ConnectException(
         "No " + serviceName + " services available."));

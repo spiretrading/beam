@@ -267,11 +267,14 @@ namespace ServiceLocator {
   /*!
     \param client The ServiceLocatorClient used to locate the addresses.
     \param serviceName The name of the service to locate.
+    \param servicePredicate A function to apply to a ServiceEntry to determine
+           if it matches some criteria.
     \return The list of IP addresses for the specified service.
   */
-  template<typename ServiceLocatorClient>
+  template<typename ServiceLocatorClient, typename ServicePredicate>
   std::vector<Network::IpAddress> LocateServiceAddresses(
-      ServiceLocatorClient& client, const std::string& serviceName) {
+      ServiceLocatorClient& client, const std::string& serviceName,
+      ServicePredicate servicePredicate) {
     std::vector<ServiceEntry> services;
     try {
       services = client.Locate(serviceName);
@@ -279,6 +282,8 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(IO::ConnectException(
         "No " + serviceName + " services available."));
     }
+    services.erase(std::remove_if(services.begin(), services.end(),
+      servicePredicate), services.end());
     if(services.empty()) {
       BOOST_THROW_EXCEPTION(IO::ConnectException(
         "No " + serviceName + " services available."));
@@ -291,6 +296,21 @@ namespace ServiceLocator {
     auto addresses = FromString<std::vector<Network::IpAddress>>(
       boost::get<std::string>(service.GetProperties().At("addresses")));
     return addresses;
+  }
+
+  //! Locates the IP addresses of a service.
+  /*!
+    \param client The ServiceLocatorClient used to locate the addresses.
+    \param serviceName The name of the service to locate.
+    \return The list of IP addresses for the specified service.
+  */
+  template<typename ServiceLocatorClient>
+  std::vector<Network::IpAddress> LocateServiceAddresses(
+      ServiceLocatorClient& client, const std::string& serviceName) {
+    return LocateServiceAddresses(client, serviceName,
+      [] (auto&) {
+        return true;
+      });
   }
 
   template<typename ServiceProtocolClientBuilderType>

@@ -75,6 +75,17 @@ namespace TimeService {
       std::forward<TimeClient>(client));
   }
 
+  //! Wraps a TimeClient into a VirtualTimeClient.
+  /*!
+    \param initializer Initializes client to wrap.
+  */
+  template<typename TimeClient, typename... Args>
+  std::unique_ptr<VirtualTimeClient> MakeVirtualTimeClient(
+      Initializer<Args...>&& initializer) {
+    return std::make_unique<WrapperTimeClient<TimeClient>>(
+      std::move(initializer));
+  }
+
   template<typename ClientType>
   template<typename TimeClientForward>
   WrapperTimeClient<ClientType>::WrapperTimeClient(TimeClientForward&& client)

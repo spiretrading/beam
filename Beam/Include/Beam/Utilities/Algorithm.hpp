@@ -324,7 +324,8 @@ namespace Beam {
   /*!
     \param map The map to perform the lookup on.
     \param key The key to find.
-    \return The value retrieved from the <i>map<i> with the specified <i>key</i>.
+    \return The value retrieved from the <i>map<i> with the specified
+            <i>key</i>.
   */
   template<typename T>
   boost::optional<const typename T::mapped_type&> Retrieve(const T& map,
@@ -340,7 +341,8 @@ namespace Beam {
   /*!
     \param map The map to perform the lookup on.
     \param key The key to find.
-    \return The value retrieved from the <i>map<i> with the specified <i>key</i>.
+    \return The value retrieved from the <i>map<i> with the specified
+            <i>key</i>.
   */
   template<typename T>
   boost::optional<typename T::mapped_type&> Retrieve(T& map,
@@ -357,7 +359,8 @@ namespace Beam {
     \param map The map to perform the lookup on.
     \param key The key to find.
     \param f The function to call if the key is not found in the <i>map</i>.
-    \return The value retrieved from the <i>map<i> with the specified <i>key</i>.
+    \return The value retrieved from the <i>map<i> with the specified
+            <i>key</i>.
   */
   template<typename T, typename F>
   typename T::mapped_type& GetOrInsert(T& map, const typename T::key_type& key,
@@ -373,7 +376,8 @@ namespace Beam {
   /*!
     \param map The map to perform the lookup on.
     \param key The key to find.
-    \return The value retrieved from the <i>map<i> with the specified <i>key</i>.
+    \return The value retrieved from the <i>map<i> with the specified
+            <i>key</i>.
   */
   template<typename T>
   typename T::mapped_type& GetOrInsert(T& map,

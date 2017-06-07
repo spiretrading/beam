@@ -231,12 +231,12 @@ namespace Details {
   }
 
   inline Routine::Routine()
-      : m_id(++Details::NextId<void>::GetInstance()),
-        m_state(State::PENDING) {}
+      : m_id{++Details::NextId<void>::GetInstance()},
+        m_state{State::PENDING} {}
 
   inline Routine::~Routine() {
     Threading::With(m_waitResults,
-      [&] (WaitResults& waitResults) {
+      [&] (auto& waitResults) {
         for(auto& waitResult : waitResults) {
           waitResult.SetResult();
         }
@@ -255,7 +255,7 @@ namespace Details {
 
   inline void Routine::Wait(Eval<void> result) {
     Threading::With(m_waitResults,
-      [&] (WaitResults& waitResults) {
+      [&] (auto& waitResults) {
         waitResults.push_back(std::move(result));
       });
   }

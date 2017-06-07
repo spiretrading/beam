@@ -58,29 +58,30 @@ namespace Routines {
 
   //! Waits for all pending Routines to complete.
   inline void FlushPendingRoutines() {
-    for(auto i = 0; i < 100; ++i) {
-      RoutineHandler r = Spawn(
-        [] {
-          std::vector<RoutineHandler> routines;
-          for(std::size_t i = 0;
-              i < boost::thread::hardware_concurrency(); ++i) {
-            routines.push_back(Spawn([]{}));
-          }
-          for(auto& routine : routines) {
-            routine.Wait();
-          }
-        });
+    auto& scheduler = Details::Scheduler::GetInstance();
+    std::function<void ()> testFunction =
+      [&] () {
+        auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
+        if(routine.GetScheduler().HasPendingRoutines(routine.GetContextId())) {
+          RoutineHandler r = Spawn(testFunction,
+            Details::Scheduler::DEFAULT_STACK_SIZE, routine.GetContextId());
+        }
+      };
+    std::vector<RoutineHandler> routines;
+    for(std::size_t i = 0; i < scheduler.GetThreadCount(); ++i) {
+      routines.emplace_back(Spawn(testFunction,
+        Details::Scheduler::DEFAULT_STACK_SIZE, i));
     }
   }
 
   inline RoutineHandler::RoutineHandler()
-      : m_id(0) {}
+      : m_id{0} {}
 
   inline RoutineHandler::RoutineHandler(Routine::Id id)
-      : m_id(id) {}
+      : m_id{id} {}
 
   inline RoutineHandler::RoutineHandler(RoutineHandler&& routineHandler)
-      : m_id(routineHandler.m_id) {
+      : m_id{routineHandler.m_id} {
     routineHandler.Detach();
   }
 

@@ -56,26 +56,6 @@ namespace Queries {
     return result;
   }
 
-  //! Loads the initial Sequence to use from an SQL database.
-  /*!
-    \param table The table to query.
-    \param indexQuery The SQL query fragment containing the index to query.
-    \param connection The MySQL connection to use.
-    \return The initial Sequence number.
-  */
-  inline Sequence LoadSqlInitialSequence(const std::string& table,
-      const std::string& indexQuery, mysqlpp::Connection& connection) {
-    auto query = connection.query();
-    query << "SELECT query_sequence FROM " << table << " WHERE " <<
-      indexQuery << " ORDER BY query_sequence DESC LIMIT 1";
-    auto result = query.store();
-    if(!result || result.size() != 1) {
-      return Sequence::First();
-    } else {
-      return Increment(Sequence{result[0][0].conv<std::uint64_t>(0)});
-    }
-  }
-
   //! Builds an SQL query fragment over a Range.
   /*!
     \param range The Range to query.

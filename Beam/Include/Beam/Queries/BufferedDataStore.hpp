@@ -66,8 +66,6 @@ namespace Queries {
 
       ~BufferedDataStore();
 
-      Sequence LoadInitialSequence(const Index& index);
-
       std::vector<SequencedValue> Load(const Query& query);
 
       void Store(const IndexedValue& value);
@@ -112,19 +110,6 @@ namespace Queries {
   BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       ~BufferedDataStore() {
     Close();
-  }
-
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  Sequence BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      LoadInitialSequence(const Index& index) {
-    std::shared_ptr<ReserveDataStore> buffer;
-    {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
-      buffer = m_flushedDataStore;
-    }
-    auto bufferedSequence = buffer->LoadInitialSequence(index);
-    auto dataStoreSequence = m_dataStore->LoadInitialSequence(index);
-    return std::max(bufferedSequence, dataStoreSequence);
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

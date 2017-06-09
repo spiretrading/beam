@@ -53,8 +53,6 @@ namespace Queries {
 
       ~SessionCachedDataStore();
 
-      Sequence LoadInitialSequence(const Index& index);
-
       std::vector<SequencedValue> Load(const Query& query);
 
       void Store(const IndexedValue& value);
@@ -89,12 +87,6 @@ namespace Queries {
   SessionCachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       ~SessionCachedDataStore() {
     Close();
-  }
-
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  Sequence SessionCachedDataStore<DataStoreType,
-      EvaluatorTranslatorFilterType>::LoadInitialSequence(const Index& index) {
-    return m_dataStore->LoadInitialSequence(index);
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

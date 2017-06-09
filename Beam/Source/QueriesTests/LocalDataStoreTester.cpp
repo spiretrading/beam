@@ -61,21 +61,6 @@ namespace {
   }
 }
 
-void LocalDataStoreTester::TestLoadInitialSequence() {
-  TestDataStore dataStore;
-  IncrementalTimeClient timeClient;
-  Sequence sequenceA = dataStore.LoadInitialSequence("hello");
-  CPPUNIT_ASSERT(sequenceA == Sequence::First());
-  dataStore.Store(MakeSequencedValue(
-    MakeIndexedValue(Entry(123, timeClient.GetTime()), "hello"), Sequence(5)));
-  Sequence sequenceB = dataStore.LoadInitialSequence("hello");
-  CPPUNIT_ASSERT(sequenceB == Sequence(6));
-  dataStore.Store(MakeSequencedValue(
-    MakeIndexedValue(Entry(123, timeClient.GetTime()), "hello"), Sequence(2)));
-  Sequence sequenceC = dataStore.LoadInitialSequence("hello");
-  CPPUNIT_ASSERT(sequenceC == Sequence(6));
-}
-
 void LocalDataStoreTester::TestStoreAndLoad() {
   TestDataStore dataStore;
   IncrementalTimeClient timeClient;

@@ -73,13 +73,6 @@ namespace Queries {
         Threading::Mutex>> writeConnection, Beam::RefType<Threading::ThreadPool>
         threadPool, const Functor& functor = Functor());
 
-      //! Loads the initial Sequence to use for a specified index.
-      /*!
-        \param index The index to load the initial Sequence for.
-        \return The initial Sequence to use for the specified <i>index</i>.
-      */
-      Sequence LoadInitialSequence(const Index& index);
-
       //! Executes a search query.
       /*!
         \param query The search query to execute.
@@ -130,16 +123,6 @@ namespace Queries {
         m_threadPool{threadPool.Get()},
         m_functor{functor},
         m_table{Row().table()} {}
-
-  template<typename QueryType, typename ValueType, typename RowType,
-    typename SqlTranslatorFilterType, typename FunctorType>
-  Sequence SqlDataStore<QueryType, ValueType, RowType, SqlTranslatorFilterType,
-      FunctorType>::LoadInitialSequence(const Index& index) {
-    return Threading::With(*m_readConnection,
-      [&] (mysqlpp::Connection& connection) {
-        return LoadSqlInitialSequence(m_table, m_functor(index), connection);
-      });
-  }
 
   template<typename QueryType, typename ValueType, typename RowType,
     typename SqlTranslatorFilterType, typename FunctorType>

@@ -63,12 +63,6 @@ namespace Queries {
       //! Returns all the values stored by this data store.
       std::vector<SequencedValue> LoadAll() const;
 
-      //! Loads the initial Sequence to use.
-      /*!
-        \return The initial Sequence to use.
-      */
-      Sequence LoadInitialSequence() const;
-
       //! Executes a search query.
       /*!
         \param query The search query to execute.
@@ -116,22 +110,6 @@ namespace Queries {
       EvaluatorTranslatorFilterType>::SequencedValue> LocalDataStoreEntry<
       QueryType, ValueType, EvaluatorTranslatorFilterType>::LoadAll() const {
     return m_values.Acquire();
-  }
-
-  template<typename QueryType, typename ValueType,
-    typename EvaluatorTranslatorFilterType>
-  Sequence LocalDataStoreEntry<QueryType, ValueType,
-      EvaluatorTranslatorFilterType>::LoadInitialSequence() const {
-    Sequence initialSequence;
-    m_values.With(
-      [&] (const std::vector<SequencedValue>& values) {
-        if(values.empty()) {
-          initialSequence = Sequence(1);
-        } else {
-          initialSequence = Increment(values.back().GetSequence());
-        }
-      });
-    return initialSequence;
   }
 
   template<typename QueryType, typename ValueType,

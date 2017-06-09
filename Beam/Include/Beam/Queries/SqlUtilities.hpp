@@ -140,9 +140,9 @@ namespace Queries {
       MySql::DatabaseConnectionPool& connectionPool, F rowToData) {
     std::vector<T> records;
     Routines::Async<std::vector<T>> result;
+    auto connection = connectionPool.Acquire();
     threadPool.Queue(
       [&] {
-        auto connection = connectionPool.Acquire();
         auto sqlQuery = connection->query();
         if(query.empty()) {
           sqlQuery << "SELECT * FROM " << table << " WHERE FALSE";
@@ -201,6 +201,7 @@ namespace Queries {
         auto subsetQuery = sanitizedQuery;
         subsetQuery.SetRange(startPoint, endPoint);
         subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
+        auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
             auto filterQuery = BuildSqlQuery<QueryTranslator>(
@@ -212,7 +213,6 @@ namespace Queries {
               subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto connection = connectionPool.Acquire();
             auto sqlQuery = connection->query();
             sqlQuery << "SELECT result.* FROM (SELECT * FROM " << table <<
               " WHERE (" << indexQuery << ") AND (" << rangeQuery <<
@@ -253,6 +253,7 @@ namespace Queries {
             remainingLimit);
         }
         Routines::Async<std::vector<T>> result;
+        auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
             auto filterQuery = BuildSqlQuery<QueryTranslator>(
@@ -264,7 +265,6 @@ namespace Queries {
               subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto connection = connectionPool.Acquire();
             auto sqlQuery = connection->query();
             sqlQuery << "SELECT * FROM " << table << " WHERE (" <<
               indexQuery << ") AND (" << rangeQuery << ") AND (" <<

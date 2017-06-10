@@ -62,16 +62,14 @@ namespace Queries {
       //! Constructs an SqlDataStore.
       /*!
         \param connectionPool The pool used to acquire SQL connections.
-        \param readConnection Used to perform high priority reads.
         \param writeConnection Used to perform high priority writes.
         \param threadPool Used to perform asynchronous reads and writes.
         \param functor Initializes the Functor.
       */
       SqlDataStore(Beam::RefType<MySql::DatabaseConnectionPool> connectionPool,
         Beam::RefType<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
-        readConnection, Beam::RefType<Threading::Sync<mysqlpp::Connection,
-        Threading::Mutex>> writeConnection, Beam::RefType<Threading::ThreadPool>
-        threadPool, const Functor& functor = Functor());
+        writeConnection, Beam::RefType<Threading::ThreadPool> threadPool,
+        const Functor& functor = Functor());
 
       //! Executes a search query.
       /*!
@@ -101,7 +99,6 @@ namespace Queries {
 
     private:
       MySql::DatabaseConnectionPool* m_connectionPool;
-      Threading::Sync<mysqlpp::Connection, Threading::Mutex>* m_readConnection;
       Threading::Sync<mysqlpp::Connection, Threading::Mutex>* m_writeConnection;
       Threading::ThreadPool* m_threadPool;
       Functor m_functor;
@@ -114,11 +111,9 @@ namespace Queries {
       FunctorType>::SqlDataStore(
       Beam::RefType<MySql::DatabaseConnectionPool> connectionPool,
       Beam::RefType<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
-      readConnection, Beam::RefType<Threading::Sync<mysqlpp::Connection,
-      Threading::Mutex>> writeConnection,
-      Beam::RefType<Threading::ThreadPool> threadPool, const Functor& functor)
+      writeConnection, Beam::RefType<Threading::ThreadPool> threadPool,
+      const Functor& functor)
       : m_connectionPool{connectionPool.Get()},
-        m_readConnection{readConnection.Get()},
         m_writeConnection{writeConnection.Get()},
         m_threadPool{threadPool.Get()},
         m_functor{functor},

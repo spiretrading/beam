@@ -112,7 +112,7 @@ namespace Beam {
     try {
       Beam::Threading::With(m_writerDatabaseConnection,
         [&] (auto& connection) {
-          OpenDatabaseConnection(connection);
+          this->OpenDatabaseConnection(connection);
           if(!Details::LoadTables(connection, m_schema)) {
             BOOST_THROW_EXCEPTION(IO::ConnectException{
               "Unable to load database tables."});

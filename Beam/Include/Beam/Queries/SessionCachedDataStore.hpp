@@ -101,19 +101,19 @@ namespace Queries {
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   void SessionCachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       Store(const IndexedValue& value) {
-    m_dataStore->Store(value);
     auto& cache = LoadCache(value->GetIndex());
     cache.Store(value);
+    m_dataStore->Store(value);
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   void SessionCachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       Store(const std::vector<IndexedValue>& values) {
-    m_dataStore->Store(values);
     for(const auto& value : values) {
       auto& cache = LoadCache(value->GetIndex());
       cache.Store(value);
     }
+    m_dataStore->Store(values);
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

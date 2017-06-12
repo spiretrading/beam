@@ -147,15 +147,14 @@ namespace Queries {
         Query query;
         query.SetIndex(value->GetIndex());
         query.SetRange(Range::Total());
-        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 2);
+        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
         auto data = m_dataStore->Load(query);
-        if(data.size() < 2) {
+        if(data.empty()) {
           m_cache = std::make_shared<DataStoreEntry>(
             boost::posix_time::neg_infin, Sequence::First());
         } else {
-          auto& lastValue = data[data.size() - 2];
           m_cache = std::make_shared<DataStoreEntry>(
-            GetTimestamp(*lastValue), lastValue.GetSequence());
+            GetTimestamp(*data.back()), data.back().GetSequence());
         }
         m_cache->m_dataStore.Store(value);
         ++m_cache->m_size;

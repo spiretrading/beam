@@ -1,9 +1,12 @@
 #ifndef BEAM_ROUTINEHANDLER_HPP
 #define BEAM_ROUTINEHANDLER_HPP
+#include <atomic>
 #include <boost/noncopyable.hpp>
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
+#include "Beam/Threading/ConditionVariable.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace Routines {
@@ -59,17 +62,36 @@ namespace Routines {
   //! Waits for all pending Routines to complete.
   inline void FlushPendingRoutines() {
     auto& scheduler = Details::Scheduler::GetInstance();
-    std::function<void ()> testFunction =
-      [&] () {
-        auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
-        if(routine.GetScheduler().HasPendingRoutines(routine.GetContextId())) {
-          FlushPendingRoutines();
-        }
-      };
+    Threading::Mutex threadCountMutex;
+    Threading::ConditionVariable threadCountCondition;
+    auto threadCount = scheduler.GetThreadCount();
     std::vector<RoutineHandler> routines;
+    std::atomic_bool isComplete = true;
     for(std::size_t i = 0; i < scheduler.GetThreadCount(); ++i) {
-      routines.emplace_back(Spawn(testFunction,
+      routines.emplace_back(Spawn(
+        [&] {
+          auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
+          {
+            boost::unique_lock<Threading::Mutex> lock{threadCountMutex};
+            --threadCount;
+            if(threadCount == 0) {
+              threadCountCondition.notify_all();
+            } else {
+              while(threadCount != 0) {
+                threadCountCondition.wait(lock);
+              }
+            }
+          }
+          if(routine.GetScheduler().HasPendingRoutines(
+              routine.GetContextId())) {
+            isComplete = false;
+          }
+        },
         Details::Scheduler::DEFAULT_STACK_SIZE, i));
+    }
+    routines.clear();
+    if(!isComplete) {
+      FlushPendingRoutines();
     }
   }
 

@@ -144,12 +144,23 @@ namespace Queries {
     auto skipCache = false;
     m_initializer.Call(
       [&] {
-        m_cache = std::make_shared<DataStoreEntry>(
-          GetTimestamp(value), Decrement(value.GetSequence()));
+        Query query;
+        query.SetIndex(value->GetIndex());
+        query.SetRange(Range::Total());
+        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 2);
+        auto data = m_dataStore->Load(query);
+        if(data.size() < 2) {
+          m_cache = std::make_shared<DataStoreEntry>(
+            boost::posix_time::neg_infin, Sequence::First());
+        } else {
+          auto& lastValue = data[data.size() - 2];
+          m_cache = std::make_shared<DataStoreEntry>(
+            GetTimestamp(*lastValue), lastValue.GetSequence());
+        }
         m_cache->m_dataStore.Store(value);
         ++m_cache->m_size;
-        m_isInitialized = true;
         skipCache = true;
+        m_isInitialized = true;
       });
     if(skipCache) {
       return;

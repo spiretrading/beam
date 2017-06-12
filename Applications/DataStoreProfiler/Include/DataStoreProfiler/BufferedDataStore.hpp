@@ -36,8 +36,6 @@ namespace Beam {
 
       void Clear();
 
-      Queries::Sequence LoadInitialSequence(const std::string& index);
-
       std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
 
       void Store(const SequencedIndexedEntry& entry);
@@ -73,12 +71,6 @@ namespace Beam {
   template<typename BaseDataStoreType>
   void BufferedDataStore<BaseDataStoreType>::Clear() {
     m_dataStore->Clear();
-  }
-
-  template<typename BaseDataStoreType>
-  Queries::Sequence BufferedDataStore<BaseDataStoreType>::LoadInitialSequence(
-      const std::string& name) {
-    return m_bufferedDataStore.LoadInitialSequence(name);
   }
 
   template<typename BaseDataStoreType>

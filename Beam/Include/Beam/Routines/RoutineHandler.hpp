@@ -63,8 +63,7 @@ namespace Routines {
       [&] () {
         auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
         if(routine.GetScheduler().HasPendingRoutines(routine.GetContextId())) {
-          RoutineHandler r = Spawn(testFunction,
-            Details::Scheduler::DEFAULT_STACK_SIZE, routine.GetContextId());
+          FlushPendingRoutines();
         }
       };
     std::vector<RoutineHandler> routines;

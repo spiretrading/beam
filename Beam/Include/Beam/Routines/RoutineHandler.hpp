@@ -66,7 +66,7 @@ namespace Routines {
     Threading::ConditionVariable threadCountCondition;
     auto threadCount = scheduler.GetThreadCount();
     std::vector<RoutineHandler> routines;
-    std::atomic_bool isComplete = true;
+    std::atomic_bool isComplete{true};
     for(std::size_t i = 0; i < scheduler.GetThreadCount(); ++i) {
       routines.emplace_back(Spawn(
         [&] {

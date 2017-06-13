@@ -1,14 +1,17 @@
 #ifndef BEAM_STACKPRINTPOSIX_HPP
 #define BEAM_STACKPRINTPOSIX_HPP
+#ifdef BEAM_ENABLE_STACK_PRINT
 #include <cxxabi.h>
 #include <libunwind.h>
 #include <cstdio>
 #include <cstdlib>
+#endif
 #include <string>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
   inline std::string CaptureStackPrint() {
+#ifdef BEAM_ENABLE_STACK_PRINT
     unw_cursor_t cursor;
     unw_context_t context;
     unw_getcontext(&context);
@@ -42,6 +45,9 @@ namespace Beam {
       }
     }
     return result;
+#else
+    return "";
+#endif
   }
 }
 

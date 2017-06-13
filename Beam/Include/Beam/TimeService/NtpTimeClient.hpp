@@ -111,6 +111,9 @@ namespace TimeService {
       static_cast<std::uint32_t>(source[5]) << 16 |
       static_cast<std::uint32_t>(source[6]) << 8 |
       static_cast<std::uint32_t>(source[7]);
+    if(iPart == 0 && fPart == 0) {
+      return boost::posix_time::not_a_date_time;
+    }
     boost::posix_time::ptime posixTime{boost::gregorian::date{1900, 1, 1},
       boost::posix_time::milliseconds(static_cast<std::uint64_t>(
       iPart * 1.0E3 + fPart * 1.0E3 / 0x100000000ULL))};
@@ -265,6 +268,10 @@ namespace TimeService {
         responsePacket.data() + RECEIVE_TIMESTAMP_OFFSET);
       auto serverTransmitTimestamp = PosixTimeFromNtpTime(
         responsePacket.data() + TRANSMIT_TIMESTAMP_OFFSET);
+      if(serverReceiveTimestamp == boost::posix_time::not_a_date_time ||
+          serverTransmitTimestamp == boost::posix_time::not_a_date_time) {
+        continue;
+      }
       auto roundTripDelay =
         (clientResponseTimestamp - clientTransmissionTimestamp) -
         (serverTransmitTimestamp - serverReceiveTimestamp);

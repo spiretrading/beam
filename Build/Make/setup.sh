@@ -163,3 +163,15 @@ if [ ! -d "mysql-connector-python-2.1.5" ]; then
   cd ..
   rm -f mysql-connector-python-2.1.5.zip
 fi
+if [ ! -d "libunwind-1.2" ]; then
+  sudo -u $(logname) wget http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.2.tar.gz
+  if [ -f libunwind-1.2.tar.gz ]; then
+    sudo -u $(logname) tar -xzvf libunwind-1.2.tar.gz
+    cd libunwind-1.2
+    sudo -u $(logname) ./configure
+    sudo -u $(logname) make
+    make install
+    cd ..
+    rm -f libunwind-1.2.tar.gz
+  fi
+fi

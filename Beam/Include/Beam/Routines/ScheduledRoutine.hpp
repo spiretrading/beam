@@ -115,8 +115,8 @@ namespace Routines {
 
   inline void ScheduledRoutine::Defer() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
-#ifdef _DEBUG
-//    m_stackPrint = CaptureStackPrint();
+#ifdef BEAM_ENABLE_STACK_PRINT
+    m_stackPrint = CaptureStackPrint();
 #endif
     m_parentContext = boost::context::detail::jump_fcontext(
       m_parentContext, nullptr).fctx;
@@ -129,8 +129,8 @@ namespace Routines {
   inline void ScheduledRoutine::Suspend() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     SetState(State::PENDING_SUSPEND);
-#ifdef _DEBUG
-//    m_stackPrint = CaptureStackPrint();
+#ifdef BEAM_ENABLE_STACK_PRINT
+    m_stackPrint = CaptureStackPrint();
 #endif
     m_parentContext = boost::context::detail::jump_fcontext(
       m_parentContext, nullptr).fctx;

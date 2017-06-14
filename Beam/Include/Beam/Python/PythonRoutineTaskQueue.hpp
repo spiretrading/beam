@@ -29,6 +29,8 @@ namespace Python {
 
       boost::python::object GetSlot(boost::python::object slot);
 
+      void Wait();
+
       virtual void Push(const Source& value);
 
       virtual void Push(Source&& value);
@@ -151,6 +153,10 @@ namespace Python {
       }
     }
     return boost::python::object{converter};
+  }
+
+  inline void PythonRoutineTaskQueue::Wait() {
+    m_routine.Wait();
   }
 
   inline void PythonRoutineTaskQueue::Push(const boost::python::object& value) {

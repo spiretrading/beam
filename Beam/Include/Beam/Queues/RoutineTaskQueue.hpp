@@ -40,6 +40,9 @@ namespace Beam {
         const std::function<void (const T& value)>& slot,
         const std::function<void (const std::exception_ptr& e)>& breakSlot);
 
+      //! Waits for this queue to be broken and all tasks to complete.
+      void Wait();
+
       virtual void Push(const Source& value);
 
       virtual void Push(Source&& value);
@@ -70,6 +73,10 @@ namespace Beam {
       const std::function<void (const T& value)>& slot,
       const std::function<void (const std::exception_ptr& e)>& breakSlot) {
     return m_tasks.GetSlot(slot, breakSlot);
+  }
+
+  inline void RoutineTaskQueue::Wait() {
+    m_routine.Wait();
   }
 
   inline void RoutineTaskQueue::Push(const Source& value) {

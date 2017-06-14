@@ -110,8 +110,8 @@ void Beam::Python::ExportBaseQueue() {
 }
 
 void Beam::Python::ExportPythonQueueWriter() {
-  class_<PythonQueueWriter, std::shared_ptr<PythonQueueWriter>, noncopyable>(
-    "PythonQueueWriter", no_init);
+  class_<PythonQueueWriter, std::shared_ptr<PythonQueueWriter>, noncopyable,
+    bases<QueueWriter<object>>>("PythonQueueWriter", no_init);
 }
 
 void Beam::Python::ExportQueue() {
@@ -166,7 +166,8 @@ void Beam::Python::ExportQueueWriter() {
 void Beam::Python::ExportRoutineTaskQueue() {
   class_<PythonRoutineTaskQueue, std::shared_ptr<PythonRoutineTaskQueue>,
     noncopyable, bases<QueueWriter<object>>>("RoutineTaskQueue", init<>())
-    .def("get_slot", &PythonRoutineTaskQueue::GetSlot);
+    .def("get_slot", &PythonRoutineTaskQueue::GetSlot)
+    .def("wait", &PythonRoutineTaskQueue::Wait);
   implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
     std::shared_ptr<QueueWriter<object>>>();
   implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,

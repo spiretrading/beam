@@ -79,6 +79,13 @@ namespace Beam {
       */
       void Push(const Key& key, const Value& value);
 
+      //! Deletes a key/value pair from the table.
+      /*!
+        \param key The key to delete.
+        \param value The value to publish indicating the value is being deleted.
+      */
+      void Delete(const Key& key, const Value& value);
+
       virtual void Lock() const;
 
       virtual void Unlock() const;
@@ -114,6 +121,14 @@ namespace Beam {
   void TablePublisher<KeyType, ValueType>::Push(const Key& key,
       const Value& value) {
     Push(Type(key, value));
+  }
+
+  template<typename KeyType, typename ValueType>
+  void TablePublisher<KeyType, ValueType>::Delete(const Key& key,
+      const Value& value) {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    m_table.erase(key);
+    m_queue.Push(Type(key, value));
   }
 
   template<typename KeyType, typename ValueType>

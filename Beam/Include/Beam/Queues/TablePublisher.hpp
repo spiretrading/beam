@@ -56,10 +56,13 @@ namespace Beam {
       \tparam ValueType The value associated with the key.
    */
   template<typename KeyType, typename ValueType>
-  class TablePublisher : public Publisher<TableEntry<KeyType, ValueType>>,
+  class TablePublisher : public SnapshotPublisher<
+      TableEntry<KeyType, ValueType>, std::unordered_map<KeyType, ValueType>>,
       public QueueWriter<TableEntry<KeyType, ValueType>> {
     public:
       using Type = typename Publisher<TableEntry<KeyType, ValueType>>::Type;
+      using Snapshot = typename SnapshotPublisher<TableEntry<
+        KeyType, ValueType>, std::unordered_map<KeyType, ValueType>>::Snapshot;
 
       //! The unique index/key into the table.
       using Key = KeyType;
@@ -85,6 +88,19 @@ namespace Beam {
         \param value The value to publish indicating the value is being deleted.
       */
       void Delete(const Key& key, const Value& value);
+
+      //! Deletes a key/value pair from the table.
+      /*!
+        \param key The key to delete.
+        \param value The value to publish indicating the value is being deleted.
+      */
+      void Delete(const Type& value);
+
+      virtual void WithSnapshot(
+        const std::function<void (boost::optional<const Snapshot&>)>& f) const;
+
+      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> queue,
+        Out<boost::optional<Snapshot>> snapshot) const;
 
       virtual void Lock() const;
 
@@ -129,6 +145,29 @@ namespace Beam {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
     m_table.erase(key);
     m_queue.Push(Type(key, value));
+  }
+
+  template<typename KeyType, typename ValueType>
+  void TablePublisher<KeyType, ValueType>::Delete(const Type& value) {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    m_table.erase(value.m_key);
+    m_queue.Push(value);
+  }
+
+  template<typename KeyType, typename ValueType>
+  void TablePublisher<KeyType, ValueType>::WithSnapshot(
+      const std::function<void (boost::optional<const Snapshot&>)>& f) const {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    f(m_table);
+  }
+
+  template<typename KeyType, typename ValueType>
+  void TablePublisher<KeyType, ValueType>::Monitor(
+      std::shared_ptr<QueueWriter<Type>> queue,
+      Out<boost::optional<Snapshot>> snapshot) const {
+    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    *snapshot = m_table;
+    m_queue.Monitor(queue);
   }
 
   template<typename KeyType, typename ValueType>

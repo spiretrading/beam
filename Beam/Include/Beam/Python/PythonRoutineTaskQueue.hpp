@@ -156,6 +156,8 @@ namespace Python {
   }
 
   inline void PythonRoutineTaskQueue::Wait() {
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock{gil};
     m_routine.Wait();
   }
 

@@ -10,12 +10,7 @@
 namespace Beam {
   inline std::string CaptureStackPrint() {
     std::string result;
-#ifdef BEAM_ENABLE_STACK_PRINT
-#ifdef NDEBUG
-#endif
-#else
     return result;
-#endif
   }
 }
 

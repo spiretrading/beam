@@ -116,7 +116,7 @@ namespace Routines {
   inline void ScheduledRoutine::Defer() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
 #ifdef BEAM_ENABLE_STACK_PRINT
-#ifdef NDEBUG
+#ifndef NDEBUG
     m_stackPrint = CaptureStackPrint();
 #endif
 #endif
@@ -132,7 +132,7 @@ namespace Routines {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     SetState(State::PENDING_SUSPEND);
 #ifdef BEAM_ENABLE_STACK_PRINT
-#ifdef NDEBUG
+#ifndef NDEBUG
     m_stackPrint = CaptureStackPrint();
 #endif
 #endif

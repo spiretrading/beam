@@ -2,12 +2,16 @@
 #define BEAM_STACKPRINTWIN32_HPP
 #pragma comment(lib, "DbgHelp.lib")
 #include <string>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include <Windows.h>
 #include <DbgHelp.h>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
   inline std::string CaptureStackPrint() {
+    static boost::mutex mutex;
+    boost::lock_guard<boost::mutex> lock{mutex};
     std::string stackPrint;
     typedef USHORT (WINAPI *CaptureStackBackTraceType)(__in ULONG, __in ULONG,
       __out PVOID*, __out_opt PULONG);

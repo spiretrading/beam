@@ -1,0 +1,129 @@
+#include "Beam/Python/WebServices.hpp"
+#include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/PythonBindings.hpp"
+#include "Beam/WebServices/HttpHeader.hpp"
+#include "Beam/WebServices/HttpMethod.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
+#include "Beam/WebServices/HttpResponse.hpp"
+#include "Beam/WebServices/Uri.hpp"
+
+using namespace Beam;
+using namespace Beam::IO;
+using namespace Beam::Python;
+using namespace Beam::WebServices;
+using namespace boost;
+using namespace boost::python;
+using namespace std;
+
+namespace {
+  void EncodeHttpRequest(const HttpRequest& request, SharedBuffer& buffer) {
+    request.Encode(Store(buffer));
+  }
+
+  void EncodeHttpResponse(const HttpResponse& response, SharedBuffer& buffer) {
+    response.Encode(Store(buffer));
+  }
+}
+
+void Beam::Python::ExportHttpHeader() {
+  class_<HttpHeader>("HttpHeader", init<const string&, const string&>())
+    .def("__str__", &lexical_cast<string, HttpHeader>)
+    .add_property("name", make_function(&HttpHeader::GetName,
+      return_value_policy<copy_const_reference>()))
+    .add_property("value", make_function(&HttpHeader::GetValue,
+      return_value_policy<copy_const_reference>()));
+}
+
+void Beam::Python::ExportHttpMethod() {
+  enum_<HttpMethod>("HttpMethod")
+    .value("HEAD", HttpMethod::HEAD)
+    .value("GET", HttpMethod::GET)
+    .value("POST", HttpMethod::POST)
+    .value("PUT", HttpMethod::PUT)
+    .value("DELETE", HttpMethod::DELETE)
+    .value("TRACE", HttpMethod::TRACE)
+    .value("OPTIONS", HttpMethod::OPTIONS)
+    .value("CONNECT", HttpMethod::CONNECT)
+    .value("PATCH", HttpMethod::PATCH);
+}
+
+void Beam::Python::ExportHttpRequest() {
+  enum_<ConnectionHeader>("ConnectionHeader")
+    .value("CLOSE", ConnectionHeader::CLOSE)
+    .value("KEEP_ALIVE", ConnectionHeader::KEEP_ALIVE)
+    .value("UPGRADE", ConnectionHeader::UPGRADE);
+  class_<SpecialHeaders>("SpecialHeaders", init<>())
+    .def(init<HttpVersion>())
+    .def_readwrite("host", &SpecialHeaders::m_host)
+    .def_readwrite("content_length", &SpecialHeaders::m_contentLength)
+    .def_readwrite("connection", &SpecialHeaders::m_connection);
+  class_<HttpRequest, noncopyable>("HttpRequest", init<Uri>())
+    .def("__str__", &lexical_cast<string, HttpRequest>)
+    .add_property("version", make_function(&HttpRequest::GetVersion,
+      return_value_policy<copy_const_reference>()))
+    .add_property("method", &HttpRequest::GetMethod)
+    .add_property("uri", make_function(&HttpRequest::GetUri,
+      return_value_policy<copy_const_reference>()))
+    .def("get_header", &HttpRequest::GetHeader)
+    .add_property("headers", make_function(&HttpRequest::GetHeaders,
+      return_value_policy<copy_const_reference>()))
+    .add_property("special_headers", make_function(
+      &HttpRequest::GetSpecialHeaders,
+      return_value_policy<copy_const_reference>()))
+    .def("add", &HttpRequest::Add)
+    .def("get_cookie", &HttpRequest::GetCookie)
+    .add_property("cookies", make_function(&HttpRequest::GetCookies,
+      return_value_policy<copy_const_reference>()))
+    .add_property("body", make_function(&HttpRequest::GetBody,
+      return_internal_reference<>()))
+    .def("encode", &EncodeHttpRequest);
+}
+
+void Beam::Python::ExportHttpResponse() {
+  class_<HttpResponse>("HttpResponse", init<>())
+    .def(init<HttpStatusCode>())
+    .def("__str__", &lexical_cast<string, HttpResponse>)
+    .add_property("status_code", &HttpResponse::GetStatusCode,
+      &HttpResponse::SetStatusCode)
+    .def("get_header", &HttpResponse::GetHeader)
+    .def("headers", make_function(&HttpResponse::GetHeaders,
+      return_value_policy<copy_const_reference>()))
+    .def("set_header", &HttpResponse::SetHeader)
+    .def("set_cookie", &HttpResponse::SetCookie)
+    .def("set_body", &HttpResponse::SetBody)
+    .def("encode", &EncodeHttpResponse);
+}
+
+void Beam::Python::ExportUri() {
+  class_<Uri>("Uri", init<>())
+    .def(init<const string&>())
+    .add_property("scheme", make_function(&Uri::GetScheme,
+      return_value_policy<copy_const_reference>()))
+    .add_property("username", make_function(&Uri::GetUsername,
+      return_value_policy<copy_const_reference>()))
+    .add_property("password", make_function(&Uri::GetPassword,
+      return_value_policy<copy_const_reference>()))
+    .add_property("hostname", make_function(&Uri::GetHostname,
+      return_value_policy<copy_const_reference>()))
+    .add_property("port", &Uri::GetPort, &Uri::SetPort)
+    .add_property("path", make_function(&Uri::GetPath,
+      return_value_policy<copy_const_reference>()))
+    .add_property("query", make_function(&Uri::GetQuery,
+      return_value_policy<copy_const_reference>()))
+    .add_property("fragment", make_function(&Uri::GetFragment,
+      return_value_policy<copy_const_reference>()));
+}
+
+void Beam::Python::ExportWebServices() {
+  string nestedName = extract<string>(scope().attr("__name__") +
+    ".web_services");
+  object nestedModule{handle<>(
+    borrowed(PyImport_AddModule(nestedName.c_str())))};
+  scope().attr("web_services") = nestedModule;
+  scope parent = nestedModule;
+  ExportHttpHeader();
+  ExportHttpMethod();
+  ExportHttpRequest();
+  ExportHttpResponse();
+  ExportUri();
+}

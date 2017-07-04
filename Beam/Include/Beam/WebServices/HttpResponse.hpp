@@ -71,6 +71,10 @@ namespace WebServices {
       //! Sets the body.
       void SetBody(IO::SharedBuffer body);
 
+      //! Outputs this response into a Buffer.
+      /*!
+        \param buffer The Buffer to output this response to.
+      */
       template<typename Buffer>
       void Encode(Out<Buffer> buffer) const;
 
@@ -81,6 +85,14 @@ namespace WebServices {
       std::vector<Cookie> m_cookies;
       IO::SharedBuffer m_body;
   };
+
+  inline std::ostream& operator <<(std::ostream& sink,
+      const HttpResponse& response) {
+    IO::SharedBuffer buffer;
+    response.Encode(Store(buffer));
+    sink << buffer;
+    return sink;
+  }
 
   inline HttpResponse::HttpResponse()
       : HttpResponse{HttpStatusCode::OK} {}

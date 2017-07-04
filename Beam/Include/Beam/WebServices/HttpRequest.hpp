@@ -1,5 +1,6 @@
 #ifndef BEAM_HTTPSERVERREQUEST_HPP
 #define BEAM_HTTPSERVERREQUEST_HPP
+#include <sstream>
 #include <vector>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
@@ -60,6 +61,12 @@ namespace WebServices {
    */
   class HttpRequest {
     public:
+
+      //! Constructs an HTTP/1.1 GET request.
+      /*!
+        \param uri The URI to request.
+      */
+      HttpRequest(Uri uri);
 
       //! Constructs an HttpRequest.
       /*!
@@ -125,6 +132,13 @@ namespace WebServices {
 
       //! Returns the message body.
       const IO::SharedBuffer& GetBody() const;
+
+      //! Outputs this response into a Buffer.
+      /*!
+        \param buffer The Buffer to output this response to.
+      */
+      template<typename Buffer>
+      void Encode(Out<Buffer> buffer) const;
 
     private:
       HttpVersion m_version;
@@ -197,6 +211,10 @@ namespace WebServices {
       m_connection = ConnectionHeader::CLOSE;
     }
   }
+
+  inline HttpRequest::HttpRequest(Uri uri)
+      : HttpRequest{HttpVersion::Version1_1(), HttpMethod::GET,
+          std::move(uri)} {}
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri)
@@ -316,6 +334,14 @@ namespace WebServices {
 
   inline const IO::SharedBuffer& HttpRequest::GetBody() const {
     return m_body;
+  }
+
+  template<typename Buffer>
+  void HttpRequest::Encode(Out<Buffer> buffer) const {
+    std::stringstream ss;
+    ss << *this;
+    auto str = ss.str();
+    buffer->Append(str.c_str(), str.size());
   }
 }
 }

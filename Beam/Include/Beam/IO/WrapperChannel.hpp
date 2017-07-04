@@ -33,34 +33,34 @@ namespace Details {
     typename ComponentType2 = NullType, typename ComponentType3 = NullType>
   class WrapperChannel {
     public:
-      typedef typename TryDereferenceType<ChannelType>::type Channel;
-      typedef typename TryDereferenceType<ComponentType1>::type Component1;
-      typedef typename TryDereferenceType<ComponentType2>::type Component2;
-      typedef typename TryDereferenceType<ComponentType3>::type Component3;
+      using Channel = GetTryDereferenceType<ChannelType>;
+      using Component1 = GetTryDereferenceType<ComponentType1>;
+      using Component2 = GetTryDereferenceType<ComponentType2>;
+      using Component3 = GetTryDereferenceType<ComponentType3>;
 
       //! The type of Connection.
-      typedef typename boost::mpl::if_c<ImplementsConcept<
+      using Connection = typename boost::mpl::if_c<ImplementsConcept<
         Component1, IO::Connection>::value, Component1,
         typename boost::mpl::if_c<ImplementsConcept<
         Component2, IO::Connection>::value, Component2,
         typename boost::mpl::if_c<ImplementsConcept<
         Component3, IO::Connection>::value, Component3,
-        typename Channel::Connection>::type>::type>::type Connection;
+        typename Channel::Connection>::type>::type>::type;
 
       //! The type of Reader.
-      typedef typename boost::mpl::if_c<IsReader<Component1>::value, Component1,
-        typename boost::mpl::if_c<IsReader<Component2>::value, Component2,
-        typename boost::mpl::if_c<IsReader<Component3>::value, Component3,
-        typename Channel::Reader>::type>::type>::type Reader;
+      using Reader = typename boost::mpl::if_c<IsReader<Component1>::value,
+        Component1, typename boost::mpl::if_c<IsReader<Component2>::value,
+        Component2, typename boost::mpl::if_c<IsReader<Component3>::value,
+        Component3, typename Channel::Reader>::type>::type>::type;
 
       //! The type of Writer, determined based on Component3.
-      typedef typename boost::mpl::if_c<IsWriter<Component1>::value, Component1,
-        typename boost::mpl::if_c<IsWriter<Component2>::value, Component2,
-        typename boost::mpl::if_c<IsWriter<Component3>::value, Component3,
-        typename Channel::Writer>::type>::type>::type Writer;
+      using Writer = typename boost::mpl::if_c<IsWriter<Component1>::value,
+        Component1, typename boost::mpl::if_c<IsWriter<Component2>::value,
+        Component2, typename boost::mpl::if_c<IsWriter<Component3>::value,
+        Component3, typename Channel::Writer>::type>::type>::type;
 
       //! The type of Identifier, taken directly from the Channel.
-      typedef typename Channel::Identifier Identifier;
+      using Identifier = typename Channel::Identifier;
 
       template<typename ChannelForward>
       WrapperChannel(ChannelForward&& channel)

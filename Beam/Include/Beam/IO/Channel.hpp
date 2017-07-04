@@ -46,16 +46,16 @@ namespace Details {
       "WriterType must implement the Writer Concept.");
 
     //! Defines the type of ChannelIdentifier.
-    typedef IdentifierType Identifier;
+    using Identifier = IdentifierType;
 
     //! Defines the type of Connection.
-    typedef ConnectionType Connection;
+    using Connection = ConnectionType;
 
     //! Defines the type of Reader.
-    typedef ReaderType Reader;
+    using Reader = ReaderType;
 
     //! Defines the type of Writer.
-    typedef WriterType Writer;
+    using Writer = WriterType;
 
     //! Returns the Channel's identifier.
     const Identifier& GetIdentifier() const;

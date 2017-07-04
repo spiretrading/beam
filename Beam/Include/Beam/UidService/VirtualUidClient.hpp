@@ -16,7 +16,7 @@ namespace UidService {
    */
   class VirtualUidClient : private boost::noncopyable {
     public:
-      virtual ~VirtualUidClient();
+      virtual ~VirtualUidClient() = default;
 
       virtual std::uint64_t LoadNextUid() = 0;
 
@@ -27,7 +27,7 @@ namespace UidService {
     protected:
 
       //! Constructs a VirtualUidClient.
-      VirtualUidClient();
+      VirtualUidClient() = default;
   };
 
   /*! \class WrapperUidClient
@@ -39,7 +39,7 @@ namespace UidService {
     public:
 
       //! The UidClient to wrap.
-      typedef typename TryDereferenceType<ClientType>::type Client;
+      using Client = GetTryDereferenceType<ClientType>;
 
       //! Constructs a WrapperUidClient.
       /*!
@@ -48,16 +48,16 @@ namespace UidService {
       template<typename UidClientForward>
       WrapperUidClient(UidClientForward&& client);
 
-      virtual ~WrapperUidClient();
+      virtual ~WrapperUidClient() override = default;
 
-      virtual std::uint64_t LoadNextUid();
+      virtual std::uint64_t LoadNextUid() override;
 
-      virtual void Open();
+      virtual void Open() override;
 
-      virtual void Close();
+      virtual void Close() override;
 
     private:
-      typename OptionalLocalPtr<ClientType>::type m_client;
+      GetOptionalLocalPtr<ClientType> m_client;
   };
 
   //! Wraps a UidClient into a VirtualUidClient.
@@ -70,17 +70,10 @@ namespace UidService {
       std::forward<UidClient>(client));
   }
 
-  inline VirtualUidClient::~VirtualUidClient() {}
-
-  inline VirtualUidClient::VirtualUidClient() {}
-
   template<typename ClientType>
   template<typename UidClientForward>
   WrapperUidClient<ClientType>::WrapperUidClient(UidClientForward&& client)
-      : m_client(std::forward<UidClientForward>(client)) {}
-
-  template<typename ClientType>
-  WrapperUidClient<ClientType>::~WrapperUidClient() {}
+      : m_client{std::forward<UidClientForward>(client)} {}
 
   template<typename ClientType>
   std::uint64_t WrapperUidClient<ClientType>::LoadNextUid() {

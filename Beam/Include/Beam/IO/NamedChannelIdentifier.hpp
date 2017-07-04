@@ -29,7 +29,7 @@ namespace IO {
   };
 
   inline NamedChannelIdentifier::NamedChannelIdentifier(std::string name)
-      : m_name(std::move(name)) {}
+      : m_name{std::move(name)} {}
 
   inline std::string NamedChannelIdentifier::ToString() const {
     return m_name;

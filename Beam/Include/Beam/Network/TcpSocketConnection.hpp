@@ -9,7 +9,6 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {

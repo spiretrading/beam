@@ -10,6 +10,21 @@ namespace Python {
 
   //! Exports the Network namespace.
   void ExportNetwork();
+
+  //! Exports the SocketIdentifier class.
+  void ExportSocketIdentifier();
+
+  //! Exports the TcpSocketChannel class.
+  void ExportTcpSocketChannel();
+
+  //! Exports the TcpSocketConnection class.
+  void ExportTcpSocketConnection();
+
+  //! Exports the TcpSocketReader class.
+  void ExportTcpSocketReader();
+
+  //! Exports the TcpSocketWriter class.
+  void ExportTcpSocketWriter();
 }
 }
 

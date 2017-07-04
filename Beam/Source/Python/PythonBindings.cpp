@@ -3,6 +3,7 @@
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/IO.hpp"
 #include "Beam/Python/MySql.hpp"
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Queries.hpp"
@@ -44,6 +45,7 @@ BOOST_PYTHON_MODULE(beam) {
   def("wait_for_kill_event", BlockingFunction(&WaitForKillEvent));
   ExportPtime();
   ExportTimeDuration();
+  ExportIO();
   ExportMySql();
   ExportNetwork();
   ExportQueries();

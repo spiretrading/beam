@@ -23,6 +23,12 @@ namespace Python {
   //! Exports the HttpResponseParser class.
   void ExportHttpResponseParser();
 
+  //! Exports the HttpStatusCode enum.
+  void ExportHttpStatusCode();
+
+  //! Exports the HttpVersion enum.
+  void ExportHttpVersion();
+
   //! Exports the Uri class.
   void ExportUri();
 

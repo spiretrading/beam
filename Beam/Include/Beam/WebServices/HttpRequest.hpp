@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTPSERVERREQUEST_HPP
 #define BEAM_HTTPSERVERREQUEST_HPP
 #include <sstream>
+#include <string>
 #include <vector>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
@@ -67,6 +68,13 @@ namespace WebServices {
         \param uri The URI to request.
       */
       HttpRequest(Uri uri);
+
+      //! Constructs an HTTP/1.1 request.
+      /*!
+        \param method The HTTP method.
+        \param uri The URI to request.
+      */
+      HttpRequest(HttpMethod method, Uri uri);
 
       //! Constructs an HttpRequest.
       /*!
@@ -213,8 +221,10 @@ namespace WebServices {
   }
 
   inline HttpRequest::HttpRequest(Uri uri)
-      : HttpRequest{HttpVersion::Version1_1(), HttpMethod::GET,
-          std::move(uri)} {}
+      : HttpRequest{HttpMethod::GET, std::move(uri)} {}
+
+  inline HttpRequest::HttpRequest(HttpMethod method, Uri uri)
+      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri)} {}
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri)

@@ -8,6 +8,8 @@
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/HttpResponseParser.hpp"
+#include "Beam/WebServices/HttpStatusCode.hpp"
+#include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
@@ -19,6 +21,17 @@ using namespace boost::python;
 using namespace std;
 
 namespace {
+  HttpRequest* MakeFullHttpRequest(HttpVersion version, HttpMethod method,
+      Uri uri, const boost::python::list& headers,
+      const SpecialHeaders& specialHeaders, const boost::python::list& cookies,
+      SharedBuffer body) {
+    auto properHeaders = ToVector<HttpHeader>(headers);
+    auto properCookies = ToVector<Cookie>(cookies);
+    return new HttpRequest{version, method, std::move(uri),
+      std::move(properHeaders), specialHeaders, std::move(properCookies),
+      std::move(body)};
+  }
+
   void EncodeHttpRequest(const HttpRequest& request, SharedBuffer& buffer) {
     request.Encode(Store(buffer));
   }
@@ -45,6 +58,33 @@ namespace {
   void HttpResponseParserFeedBuffer(HttpResponseParser& parser,
       const SharedBuffer& buffer) {
     parser.Feed(buffer.GetData(), buffer.GetSize());
+  }
+
+  boost::python::object HttpRequestGetHeader(const HttpRequest& request,
+      const string& name) {
+    auto header = request.GetHeader(name);
+    if(header.is_initialized()) {
+      return boost::python::object{*header};
+    }
+    return boost::python::object{};
+  }
+
+  boost::python::object HttpRequestGetCookie(const HttpRequest& request,
+      const string& name) {
+    auto cookie = request.GetCookie(name);
+    if(cookie.is_initialized()) {
+      return boost::python::object{*cookie};
+    }
+    return boost::python::object{};
+  }
+
+  boost::python::object HttpResponseGetHeader(const HttpResponse& response,
+      const string& name) {
+    auto header = response.GetHeader(name);
+    if(header.is_initialized()) {
+      return boost::python::object{*header};
+    }
+    return boost::python::object{};
   }
 }
 
@@ -81,20 +121,23 @@ void Beam::Python::ExportHttpRequest() {
     .def_readwrite("content_length", &SpecialHeaders::m_contentLength)
     .def_readwrite("connection", &SpecialHeaders::m_connection);
   class_<HttpRequest>("HttpRequest", init<Uri>())
+    .def(init<HttpMethod, Uri>())
+    .def(init<HttpVersion, HttpMethod, Uri>())
+    .def("__init__", make_constructor(&MakeFullHttpRequest))
     .def("__str__", &lexical_cast<string, HttpRequest>)
     .add_property("version", make_function(&HttpRequest::GetVersion,
       return_value_policy<copy_const_reference>()))
     .add_property("method", &HttpRequest::GetMethod)
     .add_property("uri", make_function(&HttpRequest::GetUri,
       return_value_policy<copy_const_reference>()))
-    .def("get_header", &HttpRequest::GetHeader)
+    .def("get_header", &HttpRequestGetHeader)
     .add_property("headers", make_function(&HttpRequest::GetHeaders,
       return_value_policy<copy_const_reference>()))
     .add_property("special_headers", make_function(
       &HttpRequest::GetSpecialHeaders,
       return_value_policy<copy_const_reference>()))
     .def("add", &HttpRequest::Add)
-    .def("get_cookie", &HttpRequest::GetCookie)
+    .def("get_cookie", &HttpRequestGetCookie)
     .add_property("cookies", make_function(&HttpRequest::GetCookies,
       return_value_policy<copy_const_reference>()))
     .add_property("body", make_function(&HttpRequest::GetBody,
@@ -104,7 +147,7 @@ void Beam::Python::ExportHttpRequest() {
 }
 
 void Beam::Python::ExportHttpRequestParser() {
-  class_<HttpRequestParser>("HttpRequestParser", init<>())
+  class_<HttpRequestParser, noncopyable>("HttpRequestParser", init<>())
     .def("feed", &HttpRequestParserFeedString)
     .def("feed", &HttpRequestParserFeedBuffer)
     .def("get_next_request", &HttpRequestParser::GetNextRequest);
@@ -116,7 +159,7 @@ void Beam::Python::ExportHttpResponse() {
     .def("__str__", &lexical_cast<string, HttpResponse>)
     .add_property("status_code", &HttpResponse::GetStatusCode,
       &HttpResponse::SetStatusCode)
-    .def("get_header", &HttpResponse::GetHeader)
+    .def("get_header", &HttpResponseGetHeader)
     .def("headers", make_function(&HttpResponse::GetHeaders,
       return_value_policy<copy_const_reference>()))
     .def("set_header", &HttpResponse::SetHeader)
@@ -127,11 +170,90 @@ void Beam::Python::ExportHttpResponse() {
 }
 
 void Beam::Python::ExportHttpResponseParser() {
-  class_<HttpResponseParser>("HttpResponseParser", init<>())
+  class_<HttpResponseParser, noncopyable>("HttpResponseParser", init<>())
     .def("feed", &HttpResponseParserFeedString)
     .def("feed", &HttpResponseParserFeedBuffer)
     .def("get_next_response", &HttpResponseParser::GetNextResponse)
     .def("get_remaining_buffer", &HttpResponseParser::GetRemainingBuffer);
+}
+
+void Beam::Python::ExportHttpStatusCode() {
+  enum_<HttpStatusCode>("HttpStatusCode")
+   .value("CONTINUE", HttpStatusCode::CONTINUE)
+   .value("SWITCHING_PROTOCOLS", HttpStatusCode::SWITCHING_PROTOCOLS)
+   .value("PROCESSING", HttpStatusCode::PROCESSING)
+   .value("OK", HttpStatusCode::OK)
+   .value("CREATED", HttpStatusCode::CREATED)
+   .value("ACCEPTED", HttpStatusCode::ACCEPTED)
+   .value("NON_AUTHORITATIVE_INFORMATION",
+      HttpStatusCode::NON_AUTHORITATIVE_INFORMATION)
+   .value("NO_CONTENT", HttpStatusCode::NO_CONTENT)
+   .value("RESET_CONTENT", HttpStatusCode::RESET_CONTENT)
+   .value("PARTIAL_CONTENT", HttpStatusCode::PARTIAL_CONTENT)
+   .value("MULTI_STATUS", HttpStatusCode::MULTI_STATUS)
+   .value("MULTIPLE_CHOICES", HttpStatusCode::MULTIPLE_CHOICES)
+   .value("MOVED_PERMANENTLY", HttpStatusCode::MOVED_PERMANENTLY)
+   .value("FOUND", HttpStatusCode::FOUND)
+   .value("SEE_OTHER", HttpStatusCode::SEE_OTHER)
+   .value("NOT_MODIFIED", HttpStatusCode::NOT_MODIFIED)
+   .value("USE_PROXY", HttpStatusCode::USE_PROXY)
+   .value("SWITCH_PROXY", HttpStatusCode::SWITCH_PROXY)
+   .value("TEMPORARY_REDIRECT", HttpStatusCode::TEMPORARY_REDIRECT)
+   .value("BAD_REQUEST", HttpStatusCode::BAD_REQUEST)
+   .value("UNAUTHORIZED", HttpStatusCode::UNAUTHORIZED)
+   .value("PAYMENT_REQUIRED", HttpStatusCode::PAYMENT_REQUIRED)
+   .value("FORBIDDEN", HttpStatusCode::FORBIDDEN)
+   .value("NOT_FOUND", HttpStatusCode::NOT_FOUND)
+   .value("METHOD_NOT_ALLOWED", HttpStatusCode::METHOD_NOT_ALLOWED)
+   .value("NOT_ACCEPTABLE", HttpStatusCode::NOT_ACCEPTABLE)
+   .value("PROXY_AUTHENTICATION_REQUIRED",
+      HttpStatusCode::PROXY_AUTHENTICATION_REQUIRED)
+   .value("REQUEST_TIMEOUT", HttpStatusCode::REQUEST_TIMEOUT)
+   .value("CONFLICT", HttpStatusCode::CONFLICT)
+   .value("GONE", HttpStatusCode::GONE)
+   .value("LENGTH_REQUIRED", HttpStatusCode::LENGTH_REQUIRED)
+   .value("PRECONDITION_FAILED", HttpStatusCode::PRECONDITION_FAILED)
+   .value("REQUEST_ENTITY_TOO_LARGE", HttpStatusCode::REQUEST_ENTITY_TOO_LARGE)
+   .value("REQUEST_URI_TOO_LONG", HttpStatusCode::REQUEST_URI_TOO_LONG)
+   .value("UNSUPPORTED_MEDIA_TYPE", HttpStatusCode::UNSUPPORTED_MEDIA_TYPE)
+   .value("REQUESTED_RANGE_NOT_SATISFIABLE",
+      HttpStatusCode::REQUESTED_RANGE_NOT_SATISFIABLE)
+   .value("EXPECTATION_FAILED", HttpStatusCode::EXPECTATION_FAILED)
+   .value("IM_A_TEAPOT", HttpStatusCode::IM_A_TEAPOT)
+   .value("UNPROCESSABLE_ENTITY", HttpStatusCode::UNPROCESSABLE_ENTITY)
+   .value("LOCKED", HttpStatusCode::LOCKED)
+   .value("FAILED_DEPENDENCY", HttpStatusCode::FAILED_DEPENDENCY)
+   .value("UNORDERED_COLLECTION", HttpStatusCode::UNORDERED_COLLECTION)
+   .value("UPGRADE_REQUIRED", HttpStatusCode::UPGRADE_REQUIRED)
+   .value("NO_RESPONSE", HttpStatusCode::NO_RESPONSE)
+   .value("RETRY_WITH", HttpStatusCode::RETRY_WITH)
+   .value("BLOCK_BY_WINDOWS_PARENTAL_CONTROLS",
+      HttpStatusCode::BLOCK_BY_WINDOWS_PARENTAL_CONTROLS)
+   .value("CLIENT_CLOSED_REQUEST", HttpStatusCode::CLIENT_CLOSED_REQUEST)
+   .value("INTERNAL_SERVER_ERROR", HttpStatusCode::INTERNAL_SERVER_ERROR)
+   .value("NOT_IMPLEMENTED", HttpStatusCode::NOT_IMPLEMENTED)
+   .value("BAD_GATEWAY", HttpStatusCode::BAD_GATEWAY)
+   .value("SERVICE_UNAVAILABLE", HttpStatusCode::SERVICE_UNAVAILABLE)
+   .value("GATEWAY_TIMEOUT", HttpStatusCode::GATEWAY_TIMEOUT)
+   .value("HTTP_VERSION_NOT_SUPPORTED",
+      HttpStatusCode::HTTP_VERSION_NOT_SUPPORTED)
+   .value("VARIANT_ALSO_NEGOTIATES", HttpStatusCode::VARIANT_ALSO_NEGOTIATES)
+   .value("INSUFFICIENT_STORAGE", HttpStatusCode::INSUFFICIENT_STORAGE)
+   .value("BANDWIDTH_LIMIT_EXCEEDED", HttpStatusCode::BANDWIDTH_LIMIT_EXCEEDED)
+   .value("NOT_EXTENDED", HttpStatusCode::NOT_EXTENDED);
+  def("get_reason_phrase", &GetReasonPhrase,
+    return_value_policy<copy_const_reference>());
+}
+
+void Beam::Python::ExportHttpVersion() {
+  class_<HttpVersion>("HttpVersion", init<>())
+    .add_static_property("V_1_0", &HttpVersion::Version1_0)
+    .add_static_property("V_1_1", &HttpVersion::Version1_1)
+    .def("__str__", &lexical_cast<string, HttpVersion>)
+    .add_property("major", &HttpVersion::GetMajor)
+    .add_property("minor", &HttpVersion::GetMinor)
+    .def(self == self)
+    .def(self != self);
 }
 
 void Beam::Python::ExportUri() {
@@ -167,5 +289,7 @@ void Beam::Python::ExportWebServices() {
   ExportHttpRequestParser();
   ExportHttpResponse();
   ExportHttpResponseParser();
+  ExportHttpStatusCode();
+  ExportHttpVersion();
   ExportUri();
 }

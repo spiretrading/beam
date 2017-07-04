@@ -1,10 +1,13 @@
 #include "Beam/Python/WebServices.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpMethod.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
+#include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
+#include "Beam/WebServices/HttpResponseParser.hpp"
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
@@ -22,6 +25,26 @@ namespace {
 
   void EncodeHttpResponse(const HttpResponse& response, SharedBuffer& buffer) {
     response.Encode(Store(buffer));
+  }
+
+  void HttpRequestParserFeedString(HttpRequestParser& parser,
+      const boost::python::str& value) {
+    parser.Feed(PyString_AsString(value.ptr()), len(value));
+  }
+
+  void HttpRequestParserFeedBuffer(HttpRequestParser& parser,
+      const SharedBuffer& buffer) {
+    parser.Feed(buffer.GetData(), buffer.GetSize());
+  }
+
+  void HttpResponseParserFeedString(HttpResponseParser& parser,
+      const boost::python::str& value) {
+    parser.Feed(PyString_AsString(value.ptr()), len(value));
+  }
+
+  void HttpResponseParserFeedBuffer(HttpResponseParser& parser,
+      const SharedBuffer& buffer) {
+    parser.Feed(buffer.GetData(), buffer.GetSize());
   }
 }
 
@@ -57,7 +80,7 @@ void Beam::Python::ExportHttpRequest() {
     .def_readwrite("host", &SpecialHeaders::m_host)
     .def_readwrite("content_length", &SpecialHeaders::m_contentLength)
     .def_readwrite("connection", &SpecialHeaders::m_connection);
-  class_<HttpRequest, noncopyable>("HttpRequest", init<Uri>())
+  class_<HttpRequest>("HttpRequest", init<Uri>())
     .def("__str__", &lexical_cast<string, HttpRequest>)
     .add_property("version", make_function(&HttpRequest::GetVersion,
       return_value_policy<copy_const_reference>()))
@@ -77,6 +100,14 @@ void Beam::Python::ExportHttpRequest() {
     .add_property("body", make_function(&HttpRequest::GetBody,
       return_internal_reference<>()))
     .def("encode", &EncodeHttpRequest);
+  python_optional<HttpRequest>();
+}
+
+void Beam::Python::ExportHttpRequestParser() {
+  class_<HttpRequestParser>("HttpRequestParser", init<>())
+    .def("feed", &HttpRequestParserFeedString)
+    .def("feed", &HttpRequestParserFeedBuffer)
+    .def("get_next_request", &HttpRequestParser::GetNextRequest);
 }
 
 void Beam::Python::ExportHttpResponse() {
@@ -92,6 +123,15 @@ void Beam::Python::ExportHttpResponse() {
     .def("set_cookie", &HttpResponse::SetCookie)
     .def("set_body", &HttpResponse::SetBody)
     .def("encode", &EncodeHttpResponse);
+  python_optional<HttpResponse>();
+}
+
+void Beam::Python::ExportHttpResponseParser() {
+  class_<HttpResponseParser>("HttpResponseParser", init<>())
+    .def("feed", &HttpResponseParserFeedString)
+    .def("feed", &HttpResponseParserFeedBuffer)
+    .def("get_next_response", &HttpResponseParser::GetNextResponse)
+    .def("get_remaining_buffer", &HttpResponseParser::GetRemainingBuffer);
 }
 
 void Beam::Python::ExportUri() {
@@ -124,6 +164,8 @@ void Beam::Python::ExportWebServices() {
   ExportHttpHeader();
   ExportHttpMethod();
   ExportHttpRequest();
+  ExportHttpRequestParser();
   ExportHttpResponse();
+  ExportHttpResponseParser();
   ExportUri();
 }

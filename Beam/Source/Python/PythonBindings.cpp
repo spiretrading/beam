@@ -6,6 +6,7 @@
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/MySql.hpp"
 #include "Beam/Python/Network.hpp"
+#include "Beam/Python/Optional.hpp"
 #include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Routines.hpp"
@@ -44,6 +45,7 @@ BOOST_PYTHON_MODULE(beam) {
   def("is_running", &IsRunning);
   def("received_kill_event", &ReceivedKillEvent);
   def("wait_for_kill_event", BlockingFunction(&WaitForKillEvent));
+  python_optional<std::string>();
   ExportPtime();
   ExportTimeDuration();
   ExportIO();

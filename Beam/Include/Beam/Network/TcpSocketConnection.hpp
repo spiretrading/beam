@@ -151,10 +151,25 @@ namespace Network {
         m_socket->m_socket.close(closeError);
         if(m_interface.is_initialized()) {
           boost::asio::ip::tcp::endpoint localEndpoint{
-            boost::asio::ip::address::from_string(m_interface->GetHost()),
-            m_interface->GetPort()};
-          m_socket->m_socket.open(boost::asio::ip::tcp::v4());
-          m_socket->m_socket.bind(localEndpoint);
+            boost::asio::ip::address::from_string(m_interface->GetHost(),
+            errorCode), m_interface->GetPort()};
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
+          m_socket->m_socket.open(boost::asio::ip::tcp::v4(), errorCode);
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
+          m_socket->m_socket.bind(localEndpoint, errorCode);
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
         }
         m_socket->m_socket.connect(*endpointIterator, errorCode);
         ++endpointIterator;

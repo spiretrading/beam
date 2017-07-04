@@ -38,13 +38,13 @@ namespace {
       SocketIdentifier{address}};
   }
 
-  std::size_t GetTcpSocketConnectionWriteBufferSize(
+  int GetTcpSocketConnectionWriteBufferSize(
       WrapperConnection<TcpSocketConnection*>& connection) {
     return connection.GetConnection().GetWriteBufferSize();
   }
 
   void SetTcpSocketConnectionWriteBufferSize(
-      WrapperConnection<TcpSocketConnection*>& connection, std::size_t size) {
+      WrapperConnection<TcpSocketConnection*>& connection, int size) {
     return connection.GetConnection().SetWriteBufferSize(size);
   }
 
@@ -58,8 +58,24 @@ namespace {
             m_reader{&m_channel.GetReader()},
             m_writer{&m_channel.GetWriter()} {}
 
+      PythonTcpSocketChannel(const IpAddress& address,
+          const IpAddress& interface)
+          : m_channel{address, interface, Ref(*GetSocketThreadPool())},
+            m_identifier{m_channel.GetIdentifier()},
+            m_connection{&m_channel.GetConnection()},
+            m_reader{&m_channel.GetReader()},
+            m_writer{&m_channel.GetWriter()} {}
+
       PythonTcpSocketChannel(const std::vector<IpAddress>& addresses)
           : m_channel{addresses, Ref(*GetSocketThreadPool())},
+            m_identifier{m_channel.GetIdentifier()},
+            m_connection{&m_channel.GetConnection()},
+            m_reader{&m_channel.GetReader()},
+            m_writer{&m_channel.GetWriter()} {}
+
+      PythonTcpSocketChannel(const std::vector<IpAddress>& addresses,
+          const IpAddress& interface)
+          : m_channel{addresses, interface, Ref(*GetSocketThreadPool())},
             m_identifier{m_channel.GetIdentifier()},
             m_connection{&m_channel.GetConnection()},
             m_reader{&m_channel.GetReader()},
@@ -98,6 +114,16 @@ namespace {
         boost::python::extract<IpAddress>(addresses[i]));
     }
     return new PythonTcpSocketChannel{properAddresses};
+  }
+
+  PythonTcpSocketChannel* MakeTcpSocketChannelFromAddressListInterface(
+      const boost::python::list addresses, const IpAddress& interface) {
+    std::vector<IpAddress> properAddresses;
+    for(int i = 0; i < boost::python::len(addresses); ++i) {
+      properAddresses.push_back(
+        boost::python::extract<IpAddress>(addresses[i]));
+    }
+    return new PythonTcpSocketChannel{properAddresses, interface};
   }
 }
 
@@ -147,8 +173,11 @@ void Beam::Python::ExportSocketIdentifier() {
 
 void Beam::Python::ExportTcpSocketChannel() {
   class_<PythonTcpSocketChannel, noncopyable, bases<VirtualChannel>>(
-    "TcpSocketChannel", init<const IpAddress>())
-    .def("__init__", make_constructor(MakeTcpSocketChannelFromAddressList));
+    "TcpSocketChannel", init<const IpAddress&>())
+    .def(init<const IpAddress&, const IpAddress&>())
+    .def("__init__", make_constructor(&MakeTcpSocketChannelFromAddressList))
+    .def("__init__", make_constructor(
+      &MakeTcpSocketChannelFromAddressListInterface));
 }
 
 void Beam::Python::ExportTcpSocketConnection() {

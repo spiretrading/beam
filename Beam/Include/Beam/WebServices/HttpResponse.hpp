@@ -74,6 +74,9 @@ namespace WebServices {
       */
       void SetCookie(Cookie cookie);
 
+      //! Returns the body.
+      const IO::SharedBuffer& GetBody() const;
+
       //! Sets the body.
       void SetBody(IO::SharedBuffer body);
 
@@ -173,6 +176,10 @@ namespace WebServices {
     } else {
       *c = std::move(cookie);
     }
+  }
+
+  inline const IO::SharedBuffer& HttpResponse::GetBody() const {
+    return m_body;
   }
 
   inline void HttpResponse::SetBody(IO::SharedBuffer body) {

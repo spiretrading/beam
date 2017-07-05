@@ -195,7 +195,9 @@ void Beam::Python::ExportHttpResponse() {
       return_value_policy<copy_const_reference>()))
     .def("set_header", &HttpResponse::SetHeader)
     .def("set_cookie", &HttpResponse::SetCookie)
-    .def("set_body", &HttpResponse::SetBody)
+    .add_property("body", make_function(
+      &HttpResponse::GetBody, return_value_policy<copy_const_reference>()),
+      &HttpResponse::SetBody)
     .def("encode", &EncodeHttpResponse);
   python_optional<HttpResponse>();
 }

@@ -39,6 +39,12 @@ namespace WebServices {
         std::vector<HttpHeader> headers, std::vector<Cookie> cookies,
         IO::SharedBuffer body);
 
+      //! Returns the version.
+      const HttpVersion& GetVersion() const;
+
+      //! Sets the version.
+      void SetVersion(const HttpVersion& version);
+
       //! Returns the status code.
       HttpStatusCode GetStatusCode() const;
 
@@ -112,6 +118,14 @@ namespace WebServices {
         m_headers{std::move(headers)},
         m_cookies{std::move(cookies)},
         m_body{std::move(body)} {}
+
+  inline const HttpVersion& HttpResponse::GetVersion() const {
+    return m_version;
+  }
+
+  void HttpResponse::SetVersion(const HttpVersion& version) {
+    m_version = version;
+  }
 
   inline HttpStatusCode HttpResponse::GetStatusCode() const {
     return m_statusCode;

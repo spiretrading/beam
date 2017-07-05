@@ -1,7 +1,9 @@
 #include "Beam/Python/WebServices.hpp"
+#include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/WebServices/HttpClient.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpMethod.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
@@ -10,6 +12,9 @@
 #include "Beam/WebServices/HttpResponseParser.hpp"
 #include "Beam/WebServices/HttpStatusCode.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
+#include "Beam/WebServices/SecureSocketChannelFactory.hpp"
+#include "Beam/WebServices/SocketChannelFactory.hpp"
+#include "Beam/WebServices/TcpChannelFactory.hpp"
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
@@ -21,6 +26,11 @@ using namespace boost::python;
 using namespace std;
 
 namespace {
+  HttpClient<std::unique_ptr<VirtualChannel>>* MakeHttpClient() {
+    return new HttpClient<std::unique_ptr<VirtualChannel>>{
+      TcpSocketChannelFactory{Ref(*GetSocketThreadPool())}};
+  }
+
   HttpRequest* MakeFullHttpRequest(HttpVersion version, HttpMethod method,
       Uri uri, const boost::python::list& headers,
       const SpecialHeaders& specialHeaders, const boost::python::list& cookies,
@@ -86,6 +96,25 @@ namespace {
     }
     return boost::python::object{};
   }
+
+  SecureSocketChannelFactory* MakeSecureSocketChannelFactory() {
+    return new SecureSocketChannelFactory{Ref(*GetSocketThreadPool())};
+  }
+
+  SocketChannelFactory* MakeSocketChannelFactory() {
+    return new SocketChannelFactory{Ref(*GetSocketThreadPool())};
+  }
+
+  TcpSocketChannelFactory* MakeTcpSocketChannelFactory() {
+    return new TcpSocketChannelFactory{Ref(*GetSocketThreadPool())};
+  }
+}
+
+void Beam::Python::ExportHttpClient() {
+  using HttpClient = WebServices::HttpClient<std::unique_ptr<VirtualChannel>>;
+  class_<HttpClient, noncopyable>("HttpClient", no_init)
+    .def("__init__", make_constructor(&MakeHttpClient))
+    .def("send", &HttpClient::Send);
 }
 
 void Beam::Python::ExportHttpHeader() {
@@ -157,6 +186,8 @@ void Beam::Python::ExportHttpResponse() {
   class_<HttpResponse>("HttpResponse", init<>())
     .def(init<HttpStatusCode>())
     .def("__str__", &lexical_cast<string, HttpResponse>)
+    .add_property("version", make_function(&HttpResponse::GetVersion,
+      return_value_policy<copy_const_reference>()), &HttpResponse::SetVersion)
     .add_property("status_code", &HttpResponse::GetStatusCode,
       &HttpResponse::SetStatusCode)
     .def("get_header", &HttpResponseGetHeader)
@@ -256,6 +287,21 @@ void Beam::Python::ExportHttpVersion() {
     .def(self != self);
 }
 
+void Beam::Python::ExportSecureSocketChannelFactory() {
+  class_<SecureSocketChannelFactory>("SecureSocketChannelFactory", no_init)
+    .def("__init__", make_constructor(&MakeSecureSocketChannelFactory));
+}
+
+void Beam::Python::ExportSocketChannelFactory() {
+  class_<SocketChannelFactory>("SocketChannelFactory", no_init)
+    .def("__init__", make_constructor(&MakeSocketChannelFactory));
+}
+
+void Beam::Python::ExportTcpSocketChannelFactory() {
+  class_<TcpSocketChannelFactory>("TcpSocketChannelFactory", no_init)
+    .def("__init__", make_constructor(&MakeTcpSocketChannelFactory));
+}
+
 void Beam::Python::ExportUri() {
   class_<Uri>("Uri", init<>())
     .def(init<const string&>())
@@ -283,6 +329,7 @@ void Beam::Python::ExportWebServices() {
     borrowed(PyImport_AddModule(nestedName.c_str())))};
   scope().attr("web_services") = nestedModule;
   scope parent = nestedModule;
+  ExportHttpClient();
   ExportHttpHeader();
   ExportHttpMethod();
   ExportHttpRequest();
@@ -291,5 +338,8 @@ void Beam::Python::ExportWebServices() {
   ExportHttpResponseParser();
   ExportHttpStatusCode();
   ExportHttpVersion();
+  ExportSecureSocketChannelFactory();
+  ExportSocketChannelFactory();
+  ExportTcpSocketChannelFactory();
   ExportUri();
 }

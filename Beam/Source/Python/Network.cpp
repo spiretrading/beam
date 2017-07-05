@@ -145,7 +145,9 @@ void Beam::Python::ExportIpAddress() {
     .def("__str__", &Convert<string, IpAddress>)
     .add_property("host", make_function(&IpAddress::GetHost,
       return_value_policy<copy_const_reference>()))
-    .add_property("port", &IpAddress::GetPort);
+    .add_property("port", &IpAddress::GetPort)
+    .def(self == self)
+    .def(self != self);
 }
 
 void Beam::Python::ExportNetwork() {

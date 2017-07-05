@@ -175,10 +175,15 @@ namespace WebServices {
       const HttpRequest& request) {
     sink << request.GetMethod() << ' ';
     if(request.GetUri().GetPath().empty()) {
-      sink << '/' << ' ';
+      sink << '/';
     } else {
-      sink << request.GetUri().GetPath() << ' ';
+      sink << request.GetUri().GetPath();
     }
+    if(request.GetMethod() == HttpMethod::GET &&
+        !request.GetUri().GetQuery().empty()) {
+      sink << '?' << request.GetUri().GetQuery();
+    }
+    sink << ' ';
     sink << request.GetVersion() << "\r\n";
     for(auto& header : request.GetHeaders()) {
       sink << header.GetName() << ": " << header.GetValue() << "\r\n";
@@ -243,9 +248,19 @@ namespace WebServices {
         m_body{std::move(body)} {
     if(m_specialHeaders.m_host.empty()) {
       m_specialHeaders.m_host = m_uri.GetHostname();
-      if(m_uri.GetPort() != 0) {
+      if(m_uri.GetPort() != 0 &&
+          !((m_uri.GetScheme() == "http" || m_uri.GetScheme() == "ws") &&
+          m_uri.GetPort() == 80) &&
+          !((m_uri.GetScheme() == "https" || m_uri.GetScheme() == "wss") &&
+          m_uri.GetPort() == 443)) {
         m_specialHeaders.m_host += ":" + std::to_string(m_uri.GetPort());
       }
+    }
+    if(m_method == HttpMethod::POST && !m_uri.GetQuery().empty()) {
+      m_specialHeaders.m_contentLength = m_uri.GetQuery().size();
+      m_body.Reset();
+      m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
+      Add({"Content-Type", "application/x-www-form-urlencoded"});
     }
   }
 

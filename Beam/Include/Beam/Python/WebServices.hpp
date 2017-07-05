@@ -5,6 +5,9 @@
 namespace Beam {
 namespace Python {
 
+  //! Exports the HttpClient class.
+  void ExportHttpClient();
+
   //! Exports the HttpHeader class.
   void ExportHttpHeader();
 
@@ -28,6 +31,15 @@ namespace Python {
 
   //! Exports the HttpVersion enum.
   void ExportHttpVersion();
+
+  //! Exports the SecureSocketChannelFactory class.
+  void ExportSecureSocketChannelFactory();
+
+  //! Exports the SocketChannelFactory class.
+  void ExportSocketChannelFactory();
+
+  //! Exports the TcpSocketChannelFactory class.
+  void ExportTcpSocketChannelFactory();
 
   //! Exports the Uri class.
   void ExportUri();

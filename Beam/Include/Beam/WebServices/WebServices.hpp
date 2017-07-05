@@ -7,6 +7,7 @@ namespace WebServices {
   class ContentTypePatterns;
   class Cookie;
   class FileStore;
+  template<typename ChannelType> class HttpClient;
   class HttpHeader;
   enum class HttpMethod;
   class HttpRequest;
@@ -25,6 +26,8 @@ namespace WebServices {
   class Session;
   template<typename SessionType> class SessionStore;
   class ServerWebSocketChannel;
+  class SocketChannelFactory;
+  enum class TransferEncoding;
   class Uri;
   template<typename ChannelType> class WebSocket;
   template<typename WebSocketType> class WebSocketChannel;

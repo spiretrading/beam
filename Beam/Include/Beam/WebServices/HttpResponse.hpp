@@ -126,7 +126,7 @@ namespace WebServices {
     return m_version;
   }
 
-  void HttpResponse::SetVersion(const HttpVersion& version) {
+  inline void HttpResponse::SetVersion(const HttpVersion& version) {
     m_version = version;
   }
 

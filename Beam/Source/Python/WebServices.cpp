@@ -1,6 +1,7 @@
 #include "Beam/Python/WebServices.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/WebServices/HttpClient.hpp"
@@ -114,7 +115,7 @@ void Beam::Python::ExportHttpClient() {
   using HttpClient = WebServices::HttpClient<std::unique_ptr<VirtualChannel>>;
   class_<HttpClient, noncopyable>("HttpClient", no_init)
     .def("__init__", make_constructor(&MakeHttpClient))
-    .def("send", &HttpClient::Send);
+    .def("send", BlockingFunction(&HttpClient::Send));
 }
 
 void Beam::Python::ExportHttpHeader() {

@@ -1,4 +1,5 @@
 #include "Beam/Python/IO.hpp"
+#include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
@@ -46,6 +47,11 @@ namespace {
 
   std::string BufferToString(const SharedBuffer& buffer) {
     return std::string{buffer.GetData(), buffer.GetSize()};
+  }
+
+  void OpenStateSetOpenFailure(OpenState& openState,
+      const boost::python::object& object) {
+    openState.SetOpenFailure(std::runtime_error{extract<string>(str(object))});
   }
 }
 
@@ -106,10 +112,28 @@ void Beam::Python::ExportIO() {
   scope parent = nestedModule;
   ExportChannelIdentifier();
   ExportConnection();
+  ExportOpenState();
   ExportReader();
   ExportSharedBuffer();
   ExportWriter();
   ExportChannel();
+}
+
+void Beam::Python::ExportOpenState() {
+  class_<OpenState, boost::noncopyable>("OpenState", init<>())
+    .def(init<bool>())
+    .def("is_opening", BlockingFunction(&OpenState::IsOpening))
+    .def("is_open", BlockingFunction(&OpenState::IsOpen))
+    .def("is_running", BlockingFunction(&OpenState::IsRunning))
+    .def("is_closing", BlockingFunction(&OpenState::IsClosing))
+    .def("is_closed", BlockingFunction(&OpenState::IsClosed))
+    .def("set_opening", BlockingFunction(&OpenState::SetOpening))
+    .def("set_open", BlockingFunction(&OpenState::SetOpen))
+    .def("set_open_failure", BlockingFunction(
+      static_cast<void (OpenState::*)()>(&OpenState::SetOpenFailure)))
+    .def("set_open_failure", BlockingFunction(OpenStateSetOpenFailure))
+    .def("set_closing", BlockingFunction(&OpenState::SetClosing))
+    .def("set_closed", BlockingFunction(&OpenState::SetClosed));
 }
 
 void Beam::Python::ExportReader() {

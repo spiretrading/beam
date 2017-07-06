@@ -196,6 +196,9 @@ namespace WebServices {
     c += HTTP_VERSION_SIZE;
     size -= HTTP_VERSION_SIZE;
     auto statusCodeEnd = static_cast<const char*>(std::memchr(c, ' ', size));
+    if(statusCodeEnd == nullptr) {
+      statusCodeEnd = c + size;
+    }
     int statusCode = 0;
     while(c != statusCodeEnd) {
       statusCode = 10 * statusCode + (*c - '0');

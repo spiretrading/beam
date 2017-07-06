@@ -17,6 +17,9 @@ namespace Python {
   //! Exports the IO namespace.
   void ExportIO();
 
+  //! Exports the OpenState class.
+  void ExportOpenState();
+
   //! Exports the Reader class.
   void ExportReader();
 

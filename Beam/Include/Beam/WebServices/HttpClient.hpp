@@ -5,6 +5,7 @@
 #include <boost/noncopyable.hpp>
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Pointers/Dereference.hpp"
+#include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpResponseParser.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 #include "Beam/WebServices/Uri.hpp"

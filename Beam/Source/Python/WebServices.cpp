@@ -98,6 +98,15 @@ namespace {
     return boost::python::object{};
   }
 
+  boost::python::object HttpResponseGetCookie(const HttpResponse& response,
+      const string& name) {
+    auto cookie = response.GetCookie(name);
+    if(cookie.is_initialized()) {
+      return boost::python::object{*cookie};
+    }
+    return boost::python::object{};
+  }
+
   SecureSocketChannelFactory* MakeSecureSocketChannelFactory() {
     return new SecureSocketChannelFactory{Ref(*GetSocketThreadPool())};
   }
@@ -109,6 +118,24 @@ namespace {
   TcpSocketChannelFactory* MakeTcpSocketChannelFactory() {
     return new TcpSocketChannelFactory{Ref(*GetSocketThreadPool())};
   }
+}
+
+void Beam::Python::ExportCookie() {
+  class_<Cookie>("Cookie", init<>())
+    .def(init<string, string>())
+    .add_property("name", make_function(
+      &Cookie::GetName, return_value_policy<copy_const_reference>()))
+    .add_property("value", make_function(
+      &Cookie::GetValue, return_value_policy<copy_const_reference>()),
+      &Cookie::SetValue)
+    .add_property("domain", make_function(
+      &Cookie::GetDomain, return_value_policy<copy_const_reference>()),
+      &Cookie::SetDomain)
+    .add_property("path", make_function(
+      &Cookie::GetPath, return_value_policy<copy_const_reference>()),
+      &Cookie::SetPath)
+    .add_property("is_secure", &Cookie::IsSecure, &Cookie::SetSecure)
+    .add_property("is_http_only", &Cookie::IsSecure, &Cookie::IsHttpOnly);
 }
 
 void Beam::Python::ExportHttpClient() {
@@ -166,10 +193,13 @@ void Beam::Python::ExportHttpRequest() {
     .add_property("special_headers", make_function(
       &HttpRequest::GetSpecialHeaders,
       return_value_policy<copy_const_reference>()))
-    .def("add", &HttpRequest::Add)
+    .def("add",
+      static_cast<void (HttpRequest::*)(HttpHeader)>(&HttpRequest::Add))
     .def("get_cookie", &HttpRequestGetCookie)
     .add_property("cookies", make_function(&HttpRequest::GetCookies,
       return_value_policy<copy_const_reference>()))
+    .def("add",
+      static_cast<void (HttpRequest::*)(Cookie)>(&HttpRequest::Add))
     .add_property("body", make_function(&HttpRequest::GetBody,
       return_internal_reference<>()))
     .def("encode", &EncodeHttpRequest);
@@ -195,6 +225,9 @@ void Beam::Python::ExportHttpResponse() {
     .def("headers", make_function(&HttpResponse::GetHeaders,
       return_value_policy<copy_const_reference>()))
     .def("set_header", &HttpResponse::SetHeader)
+    .add_property("cookies", make_function(
+      &HttpResponse::GetCookies, return_value_policy<copy_const_reference>()))
+    .def("get_cookie", &HttpResponseGetCookie)
     .def("set_cookie", &HttpResponse::SetCookie)
     .add_property("body", make_function(
       &HttpResponse::GetBody, return_value_policy<copy_const_reference>()),
@@ -332,6 +365,7 @@ void Beam::Python::ExportWebServices() {
     borrowed(PyImport_AddModule(nestedName.c_str())))};
   scope().attr("web_services") = nestedModule;
   scope parent = nestedModule;
+  ExportCookie();
   ExportHttpClient();
   ExportHttpHeader();
   ExportHttpMethod();

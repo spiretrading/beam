@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTPCLIENT_HPP
 #define BEAM_HTTPCLIENT_HPP
 #include <functional>
+#include <unordered_map>
 #include <boost/noncopyable.hpp>
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -49,6 +50,7 @@ namespace WebServices {
 
         ChannelEntry(Network::IpAddress endPoint, ChannelType channel);
       };
+      std::unordered_map<std::string, std::vector<Cookie>> m_cookies;
       ChannelBuilder m_channelBuilder;
       boost::optional<ChannelEntry> m_channel;
   };
@@ -68,6 +70,19 @@ namespace WebServices {
     auto endPoint = Network::IpAddress{
       request.GetUri().GetHostname(), request.GetUri().GetPort()};
     auto isNewChannel = false;
+    auto& hostCookies = m_cookies[request.GetUri().GetHostname()];
+    boost::optional<HttpRequest> cookieRequest;
+    auto& properRequest =
+      [&] () -> const HttpRequest& {
+        if(hostCookies.empty()) {
+          return request;
+        }
+        cookieRequest.emplace(request);
+        for(auto& hostCookie : hostCookies) {
+          cookieRequest->Add(hostCookie);
+        }
+        return *cookieRequest;
+      }();
     if(!m_channel.is_initialized() || m_channel->m_endPoint != endPoint) {
       m_channel.reset();
       m_channel.emplace(endPoint, m_channelBuilder(request.GetUri()));
@@ -76,7 +91,7 @@ namespace WebServices {
     }
     {
       typename Channel::Writer::Buffer writeBuffer;
-      request.Encode(Store(writeBuffer));
+      properRequest.Encode(Store(writeBuffer));
       try {
         m_channel->m_channel->GetWriter().Write(writeBuffer);
       } catch(const std::exception&) {
@@ -105,6 +120,20 @@ namespace WebServices {
       if(!boost::iequals(*connectionHeader, "keep-alive")) {
         m_channel->m_channel->GetConnection().Close();
         m_channel.reset();
+      }
+    }
+    auto& cookies = response->GetCookies();
+    for(auto& cookie : cookies) {
+      auto isFound = false;
+      for(auto& hostCookie : hostCookies) {
+        if(hostCookie.GetName() == cookie.GetName()) {
+          hostCookie.SetValue(cookie.GetValue());
+          isFound = true;
+          break;
+        }
+      }
+      if(!isFound) {
+        hostCookies.push_back(cookie);
       }
     }
     return *response;

@@ -68,6 +68,17 @@ namespace WebServices {
       */
       void SetHeader(HttpHeader header);
 
+      //! Returns all Cookies.
+      const std::vector<Cookie>& GetCookies() const;
+
+      //! Returns a Cookie with a specified name.
+      /*!
+        \param name The name of the Cookie.
+        \return The Cookie with the specified name or an empty Cookie if the
+                Cookie was not found.
+      */
+      boost::optional<const Cookie&> GetCookie(const std::string& name) const;
+
       //! Sets a Cookie, adding it if it doesn't exist.
       /*!
         \param cookie The Cookie to set.
@@ -164,6 +175,22 @@ namespace WebServices {
     } else {
       *h = std::move(header);
     }
+  }
+
+  inline const std::vector<Cookie>& HttpResponse::GetCookies() const {
+    return m_cookies;
+  }
+
+  inline boost::optional<const Cookie&> HttpResponse::GetCookie(
+      const std::string& name) const {
+    auto cookie = std::find_if(m_cookies.begin(), m_cookies.end(),
+      [&] (const Cookie& value) {
+        return value.GetName() == name;
+      });
+    if(cookie == m_cookies.end()) {
+      return boost::none;
+    }
+    return *cookie;
   }
 
   inline void HttpResponse::SetCookie(Cookie cookie) {

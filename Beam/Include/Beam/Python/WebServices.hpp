@@ -5,6 +5,9 @@
 namespace Beam {
 namespace Python {
 
+  //! Exports the Cookie class.
+  void ExportCookie();
+
   //! Exports the HttpClient class.
   void ExportHttpClient();
 

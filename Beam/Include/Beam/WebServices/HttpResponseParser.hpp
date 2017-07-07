@@ -2,6 +2,7 @@
 #define BEAM_HTTPRESPONSEPARSER_HPP
 #include <cstdlib>
 #include <deque>
+#include <boost/algorithm/string.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/WebServices/HttpHeader.hpp"
@@ -66,8 +67,9 @@ namespace WebServices {
       void PushResponse();
       void ParseVersion(const char* c, std::size_t size);
       void ParseHeader(const char* c, std::size_t size);
-      void ParseCookie(const char* source, int length);
-      void ParseCookies(const std::string& source);
+      std::tuple<std::string, std::string> ParseCookiePair(const char* source,
+        int length);
+      void ParseCookie(const std::string& source);
       void ParseBodyWithContentLength(const char* c, std::size_t size);
       void ParseBodyWithContentLength(const char* c);
       void ParseChunkedBody(const char* c, std::size_t size);
@@ -240,10 +242,8 @@ namespace WebServices {
           return;
         }
       }
-    } else if(name == "Cookie") {
-      if(m_cookies.empty()) {
-        ParseCookies(value);
-      }
+    } else if(name == "Set-Cookie") {
+      ParseCookie(value);
     } else if(name == "Transfer-Encoding") {
       if(value == "chunked") {
         m_transferEncoding = TransferEncoding::CHUNKED;
@@ -254,28 +254,55 @@ namespace WebServices {
     }
   }
 
-  inline void HttpResponseParser::ParseCookie(const char* source, int length) {
+  inline std::tuple<std::string, std::string>
+      HttpResponseParser::ParseCookiePair(const char* source, int length) {
     auto separator = static_cast<const char*>(std::memchr(source, '=', length));
     if(separator == nullptr) {
-      m_cookies.emplace_back(std::string{},
+      return std::make_tuple(std::string{},
         std::string{source, static_cast<unsigned int>(length)});
     } else {
-      m_cookies.emplace_back(std::string{source, separator},
+      return std::make_tuple(std::string{source, separator},
         std::string{separator + 1, static_cast<std::string::size_type>(length) -
         (separator - source) - 1});
     }
   }
 
-  inline void HttpResponseParser::ParseCookies(const std::string& source) {
+  inline void HttpResponseParser::ParseCookie(const std::string& source) {
     std::string::size_type front = 0;
+    auto separator = source.find(';', front);
+    if(separator == std::string::npos) {
+      separator = source.size();
+    }
+    auto cookiePair = ParseCookiePair(source.c_str() + front,
+      separator - front);
+    Cookie cookie{std::get<0>(cookiePair), std::get<1>(cookiePair)};
+    front = separator + 2;
     while(front < source.size()) {
-      auto separator = source.find(';', front);
+      separator = source.find(';', front);
       if(separator == std::string::npos) {
         separator = source.size();
       }
-      ParseCookie(source.c_str() + front, separator - front);
+      auto token = source.c_str() + front;
+      auto length = separator - front;
       front = separator + 2;
+      auto delimiter = std::memchr(token, '=', length);
+      if(delimiter == nullptr) {
+        std::string directive{token, static_cast<unsigned int>(length)}; 
+        if(boost::iequals(directive, "HttpOnly")) {
+          cookie.SetHttpOnly(true);
+        } else if(boost::iequals(directive, "Secure")) {
+          cookie.SetSecure(true);
+        }
+      } else {
+        auto directive = ParseCookiePair(token, length);
+        if(boost::iequals(std::get<0>(directive), "path")) {
+          cookie.SetPath(std::get<1>(directive));
+        } else if(boost::iequals(std::get<0>(directive), "domain")) {
+          cookie.SetDomain(std::get<1>(directive));
+        }
+      }
     }
+    m_cookies.push_back(std::move(cookie));
   }
 
   inline void HttpResponseParser::ParseBodyWithContentLength(const char* c,

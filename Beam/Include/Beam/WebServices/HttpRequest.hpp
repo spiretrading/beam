@@ -138,6 +138,12 @@ namespace WebServices {
       //! Returns all Cookies.
       const std::vector<Cookie>& GetCookies() const;
 
+      //! Adds a Cookie.
+      /*!
+        \param cookie The Cookie to add.
+      */
+      void Add(Cookie cookie);
+
       //! Returns the message body.
       const IO::SharedBuffer& GetBody() const;
 
@@ -260,7 +266,7 @@ namespace WebServices {
       m_specialHeaders.m_contentLength = m_uri.GetQuery().size();
       m_body.Reset();
       m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
-      Add({"Content-Type", "application/x-www-form-urlencoded"});
+      Add(HttpHeader{"Content-Type", "application/x-www-form-urlencoded"});
     }
   }
 
@@ -355,6 +361,10 @@ namespace WebServices {
 
   inline const std::vector<Cookie>& HttpRequest::GetCookies() const {
     return m_cookies;
+  }
+
+  inline void HttpRequest::Add(Cookie cookie) {
+      m_cookies.push_back(std::move(cookie));
   }
 
   inline const IO::SharedBuffer& HttpRequest::GetBody() const {

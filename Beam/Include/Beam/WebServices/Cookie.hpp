@@ -29,6 +29,9 @@ namespace WebServices {
       //! Returns the Cookie's value.
       const std::string& GetValue() const;
 
+      //! Sets the Cookie's value.
+      void SetValue(std::string value);
+
       //! Returns the domain.
       const std::string& GetDomain() const;
 
@@ -99,6 +102,10 @@ namespace WebServices {
 
   inline const std::string& Cookie::GetValue() const {
     return m_value;
+  }
+
+  inline void Cookie::SetValue(std::string value) {
+    m_value = std::move(value);
   }
 
   inline const std::string& Cookie::GetDomain() const {

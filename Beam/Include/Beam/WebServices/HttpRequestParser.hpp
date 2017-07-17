@@ -233,12 +233,11 @@ namespace WebServices {
         boost::iequals(name, "Content-Length")) {
       m_specialHeaders.m_contentLength = std::stoul(value);
     } else if(boost::iequals(name, "Connection")) {
-      if(boost::iequals(value, "keep-alive")) {
-        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
-      } else if(boost::iequals(value, "Upgrade")) {
+      m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
+      if(boost::ifind_first(value, "Upgrade")) {
         m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
-      } else {
-        m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
+      } else if(boost::ifind_first(value, "keep-alive")) {
+        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
       }
     } else {
       if(m_cookies.empty() && boost::iequals(name, "Cookie")) {

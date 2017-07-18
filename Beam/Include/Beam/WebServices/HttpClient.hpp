@@ -85,16 +85,21 @@ namespace WebServices {
         return *cookieRequest;
       }();
     if(!m_channel.is_initialized() || m_channel->m_endPoint != endPoint) {
+      std::cout << "Start build new channel." << std::endl;
       m_channel.reset();
-      m_channel.emplace(endPoint, m_channelBuilder(request.GetUri()));
-      m_channel->m_channel->GetConnection().Open();
+      auto channel = m_channelBuilder(request.GetUri());
+      channel->GetConnection().Open();
+      m_channel.emplace(endPoint, std::move(channel));
       isNewChannel = true;
+      std::cout << "End build new channel." << std::endl;
     }
     {
       typename Channel::Writer::Buffer writeBuffer;
       properRequest.Encode(Store(writeBuffer));
       try {
+        std::cout << "Start write request." << std::endl;
         m_channel->m_channel->GetWriter().Write(writeBuffer);
+        std::cout << "End write request." << std::endl;
       } catch(const std::exception&) {
         m_channel.reset();
         if(isNewChannel) {
@@ -107,7 +112,14 @@ namespace WebServices {
     auto response = parser.GetNextResponse();
     while(!response.is_initialized()) {
       typename Channel::Reader::Buffer readBuffer;
-      m_channel->m_channel->GetReader().Read(Store(readBuffer));
+      std::cout << "Start read response." << std::endl;
+      try {
+        m_channel->m_channel->GetReader().Read(Store(readBuffer));
+        std::cout << "End read response." << std::endl;
+      } catch(const std::exception&) {
+        m_channel.reset();
+        throw;
+      }
       parser.Feed(readBuffer.GetData(), readBuffer.GetSize());
       response = parser.GetNextResponse();
     }

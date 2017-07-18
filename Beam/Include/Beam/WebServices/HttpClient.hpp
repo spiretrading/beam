@@ -86,8 +86,9 @@ namespace WebServices {
       }();
     if(!m_channel.is_initialized() || m_channel->m_endPoint != endPoint) {
       m_channel.reset();
-      m_channel.emplace(endPoint, m_channelBuilder(request.GetUri()));
-      m_channel->m_channel->GetConnection().Open();
+      auto channel = m_channelBuilder(request.GetUri());
+      channel->GetConnection().Open();
+      m_channel.emplace(endPoint, std::move(channel));
       isNewChannel = true;
     }
     {
@@ -107,7 +108,12 @@ namespace WebServices {
     auto response = parser.GetNextResponse();
     while(!response.is_initialized()) {
       typename Channel::Reader::Buffer readBuffer;
-      m_channel->m_channel->GetReader().Read(Store(readBuffer));
+      try {
+        m_channel->m_channel->GetReader().Read(Store(readBuffer));
+      } catch(const std::exception&) {
+        m_channel.reset();
+        throw;
+      }
       parser.Feed(readBuffer.GetData(), readBuffer.GetSize());
       response = parser.GetNextResponse();
     }

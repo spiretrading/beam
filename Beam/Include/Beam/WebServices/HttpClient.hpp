@@ -96,10 +96,10 @@ namespace WebServices {
       try {
         m_channel->m_channel->GetWriter().Write(writeBuffer);
       } catch(const std::exception&) {
+        m_channel.reset();
         if(isNewChannel) {
           throw;
         }
-        m_channel.reset();
         Send(request);
       }
     }

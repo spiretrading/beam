@@ -76,6 +76,8 @@ namespace Details {
       std::vector<StompHeader> m_headers;
       IO::SharedBuffer m_body;
       std::int64_t m_contentLength;
+      bool m_hasDestinationHeader;
+      bool m_hasIdHeader;
       std::deque<StompFrame> m_frames;
       IO::SharedBuffer m_buffer;
 
@@ -86,7 +88,9 @@ namespace Details {
 
   inline StompFrameParser::StompFrameParser()
       : m_parserState{ParserState::COMMAND},
-        m_contentLength{-1} {}
+        m_contentLength{-1},
+        m_hasDestinationHeader{false},
+        m_hasIdHeader{false} {}
 
   inline void StompFrameParser::Feed(const char* c, std::size_t size) {
     if(m_parserState == ParserState::END) {
@@ -224,10 +228,25 @@ namespace Details {
       m_parserState = ParserState::COMPLETE;
     }
     if(m_parserState == ParserState::COMPLETE) {
+      if(m_command == StompCommand::SEND ||
+          m_command == StompCommand::SUBSCRIBE) {
+        if(!m_hasDestinationHeader) {
+          m_parserState = ParserState::ERR;
+          return;
+        }
+      }
+      if(m_command == StompCommand::SUBSCRIBE) {
+        if(!m_hasIdHeader) {
+          m_parserState = ParserState::ERR;
+          return;
+        }
+      }
       m_frames.emplace_back(m_command, std::move(m_headers), std::move(m_body));
       m_headers.clear();
       m_contentLength = -1;
       m_body.Reset();
+      m_hasDestinationHeader = false;
+      m_hasIdHeader = false;
       m_parserState = ParserState::END;
       while(size != 0 && *c == '\0') {
         ++c;
@@ -350,6 +369,17 @@ namespace Details {
     if(m_contentLength == -1 && name == "content-length") {
       m_contentLength = std::stoul(value);
     } else {
+      if(m_command == StompCommand::SEND) {
+        if(!m_hasDestinationHeader && name == "destination") {
+          m_hasDestinationHeader = true;
+        }
+      } else if(m_command == StompCommand::SUBSCRIBE) {
+        if(!m_hasDestinationHeader && name == "destination") {
+          m_hasDestinationHeader = true;
+        } else if(!m_hasIdHeader && name == "id") {
+          m_hasIdHeader = true;
+        }
+      }
       m_headers.emplace_back(std::move(name), std::move(value));
     }
   }

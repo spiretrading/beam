@@ -74,16 +74,18 @@ namespace Stomp {
     while(true) {
       auto frame = m_parser.GetNextFrame();
       if(frame.is_initialized()) {
+        auto receipt = frame->FindHeader("receipt");
+        if(receipt.is_initialized()) {
+          StompFrame receiptFrame{StompCommand::RECEIPT};
+          receiptFrame.AddHeader({"receipt-id", *receipt});
+          try {
+            Write(receiptFrame);
+          } catch(const std::exception&) {}
+        }
         if(frame->GetCommand() == StompCommand::EOL ||
             frame->GetCommand() == StompCommand::ACK ||
             frame->GetCommand() == StompCommand::NACK ||
             frame->GetCommand() == StompCommand::DISCONNECT) {
-          auto receipt = frame->FindHeader("receipt");
-          if(receipt.is_initialized()) {
-            StompFrame receiptFrame{StompCommand::RECEIPT};
-            receiptFrame.AddHeader({"receipt-id", *receipt});
-            Write(receiptFrame);
-          }
           if(frame->GetCommand() == StompCommand::DISCONNECT) {
             Close();
             BOOST_THROW_EXCEPTION(IO::EndOfFileException{});

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Stomp/Stomp.hpp"
 #include "Beam/Stomp/StompCommand.hpp"
@@ -34,6 +35,29 @@ namespace Details {
    */
   class StompFrame {
     public:
+
+      //! Builds a StompFrame indicating an unknown destination.
+      /*!
+        \param frame The frame that caused the error.
+        \return A StompFrame indicating the error.
+      */
+      static StompFrame MakeDestinationNotFoundFrame(const StompFrame& frame);
+
+      //! Builds a StompFrame indicating an invalid request.
+      /*!
+        \param frame The frame that caused the error.
+        \return A StompFrame indicating the error.
+      */
+      static StompFrame MakeBadRequestFrame(const StompFrame& frame);
+
+      //! Builds a StompFrame indicating an invalid request.
+      /*!
+        \param frame The frame that caused the error.
+        \param reason The reason for the error.
+        \return A StompFrame indicating the error.
+      */
+      static StompFrame MakeBadRequestFrame(const StompFrame& frame,
+        const std::string& reason);
 
       //! Constructs a STOMP frame.
       /*!
@@ -117,6 +141,24 @@ namespace Details {
     buffer->Append("\n", 1);
     buffer->Append(frame.GetBody());
     buffer->Append("\n\0", 2);
+  }
+
+  inline StompFrame StompFrame::MakeDestinationNotFoundFrame(
+      const StompFrame& frame) {
+    StompFrame error{StompCommand::ERR};
+    error.AddHeader({"message", "Destination not found."});
+    return error;
+  }
+
+  inline StompFrame StompFrame::MakeBadRequestFrame(const StompFrame& frame) {
+    return MakeBadRequestFrame(frame, "Bad request.");
+  }
+
+  inline StompFrame StompFrame::MakeBadRequestFrame(const StompFrame& frame,
+      const std::string& reason) {
+    StompFrame error{StompCommand::ERR};
+    error.AddHeader({"message", "Bad request: " + reason});
+    return error;
   }
 
   inline StompFrame::StompFrame(StompCommand command)

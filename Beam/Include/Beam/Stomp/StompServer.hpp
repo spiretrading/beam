@@ -102,10 +102,15 @@ namespace Stomp {
 
   template<typename ChannelType>
   void StompServer<ChannelType>::Write(const StompFrame& frame) {
-    boost::lock_guard<Threading::Mutex> lock{m_writeMutex};
-    m_writeBuffer.Reset();
-    Serialize(frame, Store(m_writeBuffer));
-    m_channel->GetWriter().Write(m_writeBuffer);
+    {
+      boost::lock_guard<Threading::Mutex> lock{m_writeMutex};
+      m_writeBuffer.Reset();
+      Serialize(frame, Store(m_writeBuffer));
+      m_channel->GetWriter().Write(m_writeBuffer);
+    }
+    if(frame.GetCommand() == StompCommand::ERR) {
+      m_channel->GetConnection().Close();
+    }
   }
 
   template<typename ChannelType>

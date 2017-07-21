@@ -36,7 +36,7 @@ if [ ! -d "cryptopp565" ]; then
   fi
 fi
 if [ ! -d "zlib-1.2.8" ]; then
-  sudo -u $(logname) wget https://github.com/madler/zlib/archive/v1.2.8.zip
+  sudo -u $(logname) wget https://github.com/madler/zlib/archive/v1.2.8.zip --no-check-certificate
   if [ -f v1.2.8.zip ]; then
     sudo -u $(logname) unzip v1.2.8.zip
     chown -R $(logname):$(logname) zlib-1.2.8
@@ -64,20 +64,20 @@ if [ ! -d "mysql-connector-c-6.1.6" ]; then
     rm -f mysql-connector-c-6.1.6-src.tar.gz
   fi
 fi
-if [ ! -d "mysql++-3.2.2" ]; then
-  sudo -u $(logname) wget http://tangentsoft.net/mysql++/releases/mysql++-3.2.2.tar.gz
-  if [ -f mysql++-3.2.2.tar.gz ]; then
-    sudo -u $(logname) gzip -d -c mysql++-3.2.2.tar.gz | sudo -u $(logname) tar -x
-    cd mysql++-3.2.2
+if [ ! -d "mysql++-3.2.3" ]; then
+  sudo -u $(logname) wget https://tangentsoft.com/mysqlpp/releases/mysql++-3.2.3.tar.gz --no-check-certificate
+  if [ -f mysql++-3.2.3.tar.gz ]; then
+    sudo -u $(logname) gzip -d -c mysql++-3.2.3.tar.gz | sudo -u $(logname) tar -x
+    cd mysql++-3.2.3
     sudo -u $(logname) ./configure
     sudo -u $(logname) make -j $cores
     make install
     cd ..
-    rm -f mysql++-3.2.2.tar.gz
+    rm -f mysql++-3.2.3.tar.gz
   fi
 fi
 if [ ! -d "yaml-cpp" ]; then
-  sudo -u $(logname) wget https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip
+  sudo -u $(logname) wget https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip --no-check-certificate
   if [ -f release-0.2.7.zip ]; then
     sudo -u $(logname) unzip release-0.2.7.zip
     sudo -u $(logname) mv yaml-cpp-release-0.2.7 yaml-cpp

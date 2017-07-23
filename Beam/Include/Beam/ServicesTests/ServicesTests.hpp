@@ -44,20 +44,24 @@ namespace Tests {
     Threading::TriggerTimer>;
 
   //! Instantiates types of ServiceProtocolServletContainers used for testing.
-  template<typename MetaServlet>
+  template<typename MetaServlet,
+    typename ServletPointerPolicy = LocalPointerPolicy>
   using TestServiceProtocolServletContainer =
     ServiceProtocolServletContainer<MetaServlet,
     std::shared_ptr<TestServerConnection>,
     Serialization::BinarySender<IO::SharedBuffer>,
-    Codecs::NullEncoder, std::unique_ptr<Beam::Threading::TriggerTimer>>;
+    Codecs::NullEncoder, std::unique_ptr<Beam::Threading::TriggerTimer>,
+    ServletPointerPolicy>;
 
   //! Instantiates types of ServiceProtocolServletContainers used for testing
   //! that require authentication.
-  template<typename MetaServlet>
+  template<typename MetaServlet,
+    typename ServletPointerPolicy = LocalPointerPolicy>
   using TestAuthenticatedServiceProtocolServletContainer =
     TestServiceProtocolServletContainer<
     ServiceLocator::MetaAuthenticationServletAdapter<MetaServlet,
-    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>>>;
+    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>,
+    ServletPointerPolicy>>;
 
   //! Instantiates ServiceProtocolClients used for testing.
   using TestServiceProtocolClient = Services::ServiceProtocolClient<

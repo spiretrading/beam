@@ -25,9 +25,9 @@ namespace ServiceLocator {
     typename ServiceLocatorClientType>
   class AuthenticationServletAdapter : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
-      typedef typename TryDereferenceType<ServletType>::type Servlet;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
+      using Servlet = GetTryDereferenceType<ServletType>;
 
       //! Constructs an AuthenticationServletAdapter.
       /*!
@@ -52,9 +52,8 @@ namespace ServiceLocator {
       void Close();
 
     private:
-      typename OptionalLocalPtr<ServiceLocatorClientType>::type
-        m_serviceLocatorClient;
-      typename OptionalLocalPtr<ServletType>::type m_servlet;
+      GetOptionalLocalPtr<ServiceLocatorClientType> m_serviceLocatorClient;
+      GetOptionalLocalPtr<ServletType> m_servlet;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -70,19 +69,19 @@ namespace ServiceLocator {
 
   template<typename BaseSession>
   class AuthenticationServletSession<BaseSession,
-    typename std::enable_if<std::is_base_of<AuthenticatedSession,
-    BaseSession>::value>::type> : public BaseSession {};
+    std::enable_if_t<std::is_base_of_v<AuthenticatedSession, BaseSession>>> :
+    public BaseSession {};
 
   template<typename MetaServlet, typename ServiceLocatorClientType,
     typename ServletPointerPolicy = LocalPointerPolicy>
   struct MetaAuthenticationServletAdapter {
-    typedef AuthenticationServletSession<typename MetaServlet::Session> Session;
+    using Session = AuthenticationServletSession<typename MetaServlet::Session>;
     template<typename ContainerType>
     struct apply {
-      typedef AuthenticationServletAdapter<ContainerType,
+      using type = AuthenticationServletAdapter<ContainerType,
         typename ServletPointerPolicy::template apply<
         typename MetaServlet::template apply<ContainerType>::type>::type,
-        ServiceLocatorClientType> type;
+        ServiceLocatorClientType>;
     };
   };
 
@@ -93,9 +92,9 @@ namespace ServiceLocator {
       ServiceLocatorClientType>::AuthenticationServletAdapter(
       ServiceLocatorClientForward&& serviceLocatorClient,
       ServletForward&& servlet)
-      : m_serviceLocatorClient(std::forward<ServiceLocatorClientForward>(
-          serviceLocatorClient)),
-        m_servlet(std::forward<ServletForward>(servlet)) {}
+      : m_serviceLocatorClient{std::forward<ServiceLocatorClientForward>(
+          serviceLocatorClient)},
+        m_servlet{std::forward<ServletForward>(servlet)} {}
 
   template<typename ContainerType, typename ServletType,
     typename ServiceLocatorClientType>
@@ -124,8 +123,7 @@ namespace ServiceLocator {
       &AuthenticationServletAdapter::OnServiceRequest, this,
       std::placeholders::_1);
     servletSlots.Apply(
-      [&] (const std::string& name,
-          Services::BaseServiceSlot<ServiceProtocolClient>& slot) {
+      [&] (auto& name, auto& slot) {
         slot.AddPreHook(serviceRequestPreHook);
       });
     slots->Acquire(std::move(servletSlots));
@@ -189,15 +187,15 @@ namespace ServiceLocator {
       request, unsigned int key, const std::string& sessionId) {
     auto& session = request.GetSession();
     try {
-      DirectoryEntry account = m_serviceLocatorClient->AuthenticateSession(
-        sessionId, key);
+      auto account = m_serviceLocatorClient->AuthenticateSession(sessionId,
+        key);
       session.SetAccount(account);
       request.SetResult();
       Services::Details::InvokeClientAccepted<
         Services::Details::HasClientAcceptedMethod<Servlet,
         ServiceProtocolClient>::value>()(*m_servlet, request.GetClient());
     } catch(const std::exception& e) {
-      request.SetException(Services::ServiceRequestException(e.what()));
+      request.SetException(Services::ServiceRequestException{e.what()});
     }
   }
 
@@ -206,9 +204,9 @@ namespace ServiceLocator {
   void AuthenticationServletAdapter<ContainerType, ServletType,
       ServiceLocatorClientType>::OnServiceRequest(
       ServiceProtocolClient& client) {
-    typename ServiceProtocolClient::Session& session = client.GetSession();
+    auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException("Not logged in.");
+      throw Services::ServiceRequestException{"Not logged in."};
     }
   }
 }

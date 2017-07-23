@@ -18,12 +18,11 @@ namespace RegistryService {
   template<typename ContainerType, typename RegistryDataStoreType>
   class RegistryServlet : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
       //! The type of RegistryDataStore used.
-      typedef typename TryDereferenceType<RegistryDataStoreType>::type
-        RegistryDataStore;
+      using RegistryDataStore = GetTryDereferenceType<RegistryDataStoreType>;
 
       //! Constructs a RegistryServlet.
       /*!
@@ -40,7 +39,7 @@ namespace RegistryService {
       void Close();
 
     private:
-      typename OptionalLocalPtr<RegistryDataStoreType>::type m_dataStore;
+      GetOptionalLocalPtr<RegistryDataStoreType> m_dataStore;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -70,10 +69,10 @@ namespace RegistryService {
 
   template<typename RegistryDataStoreType>
   struct MetaRegistryServlet {
-    typedef RegistrySession Session;
+    using Session = RegistrySession;
     template<typename ContainerType>
     struct apply {
-      typedef RegistryServlet<ContainerType, RegistryDataStoreType> type;
+      using type = RegistryServlet<ContainerType, RegistryDataStoreType>;
     };
   };
 
@@ -81,7 +80,7 @@ namespace RegistryService {
   template<typename DataStoreForward>
   RegistryServlet<ContainerType, RegistryDataStoreType>::RegistryServlet(
       DataStoreForward&& dataStore)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)) {}
+      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
 
   template<typename ContainerType, typename RegistryDataStoreType>
   void RegistryServlet<ContainerType, RegistryDataStoreType>::RegisterServices(
@@ -154,7 +153,7 @@ namespace RegistryService {
     RegistryEntry entry;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedRoot = m_dataStore->Validate(root);
+        auto validatedRoot = m_dataStore->Validate(root);
         entry = LoadRegistryEntry(*m_dataStore, validatedRoot, path);
       });
     return entry;
@@ -167,7 +166,7 @@ namespace RegistryService {
     RegistryEntry parent;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
         parent = m_dataStore->LoadParent(validatedEntry);
       });
     return parent;
@@ -181,7 +180,7 @@ namespace RegistryService {
     std::vector<RegistryEntry> children;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
         children = m_dataStore->LoadChildren(validatedEntry);
       });
     return children;
@@ -194,7 +193,7 @@ namespace RegistryService {
     RegistryEntry newEntry;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedParent = m_dataStore->Validate(parent);
+        auto validatedParent = m_dataStore->Validate(parent);
         RegistryEntry validatedEntry(RegistryEntry::Type::DIRECTORY, -1, name,
           0);
         newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
@@ -209,8 +208,8 @@ namespace RegistryService {
     RegistryEntry copiedEntry;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
-        RegistryEntry validatedDestination = m_dataStore->Validate(destination);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedDestination = m_dataStore->Validate(destination);
         copiedEntry = m_dataStore->Copy(validatedEntry, validatedDestination);
       });
     return copiedEntry;
@@ -222,8 +221,8 @@ namespace RegistryService {
       const RegistryEntry& destination) {
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
-        RegistryEntry validatedDestination = m_dataStore->Validate(destination);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedDestination = m_dataStore->Validate(destination);
         m_dataStore->Move(validatedEntry, validatedDestination);
       });
   }
@@ -235,7 +234,7 @@ namespace RegistryService {
     IO::SharedBuffer value;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
         value = m_dataStore->Load(validatedEntry);
       });
     return value;
@@ -248,7 +247,7 @@ namespace RegistryService {
     RegistryEntry newEntry;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedParent = m_dataStore->Validate(parent);
+        auto validatedParent = m_dataStore->Validate(parent);
         RegistryEntry validatedEntry(RegistryEntry::Type::VALUE, -1, name, 0);
         newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
         m_dataStore->Store(newEntry, value);
@@ -264,11 +263,10 @@ namespace RegistryService {
     RegistryEntry newEntry;
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedParent = m_dataStore->Validate(parent);
-        std::vector<RegistryEntry> children = m_dataStore->LoadChildren(
-          validatedParent);
+        auto validatedParent = m_dataStore->Validate(parent);
+        auto children = m_dataStore->LoadChildren(validatedParent);
         auto childIterator = std::find_if(children.begin(), children.end(),
-          [&] (const RegistryEntry& child) {
+          [&] (auto& child) {
             return child.m_name == name;
           });
         if(childIterator == children.end()) {
@@ -287,7 +285,7 @@ namespace RegistryService {
       ServiceProtocolClient& client, const RegistryEntry& registryEntry) {
     m_dataStore->WithTransaction(
       [&] {
-        RegistryEntry validatedEntry = m_dataStore->Validate(registryEntry);
+        auto validatedEntry = m_dataStore->Validate(registryEntry);
         m_dataStore->Delete(validatedEntry);
       });
   }

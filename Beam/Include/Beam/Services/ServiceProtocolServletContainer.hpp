@@ -89,13 +89,13 @@ namespace Services {
       ServerConnectionForward&& serverConnection,
       const typename ServiceProtocolServer::TimerFactory& timerFactory)
 BEAM_SUPPRESS_THIS_INITIALIZER()
-      : m_servlet(std::forward<ServletForward>(servlet)),
-        m_protocolServer(std::forward<ServerConnectionForward>(
+      : m_servlet{std::forward<ServletForward>(servlet)},
+        m_protocolServer{std::forward<ServerConnectionForward>(
           serverConnection), timerFactory,
           std::bind(&ServiceProtocolServletContainer::OnClientAccepted, this,
           std::placeholders::_1), std::bind(
           &ServiceProtocolServletContainer::OnClientClosed, this,
-          std::placeholders::_1)) {
+          std::placeholders::_1)} {
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->RegisterServices(Store(m_protocolServer.GetSlots()));
   }

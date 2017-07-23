@@ -1,14 +1,10 @@
 #include "Beam/UidServiceTests/UidClientTester.hpp"
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
-#include "Beam/ServiceLocator/NullAuthenticator.hpp"
 #include "Beam/SignalHandling/NullSlot.hpp"
 
 using namespace Beam;
-using namespace Beam::IO;
-using namespace Beam::Serialization;
-using namespace Beam::ServiceLocator;
 using namespace Beam::Services;
+using namespace Beam::Services::Tests;
 using namespace Beam::SignalHandling;
 using namespace Beam::Threading;
 using namespace Beam::UidService;
@@ -17,35 +13,30 @@ using namespace boost;
 using namespace std;
 
 void UidClientTester::setUp() {
-  m_serverConnection.Initialize();
-  m_protocolServer.Initialize(&*m_serverConnection,
-    factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
-  ServiceProtocolClientBuilder builder(
-    [&] {
-      return std::make_unique<ServiceProtocolClientBuilder::Channel>(("test"),
-        Ref(*m_serverConnection));
-    },
-    [&] {
-      return std::make_unique<ServiceProtocolClientBuilder::Timer>();
-    });
-  m_uidClient.Initialize(builder);
+  auto serverConnection = std::make_shared<TestServerConnection>();
+  m_protocolServer.emplace(serverConnection,
+    factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
   m_protocolServer->Open();
-  m_uidClient->Open();
   RegisterUidServices(Store(m_protocolServer->GetSlots()));
+  TestServiceProtocolClientBuilder builder{
+    [=] {
+      return std::make_unique<TestServiceProtocolClientBuilder::Channel>("test",
+        Ref(*serverConnection));
+    }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>()};
+  m_uidClient.emplace(builder);
+  m_uidClient->Open();
 }
 
 void UidClientTester::tearDown() {
-  m_uidClient.Reset();
-  m_protocolServer.Reset();
-  m_serverConnection.Reset();
+  m_uidClient.reset();
+  m_protocolServer.reset();
 }
 
 void UidClientTester::TestSingleUidRequest() {
   auto receivedRequest = false;
   auto INITIAL_UID = std::uint64_t{123};
   ReserveUidsService::AddSlot(Store(m_protocolServer->GetSlots()),
-    [&] (ServiceProtocolServer::ServiceProtocolClient& client,
-        std::uint64_t blockSize) -> std::uint64_t {
+    [&] (auto& client, auto blockSize) {
       CPPUNIT_ASSERT(blockSize > 0);
       receivedRequest = true;
       return INITIAL_UID;
@@ -59,8 +50,7 @@ void UidClientTester::TestSequentialUidRequests() {
   auto requestCount = 0;
   auto INITIAL_UID = std::uint64_t{123};
   ReserveUidsService::AddSlot(Store(m_protocolServer->GetSlots()),
-    [&] (ServiceProtocolServer::ServiceProtocolClient& client,
-        std::uint64_t blockSize) -> std::uint64_t {
+    [&] (auto& client, auto blockSize) {
       CPPUNIT_ASSERT(blockSize > 0);
       ++requestCount;
       return INITIAL_UID;
@@ -77,8 +67,7 @@ void UidClientTester::TestSimultaneousUidRequests() {
   auto requestCount = 0;
   auto INITIAL_UID = std::uint64_t{123};
   ReserveUidsService::AddRequestSlot(Store(m_protocolServer->GetSlots()),
-    [&] (RequestToken<ServiceProtocolServer::ServiceProtocolClient,
-        ReserveUidsService>& request, std::uint64_t blockSize) {
+    [&] (auto& request, auto blockSize) {
       CPPUNIT_ASSERT(blockSize > 0);
       ++requestCount;
       request.SetResult(INITIAL_UID);
@@ -95,8 +84,7 @@ void UidClientTester::TestMultipleServerRequests() {
   auto INITIAL_UID = std::uint64_t{123};
   std::uint64_t requestBlockSize;
   ReserveUidsService::AddRequestSlot(Store(m_protocolServer->GetSlots()),
-    [&] (RequestToken<ServiceProtocolServer::ServiceProtocolClient,
-        ReserveUidsService>& request, std::uint64_t blockSize) {
+    [&] (auto& request, auto blockSize) {
       CPPUNIT_ASSERT(blockSize > 0);
       requestBlockSize = blockSize;
       ++requestCount;

@@ -26,6 +26,9 @@ namespace RegistryService {
     public:
 
       //! Constructs a FileSystemRegistryDataStore.
+      /*!
+        \param root The directory storing the files.
+      */
       FileSystemRegistryDataStore(const boost::filesystem::path& root);
 
       virtual ~FileSystemRegistryDataStore() override;
@@ -92,7 +95,7 @@ namespace RegistryService {
     std::transform(record.m_children.begin(), record.m_children.end(),
       std::back_inserter(children),
       [&] (auto id) {
-        return this->LoadRegistryEntry(id);
+        return LoadRegistryEntry(id);
       });
     return children;
   }

@@ -69,8 +69,8 @@ namespace ServiceLocator {
 
   template<typename BaseSession>
   class AuthenticationServletSession<BaseSession,
-    std::enable_if_t<std::is_base_of_v<AuthenticatedSession, BaseSession>>> :
-    public BaseSession {};
+    std::enable_if_t<std::is_base_of<
+    AuthenticatedSession, BaseSession>::value>> : public BaseSession {};
 
   template<typename MetaServlet, typename ServiceLocatorClientType,
     typename ServletPointerPolicy = LocalPointerPolicy>

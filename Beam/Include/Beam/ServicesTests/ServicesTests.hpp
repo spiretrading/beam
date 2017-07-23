@@ -57,8 +57,7 @@ namespace Tests {
   using TestAuthenticatedServiceProtocolServletContainer =
     TestServiceProtocolServletContainer<
     ServiceLocator::MetaAuthenticationServletAdapter<MetaServlet,
-    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>,
-    NativePointerPolicy>>;
+    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>>>;
 
   //! Instantiates ServiceProtocolClients used for testing.
   using TestServiceProtocolClient = Services::ServiceProtocolClient<

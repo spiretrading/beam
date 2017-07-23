@@ -32,7 +32,7 @@ void RegistryServletTester::setUp() {
   registryServiceLocatorClient->SetCredentials("root", "");
   registryServiceLocatorClient->Open();
   m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
-    Initialize(m_dataStore)), &*serverConnection,
+    Initialize(m_dataStore)), std::move(serverConnection),
     factory<std::unique_ptr<TriggerTimer>>());
   m_container->Open();
 }

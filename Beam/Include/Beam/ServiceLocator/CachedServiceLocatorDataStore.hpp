@@ -81,6 +81,9 @@ namespace ServiceLocator {
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
         const boost::posix_time::ptime& loginTime) override;
 
+      virtual void Rename(const DirectoryEntry& entry,
+        const std::string& name) override;
+
       virtual DirectoryEntry Validate(const DirectoryEntry& entry) override;
 
       virtual void WithTransaction(
@@ -341,6 +344,13 @@ namespace ServiceLocator {
     } else {
       m_dataStore->StoreLastLoginTime(account, loginTime);
     }
+  }
+
+  template<typename DataStoreType>
+  void CachedServiceLocatorDataStore<DataStoreType>::Rename(
+      const DirectoryEntry& entry, const std::string& name) {
+    m_cache.Rename(entry, name);
+    m_dataStore->Rename(entry, name);
   }
 
   template<typename DataStoreType>

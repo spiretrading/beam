@@ -199,6 +199,7 @@ void Beam::Python::ExportServiceLocatorClient() {
       BlockingFunction(&VirtualServiceLocatorClient::LoadRegistrationTime))
     .def("load_last_login_time",
       BlockingFunction(&VirtualServiceLocatorClient::LoadLastLoginTime))
+    .def("rename", BlockingFunction(&VirtualServiceLocatorClient::Rename))
     .def("set_credentials",
       BlockingFunction(&VirtualServiceLocatorClient::SetCredentials))
     .def("open", BlockingFunction(&VirtualServiceLocatorClient::Open))

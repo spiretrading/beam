@@ -94,6 +94,9 @@ namespace ServiceLocator {
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
         const boost::posix_time::ptime& loginTime) override;
 
+      virtual void Rename(const DirectoryEntry& entry,
+        const std::string& name) override;
+
       virtual void WithTransaction(
         const std::function<void ()>& transaction) override;
 
@@ -422,6 +425,34 @@ namespace ServiceLocator {
       const boost::posix_time::ptime& loginTime) {
     auto accountEntry = FindAccountEntry(account);
     accountEntry->m_lastLoginTime = loginTime;
+  }
+
+  inline void LocalServiceLocatorDataStore::Rename(const DirectoryEntry& entry,
+      const std::string& name) {
+    auto accountIdIterator = m_idToAccounts.find(entry.m_id);
+    if(accountIdIterator != m_idToAccounts.end()) {
+      m_nameToAccounts.erase(accountIdIterator->second->m_entry.m_name);
+      accountIdIterator->second->m_entry.m_name = name;
+      m_nameToAccounts[name] = accountIdIterator->second;
+    }
+    auto directoryIdIterator = m_idToDirectories.find(entry.m_id);
+    if(directoryIdIterator != m_idToDirectories.end()) {
+      directoryIdIterator->second.m_name = name;
+    }
+    for(auto& parents : m_parents) {
+      for(auto& parent : parents.second) {
+        if(parent.m_id == entry.m_id) {
+          parent.m_name = name;
+        }
+      }
+    }
+    for(auto& children : m_children) {
+      for(auto& child : children.second) {
+        if(child.m_id == entry.m_id) {
+          child.m_name = name;
+        }
+      }
+    }
   }
 
   inline void LocalServiceLocatorDataStore::WithTransaction(

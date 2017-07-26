@@ -86,6 +86,9 @@ namespace ServiceLocator {
       virtual boost::posix_time::ptime LoadLastLoginTime(
         const DirectoryEntry& account) = 0;
 
+      virtual DirectoryEntry Rename(const DirectoryEntry& entry,
+        const std::string& name) = 0;
+
       virtual void SetCredentials(const std::string& username,
         const std::string& password) = 0;
 
@@ -180,6 +183,9 @@ namespace ServiceLocator {
 
       virtual boost::posix_time::ptime LoadLastLoginTime(
         const DirectoryEntry& account);
+
+      virtual DirectoryEntry Rename(const DirectoryEntry& entry,
+        const std::string& name);
 
       virtual void SetCredentials(const std::string& username,
         const std::string& password);
@@ -346,6 +352,12 @@ namespace ServiceLocator {
   boost::posix_time::ptime WrapperServiceLocatorClient<ClientType>::
       LoadLastLoginTime(const DirectoryEntry& account) {
     return m_client->LoadLastLoginTime(account);
+  }
+
+  template<typename ClientType>
+  DirectoryEntry WrapperServiceLocatorClient<ClientType>::Rename(
+      const DirectoryEntry& entry, const std::string& name) {
+    return m_client->Rename(entry, name);
   }
 
   template<typename ClientType>

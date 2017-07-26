@@ -177,6 +177,14 @@ namespace ServiceLocator {
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
         const boost::posix_time::ptime& loginTime) = 0;
 
+      //! Renames a DirectoryEntry.
+      /*!
+        \param entry The DirectoryEntry to rename.
+        \param name The name to assign to the <i>entry</i>.
+      */
+      virtual void Rename(const DirectoryEntry& entry,
+        const std::string& name) = 0;
+
       //! Validates a DirectoryEntry.
       /*!
         \param entry The DirectoryEntry to validate.

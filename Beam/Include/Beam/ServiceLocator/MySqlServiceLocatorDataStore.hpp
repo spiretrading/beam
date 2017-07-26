@@ -83,6 +83,9 @@ namespace ServiceLocator {
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
         const boost::posix_time::ptime& loginTime) override;
 
+      virtual void Rename(const DirectoryEntry& entry,
+        const std::string& name) override;
+
       virtual void WithTransaction(
         const std::function<void ()>& transaction) override;
 
@@ -506,6 +509,26 @@ namespace ServiceLocator {
       MySql::ToDateTime(loginTime) << " WHERE id = " << account.m_id;
     if(!query.execute()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    }
+  }
+
+  inline void MySqlServiceLocatorDataStore::Rename(const DirectoryEntry& entry,
+      const std::string& name) {
+    {
+      auto query = m_databaseConnection.query();
+      query << "UPDATE accounts SET name = " << mysqlpp::quote << name <<
+        " WHERE id = " << entry.m_id;
+      if(!query.execute()) {
+        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+      }
+    }
+    {
+      auto query = m_databaseConnection.query();
+      query << "UPDATE directories SET name = " << mysqlpp::quote << name <<
+        " WHERE id = " << entry.m_id;
+      if(!query.execute()) {
+        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+      }
     }
   }
 

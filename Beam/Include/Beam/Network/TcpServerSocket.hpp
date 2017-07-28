@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVERSOCKET_HPP
 #define BEAM_SERVERSOCKET_HPP
 #include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/ServerConnection.hpp"
@@ -12,7 +13,6 @@
 #include "Beam/Network/TcpSocketConnection.hpp"
 #include "Beam/Network/TcpSocketReader.hpp"
 #include "Beam/Network/TcpSocketWriter.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Utilities/ToString.hpp"
 
@@ -46,7 +46,7 @@ namespace Network {
       IpAddress m_address;
       SocketThreadPool* m_socketThreadPool;
       boost::asio::io_service* m_ioService;
-      DelayPtr<boost::asio::ip::tcp::acceptor> m_acceptor;
+      boost::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -66,17 +66,27 @@ namespace Network {
     if(m_openState.SetOpening()) {
       return;
     }
-    boost::asio::ip::tcp::resolver resolver(*m_ioService);
-    boost::asio::ip::tcp::resolver::query query(m_address.GetHost(),
-      ToString(m_address.GetPort()));
-    boost::system::error_code error;
-    auto endpointIterator = resolver.resolve(query, error);
-    if(error != 0) {
+    try {
+      boost::asio::ip::tcp::resolver resolver(*m_ioService);
+      boost::asio::ip::tcp::resolver::query query(m_address.GetHost(),
+        ToString(m_address.GetPort()));
+      boost::system::error_code error;
+      auto endpointIterator = resolver.resolve(query, error);
+      if(error != 0) {
+        BOOST_THROW_EXCEPTION(SocketException(error.value(), error.message()));
+      }
+      m_acceptor.emplace(*m_ioService, *endpointIterator);
+    } catch(const SocketException&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    } catch(const boost::system::system_error& e) {
       m_openState.SetOpenFailure(
-        SocketException(error.value(), error.message()));
+        SocketException{e.code().value(), e.code().message()});
+      Shutdown();
+    } catch(const std::exception& e) {
+      m_openState.SetOpenFailure(IO::ConnectException{e.what()});
       Shutdown();
     }
-    m_acceptor.Initialize(*m_ioService, *endpointIterator);
     m_openState.SetOpen();
   }
 
@@ -120,7 +130,9 @@ namespace Network {
   }
 
   inline void TcpServerSocket::Shutdown() {
-    m_acceptor->close();
+    if(m_acceptor.is_initialized()) {
+      m_acceptor->close();
+    }
     m_openState.SetClosed();
   }
 }

@@ -67,6 +67,13 @@ namespace Details {
        */
       Email(EmailAddress from);
 
+      //! Constructs an empty email.
+      /*!
+        \param from The from header.
+        \param to The recipient.
+       */
+      Email(EmailAddress from, EmailAddress to);
+
       //! Returns the from address.
       const EmailAddress& GetFrom() const;
 
@@ -149,6 +156,12 @@ namespace Details {
   inline Email::Email(EmailAddress from)
       : m_from{std::move(from)},
         m_date{boost::posix_time::second_clock::universal_time()} {}
+
+  inline Email::Email(EmailAddress from, EmailAddress to)
+      : m_from{std::move(from)},
+        m_date{boost::posix_time::second_clock::universal_time()} {
+    m_to.push_back(std::move(to));
+  }
 
   inline const EmailAddress& Email::GetFrom() const {
     return m_from;

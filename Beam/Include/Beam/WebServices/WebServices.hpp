@@ -6,6 +6,9 @@ namespace WebServices {
   class AuthenticatedSession;
   class ContentTypePatterns;
   class Cookie;
+  class Email;
+  struct EmailClient;
+  class EmailAddress;
   class FileStore;
   template<typename ChannelType> class HttpClient;
   class HttpHeader;
@@ -27,6 +30,7 @@ namespace WebServices {
   template<typename SessionType> class SessionStore;
   class ServerWebSocketChannel;
   class SocketChannelFactory;
+  class StandardOutEmailClient;
   enum class TransferEncoding;
   class Uri;
   template<typename ChannelType> class WebSocket;

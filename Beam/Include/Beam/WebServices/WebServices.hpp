@@ -29,6 +29,7 @@ namespace WebServices {
   class Session;
   template<typename SessionType> class SessionStore;
   class ServerWebSocketChannel;
+  template<typename ChannelBuilderType> class SmtpEmailClient;
   class SocketChannelFactory;
   class StandardOutEmailClient;
   enum class TransferEncoding;

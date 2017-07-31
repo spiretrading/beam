@@ -224,16 +224,15 @@ namespace ServiceLocator {
         if(!visitedEntries.insert(target).second) {
           return false;
         }
-        Permissions accountPermissions = dataStore.LoadPermissions(source,
-          target);
+        auto accountPermissions = dataStore.LoadPermissions(source, target);
         if((accountPermissions & permissions) == permissions) {
           return true;
         }
-        std::vector<DirectoryEntry> parents = dataStore.LoadParents(target);
+        auto parents = dataStore.LoadParents(target);
         if(parents.empty()) {
           return false;
         }
-        for(const DirectoryEntry& parent : parents) {
+        for(auto& parent : parents) {
           if(HasPermissionHelper()(dataStore, source, parent, permissions,
               visitedEntries)) {
             return true;
@@ -242,6 +241,10 @@ namespace ServiceLocator {
         return false;
       }
     };
+    if(source == target &&
+        ((permissions & Permissions(Permission::READ)) == permissions)) {
+      return true;
+    }
     std::unordered_set<DirectoryEntry> visitedEntries;
     return HasPermissionHelper()(dataStore, source, target, permissions,
       visitedEntries);

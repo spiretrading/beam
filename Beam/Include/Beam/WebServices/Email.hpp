@@ -217,7 +217,7 @@ namespace Details {
     if(lowercaseName == "from") {
       return boost::lexical_cast<std::string>(m_from);
     } else if(lowercaseName == "date") {
-      return "";
+      return std::string{};
     }
     return boost::none;
   }

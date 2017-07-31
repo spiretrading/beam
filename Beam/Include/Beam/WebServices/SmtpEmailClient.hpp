@@ -81,7 +81,7 @@ namespace WebServices {
       return;
     }
     auto channel = m_channelBuilder();
-    using Channel = decltype(*channel);
+    using Channel = std::decay<decltype(*channel)>::type;
     std::stringstream ss;
     typename Channel::Reader::Buffer reply;
     auto WriteCommand =

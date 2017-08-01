@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional/optional.hpp>
@@ -61,6 +62,30 @@ namespace Details {
   class Email {
     public:
 
+      /*! \struct Header
+          \brief Stores an email header.
+       */
+      struct Header {
+
+        //! The header name.
+        std::string m_name;
+
+        //! The header value.
+        std::string m_value;
+      };
+
+      /*! \struct Body
+          \brief Stores the body of the message.
+       */
+      struct Body {
+
+        //! The content type.
+        std::string m_contentType;
+
+        //! The message.
+        std::string m_message;
+      };
+
       //! Constructs an empty email.
       /*!
         \param from The from header.
@@ -104,11 +129,14 @@ namespace Details {
       //! Sets the subject.
       void SetSubject(std::string subject);
 
-      //! Returns the body/message.
-      const std::string& GetBody() const;
+      //! Returns the bodies.
+      const std::vector<Body>& GetBodies() const;
 
-      //! Sets the body.
-      void SetBody(std::string body);
+      //! Adds a body.
+      void AddBody(std::string message);
+
+      //! Adds a body.
+      void AddBody(std::string contentType, std::string message);
 
       //! Finds a header.
       /*!
@@ -117,14 +145,25 @@ namespace Details {
       */
       boost::optional<std::string> FindHeader(const std::string& name) const;
 
+      //! Returns all additional headers.
+      const std::vector<Header>& GetAdditionalHeaders() const;
+
+      //! Sets a header.
+      /*!
+        \param name The name of the header to set.
+        \param value The header's value.
+      */
+      void SetHeader(std::string name, std::string value);
+
     private:
-      std::unordered_map<std::string, std::string> m_headers;
       EmailAddress m_from;
       boost::posix_time::ptime m_date;
       boost::optional<EmailAddress> m_sender;
       std::vector<EmailAddress> m_to;
       std::string m_subject;
-      std::string m_body;
+      std::vector<Header> m_additionalHeaders;
+      std::vector<Body> m_bodies;
+      std::string m_bodyBoundary;
   };
 
   inline std::ostream& operator <<(std::ostream& sink, const Email& email) {
@@ -149,17 +188,45 @@ namespace Details {
     if(!email.GetSubject().empty()) {
       sink << "Subject: " << email.GetSubject() << "\r\n";
     }
-    sink << "\r\n" << Details::DotStuff(email.GetBody()) << "\r\n.\r\n";
+    for(auto& header : email.GetAdditionalHeaders()) {
+      sink << header.m_name << ": " << header.m_value << "\r\n";
+    }
+    auto& bodies = email.GetBodies();
+    std::string boundary;
+    if(bodies.size() == 1) {
+      sink << "Content-Type: " << bodies.front().m_contentType << "\r\n";
+    } else if(bodies.size() > 1) {
+      for(auto i = 0; i < 45; ++i) {
+        boundary += 'a' + static_cast<char>(rand() % 26);
+      }
+      sink << "Content-Type: multipart/alternative; boundary=\"" << boundary <<
+        "\"\r\n";
+    }
+    sink << "\r\n";
+    if(bodies.size() == 1) {
+      sink << Details::DotStuff(bodies.front().m_message);
+    } else {
+      for(auto& body : bodies) {
+        sink << "--" << boundary << "\r\n";
+        sink << "Content-Type: " << body.m_contentType << "\r\n\r\n";
+        sink << body.m_message << "\r\n\r\n";
+      }
+    }
+    if(bodies.size() > 1) {
+      sink << "--" << boundary << "--\r\n";
+    }
+    sink << "\r\n.\r\n";
     return sink;
   }
 
   inline Email::Email(EmailAddress from)
       : m_from{std::move(from)},
-        m_date{boost::posix_time::second_clock::universal_time()} {}
+        m_date{boost::posix_time::second_clock::universal_time()} {
+    SetHeader("Mime-Version", "1.0");
+  }
 
   inline Email::Email(EmailAddress from, EmailAddress to)
-      : m_from{std::move(from)},
-        m_date{boost::posix_time::second_clock::universal_time()} {
+      : Email{std::move(from)} {
     m_to.push_back(std::move(to));
   }
 
@@ -203,23 +270,46 @@ namespace Details {
     m_subject = std::move(subject);
   }
 
-  inline const std::string& Email::GetBody() const {
-    return m_body;
+  inline const std::vector<Email::Body>& Email::GetBodies() const {
+    return m_bodies;
   }
 
-  inline void Email::SetBody(std::string body) {
-    m_body = std::move(body);
+  inline void Email::AddBody(std::string message) {
+    AddBody("text/plain", message);
+  }
+
+  inline void Email::AddBody(std::string contentType, std::string message) {
+    m_bodies.push_back({std::move(contentType), std::move(message)});
   }
 
   inline boost::optional<std::string> Email::FindHeader(
       const std::string& name) const {
-    auto lowercaseName = boost::algorithm::to_lower_copy(name);
-    if(lowercaseName == "from") {
-      return boost::lexical_cast<std::string>(m_from);
-    } else if(lowercaseName == "date") {
-      return std::string{};
+    auto headerIterator = std::find_if(m_additionalHeaders.begin(),
+      m_additionalHeaders.end(),
+      [&] (auto& header) {
+        return boost::algorithm::iequals(name, header.m_name);
+      });
+    if(headerIterator == m_additionalHeaders.end()) {
+      return boost::none;
     }
-    return boost::none;
+    return headerIterator->m_value;
+  }
+
+  inline const std::vector<Email::Header>& Email::GetAdditionalHeaders() const {
+    return m_additionalHeaders;
+  }
+
+  inline void Email::SetHeader(std::string name, std::string value) {
+    auto headerIterator = std::find_if(m_additionalHeaders.begin(),
+      m_additionalHeaders.end(),
+      [&] (auto& header) {
+        return boost::algorithm::iequals(name, header.m_name);
+      });
+    if(headerIterator == m_additionalHeaders.end()) {
+      m_additionalHeaders.push_back({std::move(name), std::move(value)});
+    } else {
+      headerIterator->m_value = std::move(value);
+    }
   }
 }
 }

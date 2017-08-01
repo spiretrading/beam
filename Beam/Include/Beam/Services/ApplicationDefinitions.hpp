@@ -9,7 +9,8 @@
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 
@@ -18,7 +19,7 @@ namespace Services {
 namespace Details {
   using DefaultSessionBuilder =
     Services::AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::ApplicationServiceLocatorClient::Client,
+    ServiceLocator::VirtualServiceLocatorClient,
     MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::LiveTimer>;
@@ -47,10 +48,10 @@ namespace Details {
                connection.
         \param timerThreadPool The TimerThreadPool used for heartbeats.
       */
-      void BuildSession(
-        RefType<ServiceLocator::ApplicationServiceLocatorClient::Client>
-        serviceLocatorClient, RefType<Network::SocketThreadPool>
-        socketThreadPool, RefType<Threading::TimerThreadPool> timerThreadPool);
+      template<typename ServiceLocatorClient>
+      void BuildSession(RefType<ServiceLocatorClient> serviceLocatorClient,
+        RefType<Network::SocketThreadPool> socketThreadPool,
+        RefType<Threading::TimerThreadPool> timerThreadPool);
 
       //! Returns a reference to the Client.
       Client& operator *();
@@ -72,25 +73,30 @@ namespace Details {
 
     private:
       boost::optional<Client> m_client;
+      std::unique_ptr<ServiceLocator::VirtualServiceLocatorClient>
+        m_serviceLocatorClient;
   };
 
   template<template<typename> class ClientType, typename ServiceName,
     typename SessionBuilderType>
+  template<typename ServiceLocatorClient>
   void ApplicationClient<ClientType, ServiceName, SessionBuilderType>::
-      BuildSession(RefType<ServiceLocator::ApplicationServiceLocatorClient::
-      Client> serviceLocatorClient, RefType<Network::SocketThreadPool>
-      socketThreadPool, RefType<Threading::TimerThreadPool> timerThreadPool) {
+      BuildSession(RefType<ServiceLocatorClient> serviceLocatorClient,
+      RefType<Network::SocketThreadPool> socketThreadPool,
+      RefType<Threading::TimerThreadPool> timerThreadPool) {
     if(m_client.is_initialized()) {
       m_client->Close();
       m_client.reset();
+      m_serviceLocatorClient.reset();
     }
-    auto serviceLocatorClientHandle = serviceLocatorClient.Get();
+    m_serviceLocatorClient = ServiceLocator::MakeVirtualServiceLocatorClient(
+      serviceLocatorClient.Get());
     auto socketThreadPoolHandle = socketThreadPool.Get();
     auto timerThreadPoolHandle = timerThreadPool.Get();
     auto addresses = ServiceLocator::LocateServiceAddresses(
-      *serviceLocatorClientHandle, ServiceName::name);
+      *m_serviceLocatorClient, ServiceName::name);
     auto delay = false;
-    SessionBuilder sessionBuilder{Ref(serviceLocatorClient),
+    SessionBuilder sessionBuilder{Ref(*m_serviceLocatorClient),
       [=] () mutable {
         if(delay) {
           Threading::LiveTimer delayTimer{boost::posix_time::seconds(3),

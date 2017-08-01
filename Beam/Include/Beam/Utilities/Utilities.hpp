@@ -8,7 +8,6 @@ namespace Beam {
   template<typename T> class CachedValue;
   template<typename T> class Capture;
   template<typename T> struct Concept;
-  class Decimal;
   template<typename T> class Expect;
   template<std::size_t N> class FixedString;
   template<typename InstanceType, typename ConceptType>

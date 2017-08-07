@@ -25,9 +25,14 @@ namespace WebServices {
   class InvalidHttpRequestException;
   class InvalidHttpResponseException;
   class MalformedUriException;
+  class MySqlSessionDataStore;
+  class NullSessionDataStore;
   class SecureSocketChannelFactory;
   class Session;
-  template<typename SessionType> class SessionStore;
+  struct SessionDataStore;
+  class SessionDataStoreException;
+  template<typename SessionType, typename SessionDataStoreType>
+    class SessionStore;
   class ServerWebSocketChannel;
   template<typename ChannelBuilderType> class SmtpEmailClient;
   class SocketChannelFactory;

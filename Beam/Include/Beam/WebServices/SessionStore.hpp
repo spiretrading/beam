@@ -149,8 +149,7 @@ namespace WebServices {
   template<typename DataStoreForward>
   SessionStore<SessionType, DataStoreType>::SessionStore(
       DataStoreForward&& dataStore)
-      : SessionStore{},
-        m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
+      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
 
   template<typename SessionType, typename DataStoreType>
   std::shared_ptr<typename SessionStore<SessionType, DataStoreType>::Session>

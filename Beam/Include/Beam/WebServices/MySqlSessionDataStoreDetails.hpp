@@ -43,9 +43,9 @@ namespace Details {
       Serialization::JsonReceiver<IO::SharedBuffer>& receiver) {
     IO::SharedBuffer buffer{row.session.data(), row.session.size()};
     receiver.SetSource(Ref(buffer));
-    std::unique_ptr<SessionType> session;
+    auto session = std::make_unique<SessionType>();
     try {
-      receiver.Shuttle(session);
+      receiver.Shuttle(*session);
     } catch(const Serialization::SerializationException&) {
       BOOST_THROW_EXCEPTION(SessionDataStoreException{
         "Unable to load session."});

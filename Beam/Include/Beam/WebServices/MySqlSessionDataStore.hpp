@@ -81,7 +81,7 @@ namespace WebServices {
 
   template<typename SessionType>
   std::unique_ptr<SessionType> MySqlSessionDataStore::Load(
-      const std::string id) {
+      const std::string& id) {
     boost::lock_guard<Threading::RecursiveMutex> lock{m_mutex};
     auto query = m_databaseConnection.query();
     query << "SELECT * FROM web_sessions WHERE id = " << mysqlpp::quote << id;
@@ -94,7 +94,7 @@ namespace WebServices {
       return nullptr;
     }
     auto& row = rows.front();
-    auto session = Details::FromRow(row, m_receiver);
+    auto session = Details::FromRow<SessionType>(row, m_receiver);
     return session;
   }
 
@@ -109,7 +109,6 @@ namespace WebServices {
     }
   }
 
-  template<typename F>
   template<typename SessionType>
   void MySqlSessionDataStore::Delete(const SessionType& session) {
     boost::lock_guard<Threading::RecursiveMutex> lock{m_mutex};

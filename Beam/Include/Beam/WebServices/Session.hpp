@@ -2,6 +2,7 @@
 #define BEAM_HTTPSESSION_HPP
 #include <atomic>
 #include <string>
+#include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -28,7 +29,12 @@ namespace WebServices {
       //! Sets the state of this session to expired.
       void SetExpired();
 
+    protected:
+      template<typename Shuttler>
+      void Shuttle(Shuttler& shuttle, unsigned int version);
+
     private:
+      friend struct Serialization::DataShuttle;
       std::string m_id;
       std::atomic_bool m_isExpired;
   };
@@ -47,6 +53,11 @@ namespace WebServices {
 
   inline void Session::SetExpired() {
     m_isExpired = true;
+  }
+
+  template<typename Shuttler>
+  void Session::Shuttle(Shuttler& shuttle, unsigned int version) {
+    shuttle.Shuttle("id", m_id);
   }
 }
 }

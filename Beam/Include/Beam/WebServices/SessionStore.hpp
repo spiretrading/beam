@@ -163,7 +163,7 @@ namespace WebServices {
     }
     auto session = m_sessions.FindValue(sessionCookie->GetValue());
     if(!session.is_initialized()) {
-      auto persistentSession = m_dataStore->Load<Session>(
+      auto persistentSession = m_dataStore->template Load<Session>(
         sessionCookie->GetValue());
       if(persistentSession == nullptr) {
         session = Create(); 

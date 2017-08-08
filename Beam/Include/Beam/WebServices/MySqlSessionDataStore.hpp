@@ -113,7 +113,7 @@ namespace WebServices {
   void MySqlSessionDataStore::Delete(const SessionType& session) {
     boost::lock_guard<Threading::RecursiveMutex> lock{m_mutex};
     auto query = m_databaseConnection.query();
-    query << "DELETE * FROM web_sessions WHERE id = " << mysqlpp::quote <<
+    query << "DELETE FROM web_sessions WHERE id = " << mysqlpp::quote <<
       session.GetId();
     query.execute();
     if(query.errnum() != 0) {

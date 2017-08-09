@@ -281,6 +281,11 @@ namespace WebServices {
       m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
       Add(HttpHeader{"Content-Type", "application/x-www-form-urlencoded"});
     }
+    if(!m_uri.GetUsername().empty() || !m_uri.GetPassword().empty()) {
+      auto authentication = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(
+        m_uri.GetUsername() + ":" + m_uri.GetPassword()));
+      Add(HttpHeader{"Authorization", "Basic " + authentication});
+    }
   }
 
   inline const HttpVersion& HttpRequest::GetVersion() const {

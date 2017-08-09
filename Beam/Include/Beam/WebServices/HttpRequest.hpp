@@ -76,6 +76,14 @@ namespace WebServices {
       */
       HttpRequest(HttpMethod method, Uri uri);
 
+      //! Constructs an HTTP/1.1 request.
+      /*!
+        \param method The HTTP method.
+        \param uri The URI to request.
+        \param body The body.
+      */
+      HttpRequest(HttpMethod method, Uri uri, IO::SharedBuffer body);
+
       //! Constructs an HttpRequest.
       /*!
         \param version The HTTP version in major/minor format.
@@ -236,6 +244,11 @@ namespace WebServices {
 
   inline HttpRequest::HttpRequest(HttpMethod method, Uri uri)
       : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri)} {}
+
+  inline HttpRequest::HttpRequest(HttpMethod method, Uri uri,
+      IO::SharedBuffer body)
+      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri), {}, {},
+          {}, std::move(body)} {}
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri)

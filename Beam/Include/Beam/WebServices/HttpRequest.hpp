@@ -286,6 +286,7 @@ namespace WebServices {
         m_uri.GetUsername() + ":" + m_uri.GetPassword()));
       Add(HttpHeader{"Authorization", "Basic " + authentication});
     }
+    m_specialHeaders.m_contentLength = m_body.GetSize();
   }
 
   inline const HttpVersion& HttpRequest::GetVersion() const {

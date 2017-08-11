@@ -53,17 +53,26 @@ namespace {
 
   struct TimeDurationToPython {
     static PyObject* convert(const time_duration& value) {
-      auto days = value.hours() / 24;
-      if (days < 0) {
-        --days;
-      }
-      auto seconds = value.total_seconds() - days * (24 * 3600);
-      auto usecs = value.total_microseconds();
-      if(days < 0) {
-        usecs = 1000000 - 1 - usecs;
+      auto totalMicroseconds = std::abs(value.total_microseconds());
+      auto totalSeconds = totalMicroseconds / 1000000;
+      auto days = totalSeconds / 86400;
+      auto seconds = totalSeconds - (86400 * days);
+      auto microseconds = totalMicroseconds - 1000000 * seconds;
+      if(days != 0) {
+        if(totalMicroseconds < 0) {
+          days = -days;
+        }
+      } else if(seconds != 0) {
+        if(totalMicroseconds < 0) {
+          seconds = -seconds;
+        }
+      } else {
+        if(totalMicroseconds < 0) {
+          microseconds = -microseconds;
+        }
       }
       return PyDelta_FromDSU(static_cast<int>(days), static_cast<int>(seconds),
-        static_cast<int>(usecs));
+        static_cast<int>(microseconds));
     }
   };
 
@@ -80,7 +89,7 @@ namespace {
       auto timeDelta = reinterpret_cast<PyDateTime_Delta*>(object);
       auto days = timeDelta->days;
       auto isNegative = (days < 0);
-      if (isNegative) {
+      if(isNegative) {
         days = -days;
       }
       time_duration duration = hours(24) * days + seconds(timeDelta->seconds) +

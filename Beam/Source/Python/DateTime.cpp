@@ -57,7 +57,7 @@ namespace {
       auto totalSeconds = totalMicroseconds / 1000000;
       auto days = totalSeconds / 86400;
       auto seconds = totalSeconds - (86400 * days);
-      auto microseconds = totalMicroseconds - 1000000 * seconds;
+      auto microseconds = totalMicroseconds - 1000000 * totalSeconds;
       if(days != 0) {
         if(totalMicroseconds < 0) {
           days = -days;

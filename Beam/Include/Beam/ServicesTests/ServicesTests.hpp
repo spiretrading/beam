@@ -10,6 +10,7 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolServer.hpp"
@@ -31,15 +32,14 @@ namespace Tests {
   using TestClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
 
   //! The type of ServiceProtocolServer used for testing.
-  using TestServiceProtocolServer = Services::ServiceProtocolServer<
+  using TestServiceProtocolServer = ServiceProtocolServer<
     std::shared_ptr<TestServerConnection>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder,
     std::unique_ptr<Threading::TriggerTimer>>;
 
   //! The type of ServiceProtocolClientBuilder used for testing.
-  using TestServiceProtocolClientBuilder =
-    Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
-    std::unique_ptr<TestClientChannel>,
+  using TestServiceProtocolClientBuilder = ServiceProtocolClientBuilder<
+    MessageProtocol<std::unique_ptr<TestClientChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::TriggerTimer>;
 
@@ -64,10 +64,18 @@ namespace Tests {
     ServletPointerPolicy>>;
 
   //! Instantiates ServiceProtocolClients used for testing.
-  using TestServiceProtocolClient = Services::ServiceProtocolClient<
-    Services::MessageProtocol<TestClientChannel,
-    Serialization::BinarySender<IO::SharedBuffer>,
+  using TestServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
+    TestClientChannel, Serialization::BinarySender<IO::SharedBuffer>,
     Codecs::NullEncoder>, Threading::TriggerTimer>;
+
+  //! The type of ServiceProtocolClientBuilder used for testing authenticated
+  //! clients.
+  using TestAuthenticatedServiceProtocolClientBuilder =
+    AuthenticatedServiceProtocolClientBuilder<
+    ServiceLocator::VirtualServiceLocatorClient, MessageProtocol<
+    std::unique_ptr<TestClientChannel>,
+    Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+    Threading::TriggerTimer>;
 }
 }
 }

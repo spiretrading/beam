@@ -149,6 +149,7 @@ void Beam::Python::ExportHttpClient() {
   using HttpClient = WebServices::HttpClient<std::unique_ptr<VirtualChannel>>;
   class_<HttpClient, noncopyable>("HttpClient", no_init)
     .def("__init__", make_constructor(&MakeHttpClient))
+    .def("__init__", make_constructor(&MakeInterfaceHttpClient))
     .def("send", BlockingFunction(&HttpClient::Send));
 }
 

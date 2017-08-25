@@ -35,11 +35,29 @@ namespace Network {
 
       //! Constructs a SecureSocketChannel.
       /*!
+        \param address The IP address to connect to.
+        \param interface The interface to bind to.
+        \param socketThreadPool The thread pool used for the sockets.
+      */
+      SecureSocketChannel(const IpAddress& address, const IpAddress& interface,
+        RefType<SocketThreadPool> socketThreadPool);
+
+      //! Constructs a SecureSocketChannel.
+      /*!
         \param addresses The list of IP addresses to try to connect to.
         \param socketThreadPool The thread pool used for the sockets.
       */
       SecureSocketChannel(const std::vector<IpAddress>& addresses,
         RefType<SocketThreadPool> socketThreadPool);
+
+      //! Constructs a SecureSocketChannel.
+      /*!
+        \param addresses The list of IP addresses to try to connect to.
+        \param interface The interface to bind to.
+        \param socketThreadPool The thread pool used for the sockets.
+      */
+      SecureSocketChannel(const std::vector<IpAddress>& addresses,
+        const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool);
 
       const Identifier& GetIdentifier() const;
 
@@ -70,6 +88,15 @@ namespace Network {
         m_reader(m_socket),
         m_writer(m_socket) {}
 
+  inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
+      const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool)
+      : m_socket(std::make_shared<Details::SecureSocketEntry>(
+          socketThreadPool->GetService())),
+        m_identifier(address),
+        m_connection(m_socket, address, interface),
+        m_reader(m_socket),
+        m_writer(m_socket) {}
+
   inline SecureSocketChannel::SecureSocketChannel(
       const std::vector<IpAddress>& addresses,
       RefType<SocketThreadPool> socketThreadPool)
@@ -77,6 +104,16 @@ namespace Network {
           socketThreadPool->GetService())),
         m_identifier(addresses.front()),
         m_connection(m_socket, addresses),
+        m_reader(m_socket),
+        m_writer(m_socket) {}
+
+  inline SecureSocketChannel::SecureSocketChannel(
+      const std::vector<IpAddress>& addresses, const IpAddress& interface,
+      RefType<SocketThreadPool> socketThreadPool)
+      : m_socket(std::make_shared<Details::SecureSocketEntry>(
+          socketThreadPool->GetService())),
+        m_identifier(addresses.front()),
+        m_connection(m_socket, addresses, interface),
         m_reader(m_socket),
         m_writer(m_socket) {}
 

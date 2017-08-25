@@ -20,6 +20,7 @@
 
 using namespace Beam;
 using namespace Beam::IO;
+using namespace Beam::Network;
 using namespace Beam::Python;
 using namespace Beam::WebServices;
 using namespace boost;
@@ -30,6 +31,12 @@ namespace {
   HttpClient<std::unique_ptr<VirtualChannel>>* MakeHttpClient() {
     return new HttpClient<std::unique_ptr<VirtualChannel>>{
       TcpSocketChannelFactory{Ref(*GetSocketThreadPool())}};
+  }
+
+  HttpClient<std::unique_ptr<VirtualChannel>>* MakeInterfaceHttpClient(
+      const IpAddress& interface) {
+    return new HttpClient<std::unique_ptr<VirtualChannel>>{
+      TcpSocketChannelFactory{interface, Ref(*GetSocketThreadPool())}};
   }
 
   HttpRequest* MakeFullHttpRequest(HttpVersion version, HttpMethod method,

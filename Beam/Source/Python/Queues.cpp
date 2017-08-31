@@ -137,7 +137,7 @@ void Beam::Python::ExportQueueReader() {
     .def("pop", &QueueReader<object>::Pop);
   implicitly_convertible<std::shared_ptr<QueueReader<object>>,
     std::shared_ptr<BaseQueue>>();
-  def("flush", BlockingFunction(&FlushPythonQueue));
+  def("flush", &FlushPythonQueue);
 }
 
 void Beam::Python::ExportQueues() {

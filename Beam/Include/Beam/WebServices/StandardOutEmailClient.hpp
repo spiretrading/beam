@@ -32,7 +32,7 @@ namespace WebServices {
   }
 
   inline void StandardOutEmailClient::Send(const Email& email) {
-    std::cout << email;
+    std::cout << email << std::flush;
   }
 
   inline void StandardOutEmailClient::Open() {

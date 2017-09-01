@@ -1,5 +1,6 @@
 #ifndef BEAM_JSONVALUE_HPP
 #define BEAM_JSONVALUE_HPP
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>

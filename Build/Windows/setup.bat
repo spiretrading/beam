@@ -14,19 +14,19 @@ if exist cppunit-1.12.1 goto end_cppunit_setup
     rm cppunit-1.12.1.tar.gz
 :end_cppunit_setup
 
-if exist cryptopp562 goto end_cryptopp_setup
-  wget http://www.cryptopp.com/cryptopp562.zip --no-check-certificate
-  if not exist cryptopp562.zip goto end_cryptopp_setup
-    mkdir cryptopp562
-    cd cryptopp562
-    unzip ../cryptopp562.zip
-    devenv /Upgrade cryptlib.vcproj
-    cat cryptlib.vcproj | sed "s/WholeProgramOptimization=\"1\"/WholeProgramOptimization=\"0\"/" | sed "s/WholeProgramOptimization=\"true\"/WholeProgramOptimization=\"false\"/" > cryptlib.vcproj.new
-    mv cryptlib.vcproj.new cryptlib.vcproj
+if exist cryptopp565 goto end_cryptopp_setup
+  wget http://www.cryptopp.com/cryptopp565.zip --no-check-certificate
+  if not exist cryptopp565.zip goto end_cryptopp_setup
+    mkdir cryptopp565
+    cd cryptopp565
+    unzip ../cryptopp565.zip
+    devenv /Upgrade cryptlib.vcxproj
+    cat cryptlib.vcxproj | sed "s/WholeProgramOptimization=\"1\"/WholeProgramOptimization=\"0\"/" | sed "s/WholeProgramOptimization=\"true\"/WholeProgramOptimization=\"false\"/" > cryptlib.vcxproj.new
+    mv cryptlib.vcxproj.new cryptlib.vcxproj
     cat cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     mv cryptlib.vcxproj.new cryptlib.vcxproj
-    cat cryptlib.vcproj | sed "s/RuntimeLibrary=\"0\"/RuntimeLibrary=\"2\"/" | sed "s/RuntimeLibrary=\"1\"/RuntimeLibrary=\"3\"/" > cryptlib.vcproj.new
-    mv cryptlib.vcproj.new cryptlib.vcproj
+    cat cryptlib.vcxproj | sed "s/RuntimeLibrary=\"0\"/RuntimeLibrary=\"2\"/" | sed "s/RuntimeLibrary=\"1\"/RuntimeLibrary=\"3\"/" > cryptlib.vcxproj.new
+    mv cryptlib.vcxproj.new cryptlib.vcxproj
     cat cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
     mv cryptlib.vcxproj.new cryptlib.vcxproj
     devenv cryptlib.vcxproj /useenv /Build "Debug"
@@ -36,7 +36,7 @@ if exist cryptopp562 goto end_cryptopp_setup
     mkdir cryptopp
     cp ../*.h cryptopp
     cd ../../
-    rm cryptopp562.zip
+    rm cryptopp565.zip
 :end_cryptopp_setup
 
 if exist zlib-1.2.8 goto end_zlib_setup

@@ -8,6 +8,7 @@
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include "Beam/Utilities/Bcrypt.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ToString.hpp"
 
@@ -293,7 +294,7 @@ namespace ServiceLocator {
   */
   inline std::string HashPassword(const DirectoryEntry& account,
       const std::string& password) {
-    return ComputeSHA(ToString(account.m_id) + password);
+    return BCrypt(password);
   }
 
   //! Validates a password.
@@ -306,7 +307,10 @@ namespace ServiceLocator {
   */
   inline bool ValidatePassword(const DirectoryEntry& account,
       const std::string& receivedPassword, const std::string& storedPassword) {
-    std::string receivedPasswordHash = ComputeSHA(ToString(account.m_id) +
+    if(!storedPassword.empty() && storedPassword[0] == '$') {
+      return BCryptMatches(receivedPassword, storedPassword);
+    }
+    auto receivedPasswordHash = ComputeSHA(ToString(account.m_id) +
       receivedPassword);
     return receivedPasswordHash == storedPassword;
   }

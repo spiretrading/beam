@@ -95,7 +95,8 @@ namespace Network {
     BEAM_ASSERT(result == 4);
     auto intAddress = std::uint32_t{0};
     for(auto i = 0; i < OCTET_COUNT; ++i) {
-      reinterpret_cast<unsigned char*>(&intAddress)[i] = octets[i];
+      reinterpret_cast<unsigned char*>(&intAddress)[i] =
+        static_cast<unsigned char>(octets[i]);
     }
     return FromBigEndian(intAddress);
   }

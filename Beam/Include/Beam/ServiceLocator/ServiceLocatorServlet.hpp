@@ -836,7 +836,7 @@ namespace ServiceLocator {
           throw Services::ServiceRequestException{"Insufficient permissions."};
         }
         m_dataStore->SetPassword(validatedAccount,
-          ComputeSHA(ToString(validatedAccount.m_id) + password));
+          HashPassword(validatedAccount, password));
       });
   }
 

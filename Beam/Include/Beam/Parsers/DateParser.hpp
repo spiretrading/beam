@@ -29,8 +29,10 @@ namespace Parsers {
 
   inline boost::gregorian::date DateParser::ToDate(
       const std::tuple<int, int, int>& source) {
-    return boost::gregorian::date(std::get<0>(source), std::get<1>(source),
-      std::get<2>(source));
+    return boost::gregorian::date(
+      static_cast<unsigned short>(std::get<0>(source)),
+      static_cast<unsigned short>(std::get<1>(source)),
+      static_cast<unsigned short>(std::get<2>(source)));
   }
 }
 }

@@ -186,7 +186,14 @@ namespace WebServices {
     }
     auto session = m_sessions.FindValue(sessionCookie->GetValue());
     if(!session.is_initialized()) {
-      return nullptr;
+      auto persistentSession = m_dataStore->template Load<Session>(
+        sessionCookie->GetValue());
+      if(persistentSession == nullptr) {
+        return nullptr;
+      } else {
+        session = std::move(persistentSession);
+      }
+      return *session;
     }
     return *session;
   }

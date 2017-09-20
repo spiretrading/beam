@@ -210,17 +210,16 @@ namespace Queries {
         (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE)) &
         sequence.GetOrdinal()) >>
         (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE));
-      auto day = ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding;
+      auto day = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding);
       dateEncoding >>= DAY_SIZE;
-      auto month = ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) &
-        dateEncoding;
+      auto month = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) & dateEncoding);
       dateEncoding >>= MONTH_SIZE;
-      auto year = ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) &
-        dateEncoding;
-      boost::posix_time::ptime timestamp{boost::gregorian::date{
-        static_cast<boost::gregorian::greg_year>(year),
-        static_cast<boost::gregorian::greg_month>(month),
-        static_cast<boost::gregorian::greg_day>(day)},
+      auto year = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding);
+      boost::posix_time::ptime timestamp{
+        boost::gregorian::date{year, month, day},
         boost::posix_time::seconds(0)};
       return timestamp;
     }

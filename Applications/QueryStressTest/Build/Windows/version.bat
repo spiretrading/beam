@@ -1,8 +1,9 @@
-cd %~dp0../..
+pushd %~dp0..\..
 mkdir Include
-cd Include
+pushd Include
 mkdir QueryStressTest
-cd %~dp0
+popd
+popd
 printf "#define QUERY_STRESS_TEST_VERSION """> %~dp0../../Include/QueryStressTest/Version.hpp
 git rev-list --count --first-parent HEAD | tr -d "\n\" >> %~dp0../../Include/QueryStressTest/Version.hpp
 printf """" >> %~dp0../../Include/QueryStressTest/Version.hpp

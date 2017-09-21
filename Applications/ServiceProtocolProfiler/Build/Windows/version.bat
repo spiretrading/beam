@@ -1,8 +1,9 @@
-cd %~dp0../..
+pushd %~dp0..\..
 mkdir Include
-cd Include
+pushd Include
 mkdir ServiceProtocolProfiler
-cd %~dp0
+popd
+popd
 printf "#define SERVICE_PROTOCOL_PROFILER_VERSION """> %~dp0../../Include/ServiceProtocolProfiler/Version.hpp
 git rev-list --count --first-parent HEAD | tr -d "\n\" >> %~dp0../../Include/ServiceProtocolProfiler/Version.hpp
 printf """" >> %~dp0../../Include/ServiceProtocolProfiler/Version.hpp

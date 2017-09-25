@@ -140,7 +140,8 @@ if [ ! -d "boost_1_63_0" ]; then
     sudo -u $(logname) tar xvf boost_1_63_0.tar.gz
     pushd boost_1_63_0
     sudo -u $(logname) ./bootstrap.sh
-    ./bjam -j$cores cxxflags="-std=c++14 -fPIC" install
+    sudo -u $(logname) ./bjam -j$cores cxxflags="-std=c++14 -fPIC" stage
+    ./bjam install
     popd
     rm -f boost_1_63_0.tar.gz
   fi
@@ -161,19 +162,8 @@ if [ ! -d "mysql-connector-python-2.1.5" ]; then
   sudo -u $(logname) wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip --no-check-certificate
   sudo -u $(logname) unzip mysql-connector-python-2.1.5.zip
   pushd mysql-connector-python-2.1.5
+  sudo -u $(logname) python setup.py build
   python setup.py install
   popd
   rm -f mysql-connector-python-2.1.5.zip
-fi
-if [ ! -d "libunwind-1.2" ]; then
-  sudo -u $(logname) wget http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.2.tar.gz
-  if [ -f libunwind-1.2.tar.gz ]; then
-    sudo -u $(logname) tar -xzvf libunwind-1.2.tar.gz
-    pushd libunwind-1.2
-    sudo -u $(logname) ./configure
-    sudo -u $(logname) make
-    make install
-    popd
-    rm -f libunwind-1.2.tar.gz
-  fi
 fi

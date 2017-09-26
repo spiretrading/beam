@@ -135,7 +135,7 @@ if [ ! -d "openssl-1.0.2g" ]; then
   fi
 fi
 if [ ! -d "boost_1_65_1" ]; then
-  sudo -u $(logname) wget http://sourceforge.net/projects/boost/files/boost/1.65.1/boost_1_65_1.tar.gz/download -O boost_1_65_1.tar.gz
+  sudo -u $(logname) wget https://dl.bintray.com/boostorg/release/1.65.1/source/boost_1_65_1.tar.gz -O boost_1_65_1.tar.gz
   if [ -f boost_1_65_1.tar.gz ]; then
     sudo -u $(logname) tar xvf boost_1_65_1.tar.gz
     pushd boost_1_65_1

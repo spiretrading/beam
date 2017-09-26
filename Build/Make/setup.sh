@@ -1,13 +1,13 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 
-if [ ! -d "cppunit-1.12.1" ]; then
-  sudo -u $(logname) wget http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz
-  if [ -f cppunit-1.12.1.tar.gz ]; then
-    sudo -u $(logname) gzip -d -c cppunit-1.12.1.tar.gz | sudo -u $(logname) tar -x
-    sudo -u $(logname) chmod -R g-w cppunit-1.12.1
-    sudo -u $(logname) chmod -R o-w cppunit-1.12.1
-    pushd cppunit-1.12.1
+if [ ! -d "cppunit-1.14.0" ]; then
+  sudo -u $(logname) wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
+  if [ -f cppunit-1.14.0.tar.gz ]; then
+    sudo -u $(logname) gzip -d -c cppunit-1.14.0.tar.gz | sudo -u $(logname) tar -x
+    sudo -u $(logname) chmod -R g-w cppunit-1.14.0
+    sudo -u $(logname) chmod -R o-w cppunit-1.14.0
+    pushd cppunit-1.14.0
     sudo -u $(logname) touch configure.new
     cat configure | sed "s/\/\* automatically generated \*\//\$ac_prefix_conf_INP/" > configure.new
     sudo -u $(logname) mv configure.new configure
@@ -16,7 +16,7 @@ if [ ! -d "cppunit-1.12.1" ]; then
     sudo -u $(logname) make -j $cores
     make install
     popd
-    rm -f cppunit-1.12.1.tar.gz
+    rm -f cppunit-1.14.0.tar.gz
   fi
 fi
 if [ ! -d "cryptopp565" ]; then
@@ -50,18 +50,18 @@ if [ ! -d "zlib-1.2.8" ]; then
     rm -f v1.2.8.zip
   fi
 fi
-if [ ! -d "mysql-connector-c-6.1.6" ]; then
-  sudo -u $(logname) wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.6-src.tar.gz
-  if [ -f mysql-connector-c-6.1.6-src.tar.gz ]; then
-    sudo -u $(logname) gzip -d -c mysql-connector-c-6.1.6-src.tar.gz | sudo -u $(logname) tar -x
-    sudo -u $(logname) mv mysql-connector-c-6.1.6-src mysql-connector-c-6.1.6
-    chown -R $(logname):$(logname) mysql-connector-c-6.1.6
-    pushd mysql-connector-c-6.1.6
+if [ ! -d "mysql-connector-c-6.1.11" ]; then
+  sudo -u $(logname) wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-src.tar.gz
+  if [ -f mysql-connector-c-6.1.11-src.tar.gz ]; then
+    sudo -u $(logname) gzip -d -c mysql-connector-c-6.1.11-src.tar.gz | sudo -u $(logname) tar -x
+    sudo -u $(logname) mv mysql-connector-c-6.1.11-src mysql-connector-c-6.1.11
+    chown -R $(logname):$(logname) mysql-connector-c-6.1.11
+    pushd mysql-connector-c-6.1.11
     sudo -u $(logname) cmake -G "Unix Makefiles"
     sudo -u $(logname) make -j $cores
     make install
     popd
-    rm -f mysql-connector-c-6.1.6-src.tar.gz
+    rm -f mysql-connector-c-6.1.11-src.tar.gz
   fi
 fi
 if [ ! -d "mysql++-3.2.3" ]; then
@@ -134,16 +134,16 @@ if [ ! -d "openssl-1.0.2g" ]; then
     rm openssl-1.0.2g.tar.gz
   fi
 fi
-if [ ! -d "boost_1_63_0" ]; then
-  sudo -u $(logname) wget http://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz/download -O boost_1_63_0.tar.gz
-  if [ -f boost_1_63_0.tar.gz ]; then
-    sudo -u $(logname) tar xvf boost_1_63_0.tar.gz
-    pushd boost_1_63_0
+if [ ! -d "boost_1_65_1" ]; then
+  sudo -u $(logname) wget http://sourceforge.net/projects/boost/files/boost/1.65.1/boost_1_65_1.tar.gz/download -O boost_1_65_1.tar.gz
+  if [ -f boost_1_65_1.tar.gz ]; then
+    sudo -u $(logname) tar xvf boost_1_65_1.tar.gz
+    pushd boost_1_65_1
     sudo -u $(logname) ./bootstrap.sh
     sudo -u $(logname) ./bjam -j$cores cxxflags="-std=c++14 -fPIC" stage
     ./bjam install
     popd
-    rm -f boost_1_63_0.tar.gz
+    rm -f boost_1_65_1.tar.gz
   fi
 fi
 if [ ! -d "lua-5.3.1" ]; then

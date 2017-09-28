@@ -26,7 +26,9 @@ if [ ! -d "cryptopp565" ]; then
     pushd cryptopp565
     sudo -u $(logname) unzip ../cryptopp565.zip
     sudo -u $(logname) touch GNUmakefile.new
-    cat GNUmakefile | sed "s/# CXXFLAGS += -fPIC/CXXFLAGS += -fPIC -march=x86-64/" > GNUmakefile.new
+    cat GNUmakefile | sed "s/# CXXFLAGS += -fPIC/CXXFLAGS += -fPIC/" > GNUmakefile.new
+    sudo -u $(logname) mv GNUmakefile.new GNUmakefile
+    cat GNUmakefile | sed "s/CXXFLAGS += -march=native/# CXXFLAGS += -march=native/" > GNUmakefile.new
     sudo -u $(logname) mv GNUmakefile.new GNUmakefile
     sudo -u $(logname) chmod +x GNUmakefile
     sudo -u $(logname) make -j $cores

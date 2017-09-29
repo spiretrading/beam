@@ -230,7 +230,8 @@ namespace Details {
       .def(ref_index_suite<proxy_type>())
       .def("__getitem__", &array_get_item<proxy_type>,
         boost::python::return_value_policy<
-        boost::python::copy_non_const_reference>());
+        boost::python::copy_non_const_reference>())
+      .def("__iter__", boost::python::iterator<proxy_type>());
   }
 
   template <typename Array>

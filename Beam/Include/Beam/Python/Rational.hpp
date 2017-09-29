@@ -36,10 +36,11 @@ namespace Details {
         rvalue_from_python_storage<T>*>(data)->storage.bytes;
       boost::python::handle<> handle{object};
       boost::python::object fraction{handle};
-      new(storage) T{boost::python::extract<typename T::int_type>(
-        fraction.attr("numerator")),
+      new(storage) T{static_cast<typename T::int_type>(
         boost::python::extract<typename T::int_type>(
-        fraction.attr("denominator"))};
+        fraction.attr("numerator"))), static_cast<typename T::int_type>(
+        boost::python::extract<typename T::int_type>(
+        fraction.attr("denominator")))};
       data->convertible = storage;
     }
   };

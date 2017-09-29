@@ -211,9 +211,27 @@ namespace Details {
       native_type m_array;
   };
 
+  template<typename T>
+  struct ArrayGetItemDispatch {
+    template<typename Container>
+    auto operator ()(Container& container, int index) const {
+      return container[index];
+    }
+  };
+
+  template<typename T, std::size_t N>
+  struct ArrayGetItemDispatch<std::array<T, N>> {
+    template<typename Container>
+    auto operator ()(Container& container, int index) const {
+      return array_proxy<T>{container[index][0], N};
+    }
+  };
+
   template<typename ProxyType>
-  auto& array_get_item(ProxyType& container, int index) {
-    return container[index];
+  auto array_get_item(ProxyType& container, int index) {
+    return ArrayGetItemDispatch<
+      typename std::decay<decltype(container[index])>::type>()(
+      container, index);
   }
 
   template<typename Trait>
@@ -228,9 +246,7 @@ namespace Details {
     auto name = std::string{"_"} + typeid(element_type).name();
     boost::python::class_<proxy_type>(name.c_str(), boost::python::no_init)
       .def(ref_index_suite<proxy_type>())
-      .def("__getitem__", &array_get_item<proxy_type>,
-        boost::python::return_value_policy<
-        boost::python::copy_non_const_reference>())
+      .def("__getitem__", &array_get_item<proxy_type>)
       .def("__iter__", boost::python::iterator<proxy_type>());
   }
 
@@ -241,11 +257,26 @@ namespace Details {
     return boost::python::make_function(array_proxy_getter<trait_type>(array),
       typename trait_type::policy(), typename trait_type::signature());
   }
+
+  template<typename T>
+  struct ArrayDispatcher {
+    auto operator ()(T array) const {
+      return make_array_aux(array);
+    }
+  };
+
+  template<typename T, typename C, std::size_t N1, std::size_t N2>
+  struct ArrayDispatcher<std::array<std::array<T, N2>, N1> (C::*)> {
+    auto operator ()(std::array<std::array<T, N2>, N1> (C::* array)) const {
+      register_array_proxy<array_trait<std::array<T, N2>>>();
+      return make_array_aux(array);
+    }
+  };
 }
 
   template <typename T>
   boost::python::object MakeArray(T array) {
-    return Details::make_array_aux(array);
+    return Details::ArrayDispatcher<T>()(array);
   }
 }
 }

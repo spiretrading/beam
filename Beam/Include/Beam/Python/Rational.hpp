@@ -1,30 +1,30 @@
-#ifndef BEAM_PYTHONDECIMAL_HPP
-#define BEAM_PYTHONDECIMAL_HPP
-#include <boost/multiprecision/cpp_dec_float.hpp>
+#ifndef BEAM_PYTHONRATIONAL_HPP
+#define BEAM_PYTHONRATIONAL_HPP
 #include <boost/python.hpp>
+#include <boost/rational.hpp>
 #include "Beam/Python/Python.hpp"
 
 namespace Beam {
 namespace Python {
 namespace Details {
-  boost::python::object PyDecimal() {
-    static boost::python::object decimal =
-      boost::python::import("decimal").attr("Decimal");
-    return decimal;
+  boost::python::object PyFraction() {
+    static boost::python::object fraction =
+      boost::python::import("fractions").attr("Fraction");
+    return fraction;
   }
 
   template<typename T>
-  struct DecimalToPython {
+  struct RationalToPython {
     static PyObject* convert(const T& value) {
-      auto result = PyDecimal()(static_cast<std::string>(value));
+      auto result = PyFraction()(value.numerator(), value.denominator());
       return boost::python::incref(result.ptr());
     }
   };
 
   template<typename T>
-  struct DecimalFromPythonConverter {
+  struct RationalFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(PyObject_IsInstance(object, PyDecimal().ptr())) {
+      if(PyObject_IsInstance(object, PyFraction().ptr())) {
         return object;
       }
       return nullptr;
@@ -34,27 +34,29 @@ namespace Details {
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<T>*>(data)->storage.bytes;
-      auto str = PyObject_Str(object);
-      auto value = PyString_AsString(str);
-      new(storage) T{value};
+      boost::python::handle<> handle{object};
+      boost::python::object fraction{handle};
+      new(storage) T{boost::python::extract<typename T::int_type>(
+        fraction.attr("numerator")),
+        boost::python::extract<typename T::int_type>(
+        fraction.attr("denominator"))};
       data->convertible = storage;
-      Py_DECREF(str);
     }
   };
 }
 
-  //! Exports a Decimal.
+  //! Exports a rational.
   template<typename T>
-  void ExportDecimal() {
+  void ExportRational() {
     auto typeId = boost::python::type_id<T>();
     auto registration = boost::python::converter::registry::query(typeId);
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    boost::python::to_python_converter<T, Details::DecimalToPython<T>>();
+    boost::python::to_python_converter<T, Details::RationalToPython<T>>();
     boost::python::converter::registry::push_back(
-      &Details::DecimalFromPythonConverter<T>::convertible,
-      &Details::DecimalFromPythonConverter<T>::construct,
+      &Details::RationalFromPythonConverter<T>::convertible,
+      &Details::RationalFromPythonConverter<T>::construct,
       boost::python::type_id<T>());
   }
 }

@@ -9,6 +9,7 @@
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/Rational.hpp"
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
 #include "Beam/Python/Tasks.hpp"
@@ -61,4 +62,5 @@ BOOST_PYTHON_MODULE(beam) {
   ExportUidService();
   ExportWebServices();
   ExportYaml();
+  ExportRational<boost::rational<int>>();
 }

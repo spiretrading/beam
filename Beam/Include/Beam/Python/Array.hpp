@@ -236,6 +236,7 @@ namespace Details {
 
   template<typename Trait>
   void register_array_proxy() {
+#ifdef _MSC_VER
     using element_type = typename Trait::element_type;
     using proxy_type = typename Trait::proxy_type;
     auto isRegistered = boost::python::converter::registry::query(
@@ -248,6 +249,25 @@ namespace Details {
       .def(ref_index_suite<proxy_type>())
       .def("__getitem__", &array_get_item<proxy_type>)
       .def("__iter__", boost::python::iterator<proxy_type>());
+#else
+    // TODO: Remove a lot of GCC template deduction workarounds.
+    using element_type = typename Trait::element_type;
+    using proxy_type = typename Trait::proxy_type;
+    using F = decltype(&array_get_item<proxy_type>);
+    using python_class = boost::python::class_<proxy_type>;
+    auto isRegistered = boost::python::converter::registry::query(
+      boost::python::type_id<proxy_type>())->to_python_target_type() != 0;
+    if(isRegistered) {
+      return;
+    }
+    auto name = std::string{"_"} + typeid(element_type).name();
+    auto f = static_cast<python_class& (python_class::*)(const char*, F)>(
+      &python_class::template def<F>);
+    (boost::python::class_<proxy_type>(name.c_str(), boost::python::no_init)
+      .def(ref_index_suite<proxy_type>())
+      .*f)("__getitem__", &array_get_item<proxy_type>)
+      .def("__iter__", boost::python::iterator<proxy_type>());
+#endif
   }
 
   template <typename Array>

@@ -10,8 +10,10 @@
 #include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Rational.hpp"
+#include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
+#include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tasks.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"
@@ -54,8 +56,10 @@ BOOST_PYTHON_MODULE(beam) {
   ExportNetwork();
   ExportQueries();
   ExportQueues();
+  ExportReactors();
   ExportRoutines();
   ExportServiceLocator();
+  ExportSignalsSlots();
   ExportTasks();
   ExportThreading();
   ExportTimeService();

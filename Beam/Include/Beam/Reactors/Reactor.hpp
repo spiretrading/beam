@@ -15,16 +15,16 @@ namespace Reactors {
     public:
 
       //! The type this Reactor evaluates to.
-      typedef T Type;
+      using Type = T;
 
       virtual void Commit();
 
       virtual Expect<void> GetBaseValue();
 
+      virtual const std::type_info& GetType() const;
+
       //! Evaluates this Reactor.
       virtual Type Eval() const = 0;
-
-      virtual const std::type_info& GetType() const;
 
     protected:
 

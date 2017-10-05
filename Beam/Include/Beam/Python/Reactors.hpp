@@ -77,6 +77,49 @@ namespace Details {
     boost::python::object value{object};
     return value;
   }
+
+  template<typename T>
+  struct ReactorToPython {
+    static PyObject* convert(const std::shared_ptr<T>& reactor) {
+      std::shared_ptr<Reactors::Reactor<boost::python::object>> pythonReactor =
+        Reactors::MakeFunctionReactor(&ToPythonConverter<typename T::Type>,
+        reactor);
+      boost::python::object value{pythonReactor};
+      boost::python::incref(value.ptr());
+      return value.ptr();
+    }
+  };
+
+  template<typename T>
+  struct ReactorFromPythonConverter {
+    static void* convertible(PyObject* object) {
+      boost::python::handle<> handle{object};
+      boost::python::object reactor{handle};
+      boost::python::extract<std::shared_ptr<Reactors::Reactor<
+        boost::python::object>>> extractor{reactor};
+      if(extractor.check()) {
+        return object;
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      using ConversionReactor = Reactors::FunctionReactor<
+        typename T::Type (*)(const boost::python::object&),
+        std::shared_ptr<Reactors::Reactor<boost::python::object>>>;
+      auto storage = reinterpret_cast<boost::python::converter::
+        rvalue_from_python_storage<ConversionReactor>*>(data)->storage.bytes;
+      boost::python::handle<> handle{boost::python::borrowed(object)};
+      boost::python::object value{handle};
+      std::shared_ptr<Reactor<boost::python::object>> reactor =
+        boost::python::extract<std::shared_ptr<Reactor<boost::python::object>>>(
+        value);
+      new(storage) ConversionReactor{&FromPythonConverter<typename T::Type>,
+        reactor};
+      data->convertible = storage;
+    }
+  };
 }
 
   //! A Reactor that evaluates to Python objects.
@@ -129,8 +172,8 @@ namespace Details {
   template<typename T>
   std::shared_ptr<PythonReactor> MakeToPythonReactor(
       const std::shared_ptr<Reactors::Reactor<T>>& reactor) {
-    return Reactors::MakeFunctionReactor(
-      &Details::ToPythonConverter<T>, reactor);
+    return Reactors::MakeFunctionReactor(&Details::ToPythonConverter<T>,
+      reactor);
   }
 
   //! Exports the Reactor template class.
@@ -155,7 +198,16 @@ namespace Details {
         &Details::ReactorWrapper<T>::IncrementSequenceNumber)
       .def("_set_complete", &Details::ReactorWrapper<T>::SetComplete)
       .def("_signal_update", &Details::ReactorWrapper<T>::SignalUpdate);
-    boost::python::register_ptr_to_python<std::shared_ptr<T>>();
+    if(!std::is_same<T, PythonReactor>::value) {
+      boost::python::to_python_converter<std::shared_ptr<T>,
+        Details::ReactorToPython<T>>();
+      boost::python::converter::registry::push_back(
+        &Details::ReactorFromPythonConverter<T>::convertible,
+        &Details::ReactorFromPythonConverter<T>::construct,
+        boost::python::type_id<T>());
+    } else {
+      boost::python::register_ptr_to_python<std::shared_ptr<T>>();
+    }
     boost::python::implicitly_convertible<
       std::shared_ptr<Details::ReactorWrapper<T>>, std::shared_ptr<T>>();
     boost::python::implicitly_convertible<

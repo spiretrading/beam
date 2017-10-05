@@ -92,10 +92,8 @@ namespace {
         VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
         return MakeVirtualTimer<VirtualTimer*>(std::move(result));
       };
-    auto result = MakeTimerReactor<std::int64_t>(pythonTimerFactory,
+    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
       MakeFromPythonReactor<time_duration>(periodReactor));
-    return std::make_tuple(MakeToPythonReactor(std::get<0>(result)),
-      std::get<1>(result));
   }
 
   auto MakePythonDefaultTimerReactor(
@@ -106,10 +104,8 @@ namespace {
           Ref(*GetTimerThreadPool()));
         return timer;
       };
-    auto result = MakeTimerReactor<std::int64_t>(pythonTimerFactory,
+    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
       MakeFromPythonReactor<time_duration>(periodReactor));
-    return std::make_tuple(MakeToPythonReactor(std::get<0>(result)),
-      std::get<1>(result));
   }
 
   std::shared_ptr<PythonReactor> MakePythonDoReactor(const object& callable,
@@ -292,7 +288,7 @@ void Beam::Python::ExportTimerReactor() {
   def("TimerReactor", &MakePythonDefaultTimerReactor);
   ExportReactor<Reactor<time_duration>>("TimeDurationReactor");
   ExportReactor<Reactor<std::int64_t>>("Int64Reactor");
-  ExportTuple<std::shared_ptr<PythonReactor>, std::shared_ptr<Event>>();
+  ExportTuple<std::shared_ptr<Reactor<std::int64_t>>, std::shared_ptr<Event>>();
 }
 
 void Beam::Python::ExportTrigger() {

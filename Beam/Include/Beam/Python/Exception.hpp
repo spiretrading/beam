@@ -9,34 +9,16 @@
 namespace Beam {
 namespace Python {
 namespace Details {
-  template<typename T>
-  struct BaseRegistry {};
-
-  template<>
-  class BaseRegistry<void> {
+  class BaseRegistry {
     public:
-      static PyObject* GetExceptionClass(const std::type_index& type) {
-        if(type == typeid(void)) {
-          return PyExc_Exception;
-        }
-        auto exceptionIterator = m_exceptionRegistry.find(type);
-        if(exceptionIterator == m_exceptionRegistry.end()) {
-          return PyExc_Exception;
-        }
-        return exceptionIterator->second;
-      }
+      static PyObject* GetExceptionClass(const std::type_index& type);
 
       static void SetExceptionClass(const std::type_index& type,
-          PyObject* exceptionClass) {
-        m_exceptionRegistry[type] = exceptionClass;
-      }
+        PyObject* exceptionClass);
 
     private:
-      static std::unordered_map<std::type_index, PyObject*> m_exceptionRegistry;
+      static std::map<std::type_index, PyObject*> m_exceptionRegistry;
   };
-
-  std::unordered_map<std::type_index, PyObject*>
-    BaseRegistry<void>::m_exceptionRegistry;
 }
 
   /*! \class PythonException
@@ -62,19 +44,20 @@ namespace Details {
   };
 
   template<typename T>
-  void ExportException(const char* name) {
-    boost::python::class_<T>(name)
-      .def(boost::python::init<const std::string&>())
+  auto ExportException(const char* name) {
+    auto c = boost::python::class_<T>(name, boost::python::no_init)
       .def("__str__", &T::what);
     PythonException<T>::CreateExceptionClass<void>(name);
+    return c;
   }
 
   template<typename T, typename Base>
-  void ExportException(const char* name) {
-    boost::python::class_<T, boost::python::bases<Base>>(name)
-      .def(boost::python::init<const std::string&>())
+  auto ExportException(const char* name) {
+    auto c = boost::python::class_<T, boost::python::bases<Base>>(name,
+      boost::python::no_init)
       .def("__str__", &T::what);
     PythonException<T>::CreateExceptionClass<Base>(name);
+    return c;
   }
 
   template<typename T>
@@ -93,7 +76,7 @@ namespace Details {
     auto qualifiedName = scope + "." + name;
     auto exceptionType = PyErr_NewException(
       const_cast<char*>(qualifiedName.c_str()),
-      Details::BaseRegistry<void>::GetExceptionClass(typeid(Base)), nullptr);
+      Details::BaseRegistry::GetExceptionClass(typeid(Base)), nullptr);
     if(exceptionType == nullptr) {
       boost::python::throw_error_already_set();
     }
@@ -101,7 +84,7 @@ namespace Details {
       boost::python::handle<>(boost::python::borrowed(exceptionType));
     m_exceptionType = exceptionType;
     boost::python::register_exception_translator<T>(&Throw);
-    Details::BaseRegistry<void>::SetExceptionClass(typeid(T), m_exceptionType);
+    Details::BaseRegistry::SetExceptionClass(typeid(T), m_exceptionType);
     return m_exceptionType;
   }
 

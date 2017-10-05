@@ -5,6 +5,7 @@
 #include "Beam/IO/VirtualReader.hpp"
 #include "Beam/IO/VirtualWriter.hpp"
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Network/TcpSocketConnection.hpp"
@@ -12,6 +13,7 @@
 #include "Beam/Network/TcpSocketWriter.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Copy.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 
 using namespace Beam;
@@ -163,6 +165,9 @@ void Beam::Python::ExportNetwork() {
   ExportTcpSocketReader();
   ExportTcpSocketWriter();
   ExportTcpSocketChannel();
+  ExportException<SocketException, IOException>("SocketException")
+    .def(init<int, const string&>())
+    .add_property("code", &SocketException::GetCode);
 }
 
 void Beam::Python::ExportSocketIdentifier() {

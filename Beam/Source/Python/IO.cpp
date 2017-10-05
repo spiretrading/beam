@@ -1,4 +1,6 @@
 #include "Beam/Python/IO.hpp"
+#include "Beam/IO/EndOfFileException.hpp"
+#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
@@ -118,8 +120,18 @@ void Beam::Python::ExportIO() {
   ExportSharedBuffer();
   ExportWriter();
   ExportChannel();
-  ExportException<IOException>("IOException");
-  ExportException<ConnectException, IOException>("ConnectException");
+  ExportException<IOException>("IOException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<ConnectException, IOException>("ConnectException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<EndOfFileException, IOException>("EndOfFileException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<NotConnectedException, IOException>("NotConnectedException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportOpenState() {

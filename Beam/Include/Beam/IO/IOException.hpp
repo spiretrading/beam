@@ -14,14 +14,20 @@ namespace IO {
     public:
 
       //! Constructs an IOException.
+      IOException();
+
+      //! Constructs an IOException.
       /*!
         \param message A message describing the error.
       */
       IOException(const std::string& message);
   };
 
+  inline IOException::IOException()
+      : std::runtime_error{"IO operation failed."} {}
+
   inline IOException::IOException(const std::string& message)
-    : std::runtime_error(message) {}
+      : std::runtime_error{message} {}
 }
 }
 

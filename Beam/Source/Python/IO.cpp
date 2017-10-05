@@ -8,6 +8,7 @@
 #include "Beam/IO/VirtualWriter.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Copy.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
 using namespace Beam;
@@ -117,6 +118,8 @@ void Beam::Python::ExportIO() {
   ExportSharedBuffer();
   ExportWriter();
   ExportChannel();
+  ExportException<IOException>("IOException");
+  ExportException<ConnectException, IOException>("ConnectException");
 }
 
 void Beam::Python::ExportOpenState() {

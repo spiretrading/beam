@@ -72,8 +72,20 @@ namespace Details {
   //! Exports a ConstantReactor<object> class.
   void ExportPythonConstantReactor();
 
+  //! Exports a ReactorContainer for a Python object.
+  void ExportPythonReactorContainer();
+
+  //! Exports the ReactorMonitor class.
+  void ExportReactorMonitor();
+
   //! Exports the Reactors namespace.
   void ExportReactors();
+
+  //! Exports the TimerReactor class.
+  void ExportTimerReactor();
+
+  //! Exports the Trigger class.
+  void ExportTrigger();
 
   //! Exports the Reactor template class.
   template<typename T>

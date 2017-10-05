@@ -1,15 +1,23 @@
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
 #include "Beam/Reactors/Event.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
+#include "Beam/Reactors/ReactorContainer.hpp"
+#include "Beam/Reactors/ReactorMonitor.hpp"
+#include "Beam/Reactors/TimerReactor.hpp"
+#include "Beam/Reactors/Trigger.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
+#include "Beam/Threading/VirtualTimer.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Reactors;
+using namespace Beam::Threading;
 using namespace boost;
+using namespace boost::posix_time;
 using namespace boost::python;
 using namespace std;
 
@@ -58,6 +66,30 @@ namespace {
       Event::SignalEvent();
     }
   };
+
+  void DeleteReactorMonitor(ReactorMonitor& monitor) {
+    monitor.Close();
+  }
+
+  Trigger* MakeTrigger(ReactorMonitor& monitor) {
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock{gil};
+    return new Trigger{monitor};
+  }
+
+  void DeleteTrigger(Trigger& trigger) {
+    trigger.~Trigger();
+  }
+
+  auto MakePythonTimerReactor(const object& timerFactory,
+      const std::shared_ptr<Reactor<object>>& periodReactor) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
+        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
+      };
+    return MakeTimerReactor<std::int64_t>(pythonTimerFactory, periodReactor);
+  }
 }
 
 #ifdef _MSC_VER
@@ -77,6 +109,11 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile Reactor<object>* get_pointer(
+      const volatile Reactor<object>* p) {
+    return p;
+  }
+
   template<> inline const volatile Beam::Python::Details::ReactorWrapper<
       Reactor<object>>* get_pointer(
       const volatile Beam::Python::Details::ReactorWrapper<
@@ -90,12 +127,6 @@ namespace boost {
   }
 }
 #endif
-
-void Beam::Python::ExportPythonConstantReactor() {
-  class_<ConstantReactor<object>, bases<Reactor<object>>, boost::noncopyable,
-    std::shared_ptr<ConstantReactor<object>>>("ConstantReactor",
-    init<const object&>());
-}
 
 void Beam::Python::ExportBaseReactor() {
   class_<BaseReactorWrapper, boost::noncopyable,
@@ -126,6 +157,42 @@ void Beam::Python::ExportEvent() {
   ExportSignal<>("EmptySignal");
 }
 
+void Beam::Python::ExportPythonConstantReactor() {
+  class_<ConstantReactor<object>, bases<Reactor<object>>, boost::noncopyable,
+    std::shared_ptr<ConstantReactor<object>>>("ConstantReactor",
+    init<const object&>());
+}
+
+void Beam::Python::ExportPythonReactorContainer() {
+  using PythonReactorContainer =
+    ReactorContainer<std::shared_ptr<Reactor<object>>>;
+  class_<PythonReactorContainer, boost::noncopyable>("ReactorContainer",
+    init<const std::shared_ptr<Reactor<object>>&,
+    const BaseReactor::UpdateSignal::slot_type&>())
+    .def(init<const std::shared_ptr<Reactor<object>>&, BaseReactor&>())
+    .add_property("reactor", make_function(&PythonReactorContainer::GetReactor,
+      return_internal_reference<>()))
+    .add_property("is_initializing", &PythonReactorContainer::IsInitializing)
+    .add_property("is_initialized", &PythonReactorContainer::IsInitialized)
+    .add_property("is_complete", &PythonReactorContainer::IsComplete)
+    .add_property("value", make_function(&PythonReactorContainer::GetValue,
+      return_value_policy<copy_const_reference>()))
+    .def("eval", &PythonReactorContainer::Eval,
+      return_value_policy<copy_const_reference>())
+    .def("commit", &PythonReactorContainer::Commit);
+}
+
+void Beam::Python::ExportReactorMonitor() {
+  class_<ReactorMonitor, noncopyable>("ReactorMonitor", init<>())
+    .def("__del__", BlockingFunction(&DeleteReactorMonitor))
+    .def("add_event", BlockingFunction(&ReactorMonitor::AddEvent))
+    .def("add_reactor", BlockingFunction(&ReactorMonitor::AddReactor))
+    .def("connect_complete_signal",
+      BlockingFunction(&ReactorMonitor::ConnectCompleteSignal))
+    .def("open", BlockingFunction(&ReactorMonitor::Open))
+    .def("close", BlockingFunction(&ReactorMonitor::Close));
+}
+
 void Beam::Python::ExportReactors() {
   string nestedName = extract<string>(scope().attr("__name__") + ".reactors");
   object nestedModule{handle<>(
@@ -135,5 +202,20 @@ void Beam::Python::ExportReactors() {
   ExportBaseReactor();
   ExportEvent();
   ExportReactor<Reactor<object>>("Reactor");
+  ExportReactorMonitor();
+  ExportTimerReactor();
+  ExportTrigger();
   ExportPythonConstantReactor();
+  ExportPythonReactorContainer();
+}
+
+void Beam::Python::ExportTimerReactor() {
+  def("make_timer_reactor", &MakePythonTimerReactor);
+}
+
+void Beam::Python::ExportTrigger() {
+  class_<Trigger, noncopyable>("Trigger", no_init)
+    .def("__init__", make_constructor(&MakeTrigger))
+    .def("__del__", BlockingFunction(&DeleteTrigger))
+    .def("do", BlockingFunction(&Trigger::Do));
 }

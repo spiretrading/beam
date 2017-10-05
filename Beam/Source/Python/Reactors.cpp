@@ -2,6 +2,8 @@
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
 #include "Beam/Reactors/Event.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
@@ -9,7 +11,7 @@
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
-#include "Beam/Python/SignalsSlots.hpp"
+#include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 
 using namespace Beam;
@@ -88,7 +90,22 @@ namespace {
         VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
         return MakeVirtualTimer<VirtualTimer*>(std::move(result));
       };
-    return MakeTimerReactor<std::int64_t>(pythonTimerFactory, periodReactor);
+    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
+      Beam::Python::Details::MakeFromPythonReactor<time_duration>(
+      periodReactor));
+  }
+
+  auto MakePythonDefaultTimerReactor(
+      const std::shared_ptr<Reactor<object>>& periodReactor) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        auto timer = std::make_unique<LiveTimer>(duration,
+          Ref(*GetTimerThreadPool()));
+        return timer;
+      };
+    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
+      Beam::Python::Details::MakeFromPythonReactor<time_duration>(
+      periodReactor));
   }
 }
 
@@ -114,10 +131,22 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile Reactor<time_duration>* get_pointer(
+      const volatile Reactor<time_duration>* p) {
+    return p;
+  }
+
   template<> inline const volatile Beam::Python::Details::ReactorWrapper<
       Reactor<object>>* get_pointer(
       const volatile Beam::Python::Details::ReactorWrapper<
       Reactor<object>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<time_duration>>* get_pointer(
+      const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<time_duration>>* p) {
     return p;
   }
 
@@ -161,6 +190,8 @@ void Beam::Python::ExportPythonConstantReactor() {
   class_<ConstantReactor<object>, bases<Reactor<object>>, boost::noncopyable,
     std::shared_ptr<ConstantReactor<object>>>("ConstantReactor",
     init<const object&>());
+  implicitly_convertible<std::shared_ptr<ConstantReactor<object>>,
+    std::shared_ptr<Reactor<object>>>();
 }
 
 void Beam::Python::ExportPythonReactorContainer() {
@@ -211,6 +242,8 @@ void Beam::Python::ExportReactors() {
 
 void Beam::Python::ExportTimerReactor() {
   def("make_timer_reactor", &MakePythonTimerReactor);
+  def("make_timer_reactor", &MakePythonDefaultTimerReactor);
+  ExportReactor<Reactor<time_duration>>("TimeDurationReactor");
 }
 
 void Beam::Python::ExportTrigger() {

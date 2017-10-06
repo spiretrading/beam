@@ -6,6 +6,7 @@
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
@@ -14,6 +15,7 @@
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/UidService/UidClient.hpp"
+#include "Beam/UidService/UidServiceException.hpp"
 #include "Beam/UidService/VirtualUidClient.hpp"
 #include "Beam/UidServiceTests/UidServiceTestEnvironment.hpp"
 #include <boost/noncopyable.hpp>
@@ -77,6 +79,9 @@ void Beam::Python::ExportUidService() {
   scope().attr("uid_service") = nestedModule;
   scope parent = nestedModule;
   ExportUidClient();
+  ExportException<UidServiceException, std::runtime_error>(
+    "UidServiceException")
+    .def(init<const string&>());
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(

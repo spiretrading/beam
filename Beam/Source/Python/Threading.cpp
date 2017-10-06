@@ -1,9 +1,11 @@
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Queues.hpp"
@@ -84,6 +86,9 @@ void Beam::Python::ExportThreading() {
   ExportTimer();
   ExportLiveTimer();
   ExportTriggerTimer();
+  ExportException<TimeoutException, std::runtime_error>("TimeoutException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportTimer() {

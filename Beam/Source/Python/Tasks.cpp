@@ -6,9 +6,11 @@
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/IdleTask.hpp"
 #include "Beam/Tasks/Task.hpp"
+#include "Beam/Tasks/TaskPropertyNotFoundException.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
@@ -340,6 +342,9 @@ void Beam::Python::ExportTasks() {
   ExportBasicTask();
   ExportAggregateTask();
   ExportIdleTask();
+  ExportException<TaskPropertyNotFoundException, std::runtime_error>(
+    "TaskPropertyNotFoundException")
+    .def(init<const string&>());
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));
 }

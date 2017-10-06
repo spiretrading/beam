@@ -1,6 +1,7 @@
 #include "Beam/Python/WebServices.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
@@ -13,6 +14,9 @@
 #include "Beam/WebServices/HttpResponseParser.hpp"
 #include "Beam/WebServices/HttpStatusCode.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
+#include "Beam/WebServices/InvalidHttpRequestException.hpp"
+#include "Beam/WebServices/InvalidHttpResponseException.hpp"
+#include "Beam/WebServices/SessionDataStoreException.hpp"
 #include "Beam/WebServices/SecureSocketChannelFactory.hpp"
 #include "Beam/WebServices/SocketChannelFactory.hpp"
 #include "Beam/WebServices/TcpChannelFactory.hpp"
@@ -387,4 +391,20 @@ void Beam::Python::ExportWebServices() {
   ExportSocketChannelFactory();
   ExportTcpSocketChannelFactory();
   ExportUri();
+  ExportException<InvalidHttpRequestException, std::runtime_error>(
+    "InvalidHttpRequestException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<InvalidHttpResponseException, std::runtime_error>(
+    "InvalidHttpResponseException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<MalformedUriException, std::runtime_error>(
+    "MalformedUriException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<SessionDataStoreException, IOException>(
+    "SessionDataStoreException")
+    .def(init<>())
+    .def(init<const string&>());
 }

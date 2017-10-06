@@ -1,11 +1,13 @@
 #include "Beam/Python/Queues.hpp"
-#include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/PythonQueue.hpp"
 #include "Beam/Python/PythonRoutineTaskQueue.hpp"
 #include "Beam/Python/PythonStateQueue.hpp"
 #include "Beam/Python/PythonTaskQueue.hpp"
+#include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/Publisher.hpp"
+#include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 
@@ -152,6 +154,10 @@ void Beam::Python::ExportQueues() {
   ExportRoutineTaskQueue();
   ExportStateQueue();
   ExportTaskQueue();
+  ExportException<PipeBrokenException, std::runtime_error>(
+    "PipeBrokenException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportQueueWriter() {

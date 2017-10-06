@@ -1,5 +1,6 @@
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
@@ -10,6 +11,9 @@
 #include "Beam/Reactors/Event.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/ReactorContainer.hpp"
+#include "Beam/Reactors/ReactorError.hpp"
+#include "Beam/Reactors/ReactorException.hpp"
+#include "Beam/Reactors/ReactorUnavailableException.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
@@ -281,6 +285,16 @@ void Beam::Python::ExportReactors() {
   ExportTrigger();
   ExportPythonConstantReactor();
   ExportPythonReactorContainer();
+  ExportException<ReactorException, std::runtime_error>("ReactorException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<ReactorError, ReactorException>("ReactorError")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<ReactorUnavailableException, ReactorException>(
+    "ReactorUnavailableException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportTimerReactor() {

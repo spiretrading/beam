@@ -1,6 +1,7 @@
 #include "Beam/Python/Queries.hpp"
 #include <sstream>
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/Variant.hpp"
 #include "Beam/Python/Vector.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
@@ -10,6 +11,8 @@
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/InterruptableQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
+#include "Beam/Queries/ExpressionTranslationException.hpp"
+#include "Beam/Queries/QueryInterruptedException.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/Sequence.hpp"
@@ -17,6 +20,7 @@
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Queries/StandardValues.hpp"
+#include "Beam/Queries/TypeCompatibilityException.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -170,6 +174,17 @@ void Beam::Python::ExportQueries() {
   ExportSnapshotLimit();
   ExportSnapshotLimitedQuery();
   ExportValue();
+  ExportException<ExpressionTranslationException, std::runtime_error>(
+    "ExpressionTranslationException")
+    .def(init<const string&>());
+  ExportException<QueryInterruptedException, std::runtime_error>(
+    "QueryInterruptedException")
+    .def(init<>())
+    .def(init<const string&>());
+  ExportException<TypeCompatibilityException, std::runtime_error>(
+    "TypeCompatibilityException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportRange() {

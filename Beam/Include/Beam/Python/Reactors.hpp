@@ -15,7 +15,7 @@ namespace Details {
     using Type = typename T::Type;
 
     virtual void Commit() override {
-      if(override f = this->get_override("commit")) {
+      if(auto f = this->get_override("commit")) {
         f();
         return;
       }
@@ -27,7 +27,7 @@ namespace Details {
     }
 
     virtual Expect<void> GetBaseValue() override {
-      if(override f = this->get_override("get_base_value")) {
+      if(auto f = this->get_override("get_base_value")) {
         return f();
       }
       return T::GetBaseValue();
@@ -38,7 +38,7 @@ namespace Details {
     }
 
     virtual const std::type_info& GetType() const override {
-      if(override f = this->get_override("get_type")) {
+      if(auto f = this->get_override("get_type")) {
         return *static_cast<const std::type_info*>(f());
       }
       return T::GetType();

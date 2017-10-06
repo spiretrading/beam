@@ -67,7 +67,7 @@ namespace {
 
   struct EventWrapper : Event, wrapper<Event> {
     virtual void Execute() override {
-      if(override f = this->get_override("execute")) {
+      if(auto f = this->get_override("execute")) {
         f();
         return;
       }

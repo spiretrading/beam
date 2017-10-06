@@ -17,7 +17,7 @@ namespace Details {
 
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
-      using Slot = boost::signals2::signal<void (Args...)>::slot_type;
+      using Slot = typename boost::signals2::signal<void (Args...)>::slot_type;
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<Slot>*>(data)->storage.bytes;
       boost::python::handle<> handle{boost::python::borrowed(object)};

@@ -7,12 +7,14 @@
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Vector.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
+#include "Beam/ServiceLocator/AuthenticationException.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
@@ -142,6 +144,10 @@ void Beam::Python::ExportServiceLocator() {
   ExportDirectoryEntry();
   ExportServiceEntry();
   ExportServiceLocatorClient();
+  ExportException<AuthenticationException, ConnectException>(
+    "AuthenticationException")
+    .def(init<>())
+    .def(init<const string&>());
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(

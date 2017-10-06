@@ -51,7 +51,7 @@ namespace Details {
     auto c = boost::python::class_<T, boost::python::bases<Base>>(name,
       boost::python::no_init)
       .def("__str__", &T::what);
-    PythonException<T>::CreateExceptionClass<Base>(name);
+    PythonException<T>::template CreateExceptionClass<Base>(name);
     return c;
   }
 

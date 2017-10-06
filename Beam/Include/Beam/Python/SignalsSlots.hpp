@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_SIGNALS_SLOTS_HPP
 #define BEAM_PYTHON_SIGNALS_SLOTS_HPP
 #include <boost/python.hpp>
+#include <boost/signals2/signal.hpp>
 #include "Beam/Python/Python.hpp"
 
 namespace Beam {

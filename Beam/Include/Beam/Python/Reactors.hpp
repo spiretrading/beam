@@ -227,9 +227,9 @@ namespace Details {
       std::shared_ptr<Details::ReactorWrapper<T>>, std::shared_ptr<T>>();
     boost::python::implicitly_convertible<
       std::shared_ptr<Details::ReactorWrapper<T>>,
-      std::shared_ptr<BaseReactor>>();
+      std::shared_ptr<Reactors::BaseReactor>>();
     boost::python::implicitly_convertible<std::shared_ptr<T>,
-      std::shared_ptr<BaseReactor>>();
+      std::shared_ptr<Reactors::BaseReactor>>();
   }
 }
 }

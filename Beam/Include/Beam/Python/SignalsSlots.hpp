@@ -49,7 +49,7 @@ namespace Details {
   */
   template<typename... Args>
   void ExportSignal(const char* name) {
-    using Slot = boost::signals2::signal<void (Args...)>::slot_type;
+    using Slot = typename boost::signals2::signal<void (Args...)>::slot_type;
     auto typeId = boost::python::type_id<Slot>();
     auto registration = boost::python::converter::registry::query(typeId);
     if(registration != nullptr && registration->m_to_python != nullptr) {

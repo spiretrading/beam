@@ -43,13 +43,8 @@ namespace Details {
       static PyObject* m_exceptionType;
   };
 
-  template<typename T>
-  auto ExportException(const char* name) {
-    auto c = boost::python::class_<T>(name, boost::python::no_init)
-      .def("__str__", &T::what);
-    PythonException<T>::CreateExceptionClass<void>(name);
-    return c;
-  }
+  //! Exports the std::runtime_error class.
+  void ExportRuntimeError();
 
   template<typename T, typename Base>
   auto ExportException(const char* name) {

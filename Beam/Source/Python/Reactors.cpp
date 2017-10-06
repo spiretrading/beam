@@ -90,18 +90,18 @@ namespace {
   }
 
   auto MakePythonTimerReactor(const object& timerFactory,
-      const std::shared_ptr<PythonReactor>& periodReactor) {
+      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
     auto pythonTimerFactory =
       [=] (const time_duration& duration) {
         VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
         return MakeVirtualTimer<VirtualTimer*>(std::move(result));
       };
     return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
-      MakeFromPythonReactor<time_duration>(periodReactor));
+      periodReactor);
   }
 
   auto MakePythonDefaultTimerReactor(
-      const std::shared_ptr<PythonReactor>& periodReactor) {
+      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
     auto pythonTimerFactory =
       [=] (const time_duration& duration) {
         auto timer = std::make_unique<LiveTimer>(duration,
@@ -109,7 +109,7 @@ namespace {
         return timer;
       };
     return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
-      MakeFromPythonReactor<time_duration>(periodReactor));
+      periodReactor);
   }
 
   std::shared_ptr<PythonReactor> MakePythonDoReactor(const object& callable,
@@ -118,7 +118,11 @@ namespace {
       [=] (const Expect<object>& value) {
         GilLock gil;
         boost::lock_guard<GilLock> lock{gil};
-        return callable(value);
+        try {
+          callable(value);
+        } catch(const boost::python::error_already_set&) {
+          PrintError();
+        }
       }, reactor);
   }
 }

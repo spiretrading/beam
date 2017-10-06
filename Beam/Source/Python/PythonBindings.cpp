@@ -2,6 +2,8 @@
 #include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/DateTime.hpp"
+#include "Beam/Python/Exception.hpp"
+#include "Beam/Python/Expect.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/MySql.hpp"
@@ -45,12 +47,14 @@ TimerThreadPool* Beam::Python::GetTimerThreadPool() {
 
 BOOST_PYTHON_MODULE(beam) {
   PyEval_InitThreads();
+  ExportRuntimeError();
   def("is_running", &IsRunning);
   def("received_kill_event", &ReceivedKillEvent);
   def("wait_for_kill_event", BlockingFunction(&WaitForKillEvent));
   python_optional<std::string>();
   ExportPtime();
   ExportTimeDuration();
+  ExportExpect();
   ExportIO();
   ExportMySql();
   ExportNetwork();

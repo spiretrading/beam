@@ -3,9 +3,21 @@
 using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Python::Details;
+using namespace boost;
+using namespace boost::python;
 using namespace std;
 
 map<type_index, PyObject*> BaseRegistry::m_exceptionRegistry;
+
+namespace {
+  struct RuntimeErrorToPython {
+    static PyObject* convert(const runtime_error& value) {
+      auto parameters = Py_BuildValue(value.what());
+      auto result = PyObject_CallObject(PyExc_RuntimeError, parameters);
+      return incref(result);
+    }
+  };
+}
 
 PyObject* BaseRegistry::GetExceptionClass(const type_index& type) {
   if(type == typeid(void)) {
@@ -21,4 +33,9 @@ PyObject* BaseRegistry::GetExceptionClass(const type_index& type) {
 void BaseRegistry::SetExceptionClass(const type_index& type,
     PyObject* exceptionClass) {
   m_exceptionRegistry[type] = exceptionClass;
+}
+
+void Beam::Python::ExportRuntimeError() {
+  class_<runtime_error>("runtime_error", init<const string&>())
+    .def("__str__", &runtime_error::what);
 }

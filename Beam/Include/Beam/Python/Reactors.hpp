@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHON_REACTORS_HPP
 #define BEAM_PYTHON_REACTORS_HPP
+#include <boost/core/demangle.hpp>
 #include <boost/python.hpp>
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/Python.hpp"
@@ -68,8 +69,12 @@ namespace Details {
   T FromPythonConverter(const boost::python::object& object) {
     GilLock gil;
     boost::lock_guard<GilLock> lock{gil};
-    T value = boost::python::extract<T>(object);
-    return value;
+    boost::python::extract<T> value{object};
+    if(value.check()) {
+      return static_cast<T>(value);
+    }
+    throw Reactors::ReactorError{"Expected object of type: " +
+      boost::core::demangle(typeid(T).name())};
   }
 
   template<typename T>
@@ -109,14 +114,16 @@ namespace Details {
         typename T::Type (*)(const boost::python::object&),
         std::shared_ptr<Reactors::Reactor<boost::python::object>>>;
       auto storage = reinterpret_cast<boost::python::converter::
-        rvalue_from_python_storage<ConversionReactor>*>(data)->storage.bytes;
+        rvalue_from_python_storage<std::shared_ptr<ConversionReactor>>*>(
+        data)->storage.bytes;
       boost::python::handle<> handle{boost::python::borrowed(object)};
       boost::python::object value{handle};
       std::shared_ptr<Reactor<boost::python::object>> reactor =
         boost::python::extract<std::shared_ptr<Reactor<boost::python::object>>>(
         value);
-      new(storage) ConversionReactor{&FromPythonConverter<typename T::Type>,
-        reactor};
+      new(storage) std::shared_ptr<ConversionReactor>{
+        std::make_shared<ConversionReactor>(
+        &FromPythonConverter<typename T::Type>, reactor)};
       data->convertible = storage;
     }
   };
@@ -176,7 +183,10 @@ namespace Details {
       reactor);
   }
 
-  //! Exports the Reactor template class.
+  //! Exports the Reactor class template.
+  /*!
+    \param name The name of the class.
+  */
   template<typename T>
   void ExportReactor(const char* name) {
     auto typeId = boost::python::type_id<T>();
@@ -204,7 +214,7 @@ namespace Details {
       boost::python::converter::registry::push_back(
         &Details::ReactorFromPythonConverter<T>::convertible,
         &Details::ReactorFromPythonConverter<T>::construct,
-        boost::python::type_id<T>());
+        boost::python::type_id<std::shared_ptr<T>>());
     } else {
       boost::python::register_ptr_to_python<std::shared_ptr<T>>();
     }

@@ -18,7 +18,7 @@ namespace Beam {
     public:
 
       //! The type of value to store.
-      typedef T Type;
+      using Type = T;
 
       //! Constructs an Expect.
       Expect() = default;
@@ -82,7 +82,7 @@ namespace Beam {
     public:
 
       //! The type of value to store.
-      typedef void Type;
+      using Type = void;
 
       //! Constructs an Expect.
       Expect() = default;

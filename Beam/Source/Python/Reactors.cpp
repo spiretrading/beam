@@ -6,6 +6,8 @@
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
+#include "Beam/Reactors/AggregateReactor.hpp"
+#include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
 #include "Beam/Reactors/Control.hpp"
 #include "Beam/Reactors/Event.hpp"
@@ -19,17 +21,23 @@
 #include "Beam/Reactors/Trigger.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
+#include "Beam/TimeService/LocalTimeClient.hpp"
+#include "Beam/TimeService/VirtualTimeClient.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Reactors;
 using namespace Beam::Threading;
+using namespace Beam::TimeService;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace boost::python;
 using namespace std;
 
 namespace {
+  using PythonAggregateReactor = AggregateReactor<
+    std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>;
+
   struct BaseReactorWrapper : BaseReactor, wrapper<BaseReactor> {
     virtual void Commit() override {
       this->get_override("commit")();
@@ -87,6 +95,30 @@ namespace {
 
   void DeleteTrigger(Trigger& trigger) {
     trigger.~Trigger();
+  }
+
+  auto MakePythonAlarmReactor(const object& timerFactory,
+      VirtualTimeClient* timeClient,
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
+        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
+      };
+    return MakeAlarmReactor(pythonTimerFactory, timeClient,
+      expiryReactor);
+  }
+
+  auto MakePythonDefaultAlarmReactor(
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        auto timer = std::make_unique<LiveTimer>(duration,
+          Ref(*GetTimerThreadPool()));
+        return timer;
+      };
+    return MakeAlarmReactor(pythonTimerFactory,
+      std::make_shared<LocalTimeClient>(), expiryReactor);
   }
 
   auto MakePythonTimerReactor(const object& timerFactory,
@@ -153,13 +185,33 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile PythonAggregateReactor* get_pointer(
+      const volatile PythonAggregateReactor* p) {
+    return p;
+  }
+
   template<> inline const volatile PythonReactor* get_pointer(
       const volatile PythonReactor* p) {
     return p;
   }
 
+  template<> inline const volatile Reactor<bool>* get_pointer(
+      const volatile Reactor<bool>* p) {
+    return p;
+  }
+
   template<> inline const volatile Reactor<std::int64_t>* get_pointer(
       const volatile Reactor<std::int64_t>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Reactor<ptime>* get_pointer(
+      const volatile Reactor<ptime>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Reactor<std::shared_ptr<Reactor<object>>>*
+      get_pointer(const volatile Reactor<std::shared_ptr<Reactor<object>>>* p) {
     return p;
   }
 
@@ -171,6 +223,25 @@ namespace boost {
   template<> inline const volatile Beam::Python::Details::ReactorWrapper<
       PythonReactor>* get_pointer(
       const volatile Beam::Python::Details::ReactorWrapper<PythonReactor>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<bool>>* get_pointer(
+      const volatile Beam::Python::Details::ReactorWrapper<Reactor<bool>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<ptime>>* get_pointer(
+      const volatile Beam::Python::Details::ReactorWrapper<Reactor<ptime>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<std::shared_ptr<Reactor<object>>>>* get_pointer(
+      const volatile Beam::Python::Details::ReactorWrapper<
+      Reactor<std::shared_ptr<Reactor<object>>>>* p) {
     return p;
   }
 
@@ -194,6 +265,22 @@ namespace boost {
   }
 }
 #endif
+
+void Beam::Python::ExportAggregateReactor() {
+  class_<PythonAggregateReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<PythonAggregateReactor>>("AggregateReactor",
+    init<const std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>&>());
+  implicitly_convertible<std::shared_ptr<PythonAggregateReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<PythonAggregateReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
+void Beam::Python::ExportAlarmReactor() {
+  def("AlarmReactor", &MakePythonAlarmReactor);
+  def("AlarmReactor", &MakePythonDefaultAlarmReactor);
+  ExportTuple<std::shared_ptr<Reactor<bool>>, std::shared_ptr<Event>>();
+}
 
 void Beam::Python::ExportBaseReactor() {
   class_<BaseReactorWrapper, std::shared_ptr<BaseReactorWrapper>,
@@ -287,8 +374,15 @@ void Beam::Python::ExportReactors() {
   ExportDoReactor();
   ExportTimerReactor();
   ExportTrigger();
+  ExportAggregateReactor();
+  ExportAlarmReactor();
   ExportPythonConstantReactor();
   ExportPythonReactorContainer();
+  ExportReactor<Reactor<std::shared_ptr<PythonReactor>>>("MetaReactor");
+  ExportReactor<Reactor<ptime>>("DateReactor");
+  ExportReactor<Reactor<bool>>("BoolReactor");
+  ExportReactor<Reactor<time_duration>>("TimeDurationReactor");
+  ExportReactor<Reactor<std::int64_t>>("Int64Reactor");
   ExportException<ReactorException, std::runtime_error>("ReactorException")
     .def(init<>())
     .def(init<const string&>());
@@ -304,8 +398,6 @@ void Beam::Python::ExportReactors() {
 void Beam::Python::ExportTimerReactor() {
   def("TimerReactor", &MakePythonTimerReactor);
   def("TimerReactor", &MakePythonDefaultTimerReactor);
-  ExportReactor<Reactor<time_duration>>("TimeDurationReactor");
-  ExportReactor<Reactor<std::int64_t>>("Int64Reactor");
   ExportTuple<std::shared_ptr<Reactor<std::int64_t>>, std::shared_ptr<Event>>();
 }
 

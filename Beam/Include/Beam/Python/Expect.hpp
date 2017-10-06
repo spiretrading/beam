@@ -19,7 +19,7 @@ namespace Details {
   template<typename T>
   struct ExpectFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{object};
+      boost::python::handle<> handle{boost::python::borrowed(object)};
       boost::python::object expect{handle};
       boost::python::extract<Expect<boost::python::object>> extractor{expect};
       if(extractor.check()) {

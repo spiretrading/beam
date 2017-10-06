@@ -98,7 +98,7 @@ namespace Details {
   template<typename T>
   struct ReactorFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{object};
+      boost::python::handle<> handle{boost::python::borrowed(object)};
       boost::python::object reactor{handle};
       boost::python::extract<std::shared_ptr<Reactors::Reactor<
         boost::python::object>>> extractor{reactor};
@@ -113,16 +113,15 @@ namespace Details {
       using ConversionReactor = Reactors::FunctionReactor<
         typename T::Type (*)(const boost::python::object&),
         std::shared_ptr<Reactors::Reactor<boost::python::object>>>;
-      auto storage = reinterpret_cast<boost::python::converter::
-        rvalue_from_python_storage<std::shared_ptr<ConversionReactor>>*>(
-        data)->storage.bytes;
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        std::shared_ptr<T>>*>(data)->storage.bytes;
       boost::python::handle<> handle{boost::python::borrowed(object)};
       boost::python::object value{handle};
-      std::shared_ptr<Reactor<boost::python::object>> reactor =
-        boost::python::extract<std::shared_ptr<Reactor<boost::python::object>>>(
-        value);
-      new(storage) std::shared_ptr<ConversionReactor>{
-        std::make_shared<ConversionReactor>(
+      std::shared_ptr<Reactors::Reactor<boost::python::object>> reactor =
+        boost::python::extract<std::shared_ptr<
+        Reactors::Reactor<boost::python::object>>>(value);
+      new(storage) std::shared_ptr<T>{std::make_shared<ConversionReactor>(
         &FromPythonConverter<typename T::Type>, reactor)};
       data->convertible = storage;
     }
@@ -131,6 +130,12 @@ namespace Details {
 
   //! A Reactor that evaluates to Python objects.
   using PythonReactor = Reactors::Reactor<boost::python::object>;
+
+  //! Exports the AggregateReactor class.
+  void ExportAggregateReactor();
+
+  //! Exports the AlarmReactor.
+  void ExportAlarmReactor();
 
   //! Exports the BaseReactor class.
   void ExportBaseReactor();

@@ -208,7 +208,7 @@ namespace Details {
       .def("get_type", &T::GetType, &Details::ReactorWrapper<T>::DefaultGetType,
         boost::python::return_value_policy<
         boost::python::reference_existing_object>())
-      .def("eval", pure_virtual(&T::Eval))
+      .def("eval", boost::python::pure_virtual(&T::Eval))
       .def("_increment_sequence_number",
         &Details::ReactorWrapper<T>::IncrementSequenceNumber)
       .def("_set_complete", &Details::ReactorWrapper<T>::SetComplete)

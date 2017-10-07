@@ -13,6 +13,9 @@ namespace Beam {
   class RefType {
     public:
 
+      //! The type being referenced.
+      using Type = T;
+
       //! Allows for polymorphic RefTypes.
       template<typename U>
       RefType(const RefType<U>& reference);
@@ -36,30 +39,30 @@ namespace Beam {
       RefType& operator =(RefType&& ref);
 
       //! Returns a reference to the result.
-      T& operator *();
+      Type& operator *();
 
       //! Returns a reference to the result.
-      const T& operator *() const;
+      const Type& operator *() const;
 
       //! Returns a pointer to the result.
-      T* operator ->();
+      Type* operator ->();
 
       //! Returns a pointer to the result.
-      const T* operator ->() const;
+      const Type* operator ->() const;
 
       //! Returns a pointer to the result.
-      T* Get();
+      Type* Get();
 
       //! Returns a pointer to the result.
-      const T* Get() const;
+      const Type* Get() const;
 
     private:
       template<typename> friend class RefType;
       template<typename U> friend RefType<U> Ref(U&);
       template<typename U> friend RefType<U> Ref(RefType<U>&);
-      T* m_reference;
+      Type* m_reference;
 
-      RefType(T& reference);
+      RefType(Type& reference);
   };
 
   //! Returns a RefType for a given value.
@@ -84,7 +87,7 @@ namespace Beam {
 
   template<typename T>
   RefType<T>::RefType(const RefType& ref)
-      : m_reference(ref.m_reference) {}
+      : m_reference{ref.m_reference} {}
 
   template<typename T>
   RefType<T>::RefType(RefType&& ref)

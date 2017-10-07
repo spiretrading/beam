@@ -14,6 +14,12 @@ namespace Python {
   //! Exports the IdleTask class.
   void ExportIdleTask();
 
+  //! Exports the ReactorMonitorTask class.
+  void ExportReactorMonitorTask();
+
+  //! Exports the SpawnTask class.
+  void ExportSpawnTask();
+
   //! Exports the Task class.
   void ExportTask();
 
@@ -22,6 +28,12 @@ namespace Python {
 
   //! Exports the Tasks namespace.
   void ExportTasks();
+
+  //! Exports the UntilTask class.
+  void ExportUntilTask();
+
+  //! Exports the WhenTask class.
+  void ExportWhenTask();
 }
 }
 

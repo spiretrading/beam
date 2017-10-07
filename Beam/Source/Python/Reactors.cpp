@@ -9,6 +9,7 @@
 #include "Beam/Reactors/AggregateReactor.hpp"
 #include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
+#include "Beam/Reactors/ChainReactor.hpp"
 #include "Beam/Reactors/Control.hpp"
 #include "Beam/Reactors/Event.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
@@ -37,6 +38,8 @@ using namespace std;
 namespace {
   using PythonAggregateReactor = AggregateReactor<
     std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>;
+  using PythonChainReactor = ChainReactor<std::shared_ptr<PythonReactor>,
+    std::shared_ptr<PythonReactor>>;
 
   struct BaseReactorWrapper : BaseReactor, wrapper<BaseReactor> {
     virtual void Commit() override {
@@ -190,6 +193,11 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile PythonChainReactor* get_pointer(
+      const volatile PythonChainReactor* p) {
+    return p;
+  }
+
   template<> inline const volatile PythonReactor* get_pointer(
       const volatile PythonReactor* p) {
     return p;
@@ -305,6 +313,17 @@ void Beam::Python::ExportBaseReactor() {
   ExportSignal<>("EmptySignal");
 }
 
+void Beam::Python::ExportChainReactor() {
+  class_<PythonChainReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<PythonChainReactor>>("ChainReactor",
+    init<const std::shared_ptr<PythonReactor>&,
+    const std::shared_ptr<PythonReactor>&>());
+  implicitly_convertible<std::shared_ptr<PythonChainReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<PythonChainReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
 void Beam::Python::ExportDoReactor() {
   def("do", &MakePythonDoReactor);
 }
@@ -376,6 +395,7 @@ void Beam::Python::ExportReactors() {
   ExportTrigger();
   ExportAggregateReactor();
   ExportAlarmReactor();
+  ExportChainReactor();
   ExportPythonConstantReactor();
   ExportPythonReactorContainer();
   ExportReactor<Reactor<std::shared_ptr<PythonReactor>>>("MetaReactor");

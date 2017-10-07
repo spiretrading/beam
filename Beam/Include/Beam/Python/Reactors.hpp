@@ -140,6 +140,9 @@ namespace Details {
   //! Exports the BaseReactor class.
   void ExportBaseReactor();
 
+  //! Exports the ChainReactor class.
+  void ExportChainReactor();
+
   //! Exports the Do Reactor.
   void ExportDoReactor();
 

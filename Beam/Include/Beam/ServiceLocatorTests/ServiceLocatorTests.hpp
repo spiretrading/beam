@@ -7,7 +7,7 @@ namespace ServiceLocator {
 namespace Tests {
   class ServiceLocatorClientTester;
   class ServiceLocatorServletTester;
-  class ServiceLocatorTestInstance;
+  class ServiceLocatorTestEnvironment;
 }
 }
 }

@@ -50,13 +50,6 @@ namespace Queries {
       //! Returns all the values stored by this data store.
       std::vector<IndexedValue> LoadAll() const;
 
-      //! Loads the initial Sequence to use for a specified index.
-      /*!
-        \param index The index to load the initial Sequence for.
-        \return The initial Sequence to use for the specified <i>index</i>.
-      */
-      Sequence LoadInitialSequence(const Index& index) const;
-
       //! Executes a search query.
       /*!
         \param query The search query to execute.
@@ -120,17 +113,6 @@ namespace Queries {
         }
       });
     return values;
-  }
-
-  template<typename QueryType, typename ValueType,
-    typename EvaluatorTranslatorFilterType>
-  Sequence LocalDataStore<QueryType, ValueType, EvaluatorTranslatorFilterType>::
-      LoadInitialSequence(const Index& index) const {
-    auto entry = m_entries.Find(index);
-    if(!entry.is_initialized()) {
-      return Sequence{1};
-    }
-    return entry->LoadInitialSequence();
   }
 
   template<typename QueryType, typename ValueType,

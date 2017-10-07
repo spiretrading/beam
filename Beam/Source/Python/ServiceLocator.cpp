@@ -7,18 +7,20 @@
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Vector.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
+#include "Beam/ServiceLocator/AuthenticationException.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
-#include "Beam/ServiceLocatorTests/ServiceLocatorTestInstance.hpp"
+#include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include <boost/noncopyable.hpp>
@@ -64,6 +66,15 @@ namespace {
     return client;
   }
 }
+
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile VirtualServiceLocatorClient* get_pointer(
+      const volatile VirtualServiceLocatorClient* p) {
+    return p;
+  }
+}
+#endif
 
 void Beam::Python::ExportDirectoryEntry() {
   {
@@ -133,13 +144,17 @@ void Beam::Python::ExportServiceLocator() {
   ExportDirectoryEntry();
   ExportServiceEntry();
   ExportServiceLocatorClient();
+  ExportException<AuthenticationException, ConnectException>(
+    "AuthenticationException")
+    .def(init<>())
+    .def(init<const string&>());
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(
       borrowed(PyImport_AddModule(nestedName.c_str())))};
     parent.attr("tests") = nestedModule;
     scope child = nestedModule;
-    ExportServiceLocatorTestInstance();
+    ExportServiceLocatorTestEnvironment();
   }
 }
 
@@ -190,20 +205,20 @@ void Beam::Python::ExportServiceLocatorClient() {
       BlockingFunction(&VirtualServiceLocatorClient::LoadRegistrationTime))
     .def("load_last_login_time",
       BlockingFunction(&VirtualServiceLocatorClient::LoadLastLoginTime))
+    .def("rename", BlockingFunction(&VirtualServiceLocatorClient::Rename))
     .def("set_credentials",
       BlockingFunction(&VirtualServiceLocatorClient::SetCredentials))
     .def("open", BlockingFunction(&VirtualServiceLocatorClient::Open))
     .def("close", BlockingFunction(&VirtualServiceLocatorClient::Close));
 }
 
-void Beam::Python::ExportServiceLocatorTestInstance() {
-  class_<ServiceLocatorTestInstance, boost::noncopyable>(
-      "ServiceLocatorTestInstance", init<>())
-    .def("__del__", BlockingFunction(&ServiceLocatorTestInstance::Close))
-    .def("open", BlockingFunction(&ServiceLocatorTestInstance::Open))
-    .def("close", BlockingFunction(&ServiceLocatorTestInstance::Close))
-    .def("get_root", &ServiceLocatorTestInstance::GetRoot,
+void Beam::Python::ExportServiceLocatorTestEnvironment() {
+  class_<ServiceLocatorTestEnvironment, boost::noncopyable>(
+      "ServiceLocatorTestEnvironment", init<>())
+    .def("open", BlockingFunction(&ServiceLocatorTestEnvironment::Open))
+    .def("close", BlockingFunction(&ServiceLocatorTestEnvironment::Close))
+    .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_internal_reference<>())
     .def("build_client",
-      ReleaseUniquePtr(&ServiceLocatorTestInstance::BuildClient));
+      ReleaseUniquePtr(&ServiceLocatorTestEnvironment::BuildClient));
 }

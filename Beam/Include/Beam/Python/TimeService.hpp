@@ -20,11 +20,20 @@ namespace Python {
   //! Exports the LiveNtpTimeClient class.
   void ExportNtpTimeClient();
 
+  //! Exports the TestTimer class.
+  void ExportTestTimer();
+
+  //! Exports the TestTimeClient class.
+  void ExportTestTimeClient();
+
   //! Exports the TimeClient class.
   void ExportTimeClient();
 
   //! Exports the TimeService namespace.
   void ExportTimeService();
+
+  //! Exports the TimeServiceTestEnvironment class.
+  void ExportTimeServiceTestEnvironment();
 }
 }
 

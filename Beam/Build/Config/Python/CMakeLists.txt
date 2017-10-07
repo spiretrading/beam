@@ -8,11 +8,12 @@ include_directories($ENV{PYTHON_INCLUDE_PATH})
 add_library(Python SHARED ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Python PROPERTIES OUTPUT_NAME beam)
-add_definitions("-DBEAM_BUILD_DLL")
+add_definitions(-DBEAM_BUILD_DLL)
+add_definitions(-DBEAM_ENABLE_STACK_PRINT)
+
 if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /WX")
-  set_target_properties(Python PROPERTIES SUFFIX ".pyd"
-    LINK_FLAGS /SAFESEH:NO)
+  set_target_properties(Python PROPERTIES SUFFIX ".pyd" LINK_FLAGS /SAFESEH:NO
+    LINK_FLAGS_RELEASE /LTCG)
 endif()
 if(UNIX)
   set_target_properties(Python PROPERTIES PREFIX "")

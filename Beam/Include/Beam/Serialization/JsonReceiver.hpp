@@ -13,40 +13,6 @@
 
 namespace Beam {
 namespace Serialization {
-namespace Details {
-  inline std::string JsonUnescape(const std::string& source) {
-    std::string result;
-    for(std::size_t i = 0; i < source.size(); ++i) {
-      if(source[i] != '\\') {
-        result += source[i];
-      } else {
-        ++i;
-        if(i == source.size()) {
-          BOOST_THROW_EXCEPTION(SerializationException{"Invalid JSON string."});
-        }
-        if(source[i] == 'n') {
-          result += '\n';
-        } else if(source[i] == 'r') {
-          result += '\r';
-        } else if(source[i] == '\"') {
-          result += '\"';
-        } else if(source[i] == '\\') {
-          result += '\\';
-        } else if(source[i] == 'b') {
-          result += '\b';
-        } else if(source[i] == 'f') {
-          result += '\f';
-        } else if(source[i] == 't') {
-          result += '\t';
-        } else {
-          BOOST_THROW_EXCEPTION(
-            SerializationException{"Invalid escape character."});
-        }
-      }
-    }
-    return result;
-  }
-}
 
   /*! \class JsonReceiver
       \brief Implements a Receiver using the JSON format.
@@ -215,7 +181,7 @@ namespace Details {
     boost::optional<JsonValue> storage;
     auto& jsonValue = ExtractValue(name, storage);
     if(auto s = boost::get<std::string>(&jsonValue)) {
-      value = Details::JsonUnescape(*s);
+      value = std::move(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }
@@ -231,7 +197,7 @@ namespace Details {
       if(s->size() > N) {
         BOOST_THROW_EXCEPTION(SerializationException{"Length out of range."});
       }
-      value = Details::JsonUnescape(*s);
+      value = std::move(*s);
     } else {
       BOOST_THROW_EXCEPTION(SerializationException{"JSON type mismatch."});
     }

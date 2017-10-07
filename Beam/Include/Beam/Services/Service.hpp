@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICE_HPP
 #define BEAM_SERVICE_HPP
 #include <functional>
+#include <vector>
 #include <boost/call_traits.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/preprocessor/iteration/local.hpp>

@@ -1,5 +1,6 @@
 #ifndef BEAM_INDEXEDQUERY_HPP
 #define BEAM_INDEXEDQUERY_HPP
+#include <ostream>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
@@ -36,6 +37,11 @@ namespace Queries {
       friend struct Serialization::Shuttle<IndexedQuery>;
       Index m_index;
   };
+
+  template<typename T>
+  std::ostream& operator <<(std::ostream& out, const IndexedQuery<T>& query) {
+    return out << query.GetIndex();
+  }
 
   template<typename T>
   IndexedQuery<T>::IndexedQuery()

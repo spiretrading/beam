@@ -1,8 +1,9 @@
-cd %~dp0../..
+pushd %~dp0..\..
 mkdir Include
-cd Include
+pushd Include
 mkdir ServletTemplate
-cd %~dp0
+popd
+popd
 printf "#define SERVLET_TEMPLATE_VERSION """> %~dp0../../Include/ServletTemplate/Version.hpp
 git rev-list --count --first-parent HEAD | tr -d "\n\" >> %~dp0../../Include/ServletTemplate/Version.hpp
 printf """" >> %~dp0../../Include/ServletTemplate/Version.hpp

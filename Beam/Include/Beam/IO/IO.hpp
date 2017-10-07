@@ -8,6 +8,9 @@ namespace IO {
   template<typename BufferType> class BufferView;
   template<typename IStreamType> class BasicIStreamReader;
   template<typename OStreamType> class BasicOStreamWriter;
+  template<typename IdentifierType, typename ConnectionType,
+    typename ReaderType, typename WriterType> struct Channel;
+  struct ChannelIdentifier;
   template<typename ServerConnectionType, typename ChannelType>
     class ChannelAdapterServerConnection;
   class EndOfFileException;
@@ -17,6 +20,7 @@ namespace IO {
   template<typename BufferType> class LocalServerChannel;
   template<typename BufferType> class LocalServerChannelConnection;
   template<typename BufferType> class LocalServerConnection;
+  class NamedChannelIdentifier;
   class NullChannel;
   class NullConnection;
   class NullReader;
@@ -30,6 +34,16 @@ namespace IO {
   template<typename SourceReaderType> class SizeDeclarativeReader;
   template<typename DestinationWriterType> class SizeDeclarativeWriter;
   template<std::size_t> class StaticBuffer;
+  class VirtualChannel;
+  class VirtualChannelIdentifier;
+  class VirtualConnection;
+  class VirtualReader;
+  class VirtualWriter;
+  template<typename ChannelType> class WrapperVirtualChannel;
+  template<typename ChannelIdentifierType> class WrapperChannelIdentifier;
+  template<typename ConnectionType> class WrapperConnection;
+  template<typename ReaderType> class WrapperReader;
+  template<typename WriterType> class WrapperWriter;
   template<typename BufferType> struct Writer;
 }
 }

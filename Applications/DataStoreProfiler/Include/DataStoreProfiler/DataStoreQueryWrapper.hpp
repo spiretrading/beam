@@ -25,10 +25,6 @@ namespace Beam {
         Close();
       }
 
-      Queries::Sequence LoadInitialSequence(const std::string& name) {
-        return m_dataStore->LoadInitialSequence(name);
-      }
-
       std::vector<SequencedEntry> Load(const EntryQuery& query) {
         return m_dataStore->LoadEntries(query);
       }

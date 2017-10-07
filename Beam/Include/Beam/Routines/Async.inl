@@ -7,12 +7,12 @@ namespace Beam {
 namespace Routines {
   template<typename T>
   Async<T>::Async()
-      : m_state(State::PENDING) {}
+      : m_state{State::PENDING} {}
 
   template<typename T>
   Eval<T> Async<T>::GetEval() {
     Reset();
-    return Eval<T>(Ref(*this));
+    return {Ref(*this)};
   }
 
   template<typename T>
@@ -23,7 +23,7 @@ namespace Routines {
   template<typename T>
   typename boost::call_traits<typename StorageType<T>::type>::reference
       Async<T>::Get() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    boost::unique_lock<boost::mutex> lock{m_mutex};
     while(m_state == State::PENDING) {
       Routines::Suspend(Store(m_suspendedRoutines), lock);
     }
@@ -43,14 +43,14 @@ namespace Routines {
     if(m_state == State::PENDING) {
       return;
     }
-    m_exception = std::exception_ptr();
+    m_exception = {};
     m_state = State::PENDING;
     m_result.Reset();
   }
 
   template<typename T>
   void Async<T>::SetState(State state) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     assert(m_state == State::PENDING);
     assert(state != State::PENDING);
     m_state = state;
@@ -64,7 +64,7 @@ namespace Routines {
 
   template<typename T>
   Eval<T>::Eval()
-      : m_async(nullptr) {}
+      : m_async{nullptr} {}
 
   template<typename T>
   Eval<T>::Eval(Eval&& eval) {
@@ -125,7 +125,7 @@ namespace Routines {
 
   template<typename T>
   Eval<T>::Eval(RefType<Async<T>> async)
-      : m_async(async.Get()) {}
+      : m_async{async.Get()} {}
 }
 }
 

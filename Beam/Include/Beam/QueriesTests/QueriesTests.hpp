@@ -32,9 +32,11 @@ namespace Tests {
   class SequenceTester;
   class SequencedValueTester;
   class SequencedValuePublisherTester;
+  class SequencerTester;
   class SessionCachedDataStoreTester;
   class SnapshotLimitTester;
   class SnapshotLimitedQueryTester;
+  class SqlTranslatorTester;
   class SubscriptionsTester;
 }
 }

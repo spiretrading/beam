@@ -5,7 +5,9 @@ file(GLOB source_files
 
 add_library(Codecs ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(Codecs PROPERTIES OUTPUT_NAME beam_codecs)
+set_target_properties(Codecs PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_codecs)
 install(TARGETS Codecs CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS Codecs CONFIGURATIONS Release RelWithDebInfo
@@ -19,7 +21,9 @@ file(GLOB test_source_files
 add_library(CodecsTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(CodecsTests PROPERTIES OUTPUT_NAME beam_codecs_tests)
+set_target_properties(CodecsTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_codecs_tests)
 install(TARGETS CodecsTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS CodecsTests CONFIGURATIONS Release RelWithDebInfo

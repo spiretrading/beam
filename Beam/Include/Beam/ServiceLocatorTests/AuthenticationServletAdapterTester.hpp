@@ -1,21 +1,12 @@
 #ifndef BEAM_AUTHENTICATIONSERVLETADAPTERTESTER_HPP
 #define BEAM_AUTHENTICATIONSERVLETADAPTERTESTER_HPP
+#include <boost/optional/optional.hpp>
 #include <cppunit/extensions/HelperMacros.h>
-#include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/ServicesTests/TestServlet.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
@@ -28,27 +19,9 @@ namespace Tests {
   class AuthenticationServletAdapterTester : public CPPUNIT_NS::TestFixture {
     public:
 
-      //! The type of ServerConnection.
-      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
-
-      //! The type of Channel from the client to the server.
-      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
-
-      //! The type of ServiceProtocolServer.
-      using ServiceProtocolServer = Services::ServiceProtocolServer<
-        ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
-
-      //! The type used to build sessions.
-      using ServiceProtocolClientBuilder =
-        Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
-        std::unique_ptr<ClientChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder>, Threading::TriggerTimer>;
-
       //! The type of ServiceLocatorClient.
       using TestServiceLocatorClient =
-        ServiceLocatorClient<ServiceProtocolClientBuilder>;
+        ServiceLocatorClient<Services::Tests::TestServiceProtocolClientBuilder>;
 
       //! The result of adapting the TestServlet with the
       //! AuthenticationServletAdapter.
@@ -58,10 +31,7 @@ namespace Tests {
 
       //! The type of ServiceProtocolServletContainer.
       using ServiceProtocolServletContainer =
-        Services::ServiceProtocolServletContainer<MetaServlet,
-        std::unique_ptr<ServerConnection>, Serialization::BinarySender<
-        IO::SharedBuffer>, Codecs::NullEncoder,
-        std::shared_ptr<Threading::TriggerTimer>>;
+        Services::Tests::TestServiceProtocolServletContainer<MetaServlet>;
 
       //! The type of Servlet.
       using Servlet = AuthenticationServletAdapter<
@@ -69,19 +39,11 @@ namespace Tests {
         Services::Tests::TestServlet<ServiceProtocolServletContainer>,
         std::unique_ptr<TestServiceLocatorClient>>;
 
-      //! The type of ServiceProtocolClient on the client side.
-      using ClientServiceProtocolClient = Services::ServiceProtocolClient<
-        Services::MessageProtocol<ClientChannel,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-        Threading::TriggerTimer>;
-
       //! The type of ServiceProtocolServer.
-      using ServiceLocatorContainer = Services::ServiceProtocolServletContainer<
+      using ServiceLocatorContainer =
+        Services::Tests::TestServiceProtocolServletContainer<
         MetaServiceLocatorServlet<
-        std::shared_ptr<LocalServiceLocatorDataStore>>,
-        std::unique_ptr<ServerConnection>,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder,
-        std::shared_ptr<Threading::TriggerTimer>>;
+        std::shared_ptr<LocalServiceLocatorDataStore>>>;
 
       virtual void setUp();
 
@@ -95,10 +57,11 @@ namespace Tests {
 
     private:
       std::shared_ptr<LocalServiceLocatorDataStore> m_dataStore;
-      DelayPtr<ServiceProtocolServletContainer> m_container;
-      DelayPtr<ClientServiceProtocolClient> m_clientProtocol;
-      DelayPtr<ServiceLocatorContainer> m_serviceLocatorContainer;
-      DelayPtr<TestServiceLocatorClient> m_serviceLocatorClient;
+      boost::optional<ServiceProtocolServletContainer> m_container;
+      boost::optional<Services::Tests::TestServiceProtocolClient>
+        m_clientProtocol;
+      boost::optional<ServiceLocatorContainer> m_serviceLocatorContainer;
+      boost::optional<TestServiceLocatorClient> m_serviceLocatorClient;
 
       CPPUNIT_TEST_SUITE(AuthenticationServletAdapterTester);
         CPPUNIT_TEST(TestServiceWithoutAuthentication);

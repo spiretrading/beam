@@ -5,7 +5,9 @@ file(GLOB source_files
 
 add_library(IO ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(IO PROPERTIES OUTPUT_NAME beam_io)
+set_target_properties(IO PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_io)
 install(TARGETS IO CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS IO CONFIGURATIONS Release RelWithDebInfo
@@ -20,6 +22,7 @@ add_library(IOTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(IOTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_io_tests)
 install(TARGETS IOTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)

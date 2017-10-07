@@ -62,8 +62,8 @@ namespace Queries {
 
   inline FunctionExpression::FunctionExpression(std::string name,
       const DataType& type, std::vector<Expression> parameters)
-      : m_name(std::move(name)),
-        m_type(type),
+      : m_name{std::move(name)},
+        m_type{type},
         m_parameters(std::move(parameters)) {}
 
   inline const std::string& FunctionExpression::GetName() const {
@@ -92,7 +92,7 @@ namespace Queries {
   }
 
   inline FunctionExpression::FunctionExpression()
-      : m_type(BoolType()) {}
+      : m_type{BoolType()} {}
 
   template<typename Shuttler>
   void FunctionExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

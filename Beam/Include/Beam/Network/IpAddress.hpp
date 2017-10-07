@@ -41,6 +41,20 @@ namespace Network {
       */
       IpAddress(std::string host, unsigned short port);
 
+      //! Returns <code>true</code> iff the host and port are identical.
+      /*!
+        \param rhs The right hand side of the comparison.
+        \return <code>true</code> iff the two IpAddresses are equal.
+      */
+      bool operator ==(const IpAddress& rhs) const;
+
+      //! Returns <code>true</code> iff the host or port are different.
+      /*!
+        \param rhs The right hand side of the comparison.
+        \return <code>true</code> iff the two IpAddresses are not equal.
+      */
+      bool operator !=(const IpAddress& rhs) const;
+
       //! Returns the host.
       const std::string& GetHost() const;
 
@@ -81,7 +95,8 @@ namespace Network {
     BEAM_ASSERT(result == 4);
     auto intAddress = std::uint32_t{0};
     for(auto i = 0; i < OCTET_COUNT; ++i) {
-      reinterpret_cast<unsigned char*>(&intAddress)[i] = octets[i];
+      reinterpret_cast<unsigned char*>(&intAddress)[i] =
+        static_cast<unsigned char>(octets[i]);
     }
     return FromBigEndian(intAddress);
   }
@@ -89,6 +104,14 @@ namespace Network {
   inline IpAddress::IpAddress(std::string host, unsigned short port)
       : m_host(std::move(host)),
         m_port(port) {}
+
+  inline bool IpAddress::operator ==(const IpAddress& rhs) const {
+    return m_host == rhs.m_host && m_port == rhs.m_port;
+  }
+
+  inline bool IpAddress::operator !=(const IpAddress& rhs) const {
+    return !(*this == rhs);
+  }
 
   inline const std::string& IpAddress::GetHost() const {
     return m_host;

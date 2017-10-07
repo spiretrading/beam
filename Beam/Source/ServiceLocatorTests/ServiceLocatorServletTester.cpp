@@ -1,6 +1,5 @@
 #include "Beam/ServiceLocatorTests/ServiceLocatorServletTester.hpp"
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/SignalHandling/NullSlot.hpp"
 
@@ -20,8 +19,8 @@ using namespace std;
 void ServiceLocatorServletTester::setUp() {
   m_dataStore = std::make_shared<LocalServiceLocatorDataStore>();
   m_serverConnection = std::make_shared<ServerConnection>();
-  m_clientProtocol.Initialize(Initialize(string("test"),
-    Ref(*m_serverConnection)), Initialize());
+  m_clientProtocol.Initialize(Initialize("test", Ref(*m_serverConnection)),
+    Initialize());
   RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
   m_container.Initialize(Initialize(m_dataStore), m_serverConnection,
     factory<std::shared_ptr<TriggerTimer>>());

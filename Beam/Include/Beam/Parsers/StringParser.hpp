@@ -1,5 +1,6 @@
 #ifndef BEAM_STRINGPARSER_HPP
 #define BEAM_STRINGPARSER_HPP
+#include <cctype>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"

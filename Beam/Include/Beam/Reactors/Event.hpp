@@ -15,7 +15,7 @@ namespace Reactors {
       virtual ~Event() = default;
 
       //! Signals an event.
-      typedef boost::signals2::signal<void ()> EventSignal;
+      using EventSignal = boost::signals2::signal<void ()>;
 
       //! Executes the event.
       virtual void Execute();

@@ -1,9 +1,12 @@
 #ifndef BEAM_ROUTINEHANDLER_HPP
 #define BEAM_ROUTINEHANDLER_HPP
+#include <atomic>
 #include <boost/noncopyable.hpp>
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
+#include "Beam/Threading/ConditionVariable.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace Routines {
@@ -58,26 +61,48 @@ namespace Routines {
 
   //! Waits for all pending Routines to complete.
   inline void FlushPendingRoutines() {
-    RoutineHandler r = Spawn(
-      [] {
-        std::vector<RoutineHandler> routines;
-        for(std::size_t i = 0; i < boost::thread::hardware_concurrency(); ++i) {
-          routines.push_back(Spawn([]{}));
-        }
-        for(RoutineHandler& routine : routines) {
-          routine.Wait();
-        }
-      });
+    auto& scheduler = Details::Scheduler::GetInstance();
+    Threading::Mutex threadCountMutex;
+    Threading::ConditionVariable threadCountCondition;
+    auto threadCount = scheduler.GetThreadCount();
+    std::vector<RoutineHandler> routines;
+    std::atomic_bool isComplete{true};
+    for(std::size_t i = 0; i < scheduler.GetThreadCount(); ++i) {
+      routines.emplace_back(Spawn(
+        [&] {
+          auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
+          {
+            boost::unique_lock<Threading::Mutex> lock{threadCountMutex};
+            --threadCount;
+            if(threadCount == 0) {
+              threadCountCondition.notify_all();
+            } else {
+              while(threadCount != 0) {
+                threadCountCondition.wait(lock);
+              }
+            }
+          }
+          if(routine.GetScheduler().HasPendingRoutines(
+              routine.GetContextId())) {
+            isComplete = false;
+          }
+        },
+        Details::Scheduler::DEFAULT_STACK_SIZE, i));
+    }
+    routines.clear();
+    if(!isComplete) {
+      FlushPendingRoutines();
+    }
   }
 
   inline RoutineHandler::RoutineHandler()
-      : m_id(0) {}
+      : m_id{0} {}
 
   inline RoutineHandler::RoutineHandler(Routine::Id id)
-      : m_id(id) {}
+      : m_id{id} {}
 
   inline RoutineHandler::RoutineHandler(RoutineHandler&& routineHandler)
-      : m_id(routineHandler.m_id) {
+      : m_id{routineHandler.m_id} {
     routineHandler.Detach();
   }
 

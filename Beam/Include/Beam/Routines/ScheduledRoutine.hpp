@@ -33,11 +33,12 @@ namespace Routines {
 
       //! Constructs a ScheduledRoutine.
       /*!
-        \param threadCount The number of threads available.
+        \param contextId The id of the Context to run in, or set to the number
+               of threads in the Scheduler to assign it an arbitrary context id.
         \param stackSize The size of the stack to allocate.
         \param scheduler The Scheduler this Routine will execute through.
       */
-      ScheduledRoutine(std::size_t threadCount, std::size_t stackSize,
+      ScheduledRoutine(std::size_t contextId, std::size_t stackSize,
         RefType<Details::Scheduler> scheduler);
 
       virtual void Execute() = 0;
@@ -97,12 +98,16 @@ namespace Routines {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
   }
 
-  inline ScheduledRoutine::ScheduledRoutine(std::size_t threadCount,
+  inline ScheduledRoutine::ScheduledRoutine(std::size_t contextId,
       std::size_t stackSize, RefType<Details::Scheduler> scheduler)
-      : m_stackSize(stackSize),
-        m_scheduler(scheduler.Get()),
-        m_isPendingResume(false) {
-    m_contextId = GetId() % threadCount;
+      : m_stackSize{stackSize},
+        m_scheduler{scheduler.Get()},
+        m_isPendingResume{false} {
+    if(contextId == boost::thread::hardware_concurrency()) {
+      m_contextId = GetId() % boost::thread::hardware_concurrency();
+    } else {
+      m_contextId = contextId;
+    }
     boost::context::simple_stack_allocator<8 * 1024 * 1024, 64 * 1024, 1024>
       allocator;
     m_stackPointer = allocator.allocate(m_stackSize);
@@ -110,8 +115,10 @@ namespace Routines {
 
   inline void ScheduledRoutine::Defer() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
-#ifdef _DEBUG
-//    m_stackPrint = CaptureStackPrint();
+#ifdef BEAM_ENABLE_STACK_PRINT
+#ifndef NDEBUG
+    m_stackPrint = CaptureStackPrint();
+#endif
 #endif
     m_parentContext = boost::context::detail::jump_fcontext(
       m_parentContext, nullptr).fctx;
@@ -124,8 +131,10 @@ namespace Routines {
   inline void ScheduledRoutine::Suspend() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     SetState(State::PENDING_SUSPEND);
-#ifdef _DEBUG
-//    m_stackPrint = CaptureStackPrint();
+#ifdef BEAM_ENABLE_STACK_PRINT
+#ifndef NDEBUG
+    m_stackPrint = CaptureStackPrint();
+#endif
 #endif
     m_parentContext = boost::context::detail::jump_fcontext(
       m_parentContext, nullptr).fctx;

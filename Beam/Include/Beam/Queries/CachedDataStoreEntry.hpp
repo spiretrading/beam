@@ -16,8 +16,8 @@ namespace Queries {
   /*! \class CachedDataStoreEntry
       \brief Stores cached data for a single index.
       \tparam DataStoreType The type of data store to buffer writes to.
-      \tparam EvaluatorTranslatorFilterType The type of EvaluatorTranslator used
-              for filtering values.
+      \tparam EvaluatorTranslatorFilterType The type of EvaluatorTranslator
+              used for filtering values.
    */
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType =
     typename GetTryDereferenceType<DataStoreType>::EvaluatorTranslatorFilter>
@@ -238,7 +238,8 @@ namespace Queries {
     for(auto ordinal = start.GetOrdinal(); ordinal <= end.GetOrdinal();
         ordinal += m_blockSize) {
       if(query.GetSnapshotLimit() != SnapshotLimit::Unlimited()) {
-        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD, remainingLimit);
+        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD,
+          remainingLimit);
       }
       subsetQuery.SetRange(subsetStart, query.GetRange().GetEnd());
       auto blockDataStore = FindDataStore(Sequence(ordinal));
@@ -284,7 +285,8 @@ namespace Queries {
     for(auto ordinal = end.GetOrdinal(); ordinal >= start.GetOrdinal();
         ordinal -= m_blockSize) {
       if(query.GetSnapshotLimit() != SnapshotLimit::Unlimited()) {
-        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
+        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL,
+          remainingLimit);
       }
       subsetQuery.SetRange(query.GetRange().GetStart(), subsetEnd);
       auto blockDataStore = FindDataStore(Sequence(ordinal));

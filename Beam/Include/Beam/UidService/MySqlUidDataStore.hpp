@@ -1,9 +1,9 @@
 #ifndef BEAM_MYSQLUIDDATASTORE_HPP
 #define BEAM_MYSQLUIDDATASTORE_HPP
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 #include "Beam/UidService/MySqlUidDataStoreDetails.hpp"
 
@@ -27,20 +27,21 @@ namespace UidService {
         const std::string& schema, const std::string& username,
         const std::string& password);
 
-      virtual ~MySqlUidDataStore();
+      virtual ~MySqlUidDataStore() override;
 
-      virtual std::uint64_t GetNextUid();
+      virtual std::uint64_t GetNextUid() override;
 
-      virtual std::uint64_t Reserve(std::uint64_t size);
+      virtual std::uint64_t Reserve(std::uint64_t size) override;
 
-      virtual void WithTransaction(const std::function<void ()>& transaction);
+      virtual void WithTransaction(
+        const std::function<void ()>& transaction) override;
 
-      virtual void Open();
+      virtual void Open() override;
 
-      virtual void Close();
+      virtual void Close() override;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable Threading::Mutex m_mutex;
       Network::IpAddress m_address;
       std::string m_schema;
       std::string m_username;
@@ -55,39 +56,39 @@ namespace UidService {
   inline MySqlUidDataStore::MySqlUidDataStore(const Network::IpAddress& address,
       const std::string& schema, const std::string& username,
       const std::string& password)
-      : m_address(address),
-        m_schema(schema),
-        m_username(username),
-        m_password(password),
-        m_databaseConnection(false) {}
+      : m_address{address},
+        m_schema{schema},
+        m_username{username},
+        m_password{password},
+        m_databaseConnection{false} {}
 
   inline MySqlUidDataStore::~MySqlUidDataStore() {
     Close();
   }
 
   inline std::uint64_t MySqlUidDataStore::GetNextUid() {
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto query = m_databaseConnection.query();
     query << "SELECT * FROM next_uid";
-    mysqlpp::StoreQueryResult result = query.store();
+    auto result = query.store();
     if(!result || result.size() != 1) {
-      BOOST_THROW_EXCEPTION(IO::IOException("MySQL query failed."));
+      BOOST_THROW_EXCEPTION(IO::IOException{"MySQL query failed."});
     }
     return result[0][0].conv<std::uint64_t>(0);
   }
 
   inline std::uint64_t MySqlUidDataStore::Reserve(std::uint64_t size) {
-    std::uint64_t nextUid = GetNextUid();
-    mysqlpp::Query query = m_databaseConnection.query();
+    auto nextUid = GetNextUid();
+    auto query = m_databaseConnection.query();
     query << "UPDATE next_uid SET uid = " << (nextUid + size);
     if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(IO::IOException("MySQL query failed."));
+      BOOST_THROW_EXCEPTION(IO::IOException{"MySQL query failed."});
     }
     return nextUid;
   }
 
   inline void MySqlUidDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     mysqlpp::Transaction t(m_databaseConnection);
     try {
       transaction();
@@ -103,23 +104,23 @@ namespace UidService {
       return;
     }
     try {
-      bool connectionResult = m_databaseConnection.set_option(
-        new mysqlpp::ReconnectOption(true));
+      auto connectionResult = m_databaseConnection.set_option(
+        new mysqlpp::ReconnectOption{true});
       if(!connectionResult) {
         BOOST_THROW_EXCEPTION(
-          IO::IOException("Unable to set MySQL reconnect option."));
+          IO::IOException{"Unable to set MySQL reconnect option."});
       }
       connectionResult = m_databaseConnection.connect(m_schema.c_str(),
         m_address.GetHost().c_str(), m_username.c_str(), m_password.c_str(),
         m_address.GetPort());
       if(!connectionResult) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(
+        BOOST_THROW_EXCEPTION(IO::ConnectException{
           std::string("Unable to connect to MySQL database - ") +
-          m_databaseConnection.error()));
+          m_databaseConnection.error()});
       }
       if(!Details::LoadTables(m_databaseConnection, m_schema)) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(
-          "Unable to load database tables."));
+        BOOST_THROW_EXCEPTION(IO::ConnectException{
+          "Unable to load database tables."});
       }
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();

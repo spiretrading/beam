@@ -5,7 +5,9 @@ file(GLOB source_files
 
 add_library(Queues ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(Queues PROPERTIES OUTPUT_NAME beam_queues)
+set_target_properties(Queues PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_queues)
 install(TARGETS Queues CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS Queues CONFIGURATIONS Release RelWithDebInfo
@@ -49,7 +51,9 @@ file(GLOB test_source_files
 add_library(QueuesTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(QueuesTests PROPERTIES OUTPUT_NAME beam_queues_tests)
+set_target_properties(QueuesTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_queues_tests)
 install(TARGETS QueuesTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS QueuesTests CONFIGURATIONS Release RelWithDebInfo

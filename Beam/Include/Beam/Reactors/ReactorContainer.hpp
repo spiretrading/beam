@@ -27,12 +27,12 @@ namespace Details {
 
   template<typename T>
   struct EvalType {
-    typedef const T& type;
+    using type = const T&;
   };
 
   template<>
   struct EvalType<void> {
-    typedef void type;
+    using type = void;
   };
 }
 
@@ -45,13 +45,13 @@ namespace Details {
     public:
 
       //! The type of Reactor to container.
-      typedef GetTryDereferenceType<ReactorType> Reactor;
+      using Reactor = GetTryDereferenceType<ReactorType>;
 
       //! The type that the Reactor evaluates to.
-      typedef GetReactorType<ReactorType> Type;
+      using Type = GetReactorType<ReactorType>;
 
       //! The type returned when evaluated.
-      typedef typename Details::EvalType<Type>::type EvalType;
+      using EvalType = typename Details::EvalType<Type>::type;
 
       //! Constructs a ReactorContainer.
       /*!
@@ -107,20 +107,20 @@ namespace Details {
   template<typename ReactorForward>
   ReactorContainer<ReactorType>::ReactorContainer(ReactorForward&& reactor,
       const BaseReactor::UpdateSignal::slot_type& updateSlot)
-      : m_reactor(std::forward<ReactorForward>(reactor)),
-        m_connection(m_reactor->ConnectUpdateSignal(updateSlot)),
-        m_sequenceNumber(0),
-        m_isComplete(false) {}
+      : m_reactor{std::forward<ReactorForward>(reactor)},
+        m_connection{m_reactor->ConnectUpdateSignal(updateSlot)},
+        m_sequenceNumber{0},
+        m_isComplete{false} {}
 
   template<typename ReactorType>
   template<typename ReactorForward>
   ReactorContainer<ReactorType>::ReactorContainer(ReactorForward&& reactor,
       BaseReactor& parent)
-      : m_reactor(std::forward<ReactorForward>(reactor)),
-        m_connection(m_reactor->ConnectUpdateSignal(
-          std::bind(&BaseReactor::SignalUpdate, &parent))),
-        m_sequenceNumber(0),
-        m_isComplete(false) {}
+      : m_reactor{std::forward<ReactorForward>(reactor)},
+        m_connection{m_reactor->ConnectUpdateSignal(
+          std::bind(&BaseReactor::SignalUpdate, &parent))},
+        m_sequenceNumber{0},
+        m_isComplete{false} {}
 
   template<typename ReactorType>
   const typename ReactorContainer<ReactorType>::Reactor&

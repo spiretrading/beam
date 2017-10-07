@@ -6,6 +6,10 @@ namespace Beam {
 namespace TimeService {
 namespace Tests {
   class NtpTimeClientTester;
+  class TimeServiceTestEnvironment;
+  class TimeServiceTestEnvironmentException;
+  class TestTimeClient;
+  class TestTimer;
 }
 }
 }

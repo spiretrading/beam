@@ -29,7 +29,7 @@ namespace Queries {
         \param parameter The parameter/table name.
         \param expression The Expression to translate.
       */
-      SqlTranslator(std::string parameter, const Expression& expression);
+      SqlTranslator(std::string parameter, Expression expression);
 
       //! Builds the SQL query.
       std::string BuildQuery();
@@ -56,6 +56,8 @@ namespace Queries {
       std::string m_parameter;
       Expression m_expression;
       std::string m_query;
+
+      static std::string Escape(const std::string& source);
   };
 
   //! Translates an Expression into an SQL query.
@@ -66,24 +68,24 @@ namespace Queries {
   */
   template<typename Translator = SqlTranslator>
   inline std::string BuildSqlQuery(std::string parameter,
-      const Expression& expression) {
-    Translator translator(std::move(parameter), expression);
+      Expression expression) {
+    Translator translator{std::move(parameter), std::move(expression)};
     return translator.BuildQuery();
   }
 
   inline SqlTranslator::SqlTranslator(std::string parameter,
-      const Expression& expression)
-      : m_parameter(std::move(parameter)),
-        m_expression(expression) {}
+      Expression expression)
+      : m_parameter{std::move(parameter)},
+        m_expression{std::move(expression)} {}
 
   inline std::string SqlTranslator::BuildQuery() {
     m_query.clear();
     m_expression->Apply(*this);
-    return m_query;
+    return std::move(m_query);
   }
 
   inline void SqlTranslator::Visit(const ConstantExpression& expression) {
-    const Value& value = expression.GetValue();
+    auto& value = expression.GetValue();
     if(value->GetType()->GetNativeType() == typeid(bool)) {
       if(value->GetValue<bool>()) {
         GetQuery() += "true";
@@ -91,18 +93,20 @@ namespace Queries {
         GetQuery() += "false";
       }
     } else if(value->GetType()->GetNativeType() == typeid(char)) {
+      std::string escapeValue;
+      escapeValue += value->GetValue<char>();
       GetQuery() += "\'";
-      GetQuery() += value->GetValue<char>();
+      GetQuery() += Escape(escapeValue);
       GetQuery() += + "\'";
     } else if(value->GetType()->GetNativeType() == typeid(int)) {
       GetQuery() += boost::lexical_cast<std::string>(value->GetValue<int>());
     } else if(value->GetType()->GetNativeType() == typeid(double)) {
       GetQuery() += boost::lexical_cast<std::string>(value->GetValue<double>());
     } else if(value->GetType()->GetNativeType() == typeid(std::string)) {
-      GetQuery() += "\"" + value->GetValue<std::string>() + "\"";
+      GetQuery() += "\'" + Escape(value->GetValue<std::string>()) + "\'";
     } else if(value->GetType()->GetNativeType() ==
         typeid(boost::posix_time::ptime)) {
-      std::uint64_t timestamp = MySql::ToMySqlTimestamp(
+      auto timestamp = MySql::ToMySqlTimestamp(
         value->GetValue<boost::posix_time::ptime>());
       GetQuery() += boost::lexical_cast<std::string>(timestamp);
     }
@@ -111,15 +115,17 @@ namespace Queries {
   inline void SqlTranslator::Visit(const FunctionExpression& expression) {
     if(expression.GetName() == ADDITION_NAME) {
       if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
+        BOOST_THROW_EXCEPTION(ExpressionTranslationException{
+          "Invalid parameters."});
       }
       const auto& leftExpression = *expression.GetParameters()[0];
       leftExpression.Apply(*this);
       auto leftQuery = GetQuery();
+      GetQuery().clear();
       const auto& rightExpression = *expression.GetParameters()[1];
       rightExpression.Apply(*this);
       auto rightQuery = GetQuery();
+      GetQuery().clear();
       GetQuery() = "(" + leftQuery + " + " + rightQuery + ")";
     } else if(expression.GetName() == EQUALS_NAME) {
       if(expression.GetParameters().size() != 2) {
@@ -129,13 +135,15 @@ namespace Queries {
       const auto& leftExpression = *expression.GetParameters()[0];
       leftExpression.Apply(*this);
       auto leftQuery = GetQuery();
+      GetQuery().clear();
       const auto& rightExpression = *expression.GetParameters()[1];
       rightExpression.Apply(*this);
       auto rightQuery = GetQuery();
+      GetQuery().clear();
       GetQuery() = "(" + leftQuery + " = " + rightQuery + ")";
     } else {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-        "Function not supported."));
+      BOOST_THROW_EXCEPTION(ExpressionTranslationException{
+        "Function not supported."});
     }
   }
 
@@ -143,9 +151,11 @@ namespace Queries {
     const auto& leftExpression = *expression.GetLeftExpression();
     leftExpression.Apply(*this);
     auto leftQuery = GetQuery();
+    GetQuery().clear();
     const auto& rightExpression = *expression.GetRightExpression();
     rightExpression.Apply(*this);
     auto rightQuery = GetQuery();
+    GetQuery().clear();
     GetQuery() = "(" + leftQuery + " OR " + rightQuery + ")";
   }
 
@@ -154,8 +164,8 @@ namespace Queries {
   }
 
   inline void SqlTranslator::Visit(const VirtualExpression& expression) {
-    BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-      "Invalid expression."));
+    BOOST_THROW_EXCEPTION(ExpressionTranslationException{
+      "Invalid expression."});
   }
 
   inline std::string& SqlTranslator::GetQuery() {
@@ -164,6 +174,34 @@ namespace Queries {
 
   inline const std::string& SqlTranslator::GetParameter() const {
     return m_parameter;
+  }
+
+  inline std::string SqlTranslator::Escape(const std::string& source) {
+    std::string result;
+    for(auto c : source) {
+      if(c == '\0') {
+        result += "\\0";
+      } else if(c == '\'') {
+        result += "\\'";
+      } else if(c == '\"') {
+        result += "\\\"";
+      } else if(c == '\x08') {
+        result += "\\b";
+      } else if(c == '\n') {
+        result += "\\n";
+      } else if(c == '\r') {
+        result += "\\r";
+      } else if(c == '\t') {
+        result += "\\t";
+      } else if(c == '\x1A') {
+        result += "\\n";
+      } else if(c == '\\') {
+        result += "\\\\";
+      } else {
+        result += c;
+      }
+    }
+    return result;
   }
 }
 }

@@ -36,8 +36,6 @@ namespace Beam {
       //! Clears the contents of the database.
       void Clear();
 
-      Queries::Sequence LoadInitialSequence(const std::string& index);
-
       std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
 
       void Store(const SequencedIndexedEntry& entry);
@@ -58,8 +56,6 @@ namespace Beam {
       std::string m_password;
       MySql::DatabaseConnectionPool m_readerDatabaseConnectionPool;
       Threading::Sync<mysqlpp::Connection, Threading::Mutex>
-        m_readerDatabaseConnection;
-      Threading::Sync<mysqlpp::Connection, Threading::Mutex>
         m_writerDatabaseConnection;
       Threading::ThreadPool m_readerThreadPool;
       DataStore<EntryQuery, Entry, Details::entries> m_entryDataStore;
@@ -76,11 +72,9 @@ namespace Beam {
         m_schema{schema},
         m_username{username},
         m_password{password},
-        m_readerDatabaseConnection{false},
         m_writerDatabaseConnection{false},
         m_entryDataStore{Ref(m_readerDatabaseConnectionPool),
-          Ref(m_readerDatabaseConnection), Ref(m_writerDatabaseConnection),
-          Ref(m_readerThreadPool)} {}
+          Ref(m_writerDatabaseConnection), Ref(m_readerThreadPool)} {}
 
   inline MySqlDataStore::~MySqlDataStore() {
     Close();
@@ -95,11 +89,6 @@ namespace Beam {
           BOOST_THROW_EXCEPTION(std::runtime_error{query.error()});
         }
       });
-  }
-
-  inline Queries::Sequence MySqlDataStore::LoadInitialSequence(
-      const std::string& index) {
-    return m_entryDataStore.LoadInitialSequence(index);
   }
 
   inline std::vector<SequencedEntry> MySqlDataStore::LoadEntries(
@@ -121,17 +110,9 @@ namespace Beam {
       return;
     }
     try {
-      Beam::Threading::With(m_readerDatabaseConnection,
-        [&] (mysqlpp::Connection& connection) {
-          OpenDatabaseConnection(connection);
-          if(!Details::LoadTables(connection, m_schema)) {
-            BOOST_THROW_EXCEPTION(IO::ConnectException{
-              "Unable to load database tables."});
-          }
-        });
       Beam::Threading::With(m_writerDatabaseConnection,
-        [&] (mysqlpp::Connection& connection) {
-          OpenDatabaseConnection(connection);
+        [&] (auto& connection) {
+          this->OpenDatabaseConnection(connection);
           if(!Details::LoadTables(connection, m_schema)) {
             BOOST_THROW_EXCEPTION(IO::ConnectException{
               "Unable to load database tables."});
@@ -159,11 +140,7 @@ namespace Beam {
   inline void MySqlDataStore::Shutdown() {
     m_readerDatabaseConnectionPool.Close();
     Beam::Threading::With(m_writerDatabaseConnection,
-      [] (mysqlpp::Connection& connection) {
-        connection.disconnect();
-      });
-    Beam::Threading::With(m_readerDatabaseConnection,
-      [] (mysqlpp::Connection& connection) {
+      [] (auto& connection) {
         connection.disconnect();
       });
     m_openState.SetClosed();

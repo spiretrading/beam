@@ -1,5 +1,6 @@
 #ifndef BEAM_INTERRUPTABLEQUERY_HPP
 #define BEAM_INTERRUPTABLEQUERY_HPP
+#include <ostream>
 #include "Beam/Queries/InterruptionPolicy.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
@@ -35,11 +36,16 @@ namespace Queries {
       InterruptionPolicy m_interruptionPolicy;
   };
 
+  inline std::ostream& operator <<(std::ostream& out,
+      const InterruptableQuery& query) {
+    return out << query.GetInterruptionPolicy();
+  }
+
   inline InterruptableQuery::InterruptableQuery()
-      : m_interruptionPolicy(InterruptionPolicy::BREAK_QUERY) {}
+      : m_interruptionPolicy{InterruptionPolicy::BREAK_QUERY} {}
 
   inline InterruptableQuery::InterruptableQuery(InterruptionPolicy policy)
-      : m_interruptionPolicy(policy) {}
+      : m_interruptionPolicy{policy} {}
 
   inline InterruptionPolicy InterruptableQuery::GetInterruptionPolicy() const {
     return m_interruptionPolicy;

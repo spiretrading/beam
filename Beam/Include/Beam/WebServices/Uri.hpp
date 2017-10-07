@@ -175,6 +175,13 @@ namespace WebServices {
   }
 
   inline unsigned short Uri::GetPort() const {
+    if(m_port == 0) {
+      if(GetScheme() == "http" || GetScheme() == "ws") {
+        return static_cast<std::uint16_t>(80);
+      } else if(GetScheme() == "https" || GetScheme() == "wss") {
+        return static_cast<std::uint16_t>(443);
+      }
+    }
     return m_port;
   }
 

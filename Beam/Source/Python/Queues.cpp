@@ -1,11 +1,13 @@
 #include "Beam/Python/Queues.hpp"
-#include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/PythonQueue.hpp"
 #include "Beam/Python/PythonRoutineTaskQueue.hpp"
 #include "Beam/Python/PythonStateQueue.hpp"
 #include "Beam/Python/PythonTaskQueue.hpp"
+#include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/Publisher.hpp"
+#include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 
@@ -34,6 +36,55 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile AbstractQueue<object>* get_pointer(
+      const volatile AbstractQueue<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile BaseQueue* get_pointer(
+      const volatile BaseQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonQueue* get_pointer(
+      const volatile PythonQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonQueueWriter* get_pointer(
+      const volatile PythonQueueWriter* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonRoutineTaskQueue* get_pointer(
+      const volatile PythonRoutineTaskQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonStateQueue* get_pointer(
+      const volatile PythonStateQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonTaskQueue* get_pointer(
+      const volatile PythonTaskQueue* p) {
+    return p;
+  }
+
+  template<> inline const volatile QueueReader<object>* get_pointer(
+      const volatile QueueReader<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile QueueWriter<object>* get_pointer(
+      const volatile QueueWriter<object>* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportAbstractQueue() {
   class_<AbstractQueue<object>, std::shared_ptr<AbstractQueue<object>>,
     noncopyable, bases<QueueWriter<object>, QueueReader<object>>>(
@@ -61,8 +112,8 @@ void Beam::Python::ExportBaseQueue() {
 }
 
 void Beam::Python::ExportPythonQueueWriter() {
-  class_<PythonQueueWriter, std::shared_ptr<PythonQueueWriter>, noncopyable>(
-    "PythonQueueWriter", no_init);
+  class_<PythonQueueWriter, std::shared_ptr<PythonQueueWriter>, noncopyable,
+    bases<QueueWriter<object>>>("PythonQueueWriter", no_init);
 }
 
 void Beam::Python::ExportQueue() {
@@ -83,12 +134,12 @@ void Beam::Python::ExportQueue() {
 void Beam::Python::ExportQueueReader() {
   class_<QueueReader<object>, std::shared_ptr<QueueReader<object>>,
     noncopyable, bases<BaseQueue>>("QueueReader", no_init)
-    .add_property("is_empty", &QueueReader<object>::IsEmpty)
+    .def("is_empty", &QueueReader<object>::IsEmpty)
     .def("top", BlockingFunction(&QueueReader<object>::Top))
     .def("pop", &QueueReader<object>::Pop);
   implicitly_convertible<std::shared_ptr<QueueReader<object>>,
     std::shared_ptr<BaseQueue>>();
-  def("flush", BlockingFunction(&FlushPythonQueue));
+  def("flush", &FlushPythonQueue);
 }
 
 void Beam::Python::ExportQueues() {
@@ -103,6 +154,10 @@ void Beam::Python::ExportQueues() {
   ExportRoutineTaskQueue();
   ExportStateQueue();
   ExportTaskQueue();
+  ExportException<PipeBrokenException, std::runtime_error>(
+    "PipeBrokenException")
+    .def(init<>())
+    .def(init<const string&>());
 }
 
 void Beam::Python::ExportQueueWriter() {
@@ -117,7 +172,8 @@ void Beam::Python::ExportQueueWriter() {
 void Beam::Python::ExportRoutineTaskQueue() {
   class_<PythonRoutineTaskQueue, std::shared_ptr<PythonRoutineTaskQueue>,
     noncopyable, bases<QueueWriter<object>>>("RoutineTaskQueue", init<>())
-    .def("get_slot", &PythonRoutineTaskQueue::GetSlot);
+    .def("get_slot", &PythonRoutineTaskQueue::GetSlot)
+    .def("wait", &PythonRoutineTaskQueue::Wait);
   implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
     std::shared_ptr<QueueWriter<object>>>();
   implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,

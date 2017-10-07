@@ -16,7 +16,7 @@ namespace Details {
     return runningMutex;
   }
 
-  inline BOOL CtrlHandler(DWORD ctrl) {
+  inline BOOL __stdcall CtrlHandler(DWORD ctrl) {
     switch(ctrl) {
       case CTRL_C_EVENT:
         {

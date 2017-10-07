@@ -1,5 +1,5 @@
-#ifndef BEAM_UIDSERVICETESTINSTANCE_HPP
-#define BEAM_UIDSERVICETESTINSTANCE_HPP
+#ifndef BEAM_UIDSERVICETESTENVIRONMENT_HPP
+#define BEAM_UIDSERVICETESTENVIRONMENT_HPP
 #include <boost/functional/factory.hpp>
 #include <boost/functional/value_factory.hpp>
 #include <boost/noncopyable.hpp>
@@ -23,17 +23,17 @@ namespace Beam {
 namespace UidService {
 namespace Tests {
 
-  /*! \class UidServiceTestInstance
+  /*! \class UidServiceTestEnvironment
       \brief Wraps most components needed to run an instance of the
              UidService with helper functions.
    */
-  class UidServiceTestInstance : private boost::noncopyable {
+  class UidServiceTestEnvironment : private boost::noncopyable {
     public:
 
-      //! Constructs a UidServiceTestInstance.
-      UidServiceTestInstance();
+      //! Constructs a UidServiceTestEnvironment.
+      UidServiceTestEnvironment();
 
-      ~UidServiceTestInstance();
+      ~UidServiceTestEnvironment();
 
       //! Opens the servlet.
       void Open();
@@ -62,24 +62,24 @@ namespace Tests {
       ServiceProtocolServletContainer m_container;
   };
 
-  inline UidServiceTestInstance::UidServiceTestInstance()
+  inline UidServiceTestEnvironment::UidServiceTestEnvironment()
       : m_container(&m_dataStore, &m_serverConnection,
           boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {}
 
-  inline UidServiceTestInstance::~UidServiceTestInstance() {
+  inline UidServiceTestEnvironment::~UidServiceTestEnvironment() {
     Close();
   }
 
-  inline void UidServiceTestInstance::Open() {
+  inline void UidServiceTestEnvironment::Open() {
     m_container.Open();
   }
 
-  inline void UidServiceTestInstance::Close() {
+  inline void UidServiceTestEnvironment::Close() {
     m_container.Close();
   }
 
   inline std::unique_ptr<VirtualUidClient>
-      UidServiceTestInstance::BuildClient() {
+      UidServiceTestEnvironment::BuildClient() {
     ServiceProtocolClientBuilder builder(
       [&] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(

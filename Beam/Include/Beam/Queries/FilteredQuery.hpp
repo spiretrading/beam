@@ -1,5 +1,6 @@
 #ifndef BEAM_FILTEREDQUERY_HPP
 #define BEAM_FILTEREDQUERY_HPP
+#include <ostream>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Evaluator.hpp"
@@ -54,14 +55,19 @@ namespace Queries {
     }
   }
 
+  inline std::ostream& operator <<(std::ostream& out,
+      const FilteredQuery& query) {
+    return out << query.GetFilter();
+  }
+
   inline FilteredQuery::FilteredQuery()
-      : m_filter(MakeConstantExpression(true)) {}
+      : m_filter{MakeConstantExpression(true)} {}
 
   inline FilteredQuery::FilteredQuery(const Expression& filter)
-      : m_filter(filter) {
+      : m_filter{filter} {
     if(m_filter->GetType()->GetNativeType() != typeid(bool)) {
       BOOST_THROW_EXCEPTION(
-        TypeCompatibilityException("Filter is not boolean."));
+        TypeCompatibilityException{"Filter is not boolean."});
     }
   }
 
@@ -72,7 +78,7 @@ namespace Queries {
   inline void FilteredQuery::SetFilter(const Expression& filter) {
     if(filter->GetType()->GetNativeType() != typeid(bool)) {
       BOOST_THROW_EXCEPTION(
-        TypeCompatibilityException("Filter is not boolean."));
+        TypeCompatibilityException{"Filter is not boolean."});
     }
     m_filter = filter;
   }

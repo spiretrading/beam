@@ -53,8 +53,6 @@ namespace Queries {
 
       ~CachedDataStore();
 
-      Sequence LoadInitialSequence(const Index& index);
-
       std::vector<SequencedValue> Load(const Query& query);
 
       void Store(const IndexedValue& value);
@@ -88,12 +86,6 @@ namespace Queries {
   CachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       ~CachedDataStore() {
     Close();
-  }
-
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  Sequence CachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      LoadInitialSequence(const Index& index) {
-    return m_dataStore->LoadInitialSequence(index);
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

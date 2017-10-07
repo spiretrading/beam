@@ -30,8 +30,8 @@ namespace ServiceLocator {
     public:
 
       //! The type used to build ServiceProtocolClients to the server.
-      typedef typename TryDereferenceType<
-        ServiceProtocolClientBuilderType>::type ServiceProtocolClientBuilder;
+      using ServiceProtocolClientBuilder = GetTryDereferenceType<
+        ServiceProtocolClientBuilderType>;
 
       //! Constructs a ServiceLocatorClient.
       /*!
@@ -92,7 +92,7 @@ namespace ServiceLocator {
       ServiceEntry Register(const std::string& name,
         const JsonObject& properties);
 
-      //! Loads the list of all accounts this client is permissioned to read.
+      //! Loads the list of all accounts this client is allowed to read.
       std::vector<DirectoryEntry> LoadAllAccounts();
 
       //! Finds an account with a specified name.
@@ -216,6 +216,15 @@ namespace ServiceLocator {
       */
       boost::posix_time::ptime LoadLastLoginTime(const DirectoryEntry& account);
 
+      //! Renames a DirectoryEntry.
+      /*!
+        \param entry The DirectoryEntry to rename.
+        \param name The name to assign to the DirectoryEntry.
+        \return The updated DirectoryEntry.
+      */
+      DirectoryEntry Rename(const DirectoryEntry& entry,
+        const std::string& name);
+
       //! Sets the credentials used to login to the ServiceLocatorServer.
       /*!
         \param username The username.
@@ -229,8 +238,8 @@ namespace ServiceLocator {
       void Close();
 
     private:
-      typedef typename ServiceProtocolClientBuilder::Client
-        ServiceProtocolClient;
+      using ServiceProtocolClient =
+        typename ServiceProtocolClientBuilder::Client;
       mutable boost::mutex m_mutex;
       std::string m_username;
       std::string m_password;
@@ -267,11 +276,14 @@ namespace ServiceLocator {
   /*!
     \param client The ServiceLocatorClient used to locate the addresses.
     \param serviceName The name of the service to locate.
+    \param servicePredicate A function to apply to a ServiceEntry to determine
+           if it matches some criteria.
     \return The list of IP addresses for the specified service.
   */
-  template<typename ServiceLocatorClient>
+  template<typename ServiceLocatorClient, typename ServicePredicate>
   std::vector<Network::IpAddress> LocateServiceAddresses(
-      ServiceLocatorClient& client, const std::string& serviceName) {
+      ServiceLocatorClient& client, const std::string& serviceName,
+      ServicePredicate servicePredicate) {
     std::vector<ServiceEntry> services;
     try {
       services = client.Locate(serviceName);
@@ -279,6 +291,10 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(IO::ConnectException(
         "No " + serviceName + " services available."));
     }
+    services.erase(std::remove_if(services.begin(), services.end(),
+      [&] (auto& entry) {
+        return !servicePredicate(entry);
+      }), services.end());
     if(services.empty()) {
       BOOST_THROW_EXCEPTION(IO::ConnectException(
         "No " + serviceName + " services available."));
@@ -291,6 +307,21 @@ namespace ServiceLocator {
     auto addresses = FromString<std::vector<Network::IpAddress>>(
       boost::get<std::string>(service.GetProperties().At("addresses")));
     return addresses;
+  }
+
+  //! Locates the IP addresses of a service.
+  /*!
+    \param client The ServiceLocatorClient used to locate the addresses.
+    \param serviceName The name of the service to locate.
+    \return The list of IP addresses for the specified service.
+  */
+  template<typename ServiceLocatorClient>
+  std::vector<Network::IpAddress> LocateServiceAddresses(
+      ServiceLocatorClient& client, const std::string& serviceName) {
+    return LocateServiceAddresses(client, serviceName,
+      [] (auto&) {
+        return true;
+      });
   }
 
   template<typename ServiceProtocolClientBuilderType>
@@ -483,6 +514,13 @@ namespace ServiceLocator {
       const DirectoryEntry& account) {
     auto client = m_clientHandler.GetClient();
     return client->template SendRequest<LoadLastLoginTimeService>(account);
+  }
+
+  template<typename ServiceProtocolClientBuilderType>
+  DirectoryEntry ServiceLocatorClient<ServiceProtocolClientBuilderType>::Rename(
+      const DirectoryEntry& entry, const std::string& name) {
+    auto client = m_clientHandler.GetClient();
+    return client->template SendRequest<RenameService>(entry, name);
   }
 
   template<typename ServiceProtocolClientBuilderType>

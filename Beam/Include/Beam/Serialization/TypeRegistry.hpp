@@ -49,13 +49,13 @@ namespace Details {
     public:
 
       //! Specifies the Sender's type.
-      typedef SenderType Sender;
+      using Sender = SenderType;
 
       //! Specifies the Receiver's type.
-      typedef typename Inverse<SenderType>::type Receiver;
+      using Receiver = typename Inverse<SenderType>::type;
 
       //! The TypeEntries stored by this registry.
-      typedef Serialization::TypeEntry<Sender> TypeEntry;
+      using TypeEntry = Serialization::TypeEntry<Sender>;
 
       //! Constructs a TypeRegistry.
       TypeRegistry();
@@ -110,10 +110,10 @@ namespace Details {
   template<typename SenderType>
   template<typename T>
   const TypeEntry<SenderType>& TypeRegistry<SenderType>::GetEntry() const {
-    std::type_index type(typeid(T));
+    std::type_index type{typeid(T)};
     auto typeIterator = m_types.find(type);
     if(typeIterator == m_types.end()) {
-      throw TypeNotFoundException(type.name());
+      throw TypeNotFoundException{type.name()};
     }
     return typeIterator->second;
   }
@@ -122,10 +122,10 @@ namespace Details {
   template<typename T>
   const TypeEntry<SenderType>& TypeRegistry<SenderType>::GetEntry(
       const T& value) const {
-    std::type_index type(typeid(*(&const_cast<T&>(value))));
+    std::type_index type{typeid(*(&const_cast<T&>(value)))};
     auto typeIterator = m_types.find(type);
     if(typeIterator == m_types.end()) {
-      throw TypeNotFoundException(type.name());
+      throw TypeNotFoundException{type.name()};
     }
     return typeIterator->second;
   }
@@ -135,7 +135,7 @@ namespace Details {
       const std::string& name) const {
     auto typeIterator = m_typeNames.find(name);
     if(typeIterator == m_typeNames.end()) {
-      BOOST_THROW_EXCEPTION(TypeNotFoundException(name));
+      BOOST_THROW_EXCEPTION(TypeNotFoundException{name});
     }
     return typeIterator->second->second;
   }
@@ -147,10 +147,10 @@ namespace Details {
       static_cast<T* (*)()>(&DataShuttle::Builder<T>);
     typename TypeEntry::SendFunction sender = &Send<T>;
     typename TypeEntry::ReceiveFunction receiver = &Receive<T>;
-    TypeEntry entry(typeid(T), name, std::move(builder), std::move(sender),
+    std::type_index type{typeid(T)};
+    TypeEntry entry(type, name, std::move(builder), std::move(sender),
       std::move(receiver));
-    auto insertResult = m_types.insert(
-      std::make_pair(std::type_index(typeid(T)), std::move(entry)));
+    auto insertResult = m_types.insert(std::make_pair(type, std::move(entry)));
     if(insertResult.second) {
       m_typeNames.insert(std::make_pair(name, insertResult.first));
     }
@@ -158,9 +158,9 @@ namespace Details {
 
   template<typename SenderType>
   void TypeRegistry<SenderType>::Acquire(TypeRegistry&& registry) {
-    for(const auto& typeEntry : registry.m_typeNames) {
-      TypeEntry entry(std::move(typeEntry.second->second));
-      std::type_index type(entry.GetType());
+    for(auto& typeEntry : registry.m_typeNames) {
+      TypeEntry entry{std::move(typeEntry.second->second)};
+      std::type_index type{entry.GetType()};
       auto insertResult = m_types.insert(
         std::make_pair(type, std::move(entry)));
       if(insertResult.second) {

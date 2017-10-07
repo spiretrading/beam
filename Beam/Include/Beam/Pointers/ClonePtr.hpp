@@ -341,7 +341,7 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         const ClonePtr<T, TC>& value) const {
-      ShuttleNonNull(shuttle, "object", value.m_object);
+      ShuttleNonNull(shuttle, name, value.m_object);
     }
   };
 
@@ -350,7 +350,7 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         ClonePtr<T, TC>& value) const {
-      ShuttleNonNull(shuttle, "object", value.m_object);
+      ShuttleNonNull(shuttle, name, value.m_object);
     }
   };
 }

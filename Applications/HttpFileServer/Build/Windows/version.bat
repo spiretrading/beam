@@ -1,8 +1,9 @@
-cd %~dp0../..
+pushd %~dp0..\..
 mkdir Include
-cd Include
+pushd Include
 mkdir HttpFileServer
-cd %~dp0
+popd
+popd
 printf "#define HTTP_FILE_SERVER_VERSION """> %~dp0../../Include/HttpFileServer/Version.hpp
 git rev-list --count --first-parent HEAD | tr -d "\n\" >> %~dp0../../Include/HttpFileServer/Version.hpp
 printf """" >> %~dp0../../Include/HttpFileServer/Version.hpp

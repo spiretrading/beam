@@ -12,7 +12,7 @@ namespace UidService {
    */
   class UidDataStore : private boost::noncopyable {
     public:
-      virtual ~UidDataStore();
+      virtual ~UidDataStore() = default;
 
       //! Returns the next available UID.
       virtual std::uint64_t GetNextUid() = 0;
@@ -35,8 +35,6 @@ namespace UidService {
 
       virtual void Close() = 0;
   };
-
-  inline UidDataStore::~UidDataStore() {}
 }
 }
 

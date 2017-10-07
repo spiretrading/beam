@@ -8,6 +8,7 @@
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include "Beam/Utilities/Bcrypt.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ToString.hpp"
 
@@ -49,6 +50,12 @@ namespace ServiceLocator {
         \return The list of all DirectoryEntries representing accounts.
       */
       virtual std::vector<DirectoryEntry> LoadAllAccounts() = 0;
+
+      //! Loads all directories.
+      /*!
+        \return The list of all DirectoryEntries representing directories.
+      */
+      virtual std::vector<DirectoryEntry> LoadAllDirectories() = 0;
 
       //! Loads an account from its name.
       /*!
@@ -129,6 +136,14 @@ namespace ServiceLocator {
       virtual Permissions LoadPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target) = 0;
 
+      //! Loads all of the Permissions an account has.
+      /*!
+        \param account The DirectoryEntry to check.
+        \return The list of Permissions the <i>account</i> has.
+      */
+      virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
+        LoadAllPermissions(const DirectoryEntry& account) = 0;
+
       //! Sets the Permissions of one DirectoryEntry over another.
       /*!
         \param source The DirectoryEntry to grant permissions to.
@@ -162,6 +177,14 @@ namespace ServiceLocator {
       */
       virtual void StoreLastLoginTime(const DirectoryEntry& account,
         const boost::posix_time::ptime& loginTime) = 0;
+
+      //! Renames a DirectoryEntry.
+      /*!
+        \param entry The DirectoryEntry to rename.
+        \param name The name to assign to the <i>entry</i>.
+      */
+      virtual void Rename(const DirectoryEntry& entry,
+        const std::string& name) = 0;
 
       //! Validates a DirectoryEntry.
       /*!
@@ -202,16 +225,15 @@ namespace ServiceLocator {
         if(!visitedEntries.insert(target).second) {
           return false;
         }
-        Permissions accountPermissions = dataStore.LoadPermissions(source,
-          target);
+        auto accountPermissions = dataStore.LoadPermissions(source, target);
         if((accountPermissions & permissions) == permissions) {
           return true;
         }
-        std::vector<DirectoryEntry> parents = dataStore.LoadParents(target);
+        auto parents = dataStore.LoadParents(target);
         if(parents.empty()) {
           return false;
         }
-        for(const DirectoryEntry& parent : parents) {
+        for(auto& parent : parents) {
           if(HasPermissionHelper()(dataStore, source, parent, permissions,
               visitedEntries)) {
             return true;
@@ -220,6 +242,10 @@ namespace ServiceLocator {
         return false;
       }
     };
+    if(source == target &&
+        ((permissions & Permissions(Permission::READ)) == permissions)) {
+      return true;
+    }
     std::unordered_set<DirectoryEntry> visitedEntries;
     return HasPermissionHelper()(dataStore, source, target, permissions,
       visitedEntries);
@@ -268,7 +294,7 @@ namespace ServiceLocator {
   */
   inline std::string HashPassword(const DirectoryEntry& account,
       const std::string& password) {
-    return ComputeSHA(ToString(account.m_id) + password);
+    return BCrypt(password);
   }
 
   //! Validates a password.
@@ -281,7 +307,10 @@ namespace ServiceLocator {
   */
   inline bool ValidatePassword(const DirectoryEntry& account,
       const std::string& receivedPassword, const std::string& storedPassword) {
-    std::string receivedPasswordHash = ComputeSHA(ToString(account.m_id) +
+    if(!storedPassword.empty() && storedPassword[0] == '$') {
+      return BCryptMatches(receivedPassword, storedPassword);
+    }
+    auto receivedPasswordHash = ComputeSHA(ToString(account.m_id) +
       receivedPassword);
     return receivedPasswordHash == storedPassword;
   }

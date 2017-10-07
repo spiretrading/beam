@@ -5,7 +5,9 @@ file(GLOB source_files
 
 add_library(Collections ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(Collections PROPERTIES OUTPUT_NAME beam_collections)
+set_target_properties(Collections PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
+  OUTPUT_NAME beam_collections)
 install(TARGETS Collections CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
 install(TARGETS Collections CONFIGURATIONS Release RelWithDebInfo
@@ -20,6 +22,7 @@ add_library(CollectionsTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(CollectionsTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_collections_tests)
 install(TARGETS CollectionsTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)

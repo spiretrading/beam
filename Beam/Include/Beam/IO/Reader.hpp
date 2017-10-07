@@ -22,7 +22,7 @@ namespace Details {
       "BufferType must implement the Buffer Concept.");
 
     //! Specifies a type of Buffer to read into.
-    typedef BufferType Buffer;
+    using Buffer = BufferType;
 
     //! Returns <code>true</code> iff data is available to read without
     //! blocking.

@@ -4,11 +4,9 @@ file(GLOB source_files
   ./../../../Source/ServiceLocator/*.cpp)
 
 add_library(ServiceLocator ${header_files} ${source_files})
-if(MSVC)
-  add_definitions(-DMYSQLPP_NO_DLL)
-endif(MSVC)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(ServiceLocator PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_service_locator)
 install(TARGETS ServiceLocator CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
@@ -24,6 +22,7 @@ add_library(ServiceLocatorTests ${test_header_files} ${test_source_files})
 set_source_files_properties(${test_header_files}
   PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(ServiceLocatorTests PROPERTIES
+  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
   OUTPUT_NAME beam_service_locator_tests)
 install(TARGETS ServiceLocatorTests CONFIGURATIONS Debug
   DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
@@ -38,9 +37,6 @@ target_link_libraries(ServiceLocatorTester ServiceLocatorTests IOTests
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
 
-if(MSVC)
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
-endif()
 if(UNIX)
   target_link_libraries(ServiceLocatorTester
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}

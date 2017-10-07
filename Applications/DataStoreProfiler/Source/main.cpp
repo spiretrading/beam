@@ -167,11 +167,11 @@ int main(int argc, const char** argv) {
   }
   MySqlDataStore mysqlDataStore{mySqlConfig.m_address, mySqlConfig.m_schema,
     mySqlConfig.m_username, mySqlConfig.m_password};
-//  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
-//    profileConfig.m_bufferSize, Ref(threadPool)};
-//  Beam::SessionCachedDataStore<MySqlDataStore*> sessionCachedDataStore{
-//    &mysqlDataStore, 1000000};
-  ProfileWrites(mysqlDataStore, profileConfig);
-  ProfileReads(mysqlDataStore, profileConfig);
+  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
+    profileConfig.m_bufferSize, Ref(threadPool)};
+  Beam::SessionCachedDataStore<Beam::BufferedDataStore<MySqlDataStore*>*>
+    sessionCachedDataStore{&bufferedDataStore, 1000000};
+  ProfileWrites(bufferedDataStore, profileConfig);
+  ProfileReads(bufferedDataStore, profileConfig);
   return 0;
 }

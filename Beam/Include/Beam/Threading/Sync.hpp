@@ -6,6 +6,7 @@
 #include <boost/utility/declval.hpp>
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Threading.hpp"
+#include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
 namespace Threading {
@@ -15,6 +16,7 @@ namespace Threading {
       \tparam T The type of value to store.
       \tparam MutexType The type of mutex to use.
    */
+  BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
   template<typename T, typename MutexType = boost::mutex>
   class Sync : private boost::noncopyable {
     public:
@@ -37,6 +39,12 @@ namespace Threading {
         \param sync The Sync to copy.
       */
       Sync(const Sync& sync);
+
+      //! Copies a Sync.
+      /*!
+        \param sync The Sync to copy.
+      */
+      Sync(Sync& sync);
 
       //! Moves a Sync.
       /*!
@@ -109,6 +117,7 @@ namespace Threading {
       mutable boost::unique_lock<Mutex>* m_lock;
       T m_value;
   };
+  BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
 
   //! Acquires a Sync's instance in a synchronized manner.
   /*!
@@ -156,6 +165,10 @@ namespace Threading {
   } catch(...) {
     sync.m_mutex.unlock();
   }
+
+  template<typename T, typename MutexType>
+  Sync<T, MutexType>::Sync(Sync& sync)
+      : Sync{static_cast<const Sync&>(sync)} {}
 
   template<typename T, typename MutexType>
   Sync<T, MutexType>::Sync(Sync&& sync)

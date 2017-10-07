@@ -21,7 +21,7 @@ namespace Details {
       "BufferType must implement the Buffer Concept.");
 
     //! The type of Buffer that gets written.
-    typedef BufferType Buffer;
+    using Buffer = BufferType;
 
     //! Writes data to the resource.
     /*!

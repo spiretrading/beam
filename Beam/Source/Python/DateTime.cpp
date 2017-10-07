@@ -26,7 +26,7 @@ namespace {
 
   struct PtimeFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(PyDateTime_Check(object)) {
+      if(object == Py_None || PyDateTime_Check(object)) {
         return object;
       }
       return nullptr;
@@ -36,29 +36,43 @@ namespace {
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto storage = reinterpret_cast<converter::rvalue_from_python_storage<
           ptime>*>(data)->storage.bytes;
-      date d(PyDateTime_GET_YEAR(object), PyDateTime_GET_MONTH(object),
-        PyDateTime_GET_DAY(object));
-      time_duration timeOfDay(PyDateTime_DATE_GET_HOUR(object),
-        PyDateTime_DATE_GET_MINUTE(object), PyDateTime_DATE_GET_SECOND(object));
-      timeOfDay += microsec(PyDateTime_DATE_GET_MICROSECOND(object));
-      new(storage) ptime(d, timeOfDay);
+      if(object == Py_None) {
+        new(storage) ptime{not_a_date_time};
+      } else {
+        date d(PyDateTime_GET_YEAR(object), PyDateTime_GET_MONTH(object),
+          PyDateTime_GET_DAY(object));
+        time_duration timeOfDay(PyDateTime_DATE_GET_HOUR(object),
+          PyDateTime_DATE_GET_MINUTE(object),
+          PyDateTime_DATE_GET_SECOND(object));
+        timeOfDay += microsec(PyDateTime_DATE_GET_MICROSECOND(object));
+        new(storage) ptime(d, timeOfDay);
+      }
       data->convertible = storage;
     }
   };
 
   struct TimeDurationToPython {
     static PyObject* convert(const time_duration& value) {
-      auto days = value.hours() / 24;
-      if (days < 0) {
-        --days;
-      }
-      auto seconds = value.total_seconds() - days * (24 * 3600);
-      auto usecs = value.total_microseconds();
-      if(days < 0) {
-        usecs = 1000000 - 1 - usecs;
+      auto totalMicroseconds = std::abs(value.total_microseconds());
+      auto totalSeconds = totalMicroseconds / 1000000;
+      auto days = totalSeconds / 86400;
+      auto seconds = totalSeconds - (86400 * days);
+      auto microseconds = totalMicroseconds - 1000000 * totalSeconds;
+      if(days != 0) {
+        if(totalMicroseconds < 0) {
+          days = -days;
+        }
+      } else if(seconds != 0) {
+        if(totalMicroseconds < 0) {
+          seconds = -seconds;
+        }
+      } else {
+        if(totalMicroseconds < 0) {
+          microseconds = -microseconds;
+        }
       }
       return PyDelta_FromDSU(static_cast<int>(days), static_cast<int>(seconds),
-        static_cast<int>(usecs));
+        static_cast<int>(microseconds));
     }
   };
 
@@ -75,7 +89,7 @@ namespace {
       auto timeDelta = reinterpret_cast<PyDateTime_Delta*>(object);
       auto days = timeDelta->days;
       auto isNegative = (days < 0);
-      if (isNegative) {
+      if(isNegative) {
         days = -days;
       }
       time_duration duration = hours(24) * days + seconds(timeDelta->seconds) +

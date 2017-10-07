@@ -2,6 +2,7 @@
 #define BEAM_WEBSERVICES_AUTHENTICATEDSESSION_HPP
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
+#include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/WebServices/Session.hpp"
 #include "Beam/WebServices/WebServices.hpp"
@@ -36,7 +37,12 @@ namespace WebServices {
       //! Resets the Account, logging it out.
       void ResetAccount();
 
+    protected:
+      template<typename Shuttler>
+      void Shuttle(Shuttler& shuttle, unsigned int version);
+
     private:
+      friend struct Serialization::DataShuttle;
       mutable boost::mutex m_mutex;
       ServiceLocator::DirectoryEntry m_account;
   };
@@ -65,6 +71,13 @@ namespace WebServices {
   inline void AuthenticatedSession::ResetAccount() {
     boost::lock_guard<boost::mutex> lock{m_mutex};
     m_account = {};
+  }
+
+  template<typename Shuttler>
+  void AuthenticatedSession::Shuttle(Shuttler& shuttle, unsigned int version) {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    Session::Shuttle(shuttle, version);
+    shuttle.Shuttle("account", m_account);
   }
 }
 }

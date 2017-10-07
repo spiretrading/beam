@@ -1,52 +1,50 @@
 #include "Beam/RegistryServiceTests/RegistryServletTester.hpp"
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
-#include "Beam/SignalHandling/NullSlot.hpp"
-#include "Beam/ServiceLocator/Authenticator.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/ServiceLocator/SessionAuthenticator.hpp"
+#include "Beam/SignalHandling/NullSlot.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::RegistryService;
 using namespace Beam::RegistryService::Tests;
-using namespace Beam::Serialization;
 using namespace Beam::ServiceLocator;
 using namespace Beam::ServiceLocator::Tests;
 using namespace Beam::Services;
+using namespace Beam::Services::Tests;
 using namespace Beam::SignalHandling;
 using namespace Beam::Threading;
 using namespace boost;
-using namespace boost::posix_time;
 using namespace std;
 
 void RegistryServletTester::setUp() {
-  m_serviceLocatorInstance.Initialize();
-  m_serviceLocatorInstance->Open();
+  m_serviceLocatorEnvironment.emplace();
+  m_serviceLocatorEnvironment->Open();
   m_dataStore = std::make_shared<LocalRegistryDataStore>();
-  m_serverConnection.Initialize();
-  m_clientProtocol.Initialize(Initialize(string("test"),
-    Ref(*m_serverConnection)), Initialize());
+  auto serverConnection = std::make_unique<TestServerConnection>();
+  m_clientProtocol.emplace(Initialize("test", Ref(*serverConnection)),
+    Initialize());
   RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
   RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
   RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
-  std::unique_ptr<VirtualServiceLocatorClient> registryServiceLocatorClient =
-    m_serviceLocatorInstance->BuildClient();
+  auto registryServiceLocatorClient =
+    m_serviceLocatorEnvironment->BuildClient();
   registryServiceLocatorClient->SetCredentials("root", "");
   registryServiceLocatorClient->Open();
-  m_container.Initialize(Initialize(std::move(registryServiceLocatorClient),
-    Initialize(m_dataStore)), &*m_serverConnection,
-    factory<std::shared_ptr<TriggerTimer>>());
+  m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
+    Initialize(m_dataStore)), std::move(serverConnection),
+    factory<std::unique_ptr<TriggerTimer>>());
   m_container->Open();
 }
 
 void RegistryServletTester::tearDown() {
-  m_clientProtocol.Reset();
-  m_container.Reset();
+  m_clientProtocol.reset();
+  m_container.reset();
   m_dataStore.reset();
 }
 
 void RegistryServletTester::TestMakeDirectory() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -57,7 +55,7 @@ void RegistryServletTester::TestMakeDirectory() {
 }
 
 void RegistryServletTester::TestMakeValue() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -69,7 +67,7 @@ void RegistryServletTester::TestMakeValue() {
 }
 
 void RegistryServletTester::TestLoadPath() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
@@ -82,7 +80,7 @@ void RegistryServletTester::TestLoadPath() {
 }
 
 void RegistryServletTester::TestLoadValue() {
-  auto serviceLocatorClient = m_serviceLocatorInstance->BuildClient();
+  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
   serviceLocatorClient->SetCredentials("root", "");
   serviceLocatorClient->Open();
   OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(

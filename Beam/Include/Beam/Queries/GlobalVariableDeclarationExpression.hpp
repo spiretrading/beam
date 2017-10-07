@@ -64,9 +64,9 @@ namespace Queries {
   inline GlobalVariableDeclarationExpression::
       GlobalVariableDeclarationExpression(const std::string& name,
       const Expression& initialValue, const Expression& body)
-      : m_name(name),
-        m_initialValue(initialValue),
-        m_body(body) {}
+      : m_name{name},
+        m_initialValue{initialValue},
+        m_body{body} {}
 
   inline const std::string& GlobalVariableDeclarationExpression::
       GetName() const {
@@ -100,8 +100,8 @@ namespace Queries {
 
   inline GlobalVariableDeclarationExpression::
       GlobalVariableDeclarationExpression()
-      : m_initialValue(MakeConstantExpression(false)),
-        m_body(MakeConstantExpression(false)) {}
+      : m_initialValue{MakeConstantExpression(false)},
+        m_body{MakeConstantExpression(false)} {}
 
   template<typename Shuttler>
   void GlobalVariableDeclarationExpression::Shuttle(Shuttler& shuttle,

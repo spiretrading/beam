@@ -1,5 +1,7 @@
 #ifndef BEAM_HTTPSERVERREQUEST_HPP
 #define BEAM_HTTPSERVERREQUEST_HPP
+#include <sstream>
+#include <string>
 #include <vector>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
@@ -60,6 +62,27 @@ namespace WebServices {
    */
   class HttpRequest {
     public:
+
+      //! Constructs an HTTP/1.1 GET request.
+      /*!
+        \param uri The URI to request.
+      */
+      HttpRequest(Uri uri);
+
+      //! Constructs an HTTP/1.1 request.
+      /*!
+        \param method The HTTP method.
+        \param uri The URI to request.
+      */
+      HttpRequest(HttpMethod method, Uri uri);
+
+      //! Constructs an HTTP/1.1 request.
+      /*!
+        \param method The HTTP method.
+        \param uri The URI to request.
+        \param body The body.
+      */
+      HttpRequest(HttpMethod method, Uri uri, IO::SharedBuffer body);
 
       //! Constructs an HttpRequest.
       /*!
@@ -123,8 +146,21 @@ namespace WebServices {
       //! Returns all Cookies.
       const std::vector<Cookie>& GetCookies() const;
 
+      //! Adds a Cookie.
+      /*!
+        \param cookie The Cookie to add.
+      */
+      void Add(Cookie cookie);
+
       //! Returns the message body.
       const IO::SharedBuffer& GetBody() const;
+
+      //! Outputs this response into a Buffer.
+      /*!
+        \param buffer The Buffer to output this response to.
+      */
+      template<typename Buffer>
+      void Encode(Out<Buffer> buffer) const;
 
     private:
       HttpVersion m_version;
@@ -153,10 +189,15 @@ namespace WebServices {
       const HttpRequest& request) {
     sink << request.GetMethod() << ' ';
     if(request.GetUri().GetPath().empty()) {
-      sink << '/' << ' ';
+      sink << '/';
     } else {
-      sink << request.GetUri().GetPath() << ' ';
+      sink << request.GetUri().GetPath();
     }
+    if(request.GetMethod() == HttpMethod::GET &&
+        !request.GetUri().GetQuery().empty()) {
+      sink << '?' << request.GetUri().GetQuery();
+    }
+    sink << ' ';
     sink << request.GetVersion() << "\r\n";
     for(auto& header : request.GetHeaders()) {
       sink << header.GetName() << ": " << header.GetValue() << "\r\n";
@@ -198,6 +239,17 @@ namespace WebServices {
     }
   }
 
+  inline HttpRequest::HttpRequest(Uri uri)
+      : HttpRequest{HttpMethod::GET, std::move(uri)} {}
+
+  inline HttpRequest::HttpRequest(HttpMethod method, Uri uri)
+      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri)} {}
+
+  inline HttpRequest::HttpRequest(HttpMethod method, Uri uri,
+      IO::SharedBuffer body)
+      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri), {}, {},
+          {}, std::move(body)} {}
+
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri)
       : HttpRequest{version, method, std::move(uri), {}, {}, {}, {}} {}
@@ -215,10 +267,26 @@ namespace WebServices {
         m_body{std::move(body)} {
     if(m_specialHeaders.m_host.empty()) {
       m_specialHeaders.m_host = m_uri.GetHostname();
-      if(m_uri.GetPort() != 0) {
+      if(m_uri.GetPort() != 0 &&
+          !((m_uri.GetScheme() == "http" || m_uri.GetScheme() == "ws") &&
+          m_uri.GetPort() == 80) &&
+          !((m_uri.GetScheme() == "https" || m_uri.GetScheme() == "wss") &&
+          m_uri.GetPort() == 443)) {
         m_specialHeaders.m_host += ":" + std::to_string(m_uri.GetPort());
       }
     }
+    if(m_method == HttpMethod::POST && !m_uri.GetQuery().empty()) {
+      m_specialHeaders.m_contentLength = m_uri.GetQuery().size();
+      m_body.Reset();
+      m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
+      Add(HttpHeader{"Content-Type", "application/x-www-form-urlencoded"});
+    }
+    if(!m_uri.GetUsername().empty() || !m_uri.GetPassword().empty()) {
+      auto authentication = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(
+        m_uri.GetUsername() + ":" + m_uri.GetPassword()));
+      Add(HttpHeader{"Authorization", "Basic " + authentication});
+    }
+    m_specialHeaders.m_contentLength = m_body.GetSize();
   }
 
   inline const HttpVersion& HttpRequest::GetVersion() const {
@@ -314,8 +382,20 @@ namespace WebServices {
     return m_cookies;
   }
 
+  inline void HttpRequest::Add(Cookie cookie) {
+      m_cookies.push_back(std::move(cookie));
+  }
+
   inline const IO::SharedBuffer& HttpRequest::GetBody() const {
     return m_body;
+  }
+
+  template<typename Buffer>
+  void HttpRequest::Encode(Out<Buffer> buffer) const {
+    std::stringstream ss;
+    ss << *this;
+    auto str = ss.str();
+    buffer->Append(str.c_str(), str.size());
   }
 }
 }

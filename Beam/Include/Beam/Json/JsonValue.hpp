@@ -1,5 +1,6 @@
 #ifndef BEAM_JSONVALUE_HPP
 #define BEAM_JSONVALUE_HPP
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -85,6 +86,12 @@ namespace Details {
         \param value The value to represent.
       */
       JsonValue(const std::string& value);
+
+      //! Constructs a string value.
+      /*!
+        \param value The value to represent.
+      */
+      JsonValue(const char* value);
 
       //! Constructs an object value.
       /*!
@@ -241,6 +248,9 @@ namespace Details {
   inline JsonValue::JsonValue(const std::string& value)
       : Details::JsonVariant(value) {}
 
+  inline JsonValue::JsonValue(const char* value)
+      : JsonValue{std::string{value}} {}
+
   inline JsonValue::JsonValue(const JsonObject& value)
       : Details::JsonVariant(value) {}
 
@@ -318,7 +328,12 @@ namespace Details {
         }
       },
       [&] (double value) {
-        sink << ToString(value);
+        double temp;
+        if(std::modf(value, &temp) != 0) {
+          sink << ToString(value);
+        } else {
+          sink << static_cast<int>(value);
+        }
       },
       [&] (const std::string& value) {
         sink << '\"' << value + '\"';

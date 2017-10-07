@@ -6,6 +6,7 @@
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
@@ -14,8 +15,9 @@
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/UidService/UidClient.hpp"
+#include "Beam/UidService/UidServiceException.hpp"
 #include "Beam/UidService/VirtualUidClient.hpp"
-#include "Beam/UidServiceTests/UidServiceTestInstance.hpp"
+#include "Beam/UidServiceTests/UidServiceTestEnvironment.hpp"
 #include <boost/noncopyable.hpp>
 
 using namespace Beam;
@@ -60,6 +62,15 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile VirtualUidClient* get_pointer(
+      const volatile VirtualUidClient* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportUidService() {
   string nestedName = extract<string>(scope().attr("__name__") +
     ".uid_service");
@@ -68,13 +79,16 @@ void Beam::Python::ExportUidService() {
   scope().attr("uid_service") = nestedModule;
   scope parent = nestedModule;
   ExportUidClient();
+  ExportException<UidServiceException, std::runtime_error>(
+    "UidServiceException")
+    .def(init<const string&>());
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(
       borrowed(PyImport_AddModule(nestedName.c_str())))};
     parent.attr("tests") = nestedModule;
     scope child = nestedModule;
-    ExportUidServiceTestInstance();
+    ExportUidServiceTestEnvironment();
   }
 }
 
@@ -86,12 +100,11 @@ void Beam::Python::ExportUidClient() {
     .def("close", BlockingFunction(&VirtualUidClient::Close));
 }
 
-void Beam::Python::ExportUidServiceTestInstance() {
-  class_<UidServiceTestInstance, boost::noncopyable>("UidServiceTestInstance",
-      init<>())
-    .def("__del__", BlockingFunction(&UidServiceTestInstance::Close))
-    .def("open", BlockingFunction(&UidServiceTestInstance::Open))
-    .def("close", BlockingFunction(&UidServiceTestInstance::Close))
+void Beam::Python::ExportUidServiceTestEnvironment() {
+  class_<UidServiceTestEnvironment, boost::noncopyable>(
+      "UidServiceTestEnvironment", init<>())
+    .def("open", BlockingFunction(&UidServiceTestEnvironment::Open))
+    .def("close", BlockingFunction(&UidServiceTestEnvironment::Close))
     .def("build_client",
-      ReleaseUniquePtr(&UidServiceTestInstance::BuildClient));
+      ReleaseUniquePtr(&UidServiceTestEnvironment::BuildClient));
 }

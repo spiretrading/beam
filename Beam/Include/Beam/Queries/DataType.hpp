@@ -4,6 +4,7 @@
 #include "Beam/Pointers/ClonePtr.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
+#include "Beam/Utilities/Streamable.hpp"
 
 namespace Beam {
 namespace Queries {
@@ -11,7 +12,7 @@ namespace Queries {
   /*! \class VirtualDataType
       \brief Base class representing the data type an Expression evaluates to.
    */
-  class VirtualDataType : public virtual Cloneable {
+  class VirtualDataType : public virtual Cloneable, public Streamable {
     public:
       virtual ~VirtualDataType() = default;
 

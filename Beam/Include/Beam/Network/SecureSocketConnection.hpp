@@ -2,6 +2,7 @@
 #define BEAM_SECURESOCKETCONNECTION_HPP
 #include <functional>
 #include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/ConnectException.hpp"
@@ -51,6 +52,7 @@ namespace Network {
       static const std::size_t DEFAULT_WRITE_BUFFER_SIZE = 8 * 1024;
       std::shared_ptr<Details::SecureSocketEntry> m_socket;
       std::vector<IpAddress> m_addresses;
+      boost::optional<IpAddress> m_interface;
       bool m_noDelayEnabled;
       std::size_t m_writeBufferSize;
       IO::OpenState m_openState;
@@ -62,7 +64,13 @@ namespace Network {
         const IpAddress& address);
       SecureSocketConnection(
         const std::shared_ptr<Details::SecureSocketEntry>& socket,
+        const IpAddress& address, const IpAddress& interface);
+      SecureSocketConnection(
+        const std::shared_ptr<Details::SecureSocketEntry>& socket,
         const std::vector<IpAddress>& addresses);
+      SecureSocketConnection(
+        const std::shared_ptr<Details::SecureSocketEntry>& socket,
+        const std::vector<IpAddress>& addresses, const IpAddress& interface);
       void Shutdown();
       void SetOpen();
   };
@@ -142,6 +150,29 @@ namespace Network {
       while(errorCode != 0 && endpointIterator != end) {
         boost::system::error_code closeError;
         m_socket->m_socket.lowest_layer().close(closeError);
+        if(m_interface.is_initialized()) {
+          boost::asio::ip::tcp::endpoint localEndpoint{
+            boost::asio::ip::address::from_string(m_interface->GetHost(),
+            errorCode), m_interface->GetPort()};
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
+          m_socket->m_socket.lowest_layer().open(boost::asio::ip::tcp::v4(),
+            errorCode);
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
+          m_socket->m_socket.lowest_layer().bind(localEndpoint, errorCode);
+          if(errorCode) {
+            m_openState.SetOpenFailure(
+              IO::ConnectException{errorCode.message()});
+            Shutdown();
+          }
+        }
         m_socket->m_socket.lowest_layer().connect(*endpointIterator, errorCode);
         ++endpointIterator;
       }
@@ -195,9 +226,26 @@ namespace Network {
 
   inline SecureSocketConnection::SecureSocketConnection(
       const std::shared_ptr<Details::SecureSocketEntry>& socket,
+      const IpAddress& address, const IpAddress& interface)
+      : SecureSocketConnection{socket, std::vector<IpAddress>{address},
+          interface} {}
+
+  inline SecureSocketConnection::SecureSocketConnection(
+      const std::shared_ptr<Details::SecureSocketEntry>& socket,
       const std::vector<IpAddress>& addresses)
       : m_socket{socket},
         m_addresses{addresses},
+        m_noDelayEnabled{false},
+        m_writeBufferSize{DEFAULT_WRITE_BUFFER_SIZE} {
+    m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);
+  }
+
+  inline SecureSocketConnection::SecureSocketConnection(
+      const std::shared_ptr<Details::SecureSocketEntry>& socket,
+      const std::vector<IpAddress>& addresses, const IpAddress& interface)
+      : m_socket{socket},
+        m_addresses{addresses},
+        m_interface{interface},
         m_noDelayEnabled{false},
         m_writeBufferSize{DEFAULT_WRITE_BUFFER_SIZE} {
     m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);

@@ -60,6 +60,8 @@ namespace Queries {
     protected:
       virtual const void* GetValuePtr() const;
 
+      virtual std::ostream& ToStream(std::ostream& out) const;
+
       template<typename Shuttler>
       void Shuttle(Shuttler& shuttle, unsigned int version);
 
@@ -83,13 +85,13 @@ namespace Queries {
   template<typename T>
   NativeValue<T>::NativeValue()
       : m_value(),
-        m_type(Type::GetInstance()) {}
+        m_type{Type::GetInstance()} {}
 
   template<typename T>
   template<typename ValueForward>
   NativeValue<T>::NativeValue(ValueForward&& value)
       : m_value(std::forward<ValueForward>(value)),
-        m_type(Type::GetInstance()) {}
+        m_type{Type::GetInstance()} {}
 
   template<typename T>
   const DataType& NativeValue<T>::GetType() const {
@@ -109,6 +111,11 @@ namespace Queries {
   template<typename T>
   const void* NativeValue<T>::GetValuePtr() const {
     return &m_value;
+  }
+
+  template<typename T>
+  std::ostream& NativeValue<T>::ToStream(std::ostream& out) const {
+    return out << m_value;
   }
 
   template<typename T>

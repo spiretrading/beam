@@ -4,7 +4,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/BasicIStreamReader.hpp"
 #include "Beam/IO/BasicOStreamWriter.hpp"
@@ -15,6 +14,7 @@
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace RegistryService {
@@ -26,38 +26,44 @@ namespace RegistryService {
     public:
 
       //! Constructs a FileSystemRegistryDataStore.
+      /*!
+        \param root The directory storing the files.
+      */
       FileSystemRegistryDataStore(const boost::filesystem::path& root);
 
-      virtual ~FileSystemRegistryDataStore();
+      virtual ~FileSystemRegistryDataStore() override;
 
-      virtual RegistryEntry LoadParent(const RegistryEntry& registryEntry);
+      virtual RegistryEntry LoadParent(
+        const RegistryEntry& registryEntry) override;
 
       virtual std::vector<RegistryEntry> LoadChildren(
-        const RegistryEntry& directory);
+        const RegistryEntry& directory) override;
 
-      virtual RegistryEntry LoadRegistryEntry(std::uint64_t id);
+      virtual RegistryEntry LoadRegistryEntry(std::uint64_t id) override;
 
       virtual RegistryEntry Copy(const RegistryEntry& source,
-        const RegistryEntry& destination);
+        const RegistryEntry& destination) override;
 
       virtual void Move(const RegistryEntry& source,
-        const RegistryEntry& destination);
+        const RegistryEntry& destination) override;
 
-      virtual void Delete(const RegistryEntry& registryEntry);
+      virtual void Delete(const RegistryEntry& registryEntry) override;
 
-      virtual IO::SharedBuffer Load(const RegistryEntry& registryEntry);
+      virtual IO::SharedBuffer Load(
+        const RegistryEntry& registryEntry) override;
 
       virtual RegistryEntry Store(const RegistryEntry& registryEntry,
-        const IO::SharedBuffer& value);
+        const IO::SharedBuffer& value) override;
 
-      virtual void WithTransaction(const std::function<void ()>& transaction);
+      virtual void WithTransaction(
+        const std::function<void ()>& transaction) override;
 
-      virtual void Open();
+      virtual void Open() override;
 
-      virtual void Close();
+      virtual void Close() override;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable Threading::Mutex m_mutex;
       boost::filesystem::path m_root;
       std::uint64_t m_nextId;
       IO::OpenState m_openState;
@@ -70,7 +76,7 @@ namespace RegistryService {
 
   inline FileSystemRegistryDataStore::FileSystemRegistryDataStore(
       const boost::filesystem::path& root)
-      : m_root(root) {}
+      : m_root{root} {}
 
   inline FileSystemRegistryDataStore::~FileSystemRegistryDataStore() {
     Close();
@@ -78,17 +84,17 @@ namespace RegistryService {
 
   inline RegistryEntry FileSystemRegistryDataStore::LoadParent(
       const RegistryEntry& registryEntry) {
-    Details::RegistryEntryRecord record = LoadRecord(registryEntry.m_id);
+    auto record = LoadRecord(registryEntry.m_id);
     return LoadRegistryEntry(record.m_parent);
   }
 
   inline std::vector<RegistryEntry> FileSystemRegistryDataStore::LoadChildren(
       const RegistryEntry& directory) {
-    Details::RegistryEntryRecord record = LoadRecord(directory.m_id);
+    auto record = LoadRecord(directory.m_id);
     std::vector<RegistryEntry> children;
     std::transform(record.m_children.begin(), record.m_children.end(),
       std::back_inserter(children),
-      [&] (std::uint64_t id) {
+      [&] (auto id) {
         return this->LoadRegistryEntry(id);
       });
     return children;
@@ -96,14 +102,13 @@ namespace RegistryService {
 
   inline RegistryEntry FileSystemRegistryDataStore::LoadRegistryEntry(
       std::uint64_t id) {
-    Details::RegistryEntryRecord record = LoadRecord(id);
+    auto record = LoadRecord(id);
     return record.m_registryEntry;
   }
 
   inline RegistryEntry FileSystemRegistryDataStore::Copy(
       const RegistryEntry& source, const RegistryEntry& destination) {
-    Details::RegistryEntryRecord destinationRecord =
-      LoadRecord(destination.m_id);
+    auto destinationRecord = LoadRecord(destination.m_id);
     Details::RegistryEntryRecord sourceRecord;
     try {
       sourceRecord = LoadRecord(source.m_id);
@@ -117,7 +122,7 @@ namespace RegistryService {
     destinationRecord.m_children.push_back(sourceRecord.m_registryEntry.m_id);
     SaveRecord(destinationRecord);
     SaveRecord(sourceRecord);
-    for(std::uint64_t childId : children) {
+    for(auto childId : children) {
       Copy(LoadRegistryEntry(childId), sourceRecord.m_registryEntry);
     }
     return sourceRecord.m_registryEntry;
@@ -125,11 +130,9 @@ namespace RegistryService {
 
   inline void FileSystemRegistryDataStore::Move(const RegistryEntry& source,
       const RegistryEntry& destination) {
-    Details::RegistryEntryRecord sourceRecord = LoadRecord(source.m_id);
-    Details::RegistryEntryRecord destinationRecord =
-      LoadRecord(destination.m_id);
-    Details::RegistryEntryRecord parentRecord =
-      LoadRecord(sourceRecord.m_parent);
+    auto sourceRecord = LoadRecord(source.m_id);
+    auto destinationRecord = LoadRecord(destination.m_id);
+    auto parentRecord = LoadRecord(sourceRecord.m_parent);
     sourceRecord.m_parent = destination.m_id;
     destinationRecord.m_children.push_back(sourceRecord.m_registryEntry.m_id);
     parentRecord.m_children.erase(std::find(parentRecord.m_children.begin(),
@@ -141,32 +144,32 @@ namespace RegistryService {
 
   inline void FileSystemRegistryDataStore::Delete(
       const RegistryEntry& registryEntry) {
-    Details::RegistryEntryRecord record = LoadRecord(registryEntry.m_id);
-    for(std::uint64_t childId : record.m_children) {
+    auto record = LoadRecord(registryEntry.m_id);
+    for(auto childId : record.m_children) {
       Delete(LoadRecord(childId).m_registryEntry);
     }
-    Details::RegistryEntryRecord parent = LoadRecord(record.m_parent);
+    auto parent = LoadRecord(record.m_parent);
     parent.m_children.erase(std::find(parent.m_children.begin(),
       parent.m_children.end(), record.m_registryEntry.m_id));
     SaveRecord(parent);
-    boost::filesystem::path registryPath = GetPath(registryEntry.m_id);
+    auto registryPath = GetPath(registryEntry.m_id);
     boost::filesystem::remove(registryPath);
   }
 
   inline IO::SharedBuffer FileSystemRegistryDataStore::Load(
       const RegistryEntry& registryEntry) {
-    Details::RegistryEntryRecord record = LoadRecord(registryEntry.m_id);
+    auto record = LoadRecord(registryEntry.m_id);
     if(record.m_registryEntry.m_type != RegistryEntry::Type::VALUE) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException("Entry not found."));
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException{"Entry not found."});
     }
     return record.m_value;
   }
 
   inline RegistryEntry FileSystemRegistryDataStore::Store(
       const RegistryEntry& registryEntry, const IO::SharedBuffer& value) {
-    Details::RegistryEntryRecord record = LoadRecord(registryEntry.m_id);
+    auto record = LoadRecord(registryEntry.m_id);
     if(record.m_registryEntry.m_type != RegistryEntry::Type::VALUE) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException("Entry not found."));
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException{"Entry not found."});
     }
     record.m_value = value;
     ++record.m_registryEntry.m_version;
@@ -176,7 +179,7 @@ namespace RegistryService {
 
   inline void FileSystemRegistryDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     transaction();
   }
 
@@ -195,7 +198,7 @@ namespace RegistryService {
       writer.Write(buffer);
     }
     try {
-      RegistryEntry root = LoadRegistryEntry(RegistryEntry::GetRoot().m_id);
+      auto root = LoadRegistryEntry(RegistryEntry::GetRoot().m_id);
     } catch(const std::exception&) {
       Details::RegistryEntryRecord rootRecord;
       rootRecord.m_registryEntry = RegistryEntry::GetRoot();
@@ -231,8 +234,8 @@ namespace RegistryService {
       receiver.SetSource(Ref(buffer));
       receiver.Shuttle(record);
     } catch(const std::exception&) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException(
-        "Unable to load entry."));
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException{
+        "Unable to load entry."});
     }
     return record;
   }
@@ -248,8 +251,8 @@ namespace RegistryService {
       sender.Shuttle(record);
       writer.Write(buffer);
     } catch(const std::exception&) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException(
-        "Unable to save entry."));
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException{
+        "Unable to save entry."});
     }
   }
 

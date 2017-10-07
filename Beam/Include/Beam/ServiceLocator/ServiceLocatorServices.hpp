@@ -307,6 +307,18 @@ namespace ServiceLocator {
       boost::posix_time::ptime, DirectoryEntry, account),
     //! \endcond
 
+    /*! \interface Beam::ServiceLocator::RenameService
+        \brief Renames a DirectoryEntry.
+        \param entry <code>DirectoryEntry</code> The DirectoryEntry to rename.
+        \param name <code>std::string</code> The name to assign to the
+                    <i>entry</i>.
+        \return <code>DirectoryEntry</code> The updated DirectoryEntry.
+    */
+    //! \cond
+    (RenameService, "Beam.ServiceLocator.RenameService", DirectoryEntry,
+      DirectoryEntry, entry, std::string, name),
+    //! \endcond
+
     /*! \interface Beam::ServiceLocator::AuthenticateAccountService
         \brief Authenticates an account.
         \param username <code>std::string</code> The account's username.

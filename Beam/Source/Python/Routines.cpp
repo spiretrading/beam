@@ -1,6 +1,8 @@
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilLock.hpp"
+#include "Beam/Routines/RoutineException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 
@@ -44,6 +46,15 @@ namespace {
     routines.Wait();
   }
 }
+
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile Eval<object>* get_pointer(
+      const volatile Eval<object>* p) {
+    return p;
+  }
+}
+#endif
 
 void Beam::Python::ExportBaseAsync() {
   {
@@ -99,6 +110,8 @@ void Beam::Python::ExportRoutines() {
   ExportPythonAsync();
   ExportRoutineHandler();
   ExportRoutineHandlerGroup();
+  ExportException<RoutineException, std::runtime_error>("RoutineException")
+    .def(init<const string&>());
   def("spawn", &PythonSpawn);
   def("wait", &Wait);
 }

@@ -9,6 +9,7 @@ namespace ServiceLocator {
   template<typename ContainerType, typename ServletType,
     typename ServiceLocatorClientType> class AuthenticationServletAdapter;
   template<typename ServiceProtocolClientType> struct Authenticator;
+  template<typename DataStoreType> class CachedServiceLocatorDataStore;
   struct DirectoryEntry;
   class LocalServiceLocatorDataStore;
   class MySqlServiceLocatorDataStore;

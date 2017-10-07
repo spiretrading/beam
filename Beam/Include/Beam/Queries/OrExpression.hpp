@@ -43,11 +43,13 @@ namespace Queries {
 
       virtual void Apply(ExpressionVisitor& visitor) const;
 
+    protected:
+      virtual std::ostream& ToStream(std::ostream& out) const;
+
     private:
       friend struct Serialization::DataShuttle;
       Expression m_left;
       Expression m_right;
-      DataType m_type;
 
       OrExpression();
       template<typename Shuttler>
@@ -83,14 +85,15 @@ namespace Queries {
 
   inline OrExpression::OrExpression(const Expression& lhs,
       const Expression& rhs)
-      : m_left(lhs),
-        m_right(rhs),
-        m_type(BoolType()) {
+      : m_left{lhs},
+        m_right{rhs} {
     if(m_left->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException());
+      BOOST_THROW_EXCEPTION(TypeCompatibilityException{
+        "Expression must be bool."});
     }
     if(m_right->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException());
+      BOOST_THROW_EXCEPTION(TypeCompatibilityException{
+        "Expression must be bool."});
     }
   }
 
@@ -103,17 +106,22 @@ namespace Queries {
   }
 
   inline const DataType& OrExpression::GetType() const {
-    return m_type;
+    static DataType value = BoolType::GetInstance();
+    return value;
   }
 
   inline void OrExpression::Apply(ExpressionVisitor& visitor) const {
     visitor.Visit(*this);
   }
 
+  inline std::ostream& OrExpression::ToStream(std::ostream& out) const {
+    return out << "(or " << GetLeftExpression() << " " <<
+      GetRightExpression() << ")";
+  }
+
   inline OrExpression::OrExpression()
-      : m_left(MakeConstantExpression(false)),
-        m_right(MakeConstantExpression(false)),
-        m_type(BoolType()) {}
+      : m_left{MakeConstantExpression(false)},
+        m_right{MakeConstantExpression(false)} {}
 
   template<typename Shuttler>
   void OrExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

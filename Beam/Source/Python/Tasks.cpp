@@ -5,10 +5,17 @@
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/IdleTask.hpp"
+#include "Beam/Tasks/ReactorMonitorTask.hpp"
+#include "Beam/Tasks/ReactorTask.hpp"
+#include "Beam/Tasks/SpawnTask.hpp"
 #include "Beam/Tasks/Task.hpp"
+#include "Beam/Tasks/TaskPropertyNotFoundException.hpp"
+#include "Beam/Tasks/UntilTask.hpp"
+#include "Beam/Tasks/WhenTask.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
@@ -17,6 +24,7 @@
 
 using namespace Beam;
 using namespace Beam::Python;
+using namespace Beam::Reactors;
 using namespace Beam::Tasks;
 using namespace boost;
 using namespace boost::python;
@@ -170,6 +178,69 @@ namespace {
   }
 }
 
+#ifdef _MSC_VER
+namespace boost {
+  template<> inline const volatile AggregateTask* get_pointer(
+      const volatile AggregateTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile BasicTask* get_pointer(
+      const volatile BasicTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile BasicTaskWrapper* get_pointer(
+      const volatile BasicTaskWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile IdleTask* get_pointer(
+      const volatile IdleTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonTaskFactoryWrapper* get_pointer(
+      const volatile PythonTaskFactoryWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile Publisher<Task::StateEntry>*
+      get_pointer(const volatile Publisher<Task::StateEntry>* p) {
+    return p;
+  }
+
+  template<> inline const volatile ReactorMonitorTask* get_pointer(
+      const volatile ReactorMonitorTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile SpawnTask* get_pointer(
+      const volatile SpawnTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile Task* get_pointer(const volatile Task* p) {
+    return p;
+  }
+
+  template<> inline const volatile TaskWrapper* get_pointer(
+      const volatile TaskWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile UntilTask* get_pointer(
+      const volatile UntilTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile WhenTask* get_pointer(
+      const volatile WhenTask* p) {
+    return p;
+  }
+}
+#endif
+
 void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>,
     boost::noncopyable, bases<BasicTask>>("AggregateTask",
@@ -230,6 +301,38 @@ void Beam::Python::ExportIdleTask() {
   implicitly_convertible<std::shared_ptr<IdleTask>,
     std::shared_ptr<BasicTask>>();
   implicitly_convertible<std::shared_ptr<IdleTask>, std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportReactorMonitorTask() {
+  class_<ReactorMonitorTask, std::shared_ptr<ReactorMonitorTask>,
+    boost::noncopyable, bases<BasicTask>>("ReactorMonitorTask",
+    init<const TaskFactory&, RefType<ReactorMonitor>>());
+  class_<ReactorMonitorTaskFactory, boost::noncopyable,
+    bases<VirtualTaskFactory>>("ReactorMonitorTaskFactory",
+    init<const TaskFactory&, RefType<ReactorMonitor>>())
+    .def("create", &ReactorMonitorTaskFactory::Create)
+    .def("prepare_continuation",
+    &ReactorMonitorTaskFactory::PrepareContinuation);
+  implicitly_convertible<ReactorMonitorTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<ReactorMonitorTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<ReactorMonitorTask>,
+    std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportSpawnTask() {
+  class_<SpawnTask, std::shared_ptr<SpawnTask>, boost::noncopyable,
+    bases<BasicTask>>("SpawnTask",
+    init<const TaskFactory&, const std::shared_ptr<BaseReactor>&,
+    RefType<ReactorMonitor>>());
+  class_<SpawnTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
+    "SpawnTaskFactory", init<const TaskFactory&,
+    const std::shared_ptr<BaseReactor>&, RefType<ReactorMonitor>>())
+    .def("create", &SpawnTaskFactory::Create);
+  implicitly_convertible<SpawnTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<SpawnTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<SpawnTask>, std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportTask() {
@@ -297,6 +400,42 @@ void Beam::Python::ExportTasks() {
   ExportBasicTask();
   ExportAggregateTask();
   ExportIdleTask();
+  ExportSpawnTask();
+  ExportUntilTask();
+  ExportWhenTask();
+  ExportException<TaskPropertyNotFoundException, std::runtime_error>(
+    "TaskPropertyNotFoundException")
+    .def(init<const string&>());
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));
+}
+
+void Beam::Python::ExportUntilTask() {
+  class_<UntilTask, std::shared_ptr<UntilTask>, boost::noncopyable,
+    bases<BasicTask>>("UntilTask",
+    init<const TaskFactory&, const std::shared_ptr<Reactor<bool>>&,
+    RefType<ReactorMonitor>>());
+  class_<UntilTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
+    "UntilTaskFactory", init<const TaskFactory&,
+    const std::shared_ptr<Reactor<bool>>&, RefType<ReactorMonitor>>())
+    .def("create", &UntilTaskFactory::Create);
+  implicitly_convertible<UntilTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<UntilTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<UntilTask>, std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportWhenTask() {
+  class_<WhenTask, std::shared_ptr<WhenTask>, boost::noncopyable,
+    bases<BasicTask>>("WhenTask",
+    init<const TaskFactory&, const std::shared_ptr<Reactor<bool>>&,
+    RefType<ReactorMonitor>>());
+  class_<WhenTaskFactory, boost::noncopyable, bases<VirtualTaskFactory>>(
+    "WhenTaskFactory", init<const TaskFactory&,
+    const std::shared_ptr<Reactor<bool>>&, RefType<ReactorMonitor>>())
+    .def("create", &UntilTaskFactory::Create);
+  implicitly_convertible<WhenTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<WhenTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<WhenTask>, std::shared_ptr<Task>>();
 }

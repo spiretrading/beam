@@ -23,24 +23,37 @@
 namespace Beam {
 namespace Queries {
 
-  //! Loads the initial Sequence to use from an SQL database.
+  //! Escapes special/reserved characters in an SQL string.
   /*!
-    \param table The table to query.
-    \param indexQuery The SQL query fragment containing the index to query.
-    \param connection The MySQL connection to use.
-    \return The initial Sequence number.
+    \param source The string to escape.
+    \return A copy of <i>source</i> with special characters escaped.
   */
-  inline Sequence LoadSqlInitialSequence(const std::string& table,
-      const std::string& indexQuery, mysqlpp::Connection& connection) {
-    auto query = connection.query();
-    query << "SELECT query_sequence FROM " << table << " WHERE " <<
-      indexQuery << " ORDER BY query_sequence DESC LIMIT 1";
-    auto result = query.store();
-    if(!result || result.size() != 1) {
-      return Sequence(1);
-    } else {
-      return Increment(Sequence(result[0][0].conv<std::uint64_t>(0)));
+  inline std::string EscapeSql(const std::string& source) {
+    std::string result;
+    for(auto c : source) {
+      if(c == '\0') {
+        result += "\\0";
+      } else if(c == '\'') {
+        result += "\\'";
+      } else if(c == '\"') {
+        result += "\\\"";
+      } else if(c == '\x08') {
+        result += "\\b";
+      } else if(c == '\n') {
+        result += "\\n";
+      } else if(c == '\r') {
+        result += "\\r";
+      } else if(c == '\t') {
+        result += "\\t";
+      } else if(c == '\x1A') {
+        result += "\\n";
+      } else if(c == '\\') {
+        result += "\\\\";
+      } else {
+        result += c;
+      }
     }
+    return result;
   }
 
   //! Builds an SQL query fragment over a Range.
@@ -127,11 +140,15 @@ namespace Queries {
       MySql::DatabaseConnectionPool& connectionPool, F rowToData) {
     std::vector<T> records;
     Routines::Async<std::vector<T>> result;
+    auto connection = connectionPool.Acquire();
     threadPool.Queue(
       [&] {
-        auto connection = connectionPool.Acquire();
         auto sqlQuery = connection->query();
-        sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
+        if(query.empty()) {
+          sqlQuery << "SELECT * FROM " << table << " WHERE FALSE";
+        } else {
+          sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
+        }
         std::vector<Row> rows;
         sqlQuery.storein(rows);
         if(sqlQuery.errnum() != 0) {
@@ -184,6 +201,7 @@ namespace Queries {
         auto subsetQuery = sanitizedQuery;
         subsetQuery.SetRange(startPoint, endPoint);
         subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
+        auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
             auto filterQuery = BuildSqlQuery<QueryTranslator>(
@@ -195,7 +213,6 @@ namespace Queries {
               subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto connection = connectionPool.Acquire();
             auto sqlQuery = connection->query();
             sqlQuery << "SELECT result.* FROM (SELECT * FROM " << table <<
               " WHERE (" << indexQuery << ") AND (" << rangeQuery <<
@@ -236,6 +253,7 @@ namespace Queries {
             remainingLimit);
         }
         Routines::Async<std::vector<T>> result;
+        auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
             auto filterQuery = BuildSqlQuery<QueryTranslator>(
@@ -247,7 +265,6 @@ namespace Queries {
               subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto connection = connectionPool.Acquire();
             auto sqlQuery = connection->query();
             sqlQuery << "SELECT * FROM " << table << " WHERE (" <<
               indexQuery << ") AND (" << rangeQuery << ") AND (" <<

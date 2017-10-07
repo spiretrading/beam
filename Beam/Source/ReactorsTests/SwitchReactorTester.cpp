@@ -18,7 +18,8 @@ void SwitchReactorTester::TestNoneProducer() {
 
 void SwitchReactorTester::TestProducerExceptionCompletion() {
   {
-    auto trigger = MakeTriggeredReactor<std::shared_ptr<ConstantReactor<int>>>();
+    auto trigger = MakeTriggeredReactor<
+      std::shared_ptr<ConstantReactor<int>>>();
     auto reactor = MakeSwitchReactor(trigger);
     trigger->SetException(ReactorUnavailableException());
     trigger->SetComplete();

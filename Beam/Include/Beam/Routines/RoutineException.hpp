@@ -17,12 +17,12 @@ namespace Routines {
       /*!
         \param message A message describing the error.
       */
-      RoutineException(const std::string& message);
+      explicit RoutineException(const std::string& message);
   };
 
 
   inline RoutineException::RoutineException(const std::string& message)
-    : std::runtime_error(message) {}
+      : std::runtime_error{message} {}
 }
 }
 

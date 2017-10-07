@@ -54,8 +54,8 @@ namespace Queries {
       //! Compares whether this Sequence comes before or is equal to another.
       /*!
         \param sequence The Sequence to compare to.
-        \return <code>true</code> iff <code>this</code> comes before or is equal
-                to <i>sequence</i>.
+        \return <code>true</code> iff <code>this</code> comes before or is
+                equal to <i>sequence</i>.
       */
       bool operator <=(const Sequence& sequence) const;
 
@@ -104,7 +104,7 @@ namespace Queries {
     if(sequence == Sequence::Last()) {
       return sequence;
     }
-    return Sequence(sequence.GetOrdinal() + 1);
+    return Sequence{sequence.GetOrdinal() + 1};
   }
 
   //! Increments a Sequence.
@@ -135,7 +135,7 @@ namespace Queries {
     if(sequence == Sequence::First()) {
       return sequence;
     }
-    return Sequence(sequence.GetOrdinal() - 1);
+    return Sequence{sequence.GetOrdinal() - 1};
   }
 
   //! Encodes a timestamp into a Sequence.
@@ -182,9 +182,9 @@ namespace Queries {
     } else if(timestamp == boost::posix_time::pos_infin) {
       return Sequence::Last();
     } else {
-      Sequence sequence{EncodeTimestamp(timestamp).GetOrdinal() +
+      Sequence encodedSequence{EncodeTimestamp(timestamp).GetOrdinal() +
         sequence.GetOrdinal()};
-      return sequence;
+      return encodedSequence;
     }
   }
 
@@ -210,16 +210,16 @@ namespace Queries {
         (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE)) &
         sequence.GetOrdinal()) >>
         (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE));
-      auto day = ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding;
+      auto day = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding);
       dateEncoding >>= DAY_SIZE;
-      auto month = ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) &
-        dateEncoding;
+      auto month = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) & dateEncoding);
       dateEncoding >>= MONTH_SIZE;
-      auto year = ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding;
-      boost::posix_time::ptime timestamp{boost::gregorian::date{
-        static_cast<boost::gregorian::greg_year>(year),
-        static_cast<boost::gregorian::greg_month>(month),
-        static_cast<boost::gregorian::greg_day>(day)},
+      auto year = static_cast<unsigned short>(
+        ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding);
+      boost::posix_time::ptime timestamp{
+        boost::gregorian::date{year, month, day},
         boost::posix_time::seconds(0)};
       return timestamp;
     }
@@ -231,11 +231,11 @@ namespace Queries {
   }
 
   inline Sequence Sequence::First() {
-    return Sequence(0);
+    return Sequence{0};
   }
 
   inline Sequence Sequence::Last() {
-    return Sequence(std::numeric_limits<Ordinal>::max());
+    return Sequence{std::numeric_limits<Ordinal>::max()};
   }
 
   inline Sequence Sequence::Present() {
@@ -243,10 +243,10 @@ namespace Queries {
   }
 
   inline Sequence::Sequence()
-      : m_ordinal(0) {}
+      : m_ordinal{0} {}
 
   inline Sequence::Sequence(Ordinal ordinal)
-      : m_ordinal(ordinal) {}
+      : m_ordinal{ordinal} {}
 
   inline Sequence::Ordinal Sequence::GetOrdinal() const {
     return m_ordinal;
@@ -296,7 +296,7 @@ namespace Serialization {
         unsigned int version) {
       Queries::Sequence::Ordinal ordinal;
       shuttle.Shuttle("ordinal", ordinal);
-      value = Queries::Sequence(ordinal);
+      value = Queries::Sequence{ordinal};
     }
   };
 }

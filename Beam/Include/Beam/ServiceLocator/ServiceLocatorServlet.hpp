@@ -122,6 +122,8 @@ namespace ServiceLocator {
         ServiceProtocolClient& client, const DirectoryEntry& account);
       boost::posix_time::ptime OnLoadLastLoginTimeRequest(
         ServiceProtocolClient& client, const DirectoryEntry& account);
+      DirectoryEntry OnRenameRequest(ServiceProtocolClient& client,
+        const DirectoryEntry& entry, const std::string& name);
       DirectoryEntry OnAuthenticateAccountRequest(
         ServiceProtocolClient& client, const std::string& username,
         const std::string& password);
@@ -223,6 +225,9 @@ namespace ServiceLocator {
     LoadLastLoginTimeService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnLoadLastLoginTimeRequest, this,
       std::placeholders::_1, std::placeholders::_2));
+    RenameService::AddSlot(Store(slots), std::bind(
+      &ServiceLocatorServlet::OnRenameRequest, this, std::placeholders::_1,
+      std::placeholders::_2, std::placeholders::_3));
     AuthenticateAccountService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnAuthenticateAccountRequest, this,
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -831,7 +836,7 @@ namespace ServiceLocator {
           throw Services::ServiceRequestException{"Insufficient permissions."};
         }
         m_dataStore->SetPassword(validatedAccount,
-          ComputeSHA(ToString(validatedAccount.m_id) + password));
+          HashPassword(validatedAccount, password));
       });
   }
 
@@ -922,6 +927,41 @@ namespace ServiceLocator {
         lastLoginTime = m_dataStore->LoadLastLoginTime(validatedAccount);
       });
     return lastLoginTime;
+  }
+
+  template<typename ContainerType, typename ServiceLocatorDataStoreType>
+  DirectoryEntry ServiceLocatorServlet<ContainerType,
+      ServiceLocatorDataStoreType>::OnRenameRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& entry,
+      const std::string& name) {
+    auto& session = client.GetSession();
+    if(!session.IsLoggedIn()) {
+      throw Services::ServiceRequestException{"Not logged in."};
+    }
+    DirectoryEntry result;
+    m_dataStore->WithTransaction(
+      [&] {
+        auto validatedEntry = m_dataStore->Validate(entry);
+        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+            Permission::ADMINISTRATE)) {
+          throw Services::ServiceRequestException{"Insufficient permissions."};
+        }
+        auto isExistingAccount = false;
+        try {
+          m_dataStore->LoadAccount(name);
+          isExistingAccount = true;
+        } catch(const ServiceLocatorDataStoreException&) {
+          isExistingAccount = false;
+        }
+        if(isExistingAccount) {
+          throw Services::ServiceRequestException{
+            "An account with the specified name exists."};
+        }
+        m_dataStore->Rename(validatedEntry, name);
+        result = validatedEntry;
+        result.m_name = name;
+      });
+    return result;
   }
 
   template<typename ContainerType, typename ServiceLocatorDataStoreType>

@@ -23,7 +23,7 @@ namespace WebServices {
       SecureSocketChannelFactory(
         RefType<Network::SocketThreadPool> socketThreadPool);
 
-      //! Returns a new SecureSocketChannelFactory.
+      //! Returns a new SecureSocketChannel.
       /*!
         \param uri The URI that the Channel should connect to.
       */

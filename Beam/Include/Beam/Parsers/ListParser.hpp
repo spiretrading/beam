@@ -66,7 +66,7 @@ namespace Parsers {
       SubParserStream<ParserStreamType> context(source);
       typename Parser::Result listValue;
       if(!m_parser.Read(context, listValue)) {
-        return false;
+        return true;
       }
       value.push_back(std::move(listValue));
       context.Accept();
@@ -98,7 +98,7 @@ namespace Parsers {
     {
       SubParserStream<ParserStreamType> context(source);
       if(!m_parser.Read(context)) {
-        return false;
+        return true;
       }
       context.Accept();
     }

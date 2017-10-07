@@ -105,8 +105,8 @@ namespace Network {
 }
 
   template<typename BufferType>
-  struct ImplementsConcept<Network::SecureSocketReader, IO::Reader<BufferType>> :
-    std::true_type {};
+  struct ImplementsConcept<Network::SecureSocketReader,
+    IO::Reader<BufferType>> : std::true_type {};
 }
 
 #endif

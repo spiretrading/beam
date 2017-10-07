@@ -35,12 +35,12 @@ namespace Routines {
       bool m_isPendingResume;
   };
 
+  inline ExternalRoutine::ExternalRoutine()
+      : m_isPendingResume{false} {}
+
   inline ExternalRoutine::~ExternalRoutine() {
     SetState(State::COMPLETE);
   }
-
-  inline ExternalRoutine::ExternalRoutine()
-      : m_isPendingResume(false) {}
 
   inline void ExternalRoutine::Execute() {
     SetState(State::RUNNING);
@@ -53,7 +53,7 @@ namespace Routines {
   }
 
   inline void ExternalRoutine::Suspend() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    boost::unique_lock<boost::mutex> lock{m_mutex};
     SetState(State::SUSPENDED);
     if(m_isPendingResume) {
       m_isPendingResume = false;
@@ -65,7 +65,7 @@ namespace Routines {
   }
 
   inline void ExternalRoutine::Resume() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     if(GetState() == State::PENDING_SUSPEND) {
       m_isPendingResume = true;
       return;

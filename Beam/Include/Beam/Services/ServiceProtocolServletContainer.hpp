@@ -48,7 +48,7 @@ namespace Services {
       //! The type of ServiceProtocolServer.
       using ServiceProtocolServer = Services::ServiceProtocolServer<
         ServerConnectionType, Sender, Encoder, TimerType,
-        typename MetaServlet::Session>;
+        typename MetaServlet::Session, SupportsParallelism<MetaServlet>::value>;
 
       //! The type of ServiceProtocolClient.
       using ServiceProtocolClient =

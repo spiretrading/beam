@@ -354,32 +354,37 @@ namespace ServiceLocator {
       ServiceProtocolClient& client, const std::string& username,
       const std::string& password) {
     auto& session = client.GetSession();
-    if(session.IsLoggedIn()) {
+    if(!session.TryLogin()) {
       throw Services::ServiceRequestException{"Account is already logged in."};
     }
     DirectoryEntry account;
-    m_dataStore->WithTransaction(
-      [&] {
-        try {
-          account = m_dataStore->LoadAccount(username);
-        } catch(const ServiceLocatorDataStoreException&) {
-          throw Services::ServiceRequestException{
-            "Invalid username or password."};
-        }
-        std::string accountPassword;
-        try {
-          accountPassword = m_dataStore->LoadPassword(account);
-        } catch(const ServiceLocatorDataStoreException&) {
-          throw Services::ServiceRequestException{
-            "Unable to retrieve password, try again later."};
-        }
-        if(!ValidatePassword(account, password, accountPassword)) {
-          throw Services::ServiceRequestException{
-            "Invalid username or password."};
-        }
-        m_dataStore->StoreLastLoginTime(account,
-          boost::posix_time::second_clock::universal_time());
-      });
+    try {
+      m_dataStore->WithTransaction(
+        [&] {
+          try {
+            account = m_dataStore->LoadAccount(username);
+          } catch(const ServiceLocatorDataStoreException&) {
+            throw Services::ServiceRequestException{
+              "Invalid username or password."};
+          }
+          std::string accountPassword;
+          try {
+            accountPassword = m_dataStore->LoadPassword(account);
+          } catch(const ServiceLocatorDataStoreException&) {
+            throw Services::ServiceRequestException{
+              "Unable to retrieve password, try again later."};
+          }
+          if(!ValidatePassword(account, password, accountPassword)) {
+            throw Services::ServiceRequestException{
+              "Invalid username or password."};
+          }
+          m_dataStore->StoreLastLoginTime(account,
+            boost::posix_time::second_clock::universal_time());
+        });
+    } catch(const std::exception&) {
+      session.ResetLogin();
+      throw;
+    }
     std::string sessionId;
     Threading::With(m_sessions,
       [&] (Sessions& sessions) {
@@ -388,8 +393,7 @@ namespace ServiceLocator {
         } while(sessions.find(sessionId) != sessions.end());
         sessions.insert(std::make_pair(sessionId, &client));
       });
-    session.SetAccount(account);
-    session.SetSessionId(sessionId);
+    session.SetSessionId(account, sessionId);
     return LoginServiceResult{account, sessionId};
   }
 

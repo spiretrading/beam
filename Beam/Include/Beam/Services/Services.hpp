@@ -19,15 +19,15 @@ namespace Services {
   template<typename ReturnType, typename ParametersType> class Service;
   template<typename ServiceProtocolClientType> class ServiceMessage;
   template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType>
-    class ServiceProtocolClient;
+    typename ServiceSlotsPolicy, typename SessionType,
+    bool SupportsParallelismValue> class ServiceProtocolClient;
   template<typename MessageProtocolType, typename TimerType>
     class ServiceProtocolClientBuilder;
   template<typename ServiceProtocolClientBuilderType>
     class ServiceProtocolClientHandler;
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
-    class ServiceProtocolServer;
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue> class ServiceProtocolServer;
   template<typename ChannelType> struct ServiceProtocolServlet;
   template<typename MetaServlet, typename ServerConnectionType,
     typename SenderType, typename EncoderType, typename TimerType,

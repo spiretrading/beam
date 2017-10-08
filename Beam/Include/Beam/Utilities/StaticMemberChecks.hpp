@@ -51,4 +51,21 @@
     static const bool value = sizeof(Test<T>(nullptr)) == sizeof(YesType);     \
   };
 
+#define BEAM_DEFINE_HAS_VARIABLE(Name, Variable)                               \
+  template<typename T>                                                         \
+  struct Name {                                                                \
+    typedef char YesType;                                                      \
+    typedef struct {                                                           \
+      char a[2];                                                               \
+    } NoType;                                                                  \
+                                                                               \
+    template<typename C>                                                       \
+    static YesType Test(decltype(C::Variable)*);                               \
+                                                                               \
+    template<typename C>                                                       \
+    static NoType Test(...);                                                   \
+                                                                               \
+    static const bool value = sizeof(Test<T>(nullptr)) == sizeof(YesType);     \
+  };
+
 #endif

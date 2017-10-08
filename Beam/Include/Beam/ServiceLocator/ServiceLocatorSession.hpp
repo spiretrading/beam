@@ -17,7 +17,7 @@ namespace ServiceLocator {
     public:
 
       //! Constructs a ServiceLocatorSession.
-      ServiceLocatorSession() = default;
+      ServiceLocatorSession();
 
       //! Acquires a ServiceLocatorSession.
       /*!
@@ -29,7 +29,22 @@ namespace ServiceLocator {
       std::string GetSessionId() const;
 
       //! Sets the session id.
-      void SetSessionId(const std::string& sessionId);
+      /*!
+        \param account The account that the session belongs to.
+        \param sessionId The session id.
+      */
+      void SetSessionId(const DirectoryEntry& account,
+        const std::string& sessionId);
+
+      //! Begins a login attempt.
+      /*!
+        \return <code>true</code> iff the session is in a state where a login
+                attempt is permissible.
+      */
+      bool TryLogin();
+
+      //! Marks the session as not logged in.
+      void ResetLogin();
 
       //! Returns the services being subscribed to by this Channel.
       std::vector<std::string> GetServiceSubscriptions() const;
@@ -77,17 +92,27 @@ namespace ServiceLocator {
       std::vector<DirectoryEntry> GetMonitors() const;
 
     private:
+      enum class LoginState {
+        NOT_LOGGED_IN,
+        LOGGING_IN,
+        LOGGED_IN
+      };
       mutable boost::mutex m_mutex;
+      LoginState m_loginState;
       std::string m_sessionId;
       std::vector<ServiceEntry> m_registeredServices;
       std::vector<std::string> m_serviceSubscriptions;
       std::vector<DirectoryEntry> m_monitors;
   };
 
+  inline ServiceLocatorSession::ServiceLocatorSession()
+      : m_loginState{LoginState::NOT_LOGGED_IN} {}
+
   inline ServiceLocatorSession::ServiceLocatorSession(
       ServiceLocatorSession&& session)
       : AuthenticatedSession(std::move(session)) {
     boost::lock_guard<boost::mutex> lock{session.m_mutex};
+    m_loginState = std::move(session.m_loginState);
     m_sessionId = std::move(session.m_sessionId);
     m_registeredServices = std::move(session.m_registeredServices);
     m_serviceSubscriptions = std::move(session.m_serviceSubscriptions);
@@ -99,9 +124,27 @@ namespace ServiceLocator {
   }
 
   inline void ServiceLocatorSession::SetSessionId(
-      const std::string& sessionId) {
+      const DirectoryEntry& account, const std::string& sessionId) {
     boost::lock_guard<boost::mutex> lock{m_mutex};
+    SetAccount(account);
     m_sessionId = sessionId;
+    m_loginState = LoginState::LOGGED_IN;
+  }
+
+  inline bool ServiceLocatorSession::TryLogin() {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    if(m_loginState == LoginState::NOT_LOGGED_IN) {
+      m_loginState = LoginState::LOGGING_IN;
+      return true;
+    }
+    return false;
+  }
+
+  inline void ServiceLocatorSession::ResetLogin() {
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    ResetAccount();
+    m_sessionId.clear();
+    m_loginState = LoginState::NOT_LOGGED_IN;
   }
 
   inline std::vector<std::string>

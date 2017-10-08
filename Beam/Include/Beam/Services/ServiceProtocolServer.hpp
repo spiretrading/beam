@@ -24,9 +24,13 @@ namespace Services {
       \tparam EncoderType The type of Encoder used for messages.
       \tparam TimerType The type of Timer used for heartbeats.
       \tparam SessionType The type storing session info.
+      \tparam SupportsParallelismValue Whether requests can be handled in
+              parallel.
+
    */
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType = NullType>
+    typename EncoderType, typename TimerType, typename SessionType = NullType,
+    bool SupportsParallelismValue = false>
   class ServiceProtocolServer : private boost::noncopyable {
     public:
 
@@ -109,10 +113,11 @@ namespace Services {
   };
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   template<typename ServerConnectionForward>
   ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::ServiceProtocolServer(
+      TimerType, SessionType, SupportsParallelismValue>::ServiceProtocolServer(
       ServerConnectionForward&& serverConnection,
       const TimerFactory& timerFactory, const AcceptSlot& acceptSlot,
       const ClientClosedSlot& clientClosedSlot)
@@ -123,25 +128,30 @@ namespace Services {
         m_clientClosedSlot(clientClosedSlot) {}
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::~ServiceProtocolServer() {
+      TimerType, SessionType, SupportsParallelismValue>::
+      ~ServiceProtocolServer() {
     Close();
   }
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   ServiceSlots<typename ServiceProtocolServer<ServerConnectionType, SenderType,
-      EncoderType, TimerType, SessionType>::ServiceProtocolClient>&
-      ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::GetSlots() {
+      EncoderType, TimerType, SessionType, SupportsParallelismValue>::
+      ServiceProtocolClient>& ServiceProtocolServer<ServerConnectionType,
+      SenderType, EncoderType, TimerType, SessionType,
+      SupportsParallelismValue>::GetSlots() {
     return m_slots;
   }
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   void ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::Open() {
+      TimerType, SessionType, SupportsParallelismValue>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
@@ -157,9 +167,10 @@ namespace Services {
   }
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   void ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::Close() {
+      TimerType, SessionType, SupportsParallelismValue>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
@@ -167,18 +178,20 @@ namespace Services {
   }
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   void ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::Shutdown() {
+      TimerType, SessionType, SupportsParallelismValue>::Shutdown() {
     m_serverConnection->Close();
     m_acceptRoutine.Wait();
     m_openState.SetClosed();
   }
 
   template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType>
+    typename EncoderType, typename TimerType, typename SessionType,
+    bool SupportsParallelismValue>
   void ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType>::AcceptLoop() {
+      TimerType, SessionType, SupportsParallelismValue>::AcceptLoop() {
     SynchronizedUnorderedSet<std::shared_ptr<ServiceProtocolClient>> clients;
     Routines::RoutineHandlerGroup clientRoutines;
     while(true) {

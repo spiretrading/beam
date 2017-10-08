@@ -8,7 +8,7 @@
 #include "Beam/Pointers/LocalPointerPolicy.hpp"
 #include "Beam/ServiceLocator/AuthenticatedSession.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/Services/ServiceProtocolServletContainerDetails.hpp"
+#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
 
 namespace Beam {

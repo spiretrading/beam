@@ -69,6 +69,7 @@ namespace RegistryService {
 
   template<typename RegistryDataStoreType>
   struct MetaRegistryServlet {
+    static constexpr bool SupportsParallelism = true;
     using Session = RegistrySession;
     template<typename ContainerType>
     struct apply {

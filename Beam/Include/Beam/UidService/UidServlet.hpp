@@ -47,7 +47,8 @@ namespace UidService {
 
   template<typename UidDataStoreType>
   struct MetaUidServlet {
-    typedef NullType Session;
+    static constexpr bool SupportsParallelism = true;
+    using Session = NullType;
     template<typename ContainerType>
     struct apply {
       typedef UidServlet<ContainerType, UidDataStoreType> type;

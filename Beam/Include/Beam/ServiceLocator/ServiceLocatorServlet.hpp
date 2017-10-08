@@ -134,6 +134,7 @@ namespace ServiceLocator {
 
   template<typename ServiceLocatorDataStoreType>
   struct MetaServiceLocatorServlet {
+    static constexpr bool SupportsParallelism = true;
     using Session = ServiceLocatorSession;
     template<typename ContainerType>
     struct apply {

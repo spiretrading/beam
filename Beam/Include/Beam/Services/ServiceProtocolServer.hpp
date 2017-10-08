@@ -56,9 +56,13 @@ namespace Services {
       //! The type storing session info.
       using Session = SessionType;
 
+      //! Whether requests can be handled in parallel.
+      static constexpr bool SupportsParallelism = SupportsParallelismValue;
+
       //! The type of ServiceProtocolClient accepted.
       using ServiceProtocolClient = Services::ServiceProtocolClient<
-        MessageProtocol, TimerType, NativePointerPolicy, Session>;
+        MessageProtocol, TimerType, NativePointerPolicy, Session,
+        SupportsParallelism>;
 
       //! Builds Timers used for heartbeats.
       using TimerFactory = std::function<TimerType ()>;

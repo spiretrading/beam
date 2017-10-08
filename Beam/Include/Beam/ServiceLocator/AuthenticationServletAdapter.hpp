@@ -75,6 +75,8 @@ namespace ServiceLocator {
   template<typename MetaServlet, typename ServiceLocatorClientType,
     typename ServletPointerPolicy = LocalPointerPolicy>
   struct MetaAuthenticationServletAdapter {
+    static constexpr bool SupportsParallelism =
+      Services::SupportsParallelism<MetaServlet>::value;
     using Session = AuthenticationServletSession<typename MetaServlet::Session>;
     template<typename ContainerType>
     struct apply {

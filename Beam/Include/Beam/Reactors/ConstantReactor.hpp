@@ -14,7 +14,7 @@ namespace Reactors {
   template<typename T>
   class ConstantReactor : public Reactor<T> {
     public:
-      typedef GetReactorType<Reactor<T>> Type;
+      using Type = GetReactorType<Reactor<T>>;
 
       //! Constructs a ConstantReactor.
       /*!
@@ -34,8 +34,7 @@ namespace Reactors {
     \param value The constant to evaluate to.
   */
   template<typename T>
-  std::shared_ptr<ConstantReactor<typename std::decay<T>::type>>
-      MakeConstantReactor(T&& value) {
+  auto MakeConstantReactor(T&& value) {
     return std::make_shared<ConstantReactor<typename std::decay<T>::type>>(
       std::forward<T>(value));
   }
@@ -43,7 +42,7 @@ namespace Reactors {
   template<typename T>
   template<typename ValueForward>
   ConstantReactor<T>::ConstantReactor(ValueForward&& value)
-      : m_value(std::forward<ValueForward>(value)) {
+      : m_value{std::forward<ValueForward>(value)} {
     this->IncrementSequenceNumber();
     this->SetComplete();
   }

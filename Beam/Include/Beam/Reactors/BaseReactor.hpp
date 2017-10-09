@@ -17,7 +17,7 @@ namespace Reactors {
     public:
 
       //! Signals that this Reactor has been updated.
-      typedef boost::signals2::signal<void ()> UpdateSignal;
+      using UpdateSignal = boost::signals2::signal<void ()>;
 
       virtual ~BaseReactor() = default;
 
@@ -100,8 +100,8 @@ namespace Reactors {
   }
 
   inline BaseReactor::BaseReactor()
-      : m_sequenceNumber(0),
-        m_isComplete(false) {}
+      : m_sequenceNumber{0},
+        m_isComplete{false} {}
 
   inline void BaseReactor::IncrementSequenceNumber() {
     ++m_sequenceNumber;

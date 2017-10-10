@@ -22,7 +22,7 @@ namespace Beam {
 namespace Reactors {
 namespace Details {
   struct Commit {
-    typedef bool result_type;
+    using result_type = bool;
 
     template<typename T>
     bool operator ()(bool state, T& reactor) const {
@@ -31,7 +31,7 @@ namespace Details {
   };
 
   struct IsInitialized {
-    typedef bool result_type;
+    using result_type = bool;
 
     template<typename T>
     bool operator ()(bool state, const T& reactor) const {
@@ -40,7 +40,7 @@ namespace Details {
   };
 
   struct IsComplete {
-    typedef bool result_type;
+    using result_type = bool;
 
     template<typename T>
     bool operator ()(bool state, const T& reactor) const {
@@ -65,12 +65,12 @@ namespace Details {
 
   template<typename T>
   struct FunctionReactorType {
-    typedef T type;
+    using type = T;
   };
 
   template<typename T>
   struct FunctionReactorType<boost::optional<T>> {
-    typedef T type;
+    using type = T;
   };
 }
 
@@ -84,12 +84,12 @@ namespace Details {
       typename std::decay<GetResultOf<FunctionType, const Expect<GetReactorType<
       ParameterTypes>>&...>>::type>::type> {
     public:
-      typedef typename Details::FunctionReactorType<typename std::decay<
+      using Type = typename Details::FunctionReactorType<typename std::decay<
         GetResultOf<FunctionType, const Expect<GetReactorType<
-        ParameterTypes>>&...>>::type>::type Type;
+        ParameterTypes>>&...>>::type>::type;
 
       //! The type of function to apply.
-      typedef FunctionType Function;
+      using Function = FunctionType;
 
       //! Constructs a FunctionReactor.
       /*!

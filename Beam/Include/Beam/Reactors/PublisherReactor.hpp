@@ -2,16 +2,15 @@
 #define BEAM_PUBLISHERREACTOR_HPP
 #include <type_traits>
 #include <utility>
+#include <vector>
+#include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
-#include "Beam/Reactors/Event.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
-#include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -21,8 +20,7 @@ namespace Reactors {
       \tparam PublisherType The type Publisher to monitor.
    */
   template<typename PublisherType>
-  class PublisherReactor : public Reactor<GetPublisherType<PublisherType>>,
-      public Event {
+  class PublisherReactor : public Reactor<GetPublisherType<PublisherType>> {
     public:
       using Type = GetPublisherType<PublisherType>;
 
@@ -37,24 +35,16 @@ namespace Reactors {
 
       virtual Type Eval() const;
 
-      virtual void Execute();
-
     private:
+      mutable boost::mutex m_mutex;
       GetOptionalLocalPtr<PublisherType> m_publisher;
-      int m_state;
-      Expect<Type> m_value;
-      std::deque<Type> m_pendingValues;
-      bool m_isBroken;
-      SynchronizedVector<Type> m_updates;
-      Threading::Sync<bool> m_pendingBreak;
+      Expect<T> m_value;
+      std::vector<T> m_pendingValues;
+      std::exception_ptr m_exception;
       RoutineTaskQueue m_tasks;
 
       void OnUpdate(const Type& value);
       void OnBreak(const std::exception_ptr& exception);
-      void S0();
-      void S1();
-      void S2();
-      void S3();
   };
 
   //! Makes a PublisherReactor.
@@ -62,8 +52,7 @@ namespace Reactors {
     \param publisher The Publisher to monitor.
   */
   template<typename Publisher>
-  std::shared_ptr<PublisherReactor<typename std::decay<Publisher>::type>>
-      MakePublisherReactor(Publisher&& publisher) {
+  auto MakePublisherReactor(Publisher&& publisher) {
     return std::make_shared<PublisherReactor<
       typename std::decay<Publisher>::type>>(
       std::forward<Publisher>(publisher));
@@ -74,28 +63,11 @@ namespace Reactors {
   PublisherReactor<PublisherType>::PublisherReactor(
       PublisherForward&& publisher)
 BEAM_SUPPRESS_THIS_INITIALIZER()
-      : m_publisher(std::forward<PublisherForward>(publisher)),
-        m_state(0) {}
+      : m_publisher{std::forward<PublisherForward>(publisher)} {}
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
 
   template<typename PublisherType>
-  void PublisherReactor<PublisherType>::Commit() {
-    m_updates.With(
-      [&] (std::vector<Type>& updates) {
-        for(auto&& update : updates) {
-          m_pendingValues.push_back(std::move(update));
-        }
-        updates.clear();
-      });
-    m_isBroken = m_pendingBreak.Acquire();
-    if(m_state == 0) {
-      return S0();
-    } else if(m_state == 1) {
-      return S1();
-    } else if(m_state == 2) {
-      return S1();
-    }
-  }
+  void PublisherReactor<PublisherType>::Commit() {}
 
   template<typename PublisherType>
   typename PublisherReactor<PublisherType>::Type
@@ -104,14 +76,18 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
   }
 
   template<typename PublisherType>
-  void PublisherReactor<PublisherType>::Execute() {
-    this->SignalUpdate();
-  }
-
-  template<typename PublisherType>
   void PublisherReactor<PublisherType>::OnUpdate(const Type& value) {
-    m_updates.PushBack(value);
-    this->SignalEvent();
+    auto signalUpdate = false;
+    {
+      boost::lock_guard<boost::mutex> lock{m_mutex};
+      m_pendingValues.push_back(value);
+      if(m_pendingValues.size() == 1) {
+        signalUpdate = true;
+      }
+    }
+    if(signalUpdate) {
+      this->SignalUpdate();
+    }
   }
 
   template<typename PublisherType>

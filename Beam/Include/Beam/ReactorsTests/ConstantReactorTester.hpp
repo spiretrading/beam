@@ -1,5 +1,5 @@
-#ifndef BEAM_CONSTANTREACTORTESTER_HPP
-#define BEAM_CONSTANTREACTORTESTER_HPP
+#ifndef BEAM_CONSTANT_REACTOR_TESTER_HPP
+#define BEAM_CONSTANT_REACTOR_TESTER_HPP
 #include <cppunit/extensions/HelperMacros.h>
 #include "Beam/ReactorsTests/ReactorTests.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"

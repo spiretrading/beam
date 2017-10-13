@@ -1,5 +1,5 @@
-#ifndef BEAM_NONEREACTOR_HPP
-#define BEAM_NONEREACTOR_HPP
+#ifndef BEAM_NONE_REACTOR_HPP
+#define BEAM_NONE_REACTOR_HPP
 #include <memory>
 #include <boost/throw_exception.hpp>
 #include "Beam/Reactors/Reactor.hpp"
@@ -15,7 +15,7 @@ namespace Reactors {
   template<typename T>
   class NoneReactor : public Reactor<T> {
     public:
-      using Type = T;
+      using Type = GetReactorType<Reactor<T>>;
 
       //! Constructs a NoneReactor.
       NoneReactor() = default;

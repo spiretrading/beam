@@ -1,5 +1,5 @@
-#ifndef BEAM_CONSTANTREACTOR_HPP
-#define BEAM_CONSTANTREACTOR_HPP
+#ifndef BEAM_CONSTANT_REACTOR_HPP
+#define BEAM_CONSTANT_REACTOR_HPP
 #include <memory>
 #include <type_traits>
 #include "Beam/Reactors/Reactor.hpp"

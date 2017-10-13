@@ -1,5 +1,5 @@
-#ifndef BEAM_REACTOREXCEPTION_HPP
-#define BEAM_REACTOREXCEPTION_HPP
+#ifndef BEAM_REACTOR_EXCEPTION_HPP
+#define BEAM_REACTOR_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Reactors/Reactors.hpp"

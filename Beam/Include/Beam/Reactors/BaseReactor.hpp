@@ -1,5 +1,5 @@
-#ifndef BEAM_BASEREACTOR_HPP
-#define BEAM_BASEREACTOR_HPP
+#ifndef BEAM_BASE_REACTOR_HPP
+#define BEAM_BASE_REACTOR_HPP
 #include <typeinfo>
 #include <boost/noncopyable.hpp>
 #include "Beam/Reactors/Reactors.hpp"

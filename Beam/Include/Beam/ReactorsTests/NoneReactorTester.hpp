@@ -1,5 +1,5 @@
-#ifndef BEAM_NONEREACTORTESTER_HPP
-#define BEAM_NONEREACTORTESTER_HPP
+#ifndef BEAM_NONE_REACTOR_TESTER_HPP
+#define BEAM_NONE_REACTOR_TESTER_HPP
 #include <cppunit/extensions/HelperMacros.h>
 #include "Beam/ReactorsTests/ReactorTests.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"

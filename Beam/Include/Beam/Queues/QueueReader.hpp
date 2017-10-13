@@ -45,6 +45,19 @@ namespace Beam {
       }
     } catch(const std::exception&) {}
   }
+
+  template<typename Queue, typename F1, typename F2>
+  void Monitor(const Queue& queue, const F1& valueCallback,
+      const F2& breakCallback) {
+    try {
+      while(true) {
+        valueCallback(queue->Top());
+        queue->Pop();
+      }
+    } catch(const std::exception&) {
+      breakCallback(std::current_exception());
+    }
+  }
 }
 
 #endif

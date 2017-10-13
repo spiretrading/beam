@@ -5,6 +5,7 @@
 #include <cppunit/ui/text/TestRunner.h>
 #include "Beam/ReactorsTests/ConstantReactorTester.hpp"
 #include "Beam/ReactorsTests/NoneReactorTester.hpp"
+#include "Beam/ReactorsTests/QueueReactorTester.hpp"
 #include "Beam/ReactorsTests/TriggerTester.hpp"
 
 using namespace Beam::Reactors::Tests;
@@ -15,6 +16,7 @@ int main() {
   runner.addTest(NoneReactorTester::suite());
   runner.addTest(ConstantReactorTester::suite());
   runner.addTest(TriggerTester::suite());
+  runner.addTest(QueueReactorTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

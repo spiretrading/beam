@@ -12,6 +12,24 @@ namespace Reactors {
    */
   class BaseReactor : private boost::noncopyable {
     public:
+
+      /*! \enum Update
+          \brief Lists the types of updates a Reactor can undergo after a
+                 commit.
+       */
+      enum class Update {
+
+        //! No update to the Reactor.
+        NONE,
+
+        //! The Reactor has come to an end with no update.
+        COMPLETE,
+
+        //! The Reactor's evaluation has updated
+        //! (it may also have come to an end).
+        EVAL
+      };
+
       virtual ~BaseReactor() = default;
 
       //! Returns <code>true</code> iff this Reactor is complete.
@@ -23,8 +41,9 @@ namespace Reactors {
       //! Commits changes to this Reactor.
       /*!
         \param sequenceNumber The sequence number representing the change.
+        \return A code representing the effect the commit had on this Reactor.
       */
-      virtual void Commit(int sequenceNumber) = 0;
+      virtual Update Commit(int sequenceNumber) = 0;
 
     protected:
 

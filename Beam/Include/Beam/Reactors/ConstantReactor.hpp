@@ -25,7 +25,7 @@ namespace Reactors {
 
       virtual bool IsComplete() const override;
 
-      virtual void Commit(int sequenceNumber) override;
+      virtual BaseReactor::Update Commit(int sequenceNumber) override;
 
       virtual Type Eval() const override;
 
@@ -54,7 +54,9 @@ namespace Reactors {
   }
 
   template<typename T>
-  void ConstantReactor<T>::Commit(int sequenceNumber) {}
+  BaseReactor::Update ConstantReactor<T>::Commit(int sequenceNumber) {
+    return BaseReactor::Update::NONE;
+  }
 
   template<typename T>
   typename ConstantReactor<T>::Type ConstantReactor<T>::Eval() const {

@@ -4,16 +4,9 @@
 namespace Beam {
 namespace Reactors {
 namespace Tests {
-  class AggregateReactorTester;
-  class ChainReactorTester;
   class ConstantReactorTester;
-  class FilterReactorTester;
-  class FunctionReactorTester;
-  class MultiReactorTester;
   class NoneReactorTester;
-  class PublisherReactorTester;
-  class SwitchReactorTester;
-  class TriggeredReactorTester;
+  class TriggerTester;
 }
 }
 }

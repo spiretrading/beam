@@ -17,9 +17,17 @@ namespace Tests {
       //! Tests a Queue that immediately breaks without publishing any values.
       void TestEmptyQueue();
 
+      //! Tests a Queue that immediately throws an exception.
+      void TestImmediateException();
+
+      //! Tests publishing a single value and then completing.
+      void TestSingleValue();
+
     private:
       CPPUNIT_TEST_SUITE(QueueReactorTester);
         CPPUNIT_TEST(TestEmptyQueue);
+        CPPUNIT_TEST(TestImmediateException);
+        CPPUNIT_TEST(TestSingleValue);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

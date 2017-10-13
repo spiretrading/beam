@@ -26,10 +26,10 @@ namespace Reactors {
   };
 
   inline ReactorException::ReactorException()
-      : std::runtime_error("") {}
+      : std::runtime_error{"Reactor failed."} {}
 
   inline ReactorException::ReactorException(const std::string& message)
-      : std::runtime_error(message) {}
+      : std::runtime_error{message} {}
 
   inline ReactorException::~ReactorException() throw() {}
 }

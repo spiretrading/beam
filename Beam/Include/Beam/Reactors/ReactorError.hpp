@@ -25,7 +25,7 @@ namespace Reactors {
   };
 
   inline ReactorError::ReactorError(std::string message)
-      : ReactorException(std::move(message)) {}
+      : ReactorException{std::move(message)} {}
 
   inline ReactorError::~ReactorError() throw() {}
 }

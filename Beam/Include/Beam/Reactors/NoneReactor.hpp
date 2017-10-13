@@ -15,28 +15,35 @@ namespace Reactors {
   template<typename T>
   class NoneReactor : public Reactor<T> {
     public:
-      typedef GetReactorType<Reactor<T>> Type;
+      using Type = T;
 
       //! Constructs a NoneReactor.
-      NoneReactor();
+      NoneReactor() = default;
 
-      virtual Type Eval() const;
+      virtual bool IsComplete() const override;
+
+      virtual void Commit(int sequenceNumber) override;
+
+      virtual Type Eval() const override;
   };
 
   //! Makes a NoneReactor.
   template<typename T>
-  std::shared_ptr<NoneReactor<T>> MakeNoneReactor() {
+  auto MakeNoneReactor() {
     return std::make_shared<NoneReactor<T>>();
   };
 
   template<typename T>
-  NoneReactor<T>::NoneReactor() {
-    this->SetComplete();
+  bool NoneReactor<T>::IsComplete() const {
+    return true;
   }
 
   template<typename T>
+  void NoneReactor<T>::Commit(int sequenceNumber) {}
+
+  template<typename T>
   typename NoneReactor<T>::Type NoneReactor<T>::Eval() const {
-    BOOST_THROW_EXCEPTION(ReactorUnavailableException());
+    BOOST_THROW_EXCEPTION(ReactorUnavailableException{});
   }
 }
 }

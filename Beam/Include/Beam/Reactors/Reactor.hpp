@@ -17,10 +17,6 @@ namespace Reactors {
       //! The type this Reactor evaluates to.
       using Type = T;
 
-      virtual void Commit();
-
-      virtual Expect<void> GetBaseValue();
-
       virtual const std::type_info& GetType() const;
 
       //! Evaluates this Reactor.
@@ -49,19 +45,6 @@ namespace Reactors {
 
   template<typename T>
   using GetReactorType = typename ReactorType<T>::type;
-
-  template<typename T>
-  void Reactor<T>::Commit() {}
-
-  template<typename T>
-  Expect<void> Reactor<T>::GetBaseValue() {
-    Expect<void> value;
-    value.Try(
-      [&] {
-        Eval();
-      });
-    return value;
-  }
 
   template<typename T>
   const std::type_info& Reactor<T>::GetType() const {

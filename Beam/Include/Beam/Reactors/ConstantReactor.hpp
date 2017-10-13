@@ -23,10 +23,14 @@ namespace Reactors {
       template<typename ValueForward>
       ConstantReactor(ValueForward&& value);
 
-      virtual Type Eval() const;
+      virtual bool IsComplete() const override;
+
+      virtual void Commit(int sequenceNumber) override;
+
+      virtual Type Eval() const override;
 
     private:
-      T m_value;
+      Type m_value;
   };
 
   //! Makes a ConstantReactor.
@@ -42,10 +46,15 @@ namespace Reactors {
   template<typename T>
   template<typename ValueForward>
   ConstantReactor<T>::ConstantReactor(ValueForward&& value)
-      : m_value{std::forward<ValueForward>(value)} {
-    this->IncrementSequenceNumber();
-    this->SetComplete();
+      : m_value{std::forward<ValueForward>(value)} {}
+
+  template<typename T>
+  bool ConstantReactor<T>::IsComplete() const {
+    return true;
   }
+
+  template<typename T>
+  void ConstantReactor<T>::Commit(int sequenceNumber) {}
 
   template<typename T>
   typename ConstantReactor<T>::Type ConstantReactor<T>::Eval() const {

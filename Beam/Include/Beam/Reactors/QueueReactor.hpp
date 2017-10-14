@@ -16,7 +16,7 @@ namespace Beam {
 namespace Reactors {
 
   /*! \class QueueReactor
-      \brief Evaluates to a constant.
+      \brief Emits values published by a Queue.
    */
   template<typename T>
   class QueueReactor : public Reactor<T> {
@@ -30,6 +30,8 @@ namespace Reactors {
       */
       QueueReactor(std::shared_ptr<QueueReader<Type>> queue,
         RefType<Trigger> trigger);
+
+      ~QueueReactor();
 
       virtual bool IsComplete() const override;
 
@@ -87,6 +89,11 @@ namespace Reactors {
           std::bind(&QueueReactor::OnUpdate, this, std::placeholders::_1),
           std::bind(&QueueReactor::OnBreak, this, std::placeholders::_1));
       });
+  }
+
+  template<typename T>
+  QueueReactor<T>::~QueueReactor() {
+    m_queue->Break();
   }
 
   template<typename T>

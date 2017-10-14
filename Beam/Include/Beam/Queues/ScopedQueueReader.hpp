@@ -27,16 +27,10 @@ namespace Beam {
       ~ScopedQueueReader();
 
       //! Returns a reference to the QueueReader.
-      Queue& operator *();
-
-      //! Returns a reference to the QueueReader.
-      const Queue& operator *() const;
+      Queue& operator *() const;
 
       //! Returns a pointer to the QueueReader.
-      Queue* operator ->();
-
-      //! Returns a pointer to the QueueReader.
-      const Queue* operator ->() const;
+      Queue* operator ->() const;
 
     private:
       std::shared_ptr<Queue> m_queue;
@@ -52,25 +46,15 @@ namespace Beam {
   }
 
   template<typename T>
-  typename ScopedQueueReader<T>::Queue& ScopedQueueReader<T>::operator *() {
-    return **m_queue;
-  }
-
-  template<typename T>
-  const typename ScopedQueueReader<T>::Queue&
+  typename ScopedQueueReader<T>::Queue&
       ScopedQueueReader<T>::operator *() const {
     return **m_queue;
   }
 
   template<typename T>
-  typename ScopedQueueReader<T>::Queue* ScopedQueueReader<T>::operator ->() {
-    return *m_queue;
-  }
-
-  template<typename T>
-  const typename ScopedQueueReader<T>::Queue*
+  typename ScopedQueueReader<T>::Queue*
       ScopedQueueReader<T>::operator ->() const {
-    return *m_queue;
+    return &(*m_queue);
   }
 }
 

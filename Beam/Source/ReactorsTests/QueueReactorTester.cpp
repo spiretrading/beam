@@ -111,10 +111,7 @@ void QueueReactorTester::TestSingleValue() {
   CPPUNIT_ASSERT(reactor->Commit(10) == BaseReactor::Update::EVAL);
   CPPUNIT_ASSERT(reactor->Eval() == 123);
   CPPUNIT_ASSERT(!reactor->IsComplete());
-
-/*
   CPPUNIT_ASSERT(reactor->Commit(11) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
-  CPPUNIT_ASSERT(reactor->IsComplete());
-*/
+  CPPUNIT_ASSERT(reactor->Eval() == 123);
+  CPPUNIT_ASSERT(!reactor->IsComplete());
 }

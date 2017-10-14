@@ -23,11 +23,15 @@ namespace Tests {
       //! Tests publishing a single value and then completing.
       void TestSingleValue();
 
+      //! Tests publishing a single value and then throwing an exception.
+      void TestSingleValueException();
+
     private:
       CPPUNIT_TEST_SUITE(QueueReactorTester);
         CPPUNIT_TEST(TestEmptyQueue);
         CPPUNIT_TEST(TestImmediateException);
         CPPUNIT_TEST(TestSingleValue);
+        CPPUNIT_TEST(TestSingleValueException);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

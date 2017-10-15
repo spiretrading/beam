@@ -216,7 +216,15 @@ namespace Details {
     try {
       auto update = Apply(m_parameters,
         [&] (const auto&... parameters) {
-          return boost::optional<Type>{m_function(parameters->Eval()...)};
+          return boost::optional<Type>{m_function(
+            [&] () -> Expect<
+                typename std::decay<decltype(*parameters)>::type::Type> {
+              try {
+                return parameters->Eval();
+              } catch(const std::exception&) {
+                return std::current_exception();
+              }
+            }()...)};
         });
       if(update.is_initialized()) {
         m_value = std::move(*update);

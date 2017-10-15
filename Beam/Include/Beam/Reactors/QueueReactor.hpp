@@ -21,7 +21,7 @@ namespace Reactors {
   template<typename T>
   class QueueReactor : public Reactor<T> {
     public:
-      using Type = GetReactorType<Reactor<T>>;
+      using Type = typename Reactor<T>::Type;
 
       //! Constructs a QueueReactor.
       /*!
@@ -32,6 +32,8 @@ namespace Reactors {
         RefType<Trigger> trigger);
 
       ~QueueReactor();
+
+      virtual bool IsInitialized() const override;
 
       virtual bool IsComplete() const override;
 
@@ -94,6 +96,11 @@ namespace Reactors {
   template<typename T>
   QueueReactor<T>::~QueueReactor() {
     m_queue->Break();
+  }
+
+  template<typename T>
+  bool QueueReactor<T>::IsInitialized() const {
+    return m_value.m_sequenceNumber != -1;
   }
 
   template<typename T>

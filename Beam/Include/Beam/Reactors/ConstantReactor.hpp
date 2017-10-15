@@ -14,7 +14,7 @@ namespace Reactors {
   template<typename T>
   class ConstantReactor : public Reactor<T> {
     public:
-      using Type = GetReactorType<Reactor<T>>;
+      using Type = typename Reactor<T>::Type;
 
       //! Constructs a ConstantReactor.
       /*!
@@ -22,6 +22,8 @@ namespace Reactors {
       */
       template<typename ValueForward>
       ConstantReactor(ValueForward&& value);
+
+      virtual bool IsInitialized() const override;
 
       virtual bool IsComplete() const override;
 
@@ -47,6 +49,11 @@ namespace Reactors {
   template<typename ValueForward>
   ConstantReactor<T>::ConstantReactor(ValueForward&& value)
       : m_value{std::forward<ValueForward>(value)} {}
+
+  template<typename T>
+  bool ConstantReactor<T>::IsInitialized() const {
+    return true;
+  }
 
   template<typename T>
   bool ConstantReactor<T>::IsComplete() const {

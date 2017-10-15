@@ -13,8 +13,9 @@ namespace {
   void AssertValue(Reactor<int>& reactor, int sequenceNumber,
       BaseReactor::Update update, int expectedValue, bool isComplete = false) {
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
-    CPPUNIT_ASSERT_EQUAL(reactor.Eval(), expectedValue);
+    CPPUNIT_ASSERT(reactor.IsInitialized());
     CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
+    CPPUNIT_ASSERT_EQUAL(reactor.Eval(), expectedValue);
   }
 
   template<typename T>
@@ -45,6 +46,7 @@ void QueueReactorTester::TestEmptyQueue() {
   }
   auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue),
     Ref(trigger));
+  CPPUNIT_ASSERT(!reactor->IsInitialized());
   CPPUNIT_ASSERT(!reactor->IsComplete());
   CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
   queue->Break();

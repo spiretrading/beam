@@ -5,6 +5,7 @@ namespace Beam {
 namespace Reactors {
 namespace Tests {
   class ConstantReactorTester;
+  class FunctionReactorTester;
   class NoneReactorTester;
   class QueueReactorTester;
   class TriggerTester;

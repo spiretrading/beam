@@ -32,6 +32,9 @@ namespace Reactors {
 
       virtual ~BaseReactor() = default;
 
+      //! Returns <code>true</code> iff this Reactor is initialized.
+      virtual bool IsInitialized() const = 0;
+
       //! Returns <code>true</code> iff this Reactor is complete.
       virtual bool IsComplete() const = 0;
 

@@ -15,10 +15,12 @@ namespace Reactors {
   template<typename T>
   class NoneReactor : public Reactor<T> {
     public:
-      using Type = GetReactorType<Reactor<T>>;
+      using Type = typename Reactor<T>::Type;
 
       //! Constructs a NoneReactor.
       NoneReactor() = default;
+
+      virtual bool IsInitialized() const override;
 
       virtual bool IsComplete() const override;
 
@@ -32,6 +34,11 @@ namespace Reactors {
   auto MakeNoneReactor() {
     return std::make_shared<NoneReactor<T>>();
   };
+
+  template<typename T>
+  bool NoneReactor<T>::IsInitialized() const {
+    return true;
+  }
 
   template<typename T>
   bool NoneReactor<T>::IsComplete() const {

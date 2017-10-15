@@ -8,6 +8,7 @@ namespace Tests {
   class FunctionReactorTester;
   class NoneReactorTester;
   class QueueReactorTester;
+  class TimerReactorTester;
   class TriggerTester;
 }
 }

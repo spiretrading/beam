@@ -8,6 +8,7 @@
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
 #include "Beam/ReactorsTests/NoneReactorTester.hpp"
 #include "Beam/ReactorsTests/QueueReactorTester.hpp"
+#include "Beam/ReactorsTests/TimerReactorTester.hpp"
 #include "Beam/ReactorsTests/TriggerTester.hpp"
 
 using namespace Beam::Reactors::Tests;
@@ -21,6 +22,7 @@ int main() {
   runner.addTest(QueueReactorTester::suite());
   runner.addTest(FunctionReactorTester::suite());
   runner.addTest(DoReactorTester::suite());
+  runner.addTest(TimerReactorTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

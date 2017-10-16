@@ -55,6 +55,9 @@ namespace Reactors {
 
   template<typename T>
   BaseReactor::Update ConstantReactor<T>::Commit(int sequenceNumber) {
+    if(sequenceNumber == 0) {
+      return BaseReactor::Update::EVAL;
+    }
     return BaseReactor::Update::NONE;
   }
 

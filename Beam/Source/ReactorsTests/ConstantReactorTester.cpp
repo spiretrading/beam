@@ -9,30 +9,24 @@ using namespace std;
 
 void ConstantReactorTester::TestInt() {
   auto constant = MakeConstantReactor(123);
-  CPPUNIT_ASSERT(constant->IsInitialized());
-  CPPUNIT_ASSERT(constant->IsComplete());
-  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(constant->IsInitialized());
+  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::EVAL);
   CPPUNIT_ASSERT(constant->IsComplete());
   CPPUNIT_ASSERT_EQUAL(constant->Eval(), 123);
+  CPPUNIT_ASSERT(constant->Commit(1) == BaseReactor::Update::NONE);
 }
 
 void ConstantReactorTester::TestDecimal() {
   auto constant = MakeConstantReactor(3.14);
-  CPPUNIT_ASSERT(constant->IsInitialized());
-  CPPUNIT_ASSERT(constant->IsComplete());
-  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(constant->IsInitialized());
+  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::EVAL);
   CPPUNIT_ASSERT(constant->IsComplete());
   CPPUNIT_ASSERT_EQUAL(constant->Eval(), 3.14);
+  CPPUNIT_ASSERT(constant->Commit(1) == BaseReactor::Update::NONE);
 }
 
 void ConstantReactorTester::TestString() {
   auto constant = MakeConstantReactor<string>("hello world");
-  CPPUNIT_ASSERT(constant->IsInitialized());
-  CPPUNIT_ASSERT(constant->IsComplete());
-  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(constant->IsInitialized());
+  CPPUNIT_ASSERT(constant->Commit(0) == BaseReactor::Update::EVAL);
   CPPUNIT_ASSERT(constant->IsComplete());
   CPPUNIT_ASSERT_EQUAL(constant->Eval(), string("hello world"));
+  CPPUNIT_ASSERT(constant->Commit(1) == BaseReactor::Update::NONE);
 }

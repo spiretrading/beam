@@ -10,6 +10,7 @@
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
 #include "Beam/Reactors/Trigger.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
+#include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
@@ -40,23 +41,18 @@ namespace Reactors {
       virtual Type Eval() const override;
 
     private:
-      struct Update {
-        Expect<Type> m_value;
-        int m_sequenceNumber;
-
-        Update(const Expect<Type>& value);
-      };
       mutable boost::mutex m_mutex;
       std::shared_ptr<QueueReader<Type>> m_queue;
       Trigger* m_trigger;
+      Expect<Type> m_value;
       bool m_isComplete;
-      bool m_failed;
-      std::deque<Update> m_updates;
-      Update m_value;
-      Routines::RoutineHandler m_queueListener;
+      int m_currentSequenceNumber;
+      int m_nextSequenceNumber;
+      BaseReactor::Update m_update;
+      Threading::ConditionVariable m_monitorCondition;
+      Routines::RoutineHandler m_monitorRoutine;
 
-      void OnUpdate(const Type& value);
-      void OnBreak(const std::exception_ptr& breakCondition);
+      void MonitorQueue();
   };
 
   //! Makes a QueueReactor.
@@ -71,34 +67,21 @@ namespace Reactors {
   }
 
   template<typename T>
-  QueueReactor<T>::Update::Update(const Expect<Type>& value)
-      : m_value{value},
-        m_sequenceNumber{-1} {}
-
-  template<typename T>
   QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue,
       RefType<Trigger> trigger)
       : m_queue{std::move(queue)},
         m_trigger{trigger.Get()},
+        m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_isComplete{false},
-        m_failed{false},
-        m_value{std::make_exception_ptr(ReactorUnavailableException{})} {
-    m_queueListener = Routines::Spawn(
-      [=] {
-        Monitor(m_queue,
-          std::bind(&QueueReactor::OnUpdate, this, std::placeholders::_1),
-          std::bind(&QueueReactor::OnBreak, this, std::placeholders::_1));
-      });
-  }
+        m_currentSequenceNumber{-1},
+        m_nextSequenceNumber{0} {}
 
   template<typename T>
   QueueReactor<T>::~QueueReactor() {
     m_queue->Break();
-  }
-
-  template<typename T>
-  bool QueueReactor<T>::IsInitialized() const {
-    return m_value.m_sequenceNumber != -1;
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    m_isComplete = true;
+    m_monitorCondition.notify_one();
   }
 
   template<typename T>
@@ -108,63 +91,61 @@ namespace Reactors {
 
   template<typename T>
   BaseReactor::Update QueueReactor<T>::Commit(int sequenceNumber) {
-    if(sequenceNumber < m_value.m_sequenceNumber) {
-      return BaseReactor::Update::NONE;
-    } else if(sequenceNumber == m_value.m_sequenceNumber) {
-      if(m_isComplete && !m_failed) {
-        return BaseReactor::Update::COMPLETE;
-      } else {
-        return BaseReactor::Update::EVAL;
+    if(sequenceNumber == m_currentSequenceNumber) {
+      return m_update;
+    }
+    {
+      boost::lock_guard<boost::mutex> lock{m_mutex};
+      if(sequenceNumber != m_nextSequenceNumber) {
+        return BaseReactor::Update::NONE;
       }
-    } else if(m_isComplete) {
-      return BaseReactor::Update::NONE;
     }
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    while(!m_updates.empty() &&
-        m_updates.front().m_sequenceNumber < sequenceNumber) {
-      m_updates.pop_front();
-    }
-    if(m_updates.empty() ||
-        m_updates.front().m_sequenceNumber > sequenceNumber) {
-      return BaseReactor::Update::NONE;
-    }
-    if(m_updates.front().m_value.IsValue()) {
-      m_value = std::move(m_updates.front());
-      m_updates.pop_front();
-      return BaseReactor::Update::EVAL;
-    }
-    m_value.m_sequenceNumber = sequenceNumber;
-    m_isComplete = true;
-    auto e = m_updates.front().m_value.GetException();
-    m_updates = std::deque<Update>{};
     try {
-      std::rethrow_exception(e);
+      m_value = std::move(m_queue->Top());
+      m_queue->Pop();
+      m_update = BaseReactor::Update::EVAL;
     } catch(const PipeBrokenException&) {
-      return BaseReactor::Update::COMPLETE;
+      m_update = BaseReactor::Update::COMPLETE;
+      m_isComplete = true;
     } catch(const std::exception&) {
-      m_failed = true;
-      m_value.m_value = e;
-      return BaseReactor::Update::EVAL;
+      m_value = std::current_exception();
+      m_isComplete = true;
+      m_update = BaseReactor::Update::EVAL;
     }
+    {
+      boost::lock_guard<boost::mutex> lock{m_mutex};
+      if(m_nextSequenceNumber == 0) {
+        m_monitorRoutine = Routines::Spawn(
+          std::bind(&QueueReactor::MonitorQueue, this));
+      }
+      m_currentSequenceNumber = m_nextSequenceNumber;
+      m_nextSequenceNumber = -1;
+      m_monitorCondition.notify_one();
+    }
+    return m_update;
   }
 
   template<typename T>
   typename QueueReactor<T>::Type QueueReactor<T>::Eval() const {
-    return m_value.m_value.Get();
+    return m_value.Get();
   }
 
   template<typename T>
-  void QueueReactor<T>::OnUpdate(const Type& value) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    m_updates.emplace_back(value);
-    m_trigger->SignalUpdate(Store(m_updates.back().m_sequenceNumber));
-  }
-
-  template<typename T>
-  void QueueReactor<T>::OnBreak(const std::exception_ptr& breakCondition) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    m_updates.emplace_back(breakCondition);
-    m_trigger->SignalUpdate(Store(m_updates.back().m_sequenceNumber));
+  void QueueReactor<T>::MonitorQueue() {
+    while(true) {
+      try {
+        m_queue->Top();
+      } catch(const std::exception&) {}
+      boost::unique_lock<boost::mutex> lock{m_mutex};
+      if(m_isComplete) {
+        break;
+      }
+      m_trigger->SignalUpdate(Store(m_nextSequenceNumber));
+      m_monitorCondition.wait(lock);
+      if(m_isComplete) {
+        break;
+      }
+    }
   }
 }
 }

@@ -25,11 +25,9 @@ void TimerReactorTester::TestExpiry() {
       return timer;
     };
   auto timerReactor = MakeTimerReactor<int>(timerFactory, period, Ref(trigger));
-  timerReactor->Commit(0);
+  AssertValue(*timerReactor, 0, BaseReactor::Update::EVAL, 0, false);
+  timer->Trigger();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  timerReactor->Commit(1);
-  timer->Trigger();
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
-  sequenceNumbers->Pop();
+  AssertValue(*timerReactor, 1, BaseReactor::Update::EVAL, 1, false);
 }

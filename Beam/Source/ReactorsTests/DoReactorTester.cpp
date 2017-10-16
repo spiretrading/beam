@@ -14,9 +14,6 @@ void DoReactorTester::TestPassThrough() {
     [&] (const auto& value) {
       capture = value;
     }, constant);
-  CPPUNIT_ASSERT(doReactor->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(doReactor->IsInitialized());
-  CPPUNIT_ASSERT(doReactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(doReactor->Eval(), 123);
+  AssertValue(*doReactor, 0, BaseReactor::Update::EVAL, 123, true);
   CPPUNIT_ASSERT_EQUAL(capture, 123);
 }

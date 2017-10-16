@@ -13,8 +13,6 @@ using namespace boost;
 using namespace std;
 
 namespace {
-  struct DummyException : std::exception {};
-
   int NoParameterFunction() {
     return 512;
   }
@@ -45,38 +43,28 @@ namespace {
 
 void FunctionReactorTester::TestNoParameters() {
   auto reactor = MakeFunctionReactor(&NoParameterFunction);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), 512);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, 512, true);
+  AssertValue(*reactor, 1, BaseReactor::Update::NONE, 512, true);
 }
 
 void FunctionReactorTester::TestNoParametersThrow() {
   auto reactor = MakeFunctionReactor(&NoParameterFunctionThrow);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
+  AssertException<DummyException>(*reactor, 0, BaseReactor::Update::EVAL, true);
+  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::NONE, true);
 }
 
 void FunctionReactorTester::TestNoParametersEmpty() {
   auto reactor = MakeFunctionReactor(&NoParameterFunctionEmpty);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
+  AssertException<ReactorUnavailableException>(*reactor, 0,
+    BaseReactor::Update::COMPLETE, true);
+  AssertException<ReactorUnavailableException>(*reactor, 1,
+    BaseReactor::Update::NONE, true);
 }
 
 void FunctionReactorTester::TestOneConstantParameter() {
   auto reactor = MakeFunctionReactor(&Square, MakeConstantReactor(5));
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), 25);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, 25, true);
+  AssertValue(*reactor, 1, BaseReactor::Update::NONE, 25, true);
 }
 
 void FunctionReactorTester::TestOneParameterNoEval() {
@@ -87,14 +75,11 @@ void FunctionReactorTester::TestOneParameterNoEval() {
   auto reactor = MakeFunctionReactor(&Square, queueReactor);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
   queue->Break();
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::COMPLETE);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
+  AssertException<ReactorUnavailableException>(*reactor, 0,
+    BaseReactor::Update::COMPLETE, true);
+  AssertException<ReactorUnavailableException>(*reactor, 1,
+    BaseReactor::Update::NONE, true);
 }
 
 void FunctionReactorTester::TestOneParameterWithSingleEval() {
@@ -105,25 +90,13 @@ void FunctionReactorTester::TestOneParameterWithSingleEval() {
   auto reactor = MakeFunctionReactor(&Square, queueReactor);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
   queue->Push(911);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, Square(911), false);
+  queue->Break();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(!reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), Square(911));
-  queue->Break();
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(2) == BaseReactor::Update::COMPLETE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), Square(911));
-  CPPUNIT_ASSERT(reactor->Commit(3) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), Square(911));
+  AssertValue(*reactor, 1, BaseReactor::Update::COMPLETE, Square(911), true);
+  AssertValue(*reactor, 2, BaseReactor::Update::NONE, Square(911), true);
 }
 
 void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
@@ -134,32 +107,17 @@ void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
   auto reactor = MakeFunctionReactor(&Square, queueReactor);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
   queue->Push(911);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, Square(911), false);
+  queue->Push(416);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(!reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), Square(911));
-  queue->Push(416);
+  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, Square(416), false);
+  queue->Break(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(2) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(!reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), Square(416));
-  queue->Break(DummyException{});
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 3);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(3) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
-  CPPUNIT_ASSERT(reactor->Commit(4) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
+  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::EVAL, true);
+  AssertException<DummyException>(*reactor, 3, BaseReactor::Update::NONE, true);
 }
 
 void FunctionReactorTester::TestOneParameterWithFilter() {
@@ -170,57 +128,28 @@ void FunctionReactorTester::TestOneParameterWithFilter() {
   auto reactor = MakeFunctionReactor(&FilterOdd, queueReactor);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
   queue->Push(5);
+  AssertException<ReactorUnavailableException>(*reactor, 0,
+    BaseReactor::Update::NONE, false);
+  queue->Push(10);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(!reactor->IsInitialized());
-  CPPUNIT_ASSERT(!reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
-  queue->Push(10);
+  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 10, false);
+  queue->Break();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(2) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(!reactor->IsComplete());
-  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), 10);
-  queue->Break(DummyException{});
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 3);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(3) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
-  CPPUNIT_ASSERT(reactor->Commit(4) == BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(reactor->IsInitialized());
-  CPPUNIT_ASSERT(reactor->IsComplete());
-  CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
+  AssertValue(*reactor, 2, BaseReactor::Update::COMPLETE, 10, true);
+  AssertValue(*reactor, 3, BaseReactor::Update::NONE, 10, true);
 }
 
-void FunctionReactorTester::TestTwoParametersWithDelay() {
-  auto p1 = std::make_shared<Queue<int>>();
-  auto p2 = std::make_shared<Queue<string>>();
+void FunctionReactorTester::TestTwoConstantParameters() {
   Trigger trigger;
-  auto p1Reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(p1),
-    Ref(trigger));
-  auto p2Reactor = MakeQueueReactor(
-    static_pointer_cast<QueueReader<string>>(p2), Ref(trigger));
-  auto reactor = MakeFunctionReactor(&JoinFunction, p1Reactor, p2Reactor);
+  auto reactor = MakeFunctionReactor(&JoinFunction,
+    MakeConstantReactor(100), MakeConstantReactor(string{"a"}));
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  reactor->Commit(0);
-  p1->Push(100);
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::NONE);
-  p1->Push(200);
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(2) == BaseReactor::Update::NONE);
-  p2->Push("a");
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 3);
-  sequenceNumbers->Pop();
-  CPPUNIT_ASSERT(reactor->Commit(3) == BaseReactor::Update::EVAL);
-  CPPUNIT_ASSERT(reactor->Eval() == std::make_tuple(100, "a"));
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL,
+    make_tuple(100, "a"), true);
+  AssertValue(*reactor, 1, BaseReactor::Update::NONE,
+    make_tuple(100, "a"), true);
 }

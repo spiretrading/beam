@@ -54,6 +54,13 @@ namespace Details {
       return reactorUpdate;
     }
   };
+
+  struct Eval {
+    template<typename T>
+    auto operator ()(const Reactor<T>* reactor) const {
+      return reactor->Eval();
+    }
+  };
 }
 
   /*! \class FunctionReactor
@@ -186,14 +193,7 @@ namespace Details {
       auto update = Apply(m_parameters,
         [&] (const auto&... parameters) {
           return boost::optional<Type>{m_function(
-            [&] () -> Expect<
-                typename std::decay<decltype(*parameters)>::type::Type> {
-              try {
-                return parameters->Eval();
-              } catch(const std::exception&) {
-                return std::current_exception();
-              }
-            }()...)};
+            Try(std::bind(Details::Eval(), &*parameters))...)};
         });
       if(update.is_initialized()) {
         m_value = std::move(*update);

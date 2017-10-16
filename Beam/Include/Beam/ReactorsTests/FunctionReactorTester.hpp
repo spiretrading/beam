@@ -39,6 +39,10 @@ namespace Tests {
       //! Tests a function with one parameter that filters some evaluations.
       void TestOneParameterWithFilter();
 
+      //! Tests a function of two parameters where the second parameter is
+      //! delayed.
+      void TestTwoParametersWithDelay();
+
     private:
       CPPUNIT_TEST_SUITE(FunctionReactorTester);
         CPPUNIT_TEST(TestNoParameters);
@@ -49,6 +53,7 @@ namespace Tests {
         CPPUNIT_TEST(TestOneParameterWithSingleEval);
         CPPUNIT_TEST(TestOneParameterWithMultipleEvals);
         CPPUNIT_TEST(TestOneParameterWithFilter);
+        CPPUNIT_TEST(TestTwoParametersWithDelay);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

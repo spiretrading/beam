@@ -161,6 +161,8 @@ namespace Details {
           if(!hasEval) {
             update = BaseReactor::Update::NONE;
           }
+        } else {
+          update = BaseReactor::Update::NONE;
         }
       } else {
         if(AreParametersComplete()) {

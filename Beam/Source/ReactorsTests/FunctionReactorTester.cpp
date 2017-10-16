@@ -1,4 +1,5 @@
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
+#include <tuple>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
@@ -35,6 +36,10 @@ namespace {
       return value;
     }
     return none;
+  }
+
+  std::tuple<int, string> JoinFunction(int a, const string& b) {
+    return make_tuple(a, b);
   }
 }
 
@@ -191,4 +196,31 @@ void FunctionReactorTester::TestOneParameterWithFilter() {
   CPPUNIT_ASSERT(reactor->IsInitialized());
   CPPUNIT_ASSERT(reactor->IsComplete());
   CPPUNIT_ASSERT_THROW(reactor->Eval(), DummyException);
+}
+
+void FunctionReactorTester::TestTwoParametersWithDelay() {
+  auto p1 = std::make_shared<Queue<int>>();
+  auto p2 = std::make_shared<Queue<string>>();
+  Trigger trigger;
+  auto p1Reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(p1),
+    Ref(trigger));
+  auto p2Reactor = MakeQueueReactor(
+    static_pointer_cast<QueueReader<string>>(p2), Ref(trigger));
+  auto reactor = MakeFunctionReactor(&JoinFunction, p1Reactor, p2Reactor);
+  auto sequenceNumbers = std::make_shared<Queue<int>>();
+  trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
+  reactor->Commit(0);
+  p1->Push(100);
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
+  sequenceNumbers->Pop();
+  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::NONE);
+  p1->Push(200);
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
+  sequenceNumbers->Pop();
+  CPPUNIT_ASSERT(reactor->Commit(2) == BaseReactor::Update::NONE);
+  p2->Push("a");
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 3);
+  sequenceNumbers->Pop();
+  CPPUNIT_ASSERT(reactor->Commit(3) == BaseReactor::Update::EVAL);
+  CPPUNIT_ASSERT(reactor->Eval() == std::make_tuple(100, "a"));
 }

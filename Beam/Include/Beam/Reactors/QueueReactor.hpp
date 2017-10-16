@@ -33,8 +33,6 @@ namespace Reactors {
 
       ~QueueReactor();
 
-      virtual bool IsInitialized() const override;
-
       virtual bool IsComplete() const override;
 
       virtual BaseReactor::Update Commit(int sequenceNumber) override;

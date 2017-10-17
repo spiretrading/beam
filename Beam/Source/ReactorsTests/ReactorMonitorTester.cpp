@@ -1,5 +1,6 @@
 #include "Beam/ReactorsTests/ReactorMonitorTester.hpp"
-#include "Beam/Queues/Queue.hpp"
+#include "Beam/Reactors/BasicReactor.hpp"
+#include "Beam/Reactors/DoReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 
 using namespace Beam;
@@ -9,5 +10,16 @@ using namespace std;
 
 void ReactorMonitorTester::TestAddSingleReactorBeforeOpen() {
   ReactorMonitor monitor;
-  auto queue = std::make_shared<Queue<int>>();
+  auto p1 = MakeBasicReactor<int>(Ref(monitor.GetTrigger()));
+  auto d = Do(
+    [&] (int value) {
+      CPPUNIT_ASSERT(value == 100);
+    }, p1);
+  monitor.Add(d);
+  monitor.Open();
+  monitor.Close();
+}
+
+void ReactorMonitorTester::TestAddSingleReactorAfterOpen() {
+  ReactorMonitor monitor;
 }

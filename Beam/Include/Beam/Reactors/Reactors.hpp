@@ -4,6 +4,7 @@
 namespace Beam {
 namespace Reactors {
   class BaseReactor;
+  template<typename T> class BasicReactor;
   template<typename T> class ConstantReactor;
   template<typename FunctionType, typename... ParameterTypes>
     class FunctionReactor;

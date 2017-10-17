@@ -1,10 +1,9 @@
-#ifndef BEAM_REACTORMONITORTASK_HPP
-#define BEAM_REACTORMONITORTASK_HPP
+#ifndef BEAM_REACTOR_MONITOR_TASK_HPP
+#define BEAM_REACTOR_MONITOR_TASK_HPP
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Reactors/Control.hpp"
-#include "Beam/Reactors/PublisherReactor.hpp"
+#include "Beam/Reactors/DoReactor.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
-#include "Beam/Reactors/Trigger.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
@@ -23,13 +22,13 @@ namespace Tasks {
         \param taskFactory Specifies the Task to execute.
         \param reactorMonitor The ReactorMonitor to start upon execution.
       */
-      ReactorMonitorTask(const TaskFactory& taskFactory,
+      ReactorMonitorTask(TaskFactory taskFactory,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
     protected:
-      virtual void OnExecute();
+      virtual void OnExecute() override final;
 
-      virtual void OnCancel();
+      virtual void OnCancel() override final;
 
     private:
       friend class ReactorMonitorTaskFactory;
@@ -59,30 +58,29 @@ namespace Tasks {
         \param taskFactory Specifies the Task to execute.
         \param reactorMonitor The ReactorMonitor to open upon execution.
       */
-      ReactorMonitorTaskFactory(const TaskFactory& taskFactory,
+      ReactorMonitorTaskFactory(TaskFactory taskFactory,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
-      virtual std::shared_ptr<Task> Create();
+      virtual std::shared_ptr<Task> Create() override final;
 
-      virtual void PrepareContinuation(const Task& task);
+      virtual void PrepareContinuation(const Task& task) override final;
 
     private:
       TaskFactory m_taskFactory;
       Reactors::ReactorMonitor* m_reactorMonitor;
   };
 
-  inline ReactorMonitorTask::ReactorMonitorTask(const TaskFactory& taskFactory,
+  inline ReactorMonitorTask::ReactorMonitorTask(TaskFactory taskFactory,
       RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_reactorMonitor(reactorMonitor.Get()),
-        m_trigger(*m_reactorMonitor) {}
+      : m_taskFactory{std::move(taskFactory)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline void ReactorMonitorTask::OnExecute() {
     return S0();
   }
 
   inline void ReactorMonitorTask::OnCancel() {
-    m_trigger.Do(
+    m_reactorMonitor->Do(
       [=] {
         if(m_state != 1 && m_state != 3) {
           return S3(State::CANCELED, "");
@@ -109,12 +107,12 @@ namespace Tasks {
     SetActive();
     m_task = m_taskFactory->Create();
     Manage(m_task);
-    auto publisher = Reactors::MakePublisherReactor(&m_task->GetPublisher());
+    auto publisher = Reactors::MakePublisherReactor(m_task->GetPublisher(),
+      Ref(m_reactorMonitor->GetTrigger()));
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&ReactorMonitorTask::OnTaskUpdate, this,
       std::placeholders::_1)), publisher);
-    m_reactorMonitor->AddEvent(publisher);
-    m_reactorMonitor->AddReactor(taskReactor);
+    m_reactorMonitor->Add(taskReactor);
     m_task->Execute();
     m_reactorMonitor->Open();
   }
@@ -135,10 +133,9 @@ namespace Tasks {
   }
 
   inline ReactorMonitorTaskFactory::ReactorMonitorTaskFactory(
-      const TaskFactory& taskFactory,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_reactorMonitor(reactorMonitor.Get()) {}
+      TaskFactory taskFactory, RefType<Reactors::ReactorMonitor> reactorMonitor)
+      : m_taskFactory{std::move(taskFactory)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline std::shared_ptr<Task> ReactorMonitorTaskFactory::Create() {
     return std::make_shared<ReactorMonitorTask>(m_taskFactory,

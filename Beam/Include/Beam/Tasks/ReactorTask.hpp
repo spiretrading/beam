@@ -1,5 +1,5 @@
-#ifndef BEAM_REACTORTASK_HPP
-#define BEAM_REACTORTASK_HPP
+#ifndef BEAM_REACTOR_TASK_HPP
+#define BEAM_REACTOR_TASK_HPP
 #include <algorithm>
 #include <iterator>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef BEAM_AGGREGATETASK_HPP
-#define BEAM_AGGREGATETASK_HPP
+#ifndef BEAM_AGGREGATE_TASK_HPP
+#define BEAM_AGGREGATE_TASK_HPP
 #include <vector>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -19,12 +19,12 @@ namespace Tasks {
       /*!
         \param taskFactories Specifies the Tasks to aggregate.
       */
-      AggregateTask(const std::vector<TaskFactory>& taskFactories);
+      AggregateTask(std::vector<TaskFactory> taskFactories);
 
     protected:
-      virtual void OnExecute();
+      virtual void OnExecute() override final;
 
-      virtual void OnCancel();
+      virtual void OnCancel() override final;
 
     private:
       friend class AggregateTaskFactory;
@@ -55,22 +55,21 @@ namespace Tasks {
       /*!
         \param taskFactories Specifies the Tasks to aggregate.
       */
-      AggregateTaskFactory(const std::vector<TaskFactory>& taskFactories);
+      AggregateTaskFactory(std::vector<TaskFactory> taskFactories);
 
-      virtual std::shared_ptr<Task> Create();
+      virtual std::shared_ptr<Task> Create() override final;
 
-      virtual void PrepareContinuation(const Task& task);
+      virtual void PrepareContinuation(const Task& task) override final;
 
     private:
       std::vector<TaskFactory> m_taskFactories;
   };
 
-  inline AggregateTask::AggregateTask(
-      const std::vector<TaskFactory>& taskFactories)
-      : m_taskFactories(taskFactories) {}
+  inline AggregateTask::AggregateTask(std::vector<TaskFactory> taskFactories)
+      : m_taskFactories{std::move(taskFactories)} {}
 
   inline void AggregateTask::OnExecute() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     return S0();
   }
 
@@ -84,7 +83,7 @@ namespace Tasks {
   }
 
   inline void AggregateTask::OnTaskUpdate(const StateEntry& update) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    boost::lock_guard<boost::mutex> lock{m_mutex};
     if(m_state == 1) {
       if(IsTerminal(update.m_state)) {
         return S3();
@@ -100,7 +99,7 @@ namespace Tasks {
     m_state = 0;
     SetActive();
     m_activeTasks = 0;
-    for(const auto& taskFactory : m_taskFactories) {
+    for(auto& taskFactory : m_taskFactories) {
       auto task = taskFactory->Create();
       Manage(task);
       m_tasks.push_back(task);
@@ -146,16 +145,15 @@ namespace Tasks {
   }
 
   inline AggregateTaskFactory::AggregateTaskFactory(
-      const std::vector<TaskFactory>& taskFactories)
-      : m_taskFactories(taskFactories) {}
+      std::vector<TaskFactory> taskFactories)
+      : m_taskFactories{std::move(taskFactories)} {}
 
   inline std::shared_ptr<Task> AggregateTaskFactory::Create() {
     return std::make_shared<AggregateTask>(m_taskFactories);
   }
 
   inline void AggregateTaskFactory::PrepareContinuation(const Task& task) {
-    const AggregateTask& aggregagteTask =
-      static_cast<const AggregateTask&>(task);
+    auto& aggregagteTask = static_cast<const AggregateTask&>(task);
     for(std::size_t i = 0; i < m_taskFactories.size(); ++i) {
       m_taskFactories[i]->PrepareContinuation(*aggregagteTask.m_tasks[i]);
     }

@@ -1,11 +1,9 @@
-#ifndef BEAM_BASICTASK_HPP
-#define BEAM_BASICTASK_HPP
+#ifndef BEAM_BASIC_TASK_HPP
+#define BEAM_BASIC_TASK_HPP
 #include <cassert>
 #include <unordered_map>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Queues/SequencePublisher.hpp"
-#include "Beam/Routines/Async.hpp"
 #include "Beam/Tasks/Task.hpp"
 #include "Beam/Tasks/TaskPropertyNotFoundException.hpp"
 #include "Beam/Tasks/Tasks.hpp"
@@ -19,11 +17,11 @@ namespace Tasks {
    */
   class BasicTask : public Task {
     public:
-      virtual void Execute() final;
+      virtual void Execute() override final;
 
-      virtual void Cancel() final;
+      virtual void Cancel() override final;
 
-      virtual const Publisher<StateEntry>& GetPublisher() const final;
+      virtual const Publisher<StateEntry>& GetPublisher() const override final;
 
     protected:
 
@@ -65,14 +63,14 @@ namespace Tasks {
       /*!
         \param task The sub-Task to manage.
       */
-      void Manage(const std::shared_ptr<Task>& task);
+      void Manage(std::shared_ptr<Task> task);
 
     private:
       struct TaskEntry {
         std::shared_ptr<Task> m_task;
         bool m_isTerminal;
 
-        TaskEntry(const std::shared_ptr<Task>& task);
+        TaskEntry(std::shared_ptr<Task> task);
       };
       mutable Threading::RecursiveMutex m_mutex;
       State m_state;
@@ -94,7 +92,7 @@ namespace Tasks {
   class BasicTaskFactory : public VirtualTaskFactory,
       public CloneableMixin<T> {
     public:
-      virtual boost::any& FindProperty(const std::string& name);
+      virtual boost::any& FindProperty(const std::string& name) override;
 
     protected:
 
@@ -116,12 +114,12 @@ namespace Tasks {
       std::unordered_map<std::string, boost::any> m_properties;
   };
 
-  inline BasicTask::TaskEntry::TaskEntry(const std::shared_ptr<Task>& task)
-      : m_task(task),
-        m_isTerminal(false) {}
+  inline BasicTask::TaskEntry::TaskEntry(std::shared_ptr<Task> task)
+      : m_task{std::move(task)},
+        m_isTerminal{false} {}
 
   inline void BasicTask::Execute() {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    boost::lock_guard<Threading::RecursiveMutex> lock{m_mutex};
     if(m_state != Task::State::NONE) {
       return;
     }
@@ -130,7 +128,7 @@ namespace Tasks {
   }
 
   inline void BasicTask::Cancel() {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    boost::lock_guard<Threading::RecursiveMutex> lock{m_mutex};
     m_taskQueue.Push(
       [=] {
         if(m_state == Task::State::PENDING_CANCEL || IsTerminal(m_state)) {
@@ -151,9 +149,9 @@ namespace Tasks {
   }
 
   inline BasicTask::BasicTask()
-      : m_state(State::NONE),
-        m_terminalCount(0),
-        m_terminalStateEntry(State::NONE) {}
+      : m_state{State::NONE},
+        m_terminalCount{0},
+        m_terminalStateEntry{State::NONE} {}
 
   inline void BasicTask::SetActive() {
     SetActive("");
@@ -188,7 +186,7 @@ namespace Tasks {
           m_publisher.Push(state);
         } else {
           m_terminalStateEntry = state;
-          for(const auto& managedTask : m_managedTasks) {
+          for(auto& managedTask : m_managedTasks) {
             if(!managedTask.m_isTerminal) {
               managedTask.m_task->Cancel();
             }
@@ -198,13 +196,13 @@ namespace Tasks {
   }
 
   inline void BasicTask::SetTerminal(State state, const std::string& message) {
-    SetTerminal(StateEntry(state, message));
+    SetTerminal(StateEntry{state, message});
   }
 
-  inline void BasicTask::Manage(const std::shared_ptr<Task>& task) {
+  inline void BasicTask::Manage(std::shared_ptr<Task> task) {
     m_taskQueue.Push(
-      [=] {
-        TaskEntry entry(task);
+      [=, task = std::move(task)] {
+        TaskEntry entry{std::move(task)};
         entry.m_task->GetPublisher().Monitor(m_taskQueue.GetSlot<StateEntry>(
           std::bind(&BasicTask::OnTaskUpdate, this, m_managedTasks.size(),
           std::placeholders::_1)));
@@ -216,7 +214,7 @@ namespace Tasks {
     assert(!IsTerminal(m_state));
     assert(!IsTerminal(state));
     m_state = state;
-    m_publisher.Push(Task::StateEntry(m_state, message));
+    m_publisher.Push(StateEntry{m_state, message});
   }
 
   inline void BasicTask::OnTaskUpdate(std::size_t entryIndex,
@@ -237,7 +235,7 @@ namespace Tasks {
   boost::any& BasicTaskFactory<T>::FindProperty(const std::string& name) {
     auto propertyIterator = m_properties.find(name);
     if(propertyIterator == m_properties.end()) {
-      BOOST_THROW_EXCEPTION(TaskPropertyNotFoundException(name));
+      BOOST_THROW_EXCEPTION(TaskPropertyNotFoundException{name});
     }
     return propertyIterator->second;
   }

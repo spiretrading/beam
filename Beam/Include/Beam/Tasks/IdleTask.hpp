@@ -1,6 +1,7 @@
-#ifndef BEAM_IDLETASK_HPP
-#define BEAM_IDLETASK_HPP
+#ifndef BEAM_IDLE_TASK_HPP
+#define BEAM_IDLE_TASK_HPP
 #include "Beam/Tasks/BasicTask.hpp"
+#include "Beam/Tasks/Tasks.hpp"
 
 namespace Beam {
 namespace Tasks {
@@ -12,12 +13,12 @@ namespace Tasks {
     public:
 
       //! Constructs an IdleTask.
-      IdleTask();
+      IdleTask() = default;
 
     protected:
-      virtual void OnExecute();
+      virtual void OnExecute() override final;
 
-      virtual void OnCancel();
+      virtual void OnCancel() override final;
  };
 
   /*! \class IdleTaskFactory
@@ -25,10 +26,8 @@ namespace Tasks {
    */
   class IdleTaskFactory : public BasicTaskFactory<IdleTaskFactory> {
     public:
-      virtual std::shared_ptr<Task> Create();
+      virtual std::shared_ptr<Task> Create() override final;
   };
-
-  inline IdleTask::IdleTask() {}
 
   inline void IdleTask::OnExecute() {
     SetActive();

@@ -4,8 +4,6 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include "Beam/TasksTests/IdleTaskTester.hpp"
-#include "Beam/TasksTests/ReactorTaskTester.hpp"
-#include "Beam/TasksTests/SpawnTaskTester.hpp"
 #include "Beam/TasksTests/UntilTaskTester.hpp"
 #include "Beam/TasksTests/WhenTaskTester.hpp"
 
@@ -17,11 +15,9 @@ int main() {
   runner.addTest(IdleTaskTester::suite());
   runner.addTest(UntilTaskTester::suite());
   runner.addTest(WhenTaskTester::suite());
-  runner.addTest(ReactorTaskTester::suite());
-  runner.addTest(SpawnTaskTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));
-  bool wasSucessful = runner.run();
+  auto wasSucessful = runner.run();
   return wasSucessful ? 0 : -1;
 }

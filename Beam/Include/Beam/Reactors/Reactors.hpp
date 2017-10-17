@@ -12,6 +12,7 @@ namespace Reactors {
   template<typename T> class Reactor;
   class ReactorError;
   class ReactorException;
+  class ReactorMonitor;
   class ReactorUnavailableException;
   class Trigger;
 }

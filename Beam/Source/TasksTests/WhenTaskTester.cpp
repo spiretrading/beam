@@ -1,6 +1,6 @@
 #include "Beam/TasksTests/WhenTaskTester.hpp"
-#include "Beam/Queues/StatePublisher.hpp"
-#include "Beam/Reactors/PublisherReactor.hpp"
+#include "Beam/Queues/Queue.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Tasks/WhenTask.hpp"
 #include "Beam/TasksTests/TestTaskEntry.hpp"
@@ -15,23 +15,33 @@ namespace {
   struct WhenTaskEntry {
     ReactorMonitor m_monitor;
     MockTaskEntry m_mockTaskEntry;
-    StatePublisher<bool> m_conditionPublisher;
+    std::shared_ptr<Queue<bool>> m_conditionQueue;
     std::shared_ptr<Reactor<bool>> m_condition;
     TestTaskEntry<WhenTaskFactory> m_taskEntry;
 
     WhenTaskEntry()
-        : m_condition(MakePublisherReactor(&m_conditionPublisher)),
-          m_taskEntry(m_mockTaskEntry.m_factory, m_condition, Ref(m_monitor)) {
-      m_monitor.AddEvent(dynamic_pointer_cast<Event>(m_condition));
+        : m_conditionQueue{std::make_shared<Queue<bool>>()},
+          m_condition{MakeQueueReactor(m_conditionQueue,
+            Ref(m_monitor.GetTrigger()))},
+          m_taskEntry{m_mockTaskEntry.m_factory, m_condition, Ref(m_monitor)} {
+      m_monitor.Add(m_condition);
       m_monitor.Open();
     }
   };
 }
 
+void WhenTaskTester::TestNeverTrigger() {
+  WhenTaskEntry entry;
+  Execute(entry.m_taskEntry);
+  ExpectState(entry.m_taskEntry.m_taskQueue.m_queue, Task::State::ACTIVE);
+  entry.m_conditionQueue->Break();
+  ExpectState(entry.m_taskEntry.m_taskQueue.m_queue, Task::State::COMPLETE);
+}
+
 void WhenTaskTester::TestExecuteThenTrigger() {
   WhenTaskEntry entry;
   Execute(entry.m_taskEntry);
-  entry.m_conditionPublisher.Push(true);
+  entry.m_conditionQueue->Push(true);
   ExpectState(entry.m_taskEntry.m_taskQueue.m_queue, Task::State::ACTIVE);
   auto executedTask = ExpectTask(entry.m_mockTaskEntry);
   executedTask.m_task->Execute();
@@ -45,7 +55,7 @@ void WhenTaskTester::TestExecuteThenTrigger() {
 
 void WhenTaskTester::TestTriggerThenExecute() {
   WhenTaskEntry entry;
-  entry.m_conditionPublisher.Push(true);
+  entry.m_conditionQueue->Push(true);
   Execute(entry.m_taskEntry);
   ExpectState(entry.m_taskEntry.m_taskQueue.m_queue, Task::State::ACTIVE);
   auto executedTask = ExpectTask(entry.m_mockTaskEntry);

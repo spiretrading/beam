@@ -60,10 +60,19 @@ namespace Reactors {
     \param queue The Queue to monitor.
     \param trigger The Trigger to signal when an update is available.
   */
-  template<typename T>
-  auto MakeQueueReactor(std::shared_ptr<QueueReader<T>> queue,
+  template<typename QR>
+  auto MakeQueueReactor(std::shared_ptr<QR> queue, RefType<Trigger> trigger) {
+    return std::make_shared<QueueReactor<typename QR::Target>>(
+      std::static_pointer_cast<QueueReader<typename QR::Target>>(queue),
+      Ref(trigger));
+  }
+
+  template<typename Type>
+  auto MakePublisherReactor(const Publisher<Type>& publisher,
       RefType<Trigger> trigger) {
-    return std::make_shared<QueueReactor<T>>(std::move(queue), Ref(trigger));
+    auto queue = std::make_shared<Queue<Type>>();
+    publisher.Monitor(queue);
+    return MakeQueueReactor(queue, Ref(trigger));
   }
 
   template<typename T>

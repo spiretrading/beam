@@ -57,12 +57,6 @@ namespace Tasks {
       //! Sets the State of this Task to some terminal state.
       /*!
         \param state The State of the Task.
-      */
-      void SetTerminal(State state);
-
-      //! Sets the State of this Task to some terminal state.
-      /*!
-        \param state The State of the Task.
         \param message The message describing the change in State.
       */
       void SetTerminal(State state, const std::string& message);
@@ -201,10 +195,6 @@ namespace Tasks {
           }
         }
       });
-  }
-
-  inline void BasicTask::SetTerminal(State state) {
-    SetTerminal(state, "");
   }
 
   inline void BasicTask::SetTerminal(State state, const std::string& message) {

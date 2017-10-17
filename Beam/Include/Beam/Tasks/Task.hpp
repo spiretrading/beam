@@ -81,6 +81,12 @@ namespace Details {
         */
         StateEntry(State state);
 
+        //! Constructs a StateEntry with an empty message.
+        /*!
+          \param state The Task's State.
+        */
+        StateEntry(State::Type state);
+
         //! Constructs a StateEntry.
         /*!
           \param state The Task's State.
@@ -229,6 +235,9 @@ namespace Details {
   }
 
   inline Task::StateEntry::StateEntry(State state)
+      : m_state{state} {}
+
+  inline Task::StateEntry::StateEntry(State::Type state)
       : m_state{state} {}
 
   inline Task::StateEntry::StateEntry(State state,

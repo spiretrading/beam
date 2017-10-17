@@ -24,7 +24,7 @@ namespace Tasks {
   class VirtualTaskFactory;
   class WhenTask;
   class WhenTaskFactory;
-  typedef ClonePtr<VirtualTaskFactory> TaskFactory;
+  using TaskFactory = ClonePtr<VirtualTaskFactory>;
 }
 }
 

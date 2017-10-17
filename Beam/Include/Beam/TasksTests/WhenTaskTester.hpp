@@ -14,6 +14,10 @@ namespace Tests {
   class WhenTaskTester  : public CPPUNIT_NS::TestFixture {
     public:
 
+      //! Tests executing a WhenTask where the trigger never signals the
+      //! condition.
+      void TestNeverTrigger();
+
       //! Tests executing a WhenTask and then triggering the condition.
       void TestExecuteThenTrigger();
 
@@ -22,6 +26,7 @@ namespace Tests {
 
     private:
       CPPUNIT_TEST_SUITE(WhenTaskTester);
+        CPPUNIT_TEST(TestNeverTrigger);
         CPPUNIT_TEST(TestExecuteThenTrigger);
         CPPUNIT_TEST(TestTriggerThenExecute);
       BEAM_CPPUNIT_TEST_SUITE_END();

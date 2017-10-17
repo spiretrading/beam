@@ -1,10 +1,10 @@
 #ifndef BEAM_WHENTASK_HPP
 #define BEAM_WHENTASK_HPP
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Reactors/Control.hpp"
-#include "Beam/Reactors/PublisherReactor.hpp"
+#include "Beam/Reactors/DoReactor.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
-#include "Beam/Reactors/Trigger.hpp"
+#include "Beam/Reactors/WhenComplete.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
@@ -25,8 +25,8 @@ namespace Tasks {
         \param condition The condition that executes the Task.
         \param reactorMonitor The ReactorMonitor to use.
       */
-      WhenTask(const TaskFactory& taskFactory,
-        const std::shared_ptr<Reactors::Reactor<bool>>& condition,
+      WhenTask(TaskFactory taskFactory,
+        std::shared_ptr<Reactors::Reactor<bool>> condition,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
     protected:
@@ -38,10 +38,8 @@ namespace Tasks {
       TaskFactory m_taskFactory;
       std::shared_ptr<Reactors::Reactor<bool>> m_condition;
       Reactors::ReactorMonitor* m_reactorMonitor;
-      Reactors::Trigger m_trigger;
       int m_state;
       SignalHandling::ScopedSlotAdaptor m_callbacks;
-      boost::signals2::scoped_connection m_completeConnection;
 
       void OnCondition(const Expect<bool>& condition);
       void OnConditionComplete();
@@ -66,8 +64,8 @@ namespace Tasks {
         \param condition The condition that executes the Task.
         \param reactorMonitor The ReactorMonitor to use.
       */
-      WhenTaskFactory(const TaskFactory& taskFactory,
-        const std::shared_ptr<Reactors::Reactor<bool>>& condition,
+      WhenTaskFactory(TaskFactory taskFactory,
+        std::shared_ptr<Reactors::Reactor<bool>> condition,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
       virtual std::shared_ptr<Task> Create();
@@ -78,20 +76,19 @@ namespace Tasks {
       Reactors::ReactorMonitor* m_reactorMonitor;
   };
 
-  inline WhenTask::WhenTask(const TaskFactory& taskFactory,
-      const std::shared_ptr<Reactors::Reactor<bool>>& condition,
+  inline WhenTask::WhenTask(TaskFactory taskFactory,
+      std::shared_ptr<Reactors::Reactor<bool>> condition,
       RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_condition(condition),
-        m_reactorMonitor(reactorMonitor.Get()),
-        m_trigger(*m_reactorMonitor) {}
+      : m_taskFactory{std::move(taskFactory)},
+        m_condition{std::move(condition)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline void WhenTask::OnExecute() {
     return S0();
   }
 
   inline void WhenTask::OnCancel() {
-    m_trigger.Do(
+    m_reactorMonitor->Do(
       [=] {
         if(m_state == 0) {
           return S1(State::CANCELED, "");
@@ -132,12 +129,12 @@ namespace Tasks {
   inline void WhenTask::S0() {
     m_state = 0;
     SetActive();
-    auto reactor = Reactors::Do(m_callbacks.GetCallback(
+    auto reactor = Reactors::WhenComplete(
+      std::bind(&WhenTask::OnConditionComplete, this),
+      Reactors::Do(m_callbacks.GetCallback(
       std::bind(&WhenTask::OnCondition, this, std::placeholders::_1)),
-      m_condition);
-    m_completeConnection = m_reactorMonitor->ConnectCompleteSignal(*reactor,
-      std::bind(&WhenTask::OnConditionComplete, this));
-    m_reactorMonitor->AddReactor(reactor);
+      m_condition));
+    m_reactorMonitor->Add(reactor);
   }
 
   inline void WhenTask::S1(State state, const std::string& message) {
@@ -154,12 +151,12 @@ namespace Tasks {
     m_state = 3;
     auto task = m_taskFactory->Create();
     Manage(task);
-    auto publisher = Reactors::MakePublisherReactor(&task->GetPublisher());
+    auto publisher = Reactors::MakePublisherReactor(task->GetPublisher(),
+      Ref(m_reactorMonitor->GetTrigger()));
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&WhenTask::OnTaskUpdate, this, std::placeholders::_1)),
       publisher);
-    m_reactorMonitor->AddEvent(publisher);
-    m_reactorMonitor->AddReactor(taskReactor);
+    m_reactorMonitor->Add(taskReactor);
     task->Execute();
     return S4();
   }
@@ -168,12 +165,12 @@ namespace Tasks {
     m_state = 4;
   }
 
-  inline WhenTaskFactory::WhenTaskFactory(const TaskFactory& taskFactory,
-      const std::shared_ptr<Reactors::Reactor<bool>>& condition,
+  inline WhenTaskFactory::WhenTaskFactory(TaskFactory taskFactory,
+      std::shared_ptr<Reactors::Reactor<bool>> condition,
       RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_condition(condition),
-        m_reactorMonitor(reactorMonitor.Get()) {}
+      : m_taskFactory{std::move(taskFactory)},
+        m_condition{std::move(condition)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline std::shared_ptr<Task> WhenTaskFactory::Create() {
     return std::make_shared<WhenTask>(m_taskFactory, m_condition,

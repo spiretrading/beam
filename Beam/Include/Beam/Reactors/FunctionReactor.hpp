@@ -65,8 +65,8 @@ namespace Details {
 
   /*! \class FunctionReactor
       \brief A Reactor that applies a function to its parameters.
-      \tparam Function The type of function to apply.
-      \tparam Parameters The type of parameters to apply the function to.
+      \tparam FunctionType The type of function to apply.
+      \tparam ParameterTypes The type of parameters to apply the function to.
    */
   template<typename FunctionType, typename... ParameterTypes>
   class FunctionReactor : public Reactor<typename Details::FunctionReactorType<

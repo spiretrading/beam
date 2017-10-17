@@ -29,3 +29,31 @@ void BasicReactorTester::TestCompleteWithThrowImmediately() {
   AssertException<DummyException>(*reactor, 1, BaseReactor::Update::NONE, true);
   CPPUNIT_ASSERT(sequenceNumbers->IsEmpty());
 }
+
+void BasicReactorTester::TestSingleValue() {
+  Trigger trigger;
+  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  auto sequenceNumbers = std::make_shared<Queue<int>>();
+  trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
+  reactor->Update(123);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, 123);
+  reactor->SetComplete();
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
+  sequenceNumbers->Pop();
+  AssertValue(*reactor, 1, BaseReactor::Update::COMPLETE, 123);
+  AssertValue(*reactor, 2, BaseReactor::Update::NONE, 123, true);
+}
+
+void BasicReactorTester::TestSingleValueAndThrow() {
+  Trigger trigger;
+  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  auto sequenceNumbers = std::make_shared<Queue<int>>();
+  trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
+  reactor->Update(123);
+  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, 123);
+  reactor->SetComplete(DummyException{});
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
+  sequenceNumbers->Pop();
+  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL, true);
+  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE, true);
+}

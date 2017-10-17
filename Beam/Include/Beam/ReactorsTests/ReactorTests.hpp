@@ -36,7 +36,11 @@ namespace Tests {
       bool isComplete = false) {
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
-    CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
+    if(update == BaseReactor::Update::COMPLETE) {
+      CPPUNIT_ASSERT(reactor.IsComplete());
+    } else {
+      CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
+    }
     CPPUNIT_ASSERT(reactor.Eval() == expectedValue);
   }
 

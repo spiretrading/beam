@@ -20,10 +20,18 @@ namespace Tests {
       //! Tests completing with an exception without producing a value.
       void TestCompleteWithThrowImmediately();
 
+      //! Tests producing a single value and then completing.
+      void TestSingleValue();
+
+      //! Tests producing a single value and then completing with an exception.
+      void TestSingleValueAndThrow();
+
     private:
       CPPUNIT_TEST_SUITE(BasicReactorTester);
         CPPUNIT_TEST(TestCompleteImmediately);
         CPPUNIT_TEST(TestCompleteWithThrowImmediately);
+        CPPUNIT_TEST(TestSingleValue);
+        CPPUNIT_TEST(TestSingleValueAndThrow);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

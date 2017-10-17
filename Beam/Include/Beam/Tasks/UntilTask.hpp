@@ -27,9 +27,9 @@ namespace Tasks {
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
     protected:
-      virtual void OnExecute();
+      virtual void OnExecute() override final;
 
-      virtual void OnCancel();
+      virtual void OnCancel() override final;
 
     private:
       TaskFactory m_taskFactory;
@@ -63,7 +63,7 @@ namespace Tasks {
         std::shared_ptr<Reactors::Reactor<bool>> condition,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
-      virtual std::shared_ptr<Task> Create();
+      virtual std::shared_ptr<Task> Create() override final;
 
     private:
       TaskFactory m_taskFactory;

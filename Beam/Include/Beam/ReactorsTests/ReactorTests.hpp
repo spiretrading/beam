@@ -11,6 +11,7 @@ namespace Tests {
   class ConstantReactorTester;
   class FunctionReactorTester;
   class NoneReactorTester;
+  class NonRepeatingReactorTester;
   class QueueReactorTester;
   class ReactorMonitorTester;
   class TimerReactorTester;

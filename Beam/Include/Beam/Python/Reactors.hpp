@@ -98,6 +98,9 @@ namespace Details {
   //! A Reactor that evaluates to Python objects.
   using PythonReactor = Reactors::Reactor<boost::python::object>;
 
+  //! Exports the AlarmReactor class.
+  void ExportAlarmReactor();
+
   //! Exports the BaseReactor class.
   void ExportBaseReactor();
 

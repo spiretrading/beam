@@ -6,6 +6,7 @@
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
+#include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
@@ -45,8 +46,31 @@ namespace {
     }
   };
 
-  void DeleteReactorMonitor(ReactorMonitor& monitor) {
-    monitor.Close();
+  auto MakePythonAlarmReactor(const object& timerFactory,
+      VirtualTimeClient* timeClient,
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor,
+      Trigger& trigger) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
+        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
+      };
+    return static_pointer_cast<Reactor<bool>>(
+      MakeAlarmReactor(pythonTimerFactory, timeClient, expiryReactor,
+      Ref(trigger)));
+  }
+
+  auto MakePythonDefaultAlarmReactor(
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor, Trigger& trigger) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        auto timer = std::make_unique<LiveTimer>(duration,
+          Ref(*GetTimerThreadPool()));
+        return timer;
+      };
+    return static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
+      pythonTimerFactory, std::make_shared<LocalTimeClient>(), expiryReactor,
+      Ref(trigger)));
   }
 
   auto MakePythonTimerReactor(const object& timerFactory,
@@ -128,6 +152,11 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile Publisher<int>* get_pointer(
+      const volatile Publisher<int>* p) {
+    return p;
+  }
+
   template<> inline const volatile PythonReactor* get_pointer(
       const volatile PythonReactor* p) {
     return p;
@@ -204,6 +233,11 @@ namespace boost {
 }
 #endif
 
+void Beam::Python::ExportAlarmReactor() {
+  def("AlarmReactor", &MakePythonAlarmReactor);
+  def("AlarmReactor", &MakePythonDefaultAlarmReactor);
+}
+
 void Beam::Python::ExportBaseReactor() {
   class_<BaseReactorWrapper, std::shared_ptr<BaseReactorWrapper>,
     boost::noncopyable>("BaseReactor")
@@ -230,6 +264,9 @@ void Beam::Python::ExportPythonConstantReactor() {
 
 void Beam::Python::ExportReactorMonitor() {
   class_<ReactorMonitor, noncopyable>("ReactorMonitor", init<>())
+    .add_property("trigger", make_function(
+      static_cast<Trigger& (ReactorMonitor::*)()>(&ReactorMonitor::GetTrigger),
+      return_internal_reference<>()))
     .def("add", BlockingFunction(&ReactorMonitor::Add))
     .def("do", &ReactorMonitorDo)
     .def("open", BlockingFunction(&ReactorMonitor::Open))
@@ -246,6 +283,7 @@ void Beam::Python::ExportReactors() {
   ExportReactor<PythonReactor>("Reactor");
   ExportReactorMonitor();
   ExportDoReactor();
+  ExportAlarmReactor();
   ExportTimerReactor();
   ExportTrigger();
   ExportPythonConstantReactor();
@@ -273,5 +311,7 @@ void Beam::Python::ExportTimerReactor() {
 
 void Beam::Python::ExportTrigger() {
   class_<Trigger, noncopyable>("Trigger", init<>())
-    .def("signal_update", &TriggerSignalUpdate);
+    .def("signal_update", &TriggerSignalUpdate)
+    .add_property("sequence_number_publisher", make_function(
+      &Trigger::GetSequenceNumberPublisher, return_internal_reference<>()));
 }

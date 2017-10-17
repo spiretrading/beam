@@ -66,7 +66,7 @@ namespace Tasks {
   };
 
   inline AggregateTask::AggregateTask(std::vector<TaskFactory> taskFactories)
-      : m_taskFactories{std::move(taskFactories)} {}
+      : m_taskFactories(std::move(taskFactories)) {}
 
   inline void AggregateTask::OnExecute() {
     boost::lock_guard<boost::mutex> lock{m_mutex};
@@ -146,7 +146,7 @@ namespace Tasks {
 
   inline AggregateTaskFactory::AggregateTaskFactory(
       std::vector<TaskFactory> taskFactories)
-      : m_taskFactories{std::move(taskFactories)} {}
+      : m_taskFactories(std::move(taskFactories)) {}
 
   inline std::shared_ptr<Task> AggregateTaskFactory::Create() {
     return std::make_shared<AggregateTask>(m_taskFactories);

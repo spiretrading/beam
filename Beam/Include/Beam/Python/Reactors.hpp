@@ -14,54 +14,21 @@ namespace Details {
   struct ReactorWrapper : T, boost::python::wrapper<T> {
     using Type = typename T::Type;
 
-    virtual void Commit() override {
-      if(auto f = this->get_override("commit")) {
-        f();
-        return;
-      }
-      T::Commit();
+    virtual bool IsComplete() const override final {
+      return this->get_override("is_complete");
     }
 
-    void DefaultCommit() {
-      this->T::Commit();
+    virtual const std::type_info& GetType() const override final {
+      return typeid(boost::python::object);
     }
 
-    virtual Expect<void> GetBaseValue() override {
-      if(auto f = this->get_override("get_base_value")) {
-        return f();
-      }
-      return T::GetBaseValue();
-    }
-
-    Expect<void> DefaultGetBaseValue() {
-      return T::GetBaseValue();
-    }
-
-    virtual const std::type_info& GetType() const override {
-      if(auto f = this->get_override("get_type")) {
-        return *static_cast<const std::type_info*>(f());
-      }
-      return T::GetType();
-    }
-
-    const std::type_info& DefaultGetType() const {
-      return T::GetType();
+    virtual Reactors::BaseReactor::Update
+        Commit(int sequenceNumber) override final {
+      return this->get_override("commit")(sequenceNumber);
     }
 
     virtual Type Eval() const override {
       return this->get_override("eval")();
-    }
-
-    void IncrementSequenceNumber() {
-      T::IncrementSequenceNumber();
-    }
-
-    void SetComplete() {
-      T::SetComplete();
-    }
-
-    void SignalUpdate() {
-      T::SignalUpdate();
     }
   };
 
@@ -131,29 +98,14 @@ namespace Details {
   //! A Reactor that evaluates to Python objects.
   using PythonReactor = Reactors::Reactor<boost::python::object>;
 
-  //! Exports the AggregateReactor class.
-  void ExportAggregateReactor();
-
-  //! Exports the AlarmReactor.
-  void ExportAlarmReactor();
-
   //! Exports the BaseReactor class.
   void ExportBaseReactor();
-
-  //! Exports the ChainReactor class.
-  void ExportChainReactor();
 
   //! Exports the Do Reactor.
   void ExportDoReactor();
 
-  //! Exports the Event class.
-  void ExportEvent();
-
   //! Exports a ConstantReactor<object> class.
   void ExportPythonConstantReactor();
-
-  //! Exports a ReactorContainer for a Python object.
-  void ExportPythonReactorContainer();
 
   //! Exports the ReactorMonitor class.
   void ExportReactorMonitor();
@@ -205,17 +157,9 @@ namespace Details {
     boost::python::class_<Details::ReactorWrapper<T>,
       std::shared_ptr<Details::ReactorWrapper<T>>, boost::noncopyable,
       boost::python::bases<Reactors::BaseReactor>>(name)
-      .def("commit", &T::Commit, &Details::ReactorWrapper<T>::DefaultCommit)
-      .def("get_base_value", &T::GetBaseValue,
-        &Details::ReactorWrapper<T>::DefaultGetBaseValue)
-      .def("get_type", &T::GetType, &Details::ReactorWrapper<T>::DefaultGetType,
-        boost::python::return_value_policy<
-        boost::python::reference_existing_object>())
-      .def("eval", boost::python::pure_virtual(&T::Eval))
-      .def("_increment_sequence_number",
-        &Details::ReactorWrapper<T>::IncrementSequenceNumber)
-      .def("_set_complete", &Details::ReactorWrapper<T>::SetComplete)
-      .def("_signal_update", &Details::ReactorWrapper<T>::SignalUpdate);
+      .def("is_complete", boost::python::pure_virtual(&T::IsComplete))
+      .def("commit", boost::python::pure_virtual(&T::Commit))
+      .def("eval", boost::python::pure_virtual(&T::Eval));
     if(!std::is_same<T, PythonReactor>::value) {
       boost::python::to_python_converter<std::shared_ptr<T>,
         Details::ReactorToPython<T>>();

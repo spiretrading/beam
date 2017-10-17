@@ -130,7 +130,7 @@ namespace Tasks {
     m_state = 0;
     SetActive();
     auto reactor = Reactors::WhenComplete(
-      std::bind(&WhenTask::OnConditionComplete, this),
+      m_callbacks.GetCallback(std::bind(&WhenTask::OnConditionComplete, this)),
       Reactors::Do(m_callbacks.GetCallback(
       std::bind(&WhenTask::OnCondition, this, std::placeholders::_1)),
       m_condition));

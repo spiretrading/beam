@@ -55,10 +55,36 @@ namespace Details {
     }
   };
 
-  struct Eval {
+  struct FunctionEval {
     template<typename T>
     auto operator ()(const Reactor<T>* reactor) const {
       return reactor->Eval();
+    }
+  };
+
+  template<typename T>
+  struct FunctionUpdateEval {
+    template<typename V, typename F, typename P>
+    bool operator ()(V& value, F& function, const P& p) const {
+      auto update = Apply(p,
+        [&] (const auto&... parameters) {
+          return boost::optional<T>{function(
+            Try(std::bind(FunctionEval{}, &*parameters))...)};
+        });
+      if(update.is_initialized()) {
+        value = std::move(*update);
+        return true;
+      }
+      return false;
+    }
+  };
+
+  template<>
+  struct FunctionUpdateEval<void> {
+    template<typename V, typename F, typename P>
+    bool operator ()(V& value, F& function, const P& p) const {
+      Apply(p, function);
+      return true;
     }
   };
 }
@@ -190,17 +216,8 @@ namespace Details {
   template<typename FunctionType, typename... ParameterTypes>
   bool FunctionReactor<FunctionType, ParameterTypes...>::UpdateEval() {
     try {
-      auto update = Apply(m_parameters,
-        [&] (const auto&... parameters) {
-          return boost::optional<Type>{m_function(
-            Try(std::bind(Details::Eval(), &*parameters))...)};
-        });
-      if(update.is_initialized()) {
-        m_value = std::move(*update);
-        return true;
-      } else {
-        return false;
-      }
+      return Details::FunctionUpdateEval<Type>{}(m_value, m_function,
+        m_parameters);
     } catch(const std::exception&) {
       m_value = std::current_exception();
       return true;

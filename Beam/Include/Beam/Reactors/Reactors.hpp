@@ -8,6 +8,7 @@ namespace Reactors {
   template<typename T> class ConstantReactor;
   template<typename FunctionType, typename... ParameterTypes>
     class FunctionReactor;
+  template<typename FunctionType> class MultiReactor;
   template<typename T> class NoneReactor;
   template<typename T> class QueueReactor;
   template<typename T> class Reactor;

@@ -37,9 +37,9 @@ namespace Details {
   */
   template<typename Function, typename Reactor>
   auto Do(Function&& function, Reactor&& reactor) {
-    return std::make_shared<FunctionReactor<
-      Details::DoFunction<typename std::decay<Function>::type>,
-      typename std::decay<Reactor>::type>>(function, reactor);
+    return MakeFunctionReactor(
+      Details::DoFunction<typename std::decay<Function>::type>{
+      std::forward<Function>(function)}, std::forward<Reactor>(reactor));
   }
 }
 }

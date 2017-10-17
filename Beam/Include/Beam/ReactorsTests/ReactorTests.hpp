@@ -7,10 +7,12 @@
 namespace Beam {
 namespace Reactors {
 namespace Tests {
+  class BasicReactorTester;
   class ConstantReactorTester;
   class FunctionReactorTester;
   class NoneReactorTester;
   class QueueReactorTester;
+  class ReactorMonitorTester;
   class TimerReactorTester;
   class TriggerTester;
 
@@ -56,7 +58,11 @@ namespace Tests {
     } catch(const std::exception&) {
       CPPUNIT_FAIL("Expected exception not thrown.");
     }
-    CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
+    if(update == BaseReactor::Update::COMPLETE) {
+      CPPUNIT_ASSERT(reactor.IsComplete());
+    } else {
+      CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
+    }
   }
 }
 }

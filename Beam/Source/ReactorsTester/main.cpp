@@ -3,6 +3,7 @@
 #include <cppunit/TestResult.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+#include "Beam/ReactorsTests/BasicReactorTester.hpp"
 #include "Beam/ReactorsTests/ConstantReactorTester.hpp"
 #include "Beam/ReactorsTests/DoReactorTester.hpp"
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
@@ -19,6 +20,7 @@ int main() {
   runner.addTest(NoneReactorTester::suite());
   runner.addTest(ConstantReactorTester::suite());
   runner.addTest(TriggerTester::suite());
+  runner.addTest(BasicReactorTester::suite());
   runner.addTest(QueueReactorTester::suite());
   runner.addTest(FunctionReactorTester::suite());
   runner.addTest(DoReactorTester::suite());

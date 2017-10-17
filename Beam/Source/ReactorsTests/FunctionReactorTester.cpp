@@ -1,9 +1,8 @@
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
 #include <tuple>
-#include "Beam/Queues/Queue.hpp"
+#include "Beam/Reactors/BasicReactor.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
-#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
 
 using namespace Beam;
@@ -68,14 +67,12 @@ void FunctionReactorTester::TestOneConstantParameter() {
 }
 
 void FunctionReactorTester::TestOneParameterNoEval() {
-  auto queue = std::make_shared<Queue<int>>();
   Trigger trigger;
-  auto queueReactor = MakeQueueReactor(
-    static_pointer_cast<QueueReader<int>>(queue), Ref(trigger));
-  auto reactor = MakeFunctionReactor(&Square, queueReactor);
+  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto reactor = MakeFunctionReactor(&Square, p1);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  queue->Break();
+  p1->SetComplete();
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::COMPLETE, true);
   AssertException<ReactorUnavailableException>(*reactor, 1,
@@ -83,16 +80,14 @@ void FunctionReactorTester::TestOneParameterNoEval() {
 }
 
 void FunctionReactorTester::TestOneParameterWithSingleEval() {
-  auto queue = std::make_shared<Queue<int>>();
   Trigger trigger;
-  auto queueReactor = MakeQueueReactor(
-    static_pointer_cast<QueueReader<int>>(queue), Ref(trigger));
-  auto reactor = MakeFunctionReactor(&Square, queueReactor);
+  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto reactor = MakeFunctionReactor(&Square, p1);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  queue->Push(911);
+  p1->Update(911);
   AssertValue(*reactor, 0, BaseReactor::Update::EVAL, Square(911), false);
-  queue->Break();
+  p1->SetComplete();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 1, BaseReactor::Update::COMPLETE, Square(911), true);
@@ -100,20 +95,18 @@ void FunctionReactorTester::TestOneParameterWithSingleEval() {
 }
 
 void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
-  auto queue = std::make_shared<Queue<int>>();
   Trigger trigger;
-  auto queueReactor = MakeQueueReactor(
-    static_pointer_cast<QueueReader<int>>(queue), Ref(trigger));
-  auto reactor = MakeFunctionReactor(&Square, queueReactor);
+  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto reactor = MakeFunctionReactor(&Square, p1);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  queue->Push(911);
+  p1->Update(911);
   AssertValue(*reactor, 0, BaseReactor::Update::EVAL, Square(911), false);
-  queue->Push(416);
+  p1->Update(416);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 1, BaseReactor::Update::EVAL, Square(416), false);
-  queue->Break(DummyException{});
+  p1->SetComplete(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
   AssertException<DummyException>(*reactor, 2, BaseReactor::Update::EVAL, true);
@@ -121,21 +114,19 @@ void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
 }
 
 void FunctionReactorTester::TestOneParameterWithFilter() {
-  auto queue = std::make_shared<Queue<int>>();
   Trigger trigger;
-  auto queueReactor = MakeQueueReactor(
-    static_pointer_cast<QueueReader<int>>(queue), Ref(trigger));
-  auto reactor = MakeFunctionReactor(&FilterOdd, queueReactor);
+  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto reactor = MakeFunctionReactor(&FilterOdd, p1);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  queue->Push(5);
+  p1->Update(5);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);
-  queue->Push(10);
+  p1->Update(10);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 10, false);
-  queue->Break();
+  p1->SetComplete();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 2, BaseReactor::Update::COMPLETE, 10, true);

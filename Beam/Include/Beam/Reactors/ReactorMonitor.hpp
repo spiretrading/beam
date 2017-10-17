@@ -110,6 +110,7 @@ namespace Reactors {
 
   inline void ReactorMonitor::Shutdown() {
     m_tasks.Break();
+    m_tasks.Wait();
     m_openState.SetClosed();
   }
 

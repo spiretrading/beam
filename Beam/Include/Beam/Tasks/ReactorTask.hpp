@@ -30,7 +30,7 @@ namespace Tasks {
       const std::string& GetName() const;
 
       //! Returns the Reactor to connect to the property.
-      virtual std::shared_ptr<Reactors::BaseReactor> GetReactor() const = 0;
+      virtual const Reactors::BaseReactor& GetReactor() const = 0;
 
       //! Commits a change to the property.
       virtual void Commit() = 0;
@@ -47,13 +47,13 @@ namespace Tasks {
       /*!
         \param name The name of the property.
       */
-      VirtualReactorProperty(const std::string& name);
+      VirtualReactorProperty(std::string name);
 
     private:
       std::string m_name;
   };
 
-  typedef ClonePtr<VirtualReactorProperty> ReactorProperty;
+  using ReactorProperty = ClonePtr<VirtualReactorProperty>;
 
   /*! \class ReactorTask
       \brief Executes a Task whose properties are connected to Reactors.
@@ -67,14 +67,14 @@ namespace Tasks {
         \param properties The properties to connect to the Task.
         \param reactorMonitor The ReactorMonitor to use.
       */
-      ReactorTask(const TaskFactory& taskFactory,
+      ReactorTask(TaskFactory taskFactory,
         std::vector<ReactorProperty> properties,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
     protected:
-      virtual void OnExecute();
+      virtual void OnExecute() override final;
 
-      virtual void OnCancel();
+      virtual void OnCancel() override final;
 
     private:
       TaskFactory m_taskFactory;
@@ -113,13 +113,13 @@ namespace Tasks {
         \param properties The properties to connect to the Task.
         \param reactorMonitor The ReactorMonitor to use.
       */
-      ReactorTaskFactory(const TaskFactory& taskFactory,
+      ReactorTaskFactory(TaskFactory taskFactory,
         std::vector<ReactorProperty> properties,
         RefType<Reactors::ReactorMonitor> reactorMonitor);
 
-      virtual std::shared_ptr<Task> Create();
+      virtual std::shared_ptr<Task> Create() override final;
 
-      virtual void PrepareContinuation(const Task& task);
+      virtual void PrepareContinuation(const Task& task) override final;
 
     private:
       TaskFactory m_taskFactory;
@@ -141,8 +141,8 @@ namespace Tasks {
         \param name The name of the property.
         \param reactor The Reactor to connect to the property.
       */
-      TypedReactorProperty(const std::string& name,
-        const std::shared_ptr<Reactors::Reactor<T>>& reactor);
+      TypedReactorProperty(std::string name,
+        std::shared_ptr<Reactors::Reactor<T>> reactor);
 
       //! Copies a TypedReactorProperty.
       /*!
@@ -150,11 +150,12 @@ namespace Tasks {
       */
       TypedReactorProperty(const TypedReactorProperty& property) = default;
 
-      virtual std::shared_ptr<Reactors::BaseReactor> GetReactor() const;
+      virtual std::shared_ptr<Reactors::BaseReactor>
+        GetReactor() const override final;
 
-      virtual void Commit();
+      virtual void Commit() override final;
 
-      virtual void Apply(TaskFactory& factory) const;
+      virtual void Apply(TaskFactory& factory) const override final;
 
     private:
       std::shared_ptr<Reactors::Reactor<T>> m_reactor;
@@ -167,32 +168,31 @@ namespace Tasks {
     \param reactor The Reactor to connect to the property.
   */
   template<typename T>
-  TypedReactorProperty<T> MakeReactorProperty(const std::string& name,
-      const std::shared_ptr<Reactors::Reactor<T>>& reactor) {
-    return TypedReactorProperty<T>(name, reactor);
+  auto MakeReactorProperty(std::string name,
+      std::shared_ptr<Reactors::Reactor<T>> reactor) {
+    return TypedReactorProperty<T>{std::move(name), std::move(reactor)};
   }
 
-  inline ReactorTask::ReactorTask(const TaskFactory& taskFactory,
+  inline ReactorTask::ReactorTask(TaskFactory taskFactory,
       std::vector<ReactorProperty> properties,
       RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_properties(std::move(properties)),
-        m_reactorMonitor(reactorMonitor.Get()),
-        m_trigger(*m_reactorMonitor) {}
+      : m_taskFactory{std::move(taskFactory)},
+        m_properties{std::move(properties)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline void ReactorTask::OnExecute() {
     return S0();
   }
 
   inline void ReactorTask::OnCancel() {
-    m_trigger.Do(
+    m_reactorMonitor->Do(
       [=] {
         if(m_state == 1) {
-          return S6(StateEntry(State::CANCELED));
+          return S6(State::CANCELED);
         } else if(m_state == 4) {
-          return S6(StateEntry(State::CANCELED));
+          return S6(State::CANCELED);
         } else if(m_state == 7) {
-          return S6(StateEntry(State::CANCELED));
+          return S6(State::CANCELED);
         }
       });
   }
@@ -244,7 +244,7 @@ namespace Tasks {
     std::vector<std::shared_ptr<Reactors::BaseReactor>> properties;
     std::transform(m_properties.begin(), m_properties.end(),
       std::back_inserter(properties),
-      [] (const ReactorProperty& property) {
+      [] (auto& property) {
         return property->GetReactor();
       });
     m_propertyReactor = Reactors::MakeMultiReactor(m_callbacks.GetCallback(
@@ -279,17 +279,17 @@ namespace Tasks {
     if(m_task != nullptr) {
       m_taskFactory->PrepareContinuation(*m_task);
     }
-    for(const auto& property : m_properties) {
+    for(auto& property : m_properties) {
       property->Apply(m_taskFactory);
     }
     m_task = m_taskFactory->Create();
     Manage(m_task);
-    auto publisher = Reactors::MakePublisherReactor(&m_task->GetPublisher());
+    auto publisher = Reactors::MakePublisherReactor(m_task->GetPublisher(),
+      Ref(m_reactorMonitor->GetTrigger()));
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&ReactorTask::OnTaskUpdate, this, std::placeholders::_1)),
       publisher);
-    m_reactorMonitor->AddEvent(publisher);
-    m_reactorMonitor->AddReactor(taskReactor);
+    m_reactorMonitor->Add(taskReactor);
     m_task->Execute();
     return S4();
   }
@@ -322,12 +322,12 @@ namespace Tasks {
     m_task->Cancel();
   }
 
-  inline ReactorTaskFactory::ReactorTaskFactory(const TaskFactory& taskFactory,
+  inline ReactorTaskFactory::ReactorTaskFactory(TaskFactory taskFactory,
       std::vector<ReactorProperty> properties,
       RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory(taskFactory),
-        m_properties(std::move(properties)),
-        m_reactorMonitor(reactorMonitor.Get()) {}
+      : m_taskFactory{std::move(taskFactory)},
+        m_properties{std::move(properties)},
+        m_reactorMonitor{reactorMonitor.Get()} {}
 
   inline std::shared_ptr<Task> ReactorTaskFactory::Create() {
     return std::make_shared<ReactorTask>(m_taskFactory, m_properties,
@@ -336,18 +336,18 @@ namespace Tasks {
 
   inline void ReactorTaskFactory::PrepareContinuation(const Task& task) {}
 
-  inline VirtualReactorProperty::VirtualReactorProperty(const std::string& name)
-      : m_name(name) {}
+  inline VirtualReactorProperty::VirtualReactorProperty(std::string name)
+      : m_name{std::move(name)} {}
 
   inline const std::string& VirtualReactorProperty::GetName() const {
     return m_name;
   }
 
   template<typename T>
-  TypedReactorProperty<T>::TypedReactorProperty(const std::string& name,
-      const std::shared_ptr<Reactors::Reactor<T>>& reactor)
-      : VirtualReactorProperty(name),
-        m_reactor(Reactors::MakeNonRepeatingReactor(reactor)) {}
+  TypedReactorProperty<T>::TypedReactorProperty(std::string name,
+      std::shared_ptr<Reactors::Reactor<T>> reactor)
+      : VirtualReactorProperty{std::move(name)},
+        m_reactor{Reactors::MakeNonRepeatingReactor(std::move(reactor))} {}
 
   template<typename T>
   std::shared_ptr<Reactors::BaseReactor> TypedReactorProperty<T>::

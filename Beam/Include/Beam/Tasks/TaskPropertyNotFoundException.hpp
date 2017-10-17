@@ -24,7 +24,7 @@ namespace Tasks {
 
   inline TaskPropertyNotFoundException::TaskPropertyNotFoundException(
       const std::string& message)
-      : std::runtime_error(message) {}
+      : std::runtime_error{message} {}
 }
 }
 

@@ -19,9 +19,9 @@ namespace Tasks {
   };
 
   inline TaskStateParser::TaskStateParser()
-      : Parsers::EnumeratorParser<Task::State>(begin(MakeRange<Task::State>()),
+      : Parsers::EnumeratorParser<Task::State>{begin(MakeRange<Task::State>()),
           end(MakeRange<Task::State>()),
-          static_cast<std::string (*)(Task::State)>(ToString)) {}
+          static_cast<std::string (*)(Task::State)>(ToString)} {}
 }
 }
 

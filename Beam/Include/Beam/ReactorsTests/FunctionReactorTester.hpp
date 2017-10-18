@@ -42,6 +42,9 @@ namespace Tests {
       //! Tests a function of two parameters that are both constants.
       void TestTwoConstantParameters();
 
+      //! Tests a void function.
+      void TestVoidFunction();
+
     private:
       CPPUNIT_TEST_SUITE(FunctionReactorTester);
         CPPUNIT_TEST(TestNoParameters);
@@ -53,6 +56,7 @@ namespace Tests {
         CPPUNIT_TEST(TestOneParameterWithMultipleEvals);
         CPPUNIT_TEST(TestOneParameterWithFilter);
         CPPUNIT_TEST(TestTwoConstantParameters);
+        CPPUNIT_TEST(TestVoidFunction);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

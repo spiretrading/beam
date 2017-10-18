@@ -60,6 +60,12 @@ namespace Details {
     auto operator ()(const Reactor<T>* reactor) const {
       return reactor->Eval();
     }
+
+    Expect<void> operator ()(const BaseReactor* reactor) const {
+
+      // TODO: Find a way to evaluate this.
+      return {};
+    }
   };
 
   template<typename T>
@@ -83,7 +89,10 @@ namespace Details {
   struct FunctionUpdateEval<void> {
     template<typename V, typename F, typename P>
     bool operator ()(V& value, F& function, const P& p) const {
-      Apply(p, function);
+      Apply(p,
+        [&] (const auto&... parameters) {
+          function(Try(std::bind(FunctionEval{}, &*parameters))...);
+        });
       return true;
     }
   };

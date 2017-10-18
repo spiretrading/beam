@@ -20,6 +20,28 @@ namespace Details {
   struct MultiReactorType<boost::optional<T>> {
     using type = T;
   };
+
+  template<typename T>
+  struct MultiReactorEval {
+    template<typename V, typename F, typename P>
+    bool operator ()(V& value, F& function, const P& p) const {
+      auto update = boost::optional<T>{function(p)};
+      if(update.is_initialized()) {
+        value = std::move(*update);
+        return true;
+      }
+      return false;
+    }
+  };
+
+  template<>
+  struct MultiReactorEval<void> {
+    template<typename V, typename F, typename P>
+    bool operator ()(V& value, F& function, const P& p) const {
+      function(p);
+      return true;
+    }
+  };
 }
 
   /*! \class MultiReactor
@@ -157,13 +179,7 @@ namespace Details {
   template<typename FunctionType>
   bool MultiReactor<FunctionType>::UpdateEval() {
     try {
-      auto update = boost::optional<Type>{m_function(m_children)};
-      if(update.is_initialized()) {
-        m_value = std::move(*update);
-        return true;
-      } else {
-        return false;
-      }
+      return Details::MultiReactorEval<Type>{}(m_value, m_function, m_children);
     } catch(const std::exception&) {
       m_value = std::current_exception();
       return true;

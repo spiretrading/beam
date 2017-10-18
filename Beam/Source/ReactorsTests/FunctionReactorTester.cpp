@@ -144,3 +144,5 @@ void FunctionReactorTester::TestTwoConstantParameters() {
   AssertValue(*reactor, 1, BaseReactor::Update::NONE,
     make_tuple(100, "a"), true);
 }
+
+void FunctionReactorTester::TestVoidFunction() {}

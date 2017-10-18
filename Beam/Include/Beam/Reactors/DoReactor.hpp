@@ -22,10 +22,9 @@ namespace Details {
       return value.Get();
     }
 
-    bool operator ()(const Expect<void>& value) const {
+    void operator ()(const Expect<void>& value) const {
       m_function(value);
       value.Get();
-      return true;
     }
   };
 }

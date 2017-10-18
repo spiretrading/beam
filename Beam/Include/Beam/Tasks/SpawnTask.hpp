@@ -79,8 +79,8 @@ namespace Tasks {
   };
 
   inline SpawnTask::SpawnTask(TaskFactory taskFactory,
-        std::shared_ptr<Reactors::BaseReactor> trigger,
-        RefType<Reactors::ReactorMonitor> reactorMonitor)
+      std::shared_ptr<Reactors::BaseReactor> trigger,
+      RefType<Reactors::ReactorMonitor> reactorMonitor)
       : m_taskFactory{std::move(taskFactory)},
         m_trigger{std::move(trigger)},
         m_reactorMonitor{reactorMonitor.Get()} {}

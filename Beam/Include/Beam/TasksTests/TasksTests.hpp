@@ -7,6 +7,7 @@ namespace Tests {
   class IdleTaskTester;
   class MockTask;
   class MockTaskFactory;
+  class PackagedTaskTester;
   class SpawnTaskTester;
   class UntilTaskTester;
   class WhenTaskTester;

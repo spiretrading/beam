@@ -4,6 +4,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include "Beam/TasksTests/IdleTaskTester.hpp"
+#include "Beam/TasksTests/PackagedTaskTester.hpp"
 #include "Beam/TasksTests/SpawnTaskTester.hpp"
 #include "Beam/TasksTests/UntilTaskTester.hpp"
 #include "Beam/TasksTests/WhenTaskTester.hpp"
@@ -14,6 +15,7 @@ int main() {
   CPPUNIT_NS::TextUi::TestRunner runner;
   CppUnit::BriefTestProgressListener listener;
   runner.addTest(IdleTaskTester::suite());
+  runner.addTest(PackagedTaskTester::suite());
   runner.addTest(UntilTaskTester::suite());
   runner.addTest(WhenTaskTester::suite());
   runner.addTest(SpawnTaskTester::suite());

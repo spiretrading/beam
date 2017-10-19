@@ -10,6 +10,8 @@ namespace Tasks {
   template<typename T> class BasicTaskFactory;
   class IdleTask;
   class IdleTaskFactory;
+  template<typename PackageType> class PackagedTask;
+  template<typename PackageType> class PackagedTaskFactory;
   class ReactorMonitorTask;
   class ReactorMonitorTaskFactory;
   class ReactorTask;

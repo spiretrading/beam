@@ -9,11 +9,10 @@ namespace Tasks {
 namespace Details {
   template<typename F, typename... Parameters>
   struct FunctionPackage {
-    F m_function;
+    std::function<void (Parameters...)> m_function;
 
-    template<typename Forward>
-    FunctionPackage(Forward&& f)
-      : m_function{std::forward<Forward>(f)} {}
+    FunctionPackage(const std::function<void (Parameters...)>& f)
+      : m_function{f} {}
 
     void Execute(const Parameters&... parameters) {
       m_function(parameters...);

@@ -9,9 +9,9 @@ using namespace std;
 void FunctionTaskTester::TestFunctionZeroParameters() {
   int result = 0;
   auto factory = MakeFunctionTaskFactory(
-    [&] (int x) {
-      result = x;
-    }, {"x"});
+    [&] {
+      result = 123;
+    }, {});
   auto task = factory->Create();
   task->Execute();
   Wait(*task);
@@ -19,4 +19,14 @@ void FunctionTaskTester::TestFunctionZeroParameters() {
 }
 
 void FunctionTaskTester::TestFunctionOneParameter() {
+  int result = 0;
+  auto factory = MakeFunctionTaskFactory(
+    [&] (int x) {
+      result = x;
+    }, {"x"});
+  factory->Set("x", 543);
+  auto task = factory->Create();
+  task->Execute();
+  Wait(*task);
+  CPPUNIT_ASSERT(result == 543);
 }

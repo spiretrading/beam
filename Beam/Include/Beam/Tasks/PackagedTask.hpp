@@ -55,7 +55,7 @@ namespace Details {
 
   template<typename Package, typename Head, typename... Tail>
   struct PackageParameters<Package, TypeSequence<Head, Tail...>> {
-    using type = std::tuple<Tail...>;
+    using type = std::tuple<typename std::decay<Tail>::type...>;
   };
 }
 

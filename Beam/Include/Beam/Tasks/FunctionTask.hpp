@@ -15,10 +15,8 @@ namespace Details {
     FunctionPackage(Forward&& f)
       : m_function{std::forward<Forward>(f)} {}
 
-    FunctionPackage(const FunctionPackage&) = default;
-
-    void Execute(Parameters&&... parameters) {
-      m_function(std::forward<Parameters>(parameters)...);
+    void Execute(const Parameters&... parameters) {
+      m_function(parameters...);
     }
 
     void Cancel() {}

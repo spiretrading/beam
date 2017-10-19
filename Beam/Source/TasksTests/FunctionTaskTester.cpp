@@ -9,9 +9,9 @@ using namespace std;
 void FunctionTaskTester::TestFunctionZeroParameters() {
   int result = 0;
   auto factory = MakeFunctionTaskFactory(
-    [&] {
-      result = 123;
-    }, {});
+    [&] (int x) {
+      result = x;
+    }, {"x"});
   auto task = factory->Create();
   task->Execute();
   Wait(*task);

@@ -28,7 +28,7 @@ namespace Details {
   decltype(auto) ParametersToTupleHelper(const Factory& f,
       std::index_sequence<I...>) {
     return std::make_tuple(
-      f.Get<typename std::tuple_element<I, ParameterTuple>::type>(
+      f.template Get<typename std::tuple_element<I, ParameterTuple>::type>(
       f.GetParameterName(I))...);
   }
 
@@ -42,7 +42,7 @@ namespace Details {
   struct DefineParameter {
     template<typename Factory>
     void operator ()(Factory& f) {
-      f.DefineProperty<
+      f.template DefineProperty<
         typename std::tuple_element<I - 1, ParameterTuple>::type>(
         f.GetParameterName(I - 1));
       DefineParameter<ParameterTuple, I - 1>{}(f);

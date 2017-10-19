@@ -5,6 +5,7 @@
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Queues/Queue.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"

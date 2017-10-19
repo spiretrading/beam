@@ -2,7 +2,6 @@
 #define BEAM_PACKAGED_TASK_HPP
 #include <tuple>
 #include <boost/function_types/parameter_types.hpp>
-#include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
 #include "Beam/Utilities/ApplyTuple.hpp"
@@ -90,8 +89,6 @@ namespace Details {
       friend class PackagedTaskFactory<Package>;
       Package m_package;
       Parameters m_parameters;
-      Routines::RoutineHandler m_executeRoutine;
-      Routines::RoutineHandler m_cancelRoutine;
   };
 
   /*! \class PackagedTaskFactory
@@ -112,8 +109,9 @@ namespace Details {
         \param package The package used to execute the Task.
         \param parameterNames The names of each parameter to the <i>package</i>.
       */
-      PackagedTaskFactory(Package package,
-        std::vector<std::string> parameterNames);
+      PackagedTaskFactory(Package package, std::array<std::string,
+        std::tuple_size<typename PackagedTask<Package>::Parameters>::value>
+        parameterNames);
 
       //! Returns the name of a parameter.
       /*!
@@ -128,8 +126,10 @@ namespace Details {
 
     private:
       template<typename, std::size_t> friend struct Details::DefineParameter;
-      Package m_package;
-      std::vector<std::string> m_parameterNames;
+      boost::optional<Package> m_package;
+      std::array<std::string,
+        std::tuple_size<typename PackagedTask<Package>::Parameters>::value>
+        m_parameterNames;
   };
 
   template<typename PackageType>
@@ -141,41 +141,33 @@ namespace Details {
 
   template<typename PackageType>
   void PackagedTask<PackageType>::OnExecute() {
-    m_executeRoutine =
-      Routines::Spawn([=] {
-        try {
-          Apply(m_parameters,
-            [&] (auto&&... parameters) {
-              m_package.Execute(
-                std::forward<decltype(parameters)>(parameters)...);
-            });
-        } catch(const std::exception& e) {
-          SetTerminal(Task::State::FAILED, e.what());
-          return;
-        }
-        SetTerminal();
-      });
+    try {
+      Apply(m_parameters,
+        [&] (auto&&... parameters) {
+          m_package.Execute(std::forward<decltype(parameters)>(parameters)...);
+        });
+    } catch(const std::exception& e) {
+      SetTerminal(Task::State::FAILED, e.what());
+      return;
+    }
+    SetTerminal();
   }
 
   template<typename PackageType>
   void PackagedTask<PackageType>::OnCancel() {
-    m_cancelRoutine =
-      Routines::Spawn([=] {
-        try {
-          m_package.Cancel();
-        } catch(const std::exception& e) {
-          m_executeRoutine.Wait();
-          SetTerminal(Task::State::FAILED, e.what());
-          return;
-        }
-        m_executeRoutine.Wait();
-        SetTerminal();
-      });
+    try {
+      m_package.Cancel();
+    } catch(const std::exception& e) {
+      SetTerminal(Task::State::FAILED, e.what());
+      return;
+    }
+    SetTerminal();
   }
 
   template<typename PackageType>
   PackagedTaskFactory<PackageType>::PackagedTaskFactory(Package package,
-      std::vector<std::string> parameterNames)
+      std::array<std::string, std::tuple_size<
+      typename PackagedTask<Package>::Parameters>::value> parameterNames)
       : m_package{std::move(package)},
         m_parameterNames{std::move(parameterNames)} {
     using Parameters = typename PackagedTask<Package>::Parameters;
@@ -194,7 +186,7 @@ namespace Details {
     using Parameters = typename PackagedTask<Package>::Parameters;
     return Apply(Details::ParametersToTuple<Parameters>(*this),
       [&] (auto&&... parameters) {
-        return std::make_shared<PackagedTask<Package>>(m_package,
+        return std::make_shared<PackagedTask<Package>>(*m_package,
           std::forward<decltype(parameters)>(parameters)...);
       });
   }
@@ -203,7 +195,7 @@ namespace Details {
   void PackagedTaskFactory<PackageType>::PrepareContinuation(
       const Task& task) {
     auto& packagedTask = static_cast<const PackagedTask<Package>&>(task);
-    m_package = packagedTask.m_package;
+    m_package.emplace(packagedTask.m_package);
   }
 }
 }

@@ -4,6 +4,7 @@
 namespace Beam {
 namespace Tasks {
 namespace Tests {
+  class FunctionTaskTester;
   class IdleTaskTester;
   class MockTask;
   class MockTaskFactory;

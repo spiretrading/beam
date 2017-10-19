@@ -1,8 +1,8 @@
 #ifndef BEAM_FUNCTION_TASK_HPP
 #define BEAM_FUNCTION_TASK_HPP
-#include <boost/type_traits/is_function.hpp>
 #include "Beam/Tasks/PackagedTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
+#include "Beam/Utilities/Functional.hpp"
 
 namespace Beam {
 namespace Tasks {
@@ -24,33 +24,19 @@ namespace Details {
     void Cancel() {}
   };
 
-  template<typename F, bool IsFunction = boost::is_function<F>::value>
-  struct GetFunction {};
-
-  template<typename F>
-  struct GetFunction<F, true> {
-    using type = F;
-  };
-
-  template<typename F>
-  struct GetFunction<F, false> {
-    using type = decltype(&F::operator ());
-  };
-
   template<typename F, typename T>
   struct ToFunctionPackageHelper {};
 
-  template<typename F, template<typename... T> class Vector, typename U,
+  template<typename F, template<typename... T> class S, typename U,
     typename... V>
-  struct ToFunctionPackageHelper<F, Vector<U, V...>> {
+  struct ToFunctionPackageHelper<F, S<U, V...>> {
     using type = FunctionPackage<F, V...>;
   };
 
   template<typename F>
   struct ToFunctionPackage {
     using type = typename ToFunctionPackageHelper<F,
-      typename boost::function_types::parameter_types<
-      typename GetFunction<F>::type>::type>::type;
+      GetFunctionParameters<F>>::type;
   };
 }
 

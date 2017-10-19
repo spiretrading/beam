@@ -5,6 +5,7 @@
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
 #include "Beam/Utilities/ApplyTuple.hpp"
+#include "Beam/Utilities/Functional.hpp"
 
 namespace Beam {
 namespace Tasks {
@@ -12,16 +13,9 @@ namespace Details {
   template<typename T>
   struct ToTuple {};
 
-  template<template<typename... T> class Vector, typename U, typename... V>
-  struct ToTuple<Vector<U, V...>> {
+  template<template<typename... T> class S, typename U, typename... V>
+  struct ToTuple<S<U, V...>> {
     using type = std::tuple<V...>;
-  };
-
-  template<typename Package>
-  struct GetParameters {
-    using type = typename ToTuple<
-      typename boost::function_types::parameter_types<
-      decltype(&Package::Execute)>::type>::type;
   };
 
   template<typename ParameterTuple, typename Factory, std::size_t... I>
@@ -54,6 +48,15 @@ namespace Details {
     template<typename Factory>
     void operator ()(Factory& f) {}
   };
+
+  template<typename Package, typename Parameters =
+    GetFunctionParameters<decltype(&Package::Execute)>>
+  struct PackageParameters;
+
+  template<typename Package, typename Head, typename... Tail>
+  struct PackageParameters<Package, TypeSequence<Head, Tail...>> {
+    using type = std::tuple<Tail...>;
+  };
 }
 
   /*! \class PackagedTask
@@ -70,7 +73,8 @@ namespace Details {
       using Package = PackageType;
 
       //! A tuple representing the parameters to pass to the Task.
-      using Parameters = typename Details::GetParameters<PackageType>::type;
+      using Parameters = typename Details::PackageParameters<
+        PackageType>::type;
 
       //! Constructs a PackagedTask.
       /*!

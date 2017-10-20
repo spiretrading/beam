@@ -29,11 +29,11 @@ namespace Reactors {
       ChainReactor(InitialReactorForward&& initialReactor,
         ContinuationReactorForward&& continuationReactor);
 
-      virtual bool IsComplete() const override;
+      virtual bool IsComplete() const override final;
 
-      virtual BaseReactor::Update Commit(int sequenceNumber) override;
+      virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
-      virtual Type Eval() const override;
+      virtual Type Eval() const override final;
 
     private:
       GetOptionalLocalPtr<InitialReactorType> m_initialReactor;

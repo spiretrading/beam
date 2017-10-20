@@ -124,11 +124,11 @@ namespace Details {
       FunctionReactor(FunctionForward&& function,
         ParameterForwards&&... parameters);
 
-      virtual bool IsComplete() const override;
+      virtual bool IsComplete() const override final;
 
-      virtual BaseReactor::Update Commit(int sequenceNumber) override;
+      virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
-      virtual Type Eval() const override;
+      virtual Type Eval() const override final;
 
     private:
       Function m_function;

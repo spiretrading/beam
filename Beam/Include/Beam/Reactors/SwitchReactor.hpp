@@ -1,8 +1,7 @@
-#ifndef BEAM_AGGREGATE_REACTOR_HPP
-#define BEAM_AGGREGATE_REACTOR_HPP
+#ifndef BEAM_SWITCH_REACTOR_HPP
+#define BEAM_SWITCH_REACTOR_HPP
+#include <memory>
 #include <utility>
-#include <vector>
-#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
@@ -10,23 +9,24 @@
 namespace Beam {
 namespace Reactors {
 
-  /*! \class AggregateReactor
-      \brief A Reactor that aggregates multiple Reactors together.
+  /*! \class SwitchReactor
+      \brief A Reactor that produces values by switching between Reactors.
       \tparam ProducerReactorType The Reactor that produces the Reactors to
               switch between.
    */
   template<typename ProducerReactorType>
-  class AggregateReactor : public Reactor<GetReactorType<
-      GetReactorType<ProducerReactorType>>>{
+  class SwitchReactor : public Reactor<
+      GetReactorType<GetReactorType<ProducerReactorType>>> {
     public:
       using Type = GetReactorType<GetReactorType<ProducerReactorType>>;
 
-      //! Constructs an AggregateReactor.
+      //! Constructs a SwitchReactor.
       /*!
-        \param producer The Reactor that produces the Reactors to aggregate.
+        \param producer The Reactor that produces the Reactors to switch
+               between.
       */
       template<typename ProducerReactorForward>
-      AggregateReactor(ProducerReactorForward&& producer);
+      SwitchReactor(ProducerReactorForward&& producer);
 
       virtual bool IsComplete() const override final;
 
@@ -37,40 +37,40 @@ namespace Reactors {
     private:
       using ChildReactor = GetReactorType<ProducerReactorType>;
       GetOptionalLocalPtr<ProducerReactorType> m_producer;
-      std::vector<ChildReactor> m_children;
+      ChildReactor m_reactor;
   };
 
-  //! Makes an AggregateReactor.
+  //! Builds a SwitchReactor.
   /*!
-    \param producer The Reactor that produces the Reactors to aggregate.
+    \param producer The Reactor that produces the Reactors to switch between.
   */
   template<typename ProducerReactor>
-  auto MakeAggregateReactor(ProducerReactor&& producer) {
-    return std::make_shared<AggregateReactor<
+  auto MakeSwitchReactor(ProducerReactor&& producer) {
+    return std::make_shared<SwitchReactor<
       typename std::decay<ProducerReactor>::type>>(
       std::forward<ProducerReactor>(producer));
   }
 
   template<typename ProducerReactorType>
   template<typename ProducerReactorForward>
-  AggregateReactor<ProducerReactorType>::AggregateReactor(
+  SwitchReactor<ProducerReactorType>::SwitchReactor(
       ProducerReactorForward&& producer)
       : m_producer{std::forward<ProducerReactorForward>(producer)} {}
 
   template<typename ProducerReactorType>
-  bool AggregateReactor<ProducerReactorType>::IsComplete() const {
+  bool SwitchReactor<ProducerReactorType>::IsComplete() const {
     return false;
   }
 
   template<typename ProducerReactorType>
-  BaseReactor::Update AggregateReactor<ProducerReactorType>::Commit(
+  BaseReactor::Update SwitchReactor<ProducerReactorType>::Commit(
       int sequenceNumber) {
     return BaseReactor::Update::NONE;
   }
 
   template<typename ProducerReactorType>
-  typename AggregateReactor<ProducerReactorType>::Type
-      AggregateReactor<ProducerReactorType>::Eval() const {
+  typename SwitchReactor<ProducerReactorType>::Type
+      SwitchReactor<ProducerReactorType>::Eval() const {
     BOOST_THROW_EXCEPTION(ReactorUnavailableException{});
   }
 }

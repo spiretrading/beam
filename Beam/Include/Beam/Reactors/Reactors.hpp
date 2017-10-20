@@ -9,6 +9,9 @@ namespace Reactors {
   template<typename InitialReactorType, typename ContinuationReactorType>
     class ChainReactor;
   template<typename T> class ConstantReactor;
+  template<typename ProducerReactorType, typename EvaluationReactorType,
+    typename LeftTriggerReactorType, typename RightTriggerReactorType>
+    class FoldReactor;
   template<typename FunctionType, typename... ParameterTypes>
     class FunctionReactor;
   class LuaReactorParameter;
@@ -21,6 +24,7 @@ namespace Reactors {
   class ReactorException;
   class ReactorMonitor;
   class ReactorUnavailableException;
+  template<typename ProducerReactorType> class SwitchReactor;
   class Trigger;
 }
 }

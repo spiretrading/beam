@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHON_PACKAGED_TASK_HPP
 #define BEAM_PYTHON_PACKAGED_TASK_HPP
+#include <boost/optional/optional.hpp>
 #include <boost/python/dict.hpp>
 #include <boost/python/object.hpp>
 #include <boost/python/tuple.hpp>
@@ -24,6 +25,8 @@ namespace Tasks {
       PythonPackagedTask(const boost::python::object& package,
         const boost::python::tuple& args, const boost::python::dict& kw);
 
+      virtual ~PythonPackagedTask() override final;
+
     protected:
       virtual void OnExecute() override final;
 
@@ -31,9 +34,12 @@ namespace Tasks {
 
     private:
       friend class PythonPackagedTaskFactory;
-      boost::python::object m_package;
-      boost::python::object m_args;
-      boost::python::object m_kw;
+      struct Context {
+        boost::python::object m_package;
+        boost::python::tuple m_args;
+        boost::python::dict m_kw;
+      };
+      boost::optional<Context> m_context;
   };
 
   /*! \class PythonPackagedTaskFactory
@@ -52,6 +58,8 @@ namespace Tasks {
       PythonPackagedTaskFactory(const boost::python::object& package,
         const boost::python::tuple& args, const boost::python::dict& kw);
 
+      virtual ~PythonPackagedTaskFactory() override final;
+
       //! Returns the name of a parameter.
       /*!
         \param i The index of the parameter.
@@ -64,9 +72,22 @@ namespace Tasks {
       virtual void PrepareContinuation(const Task& task) override final;
 
     private:
-      boost::python::object m_package;
+      boost::optional<boost::python::object> m_package;
       std::vector<std::string> m_parameterNames;
   };
+
+  struct PythonFunctionPackage {
+    boost::python::object m_execute;
+    boost::python::object m_cancel;
+  };
+
+  //! Makes a PythonPackagedTaskFactory that runs a function.
+  /*!
+    \param args The list of parameter names.
+    \param kw Unused.
+  */
+  boost::python::object MakePythonFunctionTaskFactory(
+    const boost::python::tuple& args, const boost::python::dict& kw);
 }
 }
 

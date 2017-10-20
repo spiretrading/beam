@@ -184,6 +184,11 @@ namespace {
       args.slice(2, boost::python::_));
     return self.attr("__init__")(package, a, kw);
   }
+
+  void PythonPackagedTaskFactorySet(PythonPackagedTaskFactory& factory,
+      const std::string& name, const boost::python::object& value) {
+    factory.Set(name, value);
+  }
 }
 
 #ifdef _MSC_VER
@@ -317,6 +322,9 @@ void Beam::Python::ExportIdleTask() {
 }
 
 void Beam::Python::ExportPythonPackagedTask() {
+  class_<PythonFunctionPackage>("FunctionPackage", no_init)
+    .def_readwrite("execute", &PythonFunctionPackage::m_execute)
+    .def_readwrite("cancel", &PythonFunctionPackage::m_cancel);
   class_<PythonPackagedTask, std::shared_ptr<PythonPackagedTask>,
     boost::noncopyable, bases<BasicTask>>("PackagedTask",
     init<const boost::python::object&, const boost::python::tuple&,
@@ -324,10 +332,11 @@ void Beam::Python::ExportPythonPackagedTask() {
   class_<PythonPackagedTaskFactory, boost::noncopyable,
     bases<VirtualTaskFactory>>("PackagedTaskFactory", no_init)
     .def("__init__", raw_function(&CreatePythonPackagedTaskFactory, 1))
-    .def(init<const boost::python::object&,
-      const boost::python::tuple&, const boost::python::dict&>())
+    .def(init<const boost::python::object&, const boost::python::tuple&,
+      const boost::python::dict&>())
     .def("get_parameter_name", &PythonPackagedTaskFactory::GetParameterName,
       return_value_policy<copy_const_reference>())
+    .def("set", &PythonPackagedTaskFactorySet)
     .def("create", &PythonPackagedTaskFactory::Create)
     .def("prepare_continuation",
       &PythonPackagedTaskFactory::PrepareContinuation);
@@ -336,6 +345,8 @@ void Beam::Python::ExportPythonPackagedTask() {
     std::shared_ptr<BasicTask>>();
   implicitly_convertible<std::shared_ptr<PythonPackagedTask>,
     std::shared_ptr<Task>>();
+  def("MakeFunctionTaskFactory",
+    raw_function(&MakePythonFunctionTaskFactory, 1));
 }
 
 void Beam::Python::ExportReactorMonitorTask() {

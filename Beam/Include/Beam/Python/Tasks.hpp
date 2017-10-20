@@ -14,6 +14,9 @@ namespace Python {
   //! Exports the IdleTask class.
   void ExportIdleTask();
 
+  //! Exports the PythonPackagedTask class.
+  void ExportPythonPackagedTask();
+
   //! Exports the ReactorMonitorTask class.
   void ExportReactorMonitorTask();
 

@@ -1,7 +1,4 @@
 #include "Beam/Python/Tasks.hpp"
-#include <boost/function_types/components.hpp>
-#include <boost/function_types/result_type.hpp>
-#include <boost/mpl/insert.hpp>
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/IdleTask.hpp"
@@ -18,6 +15,7 @@
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/PythonPackagedTask.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Vector.hpp"
@@ -176,6 +174,16 @@ namespace {
   TaskFactory MakeCloneableTaskFactory(const VirtualTaskFactory& factory) {
     return TaskFactory{factory};
   }
+
+  boost::python::object CreatePythonPackagedTaskFactory(
+      const boost::python::tuple& args,
+      const boost::python::dict& kw) {
+    boost::python::object self = args[0];
+    boost::python::object package = args[1];
+    boost::python::tuple a = boost::python::tuple(
+      args.slice(2, boost::python::_));
+    return self.attr("__init__")(package, a, kw);
+  }
 }
 
 #ifdef _MSC_VER
@@ -200,13 +208,18 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile Publisher<Task::StateEntry>*
+      get_pointer(const volatile Publisher<Task::StateEntry>* p) {
+    return p;
+  }
+
   template<> inline const volatile PythonTaskFactoryWrapper* get_pointer(
       const volatile PythonTaskFactoryWrapper* p) {
     return p;
   }
 
-  template<> inline const volatile Publisher<Task::StateEntry>*
-      get_pointer(const volatile Publisher<Task::StateEntry>* p) {
+  template<> inline const volatile PythonPackagedTask* get_pointer(
+      const volatile PythonPackagedTask* p) {
     return p;
   }
 
@@ -301,6 +314,28 @@ void Beam::Python::ExportIdleTask() {
   implicitly_convertible<std::shared_ptr<IdleTask>,
     std::shared_ptr<BasicTask>>();
   implicitly_convertible<std::shared_ptr<IdleTask>, std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportPythonPackagedTask() {
+  class_<PythonPackagedTask, std::shared_ptr<PythonPackagedTask>,
+    boost::noncopyable, bases<BasicTask>>("PackagedTask",
+    init<const boost::python::object&, const boost::python::tuple&,
+      const boost::python::dict&>());
+  class_<PythonPackagedTaskFactory, boost::noncopyable,
+    bases<VirtualTaskFactory>>("PackagedTaskFactory", no_init)
+    .def("__init__", raw_function(&CreatePythonPackagedTaskFactory, 1))
+    .def(init<const boost::python::object&,
+      const boost::python::tuple&, const boost::python::dict&>())
+    .def("get_parameter_name", &PythonPackagedTaskFactory::GetParameterName,
+      return_value_policy<copy_const_reference>())
+    .def("create", &PythonPackagedTaskFactory::Create)
+    .def("prepare_continuation",
+      &PythonPackagedTaskFactory::PrepareContinuation);
+  implicitly_convertible<PythonPackagedTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<PythonPackagedTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<PythonPackagedTask>,
+    std::shared_ptr<Task>>();
 }
 
 void Beam::Python::ExportReactorMonitorTask() {
@@ -400,6 +435,7 @@ void Beam::Python::ExportTasks() {
   ExportBasicTask();
   ExportAggregateTask();
   ExportIdleTask();
+  ExportPythonPackagedTask();
   ExportSpawnTask();
   ExportUntilTask();
   ExportWhenTask();

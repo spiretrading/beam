@@ -97,6 +97,6 @@ boost::python::object Beam::Tasks::MakePythonFunctionTaskFactory(
   boost::python::tuple a = boost::python::tuple(
     args.slice(1, boost::python::_));
   PythonFunctionPackage package{callable, make_function(&DoNothing)};
-  return scope().attr("PackagedTaskFactory")(
-    boost::python::object{package}, a, kw);
+  return boost::python::object{PythonPackagedTaskFactory{
+    boost::python::object{package}, a, kw}};
 }

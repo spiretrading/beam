@@ -4,18 +4,33 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/Ref.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
+#include "Beam/Reactors/AggregateReactor.hpp"
 #include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
+#include "Beam/Reactors/BasicReactor.hpp"
+#include "Beam/Reactors/ChainReactor.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
+#include "Beam/Reactors/FilterReactor.hpp"
+#include "Beam/Reactors/FoldReactor.hpp"
+#include "Beam/Reactors/NoneReactor.hpp"
+#include "Beam/Reactors/NonRepeatingReactor.hpp"
+#include "Beam/Reactors/PublisherReactor.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
+#include "Beam/Reactors/RangeReactor.hpp"
 #include "Beam/Reactors/ReactorError.hpp"
 #include "Beam/Reactors/ReactorException.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
+#include "Beam/Reactors/StaticReactor.hpp"
+#include "Beam/Reactors/SwitchReactor.hpp"
+#include "Beam/Reactors/ThrowReactor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
+#include "Beam/Reactors/WhenComplete.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
@@ -115,6 +130,17 @@ namespace {
       }, reactor);
   }
 
+  std::shared_ptr<PythonReactor> MakePythonNonRepeatingReactor(
+      const std::shared_ptr<PythonReactor>& reactor) {
+    return MakeNonRepeatingReactor(reactor);
+  }
+
+  std::shared_ptr<PythonReactor> MakePythonRangeReactor(
+      const std::shared_ptr<PythonReactor>& lower,
+      const std::shared_ptr<PythonReactor>& upper, RefType<Trigger> trigger) {
+    return MakeRangeReactor(lower, upper, Ref(trigger));
+  }
+
   void ReactorMonitorDo(ReactorMonitor* monitor, const object& callable) {
     monitor->Do(
       [=] {
@@ -137,6 +163,13 @@ namespace {
 
 #ifdef _MSC_VER
 namespace boost {
+  template<> inline const volatile AggregateReactor<
+      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>*
+      get_pointer(const volatile AggregateReactor<
+      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>* p) {
+    return p;
+  }
+
   template<> inline const volatile BaseReactor* get_pointer(
       const volatile BaseReactor* p) {
     return p;
@@ -147,8 +180,26 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile BasicReactor<boost::python::object>*
+      get_pointer(const volatile BasicReactor<boost::python::object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile
+      ChainReactor<std::shared_ptr<PythonReactor>,
+      std::shared_ptr<PythonReactor>>* get_pointer(
+      const volatile ChainReactor<std::shared_ptr<PythonReactor>,
+      std::shared_ptr<PythonReactor>>* p) {
+    return p;
+  }
+
   template<> inline const volatile ConstantReactor<object>* get_pointer(
       const volatile ConstantReactor<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile NoneReactor<object>* get_pointer(
+      const volatile NoneReactor<object>* p) {
     return p;
   }
 
@@ -233,6 +284,18 @@ namespace boost {
 }
 #endif
 
+void Beam::Python::ExportAggregateReactor() {
+  using ExportedReactor =
+    AggregateReactor<std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("AggregateReactor",
+    init<const std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>&>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
 void Beam::Python::ExportAlarmReactor() {
   def("AlarmReactor", &MakePythonAlarmReactor);
   def("AlarmReactor", &MakePythonDefaultAlarmReactor);
@@ -248,9 +311,55 @@ void Beam::Python::ExportBaseReactor() {
     std::shared_ptr<BaseReactor>>();
 }
 
+void Beam::Python::ExportBasicReactor() {
+  using ExportedReactor = BasicReactor<boost::python::object>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("BasicReactor", init<RefType<Trigger>>())
+    .def("update", &ExportedReactor::Update)
+    .def("set_complete", static_cast<void (ExportedReactor::*)()>(
+    &ExportedReactor::SetComplete));
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
+void Beam::Python::ExportChainReactor() {
+  using ExportedReactor = ChainReactor<std::shared_ptr<PythonReactor>,
+    std::shared_ptr<PythonReactor>>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("ChainReactor",
+    init<std::shared_ptr<PythonReactor>, std::shared_ptr<PythonReactor>,
+    RefType<Trigger>>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
 void Beam::Python::ExportDoReactor() {
   def("do", &MakePythonDoReactor);
 }
+
+void Beam::Python::ExportFilterReactor() {}
+
+void Beam::Python::ExportFoldReactor() {}
+
+void Beam::Python::ExportNoneReactor() {
+  using ExportedReactor = NoneReactor<boost::python::object>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("NoneReactor", init<>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
+
+void Beam::Python::ExportNonRepeatingReactor() {
+  def("NonRepeatingReactor", &MakePythonNonRepeatingReactor);
+}
+
+void Beam::Python::ExportPublisherReactor() {}
 
 void Beam::Python::ExportPythonConstantReactor() {
   class_<ConstantReactor<object>, bases<PythonReactor>, boost::noncopyable,
@@ -260,6 +369,12 @@ void Beam::Python::ExportPythonConstantReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ConstantReactor<object>>,
     std::shared_ptr<BaseReactor>>();
+}
+
+void Beam::Python::ExportQueueReactor() {}
+
+void Beam::Python::ExportRangeReactor() {
+  def("RangeReactor", &MakePythonRangeReactor);
 }
 
 void Beam::Python::ExportReactorMonitor() {
@@ -282,9 +397,23 @@ void Beam::Python::ExportReactors() {
   ExportBaseReactor();
   ExportReactor<PythonReactor>("Reactor");
   ExportReactorMonitor();
+  ExportAggregateReactor();
   ExportDoReactor();
   ExportAlarmReactor();
+  ExportBasicReactor();
+  ExportChainReactor();
+  ExportFilterReactor();
+  ExportFoldReactor();
+  ExportNoneReactor();
+  ExportNonRepeatingReactor();
+  ExportPublisherReactor();
+  ExportQueueReactor();
+  ExportRangeReactor();
+  ExportStaticReactor();
+  ExportSwithReactor();
+  ExportThrowReactor();
   ExportTimerReactor();
+  ExportWhenCompleteReactor();
   ExportTrigger();
   ExportPythonConstantReactor();
   ExportReactor<Reactor<std::shared_ptr<PythonReactor>>>("MetaReactor");
@@ -302,7 +431,14 @@ void Beam::Python::ExportReactors() {
     "ReactorUnavailableException")
     .def(init<>())
     .def(init<const string&>());
+  ExportRef<RefType<Trigger>>("TriggerRef");
 }
+
+void Beam::Python::ExportStaticReactor() {}
+
+void Beam::Python::ExportSwithReactor() {}
+
+void Beam::Python::ExportThrowReactor() {}
 
 void Beam::Python::ExportTimerReactor() {
   def("TimerReactor", &MakePythonTimerReactor);
@@ -315,3 +451,5 @@ void Beam::Python::ExportTrigger() {
     .add_property("sequence_number_publisher", make_function(
       &Trigger::GetSequenceNumberPublisher, return_internal_reference<>()));
 }
+
+void Beam::Python::ExportWhenCompleteReactor() {}

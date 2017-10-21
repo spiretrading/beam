@@ -15,7 +15,7 @@ namespace Details {
     using Type = typename T::Type;
 
     virtual bool IsComplete() const override final {
-      return this->get_override("is_complete");
+      return this->get_override("is_complete")();
     }
 
     virtual const std::type_info& GetType() const override final {
@@ -98,17 +98,47 @@ namespace Details {
   //! A Reactor that evaluates to Python objects.
   using PythonReactor = Reactors::Reactor<boost::python::object>;
 
+  //! Exports the AggregateReactor class.
+  void ExportAggregateReactor();
+
   //! Exports the AlarmReactor class.
   void ExportAlarmReactor();
 
   //! Exports the BaseReactor class.
   void ExportBaseReactor();
 
+  //! Exports the BasicReactor class.
+  void ExportBasicReactor();
+
+  //! Exports the ChainReactor class.
+  void ExportChainReactor();
+
   //! Exports the Do Reactor.
   void ExportDoReactor();
 
+  //! Exports the Filter Reactor.
+  void ExportFilterReactor();
+
+  //! Exports the Fold Reactor.
+  void ExportFoldReactor();
+
+  //! Exports the NoneReactor class.
+  void ExportNoneReactor();
+
+  //! Exports the NonRepeating Reactor.
+  void ExportNonRepeatingReactor();
+
+  //! Exports the Publisher Reactor.
+  void ExportPublisherReactor();
+
   //! Exports a ConstantReactor<object> class.
   void ExportPythonConstantReactor();
+
+  //! Exports the QueueReactor class.
+  void ExportQueueReactor();
+
+  //! Exports the Range Reactor.
+  void ExportRangeReactor();
 
   //! Exports the ReactorMonitor class.
   void ExportReactorMonitor();
@@ -116,11 +146,23 @@ namespace Details {
   //! Exports the Reactors namespace.
   void ExportReactors();
 
+  //! Exports the Static Reactor.
+  void ExportStaticReactor();
+
+  //! Exports the SwithReactor class.
+  void ExportSwithReactor();
+
+  //! Exports the Throw Reactor.
+  void ExportThrowReactor();
+
   //! Exports the TimerReactor class.
   void ExportTimerReactor();
 
   //! Exports the Trigger class.
   void ExportTrigger();
+
+  //! Exports the WhenComplete Reactor.
+  void ExportWhenCompleteReactor();
 
   //! Makes a Reactor<T> from a Python Reactor.
   /*!

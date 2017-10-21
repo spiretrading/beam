@@ -18,7 +18,9 @@ namespace Details {
 
     RangeReactorCore(RefType<Trigger> trigger)
         : m_isInitialized{false},
-          m_iterator{std::make_shared<BasicReactor<Result>>(Ref(trigger))} {}
+          m_iterator{std::make_shared<BasicReactor<Result>>(Ref(trigger))} {
+      m_iterator->Update(Result{});
+    }
 
     boost::optional<Result> operator ()(const Result& lower,
         const Result& upper, const Result& last) {

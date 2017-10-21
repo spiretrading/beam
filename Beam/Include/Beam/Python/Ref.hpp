@@ -25,7 +25,7 @@ namespace Details {
         rvalue_from_python_storage<typename T::Type>*>(data)->storage.bytes;
       boost::python::handle<> handle{boost::python::borrowed(object)};
       boost::python::object ref{handle};
-      new(storage) Ref(*boost::python::extract<typename T::Type*>(ref));
+      new(storage) T(Ref(*boost::python::extract<typename T::Type*>(ref)));
       data->convertible = storage;
     }
   };

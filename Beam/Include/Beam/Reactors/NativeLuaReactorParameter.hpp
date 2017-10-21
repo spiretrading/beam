@@ -56,7 +56,7 @@ namespace Reactors {
   template<typename T>
   void NativeLuaReactorParameter<T>::Push(lua_State& luaState) const {
     PushLuaValue<Type>()(luaState,
-      static_cast<const Reactor<T>&>(this->GetReactor()).Eval());
+      static_cast<const Reactor<T>&>(*(this->GetReactor())).Eval());
   }
 
   template<>

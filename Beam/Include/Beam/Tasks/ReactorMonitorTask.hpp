@@ -2,7 +2,7 @@
 #define BEAM_REACTOR_MONITOR_TASK_HPP
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
-#include "Beam/Reactors/QueueReactor.hpp"
+#include "Beam/Reactors/PublisherReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
 #include "Beam/Tasks/BasicTask.hpp"

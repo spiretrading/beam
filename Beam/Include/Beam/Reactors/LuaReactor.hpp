@@ -64,7 +64,7 @@ namespace Reactors {
         }
         ++parameterCount;
       }
-      if(lua_pcall(m_luaState, reactors.size(), 1, 0) != 0) {
+      if(lua_pcall(m_luaState, children.size(), 1, 0) != 0) {
         BOOST_THROW_EXCEPTION(ReactorError{lua_tostring(m_luaState, -1)});
       } else {
         if(!lua_isnil(m_luaState, -1)) {
@@ -90,11 +90,11 @@ namespace Reactors {
   auto MakeLuaReactor(std::string functionName,
       std::vector<std::unique_ptr<LuaReactorParameter>> parameters,
       lua_State& luaState) {
-    std::vector<BaseReactor*> reactors(parameters.size());
+    std::vector<std::shared_ptr<BaseReactor>> reactors(parameters.size());
     std::transform(parameters.begin(), parameters.end(),
       std::back_inserter(reactors),
       [] (auto& parameter) {
-        return &parameter->GetReactor();
+        return parameter->GetReactor();
       });
     auto core = MakeFunctionObject(std::make_unique<LuaReactorCore<T>>(
       std::move(functionName), std::move(parameters), luaState));

@@ -50,10 +50,12 @@ namespace Details {
    */
   template<typename FunctionType>
   class MultiReactor : public Reactor<typename Details::MultiReactorType<
-      typename std::decay<GetResultOf<FunctionType>>::type>::type> {
+      typename std::decay<GetResultOf<FunctionType,
+      const std::vector<std::shared_ptr<BaseReactor>>&>>::type>::type> {
     public:
       using Type = typename Reactor<typename Details::MultiReactorType<
-        typename std::decay<GetResultOf<FunctionType>>::type>::type>::Type;
+        typename std::decay<GetResultOf<FunctionType,
+        const std::vector<std::shared_ptr<BaseReactor>>&>>::type>::type>::Type;
 
       //! The type of function to apply.
       using Function = FunctionType;

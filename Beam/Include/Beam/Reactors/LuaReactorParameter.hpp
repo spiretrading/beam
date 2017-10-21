@@ -20,10 +20,7 @@ namespace Reactors {
       virtual ~LuaReactorParameter() = default;
 
       //! Returns the Reactor representing the Lua parameter.
-      const BaseReactor& GetReactor() const;
-
-      //! Returns the Reactor representing the Lua parameter.
-      BaseReactor& GetReactor();
+      const std::shared_ptr<BaseReactor>& GetReactor() const;
 
       //! Pushes the parameter onto the Lua stack.
       virtual void Push(lua_State& luaState) const = 0;
@@ -40,12 +37,9 @@ namespace Reactors {
       std::shared_ptr<BaseReactor> m_reactor;
   };
 
-  inline const BaseReactor& LuaReactorParameter::GetReactor() const {
-    return *m_reactor;
-  }
-
-  inline BaseReactor& LuaReactorParameter::GetReactor() {
-    return *m_reactor;
+  inline const std::shared_ptr<BaseReactor>&
+      LuaReactorParameter::GetReactor() const {
+    return m_reactor;
   }
 
   inline LuaReactorParameter::LuaReactorParameter(

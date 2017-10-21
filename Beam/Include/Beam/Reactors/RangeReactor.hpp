@@ -29,12 +29,12 @@ namespace Details {
         if(last + 1 == upper) {
           m_iterator->SetComplete();
         } else {
-          m_iterator->SetValue(last + 1);
+          m_iterator->Update(last + 1);
         }
         return last + 1;
       }
       m_isInitialized = true;
-      m_iterator->SetValue(lower);
+      m_iterator->Update(lower);
       return lower;
     }
   };

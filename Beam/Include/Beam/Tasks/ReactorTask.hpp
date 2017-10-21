@@ -11,7 +11,7 @@
 #include "Beam/Reactors/DoReactor.hpp"
 #include "Beam/Reactors/MultiReactor.hpp"
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
-#include "Beam/Reactors/QueueReactor.hpp"
+#include "Beam/Reactors/PublisherReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
@@ -32,8 +32,7 @@ namespace Tasks {
       const std::string& GetName() const;
 
       //! Returns the Reactor to connect to the property.
-      virtual const std::shared_ptr<Reactors::BaseReactor>&
-        GetReactor() const = 0;
+      virtual std::shared_ptr<Reactors::BaseReactor> GetReactor() const = 0;
 
       //! Commits a change to the property.
       virtual void Commit() = 0;
@@ -152,7 +151,7 @@ namespace Tasks {
       */
       TypedReactorProperty(const TypedReactorProperty& property) = default;
 
-      virtual const std::shared_ptr<Reactors::BaseReactor>&
+      virtual std::shared_ptr<Reactors::BaseReactor>
         GetReactor() const override final;
 
       virtual void Commit() override final;
@@ -349,8 +348,8 @@ namespace Tasks {
         m_reactor{Reactors::MakeNonRepeatingReactor(std::move(reactor))} {}
 
   template<typename T>
-  const std::shared_ptr<Reactors::BaseReactor>& TypedReactorProperty<T>::
-      GetReactor() const {
+  std::shared_ptr<Reactors::BaseReactor>
+      TypedReactorProperty<T>::GetReactor() const {
     return m_reactor;
   }
 

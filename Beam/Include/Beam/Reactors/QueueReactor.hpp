@@ -1,6 +1,5 @@
 #ifndef BEAM_QUEUE_REACTOR_HPP
 #define BEAM_QUEUE_REACTOR_HPP
-#include <deque>
 #include <memory>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Ref.hpp"
@@ -65,14 +64,6 @@ namespace Reactors {
     return std::make_shared<QueueReactor<typename QR::Target>>(
       std::static_pointer_cast<QueueReader<typename QR::Target>>(queue),
       Ref(trigger));
-  }
-
-  template<typename Type>
-  auto MakePublisherReactor(const Publisher<Type>& publisher,
-      RefType<Trigger> trigger) {
-    auto queue = std::make_shared<Queue<Type>>();
-    publisher.Monitor(queue);
-    return MakeQueueReactor(queue, Ref(trigger));
   }
 
   template<typename T>

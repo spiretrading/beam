@@ -40,6 +40,9 @@ namespace Reactors {
 
   template<typename T>
   BaseReactor::Update NoneReactor<T>::Commit(int sequenceNumber) {
+    if(sequenceNumber == 0) {
+      return BaseReactor::Update::COMPLETE;
+    }
     return BaseReactor::Update::NONE;
   }
 

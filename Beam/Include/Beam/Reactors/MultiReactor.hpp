@@ -78,7 +78,8 @@ namespace Details {
     private:
       Function m_function;
       std::vector<std::shared_ptr<BaseReactor>> m_children;
-      boost::optional<Expect<Type>> m_value;
+      Expect<Type> m_value;
+      bool m_hasValue;
       BaseReactor::Update m_state;
       BaseReactor::Update m_update;
       int m_currentSequenceNumber;
@@ -105,6 +106,8 @@ namespace Details {
       std::vector<std::shared_ptr<BaseReactor>> children)
       : m_function{std::forward<FunctionForward>(function)},
         m_children{std::move(children)},
+        m_value{std::make_exception_ptr(ReactorUnavailableException{})},
+        m_hasValue{false},
         m_state{BaseReactor::Update::NONE},
         m_currentSequenceNumber{-1} {}
 
@@ -117,6 +120,11 @@ namespace Details {
   BaseReactor::Update MultiReactor<FunctionType>::Commit(int sequenceNumber) {
     if(sequenceNumber == m_currentSequenceNumber) {
       return m_update;
+    } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
+      if(m_hasValue) {
+        return BaseReactor::Update::EVAL;
+      }
+      return BaseReactor::Update::COMPLETE;
     }
     if(m_children.empty()) {
       if(sequenceNumber == 0) {
@@ -147,6 +155,8 @@ namespace Details {
         } else {
           m_update = BaseReactor::Update::NONE;
         }
+      } else {
+        m_hasValue = true;
       }
     } else if(m_update == BaseReactor::Update::COMPLETE) {
       if(AreParametersComplete()) {
@@ -162,10 +172,7 @@ namespace Details {
   template<typename FunctionType>
   typename MultiReactor<FunctionType>::Type
       MultiReactor<FunctionType>::Eval() const {
-    if(m_value.is_initialized()) {
-      return m_value->Get();
-    }
-    BOOST_THROW_EXCEPTION(ReactorUnavailableException{});
+    return m_value.Get();
   }
 
   template<typename FunctionType>

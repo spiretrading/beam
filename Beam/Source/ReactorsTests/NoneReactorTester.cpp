@@ -8,7 +8,7 @@ using namespace std;
 
 void NoneReactorTester::TestInt() {
   auto reactor = MakeNoneReactor<int>();
-  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::NONE);
+  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::COMPLETE);
   CPPUNIT_ASSERT(reactor->IsComplete());
   CPPUNIT_ASSERT_THROW(reactor->Eval(), ReactorUnavailableException);
   CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::NONE);

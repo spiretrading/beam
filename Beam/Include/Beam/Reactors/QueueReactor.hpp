@@ -44,6 +44,7 @@ namespace Reactors {
       std::shared_ptr<QueueReader<Type>> m_queue;
       Trigger* m_trigger;
       Expect<Type> m_value;
+      bool m_hasValue;
       bool m_isComplete;
       int m_currentSequenceNumber;
       int m_nextSequenceNumber;
@@ -72,6 +73,7 @@ namespace Reactors {
       : m_queue{std::move(queue)},
         m_trigger{trigger.Get()},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
+        m_hasValue{false},
         m_isComplete{false},
         m_currentSequenceNumber{-1},
         m_nextSequenceNumber{0} {}
@@ -93,6 +95,11 @@ namespace Reactors {
   BaseReactor::Update QueueReactor<T>::Commit(int sequenceNumber) {
     if(sequenceNumber == m_currentSequenceNumber) {
       return m_update;
+    } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
+      if(m_hasValue) {
+        return BaseReactor::Update::EVAL;
+      }
+      return BaseReactor::Update::COMPLETE;
     }
     {
       boost::lock_guard<boost::mutex> lock{m_mutex};
@@ -103,6 +110,7 @@ namespace Reactors {
     try {
       m_value = std::move(m_queue->Top());
       m_queue->Pop();
+      m_hasValue = true;
       m_update = BaseReactor::Update::EVAL;
     } catch(const PipeBrokenException&) {
       m_update = BaseReactor::Update::COMPLETE;
@@ -110,6 +118,7 @@ namespace Reactors {
     } catch(const std::exception&) {
       m_value = std::current_exception();
       m_isComplete = true;
+      m_hasValue = true;
       m_update = BaseReactor::Update::EVAL;
     }
     {

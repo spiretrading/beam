@@ -110,9 +110,7 @@ namespace Reactors {
     if(m_state == State::INITIAL) {
       auto update = m_initialReactor->Commit(sequenceNumber);
       if(update == BaseReactor::Update::NONE) {
-        m_currentSequenceNumber = sequenceNumber;
-        m_update = BaseReactor::Update::NONE;
-        return m_update;
+        return update;
       } else if(update == BaseReactor::Update::EVAL) {
         m_value = Try(
           [&] {
@@ -142,9 +140,7 @@ namespace Reactors {
         }();
       auto update = m_continuationReactor->Commit(commitSequence);
       if(update == BaseReactor::Update::NONE) {
-        m_currentSequenceNumber = sequenceNumber;
-        m_update = BaseReactor::Update::NONE;
-        return m_update;
+        return update;
       } else if(update == BaseReactor::Update::EVAL) {
         m_value = Try(
           [&] {

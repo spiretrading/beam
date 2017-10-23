@@ -275,16 +275,23 @@ namespace Details {
     if(m_state == BaseReactor::Update::COMPLETE) {
       return BaseReactor::Update::NONE;
     }
-    if(sizeof...(ParameterTypes) == 0) {
-      if(sequenceNumber == 0) {
-        m_update = BaseReactor::Update::EVAL;
-      } else {
-        m_update = BaseReactor::Update::NONE;
-      }
-    } else {
-      m_update = boost::fusion::accumulate(m_parameters,
-        BaseReactor::Update::NONE, Details::Commit{sequenceNumber});
+    auto update =
+      [&] {
+        if(sizeof...(ParameterTypes) == 0) {
+          if(sequenceNumber == 0) {
+            return BaseReactor::Update::EVAL;
+          } else {
+            return BaseReactor::Update::NONE;
+          }
+        } else {
+          return boost::fusion::accumulate(m_parameters,
+            BaseReactor::Update::NONE, Details::Commit{sequenceNumber});
+        }
+      }();
+    if(update == BaseReactor::Update::NONE) {
+      return update;
     }
+    m_update = update;
     if(m_update == BaseReactor::Update::EVAL) {
       auto hasEval = UpdateEval();
       if(AreParametersComplete()) {

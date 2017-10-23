@@ -126,24 +126,32 @@ namespace Details {
       }
       return BaseReactor::Update::COMPLETE;
     }
-    if(m_children.empty()) {
-      if(sequenceNumber == 0) {
-        m_update = BaseReactor::Update::EVAL;
-      } else {
-        m_update = BaseReactor::Update::NONE;
-      }
-    } else {
-      m_update = BaseReactor::Update::NONE;
-      for(auto& child : m_children) {
-        auto reactorUpdate = child->Commit(sequenceNumber);
-        if(reactorUpdate == BaseReactor::Update::COMPLETE) {
-          if(m_update == BaseReactor::Update::NONE ||
-              m_update == BaseReactor::Update::COMPLETE) {
-            m_update = reactorUpdate;
+    auto update =
+      [&] {
+        if(m_children.empty()) {
+          if(sequenceNumber == 0) {
+            return BaseReactor::Update::EVAL;
+          } else {
+            return BaseReactor::Update::NONE;
           }
+        } else {
+          auto commit = BaseReactor::Update::NONE;
+          for(auto& child : m_children) {
+            auto reactorUpdate = child->Commit(sequenceNumber);
+            if(reactorUpdate == BaseReactor::Update::COMPLETE) {
+              if(commit == BaseReactor::Update::NONE ||
+                  commit == BaseReactor::Update::COMPLETE) {
+                commit = reactorUpdate;
+              }
+            }
+          }
+          return commit;
         }
-      }
+      }();
+    if(update == BaseReactor::Update::NONE) {
+      return update;
     }
+    m_update = update;
     if(m_update == BaseReactor::Update::EVAL) {
       auto hasEval = UpdateEval();
       if(AreParametersComplete()) {

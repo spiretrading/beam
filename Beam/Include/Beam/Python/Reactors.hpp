@@ -152,8 +152,8 @@ namespace Details {
   //! Exports the Static Reactor.
   void ExportStaticReactor();
 
-  //! Exports the SwithReactor class.
-  void ExportSwithReactor();
+  //! Exports the SwitchReactor class.
+  void ExportSwitchReactor();
 
   //! Exports the Throw Reactor.
   void ExportThrowReactor();

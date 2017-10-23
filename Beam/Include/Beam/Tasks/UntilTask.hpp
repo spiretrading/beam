@@ -3,6 +3,7 @@
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
+#include "Beam/Reactors/PublisherReactor.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"

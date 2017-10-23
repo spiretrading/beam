@@ -5,6 +5,7 @@
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -38,6 +39,11 @@ namespace Reactors {
       using ChildReactor = GetReactorType<ProducerReactorType>;
       GetOptionalLocalPtr<ProducerReactorType> m_producer;
       ChildReactor m_reactor;
+      BaseReactor::Update m_state;
+      int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      Expect<Type> m_value;
+      bool m_hasValue;
   };
 
   //! Builds a SwitchReactor.
@@ -55,23 +61,95 @@ namespace Reactors {
   template<typename ProducerReactorForward>
   SwitchReactor<ProducerReactorType>::SwitchReactor(
       ProducerReactorForward&& producer)
-      : m_producer{std::forward<ProducerReactorForward>(producer)} {}
+      : m_producer{std::forward<ProducerReactorForward>(producer)},
+        m_state{BaseReactor::Update::NONE},
+        m_currentSequenceNumber{-1},
+        m_value{std::make_exception_ptr(ReactorUnavailableException{})},
+        m_hasValue{false} {}
 
   template<typename ProducerReactorType>
   bool SwitchReactor<ProducerReactorType>::IsComplete() const {
-    return false;
+    return m_state == BaseReactor::Update::COMPLETE;
   }
 
   template<typename ProducerReactorType>
   BaseReactor::Update SwitchReactor<ProducerReactorType>::Commit(
       int sequenceNumber) {
-    return BaseReactor::Update::NONE;
+    if(sequenceNumber == m_currentSequenceNumber) {
+      return m_update;
+    } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
+      if(m_hasValue) {
+        return BaseReactor::Update::EVAL;
+      }
+      return BaseReactor::Update::COMPLETE;
+    }
+    if(IsComplete()) {
+      return BaseReactor::Update::NONE;
+    }
+    auto producerCommit = m_producer->Commit(sequenceNumber);
+    if(producerCommit == BaseReactor::Update::NONE ||
+        producerCommit == BaseReactor::Update::COMPLETE) {
+      auto childCommit = m_reactor->Commit(sequenceNumber);
+      if(childCommit == BaseReactor::Update::NONE &&
+          producerCommit == BaseReactor::Update::NONE) {
+        return BaseReactor::Update::NONE;
+      } else if(childCommit == BaseReactor::Update::EVAL) {
+        m_value = Try(
+          [&] {
+            return m_reactor->Eval();
+          });
+        m_update = BaseReactor::Update::EVAL;
+        m_hasValue = true;
+      } else {
+        if(m_producer->IsComplete()) {
+          m_update = BaseReactor::Update::COMPLETE;
+        } else {
+          m_update = BaseReactor::Update::NONE;
+        }
+      }
+    } else if(producerCommit == BaseReactor::Update::EVAL) {
+      try {
+        m_reactor = m_producer->Eval();
+        auto initialCommit = m_reactor->Commit(0);
+        auto childCommit = m_reactor->Commit(sequenceNumber);
+        if(childCommit == BaseReactor::Update::NONE) {
+          if(initialCommit == BaseReactor::Update::EVAL) {
+            childCommit = BaseReactor::Update::EVAL;
+          } else {
+            childCommit = BaseReactor::Update::COMPLETE;
+          }
+        }
+        if(childCommit == BaseReactor::Update::EVAL) {
+          m_value = Try(
+            [&] {
+              return m_reactor->Eval();
+            });
+          m_update = BaseReactor::Update::EVAL;
+          m_hasValue = true;
+        } else {
+          if(m_producer->IsComplete()) {
+            m_update = BaseReactor::Update::COMPLETE;
+          } else {
+            m_update = BaseReactor::Update::NONE;
+          }
+        }
+      } catch(const std::exception&) {
+        m_value = std::current_exception();
+        m_update = BaseReactor::Update::EVAL;
+        m_hasValue = true;
+      }
+    }
+    if(m_reactor->IsComplete() && m_producer->IsComplete()) {
+      m_state = BaseReactor::Update::COMPLETE;
+    }
+    m_currentSequenceNumber = sequenceNumber;
+    return m_update;
   }
 
   template<typename ProducerReactorType>
   typename SwitchReactor<ProducerReactorType>::Type
       SwitchReactor<ProducerReactorType>::Eval() const {
-    BOOST_THROW_EXCEPTION(ReactorUnavailableException{});
+    return m_value.Get();
   }
 }
 }

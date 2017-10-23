@@ -14,12 +14,12 @@ namespace Details {
         : m_isExpired{false} {}
 
     template<typename T>
-    boost::optional<T> operator ()(const T& value) {
+    FunctionEvaluation<T> operator ()(const Expect<T>& value) {
       if(m_isExpired) {
         return boost::none;
       }
       m_isExpired = true;
-      return value;
+      return FunctionEvaluation<T>{value, BaseReactor::Update::COMPLETE};
     }
   };
 }

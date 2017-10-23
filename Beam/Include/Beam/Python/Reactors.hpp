@@ -2,7 +2,6 @@
 #define BEAM_PYTHON_REACTORS_HPP
 #include <boost/core/demangle.hpp>
 #include <boost/python.hpp>
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/Python.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
@@ -34,8 +33,6 @@ namespace Details {
 
   template<typename T>
   T FromPythonConverter(const boost::python::object& object) {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
     boost::python::extract<T> value{object};
     if(value.check()) {
       return static_cast<T>(value);
@@ -116,6 +113,9 @@ namespace Details {
   //! Exports the Do Reactor.
   void ExportDoReactor();
 
+  //! Exports expression Reactors.
+  void ExportExpressionReactors();
+
   //! Exports the Filter Reactor.
   void ExportFilterReactor();
 
@@ -127,6 +127,9 @@ namespace Details {
 
   //! Exports the NonRepeating Reactor.
   void ExportNonRepeatingReactor();
+
+  //! Exports the ProxyReactor class.
+  void ExportProxyReactor();
 
   //! Exports the Publisher Reactor.
   void ExportPublisherReactor();
@@ -186,6 +189,24 @@ namespace Details {
       const std::shared_ptr<Reactors::Reactor<T>>& reactor) {
     return Reactors::MakeFunctionReactor(&Details::ToPythonConverter<T>,
       reactor);
+  }
+
+  //! Wraps a function returning a Reactor to a function returning a
+  //! PythonWrappedReactor.
+  /*!
+    \param f The function to wrap.
+    \return A Python callable that invokes <i>f</i>.
+  */
+  template<typename R, typename... Args>
+  boost::python::object PythonWrapReactor(R (*f)(Args...)) {
+    std::function<std::shared_ptr<PythonReactor> (Args...)> callable =
+      [=] (Args... args) -> std::shared_ptr<PythonReactor> {
+        return MakePythonWrapperReactor((*f)(std::forward<Args>(args)...));
+      };
+    using signature = boost::mpl::vector<
+      std::shared_ptr<PythonReactor>, Args...>;
+    return boost::python::make_function(callable,
+      boost::python::default_call_policies(), signature());
   }
 
   //! Exports the Reactor class template.

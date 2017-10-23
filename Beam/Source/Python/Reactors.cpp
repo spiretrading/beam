@@ -4,6 +4,7 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/PythonWrapperReactor.hpp"
 #include "Beam/Python/Ref.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
@@ -14,10 +15,12 @@
 #include "Beam/Reactors/ChainReactor.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
+#include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FilterReactor.hpp"
 #include "Beam/Reactors/FoldReactor.hpp"
 #include "Beam/Reactors/NoneReactor.hpp"
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
+#include "Beam/Reactors/ProxyReactor.hpp"
 #include "Beam/Reactors/PublisherReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/RangeReactor.hpp"
@@ -61,6 +64,12 @@ namespace {
     }
   };
 
+  auto MakePythonAggregateReactor(
+      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>> reactor) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeAggregateReactor(std::move(reactor)));
+  }
+
   auto MakePythonAlarmReactor(const object& timerFactory,
       VirtualTimeClient* timeClient,
       const std::shared_ptr<Reactor<ptime>>& expiryReactor,
@@ -70,7 +79,7 @@ namespace {
         VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
         return MakeVirtualTimer<VirtualTimer*>(std::move(result));
       };
-    return static_pointer_cast<Reactor<bool>>(
+    return std::static_pointer_cast<Reactor<bool>>(
       MakeAlarmReactor(pythonTimerFactory, timeClient, expiryReactor,
       Ref(trigger)));
   }
@@ -83,9 +92,55 @@ namespace {
           Ref(*GetTimerThreadPool()));
         return timer;
       };
-    return static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
+    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
       pythonTimerFactory, std::make_shared<LocalTimeClient>(), expiryReactor,
       Ref(trigger)));
+  }
+
+  auto MakePythonChainReactor(std::shared_ptr<PythonReactor> initial,
+      std::shared_ptr<PythonReactor> continuation, RefType<Trigger> trigger) {
+    return std::static_pointer_cast<Reactor<object>>(
+      MakeChainReactor(std::move(initial), std::move(continuation),
+      Ref(trigger)));
+  }
+
+  auto MakePythonConstantReactor(const boost::python::object& value) {
+    return std::static_pointer_cast<PythonReactor>(MakeConstantReactor(value));
+  }
+
+  std::shared_ptr<PythonReactor> MakePythonDoReactor(const object& callable,
+      const std::shared_ptr<PythonReactor>& reactor) {
+    return Do(
+      [=] (const Expect<object>& value) {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        try {
+          callable(value);
+        } catch(const boost::python::error_already_set&) {
+          PrintError();
+        }
+      }, reactor);
+  }
+
+  auto MakePythonNoneReactor() {
+    return std::static_pointer_cast<PythonReactor>(
+      std::shared_ptr<NoneReactor<object>>());
+  }
+
+  std::shared_ptr<PythonReactor> MakePythonNonRepeatingReactor(
+      const std::shared_ptr<PythonReactor>& reactor) {
+    return MakeNonRepeatingReactor(reactor);
+  }
+
+  auto MakePythonRangeReactor(std::shared_ptr<PythonReactor> lower,
+      std::shared_ptr<PythonReactor> upper, RefType<Trigger> trigger) {
+    return MakePythonWrapperReactor(
+      MakeRangeReactor(std::move(lower), std::move(upper), Ref(trigger)));
+  }
+
+  auto MakePythonStaticReactor(std::shared_ptr<PythonReactor> source) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeStaticReactor(std::move(source)));
   }
 
   auto MakePythonTimerReactor(const object& timerFactory,
@@ -111,34 +166,6 @@ namespace {
       };
     return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
       periodReactor, Ref(*trigger));
-  }
-
-  std::shared_ptr<PythonReactor> MakePythonDoReactor(const object& callable,
-      const std::shared_ptr<PythonReactor>& reactor) {
-
-    // TODO: We need to lock the GIL before the parameter Expect<object> is
-    // constructed.
-    return Do(
-      [=] (const Expect<object>& value) {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        try {
-          callable(value);
-        } catch(const boost::python::error_already_set&) {
-          PrintError();
-        }
-      }, reactor);
-  }
-
-  std::shared_ptr<PythonReactor> MakePythonNonRepeatingReactor(
-      const std::shared_ptr<PythonReactor>& reactor) {
-    return MakeNonRepeatingReactor(reactor);
-  }
-
-  std::shared_ptr<PythonReactor> MakePythonRangeReactor(
-      const std::shared_ptr<PythonReactor>& lower,
-      const std::shared_ptr<PythonReactor>& upper, RefType<Trigger> trigger) {
-    return MakeRangeReactor(lower, upper, Ref(trigger));
   }
 
   void ReactorMonitorDo(ReactorMonitor* monitor, const object& callable) {
@@ -200,6 +227,11 @@ namespace boost {
 
   template<> inline const volatile NoneReactor<object>* get_pointer(
       const volatile NoneReactor<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile ProxyReactor<object>* get_pointer(
+      const volatile ProxyReactor<object>* p) {
     return p;
   }
 
@@ -294,11 +326,14 @@ void Beam::Python::ExportAggregateReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<BaseReactor>>();
+  def("aggregate", &MakePythonAggregateReactor);
 }
 
 void Beam::Python::ExportAlarmReactor() {
   def("AlarmReactor", &MakePythonAlarmReactor);
   def("AlarmReactor", &MakePythonDefaultAlarmReactor);
+  def("alarm", &MakePythonAlarmReactor);
+  def("alarm", &MakePythonDefaultAlarmReactor);
 }
 
 void Beam::Python::ExportBaseReactor() {
@@ -315,6 +350,7 @@ void Beam::Python::ExportBasicReactor() {
   using ExportedReactor = BasicReactor<boost::python::object>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("BasicReactor", init<RefType<Trigger>>())
+    .def("commit", BlockingFunction(&ExportedReactor::Commit))
     .def("update", &ExportedReactor::Update)
     .def("set_complete", static_cast<void (ExportedReactor::*)()>(
     &ExportedReactor::SetComplete));
@@ -335,10 +371,15 @@ void Beam::Python::ExportChainReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<BaseReactor>>();
+  def("chain", &MakePythonChainReactor);
 }
 
 void Beam::Python::ExportDoReactor() {
   def("do", &MakePythonDoReactor);
+}
+
+void Beam::Python::ExportExpressionReactors() {
+  def("add", PythonWrapReactor(&Reactors::Add<object, object>));
 }
 
 void Beam::Python::ExportFilterReactor() {}
@@ -353,10 +394,25 @@ void Beam::Python::ExportNoneReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<BaseReactor>>();
+  def("none", &MakePythonNoneReactor);
 }
 
 void Beam::Python::ExportNonRepeatingReactor() {
   def("NonRepeatingReactor", &MakePythonNonRepeatingReactor);
+  def("non_repeating", &MakePythonNonRepeatingReactor);
+}
+
+void Beam::Python::ExportProxyReactor() {
+  using ExportedReactor = ProxyReactor<object>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("ProxyReactor", init<>())
+    .def(init<std::shared_ptr<PythonReactor>>())
+    .def("set_reactor", &ExportedReactor::SetReactor)
+    .def("commit", BlockingFunction(&ExportedReactor::Commit));
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
 }
 
 void Beam::Python::ExportPublisherReactor() {}
@@ -369,12 +425,14 @@ void Beam::Python::ExportPythonConstantReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ConstantReactor<object>>,
     std::shared_ptr<BaseReactor>>();
+  def("constant", &MakePythonConstantReactor);
 }
 
 void Beam::Python::ExportQueueReactor() {}
 
 void Beam::Python::ExportRangeReactor() {
   def("RangeReactor", &MakePythonRangeReactor);
+  def("range", &MakePythonRangeReactor);
 }
 
 void Beam::Python::ExportReactorMonitor() {
@@ -402,10 +460,12 @@ void Beam::Python::ExportReactors() {
   ExportAlarmReactor();
   ExportBasicReactor();
   ExportChainReactor();
+  ExportExpressionReactors();
   ExportFilterReactor();
   ExportFoldReactor();
   ExportNoneReactor();
   ExportNonRepeatingReactor();
+  ExportProxyReactor();
   ExportPublisherReactor();
   ExportQueueReactor();
   ExportRangeReactor();
@@ -432,9 +492,13 @@ void Beam::Python::ExportReactors() {
     .def(init<>())
     .def(init<const string&>());
   ExportRef<RefType<Trigger>>("TriggerRef");
+  ExportRef<RefType<Reactor<object>>>("PythonReactorRef");
 }
 
-void Beam::Python::ExportStaticReactor() {}
+void Beam::Python::ExportStaticReactor() {
+  def("StaticReactor", &MakePythonStaticReactor);
+  def("static", &MakePythonStaticReactor);
+}
 
 void Beam::Python::ExportSwithReactor() {}
 
@@ -443,6 +507,8 @@ void Beam::Python::ExportThrowReactor() {}
 void Beam::Python::ExportTimerReactor() {
   def("TimerReactor", &MakePythonTimerReactor);
   def("TimerReactor", &MakePythonDefaultTimerReactor);
+  def("timer", &MakePythonTimerReactor);
+  def("timer", &MakePythonDefaultTimerReactor);
 }
 
 void Beam::Python::ExportTrigger() {

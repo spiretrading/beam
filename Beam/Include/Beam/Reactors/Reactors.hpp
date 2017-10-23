@@ -12,12 +12,14 @@ namespace Reactors {
   template<typename ProducerReactorType, typename EvaluationReactorType,
     typename LeftTriggerReactorType, typename RightTriggerReactorType>
     class FoldReactor;
+  template<typename T> struct FunctionEvaluation;
   template<typename FunctionType, typename... ParameterTypes>
     class FunctionReactor;
   class LuaReactorParameter;
   template<typename FunctionType> class MultiReactor;
   template<typename T> class NativeLuaReactorParameter;
   template<typename T> class NoneReactor;
+  template<typename T> class ProxyReactor;
   template<typename T> class QueueReactor;
   template<typename T> class Reactor;
   class ReactorError;

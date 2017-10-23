@@ -1,8 +1,10 @@
 #ifndef BEAM_FOLD_REACTOR_HPP
 #define BEAM_FOLD_REACTOR_HPP
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Reactors/BasicReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -52,6 +54,10 @@ namespace Reactors {
       GetOptionalLocalPtr<EvaluationReactorType> m_evaluation;
       GetOptionalLocalPtr<LeftTriggerReactorType> m_leftTrigger;
       GetOptionalLocalPtr<RightTriggerReactorType> m_rightTrigger;
+      int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      Expect<Type> m_value;
+      bool m_hasValue;
   };
 
   //! Makes a FoldReactor.
@@ -92,7 +98,10 @@ namespace Reactors {
         m_evaluation{std::forward<EvaluationReactorForward>(evaluation)},
         m_leftTrigger{std::forward<LeftTriggerReactorForward>(leftTrigger)},
         m_rightTrigger{
-          std::forward<RightTriggerReactorForward>(rightTrigger)} {}
+          std::forward<RightTriggerReactorForward>(rightTrigger)},
+        m_currentSequenceNumber{-1},
+        m_value{std::make_exception_ptr(ReactorUnavailableException{})},
+        m_hasValue{false} {}
 
   template<typename ProducerReactorType, typename EvaluationReactorType,
     typename LeftTriggerReactorType, typename RightTriggerReactorType>
@@ -106,6 +115,14 @@ namespace Reactors {
   BaseReactor::Update FoldReactor<ProducerReactorType, EvaluationReactorType,
       LeftTriggerReactorType, RightTriggerReactorType>::Commit(
       int sequenceNumber) {
+    if(sequenceNumber == m_currentSequenceNumber) {
+      return m_update;
+    } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
+      if(m_hasValue) {
+        return BaseReactor::Update::EVAL;
+      }
+      return BaseReactor::Update::COMPLETE;
+    }
     return BaseReactor::Update::NONE;
   }
 
@@ -115,7 +132,7 @@ namespace Reactors {
       LeftTriggerReactorType, RightTriggerReactorType>::Type
       FoldReactor<ProducerReactorType, EvaluationReactorType,
       LeftTriggerReactorType, RightTriggerReactorType>::Eval() const {
-    BOOST_THROW_EXCEPTION(ReactorUnavailableException{});
+    return m_value.Get();
   }
 }
 }

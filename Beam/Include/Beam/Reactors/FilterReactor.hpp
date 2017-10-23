@@ -9,7 +9,7 @@ namespace Reactors {
 namespace Details {
   struct FilterReactorCore {
     template<typename T>
-    boost::optional<T> operator ()(bool filter, const T& value) const {
+    boost::optional<T> operator ()(bool filter, const Expect<T>& value) const {
       if(filter) {
         return value;
       }

@@ -70,6 +70,7 @@ namespace Beam {
       Expect& operator =(U&& rhs);
 
     private:
+      template<typename> friend class Expect;
       boost::variant<T, std::exception_ptr> m_value;
   };
 

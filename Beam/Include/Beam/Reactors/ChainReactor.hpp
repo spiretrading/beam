@@ -72,7 +72,7 @@ namespace Reactors {
       typename std::decay<InitialReactor>::type,
       typename std::decay<ContinuationReactor>::type>>(
       std::forward<InitialReactor>(initialReactor),
-      std::forward<ContinuationReactor>(continuationReactor));
+      std::forward<ContinuationReactor>(continuationReactor), Ref(trigger));
   }
 
   template<typename InitialReactorType, typename ContinuationReactorType>

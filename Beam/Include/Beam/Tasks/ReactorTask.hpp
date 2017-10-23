@@ -249,6 +249,7 @@ namespace Tasks {
       std::bind(&ReactorTask::OnReactorUpdate, this, std::placeholders::_1)),
       std::move(properties));
     S1();
+// TODO: Deadlock?    m_propertyReactor->Commit(0);
     m_reactorMonitor->Add(m_propertyReactor);
   }
 

@@ -70,17 +70,16 @@ namespace Reactors {
   }
 
   inline void ReactorMonitor::Add(std::shared_ptr<BaseReactor> reactor) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    auto reactorIterator = std::find(m_reactors.begin(), m_reactors.end(),
-      reactor);
-    if(reactorIterator != m_reactors.end()) {
-      return;
+    {
+      boost::lock_guard<boost::mutex> lock{m_mutex};
+      auto reactorIterator = std::find(m_reactors.begin(), m_reactors.end(),
+        reactor);
+      if(reactorIterator != m_reactors.end()) {
+        return;
+      }
+      m_reactors.push_back(std::move(reactor));
     }
-    m_reactors.push_back(std::move(reactor));
     if(m_openState.IsOpen()) {
-
-      // TODO: This operation may need to be performed immediately rather than
-      // asynchronously.
       m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
     }
   }

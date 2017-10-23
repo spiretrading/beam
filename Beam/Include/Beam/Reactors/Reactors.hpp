@@ -10,7 +10,7 @@ namespace Reactors {
     class ChainReactor;
   template<typename T> class ConstantReactor;
   template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftTriggerReactorType, typename RightTriggerReactorType>
+    typename LeftChildReactorType, typename RightChildReactorType>
     class FoldReactor;
   template<typename T> struct FunctionEvaluation;
   template<typename FunctionType, typename... ParameterTypes>

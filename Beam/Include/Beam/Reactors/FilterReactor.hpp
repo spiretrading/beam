@@ -11,7 +11,7 @@ namespace Details {
     template<typename T>
     boost::optional<T> operator ()(bool filter, const Expect<T>& value) const {
       if(filter) {
-        return value;
+        return value.Get();
       }
       return boost::none;
     }

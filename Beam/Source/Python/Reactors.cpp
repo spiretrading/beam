@@ -225,6 +225,22 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile FoldParameterReactor<object>* get_pointer(
+      const volatile FoldParameterReactor<object>* p) {
+    return p;
+  }
+
+  template<> inline const volatile FoldReactor<std::shared_ptr<PythonReactor>,
+    std::shared_ptr<PythonReactor>,
+    std::shared_ptr<FoldParameterReactor<object>>,
+    std::shared_ptr<FoldParameterReactor<object>>>* get_pointer(
+      const volatile FoldReactor<std::shared_ptr<PythonReactor>,
+      std::shared_ptr<PythonReactor>,
+      std::shared_ptr<FoldParameterReactor<object>>,
+      std::shared_ptr<FoldParameterReactor<object>>>* p) {
+    return p;
+  }
+
   template<> inline const volatile NoneReactor<object>* get_pointer(
       const volatile NoneReactor<object>* p) {
     return p;
@@ -384,7 +400,30 @@ void Beam::Python::ExportExpressionReactors() {
 
 void Beam::Python::ExportFilterReactor() {}
 
-void Beam::Python::ExportFoldReactor() {}
+void Beam::Python::ExportFoldReactor() {
+  {
+    using ExportedReactor = FoldParameterReactor<object>;
+    class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+      std::shared_ptr<ExportedReactor>>("FoldParameterReactor", init<>());
+    implicitly_convertible<std::shared_ptr<ExportedReactor>,
+      std::shared_ptr<PythonReactor>>();
+    implicitly_convertible<std::shared_ptr<ExportedReactor>,
+      std::shared_ptr<BaseReactor>>();
+  }
+  using ExportedReactor = FoldReactor<std::shared_ptr<PythonReactor>,
+    std::shared_ptr<PythonReactor>,
+    std::shared_ptr<FoldParameterReactor<object>>,
+    std::shared_ptr<FoldParameterReactor<object>>>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("FoldReactor",
+    init<std::shared_ptr<PythonReactor>, std::shared_ptr<PythonReactor>,
+    std::shared_ptr<FoldParameterReactor<object>>,
+    std::shared_ptr<FoldParameterReactor<object>>>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+}
 
 void Beam::Python::ExportNoneReactor() {
   using ExportedReactor = NoneReactor<boost::python::object>;

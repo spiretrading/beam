@@ -143,6 +143,8 @@ namespace Details {
                   commit == BaseReactor::Update::COMPLETE) {
                 commit = reactorUpdate;
               }
+            } else {
+              commit = reactorUpdate;
             }
           }
           return commit;

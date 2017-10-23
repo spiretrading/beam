@@ -11,7 +11,7 @@ namespace Tests {
   /*! \class SpawnTaskTester
       \brief Tests the SpawnTask class.
    */
-  class SpawnTaskTester  : public CPPUNIT_NS::TestFixture {
+  class SpawnTaskTester : public CPPUNIT_NS::TestFixture {
     public:
 
       //! Tests a SpawnTask where the trigger immediately completes.

@@ -6,6 +6,7 @@
 #include "Beam/TasksTests/FunctionTaskTester.hpp"
 #include "Beam/TasksTests/IdleTaskTester.hpp"
 #include "Beam/TasksTests/PackagedTaskTester.hpp"
+#include "Beam/TasksTests/ReactorTaskTester.hpp"
 #include "Beam/TasksTests/SpawnTaskTester.hpp"
 #include "Beam/TasksTests/UntilTaskTester.hpp"
 #include "Beam/TasksTests/WhenTaskTester.hpp"
@@ -21,6 +22,7 @@ int main() {
   runner.addTest(UntilTaskTester::suite());
   runner.addTest(WhenTaskTester::suite());
   runner.addTest(SpawnTaskTester::suite());
+  runner.addTest(ReactorTaskTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

@@ -16,7 +16,7 @@ namespace Details {
     template<typename T>
     FunctionEvaluation<T> operator ()(const Expect<T>& value) {
       if(m_isExpired) {
-        return boost::none;
+        return {};
       }
       m_isExpired = true;
       return FunctionEvaluation<T>{value, BaseReactor::Update::COMPLETE};

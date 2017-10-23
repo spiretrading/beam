@@ -21,14 +21,29 @@ namespace Reactors {
   template<typename T>
   struct FunctionEvaluation {
     using Type = T;
-    boost::optional<Type> m_value;
+    boost::optional<Expect<Type>> m_value;
     BaseReactor::Update m_update;
+
+    //! Constructs an unitialized evaluation.
+    FunctionEvaluation();
+
+    //! Constructs a FunctionEvaluation resulting in a type and an EVAL.
+    /*!
+      \param value The value returned by the function.
+    */
+    FunctionEvaluation(Expect<Type> value);
 
     //! Constructs a FunctionEvaluation resulting in a type and an EVAL.
     /*!
       \param value The value returned by the function.
     */
     FunctionEvaluation(Type value);
+
+    //! Constructs a FunctionEvaluation resulting in a type and an EVAL.
+    /*!
+      \param value The value returned by the function.
+    */
+    FunctionEvaluation(boost::optional<Expect<Type>> value);
 
     //! Constructs a FunctionEvaluation resulting in a type and an EVAL.
     /*!
@@ -41,7 +56,15 @@ namespace Reactors {
       \param value The value returned by the function.
       \param update The type of update.
     */
-    FunctionEvaluation(Type value, BaseReactor::Update update);
+    FunctionEvaluation(Expect<Type> value, BaseReactor::Update update);
+
+    //! Constructs a FunctionEvaluation resulting in a type and an update.
+    /*!
+      \param value The value returned by the function.
+      \param update The type of update.
+    */
+    FunctionEvaluation(boost::optional<Expect<Type>> value,
+      BaseReactor::Update update);
 
     //! Constructs a FunctionEvaluation resulting in a type and an update.
     /*!
@@ -204,12 +227,20 @@ namespace Details {
   }
 
   template<typename T>
-  FunctionEvaluation<T>::FunctionEvaluation(Type value)
+  FunctionEvaluation<T>::FunctionEvaluation()
+      : m_update{BaseReactor::Update::NONE} {}
+
+  template<typename T>
+  FunctionEvaluation<T>::FunctionEvaluation(Expect<Type> value)
       : m_value{std::move(value)},
         m_update{BaseReactor::Update::EVAL} {}
 
   template<typename T>
-  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Type> value)
+  FunctionEvaluation<T>::FunctionEvaluation(Type value)
+      : FunctionEvaluation<T>{Expect<Type>{std::move(value)}} {}
+
+  template<typename T>
+  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Expect<Type>> value)
       : m_value{std::move(value)} {
     if(m_value.is_initialized()) {
       m_update = BaseReactor::Update::EVAL;
@@ -219,7 +250,11 @@ namespace Details {
   }
 
   template<typename T>
-  FunctionEvaluation<T>::FunctionEvaluation(Type value,
+  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Type> value)
+      : FunctionEvaluation{boost::optional<Expect<Type>>{std::move(value)}} {}
+
+  template<typename T>
+  FunctionEvaluation<T>::FunctionEvaluation(Expect<Type> value,
       BaseReactor::Update update)
       : m_value{std::move(value)},
         m_update{update} {
@@ -227,7 +262,7 @@ namespace Details {
   }
 
   template<typename T>
-  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Type> value,
+  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Expect<Type>> value,
       BaseReactor::Update update)
       : m_value{std::move(value)},
         m_update{update} {
@@ -237,6 +272,12 @@ namespace Details {
       assert(m_update != BaseReactor::Update::EVAL);
     }
   }
+
+  template<typename T>
+  FunctionEvaluation<T>::FunctionEvaluation(boost::optional<Type> value,
+      BaseReactor::Update update)
+      : FunctionEvaluation{boost::optional<Expect<Type>>{
+          Expect<Type>{std::move(value)}}, update} {}
 
   template<typename T>
   FunctionEvaluation<T>::FunctionEvaluation(BaseReactor::Update update)

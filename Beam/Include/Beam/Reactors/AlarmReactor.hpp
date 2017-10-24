@@ -5,7 +5,7 @@
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/Queue.hpp"
+#include "Beam/Queues/MultiQueueReader.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
@@ -23,14 +23,15 @@ namespace Reactors {
     GetOptionalLocalPtr<TimeClientType> m_timeClient;
     std::unique_ptr<Timer> m_timer;
     boost::optional<boost::posix_time::ptime> m_expiry;
-    std::shared_ptr<Queue<Threading::Timer::Result>> m_expiryQueue;
+    std::shared_ptr<MultiQueueReader<Threading::Timer::Result>> m_expiryQueue;
 
     template<typename TimerFactoryForward, typename TimeClientForward>
     AlarmReactorCore(TimerFactoryForward&& timerFactory,
         TimeClientForward&& timeClient)
         : m_timerFactory{std::forward<TimerFactoryForward>(timerFactory)},
           m_timeClient{std::forward<TimeClientForward>(timeClient)},
-          m_expiryQueue{std::make_shared<Queue<Threading::Timer::Result>>()} {
+          m_expiryQueue{std::make_shared<
+            MultiQueueReader<Threading::Timer::Result>>()} {
       m_expiryQueue->Push(Threading::Timer::Result::NONE);
     }
 
@@ -47,7 +48,7 @@ namespace Reactors {
         }
         m_expiry = expiry;
         m_timer = m_timerFactory(expiry - currentTime);
-        m_timer->GetPublisher().Monitor(m_expiryQueue);
+        m_timer->GetPublisher().Monitor(m_expiryQueue->GetWriter());
         m_timer->Start();
         return false;
       } else if(timerResult == Threading::Timer::Result::EXPIRED) {

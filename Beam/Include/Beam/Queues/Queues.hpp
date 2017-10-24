@@ -18,6 +18,7 @@ namespace Beam {
   template<typename PublisherType> class FilteredPublisher;
   template<typename SourceType, typename DestinationQueueType>
     class FilterWriterQueue;
+  template<typename T> class MultiQueueReader;
   template<typename T> class MultiQueueWriter;
   class PipeBrokenException;
   template<typename T> class Publisher;

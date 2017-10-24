@@ -122,6 +122,12 @@ namespace {
       }, reactor);
   }
 
+  auto MakePythonFilterReactor(std::shared_ptr<Reactor<bool>> filter,
+      std::shared_ptr<PythonReactor> source) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeFilterReactor(filter, source));
+  }
+
   auto MakePythonNoneReactor() {
     return std::static_pointer_cast<PythonReactor>(
       std::shared_ptr<NoneReactor<object>>());
@@ -408,10 +414,14 @@ void Beam::Python::ExportDoReactor() {
 }
 
 void Beam::Python::ExportExpressionReactors() {
-  def("add", PythonWrapReactor(&Reactors::Add<object, object>));
+  def("equals", PythonWrapReactor(&Reactors::Equal<object, object>));
+  def("not_equals", PythonWrapReactor(&Reactors::NotEqual<object, object>));
 }
 
-void Beam::Python::ExportFilterReactor() {}
+void Beam::Python::ExportFilterReactor() {
+  def("FilterReactor", &MakePythonFilterReactor);
+  def("filter", &MakePythonFilterReactor);
+}
 
 void Beam::Python::ExportFoldReactor() {
   {

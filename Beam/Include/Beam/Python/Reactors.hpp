@@ -225,7 +225,23 @@ namespace Details {
       boost::python::bases<Reactors::BaseReactor>>(name)
       .def("is_complete", boost::python::pure_virtual(&T::IsComplete))
       .def("commit", boost::python::pure_virtual(&T::Commit))
-      .def("eval", boost::python::pure_virtual(&T::Eval));
+      .def("eval", boost::python::pure_virtual(&T::Eval))
+      .def("__add__", PythonWrapReactor(
+        &Add<typename T::Type, boost::python::object>))
+      .def("__sub__", PythonWrapReactor(
+        &Subtract<typename T::Type, boost::python::object>))
+      .def("__mul__", PythonWrapReactor(
+        &Multiply<typename T::Type, boost::python::object>))
+      .def("__truediv__", PythonWrapReactor(
+        &Divide<typename T::Type, boost::python::object>))
+      .def("__lt__", PythonWrapReactor(
+        &Less<typename T::Type, boost::python::object>))
+      .def("__le__", PythonWrapReactor(
+        &LessOrEqual<typename T::Type, boost::python::object>))
+      .def("__ge__", PythonWrapReactor(
+        &GreaterOrEqual<typename T::Type, boost::python::object>))
+      .def("__gt__", PythonWrapReactor(
+        &Greater<typename T::Type, boost::python::object>));
     if(!std::is_same<T, PythonReactor>::value) {
       boost::python::to_python_converter<std::shared_ptr<T>,
         Details::ReactorToPython<T>>();

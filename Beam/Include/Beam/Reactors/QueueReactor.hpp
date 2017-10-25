@@ -40,7 +40,7 @@ namespace Reactors {
       virtual Type Eval() const override final;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable Threading::Mutex m_mutex;
       std::shared_ptr<QueueReader<Type>> m_queue;
       Trigger* m_trigger;
       Expect<Type> m_value;
@@ -81,7 +81,7 @@ namespace Reactors {
   template<typename T>
   QueueReactor<T>::~QueueReactor() {
     m_queue->Break();
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     m_isComplete = true;
     m_monitorCondition.notify_one();
   }
@@ -102,7 +102,7 @@ namespace Reactors {
       return BaseReactor::Update::COMPLETE;
     }
     {
-      boost::lock_guard<boost::mutex> lock{m_mutex};
+      boost::lock_guard<Threading::Mutex> lock{m_mutex};
       if(sequenceNumber != m_nextSequenceNumber) {
         return BaseReactor::Update::NONE;
       }
@@ -130,7 +130,7 @@ namespace Reactors {
       m_update = BaseReactor::Update::EVAL;
     }
     {
-      boost::lock_guard<boost::mutex> lock{m_mutex};
+      boost::lock_guard<Threading::Mutex> lock{m_mutex};
       m_currentSequenceNumber = m_nextSequenceNumber;
       m_nextSequenceNumber = -1;
       m_monitorCondition.notify_one();
@@ -149,7 +149,7 @@ namespace Reactors {
       try {
         m_queue->Top();
       } catch(const std::exception&) {}
-      boost::unique_lock<boost::mutex> lock{m_mutex};
+      boost::unique_lock<Threading::Mutex> lock{m_mutex};
       if(m_isComplete) {
         break;
       }

@@ -456,6 +456,9 @@ void Beam::Python::ExportFoldReactor() {
     std::shared_ptr<BaseReactor>>();
 }
 
+void Beam::Python::ExportFunctionReactor() {
+}
+
 void Beam::Python::ExportNoneReactor() {
   using ExportedReactor = NoneReactor<boost::python::object>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
@@ -532,6 +535,7 @@ void Beam::Python::ExportReactors() {
   ExportExpressionReactors();
   ExportFilterReactor();
   ExportFoldReactor();
+  ExportFunctionReactor();
   ExportNoneReactor();
   ExportNonRepeatingReactor();
   ExportProxyReactor();

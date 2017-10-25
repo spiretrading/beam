@@ -123,6 +123,9 @@ namespace Details {
   //! Exports the Fold Reactor.
   void ExportFoldReactor();
 
+  //! Exports the FunctionReactor.
+  void ExportFunctionReactor();
+
   //! Exports the NoneReactor class.
   void ExportNoneReactor();
 

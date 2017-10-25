@@ -64,6 +64,44 @@ namespace {
     }
   };
 
+  struct ApplyFunction {
+    boost::python::object m_callable;
+
+    boost::python::object operator ()(const boost::python::tuple& args,
+        const boost::python::dict& kw) {
+      std::vector<boost::python::object> parameters;
+      for(int i = 0; i < boost::python::len(args); ++i) {
+        parameters.push_back(args[i].attr("value"));
+      }
+      auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
+      for(std::size_t i = 0; i < parameters.size(); ++i) {
+        PyTuple_SET_ITEM(t, i, parameters[i].ptr());
+      }
+      boost::python::object parameterTuple{boost::python::handle<>(
+        boost::python::borrowed(t))};
+      auto rawResult = PyObject_Call(m_callable.ptr(), parameterTuple.ptr(),
+        kw.ptr());
+      if(rawResult == nullptr) {
+        PrintError();
+        PyErr_Clear();
+        return boost::python::object{};
+      }
+      boost::python::object result{boost::python::handle<>(
+        boost::python::borrowed(rawResult))};
+      return result;
+    }
+  };
+
+  boost::python::object ApplyFunctionReactor(const boost::python::tuple& args,
+      const boost::python::dict& kw) {
+    boost::python::object callable = args[0];
+    boost::python::tuple parameters = boost::python::tuple(
+      args.slice(1, boost::python::_));
+    return boost::python::object{std::static_pointer_cast<PythonReactor>(
+      std::make_shared<PythonFunctionReactor>(
+      raw_function(ApplyFunction{callable}), parameters, kw))};
+  }
+
   auto MakePythonAggregateReactor(
       std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>> reactor) {
     return std::static_pointer_cast<PythonReactor>(
@@ -97,6 +135,31 @@ namespace {
       Ref(trigger)));
   }
 
+  auto MakeConstantPythonAlarmReactor(const object& timerFactory,
+      VirtualTimeClient* timeClient, const ptime& expiry, Trigger& trigger) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
+        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
+      };
+    return std::static_pointer_cast<Reactor<bool>>(
+      MakeAlarmReactor(pythonTimerFactory, timeClient,
+      MakeConstantReactor(expiry), Ref(trigger)));
+  }
+
+  auto MakeConstantPythonDefaultAlarmReactor(const ptime& expiry,
+      Trigger& trigger) {
+    auto pythonTimerFactory =
+      [=] (const time_duration& duration) {
+        auto timer = std::make_unique<LiveTimer>(duration,
+          Ref(*GetTimerThreadPool()));
+        return timer;
+      };
+    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
+      pythonTimerFactory, std::make_shared<LocalTimeClient>(),
+      MakeConstantReactor(expiry), Ref(trigger)));
+  }
+
   auto MakePythonChainReactor(std::shared_ptr<PythonReactor> initial,
       std::shared_ptr<PythonReactor> continuation, RefType<Trigger> trigger) {
     return std::static_pointer_cast<Reactor<object>>(
@@ -128,6 +191,20 @@ namespace {
       MakeFilterReactor(filter, source));
   }
 
+  auto MakePythonFoldReactor(const boost::python::object& f,
+      const std::shared_ptr<PythonReactor>& source) {
+    auto leftOperand = MakeFoldParameterReactor<object>();
+    auto rightOperand = MakeFoldParameterReactor<object>();
+    std::shared_ptr<PythonReactor> fold =
+      boost::python::extract<std::shared_ptr<PythonReactor>>(
+      ApplyFunctionReactor(boost::python::make_tuple(f,
+      std::static_pointer_cast<PythonReactor>(leftOperand),
+      std::static_pointer_cast<PythonReactor>(rightOperand)),
+      boost::python::dict{}));
+    return std::static_pointer_cast<PythonReactor>(
+      MakeFoldReactor(source, fold, leftOperand, rightOperand));
+  }
+
   boost::python::object MakePythonFunctionReactor(
       const boost::python::tuple& args, const boost::python::dict& kw) {
     boost::python::object self = args[0];
@@ -147,10 +224,11 @@ namespace {
     return MakeNonRepeatingReactor(reactor);
   }
 
-  auto MakePythonRangeReactor(std::shared_ptr<PythonReactor> lower,
-      std::shared_ptr<PythonReactor> upper, RefType<Trigger> trigger) {
-    return MakePythonWrapperReactor(
-      MakeRangeReactor(std::move(lower), std::move(upper), Ref(trigger)));
+  auto MakePythonRangeReactor(const boost::python::object& lower,
+      const boost::python::object& upper, RefType<Trigger> trigger) {
+    return MakePythonWrapperReactor(MakeRangeReactor(
+      MakePythonConstantReactor(lower), MakePythonConstantReactor(upper),
+      Ref(trigger)));
   }
 
   auto MakePythonStaticReactor(std::shared_ptr<PythonReactor> source) {
@@ -210,44 +288,6 @@ namespace {
     int sequenceNumber;
     trigger->SignalUpdate(Store(sequenceNumber));
     return sequenceNumber;
-  }
-
-  struct ApplyFunction {
-    boost::python::object m_callable;
-
-    boost::python::object operator ()(const boost::python::tuple& args,
-        const boost::python::dict& kw) {
-      std::vector<boost::python::object> parameters;
-      for(int i = 0; i < boost::python::len(args); ++i) {
-        parameters.push_back(args[i].attr("value"));
-      }
-      auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
-      for(std::size_t i = 0; i < parameters.size(); ++i) {
-        PyTuple_SET_ITEM(t, i, parameters[i].ptr());
-      }
-      boost::python::object parameterTuple{boost::python::handle<>(
-        boost::python::borrowed(t))};
-      auto rawResult = PyObject_Call(m_callable.ptr(), parameterTuple.ptr(),
-        kw.ptr());
-      if(rawResult == nullptr) {
-        PrintError();
-        PyErr_Clear();
-        return boost::python::object{};
-      }
-      boost::python::object result{boost::python::handle<>(
-        boost::python::borrowed(rawResult))};
-      return result;
-    }
-  };
-
-  boost::python::object ApplyFunctionReactor(const boost::python::tuple& args,
-      const boost::python::dict& kw) {
-    boost::python::object callable = args[0];
-    boost::python::tuple parameters = boost::python::tuple(
-      args.slice(1, boost::python::_));
-    return boost::python::object{std::static_pointer_cast<PythonReactor>(
-      std::make_shared<PythonFunctionReactor>(
-      raw_function(ApplyFunction{callable}), parameters, kw))};
   }
 }
 
@@ -428,8 +468,8 @@ void Beam::Python::ExportAggregateReactor() {
 void Beam::Python::ExportAlarmReactor() {
   def("AlarmReactor", &MakePythonAlarmReactor);
   def("AlarmReactor", &MakePythonDefaultAlarmReactor);
-  def("alarm", &MakePythonAlarmReactor);
-  def("alarm", &MakePythonDefaultAlarmReactor);
+  def("alarm", &MakeConstantPythonAlarmReactor);
+  def("alarm", &MakeConstantPythonDefaultAlarmReactor);
 }
 
 void Beam::Python::ExportBaseReactor() {
@@ -508,6 +548,7 @@ void Beam::Python::ExportFoldReactor() {
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<BaseReactor>>();
+  def("fold", &MakePythonFoldReactor);
 }
 
 void Beam::Python::ExportFunctionReactor() {

@@ -4,7 +4,6 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
-#include "Beam/Python/PythonWrapperReactor.hpp"
 #include "Beam/Python/Ref.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
@@ -422,8 +421,10 @@ void Beam::Python::ExportDoReactor() {
 }
 
 void Beam::Python::ExportExpressionReactors() {
-  def("equals", PythonWrapReactor(&Reactors::Equal<object, object>));
-  def("not_equals", PythonWrapReactor(&Reactors::NotEqual<object, object>));
+  auto e = &Reactors::Equal<object, object>;
+  auto ne = &Reactors::NotEqual<object, object>;
+  def("equals", PythonWrapReactor(e));
+  def("not_equals", PythonWrapReactor(ne));
 }
 
 void Beam::Python::ExportFilterReactor() {

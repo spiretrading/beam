@@ -3,6 +3,7 @@
 #include <boost/core/demangle.hpp>
 #include <boost/python.hpp>
 #include "Beam/Python/Python.hpp"
+#include "Beam/Python/PythonWrapperReactor.hpp"
 #include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
@@ -224,28 +225,29 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
+    auto add = &Reactors::Add<typename T::Type, boost::python::object>;
+    auto sub = &Reactors::Subtract<typename T::Type, boost::python::object>;
+    auto mul = &Reactors::Multiply<typename T::Type, boost::python::object>;
+    auto div = &Reactors::Divide<typename T::Type, boost::python::object>;
+    auto lt = &Reactors::Less<typename T::Type, boost::python::object>;
+    auto le = &Reactors::LessOrEqual<typename T::Type, boost::python::object>;
+    auto ge = &Reactors::GreaterOrEqual<
+      typename T::Type, boost::python::object>;
+    auto gt = &Reactors::Greater<typename T::Type, boost::python::object>;
     boost::python::class_<Details::ReactorWrapper<T>,
       std::shared_ptr<Details::ReactorWrapper<T>>, boost::noncopyable,
       boost::python::bases<Reactors::BaseReactor>>(name)
       .def("is_complete", boost::python::pure_virtual(&T::IsComplete))
       .def("commit", boost::python::pure_virtual(&T::Commit))
       .def("eval", boost::python::pure_virtual(&T::Eval))
-      .def("__add__", PythonWrapReactor(
-        &Reactors::Add<typename T::Type, boost::python::object>))
-      .def("__sub__", PythonWrapReactor(
-        &Reactors::Subtract<typename T::Type, boost::python::object>))
-      .def("__mul__", PythonWrapReactor(
-        &Reactors::Multiply<typename T::Type, boost::python::object>))
-      .def("__truediv__", PythonWrapReactor(
-        &Reactors::Divide<typename T::Type, boost::python::object>))
-      .def("__lt__", PythonWrapReactor(
-        &Reactors::Less<typename T::Type, boost::python::object>))
-      .def("__le__", PythonWrapReactor(
-        &Reactors::LessOrEqual<typename T::Type, boost::python::object>))
-      .def("__ge__", PythonWrapReactor(
-        &Reactors::GreaterOrEqual<typename T::Type, boost::python::object>))
-      .def("__gt__", PythonWrapReactor(
-        &Reactors::Greater<typename T::Type, boost::python::object>));
+      .def("__add__", PythonWrapReactor(add))
+      .def("__sub__", PythonWrapReactor(sub))
+      .def("__mul__", PythonWrapReactor(mul))
+      .def("__truediv__", PythonWrapReactor(div))
+      .def("__lt__", PythonWrapReactor(lt))
+      .def("__le__", PythonWrapReactor(le))
+      .def("__ge__", PythonWrapReactor(ge))
+      .def("__gt__", PythonWrapReactor(gt));
     if(!std::is_same<T, PythonReactor>::value) {
       boost::python::to_python_converter<std::shared_ptr<T>,
         Details::ReactorToPython<T>>();

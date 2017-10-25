@@ -176,8 +176,7 @@ namespace {
   }
 
   boost::python::object CreatePythonPackagedTaskFactory(
-      const boost::python::tuple& args,
-      const boost::python::dict& kw) {
+      const boost::python::tuple& args, const boost::python::dict& kw) {
     boost::python::object self = args[0];
     boost::python::object package = args[1];
     boost::python::tuple a = boost::python::tuple(

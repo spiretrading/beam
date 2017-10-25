@@ -4,6 +4,7 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/PythonFunctionReactor.hpp"
 #include "Beam/Python/Ref.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
@@ -127,6 +128,15 @@ namespace {
       MakeFilterReactor(filter, source));
   }
 
+  boost::python::object MakePythonFunctionReactor(
+      const boost::python::tuple& args, const boost::python::dict& kw) {
+    boost::python::object self = args[0];
+    boost::python::object callable = args[1];
+    boost::python::tuple a = boost::python::tuple(
+      args.slice(2, boost::python::_));
+    return self.attr("__init__")(callable, a, kw);
+  }
+
   auto MakePythonNoneReactor() {
     return std::static_pointer_cast<PythonReactor>(
       std::shared_ptr<NoneReactor<object>>());
@@ -201,6 +211,44 @@ namespace {
     trigger->SignalUpdate(Store(sequenceNumber));
     return sequenceNumber;
   }
+
+  struct ApplyFunction {
+    boost::python::object m_callable;
+
+    boost::python::object operator ()(const boost::python::tuple& args,
+        const boost::python::dict& kw) {
+      std::vector<boost::python::object> parameters;
+      for(int i = 0; i < boost::python::len(args); ++i) {
+        parameters.push_back(args[i].attr("value"));
+      }
+      auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
+      for(std::size_t i = 0; i < parameters.size(); ++i) {
+        PyTuple_SET_ITEM(t, i, parameters[i].ptr());
+      }
+      boost::python::object parameterTuple{boost::python::handle<>(
+        boost::python::borrowed(t))};
+      auto rawResult = PyObject_Call(m_callable.ptr(), parameterTuple.ptr(),
+        kw.ptr());
+      if(rawResult == nullptr) {
+        PrintError();
+        PyErr_Clear();
+        return boost::python::object{};
+      }
+      boost::python::object result{boost::python::handle<>(
+        boost::python::borrowed(rawResult))};
+      return result;
+    }
+  };
+
+  boost::python::object ApplyFunctionReactor(const boost::python::tuple& args,
+      const boost::python::dict& kw) {
+    boost::python::object callable = args[0];
+    boost::python::tuple parameters = boost::python::tuple(
+      args.slice(1, boost::python::_));
+    return boost::python::object{std::static_pointer_cast<PythonReactor>(
+      std::make_shared<PythonFunctionReactor>(
+      raw_function(ApplyFunction{callable}), parameters, kw))};
+  }
 }
 
 #ifdef _MSC_VER
@@ -273,6 +321,11 @@ namespace boost {
 
   template<> inline const volatile PythonReactor* get_pointer(
       const volatile PythonReactor* p) {
+    return p;
+  }
+
+  template<> inline const volatile PythonFunctionReactor* get_pointer(
+      const volatile PythonFunctionReactor* p) {
     return p;
   }
 
@@ -458,6 +511,16 @@ void Beam::Python::ExportFoldReactor() {
 }
 
 void Beam::Python::ExportFunctionReactor() {
+  class_<PythonFunctionReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<PythonFunctionReactor>>("FunctionReactor", no_init)
+    .def("__init__", raw_function(&MakePythonFunctionReactor, 1))
+    .def(init<const boost::python::object&, const boost::python::tuple&,
+      const boost::python::dict&>());
+  implicitly_convertible<std::shared_ptr<PythonFunctionReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<PythonFunctionReactor>,
+    std::shared_ptr<BaseReactor>>();
+  def("apply", raw_function(&ApplyFunctionReactor, 1));
 }
 
 void Beam::Python::ExportNoneReactor() {

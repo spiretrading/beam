@@ -139,10 +139,10 @@ BaseReactor::Update PythonFunctionReactor::UpdateEval() {
     boost::python::object child = m_context->m_args[i];
     std::shared_ptr<Reactor<object>> reactor =
       boost::python::extract<std::shared_ptr<Reactor<object>>>(child);
-    parameters.push_back(Try(
+    parameters.push_back(boost::python::object{Try(
       [&] {
         return reactor->Eval();
-      }));
+      })});
   }
   auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
   for(std::size_t i = 0; i < parameters.size(); ++i) {
@@ -155,6 +155,11 @@ BaseReactor::Update PythonFunctionReactor::UpdateEval() {
       parameterTuple.ptr(), m_context->m_kw.ptr());
     boost::python::object result{boost::python::handle<>(
       boost::python::borrowed(rawResult))};
+    if(result == boost::python::object{}) {
+      return BaseReactor::Update::NONE;
+    }
+    m_value = result;
+    return BaseReactor::Update::EVAL;
   } catch(const std::exception&) {
     m_value = std::current_exception();
     return BaseReactor::Update::EVAL;

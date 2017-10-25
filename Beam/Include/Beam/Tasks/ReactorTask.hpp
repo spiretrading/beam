@@ -335,7 +335,7 @@ namespace Tasks {
   inline void ReactorTaskFactory::PrepareContinuation(const Task& task) {}
 
   inline VirtualReactorProperty::VirtualReactorProperty(std::string name)
-      : m_name{std::move(name)} {}
+      : m_name(std::move(name)) {}
 
   inline const std::string& VirtualReactorProperty::GetName() const {
     return m_name;

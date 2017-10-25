@@ -394,7 +394,6 @@ void Beam::Python::ExportBasicReactor() {
   using ExportedReactor = BasicReactor<boost::python::object>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("BasicReactor", init<RefType<Trigger>>())
-    .def("commit", BlockingFunction(&ExportedReactor::Commit))
     .def("update", &ExportedReactor::Update)
     .def("set_complete", static_cast<void (ExportedReactor::*)()>(
     &ExportedReactor::SetComplete));
@@ -478,8 +477,7 @@ void Beam::Python::ExportProxyReactor() {
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("ProxyReactor", init<>())
     .def(init<std::shared_ptr<PythonReactor>>())
-    .def("set_reactor", &ExportedReactor::SetReactor)
-    .def("commit", BlockingFunction(&ExportedReactor::Commit));
+    .def("set_reactor", &ExportedReactor::SetReactor);
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
@@ -511,7 +509,7 @@ void Beam::Python::ExportReactorMonitor() {
     .add_property("trigger", make_function(
       static_cast<Trigger& (ReactorMonitor::*)()>(&ReactorMonitor::GetTrigger),
       return_internal_reference<>()))
-    .def("add", BlockingFunction(&ReactorMonitor::Add))
+    .def("add", &ReactorMonitor::Add)
     .def("do", &ReactorMonitorDo)
     .def("open", BlockingFunction(&ReactorMonitor::Open))
     .def("close", BlockingFunction(&ReactorMonitor::Close));

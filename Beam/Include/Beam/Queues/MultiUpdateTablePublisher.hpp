@@ -37,7 +37,7 @@ namespace Beam {
       //! Constructs a MultiUpdateTablePublisher.
       MultiUpdateTablePublisher() = default;
 
-      virtual ~MultiUpdateTablePublisher();
+      virtual ~MultiUpdateTablePublisher() override final;
 
       //! Gives synchronized access to the snapshot.
       /*!
@@ -64,19 +64,16 @@ namespace Beam {
         const = 0;
 
       virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const;
+        Out<boost::optional<Snapshot>> snapshot) const override final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
-      virtual void With(const std::function<void ()>& f) const;
+      virtual void Push(const Type& value) override final;
 
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const;
-
-      virtual void Push(const Type& value);
-
-      virtual void Break(const std::exception_ptr& e);
+      virtual void Break(const std::exception_ptr& e) override final;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
@@ -124,16 +121,6 @@ namespace Beam {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
     *snapshot = m_table;
     m_queue.Monitor(queue);
-  }
-
-  template<typename KeyType, typename ValueType>
-  void MultiUpdateTablePublisher<KeyType, ValueType>::Lock() const {
-    m_mutex.lock();
-  }
-
-  template<typename KeyType, typename ValueType>
-  void MultiUpdateTablePublisher<KeyType, ValueType>::Unlock() const {
-    m_mutex.unlock();
   }
 
   template<typename KeyType, typename ValueType>

@@ -6,7 +6,10 @@
 #include "Beam/Queues/Queues.hpp"
 
 namespace Beam {
-  class BaseSnapshotPublisher {};
+  class BaseSnapshotPublisher {
+    public:
+      virtual ~BaseSnapshotPublisher() = default;
+  };
 
   /*! \class SnapshotPublisher
       \brief Interface for a Publisher that has a snapshot.

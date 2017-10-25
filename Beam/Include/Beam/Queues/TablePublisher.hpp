@@ -73,7 +73,7 @@ namespace Beam {
       //! Constructs a TablePublisher.
       TablePublisher() = default;
 
-      virtual ~TablePublisher();
+      virtual ~TablePublisher() override final;
 
       //! Pushes a key/value pair onto the table.
       /*!
@@ -96,25 +96,22 @@ namespace Beam {
       */
       void Delete(const Type& value);
 
-      virtual void WithSnapshot(
-        const std::function<void (boost::optional<const Snapshot&>)>& f) const;
+      virtual void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const override final;
 
       virtual void Monitor(std::shared_ptr<QueueWriter<Type>> queue,
-        Out<boost::optional<Snapshot>> snapshot) const;
+        Out<boost::optional<Snapshot>> snapshot) const override final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
-      virtual void With(const std::function<void ()>& f) const;
+      virtual void Push(const Type& value) override final;
 
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const;
+      virtual void Push(Type&& value) override final;
 
-      virtual void Push(const Type& value);
-
-      virtual void Push(Type&& value);
-
-      virtual void Break(const std::exception_ptr& e);
+      virtual void Break(const std::exception_ptr& e) override final;
 
       using QueueWriter<TableEntry<KeyType, ValueType>>::Break;
     private:
@@ -168,16 +165,6 @@ namespace Beam {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
     *snapshot = m_table;
     m_queue.Monitor(queue);
-  }
-
-  template<typename KeyType, typename ValueType>
-  void TablePublisher<KeyType, ValueType>::Lock() const {
-    m_mutex.lock();
-  }
-
-  template<typename KeyType, typename ValueType>
-  void TablePublisher<KeyType, ValueType>::Unlock() const {
-    m_mutex.unlock();
   }
 
   template<typename KeyType, typename ValueType>

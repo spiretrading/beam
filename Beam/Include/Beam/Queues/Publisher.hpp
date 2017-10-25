@@ -12,6 +12,12 @@ namespace Beam {
   class BasePublisher {
     public:
       virtual ~BasePublisher() = default;
+
+      //! Synchronizes access to this publisher.
+      /*!
+        \param f The synchronized action to perform.
+      */
+      virtual void With(const std::function<void ()>& f) const = 0;
   };
 
   /*! \class Publisher
@@ -28,19 +34,7 @@ namespace Beam {
       //! Constructs a Publisher.
       Publisher() = default;
 
-      virtual ~Publisher() = default;
-
-      //! Locks this publisher.
-      virtual void Lock() const = 0;
-
-      //! Unlocks this publisher.
-      virtual void Unlock() const = 0;
-
-      //! Synchronizes access to this publisher.
-      /*!
-        \param f The synchronized action to perform.
-      */
-      virtual void With(const std::function<void ()>& f) const = 0;
+      virtual ~Publisher() override = default;
 
       //! Monitors updates to this Publisher.
       /*!

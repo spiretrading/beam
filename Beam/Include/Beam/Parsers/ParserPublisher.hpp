@@ -54,13 +54,10 @@ namespace Parsers {
       ParserPublisher(ReaderForward&& reader, const Parser& parser,
         ParserErrorPolicy errorPolicy);
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
-
-      virtual void With(const std::function<void ()>& f) const;
-
-      virtual void Monitor(std::shared_ptr<QueueWriter<Source>> monitor) const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Source>> monitor) const override final;
 
     private:
       GetOptionalLocalPtr<ReaderType> m_reader;
@@ -82,16 +79,6 @@ namespace Parsers {
         m_parser(parser),
         m_errorPolicy(errorPolicy),
         m_isParsing(false) {}
-
-  template<typename ReaderType, typename ParserType>
-  void ParserPublisher<ReaderType, ParserType>::Lock() const {
-    m_publisher.Lock();
-  }
-
-  template<typename ReaderType, typename ParserType>
-  void ParserPublisher<ReaderType, ParserType>::Unlock() const {
-    m_publisher.Unlock();
-  }
 
   template<typename ReaderType, typename ParserType>
   void ParserPublisher<ReaderType, ParserType>::With(

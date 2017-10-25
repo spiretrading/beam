@@ -155,6 +155,10 @@ namespace {
       MakeSwitchReactor(std::move(source)));
   }
 
+  auto MakePythonThrowReactor(const ReactorException& e) {
+    return std::static_pointer_cast<PythonReactor>(MakeThrowReactor<object>(e));
+  }
+
   auto MakePythonTimerReactor(const object& timerFactory,
       const std::shared_ptr<Reactor<time_duration>>& periodReactor,
       Trigger* trigger) {
@@ -341,6 +345,11 @@ namespace boost {
       Reactor<std::shared_ptr<PythonReactor>>>>* get_pointer(const volatile
       SwitchReactor<
       std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile ThrowReactor<object>* get_pointer(
+      const volatile ThrowReactor<object>* p) {
     return p;
   }
 
@@ -575,7 +584,16 @@ void Beam::Python::ExportSwitchReactor() {
   def("switch", &MakePythonSwitchReactor);
 }
 
-void Beam::Python::ExportThrowReactor() {}
+void Beam::Python::ExportThrowReactor() {
+  class_<ThrowReactor<object>, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ThrowReactor<object>>>("ThrowReactor",
+    init<const ReactorException&>());
+  implicitly_convertible<std::shared_ptr<ThrowReactor<object>>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ThrowReactor<object>>,
+    std::shared_ptr<BaseReactor>>();
+  def("throw", &MakePythonThrowReactor);
+}
 
 void Beam::Python::ExportTimerReactor() {
   def("TimerReactor", &MakePythonTimerReactor);

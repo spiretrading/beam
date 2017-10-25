@@ -80,8 +80,7 @@ namespace Reactors {
       m_reactors.push_back(reactor);
     }
     if(m_openState.IsOpen()) {
-      reactor->Commit(0);
-//      m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
+      m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
     }
   }
 

@@ -66,8 +66,6 @@ namespace Details {
   void ExportPublisher(const char* name) {
     boost::python::class_<Publisher<T>, boost::noncopyable,
       boost::python::bases<BasePublisher>>(name, boost::python::no_init)
-      .def("lock", BlockingFunction(&Publisher<T>::Lock))
-      .def("unlock", BlockingFunction(&Publisher<T>::Unlock))
       .def("with", &Details::PublisherWith<T>)
       .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
   }

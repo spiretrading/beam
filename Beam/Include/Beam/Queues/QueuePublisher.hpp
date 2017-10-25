@@ -46,8 +46,8 @@ namespace Details {
   template<typename PublisherType>
   class QueuePublisher : public Details::GetPublisherType<PublisherType>::type {
     public:
-      typedef typename PublisherType::Type Type;
-      typedef typename Details::GetSnapshotType<PublisherType>::type Snapshot;
+      using Type = typename PublisherType::Type;
+      using Snapshot = typename Details::GetSnapshotType<PublisherType>::type;
 
       //! Constructs a QueuePublisher.
       /*!
@@ -55,7 +55,7 @@ namespace Details {
       */
       QueuePublisher(const std::shared_ptr<QueueReader<Type>>& queue);
 
-      ~QueuePublisher();
+      virtual ~QueuePublisher() override final;
 
       //! Breaks the Queue.
       void Break();
@@ -73,19 +73,16 @@ namespace Details {
       template<typename E>
       void Break(const E& exception);
 
-      virtual void WithSnapshot(
-        const std::function<void (boost::optional<const Snapshot&>)>& f) const;
+      virtual void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const final;
 
       virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const;
+        Out<boost::optional<Snapshot>> snapshot) const final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
-
-      virtual void With(const std::function<void ()>& f) const;
-
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
     private:
       mutable boost::atomic_bool m_isReading;
@@ -144,16 +141,6 @@ namespace Details {
       std::is_base_of<BaseSnapshotPublisher, PublisherType>::value>()(
       m_publisher, monitor, Store(snapshot));
     StartReadLoop();
-  }
-
-  template<typename PublisherType>
-  void QueuePublisher<PublisherType>::Lock() const {
-    m_publisher.Lock();
-  }
-
-  template<typename PublisherType>
-  void QueuePublisher<PublisherType>::Unlock() const {
-    m_publisher.Unlock();
   }
 
   template<typename PublisherType>

@@ -31,27 +31,24 @@ namespace Beam {
       template<typename SequenceForward>
       SequencePublisher(SequenceForward&& sequence);
 
-      virtual ~SequencePublisher();
+      virtual ~SequencePublisher() override final;
 
-      virtual void WithSnapshot(
-        const std::function<void (boost::optional<const Snapshot&>)>& f) const;
+      virtual void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const override final;
 
       virtual void Monitor(std::shared_ptr<QueueWriter<T>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const;
+        Out<boost::optional<Snapshot>> snapshot) const override final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
-      virtual void With(const std::function<void ()>& f) const;
+      virtual void Push(const T& value) override final;
 
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const;
+      virtual void Push(T&& value) override final;
 
-      virtual void Push(const T& value);
-
-      virtual void Push(T&& value);
-
-      virtual void Break(const std::exception_ptr& e);
+      virtual void Break(const std::exception_ptr& e) override final;
 
       using QueueWriter<T>::Break;
     private:
@@ -85,16 +82,6 @@ namespace Beam {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
     *snapshot = *m_sequence;
     m_queue.Monitor(monitor);
-  }
-
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Lock() const {
-    m_mutex.lock();
-  }
-
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Unlock() const {
-    m_mutex.unlock();
   }
 
   template<typename T, typename SequenceType>

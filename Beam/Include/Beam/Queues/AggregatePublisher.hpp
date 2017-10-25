@@ -17,8 +17,8 @@ namespace Beam {
   class AggregatePublisher :
       public Details::GetPublisherType<PublisherType>::type {
     public:
-      typedef typename PublisherType::Type Type;
-      typedef typename Details::GetSnapshotType<PublisherType>::type Snapshot;
+      using Type = typename PublisherType::Type;
+      using Snapshot = typename Details::GetSnapshotType<PublisherType>::type;
 
       //! Constructs an AggregatePublisher.
       /*!
@@ -28,7 +28,7 @@ namespace Beam {
       template<typename PublisherForward>
       AggregatePublisher(PublisherForward&& publisher);
 
-      ~AggregatePublisher();
+      virtual ~AggregatePublisher() override final;
 
       //! Adds a Publisher to aggregate.
       /*!
@@ -36,28 +36,26 @@ namespace Beam {
       */
       void Add(const Publisher<Type>& publisher);
 
-      virtual void Push(const Type& value);
+      virtual void Push(const Type& value) final;
 
-      virtual void Break();
+      virtual void Break() final;
 
-      virtual void Break(const std::exception_ptr& e);
+      virtual void Break(const std::exception_ptr& e) final;
 
       template<typename E>
       void Break(const E& e);
 
-      virtual void WithSnapshot(
-        const std::function<void (boost::optional<const Snapshot&>)>& f) const;
+      virtual void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const override final;
 
       virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const;
+        Out<boost::optional<Snapshot>> snapshot) const override final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
-      virtual void With(const std::function<void ()>& f) const;
-
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const;
     private:
       typename OptionalLocalPtr<PublisherType>::type m_publisher;
       SynchronizedVector<std::shared_ptr<CallbackWriterQueue<Type>>>
@@ -120,16 +118,6 @@ namespace Beam {
       std::shared_ptr<QueueWriter<Type>> monitor,
       Out<boost::optional<Snapshot>> snapshot) const {
     m_publisher->Monitor(monitor, Store(snapshot));
-  }
-
-  template<typename PublisherType>
-  void AggregatePublisher<PublisherType>::Lock() const {
-    m_publisher->Lock();
-  }
-
-  template<typename PublisherType>
-  void AggregatePublisher<PublisherType>::Unlock() const {
-    m_publisher->Unlock();
   }
 
   template<typename PublisherType>

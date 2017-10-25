@@ -23,21 +23,18 @@ namespace Beam {
       //! Constructs a MultiQueueWriter.
       MultiQueueWriter() = default;
 
-      ~MultiQueueWriter();
+      virtual ~MultiQueueWriter() override final;
 
-      virtual void Lock() const;
+      virtual void With(const std::function<void ()>& f) const override final;
 
-      virtual void Unlock() const;
+      virtual void Push(const T& value) override final;
 
-      virtual void With(const std::function<void ()>& f) const;
+      virtual void Push(T&& value) override final;
 
-      virtual void Push(const T& value);
+      virtual void Break(const std::exception_ptr& e) override final;
 
-      virtual void Push(T&& value);
-
-      virtual void Break(const std::exception_ptr& e);
-
-      virtual void Monitor(std::shared_ptr<QueueWriter<T>> queue) const;
+      virtual void Monitor(
+        std::shared_ptr<QueueWriter<T>> queue) const override final;
 
       using QueueWriter<T>::Break;
     private:
@@ -49,16 +46,6 @@ namespace Beam {
   template<typename T>
   MultiQueueWriter<T>::~MultiQueueWriter() {
     Break();
-  }
-
-  template<typename T>
-  void MultiQueueWriter<T>::Lock() const {
-    m_mutex.lock();
-  }
-
-  template<typename T>
-  void MultiQueueWriter<T>::Unlock() const {
-    m_mutex.unlock();
   }
 
   template<typename T>

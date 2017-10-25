@@ -77,10 +77,11 @@ namespace Reactors {
       if(reactorIterator != m_reactors.end()) {
         return;
       }
-      m_reactors.push_back(std::move(reactor));
+      m_reactors.push_back(reactor);
     }
     if(m_openState.IsOpen()) {
-      m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
+      reactor->Commit(0);
+//      m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
     }
   }
 

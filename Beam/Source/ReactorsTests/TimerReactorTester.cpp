@@ -14,8 +14,8 @@ using namespace boost::posix_time;
 using namespace std;
 
 void TimerReactorTester::TestExpiry() {
-  auto sequenceNumbers = std::make_shared<Queue<int>>();
   Trigger trigger;
+  auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   auto period = MakeConstantReactor(time_duration{seconds(5)});
   std::shared_ptr<TriggerTimer> timer;
@@ -24,10 +24,14 @@ void TimerReactorTester::TestExpiry() {
       timer = std::make_shared<TriggerTimer>();
       return timer;
     };
-  auto timerReactor = MakeTimerReactor<int>(timerFactory, period, Ref(trigger));
-  AssertValue(*timerReactor, 0, BaseReactor::Update::EVAL, 0, false);
-  timer->Trigger();
+  auto reactor = MakeTimerReactor<int>(timerFactory, period, Ref(trigger));
+  AssertException<ReactorUnavailableException>(*reactor, 0,
+    BaseReactor::Update::NONE, false);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertValue(*timerReactor, 1, BaseReactor::Update::EVAL, 1, false);
+  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 0, false);
+  timer->Trigger();
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
+  sequenceNumbers->Pop();
+  AssertValue(*reactor, 2, BaseReactor::Update::EVAL, 1, false);
 }

@@ -115,11 +115,13 @@ namespace Reactors {
         if(childCommit == BaseReactor::Update::NONE) {
           if(initialCommit == BaseReactor::Update::EVAL) {
             childCommit = BaseReactor::Update::EVAL;
-          } else {
+          } else if(initialCommit == BaseReactor::Update::COMPLETE) {
             childCommit = BaseReactor::Update::COMPLETE;
           }
         }
-        if(childCommit == BaseReactor::Update::EVAL) {
+        if(childCommit == BaseReactor::Update::NONE) {
+          m_update = BaseReactor::Update::NONE;
+        } else if(childCommit == BaseReactor::Update::EVAL) {
           m_value = Try(
             [&] {
               return m_reactor->Eval();

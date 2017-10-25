@@ -10,8 +10,14 @@ using namespace std;
 
 void StaticReactorTester::TestSingleValue() {
   Trigger trigger;
+  auto sequenceNumbers = std::make_shared<Queue<int>>();
+  trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   auto source = MakeBasicReactor<int>(Ref(trigger));
   auto reactor = MakeStaticReactor(source);
+  AssertException<ReactorUnavailableException>(*reactor, 0,
+    BaseReactor::Update::NONE, false);
   source->Update(123);
-  AssertValue(*reactor, 0, BaseReactor::Update::EVAL, 123, true);
+  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
+  sequenceNumbers->Pop();
+  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 123, true);
 }

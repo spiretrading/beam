@@ -106,6 +106,14 @@ namespace Reactors {
       if(sequenceNumber != m_nextSequenceNumber) {
         return BaseReactor::Update::NONE;
       }
+      if(sequenceNumber == 0) {
+        m_currentSequenceNumber = 0;
+        m_nextSequenceNumber = -1;
+        m_update = BaseReactor::Update::NONE;
+        m_monitorRoutine = Routines::Spawn(
+          std::bind(&QueueReactor::MonitorQueue, this));
+        return BaseReactor::Update::NONE;
+      }
     }
     try {
       m_value = std::move(m_queue->Top());
@@ -123,10 +131,6 @@ namespace Reactors {
     }
     {
       boost::lock_guard<boost::mutex> lock{m_mutex};
-      if(m_nextSequenceNumber == 0) {
-        m_monitorRoutine = Routines::Spawn(
-          std::bind(&QueueReactor::MonitorQueue, this));
-      }
       m_currentSequenceNumber = m_nextSequenceNumber;
       m_nextSequenceNumber = -1;
       m_monitorCondition.notify_one();

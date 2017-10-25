@@ -105,6 +105,23 @@ namespace Details {
     }
   };
 
+  struct Initialize {
+    using result_type = int;
+    int m_sequenceNumber;
+
+    template<typename T>
+    int operator()(int count, T& reactor) const {
+      auto reactorUpdate = reactor->Commit(0);
+      if(reactor->Commit(0) != BaseReactor::Update::NONE) {
+        return count + 1;
+      } else if(reactor->Commit(m_sequenceNumber) !=
+          BaseReactor::Update::NONE) {
+        return count + 1;
+      }
+      return count;
+    }
+  };
+
   struct Commit {
     using result_type = BaseReactor::Update;
     int m_sequenceNumber;
@@ -208,6 +225,7 @@ namespace Details {
       bool m_hasValue;
       BaseReactor::Update m_state;
       BaseReactor::Update m_update;
+      int m_initializationCount;
       int m_currentSequenceNumber;
 
       bool AreParametersComplete() const;
@@ -295,6 +313,7 @@ namespace Details {
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_state{BaseReactor::Update::NONE},
+        m_initializationCount{0},
         m_currentSequenceNumber{-1} {}
 
   template<typename FunctionType, typename... ParameterTypes>
@@ -324,10 +343,18 @@ namespace Details {
           } else {
             return BaseReactor::Update::NONE;
           }
-        } else {
-          return boost::fusion::accumulate(m_parameters,
-            BaseReactor::Update::NONE, Details::Commit{sequenceNumber});
         }
+        if(m_initializationCount != sizeof...(ParameterTypes)) {
+          m_initializationCount = boost::fusion::accumulate(m_parameters,
+            0, Details::Initialize{sequenceNumber});
+          if(m_initializationCount != sizeof...(ParameterTypes)) {
+            m_currentSequenceNumber = sequenceNumber;
+            m_update = BaseReactor::Update::NONE;
+            return BaseReactor::Update::NONE;
+          }
+        }
+        return boost::fusion::accumulate(m_parameters,
+          BaseReactor::Update::NONE, Details::Commit{sequenceNumber});
       }();
     if(update == BaseReactor::Update::NONE) {
       return update;

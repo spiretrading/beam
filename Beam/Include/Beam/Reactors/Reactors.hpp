@@ -27,6 +27,7 @@ namespace Reactors {
   class ReactorMonitor;
   class ReactorUnavailableException;
   template<typename ProducerReactorType> class SwitchReactor;
+  template<typename T> class ThrowReactor;
   class Trigger;
 }
 }

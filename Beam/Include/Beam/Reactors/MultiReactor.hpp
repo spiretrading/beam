@@ -82,6 +82,7 @@ namespace Details {
       bool m_hasValue;
       BaseReactor::Update m_state;
       BaseReactor::Update m_update;
+      int m_initializationCount;
       int m_currentSequenceNumber;
 
       bool AreParametersComplete() const;
@@ -109,6 +110,7 @@ namespace Details {
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_state{BaseReactor::Update::NONE},
+        m_initializationCount{0},
         m_currentSequenceNumber{-1} {}
 
   template<typename FunctionType>
@@ -135,6 +137,20 @@ namespace Details {
             return BaseReactor::Update::NONE;
           }
         } else {
+          if(m_initializationCount != static_cast<int>(m_children.size())) {
+            m_initializationCount = 0;
+            for(auto& child : m_children) {
+              if(child->Commit(0) != BaseReactor::Update::NONE ||
+                  child->Commit(sequenceNumber) != BaseReactor::Update::NONE) {
+                ++m_initializationCount;
+              }
+            }
+            if(m_initializationCount != static_cast<int>(m_children.size())) {
+              m_currentSequenceNumber = sequenceNumber;
+              m_update = BaseReactor::Update::NONE;
+              return BaseReactor::Update::NONE;
+            }
+          }
           auto commit = BaseReactor::Update::NONE;
           for(auto& child : m_children) {
             auto reactorUpdate = child->Commit(sequenceNumber);

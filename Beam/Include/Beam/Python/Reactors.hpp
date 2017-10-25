@@ -3,6 +3,7 @@
 #include <boost/core/demangle.hpp>
 #include <boost/python.hpp>
 #include "Beam/Python/Python.hpp"
+#include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 

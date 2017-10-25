@@ -344,7 +344,7 @@ namespace Tasks {
   template<typename T>
   TypedReactorProperty<T>::TypedReactorProperty(std::string name,
       std::shared_ptr<Reactors::Reactor<T>> reactor)
-      : VirtualReactorProperty{std::move(name)},
+      : VirtualReactorProperty(std::move(name)),
         m_reactor{Reactors::MakeNonRepeatingReactor(std::move(reactor))} {}
 
   template<typename T>

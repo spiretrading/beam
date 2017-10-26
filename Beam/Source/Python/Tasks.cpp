@@ -17,6 +17,7 @@
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonPackagedTask.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
+#include "Beam/Python/PythonWrapperReactor.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Vector.hpp"
 
@@ -188,6 +189,35 @@ namespace {
       const std::string& name, const boost::python::object& value) {
     factory.Set(name, value);
   }
+
+  auto MakePythonReactorTask(TaskFactory taskFactory,
+      const boost::python::object& properties, ReactorMonitor& reactorMonitor) {
+    std::vector<ReactorProperty> p;
+    for(int i = 0; i < boost::python::len(properties); ++i) {
+      auto& rp = static_cast<VirtualReactorProperty&>(
+        boost::python::extract<VirtualReactorProperty&>(properties[i]));
+      p.push_back(std::move(rp));
+    }
+    return std::make_shared<ReactorTask>(std::move(taskFactory),
+      std::move(p), Ref(reactorMonitor));
+  }
+
+  auto MakePythonReactorTaskFactory(TaskFactory taskFactory,
+      const boost::python::object& properties, ReactorMonitor& reactorMonitor) {
+    std::vector<ReactorProperty> p;
+    for(int i = 0; i < boost::python::len(properties); ++i) {
+      auto& rp = static_cast<VirtualReactorProperty&>(
+        boost::python::extract<VirtualReactorProperty&>(properties[i]));
+      p.push_back(std::move(rp));
+    }
+    return new ReactorTaskFactory{std::move(taskFactory), std::move(p),
+      Ref(reactorMonitor)};
+  }
+
+  auto MakePythonReactorProperty(const std::string& name,
+      const std::shared_ptr<Reactor<boost::python::object>>& reactor) {
+    return MakeReactorProperty(name, MakePythonWrapperReactor(reactor));
+  }
 }
 
 #ifdef _MSC_VER
@@ -252,6 +282,16 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile ReactorTask* get_pointer(
+      const volatile ReactorTask* p) {
+    return p;
+  }
+
+  template<> inline const volatile ReactorTaskFactory* get_pointer(
+      const volatile ReactorTaskFactory* p) {
+    return p;
+  }
+
   template<> inline const volatile SpawnTask* get_pointer(
       const volatile SpawnTask* p) {
     return p;
@@ -268,6 +308,11 @@ namespace boost {
 
   template<> inline const volatile TaskWrapper* get_pointer(
       const volatile TaskWrapper* p) {
+    return p;
+  }
+
+  template<> inline const volatile TypedReactorProperty<object>* get_pointer(
+      const volatile TypedReactorProperty<object>* p) {
     return p;
   }
 
@@ -407,6 +452,34 @@ void Beam::Python::ExportReactorMonitorTask() {
     std::shared_ptr<Task>>();
 }
 
+void Beam::Python::ExportReactorTask() {
+  class_<ReactorTask, std::shared_ptr<ReactorTask>, boost::noncopyable,
+    bases<BasicTask>>("ReactorTask", no_init)
+    .def("__init__", make_constructor(&MakePythonReactorTask));
+  class_<ReactorTaskFactory, bases<VirtualTaskFactory>>(
+    "ReactorTaskFactory", no_init)
+    .def("__init__", make_constructor(&MakePythonReactorTaskFactory))
+    .def("__copy__", &MakeCopy<ReactorTaskFactory>)
+    .def("__deepcopy__", &MakeDeepCopy<ReactorTaskFactory>)
+    .def("create", &ReactorTaskFactory::Create);
+  implicitly_convertible<ReactorTaskFactory, TaskFactory>();
+  implicitly_convertible<std::shared_ptr<ReactorTask>,
+    std::shared_ptr<BasicTask>>();
+  implicitly_convertible<std::shared_ptr<ReactorTask>, std::shared_ptr<Task>>();
+  class_<VirtualReactorProperty, boost::noncopyable>("BaseReactorProperty",
+    no_init)
+    .add_property("name", make_function(&VirtualReactorProperty::GetName,
+      return_value_policy<copy_const_reference>()))
+    .add_property("reactor", &VirtualReactorProperty::GetReactor)
+    .def("commit", &VirtualReactorProperty::Commit)
+    .def("apply", &VirtualReactorProperty::Apply);
+  class_<ReactorProperty>("CloneableReactorProperty", no_init)
+    .def("__copy__", &MakeCopy<ReactorProperty>)
+    .def("__deepcopy__", &MakeDeepCopy<ReactorProperty>);
+  implicitly_convertible<VirtualReactorProperty, ReactorProperty>();
+  def("ReactorProperty", &MakePythonReactorProperty);
+}
+
 void Beam::Python::ExportSpawnTask() {
   class_<SpawnTask, std::shared_ptr<SpawnTask>, boost::noncopyable,
     bases<BasicTask>>("SpawnTask",
@@ -490,9 +563,12 @@ void Beam::Python::ExportTasks() {
   ExportAggregateTask();
   ExportIdleTask();
   ExportPythonPackagedTask();
+  ExportReactorTask();
   ExportSpawnTask();
   ExportUntilTask();
   ExportWhenTask();
+  ExportTypedReactorTaskProperty<TypedReactorProperty<object>>(
+    "PythonReactorProperty");
   ExportException<TaskPropertyNotFoundException, std::runtime_error>(
     "TaskPropertyNotFoundException")
     .def(init<const string&>());

@@ -137,13 +137,16 @@ namespace Tasks {
       public CloneableMixin<TypedReactorProperty<T>> {
     public:
 
+      //! The type that the Reactor evaluates to.
+      using Type = T;
+
       //! Constructs a TypedReactorProperty.
       /*!
         \param name The name of the property.
         \param reactor The Reactor to connect to the property.
       */
       TypedReactorProperty(std::string name,
-        std::shared_ptr<Reactors::Reactor<T>> reactor);
+        std::shared_ptr<Reactors::Reactor<Type>> reactor);
 
       //! Copies a TypedReactorProperty.
       /*!
@@ -159,8 +162,8 @@ namespace Tasks {
       virtual void Apply(TaskFactory& factory) const override final;
 
     private:
-      std::shared_ptr<Reactors::Reactor<T>> m_reactor;
-      boost::optional<T> m_value;
+      std::shared_ptr<Reactors::Reactor<Type>> m_reactor;
+      boost::optional<Type> m_value;
   };
 
   //! Makes a ReactorProperty.
@@ -343,7 +346,7 @@ namespace Tasks {
 
   template<typename T>
   TypedReactorProperty<T>::TypedReactorProperty(std::string name,
-      std::shared_ptr<Reactors::Reactor<T>> reactor)
+      std::shared_ptr<Reactors::Reactor<Type>> reactor)
       : VirtualReactorProperty(std::move(name)),
         m_reactor{Reactors::MakeNonRepeatingReactor(std::move(reactor))} {}
 

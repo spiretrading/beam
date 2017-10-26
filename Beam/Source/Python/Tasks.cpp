@@ -216,7 +216,8 @@ namespace {
 
   auto MakePythonReactorProperty(const std::string& name,
       const std::shared_ptr<Reactor<boost::python::object>>& reactor) {
-    return MakeReactorProperty(name, MakePythonWrapperReactor(reactor));
+    return TypedReactorProperty<object>(name,
+      MakePythonWrapperReactor(MakeNonRepeatingReactor(reactor)));
   }
 }
 

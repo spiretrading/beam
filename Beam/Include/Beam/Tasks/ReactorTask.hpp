@@ -13,7 +13,6 @@
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
 #include "Beam/Reactors/PublisherReactor.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
-#include "Beam/Reactors/Trigger.hpp"
 #include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
 #include "Beam/Tasks/Tasks.hpp"
@@ -174,7 +173,8 @@ namespace Tasks {
   template<typename T>
   auto MakeReactorProperty(std::string name,
       std::shared_ptr<Reactors::Reactor<T>> reactor) {
-    return TypedReactorProperty<T>{std::move(name), std::move(reactor)};
+    return TypedReactorProperty<T>{std::move(name),
+      Reactors::MakeNonRepeatingReactor(std::move(reactor))};
   }
 
   inline ReactorTask::ReactorTask(TaskFactory taskFactory,
@@ -348,7 +348,7 @@ namespace Tasks {
   TypedReactorProperty<T>::TypedReactorProperty(std::string name,
       std::shared_ptr<Reactors::Reactor<Type>> reactor)
       : VirtualReactorProperty(std::move(name)),
-        m_reactor{Reactors::MakeNonRepeatingReactor(std::move(reactor))} {}
+        m_reactor{std::move(reactor)} {}
 
   template<typename T>
   std::shared_ptr<Reactors::BaseReactor>

@@ -384,7 +384,7 @@ void Beam::Python::ExportPythonPackagedTask() {
     std::shared_ptr<BasicTask>>();
   implicitly_convertible<std::shared_ptr<PythonPackagedTask>,
     std::shared_ptr<Task>>();
-  def("MakeFunctionTaskFactory",
+  def("make_function_task_factory",
     raw_function(&MakePythonFunctionTaskFactory, 1));
 }
 

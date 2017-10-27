@@ -4,6 +4,7 @@
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/Expect.hpp"
+#include "Beam/Python/Function.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/MySql.hpp"
@@ -55,6 +56,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportPtime();
   ExportTimeDuration();
   ExportExpect();
+  ExportFunctions();
   ExportIO();
   ExportMySql();
   ExportNetwork();

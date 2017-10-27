@@ -1,13 +1,9 @@
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/PythonRoutineTaskQueue.hpp"
-#include "Beam/Python/PythonTaskQueue.hpp"
-#include "Beam/Queues/AbstractQueue.hpp"
-#include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Queues/QueueReader.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Queues/TaskQueue.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -24,13 +20,27 @@ namespace {
       }
     } catch(const std::exception&) {}
   }
-
+/*
   void HandlePythonTasks(PythonTaskQueue& tasks) {
     while(!tasks.IsEmpty()) {
       auto task = tasks.Top();
       tasks.Pop();
       task();
     }
+  }
+*/
+
+  std::shared_ptr<QueueWriter<boost::python::object>> RoutineTaskQueueGetSlot(
+      RoutineTaskQueue& queue,
+      const std::function<void (const boost::python::object&)>& slot) {
+    return queue.GetSlot<boost::python::object>(slot);
+  }
+
+  std::shared_ptr<QueueWriter<boost::python::object>>
+      RoutineTaskQueueGetBreakSlot(RoutineTaskQueue& queue,
+      const std::function<void (const boost::python::object&)>& slot,
+      const std::function<void (const std::exception_ptr&)>& breakSlot) {
+    return queue.GetSlot<boost::python::object>(slot, breakSlot);
   }
 }
 
@@ -53,16 +63,6 @@ namespace boost {
     return p;
   }
 
-  template<> inline const volatile PythonRoutineTaskQueue* get_pointer(
-      const volatile PythonRoutineTaskQueue* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonTaskQueue* get_pointer(
-      const volatile PythonTaskQueue* p) {
-    return p;
-  }
-
   template<> inline const volatile Queue<object>* get_pointer(
       const volatile Queue<object>* p) {
     return p;
@@ -80,6 +80,18 @@ namespace boost {
     return p;
   }
 
+  template<> inline const volatile QueueWriter<std::function<void ()>>*
+      get_pointer(const volatile QueueWriter<std::function<void ()>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile Python::Details::QueueWriterWrapper<
+      QueueWriter<std::function<void ()>>>* get_pointer(
+      const volatile Python::Details::QueueWriterWrapper<
+      QueueWriter<std::function<void ()>>>* p) {
+    return p;
+  }
+
   template<> inline const volatile QueueWriter<object>* get_pointer(
       const volatile QueueWriter<object>* p) {
     return p;
@@ -89,6 +101,11 @@ namespace boost {
       QueueWriter<object>>* get_pointer(
       const volatile Python::Details::QueueWriterWrapper<
       QueueWriter<object>>* p) {
+    return p;
+  }
+
+  template<> inline const volatile RoutineTaskQueue* get_pointer(
+      const volatile RoutineTaskQueue* p) {
     return p;
   }
 }
@@ -126,17 +143,20 @@ void Beam::Python::ExportQueues() {
 }
 
 void Beam::Python::ExportRoutineTaskQueue() {
-  class_<PythonRoutineTaskQueue, std::shared_ptr<PythonRoutineTaskQueue>,
-    noncopyable, bases<QueueWriter<object>>>("RoutineTaskQueue", init<>())
-    .def("get_slot", &PythonRoutineTaskQueue::GetSlot)
-    .def("wait", &PythonRoutineTaskQueue::Wait);
-  implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
-    std::shared_ptr<QueueWriter<object>>>();
-  implicitly_convertible<std::shared_ptr<PythonRoutineTaskQueue>,
+  ExportQueueWriter<QueueWriter<std::function<void ()>>>("FunctionQueueWriter");
+  class_<RoutineTaskQueue, std::shared_ptr<RoutineTaskQueue>, noncopyable,
+    bases<QueueWriter<std::function<void ()>>>>("RoutineTaskQueue", init<>())
+    .def("get_slot", &RoutineTaskQueueGetSlot)
+    .def("get_slot", &RoutineTaskQueueGetBreakSlot)
+    .def("wait", BlockingFunction(&RoutineTaskQueue::Wait));
+  implicitly_convertible<std::shared_ptr<RoutineTaskQueue>,
+    std::shared_ptr<QueueWriter<std::function<void ()>>>>();
+  implicitly_convertible<std::shared_ptr<RoutineTaskQueue>,
     std::shared_ptr<BaseQueue>>();
 }
 
 void Beam::Python::ExportTaskQueue() {
+/*
   class_<PythonTaskQueue, std::shared_ptr<PythonTaskQueue>, noncopyable,
     bases<QueueWriter<object>>>("TaskQueue", init<>())
     .def("get_slot", &PythonTaskQueue::GetSlot);
@@ -145,4 +165,5 @@ void Beam::Python::ExportTaskQueue() {
   implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
     std::shared_ptr<BaseQueue>>();
   def("handle_tasks", &HandlePythonTasks);
+*/
 }

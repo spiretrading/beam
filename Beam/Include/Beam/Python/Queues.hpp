@@ -6,7 +6,6 @@
 #include "Beam/Python/FromPythonQueueWriter.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Python.hpp"
-#include "Beam/Python/PythonQueueWriter.hpp"
 #include "Beam/Python/ToPythonQueueReader.hpp"
 #include "Beam/Python/ToPythonQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -16,11 +15,13 @@
 namespace Beam {
 namespace Python {
 namespace Details {
+/*
   template<typename T>
   void PublisherMonitor(Publisher<T>& publisher,
       std::shared_ptr<PythonQueueWriter> monitor) {
     publisher.Monitor(monitor->GetSlot<T>());
   }
+*/
 
   template<typename T>
   void PublisherWith(Publisher<T>& publisher, boost::python::object callable) {
@@ -255,8 +256,8 @@ namespace Details {
   void ExportPublisher(const char* name) {
     boost::python::class_<Publisher<T>, boost::noncopyable,
       boost::python::bases<BasePublisher>>(name, boost::python::no_init)
-      .def("with", &Details::PublisherWith<T>)
-      .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
+      .def("with", &Details::PublisherWith<T>);
+//      .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
   }
 
   //! Exports a SnapshotPublisher class.

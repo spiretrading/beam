@@ -236,7 +236,7 @@ namespace Details {
     auto gt = &Reactors::Greater<typename T::Type, boost::python::object>;
     boost::python::class_<Details::ReactorWrapper<T>,
       std::shared_ptr<Details::ReactorWrapper<T>>, boost::noncopyable,
-      boost::python::bases<Reactors::BaseReactor>>(name)
+      boost::python::bases<Reactors::BaseReactor>>(name, boost::python::no_init)
       .def("is_complete", boost::python::pure_virtual(&T::IsComplete))
       .def("commit", boost::python::pure_virtual(&T::Commit))
       .def("eval", boost::python::pure_virtual(&T::Eval))

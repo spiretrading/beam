@@ -21,6 +21,12 @@ namespace Threading {
     protected:
 
       //! Returns <code>true</code> iff the object is available.
+      /*!
+        \param waitable The object to test for availability.
+      */
+      static bool IsAvailable(const Waitable& waitable);
+
+      //! Returns <code>true</code> iff the object is available.
       virtual bool IsAvailable() const = 0;
 
       //! Waits for the object to be available.
@@ -42,6 +48,10 @@ namespace Threading {
       mutable boost::mutex m_mutex;
       mutable ConditionVariable m_isAvailableCondition;
   };
+
+  inline bool Waitable::IsAvailable(const Waitable& waitable) {
+    return waitable.IsAvailable();
+  }
 
   inline boost::mutex& Waitable::GetMutex() const {
     return m_mutex;

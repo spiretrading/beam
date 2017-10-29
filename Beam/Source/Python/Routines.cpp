@@ -19,25 +19,6 @@ namespace {
     routines.Add(std::move(*handler));
   }
 
-  void RoutineHandlerGroupSpawn(RoutineHandlerGroup& routines,
-      object object) {
-    routines.Spawn(
-      [=] {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        object();
-      });
-  }
-
-  Routine::Id PythonSpawn(object object) {
-    return Spawn(
-      [=] {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        object();
-      });
-  }
-
   void DeleteRoutineHandler(RoutineHandler& routine) {
     routine.Wait();
   }
@@ -94,7 +75,7 @@ void Beam::Python::ExportRoutineHandlerGroup() {
     .def("add", static_cast<void (RoutineHandlerGroup::*)(Routine::Id)>(
       &RoutineHandlerGroup::Add))
     .def("add", &RoutineHandlerGroupAddRoutineHandler)
-    .def("spawn", &RoutineHandlerGroupSpawn)
+    .def("spawn", &RoutineHandlerGroup::Spawn<const std::function<void ()>&>)
     .def("wait", BlockingFunction(&RoutineHandlerGroup::Wait));
 }
 
@@ -112,6 +93,7 @@ void Beam::Python::ExportRoutines() {
   ExportRoutineHandlerGroup();
   ExportException<RoutineException, std::runtime_error>("RoutineException")
     .def(init<const string&>());
-  def("spawn", &PythonSpawn);
+  def("spawn", static_cast<Routine::Id (*)(const std::function<void ()>&)>(
+    &Spawn));
   def("wait", &Wait);
 }

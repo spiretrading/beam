@@ -2,8 +2,10 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/Python/BoostPython.hpp"
+#include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/Threading.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
@@ -15,6 +17,7 @@
 #include "Beam/TimeServiceTests/TestTimeClient.hpp"
 #include "Beam/TimeServiceTests/TestTimer.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
+#include "Beam/TimeServiceTests/TimeServiceTestEnvironmentException.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
@@ -31,22 +34,54 @@ using namespace boost::python;
 using namespace std;
 
 namespace {
-  struct VirtualTimeClientWrapper : VirtualTimeClient,
-      wrapper<VirtualTimeClient> {
-    virtual boost::posix_time::ptime GetTime() override {
-      return this->get_override("get_time")();
+  struct FromPythonTimerClient : VirtualTimeClient, wrapper<VirtualTimeClient> {
+    virtual boost::posix_time::ptime GetTime() override final {
+      return get_override("get_time")();
     }
 
-    virtual void Open() override {
-      this->get_override("open")();
+    virtual void Open() override final {
+      get_override("open")();
     }
 
-    virtual void Close() override {
-      this->get_override("close")();
+    virtual void Close() override final {
+      get_override("close")();
     }
   };
 
-  VirtualTimeClient* BuildNtpTimeClient(
+  template<typename ClientType>
+  class ToPythonTimeClient : public VirtualTimeClient {
+    public:
+      ToPythonTimeClient(std::unique_ptr<ClientType> client)
+          : m_client{std::move(client)} {}
+
+      virtual ~ToPythonTimeClient() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client.reset();
+      }
+
+      virtual boost::posix_time::ptime GetTime() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        return m_client->GetTime();
+      }
+
+      virtual void Open() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client->Open();
+      }
+
+      virtual void Close() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client->Close();
+      }
+
+      std::unique_ptr<ClientType> m_client;
+  };
+
+  ToPythonTimeClient<LiveNtpTimeClient>* BuildNtpTimeClient(
       VirtualServiceLocatorClient* serviceLocatorClient) {
     auto timeClient =
       [&] {
@@ -67,79 +102,44 @@ namespace {
             "Unable to initialize NTP time client."});
         }
       }();
-    return new WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>{
-      std::move(timeClient)};
+    return new ToPythonTimeClient<LiveNtpTimeClient>{std::move(timeClient)};
   }
 
-  VirtualTimeClient* BuildFixedTimeClient() {
-    return new WrapperTimeClient<FixedTimeClient>{Initialize()};
+  ToPythonTimeClient<FixedTimeClient>* BuildFixedTimeClient() {
+    return new ToPythonTimeClient<FixedTimeClient>{
+      std::make_unique<FixedTimeClient>()};
   }
 
-  VirtualTimeClient* BuildFixedTimeClient(ptime time) {
-    return new WrapperTimeClient<FixedTimeClient>{Initialize(time)};
+  ToPythonTimeClient<FixedTimeClient>* BuildFixedTimeClient(ptime time) {
+    return new ToPythonTimeClient<FixedTimeClient>{
+      std::make_unique<FixedTimeClient>(time)};
   }
 
-  VirtualTimeClient* BuildIncrementalTimeClient() {
-    return new WrapperTimeClient<IncrementalTimeClient>{Initialize()};
+  ToPythonTimeClient<IncrementalTimeClient>* BuildIncrementalTimeClient() {
+    return new ToPythonTimeClient<IncrementalTimeClient>{
+      std::make_unique<IncrementalTimeClient>()};
   }
 
-  VirtualTimeClient* BuildIncrementalTimeClient(ptime initialTime,
-      time_duration increment) {
-    return new WrapperTimeClient<IncrementalTimeClient>{Initialize(initialTime,
-      increment)};
+  ToPythonTimeClient<IncrementalTimeClient>* BuildIncrementalTimeClient(
+      ptime initialTime, time_duration increment) {
+    return new ToPythonTimeClient<IncrementalTimeClient>{
+      std::make_unique<IncrementalTimeClient>(initialTime, increment)};
   }
 
-  VirtualTimeClient* BuildLocalTimeClient() {
-    return new WrapperTimeClient<LocalTimeClient>{Initialize()};
+  ToPythonTimeClient<LocalTimeClient>* BuildLocalTimeClient() {
+    return new ToPythonTimeClient<LocalTimeClient>{
+      std::make_unique<LocalTimeClient>()};
   }
 
-  void WrapperFixedTimeClientSetTime(WrapperTimeClient<FixedTimeClient>& client,
+  ToPythonTimeClient<TestTimeClient>* BuildTestTimeClient(
+      std::shared_ptr<TimeServiceTestEnvironment> environment) {
+    return new ToPythonTimeClient<TestTimeClient>{
+      std::make_unique<TestTimeClient>(Ref(*environment))};
+  }
+
+  void FixedTimeClientSetTime(ToPythonTimeClient<FixedTimeClient>& client,
       ptime time) {
-    client.GetClient().SetTime(time);
-  }
-
-  class PythonTestTimer : public WrapperTimer<TestTimer> {
-    public:
-      PythonTestTimer(time_duration expiry,
-          std::shared_ptr<TimeServiceTestEnvironment> environment)
-          : WrapperTimer<TestTimer>(Initialize(expiry, Ref(*environment))),
-            m_environment{std::move(environment)} {}
-
-      virtual ~PythonTestTimer() override {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        Cancel();
-      }
-
-    private:
-      std::shared_ptr<TimeServiceTestEnvironment> m_environment;
-  };
-
-  class PythonTestTimeClient : public WrapperTimeClient<TestTimeClient> {
-    public:
-      PythonTestTimeClient(
-          std::shared_ptr<TimeServiceTestEnvironment> environment)
-          : WrapperTimeClient<TestTimeClient>(Initialize(Ref(*environment))),
-            m_environment{std::move(environment)} {}
-
-      virtual ~PythonTestTimeClient() override {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        Close();
-      }
-
-    private:
-      std::shared_ptr<TimeServiceTestEnvironment> m_environment;
-  };
-
-  VirtualTimer* BuildTestTimer(time_duration expiry,
-      std::shared_ptr<TimeServiceTestEnvironment> environment) {
-    return new PythonTestTimer{expiry, environment};
-  }
-
-  VirtualTimeClient* BuildTestTimeClient(
-      std::shared_ptr<TimeServiceTestEnvironment> environment) {
-    return new PythonTestTimeClient{environment};
+    client.m_client->SetTime(time);
   }
 }
 
@@ -148,76 +148,48 @@ void Beam::Python::ExportTzDatabase() {
 }
 
 void Beam::Python::ExportFixedTimeClient() {
-  class_<WrapperTimeClient<FixedTimeClient>, boost::noncopyable,
+  class_<ToPythonTimeClient<FixedTimeClient>, boost::noncopyable,
       bases<VirtualTimeClient>>("FixedTimeClient", no_init)
     .def("__init__", make_constructor(
-      static_cast<VirtualTimeClient* (*)()>(&BuildFixedTimeClient)))
+      static_cast<ToPythonTimeClient<FixedTimeClient>* (*)()>(
+      &BuildFixedTimeClient)))
     .def("__init__", make_constructor(
-      static_cast<VirtualTimeClient* (*)(ptime)>(&BuildFixedTimeClient)))
-    .def("set_time", &WrapperFixedTimeClientSetTime)
-    .def("get_time", &WrapperTimeClient<FixedTimeClient>::GetTime)
-    .def("open", BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Open))
-    .def("close", BlockingFunction(&WrapperTimeClient<FixedTimeClient>::Close));
+      static_cast<ToPythonTimeClient<FixedTimeClient>* (*)(ptime)>(
+      &BuildFixedTimeClient)))
+    .def("set_time", &FixedTimeClientSetTime);
 }
 
 void Beam::Python::ExportIncrementalTimeClient() {
-  class_<WrapperTimeClient<IncrementalTimeClient>, boost::noncopyable,
+  class_<ToPythonTimeClient<IncrementalTimeClient>, boost::noncopyable,
       bases<VirtualTimeClient>>("IncrementalTimeClient", no_init)
     .def("__init__", make_constructor(
-      static_cast<VirtualTimeClient* (*)()>(&BuildIncrementalTimeClient)))
-    .def("__init__", make_constructor(
-      static_cast<VirtualTimeClient* (*)(ptime, time_duration)>(
+      static_cast<ToPythonTimeClient<IncrementalTimeClient>* (*)()>(
       &BuildIncrementalTimeClient)))
-    .def("get_time", &WrapperTimeClient<IncrementalTimeClient>::GetTime)
-    .def("open", BlockingFunction(
-      &WrapperTimeClient<IncrementalTimeClient>::Open))
-    .def("close", BlockingFunction(
-      &WrapperTimeClient<IncrementalTimeClient>::Close));
+    .def("__init__", make_constructor(
+      static_cast<ToPythonTimeClient<IncrementalTimeClient>* (*)(ptime,
+      time_duration)>(&BuildIncrementalTimeClient)));
 }
 
 void Beam::Python::ExportLocalTimeClient() {
-  class_<WrapperTimeClient<LocalTimeClient>, boost::noncopyable,
+  class_<ToPythonTimeClient<LocalTimeClient>, boost::noncopyable,
       bases<VirtualTimeClient>>("LocalTimeClient", no_init)
-    .def("__init__", make_constructor(&BuildLocalTimeClient))
-    .def("get_time", &WrapperTimeClient<LocalTimeClient>::GetTime)
-    .def("open", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Open))
-    .def("close", BlockingFunction(&WrapperTimeClient<LocalTimeClient>::Close));
+    .def("__init__", make_constructor(&BuildLocalTimeClient));
 }
 
 void Beam::Python::ExportNtpTimeClient() {
-  class_<WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>,
-      boost::noncopyable, bases<VirtualTimeClient>>("NtpTimeClient", no_init)
-    .def("__init__", make_constructor(&BuildNtpTimeClient))
-    .def("get_time",
-      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::GetTime)
-    .def("open", BlockingFunction(
-      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::Open))
-    .def("close", BlockingFunction(
-      &WrapperTimeClient<std::unique_ptr<LiveNtpTimeClient>>::Close));
+  class_<ToPythonTimeClient<LiveNtpTimeClient>, boost::noncopyable,
+    bases<VirtualTimeClient>>("NtpTimeClient", no_init)
+    .def("__init__", make_constructor(&BuildNtpTimeClient));
 }
 
 void Beam::Python::ExportTestTimeClient() {
-  class_<PythonTestTimeClient, boost::noncopyable, bases<VirtualTimeClient>>(
-      "TestTimeClient", no_init)
-    .def("__init__", make_constructor(&BuildTestTimeClient))
-    .def("get_time", &PythonTestTimeClient::GetTime)
-    .def("open", BlockingFunction<PythonTestTimeClient>(
-      &PythonTestTimeClient::Open))
-    .def("close", BlockingFunction<PythonTestTimeClient>(
-      &PythonTestTimeClient::Close));
-}
-
-void Beam::Python::ExportTestTimer() {
-  class_<PythonTestTimer, boost::noncopyable, bases<VirtualTimer>>("TestTimer",
-      no_init)
-    .def("__init__", make_constructor(&BuildTestTimer))
-    .def("start", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Start))
-    .def("cancel", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Cancel))
-    .def("wait", BlockingFunction<PythonTestTimer>(&PythonTestTimer::Wait));
+  class_<ToPythonTimeClient<TestTimeClient>, boost::noncopyable,
+    bases<VirtualTimeClient>>("TestTimeClient", no_init)
+    .def("__init__", make_constructor(&BuildTestTimeClient));
 }
 
 void Beam::Python::ExportTimeClient() {
-  class_<VirtualTimeClientWrapper, boost::noncopyable>("TimeClient")
+  class_<VirtualTimeClient, boost::noncopyable>("TimeClient", no_init)
     .def("get_time", pure_virtual(&VirtualTimeClient::GetTime))
     .def("open", pure_virtual(&VirtualTimeClient::Open))
     .def("close", pure_virtual(&VirtualTimeClient::Close));
@@ -253,6 +225,10 @@ void Beam::Python::ExportTimeService() {
     ExportTimeServiceTestEnvironment();
     ExportTestTimeClient();
     ExportTestTimer();
+    ExportException<TimeServiceTestEnvironmentException, std::runtime_error>(
+      "TimeServiceTestEnvironmentException")
+      .def(init<>())
+      .def(init<const string&>());
   }
 }
 

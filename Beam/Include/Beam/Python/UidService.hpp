@@ -5,6 +5,9 @@
 namespace Beam {
 namespace Python {
 
+  //! Exports the ApplicationUidClient class. 
+  void ExportApplicationUidClient();
+
   //! Exports the UidClient class.
   void ExportUidClient();
 

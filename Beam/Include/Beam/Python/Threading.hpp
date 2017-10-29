@@ -8,6 +8,9 @@ namespace Python {
   //! Exports the LiveTimer class.
   void ExportLiveTimer();
 
+  //! Exports the TestTimer class.
+  void ExportTestTimer();
+
   //! Exports the Threading namespace.
   void ExportThreading();
 

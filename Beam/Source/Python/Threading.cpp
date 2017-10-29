@@ -1,58 +1,112 @@
 #include "Beam/Python/Threading.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
-#include "Beam/Threading/TimeoutException.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
-#include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/Threading/TimeoutException.hpp"
+#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/Threading/VirtualTimer.hpp"
+#include "Beam/TimeServiceTests/TestTimeClient.hpp"
+#include "Beam/TimeServiceTests/TestTimer.hpp"
+#include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Threading;
+using namespace Beam::TimeService;
+using namespace Beam::TimeService::Tests;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace boost::python;
 using namespace std;
 
 namespace {
-  struct VirtualTimerWrapper : VirtualTimer, wrapper<VirtualTimer> {
-    virtual void Start() override {
-      this->get_override("start")();
+  struct FromPythonTimer : VirtualTimer, wrapper<VirtualTimer> {
+    virtual void Start() override final {
+      get_override("start")();
     }
 
-    virtual void Cancel() override {
-      this->get_override("cancel")();
+    virtual void Cancel() override final {
+      get_override("cancel")();
     }
 
-    virtual void Wait() override {
-      this->get_override("wait")();
+    virtual void Wait() override final {
+      get_override("wait")();
     }
 
-    virtual const Publisher<Timer::Result>& GetPublisher() const override {
+    virtual const Publisher<Timer::Result>&
+        GetPublisher() const override final {
       return *static_cast<const Publisher<Timer::Result>*>(
-        this->get_override("get_publisher")());
+        get_override("get_publisher")());
     }
   };
 
-  VirtualTimer* BuildLiveTimer(time_duration interval) {
-    return new WrapperTimer<LiveTimer>{
-      Initialize(interval, Ref(*GetTimerThreadPool()))};
+  template<typename TimerType>
+  class ToPythonTimer : public VirtualTimer {
+    public:
+      ToPythonTimer(std::unique_ptr<TimerType> timer)
+          : m_timer{std::move(timer)} {}
+
+      virtual ~ToPythonTimer() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_timer.reset();
+      }
+
+      virtual void Start() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_timer->Start();
+      }
+
+      virtual void Cancel() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_timer->Cancel();
+      }
+
+      virtual void Wait() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_timer->Wait();
+      }
+
+      virtual const Publisher<Timer::Result>&
+          GetPublisher() const override final {
+        return m_timer->GetPublisher();
+      }
+
+      std::unique_ptr<TimerType> m_timer;
+  };
+
+  ToPythonTimer<LiveTimer>* BuildLiveTimer(time_duration interval) {
+    return new ToPythonTimer<LiveTimer>{std::make_unique<LiveTimer>(interval,
+      Ref(*GetTimerThreadPool()))};
   }
 
-  VirtualTimer* BuildTriggerTimer() {
-    return new WrapperTimer<TriggerTimer>{Initialize()};
+  ToPythonTimer<TriggerTimer>* BuildTriggerTimer() {
+    return new ToPythonTimer<TriggerTimer>{std::make_unique<TriggerTimer>()};
   }
 
-  void WrapperTimerTrigger(WrapperTimer<TriggerTimer>& timer) {
-    timer.GetTimer().Trigger();
+  void WrapperTimerTrigger(ToPythonTimer<TriggerTimer>& timer) {
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock{gil};
+    timer.m_timer->Trigger();
   }
 
-  void WrapperTimerFail(WrapperTimer<TriggerTimer>& timer) {
-    timer.GetTimer().Fail();
+  void WrapperTimerFail(ToPythonTimer<TriggerTimer>& timer) {
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock{gil};
+    timer.m_timer->Fail();
+  }
+
+  ToPythonTimer<TestTimer>* BuildTestTimer(time_duration expiry,
+      std::shared_ptr<TimeServiceTestEnvironment> environment) {
+    return new ToPythonTimer<TestTimer>{std::make_unique<TestTimer>(expiry,
+      Ref(*environment))};
   }
 }
 
@@ -66,14 +120,9 @@ namespace boost {
 #endif
 
 void Beam::Python::ExportLiveTimer() {
-  class_<WrapperTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
+  class_<ToPythonTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "LiveTimer", no_init)
-    .def("__init__", make_constructor(&BuildLiveTimer))
-    .def("start", BlockingFunction(&WrapperTimer<LiveTimer>::Start))
-    .def("cancel", BlockingFunction(&WrapperTimer<LiveTimer>::Cancel))
-    .def("wait", BlockingFunction(&WrapperTimer<LiveTimer>::Wait))
-    .def("get_publisher", &WrapperTimer<LiveTimer>::GetPublisher,
-      return_internal_reference<>());
+    .def("__init__", make_constructor(&BuildLiveTimer));
 }
 
 void Beam::Python::ExportThreading() {
@@ -93,7 +142,7 @@ void Beam::Python::ExportThreading() {
 
 void Beam::Python::ExportTimer() {
   {
-    scope outer = class_<VirtualTimerWrapper, boost::noncopyable>("Timer")
+    scope outer = class_<FromPythonTimer, boost::noncopyable>("Timer")
       .def("start", pure_virtual(&VirtualTimer::Start))
       .def("cancel", pure_virtual(&VirtualTimer::Cancel))
       .def("wait", pure_virtual(&VirtualTimer::Wait))
@@ -109,15 +158,16 @@ void Beam::Python::ExportTimer() {
   ExportPublisher<Timer::Result>("TimerResultPublisher");
 }
 
+void Beam::Python::ExportTestTimer() {
+  class_<ToPythonTimer<TestTimer>, boost::noncopyable, bases<VirtualTimer>>(
+      "TestTimer", no_init)
+    .def("__init__", make_constructor(&BuildTestTimer));
+}
+
 void Beam::Python::ExportTriggerTimer() {
-  class_<WrapperTimer<TriggerTimer>, boost::noncopyable, bases<VirtualTimer>>(
+  class_<ToPythonTimer<TriggerTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "TriggerTimer", no_init)
     .def("__init__", make_constructor(&BuildTriggerTimer))
-    .def("trigger", BlockingFunction(&WrapperTimerTrigger))
-    .def("fail", BlockingFunction(&WrapperTimerFail))
-    .def("start", BlockingFunction(&WrapperTimer<TriggerTimer>::Start))
-    .def("cancel", BlockingFunction(&WrapperTimer<TriggerTimer>::Cancel))
-    .def("wait", BlockingFunction(&WrapperTimer<TriggerTimer>::Wait))
-    .def("get_publisher", &WrapperTimer<TriggerTimer>::GetPublisher,
-      return_internal_reference<>());
+    .def("trigger", &WrapperTimerTrigger)
+    .def("fail", &WrapperTimerFail);
 }

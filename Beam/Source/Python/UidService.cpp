@@ -40,12 +40,60 @@ namespace {
     BinarySender<SharedBuffer>>, LiveTimer>;
   using Client = UidClient<UidClientSessionBuilder>;
 
-  VirtualUidClient* BuildUidClient(const IpAddress& address) {
+  struct FromPythonUidClient : VirtualUidClient, wrapper<VirtualUidClient> {
+    virtual std::uint64_t LoadNextUid() override final {
+      return get_override("load_next_uid")();
+    }
+
+    virtual void Open() override final {
+      get_override("open")();
+    }
+
+    virtual void Close() override final {
+      get_override("close")();
+    }
+  };
+
+  template<typename ClientType>
+  class ToPythonUidClient : public VirtualUidClient {
+    public:
+      ToPythonUidClient(std::unique_ptr<ClientType> client)
+          : m_client{std::move(client)} {}
+
+      virtual ~ToPythonUidClient() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client.reset();
+      }
+
+      virtual std::uint64_t LoadNextUid() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        return m_client->LoadNextUid();
+      }
+
+      virtual void Open() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client->Open();
+      }
+
+      virtual void Close() override final {
+        GilRelease gil;
+        boost::lock_guard<GilRelease> lock{gil};
+        m_client->Close();
+      }
+
+    private:
+      std::unique_ptr<ClientType> m_client;
+  };
+
+  ToPythonUidClient<Client>* BuildUidClient(const IpAddress& address) {
     auto isConnected = false;
-    UidClientSessionBuilder sessionBuilder(
+    UidClientSessionBuilder sessionBuilder{
       [=] () mutable {
         if(isConnected) {
-          throw NotConnectedException();
+          throw NotConnectedException{};
         }
         isConnected = true;
         return std::make_unique<TcpSocketChannel>(address,
@@ -54,11 +102,14 @@ namespace {
       [=] {
         return std::make_unique<LiveTimer>(seconds(10),
           Ref(*GetTimerThreadPool()));
-      });
-    auto baseClient = std::make_unique<Client>(sessionBuilder);
-    auto client = new WrapperUidClient<std::unique_ptr<Client>>(
-      std::move(baseClient));
-    return client;
+      }};
+    return new ToPythonUidClient<Client>{
+      std::make_unique<Client>(sessionBuilder)};
+  }
+
+  VirtualUidClient* UidServiceTestEnvironmentBuildClient(
+      UidServiceTestEnvironment& environment) {
+    return new ToPythonUidClient<VirtualUidClient>(environment.BuildClient());
   }
 }
 
@@ -71,6 +122,12 @@ namespace boost {
 }
 #endif
 
+void Beam::Python::ExportApplicationUidClient() {
+  class_<ToPythonUidClient<Client>, boost::noncopyable>("ApplicationUidClient",
+    no_init)
+    .def("__init__", make_constructor(BuildUidClient));
+}
+
 void Beam::Python::ExportUidService() {
   string nestedName = extract<string>(scope().attr("__name__") +
     ".uid_service");
@@ -79,6 +136,7 @@ void Beam::Python::ExportUidService() {
   scope().attr("uid_service") = nestedModule;
   scope parent = nestedModule;
   ExportUidClient();
+  ExportApplicationUidClient();
   ExportException<UidServiceException, std::runtime_error>(
     "UidServiceException")
     .def(init<const string&>());
@@ -94,10 +152,9 @@ void Beam::Python::ExportUidService() {
 
 void Beam::Python::ExportUidClient() {
   class_<VirtualUidClient, boost::noncopyable>("UidClient", no_init)
-    .def("__init__", make_constructor(&BuildUidClient))
-    .def("load_next_uid", BlockingFunction(&VirtualUidClient::LoadNextUid))
-    .def("open", BlockingFunction(&VirtualUidClient::Open))
-    .def("close", BlockingFunction(&VirtualUidClient::Close));
+    .def("load_next_uid", &VirtualUidClient::LoadNextUid)
+    .def("open", &VirtualUidClient::Open)
+    .def("close", &VirtualUidClient::Close);
 }
 
 void Beam::Python::ExportUidServiceTestEnvironment() {
@@ -105,6 +162,6 @@ void Beam::Python::ExportUidServiceTestEnvironment() {
       "UidServiceTestEnvironment", init<>())
     .def("open", BlockingFunction(&UidServiceTestEnvironment::Open))
     .def("close", BlockingFunction(&UidServiceTestEnvironment::Close))
-    .def("build_client",
-      ReleaseUniquePtr(&UidServiceTestEnvironment::BuildClient));
+    .def("build_client", &UidServiceTestEnvironmentBuildClient,
+      return_value_policy<manage_new_object>());
 }

@@ -44,72 +44,21 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile AbstractQueue<object>* get_pointer(
-      const volatile AbstractQueue<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Python::Details::AbstractQueueWrapper<
-      AbstractQueue<object>>* get_pointer(
-      const volatile Python::Details::AbstractQueueWrapper<
-      AbstractQueue<object>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile BaseQueue* get_pointer(
-      const volatile BaseQueue* p) {
-    return p;
-  }
-
-  template<> inline const volatile Queue<object>* get_pointer(
-      const volatile Queue<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile QueueReader<object>* get_pointer(
-      const volatile QueueReader<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Python::Details::QueueReaderWrapper<
-      QueueReader<object>>* get_pointer(
-      const volatile Python::Details::QueueReaderWrapper<
-      QueueReader<object>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile QueueWriter<std::function<void ()>>*
-      get_pointer(const volatile QueueWriter<std::function<void ()>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Python::Details::QueueWriterWrapper<
-      QueueWriter<std::function<void ()>>>* get_pointer(
-      const volatile Python::Details::QueueWriterWrapper<
-      QueueWriter<std::function<void ()>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile QueueWriter<object>* get_pointer(
-      const volatile QueueWriter<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Python::Details::QueueWriterWrapper<
-      QueueWriter<object>>* get_pointer(
-      const volatile Python::Details::QueueWriterWrapper<
-      QueueWriter<object>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile RoutineTaskQueue* get_pointer(
-      const volatile RoutineTaskQueue* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(AbstractQueue<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Python::Details::AbstractQueueWrapper<AbstractQueue<object>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseQueue);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Queue<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueReader<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Python::Details::QueueReaderWrapper<QueueReader<object>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueWriter<std::function<void ()>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Python::Details::QueueWriterWrapper<QueueWriter<std::function<void ()>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueWriter<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Python::Details::QueueWriterWrapper<QueueWriter<object>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(RoutineTaskQueue);
 
 void Beam::Python::ExportBasePublisher() {
   class_<BasePublisher, noncopyable>("BasePublisher", no_init);

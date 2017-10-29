@@ -15,6 +15,17 @@ BEAM_EXTERN template struct BEAM_EXPORT_DLL
 BEAM_EXTERN template struct BEAM_EXPORT_DLL
   Beam::Routines::Details::NextId<void>;
 
+#ifdef _MSC_VER
+#define BEAM_DEFINE_PYTHON_POINTER_LINKER(T)                                   \
+  namespace boost {                                                            \
+    template<> inline const volatile T* get_pointer(const volatile T* p) {     \
+      return p;                                                                \
+    }                                                                          \
+  }
+#else
+#define BEAM_DEFINE_PYTHON_POINTER_LINKER(T)
+#endif
+
 namespace Beam {
 namespace Python {
 

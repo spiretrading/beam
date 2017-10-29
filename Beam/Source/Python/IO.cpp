@@ -59,29 +59,10 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile VirtualChannelIdentifier*
-      get_pointer(const volatile VirtualChannelIdentifier* p) {
-    return p;
-  }
-
-  template<> inline const volatile VirtualConnection*
-      get_pointer(const volatile VirtualConnection* p) {
-    return p;
-  }
-
-  template<> inline const volatile VirtualReader*
-      get_pointer(const volatile VirtualReader* p) {
-    return p;
-  }
-
-  template<> inline const volatile VirtualWriter*
-      get_pointer(const volatile VirtualWriter* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualChannelIdentifier);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualConnection);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualReader);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualWriter);
 
 void Beam::Python::ExportChannel() {
   class_<VirtualChannel, boost::noncopyable>("Channel", no_init)

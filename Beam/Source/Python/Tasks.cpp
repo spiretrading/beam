@@ -221,123 +221,29 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile AggregateTask* get_pointer(
-      const volatile AggregateTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile AggregateTaskFactory* get_pointer(
-      const volatile AggregateTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile BasicTask* get_pointer(
-      const volatile BasicTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile BasicTaskWrapper* get_pointer(
-      const volatile BasicTaskWrapper* p) {
-    return p;
-  }
-
-  template<> inline const volatile IdleTask* get_pointer(
-      const volatile IdleTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile IdleTaskFactory* get_pointer(
-      const volatile IdleTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile Publisher<Task::StateEntry>*
-      get_pointer(const volatile Publisher<Task::StateEntry>* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonTaskFactoryWrapper* get_pointer(
-      const volatile PythonTaskFactoryWrapper* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonPackagedTask* get_pointer(
-      const volatile PythonPackagedTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonPackagedTaskFactory* get_pointer(
-      const volatile PythonPackagedTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile ReactorMonitorTask* get_pointer(
-      const volatile ReactorMonitorTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile ReactorMonitorTaskFactory* get_pointer(
-      const volatile ReactorMonitorTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile ReactorTask* get_pointer(
-      const volatile ReactorTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile ReactorTaskFactory* get_pointer(
-      const volatile ReactorTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile SpawnTask* get_pointer(
-      const volatile SpawnTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile SpawnTaskFactory* get_pointer(
-      const volatile SpawnTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile Task* get_pointer(const volatile Task* p) {
-    return p;
-  }
-
-  template<> inline const volatile TaskWrapper* get_pointer(
-      const volatile TaskWrapper* p) {
-    return p;
-  }
-
-  template<> inline const volatile TypedReactorProperty<object>* get_pointer(
-      const volatile TypedReactorProperty<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile UntilTask* get_pointer(
-      const volatile UntilTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile UntilTaskFactory* get_pointer(
-      const volatile UntilTaskFactory* p) {
-    return p;
-  }
-
-  template<> inline const volatile WhenTask* get_pointer(
-      const volatile WhenTask* p) {
-    return p;
-  }
-
-  template<> inline const volatile WhenTaskFactory* get_pointer(
-      const volatile WhenTaskFactory* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(AggregateTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(AggregateTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicTaskWrapper);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(IdleTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(IdleTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Task::StateEntry>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonTaskFactoryWrapper);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonPackagedTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonPackagedTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ReactorMonitorTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ReactorMonitorTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ReactorTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ReactorTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(SpawnTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(SpawnTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Task);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(TaskWrapper);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(TypedReactorProperty<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(UntilTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(UntilTaskFactory);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(WhenTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(WhenTaskFactory);
 
 void Beam::Python::ExportAggregateTask() {
   class_<AggregateTask, std::shared_ptr<AggregateTask>, boost::noncopyable,

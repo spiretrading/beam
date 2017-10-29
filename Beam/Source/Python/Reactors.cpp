@@ -1,4 +1,5 @@
 #include "Beam/Python/Reactors.hpp"
+#include <boost/preprocessor/comma.hpp>
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/GilLock.hpp"
@@ -291,166 +292,47 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile AggregateReactor<
-      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>*
-      get_pointer(const volatile AggregateReactor<
-      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile BaseReactor* get_pointer(
-      const volatile BaseReactor* p) {
-    return p;
-  }
-
-  template<> inline const volatile BaseReactorWrapper* get_pointer(
-      const volatile BaseReactorWrapper* p) {
-    return p;
-  }
-
-  template<> inline const volatile BasicReactor<boost::python::object>*
-      get_pointer(const volatile BasicReactor<boost::python::object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile
-      ChainReactor<std::shared_ptr<PythonReactor>,
-      std::shared_ptr<PythonReactor>>* get_pointer(
-      const volatile ChainReactor<std::shared_ptr<PythonReactor>,
-      std::shared_ptr<PythonReactor>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile ConstantReactor<object>* get_pointer(
-      const volatile ConstantReactor<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile FoldParameterReactor<object>* get_pointer(
-      const volatile FoldParameterReactor<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile FoldReactor<std::shared_ptr<PythonReactor>,
-    std::shared_ptr<PythonReactor>,
-    std::shared_ptr<FoldParameterReactor<object>>,
-    std::shared_ptr<FoldParameterReactor<object>>>* get_pointer(
-      const volatile FoldReactor<std::shared_ptr<PythonReactor>,
-      std::shared_ptr<PythonReactor>,
-      std::shared_ptr<FoldParameterReactor<object>>,
-      std::shared_ptr<FoldParameterReactor<object>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile NoneReactor<object>* get_pointer(
-      const volatile NoneReactor<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile ProxyReactor<object>* get_pointer(
-      const volatile ProxyReactor<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Publisher<int>* get_pointer(
-      const volatile Publisher<int>* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonReactor* get_pointer(
-      const volatile PythonReactor* p) {
-    return p;
-  }
-
-  template<> inline const volatile PythonFunctionReactor* get_pointer(
-      const volatile PythonFunctionReactor* p) {
-    return p;
-  }
-
-  template<> inline const volatile Reactor<bool>* get_pointer(
-      const volatile Reactor<bool>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Reactor<std::int64_t>* get_pointer(
-      const volatile Reactor<std::int64_t>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Reactor<ptime>* get_pointer(
-      const volatile Reactor<ptime>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Reactor<std::shared_ptr<Reactor<object>>>*
-      get_pointer(const volatile Reactor<std::shared_ptr<Reactor<object>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Reactor<time_duration>* get_pointer(
-      const volatile Reactor<time_duration>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      PythonReactor>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<PythonReactor>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<bool>>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<Reactor<bool>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<ptime>>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<Reactor<ptime>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<std::shared_ptr<Reactor<object>>>>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<std::shared_ptr<Reactor<object>>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<time_duration>>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<time_duration>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<std::int64_t>>* get_pointer(
-      const volatile Beam::Python::Details::ReactorWrapper<
-      Reactor<std::int64_t>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile SwitchReactor<std::shared_ptr<
-      Reactor<std::shared_ptr<PythonReactor>>>>* get_pointer(const volatile
-      SwitchReactor<
-      std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>* p) {
-    return p;
-  }
-
-  template<> inline const volatile ThrowReactor<object>* get_pointer(
-      const volatile ThrowReactor<object>* p) {
-    return p;
-  }
-
-  template<> inline const volatile std::type_info* get_pointer(
-      const volatile std::type_info* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  AggregateReactor<std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseReactor);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseReactorWrapper);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicReactor<boost::python::object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  ChainReactor<std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
+  std::shared_ptr<PythonReactor>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ConstantReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(FoldParameterReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  FoldReactor<std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
+  std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
+  std::shared_ptr<FoldParameterReactor<object>> BOOST_PP_COMMA()
+  std::shared_ptr<FoldParameterReactor<object>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(NoneReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ProxyReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonReactor);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonFunctionReactor);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<bool>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::int64_t>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<ptime>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::shared_ptr<Reactor<object>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<time_duration>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Beam::Python::Details::ReactorWrapper<PythonReactor>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Beam::Python::Details::ReactorWrapper<Reactor<bool>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Beam::Python::Details::ReactorWrapper<Reactor<ptime>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
+  Reactor<std::shared_ptr<Reactor<object>>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
+  Reactor<time_duration>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
+  Reactor<std::int64_t>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(SwitchReactor<
+  std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ThrowReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(std::type_info);
 
 void Beam::Python::ExportAggregateReactor() {
   using ExportedReactor =

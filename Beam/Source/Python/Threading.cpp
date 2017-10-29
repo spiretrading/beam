@@ -4,10 +4,12 @@
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/Python/UniquePtr.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/Threading/VirtualTimer.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -60,19 +62,8 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile Publisher<Timer::Result>*
-      get_pointer(const volatile Publisher<Timer::Result>* p) {
-    return p;
-  }
-
-  template<> inline const volatile VirtualTimer*
-      get_pointer(const volatile VirtualTimer* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Timer::Result>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualTimer);
 
 void Beam::Python::ExportLiveTimer() {
   class_<ToPythonTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(

@@ -129,15 +129,7 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile WrapperChannelIdentifier<SocketIdentifier>*
-      get_pointer(const volatile WrapperChannelIdentifier<
-      SocketIdentifier>* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(WrapperChannelIdentifier<SocketIdentifier>);
 
 void Beam::Python::ExportIpAddress() {
   class_<IpAddress>("IpAddress", init<>())

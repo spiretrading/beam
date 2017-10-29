@@ -8,9 +8,10 @@
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/ToPythonServiceLocatorClient.hpp"
+#include "Beam/Python/UniquePtr.hpp"
 #include "Beam/Python/Vector.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
@@ -178,210 +179,7 @@ namespace {
     }
   };
 
-  template<typename ClientType>
-  class ToPythonServiceLocatorClient : public VirtualServiceLocatorClient {
-    public:
-      ToPythonServiceLocatorClient(std::unique_ptr<ClientType> client)
-          : m_client{std::move(client)} {}
-
-      virtual ~ToPythonServiceLocatorClient() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client.reset();
-      }
-
-      virtual DirectoryEntry GetAccount() const override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->GetAccount();
-      }
-
-      virtual std::string GetSessionId() const override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->GetSessionId();
-      }
-
-      virtual std::string GetEncryptedSessionId(
-          unsigned int key) const override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->GetEncryptedSessionId(key);
-      }
-
-      virtual DirectoryEntry AuthenticateAccount(const std::string& username,
-          const std::string& password) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->AuthenticateAccount(username, password);
-      }
-
-      virtual DirectoryEntry AuthenticateSession(const std::string& sessionId,
-          unsigned int key) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->AuthenticateSession(sessionId, key);
-      }
-
-      virtual std::vector<ServiceEntry> Locate(
-          const std::string& name) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->Locate(name);
-      }
-
-      virtual ServiceEntry Register(const std::string& name,
-          const JsonObject& properties) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->Register(name, properties);
-      }
-
-      virtual std::vector<DirectoryEntry> LoadAllAccounts() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadAllAccounts();
-      }
-
-      virtual boost::optional<DirectoryEntry> FindAccount(
-          const std::string& name) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->FindAccount(name);
-      }
-
-      virtual DirectoryEntry MakeAccount(const std::string& name,
-          const std::string& password,
-          const DirectoryEntry& parent) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->MakeAccount(name, password, parent);
-      }
-
-      virtual DirectoryEntry MakeDirectory(const std::string& name,
-          const DirectoryEntry& parent) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->MakeDirectory(name, parent);
-      }
-
-      virtual void StorePassword(const DirectoryEntry& account,
-          const std::string& password) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->StorePassword(account, password);
-      }
-
-      virtual DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-          const std::string& path) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadDirectoryEntry(root, path);
-      }
-
-      virtual DirectoryEntry LoadDirectoryEntry(
-          unsigned int id) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadDirectoryEntry(id);
-      }
-
-      virtual std::vector<DirectoryEntry> LoadParents(
-          const DirectoryEntry& entry) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadParents(entry);
-      }
-
-      virtual std::vector<DirectoryEntry> LoadChildren(
-          const DirectoryEntry& entry) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadChildren(entry);
-      }
-
-      virtual void Delete(const DirectoryEntry& entry) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Delete(entry);
-      }
-
-      virtual void Associate(const DirectoryEntry& entry,
-          const DirectoryEntry& parent) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Associate(entry, parent);
-      }
-
-      virtual void Detach(const DirectoryEntry& entry,
-          const DirectoryEntry& parent) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Detach(entry, parent);
-      }
-
-      virtual bool HasPermissions(const DirectoryEntry& account,
-          const DirectoryEntry& target,
-          Permissions permissions) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->HasPermissions(account, target, permissions);
-      }
-
-      virtual void StorePermissions(const DirectoryEntry& source,
-          const DirectoryEntry& target,
-          Permissions permissions) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->StorePermissions(source, target, permissions);
-      }
-
-      virtual boost::posix_time::ptime LoadRegistrationTime(
-          const DirectoryEntry& account) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadRegistrationTime(account);
-      }
-
-      virtual boost::posix_time::ptime LoadLastLoginTime(
-          const DirectoryEntry& account) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadLastLoginTime(account);
-      }
-
-      virtual DirectoryEntry Rename(const DirectoryEntry& entry,
-          const std::string& name) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->Rename(entry, name);
-      }
-
-      virtual void SetCredentials(const std::string& username,
-          const std::string& password) override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->SetCredentials(username, password);
-      }
-
-      virtual void Open() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Open();
-      }
-
-      virtual void Close() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Close();
-      }
-
-    private:
-      std::unique_ptr<ClientType> m_client;
-  };
-
-  ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>*
-      MakeApplicationServiceLocatorClient(const IpAddress& address) {
+  auto MakeApplicationServiceLocatorClient(const IpAddress& address) {
     auto isConnected = false;
     ApplicationServiceLocatorClientSessionBuilder sessionBuilder{
       [=] () mutable {
@@ -396,26 +194,19 @@ namespace {
         return std::make_unique<LiveTimer>(seconds(10),
           Ref(*GetTimerThreadPool()));
       }};
-    return new ToPythonServiceLocatorClient<
-      PythonApplicationServiceLocatorClient>{
-      std::make_unique<PythonApplicationServiceLocatorClient>(sessionBuilder)};
+    return MakeToPythonServiceLocatorClient(
+      std::make_unique<PythonApplicationServiceLocatorClient>(
+      sessionBuilder)).release();
   }
 
-  VirtualServiceLocatorClient* ServiceLocatorTestEnvironmentBuildClient(
+  std::unique_ptr<VirtualServiceLocatorClient>
+      ServiceLocatorTestEnvironmentBuildClient(
       ServiceLocatorTestEnvironment& environment) {
-    return new ToPythonServiceLocatorClient<VirtualServiceLocatorClient>(
-      environment.BuildClient());
+    return MakeToPythonServiceLocatorClient(environment.BuildClient());
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile VirtualServiceLocatorClient* get_pointer(
-      const volatile VirtualServiceLocatorClient* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualServiceLocatorClient);
 
 void Beam::Python::ExportApplicationServiceLocatorClient() {
   class_<ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>,
@@ -492,6 +283,7 @@ void Beam::Python::ExportServiceLocator() {
   ExportServiceEntry();
   ExportServiceLocatorClient();
   ExportApplicationServiceLocatorClient();
+  ExportUniquePtr<std::unique_ptr<VirtualServiceLocatorClient>>();
   ExportException<AuthenticationException, ConnectException>(
     "AuthenticationException")
     .def(init<>())
@@ -566,6 +358,5 @@ void Beam::Python::ExportServiceLocatorTestEnvironment() {
     .def("close", BlockingFunction(&ServiceLocatorTestEnvironment::Close))
     .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_internal_reference<>())
-    .def("build_client", &ServiceLocatorTestEnvironmentBuildClient,
-      return_value_policy<manage_new_object>());
+    .def("build_client", &ServiceLocatorTestEnvironmentBuildClient);
 }

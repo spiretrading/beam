@@ -6,6 +6,9 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Threading.hpp"
+#include "Beam/Python/ToPythonTimeClient.hpp"
+#include "Beam/Python/ToPythonTimer.hpp"
+#include "Beam/Python/UniquePtr.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
@@ -48,41 +51,7 @@ namespace {
     }
   };
 
-  template<typename ClientType>
-  class ToPythonTimeClient : public VirtualTimeClient {
-    public:
-      ToPythonTimeClient(std::unique_ptr<ClientType> client)
-          : m_client{std::move(client)} {}
-
-      virtual ~ToPythonTimeClient() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client.reset();
-      }
-
-      virtual boost::posix_time::ptime GetTime() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->GetTime();
-      }
-
-      virtual void Open() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Open();
-      }
-
-      virtual void Close() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Close();
-      }
-
-      std::unique_ptr<ClientType> m_client;
-  };
-
-  ToPythonTimeClient<LiveNtpTimeClient>* BuildNtpTimeClient(
-      VirtualServiceLocatorClient* serviceLocatorClient) {
+  auto BuildNtpTimeClient(VirtualServiceLocatorClient* serviceLocatorClient) {
     auto timeClient =
       [&] {
         try {
@@ -102,39 +71,38 @@ namespace {
             "Unable to initialize NTP time client."});
         }
       }();
-    return new ToPythonTimeClient<LiveNtpTimeClient>{std::move(timeClient)};
+    return MakeToPythonTimeClient(std::move(timeClient)).release();
   }
 
-  ToPythonTimeClient<FixedTimeClient>* BuildFixedTimeClient() {
-    return new ToPythonTimeClient<FixedTimeClient>{
-      std::make_unique<FixedTimeClient>()};
+  auto BuildFixedTimeClient() {
+    return MakeToPythonTimeClient(
+      std::make_unique<FixedTimeClient>()).release();
   }
 
-  ToPythonTimeClient<FixedTimeClient>* BuildFixedTimeClient(ptime time) {
-    return new ToPythonTimeClient<FixedTimeClient>{
-      std::make_unique<FixedTimeClient>(time)};
+  auto BuildFixedTimeClient(ptime time) {
+    return MakeToPythonTimeClient(
+      std::make_unique<FixedTimeClient>(time)).release();
   }
 
-  ToPythonTimeClient<IncrementalTimeClient>* BuildIncrementalTimeClient() {
-    return new ToPythonTimeClient<IncrementalTimeClient>{
-      std::make_unique<IncrementalTimeClient>()};
+  auto BuildIncrementalTimeClient() {
+    return MakeToPythonTimeClient(
+      std::make_unique<IncrementalTimeClient>()).release();
   }
 
-  ToPythonTimeClient<IncrementalTimeClient>* BuildIncrementalTimeClient(
-      ptime initialTime, time_duration increment) {
-    return new ToPythonTimeClient<IncrementalTimeClient>{
-      std::make_unique<IncrementalTimeClient>(initialTime, increment)};
+  auto BuildIncrementalTimeClient(ptime initialTime, time_duration increment) {
+    return MakeToPythonTimeClient(std::make_unique<IncrementalTimeClient>(
+      initialTime, increment)).release();
   }
 
-  ToPythonTimeClient<LocalTimeClient>* BuildLocalTimeClient() {
-    return new ToPythonTimeClient<LocalTimeClient>{
-      std::make_unique<LocalTimeClient>()};
+  auto BuildLocalTimeClient() {
+    return MakeToPythonTimeClient(
+      std::make_unique<LocalTimeClient>()).release();
   }
 
-  ToPythonTimeClient<TestTimeClient>* BuildTestTimeClient(
+  auto BuildTestTimeClient(
       std::shared_ptr<TimeServiceTestEnvironment> environment) {
-    return new ToPythonTimeClient<TestTimeClient>{
-      std::make_unique<TestTimeClient>(Ref(*environment))};
+    return MakeToPythonTimeClient(std::make_unique<TestTimeClient>(
+      Ref(*environment))).release();
   }
 
   auto BuildTestTimer(time_duration expiry,
@@ -145,9 +113,11 @@ namespace {
 
   void FixedTimeClientSetTime(ToPythonTimeClient<FixedTimeClient>& client,
       ptime time) {
-    client.m_client->SetTime(time);
+    client.GetClient().SetTime(time);
   }
 }
+
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualTimeClient);
 
 void Beam::Python::ExportTzDatabase() {
   class_<tz_database>("TimeZoneDatabase", no_init);
@@ -228,6 +198,7 @@ void Beam::Python::ExportTimeService() {
   ExportIncrementalTimeClient();
   ExportLocalTimeClient();
   ExportNtpTimeClient();
+  ExportUniquePtr<std::unique_ptr<VirtualTimeClient>>();
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(

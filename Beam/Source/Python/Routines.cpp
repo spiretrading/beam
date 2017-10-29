@@ -28,14 +28,7 @@ namespace {
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile Eval<object>* get_pointer(
-      const volatile Eval<object>* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Eval<object>);
 
 void Beam::Python::ExportBaseAsync() {
   {

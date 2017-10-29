@@ -7,9 +7,10 @@
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Python/ToPythonUidClient.hpp"
+#include "Beam/Python/UniquePtr.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
@@ -54,41 +55,7 @@ namespace {
     }
   };
 
-  template<typename ClientType>
-  class ToPythonUidClient : public VirtualUidClient {
-    public:
-      ToPythonUidClient(std::unique_ptr<ClientType> client)
-          : m_client{std::move(client)} {}
-
-      virtual ~ToPythonUidClient() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client.reset();
-      }
-
-      virtual std::uint64_t LoadNextUid() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        return m_client->LoadNextUid();
-      }
-
-      virtual void Open() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Open();
-      }
-
-      virtual void Close() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_client->Close();
-      }
-
-    private:
-      std::unique_ptr<ClientType> m_client;
-  };
-
-  ToPythonUidClient<Client>* BuildUidClient(const IpAddress& address) {
+  auto BuildUidClient(const IpAddress& address) {
     auto isConnected = false;
     UidClientSessionBuilder sessionBuilder{
       [=] () mutable {
@@ -103,24 +70,17 @@ namespace {
         return std::make_unique<LiveTimer>(seconds(10),
           Ref(*GetTimerThreadPool()));
       }};
-    return new ToPythonUidClient<Client>{
-      std::make_unique<Client>(sessionBuilder)};
+    return MakeToPythonUidClient(
+      std::make_unique<Client>(sessionBuilder)).release();
   }
 
-  VirtualUidClient* UidServiceTestEnvironmentBuildClient(
+  std::unique_ptr<VirtualUidClient> UidServiceTestEnvironmentBuildClient(
       UidServiceTestEnvironment& environment) {
-    return new ToPythonUidClient<VirtualUidClient>(environment.BuildClient());
+    return MakeToPythonUidClient(environment.BuildClient());
   }
 }
 
-#ifdef _MSC_VER
-namespace boost {
-  template<> inline const volatile VirtualUidClient* get_pointer(
-      const volatile VirtualUidClient* p) {
-    return p;
-  }
-}
-#endif
+BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualUidClient);
 
 void Beam::Python::ExportApplicationUidClient() {
   class_<ToPythonUidClient<Client>, boost::noncopyable>("ApplicationUidClient",
@@ -137,6 +97,7 @@ void Beam::Python::ExportUidService() {
   scope parent = nestedModule;
   ExportUidClient();
   ExportApplicationUidClient();
+  ExportUniquePtr<std::unique_ptr<VirtualUidClient>>();
   ExportException<UidServiceException, std::runtime_error>(
     "UidServiceException")
     .def(init<const string&>());
@@ -159,9 +120,8 @@ void Beam::Python::ExportUidClient() {
 
 void Beam::Python::ExportUidServiceTestEnvironment() {
   class_<UidServiceTestEnvironment, boost::noncopyable>(
-      "UidServiceTestEnvironment", init<>())
+    "UidServiceTestEnvironment", init<>())
     .def("open", BlockingFunction(&UidServiceTestEnvironment::Open))
     .def("close", BlockingFunction(&UidServiceTestEnvironment::Close))
-    .def("build_client", &UidServiceTestEnvironmentBuildClient,
-      return_value_policy<manage_new_object>());
+    .def("build_client", &UidServiceTestEnvironmentBuildClient);
 }

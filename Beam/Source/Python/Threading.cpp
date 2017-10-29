@@ -2,22 +2,16 @@
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/UniquePtr.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
-#include "Beam/Threading/VirtualTimer.hpp"
-#include "Beam/TimeServiceTests/TestTimeClient.hpp"
-#include "Beam/TimeServiceTests/TestTimer.hpp"
-#include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Threading;
-using namespace Beam::TimeService;
-using namespace Beam::TimeService::Tests;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace boost::python;
@@ -44,69 +38,25 @@ namespace {
     }
   };
 
-  template<typename TimerType>
-  class ToPythonTimer : public VirtualTimer {
-    public:
-      ToPythonTimer(std::unique_ptr<TimerType> timer)
-          : m_timer{std::move(timer)} {}
-
-      virtual ~ToPythonTimer() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_timer.reset();
-      }
-
-      virtual void Start() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_timer->Start();
-      }
-
-      virtual void Cancel() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_timer->Cancel();
-      }
-
-      virtual void Wait() override final {
-        GilRelease gil;
-        boost::lock_guard<GilRelease> lock{gil};
-        m_timer->Wait();
-      }
-
-      virtual const Publisher<Timer::Result>&
-          GetPublisher() const override final {
-        return m_timer->GetPublisher();
-      }
-
-      std::unique_ptr<TimerType> m_timer;
-  };
-
-  ToPythonTimer<LiveTimer>* BuildLiveTimer(time_duration interval) {
-    return new ToPythonTimer<LiveTimer>{std::make_unique<LiveTimer>(interval,
-      Ref(*GetTimerThreadPool()))};
+  auto BuildLiveTimer(time_duration interval) {
+    return MakeToPythonTimer(std::make_unique<LiveTimer>(interval,
+      Ref(*GetTimerThreadPool()))).release();
   }
 
-  ToPythonTimer<TriggerTimer>* BuildTriggerTimer() {
-    return new ToPythonTimer<TriggerTimer>{std::make_unique<TriggerTimer>()};
+  auto BuildTriggerTimer() {
+    return MakeToPythonTimer(std::make_unique<TriggerTimer>()).release();
   }
 
   void WrapperTimerTrigger(ToPythonTimer<TriggerTimer>& timer) {
     GilRelease gil;
     boost::lock_guard<GilRelease> lock{gil};
-    timer.m_timer->Trigger();
+    timer.GetTimer().Trigger();
   }
 
   void WrapperTimerFail(ToPythonTimer<TriggerTimer>& timer) {
     GilRelease gil;
     boost::lock_guard<GilRelease> lock{gil};
-    timer.m_timer->Fail();
-  }
-
-  ToPythonTimer<TestTimer>* BuildTestTimer(time_duration expiry,
-      std::shared_ptr<TimeServiceTestEnvironment> environment) {
-    return new ToPythonTimer<TestTimer>{std::make_unique<TestTimer>(expiry,
-      Ref(*environment))};
+    timer.GetTimer().Fail();
   }
 }
 
@@ -114,6 +64,11 @@ namespace {
 namespace boost {
   template<> inline const volatile Publisher<Timer::Result>*
       get_pointer(const volatile Publisher<Timer::Result>* p) {
+    return p;
+  }
+
+  template<> inline const volatile VirtualTimer*
+      get_pointer(const volatile VirtualTimer* p) {
     return p;
   }
 }
@@ -135,6 +90,7 @@ void Beam::Python::ExportThreading() {
   ExportTimer();
   ExportLiveTimer();
   ExportTriggerTimer();
+  ExportUniquePtr<std::unique_ptr<VirtualTimer>>();
   ExportException<TimeoutException, std::runtime_error>("TimeoutException")
     .def(init<>())
     .def(init<const string&>());
@@ -156,12 +112,6 @@ void Beam::Python::ExportTimer() {
   }
   ExportEnum<Timer::Result>();
   ExportPublisher<Timer::Result>("TimerResultPublisher");
-}
-
-void Beam::Python::ExportTestTimer() {
-  class_<ToPythonTimer<TestTimer>, boost::noncopyable, bases<VirtualTimer>>(
-      "TestTimer", no_init)
-    .def("__init__", make_constructor(&BuildTestTimer));
 }
 
 void Beam::Python::ExportTriggerTimer() {

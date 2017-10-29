@@ -1,6 +1,7 @@
 #ifndef BEAM_GILRELEASE_HPP
 #define BEAM_GILRELEASE_HPP
 #include <boost/noncopyable.hpp>
+#include <boost/python/object.hpp>
 #include <ceval.h>
 #include <pystate.h>
 #include <pythread.h>

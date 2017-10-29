@@ -1,5 +1,6 @@
 #include "Beam/Python/PythonPackagedTask.hpp"
 #include <boost/python/extract.hpp>
+#include <boost/python/make_function.hpp>
 #include <boost/python/scope.hpp>
 #include "Beam/Python/GilLock.hpp"
 

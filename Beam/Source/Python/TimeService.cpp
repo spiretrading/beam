@@ -137,6 +137,12 @@ namespace {
       std::make_unique<TestTimeClient>(Ref(*environment))};
   }
 
+  auto BuildTestTimer(time_duration expiry,
+      std::shared_ptr<TimeServiceTestEnvironment> environment) {
+    return MakeToPythonTimer(std::make_unique<TestTimer>(expiry,
+      Ref(*environment))).release();
+  }
+
   void FixedTimeClientSetTime(ToPythonTimeClient<FixedTimeClient>& client,
       ptime time) {
     client.m_client->SetTime(time);
@@ -186,6 +192,12 @@ void Beam::Python::ExportTestTimeClient() {
   class_<ToPythonTimeClient<TestTimeClient>, boost::noncopyable,
     bases<VirtualTimeClient>>("TestTimeClient", no_init)
     .def("__init__", make_constructor(&BuildTestTimeClient));
+}
+
+void Beam::Python::ExportTestTimer() {
+  class_<ToPythonTimer<TestTimer>, boost::noncopyable, bases<VirtualTimer>>(
+      "TestTimer", no_init)
+    .def("__init__", make_constructor(&BuildTestTimer));
 }
 
 void Beam::Python::ExportTimeClient() {

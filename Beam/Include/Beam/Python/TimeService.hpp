@@ -23,6 +23,9 @@ namespace Python {
   //! Exports the TestTimeClient class.
   void ExportTestTimeClient();
 
+  //! Exports the TestTimer class.
+  void ExportTestTimer();
+
   //! Exports the TimeClient class.
   void ExportTimeClient();
 

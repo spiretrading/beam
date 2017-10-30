@@ -85,7 +85,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualUidClient);
 void Beam::Python::ExportApplicationUidClient() {
   class_<ToPythonUidClient<Client>, boost::noncopyable>("ApplicationUidClient",
     no_init)
-    .def("__init__", make_constructor(BuildUidClient));
+    .def("__init__", make_constructor(&BuildUidClient));
 }
 
 void Beam::Python::ExportUidService() {
@@ -97,7 +97,6 @@ void Beam::Python::ExportUidService() {
   scope parent = nestedModule;
   ExportUidClient();
   ExportApplicationUidClient();
-  ExportUniquePtr<std::unique_ptr<VirtualUidClient>>();
   ExportException<UidServiceException, std::runtime_error>(
     "UidServiceException")
     .def(init<const string&>());
@@ -112,10 +111,11 @@ void Beam::Python::ExportUidService() {
 }
 
 void Beam::Python::ExportUidClient() {
-  class_<VirtualUidClient, boost::noncopyable>("UidClient", no_init)
+  class_<FromPythonUidClient, boost::noncopyable>("UidClient", no_init)
     .def("load_next_uid", &VirtualUidClient::LoadNextUid)
     .def("open", &VirtualUidClient::Open)
     .def("close", &VirtualUidClient::Close);
+  ExportUniquePtr<std::unique_ptr<VirtualUidClient>>();
 }
 
 void Beam::Python::ExportUidServiceTestEnvironment() {

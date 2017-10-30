@@ -15,26 +15,6 @@
 namespace Beam {
 namespace Python {
 namespace Details {
-/*
-  template<typename T>
-  void PublisherMonitor(Publisher<T>& publisher,
-      std::shared_ptr<PythonQueueWriter> monitor) {
-    publisher.Monitor(monitor->GetSlot<T>());
-  }
-*/
-
-  template<typename T>
-  void PublisherWith(Publisher<T>& publisher, boost::python::object callable) {
-    GilRelease release;
-    boost::lock_guard<GilRelease> lock{release};
-    publisher.With(
-      [&] {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        callable();
-      });
-  }
-
   template<typename T, typename SnapshotType>
   boost::python::object GetSnapshot(
       SnapshotPublisher<T, SnapshotType>& publisher) {
@@ -182,15 +162,56 @@ namespace Details {
         std::shared_ptr<QueueWriter<T>>>*>(data)->storage.bytes;
       if(auto wrapperQueue = std::dynamic_pointer_cast<
           ToPythonQueueWriter<T>>(queue)) {
-        new(storage) std::shared_ptr<QueueWriter<T>>{wrapperQueue->GetTarget()};
+        auto target = wrapperQueue->GetTarget();
+        if(target != nullptr) {
+          new(storage) std::shared_ptr<QueueWriter<T>>{std::move(target)};
+        } else {
+          new(storage) std::shared_ptr<QueueWriter<T>>{
+            MakeFromPythonQueueWriter<T>(std::move(queue))};
+        }
       } else {
         new(storage) std::shared_ptr<QueueWriter<T>>{
-          std::make_shared<FromPythonQueueWriter<T>>(queue)};
+          MakeFromPythonQueueWriter<T>(std::move(queue))};
       }
       data->convertible = storage;
     }
   };
+
+  template<typename T, typename Enabled = void>
+  struct GetCallPolicies;
+
+  template<typename T>
+  struct GetCallPolicies<T,
+      typename std::enable_if<std::is_pointer<T>::value>::type> {
+    auto operator ()() const {
+      return boost::python::return_value_policy<
+        boost::python::reference_existing_object>();
+    }
+  };
+
+  template<typename T, typename Enabled>
+  struct GetCallPolicies {
+    auto operator ()() const {
+      return boost::python::default_call_policies();
+    }
+  };
 }
+
+#ifdef _MSC_VER
+#define BEAM_DEFINE_PYTHON_QUEUE_LINKER(T)                                     \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::AbstractQueue<T>);                   \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::QueueReader<T>);                     \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::QueueWriter<T>);                     \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Queue<T>);                           \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::QueueReaderWrapper< \
+    Beam::QueueReader<T>>);                                                    \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::QueueWriterWrapper< \
+    Beam::QueueWriter<T>>);                                                    \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::AbstractQueueWrapper<       \
+    Beam::AbstractQueue<T>>);
+#else
+#define BEAM_DEFINE_PYTHON_QUEUE_LINKER(T)
+#endif
 
   //! Exports the AbstractQueue class.
   /*!
@@ -256,8 +277,8 @@ namespace Details {
   void ExportPublisher(const char* name) {
     boost::python::class_<Publisher<T>, boost::noncopyable,
       boost::python::bases<BasePublisher>>(name, boost::python::no_init)
-      .def("with", &Details::PublisherWith<T>);
-//      .def("monitor", BlockingFunction(&Details::PublisherMonitor<T>));
+      .def("with", BlockingFunction(&Publisher<T>::With))
+      .def("monitor", BlockingFunction(&Publisher<T>::Monitor));
   }
 
   //! Exports a SnapshotPublisher class.
@@ -287,7 +308,8 @@ namespace Details {
       std::shared_ptr<Details::QueueReaderWrapper<T>>, boost::noncopyable,
       boost::python::bases<BaseQueue>>(name, boost::python::no_init)
       .def("is_empty", boost::python::pure_virtual(&T::IsEmpty))
-      .def("top", boost::python::pure_virtual(&T::Top))
+      .def("top", boost::python::pure_virtual(&T::Top),
+        Details::GetCallPolicies<typename T::Target>{}())
       .def("pop", boost::python::pure_virtual(&T::Pop));
     if(!std::is_same<T, QueueReader<boost::python::object>>::value) {
       boost::python::to_python_converter<std::shared_ptr<T>,
@@ -367,6 +389,21 @@ namespace Details {
       std::shared_ptr<AbstractQueue<typename T::Source>>>();
     boost::python::implicitly_convertible<std::shared_ptr<T>,
       std::shared_ptr<BaseQueue>>();
+  }
+
+  //! Exports a suite of queue classes.
+  /*!
+    \param baseName The name of the type to export.
+  */
+  template<typename T>
+  void ExportQueueSuite(const char* baseName) {
+    ExportQueueReader<QueueReader<T>>(
+      (baseName + std::string{"QueueReader"}).c_str());
+    ExportQueueWriter<QueueWriter<T>>(
+      (baseName + std::string{"QueueWriter"}).c_str());
+    ExportAbstractQueue<AbstractQueue<T>>(
+      (baseName + std::string{"AbstractQueue"}).c_str());
+    ExportQueue<Queue<T>>((baseName + std::string{"Queue"}).c_str());
   }
 
   //! Exports the Queues namespace.

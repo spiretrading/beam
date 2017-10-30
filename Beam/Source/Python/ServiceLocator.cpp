@@ -283,7 +283,6 @@ void Beam::Python::ExportServiceLocator() {
   ExportServiceEntry();
   ExportServiceLocatorClient();
   ExportApplicationServiceLocatorClient();
-  ExportUniquePtr<std::unique_ptr<VirtualServiceLocatorClient>>();
   ExportException<AuthenticationException, ConnectException>(
     "AuthenticationException")
     .def(init<>())
@@ -299,7 +298,7 @@ void Beam::Python::ExportServiceLocator() {
 }
 
 void Beam::Python::ExportServiceLocatorClient() {
-  class_<VirtualServiceLocatorClient, boost::noncopyable>(
+  class_<FromPythonServiceLocatorClient, boost::noncopyable>(
     "ServiceLocatorClient", no_init)
     .def("get_account", pure_virtual(&VirtualServiceLocatorClient::GetAccount))
     .def("get_session_id",
@@ -349,6 +348,7 @@ void Beam::Python::ExportServiceLocatorClient() {
       pure_virtual(&VirtualServiceLocatorClient::SetCredentials))
     .def("open", pure_virtual(&VirtualServiceLocatorClient::Open))
     .def("close", pure_virtual(&VirtualServiceLocatorClient::Close));
+  ExportUniquePtr<std::unique_ptr<VirtualServiceLocatorClient>>();
 }
 
 void Beam::Python::ExportServiceLocatorTestEnvironment() {

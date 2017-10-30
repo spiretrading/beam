@@ -37,7 +37,7 @@ using namespace boost::python;
 using namespace std;
 
 namespace {
-  struct FromPythonTimerClient : VirtualTimeClient, wrapper<VirtualTimeClient> {
+  struct FromPythonTimeClient : VirtualTimeClient, wrapper<VirtualTimeClient> {
     virtual boost::posix_time::ptime GetTime() override final {
       return get_override("get_time")();
     }
@@ -171,10 +171,11 @@ void Beam::Python::ExportTestTimer() {
 }
 
 void Beam::Python::ExportTimeClient() {
-  class_<VirtualTimeClient, boost::noncopyable>("TimeClient", no_init)
+  class_<FromPythonTimeClient, boost::noncopyable>("TimeClient", no_init)
     .def("get_time", pure_virtual(&VirtualTimeClient::GetTime))
     .def("open", pure_virtual(&VirtualTimeClient::Open))
     .def("close", pure_virtual(&VirtualTimeClient::Close));
+  ExportUniquePtr<std::unique_ptr<VirtualTimeClient>>();
 }
 
 void Beam::Python::ExportTimeService() {
@@ -198,7 +199,6 @@ void Beam::Python::ExportTimeService() {
   ExportIncrementalTimeClient();
   ExportLocalTimeClient();
   ExportNtpTimeClient();
-  ExportUniquePtr<std::unique_ptr<VirtualTimeClient>>();
   {
     string nestedName = extract<string>(parent.attr("__name__") + ".tests");
     object nestedModule{handle<>(

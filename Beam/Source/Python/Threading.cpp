@@ -81,7 +81,6 @@ void Beam::Python::ExportThreading() {
   ExportTimer();
   ExportLiveTimer();
   ExportTriggerTimer();
-  ExportUniquePtr<std::unique_ptr<VirtualTimer>>();
   ExportException<TimeoutException, std::runtime_error>("TimeoutException")
     .def(init<>())
     .def(init<const string&>());
@@ -101,6 +100,7 @@ void Beam::Python::ExportTimer() {
       .value("CANCELED", Timer::Result::CANCELED)
       .value("FAIL", Timer::Result::FAIL);
   }
+  ExportUniquePtr<std::unique_ptr<VirtualTimer>>();
   ExportEnum<Timer::Result>();
   ExportPublisher<Timer::Result>("TimerResultPublisher");
 }

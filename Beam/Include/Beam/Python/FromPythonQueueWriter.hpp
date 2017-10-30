@@ -44,8 +44,8 @@ namespace Beam {
 
   template<typename T>
   FromPythonQueueWriter<T>::~FromPythonQueueWriter() {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     m_target.reset();
   }
 
@@ -57,15 +57,15 @@ namespace Beam {
 
   template<typename T>
   void FromPythonQueueWriter<T>::Push(const Source& value) {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     m_target->Push(boost::python::object{value});
   }
 
   template<typename T>
   void FromPythonQueueWriter<T>::Push(Source&& value) {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     m_target->Push(boost::python::object{std::move(value)});
   }
 

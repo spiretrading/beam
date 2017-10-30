@@ -63,8 +63,8 @@ namespace Beam {
   template<typename T>
   typename ToPythonQueueReader<T>::Target ToPythonQueueReader<T>::Top() const {
     return boost::python::object{[&] {
-      GilRelease gil;
-      boost::lock_guard<GilRelease> release{gil};
+      Python::GilRelease gil;
+      boost::lock_guard<Python::GilRelease> release{gil};
       return m_source->Top();
     }()};
   }

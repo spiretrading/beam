@@ -52,8 +52,8 @@ namespace Beam {
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     m_source.reset();
   }
 
@@ -72,12 +72,12 @@ namespace Beam {
   typename FromPythonQueueReader<T>::Target
       FromPythonQueueReader<T>::Top() const {
     if(IsEmpty()) {
-      GilRelease gil;
-      boost::lock_guard<GilRelease> lock{gil};
+      Python::GilRelease gil;
+      boost::lock_guard<Python::GilRelease> lock{gil};
       m_source->Wait();
     }
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     return boost::python::extract<T>(m_source->Top());
   }
 

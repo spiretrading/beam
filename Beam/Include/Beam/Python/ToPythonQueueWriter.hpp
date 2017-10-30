@@ -1,6 +1,5 @@
 #ifndef BEAM_TO_PYTHON_QUEUE_WRITER_HPP
 #define BEAM_TO_PYTHON_QUEUE_WRITER_HPP
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 
 namespace Beam {

@@ -39,7 +39,7 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<
         std::function<R (Args...)>>*>(data)->storage.bytes;
       new(storage) std::function<R (Args...)>{
-        [f] (Args args...) {
+        [f] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
           return static_cast<R>(boost::python::extract<R>(f(args...)));

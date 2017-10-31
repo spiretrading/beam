@@ -22,7 +22,7 @@ namespace Beam {
       /*!
         \param source The QueueReader to wrap.
       */
-      ToPythonQueueReader(const std::shared_ptr<QueueReader<Type>>& source);
+      ToPythonQueueReader(std::shared_ptr<QueueReader<Type>> source);
 
       virtual ~ToPythonQueueReader() override final = default;
 
@@ -44,10 +44,19 @@ namespace Beam {
       std::shared_ptr<QueueReader<Type>> m_source;
   };
 
+  //! Makes a ToPythonQueueReader.
+  /*!
+    \param source The QueueReader to wrap.
+  */
+  template<typename T>
+  auto MakeToPythonQueueReader(std::shared_ptr<QueueReader<T>> source) {
+    return std::make_shared<ToPythonQueueReader<T>>(std::move(source));
+  }
+
   template<typename T>
   ToPythonQueueReader<T>::ToPythonQueueReader(
-      const std::shared_ptr<QueueReader<Type>>& source)
-      : m_source{source} {}
+      std::shared_ptr<QueueReader<Type>> source)
+      : m_source{std::move(source)} {}
 
   template<typename T>
   const std::shared_ptr<QueueReader<typename ToPythonQueueReader<T>::Type>>&

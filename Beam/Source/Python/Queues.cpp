@@ -67,6 +67,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueWriter<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(
   Python::Details::QueueWriterWrapper<QueueWriter<object>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(RoutineTaskQueue);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonAbstractQueue<object>);
 
 void Beam::Python::ExportBasePublisher() {
   class_<BasePublisher, noncopyable>("BasePublisher", no_init);
@@ -86,10 +87,7 @@ void Beam::Python::ExportQueues() {
   ExportBasePublisher();
   ExportBaseSnapshotPublisher();
   ExportBaseQueue();
-  ExportQueueReader<QueueReader<boost::python::object>>("QueueReader");
-  ExportQueueWriter<QueueWriter<boost::python::object>>("QueueWriter");
-  ExportAbstractQueue<AbstractQueue<boost::python::object>>("AbstractQueue");
-  ExportQueue<Queue<boost::python::object>>("Queue");
+  ExportQueueSuite<boost::python::object>("");
   ExportRoutineTaskQueue();
   ExportTaskQueue();
   def("flush", &FlushPythonQueue);

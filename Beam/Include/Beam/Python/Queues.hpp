@@ -2,10 +2,12 @@
 #define BEAM_PYTHON_QUEUES_HPP
 #include <boost/noncopyable.hpp>
 #include <boost/python.hpp>
+#include "Beam/Python/FromPythonAbstractQueue.hpp"
 #include "Beam/Python/FromPythonQueueReader.hpp"
 #include "Beam/Python/FromPythonQueueWriter.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Python.hpp"
+#include "Beam/Python/ToPythonAbstractQueue.hpp"
 #include "Beam/Python/ToPythonQueueReader.hpp"
 #include "Beam/Python/ToPythonQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -65,7 +67,30 @@ namespace Details {
   };
 
   template<typename T>
-  struct AbstractQueueWrapper : T, boost::python::wrapper<T> {};
+  struct AbstractQueueWrapper : T, boost::python::wrapper<T> {
+    using Target = typename T::Target;
+    using Source = typename T::Source;
+
+    virtual bool IsEmpty() const override final {
+      return this->get_override("is_empty")();
+    }
+
+    virtual Target Top() const override final {
+      return this->get_override("top")();
+    }
+
+    virtual void Pop() override final {
+      this->get_override("pop")();
+    }
+
+    virtual void Push(Source&& value) override final {
+      Push(value);
+    }
+
+    virtual void Push(const Source& value) override final {
+      this->get_override("push")(value);
+    }
+  };
 
   template<typename T>
   struct QueueReaderToPython {
@@ -77,7 +102,7 @@ namespace Details {
             return pythonQueue->GetSource();
           }
           return std::static_pointer_cast<QueueReader<boost::python::object>>(
-            std::make_shared<ToPythonQueueReader<T>>(queue));
+            MakeToPythonQueueReader(queue));
         }();
       boost::python::object value{pythonQueue};
       boost::python::incref(value.ptr());
@@ -129,7 +154,7 @@ namespace Details {
             return pythonQueue->GetTarget();
           }
           return std::static_pointer_cast<QueueWriter<boost::python::object>>(
-            std::make_shared<ToPythonQueueWriter<T>>(queue));
+            MakeToPythonQueueWriter(queue));
         }();
       boost::python::object value{pythonQueue};
       boost::python::incref(value.ptr());
@@ -172,6 +197,64 @@ namespace Details {
       } else {
         new(storage) std::shared_ptr<QueueWriter<T>>{
           MakeFromPythonQueueWriter<T>(std::move(queue))};
+      }
+      data->convertible = storage;
+    }
+  };
+
+  template<typename T>
+  struct AbstractQueueToPython {
+    static PyObject* convert(const std::shared_ptr<AbstractQueue<T>>& queue) {
+      auto pythonQueue =
+        [&] {
+          if(auto pythonQueue =
+              std::dynamic_pointer_cast<FromPythonAbstractQueue<T>>(queue)) {
+            return pythonQueue->GetQueue();
+          }
+          return std::static_pointer_cast<AbstractQueue<boost::python::object>>(
+            MakeToPythonAbstractQueue(queue));
+        }();
+      boost::python::object value{pythonQueue};
+      boost::python::incref(value.ptr());
+      return value.ptr();
+    }
+  };
+
+  template<typename T>
+  struct AbstractQueueFromPythonConverter {
+    static void* convertible(PyObject* object) {
+      boost::python::handle<> handle{boost::python::borrowed(object)};
+      boost::python::object queue{handle};
+      boost::python::extract<std::shared_ptr<
+        AbstractQueue<boost::python::object>>> extractor{queue};
+      if(extractor.check()) {
+        return object;
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      boost::python::handle<> handle{boost::python::borrowed(object)};
+      boost::python::object value{handle};
+      std::shared_ptr<AbstractQueue<boost::python::object>> queue =
+        boost::python::extract<std::shared_ptr<
+        AbstractQueue<boost::python::object>>>(value);
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        std::shared_ptr<AbstractQueue<T>>>*>(data)->storage.bytes;
+      if(auto wrapperQueue = std::dynamic_pointer_cast<
+          ToPythonAbstractQueue<T>>(queue)) {
+        auto target = wrapperQueue->GetQueue();
+        if(target != nullptr) {
+          new(storage) std::shared_ptr<AbstractQueue<T>>{std::move(target)};
+        } else {
+          new(storage) std::shared_ptr<AbstractQueue<T>>{
+            MakeFromPythonAbstractQueue<T>(std::move(queue))};
+        }
+      } else {
+        new(storage) std::shared_ptr<AbstractQueue<T>>{
+          MakeFromPythonAbstractQueue<T>(std::move(queue))};
       }
       data->convertible = storage;
     }
@@ -229,15 +312,14 @@ namespace Details {
       boost::python::bases<typename T::Reader, typename T::Writer>>(name,
       boost::python::no_init);
     if(!std::is_same<T, AbstractQueue<boost::python::object>>::value) {
-/*
       boost::python::to_python_converter<std::shared_ptr<T>,
-        Details::QueueReaderToPython<typename T::Target>>();
+        Details::AbstractQueueToPython<typename T::Target>>();
       boost::python::converter::registry::push_back(
-        &Details::QueueReaderFromPythonConverter<
+        &Details::AbstractQueueFromPythonConverter<
         typename T::Target>::convertible,
-        &Details::QueueReaderFromPythonConverter<typename T::Target>::construct,
+        &Details::AbstractQueueFromPythonConverter<
+        typename T::Target>::construct,
         boost::python::type_id<std::shared_ptr<T>>());
-*/
     } else {
       boost::python::register_ptr_to_python<std::shared_ptr<T>>();
     }
@@ -380,7 +462,11 @@ namespace Details {
     }
     boost::python::class_<T, std::shared_ptr<T>, boost::noncopyable,
       boost::python::bases<AbstractQueue<typename T::Source>>>(name,
-      boost::python::init<>());
+      boost::python::init<>())
+      .def("is_broken", &T::IsBroken)
+      .def("wait", BlockingFunction(static_cast<void (T::*)() const>(&T::Wait)))
+      .def("top", BlockingFunction(&T::Top,
+        Details::GetCallPolicies<typename T::Source>{}()));
     boost::python::implicitly_convertible<std::shared_ptr<T>,
       std::shared_ptr<QueueReader<typename T::Source>>>();
     boost::python::implicitly_convertible<std::shared_ptr<T>,

@@ -16,19 +16,18 @@ namespace Beam {
       //! The type being read.
       using Target = typename QueueReader<T>::Target;
 
-      //! The type of the QueueReader being wrapped.
-      using Type = boost::python::object;
-
       //! Constructs a FromPythonQueueReader.
       /*!
         \param source The QueueReader to wrap.
       */
-      FromPythonQueueReader(const std::shared_ptr<QueueReader<Type>>& source);
+      FromPythonQueueReader(
+        std::shared_ptr<QueueReader<boost::python::object>> source);
 
       virtual ~FromPythonQueueReader() override final;
 
       //! Returns the QueueReader being wrapped.
-      const std::shared_ptr<QueueReader<Type>>& GetSource() const;
+      const std::shared_ptr<QueueReader<boost::python::object>>&
+        GetSource() const;
 
       virtual bool IsEmpty() const override final;
 
@@ -42,13 +41,23 @@ namespace Beam {
       virtual bool IsAvailable() const override final;
 
     private:
-      std::shared_ptr<QueueReader<Type>> m_source;
+      std::shared_ptr<QueueReader<boost::python::object>> m_source;
   };
+
+  //! Makes a FromPythonQueueReader.
+  /*!
+    \param source The QueueReader to wrap.
+  */
+  template<typename T>
+  auto MakeFromPythonQueueReader(
+      std::shared_ptr<QueueReader<boost::python::object>> source) {
+    return std::make_shared<FromPythonQueueReader<T>>(std::move(source));
+  }
 
   template<typename T>
   FromPythonQueueReader<T>::FromPythonQueueReader(
-      const std::shared_ptr<QueueReader<Type>>& source)
-      : m_source{source} {}
+      std::shared_ptr<QueueReader<boost::python::object>> source)
+      : m_source{std::move(source)} {}
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
@@ -58,7 +67,7 @@ namespace Beam {
   }
 
   template<typename T>
-  const std::shared_ptr<QueueReader<typename FromPythonQueueReader<T>::Type>>&
+  const std::shared_ptr<QueueReader<boost::python::object>>&
       FromPythonQueueReader<T>::GetSource() const {
     return m_source;
   }

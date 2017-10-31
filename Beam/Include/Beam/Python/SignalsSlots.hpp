@@ -3,6 +3,7 @@
 #include <boost/signals2/signal.hpp>
 #include "Beam/Python/Python.hpp"
 #include "Beam/Python/Function.hpp"
+#include "Beam/Python/NoThrowFunction.hpp"
 
 namespace Beam {
 namespace Python {
@@ -10,7 +11,7 @@ namespace Details {
   template<typename... Args>
   struct SlotFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(boost::python::extract<std::function<void (Args...)>>{
+      if(boost::python::extract<NoThrowFunction<void, Args...>>{
           object}.check()) {
         return object;
       }
@@ -20,12 +21,10 @@ namespace Details {
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       using Slot = typename boost::signals2::signal<void (Args...)>::slot_type;
-      using Function = std::function<void (Args...)>;
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<Slot>*>(data)->storage.bytes;
-      auto function = boost::python::extract<std::function<void (Args...)>>{
+      auto function = boost::python::extract<NoThrowFunction<void, Args...>>{
         object}();
-      boost::python::object slot{handle};
       new(storage) Slot{std::move(function)};
       data->convertible = storage;
     }
@@ -53,7 +52,7 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    ExportFunction<std::function<void (Args...)>>(
+    ExportFunction<NoThrowFunction<void, Args...>>(
       (std::string{name} + "Function").c_str());
     boost::python::converter::registry::push_back(
       &Details::SlotFromPythonConverter<Args...>::convertible,

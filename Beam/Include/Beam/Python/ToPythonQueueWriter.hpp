@@ -1,8 +1,28 @@
 #ifndef BEAM_TO_PYTHON_QUEUE_WRITER_HPP
 #define BEAM_TO_PYTHON_QUEUE_WRITER_HPP
+#include <type_traits>
 #include "Beam/Queues/QueueWriter.hpp"
 
 namespace Beam {
+namespace Details {
+  template<typename T, typename Enabled = void>
+  struct Extractor;
+
+  template<typename T>
+  struct Extractor<T, typename std::enable_if<
+      std::is_constructible<T, boost::python::object>::value>::type> {
+    T operator ()(const boost::python::object& value) {
+      return T{value};
+    }
+  };
+
+  template<typename T, typename Enabled>
+  struct Extractor {
+    T operator ()(const boost::python::object& value) {
+      return boost::python::extract<T>(value);
+    }
+  };
+}
 
   /*! \class ToPythonQueueWriter
       \brief Wraps a QueueWriter of type T to a QueueWriter of Python objects.
@@ -55,12 +75,12 @@ namespace Beam {
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(const Source& value) {
-    m_target->Push(boost::python::extract<Type>(value)());
+    m_target->Push(Details::Extractor<Type>{}(value));
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(Source&& value) {
-    m_target->Push(boost::python::extract<Type>(value)());
+    m_target->Push(Details::Extractor<Type>{}(value));
   }
 
   template<typename T>

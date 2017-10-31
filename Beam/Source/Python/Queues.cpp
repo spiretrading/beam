@@ -3,6 +3,7 @@
 #include "Beam/Python/Exception.hpp"
 #include "Beam/Python/Function.hpp"
 #include "Beam/Python/ToPythonQueueWriter.hpp"
+#include "Beam/Queues/AliasQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Queues/TaskQueue.hpp"
@@ -26,24 +27,28 @@ namespace {
   std::shared_ptr<QueueWriter<boost::python::object>> RoutineTaskQueueGetSlot(
       RoutineTaskQueue& queue,
       const std::function<void (const boost::python::object&)>& slot) {
-    return MakeToPythonQueueWriter(
-      std::static_pointer_cast<QueueWriter<ObjectParameter>>(
-      queue.GetSlot<ObjectParameter>(
+    auto slotQueue = queue.GetSlot<ObjectParameter>(
       [=] (const ObjectParameter& parameter) {
         slot(parameter());
-      })));
+      });
+    auto taskQueue = MakeToPythonQueueWriter(
+      std::static_pointer_cast<QueueWriter<ObjectParameter>>(slotQueue));
+    return MakeAliasQueue(std::static_pointer_cast<
+      QueueWriter<boost::python::object>>(taskQueue), slotQueue);
   }
 
   std::shared_ptr<QueueWriter<boost::python::object>>
       RoutineTaskQueueGetBreakSlot(RoutineTaskQueue& queue,
       const std::function<void (const boost::python::object&)>& slot,
       const std::function<void (const std::exception_ptr&)>& breakSlot) {
-    return MakeToPythonQueueWriter(
-      std::static_pointer_cast<QueueWriter<ObjectParameter>>(
-      queue.GetSlot<ObjectParameter>(
+    auto slotQueue = queue.GetSlot<ObjectParameter>(
       [=] (const ObjectParameter& parameter) {
         slot(parameter());
-      }, breakSlot)));
+      }, breakSlot);
+    auto taskQueue = MakeToPythonQueueWriter(
+      std::static_pointer_cast<QueueWriter<ObjectParameter>>(slotQueue));
+    return MakeAliasQueue(std::static_pointer_cast<
+      QueueWriter<boost::python::object>>(taskQueue), slotQueue);
   }
 }
 

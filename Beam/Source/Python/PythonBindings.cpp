@@ -55,7 +55,7 @@ BOOST_PYTHON_MODULE(beam) {
   python_optional<std::string>();
   ExportPtime();
   ExportTimeDuration();
-  ExportExpect();
+  ExportExpect<object>("Expect");
   ExportFunctions();
   ExportIO();
   ExportMySql();

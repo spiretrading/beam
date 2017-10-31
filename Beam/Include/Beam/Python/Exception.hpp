@@ -43,6 +43,9 @@ namespace Details {
       static PyObject* m_exceptionType;
   };
 
+  //! Exports the std::exception_ptr class.
+  void ExportExceptionPtr();
+
   //! Exports the std::runtime_error class.
   void ExportRuntimeError();
 

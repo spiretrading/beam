@@ -1,7 +1,6 @@
 #ifndef BEAM_FROM_PYTHON_ABSTRACT_QUEUE_HPP
 #define BEAM_FROM_PYTHON_ABSTRACT_QUEUE_HPP
 #include "Beam/Python/GilLock.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/FromPythonQueueReader.hpp"
 #include "Beam/Python/FromPythonQueueWriter.hpp"
 #include "Beam/Queues/AbstractQueue.hpp"

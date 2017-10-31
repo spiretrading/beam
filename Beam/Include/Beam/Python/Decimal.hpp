@@ -7,7 +7,7 @@
 namespace Beam {
 namespace Python {
 namespace Details {
-  boost::python::object PyDecimal() {
+  inline auto PyDecimal() {
     static boost::python::object decimal =
       boost::python::import("decimal").attr("Decimal");
     return decimal;
@@ -32,8 +32,9 @@ namespace Details {
 
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
-      auto storage = reinterpret_cast<boost::python::converter::
-        rvalue_from_python_storage<T>*>(data)->storage.bytes;
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<T>*>(
+        data)->storage.bytes;
       auto str = PyObject_Str(object);
       auto value = PyString_AsString(str);
       new(storage) T{value};

@@ -4,18 +4,11 @@
 #include <boost/python.hpp>
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/Python.hpp"
+#include "Beam/Python/SharedObject.hpp"
 
 namespace Beam {
 namespace Python {
 namespace Details {
-  struct ObjectDeleter {
-    void operator ()(boost::python::object* object) const {
-      GilLock gil;
-      boost::lock_guard<GilLock> lock{gil};
-      delete object;
-    }
-  };
-
   template<typename F>
   struct FunctionToPython {};
 
@@ -48,8 +41,7 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<
         std::function<R (Args...)>>*>(data)->storage.bytes;
       new(storage) std::function<R (Args...)>{
-        [f = std::shared_ptr<boost::python::object>{
-            new boost::python::object{f}, ObjectDeleter{}}] (Args... args) {
+        [f = SharedObject{std::move(f)}] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
           return static_cast<R>(boost::python::extract<R>((*f)(args...)));
@@ -87,26 +79,6 @@ namespace Details {
     }
   };
 }
-
-  struct ObjectParameter {
-    std::function<boost::python::object ()> m_converter;
-
-    ObjectParameter(const ObjectParameter&) = default;
-
-    ObjectParameter(ObjectParameter&&) = default;
-
-    ObjectParameter(const boost::python::object& value)
-      : m_converter{
-          [value = std::shared_ptr<boost::python::object>{
-            new boost::python::object{value}, Details::ObjectDeleter{}}] {
-            return *value;
-          }
-        } {}
-
-    boost::python::object operator ()() const {
-      return m_converter();
-    }
-  };
 
   //! Exports a C++ function.
   /*!

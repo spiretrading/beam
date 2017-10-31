@@ -1,4 +1,5 @@
 #include "Beam/Python/Exception.hpp"
+#include <stdexcept>
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -33,6 +34,11 @@ PyObject* BaseRegistry::GetExceptionClass(const type_index& type) {
 void BaseRegistry::SetExceptionClass(const type_index& type,
     PyObject* exceptionClass) {
   m_exceptionRegistry[type] = exceptionClass;
+}
+
+void Beam::Python::ExportExceptionPtr() {
+  class_<std::exception_ptr>("ExceptionPtr", init<>());
+  def("rethrow_exception", &std::rethrow_exception);
 }
 
 void Beam::Python::ExportRuntimeError() {

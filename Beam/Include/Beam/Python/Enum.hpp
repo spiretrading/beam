@@ -81,8 +81,7 @@ namespace Python {
     auto storage = reinterpret_cast<
       boost::python::converter::rvalue_from_python_storage<Type>*>(
       data)->storage.bytes;
-    new(storage) Type{static_cast<Type>(
-      boost::python::extract<typename Type::Type>(object))};
+    new(storage) Type{boost::python::extract<typename Type::Type>(object)()};
     data->convertible = storage;
   }
 }

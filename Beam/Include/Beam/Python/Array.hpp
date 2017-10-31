@@ -294,6 +294,10 @@ namespace Details {
   };
 }
 
+  //! Converts an array to Python.
+  /*!
+    \param array The array to convert.
+  */
   template <typename T>
   boost::python::object MakeArray(T array) {
     return Details::ArrayDispatcher<T>()(array);

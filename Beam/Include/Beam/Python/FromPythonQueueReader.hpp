@@ -12,8 +12,6 @@ namespace Beam {
   template<typename T>
   class FromPythonQueueReader : public QueueReader<T> {
     public:
-
-      //! The type being read.
       using Target = typename QueueReader<T>::Target;
 
       //! Constructs a FromPythonQueueReader.
@@ -87,7 +85,7 @@ namespace Beam {
     }
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    return boost::python::extract<T>(m_source->Top());
+    return boost::python::extract<T>(m_source->Top())();
   }
 
   template<typename T>

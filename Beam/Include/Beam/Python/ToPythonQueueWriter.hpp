@@ -36,6 +36,12 @@ namespace Beam {
       std::shared_ptr<QueueWriter<Type>> m_target;
   };
 
+  template<typename Type>
+  auto MakeToPythonQueueWriter(
+      const std::shared_ptr<QueueWriter<Type>>& target) {
+    return std::make_shared<ToPythonQueueWriter<Type>>(target);
+  }
+
   template<typename T>
   ToPythonQueueWriter<T>::ToPythonQueueWriter(
       const std::shared_ptr<QueueWriter<Type>>& target)
@@ -49,12 +55,12 @@ namespace Beam {
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(const Source& value) {
-    m_target->Push(boost::python::extract<Type>(value));
+    m_target->Push(boost::python::extract<Type>(value)());
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(Source&& value) {
-    m_target->Push(boost::python::extract<Type>(value));
+    m_target->Push(boost::python::extract<Type>(value)());
   }
 
   template<typename T>

@@ -8,14 +8,23 @@
 namespace Beam {
 namespace Python {
 namespace Details {
+  struct ObjectDeleter {
+    void operator ()(boost::python::object* object) const {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
+      delete object;
+    }
+  };
+
   template<typename F>
   struct FunctionToPython {};
 
   template<typename R, typename... Args>
   struct FunctionToPython<std::function<R (Args...)>> {
     static PyObject* convert(const std::function<R (Args...)>& f) {
-      return nullptr;
-//      return boost::python::make_function(f).ptr();
+      using signature = boost::mpl::vector<R, Args...>;
+      return boost::python::make_function(f,
+        boost::python::default_call_policies(), signature()).ptr();
     }
   };
 
@@ -39,10 +48,11 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<
         std::function<R (Args...)>>*>(data)->storage.bytes;
       new(storage) std::function<R (Args...)>{
-        [f] (Args... args) {
+        [f = std::shared_ptr<boost::python::object>{
+            new boost::python::object{f}, ObjectDeleter{}}] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
-          return static_cast<R>(boost::python::extract<R>(f(args...)));
+          return static_cast<R>(boost::python::extract<R>((*f)(args...)));
         }
       };
       data->convertible = storage;
@@ -66,16 +76,37 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<
         std::function<void (Args...)>>*>(data)->storage.bytes;
       new(storage) std::function<void (Args...)>{
-        [f] (Args... args) {
+        [f = std::shared_ptr<boost::python::object>{
+            new boost::python::object{f}, ObjectDeleter{}}] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
-          f(args...);
+          (*f)(args...);
         }
       };
       data->convertible = storage;
     }
   };
 }
+
+  struct ObjectParameter {
+    std::function<boost::python::object ()> m_converter;
+
+    ObjectParameter(const ObjectParameter&) = default;
+
+    ObjectParameter(ObjectParameter&&) = default;
+
+    ObjectParameter(const boost::python::object& value)
+      : m_converter{
+          [value = std::shared_ptr<boost::python::object>{
+            new boost::python::object{value}, Details::ObjectDeleter{}}] {
+            return *value;
+          }
+        } {}
+
+    boost::python::object operator ()() const {
+      return m_converter();
+    }
+  };
 
   //! Exports a C++ function.
   /*!

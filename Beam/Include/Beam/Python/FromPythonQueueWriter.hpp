@@ -1,9 +1,31 @@
 #ifndef BEAM_FROM_PYTHON_QUEUE_WRITER_HPP
 #define BEAM_FROM_PYTHON_QUEUE_WRITER_HPP
+#include <type_traits>
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 
 namespace Beam {
+namespace Details {
+  template<typename T, typename Enabled = void>
+  struct ToObject;
+
+  template<typename T>
+  struct ToObject<T, typename std::enable_if<std::is_pointer<
+      typename std::decay<T>::type>::value>::type> {
+    template<typename U>
+    boost::python::object operator ()(U&& value) const {
+      return boost::python::object{boost::python::ptr(value)};
+    }
+  };
+
+  template<typename T, typename Enabled>
+  struct ToObject {
+    template<typename U>
+    boost::python::object operator ()(U&& value) const {
+      return boost::python::object{std::forward<U>(value)};
+    }
+  };
+}
 
   /*! \class FromPythonQueueWriter
       \brief Wraps a QueueWriter of Python objects to a QueueWriter of type T.
@@ -86,7 +108,7 @@ namespace Beam {
     }
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    target->Push(boost::python::object{value});
+    target->Push(Details::ToObject<T>{}(value));
   }
 
   template<typename T>
@@ -98,7 +120,7 @@ namespace Beam {
     }
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    target->Push(boost::python::object{std::move(value)});
+    target->Push(Details::ToObject<T>{}(std::move(value)));
   }
 
   template<typename T>

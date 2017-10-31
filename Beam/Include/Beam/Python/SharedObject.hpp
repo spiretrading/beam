@@ -27,6 +27,9 @@ namespace Python {
     private:
       std::shared_ptr<boost::python::object> m_object;
   };
+
+  //! Exports the SharedObject class.
+  void ExportSharedObject();
 }
 }
 

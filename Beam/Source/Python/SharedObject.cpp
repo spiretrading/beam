@@ -15,6 +15,16 @@ namespace {
       delete object;
     }
   };
+
+  struct SharedObjectToPython {
+    static PyObject* convert(const SharedObject& object) {
+      return boost::python::incref(object->ptr());
+    }
+  };
+}
+
+void Beam::Python::ExportSharedObject() {
+  boost::python::to_python_converter<SharedObject, SharedObjectToPython>();
 }
 
 SharedObject::SharedObject(boost::python::object object)

@@ -100,7 +100,7 @@ void Beam::Python::ExportTimer() {
       .value("CANCELED", Timer::Result::CANCELED)
       .value("FAIL", Timer::Result::FAIL);
   }
-  ExportUniquePtr<std::unique_ptr<VirtualTimer>>();
+  ExportUniquePtr<VirtualTimer>();
   ExportEnum<Timer::Result>();
   ExportPublisher<Timer::Result>("TimerResultPublisher");
 }

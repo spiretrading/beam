@@ -175,7 +175,7 @@ void Beam::Python::ExportTimeClient() {
     .def("get_time", pure_virtual(&VirtualTimeClient::GetTime))
     .def("open", pure_virtual(&VirtualTimeClient::Open))
     .def("close", pure_virtual(&VirtualTimeClient::Close));
-  ExportUniquePtr<std::unique_ptr<VirtualTimeClient>>();
+  ExportUniquePtr<VirtualTimeClient>();
 }
 
 void Beam::Python::ExportTimeService() {

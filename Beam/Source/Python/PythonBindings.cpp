@@ -16,6 +16,7 @@
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
+#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tasks.hpp"
 #include "Beam/Python/Threading.hpp"
@@ -65,6 +66,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportReactors();
   ExportRoutines();
   ExportServiceLocator();
+  ExportSharedObject();
   ExportSignalsSlots();
   ExportTasks();
   ExportThreading();

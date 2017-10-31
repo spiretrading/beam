@@ -348,7 +348,7 @@ void Beam::Python::ExportServiceLocatorClient() {
       pure_virtual(&VirtualServiceLocatorClient::SetCredentials))
     .def("open", pure_virtual(&VirtualServiceLocatorClient::Open))
     .def("close", pure_virtual(&VirtualServiceLocatorClient::Close));
-  ExportUniquePtr<std::unique_ptr<VirtualServiceLocatorClient>>();
+  ExportUniquePtr<VirtualServiceLocatorClient>();
 }
 
 void Beam::Python::ExportServiceLocatorTestEnvironment() {

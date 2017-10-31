@@ -19,7 +19,7 @@ namespace Details {
   template<typename T, typename Enabled>
   struct Extractor {
     T operator ()(const boost::python::object& value) {
-      return boost::python::extract<T>(value);
+      return boost::python::extract<T>(value)();
     }
   };
 }
@@ -39,7 +39,7 @@ namespace Details {
       /*!
         \param target The QueueWriter to wrap.
       */
-      ToPythonQueueWriter(const std::shared_ptr<QueueWriter<Type>>& target);
+      ToPythonQueueWriter(std::shared_ptr<QueueWriter<Type>> target);
 
       virtual ~ToPythonQueueWriter() override final = default;
 
@@ -57,15 +57,14 @@ namespace Details {
   };
 
   template<typename Type>
-  auto MakeToPythonQueueWriter(
-      const std::shared_ptr<QueueWriter<Type>>& target) {
-    return std::make_shared<ToPythonQueueWriter<Type>>(target);
+  auto MakeToPythonQueueWriter(std::shared_ptr<QueueWriter<Type>> target) {
+    return std::make_shared<ToPythonQueueWriter<Type>>(std::move(target));
   }
 
   template<typename T>
   ToPythonQueueWriter<T>::ToPythonQueueWriter(
-      const std::shared_ptr<QueueWriter<Type>>& target)
-      : m_target{target} {}
+      std::shared_ptr<QueueWriter<Type>> target)
+      : m_target{std::move(target)} {}
 
   template<typename T>
   const std::shared_ptr<QueueWriter<typename ToPythonQueueWriter<T>::Type>>&

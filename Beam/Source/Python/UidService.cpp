@@ -115,7 +115,7 @@ void Beam::Python::ExportUidClient() {
     .def("load_next_uid", &VirtualUidClient::LoadNextUid)
     .def("open", &VirtualUidClient::Open)
     .def("close", &VirtualUidClient::Close);
-  ExportUniquePtr<std::unique_ptr<VirtualUidClient>>();
+  ExportUniquePtr<VirtualUidClient>();
 }
 
 void Beam::Python::ExportUidServiceTestEnvironment() {

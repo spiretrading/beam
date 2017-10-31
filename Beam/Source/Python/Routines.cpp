@@ -1,7 +1,6 @@
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Routines/RoutineException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
@@ -88,5 +87,5 @@ void Beam::Python::ExportRoutines() {
     .def(init<const string&>());
   def("spawn", static_cast<Routine::Id (*)(const std::function<void ()>&)>(
     &Spawn));
-  def("wait", &Wait);
+  def("wait", BlockingFunction(&Wait));
 }

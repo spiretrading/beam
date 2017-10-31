@@ -1,9 +1,8 @@
 #ifndef BEAM_PYTHON_SIGNALS_SLOTS_HPP
 #define BEAM_PYTHON_SIGNALS_SLOTS_HPP
-#include <boost/python.hpp>
 #include <boost/signals2/signal.hpp>
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/Python.hpp"
+#include "Beam/Python/Function.hpp"
 
 namespace Beam {
 namespace Python {
@@ -11,7 +10,8 @@ namespace Details {
   template<typename... Args>
   struct SlotFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(PyCallable_Check(object)) {
+      if(boost::python::extract<std::function<void (Args...)>>{
+          object}.check()) {
         return object;
       }
       return nullptr;
@@ -20,17 +20,13 @@ namespace Details {
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       using Slot = typename boost::signals2::signal<void (Args...)>::slot_type;
+      using Function = std::function<void (Args...)>;
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<Slot>*>(data)->storage.bytes;
-      boost::python::handle<> handle{boost::python::borrowed(object)};
+      auto function = boost::python::extract<std::function<void (Args...)>>{
+        object}();
       boost::python::object slot{handle};
-      new(storage) Slot{
-        [=] (Args&&... args) {
-          GilLock gil;
-          boost::lock_guard<GilLock> lock{gil};
-          slot(std::forward<Args>(args)...);
-        }
-      };
+      new(storage) Slot{std::move(function)};
       data->convertible = storage;
     }
   };
@@ -57,6 +53,8 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
+    ExportFunction<std::function<void (Args...)>>(
+      (std::string{name} + "Function").c_str());
     boost::python::converter::registry::push_back(
       &Details::SlotFromPythonConverter<Args...>::convertible,
       &Details::SlotFromPythonConverter<Args...>::construct,

@@ -13,7 +13,7 @@ namespace Beam {
    */
   class TaskQueue : public AbstractQueue<std::function<void ()>> {
     public:
-      typedef QueueReader<std::function<void ()>>::Target Target;
+      using Target = QueueReader<std::function<void ()>>::Target;
 
       //! Constructs a TaskQueue.
       TaskQueue() = default;

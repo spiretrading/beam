@@ -1,5 +1,4 @@
 #include "Beam/Python/SignalsSlots.hpp"
-#include <boost/python.hpp>
 #include <boost/signals2/connection.hpp>
 
 using namespace Beam;

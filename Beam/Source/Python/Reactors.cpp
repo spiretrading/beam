@@ -551,8 +551,8 @@ void Beam::Python::ExportReactors() {
     "ReactorUnavailableException")
     .def(init<>())
     .def(init<const string&>());
-  ExportRef<RefType<Trigger>>("TriggerRef");
-  ExportRef<RefType<Reactor<object>>>("PythonReactorRef");
+  ExportRef<Trigger>("TriggerRef");
+  ExportRef<Reactor<object>>("PythonReactorRef");
 }
 
 void Beam::Python::ExportStaticReactor() {

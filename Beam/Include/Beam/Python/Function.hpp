@@ -3,6 +3,7 @@
 #include <functional>
 #include <boost/python.hpp>
 #include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/NoThrowFunction.hpp"
 #include "Beam/Python/Python.hpp"
 #include "Beam/Python/SharedObject.hpp"
 
@@ -16,8 +17,17 @@ namespace Details {
   struct FunctionToPython<std::function<R (Args...)>> {
     static PyObject* convert(const std::function<R (Args...)>& f) {
       using signature = boost::mpl::vector<R, Args...>;
-      return boost::python::make_function(f,
-        boost::python::default_call_policies(), signature()).ptr();
+      return boost::python::incref(boost::python::make_function(f,
+        boost::python::default_call_policies(), signature()).ptr());
+    }
+  };
+
+  template<typename R, typename... Args>
+  struct FunctionToPython<NoThrowFunction<R, Args...>> {
+    static PyObject* convert(const NoThrowFunction<R, Args...>& f) {
+      using signature = boost::mpl::vector<R, Args...>;
+      return boost::python::incref(boost::python::make_function(f,
+        boost::python::default_call_policies(), signature()).ptr());
     }
   };
 
@@ -44,7 +54,7 @@ namespace Details {
         [f = SharedObject{std::move(f)}] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
-          return static_cast<R>(boost::python::extract<R>((*f)(args...)));
+          return boost::python::extract<R>((*f)(args...))();
         }
       };
       data->convertible = storage;
@@ -68,13 +78,54 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<
         std::function<void (Args...)>>*>(data)->storage.bytes;
       new(storage) std::function<void (Args...)>{
-        [f = std::shared_ptr<boost::python::object>{
-            new boost::python::object{f}, ObjectDeleter{}}] (Args... args) {
+        [f = SharedObject{std::move(f)}] (Args... args) {
           GilLock gil;
           boost::lock_guard<GilLock> lock{gil};
           (*f)(args...);
         }
       };
+      data->convertible = storage;
+    }
+  };
+
+  template<typename R, typename... Args>
+  struct FunctionFromPythonConverter<NoThrowFunction<R, Args...>> {
+    static void* convertible(PyObject* object) {
+      if(PyCallable_Check(object)) {
+        return object;
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      boost::python::handle<> handle{boost::python::borrowed(object)};
+      boost::python::object f{handle};
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        NoThrowFunction<R, Args...>>*>(data)->storage.bytes;
+      new(storage) NoThrowFunction<R, Args...>{std::move(f)};
+      data->convertible = storage;
+    }
+  };
+
+  template<typename... Args>
+  struct FunctionFromPythonConverter<NoThrowFunction<void, Args...>> {
+    static void* convertible(PyObject* object) {
+      if(PyCallable_Check(object)) {
+        return object;
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      boost::python::handle<> handle{boost::python::borrowed(object)};
+      boost::python::object f{handle};
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        NoThrowFunction<void, Args...>>*>(data)->storage.bytes;
+      new(storage) NoThrowFunction<void, Args...>{std::move(f)};
       data->convertible = storage;
     }
   };

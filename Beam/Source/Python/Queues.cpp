@@ -26,48 +26,64 @@ namespace {
 
   std::shared_ptr<QueueWriter<boost::python::object>> RoutineTaskQueueGetSlot(
       RoutineTaskQueue& queue,
-      const std::function<void (const boost::python::object&)>& slot) {
-    auto slotQueue = queue.GetSlot<ObjectParameter>(
-      [=] (const ObjectParameter& parameter) {
-        slot(parameter());
+      const NoThrowFunction<void, const boost::python::object&>& slot) {
+    auto slotQueue = queue.GetSlot<SharedObject>(
+      [=] (const SharedObject& p) {
+        slot(*p);
       });
     auto taskQueue = MakeToPythonQueueWriter(
-      std::static_pointer_cast<QueueWriter<ObjectParameter>>(slotQueue));
+      std::static_pointer_cast<QueueWriter<SharedObject>>(slotQueue));
     return MakeAliasQueue(std::static_pointer_cast<
       QueueWriter<boost::python::object>>(taskQueue), slotQueue);
   }
 
   std::shared_ptr<QueueWriter<boost::python::object>>
       RoutineTaskQueueGetBreakSlot(RoutineTaskQueue& queue,
-      const std::function<void (const boost::python::object&)>& slot,
-      const std::function<void (const std::exception_ptr&)>& breakSlot) {
-    auto slotQueue = queue.GetSlot<ObjectParameter>(
-      [=] (const ObjectParameter& parameter) {
-        slot(parameter());
+      const NoThrowFunction<void, const boost::python::object&>& slot,
+      const NoThrowFunction<void, const std::exception_ptr&>& breakSlot) {
+    auto slotQueue = queue.GetSlot<SharedObject>(
+      [=] (const SharedObject& p) {
+        slot(*p);
       }, breakSlot);
     auto taskQueue = MakeToPythonQueueWriter(
-      std::static_pointer_cast<QueueWriter<ObjectParameter>>(slotQueue));
+      std::static_pointer_cast<QueueWriter<SharedObject>>(slotQueue));
+    return MakeAliasQueue(std::static_pointer_cast<
+      QueueWriter<boost::python::object>>(taskQueue), slotQueue);
+  }
+
+  std::shared_ptr<QueueWriter<boost::python::object>> TaskQueueGetSlot(
+      TaskQueue& queue,
+      const NoThrowFunction<void, const boost::python::object&>& slot) {
+    auto slotQueue = queue.GetSlot<SharedObject>(
+      [=] (const SharedObject& p) {
+        slot(*p);
+      });
+    auto taskQueue = MakeToPythonQueueWriter(
+      std::static_pointer_cast<QueueWriter<SharedObject>>(slotQueue));
+    return MakeAliasQueue(std::static_pointer_cast<
+      QueueWriter<boost::python::object>>(taskQueue), slotQueue);
+  }
+
+  std::shared_ptr<QueueWriter<boost::python::object>>
+      TaskQueueGetBreakSlot(TaskQueue& queue,
+      const NoThrowFunction<void, const boost::python::object&>& slot,
+      const NoThrowFunction<void, const std::exception_ptr&>& breakSlot) {
+    auto slotQueue = queue.GetSlot<SharedObject>(
+      [=] (const SharedObject& p) {
+        slot(*p);
+      }, breakSlot);
+    auto taskQueue = MakeToPythonQueueWriter(
+      std::static_pointer_cast<QueueWriter<SharedObject>>(slotQueue));
     return MakeAliasQueue(std::static_pointer_cast<
       QueueWriter<boost::python::object>>(taskQueue), slotQueue);
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(AbstractQueue<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Python::Details::AbstractQueueWrapper<AbstractQueue<object>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseQueue);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Queue<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueReader<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Python::Details::QueueReaderWrapper<QueueReader<object>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueWriter<std::function<void ()>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Python::Details::QueueWriterWrapper<QueueWriter<std::function<void ()>>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueWriter<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Python::Details::QueueWriterWrapper<QueueWriter<object>>);
+BEAM_DEFINE_PYTHON_QUEUE_LINKER(object);
+BEAM_DEFINE_PYTHON_QUEUE_LINKER(std::function<void ()>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(RoutineTaskQueue);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonAbstractQueue<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(TaskQueue);
 
 void Beam::Python::ExportBasePublisher() {
   class_<BasePublisher, noncopyable>("BasePublisher", no_init);
@@ -88,6 +104,7 @@ void Beam::Python::ExportQueues() {
   ExportBaseSnapshotPublisher();
   ExportBaseQueue();
   ExportQueueSuite<boost::python::object>("");
+  ExportQueueSuite<std::function<void ()>>("VoidFunction");
   ExportRoutineTaskQueue();
   ExportTaskQueue();
   def("flush", &FlushPythonQueue);
@@ -98,7 +115,6 @@ void Beam::Python::ExportQueues() {
 }
 
 void Beam::Python::ExportRoutineTaskQueue() {
-  ExportQueueWriter<QueueWriter<std::function<void ()>>>("FunctionQueueWriter");
   class_<RoutineTaskQueue, std::shared_ptr<RoutineTaskQueue>, noncopyable,
     bases<QueueWriter<std::function<void ()>>>>("RoutineTaskQueue", init<>())
     .def("get_slot", &RoutineTaskQueueGetSlot)
@@ -111,14 +127,18 @@ void Beam::Python::ExportRoutineTaskQueue() {
 }
 
 void Beam::Python::ExportTaskQueue() {
-/*
-  class_<PythonTaskQueue, std::shared_ptr<PythonTaskQueue>, noncopyable,
-    bases<QueueWriter<object>>>("TaskQueue", init<>())
-    .def("get_slot", &PythonTaskQueue::GetSlot);
-  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
-    std::shared_ptr<QueueWriter<object>>>();
-  implicitly_convertible<std::shared_ptr<PythonTaskQueue>,
+  class_<TaskQueue, std::shared_ptr<TaskQueue>, noncopyable,
+    bases<AbstractQueue<std::function<void ()>>>>("TaskQueue", init<>())
+    .def("get_slot", &TaskQueueGetSlot)
+    .def("get_slot", &TaskQueueGetBreakSlot)
+    .def("wait", BlockingFunction(&TaskQueue::Wait));
+  implicitly_convertible<std::shared_ptr<TaskQueue>,
+    std::shared_ptr<QueueReader<std::function<void ()>>>>();
+  implicitly_convertible<std::shared_ptr<TaskQueue>,
+    std::shared_ptr<QueueWriter<std::function<void ()>>>>();
+  implicitly_convertible<std::shared_ptr<TaskQueue>,
+    std::shared_ptr<AbstractQueue<std::function<void ()>>>>();
+  implicitly_convertible<std::shared_ptr<TaskQueue>,
     std::shared_ptr<BaseQueue>>();
-  def("handle_tasks", &HandlePythonTasks);
-*/
+  def("handle_tasks", &HandleTasks);
 }

@@ -104,20 +104,15 @@ namespace Details {
           return std::static_pointer_cast<QueueReader<boost::python::object>>(
             MakeToPythonQueueReader(queue));
         }();
-      boost::python::object value{pythonQueue};
-      boost::python::incref(value.ptr());
-      return value.ptr();
+      return boost::python::incref(boost::python::object{pythonQueue}.ptr());
     }
   };
 
   template<typename T>
   struct QueueReaderFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object queue{handle};
-      boost::python::extract<std::shared_ptr<
-        QueueReader<boost::python::object>>> extractor{queue};
-      if(extractor.check()) {
+      if(boost::python::extract<std::shared_ptr<
+          QueueReader<boost::python::object>>>{object}.check()) {
         return object;
       }
       return nullptr;
@@ -125,20 +120,17 @@ namespace Details {
 
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object value{handle};
-      std::shared_ptr<QueueReader<boost::python::object>> queue =
-        boost::python::extract<std::shared_ptr<
-        QueueReader<boost::python::object>>>(value);
+      auto queue = boost::python::extract<std::shared_ptr<
+        QueueReader<boost::python::object>>>{object}();
       auto storage = reinterpret_cast<
         boost::python::converter::rvalue_from_python_storage<
         std::shared_ptr<QueueReader<T>>>*>(data)->storage.bytes;
-      if(auto wrapperQueue = std::dynamic_pointer_cast<
-          ToPythonQueueReader<T>>(queue)) {
+      if(auto wrapperQueue = std::dynamic_pointer_cast<ToPythonQueueReader<T>>(
+          queue)) {
         new(storage) std::shared_ptr<QueueReader<T>>{wrapperQueue->GetSource()};
       } else {
         new(storage) std::shared_ptr<QueueReader<T>>{
-          std::make_shared<FromPythonQueueReader<T>>(queue)};
+          std::make_shared<FromPythonQueueReader<T>>(std::move(queue))};
       }
       data->convertible = storage;
     }
@@ -156,20 +148,15 @@ namespace Details {
           return std::static_pointer_cast<QueueWriter<boost::python::object>>(
             MakeToPythonQueueWriter(queue));
         }();
-      boost::python::object value{pythonQueue};
-      boost::python::incref(value.ptr());
-      return value.ptr();
+      return boost::python::incref(boost::python::object{pythonQueue}.ptr());
     }
   };
 
   template<typename T>
   struct QueueWriterFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object queue{handle};
-      boost::python::extract<std::shared_ptr<
-        QueueWriter<boost::python::object>>> extractor{queue};
-      if(extractor.check()) {
+      if(boost::python::extract<std::shared_ptr<
+          QueueWriter<boost::python::object>>>{object}.check()) {
         return object;
       }
       return nullptr;
@@ -177,16 +164,13 @@ namespace Details {
 
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object value{handle};
-      std::shared_ptr<QueueWriter<boost::python::object>> queue =
-        boost::python::extract<std::shared_ptr<
-        QueueWriter<boost::python::object>>>(value);
+      auto queue = boost::python::extract<std::shared_ptr<
+        QueueWriter<boost::python::object>>>{object}();
       auto storage = reinterpret_cast<
         boost::python::converter::rvalue_from_python_storage<
         std::shared_ptr<QueueWriter<T>>>*>(data)->storage.bytes;
-      if(auto wrapperQueue = std::dynamic_pointer_cast<
-          ToPythonQueueWriter<T>>(queue)) {
+      if(auto wrapperQueue = std::dynamic_pointer_cast<ToPythonQueueWriter<T>>(
+          queue)) {
         auto target = wrapperQueue->GetTarget();
         if(target != nullptr) {
           new(storage) std::shared_ptr<QueueWriter<T>>{std::move(target)};
@@ -214,20 +198,15 @@ namespace Details {
           return std::static_pointer_cast<AbstractQueue<boost::python::object>>(
             MakeToPythonAbstractQueue(queue));
         }();
-      boost::python::object value{pythonQueue};
-      boost::python::incref(value.ptr());
-      return value.ptr();
+      return boost::python::incref(boost::python::object{pythonQueue}.ptr());
     }
   };
 
   template<typename T>
   struct AbstractQueueFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object queue{handle};
-      boost::python::extract<std::shared_ptr<
-        AbstractQueue<boost::python::object>>> extractor{queue};
-      if(extractor.check()) {
+      if(boost::python::extract<std::shared_ptr<
+          AbstractQueue<boost::python::object>>>{object}.check()) {
         return object;
       }
       return nullptr;
@@ -235,11 +214,8 @@ namespace Details {
 
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object value{handle};
-      std::shared_ptr<AbstractQueue<boost::python::object>> queue =
-        boost::python::extract<std::shared_ptr<
-        AbstractQueue<boost::python::object>>>(value);
+      auto queue = boost::python::extract<std::shared_ptr<
+        AbstractQueue<boost::python::object>>>{object}();
       auto storage = reinterpret_cast<
         boost::python::converter::rvalue_from_python_storage<
         std::shared_ptr<AbstractQueue<T>>>*>(data)->storage.bytes;

@@ -54,7 +54,7 @@ namespace Details {
       }
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<V>*>(m_data)->storage.bytes;
-      new(storage) V(static_cast<T>(extractor));
+      new(storage) V(extractor());
       m_data->convertible = storage;
     }
   };

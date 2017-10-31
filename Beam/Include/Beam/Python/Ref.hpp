@@ -10,10 +10,7 @@ namespace Details {
   template<typename T>
   struct RefFromPythonConverter {
     static void* convertible(PyObject* object) {
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object ref{handle};
-      boost::python::extract<typename T::Type*> extractor{ref};
-      if(extractor.check()) {
+      if(boost::python::extract<T*>{object}.check()) {
         return object;
       }
       return nullptr;
@@ -22,10 +19,8 @@ namespace Details {
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto storage = reinterpret_cast<boost::python::converter::
-        rvalue_from_python_storage<typename T::Type>*>(data)->storage.bytes;
-      boost::python::handle<> handle{boost::python::borrowed(object)};
-      boost::python::object ref{handle};
-      new(storage) T(Ref(*boost::python::extract<typename T::Type*>(ref)));
+        rvalue_from_python_storage<RefType<T>>*>(data)->storage.bytes;
+      new(storage) RefType<T>{Ref(*boost::python::extract<T*>{object}())};
       data->convertible = storage;
     }
   };
@@ -37,7 +32,7 @@ namespace Details {
   */
   template<typename T>
   void ExportRef(const char* name) {
-    auto typeId = boost::python::type_id<T>();
+    auto typeId = boost::python::type_id<RefType<T>>();
     auto registration = boost::python::converter::registry::query(typeId);
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
@@ -45,7 +40,7 @@ namespace Details {
     boost::python::converter::registry::push_back(
       &Details::RefFromPythonConverter<T>::convertible,
       &Details::RefFromPythonConverter<T>::construct,
-      boost::python::type_id<T>());
+      boost::python::type_id<RefType<T>>());
   }
 }
 }

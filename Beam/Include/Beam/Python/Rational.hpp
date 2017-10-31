@@ -7,7 +7,7 @@
 namespace Beam {
 namespace Python {
 namespace Details {
-  boost::python::object PyFraction() {
+  inline auto PyFraction() {
     static boost::python::object fraction =
       boost::python::import("fractions").attr("Fraction");
     return fraction;

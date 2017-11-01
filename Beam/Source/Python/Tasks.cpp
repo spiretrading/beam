@@ -13,11 +13,11 @@
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Exception.hpp"
+#include "Beam/Python/FromPythonReactor.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonPackagedTask.hpp"
 #include "Beam/Python/PythonTaskFactory.hpp"
-#include "Beam/Python/PythonWrapperReactor.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Vector.hpp"
 
@@ -217,7 +217,7 @@ namespace {
   auto MakePythonReactorProperty(const std::string& name,
       const std::shared_ptr<Reactor<boost::python::object>>& reactor) {
     return TypedReactorProperty<object>(name,
-      MakePythonWrapperReactor(MakeNonRepeatingReactor(reactor)));
+      MakeFromPythonReactor<object>(MakeNonRepeatingReactor(reactor)));
   }
 }
 

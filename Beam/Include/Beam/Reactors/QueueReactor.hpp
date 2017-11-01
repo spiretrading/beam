@@ -31,7 +31,7 @@ namespace Reactors {
       QueueReactor(std::shared_ptr<QueueReader<Type>> queue,
         RefType<Trigger> trigger);
 
-      ~QueueReactor();
+      virtual ~QueueReactor() override final;
 
       virtual bool IsComplete() const override final;
 

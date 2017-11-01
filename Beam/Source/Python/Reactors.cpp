@@ -2,8 +2,8 @@
 #include <boost/preprocessor/comma.hpp>
 #include "Beam/Python/BoostPython.hpp"
 #include "Beam/Python/Exception.hpp"
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/NoThrowFunction.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonFunctionReactor.hpp"
 #include "Beam/Python/Ref.hpp"
@@ -78,8 +78,8 @@ namespace {
       for(std::size_t i = 0; i < parameters.size(); ++i) {
         PyTuple_SET_ITEM(t, i, parameters[i].ptr());
       }
-      boost::python::object parameterTuple{boost::python::handle<>(
-        boost::python::borrowed(t))};
+      boost::python::object parameterTuple{boost::python::handle<>{
+        boost::python::borrowed(t)}};
       auto rawResult = PyObject_Call(m_callable.ptr(), parameterTuple.ptr(),
         kw.ptr());
       if(rawResult == nullptr) {
@@ -87,20 +87,19 @@ namespace {
         PyErr_Clear();
         return boost::python::object{};
       }
-      boost::python::object result{boost::python::handle<>(
-        boost::python::borrowed(rawResult))};
+      boost::python::object result{boost::python::handle<>{
+        boost::python::borrowed(rawResult)}};
       return result;
     }
   };
 
-  boost::python::object ApplyFunctionReactor(const boost::python::tuple& args,
+  auto ApplyFunctionReactor(const boost::python::tuple& args,
       const boost::python::dict& kw) {
-    boost::python::object callable = args[0];
-    boost::python::tuple parameters = boost::python::tuple(
-      args.slice(1, boost::python::_));
+    auto& callable = args[0];
+    auto parameters = boost::python::tuple{args.slice(1, boost::python::_)};
     return boost::python::object{std::static_pointer_cast<PythonReactor>(
-      std::make_shared<PythonFunctionReactor>(
-      raw_function(ApplyFunction{callable}), parameters, kw))};
+      std::make_shared<PythonFunctionReactor>(raw_function(
+      ApplyFunction{callable}), parameters, kw))};
   }
 
   auto MakePythonAggregateReactor(
@@ -109,52 +108,39 @@ namespace {
       MakeAggregateReactor(std::move(reactor)));
   }
 
-  auto MakePythonAlarmReactor(const object& timerFactory,
+  auto MakePythonAlarmReactor(const NoThrowFunction<
+      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
       VirtualTimeClient* timeClient,
-      const std::shared_ptr<Reactor<ptime>>& expiryReactor,
-      Trigger& trigger) {
-    auto pythonTimerFactory =
-      [=] (const time_duration& duration) {
-        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
-        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
-      };
-    return std::static_pointer_cast<Reactor<bool>>(
-      MakeAlarmReactor(pythonTimerFactory, timeClient, expiryReactor,
-      Ref(trigger)));
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor, Trigger& trigger) {
+    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
+      timerFactory, timeClient, expiryReactor, Ref(trigger)));
   }
 
   auto MakePythonDefaultAlarmReactor(
       const std::shared_ptr<Reactor<ptime>>& expiryReactor, Trigger& trigger) {
-    auto pythonTimerFactory =
-      [=] (const time_duration& duration) {
-        auto timer = std::make_unique<LiveTimer>(duration,
+    auto timerFactory =
+      [] (const time_duration& duration) {
+        return std::make_unique<LiveTimer>(duration,
           Ref(*GetTimerThreadPool()));
-        return timer;
       };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      pythonTimerFactory, std::make_shared<LocalTimeClient>(), expiryReactor,
+      timerFactory, std::make_shared<LocalTimeClient>(), expiryReactor,
       Ref(trigger)));
   }
 
-  auto MakeConstantPythonAlarmReactor(const object& timerFactory,
+  auto MakeConstantPythonAlarmReactor(const NoThrowFunction<
+      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
       VirtualTimeClient* timeClient, const ptime& expiry, Trigger& trigger) {
-    auto pythonTimerFactory =
-      [=] (const time_duration& duration) {
-        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
-        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
-      };
-    return std::static_pointer_cast<Reactor<bool>>(
-      MakeAlarmReactor(pythonTimerFactory, timeClient,
-      MakeConstantReactor(expiry), Ref(trigger)));
+    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
+      timerFactory, timeClient, MakeConstantReactor(expiry), Ref(trigger)));
   }
 
   auto MakeConstantPythonDefaultAlarmReactor(const ptime& expiry,
       Trigger& trigger) {
     auto pythonTimerFactory =
-      [=] (const time_duration& duration) {
-        auto timer = std::make_unique<LiveTimer>(duration,
+      [] (const time_duration& duration) {
+        return std::make_unique<LiveTimer>(duration,
           Ref(*GetTimerThreadPool()));
-        return timer;
       };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
       pythonTimerFactory, std::make_shared<LocalTimeClient>(),
@@ -172,46 +158,36 @@ namespace {
     return std::static_pointer_cast<PythonReactor>(MakeConstantReactor(value));
   }
 
-  std::shared_ptr<PythonReactor> MakePythonDoReactor(const object& callable,
+  auto MakePythonDoReactor(
+      const NoThrowFunction<void, const Expect<object>&>& callback,
       const std::shared_ptr<PythonReactor>& reactor) {
-    return Do(
-      [=] (const Expect<object>& value) {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        try {
-          callable(value);
-        } catch(const boost::python::error_already_set&) {
-          PrintError();
-        }
-      }, reactor);
+    return std::static_pointer_cast<PythonReactor>(Do(callback, reactor));
   }
 
   auto MakePythonFilterReactor(std::shared_ptr<Reactor<bool>> filter,
       std::shared_ptr<PythonReactor> source) {
     return std::static_pointer_cast<PythonReactor>(
-      MakeFilterReactor(filter, source));
+      MakeFilterReactor(std::move(filter), std::move(source)));
   }
 
   auto MakePythonFoldReactor(const boost::python::object& f,
       const std::shared_ptr<PythonReactor>& source) {
     auto leftOperand = MakeFoldParameterReactor<object>();
     auto rightOperand = MakeFoldParameterReactor<object>();
-    std::shared_ptr<PythonReactor> fold =
-      boost::python::extract<std::shared_ptr<PythonReactor>>(
-      ApplyFunctionReactor(boost::python::make_tuple(f,
+    auto fold = extract<std::shared_ptr<PythonReactor>>{ApplyFunctionReactor(
+      boost::python::make_tuple(f,
       std::static_pointer_cast<PythonReactor>(leftOperand),
       std::static_pointer_cast<PythonReactor>(rightOperand)),
-      boost::python::dict{}));
-    return std::static_pointer_cast<PythonReactor>(
-      MakeFoldReactor(source, fold, leftOperand, rightOperand));
+      boost::python::dict{})}();
+    return std::static_pointer_cast<PythonReactor>(MakeFoldReactor(source, fold,
+      leftOperand, rightOperand));
   }
 
   boost::python::object MakePythonFunctionReactor(
       const boost::python::tuple& args, const boost::python::dict& kw) {
-    boost::python::object self = args[0];
-    boost::python::object callable = args[1];
-    boost::python::tuple a = boost::python::tuple(
-      args.slice(2, boost::python::_));
+    auto& self = args[0];
+    auto& callable = args[1];
+    auto a = boost::python::tuple{args.slice(2, boost::python::_)};
     return self.attr("__init__")(callable, a, kw);
   }
 
@@ -220,14 +196,21 @@ namespace {
       std::shared_ptr<NoneReactor<object>>());
   }
 
-  std::shared_ptr<PythonReactor> MakePythonNonRepeatingReactor(
+  auto MakePythonPublisherReactor(const Publisher<object>& publisher,
+      RefType<Trigger> trigger) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakePublisherReactor(publisher, Ref(trigger)));
+  }
+
+  auto MakePythonNonRepeatingReactor(
       const std::shared_ptr<PythonReactor>& reactor) {
-    return MakeNonRepeatingReactor(reactor);
+    return std::static_pointer_cast<PythonReactor>(
+      MakeNonRepeatingReactor(reactor));
   }
 
   auto MakePythonRangeReactor(const boost::python::object& lower,
       const boost::python::object& upper, RefType<Trigger> trigger) {
-    return MakePythonWrapperReactor(MakeRangeReactor(
+    return std::static_pointer_cast<PythonReactor>(MakeRangeReactor(
       MakePythonConstantReactor(lower), MakePythonConstantReactor(upper),
       Ref(trigger)));
   }
@@ -247,47 +230,45 @@ namespace {
     return std::static_pointer_cast<PythonReactor>(MakeThrowReactor<object>(e));
   }
 
-  auto MakePythonTimerReactor(const object& timerFactory,
+  auto MakePythonTimerReactor(const NoThrowFunction<
+      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
       const std::shared_ptr<Reactor<time_duration>>& periodReactor,
-      Trigger* trigger) {
-    auto pythonTimerFactory =
-      [=] (const time_duration& duration) {
-        VirtualTimer* result = extract<VirtualTimer*>(timerFactory(duration));
-        return MakeVirtualTimer<VirtualTimer*>(std::move(result));
-      };
-    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
-      periodReactor, Ref(*trigger));
+      Trigger& trigger) {
+    return MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
+      Ref(trigger));
   }
 
   auto MakePythonDefaultTimerReactor(
       const std::shared_ptr<Reactor<time_duration>>& periodReactor,
-      Trigger* trigger) {
-    auto pythonTimerFactory =
+      Trigger& trigger) {
+    auto timerFactory =
       [=] (const time_duration& duration) {
-        auto timer = std::make_unique<LiveTimer>(duration,
+        return std::make_unique<LiveTimer>(duration,
           Ref(*GetTimerThreadPool()));
-        return timer;
       };
-    return MakeTimerReactor<std::int64_t>(pythonTimerFactory,
-      periodReactor, Ref(*trigger));
+    return MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
+      Ref(trigger));
   }
 
-  void ReactorMonitorDo(ReactorMonitor* monitor, const object& callable) {
-    monitor->Do(
-      [=] {
-        GilLock gil;
-        boost::lock_guard<GilLock> lock{gil};
-        try {
-          callable();
-        } catch(const boost::python::error_already_set&) {
-          PrintError();
-        }
-      });
+  auto MakeWhenCompleteReactor(const NoThrowFunction<void>& callback,
+      std::shared_ptr<PythonReactor> reactor) {
+    return std::static_pointer_cast<PythonReactor>(
+      WhenComplete(callback, std::move(reactor)));
   }
 
-  int TriggerSignalUpdate(Trigger* trigger) {
+  void ReactorMonitorAdd(ReactorMonitor& monitor,
+      std::shared_ptr<BaseReactor> reactor) {
+    monitor.Add(MakeFromPythonReactor(std::move(reactor)));
+  }
+
+  void ReactorMonitorDo(ReactorMonitor& monitor,
+      const NoThrowFunction<void>& f) {
+    monitor.Do(f);
+  }
+
+  int TriggerSignalUpdate(Trigger& trigger) {
     int sequenceNumber;
-    trigger->SignalUpdate(Store(sequenceNumber));
+    trigger.SignalUpdate(Store(sequenceNumber));
     return sequenceNumber;
   }
 }
@@ -332,6 +313,8 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
 BEAM_DEFINE_PYTHON_POINTER_LINKER(SwitchReactor<
   std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ThrowReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(WhenCompleteReactor<
+  NoThrowFunction<void> BOOST_PP_COMMA() std::shared_ptr<PythonReactor>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(std::type_info);
 
 void Beam::Python::ExportAggregateReactor() {
@@ -370,7 +353,9 @@ void Beam::Python::ExportBasicReactor() {
     std::shared_ptr<ExportedReactor>>("BasicReactor", init<RefType<Trigger>>())
     .def("update", &ExportedReactor::Update)
     .def("set_complete", static_cast<void (ExportedReactor::*)()>(
-    &ExportedReactor::SetComplete));
+    &ExportedReactor::SetComplete))
+    .def("set_complete", static_cast<void (ExportedReactor::*)(
+    std::exception_ptr)>(&ExportedReactor::SetComplete));
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
@@ -398,8 +383,8 @@ void Beam::Python::ExportDoReactor() {
 void Beam::Python::ExportExpressionReactors() {
   auto e = &Reactors::Equal<object, object>;
   auto ne = &Reactors::NotEqual<object, object>;
-  def("equals", PythonWrapReactor(e));
-  def("not_equals", PythonWrapReactor(ne));
+  def("equals", e);
+  def("not_equals", ne);
 }
 
 void Beam::Python::ExportFilterReactor() {
@@ -434,6 +419,8 @@ void Beam::Python::ExportFoldReactor() {
 }
 
 void Beam::Python::ExportFunctionReactor() {
+   ExportFunction<NoThrowFunction<void, const Expect<object>&>>(
+    "VoidNoThrowExpectObjectFunction");
   class_<PythonFunctionReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<PythonFunctionReactor>>("FunctionReactor", no_init)
     .def("__init__", raw_function(&MakePythonFunctionReactor, 1))
@@ -474,7 +461,10 @@ void Beam::Python::ExportProxyReactor() {
     std::shared_ptr<BaseReactor>>();
 }
 
-void Beam::Python::ExportPublisherReactor() {}
+void Beam::Python::ExportPublisherReactor() {
+  def("PublisherReactor", &MakePythonPublisherReactor);
+  def("publisher", &MakePythonPublisherReactor);
+}
 
 void Beam::Python::ExportPythonConstantReactor() {
   class_<ConstantReactor<object>, bases<PythonReactor>, boost::noncopyable,
@@ -487,7 +477,10 @@ void Beam::Python::ExportPythonConstantReactor() {
   def("constant", &MakePythonConstantReactor);
 }
 
-void Beam::Python::ExportQueueReactor() {}
+void Beam::Python::ExportQueueReactor() {
+
+  // TODO
+}
 
 void Beam::Python::ExportRangeReactor() {
   def("RangeReactor", &MakePythonRangeReactor);
@@ -499,7 +492,7 @@ void Beam::Python::ExportReactorMonitor() {
     .add_property("trigger", make_function(
       static_cast<Trigger& (ReactorMonitor::*)()>(&ReactorMonitor::GetTrigger),
       return_internal_reference<>()))
-    .def("add", &ReactorMonitor::Add)
+    .def("add", &ReactorMonitorAdd)
     .def("do", &ReactorMonitorDo)
     .def("open", BlockingFunction(&ReactorMonitor::Open))
     .def("close", BlockingFunction(&ReactorMonitor::Close));
@@ -585,6 +578,8 @@ void Beam::Python::ExportThrowReactor() {
 }
 
 void Beam::Python::ExportTimerReactor() {
+  ExportFunction<NoThrowFunction<std::unique_ptr<VirtualTimer>,
+    const time_duration&>>("TimerNoThrowTimeDurationFunction");
   def("TimerReactor", &MakePythonTimerReactor);
   def("TimerReactor", &MakePythonDefaultTimerReactor);
   def("timer", &MakePythonTimerReactor);
@@ -598,4 +593,16 @@ void Beam::Python::ExportTrigger() {
       &Trigger::GetSequenceNumberPublisher, return_internal_reference<>()));
 }
 
-void Beam::Python::ExportWhenCompleteReactor() {}
+void Beam::Python::ExportWhenCompleteReactor() {
+  using Callback = NoThrowFunction<void>;
+  using ExportedReactor = WhenCompleteReactor<Callback,
+    std::shared_ptr<PythonReactor>>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("WhenCompleteReactor",
+    init<const Callback&, std::shared_ptr<PythonReactor>>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+  def("when_complete", &MakeWhenCompleteReactor);
+}

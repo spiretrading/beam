@@ -7,6 +7,21 @@
 
 namespace Beam {
 namespace Python {
+namespace Details {
+  template<typename T>
+  struct Extract {
+    T operator ()(const boost::python::object& result) const {
+      return boost::python::extract<T>{result}();
+    }
+  };
+
+  template<typename T>
+  struct Extract<std::unique_ptr<T>> {
+    std::unique_ptr<T> operator ()(const boost::python::object& result) const {
+      return std::unique_ptr<T>{boost::python::extract<T*>{result}()};
+    }
+  };
+}
 
   /*! \class NoThrowFunction
       \brief Wraps a function to report any Python error.
@@ -32,8 +47,7 @@ namespace Python {
         GilLock gil;
         boost::lock_guard<GilLock> lock{gil};
         try {
-          return boost::python::extract<R>{
-            (*m_function)(std::forward<P>(p)...)}();
+          return Details::Extract<R>{}((*m_function)(std::forward<P>(p)...));
         } catch(const boost::python::error_already_set&) {
           PrintError();
           throw;

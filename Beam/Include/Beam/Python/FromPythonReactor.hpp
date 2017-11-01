@@ -37,6 +37,25 @@ namespace Reactors {
       std::shared_ptr<Reactor<boost::python::object>> m_reactor;
   };
 
+  template<>
+  class FromPythonReactor<void> : public Reactor<void> {
+    public:
+      FromPythonReactor(std::shared_ptr<BaseReactor> reactor);
+
+      virtual ~FromPythonReactor() override final;
+
+      const std::shared_ptr<BaseReactor>& GetReactor() const;
+
+      virtual bool IsComplete() const override final;
+
+      virtual BaseReactor::Update Commit(int sequenceNumber) override final;
+
+      virtual void Eval() const override final;
+
+    private:
+      std::shared_ptr<BaseReactor> m_reactor;
+  };
+
   //! Makes a FromPythonReactor.
   /*!
     \param reactor The Python Reactor to wrap.
@@ -47,6 +66,14 @@ namespace Reactors {
     return std::make_shared<FromPythonReactor<T>>(std::move(reactor));
   }
 
+  inline auto MakeFromPythonReactor(std::shared_ptr<BaseReactor> reactor) {
+    return std::make_shared<FromPythonReactor<void>>(std::move(reactor));
+  }
+
+  inline auto MakeFromPythonReactor(std::shared_ptr<Reactor<void>> reactor) {
+    return std::make_shared<FromPythonReactor<void>>(std::move(reactor));
+  }
+
   template<typename T>
   FromPythonReactor<T>::FromPythonReactor(
       std::shared_ptr<Reactor<boost::python::object>> reactor)
@@ -54,8 +81,8 @@ namespace Reactors {
 
   template<typename T>
   FromPythonReactor<T>::~FromPythonReactor() {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     m_reactor.reset();
   }
 
@@ -67,24 +94,54 @@ namespace Reactors {
 
   template<typename T>
   bool FromPythonReactor<T>::IsComplete() const {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     return m_reactor->IsComplete();
   }
 
   template<typename T>
   BaseReactor::Update FromPythonReactor<T>::Commit(int sequenceNumber) {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     return m_reactor->Commit(sequenceNumber);
   }
 
   template<typename T>
   typename FromPythonReactor<T>::Type FromPythonReactor<T>::Eval() const {
-    GilLock gil;
-    boost::lock_guard<GilLock> lock{gil};
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
     return boost::python::extract<Type>{m_reactor->Eval()}();
   }
+
+  inline FromPythonReactor<void>::FromPythonReactor(
+      std::shared_ptr<BaseReactor> reactor)
+      : m_reactor{std::move(reactor)} {}
+
+  inline FromPythonReactor<void>::~FromPythonReactor() {
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
+    m_reactor.reset();
+  }
+
+  inline const std::shared_ptr<BaseReactor>& FromPythonReactor<void>::
+      GetReactor() const {
+    return m_reactor;
+  }
+
+  inline bool FromPythonReactor<void>::IsComplete() const {
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
+    return m_reactor->IsComplete();
+  }
+
+  inline BaseReactor::Update FromPythonReactor<void>::Commit(
+      int sequenceNumber) {
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
+    return m_reactor->Commit(sequenceNumber);
+  }
+
+  inline void FromPythonReactor<void>::Eval() const {}
 }
 }
 

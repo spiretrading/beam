@@ -41,7 +41,7 @@ namespace Details {
       auto pythonReactor =
         [&] {
           if(auto pythonReactor =
-              std::dynamic_pointer_cast<FromPythonReactorr<T>>(reactor)) {
+              std::dynamic_pointer_cast<FromPythonReactor<T>>(reactor)) {
             return pythonReactor->GetReactor();
           }
           return std::static_pointer_cast<
@@ -65,7 +65,7 @@ namespace Details {
     static void construct(PyObject* object,
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto reactor = boost::python::extract<std::shared_ptr<
-        Reactorr<boost::python::object>>>{object}();
+        Reactors::Reactor<boost::python::object>>>{object}();
       auto storage = reinterpret_cast<
         boost::python::converter::rvalue_from_python_storage<
         std::shared_ptr<Reactors::Reactor<T>>>*>(data)->storage.bytes;
@@ -183,23 +183,21 @@ namespace Details {
     boost::python::class_<Details::ReactorWrapper<T>,
       std::shared_ptr<Details::ReactorWrapper<T>>, boost::noncopyable,
       boost::python::bases<Reactors::BaseReactor>>(name, boost::python::no_init)
-      .def("is_complete", boost::python::pure_virtual(&T::IsComplete))
-      .def("commit", boost::python::pure_virtual(&T::Commit))
       .def("eval", boost::python::pure_virtual(&T::Eval))
-      .def("__add__", PythonWrapReactor(add))
-      .def("__sub__", PythonWrapReactor(sub))
-      .def("__mul__", PythonWrapReactor(mul))
-      .def("__truediv__", PythonWrapReactor(div))
-      .def("__lt__", PythonWrapReactor(lt))
-      .def("__le__", PythonWrapReactor(le))
-      .def("__ge__", PythonWrapReactor(ge))
-      .def("__gt__", PythonWrapReactor(gt));
+      .def("__add__", add)
+      .def("__sub__", sub)
+      .def("__mul__", mul)
+      .def("__truediv__", div)
+      .def("__lt__", lt)
+      .def("__le__", le)
+      .def("__ge__", ge)
+      .def("__gt__", gt);
     if(!std::is_same<T, PythonReactor>::value) {
       boost::python::to_python_converter<std::shared_ptr<T>,
-        Details::ReactorToPython<T>>();
+        Details::ReactorToPython<typename T::Type>>();
       boost::python::converter::registry::push_back(
-        &Details::ReactorFromPythonConverter<T>::convertible,
-        &Details::ReactorFromPythonConverter<T>::construct,
+        &Details::ReactorFromPythonConverter<typename T::Type>::convertible,
+        &Details::ReactorFromPythonConverter<typename T::Type>::construct,
         boost::python::type_id<std::shared_ptr<T>>());
     } else {
       boost::python::register_ptr_to_python<std::shared_ptr<T>>();

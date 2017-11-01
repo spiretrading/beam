@@ -19,12 +19,12 @@ namespace Reactors {
       /*!
         \param reactor The Python Reactor to wrap.
       */
-      ToPythonReactor(std::shared_ptr<Reactor<Type>> reactor);
+      ToPythonReactor(std::shared_ptr<Reactor<T>> reactor);
 
       virtual ~ToPythonReactor() override final;
 
       //! Returns the wrapped Reactor.
-      const std::shared_ptr<Reactor<Type>>& GetReactor() const;
+      const std::shared_ptr<Reactor<T>>& GetReactor() const;
 
       virtual bool IsComplete() const override final;
 
@@ -33,7 +33,7 @@ namespace Reactors {
       virtual Type Eval() const override final;
 
     private:
-      std::shared_ptr<Reactor<Type>> m_reactor;
+      std::shared_ptr<Reactor<T>> m_reactor;
   };
 
   //! Makes a ToPythonReactor.
@@ -46,7 +46,7 @@ namespace Reactors {
   }
 
   template<typename T>
-  ToPythonReactor<T>::ToPythonReactor(std::shared_ptr<Reactor<Type>> reactor)
+  ToPythonReactor<T>::ToPythonReactor(std::shared_ptr<Reactor<T>> reactor)
       : m_reactor{std::move(reactor)} {}
 
   template<typename T>
@@ -57,8 +57,7 @@ namespace Reactors {
   }
 
   template<typename T>
-  const std::shared_ptr<Reactor<typename ToPythonReactor<T>::Type>>&
-      ToPythonReactor<T>::GetReactor() const {
+  const std::shared_ptr<Reactor<T>>& ToPythonReactor<T>::GetReactor() const {
     return m_reactor;
   }
 

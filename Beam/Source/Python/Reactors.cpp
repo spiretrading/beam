@@ -53,7 +53,7 @@ using namespace std;
 namespace {
   struct BaseReactorWrapper : BaseReactor, wrapper<BaseReactor> {
     virtual bool IsComplete() const override final {
-      return this->get_override("is_complete");
+      return get_override("is_complete");
     }
 
     virtual const std::type_info& GetType() const override final {
@@ -61,7 +61,7 @@ namespace {
     }
 
     virtual Update Commit(int sequenceNumber) override final {
-      return this->get_override("commit")(sequenceNumber);
+      return get_override("commit")(sequenceNumber);
     }
   };
 

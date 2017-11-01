@@ -51,8 +51,8 @@ namespace Reactors {
 
   template<typename T>
   ToPythonReactor<T>::~ToPythonReactor() {
-    GilRelease gil;
-    boost::lock_guard<GilRelease> lock{gil};
+    Python::GilRelease gil;
+    boost::lock_guard<Python::GilRelease> lock{gil};
     m_reactor.reset();
   }
 
@@ -68,8 +68,8 @@ namespace Reactors {
 
   template<typename T>
   BaseReactor::Update ToPythonReactor<T>::Commit(int sequenceNumber) {
-    GilRelease gil;
-    boost::lock_guard<GilRelease> lock{gil};
+    Python::GilRelease gil;
+    boost::lock_guard<Python::GilRelease> lock{gil};
     return m_reactor->Commit(sequenceNumber);
   }
 

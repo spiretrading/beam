@@ -40,8 +40,8 @@ namespace Details {
         const std::shared_ptr<Reactors::Reactor<T>>& reactor) {
       auto pythonReactor =
         [&] {
-          if(auto pythonReactor =
-              std::dynamic_pointer_cast<FromPythonReactor<T>>(reactor)) {
+          if(auto pythonReactor = std::dynamic_pointer_cast<
+              Reactors::FromPythonReactor<T>>(reactor)) {
             return pythonReactor->GetReactor();
           }
           return std::static_pointer_cast<
@@ -69,8 +69,8 @@ namespace Details {
       auto storage = reinterpret_cast<
         boost::python::converter::rvalue_from_python_storage<
         std::shared_ptr<Reactors::Reactor<T>>>*>(data)->storage.bytes;
-      if(auto wrapperReactor =
-          std::dynamic_pointer_cast<Reactors::ToPythonReactor<T>>(reactor)) {
+      if(auto wrapperReactor = std::dynamic_pointer_cast<
+          Reactors::ToPythonReactor<T>>(reactor)) {
         new(storage) std::shared_ptr<Reactors::Reactor<T>>{
           wrapperReactor->GetReactor()};
       } else {

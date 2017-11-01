@@ -95,7 +95,7 @@ namespace {
 
   auto ApplyFunctionReactor(const boost::python::tuple& args,
       const boost::python::dict& kw) {
-    auto& callable = args[0];
+    auto callable = args[0];
     auto parameters = boost::python::tuple{args.slice(1, boost::python::_)};
     return boost::python::object{std::static_pointer_cast<PythonReactor>(
       std::make_shared<PythonFunctionReactor>(raw_function(
@@ -185,8 +185,8 @@ namespace {
 
   boost::python::object MakePythonFunctionReactor(
       const boost::python::tuple& args, const boost::python::dict& kw) {
-    auto& self = args[0];
-    auto& callable = args[1];
+    auto self = args[0];
+    auto callable = args[1];
     auto a = boost::python::tuple{args.slice(2, boost::python::_)};
     return self.attr("__init__")(callable, a, kw);
   }

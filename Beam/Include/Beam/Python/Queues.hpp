@@ -453,6 +453,32 @@ namespace Details {
       std::shared_ptr<BaseQueue>>();
   }
 
+  //! Exports the Queue class.
+  /*!
+    \param name The name to assign to the class.
+  */
+  template<>
+  inline void ExportQueue<Queue<boost::python::object>>(const char* name) {
+    using ExportedType = FromPythonAbstractQueue<boost::python::object>;
+    auto typeId = boost::python::type_id<ExportedType>();
+    auto registration = boost::python::converter::registry::query(typeId);
+    if(registration != nullptr && registration->m_to_python != nullptr) {
+      return;
+    }
+    boost::python::class_<ExportedType, std::shared_ptr<ExportedType>,
+      boost::noncopyable,
+      boost::python::bases<AbstractQueue<boost::python::object>>>(name,
+      boost::python::init<>());
+    boost::python::implicitly_convertible<std::shared_ptr<ExportedType>,
+      std::shared_ptr<QueueReader<boost::python::object>>>();
+    boost::python::implicitly_convertible<std::shared_ptr<ExportedType>,
+      std::shared_ptr<QueueWriter<boost::python::object>>>();
+    boost::python::implicitly_convertible<std::shared_ptr<ExportedType>,
+      std::shared_ptr<AbstractQueue<boost::python::object>>>();
+    boost::python::implicitly_convertible<std::shared_ptr<ExportedType>,
+      std::shared_ptr<BaseQueue>>();
+  }
+
   //! Exports a suite of queue classes.
   /*!
     \param baseName The name of the type to export.

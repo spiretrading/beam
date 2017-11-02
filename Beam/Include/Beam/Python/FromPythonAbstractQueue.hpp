@@ -4,6 +4,7 @@
 #include "Beam/Python/FromPythonQueueReader.hpp"
 #include "Beam/Python/FromPythonQueueWriter.hpp"
 #include "Beam/Queues/AbstractQueue.hpp"
+#include "Beam/Queues/Queue.hpp"
 
 namespace Beam {
 
@@ -19,6 +20,9 @@ namespace Beam {
       using Writer = typename AbstractQueue<T>::Writer;
       using Target = typename Reader::Target;
       using Source = typename Writer::Source;
+
+      //! Constructs a default FromPythonAbstractQueue.
+      FromPythonAbstractQueue();
 
       //! Constructs a FromPythonAbstractQueue.
       /*!
@@ -63,6 +67,11 @@ namespace Beam {
       std::shared_ptr<AbstractQueue<boost::python::object>> queue) {
     return std::make_shared<FromPythonAbstractQueue<T>>(std::move(queue));
   }
+
+  template<typename T>
+  FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
+      : FromPythonAbstractQueue{
+          std::make_shared<Queue<boost::python::object>>()} {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(

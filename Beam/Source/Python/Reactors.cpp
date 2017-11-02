@@ -202,10 +202,15 @@ namespace {
       MakePublisherReactor(publisher, Ref(trigger)));
   }
 
-  auto MakePythonNonRepeatingReactor(
-      const std::shared_ptr<PythonReactor>& reactor) {
+  auto MakePythonNonRepeatingReactor(std::shared_ptr<PythonReactor> reactor) {
     return std::static_pointer_cast<PythonReactor>(
-      MakeNonRepeatingReactor(reactor));
+      MakeNonRepeatingReactor(std::move(reactor)));
+  }
+
+  auto MakePythonQueueReactor(std::shared_ptr<QueueReader<object>> queue,
+      RefType<Trigger> trigger) {
+    return std::static_pointer_cast<PythonReactor>(MakeQueueReactor(queue,
+      Ref(trigger)));
   }
 
   auto MakePythonRangeReactor(const boost::python::object& lower,
@@ -293,6 +298,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ProxyReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonFunctionReactor);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<bool>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::int64_t>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<ptime>);
@@ -478,8 +484,15 @@ void Beam::Python::ExportPythonConstantReactor() {
 }
 
 void Beam::Python::ExportQueueReactor() {
-
-  // TODO
+  using ExportedReactor = QueueReactor<object>;
+  class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
+    std::shared_ptr<ExportedReactor>>("QueueReactor",
+    init<std::shared_ptr<QueueReader<object>>, RefType<Trigger>>());
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<PythonReactor>>();
+  implicitly_convertible<std::shared_ptr<ExportedReactor>,
+    std::shared_ptr<BaseReactor>>();
+  def("queue", &MakePythonQueueReactor);
 }
 
 void Beam::Python::ExportRangeReactor() {

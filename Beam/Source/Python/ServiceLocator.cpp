@@ -210,7 +210,8 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualServiceLocatorClient);
 
 void Beam::Python::ExportApplicationServiceLocatorClient() {
   class_<ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>,
-    boost::noncopyable>("ApplicationServiceLocatorClient", no_init)
+    bases<VirtualServiceLocatorClient>, boost::noncopyable>(
+    "ApplicationServiceLocatorClient", no_init)
     .def("__init__", make_constructor(&MakeApplicationServiceLocatorClient));
 }
 

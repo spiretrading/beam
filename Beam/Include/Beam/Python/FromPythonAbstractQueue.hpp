@@ -70,9 +70,9 @@ namespace Beam {
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
-      : FromPythonAbstractQueue{
-          std::static_pointer_cast<AbstractQueue<boost::python::object>>(
-          std::make_shared<Queue<boost::python::object>>())} {}
+      : m_queue{std::make_shared<Queue<boost::python::object>>()},
+        m_reader{MakeFromPythonQueueReader<Target>(m_queue)},
+        m_writer{MakeFromPythonQueueWriter<Source>(m_queue)} {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(

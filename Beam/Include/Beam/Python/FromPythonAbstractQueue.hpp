@@ -71,7 +71,8 @@ namespace Beam {
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
       : FromPythonAbstractQueue{
-          std::make_shared<Queue<boost::python::object>>()} {}
+          std::static_pointer_cast<AbstractQueue<boost::python::object>>(
+          std::make_shared<Queue<boost::python::object>>())} {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(

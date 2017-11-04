@@ -49,7 +49,8 @@ namespace Details {
       virtual ~FromPythonQueueWriter() override final;
 
       //! Returns the QueueWriter being wrapped.
-      std::shared_ptr<QueueWriter<boost::python::object>> GetTarget() const;
+      const std::shared_ptr<QueueWriter<boost::python::object>>&
+        GetTarget() const;
 
       virtual void Push(const Source& value) override final;
 
@@ -93,7 +94,7 @@ namespace Details {
   }
 
   template<typename T>
-  std::shared_ptr<QueueWriter<boost::python::object>>
+  const std::shared_ptr<QueueWriter<boost::python::object>>&
       FromPythonQueueWriter<T>::GetTarget() const {
     return m_target;
   }

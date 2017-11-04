@@ -9,11 +9,11 @@ namespace Routines {
   void Suspend(Out<Threading::Sync<SuspendedRoutineQueue>> suspendedRoutines,
       Lock&... lock) {
     SuspendedRoutineNode currentRoutine;
+    currentRoutine.m_routine->PendingSuspend();
     Threading::With(*suspendedRoutines,
       [&] (auto& queue) {
         queue.push_back(currentRoutine);
       });
-    currentRoutine.m_routine->PendingSuspend();
     auto releases = std::make_tuple(Threading::Release(lock)...);
     Suspend();
   }

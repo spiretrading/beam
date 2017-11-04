@@ -62,7 +62,7 @@ namespace Details {
         MakeFromPythonQueueWriter(
         std::shared_ptr<QueueWriter<boost::python::object>> target);
       std::shared_ptr<void> m_self;
-      std::weak_ptr<QueueWriter<boost::python::object>> m_target;
+      std::shared_ptr<QueueWriter<boost::python::object>> m_target;
 
       void Bind(std::shared_ptr<void> self);
   };
@@ -87,50 +87,59 @@ namespace Details {
 
   template<typename T>
   FromPythonQueueWriter<T>::~FromPythonQueueWriter() {
-    auto target = m_target.lock();
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    target.reset();
+    m_target.reset();
   }
 
   template<typename T>
   std::shared_ptr<QueueWriter<boost::python::object>>
       FromPythonQueueWriter<T>::GetTarget() const {
-    return m_target.lock();
+    return m_target;
   }
 
   template<typename T>
   void FromPythonQueueWriter<T>::Push(const Source& value) {
-    auto target = m_target.lock();
-    if(target == nullptr) {
-      m_self.reset();
-      BOOST_THROW_EXCEPTION(PipeBrokenException{});
-    }
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    target->Push(Details::ToObject<T>{}(value));
+    if(m_target == nullptr) {
+      BOOST_THROW_EXCEPTION(PipeBrokenException{});
+    }
+    try {
+      m_target->Push(Details::ToObject<T>{}(value));
+    } catch(const std::exception&) {
+      m_target = nullptr;
+      m_self.reset();
+      throw;
+    }
   }
 
   template<typename T>
   void FromPythonQueueWriter<T>::Push(Source&& value) {
-    auto target = m_target.lock();
-    if(target == nullptr) {
-      m_self.reset();
-      BOOST_THROW_EXCEPTION(PipeBrokenException{});
-    }
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
-    target->Push(Details::ToObject<T>{}(std::move(value)));
+    if(m_target == nullptr) {
+      BOOST_THROW_EXCEPTION(PipeBrokenException{});
+    }
+    try {
+      m_target->Push(Details::ToObject<T>{}(std::move(value)));
+    } catch(const std::exception&) {
+      m_target = nullptr;
+      m_self.reset();
+      throw;
+    }
   }
 
   template<typename T>
   void FromPythonQueueWriter<T>::Break(const std::exception_ptr& e) {
-    auto target = m_target.lock();
-    if(target == nullptr) {
-      m_self.reset();
+    Python::GilLock gil;
+    boost::lock_guard<Python::GilLock> lock{gil};
+    if(m_target == nullptr) {
       return;
     }
-    target->Break(e);
+    m_target->Break(e);
+    m_target = nullptr;
+    m_self.reset();
   }
 
   template<typename T>

@@ -95,9 +95,10 @@ namespace Beam {
       });
     m_tasks.Add(
       [=] {
-        m_queues.push_back(queue);
         if(m_isBroken) {
           queue->Break();
+        } else {
+          m_queues.push_back(std::move(queue));
         }
       });
     return queue;
@@ -115,7 +116,7 @@ namespace Beam {
 
   inline void CallbackQueue::Push(Source&& value) {
     m_tasks.Add(
-      [=] {
+      [=, value = std::move(value)] {
         if(m_isBroken) {
           return;
         }
@@ -133,6 +134,7 @@ namespace Beam {
         for(auto& queue : m_queues) {
           queue->Break();
         }
+        m_queues.clear();
       });
   }
 }

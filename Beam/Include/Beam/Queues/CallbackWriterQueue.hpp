@@ -69,7 +69,7 @@ namespace Beam {
 
   template<typename T>
   CallbackWriterQueue<T>::CallbackWriterQueue(const CallbackFunction& callback)
-      : CallbackWriterQueue{callback, [] (const std::exception_ptr&) {}} {}
+      : CallbackWriterQueue(callback, [] (const std::exception_ptr&) {}) {}
 
   template<typename T>
   CallbackWriterQueue<T>::CallbackWriterQueue(const CallbackFunction& callback,

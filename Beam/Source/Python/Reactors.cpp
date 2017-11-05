@@ -6,6 +6,7 @@
 #include "Beam/Python/NoThrowFunction.hpp"
 #include "Beam/Python/PythonBindings.hpp"
 #include "Beam/Python/PythonFunctionReactor.hpp"
+#include "Beam/Python/PythonQueueReactor.hpp"
 #include "Beam/Python/Ref.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Tuple.hpp"
@@ -23,7 +24,6 @@
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
 #include "Beam/Reactors/ProxyReactor.hpp"
 #include "Beam/Reactors/PublisherReactor.hpp"
-#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/RangeReactor.hpp"
 #include "Beam/Reactors/ReactorError.hpp"
 #include "Beam/Reactors/ReactorException.hpp"
@@ -304,7 +304,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ProxyReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonFunctionReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(QueueReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonQueueReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<bool>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::int64_t>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<ptime>);
@@ -490,7 +490,7 @@ void Beam::Python::ExportPythonConstantReactor() {
 }
 
 void Beam::Python::ExportQueueReactor() {
-  using ExportedReactor = QueueReactor<object>;
+  using ExportedReactor = PythonQueueReactor;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("QueueReactor",
     init<std::shared_ptr<QueueReader<object>>, RefType<Trigger>>());

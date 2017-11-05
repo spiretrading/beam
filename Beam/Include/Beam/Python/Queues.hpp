@@ -266,8 +266,8 @@ namespace Details {
     Beam::QueueReader<T>>);                                                    \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::QueueWriterWrapper< \
     Beam::QueueWriter<T>>);                                                    \
-  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::AbstractQueueWrapper<       \
-    Beam::AbstractQueue<T>>);
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(                                           \
+    Beam::Python::Details::AbstractQueueWrapper<Beam::AbstractQueue<T>>);
 #else
 #define BEAM_DEFINE_PYTHON_QUEUE_LINKER(T)
 #endif

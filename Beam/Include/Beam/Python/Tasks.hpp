@@ -44,6 +44,10 @@ namespace Python {
   //! Exports the WhenTask class.
   void ExportWhenTask();
 
+  //! Exports a TypedReactorTaskProperty.
+  /*!
+    \param name The name to assign to the type.
+  */
   template<typename T>
   void ExportTypedReactorTaskProperty(const char* name) {
     auto typeId = boost::python::type_id<T>();

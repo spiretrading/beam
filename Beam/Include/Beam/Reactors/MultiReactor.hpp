@@ -159,8 +159,8 @@ namespace Details {
                   commit == BaseReactor::Update::COMPLETE) {
                 commit = reactorUpdate;
               }
-            } else {
-              commit = reactorUpdate;
+            } else if(reactorUpdate == BaseReactor::Update::EVAL) {
+              commit = BaseReactor::Update::EVAL;
             }
           }
           return commit;

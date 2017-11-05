@@ -85,7 +85,7 @@ namespace Tasks {
   };
 
   /*! \class BasicTaskFactory
-      \brief Helper base class for implementing an BasicTaskFactory.
+      \brief Helper base class for implementing a BasicTaskFactory.
       \tparam The TaskFactory inhering this helper class.
    */
   template<typename T>

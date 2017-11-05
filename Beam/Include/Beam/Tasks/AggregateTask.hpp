@@ -2,9 +2,9 @@
 #define BEAM_AGGREGATE_TASK_HPP
 #include <vector>
 #include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
+#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 namespace Tasks {
@@ -28,7 +28,7 @@ namespace Tasks {
 
     private:
       friend class AggregateTaskFactory;
-      boost::mutex m_mutex;
+      Threading::Mutex m_mutex;
       std::vector<TaskFactory> m_taskFactories;
       std::vector<std::shared_ptr<Task>> m_tasks;
       int m_activeTasks;
@@ -69,7 +69,7 @@ namespace Tasks {
       : m_taskFactories(std::move(taskFactories)) {}
 
   inline void AggregateTask::OnExecute() {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     return S0();
   }
 
@@ -83,7 +83,7 @@ namespace Tasks {
   }
 
   inline void AggregateTask::OnTaskUpdate(const StateEntry& update) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    boost::lock_guard<Threading::Mutex> lock{m_mutex};
     if(m_state == 1) {
       if(IsTerminal(update.m_state)) {
         return S3();

@@ -1,9 +1,8 @@
-#ifndef BEAM_CALLBACKWRITERQUEUE_HPP
-#define BEAM_CALLBACKWRITERQUEUE_HPP
+#ifndef BEAM_CALLBACK_WRITER_QUEUE_HPP
+#define BEAM_CALLBACK_WRITER_QUEUE_HPP
 #include <functional>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
-#include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
@@ -49,13 +48,13 @@ namespace Beam {
       CallbackWriterQueue(const CallbackFunction& callback,
         const BreakFunction& breakCallback);
 
-      virtual ~CallbackWriterQueue();
+      virtual ~CallbackWriterQueue() override final;
 
-      virtual void Push(const Source& value);
+      virtual void Push(const Source& value) override final;
 
-      virtual void Push(Source&& value);
+      virtual void Push(Source&& value) override final;
 
-      virtual void Break(const std::exception_ptr& exception);
+      virtual void Break(const std::exception_ptr& exception) override final;
 
       using QueueWriter<T>::Break;
     private:

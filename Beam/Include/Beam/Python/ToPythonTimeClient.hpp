@@ -1,5 +1,6 @@
 #ifndef BEAM_TO_PYTHON_TIME_CLIENT_HPP
 #define BEAM_TO_PYTHON_TIME_CLIENT_HPP
+#include "Beam/IO/OpenState.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/TimeService.hpp"
 #include "Beam/TimeService/VirtualTimeClient.hpp"
@@ -40,6 +41,9 @@ namespace TimeService {
 
     private:
       std::unique_ptr<Client> m_client;
+      IO::OpenState m_openState;
+
+      void Shutdown();
   };
 
   //! Makes a ToPythonTimeClient.
@@ -60,6 +64,7 @@ namespace TimeService {
   ToPythonTimeClient<ClientType>::~ToPythonTimeClient() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
+    Close();
     m_client.reset();
   }
 
@@ -86,14 +91,32 @@ namespace TimeService {
   void ToPythonTimeClient<ClientType>::Open() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
-    m_client->Open();
+    if(m_openState.SetOpening()) {
+      return;
+    }
+    try {
+      m_client->Open();
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
   }
 
   template<typename ClientType>
   void ToPythonTimeClient<ClientType>::Close() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
+    if(m_openState.SetClosing()) {
+      return;
+    }
+    Shutdown();
+  }
+
+  template<typename ClientType>
+  void ToPythonTimeClient<ClientType>::Shutdown() {
     m_client->Close();
+    m_openState.SetClosed();
   }
 }
 }

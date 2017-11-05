@@ -1,5 +1,6 @@
 #ifndef BEAM_TO_PYTHON_UID_CLIENT_HPP
 #define BEAM_TO_PYTHON_UID_CLIENT_HPP
+#include "Beam/IO/OpenState.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/UidService/UidService.hpp"
 #include "Beam/UidService/VirtualUidClient.hpp"
@@ -34,6 +35,9 @@ namespace UidService {
 
     private:
       std::unique_ptr<Client> m_client;
+      IO::OpenState m_openState;
+
+      void Shutdown();
   };
 
   //! Makes a ToPythonUidClient.
@@ -54,6 +58,7 @@ namespace UidService {
   ToPythonUidClient<ClientType>::~ToPythonUidClient() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
+    Close();
     m_client.reset();
   }
 
@@ -68,14 +73,32 @@ namespace UidService {
   void ToPythonUidClient<ClientType>::Open() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
-    m_client->Open();
+    if(m_openState.SetOpening()) {
+      return;
+    }
+    try {
+      m_client->Open();
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
   }
 
   template<typename ClientType>
   void ToPythonUidClient<ClientType>::Close() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
+    if(m_openState.SetClosing()) {
+      return;
+    }
+    Shutdown();
+  }
+
+  template<typename ClientType>
+  void ToPythonUidClient<ClientType>::Shutdown() {
     m_client->Close();
+    m_openState.SetClosed();
   }
 }
 }

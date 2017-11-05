@@ -62,6 +62,7 @@ namespace Threading {
   ToPythonTimer<TimerType>::~ToPythonTimer() {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
+    m_timer->Cancel();
     m_timer.reset();
   }
 

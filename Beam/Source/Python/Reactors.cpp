@@ -102,6 +102,12 @@ namespace {
       ApplyFunction{callable}), parameters, kw))};
   }
 
+  void DeleteReactorMonitor(ReactorMonitor& monitor) {
+    GilRelease gil;
+    boost::lock_guard<GilRelease> lock{gil};
+    monitor.Close();
+  }
+
   auto MakePythonAggregateReactor(
       std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>> reactor) {
     return std::static_pointer_cast<PythonReactor>(
@@ -502,6 +508,7 @@ void Beam::Python::ExportRangeReactor() {
 
 void Beam::Python::ExportReactorMonitor() {
   class_<ReactorMonitor, noncopyable>("ReactorMonitor", init<>())
+    .def("__del__", &DeleteReactorMonitor)
     .add_property("trigger", make_function(
       static_cast<Trigger& (ReactorMonitor::*)()>(&ReactorMonitor::GetTrigger),
       return_internal_reference<>()))

@@ -77,6 +77,12 @@ namespace Details {
 
       virtual ~ToPythonTaskFactory() override final;
 
+      //! Returns the wrapped TaskFactory.
+      const WrappedTaskFactory& GetFactory() const;
+
+      //! Returns the wrapped TaskFactory.
+      WrappedTaskFactory& GetFactory();
+
       virtual std::shared_ptr<Task> Create();
 
       virtual boost::any& FindProperty(const std::string& name);
@@ -206,6 +212,18 @@ namespace Details {
     Python::GilRelease gil;
     boost::lock_guard<Python::GilRelease> lock{gil};
     m_factory.reset();
+  }
+
+  template<typename T>
+  const typename ToPythonTaskFactory<T>::WrappedTaskFactory&
+      ToPythonTaskFactory<T>::GetFactory() const {
+    return *m_factory;
+  }
+
+  template<typename T>
+  typename ToPythonTaskFactory<T>::WrappedTaskFactory&
+      ToPythonTaskFactory<T>::GetFactory() {
+    return *m_factory;
   }
 
   template<typename T>

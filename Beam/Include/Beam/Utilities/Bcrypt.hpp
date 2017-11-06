@@ -6,10 +6,13 @@
 #include <cstring>
 #include <string>
 #include <cryptopp/osrng.h>
+#include "Beam/Utilities/BeamWorkaround.hpp"
 
 #ifdef snprintf
   #undef snprintf
 #endif
+
+BEAM_SUPPRESS_FORMAT_TRUNCATION()
 
 namespace Beam {
 namespace Details {
@@ -861,5 +864,7 @@ namespace Details {
     return trueHash == hash;
   }
 }
+
+BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 
 #endif

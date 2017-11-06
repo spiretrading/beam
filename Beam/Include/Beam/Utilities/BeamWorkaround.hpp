@@ -21,6 +21,11 @@
   #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW()
   #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
   #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
+  #define BEAM_SUPPRESS_FORMAT_TRUNCATION()                                    \
+    _Pragma("GCC diagnostic push")                                             \
+    _Pragma("GCC diagnostic ignored \"-Wformat-truncation\"")
+  #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()                                  \
+    _Pragma("GCC diagnostic pop")
 #elif defined _MSC_VER
   #include <exception>
   #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END
@@ -33,6 +38,8 @@
   #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW() __pragma(warning(default: 4717))
   #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS() __pragma(warning(disable: 4521))
   #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS() __pragma(warning(default: 4521))
+  #define BEAM_SUPPRESS_FORMAT_TRUNCATION()
+  #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 #else
   #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END
   #define BEAM_CPPUNIT_TEST_SUITE_END_ABSTRACT CPPUNIT_TEST_SUITE_END_ABSTRACT
@@ -44,6 +51,8 @@
   #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW()
   #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
   #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
+  #define BEAM_SUPPRESS_FORMAT_TRUNCATION()
+  #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 #endif
 
 #define BEAM_PREVENT_MACRO_SUBSTITUTION

@@ -69,14 +69,6 @@ namespace {
 
     virtual ~FromPythonTaskFactory() override final = default;
 
-    boost::python::object Get(const std::string& name) const {
-      return VirtualTaskFactory::Get<boost::python::object>(name);
-    }
-
-    void Set(const std::string& name, const boost::python::object& value) {
-      VirtualTaskFactory::Set(name, value);
-    }
-
     void DefineProperty(const std::string& name,
         const boost::python::object& value) {
       m_properties.insert(std::make_pair(name, value));
@@ -112,6 +104,16 @@ namespace {
 
     std::unordered_map<std::string, boost::any> m_properties;
   };
+
+  boost::python::object FromPythonTaskFactoryGet(VirtualTaskFactory& factory,
+      const std::string& name) {
+    return GetTaskFactoryProperty(&factory, name.c_str());
+  }
+
+  void FromPythonTaskFactorySet(VirtualTaskFactory& factory,
+      const std::string& name, const boost::python::object& value) {
+    SetTaskFactoryProperty(&factory, name.c_str(), &value);
+  }
 
   struct FromPythonBasicTask : BasicTask, wrapper<BasicTask> {
     virtual void OnExecute() override final {
@@ -405,8 +407,8 @@ void Beam::Python::ExportTask() {
 
 void Beam::Python::ExportTaskFactory() {
   class_<FromPythonTaskFactory, boost::noncopyable>("TaskFactory", no_init)
-    .def("get", &FromPythonTaskFactory::Get)
-    .def("set", &FromPythonTaskFactory::Set)
+    .def("get", &FromPythonTaskFactoryGet)
+    .def("set", &FromPythonTaskFactorySet)
     .def("define_property", &FromPythonTaskFactory::DefineProperty)
     .def("create", pure_virtual(&VirtualTaskFactory::Create))
     .def("find_property", &FromPythonTaskFactory::FindProperty,
@@ -441,6 +443,20 @@ void Beam::Python::ExportTasks() {
   ExportException<TaskPropertyNotFoundException, std::runtime_error>(
     "TaskPropertyNotFoundException")
     .def(init<const string&>());
+  ExportTaskFactoryProperty<bool>();
+  ExportTaskFactoryProperty<char>();
+  ExportTaskFactoryProperty<unsigned char>();
+  ExportTaskFactoryProperty<short>();
+  ExportTaskFactoryProperty<unsigned short>();
+  ExportTaskFactoryProperty<int>();
+  ExportTaskFactoryProperty<unsigned int>();
+  ExportTaskFactoryProperty<long>();
+  ExportTaskFactoryProperty<unsigned long>();
+  ExportTaskFactoryProperty<long long>();
+  ExportTaskFactoryProperty<unsigned long long>();
+  ExportTaskFactoryProperty<float>();
+  ExportTaskFactoryProperty<double>();
+  ExportTaskFactoryProperty<std::string>();
   def("is_terminal", &IsTerminal);
   def("wait", BlockingFunction(&Wait));
 }

@@ -7,6 +7,9 @@
 
 namespace Beam {
 namespace Tasks {
+namespace Details {
+  BEAM_EXPORT_DLL void AddTaskFactoryProperty(const char* name, void* property);
+}
 
   /*! \class ToPythonTask
       \brief Wraps a C++ Task for use within Python.
@@ -84,6 +87,68 @@ namespace Tasks {
       boost::optional<WrappedTaskFactory> m_factory;
   };
 
+  /*! \class BasePythonTaskFactoryProperty
+      \brief Base class used to set a generic TaskFactory's property.
+   */
+  class BasePythonTaskFactoryProperty {
+    public:
+
+      //! Gets a TaskFactory's property.
+      /*!
+        \param property The object storing the property.
+        \return The Python object stored within the <i>property</i>.
+      */
+      virtual boost::python::object Get(const boost::any& property) const = 0;
+
+      //! Sets a TaskFactory's property.
+      /*!
+        \param factory The TaskFactory to update.
+        \param name The name of the property.
+        \param value The property's value.
+      */
+      virtual bool Set(VirtualTaskFactory& factory, const std::string& name,
+        const boost::python::object& value) const = 0;
+  };
+
+  /*! \class PythonTaskFactoryProperty
+      \brief Implements the BasePythonTaskFactoryProperty for a specified type.
+      \tparam T The type to implement the BasePythonTaskFactoryProperty for.
+   */
+  template<typename T>
+  class PythonTaskFactoryProperty : public BasePythonTaskFactoryProperty {
+    public:
+      virtual boost::python::object Get(
+        const boost::any& property) const override final;
+
+      virtual bool Set(VirtualTaskFactory& factory, const std::string& name,
+        const boost::python::object& value) const override final;
+  };
+
+  //! Exports a TaskFactory property of a specified type.
+  template<typename T>
+  void ExportTaskFactoryProperty() {
+    auto property = new PythonTaskFactoryProperty<T>{};
+    Details::AddTaskFactoryProperty(typeid(T).name(), property);
+  }
+
+  //! Gets a TaskFactory's property.
+  /*!
+    \param factory The TaskFactory to update.
+    \param name The name of the property to update.
+    \return The property with the specified <i>name</i>.
+  */
+  BEAM_EXPORT_DLL boost::python::object GetTaskFactoryProperty(
+    VirtualTaskFactory* factory, const char* name);
+
+  //! Sets a TaskFactory's property.
+  /*!
+    \param factory The TaskFactory to update.
+    \param name The name of the property to update.
+    \param value The value to assign to the property.
+  */
+  BEAM_EXPORT_DLL void SetTaskFactoryProperty(VirtualTaskFactory* factory,
+    const char* name, const boost::python::object* value);
+
   template<typename T>
   template<typename... Args>
   ToPythonTask<T>::ToPythonTask(Args&&... args)
@@ -155,7 +220,25 @@ namespace Tasks {
 
   template<typename T>
   void ToPythonTaskFactory<T>::PrepareContinuation(const Task& task) {
-    m_factory->PrepareContinuation(task);
+    auto& pythonTask = static_cast<const ToPythonTask<Task>&>(task);
+    m_factory->PrepareContinuation(pythonTask.GetTask());
+  }
+
+  template<typename T>
+  boost::python::object PythonTaskFactoryProperty<T>::Get(
+      const boost::any& property) const {
+    return boost::python::object{boost::any_cast<T>(property)};
+  }
+
+  template<typename T>
+  bool PythonTaskFactoryProperty<T>::Set(VirtualTaskFactory& factory,
+      const std::string& name, const boost::python::object& value) const {
+    boost::python::extract<T> extractor{value};
+    if(extractor.check()) {
+      factory.Set(name, extractor());
+      return true;
+    }
+    return false;
   }
 }
 }

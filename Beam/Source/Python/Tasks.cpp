@@ -158,7 +158,7 @@ namespace {
     public:
       PythonReactorProperty(std::string name,
           std::shared_ptr<Reactor<boost::python::object>> reactor)
-          : VirtualReactorProperty{std::move(name)},
+          : VirtualReactorProperty(std::move(name)),
             m_reactor{std::move(reactor)} {}
 
       virtual std::shared_ptr<BaseReactor> GetReactor() const override final {

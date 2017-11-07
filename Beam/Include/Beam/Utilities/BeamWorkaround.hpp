@@ -21,11 +21,8 @@
   #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW()
   #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
   #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
-  #define BEAM_SUPPRESS_FORMAT_TRUNCATION()                                    \
-    _Pragma("GCC diagnostic push")                                             \
-    _Pragma("GCC diagnostic ignored \"-Wformat-truncation\"")
-  #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()                                  \
-    _Pragma("GCC diagnostic pop")
+  #define BEAM_SUPPRESS_FORMAT_TRUNCATION()
+  #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 #elif defined _MSC_VER
   #include <exception>
   #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END

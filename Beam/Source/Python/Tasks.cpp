@@ -153,6 +153,38 @@ namespace {
     }
   };
 
+  class PythonReactorProperty : public VirtualReactorProperty,
+      public CloneableMixin<PythonReactorProperty> {
+    public:
+      PythonReactorProperty(std::string name,
+          std::shared_ptr<Reactor<boost::python::object>> reactor)
+          : VirtualReactorProperty{std::move(name)},
+            m_reactor{std::move(reactor)} {}
+
+      virtual std::shared_ptr<BaseReactor> GetReactor() const override final {
+        return m_reactor;
+      }
+
+      virtual void Commit() override final {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        m_value = m_reactor->Eval();
+      }
+
+      virtual void Apply(TaskFactory& factory) const override final {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        try {
+          SetTaskFactoryProperty(&*factory, GetName().c_str(),
+            m_value.get_ptr());
+        } catch(const TaskPropertyNotFoundException&) {}
+      }
+
+    private:
+      std::shared_ptr<Reactor<boost::python::object>> m_reactor;
+      boost::optional<boost::python::object> m_value;
+  };
+
   boost::python::object MakePythonPackagedTaskFactory(
       const boost::python::tuple& args, const boost::python::dict& kw) {
     boost::python::object self = args[0];
@@ -190,12 +222,6 @@ namespace {
     return new ToPythonTaskFactory<ReactorTaskFactory>{std::move(taskFactory),
       std::move(p), Ref(reactorMonitor)};
   }
-
-  auto MakePythonReactorProperty(const std::string& name,
-      const std::shared_ptr<Reactor<boost::python::object>>& reactor) {
-    return TypedReactorProperty<object>(name,
-      MakeFromPythonReactor<object>(MakeNonRepeatingReactor(reactor)));
-  }
 }
 
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<AggregateTask>);
@@ -220,7 +246,6 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<UntilTask>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<UntilTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<WhenTask>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<WhenTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(TypedReactorProperty<object>);
 
 void Beam::Python::ExportAggregateTask() {
   class_<ToPythonTask<AggregateTask>,
@@ -346,13 +371,14 @@ void Beam::Python::ExportReactorTask() {
     .add_property("reactor", &VirtualReactorProperty::GetReactor)
     .def("commit", &VirtualReactorProperty::Commit)
     .def("apply", &VirtualReactorProperty::Apply);
+  class_<PythonReactorProperty, bases<VirtualReactorProperty>,
+    boost::noncopyable>("ReactorProperty", init<const string&,
+    const std::shared_ptr<Reactor<boost::python::object>>>());
   class_<ReactorProperty>("CloneableReactorProperty", no_init)
     .def("__copy__", &MakeCopy<ReactorProperty>)
     .def("__deepcopy__", &MakeDeepCopy<ReactorProperty>);
   implicitly_convertible<VirtualReactorProperty, ReactorProperty>();
-  def("ReactorProperty", &MakePythonReactorProperty);
-  ExportTypedReactorTaskProperty<TypedReactorProperty<object>>(
-    "PythonReactorProperty");
+  implicitly_convertible<PythonReactorProperty, ReactorProperty>();
 }
 
 void Beam::Python::ExportSpawnTask() {

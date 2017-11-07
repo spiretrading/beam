@@ -21,13 +21,13 @@ namespace Tasks {
 
       //! Constructs a SpawnTask.
       /*!
-        \param taskFactory The Task to execute on a trigger.
-        \param trigger The Expression that triggers execution of a Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param trigger The Expression that triggers execution of a Task.
+        \param taskFactory The Task to execute on a trigger.
       */
-      SpawnTask(TaskFactory taskFactory,
+      SpawnTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::BaseReactor> trigger,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
     protected:
       virtual void OnExecute() override final;
@@ -35,9 +35,9 @@ namespace Tasks {
       virtual void OnCancel() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::BaseReactor> m_trigger;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::BaseReactor> m_trigger;
+      TaskFactory m_taskFactory;
       bool m_triggerIsComplete;
       int m_taskCount;
       int m_state;
@@ -62,28 +62,27 @@ namespace Tasks {
 
       //! Constructs a SpawnTaskFactory.
       /*!
-        \param taskFactory The Task to execute on a trigger.
-        \param trigger The Expression that triggers execution of a Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param trigger The Expression that triggers execution of a Task.
+        \param taskFactory The Task to execute on a trigger.
       */
-      SpawnTaskFactory(TaskFactory taskFactory,
+      SpawnTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::BaseReactor> trigger,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::BaseReactor> m_trigger;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::BaseReactor> m_trigger;
+      TaskFactory m_taskFactory;
   };
 
-  inline SpawnTask::SpawnTask(TaskFactory taskFactory,
-      std::shared_ptr<Reactors::BaseReactor> trigger,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+  inline SpawnTask::SpawnTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      std::shared_ptr<Reactors::BaseReactor> trigger, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_trigger{std::move(trigger)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline void SpawnTask::OnExecute() {
     return S0();
@@ -183,16 +182,16 @@ namespace Tasks {
     }
   }
 
-  inline SpawnTaskFactory::SpawnTaskFactory(TaskFactory taskFactory,
-      std::shared_ptr<Reactors::BaseReactor> trigger,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+  inline SpawnTaskFactory::SpawnTaskFactory(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      std::shared_ptr<Reactors::BaseReactor> trigger, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_trigger{std::move(trigger)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline std::shared_ptr<Task> SpawnTaskFactory::Create() {
-    return std::make_shared<SpawnTask>(m_taskFactory, m_trigger,
-      Ref(*m_reactorMonitor));
+    return std::make_shared<SpawnTask>(Ref(*m_reactorMonitor), m_trigger,
+      m_taskFactory);
   }
 }
 }

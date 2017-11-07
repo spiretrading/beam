@@ -19,13 +19,13 @@ namespace Tasks {
 
       //! Constructs an UntilTask.
       /*!
-        \param taskFactory The Task to execute.
-        \param condition The condition that cancels the Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param condition The condition that cancels the Task.
+        \param taskFactory The Task to execute.
       */
-      UntilTask(TaskFactory taskFactory,
+      UntilTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
     protected:
       virtual void OnExecute() override final;
@@ -33,9 +33,9 @@ namespace Tasks {
       virtual void OnCancel() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
+      TaskFactory m_taskFactory;
       int m_state;
       SignalHandling::ScopedSlotAdaptor m_callbacks;
 
@@ -56,28 +56,29 @@ namespace Tasks {
 
       //! Constructs an UntilTaskFactory.
       /*!
-        \param taskFactory The Task to execute.
-        \param condition The condition that executes the Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param condition The condition that executes the Task.
+        \param taskFactory The Task to execute.
       */
-      UntilTaskFactory(TaskFactory taskFactory,
+      UntilTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
+      TaskFactory m_taskFactory;
   };
 
-  inline UntilTask::UntilTask(TaskFactory taskFactory,
+  inline UntilTask::UntilTask(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+      TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_condition{std::move(condition)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline void UntilTask::OnExecute() {
     return S0();
@@ -162,16 +163,17 @@ namespace Tasks {
     m_state = 4;
   }
 
-  inline UntilTaskFactory::UntilTaskFactory(TaskFactory taskFactory,
+  inline UntilTaskFactory::UntilTaskFactory(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+      TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_condition{std::move(condition)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline std::shared_ptr<Task> UntilTaskFactory::Create() {
-    return std::make_shared<UntilTask>(m_taskFactory, m_condition,
-      Ref(*m_reactorMonitor));
+    return std::make_shared<UntilTask>(Ref(*m_reactorMonitor), m_condition,
+      m_taskFactory);
   }
 }
 }

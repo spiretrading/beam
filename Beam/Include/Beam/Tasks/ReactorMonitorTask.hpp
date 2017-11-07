@@ -19,11 +19,11 @@ namespace Tasks {
 
       //! Constructs a ReactorMonitorTask.
       /*!
-        \param taskFactory Specifies the Task to execute.
         \param reactorMonitor The ReactorMonitor to start upon execution.
+        \param taskFactory Specifies the Task to execute.
       */
-      ReactorMonitorTask(TaskFactory taskFactory,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+      ReactorMonitorTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+        TaskFactory taskFactory);
 
     protected:
       virtual void OnExecute() override final;
@@ -32,9 +32,9 @@ namespace Tasks {
 
     private:
       friend class ReactorMonitorTaskFactory;
+      Reactors::ReactorMonitor* m_reactorMonitor;
       TaskFactory m_taskFactory;
       std::shared_ptr<Task> m_task;
-      Reactors::ReactorMonitor* m_reactorMonitor;
       Reactors::Trigger m_trigger;
       int m_state;
       SignalHandling::ScopedSlotAdaptor m_callbacks;
@@ -55,25 +55,26 @@ namespace Tasks {
 
       //! Constructs an ReactorMonitorTaskFactory.
       /*!
-        \param taskFactory Specifies the Task to execute.
         \param reactorMonitor The ReactorMonitor to open upon execution.
+        \param taskFactory Specifies the Task to execute.
       */
-      ReactorMonitorTaskFactory(TaskFactory taskFactory,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+      ReactorMonitorTaskFactory(
+        RefType<Reactors::ReactorMonitor> reactorMonitor,
+        TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
 
       virtual void PrepareContinuation(const Task& task) override final;
 
     private:
-      TaskFactory m_taskFactory;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      TaskFactory m_taskFactory;
   };
 
-  inline ReactorMonitorTask::ReactorMonitorTask(TaskFactory taskFactory,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+  inline ReactorMonitorTask::ReactorMonitorTask(
+      RefType<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline void ReactorMonitorTask::OnExecute() {
     return S0();
@@ -133,13 +134,13 @@ namespace Tasks {
   }
 
   inline ReactorMonitorTaskFactory::ReactorMonitorTaskFactory(
-      TaskFactory taskFactory, RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+      RefType<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline std::shared_ptr<Task> ReactorMonitorTaskFactory::Create() {
-    return std::make_shared<ReactorMonitorTask>(m_taskFactory,
-      Ref(*m_reactorMonitor));
+    return std::make_shared<ReactorMonitorTask>(Ref(*m_reactorMonitor),
+      m_taskFactory);
   }
 
   inline void ReactorMonitorTaskFactory::PrepareContinuation(const Task& task) {

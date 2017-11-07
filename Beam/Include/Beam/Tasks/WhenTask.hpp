@@ -20,14 +20,14 @@ namespace Tasks {
 
       //! Constructs a WhenTask.
       /*!
+        \param reactorMonitor The ReactorMonitor to use.
+        \param condition The condition that executes the Task.
         \param taskFactory The Task to execute when the condition is
                <code>true</code>.
-        \param condition The condition that executes the Task.
-        \param reactorMonitor The ReactorMonitor to use.
       */
-      WhenTask(TaskFactory taskFactory,
+      WhenTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
     protected:
       virtual void OnExecute() override final;
@@ -35,9 +35,9 @@ namespace Tasks {
       virtual void OnCancel() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
+      TaskFactory m_taskFactory;
       int m_state;
       SignalHandling::ScopedSlotAdaptor m_callbacks;
 
@@ -59,29 +59,29 @@ namespace Tasks {
 
       //! Constructs a WhenTaskFactory.
       /*!
+        \param reactorMonitor The ReactorMonitor to use.
+        \param condition The condition that executes the Task.
         \param taskFactory The Task to execute when the condition is
                <code>true</code>.
-        \param condition The condition that executes the Task.
-        \param reactorMonitor The ReactorMonitor to use.
       */
-      WhenTaskFactory(TaskFactory taskFactory,
+      WhenTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+        TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::shared_ptr<Reactors::Reactor<bool>> m_condition;
+      TaskFactory m_taskFactory;
   };
 
-  inline WhenTask::WhenTask(TaskFactory taskFactory,
+  inline WhenTask::WhenTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+      TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_condition{std::move(condition)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline void WhenTask::OnExecute() {
     return S0();
@@ -165,16 +165,17 @@ namespace Tasks {
     m_state = 4;
   }
 
-  inline WhenTaskFactory::WhenTaskFactory(TaskFactory taskFactory,
+  inline WhenTaskFactory::WhenTaskFactory(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+      TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_condition{std::move(condition)},
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline std::shared_ptr<Task> WhenTaskFactory::Create() {
-    return std::make_shared<WhenTask>(m_taskFactory, m_condition,
-      Ref(*m_reactorMonitor));
+    return std::make_shared<WhenTask>(Ref(*m_reactorMonitor), m_condition,
+      m_taskFactory);
   }
 }
 }

@@ -23,7 +23,7 @@ namespace {
         : m_conditionQueue{std::make_shared<Queue<bool>>()},
           m_condition{MakeQueueReactor(m_conditionQueue,
             Ref(m_monitor.GetTrigger()))},
-          m_taskEntry{m_mockTaskEntry.m_factory, m_condition, Ref(m_monitor)} {
+          m_taskEntry{Ref(m_monitor), m_condition, m_mockTaskEntry.m_factory} {
       m_monitor.Add(m_condition);
       m_monitor.Open();
     }

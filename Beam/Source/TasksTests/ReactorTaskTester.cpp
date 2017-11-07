@@ -16,8 +16,8 @@ void ReactorTaskTester::TestUpdates() {
     std::static_pointer_cast<Reactor<int>>(propertyReactor));
   MockTaskEntry mockTaskEntry;
   mockTaskEntry.m_factory.DefineProperty<int>("xyz");
-  TestTaskEntry<ReactorTaskFactory> taskEntry{mockTaskEntry.m_factory,
-    std::vector<ReactorProperty>{property}, Ref(monitor)};
+  TestTaskEntry<ReactorTaskFactory> taskEntry{Ref(monitor),
+    std::vector<ReactorProperty>{property}, mockTaskEntry.m_factory};
   monitor.Add(propertyReactor);
   monitor.Open();
   Execute(taskEntry);

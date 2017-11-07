@@ -207,8 +207,8 @@ namespace {
         properties[i]}();
       p.push_back(std::move(rp));
     }
-    return std::make_shared<ToPythonTask<ReactorTask>>(std::move(taskFactory),
-      std::move(p), Ref(reactorMonitor));
+    return std::make_shared<ToPythonTask<ReactorTask>>(Ref(reactorMonitor),
+      std::move(p), std::move(taskFactory));
   }
 
   auto MakePythonReactorTaskFactory(TaskFactory taskFactory,
@@ -219,8 +219,8 @@ namespace {
         properties[i]}();
       p.push_back(std::move(rp));
     }
-    return new ToPythonTaskFactory<ReactorTaskFactory>{std::move(taskFactory),
-      std::move(p), Ref(reactorMonitor)};
+    return new ToPythonTaskFactory<ReactorTaskFactory>{Ref(reactorMonitor),
+      std::move(p), std::move(taskFactory)};
   }
 }
 
@@ -250,9 +250,9 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<WhenTaskFactory>);
 void Beam::Python::ExportAggregateTask() {
   class_<ToPythonTask<AggregateTask>,
     std::shared_ptr<ToPythonTask<AggregateTask>>, boost::noncopyable,
-    bases<Task>>("AggregateTask", init<const vector<TaskFactory>&>());
+    bases<Task>>("AggregateTask", init<vector<TaskFactory>>());
   class_<ToPythonTaskFactory<AggregateTaskFactory>, bases<VirtualTaskFactory>>(
-    "AggregateTaskFactory", init<const vector<TaskFactory>&>())
+    "AggregateTaskFactory", init<vector<TaskFactory>>())
     .def("__copy__", &MakeCopy<ToPythonTaskFactory<AggregateTaskFactory>>)
     .def("__deepcopy__", &MakeDeepCopy<
     ToPythonTaskFactory<AggregateTaskFactory>>);
@@ -336,11 +336,11 @@ void Beam::Python::ExportPythonPackagedTask() {
 void Beam::Python::ExportReactorMonitorTask() {
   class_<ToPythonTask<ReactorMonitorTask>,
     std::shared_ptr<ToPythonTask<ReactorMonitorTask>>, boost::noncopyable,
-    bases<Task>>("ReactorMonitorTask",
-    init<const TaskFactory&, RefType<ReactorMonitor>>());
+    bases<Task>>("ReactorMonitorTask", init<RefType<ReactorMonitor>,
+    TaskFactory>());
   class_<ToPythonTaskFactory<ReactorMonitorTaskFactory>,
     bases<VirtualTaskFactory>>("ReactorMonitorTaskFactory",
-    init<const TaskFactory&, RefType<ReactorMonitor>>())
+    init<RefType<ReactorMonitor>, TaskFactory>())
     .def("__copy__", &MakeCopy<ToPythonTaskFactory<ReactorMonitorTaskFactory>>)
     .def("__deepcopy__",
       &MakeDeepCopy<ToPythonTaskFactory<ReactorMonitorTaskFactory>>);
@@ -383,12 +383,11 @@ void Beam::Python::ExportReactorTask() {
 
 void Beam::Python::ExportSpawnTask() {
   class_<ToPythonTask<SpawnTask>, std::shared_ptr<ToPythonTask<SpawnTask>>,
-    boost::noncopyable, bases<Task>>("SpawnTask",
-    init<const TaskFactory&, const std::shared_ptr<BaseReactor>&,
-    RefType<ReactorMonitor>>());
+    boost::noncopyable, bases<Task>>("SpawnTask", init<RefType<ReactorMonitor>,
+    std::shared_ptr<BaseReactor>, TaskFactory>());
   class_<ToPythonTaskFactory<SpawnTaskFactory>, bases<VirtualTaskFactory>>(
-    "SpawnTaskFactory", init<const TaskFactory&,
-    const std::shared_ptr<BaseReactor>&, RefType<ReactorMonitor>>())
+    "SpawnTaskFactory", init<RefType<ReactorMonitor>,
+    std::shared_ptr<BaseReactor>, TaskFactory>())
     .def("__copy__", &MakeCopy<ToPythonTaskFactory<SpawnTaskFactory>>)
     .def("__deepcopy__", &MakeDeepCopy<ToPythonTaskFactory<SpawnTaskFactory>>);
   implicitly_convertible<std::shared_ptr<ToPythonTask<SpawnTask>>,
@@ -489,12 +488,11 @@ void Beam::Python::ExportTasks() {
 
 void Beam::Python::ExportUntilTask() {
   class_<ToPythonTask<UntilTask>, std::shared_ptr<ToPythonTask<UntilTask>>,
-    boost::noncopyable, bases<Task>>("UntilTask",
-    init<const TaskFactory&, const std::shared_ptr<Reactor<bool>>&,
-    RefType<ReactorMonitor>>());
+    boost::noncopyable, bases<Task>>("UntilTask", init<RefType<ReactorMonitor>,
+    std::shared_ptr<Reactor<bool>>, TaskFactory>());
   class_<ToPythonTaskFactory<UntilTaskFactory>, bases<VirtualTaskFactory>>(
-    "UntilTaskFactory", init<const TaskFactory&,
-    const std::shared_ptr<Reactor<bool>>&, RefType<ReactorMonitor>>())
+    "UntilTaskFactory", init<RefType<ReactorMonitor>,
+    std::shared_ptr<Reactor<bool>>, TaskFactory>())
     .def("__copy__", &MakeCopy<ToPythonTaskFactory<UntilTaskFactory>>)
     .def("__deepcopy__", &MakeDeepCopy<ToPythonTaskFactory<UntilTaskFactory>>);
   implicitly_convertible<std::shared_ptr<ToPythonTask<UntilTask>>,
@@ -504,12 +502,11 @@ void Beam::Python::ExportUntilTask() {
 
 void Beam::Python::ExportWhenTask() {
   class_<ToPythonTask<WhenTask>, std::shared_ptr<ToPythonTask<WhenTask>>,
-    boost::noncopyable, bases<Task>>("WhenTask",
-    init<const TaskFactory&, const std::shared_ptr<Reactor<bool>>&,
-    RefType<ReactorMonitor>>());
+    boost::noncopyable, bases<Task>>("WhenTask", init<RefType<ReactorMonitor>,
+    std::shared_ptr<Reactor<bool>>, TaskFactory>());
   class_<ToPythonTaskFactory<WhenTaskFactory>, bases<VirtualTaskFactory>>(
-    "WhenTaskFactory", init<const TaskFactory&,
-    const std::shared_ptr<Reactor<bool>>&, RefType<ReactorMonitor>>())
+    "WhenTaskFactory", init<RefType<ReactorMonitor>,
+    std::shared_ptr<Reactor<bool>>, TaskFactory>())
     .def("__copy__", &MakeCopy<ToPythonTaskFactory<WhenTaskFactory>>)
     .def("__deepcopy__", &MakeDeepCopy<ToPythonTaskFactory<WhenTaskFactory>>);
   implicitly_convertible<std::shared_ptr<ToPythonTask<WhenTask>>,

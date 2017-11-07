@@ -64,13 +64,12 @@ namespace Tasks {
 
       //! Constructs a ReactorTask.
       /*!
-        \param taskFactory Specifies the Task to connect the Reactors to.
-        \param properties The properties to connect to the Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param properties The properties to connect to the Task.
+        \param taskFactory Specifies the Task to connect the Reactors to.
       */
-      ReactorTask(TaskFactory taskFactory,
-        std::vector<ReactorProperty> properties,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+      ReactorTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+        std::vector<ReactorProperty> properties, TaskFactory taskFactory);
 
     protected:
       virtual void OnExecute() override final;
@@ -78,9 +77,9 @@ namespace Tasks {
       virtual void OnCancel() override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::vector<ReactorProperty> m_properties;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::vector<ReactorProperty> m_properties;
+      TaskFactory m_taskFactory;
       std::shared_ptr<Reactors::BaseReactor> m_propertyReactor;
       StateEntry m_propertyFailure;
       bool m_isPropertyUpdated;
@@ -109,22 +108,21 @@ namespace Tasks {
 
       //! Constructs a ReactorTaskFactory.
       /*!
-        \param taskFactory Specifies the Task to connect the Reactors to.
-        \param properties The properties to connect to the Task.
         \param reactorMonitor The ReactorMonitor to use.
+        \param properties The properties to connect to the Task.
+        \param taskFactory Specifies the Task to connect the Reactors to.
       */
-      ReactorTaskFactory(TaskFactory taskFactory,
-        std::vector<ReactorProperty> properties,
-        RefType<Reactors::ReactorMonitor> reactorMonitor);
+      ReactorTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
+        std::vector<ReactorProperty> properties, TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
 
       virtual void PrepareContinuation(const Task& task) override final;
 
     private:
-      TaskFactory m_taskFactory;
-      std::vector<ReactorProperty> m_properties;
       Reactors::ReactorMonitor* m_reactorMonitor;
+      std::vector<ReactorProperty> m_properties;
+      TaskFactory m_taskFactory;
   };
 
   /*! \class TypedReactorProperty
@@ -177,12 +175,12 @@ namespace Tasks {
       Reactors::MakeNonRepeatingReactor(std::move(reactor))};
   }
 
-  inline ReactorTask::ReactorTask(TaskFactory taskFactory,
-      std::vector<ReactorProperty> properties,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+  inline ReactorTask::ReactorTask(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      std::vector<ReactorProperty> properties, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_properties(std::move(properties)),
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline void ReactorTask::OnExecute() {
     return S0();
@@ -323,16 +321,16 @@ namespace Tasks {
     m_task->Cancel();
   }
 
-  inline ReactorTaskFactory::ReactorTaskFactory(TaskFactory taskFactory,
-      std::vector<ReactorProperty> properties,
-      RefType<Reactors::ReactorMonitor> reactorMonitor)
-      : m_taskFactory{std::move(taskFactory)},
+  inline ReactorTaskFactory::ReactorTaskFactory(
+      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      std::vector<ReactorProperty> properties, TaskFactory taskFactory)
+      : m_reactorMonitor{reactorMonitor.Get()},
         m_properties(std::move(properties)),
-        m_reactorMonitor{reactorMonitor.Get()} {}
+        m_taskFactory{std::move(taskFactory)} {}
 
   inline std::shared_ptr<Task> ReactorTaskFactory::Create() {
-    return std::make_shared<ReactorTask>(m_taskFactory, m_properties,
-      Ref(*m_reactorMonitor));
+    return std::make_shared<ReactorTask>(Ref(*m_reactorMonitor), m_properties,
+      m_taskFactory);
   }
 
   inline void ReactorTaskFactory::PrepareContinuation(const Task& task) {}

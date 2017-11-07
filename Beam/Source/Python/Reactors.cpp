@@ -245,8 +245,10 @@ namespace {
       std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
       const std::shared_ptr<Reactor<time_duration>>& periodReactor,
       Trigger& trigger) {
-    return MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
-      Ref(trigger));
+    return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
+      std::static_pointer_cast<Reactor<std::int64_t>>(
+      MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
+      Ref(trigger)))));
   }
 
   auto MakePythonDefaultTimerReactor(
@@ -257,8 +259,10 @@ namespace {
         return std::make_unique<LiveTimer>(duration,
           Ref(*GetTimerThreadPool()));
       };
-    return MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
-      Ref(trigger));
+    return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
+      std::static_pointer_cast<Reactor<std::int64_t>>(
+      MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
+      Ref(trigger)))));
   }
 
   auto MakeWhenCompleteReactor(const NoThrowFunction<void>& callback,

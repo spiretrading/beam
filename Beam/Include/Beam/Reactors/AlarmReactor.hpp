@@ -63,14 +63,15 @@ namespace Reactors {
   //! Makes a Reactor that evaluates to <code>true</code> after a specified
   //! time.
   /*!
-    \param timerFactory Builds Timers used to measure time.
+    \param trigger The Trigger used to indicate an update.
     \param timeClient Used to get the current time.
+    \param timerFactory Builds Timers used to measure time.
     \param expiry The time after which the Reactor will evaluate to
            <code>true</code>.
   */
   template<typename TimerFactory, typename TimeClient, typename ExpiryReactor>
-  auto MakeAlarmReactor(TimerFactory&& timerFactory, TimeClient&& timeClient,
-      ExpiryReactor&& expiry, RefType<Trigger> trigger) {
+  auto MakeAlarmReactor(RefType<Trigger> trigger, TimeClient&& timeClient,
+      TimerFactory&& timerFactory, ExpiryReactor&& expiry) {
     using BaseTimerFactory = typename std::decay<TimerFactory>::type;
     using BaseTimeClient = typename std::decay<TimeClient>::type;
     auto core = MakeFunctionObject(std::make_unique<

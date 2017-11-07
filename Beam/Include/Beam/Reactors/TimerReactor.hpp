@@ -58,9 +58,15 @@ namespace Details {
   };
 }
 
+  //! Makes a Reactor that increments a counter periodically.
+  /*!
+    \param trigger The Trigger used to indicate an update.
+    \param timerFactory Builds Timers used to measure time.
+    \param period The period to increment the counter.
+  */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto MakeTimerReactor(TimerFactory&& timerFactory, PeriodReactor&& period,
-      RefType<Trigger> trigger) {
+  auto MakeTimerReactor(RefType<Trigger> trigger, TimerFactory&& timerFactory,
+      PeriodReactor&& period) {
     auto core = MakeFunctionObject(std::make_unique<
       Details::TimerReactorCore<Tick, typename std::decay<TimerFactory>::type>>(
       std::forward<TimerFactory>(timerFactory)));

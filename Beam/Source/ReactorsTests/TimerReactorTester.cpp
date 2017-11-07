@@ -24,7 +24,7 @@ void TimerReactorTester::TestExpiry() {
       timer = std::make_shared<TriggerTimer>();
       return timer;
     };
-  auto reactor = MakeTimerReactor<int>(timerFactory, period, Ref(trigger));
+  auto reactor = MakeTimerReactor<int>(Ref(trigger), timerFactory, period);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);

@@ -41,35 +41,35 @@ namespace Reactors {
 
   /*! \class FoldReactor
       \brief Folds the values produced by a Reactor.
-      \tparam ProducerReactorType The type of Reactor to fold.
       \tparam EvaluationReactorType The type of Reactor to evaluate.
       \tparam LeftChildReactorType The type of FoldParameterReactor used for the
               left hand side of the evaluation.
       \tparam RightChildReactorType The type of FoldParameterReactor used for
               the right hand side of the evaluation.
+      \tparam ProducerReactorType The type of Reactor to fold.
    */
-  template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftChildReactorType, typename RightChildReactorType>
+  template<typename EvaluationReactorType, typename LeftChildReactorType,
+    typename RightChildReactorType, typename ProducerReactorType>
   class FoldReactor : public Reactor<GetReactorType<EvaluationReactorType>> {
     public:
       using Type = GetReactorType<EvaluationReactorType>;
 
       //! Constructs a FoldReactor.
       /*!
-        \param producer The Reactor producing the values to fold.
         \param evaluation The Reactor to evaluate.
         \param leftChild The FoldParameterReactor used for the left hand side of
                the evaluation.
         \param rightChild The FoldParameterReactor used for the right hand side
                of the evaluation.
+        \param producer The Reactor producing the values to fold.
       */
-      template<typename ProducerReactorForward,
-        typename EvaluationReactorForward, typename LeftChildReactorForward,
-        typename RightChildReactorForward>
-      FoldReactor(ProducerReactorForward&& producer,
-        EvaluationReactorForward&& evaluation,
+      template<typename EvaluationReactorForward,
+        typename LeftChildReactorForward, typename RightChildReactorForward,
+        typename ProducerReactorForward>
+      FoldReactor(EvaluationReactorForward&& evaluation,
         LeftChildReactorForward&& leftChild,
-        RightChildReactorForward&& rightChild);
+        RightChildReactorForward&& rightChild,
+        ProducerReactorForward&& producer);
 
       virtual bool IsComplete() const override final;
 
@@ -78,10 +78,10 @@ namespace Reactors {
       virtual Type Eval() const override final;
 
     private:
-      GetOptionalLocalPtr<ProducerReactorType> m_producer;
       GetOptionalLocalPtr<EvaluationReactorType> m_evaluation;
       GetOptionalLocalPtr<LeftChildReactorType> m_leftChild;
       GetOptionalLocalPtr<RightChildReactorType> m_rightChild;
+      GetOptionalLocalPtr<ProducerReactorType> m_producer;
       int m_currentSequenceNumber;
       BaseReactor::Update m_update;
       Expect<Type> m_value;
@@ -98,27 +98,27 @@ namespace Reactors {
 
   //! Makes a FoldReactor.
   /*!
-    \param producer The Reactor producing the values to fold.
     \param evaluation The Reactor to evaluate.
     \param leftChild The FoldParameterReactor used for the left hand side of the
            evaluation.
     \param rightChild The FoldParameterReactor used for the right hand side of
            the evaluation.
+    \param producer The Reactor producing the values to fold.
   */
-  template<typename ProducerReactor, typename EvaluationReactor,
-      typename LeftChildReactor, typename RightChildReactor>
-  auto MakeFoldReactor(ProducerReactor&& producer,
-      EvaluationReactor&& evaluation, LeftChildReactor&& leftChild,
-      RightChildReactor&& rightChild) {
+  template<typename EvaluationReactor, typename LeftChildReactor,
+    typename RightChildReactor, typename ProducerReactor>
+  auto MakeFoldReactor(EvaluationReactor&& evaluation,
+      LeftChildReactor&& leftChild, RightChildReactor&& rightChild,
+      ProducerReactor&& producer) {
     return std::make_shared<FoldReactor<
-      typename std::decay<ProducerReactor>::type,
       typename std::decay<EvaluationReactor>::type,
       typename std::decay<LeftChildReactor>::type,
-      typename std::decay<RightChildReactor>::type>>(
-      std::forward<ProducerReactor>(producer),
+      typename std::decay<RightChildReactor>::type,
+      typename std::decay<ProducerReactor>::type>>(
       std::forward<EvaluationReactor>(evaluation),
       std::forward<LeftChildReactor>(leftChild),
-      std::forward<RightChildReactor>(rightChild));
+      std::forward<RightChildReactor>(rightChild),
+      std::forward<ProducerReactor>(producer));
   }
 
   template<typename T>
@@ -163,35 +163,35 @@ namespace Reactors {
     m_nextSequenceNumber = sequenceNumber;
   }
 
-  template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftChildReactorType, typename RightChildReactorType>
-  template<typename ProducerReactorForward, typename EvaluationReactorForward,
-    typename LeftChildReactorForward, typename RightChildReactorForward>
-  FoldReactor<ProducerReactorType, EvaluationReactorType,
-      LeftChildReactorType, RightChildReactorType>::FoldReactor(
-      ProducerReactorForward&& producer, EvaluationReactorForward&& evaluation,
+  template<typename EvaluationReactorType, typename LeftChildReactorType,
+    typename RightChildReactorType, typename ProducerReactorType>
+  template<typename EvaluationReactorForward, typename LeftChildReactorForward,
+    typename RightChildReactorForward, typename ProducerReactorForward>
+  FoldReactor<EvaluationReactorType, LeftChildReactorType,
+      RightChildReactorType, ProducerReactorType>::FoldReactor(
+      EvaluationReactorForward&& evaluation,
       LeftChildReactorForward&& leftChild,
-      RightChildReactorForward&& rightChild)
-      : m_producer{std::forward<ProducerReactorForward>(producer)},
-        m_evaluation{std::forward<EvaluationReactorForward>(evaluation)},
+      RightChildReactorForward&& rightChild, ProducerReactorForward&& producer)
+      : m_evaluation{std::forward<EvaluationReactorForward>(evaluation)},
         m_leftChild{std::forward<LeftChildReactorForward>(leftChild)},
         m_rightChild{std::forward<RightChildReactorForward>(rightChild)},
+        m_producer{std::forward<ProducerReactorForward>(producer)},
         m_currentSequenceNumber{-1},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_state{BaseReactor::Update::NONE} {}
 
-  template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftChildReactorType, typename RightChildReactorType>
-  bool FoldReactor<ProducerReactorType, EvaluationReactorType,
-      LeftChildReactorType, RightChildReactorType>::IsComplete() const {
+  template<typename EvaluationReactorType, typename LeftChildReactorType,
+    typename RightChildReactorType, typename ProducerReactorType>
+  bool FoldReactor<EvaluationReactorType, LeftChildReactorType,
+      RightChildReactorType, ProducerReactorType>::IsComplete() const {
     return m_state == BaseReactor::Update::COMPLETE;
   }
 
-  template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftChildReactorType, typename RightChildReactorType>
-  BaseReactor::Update FoldReactor<ProducerReactorType, EvaluationReactorType,
-      LeftChildReactorType, RightChildReactorType>::Commit(int sequenceNumber) {
+  template<typename EvaluationReactorType, typename LeftChildReactorType,
+    typename RightChildReactorType, typename ProducerReactorType>
+  BaseReactor::Update FoldReactor<EvaluationReactorType, LeftChildReactorType,
+      RightChildReactorType, ProducerReactorType>::Commit(int sequenceNumber) {
     if(sequenceNumber == m_currentSequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
@@ -249,12 +249,12 @@ namespace Reactors {
     return m_update;
   }
 
-  template<typename ProducerReactorType, typename EvaluationReactorType,
-    typename LeftChildReactorType, typename RightChildReactorType>
-  typename FoldReactor<ProducerReactorType, EvaluationReactorType,
-      LeftChildReactorType, RightChildReactorType>::Type
-      FoldReactor<ProducerReactorType, EvaluationReactorType,
-      LeftChildReactorType, RightChildReactorType>::Eval() const {
+  template<typename EvaluationReactorType, typename LeftChildReactorType,
+    typename RightChildReactorType, typename ProducerReactorType>
+  typename FoldReactor<EvaluationReactorType, LeftChildReactorType,
+      RightChildReactorType, ProducerReactorType>::Type
+      FoldReactor<EvaluationReactorType, LeftChildReactorType,
+      RightChildReactorType, ProducerReactorType>::Eval() const {
     return m_value.Get();
   }
 }

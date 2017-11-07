@@ -49,8 +49,8 @@ namespace Details {
     \param trigger The Trigger used to indicate an update.
   */
   template<typename LowerReactor, typename UpperReactor>
-  auto MakeRangeReactor(LowerReactor&& lower, UpperReactor&& upper,
-      RefType<Trigger> trigger) {
+  auto MakeRangeReactor(RefType<Trigger> trigger, LowerReactor&& lower,
+      UpperReactor&& upper) {
     Details::RangeReactorCore<GetReactorType<LowerReactor>> core{Ref(trigger)};
     return MakeFunctionReactor(core, std::forward<LowerReactor>(lower),
       std::forward<UpperReactor>(upper), core.m_iterator);

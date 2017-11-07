@@ -23,16 +23,16 @@ namespace Reactors {
 
       //! Constructs a ChainReactor.
       /*!
-        \param initialReactor The Reactor to initially evaluate to.
-        \param continuationReactor The Reactor to evaluate to thereafter.
         \param trigger Used to indicate a transition from the initial Reactor to
                the continuation Reactor.
+        \param initialReactor The Reactor to initially evaluate to.
+        \param continuationReactor The Reactor to evaluate to thereafter.
       */
       template<typename InitialReactorForward,
         typename ContinuationReactorForward>
-      ChainReactor(InitialReactorForward&& initialReactor,
-        ContinuationReactorForward&& continuationReactor,
-        RefType<Trigger> trigger);
+      ChainReactor(RefType<Trigger> trigger,
+        InitialReactorForward&& initialReactor,
+        ContinuationReactorForward&& continuationReactor);
 
       virtual bool IsComplete() const override final;
 
@@ -47,9 +47,9 @@ namespace Reactors {
         CONTINUATION,
         COMPLETE
       };
+      Trigger* m_trigger;
       GetOptionalLocalPtr<InitialReactorType> m_initialReactor;
       GetOptionalLocalPtr<ContinuationReactorType> m_continuationReactor;
-      Trigger* m_trigger;
       State m_state;
       int m_transitionSequenceNumber;
       int m_currentSequenceNumber;
@@ -60,31 +60,31 @@ namespace Reactors {
 
   //! Makes a ChainReactor.
   /*!
-    \param initialReactor The Reactor to initially evaluate to.
-    \param continuationReactor The Reactor to evaluate to thereafter.
     \param trigger Used to indicate a transition from the initial Reactor to
             the continuation Reactor.
+    \param initialReactor The Reactor to initially evaluate to.
+    \param continuationReactor The Reactor to evaluate to thereafter.
   */
   template<typename InitialReactor, typename ContinuationReactor>
-  auto MakeChainReactor(InitialReactor&& initialReactor,
-      ContinuationReactor&& continuationReactor, RefType<Trigger> trigger) {
+  auto MakeChainReactor(RefType<Trigger> trigger,
+      InitialReactor&& initialReactor,
+      ContinuationReactor&& continuationReactor) {
     return std::make_shared<ChainReactor<
       typename std::decay<InitialReactor>::type,
-      typename std::decay<ContinuationReactor>::type>>(
+      typename std::decay<ContinuationReactor>::type>>(Ref(trigger),
       std::forward<InitialReactor>(initialReactor),
-      std::forward<ContinuationReactor>(continuationReactor), Ref(trigger));
+      std::forward<ContinuationReactor>(continuationReactor));
   }
 
   template<typename InitialReactorType, typename ContinuationReactorType>
   template<typename InitialReactorForward, typename ContinuationReactorForward>
   ChainReactor<InitialReactorType, ContinuationReactorType>::ChainReactor(
-      InitialReactorForward&& initialReactor,
-      ContinuationReactorForward&& continuationReactor,
-      RefType<Trigger> trigger)
-      : m_initialReactor{std::forward<InitialReactorForward>(initialReactor)},
+      RefType<Trigger> trigger, InitialReactorForward&& initialReactor,
+      ContinuationReactorForward&& continuationReactor)
+      : m_trigger{trigger.Get()},
+        m_initialReactor{std::forward<InitialReactorForward>(initialReactor)},
         m_continuationReactor{
           std::forward<ContinuationReactorForward>(continuationReactor)},
-        m_trigger{trigger.Get()},
         m_state{State::INITIAL},
         m_currentSequenceNumber{-1},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},

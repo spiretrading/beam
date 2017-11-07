@@ -42,6 +42,22 @@ namespace Reactors {
       mutable bool m_cycle;
   };
 
+  //! Makes a ProxyReactor.
+  template<typename T>
+  auto MakeProxyReactor() {
+    return std::make_shared<ProxyReactor<T>>();
+  }
+
+  //! Makes a ProxyReactor.
+  /*!
+    \param reactor The Reactor to reference.
+  */
+  template<typename ReactorForward>
+  auto MakeProxyReactor(ReactorForward reactor) {
+    return std::make_shared<ProxyReactor<GetReactorType<ReactorForward>>>(
+      std::move(reactor));
+  }
+
   template<typename T>
   ProxyReactor<T>::ProxyReactor()
       : m_cycle{false} {}

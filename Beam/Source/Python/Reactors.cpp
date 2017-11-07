@@ -114,31 +114,32 @@ namespace {
       MakeAggregateReactor(std::move(reactor)));
   }
 
-  auto MakePythonAlarmReactor(const NoThrowFunction<
-      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
-      VirtualTimeClient* timeClient,
-      const std::shared_ptr<Reactor<ptime>>& expiryReactor, Trigger& trigger) {
+  auto MakePythonAlarmReactor(Trigger& trigger, VirtualTimeClient* timeClient,
+      const NoThrowFunction<std::unique_ptr<VirtualTimer>,
+      const time_duration&>& timerFactory,
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      timerFactory, timeClient, expiryReactor, Ref(trigger)));
+      Ref(trigger), timeClient, timerFactory, expiryReactor));
   }
 
-  auto MakePythonDefaultAlarmReactor(
-      const std::shared_ptr<Reactor<ptime>>& expiryReactor, Trigger& trigger) {
+  auto MakePythonDefaultAlarmReactor(Trigger& trigger,
+      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
     auto timerFactory =
       [] (const time_duration& duration) {
         return std::make_unique<LiveTimer>(duration,
           Ref(*GetTimerThreadPool()));
       };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      timerFactory, std::make_shared<LocalTimeClient>(), expiryReactor,
-      Ref(trigger)));
+      Ref(trigger), std::make_shared<LocalTimeClient>(), timerFactory,
+      expiryReactor));
   }
 
-  auto MakeConstantPythonAlarmReactor(const NoThrowFunction<
+  auto MakeConstantPythonAlarmReactor(Trigger& trigger,
+      VirtualTimeClient* timeClient, const NoThrowFunction<
       std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
-      VirtualTimeClient* timeClient, const ptime& expiry, Trigger& trigger) {
+      const ptime& expiry) {
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      timerFactory, timeClient, MakeConstantReactor(expiry), Ref(trigger)));
+      Ref(trigger), timeClient, timerFactory, MakeConstantReactor(expiry)));
   }
 
   auto MakeConstantPythonDefaultAlarmReactor(const ptime& expiry,
@@ -149,15 +150,15 @@ namespace {
           Ref(*GetTimerThreadPool()));
       };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      pythonTimerFactory, std::make_shared<LocalTimeClient>(),
-      MakeConstantReactor(expiry), Ref(trigger)));
+      Ref(trigger), std::make_shared<LocalTimeClient>(), pythonTimerFactory,
+      MakeConstantReactor(expiry)));
   }
 
-  auto MakePythonChainReactor(std::shared_ptr<PythonReactor> initial,
-      std::shared_ptr<PythonReactor> continuation, RefType<Trigger> trigger) {
-    return std::static_pointer_cast<Reactor<object>>(
-      MakeChainReactor(std::move(initial), std::move(continuation),
-      Ref(trigger)));
+  auto MakePythonChainReactor(RefType<Trigger> trigger,
+      std::shared_ptr<PythonReactor> initial,
+      std::shared_ptr<PythonReactor> continuation) {
+    return std::static_pointer_cast<Reactor<object>>(MakeChainReactor(
+      Ref(trigger), std::move(initial), std::move(continuation)));
   }
 
   auto MakePythonConstantReactor(const boost::python::object& value) {
@@ -185,8 +186,8 @@ namespace {
       std::static_pointer_cast<PythonReactor>(leftOperand),
       std::static_pointer_cast<PythonReactor>(rightOperand)),
       boost::python::dict{})}();
-    return std::static_pointer_cast<PythonReactor>(MakeFoldReactor(source, fold,
-      leftOperand, rightOperand));
+    return std::static_pointer_cast<PythonReactor>(MakeFoldReactor(fold,
+      leftOperand, rightOperand, source));
   }
 
   boost::python::object MakePythonFunctionReactor(
@@ -219,11 +220,11 @@ namespace {
       Ref(trigger)));
   }
 
-  auto MakePythonRangeReactor(const boost::python::object& lower,
-      const boost::python::object& upper, RefType<Trigger> trigger) {
+  auto MakePythonRangeReactor(RefType<Trigger> trigger,
+      const boost::python::object& lower, const boost::python::object& upper) {
     return std::static_pointer_cast<PythonReactor>(MakeRangeReactor(
-      MakePythonConstantReactor(lower), MakePythonConstantReactor(upper),
-      Ref(trigger)));
+      Ref(trigger), MakePythonConstantReactor(lower),
+      MakePythonConstantReactor(upper)));
   }
 
   auto MakePythonStaticReactor(std::shared_ptr<PythonReactor> source) {
@@ -241,19 +242,17 @@ namespace {
     return std::static_pointer_cast<PythonReactor>(MakeThrowReactor<object>(e));
   }
 
-  auto MakePythonTimerReactor(const NoThrowFunction<
+  auto MakePythonTimerReactor(Trigger& trigger, const NoThrowFunction<
       std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
-      const std::shared_ptr<Reactor<time_duration>>& periodReactor,
-      Trigger& trigger) {
+      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
     return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
       std::static_pointer_cast<Reactor<std::int64_t>>(
-      MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
-      Ref(trigger)))));
+      MakeTimerReactor<std::int64_t>(Ref(trigger), timerFactory,
+      periodReactor))));
   }
 
-  auto MakePythonDefaultTimerReactor(
-      const std::shared_ptr<Reactor<time_duration>>& periodReactor,
-      Trigger& trigger) {
+  auto MakePythonDefaultTimerReactor(Trigger& trigger,
+      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
     auto timerFactory =
       [=] (const time_duration& duration) {
         return std::make_unique<LiveTimer>(duration,
@@ -261,8 +260,8 @@ namespace {
       };
     return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
       std::static_pointer_cast<Reactor<std::int64_t>>(
-      MakeTimerReactor<std::int64_t>(timerFactory, periodReactor,
-      Ref(trigger)))));
+      MakeTimerReactor<std::int64_t>(Ref(trigger), timerFactory,
+      periodReactor))));
   }
 
   auto MakeWhenCompleteReactor(const NoThrowFunction<void>& callback,
@@ -300,9 +299,9 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ConstantReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(FoldParameterReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(
   FoldReactor<std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
-  std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
   std::shared_ptr<FoldParameterReactor<object>> BOOST_PP_COMMA()
-  std::shared_ptr<FoldParameterReactor<object>>>);
+  std::shared_ptr<FoldParameterReactor<object>> BOOST_PP_COMMA()
+  std::shared_ptr<PythonReactor>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(NoneReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ProxyReactor<object>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
@@ -383,8 +382,8 @@ void Beam::Python::ExportChainReactor() {
     std::shared_ptr<PythonReactor>>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("ChainReactor",
-    init<std::shared_ptr<PythonReactor>, std::shared_ptr<PythonReactor>,
-    RefType<Trigger>>());
+    init<RefType<Trigger>, std::shared_ptr<PythonReactor>,
+    std::shared_ptr<PythonReactor>>());
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
@@ -419,14 +418,15 @@ void Beam::Python::ExportFoldReactor() {
       std::shared_ptr<BaseReactor>>();
   }
   using ExportedReactor = FoldReactor<std::shared_ptr<PythonReactor>,
-    std::shared_ptr<PythonReactor>,
     std::shared_ptr<FoldParameterReactor<object>>,
-    std::shared_ptr<FoldParameterReactor<object>>>;
+    std::shared_ptr<FoldParameterReactor<object>>,
+    std::shared_ptr<PythonReactor>>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
     std::shared_ptr<ExportedReactor>>("FoldReactor",
-    init<std::shared_ptr<PythonReactor>, std::shared_ptr<PythonReactor>,
+    init<std::shared_ptr<PythonReactor>,
     std::shared_ptr<FoldParameterReactor<object>>,
-    std::shared_ptr<FoldParameterReactor<object>>>());
+    std::shared_ptr<FoldParameterReactor<object>>,
+    std::shared_ptr<PythonReactor>>());
   implicitly_convertible<std::shared_ptr<ExportedReactor>,
     std::shared_ptr<PythonReactor>>();
   implicitly_convertible<std::shared_ptr<ExportedReactor>,

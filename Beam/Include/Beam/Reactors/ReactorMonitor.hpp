@@ -93,10 +93,10 @@ namespace Reactors {
     if(m_openState.SetOpening()) {
       return;
     }
-    m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
     m_trigger.GetSequenceNumberPublisher().Monitor(m_tasks.GetSlot<int>(
       std::bind(&ReactorMonitor::OnSequenceNumber, this,
       std::placeholders::_1)));
+    m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
     m_openState.SetOpen();
   }
 

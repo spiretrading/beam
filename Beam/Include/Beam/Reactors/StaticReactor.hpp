@@ -1,6 +1,7 @@
 #ifndef BEAM_STATIC_REACTOR_HPP
 #define BEAM_STATIC_REACTOR_HPP
 #include <utility>
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 
@@ -29,10 +30,20 @@ namespace Details {
   /*!
     \param source The source that will provide the value to evaluate to.
   */
-  template<typename ReactorType>
-  auto MakeStaticReactor(ReactorType&& source) {
+  template<typename Source>
+  auto MakeStaticReactor(Source&& source) {
     return MakeFunctionReactor(Details::StaticReactorCore{},
-      std::forward<ReactorType>(source));
+      Lift(std::forward<Source>(source)));
+  }
+
+  //! Makes a Reactor that evaluates to the first value it receives from its
+  //! source.
+  /*!
+    \param source The source that will provide the value to evaluate to.
+  */
+  template<typename Source>
+  auto Static(Source&& source) {
+    return MakeStaticReactor(std::forward<Source>(source));
   }
 }
 }

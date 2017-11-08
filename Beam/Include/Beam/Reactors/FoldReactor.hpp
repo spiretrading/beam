@@ -3,6 +3,7 @@
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Reactors/BasicReactor.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -106,19 +107,39 @@ namespace Reactors {
     \param producer The Reactor producing the values to fold.
   */
   template<typename EvaluationReactor, typename LeftChildReactor,
-    typename RightChildReactor, typename ProducerReactor>
+    typename RightChildReactor, typename Producer>
   auto MakeFoldReactor(EvaluationReactor&& evaluation,
       LeftChildReactor&& leftChild, RightChildReactor&& rightChild,
-      ProducerReactor&& producer) {
+      Producer&& producer) {
+    auto producerReactor = Lift(std::forward<Producer>(producer));
     return std::make_shared<FoldReactor<
       typename std::decay<EvaluationReactor>::type,
       typename std::decay<LeftChildReactor>::type,
       typename std::decay<RightChildReactor>::type,
-      typename std::decay<ProducerReactor>::type>>(
+      typename std::decay<decltype(producerReactor)>::type>>(
       std::forward<EvaluationReactor>(evaluation),
       std::forward<LeftChildReactor>(leftChild),
       std::forward<RightChildReactor>(rightChild),
-      std::forward<ProducerReactor>(producer));
+      std::forward<decltype(producerReactor)>(producerReactor));
+  }
+
+  //! Makes a FoldReactor.
+  /*!
+    \param evaluation The Reactor to evaluate.
+    \param leftChild The FoldParameterReactor used for the left hand side of the
+           evaluation.
+    \param rightChild The FoldParameterReactor used for the right hand side of
+           the evaluation.
+    \param producer The Reactor producing the values to fold.
+  */
+  template<typename EvaluationReactor, typename LeftChildReactor,
+    typename RightChildReactor, typename Producer>
+  auto Fold(EvaluationReactor&& evaluation, LeftChildReactor&& leftChild,
+      RightChildReactor&& rightChild, Producer&& producer) {
+    return MakeFoldReactor(std::forward<EvaluationReactor>(evaluation),
+      std::forward<LeftChildReactor>(leftChild),
+      std::forward<RightChildReactor>(rightChild),
+      std::forward<Producer>(producer));
   }
 
   template<typename T>

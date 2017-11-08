@@ -4,6 +4,7 @@
 #include <string>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Collections/Enum.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/LuaReactorParameter.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 
@@ -41,11 +42,15 @@ namespace Reactors {
 
   //! Makes a NativeLuaReactorParameter.
   /*!
-    \param reactor The Reactor representing the parameter.
+    \param parameter The Reactor representing the parameter.
   */
-  template<typename T>
-  auto MakeNativeLuaReactorParameter(std::shared_ptr<Reactor<T>> reactor) {
-    return std::make_unique<NativeLuaReactorParameter<T>>(std::move(reactor));
+  template<typename Parameter>
+  auto MakeNativeLuaReactorParameter(Parameter&& parameter) {
+    auto parameterReactor = Lift(std::forward<Parameter>(parameter));
+    using Reactor = decltype(*parameterReactor);
+    return std::make_unique<
+      NativeLuaReactorParameter<typename Reactor::Type>>(
+      std::forward<decltype(parameterReactor)>(parameter));
   }
 
   template<typename T>

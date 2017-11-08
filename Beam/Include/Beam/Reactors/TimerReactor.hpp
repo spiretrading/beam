@@ -3,6 +3,7 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
@@ -73,7 +74,22 @@ namespace Details {
     auto expiryReactor = MakeQueueReactor(
       std::static_pointer_cast<QueueReader<Threading::Timer::Result>>(
       core.GetFunction().m_expiryQueue), Ref(trigger));
-    return MakeFunctionReactor(std::move(core), period, expiryReactor);
+    return MakeFunctionReactor(std::move(core),
+      Lift(std::forward<PeriodReactor>(period)), expiryReactor);
+  }
+
+  //! Makes a Reactor that increments a counter periodically.
+  /*!
+    \param trigger The Trigger used to indicate an update.
+    \param timerFactory Builds Timers used to measure time.
+    \param period The period to increment the counter.
+  */
+  template<typename Tick, typename TimerFactory, typename PeriodReactor>
+  auto Timer(RefType<Trigger> trigger, TimerFactory&& timerFactory,
+      PeriodReactor&& period) {
+    return MakeTimerReactor<Tick>(Ref(trigger),
+      std::forward<TimerFactory>(timerFactory),
+      std::forward<PeriodReactor>(period));
   }
 }
 }

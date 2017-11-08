@@ -46,14 +46,17 @@ namespace Reactors {
   //! Makes a WhenCompleteReactor.
   /*!
     \param function The function to apply.
-    \param reactor The Reactor to monitor for completion.
+    \param source The Reactor to monitor for completion.
   */
-  template<typename Function, typename ReactorType>
-  auto WhenComplete(Function&& f, ReactorType&& reactor) {
+  template<typename Function, typename Source>
+  auto WhenComplete(Function&& f, Source&& source) {
+    auto sourceReactor = Lift(std::forward<Source>(source));
+    using Reactor = decltype(*sourceReactor);
     return std::make_shared<WhenCompleteReactor<
       typename std::decay<Function>::type,
-      typename std::decay<ReactorType>::type>>(std::forward<Function>(f),
-      std::forward<ReactorType>(reactor));
+      typename std::decay<decltype(sourceReactor)>::type>>(
+      std::forward<Function>(f),
+      std::forward<decltype(sourceReactor)>(sourceReactor));
   }
 
   template<typename FunctionType, typename ReactorType>

@@ -2,6 +2,7 @@
 #define BEAM_SWITCH_REACTOR_HPP
 #include <memory>
 #include <utility>
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
@@ -50,11 +51,21 @@ namespace Reactors {
   /*!
     \param producer The Reactor that produces the Reactors to switch between.
   */
-  template<typename ProducerReactor>
-  auto MakeSwitchReactor(ProducerReactor&& producer) {
+  template<typename Producer>
+  auto MakeSwitchReactor(Producer&& producer) {
+    auto producerReactor = Lift(std::forward<Producer>(producer));
     return std::make_shared<SwitchReactor<
-      typename std::decay<ProducerReactor>::type>>(
-      std::forward<ProducerReactor>(producer));
+      typename std::decay<decltype(producerReactor)>::type>>(
+      std::forward<decltype(producerReactor)>(producerReactor));
+  }
+
+  //! Builds a SwitchReactor.
+  /*!
+    \param producer The Reactor that produces the Reactors to switch between.
+  */
+  template<typename Producer>
+  auto Switch(Producer&& producer) {
+    return MakeSwitchReactor(std::forward<Producer>(producer));
   }
 
   template<typename ProducerReactorType>

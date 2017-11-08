@@ -55,7 +55,7 @@ namespace Details {
   template<typename T>
   struct LiftHelper<std::shared_ptr<T>> {
     template<typename U>
-    auto operator ()(U&& value) const {
+    decltype(auto) operator ()(U&& value) const {
       return std::forward<U>(value);
     }
   };
@@ -67,8 +67,9 @@ namespace Details {
     \param value The value to lift.
   */
   template<typename T>
-  auto Lift(T&& value) {
-    return Details::LiftHelper<T>{}(std::forward<T>(value));
+  decltype(auto) Lift(T&& value) {
+    return Details::LiftHelper<typename std::decay<T>::type>{}(
+      std::forward<T>(value));
   }
 
   template<typename T>

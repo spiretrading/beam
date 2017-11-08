@@ -2,6 +2,7 @@
 #define BEAM_DO_REACTOR_HPP
 #include <memory>
 #include <utility>
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 
@@ -38,7 +39,7 @@ namespace Details {
   auto Do(Function&& function, Reactor&& reactor) {
     return MakeFunctionReactor(
       Details::DoFunction<typename std::decay<Function>::type>{
-      std::forward<Function>(function)}, std::forward<Reactor>(reactor));
+      std::forward<Function>(function)}, Lift(std::forward<Reactor>(reactor)));
   }
 }
 }

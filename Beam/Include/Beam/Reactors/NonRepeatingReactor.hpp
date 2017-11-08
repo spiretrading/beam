@@ -1,5 +1,6 @@
 #ifndef BEAM_NON_REPEATING_REACTOR_HPP
 #define BEAM_NON_REPEATING_REACTOR_HPP
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/Trigger.hpp"
@@ -26,11 +27,12 @@ namespace Details {
   /*!
     \param child The Reactor to wrap.
   */
-  template<typename ChildReactor>
-  auto MakeNonRepeatingReactor(ChildReactor&& child) {
+  template<typename Child>
+  auto MakeNonRepeatingReactor(Child&& child) {
+    auto childReactor = Lift(std::forward<Child>(child));
     return MakeFunctionReactor(
-      Details::NonRepeatingCore<GetReactorType<ChildReactor>>{},
-      std::forward<ChildReactor>(child));
+      Details::NonRepeatingCore<GetReactorType<decltype(childReactor)>>{},
+      std::forward<decltype(childReactor)>(childReactor));
   }
 }
 }

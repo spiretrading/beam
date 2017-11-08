@@ -6,6 +6,7 @@
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
@@ -82,7 +83,24 @@ namespace Reactors {
       std::static_pointer_cast<QueueReader<Threading::Timer::Result>>(
       core.GetFunction().m_expiryQueue), Ref(trigger));
     return MakeFunctionReactor(std::move(core),
-      std::forward<ExpiryReactor>(expiry), std::move(timerReactor));
+      Lift(std::forward<ExpiryReactor>(expiry)), std::move(timerReactor));
+  }
+
+  //! Makes a Reactor that evaluates to <code>true</code> after a specified
+  //! time.
+  /*!
+    \param trigger The Trigger used to indicate an update.
+    \param timeClient Used to get the current time.
+    \param timerFactory Builds Timers used to measure time.
+    \param expiry The time after which the Reactor will evaluate to
+           <code>true</code>.
+  */
+  template<typename TimerFactory, typename TimeClient, typename ExpiryReactor>
+  auto Alarm(RefType<Trigger> trigger, TimeClient&& timeClient,
+      TimerFactory&& timerFactory, ExpiryReactor&& expiry) {
+    return MakeAlarmReactor(Ref(trigger), std::forward<TimeClient>(timeClient),
+      std::forward<TimerFactory>(timerFactory),
+      std::forward<ExpiryReactor>(expiry));
   }
 }
 }

@@ -3,6 +3,7 @@
 #include <utility>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Reactors/BasicReactor.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/Trigger.hpp"
@@ -48,12 +49,28 @@ namespace Details {
     \param upper The Reactor producing the last value in the range.
     \param trigger The Trigger used to indicate an update.
   */
-  template<typename LowerReactor, typename UpperReactor>
-  auto MakeRangeReactor(RefType<Trigger> trigger, LowerReactor&& lower,
-      UpperReactor&& upper) {
-    Details::RangeReactorCore<GetReactorType<LowerReactor>> core{Ref(trigger)};
-    return MakeFunctionReactor(core, std::forward<LowerReactor>(lower),
-      std::forward<UpperReactor>(upper), core.m_iterator);
+  template<typename Lower, typename Upper>
+  auto MakeRangeReactor(RefType<Trigger> trigger, Lower&& lower,
+      Upper&& upper) {
+    auto lowerReactor = Lift(std::forward<Lower>(lower));
+    auto upperReactor = Lift(std::forward<Upper>(upper));
+    using Reactor = decltype(*lowerReactor);
+    Details::RangeReactorCore<GetReactorType<Reactor>> core{Ref(trigger)};
+    return MakeFunctionReactor(core,
+      std::forward<decltype(lowerReactor)>(lowerReactor),
+      std::forward<decltype(upperReactor)>(upperReactor), core.m_iterator);
+  }
+
+  //! Builds a Reactor that produces a range of values.
+  /*!
+    \param lower The Reactor producing the first value in the range.
+    \param upper The Reactor producing the last value in the range.
+    \param trigger The Trigger used to indicate an update.
+  */
+  template<typename Lower, typename Upper>
+  auto Range(RefType<Trigger> trigger, Lower&& lower, Upper&& upper) {
+    return MakeRangeReactor(Ref(trigger), std::forward<Lower>(lower),
+      std::forward<Upper>(upper));
   }
 }
 }

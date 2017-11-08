@@ -2,6 +2,7 @@
 #define BEAM_CHAIN_REACTOR_HPP
 #include <type_traits>
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/Trigger.hpp"
@@ -62,18 +63,33 @@ namespace Reactors {
   /*!
     \param trigger Used to indicate a transition from the initial Reactor to
             the continuation Reactor.
-    \param initialReactor The Reactor to initially evaluate to.
-    \param continuationReactor The Reactor to evaluate to thereafter.
+    \param initial The Reactor to initially evaluate to.
+    \param continuation The Reactor to evaluate to thereafter.
   */
-  template<typename InitialReactor, typename ContinuationReactor>
-  auto MakeChainReactor(RefType<Trigger> trigger,
-      InitialReactor&& initialReactor,
-      ContinuationReactor&& continuationReactor) {
+  template<typename Initial, typename Continuation>
+  auto MakeChainReactor(RefType<Trigger> trigger, Initial&& initial,
+      Continuation&& continuation) {
+    auto initialReactor = Lift(std::forward<Initial>(initial));
+    auto continuationReactor = Lift(std::forward<Continuation>(continuation));
     return std::make_shared<ChainReactor<
-      typename std::decay<InitialReactor>::type,
-      typename std::decay<ContinuationReactor>::type>>(Ref(trigger),
-      std::forward<InitialReactor>(initialReactor),
-      std::forward<ContinuationReactor>(continuationReactor));
+      typename std::decay<decltype(initialReactor)>::type,
+      typename std::decay<decltype(continuationReactor)>::type>>(Ref(trigger),
+      std::forward<decltype(initialReactor)>(initialReactor),
+      std::forward<decltype(continuationReactor)>(continuationReactor));
+  }
+
+  //! Makes a ChainReactor.
+  /*!
+    \param trigger Used to indicate a transition from the initial Reactor to
+            the continuation Reactor.
+    \param initial The Reactor to initially evaluate to.
+    \param continuation The Reactor to evaluate to thereafter.
+  */
+  template<typename Initial, typename Continuation>
+  auto Chain(RefType<Trigger> trigger, Initial&& initial,
+      Continuation&& continuation) {
+    return MakeChainReactor(Ref(trigger), std::forward<Initial>(initial),
+      std::forward<Continuation>(continuation));
   }
 
   template<typename InitialReactorType, typename ContinuationReactorType>

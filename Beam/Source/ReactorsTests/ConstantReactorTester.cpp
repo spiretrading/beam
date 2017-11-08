@@ -30,3 +30,16 @@ void ConstantReactorTester::TestString() {
   CPPUNIT_ASSERT_EQUAL(constant->Eval(), string("hello world"));
   CPPUNIT_ASSERT(constant->Commit(1) == BaseReactor::Update::NONE);
 }
+
+void ConstantReactorTester::TestLift() {
+  auto literal = Lift(5);
+  CPPUNIT_ASSERT(literal->Commit(0) == BaseReactor::Update::EVAL);
+  CPPUNIT_ASSERT(literal->IsComplete());
+  CPPUNIT_ASSERT_EQUAL(literal->Eval(), 5);
+  CPPUNIT_ASSERT(literal->Commit(1) == BaseReactor::Update::NONE);
+  auto reactor = Lift(MakeConstantReactor(10));
+  CPPUNIT_ASSERT(reactor->Commit(0) == BaseReactor::Update::EVAL);
+  CPPUNIT_ASSERT(reactor->IsComplete());
+  CPPUNIT_ASSERT_EQUAL(reactor->Eval(), 10);
+  CPPUNIT_ASSERT(reactor->Commit(1) == BaseReactor::Update::NONE);
+}

@@ -43,6 +43,34 @@ namespace Reactors {
       std::forward<T>(value));
   }
 
+namespace Details {
+  template<typename T>
+  struct LiftHelper {
+    template<typename U>
+    auto operator ()(U&& value) const {
+      return MakeConstantReactor(std::forward<U>(value));
+    }
+  };
+
+  template<typename T>
+  struct LiftHelper<std::shared_ptr<T>> {
+    template<typename U>
+    auto operator ()(U&& value) const {
+      return std::forward<U>(value);
+    }
+  };
+}
+
+  //! Lifts a constant value to a Reactor unless the parameter is already a
+  //! Reactor type.
+  /*!
+    \param value The value to lift.
+  */
+  template<typename T>
+  auto Lift(T&& value) {
+    return Details::LiftHelper<T>{}(std::forward<T>(value));
+  }
+
   template<typename T>
   template<typename ValueForward>
   ConstantReactor<T>::ConstantReactor(ValueForward&& value)

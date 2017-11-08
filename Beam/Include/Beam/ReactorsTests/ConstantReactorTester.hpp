@@ -23,11 +23,15 @@ namespace Tests {
       //! Tests a string ConstantReactor.
       void TestString();
 
+      //! Tests lifting a literal value into a ConstantReactor.
+      void TestLift();
+
     private:
       CPPUNIT_TEST_SUITE(ConstantReactorTester);
         CPPUNIT_TEST(TestInt);
         CPPUNIT_TEST(TestDecimal);
         CPPUNIT_TEST(TestString);
+        CPPUNIT_TEST(TestLift);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

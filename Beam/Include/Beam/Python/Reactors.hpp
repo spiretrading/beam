@@ -12,6 +12,32 @@
 
 namespace Beam {
 namespace Python {
+
+  //! Extracts a Reactor from a Python object.
+  /*!
+    \param value The Python object to extract the Reactor from.
+  */
+  template<typename T>
+  inline auto ExtractReactor(const boost::python::object& value) {
+    boost::python::extract<std::shared_ptr<Reactors::Reactor<T>>> reactor{
+      value};
+    if(reactor.check()) {
+      return reactor();
+    }
+    return std::static_pointer_cast<Reactors::Reactor<T>>(
+      Reactors::MakeConstantReactor(boost::python::extract<T>{value}()));
+  }
+
+  inline auto ExtractReactor(const boost::python::object& value) {
+    boost::python::extract<std::shared_ptr<
+      Reactors::Reactor<boost::python::object>>> reactor{value};
+    if(reactor.check()) {
+      return reactor();
+    }
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::MakeConstantReactor(value));
+  }
+
 namespace Details {
   template<typename T>
   struct ReactorWrapper : T, boost::python::wrapper<T> {
@@ -83,64 +109,67 @@ namespace Details {
   };
 
   template<typename T>
-  auto ExtractReactor(std::shared_ptr<T> value) {
-    return std::static_pointer_cast<Reactors::Reactor<typename T::Type>>(
-      std::move(value));
-  }
-
-  inline auto ExtractReactor(const boost::python::object& value) {
-    boost::python::extract<std::shared_ptr<
-      Reactors::Reactor<boost::python::object>>> reactor{value};
-    if(reactor.check()) {
-      return reactor();
-    }
-    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::MakeConstantReactor(value));
-  }
-
-  template<typename T, typename U>
-  auto PythonAddReactor(T lhs, U rhs) {
-    auto leftReactor = ExtractReactor(std::move(rhs));
-    auto rightReactor = ExtractReactor(std::move(lhs));
-    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Add(std::move(leftReactor), std::move(rightReactor)));
-  }
-
-  template<typename T, typename U>
-  auto PythonReverseAddReactor(T lhs, U rhs) {
-    auto leftReactor = ExtractReactor(std::move(lhs));
+  auto PythonAddReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& rhs) {
     auto rightReactor = ExtractReactor(std::move(rhs));
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Add(std::move(leftReactor), std::move(rightReactor)));
+      Reactors::Add(std::move(self), std::move(rightReactor)));
   }
 
   template<typename T>
-  auto PythonAddReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
+  auto PythonReverseAddReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& lhs) {
+    auto leftReactor = ExtractReactor(std::move(lhs));
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Add(std::move(leftReactor), std::move(self)));
+  }
+
+  template<typename T>
+  auto PythonSubtractReactor(std::shared_ptr<Reactors::Reactor<T>> self,
       const boost::python::object& rhs) {
-    auto reactor = ExtractReactor(rhs);
+    auto rightReactor = ExtractReactor(std::move(rhs));
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Add(std::move(lhs), std::move(reactor)));
+      Reactors::Subtract(std::move(self), std::move(rightReactor)));
   }
 
-  template<typename T, typename U>
-  auto PythonSubtractReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
-      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+  template<typename T>
+  auto PythonReverseSubtractReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& lhs) {
+    auto leftReactor = ExtractReactor(std::move(lhs));
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Subtract(std::move(lhs), std::move(rhs)));
+      Reactors::Subtract(std::move(leftReactor), std::move(self)));
   }
 
-  template<typename T, typename U>
-  auto PythonMultiplyReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
-      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+  template<typename T>
+  auto PythonMultiplyReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& rhs) {
+    auto rightReactor = ExtractReactor(std::move(rhs));
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Multiply(std::move(lhs), std::move(rhs)));
+      Reactors::Multiply(std::move(self), std::move(rightReactor)));
   }
 
-  template<typename T, typename U>
-  auto PythonDivideReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
-      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+  template<typename T>
+  auto PythonReverseMultiplyReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& lhs) {
+    auto leftReactor = ExtractReactor(std::move(lhs));
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Divide(std::move(lhs), std::move(rhs)));
+      Reactors::Multiply(std::move(leftReactor), std::move(self)));
+  }
+
+  template<typename T>
+  auto PythonDivideReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& rhs) {
+    auto rightReactor = ExtractReactor(std::move(rhs));
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Divide(std::move(self), std::move(rightReactor)));
+  }
+
+  template<typename T>
+  auto PythonReverseDivideReactor(std::shared_ptr<Reactors::Reactor<T>> self,
+      const boost::python::object& lhs) {
+    auto leftReactor = ExtractReactor(std::move(lhs));
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Divide(std::move(leftReactor), std::move(self)));
   }
 
   template<typename T, typename U>
@@ -155,6 +184,20 @@ namespace Details {
       std::shared_ptr<Reactors::Reactor<U>> rhs) {
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
       Reactors::LessOrEqual(std::move(lhs), std::move(rhs)));
+  }
+
+  template<typename T, typename U>
+  auto PythonEqualReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
+      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Equal(std::move(lhs), std::move(rhs)));
+  }
+
+  template<typename T, typename U>
+  auto PythonNotEqualReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
+      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::NotEqual(std::move(lhs), std::move(rhs)));
   }
 
   template<typename T, typename U>
@@ -192,9 +235,6 @@ namespace Details {
 
   //! Exports the Do Reactor.
   void ExportDoReactor();
-
-  //! Exports expression Reactors.
-  void ExportExpressionReactors();
 
   //! Exports the Filter Reactor.
   void ExportFilterReactor();
@@ -261,19 +301,21 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    auto add = &Details::PythonAddReactor<std::shared_ptr<T>,
-      boost::python::object>;
-    auto radd = &Details::PythonReverseAddReactor<std::shared_ptr<T>,
-      boost::python::object>;
-    auto sub = &Details::PythonSubtractReactor<typename T::Type,
-      boost::python::object>;
-    auto mul = &Details::PythonMultiplyReactor<typename T::Type,
-      boost::python::object>;
-    auto div = &Details::PythonDivideReactor<typename T::Type,
-      boost::python::object>;
+    auto add = &Details::PythonAddReactor<typename T::Type>;
+    auto radd = &Details::PythonReverseAddReactor<typename T::Type>;
+    auto sub = &Details::PythonSubtractReactor<typename T::Type>;
+    auto rsub = &Details::PythonReverseSubtractReactor<typename T::Type>;
+    auto mul = &Details::PythonMultiplyReactor<typename T::Type>;
+    auto rmul = &Details::PythonReverseMultiplyReactor<typename T::Type>;
+    auto div = &Details::PythonDivideReactor<typename T::Type>;
+    auto rdiv = &Details::PythonReverseDivideReactor<typename T::Type>;
     auto lt = &Details::PythonLessReactor<typename T::Type,
       boost::python::object>;
     auto le = &Details::PythonLessOrEqualReactor<typename T::Type,
+      boost::python::object>;
+    auto eq = &Details::PythonEqualReactor<typename T::Type,
+      boost::python::object>;
+    auto neq = &Details::PythonNotEqualReactor<typename T::Type,
       boost::python::object>;
     auto ge = &Details::PythonGreaterOrEqualReactor<
       typename T::Type, boost::python::object>;
@@ -286,10 +328,17 @@ namespace Details {
       .def("__add__", add)
       .def("__radd__", radd)
       .def("__sub__", sub)
+      .def("__rsub__", rsub)
       .def("__mul__", mul)
+      .def("__rmul__", rmul)
       .def("__truediv__", div)
+      .def("__truediv__", div)
+      .def("__rtruediv__", rdiv)
+      .def("__rtruediv__", rdiv)
       .def("__lt__", lt)
       .def("__le__", le)
+      .def("__eq__", eq)
+      .def("__neq__", neq)
       .def("__ge__", ge)
       .def("__gt__", gt);
     if(!std::is_same<T, PythonReactor>::value) {

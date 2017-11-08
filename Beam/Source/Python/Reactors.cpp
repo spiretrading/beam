@@ -117,13 +117,14 @@ namespace {
   auto MakePythonAlarmReactor(Trigger& trigger, VirtualTimeClient* timeClient,
       const NoThrowFunction<std::unique_ptr<VirtualTimer>,
       const time_duration&>& timerFactory,
-      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
+      const boost::python::object& expiryReactor) {
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      Ref(trigger), timeClient, timerFactory, expiryReactor));
+      Ref(trigger), timeClient, timerFactory,
+      ExtractReactor<ptime>(expiryReactor)));
   }
 
   auto MakePythonDefaultAlarmReactor(Trigger& trigger,
-      const std::shared_ptr<Reactor<ptime>>& expiryReactor) {
+      const boost::python::object& expiryReactor) {
     auto timerFactory =
       [] (const time_duration& duration) {
         return std::make_unique<LiveTimer>(duration,
@@ -131,34 +132,14 @@ namespace {
       };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
       Ref(trigger), std::make_shared<LocalTimeClient>(), timerFactory,
-      expiryReactor));
-  }
-
-  auto MakeConstantPythonAlarmReactor(Trigger& trigger,
-      VirtualTimeClient* timeClient, const NoThrowFunction<
-      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
-      const ptime& expiry) {
-    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      Ref(trigger), timeClient, timerFactory, MakeConstantReactor(expiry)));
-  }
-
-  auto MakeConstantPythonDefaultAlarmReactor(const ptime& expiry,
-      Trigger& trigger) {
-    auto pythonTimerFactory =
-      [] (const time_duration& duration) {
-        return std::make_unique<LiveTimer>(duration,
-          Ref(*GetTimerThreadPool()));
-      };
-    return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(
-      Ref(trigger), std::make_shared<LocalTimeClient>(), pythonTimerFactory,
-      MakeConstantReactor(expiry)));
+      ExtractReactor<ptime>(expiryReactor)));
   }
 
   auto MakePythonChainReactor(RefType<Trigger> trigger,
-      std::shared_ptr<PythonReactor> initial,
-      std::shared_ptr<PythonReactor> continuation) {
+      const boost::python::object& initial,
+      const boost::python::object& continuation) {
     return std::static_pointer_cast<Reactor<object>>(MakeChainReactor(
-      Ref(trigger), std::move(initial), std::move(continuation)));
+      Ref(trigger), ExtractReactor(initial), ExtractReactor(continuation)));
   }
 
   auto MakePythonConstantReactor(const boost::python::object& value) {
@@ -167,18 +148,19 @@ namespace {
 
   auto MakePythonDoReactor(
       const NoThrowFunction<void, const Expect<object>&>& callback,
-      const std::shared_ptr<PythonReactor>& reactor) {
-    return std::static_pointer_cast<PythonReactor>(Do(callback, reactor));
+      const boost::python::object& reactor) {
+    return std::static_pointer_cast<PythonReactor>(
+      Do(callback, ExtractReactor(reactor)));
   }
 
-  auto MakePythonFilterReactor(std::shared_ptr<Reactor<bool>> filter,
-      std::shared_ptr<PythonReactor> source) {
+  auto MakePythonFilterReactor(const boost::python::object& filter,
+      const boost::python::object& source) {
     return std::static_pointer_cast<PythonReactor>(
-      MakeFilterReactor(std::move(filter), std::move(source)));
+      MakeFilterReactor(ExtractReactor<bool>(filter), ExtractReactor(source)));
   }
 
   auto MakePythonFoldReactor(const boost::python::object& f,
-      const std::shared_ptr<PythonReactor>& source) {
+      const boost::python::object& source) {
     auto leftOperand = MakeFoldParameterReactor<object>();
     auto rightOperand = MakeFoldParameterReactor<object>();
     auto fold = extract<std::shared_ptr<PythonReactor>>{ApplyFunctionReactor(
@@ -187,7 +169,7 @@ namespace {
       std::static_pointer_cast<PythonReactor>(rightOperand)),
       boost::python::dict{})}();
     return std::static_pointer_cast<PythonReactor>(MakeFoldReactor(fold,
-      leftOperand, rightOperand, source));
+      leftOperand, rightOperand, ExtractReactor(source)));
   }
 
   boost::python::object MakePythonFunctionReactor(
@@ -209,9 +191,9 @@ namespace {
       MakePublisherReactor(publisher, Ref(trigger)));
   }
 
-  auto MakePythonNonRepeatingReactor(std::shared_ptr<PythonReactor> reactor) {
+  auto MakePythonNonRepeatingReactor(const boost::python::object& reactor) {
     return std::static_pointer_cast<PythonReactor>(
-      MakeNonRepeatingReactor(std::move(reactor)));
+      MakeNonRepeatingReactor(ExtractReactor(reactor)));
   }
 
   auto MakePythonQueueReactor(std::shared_ptr<QueueReader<object>> queue,
@@ -223,13 +205,12 @@ namespace {
   auto MakePythonRangeReactor(RefType<Trigger> trigger,
       const boost::python::object& lower, const boost::python::object& upper) {
     return std::static_pointer_cast<PythonReactor>(MakeRangeReactor(
-      Ref(trigger), MakePythonConstantReactor(lower),
-      MakePythonConstantReactor(upper)));
+      Ref(trigger), ExtractReactor(lower), ExtractReactor(upper)));
   }
 
-  auto MakePythonStaticReactor(std::shared_ptr<PythonReactor> source) {
+  auto MakePythonStaticReactor(const boost::python::object& source) {
     return std::static_pointer_cast<PythonReactor>(
-      MakeStaticReactor(std::move(source)));
+      MakeStaticReactor(ExtractReactor(source)));
   }
 
   auto MakePythonSwitchReactor(
@@ -244,15 +225,15 @@ namespace {
 
   auto MakePythonTimerReactor(Trigger& trigger, const NoThrowFunction<
       std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
-      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
+      const boost::python::object& periodReactor) {
     return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
       std::static_pointer_cast<Reactor<std::int64_t>>(
       MakeTimerReactor<std::int64_t>(Ref(trigger), timerFactory,
-      periodReactor))));
+      ExtractReactor<time_duration>(periodReactor)))));
   }
 
   auto MakePythonDefaultTimerReactor(Trigger& trigger,
-      const std::shared_ptr<Reactor<time_duration>>& periodReactor) {
+      const boost::python::object& periodReactor) {
     auto timerFactory =
       [=] (const time_duration& duration) {
         return std::make_unique<LiveTimer>(duration,
@@ -261,13 +242,13 @@ namespace {
     return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
       std::static_pointer_cast<Reactor<std::int64_t>>(
       MakeTimerReactor<std::int64_t>(Ref(trigger), timerFactory,
-      periodReactor))));
+      ExtractReactor<time_duration>(periodReactor)))));
   }
 
   auto MakeWhenCompleteReactor(const NoThrowFunction<void>& callback,
-      std::shared_ptr<PythonReactor> reactor) {
+      const boost::python::object& reactor) {
     return std::static_pointer_cast<PythonReactor>(
-      WhenComplete(callback, std::move(reactor)));
+      WhenComplete(callback, ExtractReactor(reactor)));
   }
 
   void ReactorMonitorAdd(ReactorMonitor& monitor,
@@ -348,8 +329,8 @@ void Beam::Python::ExportAggregateReactor() {
 void Beam::Python::ExportAlarmReactor() {
   def("AlarmReactor", &MakePythonAlarmReactor);
   def("AlarmReactor", &MakePythonDefaultAlarmReactor);
-  def("alarm", &MakeConstantPythonAlarmReactor);
-  def("alarm", &MakeConstantPythonDefaultAlarmReactor);
+  def("alarm", &MakePythonAlarmReactor);
+  def("alarm", &MakePythonDefaultAlarmReactor);
 }
 
 void Beam::Python::ExportBaseReactor() {
@@ -393,13 +374,6 @@ void Beam::Python::ExportChainReactor() {
 
 void Beam::Python::ExportDoReactor() {
   def("do", &MakePythonDoReactor);
-}
-
-void Beam::Python::ExportExpressionReactors() {
-  auto e = &Reactors::Equal<object, object>;
-  auto ne = &Reactors::NotEqual<object, object>;
-  def("equals", e);
-  def("not_equals", ne);
 }
 
 void Beam::Python::ExportFilterReactor() {
@@ -536,7 +510,6 @@ void Beam::Python::ExportReactors() {
   ExportAlarmReactor();
   ExportBasicReactor();
   ExportChainReactor();
-  ExportExpressionReactors();
   ExportFilterReactor();
   ExportFoldReactor();
   ExportFunctionReactor();

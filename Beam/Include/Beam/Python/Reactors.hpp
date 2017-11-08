@@ -5,6 +5,7 @@
 #include "Beam/Python/Python.hpp"
 #include "Beam/Python/FromPythonReactor.hpp"
 #include "Beam/Python/ToPythonReactor.hpp"
+#include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
@@ -81,11 +82,44 @@ namespace Details {
     }
   };
 
-  template<typename T, typename U>
-  auto PythonAddReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
-      std::shared_ptr<Reactors::Reactor<U>> rhs) {
+  template<typename T>
+  auto ExtractReactor(std::shared_ptr<T> value) {
+    return std::static_pointer_cast<Reactors::Reactor<typename T::Type>>(
+      std::move(value));
+  }
+
+  inline auto ExtractReactor(const boost::python::object& value) {
+    boost::python::extract<std::shared_ptr<
+      Reactors::Reactor<boost::python::object>>> reactor{value};
+    if(reactor.check()) {
+      return reactor();
+    }
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
-      Reactors::Add(std::move(lhs), std::move(rhs)));
+      Reactors::MakeConstantReactor(value));
+  }
+
+  template<typename T, typename U>
+  auto PythonAddReactor(T lhs, U rhs) {
+    auto leftReactor = ExtractReactor(std::move(rhs));
+    auto rightReactor = ExtractReactor(std::move(lhs));
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Add(std::move(leftReactor), std::move(rightReactor)));
+  }
+
+  template<typename T, typename U>
+  auto PythonReverseAddReactor(T lhs, U rhs) {
+    auto leftReactor = ExtractReactor(std::move(lhs));
+    auto rightReactor = ExtractReactor(std::move(rhs));
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Add(std::move(leftReactor), std::move(rightReactor)));
+  }
+
+  template<typename T>
+  auto PythonAddReactor(std::shared_ptr<Reactors::Reactor<T>> lhs,
+      const boost::python::object& rhs) {
+    auto reactor = ExtractReactor(rhs);
+    return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
+      Reactors::Add(std::move(lhs), std::move(reactor)));
   }
 
   template<typename T, typename U>
@@ -227,7 +261,9 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    auto add = &Details::PythonAddReactor<typename T::Type,
+    auto add = &Details::PythonAddReactor<std::shared_ptr<T>,
+      boost::python::object>;
+    auto radd = &Details::PythonReverseAddReactor<std::shared_ptr<T>,
       boost::python::object>;
     auto sub = &Details::PythonSubtractReactor<typename T::Type,
       boost::python::object>;
@@ -248,6 +284,7 @@ namespace Details {
       boost::python::bases<Reactors::BaseReactor>>(name, boost::python::no_init)
       .def("eval", boost::python::pure_virtual(&T::Eval))
       .def("__add__", add)
+      .def("__radd__", radd)
       .def("__sub__", sub)
       .def("__mul__", mul)
       .def("__truediv__", div)

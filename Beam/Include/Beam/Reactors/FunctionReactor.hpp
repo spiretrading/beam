@@ -107,12 +107,10 @@ namespace Details {
 
   struct Initialize {
     using result_type = int;
-    int m_sequenceNumber;
 
     template<typename T>
     int operator()(int count, T& reactor) const {
-      if(reactor->Commit(0) != BaseReactor::Update::NONE ||
-          reactor->Commit(m_sequenceNumber) != BaseReactor::Update::NONE) {
+      if(reactor->Commit(0) == BaseReactor::Update::EVAL) {
         return count + 1;
       }
       return count;
@@ -222,7 +220,6 @@ namespace Details {
       bool m_hasValue;
       BaseReactor::Update m_state;
       BaseReactor::Update m_update;
-      int m_initializationCount;
       int m_currentSequenceNumber;
 
       bool AreParametersComplete() const;
@@ -310,7 +307,6 @@ namespace Details {
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_state{BaseReactor::Update::NONE},
-        m_initializationCount{0},
         m_currentSequenceNumber{-1} {}
 
   template<typename FunctionType, typename... ParameterTypes>
@@ -341,15 +337,18 @@ namespace Details {
             return BaseReactor::Update::NONE;
           }
         }
-        if(m_initializationCount != sizeof...(ParameterTypes)) {
-          m_initializationCount = boost::fusion::accumulate(m_parameters,
-            0, Details::Initialize{sequenceNumber});
-          if(m_initializationCount != sizeof...(ParameterTypes)) {
+        auto commit = BaseReactor::Update::NONE;
+        if(m_state == BaseReactor::Update::NONE) {
+          auto initializationCount = boost::fusion::accumulate(m_parameters, 0,
+            Details::Initialize{});
+          if(initializationCount != sizeof...(ParameterTypes)) {
             return BaseReactor::Update::NONE;
           }
+          commit = BaseReactor::Update::EVAL;
+          m_state = BaseReactor::Update::EVAL;
         }
-        return boost::fusion::accumulate(m_parameters,
-          BaseReactor::Update::NONE, Details::Commit{sequenceNumber});
+        return boost::fusion::accumulate(m_parameters, commit,
+          Details::Commit{sequenceNumber});
       }();
     if(update == BaseReactor::Update::NONE) {
       return update;
@@ -373,7 +372,7 @@ namespace Details {
         m_state = BaseReactor::Update::COMPLETE;
       }
     } else if(m_update == BaseReactor::Update::COMPLETE) {
-      if(AreParametersComplete()) {
+      if(m_state == BaseReactor::Update::NONE || AreParametersComplete()) {
         m_state = BaseReactor::Update::COMPLETE;
       } else {
         m_update = BaseReactor::Update::NONE;

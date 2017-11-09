@@ -140,11 +140,20 @@ namespace Details {
         }
         auto commit = BaseReactor::Update::NONE;
         if(m_state == BaseReactor::Update::NONE) {
+          commit = BaseReactor::Update::EVAL;
           for(auto& child : m_children) {
-            commit = child->Commit(0);
-            if(commit != BaseReactor::Update::EVAL) {
-              return commit;
+            auto childCommit = child->Commit(0);
+            if(childCommit == BaseReactor::Update::NONE) {
+              childCommit = child->Commit(sequenceNumber);
             }
+            if(childCommit == BaseReactor::Update::COMPLETE) {
+              return childCommit;
+            } else if(childCommit == BaseReactor::Update::NONE) {
+              commit = BaseReactor::Update::NONE;
+            }
+          }
+          if(commit != BaseReactor::Update::EVAL) {
+            return commit;
           }
           m_state = BaseReactor::Update::EVAL;
         }

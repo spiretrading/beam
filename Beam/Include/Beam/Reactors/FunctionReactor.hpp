@@ -106,14 +106,25 @@ namespace Details {
   };
 
   struct Initialize {
-    using result_type = int;
+    using result_type = BaseReactor::Update;
+    int m_sequenceNumber;
 
     template<typename T>
-    int operator()(int count, T& reactor) const {
-      if(reactor->Commit(0) == BaseReactor::Update::EVAL) {
-        return count + 1;
+    BaseReactor::Update operator()(BaseReactor::Update commit,
+        T& reactor) const {
+      if(commit == BaseReactor::Update::COMPLETE) {
+        return commit;
       }
-      return count;
+      auto childCommit = reactor->Commit(0);
+      if(childCommit == BaseReactor::Update::NONE) {
+        childCommit = reactor->Commit(m_sequenceNumber);
+      }
+      if(childCommit == BaseReactor::Update::COMPLETE) {
+        return BaseReactor::Update::COMPLETE;
+      } else if(childCommit == BaseReactor::Update::NONE) {
+        return BaseReactor::Update::NONE;
+      }
+      return commit;
     }
   };
 
@@ -339,12 +350,11 @@ namespace Details {
         }
         auto commit = BaseReactor::Update::NONE;
         if(m_state == BaseReactor::Update::NONE) {
-          auto initializationCount = boost::fusion::accumulate(m_parameters, 0,
-            Details::Initialize{});
-          if(initializationCount != sizeof...(ParameterTypes)) {
-            return BaseReactor::Update::NONE;
+          commit = boost::fusion::accumulate(m_parameters,
+            BaseReactor::Update::EVAL, Details::Initialize{sequenceNumber});
+          if(commit != BaseReactor::Update::EVAL) {
+            return commit;
           }
-          commit = BaseReactor::Update::EVAL;
           m_state = BaseReactor::Update::EVAL;
         }
         return boost::fusion::accumulate(m_parameters, commit,

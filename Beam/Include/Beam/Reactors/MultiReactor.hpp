@@ -140,14 +140,15 @@ namespace Details {
           if(m_initializationCount != static_cast<int>(m_children.size())) {
             m_initializationCount = 0;
             for(auto& child : m_children) {
-              if(child->Commit(0) != BaseReactor::Update::NONE ||
-                  child->Commit(sequenceNumber) != BaseReactor::Update::NONE) {
-                ++m_initializationCount;
+              auto commit = child->Commit(0);
+              if(commit == BaseReactor::Update::NONE) {
+                return BaseReactor::Update::NONE;
+              }
+              if(commit == BaseReactor::Update::COMPLETE) {
+                return BaseReactor::Update::COMPLETE;
               }
             }
-            if(m_initializationCount != static_cast<int>(m_children.size())) {
-              return BaseReactor::Update::NONE;
-            }
+            m_initializationCount = static_cast<int>(m_children.size());
           }
           auto commit = BaseReactor::Update::NONE;
           for(auto& child : m_children) {
@@ -183,7 +184,8 @@ namespace Details {
         m_hasValue = true;
       }
     } else if(m_update == BaseReactor::Update::COMPLETE) {
-      if(AreParametersComplete()) {
+      if(m_initializationCount != static_cast<int>(m_children.size()) ||
+          AreParametersComplete()) {
         m_state = BaseReactor::Update::COMPLETE;
       } else {
         m_update = BaseReactor::Update::NONE;

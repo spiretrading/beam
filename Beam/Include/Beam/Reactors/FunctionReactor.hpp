@@ -111,11 +111,8 @@ namespace Details {
 
     template<typename T>
     int operator()(int count, T& reactor) const {
-      auto reactorUpdate = reactor->Commit(0);
-      if(reactor->Commit(0) != BaseReactor::Update::NONE) {
-        return count + 1;
-      } else if(reactor->Commit(m_sequenceNumber) !=
-          BaseReactor::Update::NONE) {
+      if(reactor->Commit(0) != BaseReactor::Update::NONE ||
+          reactor->Commit(m_sequenceNumber) != BaseReactor::Update::NONE) {
         return count + 1;
       }
       return count;

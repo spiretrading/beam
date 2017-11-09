@@ -348,8 +348,6 @@ namespace Details {
           m_initializationCount = boost::fusion::accumulate(m_parameters,
             0, Details::Initialize{sequenceNumber});
           if(m_initializationCount != sizeof...(ParameterTypes)) {
-            m_currentSequenceNumber = sequenceNumber;
-            m_update = BaseReactor::Update::NONE;
             return BaseReactor::Update::NONE;
           }
         }

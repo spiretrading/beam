@@ -47,9 +47,9 @@ namespace Reactors {
   template<typename Parameter>
   auto MakeNativeLuaReactorParameter(Parameter&& parameter) {
     auto parameterReactor = Lift(std::forward<Parameter>(parameter));
-    using Reactor = decltype(*parameterReactor);
+    using ParameterReactor = decltype(parameterReactor);
     return std::make_unique<
-      NativeLuaReactorParameter<typename Reactor::Type>>(
+      NativeLuaReactorParameter<GetReactorType<ParameterReactor>>>(
       std::forward<decltype(parameterReactor)>(parameter));
   }
 

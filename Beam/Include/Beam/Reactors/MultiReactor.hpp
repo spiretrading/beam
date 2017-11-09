@@ -146,8 +146,6 @@ namespace Details {
               }
             }
             if(m_initializationCount != static_cast<int>(m_children.size())) {
-              m_currentSequenceNumber = sequenceNumber;
-              m_update = BaseReactor::Update::NONE;
               return BaseReactor::Update::NONE;
             }
           }

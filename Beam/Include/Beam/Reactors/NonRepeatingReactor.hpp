@@ -14,8 +14,10 @@ namespace Details {
     boost::optional<T> m_lastValue;
 
     boost::optional<Type> operator ()(const Type& value) {
-      if(m_lastValue == value) {
-        return boost::none;
+      if(m_lastValue.is_initialized()) {
+        if(*m_lastValue == value) {
+          return boost::none;
+        }
       }
       m_lastValue = value;
       return value;

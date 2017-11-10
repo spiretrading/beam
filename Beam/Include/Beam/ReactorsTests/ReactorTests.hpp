@@ -10,6 +10,7 @@ namespace Tests {
   class BasicReactorTester;
   class ConstantReactorTester;
   class FunctionReactorTester;
+  class MultiReactorTester;
   class NoneReactorTester;
   class NonRepeatingReactorTester;
   class QueueReactorTester;

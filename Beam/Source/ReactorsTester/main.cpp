@@ -7,6 +7,7 @@
 #include "Beam/ReactorsTests/ConstantReactorTester.hpp"
 #include "Beam/ReactorsTests/DoReactorTester.hpp"
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
+#include "Beam/ReactorsTests/MultiReactorTester.hpp"
 #include "Beam/ReactorsTests/NoneReactorTester.hpp"
 #include "Beam/ReactorsTests/NonRepeatingReactorTester.hpp"
 #include "Beam/ReactorsTests/QueueReactorTester.hpp"
@@ -26,6 +27,7 @@ int main() {
   runner.addTest(BasicReactorTester::suite());
   runner.addTest(QueueReactorTester::suite());
   runner.addTest(FunctionReactorTester::suite());
+  runner.addTest(MultiReactorTester::suite());
   runner.addTest(NonRepeatingReactorTester::suite());
   runner.addTest(DoReactorTester::suite());
   runner.addTest(StaticReactorTester::suite());

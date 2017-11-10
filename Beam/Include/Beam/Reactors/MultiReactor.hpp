@@ -76,8 +76,15 @@ namespace Details {
       virtual Type Eval() const override final;
 
     private:
+      struct Child {
+        std::shared_ptr<BaseReactor> m_reactor;
+        bool m_isInitialized;
+
+        Child(std::shared_ptr<BaseReactor> reactor);
+      };
       Function m_function;
-      std::vector<std::shared_ptr<BaseReactor>> m_children;
+      std::vector<std::shared_ptr<BaseReactor>> m_parameters;
+      std::vector<Child> m_children;
       Expect<Type> m_value;
       bool m_hasValue;
       BaseReactor::Update m_state;
@@ -101,15 +108,24 @@ namespace Details {
   }
 
   template<typename FunctionType>
+  MultiReactor<FunctionType>::Child::Child(std::shared_ptr<BaseReactor> reactor)
+      : m_reactor{std::move(reactor)},
+        m_isInitialized{false} {}
+
+  template<typename FunctionType>
   template<typename FunctionForward>
   MultiReactor<FunctionType>::MultiReactor(FunctionForward&& function,
       std::vector<std::shared_ptr<BaseReactor>> children)
       : m_function{std::forward<FunctionForward>(function)},
-        m_children{std::move(children)},
+        m_parameters{std::move(children)},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1} {}
+        m_currentSequenceNumber{-1} {
+    for(auto& parameter : m_parameters) {
+      m_children.emplace_back(parameter);
+    }
+  }
 
   template<typename FunctionType>
   bool MultiReactor<FunctionType>::IsComplete() const {
@@ -131,56 +147,49 @@ namespace Details {
     }
     auto update =
       [&] {
-        if(m_children.empty()) {
-          if(sequenceNumber == 0) {
-            return BaseReactor::Update::EVAL;
-          } else {
-            return BaseReactor::Update::NONE;
-          }
-        }
-        auto commit = BaseReactor::Update::NONE;
         if(m_state == BaseReactor::Update::NONE) {
-          commit = BaseReactor::Update::EVAL;
+          auto update = BaseReactor::Update::EVAL;
           for(auto& child : m_children) {
-            auto childCommit = child->Commit(0);
-            if(childCommit == BaseReactor::Update::NONE) {
-              childCommit = child->Commit(sequenceNumber);
-            }
-            if(childCommit == BaseReactor::Update::COMPLETE) {
-              return childCommit;
-            } else if(childCommit == BaseReactor::Update::NONE) {
-              commit = BaseReactor::Update::NONE;
+            auto childUpdate = child.m_reactor->Commit(sequenceNumber);
+            if(!child.m_isInitialized) {
+              if(childUpdate == BaseReactor::Update::EVAL) {
+                child.m_isInitialized = true;
+              } else if(childUpdate == BaseReactor::Update::COMPLETE) {
+                update = BaseReactor::Update::COMPLETE;
+              } else if(update != BaseReactor::Update::COMPLETE) {
+                update = BaseReactor::Update::NONE;
+              }
             }
           }
-          if(commit != BaseReactor::Update::EVAL) {
-            return commit;
+          if(update == BaseReactor::Update::EVAL) {
+            m_state = BaseReactor::Update::EVAL;
           }
-          m_state = BaseReactor::Update::EVAL;
+          return update;
         }
+        auto update = BaseReactor::Update::NONE;
+        auto hasCompletion = false;
         for(auto& child : m_children) {
-          auto reactorUpdate = child->Commit(sequenceNumber);
-          if(reactorUpdate == BaseReactor::Update::COMPLETE) {
-            if(commit == BaseReactor::Update::NONE ||
-                commit == BaseReactor::Update::COMPLETE) {
-              commit = reactorUpdate;
-            }
-          } else if(reactorUpdate == BaseReactor::Update::EVAL) {
-            commit = BaseReactor::Update::EVAL;
+          auto childUpdate = child.m_reactor->Commit(sequenceNumber);
+          if(childUpdate == BaseReactor::Update::EVAL) {
+            update = BaseReactor::Update::EVAL;
+          } else if(childUpdate == BaseReactor::Update::COMPLETE) {
+            hasCompletion = true;
           }
         }
-        return commit;
+        if(update == BaseReactor::Update::NONE && hasCompletion) {
+          if(AreParametersComplete()) {
+            update = BaseReactor::Update::COMPLETE;
+          }
+        }
+        return update;
       }();
-    if(update == BaseReactor::Update::NONE) {
-      return update;
-    }
     m_update = update;
     if(m_update == BaseReactor::Update::EVAL) {
-      auto hasEval = UpdateEval();
       if(AreParametersComplete()) {
         m_state = BaseReactor::Update::COMPLETE;
       }
-      if(!hasEval) {
-        if(m_children.empty()) {
+      if(!UpdateEval()) {
+        if(m_state == BaseReactor::Update::COMPLETE) {
           m_update = BaseReactor::Update::COMPLETE;
         } else {
           m_update = BaseReactor::Update::NONE;
@@ -189,11 +198,7 @@ namespace Details {
         m_hasValue = true;
       }
     } else if(m_update == BaseReactor::Update::COMPLETE) {
-      if(m_state == BaseReactor::Update::NONE || AreParametersComplete()) {
-        m_state = BaseReactor::Update::COMPLETE;
-      } else {
-        m_update = BaseReactor::Update::NONE;
-      }
+      m_state = BaseReactor::Update::COMPLETE;
     }
     m_currentSequenceNumber = sequenceNumber;
     return m_update;
@@ -208,7 +213,7 @@ namespace Details {
   template<typename FunctionType>
   bool MultiReactor<FunctionType>::AreParametersComplete() const {
     for(auto& child : m_children) {
-      if(!child->IsComplete()) {
+      if(!child.m_reactor->IsComplete()) {
         return false;
       }
     }
@@ -218,7 +223,8 @@ namespace Details {
   template<typename FunctionType>
   bool MultiReactor<FunctionType>::UpdateEval() {
     try {
-      return Details::MultiReactorEval<Type>{}(m_value, m_function, m_children);
+      return Details::MultiReactorEval<Type>{}(m_value, m_function,
+        m_parameters);
     } catch(const std::exception&) {
       m_value = std::current_exception();
       return true;

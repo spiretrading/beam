@@ -159,8 +159,7 @@ namespace Tasks {
     auto task = m_taskFactory->Create();
     Manage(task);
     ++m_taskCount;
-    auto publisher = Reactors::MakePublisherReactor(task->GetPublisher(),
-      Ref(m_reactorMonitor->GetTrigger()));
+    auto publisher = Reactors::MakePublisherReactor(task->GetPublisher());
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&SpawnTask::OnTaskUpdate, this, std::placeholders::_1)),
       publisher);

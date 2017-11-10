@@ -11,7 +11,7 @@ using namespace std;
 
 void ReactorTaskTester::TestUpdates() {
   ReactorMonitor monitor;
-  auto propertyReactor = MakeBasicReactor<int>(Ref(monitor.GetTrigger()));
+  auto propertyReactor = MakeBasicReactor<int>();
   auto property = MakeReactorProperty("xyz",
     std::static_pointer_cast<Reactor<int>>(propertyReactor));
   MockTaskEntry mockTaskEntry;

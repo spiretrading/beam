@@ -5,6 +5,7 @@
 #include <boost/thread/mutex.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Reactors/Trigger.hpp"
@@ -19,7 +20,7 @@ namespace Reactors {
     public:
 
       //! Constructs a ReactorMonitor.
-      ReactorMonitor() = default;
+      ReactorMonitor();
 
       ~ReactorMonitor();
 
@@ -42,6 +43,9 @@ namespace Reactors {
       template<typename F>
       void Do(F&& f);
 
+      //! Waits for all Reactors to complete.
+      void Wait();
+
       void Open();
 
       void Close();
@@ -51,11 +55,17 @@ namespace Reactors {
       IO::OpenState m_openState;
       Trigger m_trigger;
       std::vector<std::shared_ptr<BaseReactor>> m_reactors;
+      int m_activeCount;
       RoutineTaskQueue m_tasks;
+      Threading::ConditionVariable m_waitCondition;
 
       void Shutdown();
+      void OnAdd(std::shared_ptr<BaseReactor> reactor);
       void OnSequenceNumber(int sequenceNumber);
   };
+
+  inline ReactorMonitor::ReactorMonitor()
+      : m_activeCount{0} {}
 
   inline ReactorMonitor::~ReactorMonitor() {
     Close();
@@ -72,21 +82,21 @@ namespace Reactors {
   inline void ReactorMonitor::Add(std::shared_ptr<BaseReactor> reactor) {
     {
       boost::lock_guard<boost::mutex> lock{m_mutex};
-      auto reactorIterator = std::find(m_reactors.begin(), m_reactors.end(),
-        reactor);
-      if(reactorIterator != m_reactors.end()) {
-        return;
-      }
-      m_reactors.push_back(reactor);
+      ++m_activeCount;
     }
-    if(m_openState.IsOpen()) {
-      m_tasks.Push(std::bind(&ReactorMonitor::OnSequenceNumber, this, 0));
-    }
+    m_tasks.Push(std::bind(&ReactorMonitor::OnAdd, this, reactor));
   }
 
   template<typename F>
   void ReactorMonitor::Do(F&& f) {
     m_tasks.Push(std::move(f));
+  }
+
+  inline void ReactorMonitor::Wait() {
+    boost::unique_lock<boost::mutex> lock{m_mutex};
+    while(m_activeCount != 0) {
+      m_waitCondition.wait(lock);
+    }
   }
 
   inline void ReactorMonitor::Open() {
@@ -113,14 +123,43 @@ namespace Reactors {
     m_openState.SetClosed();
   }
 
-  inline void ReactorMonitor::OnSequenceNumber(int sequenceNumber) {
-    std::vector<std::shared_ptr<BaseReactor>> reactors;
-    {
+  inline void ReactorMonitor::OnAdd(std::shared_ptr<BaseReactor> reactor) {
+    auto reactorIterator = std::find(m_reactors.begin(), m_reactors.end(),
+      reactor);
+    if(reactorIterator != m_reactors.end()) {
       boost::lock_guard<boost::mutex> lock{m_mutex};
-      reactors = m_reactors;
+      --m_activeCount;
+      if(m_activeCount == 0) {
+        m_waitCondition.notify_all();
+      }
     }
-    for(auto& reactor : reactors) {
-      reactor->Commit(sequenceNumber);
+    if(m_openState.IsOpen()) {
+      Trigger::SetEnvironmentTrigger(m_trigger);
+      auto update = reactor->Commit(0);
+      if(update == BaseReactor::Update::COMPLETE ||
+          update == BaseReactor::Update::EVAL && reactor->IsComplete()) {
+        return;
+      }
+    }
+    m_reactors.push_back(reactor);
+  }
+
+  inline void ReactorMonitor::OnSequenceNumber(int sequenceNumber) {
+    Trigger::SetEnvironmentTrigger(m_trigger);
+    auto deleteIterator = std::remove_if(m_reactors.begin(), m_reactors.end(),
+      [&] (auto& reactor) {
+        auto update = reactor->Commit(sequenceNumber);
+        return update == BaseReactor::Update::COMPLETE ||
+          update == BaseReactor::Update::EVAL && reactor->IsComplete();
+      });
+    auto removeCount = (m_reactors.end() - deleteIterator);
+    if(removeCount != 0) {
+      m_reactors.erase(deleteIterator, m_reactors.end());
+      boost::lock_guard<boost::mutex> lock{m_mutex};
+      m_activeCount -= static_cast<int>(removeCount);
+      if(m_activeCount == 0) {
+        m_waitCondition.notify_all();
+      }
     }
   }
 }

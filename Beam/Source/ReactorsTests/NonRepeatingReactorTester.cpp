@@ -10,9 +10,10 @@ using namespace std;
 
 void NonRepeatingReactorTester::TestAAB() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);
@@ -32,9 +33,10 @@ void NonRepeatingReactorTester::TestAAB() {
 
 void NonRepeatingReactorTester::TestABA() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);
@@ -54,9 +56,10 @@ void NonRepeatingReactorTester::TestABA() {
 
 void NonRepeatingReactorTester::TestBAA() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);

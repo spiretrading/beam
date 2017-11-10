@@ -7,12 +7,27 @@
 
 namespace Beam {
 namespace Reactors {
+namespace Details {
+  template<typename T>
+  struct EnvironmentTrigger {
+    thread_local static Trigger* m_trigger;
+  };
+
+  template<>
+  thread_local Trigger* EnvironmentTrigger<void>::m_trigger = nullptr;
+}
 
   /*! \class Trigger
       \brief Used to indicate that a Reactor has an update.
    */
   class Trigger : private boost::noncopyable {
     public:
+
+      //! Returns the Trigger used by the current Reactor environment.
+      static Trigger& GetEnvironmentTrigger();
+
+      //! Sets the Trigger to use in current Reactor environment.
+      static void SetEnvironmentTrigger(Trigger& trigger);
 
       //! Constructs a Trigger.
       Trigger();
@@ -30,6 +45,14 @@ namespace Reactors {
       std::atomic_int m_nextSequenceNumber;
       MultiQueueWriter<int> m_sequencePublisher;
   };
+
+  inline Trigger& Trigger::GetEnvironmentTrigger() {
+    return *Details::EnvironmentTrigger<void>::m_trigger;
+  }
+
+  inline void Trigger::SetEnvironmentTrigger(Trigger& trigger) {
+    Details::EnvironmentTrigger<void>::m_trigger = &trigger;
+  }
 
   inline Trigger::Trigger()
       : m_nextSequenceNumber{0} {}

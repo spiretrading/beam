@@ -250,6 +250,7 @@ namespace Tasks {
       std::bind(&ReactorTask::OnReactorUpdate, this, std::placeholders::_1)),
       std::move(properties));
     S1();
+    Reactors::Trigger::SetEnvironmentTrigger(m_reactorMonitor->GetTrigger());
     m_propertyReactor->Commit(0);
     m_reactorMonitor->Add(m_propertyReactor);
   }
@@ -286,8 +287,7 @@ namespace Tasks {
     Manage(m_task);
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&ReactorTask::OnTaskUpdate, this, std::placeholders::_1)),
-      Reactors::MakePublisherReactor(m_task->GetPublisher(),
-      Ref(m_reactorMonitor->GetTrigger())));
+      Reactors::MakePublisherReactor(m_task->GetPublisher()));
     m_reactorMonitor->Add(taskReactor);
     m_task->Execute();
     return S4();

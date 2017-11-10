@@ -144,8 +144,7 @@ namespace Tasks {
     m_state = 2;
     auto task = m_taskFactory->Create();
     Manage(task);
-    auto publisher = Reactors::MakePublisherReactor(task->GetPublisher(),
-      Ref(m_reactorMonitor->GetTrigger()));
+    auto publisher = Reactors::MakePublisherReactor(task->GetPublisher());
     auto taskReactor = Reactors::Do(m_callbacks.GetCallback(
       std::bind(&UntilTask::OnTaskUpdate, this, std::placeholders::_1)),
       publisher);

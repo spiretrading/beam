@@ -6,7 +6,6 @@
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
-#include "Beam/Reactors/Trigger.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -17,9 +16,9 @@ namespace Details {
     bool m_isInitialized;
     std::shared_ptr<BasicReactor<Result>> m_iterator;
 
-    RangeReactorCore(RefType<Trigger> trigger)
+    RangeReactorCore()
         : m_isInitialized{false},
-          m_iterator{std::make_shared<BasicReactor<Result>>(Ref(trigger))} {
+          m_iterator{std::make_shared<BasicReactor<Result>>()} {
       m_iterator->Update(Result{});
     }
 
@@ -47,15 +46,13 @@ namespace Details {
   /*!
     \param lower The Reactor producing the first value in the range.
     \param upper The Reactor producing the last value in the range.
-    \param trigger The Trigger used to indicate an update.
   */
   template<typename Lower, typename Upper>
-  auto MakeRangeReactor(RefType<Trigger> trigger, Lower&& lower,
-      Upper&& upper) {
+  auto MakeRangeReactor(Lower&& lower, Upper&& upper) {
     auto lowerReactor = Lift(std::forward<Lower>(lower));
     auto upperReactor = Lift(std::forward<Upper>(upper));
     using Reactor = decltype(*lowerReactor);
-    Details::RangeReactorCore<GetReactorType<Reactor>> core{Ref(trigger)};
+    Details::RangeReactorCore<GetReactorType<Reactor>> core;
     return MakeFunctionReactor(core,
       std::forward<decltype(lowerReactor)>(lowerReactor),
       std::forward<decltype(upperReactor)>(upperReactor), core.m_iterator);
@@ -65,11 +62,10 @@ namespace Details {
   /*!
     \param lower The Reactor producing the first value in the range.
     \param upper The Reactor producing the last value in the range.
-    \param trigger The Trigger used to indicate an update.
   */
   template<typename Lower, typename Upper>
-  auto Range(RefType<Trigger> trigger, Lower&& lower, Upper&& upper) {
-    return MakeRangeReactor(Ref(trigger), std::forward<Lower>(lower),
+  auto Range(Lower&& lower, Upper&& upper) {
+    return MakeRangeReactor(std::forward<Lower>(lower),
       std::forward<Upper>(upper));
   }
 }

@@ -21,8 +21,7 @@ namespace {
 
     UntilTaskEntry()
         : m_conditionQueue{std::make_shared<Queue<bool>>()},
-          m_condition{MakeQueueReactor(m_conditionQueue,
-            Ref(m_monitor.GetTrigger()))},
+          m_condition{MakeQueueReactor(m_conditionQueue)},
           m_taskEntry{Ref(m_monitor), m_condition, m_mockTaskEntry.m_factory} {
       m_monitor.Add(m_condition);
       m_monitor.Open();

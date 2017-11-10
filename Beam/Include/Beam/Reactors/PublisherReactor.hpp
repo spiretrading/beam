@@ -29,26 +29,22 @@ namespace Details {
   //! Makes a Reactor that monitors a Publisher.
   /*!
     \param publisher The Publisher to monitor.
-    \param trigger The Trigger used to indicate an update.
   */
   template<typename Type>
-  auto MakePublisherReactor(const Publisher<Type>& publisher,
-      RefType<Trigger> trigger) {
+  auto MakePublisherReactor(const Publisher<Type>& publisher) {
     auto queue = std::make_shared<Queue<Type>>();
     publisher.Monitor(queue);
-    return MakeQueueReactor(queue, Ref(trigger));
+    return MakeQueueReactor(queue);
   }
 
   //! Makes a Reactor that monitors a Publisher, used when ownership of the
   //! Publisher is managed by the Reactor.
   /*!
     \param publisher The Publisher to monitor.
-    \param trigger The Trigger used to indicate an update.
   */
   template<typename Publisher>
-  auto MakePublisherReactor(std::shared_ptr<Publisher> publisher,
-      RefType<Trigger> trigger) {
-    auto baseReactor = MakePublisherReactor(*publisher, Ref(trigger));
+  auto MakePublisherReactor(std::shared_ptr<Publisher> publisher) {
+    auto baseReactor = MakePublisherReactor(*publisher);
     return MakeFunctionReactor(Details::PublisherReactorCore<
       std::shared_ptr<Publisher>>{std::move(publisher)}, baseReactor);
   }

@@ -8,7 +8,8 @@ using namespace std;
 
 void BasicReactorTester::TestCompleteImmediately() {
   Trigger trigger;
-  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  Trigger::SetEnvironmentTrigger(trigger);
+  auto reactor = MakeBasicReactor<int>();
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   AssertException<ReactorUnavailableException>(*reactor, 0,
@@ -23,7 +24,8 @@ void BasicReactorTester::TestCompleteImmediately() {
 
 void BasicReactorTester::TestCompleteWithThrowImmediately() {
   Trigger trigger;
-  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  Trigger::SetEnvironmentTrigger(trigger);
+  auto reactor = MakeBasicReactor<int>();
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   AssertException<ReactorUnavailableException>(*reactor, 0,
@@ -38,7 +40,8 @@ void BasicReactorTester::TestCompleteWithThrowImmediately() {
 
 void BasicReactorTester::TestSingleValue() {
   Trigger trigger;
-  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  Trigger::SetEnvironmentTrigger(trigger);
+  auto reactor = MakeBasicReactor<int>();
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   AssertException<ReactorUnavailableException>(*reactor, 0,
@@ -56,7 +59,8 @@ void BasicReactorTester::TestSingleValue() {
 
 void BasicReactorTester::TestSingleValueAndThrow() {
   Trigger trigger;
-  auto reactor = MakeBasicReactor<int>(Ref(trigger));
+  Trigger::SetEnvironmentTrigger(trigger);
+  auto reactor = MakeBasicReactor<int>();
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   AssertException<ReactorUnavailableException>(*reactor, 0,

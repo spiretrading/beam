@@ -68,9 +68,10 @@ void FunctionReactorTester::TestOneConstantParameter() {
 
 void FunctionReactorTester::TestOneParameterNoEval() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeFunctionReactor(&Square, p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
@@ -85,9 +86,10 @@ void FunctionReactorTester::TestOneParameterNoEval() {
 
 void FunctionReactorTester::TestOneParameterWithSingleEval() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeFunctionReactor(&Square, p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
@@ -104,9 +106,10 @@ void FunctionReactorTester::TestOneParameterWithSingleEval() {
 
 void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeFunctionReactor(&Square, p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
@@ -127,9 +130,10 @@ void FunctionReactorTester::TestOneParameterWithMultipleEvals() {
 
 void FunctionReactorTester::TestOneParameterWithFilter() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto p1 = MakeBasicReactor<int>(Ref(trigger));
+  auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeFunctionReactor(&FilterOdd, p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);

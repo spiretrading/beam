@@ -15,6 +15,7 @@ using namespace std;
 
 void TimerReactorTester::TestExpiry() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   auto period = MakeConstantReactor(time_duration{seconds(5)});
@@ -24,7 +25,7 @@ void TimerReactorTester::TestExpiry() {
       timer = std::make_shared<TriggerTimer>();
       return timer;
     };
-  auto reactor = MakeTimerReactor<int>(Ref(trigger), timerFactory, period);
+  auto reactor = MakeTimerReactor<int>(timerFactory, period);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);

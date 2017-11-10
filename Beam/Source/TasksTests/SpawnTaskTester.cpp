@@ -17,7 +17,7 @@ namespace {
     TestTaskEntry<SpawnTaskFactory> m_taskEntry;
 
     SpawnTaskEntry()
-        : m_trigger{MakeBasicReactor<int>(Ref(m_monitor.GetTrigger()))},
+        : m_trigger{MakeBasicReactor<int>()},
           m_taskEntry{Ref(m_monitor), m_trigger, m_mockTaskEntry.m_factory} {
       m_monitor.Add(m_trigger);
       m_monitor.Open();

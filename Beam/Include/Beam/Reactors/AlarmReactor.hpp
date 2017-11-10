@@ -64,15 +64,14 @@ namespace Reactors {
   //! Makes a Reactor that evaluates to <code>true</code> after a specified
   //! time.
   /*!
-    \param trigger The Trigger used to indicate an update.
     \param timeClient Used to get the current time.
     \param timerFactory Builds Timers used to measure time.
     \param expiry The time after which the Reactor will evaluate to
            <code>true</code>.
   */
   template<typename TimerFactory, typename TimeClient, typename ExpiryReactor>
-  auto MakeAlarmReactor(RefType<Trigger> trigger, TimeClient&& timeClient,
-      TimerFactory&& timerFactory, ExpiryReactor&& expiry) {
+  auto MakeAlarmReactor(TimeClient&& timeClient, TimerFactory&& timerFactory,
+      ExpiryReactor&& expiry) {
     using BaseTimerFactory = typename std::decay<TimerFactory>::type;
     using BaseTimeClient = typename std::decay<TimeClient>::type;
     auto core = MakeFunctionObject(std::make_unique<
@@ -81,7 +80,7 @@ namespace Reactors {
       std::forward<TimeClient>(timeClient)));
     auto timerReactor = MakeQueueReactor(
       std::static_pointer_cast<QueueReader<Threading::Timer::Result>>(
-      core.GetFunction().m_expiryQueue), Ref(trigger));
+      core.GetFunction().m_expiryQueue));
     return MakeFunctionReactor(std::move(core),
       Lift(std::forward<ExpiryReactor>(expiry)), std::move(timerReactor));
   }
@@ -89,16 +88,15 @@ namespace Reactors {
   //! Makes a Reactor that evaluates to <code>true</code> after a specified
   //! time.
   /*!
-    \param trigger The Trigger used to indicate an update.
     \param timeClient Used to get the current time.
     \param timerFactory Builds Timers used to measure time.
     \param expiry The time after which the Reactor will evaluate to
            <code>true</code>.
   */
   template<typename TimerFactory, typename TimeClient, typename ExpiryReactor>
-  auto Alarm(RefType<Trigger> trigger, TimeClient&& timeClient,
-      TimerFactory&& timerFactory, ExpiryReactor&& expiry) {
-    return MakeAlarmReactor(Ref(trigger), std::forward<TimeClient>(timeClient),
+  auto Alarm(TimeClient&& timeClient, TimerFactory&& timerFactory,
+      ExpiryReactor&& expiry) {
+    return MakeAlarmReactor(std::forward<TimeClient>(timeClient),
       std::forward<TimerFactory>(timerFactory),
       std::forward<ExpiryReactor>(expiry));
   }

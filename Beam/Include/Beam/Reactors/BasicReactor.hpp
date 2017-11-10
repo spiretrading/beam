@@ -3,7 +3,6 @@
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
-#include "Beam/Reactors/Trigger.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -17,10 +16,7 @@ namespace Reactors {
       using Type = typename Reactor<T>::Type;
 
       //! Constructs a BasicReactor.
-      /*!
-        \param trigger The Trigger used to signal an update.
-      */
-      BasicReactor(RefType<Trigger> trigger);
+      BasicReactor();
 
       //! Updates this Reactor with a value.
       /*!
@@ -56,18 +52,15 @@ namespace Reactors {
   };
 
   //! Makes a BasicReactor.
-  /*!
-    \param trigger The Trigger used to signal an update.
-  */
   template<typename T>
-  auto MakeBasicReactor(RefType<Trigger> trigger) {
-    return std::make_shared<BasicReactor<T>>(Ref(trigger));
+  auto MakeBasicReactor() {
+    return std::make_shared<BasicReactor<T>>();
   }
 
   template<typename T>
-  BasicReactor<T>::BasicReactor(RefType<Trigger> trigger)
+  BasicReactor<T>::BasicReactor()
       : m_queue{std::make_shared<Queue<T>>()},
-        m_reactor{m_queue, Ref(trigger)} {}
+        m_reactor{m_queue} {}
 
   template<typename T>
   void BasicReactor<T>::Update(T value) {

@@ -11,7 +11,7 @@ using namespace std;
 
 void ReactorMonitorTester::TestAddSingleReactorBeforeOpen() {
   ReactorMonitor monitor;
-  auto p1 = MakeBasicReactor<int>(Ref(monitor.GetTrigger()));
+  auto p1 = MakeBasicReactor<int>();
   bool update = false;
   Async<void> waitToken;
   auto d = Do(
@@ -30,7 +30,7 @@ void ReactorMonitorTester::TestAddSingleReactorBeforeOpen() {
 
 void ReactorMonitorTester::TestAddSingleReactorAfterOpen() {
   ReactorMonitor monitor;
-  auto p1 = MakeBasicReactor<int>(Ref(monitor.GetTrigger()));
+  auto p1 = MakeBasicReactor<int>();
   bool update = false;
   Async<void> waitToken;
   auto d = Do(

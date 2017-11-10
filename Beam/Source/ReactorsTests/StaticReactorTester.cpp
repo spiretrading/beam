@@ -10,9 +10,10 @@ using namespace std;
 
 void StaticReactorTester::TestSingleValue() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto source = MakeBasicReactor<int>(Ref(trigger));
+  auto source = MakeBasicReactor<int>();
   auto reactor = MakeStaticReactor(source);
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE, false);

@@ -25,10 +25,8 @@ namespace Reactors {
       //! Constructs a PythonQueueReactor.
       /*!
         \param queue The Queue to monitor.
-        \param trigger The Trigger to signal when an update is available.
       */
-      PythonQueueReactor(std::shared_ptr<QueueReader<Type>> queue,
-        RefType<Trigger> trigger);
+      PythonQueueReactor(std::shared_ptr<QueueReader<Type>> queue);
 
       virtual ~PythonQueueReactor() override final;
 
@@ -57,19 +55,15 @@ namespace Reactors {
   //! Makes a PythonQueueReactor.
   /*!
     \param queue The Queue to monitor.
-    \param trigger The Trigger to signal when an update is available.
   */
   inline auto MakeQueueReactor(
-      std::shared_ptr<QueueReader<boost::python::object>> queue,
-      RefType<Trigger> trigger) {
-    return std::make_shared<PythonQueueReactor>(std::move(queue),
-      Ref(trigger));
+      std::shared_ptr<QueueReader<boost::python::object>> queue) {
+    return std::make_shared<PythonQueueReactor>(std::move(queue));
   }
 
   inline PythonQueueReactor::PythonQueueReactor(
-      std::shared_ptr<QueueReader<Type>> queue, RefType<Trigger> trigger)
+      std::shared_ptr<QueueReader<Type>> queue)
       : m_queue{std::move(queue)},
-        m_trigger{trigger.Get()},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_isComplete{false},
@@ -109,6 +103,7 @@ namespace Reactors {
         m_currentSequenceNumber = 0;
         m_nextSequenceNumber = -1;
         m_update = BaseReactor::Update::NONE;
+        m_trigger = &Trigger::GetEnvironmentTrigger();
         m_monitorRoutine = Routines::Spawn(
           std::bind(&PythonQueueReactor::MonitorQueue, this));
         return BaseReactor::Update::NONE;

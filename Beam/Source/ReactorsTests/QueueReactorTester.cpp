@@ -9,11 +9,11 @@ using namespace std;
 
 void QueueReactorTester::TestEmptyQueue() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   auto queue = std::make_shared<Queue<int>>();
-  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue),
-    Ref(trigger));
+  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue));
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
   queue->Break();
@@ -27,11 +27,11 @@ void QueueReactorTester::TestEmptyQueue() {
 
 void QueueReactorTester::TestImmediateException() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   auto queue = std::make_shared<Queue<int>>();
-  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue),
-    Ref(trigger));
+  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue));
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
   queue->Break(DummyException{});
@@ -43,6 +43,7 @@ void QueueReactorTester::TestImmediateException() {
 
 void QueueReactorTester::TestSingleValue() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   int dummySequenceNumber;
@@ -52,8 +53,7 @@ void QueueReactorTester::TestSingleValue() {
     sequenceNumbers->Pop();
   }
   auto queue = std::make_shared<Queue<int>>();
-  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue),
-    Ref(trigger));
+  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue));
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
   queue->Push(123);
@@ -69,6 +69,7 @@ void QueueReactorTester::TestSingleValue() {
 
 void QueueReactorTester::TestSingleValueException() {
   Trigger trigger;
+  Trigger::SetEnvironmentTrigger(trigger);
   auto sequenceNumbers = std::make_shared<Queue<int>>();
   trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
   int dummySequenceNumber;
@@ -78,8 +79,7 @@ void QueueReactorTester::TestSingleValueException() {
     sequenceNumbers->Pop();
   }
   auto queue = std::make_shared<Queue<int>>();
-  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue),
-    Ref(trigger));
+  auto reactor = MakeQueueReactor(static_pointer_cast<QueueReader<int>>(queue));
   AssertException<ReactorUnavailableException>(*reactor, 0,
     BaseReactor::Update::NONE);
   queue->Push(123);

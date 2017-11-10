@@ -7,7 +7,6 @@
 #include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
-#include "Beam/Reactors/Trigger.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/Functional.hpp"
 #include "Beam/Utilities/FunctionObject.hpp"
@@ -61,34 +60,29 @@ namespace Details {
 
   //! Makes a Reactor that increments a counter periodically.
   /*!
-    \param trigger The Trigger used to indicate an update.
     \param timerFactory Builds Timers used to measure time.
     \param period The period to increment the counter.
   */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto MakeTimerReactor(RefType<Trigger> trigger, TimerFactory&& timerFactory,
-      PeriodReactor&& period) {
+  auto MakeTimerReactor(TimerFactory&& timerFactory, PeriodReactor&& period) {
     auto core = MakeFunctionObject(std::make_unique<
       Details::TimerReactorCore<Tick, typename std::decay<TimerFactory>::type>>(
       std::forward<TimerFactory>(timerFactory)));
     auto expiryReactor = MakeQueueReactor(
       std::static_pointer_cast<QueueReader<Threading::Timer::Result>>(
-      core.GetFunction().m_expiryQueue), Ref(trigger));
+      core.GetFunction().m_expiryQueue));
     return MakeFunctionReactor(std::move(core),
       Lift(std::forward<PeriodReactor>(period)), expiryReactor);
   }
 
   //! Makes a Reactor that increments a counter periodically.
   /*!
-    \param trigger The Trigger used to indicate an update.
     \param timerFactory Builds Timers used to measure time.
     \param period The period to increment the counter.
   */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto Timer(RefType<Trigger> trigger, TimerFactory&& timerFactory,
-      PeriodReactor&& period) {
-    return MakeTimerReactor<Tick>(Ref(trigger),
-      std::forward<TimerFactory>(timerFactory),
+  auto Timer(TimerFactory&& timerFactory, PeriodReactor&& period) {
+    return MakeTimerReactor<Tick>(std::forward<TimerFactory>(timerFactory),
       std::forward<PeriodReactor>(period));
   }
 }

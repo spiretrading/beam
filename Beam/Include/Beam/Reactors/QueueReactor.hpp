@@ -26,10 +26,8 @@ namespace Reactors {
       //! Constructs a QueueReactor.
       /*!
         \param queue The Queue to monitor.
-        \param trigger The Trigger to signal when an update is available.
       */
-      QueueReactor(std::shared_ptr<QueueReader<Type>> queue,
-        RefType<Trigger> trigger);
+      QueueReactor(std::shared_ptr<QueueReader<Type>> queue);
 
       virtual ~QueueReactor() override final;
 
@@ -58,20 +56,16 @@ namespace Reactors {
   //! Makes a QueueReactor.
   /*!
     \param queue The Queue to monitor.
-    \param trigger The Trigger to signal when an update is available.
   */
   template<typename QR>
-  auto MakeQueueReactor(std::shared_ptr<QR> queue, RefType<Trigger> trigger) {
+  auto MakeQueueReactor(std::shared_ptr<QR> queue) {
     return std::make_shared<QueueReactor<typename QR::Target>>(
-      std::static_pointer_cast<QueueReader<typename QR::Target>>(queue),
-      Ref(trigger));
+      std::static_pointer_cast<QueueReader<typename QR::Target>>(queue));
   }
 
   template<typename T>
-  QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue,
-      RefType<Trigger> trigger)
+  QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue)
       : m_queue{std::move(queue)},
-        m_trigger{trigger.Get()},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
         m_isComplete{false},
@@ -110,6 +104,7 @@ namespace Reactors {
         m_currentSequenceNumber = 0;
         m_nextSequenceNumber = -1;
         m_update = BaseReactor::Update::NONE;
+        m_trigger = &Trigger::GetEnvironmentTrigger();
         m_monitorRoutine = Routines::Spawn(
           std::bind(&QueueReactor::MonitorQueue, this));
         return BaseReactor::Update::NONE;

@@ -16,6 +16,7 @@
 #include "Beam/Reactors/BasicReactor.hpp"
 #include "Beam/Reactors/ChainReactor.hpp"
 #include "Beam/Reactors/ConstantReactor.hpp"
+#include "Beam/Reactors/CurrentTimeReactor.hpp"
 #include "Beam/Reactors/DoReactor.hpp"
 #include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FilterReactor.hpp"
@@ -142,6 +143,18 @@ namespace {
 
   auto MakePythonConstantReactor(const boost::python::object& value) {
     return std::static_pointer_cast<PythonReactor>(MakeConstantReactor(value));
+  }
+
+  auto MakePythonCurrentTimeReactor(VirtualTimeClient* timeClient) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeToPythonReactor(static_pointer_cast<Reactor<ptime>>(
+      MakeCurrentTimeReactor(timeClient))));
+  }
+
+  auto MakePythonDefaultCurrentTimeReactor() {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeToPythonReactor(static_pointer_cast<Reactor<ptime>>(
+      MakeCurrentTimeReactor())));
   }
 
   auto MakePythonDoReactor(
@@ -366,6 +379,13 @@ void Beam::Python::ExportChainReactor() {
   def("chain", &MakePythonChainReactor);
 }
 
+void Beam::Python::ExportCurrentTimeReactor() {
+  def("CurrentTimeReactor", &MakePythonCurrentTimeReactor);
+  def("CurrentTimeReactor", &MakePythonDefaultCurrentTimeReactor);
+  def("current_time", &MakePythonCurrentTimeReactor);
+  def("current_time", &MakePythonDefaultCurrentTimeReactor);
+}
+
 void Beam::Python::ExportDoReactor() {
   def("do", &MakePythonDoReactor);
 }
@@ -505,6 +525,7 @@ void Beam::Python::ExportReactors() {
   ExportAlarmReactor();
   ExportBasicReactor();
   ExportChainReactor();
+  ExportCurrentTimeReactor();
   ExportFilterReactor();
   ExportFoldReactor();
   ExportFunctionReactor();

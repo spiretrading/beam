@@ -233,6 +233,9 @@ namespace Details {
   //! Exports the ChainReactor class.
   void ExportChainReactor();
 
+  //! Exports the CurrentTimeReactor.
+  void ExportCurrentTimeReactor();
+
   //! Exports the Do Reactor.
   void ExportDoReactor();
 

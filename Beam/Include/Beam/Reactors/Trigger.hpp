@@ -13,8 +13,8 @@ namespace Details {
     thread_local static Trigger* m_trigger;
   };
 
-  template<>
-  thread_local Trigger* EnvironmentTrigger<void>::m_trigger = nullptr;
+  template<typename T>
+  thread_local Trigger* EnvironmentTrigger<T>::m_trigger = nullptr;
 }
 
   /*! \class Trigger

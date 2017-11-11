@@ -1,7 +1,7 @@
 #include "Beam/Python/PythonFunctionReactor.hpp"
-#include <boost/python/extract.hpp>
 #include "Beam/Python/GilLock.hpp"
-#include "Beam/Utilities/Expect.hpp"
+#include "Beam/Python/Reactors.hpp"
+#include "Beam/Reactors/ReactorUnavailableException.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -9,14 +9,26 @@ using namespace Beam::Reactors;
 using namespace boost;
 using namespace boost::python;
 
+PythonFunctionReactor::Child::Child(
+    std::shared_ptr<Reactor<boost::python::object>> reactor)
+    : m_reactor{std::move(reactor)},
+      m_isInitialized{false} {}
+
 PythonFunctionReactor::PythonFunctionReactor(const object& callable,
     const boost::python::tuple& args, const boost::python::dict& kw)
-  : m_context{{callable, args, kw}},
-    m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-    m_hasValue{false},
-    m_state{BaseReactor::Update::NONE},
-    m_initializationCount{0},
-    m_currentSequenceNumber{-1} {}
+    : m_hasValue{false},
+      m_state{BaseReactor::Update::NONE},
+      m_currentSequenceNumber{-1} {
+  m_context.emplace();
+  m_context->m_callable = callable;
+  for(int i = 0; i < boost::python::len(args); ++i) {
+    boost::python::object child = args[i];
+    auto reactor = ExtractReactor(child);
+    m_context->m_children.push_back(reactor);
+  }
+  m_context->m_kw = kw;
+  m_context->m_value = std::make_exception_ptr(ReactorUnavailableException{});
+}
 
 PythonFunctionReactor::~PythonFunctionReactor() {
   GilLock gil;
@@ -29,8 +41,6 @@ bool PythonFunctionReactor::IsComplete() const {
 }
 
 BaseReactor::Update PythonFunctionReactor::Commit(int sequenceNumber) {
-  GilLock gil;
-  boost::lock_guard<GilLock> lock{gil};
   if(sequenceNumber == m_currentSequenceNumber) {
     return m_update;
   } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
@@ -44,104 +54,82 @@ BaseReactor::Update PythonFunctionReactor::Commit(int sequenceNumber) {
   }
   auto update =
     [&] {
-      if(boost::python::len(m_context->m_args) == 0) {
-        if(sequenceNumber == 0) {
-          return BaseReactor::Update::EVAL;
-        } else {
-          return BaseReactor::Update::NONE;
-        }
-      }
-      if(m_initializationCount != boost::python::len(m_context->m_args)) {
-        m_initializationCount = 0;
-        for(int i = 0; i < boost::python::len(m_context->m_args); ++i) {
-          boost::python::object child = m_context->m_args[i];
-          std::shared_ptr<BaseReactor> reactor =
-            boost::python::extract<std::shared_ptr<BaseReactor>>(child);
-          if(reactor->Commit(0) != BaseReactor::Update::NONE ||
-              reactor->Commit(sequenceNumber) != BaseReactor::Update::NONE) {
-            ++m_initializationCount;
+      if(m_state == BaseReactor::Update::NONE) {
+        auto update = BaseReactor::Update::EVAL;
+        for(auto& child : m_context->m_children) {
+          auto childUpdate = child.m_reactor->Commit(sequenceNumber);
+          if(!child.m_isInitialized) {
+            if(childUpdate == BaseReactor::Update::EVAL) {
+              child.m_isInitialized = true;
+            } else if(childUpdate == BaseReactor::Update::COMPLETE) {
+              update = BaseReactor::Update::COMPLETE;
+            } else if(update != BaseReactor::Update::COMPLETE) {
+              update = BaseReactor::Update::NONE;
+            }
           }
         }
-        if(m_initializationCount != boost::python::len(m_context->m_args)) {
-          m_currentSequenceNumber = sequenceNumber;
-          m_update = BaseReactor::Update::NONE;
-          return BaseReactor::Update::NONE;
+        if(update == BaseReactor::Update::EVAL) {
+          m_state = BaseReactor::Update::EVAL;
+        }
+        return update;
+      }
+      auto update = BaseReactor::Update::NONE;
+      auto hasCompletion = false;
+      for(auto& child : m_context->m_children) {
+        auto childUpdate = child.m_reactor->Commit(sequenceNumber);
+        if(childUpdate == BaseReactor::Update::EVAL) {
+          update = BaseReactor::Update::EVAL;
+        } else if(childUpdate == BaseReactor::Update::COMPLETE) {
+          hasCompletion = true;
         }
       }
-      auto commit = BaseReactor::Update::NONE;
-      for(int i = 0; i < boost::python::len(m_context->m_args); ++i) {
-        boost::python::object child = m_context->m_args[i];
-        std::shared_ptr<BaseReactor> reactor =
-          boost::python::extract<std::shared_ptr<BaseReactor>>(child);
-        auto reactorUpdate = reactor->Commit(sequenceNumber);
-        if(reactorUpdate == BaseReactor::Update::COMPLETE) {
-          if(commit == BaseReactor::Update::NONE ||
-              commit == BaseReactor::Update::COMPLETE) {
-            commit = reactorUpdate;
-          }
-        } else {
-          commit = reactorUpdate;
+      if(update == BaseReactor::Update::NONE && hasCompletion) {
+        if(AreParametersComplete()) {
+          update = BaseReactor::Update::COMPLETE;
         }
       }
-      return commit;
+      return update;
     }();
-  if(update == BaseReactor::Update::NONE) {
-    return update;
-  }
   m_update = update;
   if(m_update == BaseReactor::Update::EVAL) {
-    auto hasEval = UpdateEval();
     if(AreParametersComplete()) {
       m_state = BaseReactor::Update::COMPLETE;
     }
-    if(hasEval == BaseReactor::Update::NONE) {
-      if(boost::python::len(m_context->m_args) == 0) {
+    if(!UpdateEval()) {
+      if(m_state == BaseReactor::Update::COMPLETE) {
         m_update = BaseReactor::Update::COMPLETE;
       } else {
         m_update = BaseReactor::Update::NONE;
       }
-    } else if(hasEval == BaseReactor::Update::EVAL) {
-      m_hasValue = true;
     } else {
       m_hasValue = true;
-      m_state = BaseReactor::Update::COMPLETE;
     }
   } else if(m_update == BaseReactor::Update::COMPLETE) {
-    if(AreParametersComplete()) {
-      m_state = BaseReactor::Update::COMPLETE;
-    } else {
-      m_update = BaseReactor::Update::NONE;
-    }
+    m_state = BaseReactor::Update::COMPLETE;
   }
   m_currentSequenceNumber = sequenceNumber;
   return m_update;
 }
 
 PythonFunctionReactor::Type PythonFunctionReactor::Eval() const {
-  return m_value.Get();
+  return m_context->m_value.Get();
 }
 
 bool PythonFunctionReactor::AreParametersComplete() const {
-  for(int i = 0; i < boost::python::len(m_context->m_args); ++i) {
-    boost::python::object child = m_context->m_args[i];
-    std::shared_ptr<BaseReactor> reactor =
-      boost::python::extract<std::shared_ptr<BaseReactor>>(child);
-    if(!reactor->IsComplete()) {
+  for(auto& child : m_context->m_children) {
+    if(!child.m_reactor->IsComplete()) {
       return false;
     }
   }
   return true;
 }
 
-BaseReactor::Update PythonFunctionReactor::UpdateEval() {
+bool PythonFunctionReactor::UpdateEval() {
   std::vector<boost::python::object> parameters;
-  for(int i = 0; i < boost::python::len(m_context->m_args); ++i) {
-    boost::python::object child = m_context->m_args[i];
-    std::shared_ptr<Reactor<object>> reactor =
-      boost::python::extract<std::shared_ptr<Reactor<object>>>(child);
+  for(auto& child : m_context->m_children) {
     parameters.push_back(boost::python::object{Try(
       [&] {
-        return reactor->Eval();
+        return child.m_reactor->Eval();
       })});
   }
   auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
@@ -156,12 +144,11 @@ BaseReactor::Update PythonFunctionReactor::UpdateEval() {
     boost::python::object result{boost::python::handle<>(
       boost::python::borrowed(rawResult))};
     if(result == boost::python::object{}) {
-      return BaseReactor::Update::NONE;
+      return false;
     }
-    m_value = result;
-    return BaseReactor::Update::EVAL;
+    m_context->m_value = result;
   } catch(const std::exception&) {
-    m_value = std::current_exception();
-    return BaseReactor::Update::EVAL;
+    m_context->m_value = std::current_exception();
   }
+  return true;
 }

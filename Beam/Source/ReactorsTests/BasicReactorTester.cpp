@@ -18,7 +18,7 @@ void BasicReactorTester::TestCompleteImmediately() {
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
   AssertException<ReactorUnavailableException>(*reactor, 1,
-    BaseReactor::Update::COMPLETE, true);
+    BaseReactor::Update::COMPLETE);
   CPPUNIT_ASSERT(sequenceNumbers->IsEmpty());
 }
 
@@ -33,8 +33,8 @@ void BasicReactorTester::TestCompleteWithThrowImmediately() {
   reactor->SetComplete(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL, true);
-  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE, true);
+  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE);
   CPPUNIT_ASSERT(sequenceNumbers->IsEmpty());
 }
 
@@ -54,7 +54,7 @@ void BasicReactorTester::TestSingleValue() {
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 2, BaseReactor::Update::COMPLETE, 123);
-  AssertValue(*reactor, 3, BaseReactor::Update::NONE, 123, true);
+  AssertValue(*reactor, 3, BaseReactor::Update::NONE, 123);
 }
 
 void BasicReactorTester::TestSingleValueAndThrow() {
@@ -72,6 +72,6 @@ void BasicReactorTester::TestSingleValueAndThrow() {
   reactor->SetComplete(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::EVAL, true);
-  AssertException<DummyException>(*reactor, 3, BaseReactor::Update::NONE, true);
+  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 3, BaseReactor::Update::NONE);
 }

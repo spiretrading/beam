@@ -135,9 +135,7 @@ namespace Reactors {
     }
     if(m_openState.IsOpen()) {
       Trigger::SetEnvironmentTrigger(m_trigger);
-      auto update = reactor->Commit(0);
-      if(update == BaseReactor::Update::COMPLETE ||
-          update == BaseReactor::Update::EVAL && reactor->IsComplete()) {
+      if(IsComplete(reactor->Commit(0))) {
         return;
       }
     }
@@ -148,9 +146,7 @@ namespace Reactors {
     Trigger::SetEnvironmentTrigger(m_trigger);
     auto deleteIterator = std::remove_if(m_reactors.begin(), m_reactors.end(),
       [&] (auto& reactor) {
-        auto update = reactor->Commit(sequenceNumber);
-        return update == BaseReactor::Update::COMPLETE ||
-          update == BaseReactor::Update::EVAL && reactor->IsComplete();
+        return IsComplete(reactor->Commit(sequenceNumber));
       });
     auto removeCount = (m_reactors.end() - deleteIterator);
     if(removeCount != 0) {

@@ -28,6 +28,7 @@ namespace Reactors {
       struct Child {
         BaseReactor* m_reactor;
         bool m_isInitialized;
+        bool m_isComplete;
 
         Child(BaseReactor& reactor);
       };
@@ -40,7 +41,8 @@ namespace Reactors {
 
   inline CommitReactor::Child::Child(BaseReactor& reactor)
       : m_reactor{&reactor},
-        m_isInitialized{false} {}
+        m_isInitialized{false},
+        m_isComplete{false} {}
 
   inline CommitReactor::CommitReactor(const std::vector<BaseReactor*>& children)
       : m_currentSequenceNumber{-1},
@@ -55,57 +57,50 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
-    auto update =
+    m_update =
       [&] {
-        if(m_state == BaseReactor::Update::NONE) {
-          auto update = BaseReactor::Update::EVAL;
-          for(auto& child : m_children) {
-            auto childUpdate = child.m_reactor->Commit(sequenceNumber);
-            if(!child.m_isInitialized) {
-              if(childUpdate == BaseReactor::Update::EVAL) {
-                child.m_isInitialized = true;
-              } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-                update = BaseReactor::Update::COMPLETE;
-              } else if(update != BaseReactor::Update::COMPLETE) {
-                update = BaseReactor::Update::NONE;
-              }
+        auto update = [&] {
+          if(m_state == BaseReactor::Update::NONE) {
+            return BaseReactor::Update::EVAL;
+          } else {
+            return BaseReactor::Update::NONE;
+          }
+        }();
+        auto completeCount = 0;
+        for(auto& child : m_children) {
+          if(child.m_isComplete) {
+            ++completeCount;
+            continue;
+          }
+          auto childUpdate = child.m_reactor->Commit(sequenceNumber);
+          if(IsComplete(childUpdate)) {
+            ++completeCount;
+            child.m_isComplete = true;
+          }
+          if(!child.m_isInitialized) {
+            if(HasEval(childUpdate)) {
+              child.m_isInitialized = true;
+            } else if(child.m_isComplete) {
+              update = BaseReactor::Update::COMPLETE;
+            } else {
+              update = BaseReactor::Update::NONE;
+            }
+          } else if(m_state != BaseReactor::Update::NONE) {
+            if(HasEval(childUpdate)) {
+              update = BaseReactor::Update::EVAL;
             }
           }
-          if(update == BaseReactor::Update::EVAL) {
-            m_state = BaseReactor::Update::EVAL;
-          }
-          return update;
         }
-        auto update = BaseReactor::Update::NONE;
-        auto hasCompletion = false;
-        for(auto& child : m_children) {
-          auto childUpdate = child.m_reactor->Commit(sequenceNumber);
-          if(childUpdate == BaseReactor::Update::EVAL) {
-            update = BaseReactor::Update::EVAL;
-          } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-            hasCompletion = true;
-          }
-        }
-        if(update == BaseReactor::Update::NONE && hasCompletion) {
-          if(AreParametersComplete()) {
-            update = BaseReactor::Update::COMPLETE;
-          }
+        if(completeCount == static_cast<int>(m_children.size())) {
+          Combine(update, BaseReactor::Update::COMPLETE);
         }
         return update;
       }();
-    m_update = update;
-    if(m_update == BaseReactor::Update::EVAL) {
-      if(AreParametersComplete()) {
-        m_state = BaseReactor::Update::COMPLETE;
-      }
-      m_hasValue = true;
-    } else if(m_update == BaseReactor::Update::COMPLETE) {
-      m_state = BaseReactor::Update::COMPLETE;
-    }
     m_currentSequenceNumber = sequenceNumber;
+    Combine(m_state, m_update);
     return m_update;
   }
 

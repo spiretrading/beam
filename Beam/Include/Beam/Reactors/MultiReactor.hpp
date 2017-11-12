@@ -71,8 +71,6 @@ namespace Details {
       MultiReactor(FunctionForward&& function,
         std::vector<std::shared_ptr<BaseReactor>> children);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -82,9 +80,9 @@ namespace Details {
       std::vector<std::shared_ptr<BaseReactor>> m_parameters;
       CommitReactor m_commitReactor;
       Expect<Type> m_value;
-      bool m_hasValue;
-      BaseReactor::Update m_update;
       int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
 
       bool UpdateEval();
   };
@@ -113,40 +111,30 @@ namespace Details {
             return reactor.get();
           })},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-        m_hasValue{false},
-        m_currentSequenceNumber{-1} {}
-
-  template<typename FunctionType>
-  bool MultiReactor<FunctionType>::IsComplete() const {
-    return m_commitReactor.IsComplete();
-  }
+        m_currentSequenceNumber{-1},
+        m_state{BaseReactor::Update::NONE} {}
 
   template<typename FunctionType>
   BaseReactor::Update MultiReactor<FunctionType>::Commit(int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
-      }
-      return BaseReactor::Update::COMPLETE;
-    }
-    if(IsComplete()) {
+      return m_state;
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     m_update = m_commitReactor.Commit(sequenceNumber);
-    if(m_update == BaseReactor::Update::EVAL) {
+    if(HasEval(m_update)) {
       if(!UpdateEval()) {
-        if(IsComplete()) {
+        if(IsComplete(m_update)) {
           m_update = BaseReactor::Update::COMPLETE;
         } else {
           m_update = BaseReactor::Update::NONE;
         }
-      } else {
-        m_hasValue = true;
       }
     }
     m_currentSequenceNumber = sequenceNumber;
+    Combine(m_state, m_update);
     return m_update;
   }
 

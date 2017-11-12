@@ -109,11 +109,11 @@ namespace Reactors {
         return IsComplete(childUpdate);
       }), m_children.end());
     if(m_isProducerComplete && m_children.empty()) {
-      update |= BaseReactor::Update::COMPLETE;
+      Combine(update, BaseReactor::Update::COMPLETE);
     }
     m_currentSequenceNumber = sequenceNumber;
     m_update = update;
-    m_state |= update;
+    Combine(m_state, update);
     return update;
   }
 

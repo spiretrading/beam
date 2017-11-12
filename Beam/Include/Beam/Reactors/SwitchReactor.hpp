@@ -84,7 +84,7 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     auto producerUpdate = [&] {
@@ -92,19 +92,19 @@ namespace Reactors {
         return BaseReactor::Update::NONE;
       }
       auto update = m_producer->Commit(sequenceNumber);
-      m_isProducerComplete = update & BaseReactor::Update::COMPLETE;
+      m_isProducerComplete = IsComplete(update);
       return update;
     }();
     auto update = BaseReactor::Update::NONE;
-    if(producerUpdate & BaseReactor::Update::EVAL) {
+    if(HasEval(producerUpdate)) {
       try {
         auto reactor = m_producer->Eval();
         auto reactorUpdate = reactor->Commit(0);
-        if(reactorUpdate & BaseReactor::Update::EVAL) {
+        if(HasEval(reactorUpdate)) {
           m_value = TryEval(*reactor);
           update = BaseReactor::Update::EVAL;
         }
-        if(!(reactorUpdate & BaseReactor::Update::COMPLETE)) {
+        if(!IsComplete(reactorUpdate)) {
           m_reactor.emplace(std::move(reactor));
         }
       } catch(const std::exception&) {
@@ -114,21 +114,20 @@ namespace Reactors {
     }
     if(m_reactor.is_initialized()) {
       auto reactorUpdate = (*m_reactor)->Commit(sequenceNumber);
-      if(update == BaseReactor::Update::NONE &&
-          (reactorUpdate & BaseReactor::Update::EVAL)) {
+      if(update == BaseReactor::Update::NONE && HasEval(reactorUpdate)) {
         m_value = TryEval(**m_reactor);
         update = BaseReactor::Update::EVAL;
       }
-      if(update & BaseReactor::Update::COMPLETE) {
+      if(IsComplete(update)) {
         m_reactor.reset();
       }
     }
     if(m_isProducerComplete && m_children.empty()) {
-      update |= BaseReactor::Update::COMPLETE;
+      Combine(update, BaseReactor::Update::COMPLETE);
     }
     m_currentSequenceNumber = sequenceNumber;
     m_update = update;
-    m_state |= update;
+    Combine(m_state, update);
     return update;
   }
 

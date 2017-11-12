@@ -100,7 +100,7 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     if(m_chainState == ChainState::INITIAL) {
@@ -110,7 +110,7 @@ namespace Reactors {
         m_chainState = ChainState::CONTINUATION;
         m_currentSequenceNumber = sequenceNumber;
         m_update = m_continuationReactor->Commit(0);
-        m_state |= m_update;
+        Combine(m_state, m_update);
         return m_update;
       } else if(update == BaseReactor::Update::COMPLETE_WITH_EVAL) {
         m_chainState = ChainState::TRANSITION;
@@ -118,12 +118,12 @@ namespace Reactors {
           Store(m_transitionSequence));
         m_currentSequenceNumber = sequenceNumber;
         m_update = BaseReactor::Update::EVAL;
-        m_state |= BaseReactor::Update::EVAL;
+        Combine(m_state, BaseReactor::Update::EVAL);
         return BaseReactor::Update::EVAL;
       }
       m_currentSequenceNumber = sequenceNumber;
       m_update = update;
-      m_state |= update;
+      Combine(m_state, update);
       return update;
     } else if(m_chainState == ChainState::TRANSITION) {
       if(sequenceNumber == m_transitionSequence) {
@@ -131,13 +131,13 @@ namespace Reactors {
         m_chainState = ChainState::CONTINUATION;
         m_currentSequenceNumber = sequenceNumber;
         m_update = m_continuationReactor->Commit(0);
-        m_state |= m_update;
+        Combine(m_state, m_update);
         return m_update;
       }
     } else {
       m_currentSequenceNumber = sequenceNumber;
       m_update = m_continuationReactor->Commit(sequenceNumber);
-      m_state |= m_update;
+      Combine(m_state, m_update);
       return m_update;
     }
   }

@@ -194,13 +194,13 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     auto producerUpdate = m_producer->Commit(sequenceNumber);
     if(producerUpdate == BaseReactor::Update::NONE) {
       return BaseReactor::Update::NONE;
-    } else if(producerUpdate & BaseReactor::Update::EVAL) {
+    } else if(HasEval(producerUpdate)) {
       if(!m_previousValue.is_initialized()) {
         m_previousValue = TryEval(*m_producer);
         m_currentSequenceNumber = sequenceNumber;
@@ -210,16 +210,16 @@ namespace Reactors {
       m_leftChild->Set(std::move(*m_previousValue), sequenceNumber);
       m_rightChild->Set(TryEval(*m_producer), sequenceNumber);
       m_update = m_evaluation->Commit(sequenceNumber);
-      if(m_update & BaseReactor::Update::EVAL) {
+      if(HasEval(m_update)) {
         m_value = TryEval(*m_evaluation);
         m_previousValue = m_value;
       }
     }
-    if(producerUpdate & BaseReactor::Update::COMPLETE) {
-      m_update |= BaseReactor::Update::COMPLETE;
+    if(IsComplete(producerUpdate)) {
+      Combine(m_update, BaseReactor::Update::COMPLETE);
     }
     m_currentSequenceNumber = sequenceNumber;
-    m_state |= m_update;
+    Combine(m_state, m_update);
     return m_update;
   }
 

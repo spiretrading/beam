@@ -67,7 +67,7 @@ namespace Reactors {
   BaseReactor::Update WhenCompleteReactor<FunctionType, ReactorType>::Commit(
       int sequenceNumber) {
     auto update = m_reactor->Commit(sequenceNumber);
-    if(update & BaseReactor::Update::COMPLETE && !m_triggered) {
+    if(IsComplete(update) && !m_triggered) {
       m_triggered = true;
       try {
         m_function();

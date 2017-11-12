@@ -32,8 +32,6 @@ namespace Reactors {
 
       virtual ~PythonFunctionReactor() override final;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -47,11 +45,10 @@ namespace Reactors {
       };
       boost::optional<Context> m_context;
       boost::optional<CommitReactor> m_commitReactor;
-      bool m_hasValue;
-      BaseReactor::Update m_update;
       int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
 
-      bool AreParametersComplete() const;
       bool UpdateEval();
   };
 }

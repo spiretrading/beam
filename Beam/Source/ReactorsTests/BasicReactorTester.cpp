@@ -33,7 +33,8 @@ void BasicReactorTester::TestCompleteWithThrowImmediately() {
   reactor->SetComplete(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 1,
+    BaseReactor::Update::COMPLETE_WITH_EVAL);
   AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE);
   CPPUNIT_ASSERT(sequenceNumbers->IsEmpty());
 }
@@ -72,6 +73,7 @@ void BasicReactorTester::TestSingleValueAndThrow() {
   reactor->SetComplete(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 2,
+    BaseReactor::Update::COMPLETE_WITH_EVAL);
   AssertException<DummyException>(*reactor, 3, BaseReactor::Update::NONE);
 }

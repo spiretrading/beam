@@ -69,8 +69,6 @@ namespace Reactors {
         RightChildReactorForward&& rightChild,
         ProducerReactorForward&& producer);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;

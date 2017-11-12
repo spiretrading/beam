@@ -14,6 +14,6 @@ void DoReactorTester::TestPassThrough() {
     [&] (const auto& value) {
       capture = value;
     }, constant);
-  AssertValue(*doReactor, 0, BaseReactor::Update::EVAL, 123, true);
+  AssertValue(*doReactor, 0, BaseReactor::Update::COMPLETE_WITH_EVAL, 123);
   CPPUNIT_ASSERT_EQUAL(capture, 123);
 }

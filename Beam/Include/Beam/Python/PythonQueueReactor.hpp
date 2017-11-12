@@ -30,8 +30,6 @@ namespace Reactors {
 
       virtual ~PythonQueueReactor() override final;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -77,10 +75,6 @@ namespace Reactors {
     boost::lock_guard<Threading::Mutex> lock{m_mutex};
     m_isComplete = true;
     m_monitorCondition.notify_one();
-  }
-
-  inline bool PythonQueueReactor::IsComplete() const {
-    return m_isComplete;
   }
 
   inline BaseReactor::Update PythonQueueReactor::Commit(int sequenceNumber) {

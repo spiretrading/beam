@@ -122,7 +122,7 @@ namespace Reactors {
         m_reactor.reset();
       }
     }
-    if(m_isProducerComplete && m_children.empty()) {
+    if(m_isProducerComplete && !m_reactor.is_initialized()) {
       Combine(update, BaseReactor::Update::COMPLETE);
     }
     m_currentSequenceNumber = sequenceNumber;

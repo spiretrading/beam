@@ -27,12 +27,12 @@ void TimerReactorTester::TestExpiry() {
     };
   auto reactor = MakeTimerReactor<int>(timerFactory, period);
   AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE, false);
+    BaseReactor::Update::NONE);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 0, false);
+  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 0);
   timer->Trigger();
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
   sequenceNumbers->Pop();
-  AssertValue(*reactor, 2, BaseReactor::Update::EVAL, 1, false);
+  AssertValue(*reactor, 2, BaseReactor::Update::EVAL, 1);
 }

@@ -16,7 +16,7 @@ void NonRepeatingReactorTester::TestAAB() {
   auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE, false);
+    BaseReactor::Update::NONE);
   p1->Update(1);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
@@ -39,7 +39,7 @@ void NonRepeatingReactorTester::TestABA() {
   auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE, false);
+    BaseReactor::Update::NONE);
   p1->Update(1);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
@@ -62,7 +62,7 @@ void NonRepeatingReactorTester::TestBAA() {
   auto p1 = MakeBasicReactor<int>();
   auto reactor = MakeNonRepeatingReactor(p1);
   AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE, false);
+    BaseReactor::Update::NONE);
   p1->Update(1);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();

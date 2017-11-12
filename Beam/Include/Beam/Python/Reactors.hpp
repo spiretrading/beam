@@ -43,10 +43,6 @@ namespace Details {
   struct ReactorWrapper : T, boost::python::wrapper<T> {
     using Type = typename T::Type;
 
-    virtual bool IsComplete() const override final {
-      return this->get_override("is_complete")();
-    }
-
     virtual const std::type_info& GetType() const override final {
       return typeid(boost::python::object);
     }

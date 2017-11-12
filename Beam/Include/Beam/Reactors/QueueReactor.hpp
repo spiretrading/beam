@@ -108,7 +108,7 @@ namespace Reactors {
       m_update = BaseReactor::Update::COMPLETE;
     } catch(const std::exception&) {
       m_value = std::current_exception();
-      m_update = BaseReactor::Update::EVAL;
+      m_update = BaseReactor::Update::COMPLETE_WITH_EVAL;
     }
     {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};

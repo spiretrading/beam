@@ -16,9 +16,9 @@ void StaticReactorTester::TestSingleValue() {
   auto source = MakeBasicReactor<int>();
   auto reactor = MakeStaticReactor(source);
   AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE, false);
+    BaseReactor::Update::NONE);
   source->Update(123);
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 123, true);
+  AssertValue(*reactor, 1, BaseReactor::Update::COMPLETE_WITH_EVAL, 123);
 }

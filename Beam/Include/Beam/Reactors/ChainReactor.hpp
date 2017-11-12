@@ -133,6 +133,8 @@ namespace Reactors {
         m_update = m_continuationReactor->Commit(0);
         Combine(m_state, m_update);
         return m_update;
+      } else {
+        return BaseReactor::Update::NONE;
       }
     } else {
       m_currentSequenceNumber = sequenceNumber;

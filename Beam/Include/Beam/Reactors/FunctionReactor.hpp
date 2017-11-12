@@ -3,9 +3,10 @@
 #include <tuple>
 #include <type_traits>
 #include <boost/fusion/adapted/std_tuple.hpp>
-#include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/fusion/algorithm/iteration/for_each.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Reactors/CommitReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
 #include "Beam/Reactors/Reactors.hpp"
@@ -24,7 +25,7 @@ namespace Reactors {
     boost::optional<Expect<Type>> m_value;
     BaseReactor::Update m_update;
 
-    //! Constructs an unitialized evaluation.
+    //! Constructs an uninitialized evaluation.
     FunctionEvaluation();
 
     //! Constructs a FunctionEvaluation resulting in a type and an EVAL.
@@ -96,59 +97,6 @@ namespace Details {
     using type = T;
   };
 
-  struct Initialize {
-    using result_type = BaseReactor::Update;
-    int m_sequenceNumber;
-
-    template<typename T>
-    BaseReactor::Update operator ()(BaseReactor::Update update,
-        T& child) const {
-      auto childUpdate = child.m_reactor->Commit(m_sequenceNumber);
-      if(!child.m_isInitialized) {
-        if(childUpdate == BaseReactor::Update::EVAL) {
-          child.m_isInitialized = true;
-        } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-          return BaseReactor::Update::COMPLETE;
-        } else if(update != BaseReactor::Update::COMPLETE) {
-          return BaseReactor::Update::NONE;
-        }
-      }
-      return update;
-    }
-  };
-
-  struct Commit {
-    using result_type = BaseReactor::Update;
-    int m_sequenceNumber;
-    bool* m_hasCompletion;
-
-    template<typename T>
-    BaseReactor::Update operator ()(BaseReactor::Update update,
-        T& child) const {
-      auto childUpdate = child.m_reactor->Commit(m_sequenceNumber);
-      if(childUpdate == BaseReactor::Update::EVAL) {
-        return BaseReactor::Update::EVAL;
-      } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-        *m_hasCompletion = true;
-      }
-      return update;
-    }
-  };
-
-  struct IsComplete {
-    using result_type = bool;
-
-    template<typename T>
-    bool operator ()(bool state, const T& child) const {
-      return state && child.m_reactor->IsComplete();
-    }
-  };
-
-  struct EvalResult {
-    BaseReactor::Update m_update;
-    bool m_hasValue;
-  };
-
   struct FunctionEval {
     template<typename T>
     auto operator ()(const Reactor<T>* reactor) const {
@@ -165,28 +113,28 @@ namespace Details {
   template<typename T>
   struct FunctionUpdateEval {
     template<typename V, typename F, typename P>
-    EvalResult operator ()(V& value, F& function, const P& p) const {
+    BaseReactor::Update operator ()(V& value, F& function, const P& p) const {
       auto evaluation = Apply(p,
         [&] (const auto&... parameters) {
           return FunctionEvaluation<T>{function(
-            Try(std::bind(FunctionEval{}, &*(parameters.m_reactor)))...)};
+            Try(std::bind(FunctionEval{}, &*parameters))...)};
         });
       if(evaluation.m_value.is_initialized()) {
         value = std::move(*evaluation.m_value);
       }
-      return {evaluation.m_update, evaluation.m_value.is_initialized()};
+      return evaluation.m_update;
     }
   };
 
   template<>
   struct FunctionUpdateEval<void> {
     template<typename V, typename F, typename P>
-    EvalResult operator ()(V& value, F& function, const P& p) const {
+    BaseReactor::Update operator ()(V& value, F& function, const P& p) const {
       Apply(p,
         [&] (const auto&... parameters) {
-          function(Try(std::bind(FunctionEval{}, &*(parameters.m_reactor)))...);
+          function(Try(std::bind(FunctionEval{}, &*parameters))...);
         });
-      return {BaseReactor::Update::EVAL, true};
+      return BaseReactor::Update::EVAL;
     }
   };
 }
@@ -217,31 +165,20 @@ namespace Details {
       FunctionReactor(FunctionForward&& function,
         ParameterForwards&&... parameters);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
 
     private:
-      template<typename U>
-      struct Child {
-        GetOptionalLocalPtr<U> m_reactor;
-        bool m_isInitialized;
-
-        template<typename R>
-        Child(R&& reactor);
-      };
       Function m_function;
-      std::tuple<Child<ParameterTypes>...> m_parameters;
+      std::tuple<GetOptionalLocalPtr<ParameterTypes>...> m_parameters;
+      boost::optional<CommitReactor> m_commitReactor;
       Expect<Type> m_value;
-      bool m_hasValue;
-      BaseReactor::Update m_state;
-      BaseReactor::Update m_update;
       int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
 
-      bool AreParametersComplete() const;
-      Details::EvalResult UpdateEval();
+      BaseReactor::Update UpdateEval();
   };
 
   //! Makes a FunctionReactor.
@@ -288,7 +225,7 @@ namespace Details {
       BaseReactor::Update update)
       : m_value{std::move(value)},
         m_update{update} {
-    assert(m_update != BaseReactor::Update::NONE);
+    Combine(m_update, BaseReactor::Update::EVAL);
   }
 
   template<typename T>
@@ -297,7 +234,7 @@ namespace Details {
       : m_value{std::move(value)},
         m_update{update} {
     if(m_value.is_initialized()) {
-      assert(m_update != BaseReactor::Update::NONE);
+      Combine(m_update, BaseReactor::Update::EVAL);
     } else {
       assert(m_update != BaseReactor::Update::EVAL);
     }
@@ -317,88 +254,47 @@ namespace Details {
   }
 
   template<typename FunctionType, typename... ParameterTypes>
-  template<typename U>
-  template<typename R>
-  FunctionReactor<FunctionType, ParameterTypes...>::Child<U>::Child(R&& reactor)
-      : m_reactor{std::forward<R>(reactor)},
-        m_isInitialized{false} {}
-
-  template<typename FunctionType, typename... ParameterTypes>
   template<typename FunctionForward, typename... ParameterForwards>
   FunctionReactor<FunctionType, ParameterTypes...>::FunctionReactor(
       FunctionForward&& function, ParameterForwards&&... parameters)
       : m_function{std::forward<FunctionForward>(function)},
         m_parameters{std::forward<ParameterForwards>(parameters)...},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-        m_hasValue{false},
-        m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1} {}
-
-  template<typename FunctionType, typename... ParameterTypes>
-  bool FunctionReactor<FunctionType, ParameterTypes...>::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
+        m_currentSequenceNumber{-1},
+        m_state{BaseReactor::Update::NONE} {
+    std::vector<BaseReactor*> children;
+    boost::fusion::for_each(m_parameters,
+      [&] (auto& child) {
+        children.push_back(&*child);
+      });
+    m_commitReactor.emplace(std::move(children));
   }
 
   template<typename FunctionType, typename... ParameterTypes>
   BaseReactor::Update FunctionReactor<FunctionType, ParameterTypes...>::Commit(
       int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
-      }
-      return BaseReactor::Update::COMPLETE;
-    }
-    if(m_state == BaseReactor::Update::COMPLETE) {
+      return m_state;
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
-    auto update =
-      [&] {
-        if(m_state == BaseReactor::Update::NONE) {
-          auto update = boost::fusion::accumulate(m_parameters,
-            BaseReactor::Update::EVAL, Details::Initialize{sequenceNumber});
-          if(update == BaseReactor::Update::EVAL) {
-            m_state = BaseReactor::Update::EVAL;
-          }
-          return update;
-        } else {
-          auto hasCompletion = false;
-          auto update = boost::fusion::accumulate(m_parameters,
-            BaseReactor::Update::NONE,
-            Details::Commit{sequenceNumber, &hasCompletion});
-          if(update == BaseReactor::Update::NONE && hasCompletion) {
-            if(AreParametersComplete()) {
-              update = BaseReactor::Update::COMPLETE;
-            }
-          }
-          return update;
-        }
-      }();
-    m_update = update;
-    if(m_update == BaseReactor::Update::EVAL) {
-      if(AreParametersComplete()) {
-        m_state = BaseReactor::Update::COMPLETE;
-      }
-      auto hasEval = UpdateEval();
-      if(hasEval.m_update == BaseReactor::Update::NONE) {
-        if(m_state == BaseReactor::Update::COMPLETE) {
+    m_update = m_commitReactor->Commit(sequenceNumber);
+    if(HasEval(m_update)) {
+      auto evalUpdate = UpdateEval();
+      if(evalUpdate == BaseReactor::Update::NONE) {
+        if(IsComplete(m_update)) {
           m_update = BaseReactor::Update::COMPLETE;
         } else {
           m_update = BaseReactor::Update::NONE;
         }
-      } else if(hasEval.m_update == BaseReactor::Update::COMPLETE) {
-        m_state = BaseReactor::Update::COMPLETE;
-        if(!hasEval.m_hasValue) {
-          m_update = BaseReactor::Update::COMPLETE;
-        }
-      } else {
-        m_hasValue = true;
+      } else if(IsComplete(evalUpdate)) {
+        Combine(m_update, BaseReactor::Update::COMPLETE);
       }
-    } else if(m_update == BaseReactor::Update::COMPLETE) {
-      m_state = BaseReactor::Update::COMPLETE;
     }
     m_currentSequenceNumber = sequenceNumber;
+    Combine(m_state, m_update);
     return m_update;
   }
 
@@ -409,20 +305,14 @@ namespace Details {
   }
 
   template<typename FunctionType, typename... ParameterTypes>
-  bool FunctionReactor<FunctionType, ParameterTypes...>::
-      AreParametersComplete() const {
-    return boost::fusion::accumulate(m_parameters, true, Details::IsComplete{});
-  }
-
-  template<typename FunctionType, typename... ParameterTypes>
-  Details::EvalResult FunctionReactor<FunctionType, ParameterTypes...>::
+  BaseReactor::Update FunctionReactor<FunctionType, ParameterTypes...>::
       UpdateEval() {
     try {
       return Details::FunctionUpdateEval<Type>{}(m_value, m_function,
         m_parameters);
     } catch(const std::exception&) {
       m_value = std::current_exception();
-      return {BaseReactor::Update::EVAL, true};
+      return BaseReactor::Update::EVAL;
     }
   }
 }

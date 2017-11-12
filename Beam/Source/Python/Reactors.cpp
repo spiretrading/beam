@@ -53,10 +53,6 @@ using namespace std;
 
 namespace {
   struct BaseReactorWrapper : BaseReactor, wrapper<BaseReactor> {
-    virtual bool IsComplete() const override final {
-      return get_override("is_complete");
-    }
-
     virtual const std::type_info& GetType() const override final {
       return typeid(boost::python::object);
     }
@@ -344,7 +340,6 @@ void Beam::Python::ExportAlarmReactor() {
 void Beam::Python::ExportBaseReactor() {
   class_<BaseReactorWrapper, std::shared_ptr<BaseReactorWrapper>,
     boost::noncopyable>("BaseReactor")
-    .def("is_complete", pure_virtual(&BaseReactor::IsComplete))
     .def("commit", pure_virtual(&BaseReactor::Commit));
   register_ptr_to_python<std::shared_ptr<BaseReactor>>();
   implicitly_convertible<std::shared_ptr<BaseReactorWrapper>,

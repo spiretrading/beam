@@ -12,8 +12,8 @@ using namespace boost::python;
 
 PythonFunctionReactor::PythonFunctionReactor(const object& callable,
     const boost::python::tuple& args, const boost::python::dict& kw)
-    : m_hasValue{false},
-      m_currentSequenceNumber{-1} {
+    : m_currentSequenceNumber{-1},
+      m_state{BaseReactor::Update::NONE} {
   m_context.emplace();
   m_context->m_callable = callable;
   for(int i = 0; i < boost::python::len(args); ++i) {
@@ -36,35 +36,26 @@ PythonFunctionReactor::~PythonFunctionReactor() {
   m_context.reset();
 }
 
-bool PythonFunctionReactor::IsComplete() const {
-  return m_commitReactor->IsComplete();
-}
-
 BaseReactor::Update PythonFunctionReactor::Commit(int sequenceNumber) {
-  if(sequenceNumber == m_currentSequenceNumber) {
+  if(m_currentSequenceNumber == sequenceNumber) {
     return m_update;
   } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-    if(m_hasValue) {
-      return BaseReactor::Update::EVAL;
-    }
-    return BaseReactor::Update::COMPLETE;
-  }
-  if(IsComplete()) {
+    return m_state;
+  } else if(IsComplete(m_state)) {
     return BaseReactor::Update::NONE;
   }
   m_update = m_commitReactor->Commit(sequenceNumber);
-  if(m_update == BaseReactor::Update::EVAL) {
+  if(HasEval(m_update)) {
     if(!UpdateEval()) {
-      if(IsComplete()) {
+      if(IsComplete(m_update)) {
         m_update = BaseReactor::Update::COMPLETE;
       } else {
         m_update = BaseReactor::Update::NONE;
       }
-    } else {
-      m_hasValue = true;
     }
   }
   m_currentSequenceNumber = sequenceNumber;
+  Combine(m_state, m_update);
   return m_update;
 }
 

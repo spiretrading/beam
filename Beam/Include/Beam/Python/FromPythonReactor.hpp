@@ -27,8 +27,6 @@ namespace Reactors {
       //! Returns the wrapped Reactor.
       const std::shared_ptr<Reactor<boost::python::object>>& GetReactor() const;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -45,8 +43,6 @@ namespace Reactors {
       virtual ~FromPythonReactor() override final;
 
       const std::shared_ptr<BaseReactor>& GetReactor() const;
-
-      virtual bool IsComplete() const override final;
 
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
@@ -93,13 +89,6 @@ namespace Reactors {
   }
 
   template<typename T>
-  bool FromPythonReactor<T>::IsComplete() const {
-    Python::GilLock gil;
-    boost::lock_guard<Python::GilLock> lock{gil};
-    return m_reactor->IsComplete();
-  }
-
-  template<typename T>
   BaseReactor::Update FromPythonReactor<T>::Commit(int sequenceNumber) {
     Python::GilLock gil;
     boost::lock_guard<Python::GilLock> lock{gil};
@@ -126,12 +115,6 @@ namespace Reactors {
   inline const std::shared_ptr<BaseReactor>& FromPythonReactor<void>::
       GetReactor() const {
     return m_reactor;
-  }
-
-  inline bool FromPythonReactor<void>::IsComplete() const {
-    Python::GilLock gil;
-    boost::lock_guard<Python::GilLock> lock{gil};
-    return m_reactor->IsComplete();
   }
 
   inline BaseReactor::Update FromPythonReactor<void>::Commit(

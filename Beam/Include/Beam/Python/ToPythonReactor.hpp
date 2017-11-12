@@ -26,8 +26,6 @@ namespace Reactors {
       //! Returns the wrapped Reactor.
       const std::shared_ptr<Reactor<T>>& GetReactor() const;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -59,11 +57,6 @@ namespace Reactors {
   template<typename T>
   const std::shared_ptr<Reactor<T>>& ToPythonReactor<T>::GetReactor() const {
     return m_reactor;
-  }
-
-  template<typename T>
-  bool ToPythonReactor<T>::IsComplete() const {
-    return m_reactor->IsComplete();
   }
 
   template<typename T>

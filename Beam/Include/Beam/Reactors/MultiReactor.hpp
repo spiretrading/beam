@@ -3,9 +3,11 @@
 #include <type_traits>
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Reactors/CommitReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
 #include "Beam/Reactors/Reactors.hpp"
+#include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/Functional.hpp"
 
 namespace Beam {
@@ -76,22 +78,14 @@ namespace Details {
       virtual Type Eval() const override final;
 
     private:
-      struct Child {
-        std::shared_ptr<BaseReactor> m_reactor;
-        bool m_isInitialized;
-
-        Child(std::shared_ptr<BaseReactor> reactor);
-      };
       Function m_function;
       std::vector<std::shared_ptr<BaseReactor>> m_parameters;
-      std::vector<Child> m_children;
+      CommitReactor m_commitReactor;
       Expect<Type> m_value;
       bool m_hasValue;
-      BaseReactor::Update m_state;
       BaseReactor::Update m_update;
       int m_currentSequenceNumber;
 
-      bool AreParametersComplete() const;
       bool UpdateEval();
   };
 
@@ -108,28 +102,23 @@ namespace Details {
   }
 
   template<typename FunctionType>
-  MultiReactor<FunctionType>::Child::Child(std::shared_ptr<BaseReactor> reactor)
-      : m_reactor{std::move(reactor)},
-        m_isInitialized{false} {}
-
-  template<typename FunctionType>
   template<typename FunctionForward>
   MultiReactor<FunctionType>::MultiReactor(FunctionForward&& function,
       std::vector<std::shared_ptr<BaseReactor>> children)
       : m_function{std::forward<FunctionForward>(function)},
         m_parameters{std::move(children)},
+        m_commitReactor{
+          Transform(m_parameters,
+          [] (auto& reactor) {
+            return reactor.get();
+          })},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_hasValue{false},
-        m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1} {
-    for(auto& parameter : m_parameters) {
-      m_children.emplace_back(parameter);
-    }
-  }
+        m_currentSequenceNumber{-1} {}
 
   template<typename FunctionType>
   bool MultiReactor<FunctionType>::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
+    return m_commitReactor.IsComplete();
   }
 
   template<typename FunctionType>
@@ -142,54 +131,13 @@ namespace Details {
       }
       return BaseReactor::Update::COMPLETE;
     }
-    if(m_state == BaseReactor::Update::COMPLETE) {
+    if(IsComplete()) {
       return BaseReactor::Update::NONE;
     }
-    auto update =
-      [&] {
-        if(m_state == BaseReactor::Update::NONE) {
-          auto update = BaseReactor::Update::EVAL;
-          for(auto& child : m_children) {
-            auto childUpdate = child.m_reactor->Commit(sequenceNumber);
-            if(!child.m_isInitialized) {
-              if(childUpdate == BaseReactor::Update::EVAL) {
-                child.m_isInitialized = true;
-              } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-                update = BaseReactor::Update::COMPLETE;
-              } else if(update != BaseReactor::Update::COMPLETE) {
-                update = BaseReactor::Update::NONE;
-              }
-            }
-          }
-          if(update == BaseReactor::Update::EVAL) {
-            m_state = BaseReactor::Update::EVAL;
-          }
-          return update;
-        }
-        auto update = BaseReactor::Update::NONE;
-        auto hasCompletion = false;
-        for(auto& child : m_children) {
-          auto childUpdate = child.m_reactor->Commit(sequenceNumber);
-          if(childUpdate == BaseReactor::Update::EVAL) {
-            update = BaseReactor::Update::EVAL;
-          } else if(childUpdate == BaseReactor::Update::COMPLETE) {
-            hasCompletion = true;
-          }
-        }
-        if(update == BaseReactor::Update::NONE && hasCompletion) {
-          if(AreParametersComplete()) {
-            update = BaseReactor::Update::COMPLETE;
-          }
-        }
-        return update;
-      }();
-    m_update = update;
+    m_update = m_commitReactor.Commit(sequenceNumber);
     if(m_update == BaseReactor::Update::EVAL) {
-      if(AreParametersComplete()) {
-        m_state = BaseReactor::Update::COMPLETE;
-      }
       if(!UpdateEval()) {
-        if(m_state == BaseReactor::Update::COMPLETE) {
+        if(IsComplete()) {
           m_update = BaseReactor::Update::COMPLETE;
         } else {
           m_update = BaseReactor::Update::NONE;
@@ -197,8 +145,6 @@ namespace Details {
       } else {
         m_hasValue = true;
       }
-    } else if(m_update == BaseReactor::Update::COMPLETE) {
-      m_state = BaseReactor::Update::COMPLETE;
     }
     m_currentSequenceNumber = sequenceNumber;
     return m_update;
@@ -208,16 +154,6 @@ namespace Details {
   typename MultiReactor<FunctionType>::Type
       MultiReactor<FunctionType>::Eval() const {
     return m_value.Get();
-  }
-
-  template<typename FunctionType>
-  bool MultiReactor<FunctionType>::AreParametersComplete() const {
-    for(auto& child : m_children) {
-      if(!child.m_reactor->IsComplete()) {
-        return false;
-      }
-    }
-    return true;
   }
 
   template<typename FunctionType>

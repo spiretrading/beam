@@ -398,6 +398,24 @@ namespace Beam {
       std::end(containers)...));
     return boost::make_iterator_range(zipBegin, zipEnd);
   }
+
+  template<typename T, typename F, typename C>
+  decltype(auto) Transform(T&& source, F&& f, C&& destination) {
+    for(auto& item : source) {
+      destination.emplace_back(f(item));
+    }
+    return std::forward<C>(destination);
+  }
+
+  template<typename T, typename F>
+  auto Transform(T&& source, F&& f) {
+    using Container = typename std::decay<T>::type;
+    using Function = typename std::decay<F>::type;
+    using ResultElement = typename std::decay<typename std::result_of<
+      Function&&(typename Container::value_type&&)>::type>::type;
+    return Transform(std::forward<T>(source), std::forward<F>(f),
+      std::vector<ResultElement>{});
+  }
 }
 
 //! Prints a vector to an ostream.

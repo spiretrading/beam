@@ -6,6 +6,7 @@
 #include <boost/python/object.hpp>
 #include <boost/python/tuple.hpp>
 #include "Beam/Python/Python.hpp"
+#include "Beam/Reactors/CommitReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -38,21 +39,15 @@ namespace Reactors {
       virtual Type Eval() const override final;
 
     private:
-      struct Child {
-        std::shared_ptr<Reactor<boost::python::object>> m_reactor;
-        bool m_isInitialized;
-
-        Child(std::shared_ptr<Reactor<boost::python::object>> reactor);
-      };
       struct Context {
         boost::python::object m_callable;
-        std::vector<Child> m_children;
+        std::vector<std::shared_ptr<Reactor<boost::python::object>>> m_children;
         boost::python::dict m_kw;
         Expect<Type> m_value;
       };
       boost::optional<Context> m_context;
+      boost::optional<CommitReactor> m_commitReactor;
       bool m_hasValue;
-      BaseReactor::Update m_state;
       BaseReactor::Update m_update;
       int m_currentSequenceNumber;
 

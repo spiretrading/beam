@@ -17,23 +17,23 @@ namespace Reactors {
           \brief Lists the types of updates a Reactor can undergo after a
                  commit.
        */
-      enum class Update {
+      enum class Update : int {
 
         //! No update to the Reactor.
-        NONE,
+        NONE = 0,
 
         //! The Reactor has come to an end with no update.
-        COMPLETE,
+        COMPLETE = 1,
 
         //! The Reactor's evaluation has updated
         //! (it may also have come to an end).
-        EVAL
+        EVAL = 2,
+
+        //! The Reactor is both complete and has an evaluation.
+        COMPLETE_WITH_EVAL = COMPLETE | EVAL
       };
 
       virtual ~BaseReactor() = default;
-
-      //! Returns <code>true</code> iff this Reactor is complete.
-      virtual bool IsComplete() const = 0;
 
       //! Returns the evaluation's type_info.
       virtual const std::type_info& GetType() const = 0;

@@ -23,8 +23,6 @@ namespace Reactors {
       template<typename ValueForward>
       ConstantReactor(ValueForward&& value);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -78,14 +76,9 @@ namespace Details {
       : m_value{std::forward<ValueForward>(value)} {}
 
   template<typename T>
-  bool ConstantReactor<T>::IsComplete() const {
-    return true;
-  }
-
-  template<typename T>
   BaseReactor::Update ConstantReactor<T>::Commit(int sequenceNumber) {
     if(sequenceNumber == 0) {
-      return BaseReactor::Update::EVAL;
+      return BaseReactor::Update::COMPLETE_WITH_EVAL;
     }
     return BaseReactor::Update::NONE;
   }

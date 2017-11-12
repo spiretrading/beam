@@ -23,8 +23,6 @@ namespace Reactors {
       //! Constructs a FoldParameterReactor.
       FoldParameterReactor();
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -148,11 +146,6 @@ namespace Reactors {
         m_sequenceNumber{-1},
         m_nextValue{std::make_exception_ptr(ReactorUnavailableException{})},
         m_nextSequenceNumber{-1} {}
-
-  template<typename T>
-  bool FoldParameterReactor<T>::IsComplete() const {
-    return false;
-  }
 
   template<typename T>
   BaseReactor::Update FoldParameterReactor<T>::Commit(int sequenceNumber) {

@@ -40,8 +40,6 @@ namespace Reactors {
       template<typename E>
       void SetComplete(const E& e);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -81,11 +79,6 @@ namespace Reactors {
   template<typename E>
   void BasicReactor<T>::SetComplete(const E& e) {
     m_queue->Break(e);
-  }
-
-  template<typename T>
-  bool BasicReactor<T>::IsComplete() const {
-    return m_reactor.IsComplete();
   }
 
   template<typename T>

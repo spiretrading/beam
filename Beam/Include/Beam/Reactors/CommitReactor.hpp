@@ -20,8 +20,6 @@ namespace Reactors {
       */
       CommitReactor(const std::vector<BaseReactor*>& children);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -35,12 +33,9 @@ namespace Reactors {
       };
       std::vector<Child> m_children;
       BaseReactor::Update m_value;
-      bool m_hasValue;
-      BaseReactor::Update m_state;
-      BaseReactor::Update m_update;
       int m_currentSequenceNumber;
-
-      bool AreParametersComplete() const;
+      BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
   };
 
   inline CommitReactor::Child::Child(BaseReactor& reactor)
@@ -48,28 +43,19 @@ namespace Reactors {
         m_isInitialized{false} {}
 
   inline CommitReactor::CommitReactor(const std::vector<BaseReactor*>& children)
-      : m_hasValue{false},
-        m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1} {
+      : m_currentSequenceNumber{-1},
+        m_state{BaseReactor::Update::NONE} {
     for(auto& child : children) {
       m_children.emplace_back(*child);
     }
   }
 
-  inline bool CommitReactor::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
-  }
-
   inline BaseReactor::Update CommitReactor::Commit(int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
-      }
-      return BaseReactor::Update::COMPLETE;
-    }
-    if(m_state == BaseReactor::Update::COMPLETE) {
+      return m_state;
+    } else if(m_state & BaseReactor::Update::COMPLETE) {
       return BaseReactor::Update::NONE;
     }
     auto update =
@@ -125,15 +111,6 @@ namespace Reactors {
 
   inline CommitReactor::Type CommitReactor::Eval() const {
     return m_update;
-  }
-
-  inline bool CommitReactor::AreParametersComplete() const {
-    for(auto& child : m_children) {
-      if(!child.m_reactor->IsComplete()) {
-        return false;
-      }
-    }
-    return true;
   }
 }
 }

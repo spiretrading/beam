@@ -31,8 +31,6 @@ namespace Reactors {
       */
       void SetReactor(std::shared_ptr<Reactor<T>> reactor);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -70,12 +68,6 @@ namespace Reactors {
   template<typename T>
   void ProxyReactor<T>::SetReactor(std::shared_ptr<Reactor<T>> reactor) {
     m_reactor = std::move(reactor);
-  }
-
-  template<typename T>
-  bool ProxyReactor<T>::IsComplete() const {
-    auto reactor = m_reactor.lock();
-    return reactor == nullptr || reactor->IsComplete();
   }
 
   template<typename T>

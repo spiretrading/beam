@@ -2,6 +2,7 @@
 #define BEAM_REACTOR_HPP
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Reactors/BaseReactor.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 namespace Reactors {
@@ -36,6 +37,20 @@ namespace Reactors {
   struct ReactorType {
     using type = typename GetTryDereferenceType<T>::Type;
   };
+
+  //! Invokes a Reactor's Eval method, wrapper any thrown exception in an
+  //! Expect.
+  /*!
+    \param reactor The Reactor to eval.
+    \return The result of the eval, capturing any thrown exception.
+  */
+  template<typename Reactor>
+  auto TryEval(const Reactor& reactor) {
+    return Try(
+      [&] {
+        return reactor.Eval();
+      });
+  }
 
   template<typename T>
   struct ReactorType<T, typename std::enable_if<

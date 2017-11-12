@@ -30,8 +30,6 @@ namespace Reactors {
       */
       ThrowReactor(std::exception_ptr e);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -57,11 +55,6 @@ namespace Reactors {
   template<typename T>
   ThrowReactor<T>::ThrowReactor(std::exception_ptr e)
       : m_exception{std::move(e)} {}
-
-  template<typename T>
-  bool ThrowReactor<T>::IsComplete() const {
-    return true;
-  }
 
   template<typename T>
   BaseReactor::Update ThrowReactor<T>::Commit(int sequenceNumber) {

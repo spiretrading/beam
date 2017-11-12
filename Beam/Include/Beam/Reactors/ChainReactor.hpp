@@ -32,14 +32,12 @@ namespace Reactors {
       ChainReactor(InitialReactorForward&& initialReactor,
         ContinuationReactorForward&& continuationReactor);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
 
     private:
-      enum class State {
+      enum class ChainState {
         INITIAL,
         TRANSITION,
         CONTINUATION,
@@ -48,7 +46,10 @@ namespace Reactors {
       GetOptionalLocalPtr<ContinuationReactorType> m_continuationReactor;
       const Reactor<Type>* m_currentReactor;
       int m_transitionSequence;
-      State m_state;
+      ChainState m_chainState;
+      int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
   };
 
   //! Makes a ChainReactor.
@@ -88,40 +89,56 @@ namespace Reactors {
           std::forward<ContinuationReactorForward>(continuationReactor)},
         m_currentReactor{&*m_initialReactor},
         m_transitionSequence{-1},
-        m_state{State::INITIAL} {}
-
-  template<typename InitialReactorType, typename ContinuationReactorType>
-  bool ChainReactor<InitialReactorType, ContinuationReactorType>::
-      IsComplete() const {
-    return m_currentReactor == &*m_continuationReactor &&
-      m_currentReactor->IsComplete();
-  }
+        m_chainState{ChainState::INITIAL},
+        m_currentSequenceNumber{-1},
+        m_state{BaseReactor::Update::NONE} {}
 
   template<typename InitialReactorType, typename ContinuationReactorType>
   BaseReactor::Update ChainReactor<InitialReactorType,
       ContinuationReactorType>::Commit(int sequenceNumber) {
-    if(m_state == State::INITIAL) {
+    if(m_currentSequenceNumber == sequenceNumber) {
+      return m_update;
+    } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
+      return m_state;
+    } else if(m_state & BaseReactor::Update::COMPLETE) {
+      return BaseReactor::Update::NONE;
+    }
+    if(m_chainState == ChainState::INITIAL) {
       auto update = m_initialReactor->Commit(sequenceNumber);
       if(update == BaseReactor::Update::COMPLETE) {
         m_currentReactor = &*m_continuationReactor;
-        m_state = State::CONTINUATION;
-        return m_continuationReactor->Commit(0);
-      } else if(update == BaseReactor::Update::EVAL &&
-          m_initialReactor->IsComplete()) {
-        m_state = State::TRANSITION;
+        m_chainState = ChainState::CONTINUATION;
+        m_currentSequenceNumber = sequenceNumber;
+        m_update = m_continuationReactor->Commit(0);
+        m_state |= m_update;
+        return m_update;
+      } else if(update == BaseReactor::Update::COMPLETE_WITH_EVAL) {
+        m_chainState = ChainState::TRANSITION;
         Trigger::GetEnvironmentTrigger().SignalUpdate(
           Store(m_transitionSequence));
+        m_currentSequenceNumber = sequenceNumber;
+        m_update = BaseReactor::Update::EVAL;
+        m_state |= BaseReactor::Update::EVAL;
+        return BaseReactor::Update::EVAL;
       }
+      m_currentSequenceNumber = sequenceNumber;
+      m_update = update;
+      m_state |= update;
       return update;
-    } else if(m_state == State::TRANSITION) {
+    } else if(m_chainState == ChainState::TRANSITION) {
       if(sequenceNumber == m_transitionSequence) {
         m_currentReactor = &*m_continuationReactor;
-        m_state = State::CONTINUATION;
-        return m_continuationReactor->Commit(0);
+        m_chainState = ChainState::CONTINUATION;
+        m_currentSequenceNumber = sequenceNumber;
+        m_update = m_continuationReactor->Commit(0);
+        m_state |= m_update;
+        return m_update;
       }
-      return BaseReactor::Update::NONE;
     } else {
-      return m_continuationReactor->Commit(sequenceNumber);
+      m_currentSequenceNumber = sequenceNumber;
+      m_update = m_continuationReactor->Commit(sequenceNumber);
+      m_state |= m_update;
+      return m_update;
     }
   }
 

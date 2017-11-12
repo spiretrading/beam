@@ -2,6 +2,7 @@
 #define BEAM_SWITCH_REACTOR_HPP
 #include <memory>
 #include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/Reactors/ConstantReactor.hpp"
 #include "Beam/Reactors/Reactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
@@ -30,8 +31,6 @@ namespace Reactors {
       template<typename ProducerReactorForward>
       SwitchReactor(ProducerReactorForward&& producer);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -39,12 +38,12 @@ namespace Reactors {
     private:
       using ChildReactor = GetReactorType<ProducerReactorType>;
       GetOptionalLocalPtr<ProducerReactorType> m_producer;
-      ChildReactor m_reactor;
-      BaseReactor::Update m_state;
+      boost::optional<ChildReactor> m_reactor;
+      Expect<Type> m_value;
+      bool m_isProducerComplete;
       int m_currentSequenceNumber;
       BaseReactor::Update m_update;
-      Expect<Type> m_value;
-      bool m_hasValue;
+      BaseReactor::Update m_state;
   };
 
   //! Builds a SwitchReactor.
@@ -73,90 +72,64 @@ namespace Reactors {
   SwitchReactor<ProducerReactorType>::SwitchReactor(
       ProducerReactorForward&& producer)
       : m_producer{std::forward<ProducerReactorForward>(producer)},
-        m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-        m_hasValue{false} {}
-
-  template<typename ProducerReactorType>
-  bool SwitchReactor<ProducerReactorType>::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
-  }
+        m_isProducerComplete{false},
+        m_currentSequenceNumber{-1},
+        m_state{BaseReactor::Update::NONE} {}
 
   template<typename ProducerReactorType>
   BaseReactor::Update SwitchReactor<ProducerReactorType>::Commit(
       int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
-      }
-      return BaseReactor::Update::COMPLETE;
-    }
-    if(IsComplete()) {
+      return m_state;
+    } else if(m_state & BaseReactor::Update::COMPLETE) {
       return BaseReactor::Update::NONE;
     }
-    auto producerCommit = m_producer->Commit(sequenceNumber);
-    if(producerCommit == BaseReactor::Update::NONE ||
-        producerCommit == BaseReactor::Update::COMPLETE) {
-      auto childCommit = m_reactor->Commit(sequenceNumber);
-      if(childCommit == BaseReactor::Update::NONE &&
-          producerCommit == BaseReactor::Update::NONE) {
+    auto producerUpdate = [&] {
+      if(m_isProducerComplete) {
         return BaseReactor::Update::NONE;
-      } else if(childCommit == BaseReactor::Update::EVAL) {
-        m_value = Try(
-          [&] {
-            return m_reactor->Eval();
-          });
-        m_update = BaseReactor::Update::EVAL;
-        m_hasValue = true;
-      } else {
-        if(m_producer->IsComplete()) {
-          m_update = BaseReactor::Update::COMPLETE;
-        } else {
-          m_update = BaseReactor::Update::NONE;
-        }
       }
-    } else if(producerCommit == BaseReactor::Update::EVAL) {
+      auto update = m_producer->Commit(sequenceNumber);
+      m_isProducerComplete = update & BaseReactor::Update::COMPLETE;
+      return update;
+    }();
+    auto update = BaseReactor::Update::NONE;
+    if(producerUpdate & BaseReactor::Update::EVAL) {
       try {
-        m_reactor = m_producer->Eval();
-        auto initialCommit = m_reactor->Commit(0);
-        auto childCommit = m_reactor->Commit(sequenceNumber);
-        if(childCommit == BaseReactor::Update::NONE) {
-          if(initialCommit == BaseReactor::Update::EVAL) {
-            childCommit = BaseReactor::Update::EVAL;
-          } else if(initialCommit == BaseReactor::Update::COMPLETE) {
-            childCommit = BaseReactor::Update::COMPLETE;
-          }
+        auto reactor = m_producer->Eval();
+        auto reactorUpdate = reactor->Commit(0);
+        if(reactorUpdate & BaseReactor::Update::EVAL) {
+          m_value = TryEval(*reactor);
+          update = BaseReactor::Update::EVAL;
         }
-        if(childCommit == BaseReactor::Update::NONE) {
-          m_update = BaseReactor::Update::NONE;
-        } else if(childCommit == BaseReactor::Update::EVAL) {
-          m_value = Try(
-            [&] {
-              return m_reactor->Eval();
-            });
-          m_update = BaseReactor::Update::EVAL;
-          m_hasValue = true;
-        } else {
-          if(m_producer->IsComplete()) {
-            m_update = BaseReactor::Update::COMPLETE;
-          } else {
-            m_update = BaseReactor::Update::NONE;
-          }
+        if(!(reactorUpdate & BaseReactor::Update::COMPLETE)) {
+          m_reactor.emplace(std::move(reactor));
         }
       } catch(const std::exception&) {
         m_value = std::current_exception();
-        m_update = BaseReactor::Update::EVAL;
-        m_hasValue = true;
+        update = BaseReactor::Update::EVAL;
       }
     }
-    if(m_reactor->IsComplete() && m_producer->IsComplete()) {
-      m_state = BaseReactor::Update::COMPLETE;
+    if(m_reactor.is_initialized()) {
+      auto reactorUpdate = (*m_reactor)->Commit(sequenceNumber);
+      if(update == BaseReactor::Update::NONE &&
+          (reactorUpdate & BaseReactor::Update::EVAL)) {
+        m_value = TryEval(**m_reactor);
+        update = BaseReactor::Update::EVAL;
+      }
+      if(update & BaseReactor::Update::COMPLETE) {
+        m_reactor.reset();
+      }
+    }
+    if(m_isProducerComplete && m_children.empty()) {
+      update |= BaseReactor::Update::COMPLETE;
     }
     m_currentSequenceNumber = sequenceNumber;
-    return m_update;
+    m_update = update;
+    m_state |= update;
+    return update;
   }
 
   template<typename ProducerReactorType>

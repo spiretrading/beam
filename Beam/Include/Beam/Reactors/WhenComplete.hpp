@@ -29,8 +29,6 @@ namespace Reactors {
       template<typename FunctionForward, typename ReactorForward>
       WhenCompleteReactor(FunctionForward&& function, ReactorForward&& reactor);
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -38,9 +36,7 @@ namespace Reactors {
     private:
       Function m_function;
       GetOptionalLocalPtr<ReactorType> m_reactor;
-      BaseReactor::Update m_state;
-      BaseReactor::Update m_update;
-      int m_currentSequenceNumber;
+      bool m_triggered;
   };
 
   //! Makes a WhenCompleteReactor.
@@ -65,29 +61,19 @@ namespace Reactors {
       FunctionForward&& function, ReactorForward&& reactor)
       : m_function{std::forward<FunctionForward>(function)},
         m_reactor{std::forward<ReactorForward>(reactor)},
-        m_state{BaseReactor::Update::NONE},
-        m_currentSequenceNumber{-1} {}
-
-  template<typename FunctionType, typename ReactorType>
-  bool WhenCompleteReactor<FunctionType, ReactorType>::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
-  }
+        m_triggered{false} {}
 
   template<typename FunctionType, typename ReactorType>
   BaseReactor::Update WhenCompleteReactor<FunctionType, ReactorType>::Commit(
       int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
-      return m_update;
-    }
-    m_update = m_reactor->Commit(sequenceNumber);
-    if(m_update == BaseReactor::Update::EVAL && m_reactor->IsComplete() ||
-        m_update == BaseReactor::Update::COMPLETE) {
+    auto update = m_reactor->Commit(sequenceNumber);
+    if(update & BaseReactor::Update::COMPLETE && !m_triggered) {
+      m_triggered = true;
       try {
         m_function();
       } catch(const std::exception&) {}
     }
-    m_currentSequenceNumber = sequenceNumber;
-    return m_update;
+    return update;
   }
 
   template<typename FunctionType, typename ReactorType>

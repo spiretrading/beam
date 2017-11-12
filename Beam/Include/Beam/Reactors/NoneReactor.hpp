@@ -20,8 +20,6 @@ namespace Reactors {
       //! Constructs a NoneReactor.
       NoneReactor() = default;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -32,11 +30,6 @@ namespace Reactors {
   auto MakeNoneReactor() {
     return std::make_shared<NoneReactor<T>>();
   };
-
-  template<typename T>
-  bool NoneReactor<T>::IsComplete() const {
-    return true;
-  }
 
   template<typename T>
   BaseReactor::Update NoneReactor<T>::Commit(int sequenceNumber) {

@@ -31,8 +31,6 @@ namespace Reactors {
 
       virtual ~QueueReactor() override final;
 
-      virtual bool IsComplete() const override final;
-
       virtual BaseReactor::Update Commit(int sequenceNumber) override final;
 
       virtual Type Eval() const override final;
@@ -42,11 +40,10 @@ namespace Reactors {
       std::shared_ptr<QueueReader<Type>> m_queue;
       Trigger* m_trigger;
       Expect<Type> m_value;
-      bool m_hasValue;
-      bool m_isComplete;
-      int m_currentSequenceNumber;
       int m_nextSequenceNumber;
+      int m_currentSequenceNumber;
       BaseReactor::Update m_update;
+      BaseReactor::Update m_state;
       Threading::ConditionVariable m_monitorCondition;
       Routines::RoutineHandler m_monitorRoutine;
 
@@ -67,33 +64,26 @@ namespace Reactors {
   QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue)
       : m_queue{std::move(queue)},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-        m_hasValue{false},
-        m_isComplete{false},
+        m_nextSequenceNumber{0},
         m_currentSequenceNumber{-1},
-        m_nextSequenceNumber{0} {}
+        m_state{BaseReactor::Update::NONE} {}
 
   template<typename T>
   QueueReactor<T>::~QueueReactor() {
     m_queue->Break();
     boost::lock_guard<Threading::Mutex> lock{m_mutex};
-    m_isComplete = true;
+    m_state = BaseReactor::Update::COMPLETE;
     m_monitorCondition.notify_one();
   }
 
   template<typename T>
-  bool QueueReactor<T>::IsComplete() const {
-    return m_isComplete;
-  }
-
-  template<typename T>
   BaseReactor::Update QueueReactor<T>::Commit(int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
-      }
-      return BaseReactor::Update::COMPLETE;
+      return m_state;
+    } else if(m_state & BaseReactor::Update::COMPLETE) {
+      return BaseReactor::Update::NONE;
     }
     {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
@@ -101,8 +91,8 @@ namespace Reactors {
         return BaseReactor::Update::NONE;
       }
       if(sequenceNumber == 0) {
-        m_currentSequenceNumber = 0;
         m_nextSequenceNumber = -1;
+        m_currentSequenceNumber = 0;
         m_update = BaseReactor::Update::NONE;
         m_trigger = &Trigger::GetEnvironmentTrigger();
         m_monitorRoutine = Routines::Spawn(
@@ -113,23 +103,20 @@ namespace Reactors {
     try {
       m_value = std::move(m_queue->Top());
       m_queue->Pop();
-      m_hasValue = true;
       m_update = BaseReactor::Update::EVAL;
     } catch(const PipeBrokenException&) {
       m_update = BaseReactor::Update::COMPLETE;
-      m_isComplete = true;
     } catch(const std::exception&) {
       m_value = std::current_exception();
-      m_isComplete = true;
-      m_hasValue = true;
       m_update = BaseReactor::Update::EVAL;
     }
     {
       boost::lock_guard<Threading::Mutex> lock{m_mutex};
-      m_currentSequenceNumber = m_nextSequenceNumber;
       m_nextSequenceNumber = -1;
       m_monitorCondition.notify_one();
     }
+    m_currentSequenceNumber = sequenceNumber;
+    m_state |= m_update;
     return m_update;
   }
 
@@ -145,12 +132,12 @@ namespace Reactors {
         m_queue->Top();
       } catch(const std::exception&) {}
       boost::unique_lock<Threading::Mutex> lock{m_mutex};
-      if(m_isComplete) {
+      if(m_state & BaseReactor::Update::COMPLETE) {
         break;
       }
       m_trigger->SignalUpdate(Store(m_nextSequenceNumber));
       m_monitorCondition.wait(lock);
-      if(m_isComplete) {
+      if(m_state & BaseReactor::Update::COMPLETE) {
         break;
       }
     }

@@ -22,7 +22,7 @@ void QueueReactorTester::TestEmptyQueue() {
   AssertException<ReactorUnavailableException>(*reactor, 1,
     BaseReactor::Update::COMPLETE);
   AssertException<ReactorUnavailableException>(*reactor, 2,
-    BaseReactor::Update::NONE, true);
+    BaseReactor::Update::NONE);
 }
 
 void QueueReactorTester::TestImmediateException() {
@@ -37,8 +37,8 @@ void QueueReactorTester::TestImmediateException() {
   queue->Break(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL, true);
-  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE, true);
+  AssertException<DummyException>(*reactor, 1, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 2, BaseReactor::Update::NONE);
 }
 
 void QueueReactorTester::TestSingleValue() {
@@ -64,7 +64,7 @@ void QueueReactorTester::TestSingleValue() {
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 11);
   sequenceNumbers->Pop();
   AssertValue(*reactor, 11, BaseReactor::Update::COMPLETE, 123);
-  AssertValue(*reactor, 12, BaseReactor::Update::NONE, 123, true);
+  AssertValue(*reactor, 12, BaseReactor::Update::NONE, 123);
 }
 
 void QueueReactorTester::TestSingleValueException() {
@@ -89,8 +89,6 @@ void QueueReactorTester::TestSingleValueException() {
   queue->Break(DummyException{});
   CPPUNIT_ASSERT(sequenceNumbers->Top() == 11);
   sequenceNumbers->Pop();
-  AssertException<DummyException>(*reactor, 11, BaseReactor::Update::EVAL,
-    true);
-  AssertException<DummyException>(*reactor, 12, BaseReactor::Update::NONE,
-    true);
+  AssertException<DummyException>(*reactor, 11, BaseReactor::Update::EVAL);
+  AssertException<DummyException>(*reactor, 12, BaseReactor::Update::NONE);
 }

@@ -50,6 +50,25 @@ namespace Reactors {
       //! Constructs a BaseReactor.
       BaseReactor() = default;
   };
+
+  inline BaseReactor::Update Combine(BaseReactor::Update& lhs,
+      BaseReactor::Update rhs) {
+    lhs = static_cast<BaseReactor::Update>(
+      static_cast<int>(lhs) | static_cast<int>(rhs));
+    return lhs;
+  }
+
+  //! Returns <code>true</code> iff a Reactor Update represents its completion.
+  inline bool IsComplete(BaseReactor::Update update) {
+    return (static_cast<int>(update) &
+      static_cast<int>(BaseReactor::Update::COMPLETE)) != 0;
+  }
+
+  //! Returns <code>true</code> iff a Reactor Update has an evaluation.
+  inline bool HasEval(BaseReactor::Update update) {
+    return (static_cast<int>(update) &
+      static_cast<int>(BaseReactor::Update::EVAL)) != 0;
+  }
 }
 }
 

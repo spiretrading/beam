@@ -71,7 +71,7 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     auto producerUpdate = [&] {
@@ -79,19 +79,19 @@ namespace Reactors {
         return BaseReactor::Update::NONE;
       }
       auto update = m_producer->Commit(sequenceNumber);
-      m_isProducerComplete = update & BaseReactor::Update::COMPLETE;
+      m_isProducerComplete = IsComplete(update);
       return update;
     }();
     auto update = BaseReactor::Update::NONE;
-    if(producerUpdate & BaseReactor::Update::EVAL) {
+    if(HasEval(producerUpdate)) {
       try {
         auto child = m_producer->Eval();
         auto childUpdate = child->Commit(0);
-        if(childUpdate & BaseReactor::Update::EVAL) {
+        if(HasEval(childUpdate)) {
           m_value = TryEval(*child);
           update = BaseReactor::Update::EVAL;
         }
-        if(!(childUpdate & BaseReactor::Update::COMPLETE)) {
+        if(!IsComplete(childUpdate)) {
           m_children.push_back(std::move(child));
         }
       } catch(const std::exception&) {
@@ -102,12 +102,11 @@ namespace Reactors {
     m_children.erase(std::remove_if(m_children.begin(), m_children.end(),
       [&] (auto& child) {
         auto childUpdate = child->Commit(sequenceNumber);
-        if(update == BaseReactor::Update::NONE &&
-            (childUpdate & BaseReactor::Update::EVAL)) {
+        if(update == BaseReactor::Update::NONE && HasEval(childUpdate)) {
           m_value = TryEval(*child);
           update = BaseReactor::Update::EVAL;
         }
-        return childUpdate & BaseReactor::Update::COMPLETE;
+        return IsComplete(childUpdate);
       }), m_children.end());
     if(m_isProducerComplete && m_children.empty()) {
       update |= BaseReactor::Update::COMPLETE;

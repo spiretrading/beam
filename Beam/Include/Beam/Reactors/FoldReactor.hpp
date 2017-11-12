@@ -34,8 +34,7 @@ namespace Reactors {
       Expect<Type> m_nextValue;
       int m_nextSequenceNumber;
 
-      void Set(Type value, int sequenceNumber);
-      void Set(std::exception_ptr e, int sequenceNumber);
+      void Set(Expect<Type> value, int sequenceNumber);
   };
 
   /*! \class FoldReactor
@@ -81,11 +80,10 @@ namespace Reactors {
       GetOptionalLocalPtr<LeftChildReactorType> m_leftChild;
       GetOptionalLocalPtr<RightChildReactorType> m_rightChild;
       GetOptionalLocalPtr<ProducerReactorType> m_producer;
-      int m_currentSequenceNumber;
-      BaseReactor::Update m_update;
       Expect<Type> m_value;
       boost::optional<Expect<Type>> m_previousValue;
-      bool m_hasValue;
+      int m_currentSequenceNumber;
+      BaseReactor::Update m_update;
       BaseReactor::Update m_state;
   };
 
@@ -166,14 +164,8 @@ namespace Reactors {
   }
 
   template<typename T>
-  void FoldParameterReactor<T>::Set(Type value, int sequenceNumber) {
+  void FoldParameterReactor<T>::Set(Expect<Type> value, int sequenceNumber) {
     m_nextValue = std::move(value);
-    m_nextSequenceNumber = sequenceNumber;
-  }
-
-  template<typename T>
-  void FoldParameterReactor<T>::Set(std::exception_ptr e, int sequenceNumber) {
-    m_nextValue = std::move(e);
     m_nextSequenceNumber = sequenceNumber;
   }
 
@@ -190,76 +182,44 @@ namespace Reactors {
         m_leftChild{std::forward<LeftChildReactorForward>(leftChild)},
         m_rightChild{std::forward<RightChildReactorForward>(rightChild)},
         m_producer{std::forward<ProducerReactorForward>(producer)},
-        m_currentSequenceNumber{-1},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
-        m_hasValue{false},
+        m_currentSequenceNumber{-1},
         m_state{BaseReactor::Update::NONE} {}
-
-  template<typename EvaluationReactorType, typename LeftChildReactorType,
-    typename RightChildReactorType, typename ProducerReactorType>
-  bool FoldReactor<EvaluationReactorType, LeftChildReactorType,
-      RightChildReactorType, ProducerReactorType>::IsComplete() const {
-    return m_state == BaseReactor::Update::COMPLETE;
-  }
 
   template<typename EvaluationReactorType, typename LeftChildReactorType,
     typename RightChildReactorType, typename ProducerReactorType>
   BaseReactor::Update FoldReactor<EvaluationReactorType, LeftChildReactorType,
       RightChildReactorType, ProducerReactorType>::Commit(int sequenceNumber) {
-    if(sequenceNumber == m_currentSequenceNumber) {
+    if(m_currentSequenceNumber == sequenceNumber) {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
-      if(m_hasValue) {
-        return BaseReactor::Update::EVAL;
+      return m_state;
+    } else if(m_state & BaseReactor::Update::COMPLETE) {
+      return BaseReactor::Update::NONE;
+    }
+    auto producerUpdate = m_producer->Commit(sequenceNumber);
+    if(producerUpdate == BaseReactor::Update::NONE) {
+      return BaseReactor::Update::NONE;
+    } else if(producerUpdate & BaseReactor::Update::EVAL) {
+      if(!m_previousValue.is_initialized()) {
+        m_previousValue = TryEval(*m_producer);
+        m_currentSequenceNumber = sequenceNumber;
+        m_update = BaseReactor::Update::NONE;
+        return BaseReactor::Update::NONE;
       }
-      return BaseReactor::Update::COMPLETE;
+      m_leftChild->Set(std::move(*m_previousValue), sequenceNumber);
+      m_rightChild->Set(TryEval(*m_producer), sequenceNumber);
+      m_update = m_evaluation->Commit(sequenceNumber);
+      if(m_update & BaseReactor::Update::EVAL) {
+        m_value = TryEval(*m_evaluation);
+        m_previousValue = m_value;
+      }
     }
-    if(IsComplete()) {
-      return BaseReactor::Update::NONE;
-    }
-    auto producerCommit = m_producer->Commit(sequenceNumber);
-    if(producerCommit == BaseReactor::Update::NONE) {
-      return BaseReactor::Update::NONE;
-    } else if(producerCommit == BaseReactor::Update::COMPLETE) {
-      m_state = BaseReactor::Update::COMPLETE;
-      m_update = BaseReactor::Update::COMPLETE;
-      m_currentSequenceNumber = sequenceNumber;
-      return BaseReactor::Update::COMPLETE;
-    }
-    if(!m_previousValue.is_initialized()) {
-      m_previousValue = Try(
-        [&] {
-          return m_producer->Eval();
-        });
-      m_currentSequenceNumber = sequenceNumber;
-      m_update = BaseReactor::Update::NONE;
-      return m_update;
-    }
-    if(m_previousValue->IsException()) {
-      m_leftChild->Set(m_previousValue->GetException(), sequenceNumber);
-    } else {
-      m_leftChild->Set(m_previousValue->Get(), sequenceNumber);
-    }
-    auto currentValue = Try(
-      [&] {
-        return m_producer->Eval();
-      });
-    if(currentValue.IsException()) {
-      m_rightChild->Set(currentValue.GetException(), sequenceNumber);
-    } else {
-      m_rightChild->Set(currentValue.Get(), sequenceNumber);
-    }
-    m_update = m_evaluation->Commit(sequenceNumber);
-    if(m_update == BaseReactor::Update::EVAL) {
-      m_value = Try(
-        [&] {
-          return m_evaluation->Eval();
-        });
-      m_previousValue = m_value;
-    } else if(m_update == BaseReactor::Update::COMPLETE) {
-      m_state = BaseReactor::Update::COMPLETE;
+    if(producerUpdate & BaseReactor::Update::COMPLETE) {
+      m_update |= BaseReactor::Update::COMPLETE;
     }
     m_currentSequenceNumber = sequenceNumber;
+    m_state |= m_update;
     return m_update;
   }
 

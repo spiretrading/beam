@@ -82,7 +82,7 @@ namespace Reactors {
       return m_update;
     } else if(sequenceNumber == 0 && m_currentSequenceNumber != -1) {
       return m_state;
-    } else if(m_state & BaseReactor::Update::COMPLETE) {
+    } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
     {
@@ -116,7 +116,7 @@ namespace Reactors {
       m_monitorCondition.notify_one();
     }
     m_currentSequenceNumber = sequenceNumber;
-    m_state |= m_update;
+    Combine(m_state, m_update);
     return m_update;
   }
 
@@ -132,12 +132,12 @@ namespace Reactors {
         m_queue->Top();
       } catch(const std::exception&) {}
       boost::unique_lock<Threading::Mutex> lock{m_mutex};
-      if(m_state & BaseReactor::Update::COMPLETE) {
+      if(IsComplete(m_state)) {
         break;
       }
       m_trigger->SignalUpdate(Store(m_nextSequenceNumber));
       m_monitorCondition.wait(lock);
-      if(m_state & BaseReactor::Update::COMPLETE) {
+      if(IsComplete(m_state)) {
         break;
       }
     }

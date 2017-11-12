@@ -30,19 +30,12 @@ namespace Tests {
     \param sequenceNumber The sequence number the Reactor is expecting.
     \param update The type of update at the <i>sequenceNumber</i>.
     \param expectedValue The expected evaluation.
-    \param isComplete Whether the Reactor should be complete.
   */
   template<typename T, typename U>
   void AssertValue(Reactor<T>& reactor, int sequenceNumber,
-      BaseReactor::Update update, const U& expectedValue,
-      bool isComplete = false) {
+      BaseReactor::Update update, const U& expectedValue) {
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
-    if(update == BaseReactor::Update::COMPLETE) {
-      CPPUNIT_ASSERT(reactor.IsComplete());
-    } else {
-      CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
-    }
     CPPUNIT_ASSERT(reactor.Eval() == expectedValue);
   }
 
@@ -51,11 +44,10 @@ namespace Tests {
     \param reactor The Reactor to test.
     \param sequenceNumber The sequence number the Reactor is expecting.
     \param update The type of update at the <i>sequenceNumber</i>.
-    \param isComplete Whether the Reactor should be complete.
   */
   template<typename E, typename T>
   void AssertException(Reactor<T>& reactor, int sequenceNumber,
-      BaseReactor::Update update, bool isComplete = false) {
+      BaseReactor::Update update) {
     CPPUNIT_ASSERT(reactor.Commit(sequenceNumber) == update);
     try {
       reactor.Eval();
@@ -63,11 +55,6 @@ namespace Tests {
     } catch(const E&) {
     } catch(const std::exception&) {
       CPPUNIT_FAIL("Expected exception not thrown.");
-    }
-    if(update == BaseReactor::Update::COMPLETE) {
-      CPPUNIT_ASSERT(reactor.IsComplete());
-    } else {
-      CPPUNIT_ASSERT(reactor.IsComplete() == isComplete);
     }
   }
 }

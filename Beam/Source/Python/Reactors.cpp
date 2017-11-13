@@ -22,6 +22,7 @@
 #include "Beam/Reactors/FilterReactor.hpp"
 #include "Beam/Reactors/FirstReactor.hpp"
 #include "Beam/Reactors/FoldReactor.hpp"
+#include "Beam/Reactors/LastReactor.hpp"
 #include "Beam/Reactors/NoneReactor.hpp"
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
 #include "Beam/Reactors/ProxyReactor.hpp"
@@ -35,6 +36,7 @@
 #include "Beam/Reactors/ThrowReactor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
 #include "Beam/Reactors/Trigger.hpp"
+#include "Beam/Reactors/UpdateReactor.hpp"
 #include "Beam/Reactors/WhenComplete.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
@@ -192,6 +194,11 @@ namespace {
     return self.attr("__init__")(callable, a, kw);
   }
 
+  auto MakePythonLastReactor(const boost::python::object& source) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeLastReactor(ExtractReactor(source)));
+  }
+
   auto MakePythonNoneReactor() {
     return std::static_pointer_cast<PythonReactor>(
       std::shared_ptr<NoneReactor<object>>());
@@ -293,6 +300,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonFunctionReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonQueueReactor);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<BaseReactor::Update>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<bool>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::int64_t>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<ptime>);
@@ -300,6 +308,8 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::shared_ptr<Reactor<object>>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<time_duration>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(
   Beam::Python::Details::ReactorWrapper<PythonReactor>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(
+  Beam::Python::Details::ReactorWrapper<Reactor<BaseReactor::Update>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(
   Beam::Python::Details::ReactorWrapper<Reactor<bool>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(
@@ -313,6 +323,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
 BEAM_DEFINE_PYTHON_POINTER_LINKER(SwitchReactor<
   std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ThrowReactor<object>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(UpdateReactor);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(WhenCompleteReactor<
   NoThrowFunction<void> BOOST_PP_COMMA() std::shared_ptr<PythonReactor>>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(std::type_info);
@@ -437,6 +448,11 @@ void Beam::Python::ExportFunctionReactor() {
   def("apply", raw_function(&ApplyFunctionReactor, 1));
 }
 
+void Beam::Python::ExportLastReactor() {
+  def("LastReactor", &MakePythonLastReactor);
+  def("last", &MakePythonLastReactor);
+}
+
 void Beam::Python::ExportNoneReactor() {
   using ExportedReactor = NoneReactor<boost::python::object>;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
@@ -530,6 +546,7 @@ void Beam::Python::ExportReactors() {
   ExportFirstReactor();
   ExportFoldReactor();
   ExportFunctionReactor();
+  ExportLastReactor();
   ExportNoneReactor();
   ExportNonRepeatingReactor();
   ExportProxyReactor();
@@ -539,6 +556,7 @@ void Beam::Python::ExportReactors() {
   ExportSwitchReactor();
   ExportThrowReactor();
   ExportTimerReactor();
+  ExportUpdateReactor();
   ExportWhenCompleteReactor();
   ExportTrigger();
   ExportPythonConstantReactor();
@@ -599,6 +617,18 @@ void Beam::Python::ExportTrigger() {
     .def("signal_update", &TriggerSignalUpdate)
     .add_property("sequence_number_publisher", make_function(
       &Trigger::GetSequenceNumberPublisher, return_internal_reference<>()));
+}
+
+void Beam::Python::ExportUpdateReactor() {
+  ExportReactor<Reactor<BaseReactor::Update>>("BaseReactorUpdateReactor");
+  class_<UpdateReactor, bases<Reactor<BaseReactor::Update>>, boost::noncopyable,
+    std::shared_ptr<UpdateReactor>>("UpdateReactor",
+    init<std::shared_ptr<BaseReactor>>());
+  implicitly_convertible<std::shared_ptr<UpdateReactor>,
+    std::shared_ptr<Reactor<BaseReactor::Update>>>();
+  implicitly_convertible<std::shared_ptr<UpdateReactor>,
+    std::shared_ptr<BaseReactor>>();
+  def("on_update", &MakeUpdateReactor);
 }
 
 void Beam::Python::ExportWhenCompleteReactor() {

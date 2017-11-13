@@ -8,6 +8,7 @@ namespace Beam {
 namespace Reactors {
 namespace Tests {
   class BasicReactorTester;
+  class ChainReactorTester;
   class ConstantReactorTester;
   class DoReactorTester;
   class FirstReactorTester;

@@ -136,6 +136,25 @@ namespace Reactors {
       std::forward<Producer>(producer));
   }
 
+  //! Makes a FoldReactor.
+  /*!
+    \param evaluationFactory A function taking two parameters that returns the
+           Reactor used to fold incoming values.
+    \param producer The Reactor producing the values to fold.
+  */
+  template<typename EvaluationReactorFactory, typename Producer>
+  auto Fold(EvaluationReactorFactory&& evaluationFactory, Producer&& producer) {
+    using EvaluationReactor = typename boost::function_traits<
+      typename GetSignature<typename std::decay<
+      EvaluationReactorFactory>::type>::type>::result_type;
+    using Type = GetReactorType<EvaluationReactor>;
+    auto lhs = MakeFoldParameterReactor<Type>();
+    auto rhs = MakeFoldParameterReactor<Type>();
+    auto evaluation = evaluationFactory(lhs, rhs);
+    return MakeFoldReactor(std::move(evaluation), std::move(lhs),
+      std::move(rhs), std::forward<Producer>(producer));
+  }
+
   template<typename T>
   FoldParameterReactor<T>::FoldParameterReactor()
       : m_value{std::make_exception_ptr(ReactorUnavailableException{})},

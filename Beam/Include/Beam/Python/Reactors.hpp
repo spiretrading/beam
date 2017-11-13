@@ -209,14 +209,6 @@ namespace Details {
     return std::static_pointer_cast<Reactors::Reactor<boost::python::object>>(
       Reactors::Greater(std::move(lhs), std::move(rhs)));
   }
-
-/*
-  template<typename T, typename Query>
-  auto MakePythonQueryReactor(const boost::python::object& submissionFunction,
-      const boost::python::object& queue) {
-    submissionFunction
-  }
-*/
 }
 
   //! A Reactor that evaluates to Python objects.
@@ -254,6 +246,9 @@ namespace Details {
 
   //! Exports the FunctionReactor.
   void ExportFunctionReactor();
+
+  //! Exports the Last Reactor.
+  void ExportLastReactor();
 
   //! Exports the NoneReactor class.
   void ExportNoneReactor();
@@ -293,6 +288,9 @@ namespace Details {
 
   //! Exports the Trigger class.
   void ExportTrigger();
+
+  //! Exports the UpdateReactor class.
+  void ExportUpdateReactor();
 
   //! Exports the WhenComplete Reactor.
   void ExportWhenCompleteReactor();
@@ -366,13 +364,6 @@ namespace Details {
     boost::python::implicitly_convertible<std::shared_ptr<T>,
       std::shared_ptr<Reactors::BaseReactor>>();
   }
-
-/*
-  template<typename T, typename Query>
-  void ExportQueryReactor(const char* name) {
-    def("query", &Details::MakePythonQueryReactor<T, Query>);
-  }
-*/
 }
 }
 

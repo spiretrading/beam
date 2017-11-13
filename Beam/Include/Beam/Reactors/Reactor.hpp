@@ -52,6 +52,17 @@ namespace Reactors {
       });
   }
 
+  //! Helper function for creating a Reactor factory.
+  /*!
+    \param f The function used to build the Reactor.
+  */
+  template<typename... Args, typename F>
+  auto Factory(F&& f) {
+    return [&] (std::shared_ptr<Reactor<Args>>... args) {
+      return f(args...);
+    };
+  }
+
   template<typename T>
   struct ReactorType<T, typename std::enable_if<
       std::is_same<GetTryDereferenceType<T>, BaseReactor>::value>::type> {

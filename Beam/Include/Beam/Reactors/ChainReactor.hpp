@@ -106,10 +106,12 @@ namespace Reactors {
     if(m_chainState == ChainState::INITIAL) {
       auto update = m_initialReactor->Commit(sequenceNumber);
       if(update == BaseReactor::Update::COMPLETE) {
-        m_currentReactor = &*m_continuationReactor;
         m_chainState = ChainState::CONTINUATION;
         m_currentSequenceNumber = sequenceNumber;
         m_update = m_continuationReactor->Commit(0);
+        if(m_update != BaseReactor::Update::COMPLETE) {
+          m_currentReactor = &*m_continuationReactor;
+        }
         Combine(m_state, m_update);
         return m_update;
       } else if(update == BaseReactor::Update::COMPLETE_WITH_EVAL) {
@@ -127,10 +129,12 @@ namespace Reactors {
       return update;
     } else if(m_chainState == ChainState::TRANSITION) {
       if(sequenceNumber == m_transitionSequence) {
-        m_currentReactor = &*m_continuationReactor;
         m_chainState = ChainState::CONTINUATION;
         m_currentSequenceNumber = sequenceNumber;
         m_update = m_continuationReactor->Commit(0);
+        if(m_update != BaseReactor::Update::COMPLETE) {
+          m_currentReactor = &*m_continuationReactor;
+        }
         Combine(m_state, m_update);
         return m_update;
       } else {

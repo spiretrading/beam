@@ -4,10 +4,12 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include "Beam/ReactorsTests/BasicReactorTester.hpp"
+#include "Beam/ReactorsTests/ChainReactorTester.hpp"
 #include "Beam/ReactorsTests/ConstantReactorTester.hpp"
 #include "Beam/ReactorsTests/DoReactorTester.hpp"
 #include "Beam/ReactorsTests/FirstReactorTester.hpp"
 #include "Beam/ReactorsTests/FunctionReactorTester.hpp"
+#include "Beam/ReactorsTests/LastReactorTester.hpp"
 #include "Beam/ReactorsTests/MultiReactorTester.hpp"
 #include "Beam/ReactorsTests/NoneReactorTester.hpp"
 #include "Beam/ReactorsTests/NonRepeatingReactorTester.hpp"
@@ -26,6 +28,7 @@ int main() {
   runner.addTest(ConstantReactorTester::suite());
   runner.addTest(TriggerTester::suite());
   runner.addTest(BasicReactorTester::suite());
+  runner.addTest(ChainReactorTester::suite());
   runner.addTest(UpdateReactorTester::suite());
   runner.addTest(QueueReactorTester::suite());
   runner.addTest(FunctionReactorTester::suite());
@@ -33,6 +36,7 @@ int main() {
   runner.addTest(NonRepeatingReactorTester::suite());
   runner.addTest(DoReactorTester::suite());
   runner.addTest(FirstReactorTester::suite());
+  runner.addTest(LastReactorTester::suite());
   runner.addTest(TimerReactorTester::suite());
   runner.addTest(ReactorMonitorTester::suite());
   runner.eventManager().addListener(&listener);

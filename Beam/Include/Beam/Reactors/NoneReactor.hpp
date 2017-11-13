@@ -31,6 +31,12 @@ namespace Reactors {
     return std::make_shared<NoneReactor<T>>();
   };
 
+  //! Makes a NoneReactor.
+  template<typename T>
+  auto None() {
+    return MakeNoneReactor<int>();
+  }
+
   template<typename T>
   BaseReactor::Update NoneReactor<T>::Commit(int sequenceNumber) {
     if(sequenceNumber == 0) {

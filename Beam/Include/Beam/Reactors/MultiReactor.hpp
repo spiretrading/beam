@@ -78,7 +78,7 @@ namespace Details {
     private:
       Function m_function;
       std::vector<std::shared_ptr<BaseReactor>> m_parameters;
-      CommitReactor m_commitReactor;
+      boost::optional<CommitReactor> m_commitReactor;
       Expect<Type> m_value;
       int m_currentSequenceNumber;
       BaseReactor::Update m_update;
@@ -105,14 +105,15 @@ namespace Details {
       std::vector<std::shared_ptr<BaseReactor>> children)
       : m_function{std::forward<FunctionForward>(function)},
         m_parameters{std::move(children)},
-        m_commitReactor{
-          Transform(m_parameters,
-          [] (auto& reactor) {
-            return reactor.get();
-          })},
         m_value{std::make_exception_ptr(ReactorUnavailableException{})},
         m_currentSequenceNumber{-1},
-        m_state{BaseReactor::Update::NONE} {}
+        m_state{BaseReactor::Update::NONE} {
+    std::vector<BaseReactor*> dependencies;
+    for(auto& parameter : m_parameters) {
+      dependencies.push_back(parameter.get());
+    }
+    m_commitReactor.emplace(std::move(dependencies));
+  }
 
   template<typename FunctionType>
   BaseReactor::Update MultiReactor<FunctionType>::Commit(int sequenceNumber) {
@@ -123,7 +124,7 @@ namespace Details {
     } else if(IsComplete(m_state)) {
       return BaseReactor::Update::NONE;
     }
-    m_update = m_commitReactor.Commit(sequenceNumber);
+    m_update = m_commitReactor->Commit(sequenceNumber);
     if(HasEval(m_update)) {
       if(!UpdateEval()) {
         if(IsComplete(m_update)) {

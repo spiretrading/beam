@@ -214,6 +214,17 @@ namespace Details {
     return FunctionEvaluation<T>{std::move(value), update};
   }
 
+  //! Makes a FunctionEvaluation.
+  /*!
+    \param value The value to return.
+    \param update The state of the Reactor.
+  */
+  template<typename T>
+  auto MakeFunctionEvaluation(const T& value,
+      BaseReactor::Update update) {
+    return FunctionEvaluation<T>{value, update};
+  }
+
   template<typename T>
   FunctionEvaluation<T>::FunctionEvaluation()
       : m_update{BaseReactor::Update::NONE} {}

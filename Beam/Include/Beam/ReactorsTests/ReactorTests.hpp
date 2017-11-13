@@ -9,7 +9,10 @@ namespace Reactors {
 namespace Tests {
   class BasicReactorTester;
   class ConstantReactorTester;
+  class DoReactorTester;
+  class FirstReactorTester;
   class FunctionReactorTester;
+  class LastReactorTester;
   class MultiReactorTester;
   class NoneReactorTester;
   class NonRepeatingReactorTester;
@@ -17,6 +20,7 @@ namespace Tests {
   class ReactorMonitorTester;
   class TimerReactorTester;
   class TriggerTester;
+  class UpdateReactorTester;
 
   /*! \struct DummyException
       \brief Exception class used for testing purposes.

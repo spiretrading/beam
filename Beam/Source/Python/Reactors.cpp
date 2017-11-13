@@ -20,6 +20,7 @@
 #include "Beam/Reactors/DoReactor.hpp"
 #include "Beam/Reactors/Expressions.hpp"
 #include "Beam/Reactors/FilterReactor.hpp"
+#include "Beam/Reactors/FirstReactor.hpp"
 #include "Beam/Reactors/FoldReactor.hpp"
 #include "Beam/Reactors/NoneReactor.hpp"
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
@@ -30,7 +31,6 @@
 #include "Beam/Reactors/ReactorException.hpp"
 #include "Beam/Reactors/ReactorMonitor.hpp"
 #include "Beam/Reactors/ReactorUnavailableException.hpp"
-#include "Beam/Reactors/StaticReactor.hpp"
 #include "Beam/Reactors/SwitchReactor.hpp"
 #include "Beam/Reactors/ThrowReactor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
@@ -166,6 +166,11 @@ namespace {
       MakeFilterReactor(ExtractReactor<bool>(filter), ExtractReactor(source)));
   }
 
+  auto MakePythonFirstReactor(const boost::python::object& source) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeFirstReactor(ExtractReactor(source)));
+  }
+
   auto MakePythonFoldReactor(const boost::python::object& f,
       const boost::python::object& source) {
     auto leftOperand = MakeFoldParameterReactor<object>();
@@ -210,11 +215,6 @@ namespace {
       const boost::python::object& lower, const boost::python::object& upper) {
     return std::static_pointer_cast<PythonReactor>(MakeRangeReactor(
       ExtractReactor(lower), ExtractReactor(upper)));
-  }
-
-  auto MakePythonStaticReactor(const boost::python::object& source) {
-    return std::static_pointer_cast<PythonReactor>(
-      MakeStaticReactor(ExtractReactor(source)));
   }
 
   auto MakePythonSwitchReactor(
@@ -390,6 +390,11 @@ void Beam::Python::ExportFilterReactor() {
   def("filter", &MakePythonFilterReactor);
 }
 
+void Beam::Python::ExportFirstReactor() {
+  def("FirstReactor", &MakePythonFirstReactor);
+  def("first", &MakePythonFirstReactor);
+}
+
 void Beam::Python::ExportFoldReactor() {
   {
     using ExportedReactor = FoldParameterReactor<object>;
@@ -522,6 +527,7 @@ void Beam::Python::ExportReactors() {
   ExportChainReactor();
   ExportCurrentTimeReactor();
   ExportFilterReactor();
+  ExportFirstReactor();
   ExportFoldReactor();
   ExportFunctionReactor();
   ExportNoneReactor();
@@ -530,7 +536,6 @@ void Beam::Python::ExportReactors() {
   ExportPublisherReactor();
   ExportQueueReactor();
   ExportRangeReactor();
-  ExportStaticReactor();
   ExportSwitchReactor();
   ExportThrowReactor();
   ExportTimerReactor();
@@ -554,11 +559,6 @@ void Beam::Python::ExportReactors() {
     .def(init<const string&>());
   ExportRef<Trigger>("TriggerRef");
   ExportRef<Reactor<object>>("PythonReactorRef");
-}
-
-void Beam::Python::ExportStaticReactor() {
-  def("StaticReactor", &MakePythonStaticReactor);
-  def("static", &MakePythonStaticReactor);
 }
 
 void Beam::Python::ExportSwitchReactor() {

@@ -246,6 +246,9 @@ namespace Details {
   //! Exports the Filter Reactor.
   void ExportFilterReactor();
 
+  //! Exports the First Reactor.
+  void ExportFirstReactor();
+
   //! Exports the Fold Reactor.
   void ExportFoldReactor();
 
@@ -278,9 +281,6 @@ namespace Details {
 
   //! Exports the Reactors namespace.
   void ExportReactors();
-
-  //! Exports the Static Reactor.
-  void ExportStaticReactor();
 
   //! Exports the SwitchReactor class.
   void ExportSwitchReactor();

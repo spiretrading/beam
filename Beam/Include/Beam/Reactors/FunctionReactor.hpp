@@ -193,6 +193,27 @@ namespace Details {
       std::forward<Parameters>(parameters)...);
   }
 
+  //! Makes a FunctionEvaluation.
+  /*!
+    \param value The value to return.
+    \param update The state of the Reactor.
+  */
+  template<typename T>
+  auto MakeFunctionEvaluation(Expect<T> value, BaseReactor::Update update) {
+    return FunctionEvaluation<T>{std::move(value), update};
+  }
+
+  //! Makes a FunctionEvaluation.
+  /*!
+    \param value The value to return.
+    \param update The state of the Reactor.
+  */
+  template<typename T>
+  auto MakeFunctionEvaluation(boost::optional<Expect<T>> value,
+      BaseReactor::Update update) {
+    return FunctionEvaluation<T>{std::move(value), update};
+  }
+
   template<typename T>
   FunctionEvaluation<T>::FunctionEvaluation()
       : m_update{BaseReactor::Update::NONE} {}

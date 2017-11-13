@@ -14,11 +14,15 @@ namespace Tests {
   class ChainReactorTester : public CPPUNIT_NS::TestFixture {
     public:
 
+      //! Tests chaining two constants together.
+      void TestConstantChain();
+
       //! Tests chaining a constant with a NoneReactor.
       void TestSingleValue();
 
     private:
       CPPUNIT_TEST_SUITE(ChainReactorTester);
+        CPPUNIT_TEST(TestConstantChain);
         CPPUNIT_TEST(TestSingleValue);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };

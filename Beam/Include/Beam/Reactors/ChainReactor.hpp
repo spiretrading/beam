@@ -132,7 +132,7 @@ namespace Reactors {
         m_chainState = ChainState::CONTINUATION;
         m_currentSequenceNumber = sequenceNumber;
         m_update = m_continuationReactor->Commit(0);
-        if(m_update != BaseReactor::Update::COMPLETE) {
+        if(HasEval(m_update)) {
           m_currentReactor = &*m_continuationReactor;
         }
         Combine(m_state, m_update);
@@ -143,6 +143,9 @@ namespace Reactors {
     } else {
       m_currentSequenceNumber = sequenceNumber;
       m_update = m_continuationReactor->Commit(sequenceNumber);
+      if(HasEval(m_update)) {
+        m_currentReactor = &*m_continuationReactor;
+      }
       Combine(m_state, m_update);
       return m_update;
     }

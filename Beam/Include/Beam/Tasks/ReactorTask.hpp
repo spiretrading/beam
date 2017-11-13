@@ -249,9 +249,8 @@ namespace Tasks {
     m_propertyReactor = Reactors::MakeMultiReactor(m_callbacks.GetCallback(
       std::bind(&ReactorTask::OnReactorUpdate, this, std::placeholders::_1)),
       std::move(properties));
+    m_propertyFailure.m_state = State::NONE;
     S1();
-    Reactors::Trigger::SetEnvironmentTrigger(m_reactorMonitor->GetTrigger());
-    m_propertyReactor->Commit(0);
     m_reactorMonitor->Add(m_propertyReactor);
   }
 

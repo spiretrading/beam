@@ -158,17 +158,18 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    boost::python::class_<Queries::IndexedQuery<Index>>(
-      (name + std::string{"IndexedQuery"}).c_str(), boost::python::init<>())
-      .def(boost::python::init<Index>())
-      .def("__copy__", &MakeCopy<Queries::IndexedQuery<Index>>)
-      .def("__deepcopy__", &MakeDeepCopy<Queries::IndexedQuery<Index>>)
-      .add_property("index", boost::python::make_function(
-        &Queries::IndexedQuery<Index>::GetIndex,
-        boost::python::return_value_policy<
-        boost::python::copy_const_reference>()),
-        &Queries::IndexedQuery<Index>::SetIndex);
-    if(!std::is_same<Index, boost::python::object>::value) {
+    if(std::is_same<Index, boost::python::object>::value) {
+      boost::python::class_<Queries::IndexedQuery<Index>>(
+        (name + std::string{"IndexedQuery"}).c_str(), boost::python::init<>())
+        .def(boost::python::init<Index>())
+        .def("__copy__", &MakeCopy<Queries::IndexedQuery<Index>>)
+        .def("__deepcopy__", &MakeDeepCopy<Queries::IndexedQuery<Index>>)
+        .add_property("index", boost::python::make_function(
+          &Queries::IndexedQuery<Index>::GetIndex,
+          boost::python::return_value_policy<
+          boost::python::copy_const_reference>()),
+          &Queries::IndexedQuery<Index>::SetIndex);
+    } else {
       boost::python::to_python_converter<Queries::IndexedQuery<Index>,
         Details::IndexedQueryToPython<Index>>();
       boost::python::converter::registry::push_back(
@@ -190,14 +191,15 @@ namespace Details {
       return;
     }
     ExportIndexedQuery<Index>(name);
-    boost::python::class_<Queries::BasicQuery<Index>,
-      boost::python::bases<Queries::IndexedQuery<Index>, Queries::RangedQuery,
-      Queries::SnapshotLimitedQuery, Queries::InterruptableQuery,
-      Queries::FilteredQuery>>((name + std::string{"Query"}).c_str(),
-      boost::python::init<>())
-      .def("__copy__", &MakeCopy<Queries::BasicQuery<Index>>)
-      .def("__deepcopy__", &MakeDeepCopy<Queries::BasicQuery<Index>>);
-    if(!std::is_same<Index, boost::python::object>::value) {
+    if(std::is_same<Index, boost::python::object>::value) {
+      boost::python::class_<Queries::BasicQuery<Index>,
+        boost::python::bases<Queries::IndexedQuery<Index>, Queries::RangedQuery,
+        Queries::SnapshotLimitedQuery, Queries::InterruptableQuery,
+        Queries::FilteredQuery>>((name + std::string{"Query"}).c_str(),
+        boost::python::init<>())
+        .def("__copy__", &MakeCopy<Queries::BasicQuery<Index>>)
+        .def("__deepcopy__", &MakeDeepCopy<Queries::BasicQuery<Index>>);
+    } else {
       boost::python::to_python_converter<Queries::BasicQuery<Index>,
         Details::BasicQueryToPython<Index>>();
       boost::python::converter::registry::push_back(

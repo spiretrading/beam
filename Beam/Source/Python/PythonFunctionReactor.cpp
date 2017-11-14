@@ -23,11 +23,11 @@ PythonFunctionReactor::PythonFunctionReactor(const object& callable,
   }
   m_context->m_kw = kw;
   m_context->m_value = std::make_exception_ptr(ReactorUnavailableException{});
-  m_commitReactor.emplace(
-    Transform(m_context->m_children,
-    [] (auto& reactor) {
-      return static_cast<BaseReactor*>(reactor.get());
-    }));
+  std::vector<BaseReactor*> dependencies;
+  for(auto& child : m_context->m_children) {
+    dependencies.push_back(child.get());
+  }
+  m_commitReactor.emplace(std::move(dependencies));
 }
 
 PythonFunctionReactor::~PythonFunctionReactor() {

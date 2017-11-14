@@ -14,6 +14,9 @@ namespace Python {
   //! Exports the BasicTask class.
   void ExportBasicTask();
 
+  //! Exports the ChainedTask class.
+  void ExportChainedTask();
+
   //! Exports the IdleTask class.
   void ExportIdleTask();
 

@@ -1,6 +1,7 @@
 #include "Beam/Python/Tasks.hpp"
 #include "Beam/Tasks/AggregateTask.hpp"
 #include "Beam/Tasks/BasicTask.hpp"
+#include "Beam/Tasks/ChainedTask.hpp"
 #include "Beam/Tasks/IdleTask.hpp"
 #include "Beam/Tasks/ReactorMonitorTask.hpp"
 #include "Beam/Tasks/ReactorTask.hpp"
@@ -230,6 +231,8 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<AggregateTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicTask);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonBasicTask);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<ChainedTask>);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<ChainedTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<IdleTask>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<IdleTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Task::StateEntry>);
@@ -290,6 +293,21 @@ void Beam::Python::ExportBasicTask() {
   implicitly_convertible<std::shared_ptr<FromPythonBasicTask>,
     std::shared_ptr<Task>>();
   implicitly_convertible<std::shared_ptr<BasicTask>, std::shared_ptr<Task>>();
+}
+
+void Beam::Python::ExportChainedTask() {
+  class_<ToPythonTask<ChainedTask>, std::shared_ptr<ToPythonTask<ChainedTask>>,
+    boost::noncopyable, bases<Task>>("ChainedTask",
+    init<std::vector<TaskFactory>>());
+  class_<ToPythonTaskFactory<ChainedTaskFactory>, bases<VirtualTaskFactory>>(
+    "ChainedTaskFactory", init<std::vector<TaskFactory>>())
+    .def("__copy__", &MakeCopy<ToPythonTaskFactory<ChainedTaskFactory>>)
+    .def("__deepcopy__",
+      &MakeDeepCopy<ToPythonTaskFactory<ChainedTaskFactory>>);
+  implicitly_convertible<std::shared_ptr<ToPythonTask<ChainedTask>>,
+    std::shared_ptr<Task>>();
+  implicitly_convertible<ToPythonTaskFactory<ChainedTaskFactory>,
+    TaskFactory>();
 }
 
 void Beam::Python::ExportIdleTask() {
@@ -459,6 +477,7 @@ void Beam::Python::ExportTasks() {
   ExportTaskFactory();
   ExportBasicTask();
   ExportAggregateTask();
+  ExportChainedTask();
   ExportIdleTask();
   ExportPythonPackagedTask();
   ExportReactorTask();

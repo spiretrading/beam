@@ -8,6 +8,8 @@ namespace Tasks {
   class AggregateTaskFactory;
   class BasicTask;
   template<typename T> class BasicTaskFactory;
+  class ChainedTask;
+  class ChainedTaskFactory;
   class IdleTask;
   class IdleTaskFactory;
   template<typename PackageType> class PackagedTask;

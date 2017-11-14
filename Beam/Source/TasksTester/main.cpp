@@ -3,6 +3,7 @@
 #include <cppunit/TestResult.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+#include "Beam/TasksTests/ChainedTaskTester.hpp"
 #include "Beam/TasksTests/FunctionTaskTester.hpp"
 #include "Beam/TasksTests/IdleTaskTester.hpp"
 #include "Beam/TasksTests/PackagedTaskTester.hpp"
@@ -19,6 +20,7 @@ int main() {
   runner.addTest(IdleTaskTester::suite());
   runner.addTest(PackagedTaskTester::suite());
   runner.addTest(FunctionTaskTester::suite());
+  runner.addTest(ChainedTaskTester::suite());
   runner.addTest(UntilTaskTester::suite());
   runner.addTest(WhenTaskTester::suite());
   runner.addTest(SpawnTaskTester::suite());

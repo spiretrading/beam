@@ -251,7 +251,17 @@ namespace Tasks {
       std::move(properties));
     m_propertyFailure.m_state = State::NONE;
     S1();
+    Reactors::Trigger::SetEnvironmentTrigger(
+      m_reactorMonitor->GetTrigger());
+    auto token = new Routines::Async<void>{};
+    m_reactorMonitor->Do(
+      [=] {
+        token->Get();
+        delete token;
+      });
     m_reactorMonitor->Add(m_propertyReactor);
+    m_propertyReactor->Commit(0);
+    token->GetEval().SetResult();
   }
 
   inline void ReactorTask::S1() {

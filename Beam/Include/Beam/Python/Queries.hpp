@@ -3,7 +3,9 @@
 #include <type_traits>
 #include <boost/python.hpp>
 #include <boost/python/def.hpp>
+#include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Python.hpp"
+#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/NativeDataType.hpp"
 #include "Beam/Queries/NativeValue.hpp"
@@ -16,6 +18,85 @@ namespace Details {
   Queries::NativeValue<T> MakeNativeValue(const typename T::Type& value) {
     return Queries::NativeValue<T>(value);
   }
+
+  template<typename T>
+  struct IndexedQueryToPython {
+    static PyObject* convert(const Queries::IndexedQuery<T>& query) {
+      Queries::IndexedQuery<boost::python::object> result{
+        boost::python::object{query.GetIndex()}};
+      return boost::python::incref(boost::python::object{result}.ptr());
+    }
+  };
+
+  template<typename T>
+  struct IndexedQueryFromPythonConverter {
+    static void* convertible(PyObject* object) {
+      boost::python::extract<Queries::IndexedQuery<boost::python::object>>
+        queryExtractor{object};
+      if(queryExtractor.check()) {
+        if(boost::python::extract<T>{queryExtractor().GetIndex()}.check()) {
+          return object;
+        }
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      auto query = boost::python::extract<
+        Queries::IndexedQuery<boost::python::object>>{object}();
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        Queries::IndexedQuery<T>>*>(data)->storage.bytes;
+      new(storage) Queries::IndexedQuery<T>{boost::python::extract<T>{
+        query.GetIndex()}()};
+      data->convertible = storage;
+    }
+  };
+
+  template<typename T>
+  struct BasicQueryToPython {
+    static PyObject* convert(const Queries::BasicQuery<T>& query) {
+      Queries::BasicQuery<boost::python::object> result;
+      result.SetIndex(boost::python::object{query.GetIndex()});
+      result.SetRange(query.GetRange());
+      result.SetSnapshotLimit(query.GetSnapshotLimit());
+      result.SetInterruptionPolicy(query.GetInterruptionPolicy());
+      result.SetFilter(query.GetFilter());
+      return boost::python::incref(boost::python::object{result}.ptr());
+    }
+  };
+
+  template<typename T>
+  struct BasicQueryFromPythonConverter {
+    static void* convertible(PyObject* object) {
+      boost::python::extract<Queries::BasicQuery<boost::python::object>>
+        queryExtractor{object};
+      if(queryExtractor.check()) {
+        if(boost::python::extract<T>{queryExtractor().GetIndex()}.check()) {
+          return object;
+        }
+      }
+      return nullptr;
+    }
+
+    static void construct(PyObject* object,
+        boost::python::converter::rvalue_from_python_stage1_data* data) {
+      auto query = boost::python::extract<
+        Queries::BasicQuery<boost::python::object>>{object}();
+      auto storage = reinterpret_cast<
+        boost::python::converter::rvalue_from_python_storage<
+        Queries::BasicQuery<T>>*>(data)->storage.bytes;
+      new(storage) Queries::BasicQuery<T>{};
+      auto result = reinterpret_cast<Queries::BasicQuery<T>*>(storage);
+      result->SetIndex(boost::python::extract<T>{query.GetIndex()}());
+      result->SetRange(query.GetRange());
+      result->SetSnapshotLimit(query.GetSnapshotLimit());
+      result->SetInterruptionPolicy(query.GetInterruptionPolicy());
+      result->SetFilter(query.GetFilter());
+      data->convertible = storage;
+    }
+  };
 }
 
   //! Exports the ConstantExpression class.
@@ -68,17 +149,62 @@ namespace Details {
 
   //! Exports an IndexedQuery.
   /*!
-    \param name The name to give to the IndexedQuery.
+    \param indexName The name of the index.
   */
-  template<typename T>
+  template<typename Index>
   void ExportIndexedQuery(const char* name) {
-    boost::python::class_<Queries::IndexedQuery<T>>(name,
-      boost::python::init<>())
-      .def(boost::python::init<T>())
+    auto typeId = boost::python::type_id<Queries::IndexedQuery<Index>>();
+    auto registration = boost::python::converter::registry::query(typeId);
+    if(registration != nullptr && registration->m_to_python != nullptr) {
+      return;
+    }
+    boost::python::class_<Queries::IndexedQuery<Index>>(
+      (name + std::string{"IndexedQuery"}).c_str(), boost::python::init<>())
+      .def(boost::python::init<Index>())
+      .def("__copy__", &MakeCopy<Queries::IndexedQuery<Index>>)
+      .def("__deepcopy__", &MakeDeepCopy<Queries::IndexedQuery<Index>>)
       .add_property("index", boost::python::make_function(
-        &Queries::IndexedQuery<T>::GetIndex, boost::python::return_value_policy<
+        &Queries::IndexedQuery<Index>::GetIndex,
+        boost::python::return_value_policy<
         boost::python::copy_const_reference>()),
-        &Queries::IndexedQuery<T>::SetIndex);
+        &Queries::IndexedQuery<Index>::SetIndex);
+    if(!std::is_same<Index, boost::python::object>::value) {
+      boost::python::to_python_converter<Queries::IndexedQuery<Index>,
+        Details::IndexedQueryToPython<Index>>();
+      boost::python::converter::registry::push_back(
+        &Details::IndexedQueryFromPythonConverter<Index>::convertible,
+        &Details::IndexedQueryFromPythonConverter<Index>::construct,
+        boost::python::type_id<Queries::IndexedQuery<Index>>());
+    }
+  }
+
+  //! Exports the BasicQuery class.
+  /*!
+    \param indexName The name of the index.
+  */
+  template<typename Index>
+  void ExportBasicQuery(const char* name) {
+    auto typeId = boost::python::type_id<Queries::BasicQuery<Index>>();
+    auto registration = boost::python::converter::registry::query(typeId);
+    if(registration != nullptr && registration->m_to_python != nullptr) {
+      return;
+    }
+    ExportIndexedQuery<Index>(name);
+    boost::python::class_<Queries::BasicQuery<Index>,
+      boost::python::bases<Queries::IndexedQuery<Index>, Queries::RangedQuery,
+      Queries::SnapshotLimitedQuery, Queries::InterruptableQuery,
+      Queries::FilteredQuery>>((name + std::string{"Query"}).c_str(),
+      boost::python::init<>())
+      .def("__copy__", &MakeCopy<Queries::BasicQuery<Index>>)
+      .def("__deepcopy__", &MakeDeepCopy<Queries::BasicQuery<Index>>);
+    if(!std::is_same<Index, boost::python::object>::value) {
+      boost::python::to_python_converter<Queries::BasicQuery<Index>,
+        Details::BasicQueryToPython<Index>>();
+      boost::python::converter::registry::push_back(
+        &Details::BasicQueryFromPythonConverter<Index>::convertible,
+        &Details::BasicQueryFromPythonConverter<Index>::construct,
+        boost::python::type_id<Queries::BasicQuery<Index>>());
+    }
   }
 
   //! Exports a NativeDataType.

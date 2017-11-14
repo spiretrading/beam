@@ -29,6 +29,33 @@ namespace Queries {
       friend struct Serialization::DataShuttle;
   };
 
+  //! Builds a BasicQuery that streams the most recent value produced.
+  /*!
+    \param index The index to query.
+  */
+  template<typename Index>
+  BasicQuery<Index> BuildCurrentQuery(Index index) {
+    BasicQuery<Index> query;
+    query.SetIndex(std::move(index));
+    query.SetRange(Range::Total());
+    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
+    query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
+    return query;
+  }
+
+  //! Builds a BasicQuery that streams real time values.
+  /*!
+    \param index The index to query.
+  */
+  template<typename Index>
+  BasicQuery<Index> BuildRealTimeQuery(Index index) {
+    BasicQuery<Index> query;
+    query.SetIndex(std::move(index));
+    query.SetRange(Range::RealTime());
+    query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
+    return query;
+  }
+
   template<typename T>
   std::ostream& operator <<(std::ostream& out, const BasicQuery<T>& query) {
     return out << "(" << query.GetIndex() << " " << query.GetRange() << " " <<

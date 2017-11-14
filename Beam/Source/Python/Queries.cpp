@@ -174,6 +174,8 @@ void Beam::Python::ExportQueries() {
   ExportSnapshotLimit();
   ExportSnapshotLimitedQuery();
   ExportValue();
+  ExportIndexedQuery<boost::python::object>("");
+  ExportBasicQuery<boost::python::object>("");
   ExportException<ExpressionTranslationException, std::runtime_error>(
     "ExpressionTranslationException")
     .def(init<const string&>());
@@ -185,6 +187,8 @@ void Beam::Python::ExportQueries() {
     "TypeCompatibilityException")
     .def(init<>())
     .def(init<const string&>());
+  def("build_current_query", &BuildCurrentQuery<boost::python::object>);
+  def("build_real_time_query", &BuildRealTimeQuery<boost::python::object>);
 }
 
 void Beam::Python::ExportRange() {

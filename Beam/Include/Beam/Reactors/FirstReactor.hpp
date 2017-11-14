@@ -16,8 +16,9 @@ namespace Reactors {
   template<typename Source>
   auto MakeFirstReactor(Source&& source) {
     return MakeFunctionReactor(
-      [] (auto& value) {
-        return MakeFunctionEvaluation(value, BaseReactor::Update::COMPLETE);
+      [] (auto&& value) {
+        return MakeFunctionEvaluation(std::forward<decltype(value)>(value),
+          BaseReactor::Update::COMPLETE);
       }, Lift(std::forward<Source>(source)));
   }
 

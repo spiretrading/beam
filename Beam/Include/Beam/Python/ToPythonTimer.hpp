@@ -51,7 +51,7 @@ namespace Threading {
   */
   template<typename Timer>
   auto MakeToPythonTimer(std::unique_ptr<Timer> timer) {
-    return std::make_unique<ToPythonTimer<Timer>>(std::move(timer));
+    return std::make_shared<ToPythonTimer<Timer>>(std::move(timer));
   }
 
   template<typename TimerType>

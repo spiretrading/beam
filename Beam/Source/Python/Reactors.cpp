@@ -115,11 +115,18 @@ namespace {
   }
 
   auto MakePythonAlarmReactor(VirtualTimeClient* timeClient,
-      const NoThrowFunction<std::unique_ptr<VirtualTimer>,
-      const time_duration&>& timerFactory,
+      const object& timerFactory,
       const boost::python::object& expiryReactor) {
+    auto properTimerFactory =
+      [timerFactory = SharedObject{timerFactory}]
+          (const time_duration& expiry) {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        return MakeVirtualTimer(extract<std::shared_ptr<VirtualTimer>>{
+          (*timerFactory)(expiry)}());
+      };
     return std::static_pointer_cast<Reactor<bool>>(MakeAlarmReactor(timeClient,
-      timerFactory, ExtractReactor<ptime>(expiryReactor)));
+      properTimerFactory, ExtractReactor<ptime>(expiryReactor)));
   }
 
   auto MakePythonDefaultAlarmReactor(
@@ -277,12 +284,19 @@ namespace {
     return std::static_pointer_cast<PythonReactor>(MakeThrowReactor<object>(e));
   }
 
-  auto MakePythonTimerReactor(const NoThrowFunction<
-      std::unique_ptr<VirtualTimer>, const time_duration&>& timerFactory,
+  auto MakePythonTimerReactor(const object& timerFactory,
       const boost::python::object& periodReactor) {
+    auto properTimerFactory =
+      [timerFactory = SharedObject{timerFactory}]
+          (const time_duration& expiry) {
+        GilLock gil;
+        boost::lock_guard<GilLock> lock{gil};
+        return MakeVirtualTimer(extract<std::shared_ptr<VirtualTimer>>{
+          (*timerFactory)(expiry)}());
+      };
     return std::static_pointer_cast<PythonReactor>(MakeToPythonReactor(
       std::static_pointer_cast<Reactor<std::int64_t>>(
-      MakeTimerReactor<std::int64_t>(timerFactory,
+      MakeTimerReactor<std::int64_t>(properTimerFactory,
       ExtractReactor<time_duration>(periodReactor)))));
   }
 
@@ -630,6 +644,7 @@ void Beam::Python::ExportReactors() {
     .def(init<const string&>());
   ExportRef<Trigger>("TriggerRef");
   ExportRef<Reactor<object>>("PythonReactorRef");
+  ExportRef<ReactorMonitor>("ReactorMonitorRef");
 }
 
 void Beam::Python::ExportSwitchReactor() {

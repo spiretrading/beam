@@ -108,7 +108,7 @@ namespace {
   auto BuildTestTimer(time_duration expiry,
       std::shared_ptr<TimeServiceTestEnvironment> environment) {
     return MakeToPythonTimer(std::make_unique<TestTimer>(expiry,
-      Ref(*environment))).release();
+      Ref(*environment)));
   }
 
   void FixedTimeClientSetTime(ToPythonTimeClient<FixedTimeClient>& client,

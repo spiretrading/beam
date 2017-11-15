@@ -72,7 +72,8 @@ namespace Threading {
   */
   template<typename Timer>
   std::unique_ptr<VirtualTimer> MakeVirtualTimer(Timer&& timer) {
-    return std::make_unique<WrapperTimer<Timer>>(std::forward<Timer>(timer));
+    return std::make_unique<WrapperTimer<typename std::decay<Timer>::type>>(
+      std::forward<Timer>(timer));
   }
 
   template<typename TimerType>

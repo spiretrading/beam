@@ -42,11 +42,11 @@ namespace {
 
   auto BuildLiveTimer(time_duration interval) {
     return MakeToPythonTimer(std::make_unique<LiveTimer>(interval,
-      Ref(*GetTimerThreadPool()))).release();
+      Ref(*GetTimerThreadPool())));
   }
 
   auto BuildTriggerTimer() {
-    return MakeToPythonTimer(std::make_unique<TriggerTimer>()).release();
+    return MakeToPythonTimer(std::make_unique<TriggerTimer>());
   }
 
   void WrapperTimerTrigger(ToPythonTimer<TriggerTimer>& timer) {
@@ -62,6 +62,7 @@ namespace {
   }
 }
 
+BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTimer);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Timer::Result>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualTimer);
 
@@ -88,7 +89,8 @@ void Beam::Python::ExportThreading() {
 
 void Beam::Python::ExportTimer() {
   {
-    scope outer = class_<FromPythonTimer, boost::noncopyable>("Timer")
+    scope outer = class_<FromPythonTimer, std::shared_ptr<FromPythonTimer>,
+      boost::noncopyable>("Timer")
       .def("start", pure_virtual(&VirtualTimer::Start))
       .def("cancel", pure_virtual(&VirtualTimer::Cancel))
       .def("wait", pure_virtual(&VirtualTimer::Wait))
@@ -100,6 +102,9 @@ void Beam::Python::ExportTimer() {
       .value("CANCELED", Timer::Result::CANCELED)
       .value("FAIL", Timer::Result::FAIL);
   }
+  register_ptr_to_python<std::shared_ptr<VirtualTimer>>();
+  implicitly_convertible<std::shared_ptr<FromPythonTimer>,
+    std::shared_ptr<VirtualTimer>>();
   ExportUniquePtr<VirtualTimer>();
   ExportEnum<Timer::Result>();
   ExportPublisher<Timer::Result>("TimerResultPublisher");

@@ -201,8 +201,8 @@ namespace {
     factory.Set(name, value);
   }
 
-  auto MakePythonReactorTask(TaskFactory taskFactory,
-      const boost::python::object& properties, ReactorMonitor& reactorMonitor) {
+  auto MakePythonReactorTask(ReactorMonitor& reactorMonitor,
+      const boost::python::object& properties, TaskFactory taskFactory) {
     std::vector<ReactorProperty> p;
     for(int i = 0; i < boost::python::len(properties); ++i) {
       auto& rp = boost::python::extract<VirtualReactorProperty&>{
@@ -213,8 +213,8 @@ namespace {
       std::move(p), std::move(taskFactory));
   }
 
-  auto MakePythonReactorTaskFactory(TaskFactory taskFactory,
-      const boost::python::object& properties, ReactorMonitor& reactorMonitor) {
+  auto MakePythonReactorTaskFactory(ReactorMonitor& reactorMonitor,
+      const boost::python::object& properties, TaskFactory taskFactory) {
     std::vector<ReactorProperty> p;
     for(int i = 0; i < boost::python::len(properties); ++i) {
       auto& rp = boost::python::extract<VirtualReactorProperty&>{

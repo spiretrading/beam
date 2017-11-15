@@ -268,6 +268,9 @@ namespace Details {
   //! Exports the QueueReactor class.
   void ExportQueueReactor();
 
+  //! Exports the QueryReactor.
+  void ExportQueryReactor();
+
   //! Exports the Range Reactor.
   void ExportRangeReactor();
 

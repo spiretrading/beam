@@ -27,6 +27,7 @@
 #include "Beam/Reactors/NonRepeatingReactor.hpp"
 #include "Beam/Reactors/ProxyReactor.hpp"
 #include "Beam/Reactors/PublisherReactor.hpp"
+#include "Beam/Reactors/QueryReactor.hpp"
 #include "Beam/Reactors/RangeReactor.hpp"
 #include "Beam/Reactors/ReactorError.hpp"
 #include "Beam/Reactors/ReactorException.hpp"
@@ -212,6 +213,48 @@ namespace {
   auto MakePythonNonRepeatingReactor(const boost::python::object& reactor) {
     return std::static_pointer_cast<PythonReactor>(
       MakeNonRepeatingReactor(ExtractReactor(reactor)));
+  }
+
+  auto MakePythonQueryReactor(boost::python::object submissionFunction,
+      const Queries::BasicQuery<object>& query) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeQueryReactor<boost::python::object>(
+        [submissionFunction] (const Queries::BasicQuery<object>& query,
+            std::shared_ptr<QueueWriter<object>> queue) {
+          try {
+            submissionFunction(query, queue);
+          } catch(const boost::python::error_already_set&) {
+            PrintError();
+          }
+        }, query));
+  }
+
+  auto MakePythonCurrentQueryReactor(boost::python::object submissionFunction,
+      const object& index) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeCurrentQueryReactor<boost::python::object>(
+        [submissionFunction] (const Queries::BasicQuery<object>& query,
+            std::shared_ptr<QueueWriter<object>> queue) {
+          try {
+            submissionFunction(query, queue);
+          } catch(const boost::python::error_already_set&) {
+            PrintError();
+          }
+        }, index));
+  }
+
+  auto MakePythonRealTimeQueryReactor(boost::python::object submissionFunction,
+      const object& index) {
+    return std::static_pointer_cast<PythonReactor>(
+      MakeRealTimeQueryReactor<boost::python::object>(
+        [submissionFunction] (const Queries::BasicQuery<object>& query,
+            std::shared_ptr<QueueWriter<object>> queue) {
+          try {
+            submissionFunction(query, queue);
+          } catch(const boost::python::error_already_set&) {
+            PrintError();
+          }
+        }, index));
   }
 
   auto MakePythonQueueReactor(std::shared_ptr<QueueReader<object>> queue) {
@@ -497,6 +540,15 @@ void Beam::Python::ExportPythonConstantReactor() {
   def("constant", &MakePythonConstantReactor);
 }
 
+void Beam::Python::ExportQueryReactor() {
+  ExportFunction<NoThrowFunction<void, const Queries::BasicQuery<object>&,
+    std::shared_ptr<QueueWriter<object>>>>("QuerySubmissionFunction");
+  def("QueryReactor", &MakePythonQueryReactor);
+  def("query", &MakePythonQueryReactor);
+  def("query_current", &MakePythonCurrentQueryReactor);
+  def("query_real_time", &MakePythonRealTimeQueryReactor);
+}
+
 void Beam::Python::ExportQueueReactor() {
   using ExportedReactor = PythonQueueReactor;
   class_<ExportedReactor, bases<PythonReactor>, boost::noncopyable,
@@ -551,6 +603,7 @@ void Beam::Python::ExportReactors() {
   ExportNonRepeatingReactor();
   ExportProxyReactor();
   ExportPublisherReactor();
+  ExportQueryReactor();
   ExportQueueReactor();
   ExportRangeReactor();
   ExportSwitchReactor();

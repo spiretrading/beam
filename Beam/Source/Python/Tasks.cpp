@@ -63,10 +63,19 @@ namespace {
   };
 
   struct FromPythonTaskFactory : VirtualTaskFactory,
-      wrapper<VirtualTaskFactory> {
+      wrapper<VirtualTaskFactory>, CloneableMixin<FromPythonTaskFactory> {
     FromPythonTaskFactory() = default;
 
-    FromPythonTaskFactory(const FromPythonTaskFactory&) = default;
+    FromPythonTaskFactory(const FromPythonTaskFactory& other)
+        : VirtualTaskFactory{static_cast<const VirtualTaskFactory&>(other)},
+          wrapper<VirtualTaskFactory>{
+            static_cast<const wrapper<VirtualTaskFactory>&>(other)} {
+      GilLock gil;
+      boost::lock_guard<GilLock> lock{gil};
+      m_properties = other.m_properties;
+      auto pyObject = boost::python::detail::wrapper_base_::get_owner(*this);
+      Py_IncRef(pyObject);
+    }
 
     virtual ~FromPythonTaskFactory() override final = default;
 
@@ -231,6 +240,7 @@ BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<AggregateTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicTask);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonBasicTask);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTask);
+BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTaskFactory);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<ChainedTask>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<ChainedTaskFactory>);
 BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<IdleTask>);
@@ -450,7 +460,9 @@ void Beam::Python::ExportTask() {
 }
 
 void Beam::Python::ExportTaskFactory() {
-  class_<FromPythonTaskFactory, boost::noncopyable>("TaskFactory", no_init)
+  class_<FromPythonTaskFactory, boost::noncopyable>("TaskFactory", init<>())
+    .def("__copy__", &MakeCopy<FromPythonTaskFactory>)
+    .def("__deepcopy__", &MakeDeepCopy<FromPythonTaskFactory>)
     .def("get", &FromPythonTaskFactoryGet)
     .def("set", &FromPythonTaskFactorySet)
     .def("define_property", &FromPythonTaskFactory::DefineProperty)

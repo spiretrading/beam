@@ -78,8 +78,8 @@ std::shared_ptr<Task> PythonPackagedTaskFactory::Create() {
   boost::lock_guard<GilLock> lock{gil};
   auto t = PyTuple_New(static_cast<Py_ssize_t>(m_parameterNames.size()));
   for(std::size_t i = 0; i < m_parameterNames.size(); ++i) {
-    PyTuple_SET_ITEM(t, i,
-      Get<boost::python::object>(m_parameterNames[i]).ptr());
+    PyTuple_SET_ITEM(t, i, boost::python::incref(
+      Get<boost::python::object>(m_parameterNames[i]).ptr()));
   }
   boost::python::object parameters{boost::python::handle<>(
     boost::python::borrowed(t))};

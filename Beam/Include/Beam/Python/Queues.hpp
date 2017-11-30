@@ -10,6 +10,7 @@
 #include "Beam/Python/ToPythonAbstractQueue.hpp"
 #include "Beam/Python/ToPythonQueueReader.hpp"
 #include "Beam/Python/ToPythonQueueWriter.hpp"
+#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
@@ -153,6 +154,15 @@ namespace Details {
   };
 
   template<typename T>
+  struct MultiQueueWriterToPython {
+    static PyObject* convert(
+        const std::shared_ptr<MultiQueueWriter<T>>& queue) {
+      return QueueWriterToPython<T>::convert(
+        std::static_pointer_cast<QueueWriter<T>>(queue));
+    }
+  };
+
+  template<typename T>
   struct QueueWriterFromPythonConverter {
     static void* convertible(PyObject* object) {
       if(boost::python::extract<std::shared_ptr<
@@ -259,6 +269,7 @@ namespace Details {
 #ifdef _MSC_VER
 #define BEAM_DEFINE_PYTHON_QUEUE_LINKER(T)                                     \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::AbstractQueue<T>);                   \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::MultiQueueWriter<T>);                \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::QueueReader<T>);                     \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::QueueWriter<T>);                     \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Queue<T>);                           \
@@ -326,6 +337,31 @@ namespace Details {
 
   //! Exports the BaseQueue class.
   void ExportBaseQueue();
+
+  //! Exports the MultiQueueWriter class.
+  /*!
+    \param name The name to assign to the type.
+  */
+  template<typename T>
+  void ExportMultiQueueWriter(const char* name) {
+    auto typeId = boost::python::type_id<T>();
+    auto registration = boost::python::converter::registry::query(typeId);
+    if(registration != nullptr && registration->m_to_python != nullptr) {
+      return;
+    }
+    boost::python::class_<T, std::shared_ptr<T>, boost::noncopyable,
+      boost::python::bases<QueueWriter<typename T::Source>,
+      Publisher<typename T::Source>>>(name, boost::python::init<>());
+    if(!std::is_same<T, MultiQueueWriter<boost::python::object>>::value) {
+      boost::python::converter::registry::push_back(
+        &Details::QueueWriterFromPythonConverter<
+        typename T::Source>::convertible,
+        &Details::QueueWriterFromPythonConverter<typename T::Source>::construct,
+        boost::python::type_id<std::shared_ptr<T>>());
+    }
+    boost::python::implicitly_convertible<std::shared_ptr<T>,
+      std::shared_ptr<QueueWriter<typename T::Source>>>();
+  }
 
   //! Exports a Publisher class.
   /*!
@@ -492,6 +528,9 @@ namespace Details {
     ExportAbstractQueue<AbstractQueue<T>>(
       (baseName + std::string{"AbstractQueue"}).c_str());
     ExportQueue<Queue<T>>((baseName + std::string{"Queue"}).c_str());
+    ExportPublisher<T>((baseName + std::string{"Publisher"}).c_str());
+    ExportMultiQueueWriter<MultiQueueWriter<T>>(
+      (baseName + std::string{"MultiQueueWriter"}).c_str());
   }
 
   //! Exports the Queues namespace.

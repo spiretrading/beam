@@ -33,7 +33,6 @@ namespace Reactors {
         Child(BaseReactor& reactor);
       };
       std::vector<Child> m_children;
-      BaseReactor::Update m_value;
       int m_currentSequenceNumber;
       BaseReactor::Update m_update;
       BaseReactor::Update m_state;

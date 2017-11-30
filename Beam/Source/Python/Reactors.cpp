@@ -76,7 +76,7 @@ namespace {
       }
       auto t = PyTuple_New(static_cast<Py_ssize_t>(parameters.size()));
       for(std::size_t i = 0; i < parameters.size(); ++i) {
-        PyTuple_SET_ITEM(t, i, parameters[i].ptr());
+        PyTuple_SET_ITEM(t, i, boost::python::incref(parameters[i].ptr()));
       }
       boost::python::object parameterTuple{boost::python::handle<>{
         boost::python::borrowed(t)}};

@@ -268,6 +268,7 @@ namespace Details {
 
 #ifdef _MSC_VER
 #define BEAM_DEFINE_PYTHON_QUEUE_LINKER(T)                                     \
+  BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Publisher<T>);                       \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::AbstractQueue<T>);                   \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::MultiQueueWriter<T>);                \
   BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::QueueReader<T>);                     \

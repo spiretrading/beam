@@ -52,6 +52,36 @@ namespace Details {
     static bool NameComparator(const DirectoryEntry& lhs,
       const DirectoryEntry& rhs);
 
+    //! Makes a DirectoryEntry representing an account.
+    /*!
+      \param id The id.
+      \param name The name.
+      \return A DirectoryEntry representing an account.
+    */
+    static DirectoryEntry MakeAccount(unsigned int id, std::string name);
+
+    //! Makes a DirectoryEntry representing an account.
+    /*!
+      \param id The id.
+      \return An unnamed DirectoryEntry representing an account.
+    */
+    static DirectoryEntry MakeAccount(unsigned int id);
+
+    //! Makes a DirectoryEntry representing a directory.
+    /*!
+      \param id The id.
+      \param name The name.
+      \return A DirectoryEntry representing a directory.
+    */
+    static DirectoryEntry MakeDirectory(unsigned int id, std::string name);
+
+    //! Makes a DirectoryEntry representing a directory.
+    /*!
+      \param id The id.
+      \return An unnamed DirectoryEntry representing a directory.
+    */
+    static DirectoryEntry MakeDirectory(unsigned int id);
+
     //! Constructs an empty DirectoryEntry.
     DirectoryEntry();
 
@@ -131,6 +161,24 @@ namespace Details {
   inline bool DirectoryEntry::NameComparator(const DirectoryEntry& lhs,
       const DirectoryEntry& rhs) {
     return std::tie(lhs.m_name, lhs.m_id) < std::tie(rhs.m_name, rhs.m_id);
+  }
+
+  inline DirectoryEntry DirectoryEntry::MakeAccount(unsigned int id,
+      std::string name) {
+    return DirectoryEntry{Type::ACCOUNT, id, std::move(name)};
+  }
+
+  inline DirectoryEntry DirectoryEntry::MakeAccount(unsigned int id) {
+    return MakeAccount(id, {});
+  }
+
+  inline DirectoryEntry DirectoryEntry::MakeDirectory(unsigned int id,
+      std::string name) {
+    return DirectoryEntry{Type::DIRECTORY, id, std::move(name)};
+  }
+
+  inline DirectoryEntry DirectoryEntry::MakeDirectory(unsigned int id) {
+    return MakeDirectory(id, {});
   }
 
   inline DirectoryEntry::DirectoryEntry()

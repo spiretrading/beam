@@ -231,6 +231,16 @@ void Beam::Python::ExportDirectoryEntry() {
           &DirectoryEntry::GetRootAccount)
         .add_static_property("star_directory",
           &DirectoryEntry::GetStarDirectory)
+        .def("make_account", static_cast<DirectoryEntry (*)(
+          unsigned int, string)>(&DirectoryEntry::MakeAccount))
+        .def("make_account", static_cast<DirectoryEntry (*)(unsigned int)>(
+          &DirectoryEntry::MakeAccount))
+        .staticmethod("make_account")
+        .def("make_directory", static_cast<DirectoryEntry (*)(
+          unsigned int, string)>(&DirectoryEntry::MakeDirectory))
+        .def("make_directory", static_cast<DirectoryEntry (*)(unsigned int)>(
+          &DirectoryEntry::MakeDirectory))
+        .staticmethod("make_directory")
         .def("__hash__", static_cast<std::size_t (*)(const DirectoryEntry&)>(
           &Beam::ServiceLocator::hash_value))
         .def(self == self)

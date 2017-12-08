@@ -169,3 +169,8 @@ if [ ! -d "mysql-connector-python-2.1.5" ]; then
   popd
   rm -f mysql-connector-python-2.1.5.zip
 fi
+
+sudo -u $(logname) pip install Sphinx
+sudo -u $(logname) pip install sphinx-jsondomain
+sudo -u $(logname) pip install sphinx_rtd_theme
+sudo pip install sphinxcontrib-httpdomain

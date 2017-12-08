@@ -1,29 +1,27 @@
 Beam Web Services Data Types
 ============================
 
-.. cpp:enum-class:: beam.service_locator.DirectoryEntry.Type
+.. js:class:: beam.service_locator.DirectoryEntry.Type
 
-   Indicates whether a directory entry represents an account or a directory.
+    Enumerates the types of directory entries, specifying whether an entry
+    represents an account or a directory.
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::NONE = -1
+  .. js:attribute:: NONE = -1
 
-   The directory entry is invalid.
+    The directory entry is invalid.
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::ACCOUNT = 0
+  .. js:attribute:: ACCOUNT = 0
 
-   The directory entry represents an account.
+    The directory entry represents an account.
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::ACCOUNT = 1
+  .. js:attribute:: DIRECTORY = 1
 
-   The directory entry represents a directory.
+    The directory entry represents a directory.
 
-.. json:object:: beam.service_locator.DirectoryEntry
+.. js:class:: beam.service_locator.DirectoryEntry
 
-   Stores a directory entry.
+    Represents a directory entry.
 
-  :property type: The type of directory entry.
-  :proptype type: :cpp:enum-class:`beam.service_locator.DirectoryEntry.Type`
-  :property id: The entry's unique id.
-  :proptype id: integer
-  :property name: The name of the entry.
-  :proptype name: string
+  .. js:attribute:: type
+    The type of directory entry.
+    :js:class:`beam.service_locator.DirectoryEntry.Type`

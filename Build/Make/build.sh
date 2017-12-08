@@ -39,5 +39,6 @@ applications+=" WebSocketEchoServer"
 parallel -j$jobs --no-notice build_function ::: $applications
 
 pushd $directory/../../Documents/sphinx
-make
+make clean
+make html
 popd

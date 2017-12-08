@@ -37,3 +37,7 @@ applications+=" ServletTemplate"
 applications+=" UidServer"
 applications+=" WebSocketEchoServer"
 parallel -j$jobs --no-notice build_function ::: $applications
+
+pushd $directory/../../Documents/sphinx
+make
+popd

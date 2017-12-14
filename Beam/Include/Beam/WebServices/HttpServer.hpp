@@ -10,6 +10,7 @@
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
+#include "Beam/Serialization/JsonSender.hpp"
 #include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
@@ -266,8 +267,18 @@ namespace WebServices {
     auto foundSlot = false;
     for(auto& slot : m_slots) {
       if(slot.m_predicate(request)) {
-        auto response = slot.m_slot(request);
-        response.Encode(Store(responseBuffer));
+        try {
+          auto response = slot.m_slot(request);
+          response.Encode(Store(responseBuffer));
+        } catch(const std::exception& e) {
+          responseBuffer.Reset();
+          HttpResponse response{HttpStatusCode::INTERNAL_SERVER_ERROR};
+          response.SetHeader({"Content-Type", "application/json"});
+          Serialization::JsonSender<IO::SharedBuffer> jsonSender;
+          response.SetBody(Serialization::Encode<IO::SharedBuffer>(jsonSender,
+            std::string{e.what()}));
+          response.Encode(Store(responseBuffer));
+        }
         channel.GetWriter().Write(responseBuffer);
         foundSlot = true;
         break;

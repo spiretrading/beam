@@ -1,29 +1,40 @@
 Beam Web Services Data Types
 ============================
 
-.. cpp:enum-class:: beam.service_locator.DirectoryEntry.Type
+.. py:currentmodule:: beam.service_locator
 
-   Indicates whether a directory entry represents an account or a directory.
+.. py:class:: DirectoryEntry
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::NONE = -1
+    Represents a directory entry.
 
-   The directory entry is invalid.
+  .. py:attribute:: type
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::ACCOUNT = 0
+    :py:class:`DirectoryEntry.Type`
+    The type of directory entry.
 
-   The directory entry represents an account.
+  .. py:attribute:: id
 
-.. cpp:enumerator:: beam.service_locator.DirectoryEntry.Type::ACCOUNT = 1
+    `number`
+    The entry's unique id.
 
-   The directory entry represents a directory.
+  .. py:attribute:: name
 
-.. json:object:: beam.service_locator.DirectoryEntry
+    `string`
+    The entry's name.
 
-   Stores a directory entry.
+  .. py:class:: Type
 
-  :property type: The type of directory entry.
-  :proptype type: :cpp:enum-class:`beam.service_locator.DirectoryEntry.Type`
-  :property id: The entry's unique id.
-  :proptype id: integer
-  :property name: The name of the entry.
-  :proptype name: string
+      Enumerates the types of directory entries, specifying whether an entry
+      represents an account or a directory.
+
+    .. py:data:: NONE=-1
+
+      The directory entry is invalid.
+
+    .. py:data:: ACCOUNT=0
+
+      The directory entry represents an account.
+
+    .. py:data:: DIRECTORY=1
+
+      The directory entry represents a directory.

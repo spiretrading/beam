@@ -10,6 +10,7 @@
 #undef other
 #else
 #define BEAM_DISABLE_OPTIMIZATIONS
+#include <boost/context/continuation.hpp>
 #endif
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Routines.hpp"

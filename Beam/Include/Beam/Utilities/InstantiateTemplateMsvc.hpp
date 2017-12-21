@@ -3,7 +3,6 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <type_traits>
-#include <boost/typeof/typeof.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/front.hpp>
 #include <boost/mpl/list.hpp>
@@ -31,22 +30,22 @@ namespace Detail {
       typename TemplateMetaClass::SupportedTypes>::type, n>::type
 
   #define BEAM_PARAMETER_TYPEDEFS(z, n, q)                                     \
-    typedef typename boost::mpl::at_c<Signature, n>::type T##n;
+    using T##n = typename boost::mpl::at_c<Signature, n>::type;
 
   #define BEAM_COMPARE_TYPES(z, n, q) && type##n == typeid(T##n)
 
   template<typename TemplateMetaClass>
   struct TemplateInstantiater<TemplateMetaClass, 1> {
-    typedef BOOST_TYPEOF_TPL((TemplateMetaClass::template Template<
+    using FunctionType = decltype(&TemplateMetaClass::template Template<
       typename boost::mpl::at_c<
-      typename TemplateMetaClass::SupportedTypes, 0>::type>))* FunctionType;
+      typename TemplateMetaClass::SupportedTypes, 0>::type>);
 
     template<typename MetaClass, typename Signatures>
     struct FindInstantiation {
       static FunctionType Invoke(const std::type_info& type) {
-        typedef typename boost::mpl::front<Signatures>::type T;
+        using T = typename boost::mpl::front<Signatures>::type;
         if(type == typeid(T)) {
-          return MetaClass::template Template<T>;
+          return &MetaClass::template Template<T>;
         }
         return FindInstantiation<MetaClass,
           typename boost::mpl::pop_front<Signatures>::type>::Invoke(type);
@@ -56,7 +55,7 @@ namespace Detail {
     template<typename MetaClass>
     struct FindInstantiation<MetaClass, boost::mpl::l_end> {
       static FunctionType Invoke(const std::type_info& type) {
-        BOOST_THROW_EXCEPTION(InstantiationNotSupportedException());
+        BOOST_THROW_EXCEPTION(InstantiationNotSupportedException{});
       }
     };
 
@@ -69,19 +68,18 @@ namespace Detail {
   #define BOOST_PP_LOCAL_MACRO(n)                                              \
   template<typename TemplateMetaClass>                                         \
   struct TemplateInstantiater<TemplateMetaClass, n> {                          \
-    typedef BOOST_PP_EXPAND(BOOST_TYPEOF_TPL                                   \
-      (TemplateMetaClass::template Template<                                   \
-      BOOST_PP_REPEAT(n, BEAM_DEDUCE_TYPE_PARAMETERS, BOOST_PP_EMPTY)>))*      \
-      FunctionType;                                                            \
+    using FunctionType = BOOST_PP_EXPAND(decltype(                             \
+      &TemplateMetaClass::template Template<                                   \
+      BOOST_PP_REPEAT(n, BEAM_DEDUCE_TYPE_PARAMETERS, BOOST_PP_EMPTY)>));      \
                                                                                \
     template<typename MetaClass, typename Signatures>                          \
     struct FindInstantiation {                                                 \
       static FunctionType Invoke(                                              \
           BOOST_PP_ENUM_PARAMS(n, const std::type_info& type)) {               \
-        typedef typename boost::mpl::front<Signatures>::type Signature;        \
+        using Signature = typename boost::mpl::front<Signatures>::type;        \
         BOOST_PP_REPEAT(n, BEAM_PARAMETER_TYPEDEFS, BOOST_PP_EMPTY);           \
         if(true BOOST_PP_REPEAT(n, BEAM_COMPARE_TYPES, BOOST_PP_EMPTY)) {      \
-          return MetaClass::template Template<BOOST_PP_ENUM_PARAMS(n, T)>;     \
+          return &MetaClass::template Template<BOOST_PP_ENUM_PARAMS(n, T)>;    \
         }                                                                      \
         return FindInstantiation<MetaClass,                                    \
           typename boost::mpl::pop_front<Signatures>::type>::Invoke(           \
@@ -93,7 +91,7 @@ namespace Detail {
     struct FindInstantiation<MetaClass, boost::mpl::l_end> {                   \
       static FunctionType Invoke(                                              \
           BOOST_PP_ENUM_PARAMS(n, const std::type_info& type)) {               \
-        BOOST_THROW_EXCEPTION(InstantiationNotSupportedException());           \
+        BOOST_THROW_EXCEPTION(InstantiationNotSupportedException{});           \
       }                                                                        \
     };                                                                         \
                                                                                \
@@ -123,26 +121,21 @@ namespace Detail {
       InstantiationNotSupportedException();
   };
 
-
   inline InstantiationNotSupportedException::
       InstantiationNotSupportedException()
-      : std::runtime_error("") {}
+      : std::runtime_error{""} {}
 
   //! Returns a function template's instantiation.
   /*!
     \param type The template parameter type.
     \return The function template instantiated with the specified types.
   */
-  #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<typename TemplateMetaClass>                                         \
-  typename Detail::TemplateInstantiater<TemplateMetaClass, n>::FunctionType    \
-      Instantiate(BOOST_PP_ENUM_PARAMS(n, const std::type_info& type)) {       \
-    return Detail::TemplateInstantiater<TemplateMetaClass, n>::Instantiate(    \
-      BOOST_PP_ENUM_PARAMS(n, type));                                          \
+  template<typename TemplateMetaClass, typename... T>
+  auto Instantiate(const T&... type) {
+    return Detail::TemplateInstantiater<
+      TemplateMetaClass, sizeof...(T)>::Instantiate(
+      static_cast<const std::type_info&>(type)...);
   }
-
-  #define BOOST_PP_LOCAL_LIMITS (1, BEAM_INSTANTIATE_PARAMETERS)
-  #include BOOST_PP_LOCAL_ITERATE()
 }
 
 #endif

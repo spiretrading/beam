@@ -1,5 +1,5 @@
-#ifndef BEAM_SESSIONENCRYPTION_HPP
-#define BEAM_SESSIONENCRYPTION_HPP
+#ifndef BEAM_SESSION_ENCRYPTION_HPP
+#define BEAM_SESSION_ENCRYPTION_HPP
 #include <string>
 #include <cryptopp/hex.h>
 #include <cryptopp/osrng.h>
@@ -21,8 +21,8 @@ namespace Details {
   //! Generates a session id.
   inline std::string GenerateSessionId() {
     char randomBytes[SESSION_ID_LENGTH];
-    Details::GetRandomPool().GenerateBlock(reinterpret_cast<byte*>(randomBytes),
-      SESSION_ID_LENGTH);
+    Details::GetRandomPool().GenerateBlock(reinterpret_cast<CryptoPP::byte*>(
+      randomBytes), SESSION_ID_LENGTH);
     for(int i = 0; i < SESSION_ID_LENGTH; ++i) {
       randomBytes[i] = (static_cast<unsigned char>(randomBytes[i]) % 26) + 'a';
     }
@@ -35,10 +35,10 @@ namespace Details {
     \return An uppercase, hexadecimal SHA hash-code of the <i>source</i>.
   */
   inline std::string ComputeSHA(const std::string& source) {
-    CryptoPP::SHA sha;
-    byte digest[CryptoPP::SHA::DIGESTSIZE];
-    sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),
-      source.length());
+    CryptoPP::SHA1 sha;
+    CryptoPP::byte digest[CryptoPP::SHA1::DIGESTSIZE];
+    sha.CalculateDigest(digest, reinterpret_cast<const CryptoPP::byte*>(
+      source.c_str()), source.length());
     CryptoPP::HexEncoder encoder;
     std::string output;
     encoder.Attach(new CryptoPP::StringSink(output));
@@ -51,7 +51,7 @@ namespace Details {
   inline unsigned int GenerateEncryptionKey() {
     unsigned int randomBytes;
     Details::GetRandomPool().GenerateBlock(
-      reinterpret_cast<byte*>(&randomBytes), sizeof(randomBytes));
+      reinterpret_cast<CryptoPP::byte*>(&randomBytes), sizeof(randomBytes));
     return randomBytes;
   }
 }

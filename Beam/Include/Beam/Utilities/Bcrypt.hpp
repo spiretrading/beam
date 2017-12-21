@@ -6,13 +6,10 @@
 #include <cstring>
 #include <string>
 #include <cryptopp/osrng.h>
-#include "Beam/Utilities/BeamWorkaround.hpp"
 
 #ifdef snprintf
   #undef snprintf
 #endif
-
-BEAM_SUPPRESS_FORMAT_TRUNCATION()
 
 namespace Beam {
 namespace Details {
@@ -23,8 +20,8 @@ namespace Details {
   static const unsigned int SALT_LENGTH = 16;
   inline std::string GenerateSalt() {
     char randomBytes[SALT_LENGTH];
-    Details::GetRandomPool().GenerateBlock(reinterpret_cast<byte*>(randomBytes),
-      SALT_LENGTH);
+    Details::GetRandomPool().GenerateBlock(reinterpret_cast<CryptoPP::byte*>(
+      randomBytes), SALT_LENGTH);
     for(int i = 0; i < SALT_LENGTH; ++i) {
       randomBytes[i] = (static_cast<unsigned char>(randomBytes[i]) % 26) + 'a';
     }
@@ -864,7 +861,5 @@ namespace Details {
     return trueHash == hash;
   }
 }
-
-BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 
 #endif

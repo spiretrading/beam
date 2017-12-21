@@ -1,10 +1,18 @@
-#ifndef BEAM_SCHEDULEDROUTINE_HPP
-#define BEAM_SCHEDULEDROUTINE_HPP
+#ifndef BEAM_SCHEDULED_ROUTINE_HPP
+#define BEAM_SCHEDULED_ROUTINE_HPP
 #include <iostream>
-#include <boost/context/detail/fcontext.hpp>
+#if defined _MSC_VER
+#define BEAM_DISABLE_OPTIMIZATIONS __pragma(optimize( "", off ))
+#define other beam_other
+#define BOOST_USE_WINFIB
+#include <boost/context/continuation.hpp>
+#undef BOOST_USE_WINFIB
+#undef other
+#else
+#define BEAM_DISABLE_OPTIMIZATIONS
+#endif
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Routines.hpp"
-#include "Beam/Routines/simple_stack_allocator.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/StackPrint.hpp"
@@ -14,10 +22,9 @@ namespace Routines {
 
   /*! \class ScheduledRoutine
       \brief A Routine that executes within a Scheduler.
-   */
+  */
   class ScheduledRoutine : public Routine {
     public:
-      virtual ~ScheduledRoutine();
 
       //! Returns the Scheduler this Routine runs through.
       Details::Scheduler& GetScheduler() const;
@@ -34,7 +41,8 @@ namespace Routines {
       //! Constructs a ScheduledRoutine.
       /*!
         \param contextId The id of the Context to run in, or set to the number
-               of threads in the Scheduler to assign it an arbitrary context id.
+               of threads in the Scheduler to assign it an arbitrary context
+               id.
         \param stackSize The size of the stack to allocate.
         \param scheduler The Scheduler this Routine will execute through.
       */
@@ -56,23 +64,15 @@ namespace Routines {
       std::size_t m_contextId;
       bool m_isPendingResume;
       Details::Scheduler* m_scheduler;
-      std::size_t m_stackSize;
-      void* m_stackPointer;
-      boost::context::detail::fcontext_t m_parentContext;
-      boost::context::detail::fcontext_t m_context;
+      boost::context::continuation m_continuation;
+      boost::context::continuation m_parent;
       std::string m_stackPrint;
 
       bool IsPendingResume() const;
       void SetPendingResume(bool value);
-
-      static void InitializeRoutine(boost::context::detail::transfer_t r);
+      boost::context::continuation InitializeRoutine(
+        boost::context::continuation&& parent);
   };
-
-  inline ScheduledRoutine::~ScheduledRoutine() {
-    boost::context::simple_stack_allocator<8 * 1024 * 1024, 64 * 1024, 1024>
-      allocator;
-    allocator.deallocate(m_stackPointer, m_stackSize);
-  }
 
   inline Details::Scheduler& ScheduledRoutine::GetScheduler() const {
     return *m_scheduler;
@@ -87,41 +87,37 @@ namespace Routines {
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
       SetState(State::RUNNING);
-      m_context = boost::context::detail::make_fcontext(m_stackPointer,
-        m_stackSize, ScheduledRoutine::InitializeRoutine);
-      m_context = boost::context::detail::jump_fcontext(m_context, this).fctx;
+      m_continuation = boost::context::callcc(
+        [=] (boost::context::continuation&& parent) {
+          return InitializeRoutine(std::move(parent));
+        });
     } else {
       SetState(State::RUNNING);
-      m_context = boost::context::detail::jump_fcontext(
-        m_context, nullptr).fctx;
+      m_continuation = m_continuation.resume();
     }
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
   }
 
   inline ScheduledRoutine::ScheduledRoutine(std::size_t contextId,
       std::size_t stackSize, RefType<Details::Scheduler> scheduler)
-      : m_stackSize{stackSize},
-        m_scheduler{scheduler.Get()},
+      : m_scheduler{scheduler.Get()},
         m_isPendingResume{false} {
     if(contextId == boost::thread::hardware_concurrency()) {
       m_contextId = GetId() % boost::thread::hardware_concurrency();
     } else {
       m_contextId = contextId;
     }
-    boost::context::simple_stack_allocator<8 * 1024 * 1024, 64 * 1024, 1024>
-      allocator;
-    m_stackPointer = allocator.allocate(m_stackSize);
   }
 
+  BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::Defer() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
-#ifdef BEAM_ENABLE_STACK_PRINT
-#ifndef NDEBUG
+    #ifdef BEAM_ENABLE_STACK_PRINT
+    #ifndef NDEBUG
     m_stackPrint = CaptureStackPrint();
-#endif
-#endif
-    m_parentContext = boost::context::detail::jump_fcontext(
-      m_parentContext, nullptr).fctx;
+    #endif
+    #endif
+    m_parent = m_parent.resume();
   }
 
   inline void ScheduledRoutine::PendingSuspend() {
@@ -131,13 +127,12 @@ namespace Routines {
   inline void ScheduledRoutine::Suspend() {
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     SetState(State::PENDING_SUSPEND);
-#ifdef BEAM_ENABLE_STACK_PRINT
-#ifndef NDEBUG
+    #ifdef BEAM_ENABLE_STACK_PRINT
+    #ifndef NDEBUG
     m_stackPrint = CaptureStackPrint();
-#endif
-#endif
-    m_parentContext = boost::context::detail::jump_fcontext(
-      m_parentContext, nullptr).fctx;
+    #endif
+    #endif
+    m_parent = m_parent.resume();
   }
 
   inline bool ScheduledRoutine::IsPendingResume() const {
@@ -148,17 +143,18 @@ namespace Routines {
     m_isPendingResume = value;
   }
 
-  inline void ScheduledRoutine::InitializeRoutine(
-      boost::context::detail::transfer_t r) {
-    auto routine = reinterpret_cast<ScheduledRoutine*>(r.data);
-    routine->m_parentContext = r.fctx;
+  inline boost::context::continuation ScheduledRoutine::InitializeRoutine(
+      boost::context::continuation&& parent) {
+    m_parent = std::move(parent);
     try {
-      routine->Execute();
+      Execute();
+    } catch(const boost::context::detail::forced_unwind&) {
+      throw;
     } catch(...) {
       std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
     }
-    routine->SetState(State::COMPLETE);
-    routine->Defer();
+    SetState(State::COMPLETE);
+    return std::move(m_parent);
   }
 }
 }

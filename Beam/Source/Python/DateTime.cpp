@@ -18,8 +18,9 @@ namespace {
       auto timeOfDay = value.time_of_day();
       auto usec = static_cast<int>(timeOfDay.total_microseconds() % 1000000);
       auto result = PyDateTime_FromDateAndTime(day.year(), day.month(),
-        day.day(), timeOfDay.hours(), timeOfDay.minutes(), timeOfDay.seconds(),
-        usec);
+        day.day(), static_cast<int>(timeOfDay.hours()),
+        static_cast<int>(timeOfDay.minutes()),
+        static_cast<int>(timeOfDay.seconds()), usec);
       return incref(result);
     }
   };

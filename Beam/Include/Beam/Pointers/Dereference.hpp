@@ -1,8 +1,7 @@
 #ifndef BEAM_DEREFERENCE_HPP
 #define BEAM_DEREFERENCE_HPP
 #include <memory>
-#include <boost/typeof/typeof.hpp>
-#include <boost/utility/declval.hpp>
+#include <type_traits>
 #include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
@@ -13,23 +12,21 @@ namespace Beam {
   template<typename T>
   struct IsDereferenceable {
     private:
-      typedef char YesType;
-      typedef struct {
-        char a[2];
-      } NoType;
+      using YesType = char;
+      using NoType = struct {
+        YesType a[2];
+      };
 
       template<typename C>
-      static YesType Test(decltype(&C::operator *));
-
-      template<typename C>
-      static YesType Test(C*, typename std::enable_if<
-        std::is_pointer<C>::value>::type* = nullptr);
+      static YesType Test(std::decay_t<
+        decltype(*std::declval<C>())>* = nullptr);
 
       template<typename C>
       static NoType Test(...);
 
     public:
-      static const bool value = sizeof(Test<T>(nullptr)) == sizeof(YesType);
+      static constexpr bool value =
+        sizeof(Test<T>(nullptr)) == sizeof(YesType);
   };
 
   /*! \struct IsManagedPointer
@@ -38,17 +35,17 @@ namespace Beam {
   */
   template<typename T>
   struct IsManagedPointer {
-    static const bool value = false;
+    static constexpr bool value = false;
   };
 
   template<typename T, typename D>
   struct IsManagedPointer<std::unique_ptr<T, D>> {
-    static const bool value = true;
+    static constexpr bool value = true;
   };
 
   template<typename T>
   struct IsManagedPointer<std::shared_ptr<T>> {
-    static const bool value = true;
+    static constexpr bool value = true;
   };
 
   /*! \struct DereferenceType
@@ -56,7 +53,7 @@ namespace Beam {
    */
   template<typename T>
   struct DereferenceType {
-    typedef BOOST_TYPEOF_TPL(*boost::declval<T>()) type;
+    using type = std::decay_t<decltype(*std::declval<T>())>;
   };
 
   template<typename T>
@@ -71,17 +68,17 @@ namespace Beam {
     private:
       template<typename U, bool Enabled>
       struct TryDereferenceHelper {
-        typedef typename DereferenceType<U>::type type;
+        using type = GetDereferenceType<U>;
       };
 
       template<typename U>
       struct TryDereferenceHelper<U, false> {
-        typedef U type;
+        using type = U;
       };
 
     public:
-      typedef typename TryDereferenceHelper<typename std::decay<T>::type,
-        IsDereferenceable<typename std::decay<T>::type>::value>::type type;
+      using type = typename TryDereferenceHelper<std::decay_t<T>,
+        IsDereferenceable<std::decay_t<T>>::value>::type;
   };
 
   template<typename T>

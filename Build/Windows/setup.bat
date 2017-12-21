@@ -6,8 +6,8 @@ if exist cppunit-1.14.0 goto end_cppunit_setup
   if not exist cppunit-1.14.0.tar.gz goto end_cppunit_setup
     gzip -d -c cppunit-1.14.0.tar.gz | tar -x
     cd cppunit-1.14.0/src/cppunit
-    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v140 /p:Configuration=Debug
-    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v140 /p:Configuration=Release
+    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
+    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Release
     cd ../../../
     rm cppunit-1.14.0.tar.gz
 :end_cppunit_setup
@@ -40,8 +40,8 @@ if exist zlib-1.2.11 goto end_zlib_setup
     cd zlib-1.2.11/contrib/vstudio/vc14
     cat zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
     mv zlibstat.vcxproj.new zlibstat.vcxproj
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v140 /p:Configuration=Debug
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v140 /p:Configuration=ReleaseWithoutAsm
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=ReleaseWithoutAsm
     cd ../../../../
     rm v1.2.11.zip
 :end_zlib_setup
@@ -124,8 +124,8 @@ if exist boost_1_66_0 goto end_boost_setup
     ) else (
       SET BJAM_PROCESSORS="-j"%NUMBER_OF_PROCESSORS%
     )
-    b2 %BJAM_PROCESSORS% --without-context --prefix=%cd% --build-type=complete toolset=msvc-14.0 link=static,shared runtime-link=shared install
-    b2 %BJAM_PROCESSORS% --with-context --prefix=%cd% --build-type=complete context-impl=winfib toolset=msvc-14.0 link=static runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --without-context --prefix=%cd% --build-type=complete toolset=msvc-14.1 link=static,shared runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --with-context --prefix=%cd% --build-type=complete context-impl=winfib toolset=msvc-14.1 link=static runtime-link=shared install
     cd ..
     rm boost_1_66_0.zip
 :end_boost_setup

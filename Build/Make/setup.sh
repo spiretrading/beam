@@ -20,16 +20,11 @@ if [ ! -d "cppunit-1.14.0" ]; then
   fi
 fi
 if [ ! -d "cryptopp565" ]; then
-  sudo -u $(logname) wget http://www.cryptopp.com/cryptopp565.zip
+  sudo -u $(logname) wget https://github.com/weidai11/cryptopp/archive/b0f3b8ce1761e7ab9a3ead46fb7403fb38dd3723.zip -O cryptopp565.zip --no-check-certificate
   if [ -f cryptopp565.zip ]; then
-    sudo -u $(logname) mkdir cryptopp565
+    sudo -u $(logname) unzip cryptopp565.zip
+    sudo -u $(logname) mv cryptopp-b0f3b8ce1761e7ab9a3ead46fb7403fb38dd3723 cryptopp565
     pushd cryptopp565
-    sudo -u $(logname) unzip ../cryptopp565.zip
-    sudo -u $(logname) touch GNUmakefile.new
-    cat GNUmakefile | sed "s/# CXXFLAGS += -fPIC/CXXFLAGS += -fPIC/" > GNUmakefile.new
-    sudo -u $(logname) mv GNUmakefile.new GNUmakefile
-    cat GNUmakefile | sed "s/CXXFLAGS += -march=native/# CXXFLAGS += -march=native/" > GNUmakefile.new
-    sudo -u $(logname) mv GNUmakefile.new GNUmakefile
     sudo -u $(logname) chmod +x GNUmakefile
     sudo -u $(logname) make -j $cores
     make install
@@ -136,16 +131,16 @@ if [ ! -d "openssl-1.0.2g" ]; then
     rm openssl-1.0.2g.tar.gz
   fi
 fi
-if [ ! -d "boost_1_65_1" ]; then
-  sudo -u $(logname) wget https://dl.bintray.com/boostorg/release/1.65.1/source/boost_1_65_1.tar.gz -O boost_1_65_1.tar.gz
-  if [ -f boost_1_65_1.tar.gz ]; then
-    sudo -u $(logname) tar xvf boost_1_65_1.tar.gz
-    pushd boost_1_65_1
+if [ ! -d "boost_1_66_0" ]; then
+  sudo -u $(logname) wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz -O boost_1_66_0.tar.gz --no-check-certificate
+  if [ -f boost_1_66_0.tar.gz ]; then
+    sudo -u $(logname) tar xvf boost_1_66_0.tar.gz
+    pushd boost_1_66_0
     sudo -u $(logname) ./bootstrap.sh
     sudo -u $(logname) ./bjam -j$cores cxxflags="-std=c++14 -fPIC" stage
     ./bjam install
     popd
-    rm -f boost_1_65_1.tar.gz
+    rm -f boost_1_66_0.tar.gz
   fi
 fi
 if [ ! -d "lua-5.3.1" ]; then

@@ -1,5 +1,5 @@
-#ifndef BEAM_WEBSOCKET_HPP
-#define BEAM_WEBSOCKET_HPP
+#ifndef BEAM_WEB_SOCKET_HPP
+#define BEAM_WEB_SOCKET_HPP
 #include <ctime>
 #include <functional>
 #include <random>
@@ -23,19 +23,20 @@ namespace Beam {
 namespace WebServices {
 namespace Details {
   inline std::string ComputeShaDigest(const std::string& source) {
-    CryptoPP::SHA sha;
-    byte digest[CryptoPP::SHA::DIGESTSIZE];
-    sha.CalculateDigest(digest, reinterpret_cast<const byte*>(source.c_str()),
-      source.length());
+    CryptoPP::SHA1 sha;
+    CryptoPP::byte digest[CryptoPP::SHA1::DIGESTSIZE];
+    sha.CalculateDigest(digest, reinterpret_cast<const CryptoPP::byte*>(
+      source.c_str()), source.length());
     return std::string(reinterpret_cast<const char*>(&digest),
-      CryptoPP::SHA::DIGESTSIZE);
+      CryptoPP::SHA1::DIGESTSIZE);
   }
 
   inline std::string GenerateKey() {
     static CryptoPP::AutoSeededRandomPool randomPool;
     const auto KEY_LENGTH = 16;
     char randomBytes[KEY_LENGTH];
-    randomPool.GenerateBlock(reinterpret_cast<byte*>(randomBytes), KEY_LENGTH);
+    randomPool.GenerateBlock(reinterpret_cast<CryptoPP::byte*>(randomBytes),
+      KEY_LENGTH);
     return std::string(randomBytes, KEY_LENGTH);
   }
 }

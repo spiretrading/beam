@@ -18,7 +18,7 @@ if exist cryptopp565 goto end_cryptopp_setup
     unzip cryptopp565.zip
     mv cryptopp-b0f3b8ce1761e7ab9a3ead46fb7403fb38dd3723 cryptopp565
     cd cryptopp565
-    cmake -DCMAKE_INSTALL_PREFIX="%LIBRARY_DIR%\cryptopp565" .
+    cmake -G "Visual Studio 15 2017" -DCMAKE_INSTALL_PREFIX="%LIBRARY_DIR%\cryptopp565" .
     cat cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     mv cryptlib.vcxproj.new cryptlib.vcxproj
     cat cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
@@ -87,7 +87,7 @@ if exist yaml-cpp goto end_yaml_setup
     cd ../../
     mkdir build
     cd build
-    cmake ..
+    cmake -G "Visual Studio 15 2017" ..
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
     cd ../..
@@ -118,7 +118,7 @@ if exist boost_1_66_0 goto end_boost_setup
   if not exist boost_1_66_0.zip goto end_boost_setup
     unzip boost_1_66_0.zip
     cd boost_1_66_0
-    CALL bootstrap.bat
+    CALL bootstrap.bat vc141
     if "%NUMBER_OF_PROCESSORS%" == "" (
       SET BJAM_PROCESSORS=
     ) else (
@@ -136,7 +136,7 @@ if exist lua-5.3.1 goto end_lua_setup
     gzip -d -c lua-5.3.1.tar.gz | tar -x
     cd lua-5.3.1/src
     cp %~dp0/lua_cmakelists.txt CMakeLists.txt
-    cmake .
+    cmake -G "Visual Studio 15 2017" .
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
     cd ../..

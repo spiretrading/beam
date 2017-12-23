@@ -1,8 +1,6 @@
 #ifndef BEAM_ORPARSER_HPP
 #define BEAM_ORPARSER_HPP
 #include <type_traits>
-#include <boost/preprocessor/iteration/local.hpp>
-#include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/variant/variant.hpp>
 #include "Beam/Parsers/SubParserStream.hpp"
 #include "Beam/Parsers/Parser.hpp"
@@ -17,18 +15,13 @@ namespace Details {
   template<typename T1, typename T2>
   struct OrResult<T1, T2,
       typename std::enable_if<std::is_same<T1, T2>::value>::type> {
-    typedef T1 type;
+    using type = T1;
   };
 
-  #define BEAM_OR_VARIANT_PARAMETERS 10
-  #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<BOOST_PP_ENUM_PARAMS(n, typename L), typename R>                    \
-  struct OrResult<boost::variant<BOOST_PP_ENUM_PARAMS(n, L)>, R> {             \
-    typedef boost::variant<BOOST_PP_ENUM_PARAMS(n, L), R> type;                \
+  template<typename... L, typename R>
+  struct OrResult<boost::variant<L...>, R> {
+    using type = boost::variant<L..., R>;
   };
-
-  #define BOOST_PP_LOCAL_LIMITS (1, BEAM_OR_VARIANT_PARAMETERS)
-  #include BOOST_PP_LOCAL_ITERATE()
 }
 
   /*! \class OrParser
@@ -50,10 +43,10 @@ namespace Details {
     public:
 
       //! The parser that must match to the left.
-      typedef LeftParserType LeftParser;
+      using LeftParser = LeftParserType;
 
       //! The parser that must match to the right.
-      typedef RightParserType RightParser;
+      using RightParser = RightParserType;
   };
 
   struct BaseOrParser {};
@@ -65,9 +58,9 @@ namespace Details {
       std::is_same<typename RightParserType::Result, NullType>::value>::type> :
       public ParserOperators, public BaseOrParser {
     public:
-      typedef LeftParserType LeftParser;
-      typedef RightParserType RightParser;
-      typedef NullType Result;
+      using LeftParser = LeftParserType;
+      using RightParser = RightParserType;
+      using Result = NullType;
 
       OrParser(const LeftParser& leftParser, const RightParser& rightParser)
           : m_leftParser(leftParser),
@@ -97,9 +90,9 @@ namespace Details {
       !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
       public ParserOperators, public BaseOrParser {
     public:
-      typedef LeftParserType LeftParser;
-      typedef RightParserType RightParser;
-      typedef boost::optional<typename RightParser::Result> Result;
+      using LeftParser = LeftParserType;
+      using RightParser = RightParserType;
+      using Result = boost::optional<typename RightParser::Result>;
 
       OrParser(const LeftParser& leftParser, const RightParser& rightParser)
           : m_leftParser(leftParser),
@@ -147,9 +140,9 @@ namespace Details {
       std::is_same<typename RightParserType::Result, NullType>::value>::type> :
       public ParserOperators, public BaseOrParser {
     public:
-      typedef LeftParserType LeftParser;
-      typedef RightParserType RightParser;
-      typedef boost::optional<typename LeftParser::Result> Result;
+      using LeftParser = LeftParserType;
+      using RightParser = RightParserType;
+      using Result = boost::optional<typename LeftParser::Result>;
 
       OrParser(const LeftParser& leftParser, const RightParser& rightParser)
           : m_leftParser(leftParser),
@@ -198,13 +191,13 @@ namespace Details {
       !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
       public ParserOperators, public BaseOrParser {
     public:
-      typedef LeftParserType LeftParser;
-      typedef RightParserType RightParser;
-      typedef typename std::conditional<
+      using LeftParser = LeftParserType;
+      using RightParser = RightParserType;
+      using Result = typename std::conditional<
         std::is_same<typename LeftParser::Result,
         typename RightParser::Result>::value, typename LeftParser::Result,
         boost::variant<typename LeftParser::Result,
-        typename RightParser::Result>>::type Result;
+        typename RightParser::Result>>::type;
 
       OrParser(const LeftParser& leftParser, const RightParser& rightParser)
           : m_leftParser(leftParser),
@@ -254,10 +247,10 @@ namespace Details {
       !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
       public ParserOperators, public BaseOrParser {
     public:
-      typedef LeftParserType LeftParser;
-      typedef RightParserType RightParser;
-      typedef typename Details::OrResult<typename LeftParserType::Result,
-        typename RightParserType::Result>::type Result;
+      using LeftParser = LeftParserType;
+      using RightParser = RightParserType;
+      using Result = typename Details::OrResult<typename LeftParserType::Result,
+        typename RightParserType::Result>::type;
 
       OrParser(const LeftParser& leftParser, const RightParser& rightParser)
           : m_leftParser(leftParser),

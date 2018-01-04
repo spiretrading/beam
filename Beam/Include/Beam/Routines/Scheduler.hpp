@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <deque>
 #include <iostream>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/atomic/atomic.hpp>
@@ -278,22 +279,20 @@ namespace Details {
   }
 
   template<typename F>
-  Routine::Id Spawn(F&& f, Eval<decltype(f())> result) {
+  Routine::Id Spawn(F&& f, Eval<std::decay_t<decltype(f())>> result) {
     return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
       std::move(result));
   }
 
   template<typename F>
-  Routine::Id Spawn(F&& f, std::size_t stackSize, Eval<decltype(f())> result) {
-
-    // TODO: Stupid MSVC
-    auto r = std::make_unique<Eval<decltype(f())>>(std::move(result));
+  Routine::Id Spawn(F&& f, std::size_t stackSize,
+      Eval<std::decay_t<decltype(f())>> result) {
     return Spawn(
-      [f = std::move(f), r2 = std::move(r)] {
+      [f = std::forward<F>(f), r = std::move(r)] {
         try {
-          r2->SetResult(f());
+          r.SetResult(f());
         } catch(...) {
-          r2->SetException(std::current_exception());
+          r.SetException(std::current_exception());
         }
       }, stackSize);
   }

@@ -4,9 +4,7 @@
 #if defined _MSC_VER
 #define BEAM_DISABLE_OPTIMIZATIONS __pragma(optimize( "", off ))
 #define other beam_other
-#define BOOST_USE_WINFIB
 #include <boost/context/continuation.hpp>
-#undef BOOST_USE_WINFIB
 #undef other
 #else
 #define BEAM_DISABLE_OPTIMIZATIONS

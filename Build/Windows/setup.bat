@@ -125,7 +125,7 @@ if exist boost_1_66_0 goto end_boost_setup
       SET BJAM_PROCESSORS="-j"%NUMBER_OF_PROCESSORS%
     )
     b2 %BJAM_PROCESSORS% --without-context --prefix=%cd% --build-type=complete toolset=msvc-14.1 link=static,shared runtime-link=shared install
-    b2 %BJAM_PROCESSORS% --with-context --prefix=%cd% --build-type=complete context-impl=winfib toolset=msvc-14.1 link=static runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --with-context --prefix=%cd% --build-type=complete toolset=msvc-14.1 link=static runtime-link=shared install
     cd ..
     rm boost_1_66_0.zip
 :end_boost_setup

@@ -1,7 +1,8 @@
 SETLOCAL
 PUSHD ..\..\
-npm install
-cd node_modules
-npm link webpack
+CALL npm install
+PUSHD node_modules
+CALL npm link webpack
+POPD
 POPD
 ENDLOCAL

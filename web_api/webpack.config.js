@@ -2,13 +2,10 @@ var path = require('path');
 var webpack = require('webpack');
 
 module.exports = {
-  entry: {
-    'beam': './source/index.ts',
-    'beam.min': './source/index.ts'
-  },
+  entry: './source/index.ts',
   output: {
-    path: path.resolve(__dirname, 'library'),
-    filename: '[name].js',
+    path: path.resolve(__dirname, 'library/beam'),
+    filename: 'index.js',
     libraryTarget: 'umd',
     library: 'Beam',
     umdNamedDefine: true
@@ -17,13 +14,6 @@ module.exports = {
     extensions: ['.ts', '.js']
   },
   devtool: 'source-map',
-  plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      minimize: true,
-      sourceMap: true,
-      include: /\.min\.js$/,
-    })
-  ],
   module: {
     rules: [
       {

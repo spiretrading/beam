@@ -5,6 +5,6 @@ IF [%1] == [] (
   SET config="%1"
 )
 PUSHD ..\..\
-webpack
+node .\node_modules\webpack\bin\webpack.js
 POPD
 ENDLOCAL

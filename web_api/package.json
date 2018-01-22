@@ -9,10 +9,10 @@
   },
   "devDependencies": {
     "alsatian": "2.0.0",
-    "awesome-typescript-loader": "3.2.3",
-    "source-map-loader": "0.2.2",
-    "typescript": "2.5.3",
-    "uglifyjs-webpack-plugin": "0.4.6"
+    "awesome-typescript-loader": "3.4.1",
+    "source-map-loader": "0.2.3",
+    "typescript": "2.6.2",
+    "uglifyjs-webpack-plugin": "1.1.6"
   },
   "dependencies": {}
 }

@@ -7,7 +7,7 @@ module.exports = {
     'beam.min': './source/index.ts'
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, 'library'),
     filename: '[name].js',
     libraryTarget: 'umd',
     library: 'Beam',

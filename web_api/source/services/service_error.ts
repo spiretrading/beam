@@ -13,5 +13,9 @@ export class ServiceError {
     return this._message;
   }
 
+  public toString(): string {
+    return this._message;
+  }
+
   private _message: string;
 }

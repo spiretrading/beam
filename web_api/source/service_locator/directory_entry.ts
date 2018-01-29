@@ -1,6 +1,11 @@
 /** Represents a directory entry in Beam's account database. */
 export class DirectoryEntry {
 
+  /** Constructs a DirectoryEntry from a JSON object. */
+  public static fromJson(value: any): DirectoryEntry {
+    return new DirectoryEntry(value.type, value.id, value.name);
+  }
+
   /** Constructs a DirectoryEntry.
    * @param type - The type of directory entry to represent.
    * @param id - The entry's unique id.
@@ -46,4 +51,7 @@ export module DirectoryEntry {
     /** A directory. */
     DIRECTORY = 1
   }
+
+  /** Represents an invalid directory entry. */
+  export const INVALID = new DirectoryEntry(Type.NONE, -1, '');
 }

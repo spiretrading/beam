@@ -18,7 +18,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
 
   public async login(username: string, password: string):
       Promise<DirectoryEntry> {
-    if(this._account != null) {
+    if(this._account !== DirectoryEntry.INVALID) {
       return this._account;
     }
     try {

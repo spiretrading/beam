@@ -6,11 +6,17 @@
 export async function post(url: string, parameters?: any): Promise<any> {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', url);
-  xhr.setRequestHeader('Content-Type', 'application/json');
+  if(parameters !== undefined) {
+    xhr.setRequestHeader('Content-Type', 'application/json');
+  }
   return new Promise<any>((resolve, reject) => {
     xhr.onload = function() {
       if(xhr.status === 200) {
-        resolve(JSON.parse(xhr.responseText));
+        if(xhr.responseText.length === 0) {
+          resolve();
+        } else {
+          resolve(JSON.parse(xhr.responseText));
+        }
       } else {
         reject({
           status: this.status,

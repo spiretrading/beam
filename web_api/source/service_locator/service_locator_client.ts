@@ -15,4 +15,7 @@ export abstract class ServiceLocatorClient {
    */
   public abstract async login(username: string, password: string):
     Promise<DirectoryEntry>;
+
+  /** Logs out of the service locator. */
+  public abstract async logout(): Promise<void>;
 }

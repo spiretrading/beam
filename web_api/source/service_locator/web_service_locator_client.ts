@@ -34,5 +34,18 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     }
   }
 
+  public async logout(): Promise<void> {
+    if(this._account === DirectoryEntry.INVALID) {
+      return;
+    }
+    try {
+      let response = await web_services.post('/api/service_locator/logout', {});
+      this._account = DirectoryEntry.INVALID;
+      return;
+    } catch(e) {
+      throw new ServiceError(e.toString());
+    }
+  }
+
   private _account: DirectoryEntry;
 }

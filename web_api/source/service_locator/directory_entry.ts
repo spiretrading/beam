@@ -32,6 +32,15 @@ export class DirectoryEntry {
     return this._name;
   }
 
+  /** Converts this object to JSON. */
+  public toJson() {
+    return {
+      type: this._type,
+      id: this._id,
+      name: this._name
+    };
+  }
+
   private _type: DirectoryEntry.Type;
   private _id: number;
   private _name: string;

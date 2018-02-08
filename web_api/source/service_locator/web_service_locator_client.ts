@@ -16,6 +16,13 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     return this._account;
   }
 
+  public async load(id: number): Promise<DirectoryEntry> {
+    if(id == this._account.id) {
+      return this._account;
+    }
+    return null;
+  }
+
   public async login(username: string, password: string):
       Promise<DirectoryEntry> {
     if(this._account !== DirectoryEntry.INVALID) {

@@ -13,7 +13,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
   }
 
   public async loadCurrentAccount(): Promise<DirectoryEntry> {
-    if(this._account !== DirectoryEntry.INVALID) {
+    if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
     try {
@@ -44,7 +44,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
 
   public async login(username: string, password: string):
       Promise<DirectoryEntry> {
-    if(this._account !== DirectoryEntry.INVALID) {
+    if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
     try {
@@ -64,7 +64,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
   }
 
   public async close(): Promise<void> {
-    if(this._account === DirectoryEntry.INVALID) {
+    if(this._account.equals(DirectoryEntry.INVALID)) {
       return;
     }
     try {

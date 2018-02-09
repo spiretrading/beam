@@ -12,12 +12,22 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     this._account = DirectoryEntry.INVALID;
   }
 
-  public get account(): DirectoryEntry {
-    return this._account;
+  public async loadCurrentAccount(): Promise<DirectoryEntry> {
+    if(this._account !== DirectoryEntry.INVALID) {
+      return this._account;
+    }
+    try {
+      let response = await web_services.post(
+        '/api/service_locator/load_current_account', {});
+      this._account = DirectoryEntry.fromJson(response);
+      return this._account;
+    } catch(e) {
+      throw new ServiceError(e.statusText);
+    }
   }
 
   public async load(id: number): Promise<DirectoryEntry> {
-    if(id == this._account.id) {
+    if(id === this._account.id) {
       return this._account;
     }
     return null;
@@ -37,11 +47,14 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
       this._account = DirectoryEntry.fromJson(response);
       return this._account;
     } catch(e) {
-      throw new ServiceError(e.toString());
+      if(e.status === 401) {
+        throw new ServiceError('Incorrect username or password.');
+      }
+      throw new ServiceError(e.statusText);
     }
   }
 
-  public async logout(): Promise<void> {
+  public async close(): Promise<void> {
     if(this._account === DirectoryEntry.INVALID) {
       return;
     }
@@ -50,7 +63,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
       this._account = DirectoryEntry.INVALID;
       return;
     } catch(e) {
-      throw new ServiceError(e.toString());
+      throw new ServiceError(e.statusText);
     }
   }
 

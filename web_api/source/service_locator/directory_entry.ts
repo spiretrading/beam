@@ -3,6 +3,9 @@ export class DirectoryEntry {
 
   /** Constructs a DirectoryEntry from a JSON object. */
   public static fromJson(value: any): DirectoryEntry {
+    if(value.type == DirectoryEntry.Type.NONE) {
+      return DirectoryEntry.INVALID;
+    }
     return new DirectoryEntry(value.type, value.id, value.name);
   }
 

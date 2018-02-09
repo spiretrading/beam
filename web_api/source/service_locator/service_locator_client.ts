@@ -3,9 +3,9 @@ import {DirectoryEntry} from './directory_entry';
 /** Client used to access service locator services. */
 export abstract class ServiceLocatorClient {
 
-  /** Returns the directory entry representing the account currently logged
+  /** Loads the directory entry representing the account currently logged
    *  in. */
-  public abstract get account(): DirectoryEntry;
+  public abstract async loadCurrentAccount(): Promise<DirectoryEntry>;
 
   /** Loads a directory entry from an id.
    * @param id - The id of the directory entry to load.
@@ -23,5 +23,5 @@ export abstract class ServiceLocatorClient {
     Promise<DirectoryEntry>;
 
   /** Logs out of the service locator. */
-  public abstract async logout(): Promise<void>;
+  public abstract async close(): Promise<void>;
 }

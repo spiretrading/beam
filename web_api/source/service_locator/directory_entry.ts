@@ -37,7 +37,7 @@ export class DirectoryEntry {
 
   /** Returns true if two directory entries refer to the same id. */
   public equals(other: DirectoryEntry): boolean {
-    return this._id === other._id;
+    return other && this._id === other._id;
   }
 
   /** Converts this object to JSON. */

@@ -1,3 +1,29 @@
+/** An interface for an object that can be converted to JSON. */
+export interface Serializable {
+  toJson(): any;
+}
+
+/** Converts an array to JSON.
+ * @param value - The value to convert to JSON.
+ */
+export function arrayToJson<T extends Serializable>(
+    value: Array<T>): Array<any> {
+  const result = new Array<any>();
+  for(let v of value) {
+    result.push(v.toJson());
+  }
+  return result;
+}
+
+/** Constructs an array from JSON. */
+export function arrayFromJson(type: any, value: Array<any>): Array<any> {
+  let result = new Array<any>();
+  for(let v of value) {
+    result.push(type.fromJson(v));
+  }
+  return result;
+}
+
 /** Submits a POST request to a web service.
  * @param url - The URL to submit the request to.
  * @param parameters - The object to encode as a JSON parameter.

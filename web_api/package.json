@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Provides TypeScript/JavasSript bindings to Beam classes and services.",
   "license": "GPL-3.0",
-  "scripts": {
-    "compile": "tsc -p . ",
-    "build": "npm run compile && node build/tests/test_runner.js"
-  },
   "devDependencies": {
     "alsatian": "2.0.0",
     "ts-loader": "3.3.0",
@@ -15,7 +11,5 @@
     "uglifyjs-webpack-plugin": "1.1.6",
     "webpack": "2.6.1"
   },
-  "dependencies": {
-    "moment": "2.20.1"
-  }
+  "dependencies": {}
 }

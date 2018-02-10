@@ -84,15 +84,6 @@ export class Date {
 
 export module Date {
 
-  /** Represents a date infinitely in the past. */
-  export const NEG_INFIN = new Date(-9999, Date.Month.JANUARY, 1);
-
-  /** Represents a date infinitely in the future. */
-  export const POS_INFIN = new Date(9999, Date.Month.JANUARY, 1);
-
-  /** Represents no date. */
-  export const NOT_A_DATE = new Date(-1, Date.Month.JANUARY, 1);
-
   /** Enumerates the months of the year. */
   export enum Month {
     JANUARY = 1,
@@ -108,4 +99,13 @@ export module Date {
     NOVEMBER,
     DECEMBER
   }
+
+  /** Represents a date infinitely in the past. */
+  export const NEG_INFIN = new Date(-9999, Date.Month.JANUARY, 1);
+
+  /** Represents a date infinitely in the future. */
+  export const POS_INFIN = new Date(9999, Date.Month.JANUARY, 1);
+
+  /** Represents no date. */
+  export const NOT_A_DATE = new Date(-1, Date.Month.JANUARY, 1);
 }

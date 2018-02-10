@@ -1,7 +1,8 @@
-import {TestSet, TestRunner} from "alsatian";
+import * as Alsatian from "alsatian";
 
-let testSet = TestSet.create();
-testSet.addTestsFromFiles("./build/tests/*.js");
-let testRunner = new TestRunner();
+const testSet = Alsatian.TestSet.create();
+testSet.addTestsFromFiles("./library/beam/tests/*.js");
+testSet.addTestsFromFiles("./library/beam/tests/definitions/*.js");
+const testRunner = new Alsatian.TestRunner();
 testRunner.outputStream.pipe(process.stdout);
 testRunner.run(testSet);

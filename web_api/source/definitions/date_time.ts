@@ -20,10 +20,10 @@ export class DateTime {
     let i = 15;
     if(value.length > i && value[i] === '.') {
       ++i;
-      let decimalPlaces = 0;
+      let decimalPlaces = 1;
       while(i < value.length) {
         decimalPlaces *= 10;
-        seconds = 10 * seconds + (value[i].charCodeAt(i) - 48);
+        seconds = 10 * seconds + (value.charCodeAt(i) - 48);
       }
       seconds /= decimalPlaces;
     }

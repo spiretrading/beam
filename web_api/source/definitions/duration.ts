@@ -8,12 +8,13 @@ export class Duration {
     } else if(value === '-infinity') {
       return Duration.NEG_INFIN;
     }
-    let i = 0;
     if(value.length === 0) {
       return new Duration(0);
     }
+    let i = 0;
     const sign = (() => {
       if(value[0] === '-') {
+        ++i;
         return -1;
       }
       return 1;
@@ -24,7 +25,7 @@ export class Duration {
         ++i;
         break;
       }
-      hours = 10 * hours + (value[i].charCodeAt(i) - 48);
+      hours = 10 * hours + (value.charCodeAt(i) - 48);
       ++i;
     }
     let minutes = 0;
@@ -33,7 +34,7 @@ export class Duration {
         ++i;
         break;
       }
-      minutes = 10 * minutes + (value[i].charCodeAt(i) - 48);
+      minutes = 10 * minutes + (value.charCodeAt(i) - 48);
       ++i;
     }
     let seconds = 0;
@@ -42,13 +43,13 @@ export class Duration {
         ++i;
         break;
       }
-      seconds = 10 * seconds + (value[i].charCodeAt(i) - 48);
+      seconds = 10 * seconds + (value.charCodeAt(i) - 48);
       ++i;
     }
-    let decimalPlaces = 0;
+    let decimalPlaces = 1;
     while(i < value.length) {
       decimalPlaces *= 10;
-      seconds = 10 * seconds + (value[i].charCodeAt(i) - 48);
+      seconds = 10 * seconds + (value.charCodeAt(i) - 48);
       ++i;
     }
     const ticks = sign * Duration.TICKS_PER_SECOND *

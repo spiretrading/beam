@@ -13,7 +13,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
   }
 
   public async loadCurrentAccount(): Promise<DirectoryEntry> {
-    if(this._account !== DirectoryEntry.INVALID) {
+    if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
     try {
@@ -26,16 +26,25 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     }
   }
 
-  public async load(id: number): Promise<DirectoryEntry> {
+  public async loadDirectoryEntryFromId(id: number): Promise<DirectoryEntry> {
     if(id === this._account.id) {
       return this._account;
     }
-    return null;
+    try {
+      let response = await web_services.post(
+        '/api/service_locator/load_directory_entry_from_id',
+        {
+          id: id
+        });
+      return DirectoryEntry.fromJson(response);
+    } catch(e) {
+      throw new ServiceError(e.statusText);
+    }
   }
 
   public async login(username: string, password: string):
       Promise<DirectoryEntry> {
-    if(this._account !== DirectoryEntry.INVALID) {
+    if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
     try {
@@ -55,7 +64,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
   }
 
   public async close(): Promise<void> {
-    if(this._account === DirectoryEntry.INVALID) {
+    if(this._account.equals(DirectoryEntry.INVALID)) {
       return;
     }
     try {

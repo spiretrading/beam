@@ -11,7 +11,8 @@ export abstract class ServiceLocatorClient {
    * @param id - The id of the directory entry to load.
    * @return The directory entry with the specified id.
    */
-  public abstract async load(id: number): Promise<DirectoryEntry>;
+  public abstract async loadDirectoryEntryFromId(
+    id: number): Promise<DirectoryEntry>;
 
   /** Logs into the service locator.
    * @param username - The username.

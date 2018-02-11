@@ -111,6 +111,31 @@ export class Duration {
     return other && this._ticks === other._ticks;
   }
 
+  /** Splits the duration into an hours/minutes/seconds component. */
+  public split() {
+    let ticks = Math.abs(this._ticks);
+    const sign = this._ticks / ticks;
+    let hours = sign * Math.trunc(ticks / (Duration.MINUTES_PER_HOUR *
+      Duration.SECONDS_PER_MINUTE * Duration.TICKS_PER_SECOND));
+    ticks -= Duration.MINUTES_PER_HOUR * Duration.SECONDS_PER_MINUTE *
+      Duration.TICKS_PER_SECOND * hours;
+    let minutes = Math.trunc(ticks / (
+      Duration.SECONDS_PER_MINUTE * Duration.TICKS_PER_SECOND));
+    if(hours === 0) {
+      minutes *= sign;
+    }
+    ticks -= Duration.SECONDS_PER_MINUTE * Duration.TICKS_PER_SECOND * minutes;
+    let seconds = ticks / Duration.TICKS_PER_SECOND;
+    if(hours === 0 && minutes === 0) {
+      seconds *= sign;
+    }
+    return {
+      hours: hours,
+      minutes: minutes,
+      seconds: seconds
+    };
+  }
+
   /** Converts a time duration to JSON. */
   public toJson(): any {
     if(this._ticks === Infinity) {

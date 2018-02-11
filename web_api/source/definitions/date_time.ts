@@ -4,6 +4,15 @@ import {Duration} from './duration';
 /** Represents a point in time. */
 export class DateTime {
 
+  /** Represents a point in time infinitely in the future. */
+  public static readonly POS_INFIN = new DateTime(Date.POS_INFIN);
+
+  /** Represents a point in time infinitely in the past. */
+  public static readonly NEG_INFIN = new DateTime(Date.NEG_INFIN);
+
+  /** Represents no date/time. */
+  public static readonly NOT_A_DATE_TIME = new DateTime(Date.NOT_A_DATE);
+
   /** Constructs a date/time from a JSON object. */
   public static fromJson(value: any): DateTime {
     if(value === '+infinity') {
@@ -86,16 +95,4 @@ export class DateTime {
 
   private _date: Date;
   private _timeOfDay: Duration;
-}
-
-export module DateTime {
-
-  /** Represents a point in time infinitely in the future. */
-  export const POS_INFIN = new DateTime(Date.POS_INFIN);
-
-  /** Represents a point in time infinitely in the past. */
-  export const NEG_INFIN = new DateTime(Date.NEG_INFIN);
-
-  /** Represents no date/time. */
-  export const NOT_A_DATE_TIME = new DateTime(Date.NOT_A_DATE);
 }

@@ -1,6 +1,24 @@
 /** Represents a time duration. */
 export class Duration {
 
+  /** The number of ticks per second used to represent a Duration. */
+  public static readonly TICKS_PER_SECOND = 1000;
+
+  /** The number of seconds per minute. */
+  public static readonly SECONDS_PER_MINUTE = 60;
+
+  /** The number of minutes per hour. */
+  public static readonly MINUTES_PER_HOUR = 60;
+
+  /** Represents an infinite duration. */
+  public static readonly POS_INFIN = new Duration(Infinity);
+
+  /** Represents a negatively infinite duration. */
+  public static readonly NEG_INFIN = new Duration(-Infinity);
+
+  /** Represents a duration of 0. */
+  public static readonly ZERO = new Duration(0);
+
   /** Constructs a time duration from a JSON object. */
   public static fromJson(value: any): Duration {
     if(value === '+infinity') {
@@ -138,25 +156,4 @@ export class Duration {
   }
 
   private _ticks: number;
-}
-
-export module Duration {
-
-  /** The number of ticks per second used to represent a Duration. */
-  export const TICKS_PER_SECOND = 1000;
-
-  /** The number of seconds per minute. */
-  export const SECONDS_PER_MINUTE = 60;
-
-  /** The number of minutes per hour. */
-  export const MINUTES_PER_HOUR = 60;
-
-  /** Represents an infinite duration. */
-  export const POS_INFIN = new Duration(Infinity);
-
-  /** Represents a negatively infinite duration. */
-  export const NEG_INFIN = new Duration(-Infinity);
-
-  /** Represents a duration of 0. */
-  export const ZERO = new Duration(0);
 }

@@ -1,6 +1,9 @@
 /** Represents a directory entry in Beam's account database. */
 export class DirectoryEntry {
 
+  /** Represents an invalid directory entry. */
+  public static readonly INVALID = new DirectoryEntry(-1, -1, '');
+
   /** Constructs a DirectoryEntry from a JSON object. */
   public static fromJson(value: any): DirectoryEntry {
     if(value.type == DirectoryEntry.Type.NONE) {
@@ -68,7 +71,4 @@ export module DirectoryEntry {
     /** A directory. */
     DIRECTORY = 1
   }
-
-  /** Represents an invalid directory entry. */
-  export const INVALID = new DirectoryEntry(Type.NONE, -1, '');
 }

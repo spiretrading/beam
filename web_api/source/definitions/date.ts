@@ -1,6 +1,15 @@
 /** Represents a specific calendar day. */
 export class Date {
 
+  /** Represents a date infinitely in the past. */
+  public static readonly NEG_INFIN = new Date(-9999, 1, 1);
+
+  /** Represents a date infinitely in the future. */
+  public static readonly POS_INFIN = new Date(9999, 1, 1);
+
+  /** Represents no date. */
+  public static readonly NOT_A_DATE = new Date(-1, 1, 1);
+
   /** Constructs a Date from a JSON object. */
   public static fromJson(value: any): Date {
     if(value === '+infinity') {
@@ -99,13 +108,4 @@ export module Date {
     NOVEMBER,
     DECEMBER
   }
-
-  /** Represents a date infinitely in the past. */
-  export const NEG_INFIN = new Date(-9999, Date.Month.JANUARY, 1);
-
-  /** Represents a date infinitely in the future. */
-  export const POS_INFIN = new Date(9999, Date.Month.JANUARY, 1);
-
-  /** Represents no date. */
-  export const NOT_A_DATE = new Date(-1, Date.Month.JANUARY, 1);
 }

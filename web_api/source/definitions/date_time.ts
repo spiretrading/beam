@@ -57,9 +57,9 @@ export class DateTime {
   /** Converts this date/time to JSON. */
   public toJson(): any {
     if(this._date.equals(Date.POS_INFIN)) {
-      return '+infinite';
+      return '+infinity';
     } else if(this._date.equals(Date.NEG_INFIN)) {
-      return '-infinite';
+      return '-infinity';
     } else if(this._date.equals(Date.NOT_A_DATE)) {
       return 'not-a-date-time';
     }

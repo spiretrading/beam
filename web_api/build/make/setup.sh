@@ -1,0 +1,3 @@
+pushd ..\..\
+npm install
+popd

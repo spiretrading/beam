@@ -1,4 +1,4 @@
 #!/bin/bash
-pushd ..\..\
+pushd ../../
 npm install
 popd

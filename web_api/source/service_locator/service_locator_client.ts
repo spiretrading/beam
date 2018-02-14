@@ -1,4 +1,4 @@
-import {DirectoryEntry} from './directory_entry';
+import {DirectoryEntry} from '.';
 
 /** Client used to access service locator services. */
 export abstract class ServiceLocatorClient {

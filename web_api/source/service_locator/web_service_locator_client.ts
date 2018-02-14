@@ -1,7 +1,7 @@
-import {DirectoryEntry} from './directory_entry';
-import {ServiceLocatorClient} from './service_locator_client';
-import {ServiceError} from '../services/service_error';
-import * as web_services from '../services/web_services';
+import {DirectoryEntry} from '.';
+import {ServiceLocatorClient} from '.';
+import {ServiceError} from '..';
+import * as web_services from '..';
 
 /** Implements the ServiceLocatorClient using web services. */
 export class WebServiceLocatorClient extends ServiceLocatorClient {

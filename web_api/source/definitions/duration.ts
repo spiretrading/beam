@@ -19,6 +19,17 @@ export class Duration {
   /** Represents a duration of 0. */
   public static readonly ZERO = new Duration(0);
 
+  /** Represents a duration of one second. */
+  public static readonly SECOND = new Duration(Duration.TICKS_PER_SECOND);
+
+  /** Represents a duration of one minute. */
+  public static readonly MINUTE = new Duration(Duration.TICKS_PER_SECOND *
+    Duration.SECONDS_PER_MINUTE);
+
+  /** Represents a duration of one hour. */
+  public static readonly HOUR = new Duration(Duration.TICKS_PER_SECOND *
+    Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR);
+
   /** Constructs a time duration from a JSON object. */
   public static fromJson(value: any): Duration {
     if(value === '+infinity') {
@@ -106,6 +117,16 @@ export class Duration {
     return this._ticks;
   }
 
+  /** Adds two durations together. */
+  public add(other: Duration): Duration {
+    return new Duration(this._ticks + other._ticks);
+  }
+
+  /** Multiplies this duration by a scalar. */
+  public multiply(other: number): Duration {
+    return new Duration(other * this._ticks);
+  }
+
   /** Tests if two time durations are equal. */
   public equals(other: Duration): boolean {
     return other && this._ticks === other._ticks;
@@ -114,7 +135,7 @@ export class Duration {
   /** Splits the duration into an hours/minutes/seconds component. */
   public split() {
     let ticks = Math.abs(this._ticks);
-    const sign = this._ticks / ticks;
+    const sign = Math.sign(ticks);
     let hours = sign * Math.trunc(ticks / (Duration.MINUTES_PER_HOUR *
       Duration.SECONDS_PER_MINUTE * Duration.TICKS_PER_SECOND));
     ticks -= Duration.MINUTES_PER_HOUR * Duration.SECONDS_PER_MINUTE *

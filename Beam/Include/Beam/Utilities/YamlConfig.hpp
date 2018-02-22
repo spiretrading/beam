@@ -172,6 +172,11 @@ namespace Beam {
     boost::posix_time::time_duration operator ()(const YAML::Node& node) const {
       std::string rawValue;
       node >> rawValue;
+      if(rawValue == "infinity" || rawValue == "+infinity") {
+        return boost::posix_time::pos_infin;
+      } else if(rawValue == "-infinity") {
+        return boost::posix_time::neg_infin;
+      }
       boost::posix_time::time_duration value;
       std::string::const_reverse_iterator i = rawValue.rbegin();
       while(i != rawValue.rend() && std::isalpha(*i)) {

@@ -288,11 +288,11 @@ namespace Details {
   Routine::Id Spawn(F&& f, std::size_t stackSize,
       Eval<std::decay_t<decltype(f())>> result) {
     return Spawn(
-      [f = std::forward<F>(f), r = std::move(r)] {
+      [f = std::forward<F>(f), result = std::move(result)] {
         try {
-          r.SetResult(f());
+          result.SetResult(f());
         } catch(...) {
-          r.SetException(std::current_exception());
+          result.SetException(std::current_exception());
         }
       }, stackSize);
   }

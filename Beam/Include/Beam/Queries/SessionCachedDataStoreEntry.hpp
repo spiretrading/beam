@@ -73,8 +73,9 @@ namespace Queries {
       GetOptionalLocalPtr<DataStoreType> m_dataStore;
       int m_blockSize;
       Threading::CallOnce<Threading::Mutex> m_initializer;
-      std::atomic_bool m_isInitialized;
       std::shared_ptr<DataStoreEntry> m_cache;
+
+      std::shared_ptr<DataStoreEntry> InitializeCache(const Index& index);
   };
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
@@ -90,22 +91,17 @@ namespace Queries {
   SessionCachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
       SessionCachedDataStoreEntry(DataStoreForward&& dataStore, int blockSize)
       : m_dataStore{std::forward<DataStoreForward>(dataStore)},
-        m_blockSize{blockSize},
-        m_isInitialized{false} {}
+        m_blockSize{blockSize} {}
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   std::vector<typename SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::SequencedValue>
       SessionCachedDataStoreEntry<DataStoreType,
       EvaluatorTranslatorFilterType>::Load(const Query& query) {
-    if(m_blockSize == 0 || !m_isInitialized) {
+    if(m_blockSize == 0) {
       return m_dataStore->Load(query);
     }
-    auto cache =
-      [&] {
-        boost::lock_guard<boost::mutex> lock{m_mutex};
-        return m_cache;
-      }();
+    auto cache = InitializeCache(query.GetIndex());
     if(auto start = boost::get<boost::posix_time::ptime>(
         &query.GetRange().GetStart())) {
       if(*start > cache->m_timestamp) {
@@ -141,34 +137,7 @@ namespace Queries {
     if(m_blockSize == 0) {
       return;
     }
-    auto skipCache = false;
-    m_initializer.Call(
-      [&] {
-        Query query;
-        query.SetIndex(value->GetIndex());
-        query.SetRange(Range::Total());
-        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
-        auto data = m_dataStore->Load(query);
-        if(data.empty()) {
-          m_cache = std::make_shared<DataStoreEntry>(
-            boost::posix_time::neg_infin, Sequence::First());
-        } else {
-          m_cache = std::make_shared<DataStoreEntry>(
-            GetTimestamp(*data.back()), data.back().GetSequence());
-        }
-        m_cache->m_dataStore.Store(value);
-        ++m_cache->m_size;
-        skipCache = true;
-        m_isInitialized = true;
-      });
-    if(skipCache) {
-      return;
-    }
-    auto cache =
-      [&] {
-        boost::lock_guard<boost::mutex> lock{m_mutex};
-        return m_cache;
-      }();
+    auto cache = InitializeCache(value->GetIndex());
     auto size = cache->m_size.load();
     if(size > 2 * m_blockSize) {
       boost::lock_guard<boost::mutex> lock{m_mutex};
@@ -183,6 +152,30 @@ namespace Queries {
     }
     cache->m_dataStore.Store(value);
     ++cache->m_size;
+  }
+
+  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
+  std::shared_ptr<typename SessionCachedDataStoreEntry<DataStoreType,
+      EvaluatorTranslatorFilterType>::DataStoreEntry>
+      SessionCachedDataStoreEntry<DataStoreType,
+      EvaluatorTranslatorFilterType>::InitializeCache(const Index& index) {
+    m_initializer.Call(
+      [&] {
+        Query query;
+        query.SetIndex(index);
+        query.SetRange(Range::Total());
+        query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
+        auto data = m_dataStore->Load(query);
+        if(data.empty()) {
+          m_cache = std::make_shared<DataStoreEntry>(
+            boost::posix_time::neg_infin, Sequence::First());
+        } else {
+          m_cache = std::make_shared<DataStoreEntry>(
+            GetTimestamp(*data.back()), data.back().GetSequence());
+        }
+      });
+    boost::lock_guard<boost::mutex> lock{m_mutex};
+    return m_cache;
   }
 }
 }

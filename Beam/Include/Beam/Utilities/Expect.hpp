@@ -29,6 +29,12 @@ namespace Beam {
       */
       Expect(const T& value);
 
+      //! Constructs an Expect with a normal value.
+      /*!
+        \param value The value to store.
+      */
+      Expect(T&& value);
+
       //! Constructs an Expect with an exception.
       /*!
         \param exception The exception to throw.
@@ -46,6 +52,9 @@ namespace Beam {
 
       //! Returns the stored value, or throws an exception.
       const T& Get() const;
+
+      //! Returns the stored value, or throws an exception.
+      T& Get();
 
       //! Returns the exception.
       std::exception_ptr GetException() const;
@@ -134,6 +143,10 @@ namespace Beam {
       : m_value(value) {}
 
   template<typename T>
+  Expect<T>::Expect(T&& value)
+      : m_value(std::move(value)) {}
+
+  template<typename T>
   Expect<T>::Expect(const std::exception_ptr& exception)
       : m_value(exception) {}
 
@@ -154,6 +167,15 @@ namespace Beam {
 
   template<typename T>
   const typename Expect<T>::Type& Expect<T>::Get() const {
+    if(IsValue()) {
+      return boost::get<Type>(m_value);
+    }
+    std::rethrow_exception(boost::get<std::exception_ptr>(m_value));
+    throw std::exception();
+  }
+
+  template<typename T>
+  typename Expect<T>::Type& Expect<T>::Get() {
     if(IsValue()) {
       return boost::get<Type>(m_value);
     }

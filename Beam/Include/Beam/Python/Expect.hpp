@@ -63,7 +63,8 @@ namespace Details {
       .def(boost::python::init<const T&>())
       .add_property("is_value", &Expect<T>::IsValue)
       .add_property("is_exception", &Expect<T>::IsException)
-      .add_property("value", boost::python::make_function(&Expect<T>::Get,
+      .add_property("value", boost::python::make_function(
+      static_cast<const T& (Expect<T>::*)() const>(&Expect<T>::Get),
         boost::python::return_value_policy<
         boost::python::copy_const_reference>()));
     if(!std::is_same<T, boost::python::object>::value) {

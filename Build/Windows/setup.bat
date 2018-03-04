@@ -106,7 +106,7 @@ if exist openssl-1.0.2g goto end_openssl_setup
   if not exist openssl-1.0.2g.tar.gz goto end_openssl_setup
     gzip -d -c openssl-1.0.2g.tar.gz | tar -x
     cd openssl-1.0.2g
-    perl Configure VC-WIN32 no-asm --prefix=C:/Development/Libraries/openssl-1.0.2g
+    perl Configure VC-WIN32 no-asm --prefix=%~dp0../../../openssl-1.0.2g
     CALL ./ms/do_ms
     nmake -f ./ms/nt.mak
     cd ..

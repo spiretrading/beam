@@ -49,10 +49,10 @@ namespace Beam {
       explicit EnumSet(const std::bitset<Type::COUNT>& set);
 
       //! Converts this set to a bitset.
-      explicit operator const std::bitset<Type::COUNT>& () const;
+      explicit operator const std::bitset<T::COUNT>& () const;
 
       //! Converts this set to a bitset.
-      explicit operator std::bitset<Type::COUNT>& ();
+      explicit operator std::bitset<T::COUNT>& ();
 
       //! Tests two EnumSet's for equality.
       /*!
@@ -94,7 +94,7 @@ namespace Beam {
       void Unset(Type value);
 
       //! Returns the bitset.
-      const std::bitset<Type::COUNT>& GetBitset() const;
+      const std::bitset<T::COUNT>& GetBitset() const;
 
     private:
       std::bitset<Type::COUNT> m_bitset;
@@ -137,12 +137,12 @@ namespace Beam {
       : m_bitset{set} {}
 
   template<typename T>
-  EnumSet<T>::operator const std::bitset<EnumSet<T>::Type::COUNT>& () const {
+  EnumSet<T>::operator const std::bitset<T::COUNT>& () const {
     return m_bitset;
   }
 
   template<typename T>
-  EnumSet<T>::operator std::bitset<EnumSet<T>::Type::COUNT>& () {
+  EnumSet<T>::operator std::bitset<T::COUNT>& () {
     return m_bitset;
   }
 
@@ -186,7 +186,7 @@ namespace Beam {
   }
 
   template<typename T>
-  const std::bitset<EnumSet<T>::Type::COUNT>& EnumSet<T>::GetBitset() const {
+  const std::bitset<T::COUNT>& EnumSet<T>::GetBitset() const {
     return m_bitset;
   }
 }

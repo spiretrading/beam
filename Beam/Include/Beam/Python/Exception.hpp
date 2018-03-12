@@ -5,11 +5,12 @@
 #include <typeindex>
 #include <boost/python.hpp>
 #include "Beam/Python/PythonBindings.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam {
 namespace Python {
 namespace Details {
-  class BaseRegistry {
+  BEAM_EXTERN class BEAM_EXPORT_DLL BaseRegistry {
     public:
       static PyObject* GetExceptionClass(const std::type_index& type);
 

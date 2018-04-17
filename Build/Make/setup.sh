@@ -137,10 +137,14 @@ if [ ! -d "boost_1_66_0" ]; then
   if [ -f boost_1_66_0.tar.gz ]; then
     sudo -u $username tar xvf boost_1_66_0.tar.gz
     pushd boost_1_66_0
-    sudo -u $username ./bootstrap.sh
-    sudo -u $username ./bjam -j$cores cxxflags="-std=c++14 -fPIC" stage
-    ./bjam install
+    export BOOST_BUILD_PATH=$(pwd)
+    sudo -u $username cp tools/build/example/user-config.jam .
+    sudo -u $username printf "using python : 3.5 : /usr/bin/python3 : /usr/include/python3.5 : /usr/lib ;\n" >> user-config.jam
+    sudo -u $username ./bootstrap.sh --with-python=/usr/bin/python3 --with-python-version=3.5 --with-python-root=/usr/local/lib/python3.5
+    sudo -u $username ./b2 -j$cores cxxflags="-std=c++14 -fPIC" stage
+    ./b2 install
     popd
+    unset BOOST_BUILD_PATH
     rm -f boost_1_66_0.tar.gz
   fi
 fi

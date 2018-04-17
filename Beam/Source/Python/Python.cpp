@@ -24,9 +24,9 @@ void Beam::Python::PrintError() {
     errorMessage << "  Traceback:\n";
     while(tracebackObject != nullptr) {
       auto frame = tracebackObject->tb_frame;
-      auto file = PyString_AsString(frame->f_code->co_filename);
+      auto file = PyUnicode_AsUTF8(frame->f_code->co_filename);
       auto line = PyCode_Addr2Line(frame->f_code, frame->f_lasti);
-      auto function = PyString_AsString(frame->f_code->co_name);
+      auto function = PyUnicode_AsUTF8(frame->f_code->co_name);
       errorMessage << "  File: " << file << "\n";
       errorMessage << "    Line: " << line << "\n";
       errorMessage << "    Function: " << function << "\n";
@@ -35,14 +35,14 @@ void Beam::Python::PrintError() {
   }
   if(type != nullptr) {
     auto repr = PyObject_Repr(type);
-    string message{PyString_AsString(repr)};
+    string message{PyUnicode_AsUTF8(repr)};
     Py_DecRef(repr);
     Py_DecRef(type);
     errorMessage << "  Type: " << message << "\n";
   }
   if(value != nullptr) {
     auto repr = PyObject_Repr(value);
-    string message{PyString_AsString(repr)};
+    string message{PyUnicode_AsUTF8(repr)};
     Py_DecRef(repr);
     Py_DecRef(value);
     errorMessage << "  Message: " << message << "\n";

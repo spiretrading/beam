@@ -31,9 +31,7 @@ namespace Python {
 
   //! Returns <code>true</code> iff this thread has the global interpreter lock.
   inline bool HasGil() {
-    auto threadState = _PyThreadState_Current;
-    return threadState != nullptr &&
-      (threadState == PyGILState_GetThisThreadState());
+    return PyGILState_Check() != 0;
   }
 
   inline void GilLock::lock() {

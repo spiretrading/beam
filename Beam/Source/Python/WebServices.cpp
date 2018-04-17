@@ -64,7 +64,7 @@ namespace {
 
   void HttpRequestParserFeedString(HttpRequestParser& parser,
       const boost::python::str& value) {
-    parser.Feed(PyString_AsString(value.ptr()), len(value));
+    parser.Feed(PyUnicode_AsUTF8(value.ptr()), len(value));
   }
 
   void HttpRequestParserFeedBuffer(HttpRequestParser& parser,
@@ -74,7 +74,7 @@ namespace {
 
   void HttpResponseParserFeedString(HttpResponseParser& parser,
       const boost::python::str& value) {
-    parser.Feed(PyString_AsString(value.ptr()), len(value));
+    parser.Feed(PyUnicode_AsUTF8(value.ptr()), len(value));
   }
 
   void HttpResponseParserFeedBuffer(HttpResponseParser& parser,

@@ -33,7 +33,7 @@ namespace {
 
   void SharedBufferWriteString(SharedBuffer& buffer, std::size_t index,
       boost::python::str value) {
-    auto rawString = PyString_AsString(value.ptr());
+    auto rawString = PyUnicode_AsUTF8(value.ptr());
     if(rawString == nullptr) {
       return;
     }
@@ -42,7 +42,7 @@ namespace {
 
   void SharedBufferAppendString(SharedBuffer& buffer,
       boost::python::str value) {
-    auto rawString = PyString_AsString(value.ptr());
+    auto rawString = PyUnicode_AsUTF8(value.ptr());
     if(rawString == nullptr) {
       return;
     }

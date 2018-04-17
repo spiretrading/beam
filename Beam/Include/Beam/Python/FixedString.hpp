@@ -27,7 +27,7 @@ namespace Details {
         boost::python::converter::rvalue_from_python_stage1_data* data) {
       auto storage = reinterpret_cast<boost::python::converter::
         rvalue_from_python_storage<FixedString<N>>*>(data)->storage.bytes;
-      auto value = PyString_AsString(object);
+      auto value = PyUnicode_AsUTF8(object);
       new(storage) FixedString<N>{value};
       data->convertible = storage; 
     }

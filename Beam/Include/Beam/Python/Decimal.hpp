@@ -36,7 +36,7 @@ namespace Details {
         boost::python::converter::rvalue_from_python_storage<T>*>(
         data)->storage.bytes;
       auto str = PyObject_Str(object);
-      auto value = PyString_AsString(str);
+      auto value = PyUnicode_AsUTF8(str);
       new(storage) T{value};
       data->convertible = storage;
       Py_DECREF(str);

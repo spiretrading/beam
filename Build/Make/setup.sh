@@ -164,13 +164,13 @@ if [ ! -d "mysql-connector-python-2.1.5" ]; then
   sudo -u $username wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip --no-check-certificate
   sudo -u $username unzip mysql-connector-python-2.1.5.zip
   pushd mysql-connector-python-2.1.5
-  sudo -u $username python setup.py build
-  python setup.py install
+  sudo -u $username python3 setup.py build
+  python3 setup.py install
   popd
   rm -f mysql-connector-python-2.1.5.zip
 fi
 
-sudo -u $username pip install Sphinx
-sudo -u $username pip install sphinx-jsondomain
-sudo -u $username pip install sphinx_rtd_theme
-sudo pip install sphinxcontrib-httpdomain
+sudo -u $username pip3 install Sphinx
+sudo -u $username pip3 install sphinx-jsondomain
+sudo -u $username pip3 install sphinx_rtd_theme
+sudo -u $username pip3 install sphinxcontrib-httpdomain

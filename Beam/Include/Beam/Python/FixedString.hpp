@@ -17,7 +17,7 @@ namespace Details {
   template<std::size_t N>
   struct FixedStringFromPythonConverter {
     static void* convertible(PyObject* object) {
-      if(PyString_Check(object)) {
+      if(PyUnicode_Check(object)) {
         return object;
       }
       return nullptr;

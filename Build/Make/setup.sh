@@ -139,8 +139,8 @@ if [ ! -d "boost_1_66_0" ]; then
     pushd boost_1_66_0
     export BOOST_BUILD_PATH=$(pwd)
     sudo -u $username cp tools/build/example/user-config.jam .
-    sudo -u $username printf "using python : 3.5 : /usr/bin/python3 : /usr/include/python3.5 : /usr/lib ;\n" >> user-config.jam
-    sudo -u $username ./bootstrap.sh --with-python=/usr/bin/python3 --with-python-version=3.5 --with-python-root=/usr/local/lib/python3.5
+    sudo -u $username printf "using python : 3.6 : /usr/bin/python3 : /usr/include/python3.6 : /usr/lib ;\n" >> user-config.jam
+    sudo -u $username ./bootstrap.sh --with-python=/usr/bin/python3 --with-python-version=3.6 --with-python-root=/usr/local/lib/python3.6
     sudo -u $username ./b2 -j$cores cxxflags="-std=c++14 -fPIC" stage
     ./b2 install
     popd

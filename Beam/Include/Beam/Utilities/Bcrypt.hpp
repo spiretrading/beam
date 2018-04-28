@@ -647,6 +647,7 @@ namespace Details {
     }
   }
 
+  BEAM_SUPPRESS_FORMAT_TRUNCATION()
   inline void encode_salt(char* salt, const std::uint8_t* csalt,
       std::uint16_t clen, std::uint8_t logr) {
     salt[0] = '$';
@@ -656,6 +657,7 @@ namespace Details {
     std::snprintf(salt + 4, 4, "%2.2u$", logr);
     encode_base64((uint8_t *) salt + 7, csalt, clen);
   }
+  BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 
   inline char* bcrypt_gensalt(char* output, std::uint8_t log_rounds,
       const std::uint8_t* rseed) {
@@ -668,6 +670,7 @@ namespace Details {
     return output;
   }
 
+  BEAM_SUPPRESS_FORMAT_TRUNCATION();
   inline char* bcrypt(char* output, const char* key, const char* salt) {
     blf_ctx state;
     std::uint32_t rounds, i, k;
@@ -753,6 +756,7 @@ namespace Details {
       ciphertext, 4 * BCRYPT_BLOCKS - 1);
     return output;
   }
+  BEAM_UNSUPPRESS_FORMAT_TRUNCATION();
 
   inline void encode_base64(std::uint8_t* buffer, const std::uint8_t* data,
       std::uint16_t len) {

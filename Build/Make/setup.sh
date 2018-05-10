@@ -33,19 +33,19 @@ if [ ! -d "cryptopp565" ]; then
     rm -f cryptopp565.zip
   fi
 fi
-if [ ! -d "zlib-1.2.8" ]; then
-  sudo -u $username wget https://github.com/madler/zlib/archive/v1.2.8.zip --no-check-certificate
-  if [ -f v1.2.8.zip ]; then
-    sudo -u $username unzip v1.2.8.zip
-    chown -R $username:$username zlib-1.2.8
-    pushd zlib-1.2.8
+if [ ! -d "zlib-1.2.11" ]; then
+  sudo -u $username wget https://github.com/madler/zlib/archive/v1.2.11.zip --no-check-certificate
+  if [ -f v1.2.11.zip ]; then
+    sudo -u $username unzip v1.2.11.zip
+    chown -R $username:$username zlib-1.2.11
+    pushd zlib-1.2.11
     export CFLAGS="-fPIC"
     sudo -E -u $username cmake -G "Unix Makefiles" -DAMD64=ON
     sudo -E -u $username make -j $cores
     make install
     unset CFLAGS
     popd
-    rm -f v1.2.8.zip
+    rm -f v1.2.11.zip
   fi
 fi
 if [ ! -d "mysql-connector-c-6.1.11" ]; then

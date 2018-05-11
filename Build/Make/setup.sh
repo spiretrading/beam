@@ -40,7 +40,7 @@ if [ ! -d "zlib-1.2.11" ]; then
     chown -R $username:$username zlib-1.2.11
     pushd zlib-1.2.11
     export CFLAGS="-fPIC"
-    sudo -E -u $username cmake -G "Unix Makefiles" -DAMD64=ON
+    sudo -E -u $username cmake -G "Unix Makefiles"
     sudo -E -u $username make -j $cores
     make install
     unset CFLAGS

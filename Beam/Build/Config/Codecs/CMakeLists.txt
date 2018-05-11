@@ -33,7 +33,9 @@ add_executable(CodecsTester
   ./../../../Source/CodecsTester/main.cpp)
 target_link_libraries(CodecsTester CodecsTests
   debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH})
+  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{ZLIB_LIBRARY_DEBUG_PATH}
+  optimized $ENV{ZLIB_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(CodecsTester

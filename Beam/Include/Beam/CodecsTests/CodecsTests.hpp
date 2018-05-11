@@ -12,6 +12,7 @@ namespace Tests {
   class ReverseEncoder;
   class SizeDeclarativeDecoderTester;
   class SizeDeclarativeEncoderTester;
+  class ZLibCodecTester;
 }
 }
 }

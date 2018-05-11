@@ -9,6 +9,7 @@
 #include "Beam/CodecsTests/NullEncoderTester.hpp"
 #include "Beam/CodecsTests/SizeDeclarativeDecoderTester.hpp"
 #include "Beam/CodecsTests/SizeDeclarativeEncoderTester.hpp"
+#include "Beam/CodecsTests/ZLibCodecTester.hpp"
 
 using namespace Beam::Codecs::Tests;
 
@@ -21,6 +22,7 @@ int main() {
   runner.addTest(NullEncoderTester::suite());
   runner.addTest(SizeDeclarativeDecoderTester::suite());
   runner.addTest(SizeDeclarativeEncoderTester::suite());
+  runner.addTest(ZLibCodecTester::suite());
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));

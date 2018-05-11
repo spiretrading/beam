@@ -38,14 +38,21 @@ namespace Codecs {
 
   inline std::size_t ZLibEncoder::Encode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    auto sizeEstimate = static_cast<std::size_t>(1.1 * (sourceSize + 1) + 12);
-    if(destinationSize < sizeEstimate) {
-      BOOST_THROW_EXCEPTION(EncoderException(
-        "The buffer was not large enough to hold the compressed data."));
+    z_stream stream;
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+    stream.avail_in = static_cast<uInt>(sourceSize);
+    stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
+    stream.avail_out = static_cast<uInt>(destinationSize);
+    stream.next_out = static_cast<Bytef*>(const_cast<void*>(destination));
+    auto result = deflateInit(&stream, Z_BEST_COMPRESSION);
+    if(result == Z_OK) {
+      result = deflate(&stream, Z_FINISH);
+      if(result == Z_STREAM_END) {
+        result = deflateEnd(&stream);
+      }
     }
-    auto size = static_cast<uLongf>(destinationSize);
-    auto result = compress(reinterpret_cast<Bytef*>(destination), &size,
-      reinterpret_cast<const Bytef*>(source), sourceSize);
     if(result != Z_OK) {
       if(result == Z_BUF_ERROR) {
         BOOST_THROW_EXCEPTION(EncoderException(
@@ -56,7 +63,7 @@ namespace Codecs {
         BOOST_THROW_EXCEPTION(EncoderException("Unknown error."));
       }
     }
-    return static_cast<std::size_t>(size);
+    return static_cast<std::size_t>(stream.total_out);
   }
 
   template<typename Buffer>
@@ -69,25 +76,13 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t ZLibEncoder::Encode(const void* source, std::size_t sourceSize,
       Out<Buffer> destination) {
-    auto sizeEstimate = static_cast<std::size_t>(1.1 * (sourceSize + 1) + 12);
-    auto size = static_cast<uLongf>(sizeEstimate);
+    auto sizeEstimate = static_cast<std::size_t>(
+      deflateBound(nullptr, sourceSize));
     destination->Reserve(sizeEstimate);
-    auto result = compress(
-      reinterpret_cast<Bytef*>(destination->GetMutableData()), &size,
-      reinterpret_cast<const Bytef*>(source), sourceSize);
-    if(result != Z_OK) {
-      if(result == Z_BUF_ERROR) {
-        BOOST_THROW_EXCEPTION(EncoderException(
-          "The buffer was not large enough to hold the compressed data."));
-      } else if(result == Z_MEM_ERROR) {
-        BOOST_THROW_EXCEPTION(EncoderException("Insufficient memory."));
-      } else {
-        BOOST_THROW_EXCEPTION(EncoderException("Unknown error."));
-      }
-    }
-    destination->Shrink(destination->GetSize() -
-      static_cast<std::size_t>(size));
-    return static_cast<std::size_t>(size);
+    auto size = Encode(source, sourceSize, destination->GetMutableData(),
+      destination->GetSize());
+    destination->Shrink(destination->GetSize() - size);
+    return size;
   }
 
   template<typename SourceBuffer, typename DestinationBuffer>

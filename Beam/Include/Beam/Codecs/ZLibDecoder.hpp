@@ -37,9 +37,21 @@ namespace Codecs {
 
   inline std::size_t ZLibDecoder::Decode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    auto zlibDestinationSize = static_cast<uLongf>(destinationSize);
-    auto result = uncompress(reinterpret_cast<Bytef*>(destination),
-      &zlibDestinationSize, reinterpret_cast<const Bytef*>(source), sourceSize);
+    z_stream stream;
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+    stream.avail_in = static_cast<uInt>(sourceSize);
+    stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
+    stream.avail_out = static_cast<uInt>(destinationSize);
+    stream.next_out = static_cast<Bytef*>(destination);
+    auto result = inflateInit(&stream);
+    if(result == Z_OK) {
+      result = inflate(&stream, Z_FINISH);
+      if(result == Z_STREAM_END) {
+        result = inflateEnd(&stream);
+      }
+    }
     if(result != Z_OK) {
       if(result == Z_BUF_ERROR) {
         BOOST_THROW_EXCEPTION(DecoderException(
@@ -53,7 +65,7 @@ namespace Codecs {
         BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
       }
     }
-    return static_cast<std::size_t>(zlibDestinationSize);
+    return static_cast<std::size_t>(stream.total_out);
   }
 
   template<typename Buffer>
@@ -66,15 +78,32 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t ZLibDecoder::Decode(const void* source, std::size_t sourceSize,
       Out<Buffer> destination) {
-    auto originalSize = destination->GetSize();
-    auto destinationSize = static_cast<uLongf>(originalSize);
-    auto result = uncompress(
-      reinterpret_cast<Bytef*>(destination->GetMutableData()), &destinationSize,
-      reinterpret_cast<const Bytef*>(source), sourceSize);
-    if(result != Z_OK) {
+    const auto MAX_FACTOR = 1032;
+    destination->Reserve(10 * sourceSize);
+    while(destination->GetSize() < MAX_FACTOR * sourceSize) {
+      auto destinationSize = destination->GetSize();
+      z_stream stream;
+      stream.zalloc = Z_NULL;
+      stream.zfree = Z_NULL;
+      stream.opaque = Z_NULL;
+      stream.avail_in = static_cast<uInt>(sourceSize);
+      stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
+      stream.avail_out = static_cast<uInt>(destinationSize);
+      stream.next_out = reinterpret_cast<Bytef*>(destination->GetMutableData());
+      auto result = inflateInit(&stream);
+      if(result == Z_OK) {
+        result = inflate(&stream, Z_FINISH);
+        if(result == Z_STREAM_END) {
+          result = inflateEnd(&stream);
+        }
+      }
+      if(result == Z_OK) {
+        auto size = static_cast<std::size_t>(stream.total_out);
+        destination->Shrink(destination->GetSize() - size);
+        return size;
+      }
       if(result == Z_BUF_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException(
-          "The buffer was not large enough to hold the uncompressed data."));
+        destination->Reserve(2 * destination->GetSize());
       } else if(result == Z_MEM_ERROR) {
         BOOST_THROW_EXCEPTION(DecoderException("Insufficient memory."));
       } else if(result == Z_DATA_ERROR) {
@@ -84,9 +113,7 @@ namespace Codecs {
         BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
       }
     }
-    destination->Shrink(destination->GetSize() -
-      static_cast<std::size_t>(destinationSize));
-    return static_cast<std::size_t>(destinationSize);
+    BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
   }
 
   template<typename SourceBuffer, typename DestinationBuffer>

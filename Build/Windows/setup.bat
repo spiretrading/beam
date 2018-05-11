@@ -80,20 +80,14 @@ if exist mysql++-3.2.3 goto end_mysqlpp_setup
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup
-  git clone --branch release-0.2.7 https://github.com/jbeder/yaml-cpp.git yaml-cpp
+  git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp
   if not exist yaml-cpp goto end_yaml_setup
-    pushd yaml-cpp\include\yaml-cpp
-    head -7 noncopyable.h > noncopyable.h.new
-    printf "#include <stdlib.h>" >> noncopyable.h.new
-    tail -n+7 noncopyable.h >> noncopyable.h.new
-    mv noncopyable.h.new noncopyable.h
-    pushd ..\..\
+    pushd yaml-cpp
     mkdir build
     pushd build
     cmake -G "Visual Studio 15 2017" ..
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
-    popd
     popd
     popd
 :end_yaml_setup

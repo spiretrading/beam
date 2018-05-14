@@ -63,15 +63,13 @@ if [ ! -d "mysql-connector-c-6.1.11" ]; then
   fi
 fi
 if [ ! -d "mysql++-3.2.3" ]; then
-  sudo -u $username wget https://tangentsoft.com/mysqlpp/releases/mysql++-3.2.3.tar.gz --no-check-certificate
-  if [ -f mysql++-3.2.3.tar.gz ]; then
-    sudo -u $username gzip -d -c mysql++-3.2.3.tar.gz | sudo -u $username tar -x
+  sudo -u $username git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
+  if [ -d mysql++-3.2.3 ]; then
     pushd mysql++-3.2.3
     sudo -u $username ./configure
     sudo -u $username make -j $cores
     make install
     popd
-    rm -f mysql++-3.2.3.tar.gz
   fi
 fi
 if [ ! -d "yaml-cpp" ]; then

@@ -57,26 +57,14 @@ if exist mysql-connector-c-6.1.11-win32 goto end_mysqlconnector_setup
 :end_mysqlconnector_setup
 
 if exist mysql++-3.2.3 goto end_mysqlpp_setup
-  wget https://tangentsoft.com/mysqlpp/releases/mysql++-3.2.3.tar.gz --no-check-certificate
-  if not exist mysql++-3.2.3.tar.gz goto end_mysqlpp_setup
-    gzip -d -c mysql++-3.2.3.tar.gz | tar -x
+  git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
+  if not exist mysql++-3.2.3 goto end_mysqlpp_setup
     pushd mysql++-3.2.3\vc2005
-    cat mysql++_mysqlpp.vcproj | sed "s/ConfigurationType=\"2\"/ConfigurationType=\"4\"/" | sed "s/_USRDLL;//" | sed "s/DLL_EXPORTS//" | sed "s/MYSQLPP_MAKING_DLL/MYSQLPP_NO_DLL/" > mysql++_mysqlpp.vcproj.new
-    mv mysql++_mysqlpp.vcproj.new mysql++_mysqlpp.vcproj
-    devenv /Upgrade mysql++_mysqlpp.vcproj
     SET CL=/I..\..\mysql-connector-c-6.1.11-win32\include
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Debug
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Release
     SET CL=
-    pushd ..
-    mkdir include
-    pushd include
-    mkdir mysql++
-    cp ../lib/*.h mysql++
     popd
-    popd
-    popd
-    rm mysql++-3.2.3.tar.gz
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup

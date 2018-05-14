@@ -154,7 +154,7 @@ namespace Beam {
       std::cerr << "Unknown error.";
     }
     std::exit(-1);
-    throw std::runtime_error("");
+    return f(std::forward<Args>(args)...);
   }
 
   template<typename T>

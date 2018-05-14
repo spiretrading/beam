@@ -9,7 +9,6 @@ using namespace Beam;
 using namespace Beam::Reactors;
 using namespace Beam::Reactors::Tests;
 using namespace boost;
-using namespace std;
 
 namespace {
   int NoParameterFunction() {
@@ -35,8 +34,8 @@ namespace {
     return none;
   }
 
-  std::tuple<int, string> JoinFunction(int a, const string& b) {
-    return make_tuple(a, b);
+  std::tuple<int, std::string> JoinFunction(int a, const std::string& b) {
+    return std::make_tuple(a, b);
   }
 }
 
@@ -157,10 +156,11 @@ void FunctionReactorTester::TestOneParameterWithFilter() {
 
 void FunctionReactorTester::TestTwoConstantParameters() {
   auto reactor = MakeFunctionReactor(&JoinFunction, MakeConstantReactor(100),
-    MakeConstantReactor(string{"a"}));
+    MakeConstantReactor(std::string("a")));
   AssertValue(*reactor, 0, BaseReactor::Update::COMPLETE_WITH_EVAL,
-    make_tuple(100, "a"));
-  AssertValue(*reactor, 1, BaseReactor::Update::NONE, make_tuple(100, "a"));
+    std::make_tuple(100, "a"));
+  AssertValue(*reactor, 1, BaseReactor::Update::NONE,
+    std::make_tuple(100, "a"));
 }
 
 void FunctionReactorTester::TestVoidFunction() {}

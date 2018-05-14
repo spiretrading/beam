@@ -7,17 +7,10 @@ using namespace Beam;
 using namespace Beam::Python;
 using namespace boost;
 using namespace boost::python;
-using namespace std;
 
 namespace {
-  YAML::Node* LoadYamlFile(const string& path) {
-    ifstream yamlStream{path.c_str()};
-    if(!yamlStream.good()) {
-      throw runtime_error{"File not found."};
-    }
-    YAML::Parser yamlParser{yamlStream};
-    auto node = make_unique<YAML::Node>();
-    yamlParser.GetNextDocument(*node);
+  YAML::Node* LoadYamlFile(const std::string& path) {
+    auto node = std::make_unique<YAML::Node>(LoadFile(path));
     return node.release();
   }
 }

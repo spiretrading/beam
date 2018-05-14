@@ -16,6 +16,7 @@
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ClientTemplate/Version.hpp"
 
@@ -28,7 +29,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -36,8 +36,8 @@ namespace {
     MessageProtocol<TcpSocketChannel, BinarySender<SharedBuffer>,
     SizeDeclarativeEncoder<ZLibEncoder>>, LiveTimer>;
 
-  vector<IpAddress> ParseAddress(const YAML::Node& config) {
-    vector<IpAddress> addresses;
+  std::vector<IpAddress> ParseAddress(const YAML::Node& config) {
+    std::vector<IpAddress> addresses;
     auto address = Extract<IpAddress>(config, "address");
     addresses.push_back(address);
     return addresses;
@@ -73,46 +73,34 @@ namespace Beam {
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  std::string configFile;
   try {
     CmdLine cmd{"", ' ', "1.0-r" CLIENT_TEMPLATE_VERSION
       "\nCopyright (C) 2009 Eidolon Systems Ltd."};
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
+    ValueArg<std::string> configArg{"c", "config", "Configuration file", false,
       "config.yml", "path"};
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
-  YAML::Node config;
-  try {
-    ifstream configStream{configFile.c_str()};
-    if(!configStream.good()) {
-      cerr << configFile << " not found." << endl;
-      return -1;
-    }
-    YAML::Parser configParser{configStream};
-    configParser.GetNextDocument(config);
-  } catch(const YAML::ParserException& e) {
-    cerr << "Invalid YAML at line " << (e.mark.line + 1) << ", " << "column " <<
-      (e.mark.column + 1) << ": " << e.msg << endl;
-    return -1;
-  }
+  auto config = Require(LoadFile, configFile);
   SocketThreadPool socketThreadPool;
   TimerThreadPool timerThreadPool;
-  string message;
-  optional<ApplicationClient> client;
+  std::string message;
+  boost::optional<ApplicationClient> client;
   int rate;
   try {
     auto addresses = ParseAddress(config);
-    message = Extract<string>(config, "message");
+    message = Extract<std::string>(config, "message");
     rate = Extract<int>(config, "rate");
     client.emplace(Initialize(addresses, Ref(socketThreadPool)),
       Initialize(seconds{10}, Ref(timerThreadPool)));
   } catch(const std::exception& e) {
-    cerr << "Unable to initialize client: " << e.what() << endl;
+    std::cerr << "Unable to initialize client: " << e.what() << std::endl;
     return -1;
   }
   RegisterServletTemplateServices(Store(client->GetSlots()));

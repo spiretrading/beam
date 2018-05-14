@@ -63,29 +63,18 @@ if [ ! -d "mysql-connector-c-6.1.11" ]; then
   fi
 fi
 if [ ! -d "mysql++-3.2.3" ]; then
-  sudo -u $username wget https://tangentsoft.com/mysqlpp/releases/mysql++-3.2.3.tar.gz --no-check-certificate
-  if [ -f mysql++-3.2.3.tar.gz ]; then
-    sudo -u $username gzip -d -c mysql++-3.2.3.tar.gz | sudo -u $username tar -x
+  sudo -u $username git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
+  if [ -d mysql++-3.2.3 ]; then
     pushd mysql++-3.2.3
     sudo -u $username ./configure
     sudo -u $username make -j $cores
     make install
     popd
-    rm -f mysql++-3.2.3.tar.gz
   fi
 fi
 if [ ! -d "yaml-cpp" ]; then
-  sudo -u $username wget https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip --no-check-certificate
-  if [ -f release-0.2.7.zip ]; then
-    sudo -u $username unzip release-0.2.7.zip
-    sudo -u $username mv yaml-cpp-release-0.2.7 yaml-cpp
-    pushd yaml-cpp/include/yaml-cpp
-    sudo -u $username touch noncopyable.h.new
-    sudo -u $username head -7 noncopyable.h > noncopyable.h.new
-    sudo -u $username printf "#include <stdlib.h>" >> noncopyable.h.new
-    sudo -u $username tail -n+7 noncopyable.h >> noncopyable.h.new
-    sudo -u $username mv noncopyable.h.new noncopyable.h
-    popd
+  sudo -u $username git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp
+  if [ -d "yaml-cpp" ]; then
     pushd yaml-cpp
     sudo -u $username mkdir build
     popd
@@ -98,7 +87,6 @@ if [ ! -d "yaml-cpp" ]; then
     unset CFLAGS
     unset CXXFLAGS
     popd
-    rm -f release-0.2.7.zip
   fi
 fi
 if [ ! -d "tclap-1.2.1" ]; then

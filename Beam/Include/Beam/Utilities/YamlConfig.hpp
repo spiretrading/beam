@@ -23,11 +23,10 @@ namespace Beam {
   template<typename T, typename Enabled = void>
   struct YamlValueExtractor {
     T operator ()(const YAML::Node& node) const {
-      std::string symbol;
-      node >> symbol;
+      auto symbol = node.as<std::string>();
       boost::trim(symbol);
       T value;
-      std::stringstream stream{symbol};
+      std::stringstream stream(symbol);
       stream >> value;
       return value;
     }
@@ -36,25 +35,23 @@ namespace Beam {
   //! Loads a YAML Node from a file.
   /*!
     \param path The path to the YAML file.
-    \param node The location to store the YAML Node represented by the file at
-           the specified <i>path</i>.
+    \return The YAML Node represented by the file at the specified <i>path</i>.
   */
-  inline void LoadFile(const std::string& path, Beam::Out<YAML::Node> node) {
+  inline YAML::Node LoadFile(const std::string& path) {
     std::ifstream configStream(path.c_str());
     if(!configStream.good()) {
       std::stringstream message;
       message << "YAML file not found: " << path << "\n";
-      BOOST_THROW_EXCEPTION(std::runtime_error{message.str()});
+      BOOST_THROW_EXCEPTION(std::runtime_error(message.str()));
     }
     try {
-      YAML::Parser configParser(configStream);
-      configParser.GetNextDocument(*node);
+      return YAML::Load(configStream);
     } catch(YAML::ParserException& e) {
       std::stringstream message;
       message << "Invalid YAML in file \"" << path << "\" at line " <<
         (e.mark.line + 1) << ", " << "column " << (e.mark.column + 1) << ": " <<
         e.msg << "\n";
-      BOOST_THROW_EXCEPTION(std::runtime_error{message.str()});
+      BOOST_THROW_EXCEPTION(std::runtime_error(message.str()));
     }
   }
 
@@ -69,7 +66,7 @@ namespace Beam {
     std::stringstream ss;
     ss << "Parser error at line " << (mark.line + 1) << ", " << "column " <<
       (mark.column + 1) << ": " << message << "\n";
-    return std::runtime_error{ss.str()};
+    return std::runtime_error(ss.str());
   }
 
   //! Extracts a required value from a YAML node.
@@ -90,11 +87,11 @@ namespace Beam {
   */
   template<typename T>
   T Extract(const YAML::Node& node, const std::string& name) {
-    auto valueNode = node.FindValue(name);
-    BEAM_ASSERT_MESSAGE(valueNode != nullptr, "Config error at line " <<
-      (node.GetMark().line + 1) << ", column " << (node.GetMark().column + 1) <<
+    auto& valueNode = node[name];
+    BEAM_ASSERT_MESSAGE(valueNode.IsDefined(), "Config error at line " <<
+      (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
       ":\n\tNode not found: " << name << std::endl);
-    return Extract<T>(*valueNode);
+    return Extract<T>(valueNode);
   }
 
   //! Extracts an optional value from a YAML node or returns a default value.
@@ -107,8 +104,8 @@ namespace Beam {
   */
   template<typename T>
   T Extract(const YAML::Node& node, const std::string& name, const T& d) {
-    auto valueNode = node.FindValue(name);
-    if(valueNode == nullptr) {
+    auto& valueNode = node[name];
+    if(!valueNode) {
       return d;
     }
     return Extract<T>(node, name);
@@ -120,20 +117,20 @@ namespace Beam {
     \param name The name of the YAML child Node to extract.
     \return The child Node with the specified <i>name</i>.
   */
-  inline const YAML::Node& GetNode(const YAML::Node& node,
-      const std::string& name) {
-    auto valueNode = node.FindValue(name);
-    BEAM_ASSERT_MESSAGE(valueNode != nullptr, "Config error at line " <<
-      (node.GetMark().line + 1) << ", column " << (node.GetMark().column + 1) <<
+  inline YAML::Node GetNode(const YAML::Node& node, const std::string& name) {
+    auto valueNode = node[name];
+    if(valueNode) {
+      return valueNode;
+    }
+    BEAM_ASSERT_MESSAGE(false, "Config error at line " <<
+      (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
       ":\n\tNode not found: " << name << std::endl);
-    return *valueNode;
   }
 
   template<>
   struct YamlValueExtractor<std::string> {
     std::string operator ()(const YAML::Node& node) const {
-      std::string value;
-      node >> value;
+      auto value = node.as<std::string>();
       boost::trim(value);
       return value;
     }
@@ -142,9 +139,7 @@ namespace Beam {
   template<>
   struct YamlValueExtractor<bool> {
     bool operator ()(const YAML::Node& node) const {
-      bool value;
-      node >> value;
-      return value;
+      return node.as<bool>();
     }
   };
 
@@ -152,7 +147,7 @@ namespace Beam {
   struct YamlValueExtractor<boost::rational<int>> {
     boost::rational<int> operator ()(const YAML::Node& node) const {
       return Parsers::Parse<Parsers::RationalParser<int>>(
-        node.to<std::string>());
+        node.as<std::string>());
     }
   };
 
@@ -170,8 +165,7 @@ namespace Beam {
   template<>
   struct YamlValueExtractor<boost::posix_time::time_duration> {
     boost::posix_time::time_duration operator ()(const YAML::Node& node) const {
-      std::string rawValue;
-      node >> rawValue;
+      auto rawValue = node.as<std::string>();
       if(rawValue == "infinity" || rawValue == "+infinity") {
         return boost::posix_time::pos_infin;
       } else if(rawValue == "-infinity") {
@@ -183,8 +177,7 @@ namespace Beam {
         ++i;
       }
       BEAM_ASSERT_MESSAGE(i != rawValue.rend(), "Config error at line " <<
-        (node.GetMark().line + 1) << ", column " <<
-        (node.GetMark().column + 1) <<
+        (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
         ":\n\tInvalid time duration specified." << std::endl);
       std::size_t unitOffset = std::distance(i, rawValue.crend());
       int scalarValue;
@@ -194,8 +187,8 @@ namespace Beam {
         scalarValue = boost::lexical_cast<int>(configScalar);
       } catch(const std::exception& e) {
         BEAM_ASSERT_MESSAGE(false, "Config error at line " <<
-          (node.GetMark().line + 1) << ", column " <<
-          (node.GetMark().column + 1) << ":\n\t" << e.what() << std::endl);
+          (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
+          ":\n\t" << e.what() << std::endl);
       }
       std::string unit = boost::algorithm::trim_copy(
         rawValue.substr(unitOffset));
@@ -211,24 +204,21 @@ namespace Beam {
         return boost::posix_time::microseconds(scalarValue);
       }
       BEAM_ASSERT_MESSAGE(false, "Config error at line " <<
-        (node.GetMark().line + 1) << ", column " <<
-        (node.GetMark().column + 1) << ":\n\tInvalid time unit given:\n\t" <<
-        unit << std::endl);
+        (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
+        ":\n\tInvalid time unit given:\n\t" << unit << std::endl);
     }
   };
 
   template<>
   struct YamlValueExtractor<boost::posix_time::ptime> {
     boost::posix_time::ptime operator ()(const YAML::Node& node) const {
-      std::string rawValue;
-      node >> rawValue;
+      auto rawValue = node.as<std::string>();
       boost::posix_time::ptime value;
       Parsers::DateTimeParser parser;
       auto source = Parsers::ParserStreamFromString(rawValue);
       BEAM_ASSERT_MESSAGE(parser.Read(source, value), "Config error at line " <<
-        (node.GetMark().line + 1) << ", column " <<
-        (node.GetMark().column + 1) << ":\n\tInvalid date/time specified." <<
-        std::endl);
+        (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
+        ":\n\tInvalid date/time specified." << std::endl);
       return value;
     }
   };
@@ -236,8 +226,7 @@ namespace Beam {
   template<>
   struct YamlValueExtractor<Network::IpAddress> {
     Network::IpAddress operator ()(const YAML::Node& node) const {
-      std::string rawValue;
-      node >> rawValue;
+      auto rawValue = node.as<std::string>();
       boost::trim(rawValue);
       std::string::size_type colonPosition = rawValue.find(':');
       if(colonPosition == std::string::npos) {
@@ -250,8 +239,8 @@ namespace Beam {
           rawValue.substr(colonPosition + 1));
       } catch(const std::exception& e) {
         BEAM_ASSERT_MESSAGE(false, "Config error at line " <<
-          (node.GetMark().line + 1) << ", column " <<
-          (node.GetMark().column + 1) << ":\n\t" << e.what() << std::endl);
+          (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
+          ":\n\t" << e.what() << std::endl);
       }
       return Network::IpAddress(host, port);
     }

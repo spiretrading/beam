@@ -156,7 +156,7 @@ void FunctionReactorTester::TestOneParameterWithFilter() {
 
 void FunctionReactorTester::TestTwoConstantParameters() {
   auto reactor = MakeFunctionReactor(&JoinFunction, MakeConstantReactor(100),
-    MakeConstantReactor(std::string{"a"}));
+    MakeConstantReactor(std::string("a")));
   AssertValue(*reactor, 0, BaseReactor::Update::COMPLETE_WITH_EVAL,
     std::make_tuple(100, "a"));
   AssertValue(*reactor, 1, BaseReactor::Update::NONE,

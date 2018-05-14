@@ -7,6 +7,7 @@
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
 using namespace Beam;
@@ -69,20 +70,7 @@ int main(int argc, char** argv) {
     cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
     return -1;
   }
-  ifstream configStream(configFile.c_str());
-  if(!configStream.good()) {
-    cerr << configFile << " not found." << endl;
-    return -1;
-  }
-  YAML::Node config;
-  try {
-    YAML::Parser configParser(configStream);
-    configParser.GetNextDocument(config);
-  } catch(YAML::ParserException& e) {
-    cerr << "Invalid YAML at line " << (e.mark.line + 1) << ", " << "column " <<
-      (e.mark.column + 1) << ": " << e.msg << endl;
-    return -1;
-  }
+  auto config = Require(LoadFile, configFile);
   ServiceLocatorClientConfig serviceLocatorClientConfig;
   try {
     serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(config);

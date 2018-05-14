@@ -138,6 +138,25 @@ namespace Beam {
     }
   };
 
+  //! Calls a function and calls terminate if the function throws an exception.
+  /*!
+    \param f The function to call.
+    \param args The arguments to pass to f.
+    \return The result of f.
+  */
+  template<typename F, typename... Args>
+  auto Require(F&& f, Args&&... args) noexcept {
+    try {
+      return f(std::forward<Args>(args)...);
+    } catch(const std::exception& e) {
+      std::cerr << e.what();
+    } catch(...) {
+      std::cerr << "Unknown error.";
+    }
+    std::exit(-1);
+    throw std::runtime_error("");
+  }
+
   template<typename T>
   Expect<T>::Expect(const T& value)
       : m_value(value) {}

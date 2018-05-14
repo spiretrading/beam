@@ -16,6 +16,7 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServiceLocator/Version.hpp"
 
@@ -68,20 +69,7 @@ int main(int argc, const char** argv) {
     cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
     return -1;
   }
-  YAML::Node config;
-  try {
-    ifstream configStream{configFile.c_str()};
-    if(!configStream.good()) {
-      cerr << configFile << " not found." << endl;
-      return -1;
-    }
-    YAML::Parser configParser{configStream};
-    configParser.GetNextDocument(config);
-  } catch(const YAML::ParserException& e) {
-    cerr << "Invalid YAML at line " << (e.mark.line + 1) << ", " << "column " <<
-      (e.mark.column + 1) << ": " << e.msg << endl;
-    return -1;
-  }
+  auto config = Require(LoadFile, configFile);
   MySqlConfig mySqlConfig;
   try {
     mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));

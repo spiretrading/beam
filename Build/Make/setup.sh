@@ -75,17 +75,8 @@ if [ ! -d "mysql++-3.2.3" ]; then
   fi
 fi
 if [ ! -d "yaml-cpp" ]; then
-  sudo -u $username wget https://github.com/jbeder/yaml-cpp/archive/release-0.2.7.zip --no-check-certificate
-  if [ -f release-0.2.7.zip ]; then
-    sudo -u $username unzip release-0.2.7.zip
-    sudo -u $username mv yaml-cpp-release-0.2.7 yaml-cpp
-    pushd yaml-cpp/include/yaml-cpp
-    sudo -u $username touch noncopyable.h.new
-    sudo -u $username head -7 noncopyable.h > noncopyable.h.new
-    sudo -u $username printf "#include <stdlib.h>" >> noncopyable.h.new
-    sudo -u $username tail -n+7 noncopyable.h >> noncopyable.h.new
-    sudo -u $username mv noncopyable.h.new noncopyable.h
-    popd
+  sudo -u $username git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp
+  if [ -d "yaml-cpp" ]; then
     pushd yaml-cpp
     sudo -u $username mkdir build
     popd
@@ -98,7 +89,6 @@ if [ ! -d "yaml-cpp" ]; then
     unset CFLAGS
     unset CXXFLAGS
     popd
-    rm -f release-0.2.7.zip
   fi
 fi
 if [ ! -d "tclap-1.2.1" ]; then

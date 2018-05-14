@@ -64,7 +64,7 @@ namespace Network {
       m_socket->m_isReadPending = true;
       m_socket->m_socket.async_read_some(boost::asio::buffer(destination, size),
         [&] (const boost::system::error_code& error, std::size_t readSize) {
-          if(error != 0) {
+          if(error) {
             if(Details::IsEndOfFile(error)) {
               readResult.GetEval().SetException(
                 IO::EndOfFileException(error.message()));

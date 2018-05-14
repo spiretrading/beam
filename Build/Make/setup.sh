@@ -132,20 +132,20 @@ if [ ! -d "openssl-1.0.2g" ]; then
     rm openssl-1.0.2g.tar.gz
   fi
 fi
-if [ ! -d "boost_1_66_0" ]; then
-  sudo -u $username wget https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.tar.gz -O boost_1_66_0.tar.gz --no-check-certificate
-  if [ -f boost_1_66_0.tar.gz ]; then
-    sudo -u $username tar xvf boost_1_66_0.tar.gz
-    pushd boost_1_66_0
+if [ ! -d "boost_1_67_0" ]; then
+  sudo -u $username wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz -O boost_1_67_0.tar.gz --no-check-certificate
+  if [ -f boost_1_67_0.tar.gz ]; then
+    sudo -u $username tar xvf boost_1_67_0.tar.gz
+    pushd boost_1_67_0
     export BOOST_BUILD_PATH=$(pwd)
     sudo -u $username cp tools/build/example/user-config.jam .
     sudo -u $username printf "using python : 3.6 : /usr/bin/python3 : /usr/include/python3.6 : /usr/lib ;\n" >> user-config.jam
     sudo -u $username ./bootstrap.sh --with-python=/usr/bin/python3 --with-python-version=3.6 --with-python-root=/usr/local/lib/python3.6
-    sudo -u $username ./b2 -j$cores cxxflags="-std=c++14 -fPIC" stage
+    sudo -u $username ./b2 -j$cores cxxflags="-std=c++17 -fPIC" stage
     ./b2 install
     popd
     unset BOOST_BUILD_PATH
-    rm -f boost_1_66_0.tar.gz
+    rm -f boost_1_67_0.tar.gz
   fi
 fi
 if [ ! -d "lua-5.3.1" ]; then

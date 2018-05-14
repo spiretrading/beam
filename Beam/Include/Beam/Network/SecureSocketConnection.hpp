@@ -147,7 +147,7 @@ namespace Network {
         Shutdown();
       }
       errorCode = boost::asio::error::host_not_found;
-      while(errorCode != 0 && endpointIterator != end) {
+      while(errorCode && endpointIterator != end) {
         boost::system::error_code closeError;
         m_socket->m_socket.lowest_layer().close(closeError);
         if(m_interface.is_initialized()) {

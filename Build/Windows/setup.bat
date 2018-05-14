@@ -117,11 +117,11 @@ if exist openssl-1.0.2g goto end_openssl_setup
     rm openssl-1.0.2g.tar.gz
 :end_openssl_setup
 
-if exist boost_1_66_0 goto end_boost_setup
-  wget --no-check-certificate https://dl.bintray.com/boostorg/release/1.66.0/source/boost_1_66_0.zip -O boost_1_66_0.zip
-  if not exist boost_1_66_0.zip goto end_boost_setup
-    unzip boost_1_66_0.zip
-    pushd boost_1_66_0
+if exist boost_1_67_0 goto end_boost_setup
+  wget --no-check-certificate https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.zip -O boost_1_67_0.zip
+  if not exist boost_1_67_0.zip goto end_boost_setup
+    unzip boost_1_67_0.zip
+    pushd boost_1_67_0
     CALL bootstrap.bat vc141
     if "%NUMBER_OF_PROCESSORS%" == "" (
       SET BJAM_PROCESSORS=
@@ -131,7 +131,7 @@ if exist boost_1_66_0 goto end_boost_setup
     b2 %BJAM_PROCESSORS% --without-context --prefix=%cd% --build-type=complete toolset=msvc-14.1 link=static,shared runtime-link=shared install
     b2 %BJAM_PROCESSORS% --with-context --prefix=%cd% --build-type=complete toolset=msvc-14.1 link=static runtime-link=shared install
     popd
-    rm boost_1_66_0.zip
+    rm boost_1_67_0.zip
 :end_boost_setup
 
 if exist lua-5.3.1 goto end_lua_setup

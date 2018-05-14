@@ -70,7 +70,7 @@ namespace Network {
         m_socket->m_socket.async_send_to(boost::asio::buffer(data, size),
             destinationEndpoint,
           [&] (const boost::system::error_code& error, std::size_t writeSize) {
-            if(error != 0) {
+            if(error) {
               if(Details::IsEndOfFile(error)) {
                 writeResult.GetEval().SetException(IO::EndOfFileException());
                 return;

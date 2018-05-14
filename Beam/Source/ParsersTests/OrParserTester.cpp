@@ -9,12 +9,11 @@ using namespace Beam::IO;
 using namespace Beam::Parsers;
 using namespace Beam::Parsers::Tests;
 using namespace boost;
-using namespace std;
 
 void OrParserTester::TestChainingNoNullParsersWithNoDuplicateTypes() {
   auto parser = ('{' >> *(any_p - '}') >> '}') | int_p | bool_p | alpha_p;
   auto source = ParserStreamFromString("");
-  variant<string, int, bool, char> value;
+  variant<std::string, int, bool, char> value;
   CPPUNIT_ASSERT(!parser.Read(source, value));
   source = ParserStreamFromString("a");
   CPPUNIT_ASSERT(parser.Read(source, value));

@@ -45,7 +45,7 @@ namespace Network {
         boost::asio::async_write(m_socket->m_socket,
             boost::asio::buffer(data, size),
           [&] (const boost::system::error_code& error, std::size_t writeSize) {
-            if(error != 0) {
+            if(error) {
               if(Details::IsEndOfFile(error)) {
                 writeResult.GetEval().SetException(IO::EndOfFileException());
               } else {

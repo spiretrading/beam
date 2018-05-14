@@ -67,7 +67,7 @@ namespace Threading {
     m_deadLineTimer.async_wait(
       [=] (const boost::system::error_code& error) {
         boost::lock_guard<Mutex> lock(m_mutex);
-        if(error != 0) {
+        if(error) {
           m_publisher.Push(Timer::Result::CANCELED);
         } else {
           m_publisher.Push(Timer::Result::EXPIRED);

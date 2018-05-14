@@ -179,7 +179,7 @@ namespace Network {
       m_socket->m_socket.async_receive_from(
           boost::asio::buffer(destination, size), senderEndpoint,
         [&] (const boost::system::error_code& error, std::size_t readSize) {
-          if(error != 0) {
+          if(error) {
             if(Details::IsEndOfFile(error)) {
               readResult.GetEval().SetException(IO::EndOfFileException());
               return;

@@ -104,6 +104,8 @@ if exist boost_1_67_0 goto end_boost_setup
   if not exist boost_1_67_0.zip goto end_boost_setup
     unzip boost_1_67_0.zip
     pushd boost_1_67_0
+    wget --no-check-certificate https://www.boost.org/patches/1_67_0/0003-Python-Fix-auto-linking-logic-Windows-only.patch
+    git apply 0003-Python-Fix-auto-linking-logic-Windows-only.patch
     CALL bootstrap.bat vc141
     if "%NUMBER_OF_PROCESSORS%" == "" (
       SET BJAM_PROCESSORS=

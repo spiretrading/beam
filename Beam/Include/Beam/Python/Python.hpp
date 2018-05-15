@@ -2,6 +2,11 @@
 #define BEAM_PYTHON_HPP
 #include <utility>
 #include <vector>
+#ifdef _MSC_VER
+#define _BPYCONCAT(A, B) A ## B
+#define BPYCONCAT(A, B) _BPYCONCAT(A, B)
+#define BOOST_LIB_NAME BPYCONCAT(boost_python, BPYCONCAT(3, 6))
+#endif
 #include <boost/python.hpp>
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Utilities/DllExport.hpp"

@@ -72,7 +72,7 @@ namespace Network {
         ToString(m_address.GetPort()));
       boost::system::error_code error;
       auto endpointIterator = resolver.resolve(query, error);
-      if(error != 0) {
+      if(error) {
         BOOST_THROW_EXCEPTION(SocketException(error.value(), error.message()));
       }
       m_acceptor.emplace(*m_ioService, *endpointIterator);
@@ -98,7 +98,7 @@ namespace Network {
       Ref(*m_socketThreadPool)});
     m_acceptor->async_accept(channel->m_socket->m_socket,
       [&] (const boost::system::error_code& error) {
-        if(error != 0) {
+        if(error) {
           if(Details::IsEndOfFile(error)) {
             acceptEval.SetException(IO::EndOfFileException(error.message()));
           } else {

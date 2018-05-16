@@ -16,7 +16,7 @@ namespace Python {
     public:
 
       //! Constructs a GilLock.
-      GilLock() = default;
+      GilLock();
 
       //! Acquired the Python global interpreter lock.
       void lock();
@@ -33,6 +33,8 @@ namespace Python {
   inline bool HasGil() {
     return PyGILState_Check() != 0;
   }
+
+  inline GilLock::GilLock() = default;
 
   inline void GilLock::lock() {
     m_hasGil = HasGil();

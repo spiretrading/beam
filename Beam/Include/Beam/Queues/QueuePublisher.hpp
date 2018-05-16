@@ -1,6 +1,6 @@
 #ifndef BEAM_QUEUEPUBLISHER_HPP
 #define BEAM_QUEUEPUBLISHER_HPP
-#include <boost/atomic/atomic.hpp>
+#include <atomic>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
@@ -85,7 +85,7 @@ namespace Details {
         std::shared_ptr<QueueWriter<Type>> monitor) const override final;
 
     private:
-      mutable boost::atomic_bool m_isReading;
+      mutable std::atomic_bool m_isReading;
       mutable PublisherType m_publisher;
       mutable std::shared_ptr<QueueReader<Type>> m_queue;
       mutable Routines::RoutineHandler m_readLoop;

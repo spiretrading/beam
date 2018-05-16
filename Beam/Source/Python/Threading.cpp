@@ -62,10 +62,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTimer);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Timer::Result>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualTimer);
-
 void Beam::Python::ExportLiveTimer() {
   class_<ToPythonTimer<LiveTimer>, boost::noncopyable, bases<VirtualTimer>>(
       "LiveTimer", no_init)

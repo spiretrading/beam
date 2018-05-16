@@ -172,20 +172,12 @@ namespace Beam {
 
   template<>
   inline std::int64_t Convert(const char* const& source) {
-#ifdef _MSC_VER
-    return ::_strtoi64(source, nullptr, 10);
-#else
     return std::strtoll(source, nullptr, 10);
-#endif
   }
 
   template<>
   inline std::uint64_t Convert(const char* const& source) {
-#ifdef _MSC_VER
-    return ::_strtoui64(source, nullptr, 10);
-#else
     return std::strtoull(source, nullptr, 10);
-#endif
   }
 
   template<>
@@ -195,20 +187,12 @@ namespace Beam {
 
   template<>
   inline std::int64_t Convert(char* const& source) {
-#ifdef _MSC_VER
-    return ::_strtoi64(source, nullptr, 10);
-#else
     return std::strtoll(source, nullptr, 10);
-#endif
   }
 
   template<>
   inline std::uint64_t Convert(char* const& source) {
-#ifdef _MSC_VER
-    return ::_strtoui64(source, nullptr, 10);
-#else
     return std::strtoull(source, nullptr, 10);
-#endif
   }
 
   template<typename VectorSource, typename VectorAllocator>

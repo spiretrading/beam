@@ -27,8 +27,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Eval<object>);
-
 void Beam::Python::ExportBaseAsync() {
   {
     scope outer = class_<BaseAsync, noncopyable>("BaseAsync", no_init);

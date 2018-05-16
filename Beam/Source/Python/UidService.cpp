@@ -80,8 +80,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualUidClient);
-
 void Beam::Python::ExportApplicationUidClient() {
   class_<ToPythonUidClient<Client>, bases<VirtualUidClient>,
     boost::noncopyable>("ApplicationUidClient", no_init)

@@ -1,10 +1,10 @@
 #ifndef BEAM_TASK_HPP
 #define BEAM_TASK_HPP
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
 #include <boost/any.hpp>
-#include <boost/atomic/atomic.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/throw_exception.hpp>
@@ -20,11 +20,11 @@ namespace Tasks {
 namespace Details {
   template<typename T>
   struct TaskDetails {
-    static boost::atomic_llong m_nextId;
+    static std::atomic_llong m_nextId;
   };
 
   template<typename T>
-  boost::atomic_llong TaskDetails<T>::m_nextId(0);
+  std::atomic_llong TaskDetails<T>::m_nextId(0);
 
   BEAM_ENUM(TaskState,
 

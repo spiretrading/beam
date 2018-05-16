@@ -1,12 +1,12 @@
 #ifndef BEAM_SERVICELOCATORSERVLET_HPP
 #define BEAM_SERVICELOCATORSERVLET_HPP
 #include <algorithm>
+#include <atomic>
 #include <random>
 #include <string>
 #include <unordered_map>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/atomic/atomic.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
@@ -69,7 +69,7 @@ namespace ServiceLocator {
       Threading::Sync<ServiceEntryListings> m_serviceEntryListings;
       Threading::Sync<DirectoryEntryMonitorEntries>
         m_directoryEntryMonitorEntries;
-      boost::atomic<int> m_nextServiceId;
+      std::atomic_int m_nextServiceId;
       IO::OpenState m_openState;
 
       void Shutdown();

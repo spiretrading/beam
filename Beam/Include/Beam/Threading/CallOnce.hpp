@@ -1,6 +1,6 @@
-#ifndef BEAM_CALLONCE_HPP
-#define BEAM_CALLONCE_HPP
-#include <boost/atomic/atomic.hpp>
+#ifndef BEAM_CALL_ONCE_HPP
+#define BEAM_CALL_ONCE_HPP
+#include <atomic>
 #include <boost/thread/locks.hpp>
 #include "Beam/Threading/Threading.hpp"
 
@@ -33,7 +33,7 @@ namespace Threading {
       bool Call(const F& f);
 
     private:
-      boost::atomic_bool m_isInitialized;
+      std::atomic_bool m_isInitialized;
       Mutex m_mutex;
   };
 

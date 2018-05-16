@@ -1,6 +1,6 @@
 #ifndef BEAM_QUEUEDREADER_HPP
 #define BEAM_QUEUEDREADER_HPP
-#include <boost/atomic/atomic.hpp>
+#include <atomic>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/PipedReader.hpp"
@@ -44,7 +44,7 @@ namespace IO {
       typename OptionalLocalPtr<SourceReaderType>::type m_sourceReader;
       PipedReader<Buffer> m_queuedReader;
       PipedWriter<Buffer> m_queuedWriter;
-      boost::atomic_bool m_isReadLoopRunning;
+      std::atomic_bool m_isReadLoopRunning;
       Routines::RoutineHandler m_readLoopHandler;
 
       void LaunchReadLoop();

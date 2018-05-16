@@ -59,11 +59,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualChannelIdentifier);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualConnection);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualReader);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualWriter);
-
 void Beam::Python::ExportChannel() {
   class_<VirtualChannel, boost::noncopyable>("Channel", no_init)
     .add_property("identifier", make_function(&VirtualChannel::GetIdentifier,

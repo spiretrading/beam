@@ -1,8 +1,8 @@
 #ifndef BEAM_AGGREGATEQUEUE_HPP
 #define BEAM_AGGREGATEQUEUE_HPP
+#include <atomic>
 #include <utility>
 #include <vector>
-#include <boost/atomic/atomic.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/QueueReader.hpp"
@@ -43,7 +43,7 @@ namespace Beam {
     private:
       std::vector<std::shared_ptr<QueueReader<T>>> m_sources;
       std::shared_ptr<Queue<T>> m_destination;
-      boost::atomic_int m_queueCount;
+      std::atomic_int m_queueCount;
       Routines::RoutineHandlerGroup m_routines;
   };
 

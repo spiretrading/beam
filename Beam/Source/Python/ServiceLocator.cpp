@@ -206,8 +206,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualServiceLocatorClient);
-
 void Beam::Python::ExportApplicationServiceLocatorClient() {
   class_<ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>,
     bases<VirtualServiceLocatorClient>, boost::noncopyable>(

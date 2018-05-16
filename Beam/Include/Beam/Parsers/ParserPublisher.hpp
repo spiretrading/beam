@@ -1,6 +1,6 @@
 #ifndef BEAM_PARSERPUBLISHER_HPP
 #define BEAM_PARSERPUBLISHER_HPP
-#include <boost/atomic/atomic.hpp>
+#include <atomic>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
@@ -64,7 +64,7 @@ namespace Parsers {
       Parser m_parser;
       ParserErrorPolicy m_errorPolicy;
       MultiQueueWriter<Source> m_publisher;
-      mutable boost::atomic_bool m_isParsing;
+      mutable std::atomic_bool m_isParsing;
       mutable Routines::RoutineHandler m_parseLoop;
 
       void ParseLoop();

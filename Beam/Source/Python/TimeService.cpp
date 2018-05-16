@@ -117,8 +117,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(VirtualTimeClient);
-
 void Beam::Python::ExportTzDatabase() {
   class_<tz_database>("TimeZoneDatabase", no_init);
 }

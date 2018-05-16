@@ -15,8 +15,6 @@ BEAM_EXTERN template struct BEAM_EXPORT_DLL
 BEAM_EXTERN template struct BEAM_EXPORT_DLL
   Beam::Routines::Details::NextId<void>;
 
-#define BEAM_DEFINE_PYTHON_POINTER_LINKER(T)
-
 namespace Beam {
 namespace Python {
 

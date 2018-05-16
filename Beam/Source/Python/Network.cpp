@@ -129,8 +129,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(WrapperChannelIdentifier<SocketIdentifier>);
-
 void Beam::Python::ExportIpAddress() {
   class_<IpAddress>("IpAddress", init<>())
     .def(init<std::string, unsigned short>())

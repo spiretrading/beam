@@ -336,55 +336,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  AggregateReactor<std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseReactorWrapper);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicReactor<boost::python::object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  ChainReactor<std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
-  std::shared_ptr<PythonReactor>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ConstantReactor<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FoldParameterReactor<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  FoldReactor<std::shared_ptr<PythonReactor> BOOST_PP_COMMA()
-  std::shared_ptr<FoldParameterReactor<object>> BOOST_PP_COMMA()
-  std::shared_ptr<FoldParameterReactor<object>> BOOST_PP_COMMA()
-  std::shared_ptr<PythonReactor>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(NoneReactor<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ProxyReactor<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<int>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonFunctionReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonQueueReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<BaseReactor::Update>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<bool>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::int64_t>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<ptime>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<std::shared_ptr<Reactor<object>>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Reactor<time_duration>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Beam::Python::Details::ReactorWrapper<PythonReactor>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Beam::Python::Details::ReactorWrapper<Reactor<BaseReactor::Update>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Beam::Python::Details::ReactorWrapper<Reactor<bool>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  Beam::Python::Details::ReactorWrapper<Reactor<ptime>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
-  Reactor<std::shared_ptr<Reactor<object>>>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
-  Reactor<time_duration>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Beam::Python::Details::ReactorWrapper<
-  Reactor<std::int64_t>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(SwitchReactor<
-  std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ThrowReactor<object>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(UpdateReactor);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(WhenCompleteReactor<
-  NoThrowFunction<void> BOOST_PP_COMMA() std::shared_ptr<PythonReactor>>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(std::type_info);
-
 void Beam::Python::ExportAggregateReactor() {
   using ExportedReactor =
     AggregateReactor<std::shared_ptr<Reactor<std::shared_ptr<PythonReactor>>>>;

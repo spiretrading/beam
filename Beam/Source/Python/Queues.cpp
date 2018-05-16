@@ -79,13 +79,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(BaseQueue);
-BEAM_DEFINE_PYTHON_QUEUE_LINKER(object);
-BEAM_DEFINE_PYTHON_QUEUE_LINKER(std::function<void ()>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(RoutineTaskQueue);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(TaskQueue);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonAbstractQueue<object>);
-
 void Beam::Python::ExportBasePublisher() {
   class_<BasePublisher, noncopyable>("BasePublisher", no_init);
 }

@@ -1,9 +1,9 @@
 #ifndef BEAM_QUERYSUBSCRIPTIONS_HPP
 #define BEAM_QUERYSUBSCRIPTIONS_HPP
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <utility>
-#include <boost/atomic/atomic.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/Queries.hpp"
@@ -113,7 +113,7 @@ namespace Queries {
         SubscriptionEntry(int id, ServiceProtocolClient& client,
           const Range& range, std::unique_ptr<Evaluator> filter);
       };
-      boost::atomic_int m_nextQueryId;
+      std::atomic_int m_nextQueryId;
       SynchronizedVector<std::shared_ptr<SubscriptionEntry>> m_subscriptions;
       std::vector<ServiceProtocolClient*> receivingClients;
       Beam::SynchronizedUnorderedMap<int, std::shared_ptr<SubscriptionEntry>>

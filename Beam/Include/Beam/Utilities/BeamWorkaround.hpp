@@ -27,7 +27,6 @@
   #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()                                  \
     _Pragma("GCC diagnostic pop")
 #elif defined _MSC_VER
-  #include <exception>
   #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END
   #define BEAM_CPPUNIT_TEST_SUITE_END_ABSTRACT CPPUNIT_TEST_SUITE_END_ABSTRACT
   #define BEAM_SUPPRESS_THIS_INITIALIZER() __pragma(warning(disable: 4355))

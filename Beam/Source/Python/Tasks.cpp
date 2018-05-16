@@ -235,32 +235,6 @@ namespace {
   }
 }
 
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<AggregateTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<AggregateTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(BasicTask);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonBasicTask);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTask);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(FromPythonTaskFactory);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<ChainedTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<ChainedTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<IdleTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<IdleTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Publisher<Task::StateEntry>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonPackagedTask);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(PythonPackagedTaskFactory);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(Task);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<ReactorMonitorTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(
-  ToPythonTaskFactory<ReactorMonitorTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<ReactorTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<ReactorTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<SpawnTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<SpawnTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<UntilTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<UntilTaskFactory>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTask<WhenTask>);
-BEAM_DEFINE_PYTHON_POINTER_LINKER(ToPythonTaskFactory<WhenTaskFactory>);
-
 void Beam::Python::ExportAggregateTask() {
   class_<ToPythonTask<AggregateTask>,
     std::shared_ptr<ToPythonTask<AggregateTask>>, boost::noncopyable,

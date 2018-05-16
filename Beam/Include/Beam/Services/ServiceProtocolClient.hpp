@@ -1,8 +1,8 @@
 #ifndef BEAM_SERVICEPROTOCOLCLIENT_HPP
 #define BEAM_SERVICEPROTOCOLCLIENT_HPP
+#include <atomic>
 #include <iostream>
 #include <unordered_map>
-#include <boost/atomic.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
@@ -171,7 +171,7 @@ namespace Details {
       Routines::RoutineHandler m_timerLoop;
       std::shared_ptr<Queue<Threading::Timer::Result>> m_timerQueue;
       Routines::RoutineHandler m_messageHandler;
-      boost::atomic_int m_nextRequestId;
+      std::atomic_int m_nextRequestId;
       std::unordered_map<int, Routines::BaseEval*> m_pendingRequests;
       Queue<std::shared_ptr<Message<ServiceProtocolClient>>> m_messages;
       bool m_isShuttingDown;

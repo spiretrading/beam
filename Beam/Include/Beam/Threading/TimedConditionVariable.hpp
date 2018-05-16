@@ -1,6 +1,6 @@
 #ifndef BEAM_TIMEDCONDITIONVARIABLE_HPP
 #define BEAM_TIMEDCONDITIONVARIABLE_HPP
-#include <boost/atomic/atomic.hpp>
+#include <atomic>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
@@ -48,8 +48,8 @@ namespace Threading {
 
     private:
       struct WaitEntry {
-        boost::atomic_bool m_isWaiting;
-        boost::atomic_bool m_isTimerStarted;
+        std::atomic_bool m_isWaiting;
+        std::atomic_bool m_isTimerStarted;
         LiveTimer m_timer;
         Routines::Async<void> m_timerResult;
         ConditionVariable m_condition;

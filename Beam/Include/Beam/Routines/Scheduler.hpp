@@ -1,18 +1,15 @@
 #ifndef BEAM_SCHEDULER_HPP
 #define BEAM_SCHEDULER_HPP
-#include <cstdint>
 #include <deque>
 #include <iostream>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/atomic/atomic.hpp>
+#include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/thread/tss.hpp>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Threading/Sync.hpp"
@@ -85,22 +82,21 @@ namespace Details {
 
     private:
       struct Context {
-        std::shared_ptr<boost::mutex> m_mutex;
+        boost::mutex m_mutex;
         bool m_isRunning;
         std::deque<ScheduledRoutine*> m_pendingRoutines;
         std::unordered_set<ScheduledRoutine*> m_suspendedRoutines;
-        std::shared_ptr<boost::condition_variable>
-          m_pendingRoutinesAvailableCondition;
+        boost::condition_variable m_pendingRoutinesAvailableCondition;
 
         Context();
       };
-      typedef std::unordered_map<Routine::Id, ScheduledRoutine*> RoutineIds;
+      using RoutineIds = std::unordered_map<Routine::Id, ScheduledRoutine*>;
       friend class Beam::Routines::ScheduledRoutine;
       friend void Resume(ScheduledRoutine*& routine);
-      std::vector<boost::thread> m_threads;
       std::size_t m_threadCount;
+      std::vector<boost::thread> m_threads;
       Threading::Sync<RoutineIds> m_routineIds;
-      std::vector<Context> m_contexts;
+      std::unique_ptr<Context[]> m_contexts;
 
       void Queue(ScheduledRoutine& routine);
       void Suspend(ScheduledRoutine& routine);
@@ -109,14 +105,12 @@ namespace Details {
   };
 
   inline Scheduler::Context::Context()
-      : m_mutex{std::make_shared<boost::mutex>()},
-        m_isRunning{true},
-        m_pendingRoutinesAvailableCondition{
-          std::make_shared<boost::condition_variable>()} {}
+      : m_isRunning{true} {}
 
   inline Scheduler::Scheduler()
       : m_threadCount{boost::thread::hardware_concurrency()},
-        m_contexts{m_threadCount} {
+        m_contexts{std::make_unique<Context[]>(m_threadCount)} {
+    m_threads.reserve(m_threadCount);
     for(std::size_t i = 0; i < m_threadCount; ++i) {
       m_threads.emplace_back(
         [=] {
@@ -135,7 +129,7 @@ namespace Details {
 
   inline bool Scheduler::HasPendingRoutines(std::size_t contextId) const {
     auto& context = m_contexts[contextId];
-    boost::lock_guard<boost::mutex> lock{*context.m_mutex};
+    boost::lock_guard<boost::mutex> lock{context.m_mutex};
     return !context.m_pendingRoutines.empty();
   }
 
@@ -183,21 +177,21 @@ namespace Details {
 
   inline void Scheduler::Queue(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{*context.m_mutex};
+    boost::lock_guard<boost::mutex> lock{context.m_mutex};
     context.m_pendingRoutines.push_back(&routine);
     if(context.m_pendingRoutines.size() == 1) {
-      context.m_pendingRoutinesAvailableCondition->notify_all();
+      context.m_pendingRoutinesAvailableCondition.notify_all();
     }
   }
 
   inline void Scheduler::Suspend(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{*context.m_mutex};
+    boost::lock_guard<boost::mutex> lock{context.m_mutex};
     routine.SetState(Routine::State::SUSPENDED);
     if(routine.IsPendingResume()) {
       routine.SetPendingResume(false);
       context.m_pendingRoutines.push_back(&routine);
-      context.m_pendingRoutinesAvailableCondition->notify_all();
+      context.m_pendingRoutinesAvailableCondition.notify_all();
       return;
     }
     context.m_suspendedRoutines.insert(&routine);
@@ -205,7 +199,7 @@ namespace Details {
 
   inline void Scheduler::Resume(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{*context.m_mutex};
+    boost::lock_guard<boost::mutex> lock{context.m_mutex};
     auto routineIterator = context.m_suspendedRoutines.find(&routine);
     if(routineIterator == context.m_suspendedRoutines.end()) {
       routine.SetPendingResume(true);
@@ -213,20 +207,22 @@ namespace Details {
     }
     context.m_suspendedRoutines.erase(routineIterator);
     context.m_pendingRoutines.push_back(&routine);
-    context.m_pendingRoutinesAvailableCondition->notify_all();
+    context.m_pendingRoutinesAvailableCondition.notify_all();
   }
 
   inline void Scheduler::Stop() {
-    for(auto& context : m_contexts) {
-      boost::lock_guard<boost::mutex> contextLock{*context.m_mutex};
+    for(std::size_t i = 0; i != m_threadCount; ++i) {
+      auto& context = m_contexts[i];
+      boost::lock_guard<boost::mutex> contextLock{context.m_mutex};
       context.m_isRunning = false;
-      context.m_pendingRoutinesAvailableCondition->notify_all();
+      context.m_pendingRoutinesAvailableCondition.notify_all();
     }
     for(auto& thread : m_threads) {
       thread.join();
     }
-    for(auto& context : m_contexts) {
-      boost::lock_guard<boost::mutex> contextLock{*context.m_mutex};
+    for(std::size_t i = 0; i != m_threadCount; ++i) {
+      auto& context = m_contexts[i];
+      boost::lock_guard<boost::mutex> contextLock{context.m_mutex};
     }
   }
 
@@ -234,13 +230,13 @@ namespace Details {
     while(true) {
       ScheduledRoutine* routine;
       {
-        boost::unique_lock<boost::mutex> lock{*context.m_mutex};
+        boost::unique_lock<boost::mutex> lock{context.m_mutex};
         while(context.m_pendingRoutines.empty()) {
           if(!context.m_isRunning && context.m_pendingRoutines.empty() &&
               context.m_suspendedRoutines.empty()) {
             return;
           }
-          context.m_pendingRoutinesAvailableCondition->wait(lock);
+          context.m_pendingRoutinesAvailableCondition.wait(lock);
         }
         routine = context.m_pendingRoutines.front();
         context.m_pendingRoutines.pop_front();

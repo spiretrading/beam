@@ -1,6 +1,6 @@
 #ifndef BEAM_FUNCTION_ROUTINE_HPP
 #define BEAM_FUNCTION_ROUTINE_HPP
-#include <optional>
+#include <boost/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Routines/ScheduledRoutine.hpp"
 
@@ -31,7 +31,7 @@ namespace Routines {
       void Execute() override;
 
     private:
-      std::optional<F> m_function;
+      boost::optional<F> m_function;
   };
 
   template<typename F>
@@ -47,10 +47,10 @@ namespace Routines {
     try {
       (*m_function)();
     } catch(...) {
-      m_function = std::nullopt;
+      m_function = boost::none;
       throw;
     }
-    m_function = std::nullopt;
+    m_function = boost::none;
   }
 }
 }

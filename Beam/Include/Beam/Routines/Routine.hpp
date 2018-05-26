@@ -128,7 +128,7 @@ namespace Details {
       friend void Resume(Routine*&);
       template<typename Container>
       friend void Resume(Out<Threading::Sync<Container>>);
-      static inline std::atomic_uint64_t m_nextId = 0;
+      static inline std::atomic_uint64_t m_nextId{0};
       State m_state;
       Id m_id;
       Threading::Sync<WaitResults> m_waitResults;

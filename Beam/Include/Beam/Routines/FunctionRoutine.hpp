@@ -1,7 +1,7 @@
-#ifndef BEAM_FUNCTIONROUTINE_HPP
-#define BEAM_FUNCTIONROUTINE_HPP
+#ifndef BEAM_FUNCTION_ROUTINE_HPP
+#define BEAM_FUNCTION_ROUTINE_HPP
+#include <optional>
 #include <boost/throw_exception.hpp>
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Routines/ScheduledRoutine.hpp"
 
 namespace Beam {
@@ -12,7 +12,7 @@ namespace Routines {
       \tparam F The type of the callable object to run.
    */
   template<typename F>
-  class FunctionRoutine : public ScheduledRoutine {
+  class FunctionRoutine final : public ScheduledRoutine {
     public:
 
       //! Constructs a FunctionRoutine.
@@ -28,10 +28,10 @@ namespace Routines {
         std::size_t stackSize, RefType<Details::Scheduler> scheduler);
 
     protected:
-      virtual void Execute();
+      void Execute() override;
 
     private:
-      DelayPtr<F> m_function;
+      std::optional<F> m_function;
   };
 
   template<typename F>
@@ -39,18 +39,18 @@ namespace Routines {
   FunctionRoutine<F>::FunctionRoutine(FunctionForward&& function,
       std::size_t contextId, std::size_t stackSize,
       RefType<Details::Scheduler> scheduler)
-      : ScheduledRoutine{contextId, stackSize, Ref(scheduler)},
-          m_function{std::forward<FunctionForward>(function)} {}
+      : ScheduledRoutine(contextId, stackSize, Ref(scheduler)),
+          m_function(std::forward<FunctionForward>(function)) {}
 
   template<typename F>
   void FunctionRoutine<F>::Execute() {
     try {
       (*m_function)();
     } catch(...) {
-      m_function.Reset();
+      m_function = std::nullopt;
       throw;
     }
-    m_function.Reset();
+    m_function = std::nullopt;
   }
 }
 }

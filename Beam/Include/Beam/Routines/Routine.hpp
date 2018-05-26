@@ -29,19 +29,8 @@ namespace Details {
   };
 
   template<typename T>
-  struct NextId {
-    static std::atomic_uint64_t m_value;
-
-    static std::atomic_uint64_t& GetInstance() {
-      return m_value;
-    }
-  };
-
-  template<typename T>
   thread_local Routine* CurrentRoutineGlobal<T>::m_value;
 
-  template<typename T>
-  std::atomic_uint64_t NextId<T>::m_value;
 #elif defined(BEAM_BUILD_DLL)
   template<typename T>
   struct CurrentRoutineGlobal {
@@ -50,23 +39,10 @@ namespace Details {
       return value;
     }
   };
-
-  template<typename T>
-  struct NextId {
-    static std::atomic_uint64_t& GetInstance() {
-      static std::atomic_uint64_t value;
-      return value;
-    }
-  };
 #elif defined(BEAM_USE_DLL)
   template<typename T>
   struct CurrentRoutineGlobal {
     static Routine*& GetInstance();
-  };
-
-  template<typename T>
-  struct NextId {
-    static std::atomic_uint64_t& GetInstance();
   };
 #endif
 }
@@ -152,6 +128,7 @@ namespace Details {
       friend void Resume(Routine*&);
       template<typename Container>
       friend void Resume(Out<Threading::Sync<Container>>);
+      static inline std::atomic_uint64_t m_nextId = 0;
       State m_state;
       Id m_id;
       Threading::Sync<WaitResults> m_waitResults;
@@ -226,7 +203,7 @@ namespace Details {
   }
 
   inline Routine::Routine()
-      : m_id{++Details::NextId<void>::GetInstance()},
+      : m_id{++m_nextId},
         m_state{State::PENDING} {}
 
   inline Routine::~Routine() {

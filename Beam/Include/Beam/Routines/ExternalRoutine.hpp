@@ -1,5 +1,5 @@
-#ifndef BEAM_EXTERNALROUTINE_HPP
-#define BEAM_EXTERNALROUTINE_HPP
+#ifndef BEAM_EXTERNAL_ROUTINE_HPP
+#define BEAM_EXTERNAL_ROUTINE_HPP
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Routines/Routine.hpp"
@@ -10,24 +10,24 @@ namespace Routines {
   /*! \class ExternalRoutine
       \brief Represents a Routine that is not run from within a Scheduler.
    */
-  class ExternalRoutine : public Routine {
+  class ExternalRoutine final : public Routine {
     public:
 
       //! Constructs an ExternalRoutine.
       ExternalRoutine();
 
-      virtual ~ExternalRoutine();
+      ~ExternalRoutine() override;
 
     protected:
-      virtual void Execute();
+      void Execute() override;
 
-      virtual void Defer();
+      void Defer() override;
 
-      virtual void PendingSuspend();
+      void PendingSuspend() override;
 
-      virtual void Suspend();
+      void Suspend() override;
 
-      virtual void Resume();
+      void Resume() override;
 
     private:
       mutable boost::mutex m_mutex;

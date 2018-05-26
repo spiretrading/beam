@@ -48,15 +48,13 @@ namespace Routines {
       ScheduledRoutine(std::size_t contextId, std::size_t stackSize,
         RefType<Details::Scheduler> scheduler);
 
-      virtual void Execute() = 0;
+      void Defer() override;
 
-      virtual void Defer();
+      void PendingSuspend() override;
 
-      virtual void PendingSuspend();
+      void Suspend() override;
 
-      virtual void Suspend();
-
-      virtual void Resume();
+      void Resume() override;
 
     private:
       friend class Details::Scheduler;

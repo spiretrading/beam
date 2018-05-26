@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
@@ -94,7 +93,7 @@ namespace Details {
       friend class Beam::Routines::ScheduledRoutine;
       friend void Resume(ScheduledRoutine*& routine);
       std::size_t m_threadCount;
-      std::vector<boost::thread> m_threads;
+      std::unique_ptr<boost::thread[]> m_threads;
       Threading::Sync<RoutineIds> m_routineIds;
       std::unique_ptr<Context[]> m_contexts;
 
@@ -108,11 +107,11 @@ namespace Details {
       : m_isRunning{true} {}
 
   inline Scheduler::Scheduler()
-      : m_threadCount{boost::thread::hardware_concurrency()},
+      : m_threadCount(boost::thread::hardware_concurrency()),
+        m_threads(std::make_unique<boost::thread[]>(m_threadCount)),
         m_contexts{std::make_unique<Context[]>(m_threadCount)} {
-    m_threads.reserve(m_threadCount);
     for(std::size_t i = 0; i < m_threadCount; ++i) {
-      m_threads.emplace_back(
+      m_threads[i] = boost::thread(
         [=] {
           Run(m_contexts[i]);
         });
@@ -217,8 +216,8 @@ namespace Details {
       context.m_isRunning = false;
       context.m_pendingRoutinesAvailableCondition.notify_all();
     }
-    for(auto& thread : m_threads) {
-      thread.join();
+    for(std::size_t i = 0; i != m_threadCount; ++i) {
+      m_threads[i].join();
     }
     for(std::size_t i = 0; i != m_threadCount; ++i) {
       auto& context = m_contexts[i];

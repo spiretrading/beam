@@ -1,6 +1,6 @@
-#ifndef BEAM_SOCKETTHREADPOOL_HPP
-#define BEAM_SOCKETTHREADPOOL_HPP
-#include <vector>
+#ifndef BEAM_SOCKET_THREAD_POOL_HPP
+#define BEAM_SOCKET_THREAD_POOL_HPP
+#include <memory>
 #include <boost/asio/io_service.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/thread.hpp>
@@ -34,7 +34,8 @@ namespace Network {
       friend class UdpSocket;
       boost::asio::io_service m_service;
       boost::asio::io_service::work m_work;
-      std::vector<boost::thread> m_threads;
+      std::size_t m_threadCount;
+      std::unique_ptr<boost::thread[]> m_threads;
 
       boost::asio::io_service& GetService();
   };
@@ -43,9 +44,11 @@ namespace Network {
       : SocketThreadPool(boost::thread::hardware_concurrency()) {}
 
   inline SocketThreadPool::SocketThreadPool(std::size_t threadCount)
-      : m_work(m_service) {
-    for(std::size_t i = 0; i < threadCount; ++i) {
-      m_threads.emplace_back(
+      : m_work(m_service),
+        m_threadCount(threadCount),
+        m_threads(std::make_unique<boost::thread[]>(m_threadCount)) {
+    for(std::size_t i = 0; i < m_threadCount; ++i) {
+      m_threads[i] = boost::thread(
         [=] {
           m_service.run();
         });
@@ -54,8 +57,8 @@ namespace Network {
 
   inline SocketThreadPool::~SocketThreadPool() {
     m_service.stop();
-    for(auto& thread : m_threads) {
-      thread.join();
+    for(std::size_t i = 0; i < m_threadCount; ++i) {
+      m_threads[i].join();
     }
   }
 

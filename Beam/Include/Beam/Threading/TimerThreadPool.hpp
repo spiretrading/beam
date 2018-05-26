@@ -1,6 +1,6 @@
-#ifndef BEAM_TIMERTHREADPOOL_HPP
-#define BEAM_TIMERTHREADPOOL_HPP
-#include <vector>
+#ifndef BEAM_TIMER_THREAD_POOL_HPP
+#define BEAM_TIMER_THREAD_POOL_HPP
+#include <memory>
 #include <boost/asio/io_service.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/thread.hpp>
@@ -30,35 +30,31 @@ namespace Threading {
       friend class LiveTimer;
       boost::asio::io_service m_service;
       boost::asio::io_service::work m_work;
-      std::vector<boost::thread> m_threads;
+      std::size_t m_threadCount;
+      std::unique_ptr<boost::thread[]> m_threads;
 
       boost::asio::io_service& GetService();
   };
 
   inline TimerThreadPool::TimerThreadPool()
-      : m_work(m_service) {
-    for(std::size_t i = 0; i < boost::thread::hardware_concurrency(); ++i) {
-      boost::thread serviceThread(std::bind(
-        static_cast<std::size_t (boost::asio::io_service::*)()>(
-        &boost::asio::io_service::run), std::ref(m_service)));
-      m_threads.push_back(std::move(serviceThread));
-    }
-  }
+      : TimerThreadPool(boost::thread::hardware_concurrency()) {}
 
   inline TimerThreadPool::TimerThreadPool(std::size_t threadCount)
-      : m_work(m_service) {
-    for(std::size_t i = 0; i < threadCount; ++i) {
-      boost::thread serviceThread(std::bind(
-        static_cast<std::size_t (boost::asio::io_service::*)()>(
-        &boost::asio::io_service::run), std::ref(m_service)));
-      m_threads.push_back(std::move(serviceThread));
+      : m_work(m_service),
+        m_threadCount(threadCount),
+        m_threads(std::make_unique<boost::thread[]>(m_threadCount)) {
+    for(std::size_t i = 0; i < m_threadCount; ++i) {
+      m_threads[i] = boost::thread(
+        [=] {
+          m_service.run();
+        });
     }
   }
 
   inline TimerThreadPool::~TimerThreadPool() {
     m_service.stop();
-    for(boost::thread& thread : m_threads) {
-      thread.join();
+    for(std::size_t i = 0; i < m_threadCount; ++i) {
+      m_threads[i].join();
     }
   }
 

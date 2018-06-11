@@ -1,19 +1,26 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
+const MinifyPlugin = require("babel-minify-webpack-plugin");
+const PROD = JSON.parse(process.env.PROD_ENV || '0');
+const minifyOpts = {};
+const minigyPluginOpts = {
+  test: /\.js($|\?)/i,
+};
 
 module.exports = {
+  devtool: PROD ? 'none' : 'source-map',
   entry: './source/index.ts',
   output: {
-    path: path.resolve(__dirname, 'library/beam'),
     filename: 'index.js',
-    libraryTarget: 'umd',
     library: 'Beam',
+    libraryTarget: 'umd',
+    path: path.resolve(__dirname, 'library/beam'),
     umdNamedDefine: true
   },
+  plugins: PROD ? [new MinifyPlugin(minifyOpts, minigyPluginOpts)] : [],
   resolve: {
     extensions: ['.ts', '.js']
   },
-  devtool: 'source-map',
   module: {
     rules: [
       {
@@ -21,9 +28,9 @@ module.exports = {
         loader: 'ts-loader'
       },
       {
+        enforce: 'pre',
         test: /\.js$/,
-        loader: 'source-map-loader',
-        enforce: 'pre'
+        loader: 'source-map-loader'
       }
     ]
   }

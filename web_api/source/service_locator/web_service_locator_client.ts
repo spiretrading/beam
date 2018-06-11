@@ -1,5 +1,4 @@
-import {DirectoryEntry} from '.';
-import {ServiceLocatorClient} from '.';
+import {DirectoryEntry, ServiceLocatorClient} from '.';
 import {ServiceError} from '..';
 import * as web_services from '..';
 

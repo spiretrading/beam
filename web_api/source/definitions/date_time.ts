@@ -1,5 +1,4 @@
-import {Date} from './date';
-import {Duration} from './duration';
+import {Date, Duration} from '.';
 
 /** Represents a point in time. */
 export class DateTime {

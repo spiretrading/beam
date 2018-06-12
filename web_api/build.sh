@@ -2,7 +2,6 @@
 if [ $# -eq 0 ] || [ "$1" -neq "Debug" ]; then
   export PROD_ENV=1
 fi
-pushd ../
 if [ ! -d "node_modules" ]; then
   UPDATE_NODE=1
 else
@@ -39,4 +38,3 @@ if [ "$UPDATE_LIBRARY" -eq "1" ]; then
   fi
   node ./node_modules/webpack/bin/webpack.js
 )
-popd

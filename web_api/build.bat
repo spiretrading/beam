@@ -2,7 +2,6 @@ SETLOCAL
 IF NOT "%1" == "Debug" (
   SET PROD_ENV=1
 )
-PUSHD %~dp0..\
 IF NOT EXIST node_modules (
   SET UPDATE_NODE=1
 ) ELSE (
@@ -47,5 +46,4 @@ IF "%UPDATE_LIBRARY%" == "1" (
   )
   node .\node_modules\webpack\bin\webpack.js
 )
-POPD
 ENDLOCAL

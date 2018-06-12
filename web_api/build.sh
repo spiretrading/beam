@@ -18,22 +18,22 @@ else
   popd
 fi
 if [ "$UPDATE_NODE" = "1" ]; then
-  UPDATE_LIBRARY=1
+  UPDATE_BUILD=1
   npm install
   pushd node_modules
   echo "timestamp" > mod_time.txt
   popd
 fi
 if [ ! -d "library" ]; then
-  UPDATE_LIBRARY=1
+  UPDATE_BUILD=1
 else
   st="$(find source/ -type f | xargs ls -l --time-style=full-iso | awk '{print $6 $7}' | sort -r | head -1)"
   lt="$(find library/ -type f | xargs ls -l --time-style=full-iso | awk '{print $6 $7}' | sort -r | head -1)"
   if [ "$st" \> "$lt" ]; then
-    UPDATE_LIBRARY=1
+    UPDATE_BUILD=1
   fi
 fi
-if [ "$UPDATE_LIBRARY" = "1" ]; then
+if [ "$UPDATE_BUILD" = "1" ]; then
   if [ -d library ]; then
     rm -rf library
   fi

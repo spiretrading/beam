@@ -1,4 +1,5 @@
 SETLOCAL
+PUSHD %~dp0
 IF NOT "%1" == "Debug" (
   SET PROD_ENV=1
 )
@@ -47,4 +48,5 @@ IF "%UPDATE_LIBRARY%" == "1" (
   )
   node .\node_modules\webpack\bin\webpack.js
 )
+POPD
 ENDLOCAL

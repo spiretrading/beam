@@ -22,6 +22,7 @@ IF NOT EXIST node_modules (
   POPD
 )
 IF "%UPDATE_NODE%" == "1" (
+  SET UPDATE_LIBRARY=1
   CALL npm install
   PUSHD node_modules
   echo "timestamp" > mod_time.txt

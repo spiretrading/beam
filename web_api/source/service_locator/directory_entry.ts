@@ -12,10 +12,26 @@ export class DirectoryEntry {
     return new DirectoryEntry(value.type, value.id, value.name);
   }
 
+  /** Constructs a DirectoryEntry representing an account.
+   * @param id - The account's unique id.
+   * @param name - The name of the account.
+   */
+  public static makeAccount(id: number, name: string): DirectoryEntry {
+    return new DirectoryEntry(DirectoryEntry.Type.ACCOUNT, id, name);
+  }
+
+  /** Constructs a DirectoryEntry representing a directory.
+   * @param id - The directory's unique id.
+   * @param name - The name of the directory.
+   */
+  public static makeDirectory(id: number, name: string): DirectoryEntry {
+    return new DirectoryEntry(DirectoryEntry.Type.DIRECTORY, id, name);
+  }
+
   /** Constructs a DirectoryEntry.
    * @param type - The type of directory entry to represent.
    * @param id - The entry's unique id.
-   * @param name - The name of the of the directory entry.
+   * @param name - The name of the directory entry.
    */
   public constructor(type: DirectoryEntry.Type, id: number, name: string) {
     this._type = type;

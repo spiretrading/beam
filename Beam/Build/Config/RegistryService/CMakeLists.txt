@@ -1,44 +1,20 @@
-file(GLOB header_files
-  ./../../../Include/Beam/RegistryService/*.hpp)
-file(GLOB source_files
-  ./../../../Source/RegistryService/*.cpp)
+file(GLOB header_files ./../../../Include/Beam/RegistryServiceTests/*.hpp)
+file(GLOB source_files ./../../../Source/RegistryServiceTests/*.cpp)
 
-add_library(RegistryService ${header_files} ${source_files})
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+endif()
+
+add_executable(RegistryServiceTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(RegistryService PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
-  OUTPUT_NAME beam_registry_service)
-install(TARGETS RegistryService CONFIGURATIONS Debug
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
-install(TARGETS RegistryService CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
-
-file(GLOB test_header_files
-  ./../../../Include/Beam/RegistryServiceTests/*.hpp)
-file(GLOB test_source_files
-  ./../../../Source/RegistryServiceTests/*.cpp)
-
-add_library(RegistryServiceTests ${test_header_files} ${test_source_files})
-set_source_files_properties(${test_header_files}
-  PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(RegistryServiceTests PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
-  OUTPUT_NAME beam_registry_service_tests)
-install(TARGETS RegistryServiceTests CONFIGURATIONS Debug
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
-install(TARGETS RegistryServiceTests CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
-
-add_executable(RegistryServiceTester
-  ./../../../Source/RegistryServiceTester/main.cpp)
-target_link_libraries(RegistryServiceTester RegistryServiceTests IOTests
+target_link_libraries(RegistryServiceTests
   debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
   optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
-  target_link_libraries(RegistryServiceTester
+  target_link_libraries(RegistryServiceTests
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
@@ -52,9 +28,9 @@ if(UNIX)
     pthread rt)
 endif()
 
-add_custom_command(TARGET RegistryServiceTester POST_BUILD
-  COMMAND RegistryServiceTester)
-install(TARGETS RegistryServiceTester CONFIGURATIONS Debug
+add_custom_command(TARGET RegistryServiceTests POST_BUILD
+  COMMAND RegistryServiceTests)
+install(TARGETS RegistryServiceTests CONFIGURATIONS Debug
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Debug)
-install(TARGETS RegistryServiceTester CONFIGURATIONS Release RelWithDebInfo
+install(TARGETS RegistryServiceTests CONFIGURATIONS Release RelWithDebInfo
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Release)

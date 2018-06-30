@@ -14,6 +14,6 @@ int main() {
   runner.eventManager().addListener(&listener);
   runner.setOutputter(new CPPUNIT_NS::CompilerOutputter(&runner.result(),
     CPPUNIT_NS::stdCOut()));
-  bool wasSucessful = runner.run();
+  auto wasSucessful = runner.run();
   return wasSucessful ? 0 : 1;
 }

@@ -1,26 +1,13 @@
-file(GLOB header_files
-  ./../../../Include/Beam/Queues/*.hpp)
-file(GLOB source_files
-  ./../../../Source/Queues/*.cpp)
+file(GLOB stress_source_files ./../../../Source/QueueStressTests/*.cpp)
 
-add_library(Queues ${header_files} ${source_files})
-set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(Queues PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
-  OUTPUT_NAME beam_queues)
-install(TARGETS Queues CONFIGURATIONS Debug
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
-install(TARGETS Queues CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+endif()
 
-file(GLOB queue_stress_source_files
-  ./../../../Source/QueueStressTests/*.cpp)
-
-add_executable(QueueStressTester
-  ./../../../Source/QueueStressTester/main.cpp)
+add_executable(QueueStressTests ${stress_source_files})
 
 if(UNIX)
-  target_link_libraries(QueueStressTester
+  target_link_libraries(QueueStressTests
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
@@ -32,37 +19,24 @@ if(UNIX)
     dl pthread rt)
 endif(UNIX)
 
-install(TARGETS QueueStressTester CONFIGURATIONS Debug
+install(TARGETS QueueStressTests CONFIGURATIONS Debug
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Debug)
-install(TARGETS QueueStressTester CONFIGURATIONS Release RelWithDebInfo
+install(TARGETS QueueStressTests CONFIGURATIONS Release RelWithDebInfo
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Release)
 
-file(GLOB test_header_files
-  ./../../../Include/Beam/QueuesTests/*.hpp)
-file(GLOB test_source_files
-  ./../../../Source/QueuesTests/*.cpp)
+file(GLOB header_files ./../../../Include/Beam/QueuesTests/*.hpp)
+file(GLOB source_files ./../../../Source/QueuesTests/*.cpp)
 
-add_library(QueuesTests ${test_header_files} ${test_source_files})
-set_source_files_properties(${test_header_files}
-  PROPERTIES HEADER_FILE_ONLY TRUE)
-set_target_properties(QueuesTests PROPERTIES
-  STATIC_LIBRARY_FLAGS_RELEASE "${CMAKE_LIBRARY_FLAGS}"
-  OUTPUT_NAME beam_queues_tests)
-install(TARGETS QueuesTests CONFIGURATIONS Debug
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Debug)
-install(TARGETS QueuesTests CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION $ENV{LIB_INSTALL_DIRECTORY}/Release)
-
-add_executable(QueuesTester
-  ./../../../Source/QueuesTester/main.cpp)
-target_link_libraries(QueuesTester QueuesTests
+add_executable(QueuesTests ${header_files} ${source_files})
+set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+target_link_libraries(QueuesTests
   debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
   optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
   debug $ENV{CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized $ENV{CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
-  target_link_libraries(QueuesTester
+  target_link_libraries(QueuesTests
     debug $ENV{BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
@@ -76,9 +50,8 @@ if(UNIX)
     pthread rt)
 endif()
 
-add_custom_command(TARGET QueuesTester POST_BUILD
-  COMMAND QueuesTester)
-install(TARGETS QueuesTester CONFIGURATIONS Debug
+add_custom_command(TARGET QueuesTests POST_BUILD COMMAND QueuesTests)
+install(TARGETS QueuesTests CONFIGURATIONS Debug
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Debug)
-install(TARGETS QueuesTester CONFIGURATIONS Release RelWithDebInfo
+install(TARGETS QueuesTests CONFIGURATIONS Release RelWithDebInfo
   DESTINATION $ENV{TEST_INSTALL_DIRECTORY}/Release)

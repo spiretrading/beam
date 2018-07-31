@@ -131,12 +131,19 @@ namespace Beam {
   template<typename F>
   Expect<typename std::decay<GetResultOf<typename std::decay<F>::type>>::type>
       Try(F&& f) {
+    using Result = typename std::decay<
+      GetResultOf<typename std::decay<F>::type>>::type;
     try {
-      return f();
+      if constexpr(std::is_same_v<Result, void>) {
+        f();
+        return {};
+      } else {
+        return f();
+      }
     } catch(...) {
       return std::current_exception();
     }
-  };
+  }
 
   //! Calls a function and calls terminate if the function throws an exception.
   /*!

@@ -68,9 +68,10 @@ if exist mysql++-3.2.3 goto end_mysqlpp_setup
 :end_mysqlpp_setup
 
 if exist yaml-cpp goto end_yaml_setup
-  git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp
+  git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp
   if not exist yaml-cpp goto end_yaml_setup
     pushd yaml-cpp
+    git checkout 0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79
     mkdir build
     pushd build
     cmake -G "Visual Studio 15 2017" ..

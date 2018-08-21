@@ -11,9 +11,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/rational.hpp>
 #include <boost/throw_exception.hpp>
-#ifdef _MSC_VER
-  #define _NOEXCEPT noexcept
-#endif
 #include <yaml-cpp/yaml.h>
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Parsers/DateTimeParser.hpp"

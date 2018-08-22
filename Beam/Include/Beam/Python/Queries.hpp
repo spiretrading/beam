@@ -114,6 +114,9 @@ namespace Details {
   //! Exports the FunctionExpression class.
   void ExportFunctionExpression();
 
+  //! Exports the IndexListQuery class.
+  void ExportIndexListQuery();
+
   //! Exports the InterruptableQuery class.
   void ExportInterruptableQuery();
 

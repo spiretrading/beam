@@ -35,6 +35,7 @@ namespace Queries {
     typename ServiceProtocolClientType> class IndexedSubscriptions;
   template<typename ValueType, typename IndexType> class IndexedValue;
   template<typename T> class IndexedQuery;
+  class IndexListQuery;
   class InterruptableQuery;
   enum class InterruptionPolicy;
   template<typename QueryType, typename ValueType,

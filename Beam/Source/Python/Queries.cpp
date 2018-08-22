@@ -9,6 +9,7 @@
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
+#include "Beam/Queries/IndexListQuery.hpp"
 #include "Beam/Queries/InterruptableQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
@@ -119,6 +120,13 @@ void Beam::Python::ExportFunctionExpression() {
   implicitly_convertible<FunctionExpression, Expression>();
 }
 
+void Beam::Python::ExportIndexListQuery() {
+  class_<IndexListQuery, bases<Queries::SnapshotLimitedQuery,
+    Queries::FilteredQuery>>("IndexListQuery", init<>())
+    .def("__copy__", &MakeCopy<IndexListQuery>)
+    .def("__deepcopy__", &MakeDeepCopy<IndexListQuery>);
+}
+
 void Beam::Python::ExportInterruptableQuery() {
   class_<InterruptableQuery>("InterruptableQuery", boost::python::init<>())
     .def(init<InterruptionPolicy>())
@@ -162,6 +170,7 @@ void Beam::Python::ExportQueries() {
   ExportExpression();
   ExportConstantExpression();
   ExportDataType();
+  ExportIndexListQuery();
   ExportInterruptableQuery();
   ExportInterruptionPolicy();
   ExportFilteredQuery();

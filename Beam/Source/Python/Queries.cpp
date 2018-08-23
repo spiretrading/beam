@@ -102,7 +102,7 @@ void Beam::Python::ExportDataType() {
 }
 
 void Beam::Python::ExportFilteredQuery() {
-  class_<FilteredQuery>("FilteredQuery", boost::python::init<>())
+  class_<FilteredQuery>("FilteredQuery", init<>())
     .def(init<const Expression&>())
     .add_property("filter", make_function(&FilteredQuery::GetFilter,
       return_value_policy<copy_const_reference>()), &FilteredQuery::SetFilter);
@@ -122,13 +122,11 @@ void Beam::Python::ExportFunctionExpression() {
 
 void Beam::Python::ExportIndexListQuery() {
   class_<IndexListQuery, bases<Queries::SnapshotLimitedQuery,
-    Queries::FilteredQuery>>("IndexListQuery", init<>())
-    .def("__copy__", &MakeCopy<IndexListQuery>)
-    .def("__deepcopy__", &MakeDeepCopy<IndexListQuery>);
+    Queries::FilteredQuery>>("IndexListQuery", init<>());
 }
 
 void Beam::Python::ExportInterruptableQuery() {
-  class_<InterruptableQuery>("InterruptableQuery", boost::python::init<>())
+  class_<InterruptableQuery>("InterruptableQuery", init<>())
     .def(init<InterruptionPolicy>())
     .add_property("interruption_policy",
       &InterruptableQuery::GetInterruptionPolicy,
@@ -170,7 +168,6 @@ void Beam::Python::ExportQueries() {
   ExportExpression();
   ExportConstantExpression();
   ExportDataType();
-  ExportIndexListQuery();
   ExportInterruptableQuery();
   ExportInterruptionPolicy();
   ExportFilteredQuery();
@@ -183,6 +180,7 @@ void Beam::Python::ExportQueries() {
   ExportSnapshotLimit();
   ExportSnapshotLimitedQuery();
   ExportValue();
+  ExportIndexListQuery();
   ExportIndexedQuery<boost::python::object>("");
   ExportBasicQuery<boost::python::object>("");
   ExportException<ExpressionTranslationException, std::runtime_error>(
@@ -216,7 +214,7 @@ void Beam::Python::ExportRange() {
 }
 
 void Beam::Python::ExportRangedQuery() {
-  class_<RangedQuery>("RangedQuery", boost::python::init<>())
+  class_<RangedQuery>("RangedQuery", init<>())
     .add_property("range", boost::python::make_function(&RangedQuery::GetRange,
       return_value_policy<copy_const_reference>()),
       static_cast<void (RangedQuery::*)(const Range&)>(&RangedQuery::SetRange))
@@ -226,7 +224,7 @@ void Beam::Python::ExportRangedQuery() {
 }
 
 void Beam::Python::ExportSequence() {
-  class_<Queries::Sequence>("Sequence", boost::python::init<>())
+  class_<Queries::Sequence>("Sequence", init<>())
     .def(init<Queries::Sequence::Ordinal>())
     .add_static_property("FIRST", &Queries::Sequence::First)
     .add_static_property("LAST", &Queries::Sequence::Last)
@@ -244,7 +242,7 @@ void Beam::Python::ExportSequence() {
 
 void Beam::Python::ExportSnapshotLimit() {
   scope outer =
-    class_<SnapshotLimit>("SnapshotLimit", boost::python::init<>())
+    class_<SnapshotLimit>("SnapshotLimit", init<>())
       .def(init<SnapshotLimit::Type, int>())
       .add_static_property("NONE", &SnapshotLimit::None)
       .add_static_property("UNLIMITED", &SnapshotLimit::Unlimited)
@@ -259,7 +257,7 @@ void Beam::Python::ExportSnapshotLimit() {
 }
 
 void Beam::Python::ExportSnapshotLimitedQuery() {
-  class_<SnapshotLimitedQuery>("SnapshotLimitedQuery", boost::python::init<>())
+  class_<SnapshotLimitedQuery>("SnapshotLimitedQuery", init<>())
     .def(init<SnapshotLimit>())
     .add_property("snapshot_limit",
       boost::python::make_function(&SnapshotLimitedQuery::GetSnapshotLimit,

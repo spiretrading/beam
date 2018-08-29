@@ -36,6 +36,7 @@
 #include "Beam/QueriesTests/SessionCachedDataStoreTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitTester.hpp"
 #include "Beam/QueriesTests/SnapshotLimitedQueryTester.hpp"
+#include "Beam/QueriesTests/SqlDataStoreTester.hpp"
 #include "Beam/QueriesTests/SqlTranslatorTester.hpp"
 #include "Beam/QueriesTests/SubscriptionsTester.hpp"
 
@@ -77,6 +78,7 @@ int main() {
   runner.addTest(CachedDataStoreTester::suite());
   runner.addTest(SessionCachedDataStoreTester::suite());
   runner.addTest(ExpressionSubscriptionsTester::suite());
+  runner.addTest(SqlDataStoreTester::suite());
   runner.addTest(SqlTranslatorTester::suite());
   runner.addTest(SequencerTester::suite());
   runner.eventManager().addListener(&listener);

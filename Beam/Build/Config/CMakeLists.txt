@@ -3,6 +3,7 @@ project(Beam)
 
 include_directories(./../../Include)
 include_directories($ENV{BOOST_INCLUDE_PATH})
+include_directories($ENV{CATCH_INCLUDE_PATH})
 include_directories($ENV{CPPUNIT_INCLUDE_PATH})
 include_directories($ENV{CRYPTOPP_INCLUDE_PATH})
 include_directories($ENV{LUA_INCLUDE_PATH})

@@ -21,11 +21,10 @@ namespace Queries {
   /** Loads and stores SequencedValue's in an SQL database.
       \tparam C The type of SQL connection to query.
       \tparam Q The type of query used to load values.
-      \tparam V The value to store.
       \tparam R The type of SQL row.
       \tparam T The type of SqlTranslator used for filtering values.
    */
-  template<typename C, typename Q, typename V, typename R, typename T>
+  template<typename C, typename Q, typename R, typename T>
   class SqlDataStore : private boost::noncopyable {
     public:
 
@@ -35,11 +34,14 @@ namespace Queries {
       //! The type of query used to load values.
       using Query = Q;
 
-      //! The type of index used.
-      using Index = typename Query::Index;
+      //! The type of SQL row.
+      using Row = R;
 
       //! The type of value to store.
-      using Value = V;
+      using Value = typename Row::Type::Value::Value;
+
+      //! The type of index used.
+      using Index = typename Query::Index;
 
       //! The SequencedValue to store.
       using SequencedValue = ::Beam::Queries::SequencedValue<Value>;
@@ -47,9 +49,6 @@ namespace Queries {
       //! The IndexedValue to store.
       using IndexedValue = ::Beam::Queries::SequencedValue<
         ::Beam::Queries::IndexedValue<Value, Index>>;
-
-      //! The type of SQL row.
-      using Row = R;
 
       //! The type of SqlTranslator used for filtering values.
       using SqlTranslatorFilter = T;
@@ -101,8 +100,8 @@ namespace Queries {
       Threading::ThreadPool* m_threadPool;
   };
 
-  template<typename C, typename Q, typename V, typename R, typename T>
-  SqlDataStore<C, Q, V, R, T>::SqlDataStore(Row row, std::string table,
+  template<typename C, typename Q, typename R, typename T>
+  SqlDataStore<C, Q, R, T>::SqlDataStore(Row row, std::string table,
       RefType<DatabaseConnectionPool<Connection>> connectionPool,
       RefType<Threading::Sync<Connection, Threading::Mutex>> writeConnection,
       RefType<Threading::ThreadPool> threadPool)
@@ -112,9 +111,9 @@ namespace Queries {
         m_writeConnection(writeConnection.Get()),
         m_threadPool(threadPool.Get()) {}
 
-  template<typename C, typename Q, typename V, typename R, typename T>
-  std::vector<typename SqlDataStore<C, Q, V, R, T>::SequencedValue>
-      SqlDataStore<C, Q, V, R, T>::Load(const Query& query) {
+  template<typename C, typename Q, typename R, typename T>
+  std::vector<typename SqlDataStore<C, Q, R, T>::SequencedValue>
+      SqlDataStore<C, Q, R, T>::Load(const Query& query) {
     return {};
 /*
     return LoadSqlQuery<SequencedValue, Row, SqlTranslatorFilter>(query,
@@ -123,24 +122,24 @@ namespace Queries {
 */
   }
 
-  template<typename C, typename Q, typename V, typename R, typename T>
-  std::vector<typename SqlDataStore<C, Q, V, R, T>::SequencedValue>
-      SqlDataStore<C, Q, V, R, T>::Load(const std::string& query) {
+  template<typename C, typename Q, typename R, typename T>
+  std::vector<typename SqlDataStore<C, Q, R, T>::SequencedValue>
+      SqlDataStore<C, Q, R, T>::Load(const std::string& query) {
     return {};
 //    return LoadSqlQuery<SequencedValue, Row>(query, m_table, *m_threadPool,
 //      *m_connectionPool, m_functor);
   }
 
-  template<typename C, typename Q, typename V, typename R, typename T>
-  void SqlDataStore<C, Q, V, R, T>::Store(const IndexedValue& value) {
+  template<typename C, typename Q, typename R, typename T>
+  void SqlDataStore<C, Q, R, T>::Store(const IndexedValue& value) {
     Threading::With(*m_writeConnection,
       [&] (auto& connection) {
-        connection.execute(Viper::insert(m_row, m_table, value));
+        connection.execute(Viper::insert(m_row, m_table, &value, &value + 1));
       });
   }
 
-  template<typename C, typename Q, typename V, typename R, typename T>
-  void SqlDataStore<C, Q, V, R, T>::Store(
+  template<typename C, typename Q, typename R, typename T>
+  void SqlDataStore<C, Q, R, T>::Store(
       const std::vector<IndexedValue>& values) {
     Threading::With(*m_writeConnection,
       [&] (auto& connection) {

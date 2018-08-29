@@ -9,7 +9,9 @@ add_executable(QueriesTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(QueriesTests
   debug $ENV{CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH})
+  optimized $ENV{CPPUNIT_LIBRARY_OPTIMIZED_PATH}
+  debug $ENV{SQLITE_LIBRARY_DEBUG_PATH}
+  optimized $ENV{SQLITE_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(QueriesTests

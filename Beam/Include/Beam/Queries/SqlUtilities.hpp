@@ -7,10 +7,6 @@
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/reversed.hpp>
-#include <mysql++/connection.h>
-#include <mysql++/query.h>
-#include "Beam/MySql/DatabaseConnectionPool.hpp"
-#include "Beam/MySql/Utilities.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
@@ -20,8 +16,8 @@
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
+#if 0
 
   //! Builds an SQL query fragment over a Range.
   /*!
@@ -264,7 +260,7 @@ namespace Queries {
     }
     return records;
   }
-}
+#endif
 }
 
 #endif

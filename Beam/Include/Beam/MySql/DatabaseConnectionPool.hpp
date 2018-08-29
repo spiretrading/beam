@@ -85,6 +85,12 @@ namespace Beam {
         m_connection(std::move(connection)) {}
 
   template<typename ConnectionType>
+  ScopedDatabaseConnection<ConnectionType>::ScopedDatabaseConnection(
+      ScopedDatabaseConnection&& connection)
+      : m_pool(connection.m_pool),
+        m_connection(std::move(connection.m_connection)) {}
+
+  template<typename ConnectionType>
   ScopedDatabaseConnection<ConnectionType>::~ScopedDatabaseConnection() {
     if(m_connection != nullptr) {
       m_pool->Add(std::move(m_connection));

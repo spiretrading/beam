@@ -21,6 +21,9 @@ namespace Beam {
       ScopedDatabaseConnection(RefType<DatabaseConnectionPool<Connection>> pool,
         std::unique_ptr<Connection> connection);
 
+      //! Moves a ScopedDatabaseConnection.
+      ScopedDatabaseConnection(ScopedDatabaseConnection&& connection);
+
       ~ScopedDatabaseConnection();
 
       //! Returns a reference to connection.

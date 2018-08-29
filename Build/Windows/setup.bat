@@ -1,6 +1,10 @@
 SETLOCAL
 SET LIBRARY_DIR=%cd%
 
+if exist Catch2 goto end_catch_setup
+  git clone --branch v2.2.1 https://github.com/catchorg/Catch2.git Catch2
+:end_catch_setup
+
 if exist cppunit-1.14.0 goto end_cppunit_setup
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   if not exist cppunit-1.14.0.tar.gz goto end_cppunit_setup
@@ -148,7 +152,7 @@ if exist sqlite goto end_sqlite_setup
     unzip sqlite-amalgamation-3230100
     mv sqlite-amalgamation-3230100 sqlite
     pushd sqlite
-    cl /c /O2 sqlite3.c
+    cl /c /O2 /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     popd
     rm sqlite-amalgamation-3230100.zip

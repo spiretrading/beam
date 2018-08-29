@@ -30,6 +30,7 @@ SET PYTHON_INCLUDE_PATH=%PYTHON_PATH%/include
 SET PYTHON_LIBRARY_DEBUG_PATH=%PYTHON_PATH%/libs/python36.lib
 SET PYTHON_LIBRARY_OPTIMIZED_PATH=%PYTHON_PATH%/libs/python36.lib
 SET TCLAP_INCLUDE_PATH=%~dp0../../../../tclap-1.2.1/include
+SET VIPER_INCLUDE_PATH=%~dp0../../../../viper/Include/
 SET YAML_INCLUDE_PATH=%~dp0../../../../yaml-cpp/include/
 SET YAML_LIBRARY_DEBUG_PATH=%~dp0../../../../yaml-cpp/build/Debug/libyaml-cppmdd.lib
 SET YAML_LIBRARY_OPTIMIZED_PATH=%~dp0../../../../yaml-cpp/build/Release/libyaml-cppmd.lib

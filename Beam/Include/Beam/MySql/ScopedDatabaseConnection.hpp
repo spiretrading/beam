@@ -1,44 +1,38 @@
-#ifndef BEAM_SCOPEDDATABASECONNECTION_HPP
-#define BEAM_SCOPEDDATABASECONNECTION_HPP
+#ifndef BEAM_SCOPED_DATABASE_CONNECTION_HPP
+#define BEAM_SCOPED_DATABASE_CONNECTION_HPP
 #include <memory>
 #include <boost/noncopyable.hpp>
-#include <mysql++/connection.h>
 #include "Beam/MySql/MySql.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
 namespace Beam {
-namespace MySql {
 
-  /*! \class ScopedDatabaseConnection
-      \brief Stores a MySql database connection acquired from a
-             DatabaseConnectionPool.
+  /** Stores an SQL database connection acquired from a DatabaseConnectionPool.
+      \tparam ConnectionType The type of SQL connection.
    */
+  template<typename ConnectionType>
   class ScopedDatabaseConnection : private boost::noncopyable {
     public:
 
-      //! Constructs a ScopedDatabaseConnection.
-      ScopedDatabaseConnection(RefType<DatabaseConnectionPool> pool,
-        std::unique_ptr<mysqlpp::Connection> connection);
+      //! The type of SQL connection.
+      using Connection = ConnectionType;
 
-      //! Acquires a ScopedDatabaseConnection.
-      /*!
-        \param connection The ScopedDatabaseConnection to acquire.
-      */
-      ScopedDatabaseConnection(ScopedDatabaseConnection&& connection);
+      //! Constructs a ScopedDatabaseConnection.
+      ScopedDatabaseConnection(RefType<DatabaseConnectionPool<Connection>> pool,
+        std::unique_ptr<Connection> connection);
 
       ~ScopedDatabaseConnection();
 
       //! Returns a reference to connection.
-      mysqlpp::Connection& operator *() const;
+      Connection& operator *() const;
 
       //! Returns a pointer to the connection.
-      mysqlpp::Connection* operator ->() const;
+      Connection* operator ->() const;
 
     private:
-      DatabaseConnectionPool* m_pool;
-      std::unique_ptr<mysqlpp::Connection> m_connection;
+      DatabaseConnectionPool<Connection>* m_pool;
+      std::unique_ptr<Connection> m_connection;
   };
-}
 }
 
 #endif

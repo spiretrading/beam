@@ -1,5 +1,5 @@
-#ifndef BEAM_POSIXTIMETOMYSQLDATETIME_HPP
-#define BEAM_POSIXTIMETOMYSQLDATETIME_HPP
+#ifndef BEAM_POSIX_TIME_TO_MYSQL_DATE_TIME_HPP
+#define BEAM_POSIX_TIME_TO_MYSQL_DATE_TIME_HPP
 #include <ctime>
 #include <cstdint>
 #include <boost/date_time/posix_time/posix_time.hpp>

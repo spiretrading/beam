@@ -44,11 +44,12 @@ namespace {
         },
         [] (auto& row, auto&& value) {
           row->GetIndex() = std::forward<decltype(value)>(value);
-        })/*.
+        }).
       add_column("value",
         [] (auto& row) -> decltype(auto) {
-          return (*row)->m_value;
-        })*/;
+          auto& i = (*row)->m_value;
+          return i;
+        });
   }
 
   auto StoreValue(TestDataStore& dataStore, std::string index, int value,

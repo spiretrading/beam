@@ -89,6 +89,17 @@ if [ ! -d "yaml-cpp" ]; then
     popd
   fi
 fi
+if [ ! -d "sqlite" ]; then
+  sudo -u $username wget --no-check-certificate https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip
+  if [ -f sqlite-amalgamation-3230100.zip ]; then
+    sudo -u $username unzip sqlite-amalgamation-3230100.zip
+    sudo -u $username mv sqlite-amalgamation-3230100 sqlite
+    pushd sqlite
+    sudo -u $username gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 sqlite3.c
+    popd
+    rm sqlite-amalgamation-3230100.zip
+  fi
+fi
 if [ ! -d "tclap-1.2.1" ]; then
   sudo -u $username wget "https://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
   if [ -f tclap-1.2.1.tar.gz ]; then

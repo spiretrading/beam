@@ -42,13 +42,13 @@ namespace {
         [] (auto& row) {
           return row->GetIndex();
         },
-        [] (auto& row, auto& value) {
-          row->GetIndex() = std::move(value);
-        }).
+        [] (auto& row, auto&& value) {
+          row->GetIndex() = std::forward<decltype(value)>(value);
+        })/*.
       add_column("value",
         [] (auto& row) -> decltype(auto) {
           return (*row)->m_value;
-        });
+        })*/;
   }
 
   auto StoreValue(TestDataStore& dataStore, std::string index, int value,

@@ -25,7 +25,7 @@ if(UNIX)
     optimized $ENV{BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
-    pthread rt)
+    dl pthread rt)
 endif()
 
 add_custom_command(TARGET QueriesTests POST_BUILD COMMAND QueriesTests)

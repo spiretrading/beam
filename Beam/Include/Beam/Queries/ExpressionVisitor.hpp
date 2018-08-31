@@ -1,14 +1,11 @@
-#ifndef BEAM_QUERYEXPRESSIONVISITOR_HPP
-#define BEAM_QUERYEXPRESSIONVISITOR_HPP
+#ifndef BEAM_QUERY_EXPRESSION_VISITOR_HPP
+#define BEAM_QUERY_EXPRESSION_VISITOR_HPP
 #include <boost/noncopyable.hpp>
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ExpressionVisitor
-      \brief Implements the visitor pattern for Expressions.
-   */
+  /** Implements the visitor pattern for Expressions. */
   class ExpressionVisitor : private boost::noncopyable {
     public:
       virtual ~ExpressionVisitor() = default;
@@ -45,7 +42,6 @@ namespace Queries {
   };
 
   inline void ExpressionVisitor::Visit(const VirtualExpression& expression) {}
-}
 }
 
 #endif

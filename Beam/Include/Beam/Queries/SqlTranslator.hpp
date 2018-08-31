@@ -1,8 +1,9 @@
-#ifndef BEAM_SQLEXPRESSIONTRANSLATOR_HPP
-#define BEAM_SQLEXPRESSIONTRANSLATOR_HPP
+#ifndef BEAM_SQL_TRANSLATOR_HPP
+#define BEAM_SQL_TRANSLATOR_HPP
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>
+#include <Viper/Expressions/Expressions.hpp>
 #include "Beam/MySql/PosixTimeToMySqlDateTime.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
@@ -15,12 +16,9 @@
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class SqlTranslator
-      \brief Translates an Expression into an SQL query.
-   */
+  /** Translates a query expression into an SQL expression. */
   class SqlTranslator : public ExpressionVisitor {
     public:
 
@@ -31,179 +29,126 @@ namespace Queries {
       */
       SqlTranslator(std::string parameter, Expression expression);
 
-      //! Builds the SQL query.
-      std::string BuildQuery();
+      //! Builds the SQL expression.
+      Viper::Expression Build();
 
-      virtual void Visit(const ConstantExpression& expression);
+      void Visit(const ConstantExpression& expression) override;
 
-      virtual void Visit(const FunctionExpression& expression);
+      void Visit(const FunctionExpression& expression) override;
 
-      virtual void Visit(const OrExpression& expression);
+      void Visit(const OrExpression& expression) override;
 
-      virtual void Visit(const ParameterExpression& expression);
+      void Visit(const ParameterExpression& expression) override;
 
-      virtual void Visit(const VirtualExpression& expression);
+      void Visit(const VirtualExpression& expression) override;
 
     protected:
 
-      //! Returns the current query being translated.
-      std::string& GetQuery();
-
       //! Returns the parameter.
-      const std::string& GetParameter() const;
+      const Viper::Expression& GetParameter() const;
+
+      //! Returns the current translation.
+      Viper::Expression& GetTranslation();
 
     private:
-      std::string m_parameter;
+      Viper::Expression m_parameter;
       Expression m_expression;
-      std::string m_query;
-
-      static std::string Escape(const std::string& source);
+      Viper::Expression m_translation;
   };
 
-  //! Translates an Expression into an SQL query.
+  //! Translates a query expression into an SQL expression.
   /*!
     \param parameter The parameter/table name.
-    \param expression The Expression to translate.
-    \return The SQL query representing the <i>expression</i>.
+    \param expression The query expression to translate.
+    \return The SQL expression.
   */
   template<typename Translator = SqlTranslator>
-  inline std::string BuildSqlQuery(std::string parameter,
-      Expression expression) {
-    Translator translator{std::move(parameter), std::move(expression)};
-    return translator.BuildQuery();
+  auto BuildSqlQuery(std::string parameter, Expression expression) {
+    Translator translator(std::move(parameter), std::move(expression));
+    return translator.Build();
   }
 
   inline SqlTranslator::SqlTranslator(std::string parameter,
       Expression expression)
-      : m_parameter{std::move(parameter)},
-        m_expression{std::move(expression)} {}
+      : m_parameter(Viper::sym(std::move(parameter))),
+        m_expression(std::move(expression)) {}
 
-  inline std::string SqlTranslator::BuildQuery() {
-    m_query.clear();
+  inline Viper::Expression SqlTranslator::Build() {
     m_expression->Apply(*this);
-    return std::move(m_query);
+    return std::move(GetTranslation());
   }
 
   inline void SqlTranslator::Visit(const ConstantExpression& expression) {
     auto& value = expression.GetValue();
     if(value->GetType()->GetNativeType() == typeid(bool)) {
-      if(value->GetValue<bool>()) {
-        GetQuery() += "true";
-      } else {
-        GetQuery() += "false";
-      }
+      GetTranslation() = Viper::literal(value->GetValue<bool>());
     } else if(value->GetType()->GetNativeType() == typeid(char)) {
-      std::string escapeValue;
-      escapeValue += value->GetValue<char>();
-      GetQuery() += "\'";
-      GetQuery() += Escape(escapeValue);
-      GetQuery() += + "\'";
+      GetTranslation() = Viper::literal(value->GetValue<char>());
     } else if(value->GetType()->GetNativeType() == typeid(int)) {
-      GetQuery() += boost::lexical_cast<std::string>(value->GetValue<int>());
+      GetTranslation() = Viper::literal(value->GetValue<int>());
     } else if(value->GetType()->GetNativeType() == typeid(double)) {
-      GetQuery() += boost::lexical_cast<std::string>(value->GetValue<double>());
+      GetTranslation() = Viper::literal(value->GetValue<double>());
     } else if(value->GetType()->GetNativeType() == typeid(std::string)) {
-      GetQuery() += "\'" + Escape(value->GetValue<std::string>()) + "\'";
+      GetTranslation() = Viper::literal(value->GetValue<std::string>());
     } else if(value->GetType()->GetNativeType() ==
         typeid(boost::posix_time::ptime)) {
       auto timestamp = MySql::ToMySqlTimestamp(
         value->GetValue<boost::posix_time::ptime>());
-      GetQuery() += boost::lexical_cast<std::string>(timestamp);
+      GetTranslation() = Viper::literal(timestamp);
     }
   }
 
   inline void SqlTranslator::Visit(const FunctionExpression& expression) {
     if(expression.GetName() == ADDITION_NAME) {
       if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException{
-          "Invalid parameters."});
+        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
+          "Invalid parameters."));
       }
-      const auto& leftExpression = *expression.GetParameters()[0];
-      leftExpression.Apply(*this);
-      auto leftQuery = GetQuery();
-      GetQuery().clear();
-      const auto& rightExpression = *expression.GetParameters()[1];
-      rightExpression.Apply(*this);
-      auto rightQuery = GetQuery();
-      GetQuery().clear();
-      GetQuery() = "(" + leftQuery + " + " + rightQuery + ")";
+      expression.GetParameters()[0]->Apply(*this);
+      auto leftTranslation = GetTranslation();
+      expression.GetParameters()[1]->Apply(*this);
+      auto rightTranslation = GetTranslation();
+      GetTranslation() = leftTranslation + rightTranslation;
     } else if(expression.GetName() == EQUALS_NAME) {
       if(expression.GetParameters().size() != 2) {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Invalid parameters."));
       }
-      const auto& leftExpression = *expression.GetParameters()[0];
-      leftExpression.Apply(*this);
-      auto leftQuery = GetQuery();
-      GetQuery().clear();
-      const auto& rightExpression = *expression.GetParameters()[1];
-      rightExpression.Apply(*this);
-      auto rightQuery = GetQuery();
-      GetQuery().clear();
-      GetQuery() = "(" + leftQuery + " = " + rightQuery + ")";
+      expression.GetParameters()[0]->Apply(*this);
+      auto leftTranslation = GetTranslation();
+      expression.GetParameters()[1]->Apply(*this);
+      auto rightTranslation = GetTranslation();
+      GetTranslation() = leftTranslation == rightTranslation;
     } else {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException{
-        "Function not supported."});
+      BOOST_THROW_EXCEPTION(ExpressionTranslationException(
+        "Function not supported."));
     }
   }
 
   inline void SqlTranslator::Visit(const OrExpression& expression) {
-    const auto& leftExpression = *expression.GetLeftExpression();
-    leftExpression.Apply(*this);
-    auto leftQuery = GetQuery();
-    GetQuery().clear();
-    const auto& rightExpression = *expression.GetRightExpression();
-    rightExpression.Apply(*this);
-    auto rightQuery = GetQuery();
-    GetQuery().clear();
-    GetQuery() = "(" + leftQuery + " OR " + rightQuery + ")";
+    expression.GetLeftExpression()->Apply(*this);
+    auto leftTranslation = GetTranslation();
+    expression.GetRightExpression()->Apply(*this);
+    auto rightTranslation = GetTranslation();
+    GetTranslation() = leftTranslation || rightTranslation;
   }
 
   inline void SqlTranslator::Visit(const ParameterExpression& expression) {
-    GetQuery() = m_parameter;
+    GetTranslation() = m_parameter;
   }
 
   inline void SqlTranslator::Visit(const VirtualExpression& expression) {
-    BOOST_THROW_EXCEPTION(ExpressionTranslationException{
-      "Invalid expression."});
+    BOOST_THROW_EXCEPTION(ExpressionTranslationException(
+      "Invalid expression."));
   }
 
-  inline std::string& SqlTranslator::GetQuery() {
-    return m_query;
-  }
-
-  inline const std::string& SqlTranslator::GetParameter() const {
+  inline const Viper::Expression& SqlTranslator::GetParameter() const {
     return m_parameter;
   }
 
-  inline std::string SqlTranslator::Escape(const std::string& source) {
-    std::string result;
-    for(auto c : source) {
-      if(c == '\0') {
-        result += "\\0";
-      } else if(c == '\'') {
-        result += "\\'";
-      } else if(c == '\"') {
-        result += "\\\"";
-      } else if(c == '\x08') {
-        result += "\\b";
-      } else if(c == '\n') {
-        result += "\\n";
-      } else if(c == '\r') {
-        result += "\\r";
-      } else if(c == '\t') {
-        result += "\\t";
-      } else if(c == '\x1A') {
-        result += "\\n";
-      } else if(c == '\\') {
-        result += "\\\\";
-      } else {
-        result += c;
-      }
-    }
-    return result;
+  inline Viper::Expression& SqlTranslator::GetTranslation() {
+    return m_translation;
   }
-}
 }
 
 #endif

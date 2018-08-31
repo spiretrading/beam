@@ -1,11 +1,8 @@
 #ifndef BEAM_QUERIES_SQL_UTILITIES_HPP
 #define BEAM_QUERIES_SQL_UTILITIES_HPP
-#include <algorithm>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <Viper/Expressions/Expression.hpp>
 #include <Viper/Expressions/SqlFunctions.hpp>
@@ -41,7 +38,7 @@ namespace Beam::Queries {
     \return The sanitized <i>query</i>.
   */
   template<typename Query, typename ConnectionPool>
-  Query SanitizeSqlQuery(const Query& query, const std::string& table,
+  auto SanitizeSqlQuery(Query query, const std::string& table,
       const Viper::Expression& index, ConnectionPool& connectionPool) {
     auto start = [&] {
       if(auto start = boost::get<Sequence>(&query.GetRange().GetStart())) {
@@ -49,12 +46,12 @@ namespace Beam::Queries {
       }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetStart());
-      std::vector<std::uint64_t> rows;
+      auto rows = std::vector<std::uint64_t>();
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::min<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") >=
-        MySql::ToMySqlTimestamp(timestamp), std::back_inserter(rows)));
+        index && Viper::sym("timestamp") >= MySql::ToMySqlTimestamp(timestamp),
+        std::back_inserter(rows)));
       if(rows.empty()) {
         return Sequence::Last();
       }
@@ -66,63 +63,48 @@ namespace Beam::Queries {
       }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetEnd());
-      std::vector<std::uint64_t> rows;
+      auto rows = std::vector<std::uint64_t>();
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::max<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") <=
-        MySql::ToMySqlTimestamp(timestamp), std::back_inserter(rows)));
+        index && Viper::sym("timestamp") <= MySql::ToMySqlTimestamp(timestamp),
+        std::back_inserter(rows)));
       if(rows.empty()) {
         return Sequence::First();
       }
       return Sequence(rows.front());
     }();
-    Query sanitizedQuery = query;
+    auto sanitizedQuery = std::move(query);
     sanitizedQuery.SetRange(start, end);
     return sanitizedQuery;
   }
 
-#if 0
   //! Loads SequencedValue's from an SQL database.
   /*!
-    \param query The query to submit.
+    \param expression The SQL expression to query.
+    \param row The type of row's to select.
     \param table The SQL table to load the data from.
     \param threadPool The ThreadPool used to partition the reads.
     \param connectionPool Contains the pool of SQL connections to use.
-    \param rowToData Used to convert an SQL row to the SequencedValue.
-    \return The list of SequencedValue's satisfying the <i>query</i>.
+    \return The list of SequencedValue's satisfying the <i>expression</i>.
   */
-  template<typename T, typename Row, typename F>
-  std::vector<T> LoadSqlQuery(const std::string& query,
+  template<typename Row, typename ConnectionPool>
+  auto LoadSqlQuery(const Viper::Expression& expression, const Row& row,
       const std::string& table, Threading::ThreadPool& threadPool,
-      MySql::DatabaseConnectionPool& connectionPool, F rowToData) {
-    std::vector<T> records;
-    Routines::Async<std::vector<T>> result;
+      ConnectionPool& connectionPool) {
+    using Type = typename Row::Type;
+    auto result = Routines::Async<std::vector<Type>>();
     auto connection = connectionPool.Acquire();
     threadPool.Queue(
       [&] {
-        auto sqlQuery = connection->query();
-        if(query.empty()) {
-          sqlQuery << "SELECT * FROM " << table << " WHERE FALSE";
-        } else {
-          sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
-        }
-        std::vector<Row> rows;
-        sqlQuery.storein(rows);
-        if(sqlQuery.errnum() != 0) {
-          std::stringstream ss;
-          ss << sqlQuery.error() << " : " << sqlQuery.str();
-          BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
-        }
-        sqlQuery.reset();
-        std::vector<T> transformedRows;
-        std::transform(rows.begin(), rows.end(),
-          std::back_inserter(transformedRows), rowToData);
-        return transformedRows;
+        auto rows = std::vector<Type>();
+        connection->execute(Viper::select(row, table, expression,
+          Viper::order_by("query_sequence", Viper::Order::ASC),
+          std::back_inserter(rows)));
+        return rows;
       }, result.GetEval());
     return result.Get();
   }
-#endif
 
   //! Loads SequencedValue's from an SQL database.
   /*!
@@ -136,41 +118,41 @@ namespace Beam::Queries {
   */
   template<typename Translator, typename Query, typename Row,
     typename ConnectionPool>
-  auto LoadSqlQuery(const Query& query, const Row& row,
+  auto LoadSqlQuery(Query query, const Row& row,
       const std::string& table, const Viper::Expression& index,
       Threading::ThreadPool& threadPool, ConnectionPool& connectionPool) {
     using Type = typename Row::Type;
     constexpr auto MAX_READS_PER_QUERY = 1000;
-    std::vector<Type> records;
+    auto records = std::vector<Type>();
     if(query.GetRange().GetStart() == Sequence::Present() ||
         query.GetRange().GetStart() == Sequence::Last()) {
       return records;
     }
-    auto sanitizedQuery = SanitizeSqlQuery(query, table, index, connectionPool);
+    auto sanitizedQuery = SanitizeSqlQuery(std::move(query), table, index,
+      connectionPool);
     auto startPoint =
       boost::get<Sequence>(sanitizedQuery.GetRange().GetStart());
-    auto endPoint =
-      boost::get<Sequence>(sanitizedQuery.GetRange().GetEnd());
+    auto endPoint = boost::get<Sequence>(sanitizedQuery.GetRange().GetEnd());
     auto remainingLimit = sanitizedQuery.GetSnapshotLimit().GetSize();
     if(sanitizedQuery.GetSnapshotLimit().GetType() ==
         SnapshotLimit::Type::TAIL) {
-      std::vector<std::vector<Type>> partitions;
+      auto partitions = std::vector<std::vector<Type>>();
       while(remainingLimit > 0 && endPoint >= startPoint) {
-        Routines::Async<std::vector<Type>> result;
+        auto result = Routines::Async<std::vector<Type>>();
         auto subsetQuery = sanitizedQuery;
         subsetQuery.SetRange(startPoint, endPoint);
         subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
         auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
-            auto filterQuery = BuildSqlQuery<Translator>(table,
+            auto filter = BuildSqlQuery<Translator>(table,
               subsetQuery.GetFilter());
             auto range = BuildRangeExpression(subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            std::vector<Type> rows;
+            auto rows = std::vector<Type>();
             connection->execute(Viper::select(row,
-              Viper::select({"*"}, table, index && range,
+              Viper::select({"*"}, table, index && range && filter,
               Viper::order_by("query_sequence", Viper::Order::DESC),
               Viper::limit(limit)),
               Viper::order_by("query_sequence", Viper::Order::ASC),
@@ -186,7 +168,7 @@ namespace Beam::Queries {
           endPoint = Decrement(partitions.back().front().GetSequence());
         }
       }
-      for(const auto& partition : boost::adaptors::reverse(partitions)) {
+      for(auto& partition : boost::adaptors::reverse(partitions)) {
         records.insert(records.end(), partition.begin(), partition.end());
       }
     } else {
@@ -197,18 +179,18 @@ namespace Beam::Queries {
           subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD,
             remainingLimit);
         }
-        Routines::Async<std::vector<Type>> result;
+        auto result = Routines::Async<std::vector<Type>>();
         auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
-            auto filterQuery = BuildSqlQuery<Translator>(table,
+            auto filter = BuildSqlQuery<Translator>(table,
               subsetQuery.GetFilter());
             auto range = BuildRangeExpression(subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            std::vector<Type> rows;
+            auto rows = std::vector<Type>();
             connection->execute(
-              Viper::select(row, table, index && range,
+              Viper::select(row, table, index && range && filter,
               Viper::order_by("query_sequence", Viper::Order::ASC),
               Viper::limit(limit), std::back_inserter(rows)));
             return rows;

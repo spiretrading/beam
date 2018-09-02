@@ -72,7 +72,7 @@ namespace Queries {
   class SetVariableExpression;
   class SnapshotLimit;
   class SnapshotLimitedQuery;
-  template<typename C, typename Q, typename R, typename I, typename T>
+  template<typename C, typename V, typename I, typename F, typename T>
     class SqlDataStore;
   class SqlTranslator;
   template<typename ValueType, typename ServiceProtocolClientType>

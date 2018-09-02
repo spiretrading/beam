@@ -24,109 +24,43 @@ namespace {
     bool operator ==(const Entry& rhs) const;
   };
 
-  using SequencedEntry = SequencedValue<Entry>;
-  using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry,
-    std::string>>;
-
-  struct EntryIndexBuilder {
-    auto operator ()(const std::string& index) const {
-      return sym("name") == index;
+  struct IndexBuilder {
+    auto operator ()(const std::string& value) const {
+      return sym("name") == value;
     }
   };
 
-  using TestDataStore = SqlDataStore<Sqlite3::Connection,
-    BasicQuery<std::string>, Row<SequencedIndexedEntry>, EntryIndexBuilder,
-    SqlTranslator>;
+  template<typename T>
+  auto FIndexBuilder(const Row<T>& row, const T& value) {
+    std::optional<Viper::Expression> e;
+    std::string column;
+    for(auto i = std::size_t(0); i != row.get_columns().size(); ++i) {
+      row.append_value(value, i, column);
+      auto term = Viper::sym(row.get_columns()[i].m_name) == column;
+      if(e.has_value()) {
+        e = e && term;
+      } else {
+        e.emplace(std::move(term));
+      }
+      column.clear();
+    }
+    if(e.has_value()) {
+      return *e;
+    }
+    return {};
+  }
+
+  using SequencedEntry = SequencedValue<Entry>;
+  using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry,
+    std::string>>;
+  using TestDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
+    Row<std::string>, IndexBuilder, SqlTranslator>;
 
   bool Entry::operator ==(const Entry& rhs) const {
     return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
   }
 
   const auto PATH = "file:memdb?mode=memory&cache=shared";
-
-  template<typename G, typename S>
-  struct TimestampAccessor {
-    G m_getter;
-    S m_setter;
-
-    TimestampAccessor(G getter, S setter)
-        : m_getter(std::move(getter)),
-          m_setter(std::move(setter)) {}
-
-    template<typename T>
-    auto operator ()(T& row) const {
-      return MySql::ToMySqlTimestamp(m_getter(row));
-    }
-
-    template<typename T, typename V>
-    void operator ()(T& row, V value) const {
-      m_setter(row, MySql::FromMySqlTimestamp(std::forward<V>(value)));
-    }
-  };
-
-  template<typename F>
-  auto MakeTimestampAccessor(F&& accessor) {
-    auto getter = std::forward<F>(accessor);
-    auto setter =
-      [=] (auto& row, auto&& value) {
-        getter(row) = std::forward<decltype(value)>(value);
-      };
-    return TimestampAccessor<decltype(getter), decltype(setter)>(
-      std::move(getter), std::move(setter));
-  }
-
-  template<typename G, typename S>
-  struct SequenceAccessor {
-    G m_getter;
-    S m_setter;
-
-    SequenceAccessor(G getter, S setter)
-        : m_getter(std::move(getter)),
-          m_setter(std::move(setter)) {}
-
-    template<typename T>
-    auto operator ()(T& row) const {
-      return m_getter(row).GetOrdinal();
-    }
-
-    template<typename T, typename V>
-    void operator ()(T& row, V value) const {
-      m_setter(row, Queries::Sequence(value));
-    }
-  };
-
-  template<typename F>
-  auto MakeSequenceAccessor(F&& accessor) {
-    auto getter = std::forward<F>(accessor);
-    auto setter =
-      [=] (auto& row, auto&& value) {
-        getter(row) = Queries::Sequence(std::forward<decltype(value)>(value));
-      };
-    return SequenceAccessor<decltype(getter), decltype(setter)>(
-      std::move(getter), std::move(setter));
-  }
-
-  auto BuildRow() {
-    return Row<SequencedIndexedEntry>().
-      add_column("name",
-        [] (auto& row) -> auto& {
-          return row->GetIndex();
-        }).
-      add_column("value",
-        [] (auto& row) -> auto& {
-          return (*row)->m_value;
-        }).
-      add_column("timestamp",
-        MakeTimestampAccessor(
-          [] (auto& row) -> auto& {
-            return (*row)->m_timestamp;
-          })).
-      add_column("query_sequence",
-        MakeSequenceAccessor(
-          [] (auto& row) -> decltype(auto) {
-            return row.GetSequence();
-          }));
-  }
 
   auto StoreValue(TestDataStore& dataStore, std::string index, int value,
       const ptime& timestamp, const Queries::Sequence& sequence) {
@@ -146,6 +80,15 @@ namespace {
     auto queryResult = dataStore.Load(query);
     CPPUNIT_ASSERT(expectedResult == queryResult);
   }
+
+  auto BuildValueRow() {
+    return Row<Entry>().
+      add_column("value", &Entry::m_value);
+  }
+
+  auto BuildIndexRow() {
+    return Row<std::string>().add_column("name");
+  }
 }
 
 void SqlDataStoreTester::TestStoreAndLoad() {
@@ -154,14 +97,10 @@ void SqlDataStoreTester::TestStoreAndLoad() {
   c->open();
   connectionPool.Add(std::move(c));
   auto writerConnection = Sync<Sqlite3::Connection, Mutex>(PATH);
-  writerConnection.With(
-    [&] (auto& connection) {
-      connection.open();
-      connection.execute(create_if_not_exists(BuildRow(), "test"));
-    });
   auto threadPool = ThreadPool();
-  auto dataStore = TestDataStore(BuildRow(), "test", Ref(connectionPool),
-    Ref(writerConnection), Ref(threadPool));
+  auto dataStore = TestDataStore("test", BuildValueRow(), BuildIndexRow(),
+    Ref(connectionPool), Ref(writerConnection), Ref(threadPool));
+  dataStore.Open();
   auto timeClient = IncrementalTimeClient();
   auto sequence = Queries::Sequence(5);
   auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),

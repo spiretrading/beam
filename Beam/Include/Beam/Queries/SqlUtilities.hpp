@@ -118,9 +118,9 @@ namespace Beam::Queries {
   */
   template<typename Translator, typename Query, typename Row,
     typename ConnectionPool>
-  auto LoadSqlQuery(Query query, const Row& row,
-      const std::string& table, const Viper::Expression& index,
-      Threading::ThreadPool& threadPool, ConnectionPool& connectionPool) {
+  auto LoadSqlQuery(Query query, const Row& row, const std::string& table,
+      const Viper::Expression& index, Threading::ThreadPool& threadPool,
+      ConnectionPool& connectionPool) {
     using Type = typename Row::Type;
     constexpr auto MAX_READS_PER_QUERY = 1000;
     auto records = std::vector<Type>();

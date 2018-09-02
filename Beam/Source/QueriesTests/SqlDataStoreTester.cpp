@@ -21,44 +21,16 @@ namespace {
     int m_value;
     ptime m_timestamp;
 
-    bool operator ==(const Entry& rhs) const;
-  };
-
-  struct IndexBuilder {
-    auto operator ()(const std::string& value) const {
-      return sym("name") == value;
+    bool operator ==(const Entry& rhs) const {
+      return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
     }
   };
-
-  template<typename T>
-  auto FIndexBuilder(const Row<T>& row, const T& value) {
-    std::optional<Viper::Expression> e;
-    std::string column;
-    for(auto i = std::size_t(0); i != row.get_columns().size(); ++i) {
-      row.append_value(value, i, column);
-      auto term = Viper::sym(row.get_columns()[i].m_name) == column;
-      if(e.has_value()) {
-        e = e && term;
-      } else {
-        e.emplace(std::move(term));
-      }
-      column.clear();
-    }
-    if(e.has_value()) {
-      return *e;
-    }
-    return {};
-  }
 
   using SequencedEntry = SequencedValue<Entry>;
   using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry,
     std::string>>;
   using TestDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
-    Row<std::string>, IndexBuilder, SqlTranslator>;
-
-  bool Entry::operator ==(const Entry& rhs) const {
-    return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
-  }
+    Row<std::string>, SqlTranslator>;
 
   const auto PATH = "file:memdb?mode=memory&cache=shared";
 
@@ -82,8 +54,7 @@ namespace {
   }
 
   auto BuildValueRow() {
-    return Row<Entry>().
-      add_column("value", &Entry::m_value);
+    return Row<Entry>().add_column("value", &Entry::m_value);
   }
 
   auto BuildIndexRow() {

@@ -16,7 +16,7 @@ namespace Beam {
       /*!
         \param reference The reference to wrap.
       */
-      Ref(Type& reference);
+      explicit Ref(Type& reference);
 
       //! Allows for polymorphic Refs.
       template<typename U>
@@ -66,7 +66,7 @@ namespace Beam {
   template<typename T>
   template<typename U>
   Ref<T>::Ref(const Ref<U>& reference)
-      : m_reference(reference.m_reference.Get()) {}
+      : m_reference(reference.Get()) {}
 
   template<typename T>
   Ref<T>::Ref(Ref&& ref)

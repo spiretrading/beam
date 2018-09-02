@@ -1,12 +1,11 @@
-#ifndef BEAM_MYSQLUTILITIES_HPP
-#define BEAM_MYSQLUTILITIES_HPP
+#ifndef BEAM_SQL_UTILITIES_HPP
+#define BEAM_SQL_UTILITIES_HPP
 #include <string>
 #include <mysql++/connection.h>
 #include <mysql++/query.h>
-#include "Beam/MySql/MySql.hpp"
+#include "Beam/Sql/Sql.hpp"
 
 namespace Beam {
-namespace MySql {
 
   //! Tests if a table is a member of a schema.
   /*!
@@ -23,7 +22,6 @@ namespace MySql {
     auto result = query.store();
     return !result.empty();
   }
-}
 }
 
 #endif

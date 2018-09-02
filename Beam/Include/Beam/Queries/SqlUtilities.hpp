@@ -50,7 +50,7 @@ namespace Beam::Queries {
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::min<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") >= MySql::ToMySqlTimestamp(timestamp),
+        index && Viper::sym("timestamp") >= ToSqlTimestamp(timestamp),
         std::back_inserter(rows)));
       if(rows.empty()) {
         return Sequence::Last();
@@ -67,7 +67,7 @@ namespace Beam::Queries {
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::max<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") <= MySql::ToMySqlTimestamp(timestamp),
+        index && Viper::sym("timestamp") <= ToSqlTimestamp(timestamp),
         std::back_inserter(rows)));
       if(rows.empty()) {
         return Sequence::First();

@@ -5,7 +5,6 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <Viper/Viper.hpp>
-#include "Beam/MySql/DatabaseConnectionPool.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
@@ -13,6 +12,7 @@
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SqlTranslator.hpp"
 #include "Beam/Queries/SqlUtilities.hpp"
+#include "Beam/Sql/DatabaseConnectionPool.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
@@ -128,10 +128,10 @@ namespace Beam::Queries {
     m_valueRow = m_valueRow.
       add_column("timestamp",
         [] (auto& row) {
-          return MySql::ToMySqlTimestamp(GetTimestamp(row));
+          return ToSqlTimestamp(GetTimestamp(row));
         },
         [] (auto& row, auto value) {
-          GetTimestamp(row) = MySql::FromMySqlTimestamp(value);
+          GetTimestamp(row) = FromSqlTimestamp(value);
         });
     m_sequencedRow = Row<SequencedValue>().
       extend(m_valueRow,

@@ -4,8 +4,8 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/locks.hpp>
-#include "Beam/MySql/ScopedDatabaseConnection.hpp"
-#include "Beam/MySql/MySql.hpp"
+#include "Beam/Sql/ScopedDatabaseConnection.hpp"
+#include "Beam/Sql/Sql.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 

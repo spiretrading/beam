@@ -2,7 +2,7 @@
 #define BEAM_SCOPED_DATABASE_CONNECTION_HPP
 #include <memory>
 #include <boost/noncopyable.hpp>
-#include "Beam/MySql/MySql.hpp"
+#include "Beam/Sql/Sql.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
 namespace Beam {

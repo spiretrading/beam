@@ -1,17 +1,14 @@
-#ifndef BEAM_MYSQLCONFIG_HPP
-#define BEAM_MYSQLCONFIG_HPP
+#ifndef BEAM_MYSQL_CONFIG_HPP
+#define BEAM_MYSQL_CONFIG_HPP
 #include <string>
 #include <vector>
 #include "Beam/Network/IpAddress.hpp"
-#include "Beam/MySql/MySql.hpp"
+#include "Beam/Sql/Sql.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
 namespace Beam {
-namespace MySql {
 
-  /*! \struct MySqlConfig
-      \brief Stores the configuration needed to connect a MySQL database.
-   */
+  /** Stores the configuration needed to connect a MySQL database. */
   struct MySqlConfig {
 
     //! Parses a MySqlConfig from a YAML Node.
@@ -76,7 +73,6 @@ namespace MySql {
     }
     return config;
   }
-}
 }
 
 #endif

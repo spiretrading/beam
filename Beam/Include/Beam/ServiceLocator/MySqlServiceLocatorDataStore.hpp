@@ -11,6 +11,40 @@
 
 namespace Beam {
 namespace ServiceLocator {
+namespace Details {
+  inline boost::posix_time::ptime FromDateTime(
+      const mysqlpp::DateTime& source) {
+    if(source == mysqlpp::DateTime(3999, 1, 1, 1, 1, 1)) {
+      return boost::posix_time::pos_infin;
+    } else if(source == mysqlpp::DateTime(std::time_t(0))) {
+      return boost::posix_time::not_a_date_time;
+    }
+    std::tm pt_tm;
+    pt_tm.tm_year = source.year() - 1900;
+    pt_tm.tm_mon = source.month() - 1;
+    pt_tm.tm_mday = source.day();
+    pt_tm.tm_hour = source.hour();
+    pt_tm.tm_min = source.minute();
+    pt_tm.tm_sec = source.second();
+    return boost::posix_time::ptime_from_tm(pt_tm);
+  }
+
+  inline mysqlpp::DateTime ToDateTime(const boost::posix_time::ptime& source) {
+    if(source == boost::posix_time::pos_infin) {
+      return mysqlpp::DateTime(3999, 1, 1, 1, 1, 1);
+    } else if(source.is_special()) {
+      return mysqlpp::DateTime(std::time_t(0));
+    } else {
+      return mysqlpp::DateTime(
+        static_cast<unsigned short>(source.date().year()),
+        static_cast<unsigned char>(source.date().month()),
+        static_cast<unsigned char>(source.date().day()),
+        static_cast<unsigned char>(source.time_of_day().hours()),
+        static_cast<unsigned char>(source.time_of_day().minutes()),
+        static_cast<unsigned char>(source.time_of_day().seconds()));
+    }
+  }
+}
 
   /*! \class MySqlServiceLocatorDataStore
       \brief Implements the ServiceLocatorDataStore using MySQL.
@@ -251,8 +285,8 @@ namespace ServiceLocator {
     DirectoryEntry newEntry{DirectoryEntry::Type::ACCOUNT, entryId, name};
     auto query = m_databaseConnection.query();
     Details::SqlInsert::accounts accountRow{newEntry.m_id, newEntry.m_name,
-      HashPassword(newEntry, password), MySql::ToDateTime(registrationTime),
-      MySql::ToDateTime(boost::posix_time::neg_infin)};
+      HashPassword(newEntry, password), Details::ToDateTime(registrationTime),
+      Details::ToDateTime(boost::posix_time::neg_infin)};
     query.insert(accountRow);
     if(!query.execute()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
@@ -478,7 +512,7 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
-    return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
+    return Details::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
   inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
@@ -494,7 +528,7 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
-    return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
+    return Details::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
   inline void MySqlServiceLocatorDataStore::StoreLastLoginTime(
@@ -506,7 +540,7 @@ namespace ServiceLocator {
     }
     auto query = m_databaseConnection.query();
     query << "UPDATE accounts SET last_login_time = " << mysqlpp::quote <<
-      MySql::ToDateTime(loginTime) << " WHERE id = " << account.m_id;
+      Details::ToDateTime(loginTime) << " WHERE id = " << account.m_id;
     if(!query.execute()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }

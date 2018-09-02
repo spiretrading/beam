@@ -4,7 +4,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/Expressions/Expressions.hpp>
-#include "Beam/MySql/PosixTimeToMySqlDateTime.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
@@ -15,6 +14,7 @@
 #include "Beam/Queries/SetVariableExpression.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
+#include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 
 namespace Beam::Queries {
 
@@ -92,7 +92,7 @@ namespace Beam::Queries {
       GetTranslation() = Viper::literal(value->GetValue<std::string>());
     } else if(value->GetType()->GetNativeType() ==
         typeid(boost::posix_time::ptime)) {
-      auto timestamp = MySql::ToMySqlTimestamp(
+      auto timestamp = ToSqlTimestamp(
         value->GetValue<boost::posix_time::ptime>());
       GetTranslation() = Viper::literal(timestamp);
     }

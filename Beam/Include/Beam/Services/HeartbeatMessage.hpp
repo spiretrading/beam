@@ -23,7 +23,7 @@ namespace Services {
       HeartbeatMessage();
 
       virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-        RefType<ServiceProtocolClient> protocol) const;
+        Ref<ServiceProtocolClient> protocol) const;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -38,7 +38,7 @@ namespace Services {
   template<typename ServiceProtocolClientType>
   void HeartbeatMessage<ServiceProtocolClientType>::EmitSignal(
     BaseServiceSlot<ServiceProtocolClient>* slot,
-    RefType<ServiceProtocolClient> protocol) const {}
+    Ref<ServiceProtocolClient> protocol) const {}
 
   template<typename ServiceProtocolClientType>
   template<typename Shuttler>

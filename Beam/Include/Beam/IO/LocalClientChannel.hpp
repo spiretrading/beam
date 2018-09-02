@@ -39,7 +39,7 @@ namespace IO {
         \param server The server to connect to.
       */
       LocalClientChannel(const std::string& name,
-        RefType<LocalServerConnection> server);
+        Ref<LocalServerConnection> server);
 
       const Identifier& GetIdentifier() const;
 
@@ -58,7 +58,7 @@ namespace IO {
 
   template<typename BufferType>
   LocalClientChannel<BufferType>::LocalClientChannel(const std::string& name,
-      RefType<LocalServerConnection> server)
+      Ref<LocalServerConnection> server)
       : m_identifier("client@" + name) {
     auto serverChannel =  std::make_unique<LocalServerChannel<Buffer>>(name,
       Ref(server), Ref(*this));

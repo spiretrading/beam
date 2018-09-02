@@ -23,7 +23,7 @@ namespace Tests {
         \param environment The TestEnvironment this Timer belongs to.
       */
       TestTimer(boost::posix_time::time_duration interval,
-        RefType<TimeServiceTestEnvironment> environment);
+        Ref<TimeServiceTestEnvironment> environment);
 
       ~TestTimer();
 
@@ -46,7 +46,7 @@ namespace Tests {
   };
 
   inline TestTimer::TestTimer(boost::posix_time::time_duration interval,
-      RefType<TimeServiceTestEnvironment> environment)
+      Ref<TimeServiceTestEnvironment> environment)
       : m_interval{std::move(interval)},
         m_environment{environment.Get()},
         m_hasStarted{false} {}

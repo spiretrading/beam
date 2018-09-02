@@ -26,7 +26,7 @@ source_group("RegistryService" FILES ${registry_service_header_files})
 file(GLOB routines_header_files ./../../../Include/Beam/Routines/*.hpp
   ./../../../Include/Beam/Routines/*.inl)
 source_group("Routines" FILES ${routines_header_files})
-file(GLOB serialization_header_files ./../../../Include/Beam/Serializaion/*.hpp)
+file(GLOB serialization_header_files ./../../../Include/Beam/Serialization/*.hpp)
 source_group("Serialization" FILES ${serialization_header_files})
 file(GLOB service_locator_header_files
   ./../../../Include/Beam/ServiceLocator/*.hpp)

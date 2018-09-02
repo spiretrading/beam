@@ -27,7 +27,7 @@ namespace Beam {
       using Type = T;
 
       //! Constructs a ScopedResource.
-      ScopedResource(RefType<ResourcePool<Type>> pool,
+      ScopedResource(Ref<ResourcePool<Type>> pool,
         std::unique_ptr<Type> object);
 
       //! Acquires a ScopedResource.
@@ -74,7 +74,7 @@ namespace Beam {
       */
       ResourcePool(const boost::posix_time::time_duration& timeout,
         const ObjectBuilder& objectBuilder,
-        RefType<Threading::TimerThreadPool> timerThreadPool,
+        Ref<Threading::TimerThreadPool> timerThreadPool,
         std::size_t minObjectCount = 1,
         std::size_t maxObjectCount = std::numeric_limits<std::size_t>::max());
 
@@ -101,7 +101,7 @@ namespace Beam {
   template<typename T>
   ResourcePool<T>::ResourcePool(const boost::posix_time::time_duration& timeout,
       const ObjectBuilder& objectBuilder,
-      RefType<Threading::TimerThreadPool> timerThreadPool,
+      Ref<Threading::TimerThreadPool> timerThreadPool,
       std::size_t minObjectCount, std::size_t maxObjectCount)
       : m_timeout{timeout},
         m_objectBuilder{objectBuilder},
@@ -164,7 +164,7 @@ namespace Beam {
   }
 
   template<typename T>
-  ScopedResource<T>::ScopedResource(RefType<ResourcePool<Type>> pool,
+  ScopedResource<T>::ScopedResource(Ref<ResourcePool<Type>> pool,
       std::unique_ptr<Type> object)
       : m_pool{pool.Get()},
         m_object{std::move(object)} {}

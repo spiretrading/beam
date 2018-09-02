@@ -22,7 +22,7 @@ namespace Tasks {
         \param reactorMonitor The ReactorMonitor to start upon execution.
         \param taskFactory Specifies the Task to execute.
       */
-      ReactorMonitorTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      ReactorMonitorTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
         TaskFactory taskFactory);
 
     protected:
@@ -58,8 +58,7 @@ namespace Tasks {
         \param reactorMonitor The ReactorMonitor to open upon execution.
         \param taskFactory Specifies the Task to execute.
       */
-      ReactorMonitorTaskFactory(
-        RefType<Reactors::ReactorMonitor> reactorMonitor,
+      ReactorMonitorTaskFactory(Ref<Reactors::ReactorMonitor> reactorMonitor,
         TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
@@ -72,7 +71,7 @@ namespace Tasks {
   };
 
   inline ReactorMonitorTask::ReactorMonitorTask(
-      RefType<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
+      Ref<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_taskFactory{std::move(taskFactory)} {}
 
@@ -133,7 +132,7 @@ namespace Tasks {
   }
 
   inline ReactorMonitorTaskFactory::ReactorMonitorTaskFactory(
-      RefType<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
+      Ref<Reactors::ReactorMonitor> reactorMonitor, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_taskFactory{std::move(taskFactory)} {}
 

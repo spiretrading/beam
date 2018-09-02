@@ -29,7 +29,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       MulticastSocketChannel(const IpAddress& address,
-        const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool);
+        const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool);
 
       //! Returns the underlying MulticastSocket.
       MulticastSocket& GetSocket();
@@ -52,7 +52,7 @@ namespace Network {
 
   inline MulticastSocketChannel::MulticastSocketChannel(
       const IpAddress& address, const IpAddress& interface,
-      RefType<SocketThreadPool> socketThreadPool)
+      Ref<SocketThreadPool> socketThreadPool)
       : m_identifier(address),
         m_socket(std::make_shared<MulticastSocket>(address, interface,
           Ref(socketThreadPool))),

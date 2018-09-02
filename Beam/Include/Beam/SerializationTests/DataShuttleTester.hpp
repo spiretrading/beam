@@ -98,7 +98,7 @@ namespace Tests {
         \param registry The TypeRegistry to use.
       */
       virtual SenderType MakeSender(
-        RefType<TypeRegistry<SenderType>> registry) = 0;
+        Ref<TypeRegistry<SenderType>> registry) = 0;
 
       //! Makes a Receiver.
       virtual ReceiverType MakeReceiver() = 0;
@@ -108,7 +108,7 @@ namespace Tests {
         \param registry The TypeRegistry to use.
       */
       virtual ReceiverType MakeReceiver(
-        RefType<TypeRegistry<SenderType>> registry) = 0;
+        Ref<TypeRegistry<SenderType>> registry) = 0;
 
     private:
       CPPUNIT_TEST_SUITE(DataShuttleTester);

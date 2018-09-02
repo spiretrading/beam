@@ -72,7 +72,7 @@ namespace Queries {
         \param clientHandler The ServiceProtocolClientHandler providing
                ServiceProtocolClients to submit queries to.
       */
-      QueryClientPublisher(RefType<ServiceProtocolClientHandler> clientHandler);
+      QueryClientPublisher(Ref<ServiceProtocolClientHandler> clientHandler);
 
       //! Submits a query.
       /*!
@@ -125,7 +125,7 @@ namespace Queries {
     typename QueryServiceType, typename EndQueryMessageType>
   QueryClientPublisher<ValueType, QueryType, EvaluatorTranslatorType,
       ServiceProtocolClientHandlerType, QueryServiceType, EndQueryMessageType>::
-      QueryClientPublisher(RefType<ServiceProtocolClientHandler> clientHandler)
+      QueryClientPublisher(Ref<ServiceProtocolClientHandler> clientHandler)
       : m_clientHandler(clientHandler.Get()) {}
 
   template<typename ValueType, typename QueryType,

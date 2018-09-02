@@ -59,7 +59,7 @@ namespace Services {
         \param channelBuilder Used to build new Channels.
         \param timerBuilder Used to build heartbeat Timers.
       */
-      AuthenticatedServiceProtocolClientBuilder(RefType<ServiceLocatorClient>
+      AuthenticatedServiceProtocolClientBuilder(Ref<ServiceLocatorClient>
         serviceLocatorClient, const ChannelBuilder& channelBuilder,
         const TimerBuilder& timerBuilder);
 
@@ -78,7 +78,7 @@ namespace Services {
   AuthenticatedServiceProtocolClientBuilder<ServiceLocatorClientType,
       MessageProtocolType, TimerType>::
       AuthenticatedServiceProtocolClientBuilder(
-      RefType<ServiceLocatorClient> serviceLocatorClient,
+      Ref<ServiceLocatorClient> serviceLocatorClient,
       const ChannelBuilder& channelBuilder, const TimerBuilder& timerBuilder)
       : m_serviceLocatorClient(serviceLocatorClient.Get()),
         m_channelBuilder(channelBuilder),

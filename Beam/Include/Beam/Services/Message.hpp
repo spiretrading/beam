@@ -26,7 +26,7 @@ namespace Services {
         \param protocol The protocol which received the Message.
       */
       virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-        RefType<ServiceProtocolClient> protocol) const = 0;
+        Ref<ServiceProtocolClient> protocol) const = 0;
   };
 }
 }

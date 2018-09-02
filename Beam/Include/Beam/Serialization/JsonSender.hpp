@@ -53,9 +53,9 @@ namespace Details {
       /*!
         \param registry The TypeRegistry used for sending polymorphic types.
       */
-      JsonSender(RefType<TypeRegistry<JsonSender>> registry);
+      JsonSender(Ref<TypeRegistry<JsonSender>> registry);
 
-      void SetSink(RefType<Sink> sink);
+      void SetSink(Ref<Sink> sink);
 
       void Send(const char* name, const unsigned char& value);
 
@@ -101,13 +101,12 @@ namespace Details {
       : m_appendComma{false} {}
 
   template<typename SinkType>
-  JsonSender<SinkType>::JsonSender(
-      RefType<TypeRegistry<JsonSender>> registry)
+  JsonSender<SinkType>::JsonSender(Ref<TypeRegistry<JsonSender>> registry)
       : SenderMixin<JsonSender<SinkType>>(Ref(registry)),
         m_appendComma{false} {}
 
   template<typename SinkType>
-  void JsonSender<SinkType>::SetSink(RefType<Sink> sink) {
+  void JsonSender<SinkType>::SetSink(Ref<Sink> sink) {
     m_appendComma = false;
     m_sink = sink.Get();
   }

@@ -30,7 +30,7 @@ namespace Services {
         \param client The client making the request.
         \param requestId The request's unique identifier.
       */
-      RequestToken(RefType<ServiceProtocolClient> client, int requestId);
+      RequestToken(Ref<ServiceProtocolClient> client, int requestId);
 
       //! Returns the client that made the request.
       ServiceProtocolClient& GetClient() const;
@@ -74,7 +74,7 @@ namespace Services {
 
   template<typename ServiceProtocolClientType, typename ServiceType>
   RequestToken<ServiceProtocolClientType, ServiceType>::RequestToken(
-      RefType<ServiceProtocolClient> client, int requestId)
+      Ref<ServiceProtocolClient> client, int requestId)
       : m_client(client.Get()),
         m_requestId(requestId) {}
 

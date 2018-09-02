@@ -66,7 +66,7 @@ namespace Details {
       RecordMessageSlot(SlotForward&& slot);
 
       virtual void Invoke(
-        RefType<typename RecordMessage::ServiceProtocolClient> protocol,
+        Ref<typename RecordMessage::ServiceProtocolClient> protocol,
         const typename RecordMessage::Record& record) const;
 
       virtual void AddPreHook(const PreHook& hook);
@@ -83,7 +83,7 @@ namespace Details {
 
   template<typename RecordMessageType>
   void RecordMessageSlot<RecordMessageType>::Invoke(
-      RefType<typename RecordMessageType::ServiceProtocolClient> protocol,
+      Ref<typename RecordMessageType::ServiceProtocolClient> protocol,
       const typename RecordMessageType::Record& record) const {
     try {
       for(const PreHook& preHook : m_preHooks) {

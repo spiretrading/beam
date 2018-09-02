@@ -22,7 +22,7 @@ namespace Threading {
       /*!
         \param timerThreadPool The TimerThreadPool used to perform timed waits.
       */
-      TimedConditionVariable(RefType<TimerThreadPool> timerThreadPool);
+      TimedConditionVariable(Ref<TimerThreadPool> timerThreadPool);
 
       //! Suspends the current Routine until a notification is received.
       /*!
@@ -54,9 +54,9 @@ namespace Threading {
         Routines::Async<void> m_timerResult;
         ConditionVariable m_condition;
 
-        WaitEntry(RefType<TimerThreadPool> timerThreadPool);
+        WaitEntry(Ref<TimerThreadPool> timerThreadPool);
         WaitEntry(const boost::posix_time::time_duration& duration,
-          RefType<TimerThreadPool> timerThreadPool);
+          Ref<TimerThreadPool> timerThreadPool);
       };
       TimerThreadPool* m_timerThreadPool;
       Sync<std::deque<WaitEntry*>> m_waitEntries;
@@ -65,20 +65,20 @@ namespace Threading {
   };
 
   inline TimedConditionVariable::WaitEntry::WaitEntry(
-      RefType<TimerThreadPool> timerThreadPool)
+      Ref<TimerThreadPool> timerThreadPool)
       : m_isWaiting(true),
         m_isTimerStarted(false),
         m_timer(boost::posix_time::seconds(0), Ref(timerThreadPool)) {}
 
   inline TimedConditionVariable::WaitEntry::WaitEntry(
       const boost::posix_time::time_duration& duration,
-      RefType<TimerThreadPool> timerThreadPool)
+      Ref<TimerThreadPool> timerThreadPool)
       : m_isWaiting(true),
         m_isTimerStarted(false),
         m_timer(duration, Ref(timerThreadPool)) {}
 
   inline TimedConditionVariable::TimedConditionVariable(
-      RefType<TimerThreadPool> timerThreadPool)
+      Ref<TimerThreadPool> timerThreadPool)
       : m_timerThreadPool(timerThreadPool.Get()) {}
 
   template<typename... Lock>

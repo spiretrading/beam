@@ -26,7 +26,7 @@ namespace Details {
     /*!
       \param source Where the received data is stored.
     */
-    void SetSource(RefType<Source> source);
+    void SetSource(Ref<Source> source);
 
     private:
       template<typename T, typename Enabled> friend struct Receive;

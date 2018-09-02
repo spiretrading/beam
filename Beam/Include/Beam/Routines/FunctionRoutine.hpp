@@ -25,7 +25,7 @@ namespace Routines {
       */
       template<typename FunctionForward>
       FunctionRoutine(FunctionForward&& function, std::size_t contextId,
-        std::size_t stackSize, RefType<Details::Scheduler> scheduler);
+        std::size_t stackSize, Ref<Details::Scheduler> scheduler);
 
     protected:
       void Execute() override;
@@ -38,7 +38,7 @@ namespace Routines {
   template<typename FunctionForward>
   FunctionRoutine<F>::FunctionRoutine(FunctionForward&& function,
       std::size_t contextId, std::size_t stackSize,
-      RefType<Details::Scheduler> scheduler)
+      Ref<Details::Scheduler> scheduler)
       : ScheduledRoutine(contextId, stackSize, Ref(scheduler)),
           m_function(std::forward<FunctionForward>(function)) {}
 

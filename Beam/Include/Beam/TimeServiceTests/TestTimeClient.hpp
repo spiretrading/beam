@@ -22,7 +22,7 @@ namespace Tests {
         \param environment The TimeServiceTestEnvironment this client belongs
                to.
       */
-      TestTimeClient(RefType<TimeServiceTestEnvironment> environment);
+      TestTimeClient(Ref<TimeServiceTestEnvironment> environment);
 
       ~TestTimeClient();
 
@@ -43,7 +43,7 @@ namespace Tests {
   };
 
   inline TestTimeClient::TestTimeClient(
-      RefType<TimeServiceTestEnvironment> environment)
+      Ref<TimeServiceTestEnvironment> environment)
       : m_environment{environment.Get()} {}
 
   inline TestTimeClient::~TestTimeClient() {

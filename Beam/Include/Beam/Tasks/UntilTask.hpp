@@ -23,7 +23,7 @@ namespace Tasks {
         \param condition The condition that cancels the Task.
         \param taskFactory The Task to execute.
       */
-      UntilTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      UntilTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
         TaskFactory taskFactory);
 
@@ -60,7 +60,7 @@ namespace Tasks {
         \param condition The condition that executes the Task.
         \param taskFactory The Task to execute.
       */
-      UntilTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      UntilTaskFactory(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
         TaskFactory taskFactory);
 
@@ -72,8 +72,7 @@ namespace Tasks {
       TaskFactory m_taskFactory;
   };
 
-  inline UntilTask::UntilTask(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+  inline UntilTask::UntilTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
       TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
@@ -163,7 +162,7 @@ namespace Tasks {
   }
 
   inline UntilTaskFactory::UntilTaskFactory(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
       TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},

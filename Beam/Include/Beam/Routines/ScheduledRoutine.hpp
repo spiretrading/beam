@@ -46,7 +46,7 @@ namespace Routines {
         \param scheduler The Scheduler this Routine will execute through.
       */
       ScheduledRoutine(std::size_t contextId, std::size_t stackSize,
-        RefType<Details::Scheduler> scheduler);
+        Ref<Details::Scheduler> scheduler);
 
       void Defer() override;
 
@@ -96,7 +96,7 @@ namespace Routines {
   }
 
   inline ScheduledRoutine::ScheduledRoutine(std::size_t contextId,
-      std::size_t stackSize, RefType<Details::Scheduler> scheduler)
+      std::size_t stackSize, Ref<Details::Scheduler> scheduler)
       : m_scheduler{scheduler.Get()},
         m_isPendingResume{false} {
     if(contextId == boost::thread::hardware_concurrency()) {

@@ -21,7 +21,7 @@ namespace WebServices {
                should use.
       */
       SecureSocketChannelFactory(
-        RefType<Network::SocketThreadPool> socketThreadPool);
+        Ref<Network::SocketThreadPool> socketThreadPool);
 
       //! Returns a new SecureSocketChannel.
       /*!
@@ -35,7 +35,7 @@ namespace WebServices {
   };
 
   inline SecureSocketChannelFactory::SecureSocketChannelFactory(
-      RefType<Network::SocketThreadPool> socketThreadPool)
+      Ref<Network::SocketThreadPool> socketThreadPool)
       : m_socketThreadPool{socketThreadPool.Get()} {}
 
   inline std::unique_ptr<Network::SecureSocketChannel>

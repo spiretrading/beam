@@ -20,12 +20,12 @@ namespace Tests {
       virtual JsonSender<IO::SharedBuffer> MakeSender();
 
       virtual JsonSender<IO::SharedBuffer> MakeSender(
-        RefType<TypeRegistry<JsonSender<IO::SharedBuffer>>> registry);
+        Ref<TypeRegistry<JsonSender<IO::SharedBuffer>>> registry);
 
       virtual JsonReceiver<IO::SharedBuffer> MakeReceiver();
 
       virtual JsonReceiver<IO::SharedBuffer> MakeReceiver(
-        RefType<TypeRegistry<JsonSender<IO::SharedBuffer>>> registry);
+        Ref<TypeRegistry<JsonSender<IO::SharedBuffer>>> registry);
 
     private:
       typedef DataShuttleTester<JsonSender<IO::SharedBuffer>,

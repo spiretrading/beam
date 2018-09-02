@@ -26,7 +26,7 @@ namespace Details {
     /*!
       \param sink Where the data to send is stored.
     */
-    void SetSink(RefType<Sink> sink);
+    void SetSink(Ref<Sink> sink);
 
     //! Sends a value.
     /*!

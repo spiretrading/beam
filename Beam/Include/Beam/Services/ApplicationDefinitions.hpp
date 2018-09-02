@@ -49,9 +49,9 @@ namespace Details {
         \param timerThreadPool The TimerThreadPool used for heartbeats.
       */
       template<typename ServiceLocatorClient>
-      void BuildSession(RefType<ServiceLocatorClient> serviceLocatorClient,
-        RefType<Network::SocketThreadPool> socketThreadPool,
-        RefType<Threading::TimerThreadPool> timerThreadPool);
+      void BuildSession(Ref<ServiceLocatorClient> serviceLocatorClient,
+        Ref<Network::SocketThreadPool> socketThreadPool,
+        Ref<Threading::TimerThreadPool> timerThreadPool);
 
       //! Returns a reference to the Client.
       Client& operator *();
@@ -81,9 +81,9 @@ namespace Details {
     typename SessionBuilderType>
   template<typename ServiceLocatorClient>
   void ApplicationClient<ClientType, ServiceName, SessionBuilderType>::
-      BuildSession(RefType<ServiceLocatorClient> serviceLocatorClient,
-      RefType<Network::SocketThreadPool> socketThreadPool,
-      RefType<Threading::TimerThreadPool> timerThreadPool) {
+      BuildSession(Ref<ServiceLocatorClient> serviceLocatorClient,
+      Ref<Network::SocketThreadPool> socketThreadPool,
+      Ref<Threading::TimerThreadPool> timerThreadPool) {
     if(m_client.is_initialized()) {
       m_client->Close();
       m_client.reset();

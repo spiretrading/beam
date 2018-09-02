@@ -20,7 +20,7 @@ namespace IO {
       using Buffer = BufferType;
 
       //! Constructs a BufferView.
-      BufferView(RefType<Buffer> buffer, std::size_t offset);
+      BufferView(Ref<Buffer> buffer, std::size_t offset);
 
       bool IsEmpty() const;
 
@@ -69,7 +69,7 @@ namespace IO {
   };
 
   template<typename BufferType>
-  BufferView<BufferType>::BufferView(RefType<Buffer> buffer, std::size_t offset)
+  BufferView<BufferType>::BufferView(Ref<Buffer> buffer, std::size_t offset)
       : m_buffer(buffer.Get()),
         m_offset(offset) {}
 

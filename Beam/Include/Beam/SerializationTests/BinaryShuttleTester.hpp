@@ -20,12 +20,12 @@ namespace Tests {
       virtual BinarySender<IO::SharedBuffer> MakeSender();
 
       virtual BinarySender<IO::SharedBuffer> MakeSender(
-        RefType<TypeRegistry<BinarySender<IO::SharedBuffer>>> registry);
+        Ref<TypeRegistry<BinarySender<IO::SharedBuffer>>> registry);
 
       virtual BinaryReceiver<IO::SharedBuffer> MakeReceiver();
 
       virtual BinaryReceiver<IO::SharedBuffer> MakeReceiver(
-        RefType<TypeRegistry<BinarySender<IO::SharedBuffer>>> registry);
+        Ref<TypeRegistry<BinarySender<IO::SharedBuffer>>> registry);
 
     private:
       typedef DataShuttleTester<BinarySender<IO::SharedBuffer>,

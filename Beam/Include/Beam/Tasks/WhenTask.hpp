@@ -25,7 +25,7 @@ namespace Tasks {
         \param taskFactory The Task to execute when the condition is
                <code>true</code>.
       */
-      WhenTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      WhenTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
         TaskFactory taskFactory);
 
@@ -64,7 +64,7 @@ namespace Tasks {
         \param taskFactory The Task to execute when the condition is
                <code>true</code>.
       */
-      WhenTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      WhenTaskFactory(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::Reactor<bool>> condition,
         TaskFactory taskFactory);
 
@@ -76,7 +76,7 @@ namespace Tasks {
       TaskFactory m_taskFactory;
   };
 
-  inline WhenTask::WhenTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+  inline WhenTask::WhenTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
       TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
@@ -165,7 +165,7 @@ namespace Tasks {
   }
 
   inline WhenTaskFactory::WhenTaskFactory(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::Reactor<bool>> condition,
       TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},

@@ -20,7 +20,7 @@ namespace WebServices {
         \param socketThreadPool The SocketThreadPool all constructed Channels
                should use.
       */
-      SocketChannelFactory(RefType<Network::SocketThreadPool> socketThreadPool);
+      SocketChannelFactory(Ref<Network::SocketThreadPool> socketThreadPool);
 
       //! Returns a new TcpSocketChannel.
       /*!
@@ -34,7 +34,7 @@ namespace WebServices {
   };
 
   inline SocketChannelFactory::SocketChannelFactory(
-      RefType<Network::SocketThreadPool> socketThreadPool)
+      Ref<Network::SocketThreadPool> socketThreadPool)
       : m_socketThreadPool{socketThreadPool.Get()} {}
 
   inline std::unique_ptr<Network::TcpSocketChannel>

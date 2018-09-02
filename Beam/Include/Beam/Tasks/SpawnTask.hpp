@@ -25,7 +25,7 @@ namespace Tasks {
         \param trigger The Expression that triggers execution of a Task.
         \param taskFactory The Task to execute on a trigger.
       */
-      SpawnTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      SpawnTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::BaseReactor> trigger,
         TaskFactory taskFactory);
 
@@ -66,7 +66,7 @@ namespace Tasks {
         \param trigger The Expression that triggers execution of a Task.
         \param taskFactory The Task to execute on a trigger.
       */
-      SpawnTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      SpawnTaskFactory(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::shared_ptr<Reactors::BaseReactor> trigger,
         TaskFactory taskFactory);
 
@@ -78,7 +78,7 @@ namespace Tasks {
       TaskFactory m_taskFactory;
   };
 
-  inline SpawnTask::SpawnTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+  inline SpawnTask::SpawnTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::BaseReactor> trigger, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_trigger{std::move(trigger)},
@@ -182,7 +182,7 @@ namespace Tasks {
   }
 
   inline SpawnTaskFactory::SpawnTaskFactory(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::shared_ptr<Reactors::BaseReactor> trigger, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_trigger{std::move(trigger)},

@@ -13,7 +13,7 @@ namespace Beam {
   template<typename... Args> struct Initializer;
   template<typename T> class LocalPtr;
   template<typename T> class Out;
-  template<typename T> class RefType;
+  template<typename T> class Ref;
 }
 
 #endif

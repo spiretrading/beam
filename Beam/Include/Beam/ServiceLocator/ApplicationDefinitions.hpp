@@ -68,8 +68,8 @@ namespace Details {
         \param timerThreadPool The TimerThreadPool used for heartbeats.
       */
       void BuildSession(const Network::IpAddress& address,
-        RefType<Network::SocketThreadPool> socketThreadPool,
-        RefType<Threading::TimerThreadPool> timerThreadPool);
+        Ref<Network::SocketThreadPool> socketThreadPool,
+        Ref<Threading::TimerThreadPool> timerThreadPool);
 
       //! Returns a reference to the Client.
       Client& operator *();
@@ -104,8 +104,8 @@ namespace Details {
 
   inline void ApplicationServiceLocatorClient::BuildSession(
       const Network::IpAddress& address,
-      RefType<Network::SocketThreadPool> socketThreadPool,
-      RefType<Threading::TimerThreadPool> timerThreadPool) {
+      Ref<Network::SocketThreadPool> socketThreadPool,
+      Ref<Threading::TimerThreadPool> timerThreadPool) {
     if(m_client.IsInitialized()) {
       m_client->Close();
       m_client.Reset();

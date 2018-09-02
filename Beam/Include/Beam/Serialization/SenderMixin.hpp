@@ -24,7 +24,7 @@ namespace Serialization {
       /*
         \param registry The TypeRegistry used for sending polymorphic types.
       */
-      SenderMixin(RefType<TypeRegistry<SenderType>> registry);
+      SenderMixin(Ref<TypeRegistry<SenderType>> registry);
 
       template<typename T>
       void Shuttle(const T& value);
@@ -80,8 +80,7 @@ namespace Serialization {
       : m_typeRegistry(nullptr) {}
 
   template<typename SenderType>
-  SenderMixin<SenderType>::SenderMixin(
-      RefType<TypeRegistry<SenderType>> registry)
+  SenderMixin<SenderType>::SenderMixin(Ref<TypeRegistry<SenderType>> registry)
       : m_typeRegistry(registry.Get()) {}
 
   template<typename SenderType>

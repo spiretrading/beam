@@ -17,7 +17,7 @@ namespace MySql {
     public:
 
       //! Constructs a ScopedDatabaseConnection.
-      ScopedDatabaseConnection(RefType<DatabaseConnectionPool> pool,
+      ScopedDatabaseConnection(Ref<DatabaseConnectionPool> pool,
         std::unique_ptr<mysqlpp::Connection> connection);
 
       //! Acquires a ScopedDatabaseConnection.

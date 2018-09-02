@@ -75,7 +75,7 @@ namespace Services {
       const Record& GetRecord() const;
 
       virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-        RefType<ServiceProtocolClient> protocol) const;
+        Ref<ServiceProtocolClient> protocol) const;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -156,7 +156,7 @@ namespace Services {
   template<typename RecordType, typename ServiceProtocolClientType>
   void RecordMessage<RecordType, ServiceProtocolClientType>::EmitSignal(
       BaseServiceSlot<ServiceProtocolClient>* slot,
-      RefType<ServiceProtocolClient> protocol) const {
+      Ref<ServiceProtocolClient> protocol) const {
     static_cast<Slot*>(slot)->Invoke(Ref(protocol), m_record);
   }
 

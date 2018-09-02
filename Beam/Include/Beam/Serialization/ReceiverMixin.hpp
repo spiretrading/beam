@@ -21,7 +21,7 @@ namespace Serialization {
       /*
         \param registry The TypeRegistry used for receiving polymorphic types.
       */
-      ReceiverMixin(RefType<TypeRegistry<typename Inverse<ReceiverType>::type>>
+      ReceiverMixin(Ref<TypeRegistry<typename Inverse<ReceiverType>::type>>
         registry);
 
       template<typename T>
@@ -63,7 +63,7 @@ namespace Serialization {
       : m_typeRegistry(nullptr) {}
 
   template<typename ReceiverType>
-  ReceiverMixin<ReceiverType>::ReceiverMixin(RefType<TypeRegistry<
+  ReceiverMixin<ReceiverType>::ReceiverMixin(Ref<TypeRegistry<
       typename Inverse<ReceiverType>::type>> registry)
       : m_typeRegistry(registry.Get()) {}
 

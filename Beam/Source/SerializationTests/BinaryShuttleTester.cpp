@@ -12,7 +12,7 @@ BinarySender<SharedBuffer> BinaryShuttleTester::MakeSender() {
 }
 
 BinarySender<SharedBuffer> BinaryShuttleTester::MakeSender(
-    RefType<TypeRegistry<BinarySender<SharedBuffer>>> registry) {
+    Ref<TypeRegistry<BinarySender<SharedBuffer>>> registry) {
   return BinarySender<SharedBuffer>(Ref(registry));
 }
 
@@ -21,6 +21,6 @@ BinaryReceiver<SharedBuffer> BinaryShuttleTester::MakeReceiver() {
 }
 
 BinaryReceiver<SharedBuffer> BinaryShuttleTester::MakeReceiver(
-    RefType<TypeRegistry<BinarySender<SharedBuffer>>> registry) {
+    Ref<TypeRegistry<BinarySender<SharedBuffer>>> registry) {
   return BinaryReceiver<SharedBuffer>(Ref(registry));
 }

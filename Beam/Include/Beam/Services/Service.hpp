@@ -165,7 +165,7 @@ namespace Details {
       typedef typename ServiceSlot<RequestType>::PreHook PreHook;
 
       virtual void Invoke(int requestId,
-        RefType<typename Request::ServiceProtocolClient> protocol,
+        Ref<typename Request::ServiceProtocolClient> protocol,
         const typename Request::Parameters& parameters) const = 0;
   };
 
@@ -187,8 +187,8 @@ namespace Details {
       template<typename SlotForward>
       ServiceRequestSlotImplementation(SlotForward&& slot);
 
-      virtual void Invoke(int requestId, RefType<ServiceProtocolClient>
-        protocol, const typename Request::Parameters& parameters) const;
+      virtual void Invoke(int requestId, Ref<ServiceProtocolClient> protocol,
+        const typename Request::Parameters& parameters) const;
 
       virtual void AddPreHook(const PreHook& hook);
 
@@ -206,7 +206,7 @@ namespace Details {
   template<typename ServiceType, typename ServiceProtocolClientType>
   void ServiceRequestSlotImplementation<ServiceType,
       ServiceProtocolClientType>::Invoke(int requestId,
-      RefType<ServiceProtocolClient> protocol,
+      Ref<ServiceProtocolClient> protocol,
       const typename Request::Parameters& parameters) const {
     try {
       for(const PreHook& preHook : m_preHooks) {
@@ -323,7 +323,7 @@ namespace Details {
           virtual bool IsResponseMessage() const;
 
           virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-            RefType<ServiceProtocolClient> protocol) const;
+            Ref<ServiceProtocolClient> protocol) const;
 
         private:
           friend struct Serialization::DataShuttle;
@@ -378,7 +378,7 @@ namespace Details {
           virtual void SetEval(Routines::BaseEval& eval) const;
 
           virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-            RefType<ServiceProtocolClient> protocol) const;
+            Ref<ServiceProtocolClient> protocol) const;
 
         private:
           friend struct Serialization::DataShuttle;
@@ -453,7 +453,7 @@ namespace Details {
   template<typename ServiceProtocolClientType>
   void Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
       EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-      RefType<ServiceProtocolClient> protocol) const {
+      Ref<ServiceProtocolClient> protocol) const {
     static_cast<Slot*>(slot)->Invoke(m_requestId, Ref(protocol), m_parameters);
   }
 
@@ -531,7 +531,7 @@ namespace Details {
   void Service<ReturnType, ParametersType>::Response<
       ServiceProtocolClientType>::EmitSignal(
       BaseServiceSlot<ServiceProtocolClient>* slot,
-      RefType<ServiceProtocolClient> protocol) const {
+      Ref<ServiceProtocolClient> protocol) const {
     assert(false);
   }
 

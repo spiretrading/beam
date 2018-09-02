@@ -30,7 +30,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       UdpSocket(const IpAddress& address,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       //! Constructs a UdpSocket.
       /*!
@@ -39,7 +39,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       UdpSocket(const IpAddress& address, const IpAddress& interface,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       ~UdpSocket();
 
@@ -81,14 +81,14 @@ namespace Network {
   };
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-      RefType<SocketThreadPool> socketThreadPool)
+      Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
         m_socketThreadPool(socketThreadPool.Get()) {
     Reset();
   }
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-      const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool)
+      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
         m_interface(interface),
         m_socketThreadPool(socketThreadPool.Get()) {

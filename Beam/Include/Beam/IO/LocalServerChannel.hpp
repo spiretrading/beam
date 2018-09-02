@@ -40,8 +40,8 @@ namespace IO {
         \param clientChannel The client side of the Channel.
       */
       LocalServerChannel(const std::string& name,
-        RefType<LocalServerConnection> serverConnection,
-        RefType<LocalClientChannel<Buffer>> clientChannel);
+        Ref<LocalServerConnection> serverConnection,
+        Ref<LocalClientChannel<Buffer>> clientChannel);
 
       const Identifier& GetIdentifier() const;
 
@@ -62,8 +62,8 @@ namespace IO {
 
   template<typename BufferType>
   LocalServerChannel<BufferType>::LocalServerChannel(const std::string& name,
-      RefType<LocalServerConnection> serverConnection,
-      RefType<LocalClientChannel<Buffer>> clientChannel)
+      Ref<LocalServerConnection> serverConnection,
+      Ref<LocalClientChannel<Buffer>> clientChannel)
 BEAM_SUPPRESS_THIS_INITIALIZER()
       : m_identifier("server@" + name),
         m_writer(std::make_shared<Writer>(Ref(clientChannel->GetReader()))),

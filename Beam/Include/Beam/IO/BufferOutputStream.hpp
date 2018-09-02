@@ -26,7 +26,7 @@ namespace IO {
       /*!
         \param buffer The Buffer to adapt into an std::ostream.
       */
-      BaseBufferOutputStream(RefType<Buffer> buffer);
+      BaseBufferOutputStream(Ref<Buffer> buffer);
 
       std::streamsize write(const char_type* s, std::streamsize n);
 
@@ -39,8 +39,7 @@ namespace IO {
     boost::iostreams::stream<BaseBufferOutputStream<BufferType>>;
 
   template<typename BufferType>
-  BaseBufferOutputStream<BufferType>::BaseBufferOutputStream(
-      RefType<Buffer> buffer)
+  BaseBufferOutputStream<BufferType>::BaseBufferOutputStream(Ref<Buffer> buffer)
       : m_buffer(buffer.Get()) {}
 
   template<typename BufferType>

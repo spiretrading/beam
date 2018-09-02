@@ -32,9 +32,9 @@ namespace Serialization {
       /*!
         \param registry The TypeRegistry used for receiving polymorphic types.
       */
-      JsonReceiver(RefType<TypeRegistry<JsonSender<SourceType>>> registry);
+      JsonReceiver(Ref<TypeRegistry<JsonSender<SourceType>>> registry);
 
-      void SetSource(RefType<const Source> source);
+      void SetSource(Ref<const Source> source);
 
       void Shuttle(const char* name, bool& value);
 
@@ -89,12 +89,12 @@ namespace Serialization {
   };
 
   template<typename SourceType>
-  JsonReceiver<SourceType>::JsonReceiver(RefType<TypeRegistry<
+  JsonReceiver<SourceType>::JsonReceiver(Ref<TypeRegistry<
       JsonSender<SourceType>>> registry)
       : ReceiverMixin<JsonReceiver<SourceType>>(Ref(registry)) {}
 
   template<typename SourceType>
-  void JsonReceiver<SourceType>::SetSource(RefType<const Source> source) {
+  void JsonReceiver<SourceType>::SetSource(Ref<const Source> source) {
     m_aggregateQueue.clear();
     m_parserStream.emplace(*source);
   }

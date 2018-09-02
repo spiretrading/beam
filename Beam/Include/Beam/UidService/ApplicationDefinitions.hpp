@@ -52,10 +52,10 @@ namespace Details {
                connection.
         \param timerThreadPool The TimerThreadPool used for heartbeats.
       */
-      void BuildSession(RefType<ServiceLocator::
+      void BuildSession(Ref<ServiceLocator::
         ApplicationServiceLocatorClient::Client> serviceLocatorClient,
-        RefType<Network::SocketThreadPool> socketThreadPool,
-        RefType<Threading::TimerThreadPool> timerThreadPool);
+        Ref<Network::SocketThreadPool> socketThreadPool,
+        Ref<Threading::TimerThreadPool> timerThreadPool);
 
       //! Returns a reference to the Client.
       Client& operator *();
@@ -80,9 +80,9 @@ namespace Details {
   };
 
   inline void ApplicationUidClient::BuildSession(
-      RefType<ServiceLocator::ApplicationServiceLocatorClient::Client>
-      serviceLocatorClient, RefType<Network::SocketThreadPool> socketThreadPool,
-      RefType<Threading::TimerThreadPool> timerThreadPool) {
+      Ref<ServiceLocator::ApplicationServiceLocatorClient::Client>
+      serviceLocatorClient, Ref<Network::SocketThreadPool> socketThreadPool,
+      Ref<Threading::TimerThreadPool> timerThreadPool) {
     if(m_client.IsInitialized()) {
       m_client->Close();
       m_client.Reset();

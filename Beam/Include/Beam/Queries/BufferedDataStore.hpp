@@ -62,7 +62,7 @@ namespace Queries {
       */
       template<typename DataStoreForward>
       BufferedDataStore(DataStoreForward&& dataStore, std::size_t bufferSize,
-        RefType<Threading::ThreadPool> threadPool);
+        Ref<Threading::ThreadPool> threadPool);
 
       ~BufferedDataStore();
 
@@ -98,7 +98,7 @@ namespace Queries {
   template<typename DataStoreForward>
   BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       BufferedDataStore(DataStoreForward&& dataStore, std::size_t bufferSize,
-      RefType<Threading::ThreadPool> threadPool)
+      Ref<Threading::ThreadPool> threadPool)
       : m_dataStore(std::forward<DataStoreForward>(dataStore)),
         m_bufferSize(bufferSize),
         m_bufferCount(0),

@@ -68,7 +68,7 @@ namespace Tasks {
         \param properties The properties to connect to the Task.
         \param taskFactory Specifies the Task to connect the Reactors to.
       */
-      ReactorTask(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      ReactorTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::vector<ReactorProperty> properties, TaskFactory taskFactory);
 
     protected:
@@ -112,7 +112,7 @@ namespace Tasks {
         \param properties The properties to connect to the Task.
         \param taskFactory Specifies the Task to connect the Reactors to.
       */
-      ReactorTaskFactory(RefType<Reactors::ReactorMonitor> reactorMonitor,
+      ReactorTaskFactory(Ref<Reactors::ReactorMonitor> reactorMonitor,
         std::vector<ReactorProperty> properties, TaskFactory taskFactory);
 
       virtual std::shared_ptr<Task> Create() override final;
@@ -175,8 +175,7 @@ namespace Tasks {
       Reactors::MakeNonRepeatingReactor(std::move(reactor))};
   }
 
-  inline ReactorTask::ReactorTask(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+  inline ReactorTask::ReactorTask(Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::vector<ReactorProperty> properties, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_properties(std::move(properties)),
@@ -331,7 +330,7 @@ namespace Tasks {
   }
 
   inline ReactorTaskFactory::ReactorTaskFactory(
-      RefType<Reactors::ReactorMonitor> reactorMonitor,
+      Ref<Reactors::ReactorMonitor> reactorMonitor,
       std::vector<ReactorProperty> properties, TaskFactory taskFactory)
       : m_reactorMonitor{reactorMonitor.Get()},
         m_properties(std::move(properties)),

@@ -32,7 +32,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       TcpServerSocket(const IpAddress& address,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       ~TcpServerSocket();
 
@@ -53,7 +53,7 @@ namespace Network {
   };
 
   inline TcpServerSocket::TcpServerSocket(const IpAddress& address,
-      RefType<SocketThreadPool> socketThreadPool)
+      Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
         m_socketThreadPool(socketThreadPool.Get()),
         m_ioService(&m_socketThreadPool->GetService()) {}

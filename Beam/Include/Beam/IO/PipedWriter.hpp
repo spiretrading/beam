@@ -25,7 +25,7 @@ namespace IO {
       /*!
         \param destination The PipedReader to connect to.
       */
-      PipedWriter(RefType<PipedReader> destination);
+      PipedWriter(Ref<PipedReader> destination);
 
       ~PipedWriter();
 
@@ -54,7 +54,7 @@ namespace IO {
   };
 
   template<typename BufferType>
-  PipedWriter<BufferType>::PipedWriter(RefType<PipedReader> destination)
+  PipedWriter<BufferType>::PipedWriter(Ref<PipedReader> destination)
       : m_messages(destination->m_messages) {}
 
   template<typename BufferType>

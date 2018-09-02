@@ -66,9 +66,9 @@ namespace Queries {
         \param threadPool Used to perform asynchronous reads and writes.
         \param functor Initializes the Functor.
       */
-      SqlDataStore(Beam::RefType<MySql::DatabaseConnectionPool> connectionPool,
-        Beam::RefType<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
-        writeConnection, Beam::RefType<Threading::ThreadPool> threadPool,
+      SqlDataStore(Beam::Ref<MySql::DatabaseConnectionPool> connectionPool,
+        Ref<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
+        writeConnection, Ref<Threading::ThreadPool> threadPool,
         const Functor& functor = Functor());
 
       //! Executes a search query.
@@ -109,9 +109,9 @@ namespace Queries {
     typename SqlTranslatorFilterType, typename FunctorType>
   SqlDataStore<QueryType, ValueType, RowType, SqlTranslatorFilterType,
       FunctorType>::SqlDataStore(
-      Beam::RefType<MySql::DatabaseConnectionPool> connectionPool,
-      Beam::RefType<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
-      writeConnection, Beam::RefType<Threading::ThreadPool> threadPool,
+      Ref<MySql::DatabaseConnectionPool> connectionPool,
+      Ref<Threading::Sync<mysqlpp::Connection, Threading::Mutex>>
+      writeConnection, Beam::Ref<Threading::ThreadPool> threadPool,
       const Functor& functor)
       : m_connectionPool{connectionPool.Get()},
         m_writeConnection{writeConnection.Get()},

@@ -124,7 +124,7 @@ namespace Routines {
   }
 
   template<typename T>
-  Eval<T>::Eval(RefType<Async<T>> async)
+  Eval<T>::Eval(Ref<Async<T>> async)
       : m_async{async.Get()} {}
 }
 }

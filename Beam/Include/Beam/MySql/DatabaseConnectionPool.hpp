@@ -75,7 +75,7 @@ namespace MySql {
   }
 
   inline ScopedDatabaseConnection::ScopedDatabaseConnection(
-      RefType<DatabaseConnectionPool> pool,
+      Ref<DatabaseConnectionPool> pool,
       std::unique_ptr<mysqlpp::Connection> connection)
       : m_pool(pool.Get()),
         m_connection(std::move(connection)) {}

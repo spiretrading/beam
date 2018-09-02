@@ -12,7 +12,7 @@ JsonSender<SharedBuffer> JsonShuttleTester::MakeSender() {
 }
 
 JsonSender<SharedBuffer> JsonShuttleTester::MakeSender(
-    RefType<TypeRegistry<JsonSender<SharedBuffer>>> registry) {
+    Ref<TypeRegistry<JsonSender<SharedBuffer>>> registry) {
   return {Ref(registry)};
 }
 
@@ -21,6 +21,6 @@ JsonReceiver<SharedBuffer> JsonShuttleTester::MakeReceiver() {
 }
 
 JsonReceiver<SharedBuffer> JsonShuttleTester::MakeReceiver(
-    RefType<TypeRegistry<JsonSender<SharedBuffer>>> registry) {
+    Ref<TypeRegistry<JsonSender<SharedBuffer>>> registry) {
   return {Ref(registry)};
 }

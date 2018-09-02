@@ -1,42 +1,41 @@
 #ifndef BEAM_REF_HPP
 #define BEAM_REF_HPP
-#include <functional>
-#include <boost/noncopyable.hpp>
 #include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 
-  /*! \class RefType
-      \brief Used to explicitly pass a reference.
-   */
+  /** Used to explicitly pass a reference. */
   template<typename T>
-  class RefType {
+  class Ref {
     public:
 
       //! The type being referenced.
       using Type = T;
 
-      //! Allows for polymorphic RefTypes.
+      //! Constructs a Ref.
+      /*!
+        \param reference The reference to wrap.
+      */
+      Ref(Type& reference);
+
+      //! Allows for polymorphic Refs.
       template<typename U>
-      RefType(const RefType<U>& reference);
+      Ref(const Ref<U>& reference);
 
-      //! Copies a RefType, workaround for non-compliant compilers;
-      /*!
-        \param ref The RefType to copy.
-      */
-      RefType(const RefType& ref);
+      //! Copies a Ref.
+      Ref(const Ref& ref) = default;
 
-      //! Acquires a RefType.
+      //! Acquires a Ref.
       /*!
-        \param ref The RefType to acquire.
+        \param ref The Ref to acquire.
       */
-      RefType(RefType&& ref);
+      Ref(Ref&& ref);
 
-      //! Acquires a RefType.
+      //! Acquires a Ref.
       /*!
-        \param ref The RefType to acquire.
+        \param ref The Ref to acquire.
       */
-      RefType& operator =(RefType&& ref);
+      Ref& operator =(Ref&& ref);
 
       //! Returns a reference to the result.
       Type& operator *();
@@ -57,46 +56,26 @@ namespace Beam {
       const Type* Get() const;
 
     private:
-      template<typename> friend class RefType;
-      template<typename U> friend RefType<U> Ref(U&);
-      template<typename U> friend RefType<U> Ref(RefType<U>&);
       Type* m_reference;
-
-      RefType(Type& reference);
   };
 
-  //! Returns a RefType for a given value.
-  /*!
-    \param reference A reference to the value to wrap.
-    \return A RefType carrying the <i>reference</i>.
-  */
   template<typename T>
-  RefType<T> Ref(T& reference) {
-    return RefType<T>(reference);
-  }
-
-  //! Returns a RefType for a given value.
-  /*!
-    \param reference A reference to the value to wrap.
-    \return A RefType carrying the <i>reference</i>.
-  */
-  template<typename T>
-  RefType<T> Ref(RefType<T>& reference) {
-    return RefType<T>(*reference.Get());
-  }
+  Ref<T>::Ref(Type& reference)
+      : m_reference(&reference) {}
 
   template<typename T>
-  RefType<T>::RefType(const RefType& ref)
-      : m_reference{ref.m_reference} {}
+  template<typename U>
+  Ref<T>::Ref(const Ref<U>& reference)
+      : m_reference(reference.m_reference.Get()) {}
 
   template<typename T>
-  RefType<T>::RefType(RefType&& ref)
+  Ref<T>::Ref(Ref&& ref)
       : m_reference(ref.m_reference) {
     ref.m_reference = nullptr;
   }
 
   template<typename T>
-  RefType<T>& RefType<T>::operator =(RefType&& ref) {
+  Ref<T>& Ref<T>::operator =(Ref&& ref) {
     if(this == &ref) {
       return *this;
     }
@@ -106,43 +85,34 @@ namespace Beam {
   }
 
   template<typename T>
-  T& RefType<T>::operator *() {
+  T& Ref<T>::operator *() {
     return *m_reference;
   }
 
   template<typename T>
-  const T& RefType<T>::operator *() const {
+  const T& Ref<T>::operator *() const {
     return *m_reference;
   }
 
   template<typename T>
-  T* RefType<T>::operator ->() {
+  T* Ref<T>::operator ->() {
     return m_reference;
   }
 
   template<typename T>
-  const T* RefType<T>::operator ->() const {
+  const T* Ref<T>::operator ->() const {
     return m_reference;
   }
 
   template<typename T>
-  T* RefType<T>::Get() {
+  T* Ref<T>::Get() {
     return m_reference;
   }
 
   template<typename T>
-  const T* RefType<T>::Get() const {
+  const T* Ref<T>::Get() const {
     return m_reference;
   }
-
-  template<typename T>
-  RefType<T>::RefType(T& reference)
-      : m_reference(&reference) {}
-
-  template<typename T>
-  template<typename U>
-  RefType<T>::RefType(const RefType<U>& reference)
-      : m_reference(reference.m_reference) {}
 }
 
 #endif

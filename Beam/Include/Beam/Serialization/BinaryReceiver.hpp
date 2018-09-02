@@ -30,9 +30,9 @@ namespace Serialization {
       /*!
         \param registry The TypeRegistry used for receiving polymorphic types.
       */
-      BinaryReceiver(RefType<TypeRegistry<BinarySender<SourceType>>> registry);
+      BinaryReceiver(Ref<TypeRegistry<BinarySender<SourceType>>> registry);
 
-      void SetSource(RefType<Source> source);
+      void SetSource(Ref<Source> source);
 
       template<typename T>
       typename std::enable_if<std::is_fundamental<T>::value>::type Shuttle(
@@ -66,12 +66,12 @@ namespace Serialization {
   };
 
   template<typename SourceType>
-  BinaryReceiver<SourceType>::BinaryReceiver(RefType<TypeRegistry<
+  BinaryReceiver<SourceType>::BinaryReceiver(Ref<TypeRegistry<
       BinarySender<SourceType>>> registry)
       : ReceiverMixin<BinaryReceiver<SourceType>>(Ref(registry)) {}
 
   template<typename SourceType>
-  void BinaryReceiver<SourceType>::SetSource(RefType<Source> source) {
+  void BinaryReceiver<SourceType>::SetSource(Ref<Source> source) {
     m_source = source.Get();
     m_remainingSize = m_source->GetSize();
     m_readIterator = m_source->GetData();

@@ -51,7 +51,7 @@ namespace IO {
         LocalClientChannel<Buffer>* m_clientChannel;
         Routines::Eval<void> m_result;
 
-        PendingChannelEntry(RefType<LocalClientChannel<Buffer>> clientChannel,
+        PendingChannelEntry(Ref<LocalClientChannel<Buffer>> clientChannel,
           Routines::Eval<void>&& result);
       };
       friend class LocalClientChannel<Buffer>;
@@ -59,13 +59,13 @@ namespace IO {
       Threading::Sync<ClientToServerChannels> m_clientToServerChannels;
       std::shared_ptr<Queue<PendingChannelEntry*>> m_pendingChannels;
 
-      void AddChannel(RefType<LocalClientChannel<Buffer>> clientChannel,
+      void AddChannel(Ref<LocalClientChannel<Buffer>> clientChannel,
         std::unique_ptr<Channel> channel);
   };
 
   template<typename BufferType>
   LocalServerConnection<BufferType>::PendingChannelEntry::PendingChannelEntry(
-      RefType<LocalClientChannel<Buffer>> clientChannel,
+      Ref<LocalClientChannel<Buffer>> clientChannel,
       Routines::Eval<void>&& result)
       : m_clientChannel{clientChannel.Get()},
         m_result{std::move(result)} {}
@@ -123,7 +123,7 @@ namespace IO {
 
   template<typename BufferType>
   void LocalServerConnection<BufferType>::AddChannel(
-      RefType<LocalClientChannel<Buffer>> clientChannel,
+      Ref<LocalClientChannel<Buffer>> clientChannel,
       std::unique_ptr<Channel> channel) {
     Threading::With(m_clientToServerChannels,
       [&] (ClientToServerChannels& clientToServerChannels) {

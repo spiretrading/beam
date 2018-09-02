@@ -21,7 +21,7 @@ namespace SignalHandling {
       /*!
         \param threadPool The ThreadPool to handle the tasks in.
       */
-      TaskSignalHandler(RefType<Threading::ThreadPool> threadPool);
+      TaskSignalHandler(Ref<Threading::ThreadPool> threadPool);
 
       ~TaskSignalHandler();
 
@@ -49,7 +49,7 @@ namespace SignalHandling {
   };
 
   inline TaskSignalHandler::TaskSignalHandler(
-      RefType<Threading::ThreadPool> threadPool)
+      Ref<Threading::ThreadPool> threadPool)
       : m_threadPool(threadPool.Get()),
         m_signalProcessor(std::bind(&QueuedSignalHandler::HandleSignals,
           std::ref(m_queuedSignalHandler))),

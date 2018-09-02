@@ -139,7 +139,7 @@ namespace Routines {
       friend class Async<T>;
       Async<T>* m_async;
 
-      Eval(RefType<Async<T>> async);
+      Eval(Ref<Async<T>> async);
   };
 }
 }

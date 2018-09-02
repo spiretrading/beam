@@ -24,8 +24,7 @@ namespace WebServices {
         \param socketThreadPool The SocketThreadPool all constructed Channels
                should use.
       */
-      TcpSocketChannelFactory(
-        RefType<Network::SocketThreadPool> socketThreadPool);
+      TcpSocketChannelFactory(Ref<Network::SocketThreadPool> socketThreadPool);
 
       //! Constructs a TcpSocketChannelFactory.
       /*!
@@ -34,7 +33,7 @@ namespace WebServices {
                should use.
       */
       TcpSocketChannelFactory(Network::IpAddress interface,
-        RefType<Network::SocketThreadPool> socketThreadPool);
+        Ref<Network::SocketThreadPool> socketThreadPool);
 
       //! Returns a new Channel.
       /*!
@@ -48,12 +47,12 @@ namespace WebServices {
   };
 
   inline TcpSocketChannelFactory::TcpSocketChannelFactory(
-      RefType<Network::SocketThreadPool> socketThreadPool)
+      Ref<Network::SocketThreadPool> socketThreadPool)
       : m_socketThreadPool{socketThreadPool.Get()} {}
 
   inline TcpSocketChannelFactory::TcpSocketChannelFactory(
       Network::IpAddress interface,
-      RefType<Network::SocketThreadPool> socketThreadPool)
+      Ref<Network::SocketThreadPool> socketThreadPool)
       : m_interface{std::move(interface)},
         m_socketThreadPool{socketThreadPool.Get()} {}
 

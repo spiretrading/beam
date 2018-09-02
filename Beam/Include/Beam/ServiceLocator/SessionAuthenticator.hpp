@@ -23,7 +23,7 @@ namespace ServiceLocator {
         \param serviceLocatorClient The ServiceLocatorClient used to
                authenticate the session.
       */
-      SessionAuthenticator(Beam::RefType<ServiceLocatorClientType>
+      SessionAuthenticator(Beam::Ref<ServiceLocatorClientType>
         serviceLocatorClient);
 
       template<typename ServiceProtocolClient>
@@ -35,7 +35,7 @@ namespace ServiceLocator {
 
   template<typename ServiceLocatorClientType>
   SessionAuthenticator<ServiceLocatorClientType>::SessionAuthenticator(
-      Beam::RefType<ServiceLocatorClientType> serviceLocatorClient)
+      Beam::Ref<ServiceLocatorClientType> serviceLocatorClient)
       : m_serviceLocatorClient(serviceLocatorClient.Get()) {}
 
   template<typename ServiceLocatorClientType>

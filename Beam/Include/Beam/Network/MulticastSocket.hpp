@@ -31,7 +31,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       MulticastSocket(const IpAddress& group, const IpAddress& interface,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       ~MulticastSocket();
 
@@ -86,7 +86,7 @@ namespace Network {
   };
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-      const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool)
+      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
       : m_group(group),
         m_interface(interface),
         m_socketThreadPool(socketThreadPool.Get()) {

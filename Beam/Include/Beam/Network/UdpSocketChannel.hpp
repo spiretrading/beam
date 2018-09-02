@@ -27,7 +27,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       UdpSocketChannel(const IpAddress& address,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       //! Constructs a UdpSocketChannel.
       /*!
@@ -36,7 +36,7 @@ namespace Network {
         \param socketThreadPool The thread pool used for the sockets.
       */
       UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
-        RefType<SocketThreadPool> socketThreadPool);
+        Ref<SocketThreadPool> socketThreadPool);
 
       //! Returns the underlying UdpSocket.
       UdpSocket& GetSocket();
@@ -58,7 +58,7 @@ namespace Network {
   };
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-      RefType<SocketThreadPool> socketThreadPool)
+      Ref<SocketThreadPool> socketThreadPool)
       : m_identifier(address),
         m_socket(std::make_shared<UdpSocket>(address, Ref(socketThreadPool))),
         m_connection(m_socket),
@@ -66,7 +66,7 @@ namespace Network {
         m_writer(m_socket) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-      const IpAddress& interface, RefType<SocketThreadPool> socketThreadPool)
+      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
       : m_identifier(address),
         m_socket(std::make_shared<UdpSocket>(address, interface,
           Ref(socketThreadPool))),

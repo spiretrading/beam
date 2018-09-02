@@ -157,8 +157,8 @@ namespace TimeService {
   */
   inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
       const std::vector<Network::IpAddress>& sources,
-      Beam::RefType<Network::SocketThreadPool> socketThreadPool,
-      Beam::RefType<Threading::TimerThreadPool> timerThreadPool) {
+      Ref<Network::SocketThreadPool> socketThreadPool,
+      Ref<Threading::TimerThreadPool> timerThreadPool) {
     std::vector<std::unique_ptr<Network::UdpSocketChannel>> channels;
     for(auto& source : sources) {
       auto channel = std::make_unique<Network::UdpSocketChannel>(source,

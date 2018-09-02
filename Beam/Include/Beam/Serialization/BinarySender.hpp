@@ -29,9 +29,9 @@ namespace Serialization {
       /*!
         \param registry The TypeRegistry used for sending polymorphic types.
       */
-      BinarySender(RefType<TypeRegistry<BinarySender>> registry);
+      BinarySender(Ref<TypeRegistry<BinarySender>> registry);
 
-      void SetSink(RefType<Sink> sink);
+      void SetSink(Ref<Sink> sink);
 
       template<typename T>
       typename std::enable_if<std::is_fundamental<T>::value>::type Send(
@@ -68,11 +68,11 @@ namespace Serialization {
 
   template<typename SinkType>
   BinarySender<SinkType>::BinarySender(
-      RefType<TypeRegistry<BinarySender>> registry)
+      Ref<TypeRegistry<BinarySender>> registry)
       : SenderMixin<BinarySender<SinkType>>(Ref(registry)) {}
 
   template<typename SinkType>
-  void BinarySender<SinkType>::SetSink(RefType<Sink> sink) {
+  void BinarySender<SinkType>::SetSink(Ref<Sink> sink) {
     m_sink = sink.Get();
     m_size = m_sink->GetSize();
   }

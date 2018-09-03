@@ -13,6 +13,7 @@
 #include "Beam/Queries/SqlTranslator.hpp"
 #include "Beam/Queries/SqlUtilities.hpp"
 #include "Beam/Sql/DatabaseConnectionPool.hpp"
+#include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
@@ -127,7 +128,7 @@ namespace Beam::Queries {
         m_threadPool(threadPool.Get()) {
     m_valueRow = m_valueRow.
       add_column("timestamp",
-        [] (auto& row) {
+        [] (const auto& row) {
           return ToSqlTimestamp(GetTimestamp(row));
         },
         [] (auto& row, auto value) {
@@ -135,11 +136,14 @@ namespace Beam::Queries {
         });
     m_sequencedRow = Viper::Row<SequencedValue>().
       extend(m_valueRow,
-        [] (auto& row) -> auto& {
+        [] (const auto& row) -> auto& {
           return row.GetValue();
+        },
+        [] (auto& row, auto&& value) {
+          row.GetValue() = std::forward<decltype(value)>(value);
         }).
       add_column("query_sequence",
-        [] (auto& row) {
+        [] (const auto& row) {
           return row.GetSequence().GetOrdinal();
         },
         [] (auto& row, auto value) {
@@ -147,15 +151,21 @@ namespace Beam::Queries {
         });
     m_row = Viper::Row<IndexedValue>().
       extend(m_indexRow,
-        [] (auto& row) -> auto& {
+        [] (const auto& row) -> auto& {
           return row->GetIndex();
+        },
+        [] (auto& row, auto&& value) {
+          row->GetIndex() = std::forward<decltype(value)>(value);
         }).
       extend(m_valueRow,
-        [] (auto& row) -> auto& {
+        [] (const auto& row) -> auto& {
           return row->GetValue();
+        },
+        [] (auto& row, auto&& value) {
+          row->GetValue() = std::forward<decltype(value)>(value);
         }).
       add_column("query_sequence",
-        [] (auto& row) {
+        [] (const auto& row) {
           return row.GetSequence().GetOrdinal();
         },
         [] (auto& row, auto value) {

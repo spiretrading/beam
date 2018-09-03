@@ -2,7 +2,6 @@
 #define BEAM_MYSQLSERVICELOCATORDATASTORE_HPP
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/MySql/PosixTimeToMySqlDateTime.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/ServiceLocator/MySqlServiceLocatorDataStoreDetails.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"

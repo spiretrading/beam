@@ -133,7 +133,7 @@ namespace Beam::Queries {
         [] (auto& row, auto value) {
           GetTimestamp(row) = FromSqlTimestamp(value);
         });
-    m_sequencedRow = Row<SequencedValue>().
+    m_sequencedRow = Viper::Row<SequencedValue>().
       extend(m_valueRow,
         [] (auto& row) -> auto& {
           return row.GetValue();
@@ -145,7 +145,7 @@ namespace Beam::Queries {
         [] (auto& row, auto value) {
           row.GetSequence() = Sequence(value);
         });
-    m_row = Row<IndexedValue>().
+    m_row = Viper::Row<IndexedValue>().
       extend(m_indexRow,
         [] (auto& row) -> auto& {
           return row->GetIndex();
@@ -194,8 +194,8 @@ namespace Beam::Queries {
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
       SqlDataStore<C, V, I, T>::Load(const Viper::Expression& query) {
-    return LoadSqlQuery<SequencedValue, Row>(query, m_sequencedRow, m_table,
-      *m_threadPool, *m_connectionPool);
+    return LoadSqlQuery(query, m_sequencedRow, m_table, *m_threadPool,
+      *m_connectionPool);
   }
 
   template<typename C, typename V, typename I, typename T>

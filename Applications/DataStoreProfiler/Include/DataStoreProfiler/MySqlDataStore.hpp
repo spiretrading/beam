@@ -57,7 +57,7 @@ namespace Beam {
       Threading::Sync<Viper::MySql::Connection, Threading::Mutex>
         m_writeConnection;
       Threading::ThreadPool m_threadPool;
-      DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_entryDataStore;
+      DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_dataStore;
       IO::OpenState m_openState;
 
       static Viper::Row<Entry> BuildValueRow();
@@ -73,7 +73,7 @@ namespace Beam {
         m_password(std::move(password)),
         m_writeConnection(m_address.GetHost(), m_address.GetPort(), m_username,
           m_password, m_schema),
-        m_entryDataStore("entries", BuildValueRow(), BuildIndexRow(),
+        m_dataStore("entries", BuildValueRow(), BuildIndexRow(),
           Ref(m_connectionPool), Ref(m_writeConnection), Ref(m_threadPool)) {}
 
   inline MySqlDataStore::~MySqlDataStore() {
@@ -89,16 +89,16 @@ namespace Beam {
 
   inline std::vector<SequencedEntry> MySqlDataStore::LoadEntries(
       const EntryQuery& query) {
-    return m_entryDataStore.Load(query);
+    return m_dataStore.Load(query);
   }
 
   inline void MySqlDataStore::Store(const SequencedIndexedEntry& entry) {
-    return m_entryDataStore.Store(entry);
+    return m_dataStore.Store(entry);
   }
 
   inline void MySqlDataStore::Store(
       const std::vector<SequencedIndexedEntry>& entries) {
-    return m_entryDataStore.Store(entries);
+    return m_dataStore.Store(entries);
   }
 
   inline void MySqlDataStore::Open() {
@@ -118,6 +118,7 @@ namespace Beam {
         connection->open();
         m_connectionPool.Add(std::move(connection));
       }
+      m_dataStore.Open();
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();

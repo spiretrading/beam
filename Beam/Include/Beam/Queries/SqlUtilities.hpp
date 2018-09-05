@@ -46,16 +46,16 @@ namespace Beam::Queries {
       }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetStart());
-      auto rows = std::vector<std::uint64_t>();
+      auto sequence = std::optional<std::uint64_t>();
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::min<std::uint64_t>("query_sequence"), table,
         index && Viper::sym("timestamp") >= ToSqlTimestamp(timestamp),
-        std::back_inserter(rows)));
-      if(rows.empty()) {
-        return Sequence::Last();
+        &sequence));
+      if(sequence.has_value()) {
+        return Sequence(*sequence);
       }
-      return Sequence(rows.front());
+      return Sequence::Last();
     }();
     auto end = [&] {
       if(auto end = boost::get<Sequence>(&query.GetRange().GetEnd())) {
@@ -63,16 +63,16 @@ namespace Beam::Queries {
       }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetEnd());
-      auto rows = std::vector<std::uint64_t>();
+      auto sequence = std::optional<std::uint64_t>();
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::max<std::uint64_t>("query_sequence"), table,
         index && Viper::sym("timestamp") <= ToSqlTimestamp(timestamp),
-        std::back_inserter(rows)));
-      if(rows.empty()) {
-        return Sequence::First();
+        &sequence));
+      if(sequence.has_value()) {
+        return Sequence(*sequence);
       }
-      return Sequence(rows.front());
+      return Sequence::First();
     }();
     auto sanitizedQuery = std::move(query);
     sanitizedQuery.SetRange(start, end);

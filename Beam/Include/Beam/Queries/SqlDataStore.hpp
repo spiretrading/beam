@@ -171,6 +171,17 @@ namespace Beam::Queries {
         [] (auto& row, auto value) {
           row.GetSequence() = Sequence(value);
         });
+    auto index = std::vector<std::string>();
+    for(auto& column : m_indexRow.get_columns()) {
+      index.push_back(column.m_name);
+    }
+    auto sequence_index = index;
+    sequence_index.push_back("query_sequence");
+    m_row = m_row.add_index("sequence_index", std::move(sequence_index));
+    auto timestamp_index = index;
+    timestamp_index.push_back("query_sequence");
+    timestamp_index.push_back("timestamp");
+    m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
   }
 
   template<typename C, typename V, typename I, typename T>

@@ -136,11 +136,8 @@ namespace Beam::Queries {
         });
     m_sequencedRow = Viper::Row<SequencedValue>().
       extend(m_valueRow,
-        [] (const auto& row) -> auto& {
+        [] (auto& row) -> auto& {
           return row.GetValue();
-        },
-        [] (auto& row, auto&& value) {
-          row.GetValue() = std::forward<decltype(value)>(value);
         }).
       add_column("query_sequence",
         [] (const auto& row) {
@@ -151,18 +148,12 @@ namespace Beam::Queries {
         });
     m_row = Viper::Row<IndexedValue>().
       extend(m_indexRow,
-        [] (const auto& row) -> auto& {
+        [] (auto& row) -> auto& {
           return row->GetIndex();
-        },
-        [] (auto& row, auto&& value) {
-          row->GetIndex() = std::forward<decltype(value)>(value);
         }).
       extend(m_valueRow,
-        [] (const auto& row) -> auto& {
+        [] (auto& row) -> auto& {
           return row->GetValue();
-        },
-        [] (auto& row, auto&& value) {
-          row->GetValue() = std::forward<decltype(value)>(value);
         }).
       add_column("query_sequence",
         [] (const auto& row) {

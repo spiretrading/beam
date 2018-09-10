@@ -1,8 +1,8 @@
 #ifndef BEAM_CONTENTTYPEPATTERNS_HPP
 #define BEAM_CONTENTTYPEPATTERNS_HPP
+#include <filesystem>
 #include <string>
 #include <unordered_map>
-#include <boost/filesystem/path.hpp>
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
@@ -26,7 +26,7 @@ namespace WebServices {
         \return The content type for the specified <i>path</i>.
       */
       const std::string& GetContentType(
-        const boost::filesystem::path& path) const;
+        const std::filesystem::path& path) const;
 
       //! Associates a content type with a file extension.
       /*!
@@ -51,7 +51,7 @@ namespace WebServices {
   }
 
   inline const std::string& ContentTypePatterns::GetContentType(
-      const boost::filesystem::path& path) const {
+      const std::filesystem::path& path) const {
     auto contentType = m_fileExtensionContentTypes.find(
       path.extension().string());
     if(contentType == m_fileExtensionContentTypes.end()) {

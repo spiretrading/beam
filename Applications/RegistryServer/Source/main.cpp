@@ -104,7 +104,7 @@ int main(int argc, const char** argv) {
     return -1;
   }
   RegistryServletContainer server{Initialize(serviceLocatorClient.Get(),
-    Initialize(Initialize(boost::filesystem::current_path() / "records"))),
+    Initialize(Initialize(std::filesystem::current_path() / "records"))),
     Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
     std::bind(factory<std::shared_ptr<LiveTimer>>{}, seconds{10},
     Ref(timerThreadPool))};

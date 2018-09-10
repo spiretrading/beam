@@ -1,8 +1,7 @@
 #ifndef BEAM_FILESTORE_HPP
 #define BEAM_FILESTORE_HPP
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <fstream>
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/ContentTypePatterns.hpp"
@@ -24,14 +23,14 @@ namespace WebServices {
       /*!
         \param root The root of the file system.
       */
-      FileStore(boost::filesystem::path root);
+      FileStore(std::filesystem::path root);
 
       //! Constructs a FileStore with a specified path.
       /*!
         \param root The root of the file system.
         \param contentTypePatterns The set of patterns to use for content types.
       */
-      FileStore(boost::filesystem::path root,
+      FileStore(std::filesystem::path root,
         ContentTypePatterns contentTypePatterns);
 
       //! Serves a file from a specified path.
@@ -39,7 +38,7 @@ namespace WebServices {
         \param path The path to the file to serve.
         \return The HTTP response containing the file contents.
       */
-      HttpResponse Serve(const boost::filesystem::path& path);
+      HttpResponse Serve(const std::filesystem::path& path);
 
       //! Serves a file from an HTTP request.
       /*!
@@ -53,8 +52,7 @@ namespace WebServices {
         \param path The path to the file to serve.
         \param response Stores the HTTP response containing the file contents.
       */
-      void Serve(const boost::filesystem::path& path,
-        Out<HttpResponse> response);
+      void Serve(const std::filesystem::path& path, Out<HttpResponse> response);
 
       //! Serves a file from an HTTP request.
       /*!
@@ -64,7 +62,7 @@ namespace WebServices {
       void Serve(const HttpRequest& request, Out<HttpResponse> response);
 
     private:
-      boost::filesystem::path m_root;
+      std::filesystem::path m_root;
       ContentTypePatterns m_contentTypePatterns;
   };
 
@@ -86,18 +84,18 @@ namespace WebServices {
     }};
   }
 
-  inline FileStore::FileStore(boost::filesystem::path root)
+  inline FileStore::FileStore(std::filesystem::path root)
       : m_contentTypePatterns{ContentTypePatterns::GetDefaultPatterns()} {
-    m_root = boost::filesystem::canonical(boost::filesystem::absolute(root));
+    m_root = std::filesystem::canonical(std::filesystem::absolute(root));
   }
 
-  inline FileStore::FileStore(boost::filesystem::path root,
+  inline FileStore::FileStore(std::filesystem::path root,
       ContentTypePatterns contentTypePatterns)
       : m_contentTypePatterns{std::move(contentTypePatterns)} {
-    m_root = boost::filesystem::canonical(boost::filesystem::absolute(root));
+    m_root = std::filesystem::canonical(std::filesystem::absolute(root));
   }
 
-  inline HttpResponse FileStore::Serve(const boost::filesystem::path& path) {
+  inline HttpResponse FileStore::Serve(const std::filesystem::path& path) {
     HttpResponse response;
     Serve(path, Store(response));
     return response;
@@ -107,17 +105,17 @@ namespace WebServices {
     return Serve(request.GetUri().GetPath());
   }
 
-  inline void FileStore::Serve(const boost::filesystem::path& path,
+  inline void FileStore::Serve(const std::filesystem::path& path,
       Out<HttpResponse> response) {
-    boost::filesystem::path fullPath = m_root / path;
-    boost::filesystem::ifstream file{fullPath, std::ios::in | std::ios::binary};
+    std::filesystem::path fullPath = m_root / path;
+    std::ifstream file{fullPath, std::ios::in | std::ios::binary};
     if(!file) {
       response->SetStatusCode(HttpStatusCode::NOT_FOUND);
       return;
     }
     IO::SharedBuffer buffer;
     buffer.Grow(static_cast<std::size_t>(
-      boost::filesystem::file_size(fullPath)));
+      std::filesystem::file_size(fullPath)));
     file.read(buffer.GetMutableData(), buffer.GetSize());
     auto& contentType = m_contentTypePatterns.GetContentType(fullPath);
     if(!contentType.empty()) {

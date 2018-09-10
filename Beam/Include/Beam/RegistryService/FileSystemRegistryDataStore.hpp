@@ -1,8 +1,7 @@
 #ifndef BEAM_FILESYSTEMREGISTRYDATASTORE_HPP
 #define BEAM_FILESYSTEMREGISTRYDATASTORE_HPP
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/BasicIStreamReader.hpp"
@@ -29,7 +28,7 @@ namespace RegistryService {
       /*!
         \param root The directory storing the files.
       */
-      FileSystemRegistryDataStore(const boost::filesystem::path& root);
+      FileSystemRegistryDataStore(const std::filesystem::path& root);
 
       virtual ~FileSystemRegistryDataStore() override;
 
@@ -64,18 +63,18 @@ namespace RegistryService {
 
     private:
       mutable Threading::Mutex m_mutex;
-      boost::filesystem::path m_root;
+      std::filesystem::path m_root;
       std::uint64_t m_nextId;
       IO::OpenState m_openState;
 
-      boost::filesystem::path GetPath(std::uint64_t id);
+      std::filesystem::path GetPath(std::uint64_t id);
       Details::RegistryEntryRecord LoadRecord(std::uint64_t id);
       void SaveRecord(const Details::RegistryEntryRecord& record);
       std::uint64_t LoadNextEntryId();
   };
 
   inline FileSystemRegistryDataStore::FileSystemRegistryDataStore(
-      const boost::filesystem::path& root)
+      const std::filesystem::path& root)
       : m_root{root} {}
 
   inline FileSystemRegistryDataStore::~FileSystemRegistryDataStore() {
@@ -153,7 +152,7 @@ namespace RegistryService {
       parent.m_children.end(), record.m_registryEntry.m_id));
     SaveRecord(parent);
     auto registryPath = GetPath(registryEntry.m_id);
-    boost::filesystem::remove(registryPath);
+    std::filesystem::remove(registryPath);
   }
 
   inline IO::SharedBuffer FileSystemRegistryDataStore::Load(
@@ -187,9 +186,9 @@ namespace RegistryService {
     if(m_openState.SetOpening()) {
       return;
     }
-    boost::filesystem::create_directories(m_root);
-    if(!boost::filesystem::exists(m_root / "settings.dat")) {
-      IO::BasicOStreamWriter<boost::filesystem::ofstream> writer(
+    std::filesystem::create_directories(m_root);
+    if(!std::filesystem::exists(m_root / "settings.dat")) {
+      IO::BasicOStreamWriter<std::ofstream> writer(
         Initialize(m_root / "settings.dat", std::ios::binary));
       IO::SharedBuffer buffer;
       Serialization::BinarySender<IO::SharedBuffer> sender;
@@ -215,9 +214,9 @@ namespace RegistryService {
     m_openState.SetClosed();
   }
 
-  inline boost::filesystem::path FileSystemRegistryDataStore::GetPath(
+  inline std::filesystem::path FileSystemRegistryDataStore::GetPath(
       std::uint64_t id) {
-    boost::filesystem::path registryPath =
+    std::filesystem::path registryPath =
       m_root / boost::lexical_cast<std::string>(id);
     return registryPath;
   }
@@ -226,8 +225,8 @@ namespace RegistryService {
       std::uint64_t id) {
     Details::RegistryEntryRecord record;
     try {
-      IO::BasicIStreamReader<boost::filesystem::ifstream> reader(
-        Initialize(GetPath(id), std::ios::binary));
+      IO::BasicIStreamReader<std::ifstream> reader(Initialize(GetPath(id),
+        std::ios::binary));
       IO::SharedBuffer buffer;
       reader.Read(Beam::Store(buffer));
       Serialization::BinaryReceiver<IO::SharedBuffer> receiver;
@@ -243,7 +242,7 @@ namespace RegistryService {
   inline void FileSystemRegistryDataStore::SaveRecord(
       const Details::RegistryEntryRecord& record) {
     try {
-      IO::BasicOStreamWriter<boost::filesystem::ofstream> writer(
+      IO::BasicOStreamWriter<std::ofstream> writer(
         Initialize(GetPath(record.m_registryEntry.m_id), std::ios::binary));
       IO::SharedBuffer buffer;
       Serialization::BinarySender<IO::SharedBuffer> sender;
@@ -259,7 +258,7 @@ namespace RegistryService {
   inline std::uint64_t FileSystemRegistryDataStore::LoadNextEntryId() {
     std::uint64_t value;
     {
-      IO::BasicIStreamReader<boost::filesystem::ifstream> reader(
+      IO::BasicIStreamReader<std::ifstream> reader(
         Initialize(m_root / "settings.dat", std::ios::binary));
       IO::SharedBuffer buffer;
       reader.Read(Beam::Store(buffer));
@@ -269,7 +268,7 @@ namespace RegistryService {
       ++value;
     }
     {
-      IO::BasicOStreamWriter<boost::filesystem::ofstream> writer(
+      IO::BasicOStreamWriter<std::ofstream> writer(
         Initialize(m_root / "settings.dat", std::ios::binary));
       IO::SharedBuffer buffer;
       Serialization::BinarySender<IO::SharedBuffer> sender;

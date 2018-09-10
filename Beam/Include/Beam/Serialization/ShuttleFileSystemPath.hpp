@@ -1,31 +1,31 @@
 #ifndef BEAM_SHUTTLEFILESYSTEMPATH_HPP
 #define BEAM_SHUTTLEFILESYSTEMPATH_HPP
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
 namespace Serialization {
   template<>
-  struct IsStructure<boost::filesystem::path> : std::false_type {};
+  struct IsStructure<std::filesystem::path> : std::false_type {};
 
   template<>
-  struct Send<boost::filesystem::path> {
+  struct Send<std::filesystem::path> {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
-        const boost::filesystem::path& value) const {
+        const std::filesystem::path& value) const {
       shuttle.Send(name, value.string());
     }
   };
 
   template<>
-  struct Receive<boost::filesystem::path> {
+  struct Receive<std::filesystem::path> {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
-        boost::filesystem::path& value) const {
+        std::filesystem::path& value) const {
       std::string input;
       shuttle.Shuttle(name, input);
-      value = boost::filesystem::path(input);
+      value = std::filesystem::path(input);
     }
   };
 }

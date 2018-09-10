@@ -31,7 +31,7 @@ if(UNIX)
     optimized $ENV{BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     debug $ENV{BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized $ENV{BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
-    dl pthread rt)
+    dl pthread rt stdc++fs)
 endif(UNIX)
 
 install(TARGETS RegistryServer DESTINATION $ENV{INSTALL_DIRECTORY})

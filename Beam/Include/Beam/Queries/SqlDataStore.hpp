@@ -146,11 +146,22 @@ namespace Beam::Queries {
         [] (auto& row, auto value) {
           row.GetSequence() = Sequence(value);
         });
-    m_row = Viper::Row<IndexedValue>().
-      extend(m_indexRow,
+    auto isIndexEmbedded = false;
+    for(auto& indexColumn : m_indexRow.get_columns()) {
+      for(auto& valueColumn : m_valueRow.get_columns()) {
+        if(indexColumn.m_name == valueColumn.m_name) {
+          isIndexEmbedded = true;
+          break;
+        }
+      }
+    }
+    if(!isIndexEmbedded) {
+      m_row = m_row.extend(m_indexRow,
         [] (auto& row) -> auto& {
           return row->GetIndex();
-        }).
+        });
+    }
+    m_row = m_row.
       extend(m_valueRow,
         [] (auto& row) -> auto& {
           return row->GetValue();

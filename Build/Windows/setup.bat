@@ -158,4 +158,20 @@ if exist sqlite goto end_sqlite_setup
     rm sqlite-amalgamation-3230100.zip
 :end_sqlite_setup
 
+if exist viper goto end_viper_clone
+  git clone https://www.github.com/eidolonsystems/viper
+:end_viper_clone
+if not exist viper goto end_viper_pull
+  SET viper_commit="991edc35f8ffc7c1e94a4128b86485d1b56428b0"
+  pushd viper
+  for /f "usebackq tokens=*" %%a in (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) do SET commit=%%a
+  if not "%commit%" == %viper_commit% (
+    git checkout master
+    git pull
+    git checkout %viper_commit%
+  )
+  cmake -G "Visual Studio 15 2017" .
+  popd
+:end_beam_pull
+
 ENDLOCAL

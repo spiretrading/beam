@@ -168,6 +168,21 @@ if [ ! -d "mysql-connector-python-2.1.5" ]; then
   popd
   rm -f mysql-connector-python-2.1.5.zip
 fi
+if [ ! -d "viper" ]; then
+  sudo -u $username git clone https://www.github.com/eidolonsystems/viper
+fi
+if [ -d "viper" ]; then
+  viper_commit="991edc35f8ffc7c1e94a4128b86485d1b56428b0"
+  pushd viper
+  commit="`git log -1 | head -1 | awk '{ print $2 }'`"
+  if [ "$commit" != "$viper_commit" ]; then
+    sudo -u $username git checkout master
+    sudo -u $username git pull
+    sudo -u $username git checkout "$viper_commit"
+  fi
+  sudo -E -u $username cmake -G "Unix Makefiles"
+  popd
+fi
 
 sudo -u $username pip3 install Sphinx
 sudo -u $username pip3 install sphinx-jsondomain

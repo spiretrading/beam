@@ -53,18 +53,35 @@ if exist zlib-1.2.11 goto end_zlib_setup
     popd
 :end_zlib_setup
 
-if exist mysql-connector-c-6.1.11-win32 goto end_mysqlconnector_setup
-  wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-win32.zip --no-check-certificate
-  if not exist mysql-connector-c-6.1.11-win32.zip goto end_mysqlconnector_setup
-    unzip mysql-connector-c-6.1.11-win32.zip
-    rm mysql-connector-c-6.1.11-win32.zip
-:end_mysqlconnector_setup
+if exist mariadb-connector-c-3.0.6-src goto end_mariadbconnector_setup
+  wget --no-check-certificate https://downloads.mariadb.org/f/connector-c-3.0.6/mariadb-connector-c-3.0.6-src.zip -O mariadb-connector-c-3.0.6-src.zip
+  if not exist mariadb-connector-c-3.0.6-src.zip goto end_mariadbconnector_setup
+    unzip mariadb-connector-c-3.0.6-src.zip
+    pushd mariadb-connector-c-3.0.6-src
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
+    pushd libmariadb
+    cat mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
+    mv mariadbclient.vcxproj.new mariadbclient.vcxproj
+    popd
+    cmake --build . --target mariadbclient --config Debug
+    cmake --build . --target mariadbclient --config Release
+    pushd include
+    printf "#include ""mariadb_version.h""" > mysql_version.h
+    echo. >> mysql_version.h
+    printf "#include ""WinSock2.h""" >> mysql_version.h
+    echo. >> mysql_version.h
+    printf "#define CLIENT_LONG_PASSWORD 1" >> mysql_version.h
+    echo. >> mysql_version.h
+    popd
+    popd
+    rm -rf mariadb-connector-c-3.0.6-src.zip
+:end_mariadbconnector_setup
 
 if exist mysql++-3.2.3 goto end_mysqlpp_setup
   git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
   if not exist mysql++-3.2.3 goto end_mysqlpp_setup
     pushd mysql++-3.2.3\vc2005
-    SET CL=/I..\..\mysql-connector-c-6.1.11-win32\include
+    SET CL=/I..\..\mariadb-connector-c-3.0.6-src\include
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Debug
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Release
     SET CL=
@@ -152,7 +169,11 @@ if exist sqlite goto end_sqlite_setup
     unzip sqlite-amalgamation-3230100
     mv sqlite-amalgamation-3230100 sqlite
     pushd sqlite
-    cl /c /O2 /DSQLITE_USE_URI=1 sqlite3.c
+    cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
+    lib sqlite3.obj
+    cp sqlite3.lib sqlite3d.lib
+    rm sqlite3.obj
+    cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     popd
     rm sqlite-amalgamation-3230100.zip

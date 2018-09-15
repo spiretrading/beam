@@ -5,6 +5,7 @@
 #include <boost/python/def.hpp>
 #include "Beam/Python/Copy.hpp"
 #include "Beam/Python/Python.hpp"
+#include "Beam/Python/Vector.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/NativeDataType.hpp"
@@ -260,6 +261,10 @@ namespace Details {
         &Queries::SequencedValue<T>::GetSequence)))
       .def(boost::python::self == boost::python::self)
       .def(boost::python::self != boost::python::self);
+    auto vectorName = std::string("Vector");
+    vectorName += name;
+    Beam::Python::ExportVector<std::vector<Queries::SequencedValue<T>>>(
+      vectorName.c_str());
   }
 }
 }

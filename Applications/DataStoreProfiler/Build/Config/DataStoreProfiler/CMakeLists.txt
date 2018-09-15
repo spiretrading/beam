@@ -35,5 +35,8 @@ if(UNIX)
     optimized $ENV{BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
 endif(UNIX)
+if(WIN32)
+  target_link_libraries(DataStoreProfiler shlwapi ws2_32)
+endif()
 
 install(TARGETS DataStoreProfiler DESTINATION $ENV{INSTALL_DIRECTORY})

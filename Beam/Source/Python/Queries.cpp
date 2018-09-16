@@ -194,6 +194,8 @@ void Beam::Python::ExportQueries() {
     "TypeCompatibilityException")
     .def(init<>())
     .def(init<const string&>());
+  ExportSequencedValue<boost::python::object>();
+  ExportIndexedValue<boost::python::object, boost::python::object>();
   def("build_current_query", &BuildCurrentQuery<boost::python::object>);
   def("build_real_time_query", &BuildRealTimeQuery<boost::python::object>);
 }

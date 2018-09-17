@@ -45,22 +45,18 @@ namespace Python {
     }
   };
 
-  //! Exports a vector.
-  /*!
-    \param name The name of the class to export.
-  */
-  template<typename T>
-  void ExportVector(const char* name) {
-    boost::python::class_<T>(name)
-      .def(boost::python::vector_indexing_suite<T>());
-    boost::python::converter::registry::push_back(
-      &VectorFromPythonConverter<T>::convertible,
-      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
-  }
-
   template<typename T>
   void* VectorFromPythonConverter<T>::convertible(PyObject* object) {
-    if(PyList_Check(object)) {
+    if(!PyList_Check(object)) {
+      return nullptr;
+    }
+    auto source = boost::python::list(boost::python::handle<>(
+      boost::python::borrowed(object)));
+    if(boost::python::len(source) == 0) {
+      return object;
+    }
+    auto extractor = boost::python::extract<typename T::value_type>(source[0]);
+    if(extractor.check()) {
       return object;
     }
     return nullptr;
@@ -82,6 +78,28 @@ namespace Python {
       data)->storage.bytes;
     new(storage) Type(std::move(destination));
     data->convertible = storage;
+  }
+
+  //! Exports a vector.
+  /*!
+    \param name The name of the class to export.
+  */
+  template<typename T>
+  void ExportVector(const char* name) {
+    boost::python::class_<T>(name)
+      .def(boost::python::vector_indexing_suite<T>());
+    boost::python::converter::registry::push_back(
+      &VectorFromPythonConverter<T>::convertible,
+      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
+  }
+
+  //! Exports a vector by converting it to/from a Python list.
+  template<typename T>
+  void ExportVectorAsList() {
+    boost::python::to_python_converter<T, VectorToPythonListConverter<T>>();
+    boost::python::converter::registry::push_back(
+      &VectorFromPythonConverter<T>::convertible,
+      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
   }
 }
 }

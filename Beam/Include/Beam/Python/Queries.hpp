@@ -293,10 +293,7 @@ namespace Details {
         &Details::IndexedValueFromPythonConverter<V, I>::convertible,
         &Details::IndexedValueFromPythonConverter<V, I>::construct,
         boost::python::type_id<Queries::IndexedValue<V, I>>());
-      boost::python::to_python_converter<
-        std::vector<Queries::IndexedValue<V, I>>,
-        VectorToPythonListConverter<
-        std::vector<Queries::IndexedValue<V, I>>>>();
+      ExportVectorAsList<std::vector<Queries::IndexedValue<V, I>>>();
     }
   }
 
@@ -389,9 +386,7 @@ namespace Details {
         &Details::SequencedValueFromPythonConverter<T>::convertible,
         &Details::SequencedValueFromPythonConverter<T>::construct,
         boost::python::type_id<Queries::SequencedValue<T>>());
-      boost::python::to_python_converter<
-        std::vector<Queries::SequencedValue<T>>,
-        VectorToPythonListConverter<std::vector<Queries::SequencedValue<T>>>>();
+      ExportVectorAsList<std::vector<Queries::SequencedValue<T>>>();
     }
   }
 }

@@ -143,8 +143,8 @@ namespace Details {
   struct SequencedValueToPython {
     static PyObject* convert(const Queries::SequencedValue<T>& value) {
       auto result = Queries::SequencedValue<boost::python::object>(
-        value.GetValue(), value.GetSequence());
-      return boost::python::incref(boost::python::object{result}.ptr());
+        boost::python::object(value.GetValue()), value.GetSequence());
+      return boost::python::incref(boost::python::object(result).ptr());
     }
   };
 
@@ -286,8 +286,6 @@ namespace Details {
           boost::python::copy_const_reference>()))
         .def(boost::python::self == boost::python::self)
         .def(boost::python::self != boost::python::self);
-      Beam::Python::ExportVector<std::vector<Queries::IndexedValue<V, I>>>(
-        "VectorIndexedValue");
     } else {
       boost::python::to_python_converter<Queries::IndexedValue<V, I>,
         Details::IndexedValueToPython<V, I>>();
@@ -295,6 +293,10 @@ namespace Details {
         &Details::IndexedValueFromPythonConverter<V, I>::convertible,
         &Details::IndexedValueFromPythonConverter<V, I>::construct,
         boost::python::type_id<Queries::IndexedValue<V, I>>());
+      boost::python::to_python_converter<
+        std::vector<Queries::IndexedValue<V, I>>,
+        VectorToPythonListConverter<
+        std::vector<Queries::IndexedValue<V, I>>>>();
     }
   }
 
@@ -365,14 +367,7 @@ namespace Details {
     if(registration != nullptr && registration->m_to_python != nullptr) {
       return;
     }
-    if constexpr(!std::is_same_v<T, boost::python::object>) {
-      boost::python::to_python_converter<Queries::SequencedValue<T>,
-        Details::SequencedValueToPython<T>>();
-      boost::python::converter::registry::push_back(
-        &Details::SequencedValueFromPythonConverter<T>::convertible,
-        &Details::SequencedValueFromPythonConverter<T>::construct,
-        boost::python::type_id<Queries::SequencedValue<T>>());
-    }// else {
+    if constexpr(std::is_same_v<T, boost::python::object>) {
       boost::python::class_<Queries::SequencedValue<T>>("SequencedValue",
         boost::python::init<>())
         .def(boost::python::init<const T&, Queries::Sequence>())
@@ -387,9 +382,17 @@ namespace Details {
           &Queries::SequencedValue<T>::GetSequence)))
         .def(boost::python::self == boost::python::self)
         .def(boost::python::self != boost::python::self);
-//    }
-    Beam::Python::ExportVector<std::vector<Queries::SequencedValue<T>>>(
-      "VectorSequencedValue");
+    } else {
+      boost::python::to_python_converter<Queries::SequencedValue<T>,
+        Details::SequencedValueToPython<T>>();
+      boost::python::converter::registry::push_back(
+        &Details::SequencedValueFromPythonConverter<T>::convertible,
+        &Details::SequencedValueFromPythonConverter<T>::construct,
+        boost::python::type_id<Queries::SequencedValue<T>>());
+      boost::python::to_python_converter<
+        std::vector<Queries::SequencedValue<T>>,
+        VectorToPythonListConverter<std::vector<Queries::SequencedValue<T>>>>();
+    }
   }
 }
 }

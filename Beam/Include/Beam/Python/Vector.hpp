@@ -33,6 +33,18 @@ namespace Python {
       boost::python::converter::rvalue_from_python_stage1_data* data);
   };
 
+  /** Converts an std::vector<T> into a Python list. */
+  template<typename T>
+  struct VectorToPythonListConverter {
+    static PyObject* convert(const T& v) {
+      auto result = boost::python::list();
+      for(auto& value : v) {
+        result.append(boost::python::object(value));
+      }
+      return boost::python::incref(result.ptr());
+    }
+  };
+
   //! Exports a vector.
   /*!
     \param name The name of the class to export.

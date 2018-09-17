@@ -103,7 +103,7 @@ void Beam::Python::ExportTimer() {
     std::shared_ptr<VirtualTimer>>();
   ExportUniquePtr<VirtualTimer>();
   ExportEnum<Timer::Result>();
-  ExportPublisher<Timer::Result>("TimerResultPublisher");
+  ExportQueueSuite<Timer::Result>("TimerResult");
 }
 
 void Beam::Python::ExportTriggerTimer() {

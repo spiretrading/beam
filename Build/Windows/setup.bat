@@ -153,16 +153,6 @@ if exist lua-5.3.1 goto end_lua_setup
     rm lua-5.3.1.tar.gz
 :end_lua_setup
 
-if exist mysql-connector-python-2.1.5 goto end_mysql_python
-  wget --no-check-certificate https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip
-  if not exist mysql-connector-python-2.1.5.zip goto end_mysql_python
-    unzip mysql-connector-python-2.1.5.zip
-    pushd mysql-connector-python-2.1.5
-    python setup.py install
-    popd
-    rm -f mysql-connector-python-2.1.5.zip
-:end_mysql_python
-
 if exist sqlite goto end_sqlite_setup
   wget --no-check-certificate https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip
   if not exist sqlite-amalgamation-3230100.zip goto end_sqlite_setup

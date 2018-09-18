@@ -1,5 +1,5 @@
-FOR /f %%i in ('which python') DO SET PYTHON_PATH=%%i
-FOR /f %%i in ('dirname %PYTHON_PATH%') DO SET PYTHON_PATH=%%i
+FOR /f "delims=" %%i in ('which python') DO SET PYTHON_PATH=%%i
+FOR /f "delims=" %%i in ('dirname "%PYTHON_PATH%"') DO SET PYTHON_PATH=%%i
 SET BEAM_INCLUDE_PATH=%~dp0../../Include
 SET BEAM_PYTHON_LIBRARY_DEBUG_PATH=%~dp0../../Library/Debug/beam.lib
 SET BEAM_PYTHON_LIBRARY_OPTIMIZED_PATH=%~dp0../../Library/Release/beam.lib

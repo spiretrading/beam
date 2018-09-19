@@ -12,6 +12,9 @@ BEAM_EXTERN template class BEAM_EXPORT_DLL
 BEAM_EXTERN template struct BEAM_EXPORT_DLL
   Beam::Routines::Details::CurrentRoutineGlobal<void>;
 
+BEAM_EXTERN template struct BEAM_EXPORT_DLL
+  Beam::Routines::Details::NextId<void>;
+
 namespace Beam {
 namespace Python {
 

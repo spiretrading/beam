@@ -95,7 +95,7 @@ if [ ! -d "sqlite" ]; then
     sudo -u $username unzip sqlite-amalgamation-3230100.zip
     sudo -u $username mv sqlite-amalgamation-3230100 sqlite
     pushd sqlite
-    sudo -u $username gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 sqlite3.c
+    sudo -u $username gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
     popd
     rm sqlite-amalgamation-3230100.zip
   fi

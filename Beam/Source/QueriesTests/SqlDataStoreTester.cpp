@@ -79,3 +79,24 @@ void SqlDataStoreTester::TestStoreAndLoad() {
   TestQuery(dataStore, "hello", Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryA});
 }
+
+void SqlDataStoreTester::TestEmbeddedIndex() {
+  auto BuildEmbeddedValueRow = [] {
+    return Row<Entry>().add_column("value", &Entry::m_value);
+  };
+  auto BuildEmbeddedIndexRow = [] {
+    return Row<int>().add_column("value");
+  };
+  using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
+    Row<int>, SqlTranslator>;
+  auto connectionPool = DatabaseConnectionPool<Sqlite3::Connection>();
+  auto c = std::make_unique<Sqlite3::Connection>(PATH);
+  c->open();
+  connectionPool.Add(std::move(c));
+  auto writerConnection = Sync<Sqlite3::Connection, Mutex>(PATH);
+  auto threadPool = ThreadPool();
+  auto dataStore = EmbeddedDataStore("test", BuildEmbeddedValueRow(),
+    BuildEmbeddedIndexRow(), Ref(connectionPool), Ref(writerConnection),
+    Ref(threadPool));
+  dataStore.Open();
+}

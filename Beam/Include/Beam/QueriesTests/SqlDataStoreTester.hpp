@@ -13,9 +13,13 @@ namespace Beam::Queries::Tests {
       //! Tests storing and loading a value.
       void TestStoreAndLoad();
 
+      //! Tests using an index embedded into the value.
+      void TestEmbeddedIndex();
+
     private:
       CPPUNIT_TEST_SUITE(SqlDataStoreTester);
         CPPUNIT_TEST(TestStoreAndLoad);
+        CPPUNIT_TEST(TestEmbeddedIndex);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

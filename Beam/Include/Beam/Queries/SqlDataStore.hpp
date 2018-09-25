@@ -14,7 +14,6 @@
 #include "Beam/Queries/SqlUtilities.hpp"
 #include "Beam/Sql/DatabaseConnectionPool.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
-#include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam::Queries {
@@ -62,13 +61,13 @@ namespace Beam::Queries {
         \param table The name of the SQL table.
         \param valueRow The SQL row to store the value.
         \param indexRow The SQL row to store the index.
-        \param connectionPool The pool used to acquire SQL connections.
-        \param writeConnection Used to perform high priority writes.
+        \param readerPool The pool of SQL connections used for reading.
+        \param writerPool The pool of SQL connections used for writing.
         \param threadPool Used to perform asynchronous reads and writes.
       */
       SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
-        RefType<DatabaseConnectionPool<Connection>> connectionPool,
-        RefType<Threading::Sync<Connection, Threading::Mutex>> writeConnection,
+        RefType<DatabaseConnectionPool<Connection>> readerPool,
+        RefType<DatabaseConnectionPool<Connection>> writerPool,
         RefType<Threading::ThreadPool> threadPool);
 
       ~SqlDataStore();
@@ -109,22 +108,21 @@ namespace Beam::Queries {
       IndexRow m_indexRow;
       Viper::Row<IndexedValue> m_row;
       Viper::Row<SequencedValue> m_sequencedRow;
-      DatabaseConnectionPool<Connection>* m_connectionPool;
-      Threading::Sync<Connection, Threading::Mutex>* m_writeConnection;
+      DatabaseConnectionPool<Connection>* m_readerPool;
+      DatabaseConnectionPool<Connection>* m_writerPool;
       Threading::ThreadPool* m_threadPool;
   };
 
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
-      IndexRow indexRow,
-      RefType<DatabaseConnectionPool<Connection>> connectionPool,
-      RefType<Threading::Sync<Connection, Threading::Mutex>> writeConnection,
+      IndexRow indexRow, RefType<DatabaseConnectionPool<Connection>> readerPool,
+      RefType<DatabaseConnectionPool<Connection>> writerPool,
       RefType<Threading::ThreadPool> threadPool)
       : m_table(std::move(table)),
         m_valueRow(std::move(valueRow)),
         m_indexRow(std::move(indexRow)),
-        m_connectionPool(connectionPool.Get()),
-        m_writeConnection(writeConnection.Get()),
+        m_readerPool(readerPool.Get()),
+        m_writerPool(writerPool.Get()),
         m_threadPool(threadPool.Get()) {
     m_valueRow = m_valueRow.
       add_column("timestamp",
@@ -211,41 +209,49 @@ namespace Beam::Queries {
       index.emplace();
     }
     return LoadSqlQuery<SqlTranslator>(query, m_sequencedRow, m_table, *index,
-      *m_threadPool, *m_connectionPool);
+      *m_threadPool, *m_readerPool);
   }
 
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
       SqlDataStore<C, V, I, T>::Load(const Viper::Expression& query) {
     return LoadSqlQuery(query, m_sequencedRow, m_table, *m_threadPool,
-      *m_connectionPool);
+      *m_readerPool);
   }
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::Store(const IndexedValue& value) {
-    Threading::With(*m_writeConnection,
-      [&] (auto& connection) {
-        connection.execute(Viper::insert(m_row, m_table, &value));
-      });
+    auto result =  Routines::Async<void>();
+    auto connection = m_writerPool->Acquire();
+    m_threadPool->Queue(
+      [&] {
+        connection->execute(Viper::insert(m_row, m_table, &value));
+      }, result.GetEval());
+    result.Get();
   }
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::Store(
       const std::vector<IndexedValue>& values) {
-    Threading::With(*m_writeConnection,
-      [&] (auto& connection) {
-        connection.execute(Viper::insert(m_row, m_table, values.begin(),
+    auto result =  Routines::Async<void>();
+    auto connection = m_writerPool->Acquire();
+    m_threadPool->Queue(
+      [&] {
+        connection->execute(Viper::insert(m_row, m_table, values.begin(),
           values.end()));
-      });
+      }, result.GetEval());
+    result.Get();
   }
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::Open() {
-    m_writeConnection->With(
-      [&] (auto& connection) {
-        connection.open();
-        connection.execute(create_if_not_exists(m_row, m_table));
-      });
+    auto result =  Routines::Async<void>();
+    auto connection = m_writerPool->Acquire();
+    m_threadPool->Queue(
+      [&] {
+        connection->execute(create_if_not_exists(m_row, m_table));
+      }, result.GetEval());
+    result.Get();
   }
 
   template<typename C, typename V, typename I, typename T>

@@ -172,7 +172,7 @@ if [ ! -d "viper" ]; then
   sudo -u $username git clone https://www.github.com/eidolonsystems/viper
 fi
 if [ -d "viper" ]; then
-  viper_commit="aee4cce72ff6022fd1f2f5d2512d1e39372b0992"
+  viper_commit="71390286199e17adc35c321c03885a9a72807ac3"
   pushd viper
   commit="`git log -1 | head -1 | awk '{ print $2 }'`"
   if [ "$commit" != "$viper_commit" ]; then

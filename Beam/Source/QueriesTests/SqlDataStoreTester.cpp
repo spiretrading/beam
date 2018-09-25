@@ -63,14 +63,17 @@ namespace {
 }
 
 void SqlDataStoreTester::TestStoreAndLoad() {
-  auto connectionPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto c = std::make_unique<Sqlite3::Connection>(PATH);
-  c->open();
-  connectionPool.Add(std::move(c));
-  auto writerConnection = Sync<Sqlite3::Connection, Mutex>(PATH);
+  auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+  auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+  auto connection = std::make_unique<Sqlite3::Connection>(PATH);
+  connection->open();
+  readerPool.Add(std::move(connection));
+  connection = std::make_unique<Sqlite3::Connection>(PATH);
+  connection->open();
+  writerPool.Add(std::move(connection));
   auto threadPool = ThreadPool();
   auto dataStore = TestDataStore("test", BuildValueRow(), BuildIndexRow(),
-    Ref(connectionPool), Ref(writerConnection), Ref(threadPool));
+    Ref(readerPool), Ref(writerPool), Ref(threadPool));
   dataStore.Open();
   auto timeClient = IncrementalTimeClient();
   auto sequence = Queries::Sequence(5);
@@ -90,13 +93,16 @@ void SqlDataStoreTester::TestEmbeddedIndex() {
   using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
     Row<int>, SqlTranslator>;
   auto connectionPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto c = std::make_unique<Sqlite3::Connection>(PATH);
-  c->open();
-  connectionPool.Add(std::move(c));
-  auto writerConnection = Sync<Sqlite3::Connection, Mutex>(PATH);
+  auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+  auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+  auto connection = std::make_unique<Sqlite3::Connection>(PATH);
+  connection->open();
+  readerPool.Add(std::move(connection));
+  connection = std::make_unique<Sqlite3::Connection>(PATH);
+  connection->open();
+  writerPool.Add(std::move(connection));
   auto threadPool = ThreadPool();
   auto dataStore = EmbeddedDataStore("test", BuildEmbeddedValueRow(),
-    BuildEmbeddedIndexRow(), Ref(connectionPool), Ref(writerConnection),
-    Ref(threadPool));
+    BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool), Ref(threadPool));
   dataStore.Open();
 }

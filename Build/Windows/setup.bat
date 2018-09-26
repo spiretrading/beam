@@ -173,7 +173,7 @@ if exist viper goto end_viper_clone
   git clone https://www.github.com/eidolonsystems/viper
 :end_viper_clone
 if not exist viper goto end_viper_pull
-  SET viper_commit="71390286199e17adc35c321c03885a9a72807ac3"
+  SET viper_commit="a91cd191c37bd63007abc0c6304af0b7658985c1"
   pushd viper
   for /f "usebackq tokens=*" %%a in (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) do SET commit=%%a
   if not "%commit%" == %viper_commit% (

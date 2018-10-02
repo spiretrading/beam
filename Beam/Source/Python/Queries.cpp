@@ -250,6 +250,10 @@ void Beam::Python::ExportSnapshotLimit() {
       .add_static_property("UNLIMITED", &SnapshotLimit::Unlimited)
       .add_property("type", &SnapshotLimit::GetType)
       .add_property("size", &SnapshotLimit::GetSize)
+      .def("from_head", &SnapshotLimit::FromHead)
+      .staticmethod("from_head")
+      .def("from_tail", &SnapshotLimit::FromHead)
+      .staticmethod("from_tail")
       .def("__str__", &SnapshotLimitToString)
       .def(self == self)
       .def(self != self);

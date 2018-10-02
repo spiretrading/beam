@@ -1,5 +1,5 @@
-#ifndef BEAM_SNAPSHOTLIMIT_HPP
-#define BEAM_SNAPSHOTLIMIT_HPP
+#ifndef BEAM_SNAPSHOT_LIMIT_HPP
+#define BEAM_SNAPSHOT_LIMIT_HPP
 #include <algorithm>
 #include <limits>
 #include <ostream>
@@ -8,23 +8,12 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class SnapshotLimit
-      \brief Specifies a limit on the number of items to return in a Query's
-             snapshot.
+  /** Specifies a limit on the number of items to return in a Query's snapshot.
    */
   class SnapshotLimit {
     public:
-
-      //! Returns a SnapshotLimit specifying no snapshot items are to be
-      //! returned.
-      static SnapshotLimit None();
-
-      //! Returns a SnapshotLimit specifying all snapshot items are to be
-      //! returned.
-      static SnapshotLimit Unlimited();
 
       /*! \enum Type
           \brief Whether the limit begins from the head or the tail.
@@ -38,27 +27,47 @@ namespace Queries {
         TAIL
       };
 
+      //! Returns a SnapshotLimit specifying no snapshot items are to be
+      //! returned.
+      static constexpr SnapshotLimit None();
+
+      //! Returns a SnapshotLimit specifying all snapshot items are to be
+      //! returned.
+      static constexpr SnapshotLimit Unlimited();
+
+      //! Returns a SnapshotLimit from the head of the data set.
+      /*!
+        \param size The size of the limit.
+      */
+      static constexpr SnapshotLimit FromHead(int size);
+
+      //! Returns a SnapshotLimit from the tail of the data set.
+      /*!
+        \param size The size of the limit.
+      */
+      static constexpr SnapshotLimit FromTail(int size);
+
       //! Constructs a SnapshotLimit with a size of 0.
-      SnapshotLimit();
+      constexpr SnapshotLimit();
 
       //! Constructs a SnapshotLimit.
       /*!
         \param type The Type of limit.
         \param size The size of the limit.
       */
-      SnapshotLimit(Type type, int size);
+      constexpr SnapshotLimit(Type type, int size);
 
       //! Returns the Type of limit.
-      Type GetType() const;
+      constexpr Type GetType() const;
 
       //! Returns the size of the limit.
-      int GetSize() const;
+      constexpr int GetSize() const;
 
       //! Tests if two SnapshotLimits are equal.
-      bool operator ==(const SnapshotLimit& rhs) const;
+      constexpr bool operator ==(const SnapshotLimit& rhs) const;
 
       //! Tests if two SnapshotLimit are not equal.
-      bool operator !=(const SnapshotLimit& rhs) const;
+      constexpr bool operator !=(const SnapshotLimit& rhs) const;
 
     private:
       friend struct Serialization::Shuttle<SnapshotLimit>;
@@ -86,29 +95,33 @@ namespace Queries {
     return out << "(" << limit.GetType() << " " << limit.GetSize() << ")";
   }
 
-  inline SnapshotLimit SnapshotLimit::None() {
+  constexpr SnapshotLimit SnapshotLimit::None() {
     return SnapshotLimit(SnapshotLimit::Type::HEAD, 0);
   }
 
-  inline SnapshotLimit SnapshotLimit::Unlimited() {
+  constexpr SnapshotLimit SnapshotLimit::Unlimited() {
     return SnapshotLimit(SnapshotLimit::Type::HEAD,
       std::numeric_limits<int>::max());
   }
 
-  inline SnapshotLimit::SnapshotLimit()
+  constexpr SnapshotLimit SnapshotLimit::FromHead(int size) {
+    return SnapshotLimit(SnapshotLimit::Type::HEAD, size);
+  }
+
+  constexpr SnapshotLimit SnapshotLimit::FromTail(int size) {
+    return SnapshotLimit(SnapshotLimit::Type::TAIL, size);
+  }
+
+  constexpr SnapshotLimit::SnapshotLimit()
       : m_type(Type::HEAD),
         m_size(0) {}
 
-  inline SnapshotLimit::SnapshotLimit(Type type, int size)
-      : m_size(std::max(0, size)) {
-    if(m_size == 0 || m_size == std::numeric_limits<int>::max()) {
-      m_type = Type::HEAD;
-    } else {
-      m_type = type;
-    }
-  }
+  constexpr SnapshotLimit::SnapshotLimit(Type type, int size)
+      : m_type(size <= 0 || size == std::numeric_limits<int>::max() ?
+          Type::HEAD : type),
+        m_size(std::max(0, size)) {}
 
-  inline bool SnapshotLimit::operator ==(const SnapshotLimit& rhs) const {
+  constexpr bool SnapshotLimit::operator ==(const SnapshotLimit& rhs) const {
     if(m_size == 0) {
       return rhs.m_size == 0;
     }
@@ -118,22 +131,20 @@ namespace Queries {
     return m_type == rhs.m_type && m_size == rhs.m_size;
   }
 
-  inline bool SnapshotLimit::operator !=(const SnapshotLimit& rhs) const {
+  constexpr bool SnapshotLimit::operator !=(const SnapshotLimit& rhs) const {
     return !(*this == rhs);
   }
 
-  inline SnapshotLimit::Type SnapshotLimit::GetType() const {
+  constexpr SnapshotLimit::Type SnapshotLimit::GetType() const {
     return m_type;
   }
 
-  inline int SnapshotLimit::GetSize() const {
+  constexpr int SnapshotLimit::GetSize() const {
     return m_size;
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<Beam::Queries::SnapshotLimit> {
     template<typename Shuttler>
@@ -141,7 +152,7 @@ namespace Serialization {
         unsigned int version) {
       shuttle.Shuttle("type", value.m_type);
       shuttle.Shuttle("size", value.m_size);
-      if(Serialization::IsReceiver<Shuttler>::value) {
+      if(IsReceiver<Shuttler>::value) {
         if(value.m_size == 0 ||
             value.m_size == std::numeric_limits<int>::max()) {
           value.m_type = Queries::SnapshotLimit::Type::HEAD;
@@ -149,20 +160,17 @@ namespace Serialization {
         if(value.m_size < 0) {
           value.m_type = Queries::SnapshotLimit::Type::HEAD;
           value.m_size = 0;
-          BOOST_THROW_EXCEPTION(Serialization::SerializationException(
-            "Invalid size."));
+          BOOST_THROW_EXCEPTION(SerializationException("Invalid size."));
         }
         if(value.m_type != Queries::SnapshotLimit::Type::HEAD &&
             value.m_type != Queries::SnapshotLimit::Type::TAIL) {
           value.m_type = Queries::SnapshotLimit::Type::HEAD;
           value.m_size = 0;
-          BOOST_THROW_EXCEPTION(Serialization::SerializationException(
-            "Invalid type."));
+          BOOST_THROW_EXCEPTION(SerializationException("Invalid type."));
         }
       }
     }
   };
-}
 }
 
 #endif

@@ -159,15 +159,6 @@ if [ ! -d "lua-5.3.1" ]; then
     rm -f lua-5.3.1.tar.gz
   fi
 fi
-if [ ! -d "mysql-connector-python-2.1.5" ]; then
-  sudo -u $username wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip --no-check-certificate
-  sudo -u $username unzip mysql-connector-python-2.1.5.zip
-  pushd mysql-connector-python-2.1.5
-  sudo -u $username python3 setup.py build
-  python3 setup.py install
-  popd
-  rm -f mysql-connector-python-2.1.5.zip
-fi
 if [ ! -d "viper" ]; then
   sudo -u $username git clone https://www.github.com/eidolonsystems/viper
 fi

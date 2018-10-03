@@ -185,4 +185,6 @@ if not exist viper goto end_viper_pull
   popd
 :end_beam_pull
 
+pip install Sphinx sphinx-jsondomain sphinx_rtd_theme sphinxcontrib-httpdomain --user
+
 ENDLOCAL

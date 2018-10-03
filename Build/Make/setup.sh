@@ -175,7 +175,4 @@ if [ -d "viper" ]; then
   popd
 fi
 
-sudo -u $username pip3 install Sphinx
-sudo -u $username pip3 install sphinx-jsondomain
-sudo -u $username pip3 install sphinx_rtd_theme
-sudo -u $username pip3 install sphinxcontrib-httpdomain
+sudo -u $username pip3 install Sphinx sphinx-jsondomain sphinx_rtd_theme sphinxcontrib-httpdomain

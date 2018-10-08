@@ -1,5 +1,5 @@
-#ifndef BEAM_LOCALCONNECTION_HPP
-#define BEAM_LOCALCONNECTION_HPP
+#ifndef BEAM_LOCAL_CONNECTION_HPP
+#define BEAM_LOCAL_CONNECTION_HPP
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Connection.hpp"
@@ -10,11 +10,10 @@
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
 
-namespace Beam {
+namespace Beam
 namespace IO {
 
-  /*! \class LocalConnection
-      \brief Implements a local Connection.
+  /** Implements a local Connection.
       \tparam BufferType The type of Buffer to use.
    */
   template<typename BufferType>
@@ -22,10 +21,10 @@ namespace IO {
     public:
 
       //! The type of Buffer to use.
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
       //! The type of LocalServerConnection this connects to.
-      typedef IO::LocalServerConnection<Buffer> LocalServerConnection;
+      using LocalServerConnection = IO::LocalServerConnection<Buffer>;
 
       //! Constructs a LocalConnection.
       /*!
@@ -46,8 +45,8 @@ namespace IO {
       friend class IO::LocalServerChannel<Buffer>;
       friend class IO::LocalClientChannel<Buffer>;
       friend class IO::LocalServerConnection<Buffer>;
-      typedef typename LocalServerConnection::PendingChannelEntry
-        PendingChannelEntry;
+      using PendingChannelEntry =
+        typename LocalServerConnection::PendingChannelEntry;
       IO::LocalClientChannel<Buffer>* m_channel;
       std::shared_ptr<Queue<PendingChannelEntry*>> m_pendingChannels;
       std::shared_ptr<PipedWriter<Buffer>> m_writer;
@@ -74,8 +73,8 @@ namespace IO {
     if(m_isOpen) {
       return;
     }
-    Routines::Async<void> openAsync;
-    PendingChannelEntry entry(Ref(*m_channel), openAsync.GetEval());
+    auto openAsync = Routines::Async<void>();
+    auto entry = PendingChannelEntry(Ref(*m_channel), openAsync.GetEval());
     m_pendingChannels->Push(&entry);
     openAsync.Get();
     m_isOpen = true;

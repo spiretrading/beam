@@ -18,7 +18,7 @@ namespace Beam {
       using Connection = ConnectionType;
 
       //! Constructs a ScopedDatabaseConnection.
-      ScopedDatabaseConnection(RefType<DatabaseConnectionPool<Connection>> pool,
+      ScopedDatabaseConnection(Ref<DatabaseConnectionPool<Connection>> pool,
         std::unique_ptr<Connection> connection);
 
       //! Moves a ScopedDatabaseConnection.

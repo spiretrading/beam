@@ -26,21 +26,21 @@ using namespace std;
 void MessageProtocolTester::TestSendMessage() {
   using ProtocolChannel = BasicChannel<NamedChannelIdentifier, NullConnection,
     NullReader, PipedWriter<SharedBuffer>>;
-  PipedReader<SharedBuffer> reader;
-  ProtocolChannel channel("channel", Initialize(), Initialize(),
+  auto reader = PipedReader<SharedBuffer>();
+  auto channel = ProtocolChannel("channel", Initialize(), Initialize(),
     Initialize(Ref(reader)));
-  MessageProtocol<ProtocolChannel*, BinarySender<SharedBuffer>, ReverseEncoder>
-    protocol(&channel, BinarySender<SharedBuffer>(),
+  auto protocol = MessageProtocol<ProtocolChannel*, BinarySender<SharedBuffer>,
+    ReverseEncoder>(&channel, BinarySender<SharedBuffer>(),
     BinaryReceiver<SharedBuffer>(), ReverseEncoder(), ReverseDecoder());
   protocol.Send(string{"hello world"});
-  SharedBuffer sourceBuffer;
-  SharedBuffer targetBuffer;
+  auto sourceBuffer = SharedBuffer();
+  auto targetBuffer = SharedBuffer();
   reader.Read(Store(sourceBuffer));
-  ReverseDecoder decoder;
+  auto decoder = ReverseDecoder();
   decoder.Decode(sourceBuffer, Store(targetBuffer));
-  BinaryReceiver<SharedBuffer> receiver;
+  auto receiver = BinaryReceiver<SharedBuffer>();
   receiver.SetSource(Ref(targetBuffer));
-  string message;
+  auto message = string();
   receiver.Shuttle(message);
   CPPUNIT_ASSERT(message == "hello world");
 }
@@ -48,19 +48,20 @@ void MessageProtocolTester::TestSendMessage() {
 void MessageProtocolTester::TestReceiveMessage() {
   using ProtocolChannel = BasicChannel<NamedChannelIdentifier, NullConnection,
     PipedReader<SharedBuffer>*, NullWriter>;
-  PipedReader<SharedBuffer> reader;
-  PipedWriter<SharedBuffer> writer(Ref(reader));
-  ProtocolChannel channel("channel", Initialize(), &reader, Initialize());
-  MessageProtocol<ProtocolChannel*, BinarySender<SharedBuffer>, ReverseEncoder>
-    protocol(&channel, BinarySender<SharedBuffer>(),
+  auto reader = PipedReader<SharedBuffer>();
+  auto writer = PipedWriter<SharedBuffer>(Ref(reader));
+  auto channel = ProtocolChannel("channel", Initialize(), &reader,
+    Initialize());
+  auto protocol = MessageProtocol<ProtocolChannel*, BinarySender<SharedBuffer>,
+    ReverseEncoder>(&channel, BinarySender<SharedBuffer>(),
     BinaryReceiver<SharedBuffer>(), ReverseEncoder(), ReverseDecoder());
-  string sentMessage = "hello world";
-  BinarySender<SharedBuffer> sender;
-  SharedBuffer encodingBuffer;
+  auto sentMessage = string("hello world");
+  auto sender = BinarySender<SharedBuffer>();
+  auto encodingBuffer = SharedBuffer();
   sender.SetSink(Ref(encodingBuffer));
   sender.Send(sentMessage);
-  ReverseEncoder encoder;
-  SharedBuffer destinationBuffer;
+  auto encoder = ReverseEncoder();
+  auto destinationBuffer = SharedBuffer();
   destinationBuffer.Append(std::uint32_t{0});
   auto size = encoder.Encode(encodingBuffer, Store(destinationBuffer));
   destinationBuffer.Write(0, ToLittleEndian<std::uint32_t>(size));

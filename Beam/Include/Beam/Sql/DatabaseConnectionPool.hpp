@@ -79,7 +79,7 @@ namespace Beam {
 
   template<typename ConnectionType>
   ScopedDatabaseConnection<ConnectionType>::ScopedDatabaseConnection(
-      RefType<DatabaseConnectionPool<Connection>> pool,
+      Ref<DatabaseConnectionPool<Connection>> pool,
       std::unique_ptr<Connection> connection)
       : m_pool(pool.Get()),
         m_connection(std::move(connection)) {}

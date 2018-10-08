@@ -14,52 +14,50 @@ using namespace Beam::Routines;
 using namespace std;
 
 void SizeDeclarativeReaderTester::TestEmptySource() {
-  SizeDeclarativeReader<BufferReader<SharedBuffer>> reader(
+  auto reader = SizeDeclarativeReader<BufferReader<SharedBuffer>>(
     Initialize(BufferFromString<SharedBuffer>("")));
-  SharedBuffer buffer;
+  auto buffer = SharedBuffer();
   CPPUNIT_ASSERT_THROW(reader.Read(Store(buffer)), EndOfFileException);
 }
 
 void SizeDeclarativeReaderTester::TestSingleReadMessage() {
-  PipedReader<SharedBuffer> pipedReader;
-  PipedWriter<SharedBuffer> pipedWriter(Ref(pipedReader));
-  SizeDeclarativeReader<PipedReader<SharedBuffer>*> reader(&pipedReader);
+  auto pipedReader = PipedReader<SharedBuffer>();
+  auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
+  auto reader = SizeDeclarativeReader<PipedReader<SharedBuffer>*>(&pipedReader);
 
   // Build the message.
-  string message = "hello world";
-  std::uint32_t size = ToLittleEndian(
-    static_cast<std::uint32_t>(message.size()));
+  auto message = string("hello world");
+  auto size = ToLittleEndian(static_cast<std::uint32_t>(message.size()));
   pipedWriter.Write(&size, 4);
   pipedWriter.Write(message.c_str(), message.size());
 
   // Extract the message and test that it is equal to the original message.
-  SharedBuffer retrievedMessage;
+  auto retrievedMessage = SharedBuffer();
   CPPUNIT_ASSERT(reader.Read(Store(retrievedMessage)) == message.size());
   CPPUNIT_ASSERT(retrievedMessage.GetSize() == message.size());
   CPPUNIT_ASSERT(string(retrievedMessage.GetData(), message.size()) == message);
 }
 
 void SizeDeclarativeReaderTester::TestMultiReadMessage() {
-  PipedReader<SharedBuffer> pipedReader;
-  PipedWriter<SharedBuffer> pipedWriter(Ref(pipedReader));
-  SizeDeclarativeReader<PipedReader<SharedBuffer>*> reader(&pipedReader);
+  auto pipedReader = PipedReader<SharedBuffer>();
+  auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
+  auto reader = SizeDeclarativeReader<PipedReader<SharedBuffer>*>(&pipedReader);
 
   // Build the message and write the first message fragment.
-  string firstFragment = "hello";
-  string secondFragment = " world";
-  string message = firstFragment + secondFragment;
-  std::uint32_t size = ToLittleEndian(static_cast<std::uint32_t>(
-    message.size()));
+  auto firstFragment = string("hello");
+  auto secondFragment = string(" world");
+  auto message = firstFragment + secondFragment;
+  auto size = ToLittleEndian(static_cast<std::uint32_t>(message.size()));
   pipedWriter.Write(&size, 4);
   pipedWriter.Write(firstFragment.c_str(), firstFragment.size());
 
   // Begin reading the message.
-  SharedBuffer retrievedMessage;
-  size_t readResult;
-  RoutineHandler task = Spawn(
+  auto retrievedMessage = SharedBuffer();
+  auto readResult = size_t();
+  auto task = RoutineHandler(Spawn(
     [&] {
       readResult = reader.Read(Store(retrievedMessage));
-    });
+    }));
 
   // Write the second message fragment.
   pipedWriter.Write(secondFragment.c_str(), secondFragment.size());

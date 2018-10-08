@@ -12,20 +12,20 @@ using namespace Beam::IO;
 using namespace std;
 
 void CodedWriterTester::TestSingleByte() {
-  PipedReader<SharedBuffer> pipedReader;
-  PipedWriter<SharedBuffer> pipedWriter(Ref(pipedReader));
-  CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder> codedWriter(
+  auto pipedReader = PipedReader<SharedBuffer>();
+  auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
+  auto codedWriter = CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder>(
     &pipedWriter, ReverseEncoder());
   {
     codedWriter.Write(BufferFromString<SharedBuffer>("a"));
-    SharedBuffer readBuffer;
+    auto readBuffer = SharedBuffer();
     CPPUNIT_ASSERT(pipedReader.Read(Store(readBuffer)) == 1);
     CPPUNIT_ASSERT(readBuffer.GetSize() == 1);
     CPPUNIT_ASSERT(string(readBuffer.GetData(), readBuffer.GetSize()) == "a");
   }
   {
     codedWriter.Write(BufferFromString<SharedBuffer>("b"));
-    SharedBuffer readBuffer;
+    auto readBuffer = SharedBuffer();
     CPPUNIT_ASSERT(pipedReader.Read(Store(readBuffer)) == 1);
     CPPUNIT_ASSERT(readBuffer.GetSize() == 1);
     CPPUNIT_ASSERT(string(readBuffer.GetData(), readBuffer.GetSize()) == "b");
@@ -33,15 +33,15 @@ void CodedWriterTester::TestSingleByte() {
 }
 
 void CodedWriterTester::TestWrite() {
-  PipedReader<SharedBuffer> pipedReader;
-  PipedWriter<SharedBuffer> pipedWriter(Ref(pipedReader));
-  CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder> codedWriter(
+  auto pipedReader = PipedReader<SharedBuffer>();
+  auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
+  auto codedWriter = CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder>(
     &pipedWriter, ReverseEncoder());
   {
     auto message = string{"hello"};
     auto reversedMessage = string{message.rbegin(), message.rend()};
     codedWriter.Write(BufferFromString<SharedBuffer>(message));
-    SharedBuffer readBuffer;
+    auto readBuffer = SharedBuffer();
     CPPUNIT_ASSERT(pipedReader.Read(Store(readBuffer)) ==
       reversedMessage.size());
     CPPUNIT_ASSERT(readBuffer.GetSize() == reversedMessage.size());
@@ -52,7 +52,7 @@ void CodedWriterTester::TestWrite() {
     auto message = string{"world"};
     auto reversedMessage = string{message.rbegin(), message.rend()};
     codedWriter.Write(BufferFromString<SharedBuffer>(message));
-    SharedBuffer readBuffer;
+    auto readBuffer = SharedBuffer();
     CPPUNIT_ASSERT(pipedReader.Read(Store(readBuffer)) ==
       reversedMessage.size());
     CPPUNIT_ASSERT(readBuffer.GetSize() == reversedMessage.size());

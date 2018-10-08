@@ -66,9 +66,9 @@ namespace Beam::Queries {
         \param threadPool Used to perform asynchronous reads and writes.
       */
       SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
-        RefType<DatabaseConnectionPool<Connection>> readerPool,
-        RefType<DatabaseConnectionPool<Connection>> writerPool,
-        RefType<Threading::ThreadPool> threadPool);
+        Ref<DatabaseConnectionPool<Connection>> readerPool,
+        Ref<DatabaseConnectionPool<Connection>> writerPool,
+        Ref<Threading::ThreadPool> threadPool);
 
       ~SqlDataStore();
 
@@ -115,9 +115,9 @@ namespace Beam::Queries {
 
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
-      IndexRow indexRow, RefType<DatabaseConnectionPool<Connection>> readerPool,
-      RefType<DatabaseConnectionPool<Connection>> writerPool,
-      RefType<Threading::ThreadPool> threadPool)
+      IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
+      Ref<DatabaseConnectionPool<Connection>> writerPool,
+      Ref<Threading::ThreadPool> threadPool)
       : m_table(std::move(table)),
         m_valueRow(std::move(valueRow)),
         m_indexRow(std::move(indexRow)),

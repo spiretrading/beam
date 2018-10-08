@@ -12,13 +12,13 @@ using namespace boost;
 using namespace std;
 
 void PipedReaderWriterTester::TestWriteThenRead() {
-  PipedReader<SharedBuffer> reader;
-  PipedWriter<SharedBuffer> writer(Ref(reader));
-  RoutineHandler task = Spawn(
+  auto reader = PipedReader<SharedBuffer>();
+  auto writer = PipedWriter<SharedBuffer>(Ref(reader));
+  auto task = RoutineHandler(Spawn(
     [&] {
       writer.Write(BufferFromString<SharedBuffer>("hello world"));
-    });
-  SharedBuffer buffer;
+    }));
+  auto buffer = SharedBuffer();
   reader.Read(Store(buffer));
   task.Wait();
 }

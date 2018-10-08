@@ -36,8 +36,8 @@ namespace {
     MessageProtocol<TcpSocketChannel, BinarySender<SharedBuffer>,
     SizeDeclarativeEncoder<ZLibEncoder>>, LiveTimer>;
 
-  std::vector<IpAddress> ParseAddress(const YAML::Node& config) {
-    std::vector<IpAddress> addresses;
+  auto ParseAddress(const YAML::Node& config) {
+    auto addresses = std::vector<IpAddress>();
     auto address = Extract<IpAddress>(config, "address");
     addresses.push_back(address);
     return addresses;
@@ -73,26 +73,26 @@ namespace Beam {
 }
 
 int main(int argc, const char** argv) {
-  std::string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd{"", ' ', "1.0-r" CLIENT_TEMPLATE_VERSION
-      "\nCopyright (C) 2009 Eidolon Systems Ltd."};
-    ValueArg<std::string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto cmd = CmdLine("", ' ', "1.0-r" CLIENT_TEMPLATE_VERSION
+      "\nCopyright (C) 2009 Eidolon Systems Ltd.");
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
-  } catch(ArgException& e) {
+  } catch(const ArgException& e) {
     std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
       std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  std::string message;
-  boost::optional<ApplicationClient> client;
-  int rate;
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto message = std::string();
+  auto client = boost::optional<ApplicationClient>();
+  auto rate = 0;
   try {
     auto addresses = ParseAddress(config);
     message = Extract<std::string>(config, "message");
@@ -108,7 +108,7 @@ int main(int argc, const char** argv) {
   client->Open();
   auto result = client->SendRequest<EchoService>(message, rate);
   std::cout << result << std::endl;
-  int counter = 0;
+  auto counter = 0;
   while(!ReceivedKillEvent()) {
     try {
       auto message = std::dynamic_pointer_cast<

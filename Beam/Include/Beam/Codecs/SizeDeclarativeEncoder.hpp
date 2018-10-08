@@ -1,5 +1,5 @@
-#ifndef BEAM_SIZEDECLARATIVEENCODER_HPP
-#define BEAM_SIZEDECLARATIVEENCODER_HPP
+#ifndef BEAM_SIZE_DECLARATIVE_ENCODER_HPP
+#define BEAM_SIZE_DECLARATIVE_ENCODER_HPP
 #include <cstdint>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Encoder.hpp"
@@ -11,9 +11,7 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class SizeDeclarativeEncoder
-      \brief Encodes a message whose size is stored as a prefix.
-   */
+  /** Encodes a message whose size is stored as a prefix. */
   template<typename EncoderType>
   class SizeDeclarativeEncoder {
     public:
@@ -88,7 +86,7 @@ namespace Codecs {
   std::size_t SizeDeclarativeEncoder<EncoderType>::Encode(const void* source,
       std::size_t sourceSize, Out<Buffer> destination) {
     destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
-    IO::BufferView<Buffer> destinationView(Ref(*destination),
+    auto destinationView = IO::BufferView<Buffer>(Ref(*destination),
       sizeof(std::uint32_t));
     auto size = m_encoder.Encode(source, sourceSize, Store(destinationView)) +
       sizeof(std::uint32_t);

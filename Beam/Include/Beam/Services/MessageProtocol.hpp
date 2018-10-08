@@ -1,5 +1,5 @@
-#ifndef BEAM_MESSAGEPROTOCOL_HPP
-#define BEAM_MESSAGEPROTOCOL_HPP
+#ifndef BEAM_MESSAGE_PROTOCOL_HPP
+#define BEAM_MESSAGE_PROTOCOL_HPP
 #include <utility>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
@@ -19,12 +19,10 @@
 #include "Beam/Services/Services.hpp"
 #include "Beam/Utilities/Endian.hpp"
 
-namespace Beam {
-namespace Services {
+namespace Beam::Services {
 
-  /*! \class MessageProtocol
-      \brief Implements a protocol used to send/receive discrete messages over
-             a Channel.
+  /** Implements a protocol used to send/receive discrete messages over a
+      Channel.
       \tparam ChannelType The type of Channel to send messages to/from.
       \tparam SenderType The type of Sender used for serialization.
       \tparam EncoderType The type of Encoder used.
@@ -150,7 +148,7 @@ namespace Services {
   template<typename T>
   std::unique_ptr<T> MessageProtocol<ChannelType, SenderType, EncoderType>::
       Clone(const T& value) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     return Serialization::ShuttleClone(value, *m_sender, *m_receiver);
   }
 
@@ -159,13 +157,13 @@ namespace Services {
   void MessageProtocol<ChannelType, SenderType, EncoderType>::Encode(
       const Message& message, Out<Buffer> buffer) {
     buffer->Append(std::uint32_t{0});
-    Buffer serializationBuffer;
+    auto serializationBuffer = Buffer();
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       m_sender->SetSink(Ref(serializationBuffer));
       m_sender->Send(message);
     }
-    IO::BufferView<typename Channel::Writer::Buffer> encoderViewBuffer(
+    auto encoderViewBuffer = IO::BufferView<typename Channel::Writer::Buffer>(
       Ref(*buffer), sizeof(std::uint32_t));
     auto size = m_encoder->Encode(serializationBuffer,
       Store(encoderViewBuffer));
@@ -177,26 +175,26 @@ namespace Services {
   typename std::enable_if<!ImplementsConcept<
       Message, IO::Buffer>::value>::type MessageProtocol<ChannelType,
       SenderType, EncoderType>::Send(const Message& message) {
-    typename Channel::Writer::Buffer senderBuffer;
-    typename Channel::Writer::Buffer encoderBuffer;
+    auto senderBuffer = typename Channel::Writer::Buffer();
+    auto encoderBuffer = typename Channel::Writer::Buffer();
     if(Codecs::InPlaceSupport<Encoder>::value) {
       senderBuffer.Append(std::uint32_t{0});
     } else {
       encoderBuffer.Append(std::uint32_t{0});
     }
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       m_sender->SetSink(Ref(senderBuffer));
       m_sender->Send(message);
     }
     if(Codecs::InPlaceSupport<Encoder>::value) {
-      IO::BufferView<typename Channel::Writer::Buffer> senderViewBuffer(
+      auto senderViewBuffer = IO::BufferView<typename Channel::Writer::Buffer>(
         Ref(senderBuffer), sizeof(std::uint32_t));
       auto size = m_encoder->Encode(senderViewBuffer, Store(senderViewBuffer));
       senderBuffer.Write(0, ToLittleEndian<std::uint32_t>(size));
       m_writer.Write(senderBuffer);
     } else {
-      IO::BufferView<typename Channel::Writer::Buffer> encoderViewBuffer(
+      auto encoderViewBuffer = IO::BufferView<typename Channel::Writer::Buffer>(
         Ref(encoderBuffer), sizeof(std::uint32_t));
       auto size = m_encoder->Encode(senderBuffer, Store(encoderViewBuffer));
       encoderBuffer.Write(0, ToLittleEndian<std::uint32_t>(size));
@@ -235,7 +233,7 @@ namespace Services {
         m_decoder->Decode(m_receiveBuffer, Store(m_decoderBuffer));
         m_receiver->SetSource(Ref(m_decoderBuffer));
       }
-      Message message;
+      auto message = Message();
       m_receiver->Shuttle(message);
       m_receiveBuffer.Reset();
       if(!Codecs::InPlaceSupport<Decoder>::value) {
@@ -248,7 +246,6 @@ namespace Services {
       BOOST_RETHROW;
     }
   }
-}
 }
 
 #endif

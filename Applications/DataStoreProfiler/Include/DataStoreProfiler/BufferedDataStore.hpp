@@ -1,7 +1,8 @@
-#ifndef BEAM_DATASTOREPROFILER_BUFFEREDDATASTORE_HPP
-#define BEAM_DATASTOREPROFILER_BUFFEREDDATASTORE_HPP
+#ifndef BEAM_DATA_STORE_PROFILER_BUFFEREDDATASTORE_HPP
+#define BEAM_DATA_STORE_PROFILER_BUFFEREDDATASTORE_HPP
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/Pointers/Dereference.hpp>
+#include <Beam/Pointers/Ref.hpp>
 #include <Beam/Queries/BufferedDataStore.hpp>
 #include <Beam/Queries/EvaluatorTranslator.hpp>
 #include <boost/noncopyable.hpp>
@@ -10,8 +11,7 @@
 
 namespace Beam {
 
-  /*! \class BufferedDataStore
-      \brief Buffers writes to an underlying data store.
+  /** Buffers writes to an underlying data store.
       \tparam BaseDataStoreType The underlying data store to commit the data to.
    */
   template<typename BaseDataStoreType>
@@ -30,7 +30,7 @@ namespace Beam {
       */
       template<typename BaseDataStoreForward>
       BufferedDataStore(BaseDataStoreForward&& dataStore,
-        std::size_t bufferSize, RefType<Threading::ThreadPool> threadPool);
+        std::size_t bufferSize, Ref<Threading::ThreadPool> threadPool);
 
       ~BufferedDataStore();
 
@@ -59,9 +59,9 @@ namespace Beam {
   template<typename BaseDataStoreForward>
   BufferedDataStore<BaseDataStoreType>::BufferedDataStore(
       BaseDataStoreForward&& dataStore, std::size_t bufferSize,
-      RefType<Threading::ThreadPool> threadPool)
-      : m_dataStore{std::forward<BaseDataStoreForward>(dataStore)},
-        m_bufferedDataStore{&*m_dataStore, bufferSize, Ref(threadPool)} {}
+      Ref<Threading::ThreadPool> threadPool)
+      : m_dataStore(std::forward<BaseDataStoreForward>(dataStore)),
+        m_bufferedDataStore(&*m_dataStore, bufferSize, Ref(threadPool)) {}
 
   template<typename BaseDataStoreType>
   BufferedDataStore<BaseDataStoreType>::~BufferedDataStore() {

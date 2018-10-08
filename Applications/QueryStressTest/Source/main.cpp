@@ -125,7 +125,7 @@ namespace {
     using Session = NullType;
     template<typename ContainerType>
     struct apply {
-      typedef DataServlet<ContainerType> type;
+      using type = DataServlet<ContainerType>;
     };
   };
 
@@ -158,9 +158,9 @@ namespace {
     if(m_openState.SetOpening()) {
       return;
     }
-    random_device rd;
-    default_random_engine randomizer{rd()};
-    std::uniform_int_distribution<std::uint64_t> distribution;
+    auto rd = random_device();
+    auto randomizer = default_random_engine(rd());
+    auto distribution = std::uniform_int_distribution<std::uint64_t>();
     for(auto i = 0; i < 200; ++i) {
       auto interval = milliseconds(10 * (rand() % 100));
       auto entry = make_unique<DataEntry>(
@@ -198,12 +198,12 @@ namespace {
       RequestToken<ServiceProtocolClient, QueryDataService>& request,
       const DataQuery& query) {
     auto filter = Translate<EvaluatorTranslator<QueryTypes>>(query.GetFilter());
-    DataQueryResult result;
+    auto result = DataQueryResult();
     result.m_queryId = m_dataSubscriptions.Initialize(query.GetIndex(),
       request.GetClient(), query.GetRange(), std::move(filter));
     result.m_snapshot = m_dataStore.Load(query);
     m_dataSubscriptions.Commit(query.GetIndex(), std::move(result),
-      [&] (const DataQueryResult& result) {
+      [&] (const auto& result) {
         request.SetResult(result);
       });
   }
@@ -217,7 +217,7 @@ namespace {
   template<typename ContainerType>
   void DataServlet<ContainerType>::OnExpiry(Timer::Result result,
       DataEntry& entry) {
-    Data data;
+    auto data = Data();
     data.m_value = entry.m_index;
     data.m_timestamp = microsec_clock::universal_time();
     entry.m_sequence = Increment(entry.m_sequence);
@@ -225,7 +225,7 @@ namespace {
       entry.m_sequence);
     m_dataStore.Store(value);
     m_dataSubscriptions.Publish(value,
-      [&] (const vector<ServiceProtocolClient*>& clients) {
+      [&] (const auto& clients) {
         Beam::Services::BroadcastRecordMessage<DataQueryMessage>(
           clients, value);
       });
@@ -240,25 +240,25 @@ namespace {
 }
 
 int main() {
-  LocalServerConnection<SharedBuffer> server;
-  DataServletContainer servlet(Initialize(), &server,
+  auto server = LocalServerConnection<SharedBuffer>();
+  auto servlet = DataServletContainer(Initialize(), &server,
     [] {
       return make_unique<TriggerTimer>();
     });
-  RoutineHandlerGroup routines;
-  TimerThreadPool timerThreadPool;
-  boost::atomic_int count{0};
+  auto routines = RoutineHandlerGroup();
+  auto timerThreadPool = TimerThreadPool();
+  auto count = boost::atomic_int(0);
   routines.Spawn(
     [&] {
       while(!ReceivedKillEvent()) {
-        LiveTimer timer(seconds(10), Ref(timerThreadPool));
+        auto timer = LiveTimer(seconds(10), Ref(timerThreadPool));
         auto clients = rand() % 200;
         for(auto i = 0; i < clients; ++i) {
           routines.Spawn(
             [&] {
               ++count;
               cout << "Start: " << count << endl;
-              ApplicationClientHandler clientHandler{
+              auto clientHandler = ApplicationClientHandler(
                 Initialize(
                 [&] {
                   return make_unique<LocalClientChannel<SharedBuffer>>(
@@ -266,21 +266,20 @@ int main() {
                 },
                 [] {
                   return make_unique<TriggerTimer>();
-                })};
+                }));
               RegisterQueryTypes(Store(clientHandler.GetSlots().GetRegistry()));
               RegisterQueryServices(Store(clientHandler.GetSlots()));
               RegisterQueryMessages(Store(clientHandler.GetSlots()));
-              QueryClientPublisher<Data, DataQuery,
+              auto publisher = QueryClientPublisher<Data, DataQuery,
                 EvaluatorTranslator<QueryTypes>,
                 ServiceProtocolClientHandler<ApplicationClientBuilder>,
-                QueryDataService, EndDataQueryMessage> publisher(
-                Ref(clientHandler));
+                QueryDataService, EndDataQueryMessage>(Ref(clientHandler));
               publisher.AddMessageHandler<DataQueryMessage>();
               clientHandler.Open();
-              LiveTimer timer(milliseconds(100), Ref(timerThreadPool));
+              auto timer = LiveTimer(milliseconds(100), Ref(timerThreadPool));
               auto duration = 10 * (rand() % 20);
               for(auto i = 0; i < duration; ++i) {
-                DataQuery query;
+                auto query = DataQuery();
                 query.SetIndex(rand() % 200);
                 query.SetRange(Range::Total());
                 query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1000);

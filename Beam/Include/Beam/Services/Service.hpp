@@ -24,8 +24,7 @@
     BEAM_DEFINE_RECORD(Name##Parameters, __VA_ARGS__)                          \
   }                                                                            \
                                                                                \
-  typedef ::Beam::Services::Service<ReturnType, Details::Name##Parameters>     \
-    Name;
+  using Name = ::Beam::Services::Service<ReturnType, Details::Name##Parameters>;
 
 #define BEAM_APPLY_SERVICE(z, n, q) BEAM_DEFINE_SERVICE q
 #define BEAM_GET_SERVICE_NAME(Name, ...) Name
@@ -82,17 +81,17 @@ namespace Details {
     BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
   struct GetSlotType<RequestTokenType,                                         \
       boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    typedef std::function<void (RequestTokenType& BOOST_PP_COMMA_IF(n)         \
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))> type;               \
+    using type = std::function<void (RequestTokenType& BOOST_PP_COMMA_IF(n)    \
+      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
   };                                                                           \
                                                                                \
   template<typename RequestTokenType BOOST_PP_COMMA_IF(n)                      \
     BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
   struct GetSlotWrapperType<RequestTokenType,                                  \
       boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    typedef std::function<typename RequestTokenType::Service::Return (         \
+    using type = std::function<typename RequestTokenType::Service::Return (    \
       typename RequestTokenType::ServiceProtocolClient& BOOST_PP_COMMA_IF(n)   \
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))> type;               \
+      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
   };                                                                           \
                                                                                \
   template<typename RequestTokenType BOOST_PP_COMMA_IF(n)                      \
@@ -161,8 +160,8 @@ namespace Details {
   template<typename RequestType>
   class ServiceRequestSlot : public ServiceSlot<RequestType> {
     public:
-      typedef RequestType Request;
-      typedef typename ServiceSlot<RequestType>::PreHook PreHook;
+      using Request = RequestType;
+      using PreHook = typename ServiceSlot<RequestType>::PreHook;
 
       virtual void Invoke(int requestId,
         Ref<typename Request::ServiceProtocolClient> protocol,
@@ -173,16 +172,16 @@ namespace Details {
   class ServiceRequestSlotImplementation : public ServiceRequestSlot<
       typename ServiceType::template Request<ServiceProtocolClientType> > {
     public:
-      typedef ServiceType Service;
-      typedef ServiceProtocolClientType ServiceProtocolClient;
-      typedef typename Service::template Request<ServiceProtocolClient> Request;
-      typedef typename Service::template Response<ServiceProtocolClient>
-        Response;
-      typedef typename GetSlotType<RequestToken<ServiceProtocolClientType,
-        Service>>::type Slot;
-      typedef typename ServiceRequestSlot<
+      using Service = ServiceType;
+      using ServiceProtocolClient = ServiceProtocolClientType;
+      using Request = typename Service::template Request<ServiceProtocolClient>;
+      using Response =
+        typename Service::template Response<ServiceProtocolClient>;
+      using Slot = typename GetSlotType<RequestToken<ServiceProtocolClientType,
+        Service>>::type;
+      using PreHook = typename ServiceRequestSlot<
         typename ServiceType::template Request<
-        ServiceProtocolClientType> >::PreHook PreHook;
+        ServiceProtocolClientType>>::PreHook;
 
       template<typename SlotForward>
       ServiceRequestSlotImplementation(SlotForward&& slot);
@@ -209,7 +208,7 @@ namespace Details {
       Ref<ServiceProtocolClient> protocol,
       const typename Request::Parameters& parameters) const {
     try {
-      for(const PreHook& preHook : m_preHooks) {
+      for(auto& preHook : m_preHooks) {
         preHook(*protocol.Get());
       }
     } catch(const ServiceRequestException& e) {
@@ -220,7 +219,7 @@ namespace Details {
         ServiceRequestException(e.what()))));
       return;
     }
-    RequestToken<ServiceProtocolClientType, Service> token(Ref(protocol),
+    auto token = RequestToken<ServiceProtocolClientType, Service>(Ref(protocol),
       requestId);
     InvokeSlot<RequestToken<ServiceProtocolClientType, Service>>()(m_slot,
       token, parameters);
@@ -263,10 +262,10 @@ namespace Details {
     public:
 
       //! The type returned by the Response.
-      typedef ReturnType Return;
+      using Return = ReturnType;
 
       //! The Record representing the request's parameters.
-      typedef ParametersType Parameters;
+      using Parameters = ParametersType;
 
       //! Adds a slot to be associated with a Service Request.
       /*!
@@ -300,16 +299,16 @@ namespace Details {
         public:
 
           //! The type of ServiceProtocolClient this Request is used with.
-          typedef ServiceProtocolClientType ServiceProtocolClient;
+          using ServiceProtocolClient = ServiceProtocolClientType;
 
           //! The type of slot called when a request is received.
-          typedef Details::ServiceRequestSlot<Request> Slot;
+          using Slot = Details::ServiceRequestSlot<Request>;
 
           //! The type returned by the Response.
-          typedef ReturnType Return;
+          using Return = ReturnType;
 
           //! The Record representing the request's parameters.
-          typedef ParametersType Parameters;
+          using Parameters = ParametersType;
 
           //! Constructs a Request.
           /*!
@@ -345,7 +344,7 @@ namespace Details {
         public:
 
           //! The type of ServiceProtocolClient this Request is used with.
-          typedef ServiceProtocolClientType ServiceProtocolClient;
+          using ServiceProtocolClient = ServiceProtocolClientType;
 
           //! Constructs a Response.
           /*!
@@ -404,10 +403,10 @@ namespace Details {
       Out<ServiceSlots<ServiceProtocolClientType>> serviceSlots,
       const typename Details::GetSlotType<
       RequestToken<ServiceProtocolClientType, Service>>::type& slot) {
-    std::unique_ptr<ServiceSlot<Request<ServiceProtocolClientType>>>
-      serviceSlot = std::make_unique<
+    auto serviceSlot = std::unique_ptr<
+      ServiceSlot<Request<ServiceProtocolClientType>>>(std::make_unique<
       Details::ServiceRequestSlotImplementation<Service,
-      ServiceProtocolClientType>>(slot);
+      ServiceProtocolClientType>>(slot));
     serviceSlots->Add(std::move(serviceSlot));
   }
 
@@ -417,14 +416,14 @@ namespace Details {
       Out<ServiceSlots<ServiceProtocolClientType>> serviceSlots,
       const typename Details::GetSlotWrapperType<
       RequestToken<ServiceProtocolClientType, Service>>::type& slot) {
-    Details::SlotWrapper<RequestToken<ServiceProtocolClientType, Service>,
+    auto slotWrapper = Details::SlotWrapper<
+      RequestToken<ServiceProtocolClientType, Service>,
       typename Details::GetSlotWrapperType<
-      RequestToken<ServiceProtocolClientType, Service>>::type> slotWrapper(
-      slot);
-    std::unique_ptr<ServiceSlot<Request<ServiceProtocolClientType>>>
-      serviceSlot = std::make_unique<
+      RequestToken<ServiceProtocolClientType, Service>>::type>(slot);
+    auto serviceSlot = std::unique_ptr<
+      ServiceSlot<Request<ServiceProtocolClientType>>>(std::make_unique<
       Details::ServiceRequestSlotImplementation<Service,
-      ServiceProtocolClientType>>(std::move(slotWrapper));
+      ServiceProtocolClientType>>(std::move(slotWrapper)));
     serviceSlots->Add(std::move(serviceSlot));
   }
 
@@ -547,7 +546,7 @@ namespace Details {
       ServiceProtocolClientType>::Send(Shuttler& shuttle,
       unsigned int version) const {
     shuttle.Shuttle("request_id", m_requestId);
-    bool isException = (m_exception != nullptr);
+    auto isException = (m_exception != nullptr);
     shuttle.Shuttle("is_exception", isException);
     if(isException) {
       shuttle.Shuttle("result", m_exception);
@@ -563,7 +562,7 @@ namespace Details {
       ServiceProtocolClientType>::Receive(Shuttler& shuttle,
       unsigned int version) {
     shuttle.Shuttle("request_id", m_requestId);
-    bool isException;
+    auto isException = bool();
     shuttle.Shuttle("is_exception", isException);
     if(isException) {
       shuttle.Shuttle("result", m_exception);

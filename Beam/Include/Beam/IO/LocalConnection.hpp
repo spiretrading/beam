@@ -10,7 +10,7 @@
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
 
-namespace Beam
+namespace Beam {
 namespace IO {
 
   /** Implements a local Connection.

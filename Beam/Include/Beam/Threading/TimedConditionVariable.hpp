@@ -1,5 +1,5 @@
-#ifndef BEAM_TIMEDCONDITIONVARIABLE_HPP
-#define BEAM_TIMEDCONDITIONVARIABLE_HPP
+#ifndef BEAM_TIMED_CONDITION_VARIABLE_HPP
+#define BEAM_TIMED_CONDITION_VARIABLE_HPP
 #include <atomic>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
@@ -8,12 +8,9 @@
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class TimedConditionVariable
-      \brief Implements a condition variable that can wait for a specified
-             time period.
+  /** Implements a condition variable that can wait for a specified time period.
    */
   class TimedConditionVariable : private boost::noncopyable {
     public:
@@ -83,9 +80,9 @@ namespace Threading {
 
   template<typename... Lock>
   void TimedConditionVariable::wait(Lock&... lock) {
-    WaitEntry waitEntry(Ref(*m_timerThreadPool));
+    auto waitEntry = WaitEntry(Ref(*m_timerThreadPool));
     m_waitEntries.With(
-      [&] (std::deque<WaitEntry*>& waitEntries) {
+      [&] (auto& waitEntries) {
         waitEntries.push_back(&waitEntry);
       });
     waitEntry.m_condition.wait(lock...);
@@ -93,9 +90,9 @@ namespace Threading {
   template<typename... Lock>
   void TimedConditionVariable::timed_wait(
       const boost::posix_time::time_duration& duration, Lock&... lock) {
-    WaitEntry waitEntry(duration, Ref(*m_timerThreadPool));
+    auto waitEntry = WaitEntry(duration, Ref(*m_timerThreadPool));
     m_waitEntries.With(
-      [&] (std::deque<WaitEntry*>& waitEntries) {
+      [&] (auto& waitEntries) {
         waitEntries.push_back(&waitEntry);
       });
     auto waitRoutine = Routines::Spawn(
@@ -110,7 +107,7 @@ namespace Threading {
         auto isWaiting = waitEntry.m_isWaiting.exchange(false);
         if(isWaiting) {
           m_waitEntries.With(
-            [&] (std::deque<WaitEntry*>& waitEntries) {
+            [&] (auto& waitEntries) {
               auto entryIterator = std::find(waitEntries.begin(),
                 waitEntries.end(), &waitEntry);
               if(entryIterator != waitEntries.end()) {
@@ -127,9 +124,9 @@ namespace Threading {
   }
 
   inline void TimedConditionVariable::notify_one() {
-    WaitEntry* waitEntry;
+    auto waitEntry = static_cast<WaitEntry*>(nullptr);
     m_waitEntries.With(
-      [&] (std::deque<WaitEntry*>& waitEntries) {
+      [&] (auto& waitEntries) {
         if(waitEntries.empty()) {
           waitEntry = nullptr;
         } else {
@@ -143,9 +140,9 @@ namespace Threading {
   }
 
   inline void TimedConditionVariable::notify_all() {
-    std::deque<WaitEntry*> pendingWaitEntries;
+    auto pendingWaitEntries = std::deque<WaitEntry*>();
     m_waitEntries.With(
-      [&] (std::deque<WaitEntry*>& waitEntries) {
+      [&] (auto& waitEntries) {
         waitEntries.swap(pendingWaitEntries);
       });
     for(auto waitEntry : pendingWaitEntries) {
@@ -164,7 +161,6 @@ namespace Threading {
       waitEntry.m_condition.notify_one();
     }
   }
-}
 }
 
 #endif

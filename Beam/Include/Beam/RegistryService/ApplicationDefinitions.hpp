@@ -1,5 +1,5 @@
-#ifndef BEAM_REGISTRYAPPLICATIONDEFINITIONS_HPP
-#define BEAM_REGISTRYAPPLICATIONDEFINITIONS_HPP
+#ifndef BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
+#define BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
 #include <string>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
@@ -90,11 +90,11 @@ namespace Details {
     auto addresses = ServiceLocator::LocateServiceAddresses(
       *serviceLocatorClientHandle, SERVICE_NAME);
     auto delay = false;
-    Details::RegistryClientSessionBuilder sessionBuilder(
+    auto sessionBuilder = Details::RegistryClientSessionBuilder(
       Ref(serviceLocatorClient),
       [=] () mutable {
         if(delay) {
-          Threading::LiveTimer delayTimer(boost::posix_time::seconds(3),
+          auto delayTimer = Threading::LiveTimer(boost::posix_time::seconds(3),
             Ref(*timerThreadPoolHandle));
           delayTimer.Start();
           delayTimer.Wait();

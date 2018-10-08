@@ -1,5 +1,5 @@
-#ifndef BEAM_UIDAPPLICATIONDEFINITIONS_HPP
-#define BEAM_UIDAPPLICATIONDEFINITIONS_HPP
+#ifndef BEAM_UID_APPLICATION_DEFINITIONS_HPP
+#define BEAM_UID_APPLICATION_DEFINITIONS_HPP
 #include <string>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/SizeDeclarativeReader.hpp"
@@ -93,10 +93,11 @@ namespace Details {
     auto addresses = ServiceLocator::LocateServiceAddresses(
       *serviceLocatorClientHandle, SERVICE_NAME);
     auto delay = false;
-    Details::UidClientSessionBuilder sessionBuilder(Ref(serviceLocatorClient),
+    auto sessionBuilder = Details::UidClientSessionBuilder(
+      Ref(serviceLocatorClient),
       [=] () mutable {
         if(delay) {
-          Threading::LiveTimer delayTimer(boost::posix_time::seconds(3),
+          auto delayTimer = Threading::LiveTimer(boost::posix_time::seconds(3),
             Ref(*timerThreadPoolHandle));
           delayTimer.Start();
           delayTimer.Wait();

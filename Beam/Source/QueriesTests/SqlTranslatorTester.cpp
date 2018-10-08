@@ -14,6 +14,5 @@ void SqlTranslatorTester::TestOrExpression() {
   auto expression = MakeOrExpression(
     subExpressions.begin(), subExpressions.end());
   SqlTranslator translator{"test_table", expression};
-  auto query = translator.BuildQuery();
-  CPPUNIT_ASSERT(query == "(true OR (false OR true))");
+  auto query = translator.Build();
 }

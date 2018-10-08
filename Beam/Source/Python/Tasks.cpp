@@ -427,7 +427,7 @@ void Beam::Python::ExportTask() {
         return_value_policy<return_by_value>()))
       .def_readwrite("message", &Task::StateEntry::m_message);
   }
-  ExportPublisher<Task::StateEntry>("TaskStateEntryPublisher");
+  ExportQueueSuite<Task::StateEntry>("TaskStateEntry");
   register_ptr_to_python<std::shared_ptr<Task>>();
   implicitly_convertible<std::shared_ptr<FromPythonTask>,
     std::shared_ptr<Task>>();

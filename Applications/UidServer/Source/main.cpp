@@ -6,13 +6,13 @@
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/MySql/MySqlConfig.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
+#include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/UidService/MySqlUidDataStore.hpp"
 #include "Beam/UidService/UidServlet.hpp"
@@ -24,7 +24,6 @@
 using namespace Beam;
 using namespace Beam::Codecs;
 using namespace Beam::IO;
-using namespace Beam::MySql;
 using namespace Beam::Network;
 using namespace Beam::Serialization;
 using namespace Beam::ServiceLocator;

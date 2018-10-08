@@ -2,11 +2,11 @@
 #define BEAM_MYSQLSERVICELOCATORDATASTORE_HPP
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/MySql/PosixTimeToMySqlDateTime.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/ServiceLocator/MySqlServiceLocatorDataStoreDetails.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
+#include "Beam/Sql/Utilities.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
@@ -251,8 +251,8 @@ namespace ServiceLocator {
     DirectoryEntry newEntry{DirectoryEntry::Type::ACCOUNT, entryId, name};
     auto query = m_databaseConnection.query();
     Details::SqlInsert::accounts accountRow{newEntry.m_id, newEntry.m_name,
-      HashPassword(newEntry, password), MySql::ToDateTime(registrationTime),
-      MySql::ToDateTime(boost::posix_time::neg_infin)};
+      HashPassword(newEntry, password), ToDateTime(registrationTime),
+      ToDateTime(boost::posix_time::neg_infin)};
     query.insert(accountRow);
     if(!query.execute()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
@@ -478,7 +478,7 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
-    return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
+    return FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
   inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
@@ -494,7 +494,7 @@ namespace ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }
     assert(result.size() == 1);
-    return MySql::FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
+    return FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
   inline void MySqlServiceLocatorDataStore::StoreLastLoginTime(
@@ -506,7 +506,7 @@ namespace ServiceLocator {
     }
     auto query = m_databaseConnection.query();
     query << "UPDATE accounts SET last_login_time = " << mysqlpp::quote <<
-      MySql::ToDateTime(loginTime) << " WHERE id = " << account.m_id;
+      ToDateTime(loginTime) << " WHERE id = " << account.m_id;
     if(!query.execute()) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
     }

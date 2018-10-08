@@ -2,6 +2,7 @@
 #define BEAM_CACHEDSERVICELOCATORDATASTORE_HPP
 #include <unordered_set>
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"

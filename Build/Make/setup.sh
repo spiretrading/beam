@@ -89,6 +89,17 @@ if [ ! -d "yaml-cpp" ]; then
     popd
   fi
 fi
+if [ ! -d "sqlite" ]; then
+  sudo -u $username wget --no-check-certificate https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip
+  if [ -f sqlite-amalgamation-3230100.zip ]; then
+    sudo -u $username unzip sqlite-amalgamation-3230100.zip
+    sudo -u $username mv sqlite-amalgamation-3230100 sqlite
+    pushd sqlite
+    sudo -u $username gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
+    popd
+    rm sqlite-amalgamation-3230100.zip
+  fi
+fi
 if [ ! -d "tclap-1.2.1" ]; then
   sudo -u $username wget "https://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
   if [ -f tclap-1.2.1.tar.gz ]; then
@@ -148,17 +159,20 @@ if [ ! -d "lua-5.3.1" ]; then
     rm -f lua-5.3.1.tar.gz
   fi
 fi
-if [ ! -d "mysql-connector-python-2.1.5" ]; then
-  sudo -u $username wget https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip --no-check-certificate
-  sudo -u $username unzip mysql-connector-python-2.1.5.zip
-  pushd mysql-connector-python-2.1.5
-  sudo -u $username python3 setup.py build
-  python3 setup.py install
+if [ ! -d "viper" ]; then
+  sudo -u $username git clone https://www.github.com/eidolonsystems/viper
+fi
+if [ -d "viper" ]; then
+  viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
+  pushd viper
+  commit="`git log -1 | head -1 | awk '{ print $2 }'`"
+  if [ "$commit" != "$viper_commit" ]; then
+    sudo -u $username git checkout master
+    sudo -u $username git pull
+    sudo -u $username git checkout "$viper_commit"
+  fi
+  sudo -E -u $username cmake -G "Unix Makefiles"
   popd
-  rm -f mysql-connector-python-2.1.5.zip
 fi
 
-sudo -u $username pip3 install Sphinx
-sudo -u $username pip3 install sphinx-jsondomain
-sudo -u $username pip3 install sphinx_rtd_theme
-sudo -u $username pip3 install sphinxcontrib-httpdomain
+sudo -u $username pip3 install Sphinx sphinx-jsondomain sphinx_rtd_theme sphinxcontrib-httpdomain

@@ -36,6 +36,7 @@ namespace Tests {
   class SessionCachedDataStoreTester;
   class SnapshotLimitTester;
   class SnapshotLimitedQueryTester;
+  class SqlDataStoreTester;
   class SqlTranslatorTester;
   class SubscriptionsTester;
 }

@@ -7,7 +7,6 @@
 #include "Beam/Python/Function.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
-#include "Beam/Python/MySql.hpp"
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/Queries.hpp"
@@ -18,6 +17,7 @@
 #include "Beam/Python/ServiceLocator.hpp"
 #include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
+#include "Beam/Python/Sql.hpp"
 #include "Beam/Python/Tasks.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"
@@ -59,7 +59,6 @@ BOOST_PYTHON_MODULE(beam) {
   ExportExpect<object>("Expect");
   ExportFunctions();
   ExportIO();
-  ExportMySql();
   ExportNetwork();
   ExportQueries();
   ExportQueues();
@@ -68,6 +67,7 @@ BOOST_PYTHON_MODULE(beam) {
   ExportServiceLocator();
   ExportSharedObject();
   ExportSignalsSlots();
+  ExportSql();
   ExportTasks();
   ExportThreading();
   ExportTimeService();

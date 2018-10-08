@@ -99,8 +99,8 @@ namespace Threading {
           boost::thread m_thread;
           boost::condition_variable m_taskAvailableCondition;
       };
-      static const int LOWER_BOUND_WAIT_TIME = 30;
-      static const int UPPER_BOUND_WAIT_TIME = 60;
+      static constexpr auto LOWER_BOUND_WAIT_TIME = 30;
+      static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
       boost::mutex m_mutex;
       std::size_t m_maxThreadCount;
       std::size_t m_isWaitingForCompletion;

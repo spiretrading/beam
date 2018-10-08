@@ -6,8 +6,8 @@ file(GLOB io_header_files ./../../../Include/Beam/IO/*.hpp)
 source_group("IO" FILES ${io_header_files})
 file(GLOB json_header_files ./../../../Include/Beam/Json/*.hpp)
 source_group("Json" FILES ${json_header_files})
-file(GLOB mysql_header_files ./../../../Include/Beam/MySql/*.hpp)
-source_group("MySql" FILES ${mysql_header_files})
+file(GLOB sql_header_files ./../../../Include/Beam/Sql/*.hpp)
+source_group("Sql" FILES ${sql_header_files})
 file(GLOB network_header_files ./../../../Include/Beam/Network/*.hpp)
 source_group("Network" FILES ${network_header_files})
 file(GLOB parsers_header_files ./../../../Include/Beam/Parsers/*.hpp)
@@ -52,7 +52,7 @@ file(GLOB web_services_header_files ./../../../Include/Beam/WebServices/*.hpp)
 source_group("WebServices" FILES ${web_services_header_files})
 
 file(GLOB header_files ${codecs_header_files} ${collections_header_files}
-  ${io_header_files} ${json_header_files} ${mysql_header_files}
+  ${io_header_files} ${json_header_files} ${sql_header_files}
   ${network_header_files} ${parsers_header_files} ${pointers_header_files}
   ${queries_header_files} ${queues_header_files} ${reactors_header_files}
   ${registry_service_header_files} ${routines_header_files}

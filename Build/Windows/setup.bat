@@ -1,6 +1,10 @@
 SETLOCAL
 SET LIBRARY_DIR=%cd%
 
+if exist Catch2 goto end_catch_setup
+  git clone --branch v2.2.1 https://github.com/catchorg/Catch2.git Catch2
+:end_catch_setup
+
 if exist cppunit-1.14.0 goto end_cppunit_setup
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   if not exist cppunit-1.14.0.tar.gz goto end_cppunit_setup
@@ -49,18 +53,35 @@ if exist zlib-1.2.11 goto end_zlib_setup
     popd
 :end_zlib_setup
 
-if exist mysql-connector-c-6.1.11-win32 goto end_mysqlconnector_setup
-  wget http://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-win32.zip --no-check-certificate
-  if not exist mysql-connector-c-6.1.11-win32.zip goto end_mysqlconnector_setup
-    unzip mysql-connector-c-6.1.11-win32.zip
-    rm mysql-connector-c-6.1.11-win32.zip
-:end_mysqlconnector_setup
+if exist mariadb-connector-c-3.0.6-src goto end_mariadbconnector_setup
+  wget --no-check-certificate https://downloads.mariadb.org/f/connector-c-3.0.6/mariadb-connector-c-3.0.6-src.zip -O mariadb-connector-c-3.0.6-src.zip
+  if not exist mariadb-connector-c-3.0.6-src.zip goto end_mariadbconnector_setup
+    unzip mariadb-connector-c-3.0.6-src.zip
+    pushd mariadb-connector-c-3.0.6-src
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
+    pushd libmariadb
+    cat mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
+    mv mariadbclient.vcxproj.new mariadbclient.vcxproj
+    popd
+    cmake --build . --target mariadbclient --config Debug
+    cmake --build . --target mariadbclient --config Release
+    pushd include
+    printf "#include ""mariadb_version.h""" > mysql_version.h
+    echo. >> mysql_version.h
+    printf "#include ""WinSock2.h""" >> mysql_version.h
+    echo. >> mysql_version.h
+    printf "#define CLIENT_LONG_PASSWORD 1" >> mysql_version.h
+    echo. >> mysql_version.h
+    popd
+    popd
+    rm -rf mariadb-connector-c-3.0.6-src.zip
+:end_mariadbconnector_setup
 
 if exist mysql++-3.2.3 goto end_mysqlpp_setup
   git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
   if not exist mysql++-3.2.3 goto end_mysqlpp_setup
     pushd mysql++-3.2.3\vc2005
-    SET CL=/I..\..\mysql-connector-c-6.1.11-win32\include
+    SET CL=/I..\..\mariadb-connector-c-3.0.6-src\include
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Debug
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Release
     SET CL=
@@ -132,14 +153,38 @@ if exist lua-5.3.1 goto end_lua_setup
     rm lua-5.3.1.tar.gz
 :end_lua_setup
 
-if exist mysql-connector-python-2.1.5 goto end_mysql_python
-  wget --no-check-certificate https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.5.zip
-  if not exist mysql-connector-python-2.1.5.zip goto end_mysql_python
-    unzip mysql-connector-python-2.1.5.zip
-    pushd mysql-connector-python-2.1.5
-    python setup.py install
+if exist sqlite goto end_sqlite_setup
+  wget --no-check-certificate https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip
+  if not exist sqlite-amalgamation-3230100.zip goto end_sqlite_setup
+    unzip sqlite-amalgamation-3230100
+    mv sqlite-amalgamation-3230100 sqlite
+    pushd sqlite
+    cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
+    lib sqlite3.obj
+    cp sqlite3.lib sqlite3d.lib
+    rm sqlite3.obj
+    cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
+    lib sqlite3.obj
     popd
-    rm -f mysql-connector-python-2.1.5.zip
-:end_mysql_python
+    rm sqlite-amalgamation-3230100.zip
+:end_sqlite_setup
+
+if exist viper goto end_viper_clone
+  git clone https://www.github.com/eidolonsystems/viper
+:end_viper_clone
+if not exist viper goto end_viper_pull
+  SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
+  pushd viper
+  for /f "usebackq tokens=*" %%a in (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) do SET commit=%%a
+  if not "%commit%" == %viper_commit% (
+    git checkout master
+    git pull
+    git checkout %viper_commit%
+  )
+  cmake -G "Visual Studio 15 2017" .
+  popd
+:end_beam_pull
+
+pip install Sphinx sphinx-jsondomain sphinx_rtd_theme sphinxcontrib-httpdomain --user
 
 ENDLOCAL

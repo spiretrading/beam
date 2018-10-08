@@ -3,7 +3,7 @@
 #include <iostream>
 #include <tclap/CmdLine.h>
 #include <boost/optional/optional.hpp>
-#include "Beam/MySql/MySqlConfig.hpp"
+#include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
@@ -14,7 +14,6 @@
 #include "DataStoreProfiler/Version.hpp"
 
 using namespace Beam;
-using namespace Beam::MySql;
 using namespace Beam::Queries;
 using namespace Beam::Threading;
 using namespace boost;

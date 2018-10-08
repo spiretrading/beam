@@ -1,16 +1,11 @@
-#ifndef BEAM_QUERYSQLUTILITIES_HPP
-#define BEAM_QUERYSQLUTILITIES_HPP
-#include <algorithm>
-#include <sstream>
+#ifndef BEAM_QUERIES_SQL_UTILITIES_HPP
+#define BEAM_QUERIES_SQL_UTILITIES_HPP
 #include <string>
 #include <utility>
 #include <vector>
-#include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/reversed.hpp>
-#include <mysql++/connection.h>
-#include <mysql++/query.h>
-#include "Beam/MySql/DatabaseConnectionPool.hpp"
-#include "Beam/MySql/Utilities.hpp"
+#include <Viper/Expressions/Expression.hpp>
+#include <Viper/Expressions/SqlFunctions.hpp>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
@@ -20,147 +15,93 @@
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  //! Escapes special/reserved characters in an SQL string.
-  /*!
-    \param source The string to escape.
-    \return A copy of <i>source</i> with special characters escaped.
-  */
-  inline std::string EscapeSql(const std::string& source) {
-    std::string result;
-    for(auto c : source) {
-      if(c == '\0') {
-        result += "\\0";
-      } else if(c == '\'') {
-        result += "\\'";
-      } else if(c == '\"') {
-        result += "\\\"";
-      } else if(c == '\x08') {
-        result += "\\b";
-      } else if(c == '\n') {
-        result += "\\n";
-      } else if(c == '\r') {
-        result += "\\r";
-      } else if(c == '\t') {
-        result += "\\t";
-      } else if(c == '\x1A') {
-        result += "\\n";
-      } else if(c == '\\') {
-        result += "\\\\";
-      } else {
-        result += c;
-      }
-    }
-    return result;
-  }
-
-  //! Builds an SQL query fragment over a Range.
+  //! Builds an SQL expression to test a Range.
   /*!
     \param range The Range to query.
-    \return The SQL query fragment to query over the specified <i>range</i>.
+    \return The SQL expression testing within the <i>range</i>.
   */
-  inline std::string BuildRangeSqlQueryFragment(const Range& range) {
-    auto startSequence = boost::lexical_cast<std::string>(
-      boost::get<Sequence>(range.GetStart()).GetOrdinal());
-    auto endSequence = boost::lexical_cast<std::string>(
-      boost::get<Sequence>(range.GetEnd()).GetOrdinal());
-    auto query = "(query_sequence >= " + startSequence +
-      " AND query_sequence <= " + endSequence + ")";
-    return query;
+  inline auto BuildRangeExpression(const Range& range) {
+    auto start = boost::get<Sequence>(range.GetStart()).GetOrdinal();
+    auto end = boost::get<Sequence>(range.GetEnd()).GetOrdinal();
+    return Viper::sym("query_sequence") >= start &&
+      Viper::sym("query_sequence") <= end;
   }
 
   //! Sanitizes a query for use with an SQL database.
   /*!
     \param query The query to sanitize.
     \param table The table to query.
-    \param indexQuery The SQL query fragment containing the index.
+    \param index The SQL expression identifying the query's index.
     \param connectionPool The SQL connection pool used to query.
     \return The sanitized <i>query</i>.
   */
-  template<typename Query>
-  Query SanitizeSqlQuery(const Query& query, const std::string& table,
-      const std::string& indexQuery,
-      MySql::DatabaseConnectionPool& connectionPool) {
-    Range::Point start;
-    if(auto queryStartPoint = boost::get<Sequence>(
-        &query.GetRange().GetStart())) {
-      start = *queryStartPoint;
-    } else {
-      auto connection = connectionPool.Acquire();
+  template<typename Query, typename ConnectionPool>
+  auto SanitizeSqlQuery(Query query, const std::string& table,
+      const Viper::Expression& index, ConnectionPool& connectionPool) {
+    auto start = [&] {
+      if(auto start = boost::get<Sequence>(&query.GetRange().GetStart())) {
+        return *start;
+      }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetStart());
-      auto sqlQuery = connection->query();
-      sqlQuery << "SELECT MIN(query_sequence) FROM " << table << " WHERE " <<
-        indexQuery << " AND timestamp >= " <<
-        MySql::ToMySqlTimestamp(timestamp);
-      auto result = sqlQuery.store();
-      if(!result || result.size() != 1 || result[0][0].is_null()) {
-        start = Sequence::Last();
-      } else {
-        start = Sequence(result[0][0].conv<std::uint64_t>(0));
-      }
-    }
-    Range::Point end;
-    if(auto queryEndPoint = boost::get<Sequence>(&query.GetRange().GetEnd())) {
-      end = *queryEndPoint;
-    } else {
+      auto sequence = std::optional<std::uint64_t>();
       auto connection = connectionPool.Acquire();
+      connection->execute(Viper::select(
+        Viper::min<std::uint64_t>("query_sequence"), table,
+        index && Viper::sym("timestamp") >= ToSqlTimestamp(timestamp),
+        &sequence));
+      if(sequence.has_value()) {
+        return Sequence(*sequence);
+      }
+      return Sequence::Last();
+    }();
+    auto end = [&] {
+      if(auto end = boost::get<Sequence>(&query.GetRange().GetEnd())) {
+        return *end;
+      }
       auto timestamp = boost::get<boost::posix_time::ptime>(
         query.GetRange().GetEnd());
-      auto sqlQuery = connection->query();
-      sqlQuery << "SELECT MAX(query_sequence) FROM " << table << " WHERE " <<
-        indexQuery << " AND timestamp <= " <<
-        MySql::ToMySqlTimestamp(timestamp);
-      auto result = sqlQuery.store();
-      if(!result || result.size() != 1 || result[0][0].is_null()) {
-        end = Sequence::First();
-      } else {
-        end = Sequence(result[0][0].conv<std::uint64_t>(0));
+      auto sequence = std::optional<std::uint64_t>();
+      auto connection = connectionPool.Acquire();
+      connection->execute(Viper::select(
+        Viper::max<std::uint64_t>("query_sequence"), table,
+        index && Viper::sym("timestamp") <= ToSqlTimestamp(timestamp),
+        &sequence));
+      if(sequence.has_value()) {
+        return Sequence(*sequence);
       }
-    }
-    Query sanitizedQuery = query;
+      return Sequence::First();
+    }();
+    auto sanitizedQuery = std::move(query);
     sanitizedQuery.SetRange(start, end);
     return sanitizedQuery;
   }
 
   //! Loads SequencedValue's from an SQL database.
   /*!
-    \param query The query to submit.
+    \param expression The SQL expression to query.
+    \param row The type of row's to select.
     \param table The SQL table to load the data from.
     \param threadPool The ThreadPool used to partition the reads.
     \param connectionPool Contains the pool of SQL connections to use.
-    \param rowToData Used to convert an SQL row to the SequencedValue.
-    \return The list of SequencedValue's satisfying the <i>query</i>.
+    \return The list of SequencedValue's satisfying the <i>expression</i>.
   */
-  template<typename T, typename Row, typename F>
-  std::vector<T> LoadSqlQuery(const std::string& query,
+  template<typename Row, typename ConnectionPool>
+  auto LoadSqlQuery(const Viper::Expression& expression, const Row& row,
       const std::string& table, Threading::ThreadPool& threadPool,
-      MySql::DatabaseConnectionPool& connectionPool, F rowToData) {
-    std::vector<T> records;
-    Routines::Async<std::vector<T>> result;
+      ConnectionPool& connectionPool) {
+    using Type = typename Row::Type;
+    auto result = Routines::Async<std::vector<Type>>();
     auto connection = connectionPool.Acquire();
     threadPool.Queue(
       [&] {
-        auto sqlQuery = connection->query();
-        if(query.empty()) {
-          sqlQuery << "SELECT * FROM " << table << " WHERE FALSE";
-        } else {
-          sqlQuery << "SELECT * FROM " << table << " WHERE " << query;
-        }
-        std::vector<Row> rows;
-        sqlQuery.storein(rows);
-        if(sqlQuery.errnum() != 0) {
-          std::stringstream ss;
-          ss << sqlQuery.error() << " : " << sqlQuery.str();
-          BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
-        }
-        sqlQuery.reset();
-        std::vector<T> transformedRows;
-        std::transform(rows.begin(), rows.end(),
-          std::back_inserter(transformedRows), rowToData);
-        return transformedRows;
+        auto rows = std::vector<Type>();
+        connection->execute(Viper::select(row, table, expression,
+          Viper::order_by("query_sequence", Viper::Order::ASC),
+          std::back_inserter(rows)));
+        return rows;
       }, result.GetEval());
     return result.Get();
   }
@@ -168,69 +109,55 @@ namespace Queries {
   //! Loads SequencedValue's from an SQL database.
   /*!
     \param query The query to submit.
-    \param table The SQL table to load the data from.
-    \param indexQuery The SQL query fragment containing the data's index.
+    \param row The type of row's to select.
+    \param table The name of the table to select from.
+    \param index The expression used to identify the index.
     \param threadPool The ThreadPool used to partition the reads.
     \param connectionPool Contains the pool of SQL connections to use.
-    \param rowToData Used to convert an SQL row to the SequencedValue.
     \return The list of SequencedValue's satisfying the <i>query</i>.
   */
-  template<typename T, typename Row, typename QueryTranslator, typename Query,
-    typename F>
-  std::vector<T> LoadSqlQuery(const Query& query, const std::string& table,
-      const std::string& indexQuery, Threading::ThreadPool& threadPool,
-      MySql::DatabaseConnectionPool& connectionPool, F rowToData) {
-    const int MAX_READS_PER_QUERY = 1000;
-    std::vector<T> records;
+  template<typename Translator, typename Query, typename Row,
+    typename ConnectionPool>
+  auto LoadSqlQuery(Query query, const Row& row, const std::string& table,
+      const Viper::Expression& index, Threading::ThreadPool& threadPool,
+      ConnectionPool& connectionPool) {
+    using Type = typename Row::Type;
+    constexpr auto MAX_READS_PER_QUERY = 1000;
+    auto records = std::vector<Type>();
     if(query.GetRange().GetStart() == Sequence::Present() ||
         query.GetRange().GetStart() == Sequence::Last()) {
       return records;
     }
-    auto sanitizedQuery = SanitizeSqlQuery(query, table, indexQuery,
+    auto sanitizedQuery = SanitizeSqlQuery(std::move(query), table, index,
       connectionPool);
     auto startPoint =
       boost::get<Sequence>(sanitizedQuery.GetRange().GetStart());
-    auto endPoint =
-      boost::get<Sequence>(sanitizedQuery.GetRange().GetEnd());
+    auto endPoint = boost::get<Sequence>(sanitizedQuery.GetRange().GetEnd());
     auto remainingLimit = sanitizedQuery.GetSnapshotLimit().GetSize();
     if(sanitizedQuery.GetSnapshotLimit().GetType() ==
         SnapshotLimit::Type::TAIL) {
-      std::vector<std::vector<T>> partitions;
+      auto partitions = std::vector<std::vector<Type>>();
       while(remainingLimit > 0 && endPoint >= startPoint) {
-        Routines::Async<std::vector<T>> result;
+        auto result = Routines::Async<std::vector<Type>>();
         auto subsetQuery = sanitizedQuery;
         subsetQuery.SetRange(startPoint, endPoint);
         subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
         auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
-            auto filterQuery = BuildSqlQuery<QueryTranslator>(
-              table, subsetQuery.GetFilter());
-            if(filterQuery.empty()) {
-              filterQuery = "1";
-            }
-            auto rangeQuery = BuildRangeSqlQueryFragment(
-              subsetQuery.GetRange());
+            auto filter = BuildSqlQuery<Translator>(table,
+              subsetQuery.GetFilter());
+            auto range = BuildRangeExpression(subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto sqlQuery = connection->query();
-            sqlQuery << "SELECT result.* FROM (SELECT * FROM " << table <<
-              " WHERE (" << indexQuery << ") AND (" << rangeQuery <<
-              ") AND (" << filterQuery <<
-              ") ORDER BY query_sequence DESC LIMIT " << limit <<
-              ") AS result ORDER BY query_sequence ASC";
-            std::vector<Row> rows;
-            sqlQuery.storein(rows);
-            if(sqlQuery.errnum() != 0) {
-              std::stringstream ss;
-              ss << sqlQuery.error() << " : " << sqlQuery.str();
-              BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
-            }
-            sqlQuery.reset();
-            std::vector<T> transformedRows;
-            std::transform(rows.begin(), rows.end(),
-              std::back_inserter(transformedRows), rowToData);
-            return transformedRows;
+            auto rows = std::vector<Type>();
+            connection->execute(Viper::select(row,
+              Viper::select({"*"}, table, index && range && filter,
+              Viper::order_by("query_sequence", Viper::Order::DESC),
+              Viper::limit(limit)),
+              Viper::order_by("query_sequence", Viper::Order::ASC),
+              std::back_inserter(rows)));
+            return rows;
           }, result.GetEval());
         partitions.push_back(std::move(result.Get()));
         remainingLimit -= partitions.back().size();
@@ -241,7 +168,7 @@ namespace Queries {
           endPoint = Decrement(partitions.back().front().GetSequence());
         }
       }
-      for(const auto& partition : boost::adaptors::reverse(partitions)) {
+      for(auto& partition : boost::adaptors::reverse(partitions)) {
         records.insert(records.end(), partition.begin(), partition.end());
       }
     } else {
@@ -252,35 +179,21 @@ namespace Queries {
           subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD,
             remainingLimit);
         }
-        Routines::Async<std::vector<T>> result;
+        auto result = Routines::Async<std::vector<Type>>();
         auto connection = connectionPool.Acquire();
         threadPool.Queue(
           [&] {
-            auto filterQuery = BuildSqlQuery<QueryTranslator>(
-              table, subsetQuery.GetFilter());
-            if(filterQuery.empty()) {
-              filterQuery = "1";
-            }
-            auto rangeQuery = BuildRangeSqlQueryFragment(
-              subsetQuery.GetRange());
+            auto filter = BuildSqlQuery<Translator>(table,
+              subsetQuery.GetFilter());
+            auto range = BuildRangeExpression(subsetQuery.GetRange());
             auto limit = std::min(MAX_READS_PER_QUERY,
               subsetQuery.GetSnapshotLimit().GetSize());
-            auto sqlQuery = connection->query();
-            sqlQuery << "SELECT * FROM " << table << " WHERE (" <<
-              indexQuery << ") AND (" << rangeQuery << ") AND (" <<
-              filterQuery << ") ORDER BY query_sequence ASC LIMIT " << limit;
-            std::vector<Row> rows;
-            sqlQuery.storein(rows);
-            if(sqlQuery.errnum() != 0) {
-              std::stringstream ss;
-              ss << sqlQuery.error() << " : " << sqlQuery.str();
-              BOOST_THROW_EXCEPTION(std::runtime_error(ss.str()));
-            }
-            sqlQuery.reset();
-            std::vector<T> transformedRows;
-            std::transform(rows.begin(), rows.end(),
-              std::back_inserter(transformedRows), rowToData);
-            return transformedRows;
+            auto rows = std::vector<Type>();
+            connection->execute(
+              Viper::select(row, table, index && range && filter,
+              Viper::order_by("query_sequence", Viper::Order::ASC),
+              Viper::limit(limit), std::back_inserter(rows)));
+            return rows;
           }, result.GetEval());
         auto partition = std::move(result.Get());
         if(sanitizedQuery.GetSnapshotLimit() != SnapshotLimit::Unlimited()) {
@@ -297,7 +210,6 @@ namespace Queries {
     }
     return records;
   }
-}
 }
 
 #endif

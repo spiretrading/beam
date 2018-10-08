@@ -33,22 +33,30 @@ namespace Python {
       boost::python::converter::rvalue_from_python_stage1_data* data);
   };
 
-  //! Exports a vector.
-  /*!
-    \param name The name of the class to export.
-  */
+  /** Converts an std::vector<T> into a Python list. */
   template<typename T>
-  void ExportVector(const char* name) {
-    boost::python::class_<T>(name)
-      .def(boost::python::vector_indexing_suite<T>());
-    boost::python::converter::registry::push_back(
-      &VectorFromPythonConverter<T>::convertible,
-      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
-  }
+  struct VectorToPythonListConverter {
+    static PyObject* convert(const T& v) {
+      auto result = boost::python::list();
+      for(auto& value : v) {
+        result.append(boost::python::object(value));
+      }
+      return boost::python::incref(result.ptr());
+    }
+  };
 
   template<typename T>
   void* VectorFromPythonConverter<T>::convertible(PyObject* object) {
-    if(PyList_Check(object)) {
+    if(!PyList_Check(object)) {
+      return nullptr;
+    }
+    auto source = boost::python::list(boost::python::handle<>(
+      boost::python::borrowed(object)));
+    if(boost::python::len(source) == 0) {
+      return object;
+    }
+    auto extractor = boost::python::extract<typename T::value_type>(source[0]);
+    if(extractor.check()) {
       return object;
     }
     return nullptr;
@@ -70,6 +78,28 @@ namespace Python {
       data)->storage.bytes;
     new(storage) Type(std::move(destination));
     data->convertible = storage;
+  }
+
+  //! Exports a vector.
+  /*!
+    \param name The name of the class to export.
+  */
+  template<typename T>
+  void ExportVector(const char* name) {
+    boost::python::class_<T>(name)
+      .def(boost::python::vector_indexing_suite<T>());
+    boost::python::converter::registry::push_back(
+      &VectorFromPythonConverter<T>::convertible,
+      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
+  }
+
+  //! Exports a vector by converting it to/from a Python list.
+  template<typename T>
+  void ExportVectorAsList() {
+    boost::python::to_python_converter<T, VectorToPythonListConverter<T>>();
+    boost::python::converter::registry::push_back(
+      &VectorFromPythonConverter<T>::convertible,
+      &VectorFromPythonConverter<T>::construct, boost::python::type_id<T>());
   }
 }
 }

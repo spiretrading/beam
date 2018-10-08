@@ -194,6 +194,8 @@ void Beam::Python::ExportQueries() {
     "TypeCompatibilityException")
     .def(init<>())
     .def(init<const string&>());
+  ExportSequencedValue<boost::python::object>();
+  ExportIndexedValue<boost::python::object, boost::python::object>();
   def("build_current_query", &BuildCurrentQuery<boost::python::object>);
   def("build_real_time_query", &BuildRealTimeQuery<boost::python::object>);
 }
@@ -248,6 +250,10 @@ void Beam::Python::ExportSnapshotLimit() {
       .add_static_property("UNLIMITED", &SnapshotLimit::Unlimited)
       .add_property("type", &SnapshotLimit::GetType)
       .add_property("size", &SnapshotLimit::GetSize)
+      .def("from_head", &SnapshotLimit::FromHead)
+      .staticmethod("from_head")
+      .def("from_tail", &SnapshotLimit::FromHead)
+      .staticmethod("from_tail")
       .def("__str__", &SnapshotLimitToString)
       .def(self == self)
       .def(self != self);

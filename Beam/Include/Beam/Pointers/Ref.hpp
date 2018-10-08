@@ -38,22 +38,13 @@ namespace Beam {
       Ref& operator =(Ref&& ref);
 
       //! Returns a reference to the result.
-      Type& operator *();
-
-      //! Returns a reference to the result.
-      const Type& operator *() const;
+      Type& operator *() const;
 
       //! Returns a pointer to the result.
-      Type* operator ->();
+      Type* operator ->() const;
 
       //! Returns a pointer to the result.
-      const Type* operator ->() const;
-
-      //! Returns a pointer to the result.
-      Type* Get();
-
-      //! Returns a pointer to the result.
-      const Type* Get() const;
+      Type* Get() const;
 
     private:
       Type* m_reference;
@@ -85,32 +76,17 @@ namespace Beam {
   }
 
   template<typename T>
-  T& Ref<T>::operator *() {
+  T& Ref<T>::operator *() const {
     return *m_reference;
   }
 
   template<typename T>
-  const T& Ref<T>::operator *() const {
-    return *m_reference;
-  }
-
-  template<typename T>
-  T* Ref<T>::operator ->() {
+  T* Ref<T>::operator ->() const {
     return m_reference;
   }
 
   template<typename T>
-  const T* Ref<T>::operator ->() const {
-    return m_reference;
-  }
-
-  template<typename T>
-  T* Ref<T>::Get() {
-    return m_reference;
-  }
-
-  template<typename T>
-  const T* Ref<T>::Get() const {
+  T* Ref<T>::Get() const {
     return m_reference;
   }
 }

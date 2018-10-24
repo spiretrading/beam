@@ -42,6 +42,6 @@ pushd $directory/../../Documents/sphinx
 make clean
 make html
 popd
-pushd $directory/../../web_api
+pushd $directory/../../WebApi
 ./build.sh
 popd

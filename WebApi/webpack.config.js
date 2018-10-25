@@ -6,22 +6,10 @@ const minifyOpts = {};
 const minigyPluginOpts = {
   test: /\.js($|\?)/i,
 };
-
 module.exports = {
   devtool: PROD ? 'none' : 'source-map',
   entry: './source/index.ts',
   mode: PROD ? 'production' : 'development',
-  output: {
-    filename: 'index.js',
-    library: 'Beam',
-    libraryTarget: 'umd',
-    path: path.resolve(__dirname, 'library/beam'),
-    umdNamedDefine: true
-  },
-  plugins: PROD ? [new MinifyPlugin(minifyOpts, minigyPluginOpts)] : [],
-  resolve: {
-    extensions: ['.ts', '.js']
-  },
   module: {
     rules: [
       {
@@ -34,5 +22,16 @@ module.exports = {
         loader: 'source-map-loader'
       }
     ]
+  },
+  output: {
+    filename: 'index.js',
+    library: 'Beam',
+    libraryTarget: 'umd',
+    path: path.resolve(__dirname, 'library/beam'),
+    umdNamedDefine: true
+  },
+  plugins: PROD ? [new MinifyPlugin(minifyOpts, minigyPluginOpts)] : [],
+  resolve: {
+    extensions: ['.ts', '.js']
   }
 };

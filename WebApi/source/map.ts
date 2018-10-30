@@ -1,14 +1,14 @@
 declare function require(name:string): any;
-const Collections = require('collections/map');
+const Collections = require('collections/fast-map');
+import { fromJson, toJson } from '.';
 
 function hash(value: any) {
-  return value.hash();
+  return value.hash().toString();
 }
 
 function equals(left: any, right: any) {
-  const f = left['equals'];
-  if(f) {
-    return f(right);
+  if(left.equals !== undefined) {
+    return left.equals(right);
   }
   return left === right;
 }
@@ -52,14 +52,14 @@ export class Map<Key, Value> {
     value = value as [];
     const result = new Map<Key, Value>();
     for(let entry of value) {
-      result.set(keyType.fromJson(value[0]), valueType.fromJson(value[1]));
+      result.set(fromJson(keyType, entry[0]), fromJson(valueType, entry[1]));
     }
     return result;
   }
 
   /** Constructs an empty map. */
   constructor() {
-    this._collection = new Collections.Map([], hash, equals);
+    this._collection = new Collections.FastMap([], equals, hash);
   }
 
   /** Returns the value associated with a key.
@@ -82,8 +82,12 @@ export class Map<Key, Value> {
   /** Converts this object to JSON. */
   public toJson(): any {
     const value = [];
-    for(let entry of this._collection.entries()) {
-      value.push([entry[0].toJson(), entry[1].toJson()]);
+    const entries = this._collection.entries() as Iterator<[Key, Value]>;
+    let i = entries.next();
+    while(!i.done) {
+      const entry = i.value;
+      value.push(toJson(entry));
+      i = entries.next();
     }
     return value;
   }

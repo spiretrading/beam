@@ -13,6 +13,31 @@ function equals(left: any, right: any) {
   return left === right;
 }
 
+/** Computes the hash of a string.
+ * @param value - The string to hash.
+ * @return The hash of the specified string.
+ */
+export function hashString(value: string): number {
+  if(value.length === 0) {
+    return 0;
+  }
+  let hash = 0;
+  for(let i = 0; i < value.length; ++i) {
+    hash = ((hash << 5) - hash) + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+/** Combines two hash values together.
+ * @param seed - The initial hash value.
+ * @param hash - The hash to combine with the seed.
+ * @return The combined hash value.
+ */
+export function hashCombine(seed: number, hash: number): number {
+  return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
+
 /** Represents a hash-based associative container.
  * @template Key The type used as a key, this type should define a hash method
  *           and equals method to work correctly.

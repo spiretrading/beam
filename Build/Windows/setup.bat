@@ -8,7 +8,7 @@ if exist Catch2 goto end_catch_setup
 if exist cppunit-1.14.0 goto end_cppunit_setup
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   if not exist cppunit-1.14.0.tar.gz goto end_cppunit_setup
-    gzip -d -c cppunit-1.14.0.tar.gz | tar -x
+    gzip -d -c cppunit-1.14.0.tar.gz | tar -xf -
     pushd cppunit-1.14.0\src\cppunit
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Release
@@ -105,14 +105,14 @@ if exist yaml-cpp goto end_yaml_setup
 if exist tclap-1.2.1 goto end_tclap_setup
   wget "http://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
   if not exist tclap-1.2.1.tar.gz goto end_tclap_setup
-    gzip -d -c tclap-1.2.1.tar.gz | tar -x
+    gzip -d -c tclap-1.2.1.tar.gz | tar -xf -
     rm tclap-1.2.1.tar.gz
 :end_tclap_setup
 
 if exist openssl-1.0.2g goto end_openssl_setup
   wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz
   if not exist openssl-1.0.2g.tar.gz goto end_openssl_setup
-    gzip -d -c openssl-1.0.2g.tar.gz | tar -x
+    gzip -d -c openssl-1.0.2g.tar.gz | tar -xf -
     pushd openssl-1.0.2g
     perl Configure VC-WIN32 no-asm --prefix=%~dp0../../../openssl-1.0.2g
     CALL ./ms/do_ms
@@ -143,7 +143,7 @@ if exist boost_1_67_0 goto end_boost_setup
 if exist lua-5.3.1 goto end_lua_setup
   wget --no-check-certificate http://www.lua.org/ftp/lua-5.3.1.tar.gz
   if not exist lua-5.3.1.tar.gz goto end_lua_setup
-    gzip -d -c lua-5.3.1.tar.gz | tar -x
+    gzip -d -c lua-5.3.1.tar.gz | tar -xf -
     pushd lua-5.3.1\src
     cp %~dp0/lua_cmakelists.txt CMakeLists.txt
     cmake -G "Visual Studio 15 2017" .

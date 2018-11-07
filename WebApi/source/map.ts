@@ -3,7 +3,11 @@ const Collections = require('collections/fast-map');
 import { fromJson, toJson } from '.';
 
 function hash(value: any) {
-  return value.hash().toString();
+  if(value.hash !== undefined) {
+    return value.hash().toString();
+  } else {
+    return value.toString();
+  }
 }
 
 function equals(left: any, right: any) {
@@ -90,6 +94,10 @@ export class Map<Key, Value> {
       i = entries.next();
     }
     return value;
+  }
+
+  [Symbol.iterator]() {
+    return this._collection.entries() as Iterator<[Key, Value]>;
   }
 
   private _collection: any;

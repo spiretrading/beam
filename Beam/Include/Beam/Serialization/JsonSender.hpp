@@ -2,7 +2,7 @@
 #define BEAM_JSONSENDER_HPP
 #include <cstring>
 #include <type_traits>
-#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Utilities/ToString.hpp"
@@ -95,6 +95,16 @@ namespace Details {
       Sink* m_sink;
       bool m_appendComma;
   };
+
+  /** Converts an object to its JSON representation. */
+  template<typename T>
+  std::string ToJson(const T& object) {
+    auto sender = JsonSender<IO::SharedBuffer>();
+    auto buffer = IO::SharedBuffer();
+    sender.SetSink(Ref(buffer));
+    sender.Send(object);
+    return std::string(buffer.GetData(), buffer.GetSize());
+  }
 
   template<typename SinkType>
   JsonSender<SinkType>::JsonSender()

@@ -35,7 +35,7 @@ export class Set<Key> {
    * @param value - The value to add.
    */
   public set(value: Key): void {
-    this._collection.set(value);
+    this._collection.add(value);
   }
 
   /** Converts this object to JSON. */

@@ -34,8 +34,15 @@ export class Set<Key> {
   /** Adds a value to this set.
    * @param value - The value to add.
    */
-  public set(value: Key): void {
+  public add(value: Key): void {
     this._collection.add(value);
+  }
+
+  /** Removes a value from this set.
+   * @param value - The value to remove.
+   */
+  public remove(value: Key): void {
+    this._collection.delete(value);
   }
 
   /** Converts this object to JSON. */

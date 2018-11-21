@@ -13,7 +13,7 @@ export class Set<Key> {
     keys = keys as [];
     const result = new Set<Key>();
     for(let key of keys) {
-      result.set(fromJson(keyType, key));
+      result.add(fromJson(keyType, key));
     }
     return result;
   }

@@ -102,7 +102,12 @@ namespace WebServices {
   }
 
   inline HttpResponse FileStore::Serve(const HttpRequest& request) {
-    return Serve(request.GetUri().GetPath());
+    if(!request.GetUri().GetPath().empty() &&
+        request.GetUri().GetPath()[0] == '/') {
+      return Serve(request.GetUri().GetPath().substr(1));
+    } else {
+      return Serve(request.GetUri().GetPath());
+    }
   }
 
   inline void FileStore::Serve(const std::filesystem::path& path,

@@ -45,6 +45,15 @@ export class Set<Key> {
     this._collection.delete(value);
   }
 
+  /** Returns a shallow copy of this set. */
+  public clone(): Set<Key> {
+    const clone = new Set<Key>();
+    for(const entry of this) {
+      clone.add(entry);
+    }
+    return clone;
+  }
+
   /** Converts this object to JSON. */
   public toJson(): any {
     const value = [];
@@ -55,7 +64,7 @@ export class Set<Key> {
   }
 
   [Symbol.iterator]() {
-    return this._collection.entries() as Iterator<[Key]>;
+    return this._collection.iterator() as Iterator<Key>;
   }
 
   private _collection: any;

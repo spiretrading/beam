@@ -18,21 +18,21 @@ export class EnumSet<T> {
    * @return Whether value belongs to this set.
    */
   public test(value: T): boolean {
-    return (this._value & (value as any)) != 0;
+    return (this._value & Math.pow(2, value as any)) != 0;
   }
 
   /** Adds a value to this set.
    * @param value - The value to add.
    */
   public set(value: T): void {
-    this._value |= (value as any);
+    this._value |= Math.pow(2, value as any);
   }
 
   /** Removes a value from this set.
    * @param value - The value to remove.
    */
   public unset(value: T): void {
-    this._value &= ~(value as any);
+    this._value &= ~Math.pow(2, value as any);
   }
 
   /** Convers this set to a JSON object. */

@@ -1,3 +1,5 @@
+import { ServiceError } from './service_error';
+
 /** Submits a POST request to a web service.
  * @param url - The URL to submit the request to.
  * @param parameters - The object to encode as a JSON parameter.
@@ -18,10 +20,7 @@ export async function post(url: string, parameters?: any): Promise<any> {
           resolve(JSON.parse(xhr.responseText));
         }
       } else {
-        reject({
-          status: this.status,
-          statusText: xhr.statusText
-        });
+        reject(new ServiceError(xhr.statusText, xhr.status));
       }
     };
     if(parameters !== undefined) {

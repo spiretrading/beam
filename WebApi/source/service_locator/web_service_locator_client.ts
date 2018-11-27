@@ -15,30 +15,22 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
-    try {
-      let response = await web_services.post(
-        '/api/service_locator/load_current_account', {});
-      this._account = DirectoryEntry.fromJson(response);
-      return this._account;
-    } catch(e) {
-      throw new ServiceError(e.statusText);
-    }
+    let response = await web_services.post(
+      '/api/service_locator/load_current_account', {});
+    this._account = DirectoryEntry.fromJson(response);
+    return this._account;
   }
 
   public async loadDirectoryEntryFromId(id: number): Promise<DirectoryEntry> {
     if(id === this._account.id) {
       return this._account;
     }
-    try {
-      let response = await web_services.post(
-        '/api/service_locator/load_directory_entry_from_id',
-        {
-          id: id
-        });
-      return DirectoryEntry.fromJson(response);
-    } catch(e) {
-      throw new ServiceError(e.statusText);
-    }
+    let response = await web_services.post(
+      '/api/service_locator/load_directory_entry_from_id',
+      {
+        id: id
+      });
+    return DirectoryEntry.fromJson(response);
   }
 
   public async login(username: string, password: string):
@@ -55,10 +47,10 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
       this._account = DirectoryEntry.fromJson(response);
       return this._account;
     } catch(e) {
-      if(e.status === 401) {
+      if(e.code === 401) {
         throw new ServiceError('Incorrect username or password.');
       }
-      throw new ServiceError(e.statusText);
+      throw e;
     }
   }
 
@@ -66,13 +58,8 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     if(this._account.equals(DirectoryEntry.INVALID)) {
       return;
     }
-    try {
-      let response = await web_services.post('/api/service_locator/logout', {});
-      this._account = DirectoryEntry.INVALID;
-      return;
-    } catch(e) {
-      throw new ServiceError(e.statusText);
-    }
+    await web_services.post('/api/service_locator/logout', {});
+    this._account = DirectoryEntry.INVALID;
   }
 
   private _account: DirectoryEntry;

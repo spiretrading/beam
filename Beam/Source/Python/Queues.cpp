@@ -24,6 +24,11 @@ namespace {
     } catch(const std::exception&) {}
   }
 
+  void RoutineTaskQueuePush(RoutineTaskQueue& queue,
+      const NoThrowFunction<void>& slot) {
+    queue.Push(slot);
+  }
+
   std::shared_ptr<QueueWriter<boost::python::object>> RoutineTaskQueueGetSlot(
       RoutineTaskQueue& queue,
       const NoThrowFunction<void, const boost::python::object&>& slot) {
@@ -111,6 +116,7 @@ void Beam::Python::ExportQueues() {
 void Beam::Python::ExportRoutineTaskQueue() {
   class_<RoutineTaskQueue, std::shared_ptr<RoutineTaskQueue>, noncopyable,
     bases<QueueWriter<std::function<void ()>>>>("RoutineTaskQueue", init<>())
+    .def("push", &RoutineTaskQueuePush)
     .def("get_slot", &RoutineTaskQueueGetSlot)
     .def("get_slot", &RoutineTaskQueueGetBreakSlot)
     .def("wait", BlockingFunction(&RoutineTaskQueue::Wait));

@@ -205,6 +205,7 @@ void Beam::Python::ExportRange() {
   class_<Range>("Range", init<>())
     .def(init<const Range::Point&, const Range::Point&>())
     .add_static_property("EMPTY", &Range::Empty)
+    .add_static_property("HISTORICAL", &Range::Historical)
     .add_static_property("TOTAL", &Range::Total)
     .add_static_property("REAL_TIME", &Range::RealTime)
     .add_property("start", make_function(&Range::GetStart,

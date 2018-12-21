@@ -27,6 +27,9 @@ namespace Queries {
       //! Returns an empty Range.
       static Range Empty();
 
+      //! Returns a Range representing all historical Sequences.
+      static Range Historical();
+
       //! Returns a Range representing the entire Sequence including real time
       //! data.
       static Range Total();
@@ -206,6 +209,10 @@ namespace Queries {
 
   inline Range Range::Empty() {
     return Range(Sequence::First(), Sequence::First());
+  }
+
+  inline Range Range::Historical() {
+    return Range(Sequence::First(), Sequence::Present());
   }
 
   inline Range Range::Total() {

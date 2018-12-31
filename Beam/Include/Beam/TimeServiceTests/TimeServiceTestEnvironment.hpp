@@ -82,12 +82,14 @@ namespace Tests {
       BOOST_THROW_EXCEPTION(
         TimeServiceTestEnvironmentException{"Invalid date/time."});
     }
+    Routines::FlushPendingRoutines();
     boost::unique_lock<Threading::Mutex> lock{m_mutex};
     LockedSetTime(time, lock);
   }
 
   inline void TimeServiceTestEnvironment::AdvanceTime(
       boost::posix_time::time_duration duration) {
+    Routines::FlushPendingRoutines();
     boost::unique_lock<Threading::Mutex> lock{m_mutex};
     if(m_currentTime == boost::posix_time::not_a_date_time) {
       m_currentTime = boost::posix_time::ptime{

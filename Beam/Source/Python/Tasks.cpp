@@ -154,10 +154,6 @@ namespace {
       BasicTask::SetTerminal(state);
     }
 
-    void SetTerminal(State state) {
-      BasicTask::SetTerminal(state);
-    }
-
     void SetTerminal(State state, const std::string& message) {
       BasicTask::SetTerminal(state, message);
     }
@@ -268,9 +264,6 @@ void Beam::Python::ExportBasicTask() {
       &FromPythonBasicTask::SetActive))
     .def("set_terminal", static_cast<
       void (FromPythonBasicTask::*)()>(&FromPythonBasicTask::SetTerminal))
-    .def("set_terminal", static_cast<
-      void (FromPythonBasicTask::*)(Task::State)>(
-      &FromPythonBasicTask::SetTerminal))
     .def("set_terminal", static_cast<
       void (FromPythonBasicTask::*)(Task::State, const string&)>(
       &FromPythonBasicTask::SetTerminal))
@@ -438,6 +431,8 @@ void Beam::Python::ExportTask() {
   register_ptr_to_python<std::shared_ptr<Task>>();
   implicitly_convertible<std::shared_ptr<FromPythonTask>,
     std::shared_ptr<Task>>();
+  implicitly_convertible<Task::State, Task::StateEntry>();
+  implicitly_convertible<Task::State::Type, Task::StateEntry>();
 }
 
 void Beam::Python::ExportTaskFactory() {

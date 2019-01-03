@@ -154,6 +154,10 @@ namespace {
       BasicTask::SetTerminal(state);
     }
 
+    void SetTerminal(State state) {
+      BasicTask::SetTerminal(state);
+    }
+
     void SetTerminal(State state, const std::string& message) {
       BasicTask::SetTerminal(state, message);
     }
@@ -264,6 +268,9 @@ void Beam::Python::ExportBasicTask() {
       &FromPythonBasicTask::SetActive))
     .def("set_terminal", static_cast<
       void (FromPythonBasicTask::*)()>(&FromPythonBasicTask::SetTerminal))
+    .def("set_terminal", static_cast<
+      void (FromPythonBasicTask::*)(Task::State)>(
+      &FromPythonBasicTask::SetTerminal))
     .def("set_terminal", static_cast<
       void (FromPythonBasicTask::*)(Task::State, const string&)>(
       &FromPythonBasicTask::SetTerminal))

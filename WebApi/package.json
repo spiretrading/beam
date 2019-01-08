@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Provides TypeScript/JavasSript bindings to Beam classes and services.",
   "license": "GPL-3.0",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "library/index.js",
+  "types": "library/index.d.ts",
   "scripts": {
     "compile": "node node_modules/typescript/bin/tsc -p .",
     "build": "npm run compile"

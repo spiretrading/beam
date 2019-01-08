@@ -16,5 +16,8 @@ CALL %~dp0../../Applications/ServiceProtocolProfiler/Build/Windows/build.bat %co
 CALL %~dp0../../Applications/ServletTemplate/Build/Windows/build.bat %config%
 CALL %~dp0../../Applications/UidServer/Build/Windows/build.bat %config%
 CALL %~dp0../../Applications/WebSocketEchoServer/Build/Windows/build.bat %config%
-CALL %~dp0../../WebApi/build.bat
+PUSHD %~dp0../../WebApi
+npm install
+npm run build
+POPD
 ENDLOCAL

@@ -1,4 +1,4 @@
-ECHO OFF
+@ECHO OFF
 SETLOCAL
 SET UPDATE_NODE=
 SET UPDATE_BUILD=
@@ -6,13 +6,13 @@ PUSHD %~dp0
 IF "%1" == "clean" (
   rm -rf library
   rm -rf node_modules\mod_time.txt
-  EXIT
+  EXIT /B
 )
 IF "%1" == "reset" (
   rm -rf library
   rm -rf node_modules
   rm -rf package-lock.json
-  EXIT
+  EXIT /B
 )
 IF NOT EXIST node_modules (
   SET UPDATE_NODE=1

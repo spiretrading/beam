@@ -43,6 +43,5 @@ make clean
 make html
 popd
 pushd $directory/../../WebApi
-npm install
-npm run build
+./build.sh
 popd

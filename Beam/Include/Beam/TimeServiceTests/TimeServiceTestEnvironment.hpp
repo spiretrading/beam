@@ -13,6 +13,7 @@
 namespace Beam {
 namespace TimeService {
 namespace Tests {
+  void Fail(TestTimer& timer);
   void Trigger(TestTimer& timer);
 
   /*! \class TimeServiceTestEnvironment
@@ -70,7 +71,7 @@ namespace Tests {
   };
 
   inline TimeServiceTestEnvironment::TimeServiceTestEnvironment()
-      : m_nextTrigger{boost::posix_time::pos_infin} {}
+      : m_nextTrigger(boost::posix_time::pos_infin) {}
 
   inline TimeServiceTestEnvironment::~TimeServiceTestEnvironment() {
     Close();
@@ -80,26 +81,26 @@ namespace Tests {
       boost::posix_time::ptime time) {
     if(time.is_special()) {
       BOOST_THROW_EXCEPTION(
-        TimeServiceTestEnvironmentException{"Invalid date/time."});
+        TimeServiceTestEnvironmentException("Invalid date/time."));
     }
     Routines::FlushPendingRoutines();
-    boost::unique_lock<Threading::Mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     LockedSetTime(time, lock);
   }
 
   inline void TimeServiceTestEnvironment::AdvanceTime(
       boost::posix_time::time_duration duration) {
     Routines::FlushPendingRoutines();
-    boost::unique_lock<Threading::Mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     if(m_currentTime == boost::posix_time::not_a_date_time) {
-      m_currentTime = boost::posix_time::ptime{
-        boost::gregorian::date{2016, 8, 14}, boost::posix_time::seconds(0)};
+      m_currentTime = boost::posix_time::ptime(
+        boost::gregorian::date(2016, 8, 14), boost::posix_time::seconds(0));
     }
     LockedSetTime(m_currentTime + duration, lock);
   }
 
   inline boost::posix_time::ptime TimeServiceTestEnvironment::GetTime() const {
-    boost::lock_guard<Threading::Mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     return m_currentTime;
   }
 
@@ -108,8 +109,8 @@ namespace Tests {
       return;
     }
     if(m_currentTime == boost::posix_time::not_a_date_time) {
-      m_currentTime = boost::posix_time::ptime{
-        boost::gregorian::date{2016, 7, 31}, boost::posix_time::seconds(0)};
+      m_currentTime = boost::posix_time::ptime(
+        boost::gregorian::date(2016, 7, 31), boost::posix_time::seconds(0));
     }
     m_openState.SetOpen();
   }
@@ -122,7 +123,12 @@ namespace Tests {
   }
 
   inline void TimeServiceTestEnvironment::Shutdown() {
+    auto pendingTimers = m_timers.Acquire();
+    for(auto& pendingTimer : pendingTimers) {
+      Fail(*pendingTimer.m_timer);
+    }
     m_openState.SetClosed();
+    Routines::FlushPendingRoutines();
   }
 
   inline void TimeServiceTestEnvironment::LockedSetTime(
@@ -153,7 +159,7 @@ namespace Tests {
       [&] (auto& timeClient) {
         timeClient->SetTime(time);
       });
-    std::vector<TestTimer*> expiredTimers;
+    auto expiredTimers = std::vector<TestTimer*>();
     m_timers.With(
       [&] (auto& timers) {
         auto i = timers.begin();

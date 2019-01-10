@@ -37,6 +37,7 @@ namespace Tests {
 
     private:
       friend class TimeServiceTestEnvironment;
+      friend void Fail(TestTimer& timer);
       friend void Trigger(TestTimer& timer);
       mutable boost::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
@@ -47,9 +48,9 @@ namespace Tests {
 
   inline TestTimer::TestTimer(boost::posix_time::time_duration interval,
       Ref<TimeServiceTestEnvironment> environment)
-      : m_interval{std::move(interval)},
-        m_environment{environment.Get()},
-        m_hasStarted{false} {}
+      : m_interval(interval),
+        m_environment(environment.Get()),
+        m_hasStarted(false) {}
 
   inline TestTimer::~TestTimer() {
     Cancel();
@@ -57,7 +58,7 @@ namespace Tests {
 
   inline void TestTimer::Start() {
     {
-      boost::lock_guard<boost::mutex> lock{m_mutex};
+      auto lock = boost::lock_guard(m_mutex);
       if(m_hasStarted) {
         return;
       }
@@ -69,7 +70,7 @@ namespace Tests {
 
   inline void TestTimer::Cancel() {
     {
-      boost::lock_guard<boost::mutex> lock{m_mutex};
+      auto lock = boost::lock_guard(m_mutex);
       if(!m_hasStarted) {
         return;
       }
@@ -93,15 +94,23 @@ namespace Tests {
       timer->m_timer.Trigger();
       return;
     }
-    TimerEntry entry{timer, timer->m_interval};
-    boost::lock_guard<Threading::Mutex> lock{m_mutex};
+    auto entry = TimerEntry{timer, timer->m_interval};
+    auto lock = boost::lock_guard(m_mutex);
     m_timers.PushBack(entry);
     m_nextTrigger = std::min(m_nextTrigger, timer->m_interval);
   }
 
+  inline void Fail(TestTimer& timer) {
+    {
+      auto lock = boost::lock_guard(timer.m_mutex);
+      timer.m_hasStarted = false;
+    }
+    timer.m_timer.Fail();
+  }
+
   inline void Trigger(TestTimer& timer) {
     {
-      boost::lock_guard<boost::mutex> lock{timer.m_mutex};
+      auto lock = boost::lock_guard(timer.m_mutex);
       timer.m_hasStarted = false;
     }
     timer.m_timer.Trigger();

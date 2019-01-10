@@ -4,14 +4,24 @@ SET UPDATE_NODE=
 SET UPDATE_BUILD=
 PUSHD %~dp0
 IF "%1" == "clean" (
-  rmdir /s /q library
-  del node_modules\mod_time.txt
+  IF EXIST library (
+    rmdir /s /q library
+  )
+  IF EXIST node_modules\mod_time.txt (
+    del node_modules\mod_time.txt
+  )
   EXIT /B
 )
 IF "%1" == "reset" (
-  rmdir /s /q library
-  rmdir /s /q node_modules
-  del package-lock.json
+  IF EXIST library (
+    rmdir /s /q library
+  )
+  IF EXIST node_modules (
+    rmdir /s /q node_modules
+  )
+  IF EXIST package-lock.json (
+    del package-lock.json
+  )
   EXIT /B
 )
 IF NOT EXIST node_modules (

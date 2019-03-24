@@ -41,15 +41,17 @@ IF NOT EXIST cryptopp610 (
     rm cryptopp610.zip
   )
 )
-IF NOT EXIST zlib-1.2.11 (
-  git clone --branch v1.2.11 https://github.com/madler/zlib.git zlib-1.2.11
-  if EXIST zlib-1.2.11 (
-    PUSHD zlib-1.2.11\contrib\vstudio\vc14
-    cat zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
-    mv zlibstat.vcxproj.new zlibstat.vcxproj
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=ReleaseWithoutAsm
+IF NOT EXIST lua-5.3.1 (
+  wget http://www.lua.org/ftp/lua-5.3.1.tar.gz --no-check-certificate
+  IF EXIST lua-5.3.1.tar.gz (
+    gzip -d -c lua-5.3.1.tar.gz | tar -xf -
+    PUSHD lua-5.3.1\src
+    cp %~dp0\CMakeFiles\lua.cmake CMakeLists.txt
+    cmake -G "Visual Studio 15 2017" .
+    cmake --build . --target ALL_BUILD --config Debug
+    cmake --build . --target ALL_BUILD --config Release
     POPD
+    rm lua-5.3.1.tar.gz
   )
 )
 IF NOT EXIST mariadb-connector-c-3.0.6-src (
@@ -87,6 +89,68 @@ IF NOT EXIST mysql++-3.2.3 (
     POPD
   )
 )
+IF NOT EXIST openssl-1.0.2g (
+  wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz --no-check-certificate
+  IF EXIST openssl-1.0.2g.tar.gz (
+    gzip -d -c openssl-1.0.2g.tar.gz | tar -xf -
+    PUSHD openssl-1.0.2g
+    perl Configure VC-WIN32 no-asm --prefix="%ROOT%\openssl-1.0.2g"
+    CALL .\ms\do_ms
+    nmake -f .\ms\nt.mak
+    POPD
+    rm openssl-1.0.2g.tar.gz
+  )
+)
+IF NOT EXIST Python-3.7.2 (
+  wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz --no-check-certificate
+  IF EXIST Python-3.7.2.tgz (
+    gzip -d -c Python-3.7.2.tgz | tar -xf -
+    PUSHD Python-3.7.2
+    PUSHD PCbuild
+    CALL build.bat -E -c Debug -p Win32
+    CALL build.bat -E -c Release -p Win32
+    POPD
+    POPD
+    rm openssl-1.0.2g.tar.gz
+  )
+)
+IF NOT EXIST sqlite-amalgamation-3230100 (
+  wget https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip --no-check-certificate
+  IF EXIST sqlite-amalgamation-3230100.zip (
+    unzip sqlite-amalgamation-3230100
+    PUSHD sqlite-amalgamation-3230100
+    cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
+    lib sqlite3.obj
+    cp sqlite3.lib sqlite3d.lib
+    rm sqlite3.obj
+    cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
+    lib sqlite3.obj
+    POPD
+    rm sqlite-amalgamation-3230100.zip
+  )
+)
+IF NOT EXIST tclap-1.2.1 (
+  wget "http://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
+  IF EXIST tclap-1.2.1.tar.gz (
+    gzip -d -c tclap-1.2.1.tar.gz | tar -xf -
+    rm tclap-1.2.1.tar.gz
+  )
+)
+IF NOT EXIST viper (
+  git clone https://www.github.com/eidolonsystems/viper
+)
+IF EXIST viper (
+  SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
+  PUSHD viper
+  FOR /f "usebackq tokens=*" %%a IN (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) DO SET commit=%%a
+  IF NOT "%commit%" == "%viper_commit%" (
+    git checkout master
+    git pull
+    git checkout %viper_commit%
+  )
+  cmake -G "Visual Studio 15 2017" .
+  POPD
+)
 IF NOT EXIST yaml-cpp (
   git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp
   IF EXIST yaml-cpp (
@@ -101,23 +165,15 @@ IF NOT EXIST yaml-cpp (
     POPD
   )
 )
-IF NOT EXIST tclap-1.2.1 (
-  wget "http://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
-  IF EXIST tclap-1.2.1.tar.gz (
-    gzip -d -c tclap-1.2.1.tar.gz | tar -xf -
-    rm tclap-1.2.1.tar.gz
-  )
-)
-IF NOT EXIST openssl-1.0.2g (
-  wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz --no-check-certificate
-  IF EXIST openssl-1.0.2g.tar.gz (
-    gzip -d -c openssl-1.0.2g.tar.gz | tar -xf -
-    PUSHD openssl-1.0.2g
-    perl Configure VC-WIN32 no-asm --prefix="%ROOT%\openssl-1.0.2g"
-    CALL .\ms\do_ms
-    nmake -f .\ms\nt.mak
+IF NOT EXIST zlib-1.2.11 (
+  git clone --branch v1.2.11 https://github.com/madler/zlib.git zlib-1.2.11
+  if EXIST zlib-1.2.11 (
+    PUSHD zlib-1.2.11\contrib\vstudio\vc14
+    cat zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
+    mv zlibstat.vcxproj.new zlibstat.vcxproj
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=ReleaseWithoutAsm
     POPD
-    rm openssl-1.0.2g.tar.gz
   )
 )
 IF "%NUMBER_OF_PROCESSORS%" == "" (
@@ -139,61 +195,4 @@ IF NOT EXIST boost_1_67_0 (
     rm boost_1_67_0.zip
   )
 )
-IF NOT EXIST python-3.7.2 (
-  wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz --no-check-certificate
-  IF EXIST Python-3.7.2.tgz (
-    gzip -d -c Python-3.7.2.tgz | tar -xf -
-    PUSHD Python-3.7.2
-    PUSHD PCbuild
-    CALL build.bat -E -c Debug -p Win32
-    CALL build.bat -E -c Release -p Win32
-    POPD
-    POPD
-    rm openssl-1.0.2g.tar.gz
-  )
-)
-IF NOT EXIST lua-5.3.1 (
-  wget http://www.lua.org/ftp/lua-5.3.1.tar.gz --no-check-certificate
-  IF EXIST lua-5.3.1.tar.gz (
-    gzip -d -c lua-5.3.1.tar.gz | tar -xf -
-    PUSHD lua-5.3.1\src
-    cp %~dp0\CMakeFiles\lua.cmake CMakeLists.txt
-    cmake -G "Visual Studio 15 2017" .
-    cmake --build . --target ALL_BUILD --config Debug
-    cmake --build . --target ALL_BUILD --config Release
-    POPD
-    rm lua-5.3.1.tar.gz
-  )
-)
-IF NOT EXIST sqlite-amalgamation-3230100 (
-  wget https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip --no-check-certificate
-  IF EXIST sqlite-amalgamation-3230100.zip (
-    unzip sqlite-amalgamation-3230100
-    PUSHD sqlite-amalgamation-3230100
-    cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
-    lib sqlite3.obj
-    cp sqlite3.lib sqlite3d.lib
-    rm sqlite3.obj
-    cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
-    lib sqlite3.obj
-    POPD
-    rm sqlite-amalgamation-3230100.zip
-  )
-)
-IF NOT EXIST viper (
-  git clone https://www.github.com/eidolonsystems/viper
-)
-IF EXIST viper (
-  SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
-  PUSHD viper
-  FOR /f "usebackq tokens=*" %%a IN (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) DO SET commit=%%a
-  IF NOT "%commit%" == "%viper_commit%" (
-    git checkout master
-    git pull
-    git checkout %viper_commit%
-  )
-  cmake -G "Visual Studio 15 2017" .
-  POPD
-)
-pip install Sphinx sphinx-jsondomain sphinx_rtd_theme sphinxcontrib-httpdomain --user
 ENDLOCAL

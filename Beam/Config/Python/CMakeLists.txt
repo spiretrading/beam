@@ -5,6 +5,7 @@ include_directories(${PYTHON_INCLUDE_PATH})
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  add_definitions(-DBOOST_PYTHON_NO_LIB)
 endif()
 
 add_library(Python SHARED ${header_files} ${source_files})
@@ -31,7 +32,9 @@ target_link_libraries(Python
   debug ${PYTHON_LIBRARY_DEBUG_PATH}
   optimized ${PYTHON_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
+  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
+  debug ${BOOST_PYTHON_LIBRARY_DEBUG_PATH}
+  optimized ${BOOST_PYTHON_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(Python
@@ -41,8 +44,6 @@ if(UNIX)
     optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_PYTHON_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_PYTHON_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_SYSTEM_LIBRARY_DEBUG_PATH}

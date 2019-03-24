@@ -46,7 +46,7 @@ IF NOT EXIST lua-5.3.1 (
   IF EXIST lua-5.3.1.tar.gz (
     gzip -d -c lua-5.3.1.tar.gz | tar -xf -
     PUSHD lua-5.3.1\src
-    cp %~dp0\CMakeFiles\lua.cmake CMakeLists.txt
+    cp %~dp0\Config\lua.cmake CMakeLists.txt
     cmake -G "Visual Studio 15 2017" .
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
@@ -182,6 +182,9 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) else (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
+SET BJAM_ROOT="%ROOT:\=/%"
+SET BJAM_ROOT="%BJAM_ROOT::=\:%"
+SET BJAM_CONFIG=using python : 3.7 : %BJAM_ROOT%/Python-3.7.2 : %BJAM_ROOT%/Python-3.7.2/Include : %BJAM_ROOT%/Python-3.7.2/PCBuild/win32 ;
 IF NOT EXIST boost_1_67_0 (
   wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.zip -O boost_1_67_0.zip --no-check-certificate
   IF EXIST boost_1_67_0.zip (
@@ -189,9 +192,12 @@ IF NOT EXIST boost_1_67_0 (
     PUSHD boost_1_67_0
     wget https://www.boost.org/patches/1_67_0/0003-Python-Fix-auto-linking-logic-Windows-only.patch --no-check-certificate
     git apply 0003-Python-Fix-auto-linking-logic-Windows-only.patch
+    PUSHD tools\build\src
+    echo %BJAM_CONFIG% > user-config.jam
+    POPD
     CALL bootstrap.bat vc141
-    b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete toolset=msvc-14.1 link=static,shared runtime-link=shared install
-    b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete toolset=msvc-14.1 link=static runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static,shared runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static runtime-link=shared install
     POPD
     rm boost_1_67_0.zip
   )

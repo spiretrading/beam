@@ -110,8 +110,9 @@ IF NOT EXIST Python-3.7.2 (
     CALL build.bat -E -c Debug -p Win32
     CALL build.bat -E -c Release -p Win32
     POPD
+    cp PC\pyconfig.h Include
     POPD
-    rm openssl-1.0.2g.tar.gz
+    rm Python-3.7.2.tgz
   )
 )
 IF NOT EXIST sqlite-amalgamation-3230100 (

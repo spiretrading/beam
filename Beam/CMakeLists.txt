@@ -24,13 +24,12 @@ include_directories(${TCLAP_INCLUDE_PATH})
 include_directories(${VIPER_INCLUDE_PATH})
 include_directories(${YAML_INCLUDE_PATH})
 include_directories(${ZLIB_INCLUDE_PATH})
-
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
-
 set(CMAKE_BUILD_TYPE ${BEAM_BUILD_TYPE})
 set(CMAKE_LIBRARY_FLAGS "")
-
+set(TEST_INSTALL_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/Tests")
+set(LIB_INSTALL_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/Libraries")
 if(MSVC)
   set(CMAKE_LIBRARY_FLAGS "/LTCG")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX /bigobj /std:c++17 /Wv:18")
@@ -61,7 +60,6 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_RELEASE} -pthreads")
 endif()
-
 add_subdirectory(Config/Beam)
 add_subdirectory(Config/Codecs)
 add_subdirectory(Config/Collections)

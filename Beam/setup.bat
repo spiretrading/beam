@@ -139,6 +139,19 @@ IF NOT EXIST boost_1_67_0 (
     rm boost_1_67_0.zip
   )
 )
+IF NOT EXIST python-3.7.2 (
+  wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz --no-check-certificate
+  IF EXIST Python-3.7.2.tgz (
+    gzip -d -c Python-3.7.2.tgz | tar -xf -
+    PUSHD Python-3.7.2
+    PUSHD PCbuild
+    CALL build.bat -E -c Debug -p Win32
+    CALL build.bat -E -c Release -p Win32
+    POPD
+    POPD
+    rm openssl-1.0.2g.tar.gz
+  )
+)
 IF NOT EXIST lua-5.3.1 (
   wget http://www.lua.org/ftp/lua-5.3.1.tar.gz --no-check-certificate
   IF EXIST lua-5.3.1.tar.gz (

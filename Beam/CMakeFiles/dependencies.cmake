@@ -36,6 +36,9 @@ set(OPEN_SSL_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/ssleay32.lib")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/ssleay32.lib")
+set(PYTHON_INCLUDE_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/Include")
+set(PYTHON_DEBUG_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/PCbuild/win32/python37_d.lib")
+set(PYTHON_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/PCbuild/win32/python37.lib")
 set(SQLITE_INCLUDE_PATH "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100")
 set(SQLITE_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100/sqlite3d.lib")

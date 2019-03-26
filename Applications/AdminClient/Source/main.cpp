@@ -3,12 +3,12 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <tclap/CmdLine.h>
-#include "AdminClient/Version.hpp"
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::Network;

@@ -11,7 +11,7 @@
 #include "DataStoreProfiler/SessionCachedDataStore.hpp"
 #include "DataStoreProfiler/Entry.hpp"
 #include "DataStoreProfiler/MySqlDataStore.hpp"
-#include "DataStoreProfiler/Version.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;

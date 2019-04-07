@@ -23,7 +23,7 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServiceProtocolProfiler/Services.hpp"
-#include "ServiceProtocolProfiler/Version.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;

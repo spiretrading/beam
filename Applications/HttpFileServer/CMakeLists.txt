@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ClientTemplate)
+project(HttpFileServer)
 execute_process(COMMAND "pwd" OUTPUT_VARIABLE PWD)
 string(STRIP "${PWD}" PWD)
 file(TO_CMAKE_PATH "${PWD}" PWD)
@@ -14,7 +14,6 @@ include_directories(${CRYPTOPP_INCLUDE_PATH})
 include_directories(${OPEN_SSL_INCLUDE_PATH})
 include_directories(${TCLAP_INCLUDE_PATH})
 include_directories(${YAML_INCLUDE_PATH})
-include_directories(${ZLIB_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
 if(MSVC)
@@ -48,12 +47,13 @@ endif()
 if(WIN32)
   execute_process(COMMAND cmd /c "CALL ${CMAKE_CURRENT_LIST_DIR}/version.bat")
 endif()
+include_directories(Include)
 include_directories(${PWD})
 file(GLOB header_files *.hpp)
 file(GLOB source_files Source/*.cpp)
-add_executable(ClientTemplate ${header_files} ${source_files})
+add_executable(HttpFileServer ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(ClientTemplate
+target_link_libraries(HttpFileServer
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
@@ -61,11 +61,9 @@ target_link_libraries(ClientTemplate
   debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
-  debug ${ZLIB_LIBRARY_DEBUG_PATH}
-  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
+  optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)
-  target_link_libraries(ClientTemplate
+  target_link_libraries(HttpFileServer
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}

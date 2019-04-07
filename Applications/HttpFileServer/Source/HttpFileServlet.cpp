@@ -1,4 +1,4 @@
-#include "HttpFileServer/HttpFileServer/HttpFileServlet.hpp"
+#include "HttpFileServer/HttpFileServlet.hpp"
 #include <Beam/WebServices/HttpRequest.hpp>
 #include <Beam/WebServices/HttpResponse.hpp>
 #include <Beam/WebServices/HttpServerPredicates.hpp>

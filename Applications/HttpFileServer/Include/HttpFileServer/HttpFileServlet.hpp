@@ -7,7 +7,7 @@
 #include <Beam/WebServices/FileStore.hpp>
 #include <Beam/WebServices/HttpRequestSlot.hpp>
 #include <boost/noncopyable.hpp>
-#include "HttpFileServer/HttpFileServer/HttpFileServer.hpp"
+#include "HttpFileServer/HttpFileServer.hpp"
 
 namespace Beam {
 namespace HttpFileServer {

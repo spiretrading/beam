@@ -20,7 +20,6 @@ include_directories(${YAML_INCLUDE_PATH})
 include_directories(${ZLIB_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
-set(CMAKE_BUILD_TYPE ${BEAM_BUILD_TYPE})
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX /bigobj /std:c++17 /Wv:18")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL")
@@ -73,7 +72,6 @@ target_link_libraries(DataStoreProfiler
   optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
   debug ${ZLIB_LIBRARY_DEBUG_PATH}
   optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
-
 if(UNIX)
   target_link_libraries(DataStoreProfiler
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
@@ -87,7 +85,7 @@ if(UNIX)
     debug ${BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
-endif(UNIX)
+endif()
 if(WIN32)
   target_link_libraries(DataStoreProfiler shlwapi ws2_32)
 endif()

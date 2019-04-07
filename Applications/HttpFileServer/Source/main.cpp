@@ -7,8 +7,8 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Beam/WebServices/HttpServletContainer.hpp"
-#include "HttpFileServer/HttpFileServer/HttpFileServlet.hpp"
-#include "HttpFileServer/Version.hpp"
+#include "HttpFileServer/HttpFileServlet.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::HttpFileServer;

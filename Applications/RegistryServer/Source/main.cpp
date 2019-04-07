@@ -18,7 +18,7 @@
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
-#include "RegistryServer/Version.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;

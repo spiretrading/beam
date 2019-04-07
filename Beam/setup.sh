@@ -79,7 +79,7 @@ if [ ! -d "Python-3.7.2" ]; then
     pushd Python-3.7.2
     ./configure
     make -j $cores
-    cp PC\pyconfig.h Include
+    cp pyconfig.h Include
     popd
     rm Python-3.7.2.tgz
   fi

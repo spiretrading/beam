@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ClientTemplate)
+project(UidServer)
 execute_process(COMMAND "pwd" OUTPUT_VARIABLE PWD)
 string(STRIP "${PWD}" PWD)
 file(TO_CMAKE_PATH "${PWD}" PWD)
@@ -10,10 +10,11 @@ include(../../Beam/Config/dependencies.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
 include_directories(${BOOST_INCLUDE_PATH})
 include_directories(${CRYPTOPP_INCLUDE_PATH})
+include_directories(${MYSQL_INCLUDE_PATH})
+include_directories(${MYSQLPP_INCLUDE_PATH})
 include_directories(${OPEN_SSL_INCLUDE_PATH})
 include_directories(${TCLAP_INCLUDE_PATH})
 include_directories(${YAML_INCLUDE_PATH})
-include_directories(${ZLIB_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
 if(MSVC)
@@ -24,6 +25,7 @@ if(MSVC)
   add_definitions(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
   add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
   add_definitions(-D_HAS_AUTO_PTR_ETC=1)
+  add_definitions(-DMYSQLPP_NO_DLL)
   add_definitions(-DNOMINMAX)
   add_definitions(-D_SCL_SECURE_NO_WARNINGS)
   add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
@@ -50,21 +52,23 @@ endif()
 include_directories(${PWD})
 file(GLOB header_files ${PWD}/*.hpp)
 file(GLOB source_files Source/*.cpp)
-add_executable(ClientTemplate ${header_files} ${source_files})
+add_executable(UidServer ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(ClientTemplate
+target_link_libraries(UidServer
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
+  debug ${MYSQLPP_LIBRARY_DEBUG_PATH}
+  optimized ${MYSQLPP_LIBRARY_OPTIMIZED_PATH}
+  debug ${MYSQL_LIBRARY_DEBUG_PATH}
+  optimized ${MYSQL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
-  debug ${ZLIB_LIBRARY_DEBUG_PATH}
-  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
+  optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)
-  target_link_libraries(ClientTemplate
+  target_link_libraries(UidServer
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
@@ -76,4 +80,7 @@ if(UNIX)
     debug ${BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
+endif()
+if(WIN32)
+  target_link_libraries(UidServer shlwapi)
 endif()

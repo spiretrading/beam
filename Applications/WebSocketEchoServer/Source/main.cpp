@@ -7,8 +7,8 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Beam/WebServices/HttpServletContainer.hpp"
-#include "WebSocketEchoServer/WebSocketEchoServer/WebSocketEchoServlet.hpp"
-#include "WebSocketEchoServer/Version.hpp"
+#include "WebSocketEchoServer/WebSocketEchoServlet.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;

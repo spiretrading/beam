@@ -17,7 +17,7 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServletTemplate/Servlet.hpp"
-#include "ServletTemplate/Version.hpp"
+#include "Version.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;

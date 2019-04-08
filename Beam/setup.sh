@@ -46,8 +46,9 @@ if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
   if [ -f mysql-connector-c-6.1.11-src.tar.gz ]; then
     gzip -d -c mysql-connector-c-6.1.11-src.tar.gz | tar -x
     pushd mysql-connector-c-6.1.11-src
-    cmake -G "Unix Makefiles"
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="$root/mysql-connector-c-6.1.11-src"
     make -j $cores
+    make install
     popd
     rm -f mysql-connector-c-6.1.11-src.tar.gz
   fi
@@ -56,8 +57,9 @@ if [ ! -d "mysql++-3.2.3" ]; then
   git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
   if [ -d mysql++-3.2.3 ]; then
     pushd mysql++-3.2.3
-    ./configure --enable-static --disable-shared --with-mysql-include="$root/mysql-connector-c-6.1.11-src/include" --with-mysql-lib="$root/mysql-connector-c-6.1.11-src/libmysql"
+    ./configure --enable-static --disable-shared --prefix="$root/mysql++-3.2.3" --with-mysql-include="$root/mysql-connector-c-6.1.11-src/include" --with-mysql-lib="$root/mysql-connector-c-6.1.11-src/lib"
     make -j $cores
+    make install
     popd
   fi
 fi

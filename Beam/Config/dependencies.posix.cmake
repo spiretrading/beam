@@ -20,16 +20,16 @@ set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
 set(LUA_INCLUDE_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/include")
 set(LUA_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
 set(LUA_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
-set(MYSQL_INCLUDE_PATH "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/include")
+set(MYSQL_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Debug/mariadbclient.lib")
+  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Release/mariadbclient.lib")
+  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
 set(MYSQLPP_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql++-3.2.3/include")
 set(MYSQLPP_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/vc2005/Debug/mysqlpp.lib")
+  "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
 set(MYSQLPP_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/vc2005/Release/mysqlpp.lib")
+  "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
 set(OPEN_SSL_INCLUDE_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/inc32")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/libeay32.lib")

@@ -1,5 +1,5 @@
 if(WIN32)
-  include(dependencies.windows.cmake)
+  include("${CMAKE_CURRENT_LIST_DIR}/dependencies.windows.cmake")
 else()
-  include(dependencies.posix.cmake)
+  include("${CMAKE_CURRENT_LIST_DIR}/dependencies.posix.cmake")
 endif()

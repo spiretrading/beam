@@ -69,9 +69,10 @@ if [ ! -d "openssl-1.0.2g" ]; then
     gzip -d -c openssl-1.0.2g.tar.gz | tar -x
     pushd openssl-1.0.2g
     export LDFLAGS=-ldl
-    ./config no-shared threads -fPIC -ldl
+    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.0.2g"
     make -j $cores
     make test
+    make install
     unset LDFLAGS
     popd
     rm openssl-1.0.2g.tar.gz
@@ -82,9 +83,11 @@ if [ ! -d "Python-3.7.2" ]; then
   if [ -f Python-3.7.2.tgz ]; then
     gzip -d -c Python-3.7.2.tgz | tar -xf -
     pushd Python-3.7.2
-    ./configure
+    export CFLAGS="-fPIC"
+    ./configure --prefix="$root/Python-3.7.2"
     make -j $cores
-    cp pyconfig.h Include
+    make install
+    unset CFLAGS
     popd
     rm Python-3.7.2.tgz
   fi
@@ -125,16 +128,16 @@ if [ -d "viper" ]; then
   cmake -G "Unix Makefiles"
   popd
 fi
-if [ ! -d "yaml-cpp" ]; then
-  git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp
-  if [ -d "yaml-cpp" ]; then
-    pushd yaml-cpp
+if [ ! -d "yaml-cpp-0.6.2" ]; then
+  git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp-0.6.2
+  if [ -d "yaml-cpp-0.6.2" ]; then
+    pushd yaml-cpp-0.6.2
     mkdir build
     popd
-    pushd yaml-cpp/build
+    pushd yaml-cpp-0.6.2/build
     export CFLAGS="-fPIC"
     export CXXFLAGS="-fPIC"
-    cmake ..
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/yaml-cpp" ..
     make -j $cores
     unset CFLAGS
     unset CXXFLAGS
@@ -147,8 +150,9 @@ if [ ! -d "zlib-1.2.11" ]; then
     unzip v1.2.11.zip
     pushd zlib-1.2.11
     export CFLAGS="-fPIC"
-    cmake -G "Unix Makefiles"
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/zlib-1.2.11" -G "Unix Makefiles"
     make -j $cores
+    make install
     unset CFLAGS
     popd
     rm -f v1.2.11.zip
@@ -160,7 +164,7 @@ if [ ! -d "boost_1_67_0" ]; then
     tar xvf boost_1_67_0.tar.gz
     pushd boost_1_67_0
     pushd tools/build/src
-    printf "using python : 3.7 : $root/Python-3.7.2 : $root/Python-3.7.2/Include : $root/Python-3.7.2 ;\n" > user-config.jam
+    printf "using python : 3.7 : $root/Python-3.7.2 : $root/Python-3.7.2/include/python3.7m : $root/Python-3.7.2 ;\n" > user-config.jam
     popd
     export BOOST_BUILD_PATH=$(pwd)
     ./bootstrap.sh

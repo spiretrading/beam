@@ -3,10 +3,25 @@ set(BEAM_SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Source")
 set(BOOST_INCLUDE_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/include/")
 set(BOOST_DEBUG_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/lib")
 set(BOOST_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/lib")
+set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
+set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
+  "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")
+set(BOOST_CONTEXT_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_context.a")
+set(BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH
+  "${BOOST_OPTIMIZED_PATH}/libboost_context.a")
+set(BOOST_DATE_TIME_LIBRARY_DEBUG_PATH
+  "${BOOST_DEBUG_PATH}/libboost_date_time.a")
+set(BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH
+  "${BOOST_OPTIMIZED_PATH}/libboost_date_time.a")
 set(BOOST_PYTHON_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_python37.a")
 set(BOOST_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_python37.a")
-set(CATCH_INCLUDE_PATH "${DEPENDENCIES_PATH}/Catch2-2.2.1/single_include")
+set(BOOST_SYSTEM_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_system.a")
+set(BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH
+  "${BOOST_OPTIMIZED_PATH}/libboost_system.a")
+set(BOOST_THREAD_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_thread.a")
+set(BOOST_THREAD_LIBRARY_OPTIMIZED_PATH
+  "${BOOST_OPTIMIZED_PATH}/libboost_thread.a")
 set(CPPUNIT_INCLUDE_PATH "${DEPENDENCIES_PATH}/cppunit-1.14.0/include")
 set(CPPUNIT_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/cppunit-1.14.0/lib/libcppunit.a")
@@ -30,32 +45,28 @@ set(MYSQLPP_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
 set(MYSQLPP_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
-set(OPEN_SSL_INCLUDE_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/inc32")
+set(OPEN_SSL_INCLUDE_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/libeay32.lib")
+  "${DEPENDENCIES_PATH}/openssl-1.0.2g/libcrypto.a")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/libeay32.lib")
-set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/ssleay32.lib")
+  "${DEPENDENCIES_PATH}/openssl-1.0.2g/libcrypto.a")
+set(OPEN_SSL_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/ssleay32.lib")
-set(PYTHON_INCLUDE_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/Include")
-set(PYTHON_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/PCbuild/win32/python37.lib")
-set(PYTHON_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/PCbuild/win32/python37.lib")
+  "${DEPENDENCIES_PATH}/openssl-1.0.2g/libssl.a")
+set(PYTHON_INCLUDE_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/include/python3.7m")
+set(PYTHON_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
+set(PYTHON_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
 set(SQLITE_INCLUDE_PATH "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100")
 set(SQLITE_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100/sqlite3d.lib")
+  "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100/sqlite3.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100/sqlite3.lib")
 set(TCLAP_INCLUDE_PATH "${DEPENDENCIES_PATH}/tclap-1.2.1/include")
 set(VIPER_INCLUDE_PATH "${DEPENDENCIES_PATH}/viper/Include")
-set(YAML_INCLUDE_PATH "${DEPENDENCIES_PATH}/yaml-cpp/include")
-set(YAML_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/yaml-cpp/build/Debug/libyaml-cppmdd.lib")
+set(YAML_INCLUDE_PATH "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/include")
+set(YAML_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/build/libyaml-cpp.a")
 set(YAML_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/yaml-cpp/build/Release/libyaml-cppmd.lib")
-set(ZLIB_INCLUDE_PATH "${DEPENDENCIES_PATH}/zlib-1.2.11")
-set(ZLIB_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/zlib-1.2.11/contrib/vstudio/vc14/x86/ZlibStatDebug/zlibstat.lib")
-set(ZLIB_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/zlib-1.2.11/contrib/vstudio/vc14/x86/ZlibStatReleaseWithoutAsm/zlibstat.lib")
+  "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/build/libyaml-cpp.a")
+set(ZLIB_INCLUDE_PATH "${DEPENDENCIES_PATH}/zlib-1.2.11/include")
+set(ZLIB_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/zlib-1.2.11/libz.a")
+set(ZLIB_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/zlib-1.2.11/libz.a")

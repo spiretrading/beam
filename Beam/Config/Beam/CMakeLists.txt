@@ -26,7 +26,8 @@ source_group("RegistryService" FILES ${registry_service_header_files})
 file(GLOB routines_header_files ${BEAM_INCLUDE_PATH}/Beam/Routines/*.hpp
   ${BEAM_INCLUDE_PATH}/Beam/Routines/*.inl)
 source_group("Routines" FILES ${routines_header_files})
-file(GLOB serialization_header_files ${BEAM_INCLUDE_PATH}/Beam/Serialization/*.hpp)
+file(GLOB serialization_header_files
+  ${BEAM_INCLUDE_PATH}/Beam/Serialization/*.hpp)
 source_group("Serialization" FILES ${serialization_header_files})
 file(GLOB service_locator_header_files
   ${BEAM_INCLUDE_PATH}/Beam/ServiceLocator/*.hpp)
@@ -50,7 +51,6 @@ file(GLOB utilities_header_files ${BEAM_INCLUDE_PATH}/Beam/Utilities/*.hpp)
 source_group("Utilities" FILES ${utilities_header_files})
 file(GLOB web_services_header_files ${BEAM_INCLUDE_PATH}/Beam/WebServices/*.hpp)
 source_group("WebServices" FILES ${web_services_header_files})
-
 file(GLOB header_files ${codecs_header_files} ${collections_header_files}
   ${io_header_files} ${json_header_files} ${sql_header_files}
   ${network_header_files} ${parsers_header_files} ${pointers_header_files}
@@ -61,11 +61,9 @@ file(GLOB header_files ${codecs_header_files} ${collections_header_files}
   ${tasks_header_files} ${threading_header_files} ${time_service_header_files}
   ${uid_service_header_files} ${utilities_header_files}
   ${web_services_header_files})
-
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
-
 add_library(Beam ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Beam PROPERTIES STATIC_LIBRARY_FLAGS_RELEASE

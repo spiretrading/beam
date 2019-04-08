@@ -11,8 +11,9 @@ if [ ! -d "cppunit-1.14.0" ]; then
     cat configure | sed "s/\/\* automatically generated \*\//\$ac_prefix_conf_INP/" > configure.new
     mv configure.new configure
     chmod +x configure
-    ./configure LDFLAGS='-ldl'
+    ./configure LDFLAGS='-ldl' --prefix="$root/cppunit-1.14.0"
     make -j $cores
+    make install
     popd
     rm -f cppunit-1.14.0.tar.gz
   fi
@@ -24,6 +25,7 @@ if [ ! -d "cryptopp565" ]; then
     mv cryptopp-b0f3b8ce1761e7ab9a3ead46fb7403fb38dd3723 cryptopp565
     pushd cryptopp565
     make -j $cores
+    make install PREFIX="$root/cryptopp565"
     popd
     rm -f cryptopp565.zip
   fi
@@ -34,6 +36,7 @@ if [ ! -d "lua-5.3.1" ]; then
     gzip -d -c lua-5.3.1.tar.gz | tar -x
     pushd lua-5.3.1
     make -j $cores linux
+    make local
     popd
     rm -f lua-5.3.1.tar.gz
   fi
@@ -159,7 +162,7 @@ if [ ! -d "boost_1_67_0" ]; then
     popd
     export BOOST_BUILD_PATH=$(pwd)
     ./bootstrap.sh
-    ./b2 -j$cores cxxflags="-std=c++17 -fPIC" stage
+    ./b2 -j$cores --prefix="$root/boost_1_67_0" cxxflags="-std=c++17 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
     rm boost_1_67_0.tar.gz

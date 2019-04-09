@@ -80,3 +80,4 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
 endif()
+install(TARGETS ServiceProtocolProfiler DESTINATION ${PWD}/Application)

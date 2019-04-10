@@ -25,6 +25,6 @@ for i in $applications; do
     mkdir -p "Applications/$i"
   fi
   pushd "Applications/$i"
-  $directory/Applications/$i/run_cmake.sh -DD="$root/Dependencies"
+  $directory/Applications/$i/run_cmake.sh -DD="$root/Dependencies" "$@"
   popd
 done

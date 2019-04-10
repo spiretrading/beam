@@ -1,26 +1,35 @@
 @ECHO OFF
 SETLOCAL
 SET ROOT=%cd%
-CALL %~dp0Beam\run_cmake.bat %*
-CALL:run_cmake AdminClient %*
-CALL:run_cmake ClientTemplate %*
-CALL:run_cmake DataStoreProfiler %*
-CALL:run_cmake HttpFileServer %*
-CALL:run_cmake QueryStressTest %*
-CALL:run_cmake RegistryServer %*
-CALL:run_cmake ServiceLocator %*
-CALL:run_cmake ServiceProtocolProfiler %*
-CALL:run_cmake ServletTemplate %*
-CALL:run_cmake UidServer %*
-CALL:run_cmake WebSocketEchoServer %*
+IF NOT EXIST run_cmake.bat (
+  echo CALL "%~dp0run_cmake.bat" %%* > run_cmake.bat
+)
+IF NOT EXIST build.bat (
+  echo CALL "%~dp0build.bat" %%* > build.bat
+)
+CALL:run_cmake Beam %*
+CALL:run_cmake Applications\AdminClient %*
+CALL:run_cmake Applications\ClientTemplate %*
+CALL:run_cmake Applications\DataStoreProfiler %*
+CALL:run_cmake Applications\HttpFileServer %*
+CALL:run_cmake Applications\QueryStressTest %*
+CALL:run_cmake Applications\RegistryServer %*
+CALL:run_cmake Applications\ServiceLocator %*
+CALL:run_cmake Applications\ServiceProtocolProfiler %*
+CALL:run_cmake Applications\ServletTemplate %*
+CALL:run_cmake Applications\UidServer %*
+CALL:run_cmake Applications\WebSocketEchoServer %*
 ENDLOCAL
 EXIT /B %ERRORLEVEL%
 
 :run_cmake
-IF NOT EXIST Applications\%~1 (
-  mkdir Applications\%~1
+IF NOT EXIST "%~1" (
+  mkdir "%~1"
 )
-PUSHD Applications\%~1
-CALL %~dp0Applications\%~1\run_cmake.bat -DD="%ROOT%\Dependencies"
+PUSHD "%~1"
+IF NOT EXIST run_cmake.bat (
+  echo CALL "%~dp0run_cmake.bat" %%* > run_cmake.bat
+)
+CALL "%~dp0%~1\run_cmake.bat" -DD="%ROOT%\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
 POPD
 EXIT /B 0

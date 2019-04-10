@@ -7,24 +7,28 @@ while [ -h "$source" ]; do
 done
 directory="$(cd -P "$(dirname "$source" )" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
-applications="AdminClient"
-applications+=" ClientTemplate"
-applications+=" DataStoreProfiler"
-applications+=" HttpFileServer"
-applications+=" QueryStressTest"
-applications+=" RegistryServer"
-applications+=" ServiceLocator"
-applications+=" ServiceProtocolProfiler"
-applications+=" ServletTemplate"
-applications+=" UidServer"
-applications+=" WebSocketEchoServer"
+targets=" Beam"
+targets+=" Applications/AdminClient"
+targets+=" Applications/ClientTemplate"
+targets+=" Applications/DataStoreProfiler"
+targets+=" Applications/HttpFileServer"
+targets+=" Applications/QueryStressTest"
+targets+=" Applications/RegistryServer"
+targets+=" Applications/ServiceLocator"
+targets+=" Applications/ServiceProtocolProfiler"
+targets+=" Applications/ServletTemplate"
+targets+=" Applications/UidServer"
+targets+=" Applications/WebSocketEchoServer"
 
-$directory/Beam/run_cmake.sh "$@"
-for i in $applications; do
-  if [ ! -d "Applications/$i" ]; then
-    mkdir -p "Applications/$i"
+for i in $targets; do
+  if [ ! -d "$i" ]; then
+    mkdir -p "$i"
   fi
-  pushd "Applications/$i"
-  $directory/Applications/$i/run_cmake.sh -DD="$root/Dependencies" "$@"
+  pushd "$i"
+  if [ ! -f "run_cmake.sh" ]; then
+    printf "$directory/$i/run_cmake.sh" "\$\@" > run_cmake.sh
+    chmod +x run_cmake.sh
+  fi
+  $directory/$i/run_cmake.sh -DD="$root/Dependencies" "$@"
   popd
 done

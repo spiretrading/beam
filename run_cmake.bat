@@ -28,7 +28,7 @@ IF NOT EXIST "%~1" (
 )
 PUSHD "%~1"
 IF NOT EXIST run_cmake.bat (
-  echo CALL "%~dp0run_cmake.bat" %%* > run_cmake.bat
+  echo CALL "%~dp0%~1\run_cmake.bat" %%* > run_cmake.bat
 )
 CALL "%~dp0%~1\run_cmake.bat" -DD="%ROOT%\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
 POPD

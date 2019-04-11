@@ -76,4 +76,7 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
 endif()
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+  target_link_libraries(RegistryServer stdc++fs)
+endif()
 install(TARGETS RegistryServer DESTINATION ${PWD}/Application)

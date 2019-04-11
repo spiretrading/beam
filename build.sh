@@ -6,7 +6,7 @@ while [ -h "$source" ]; do
   [[ $source != /* ]] && source="$dir/$source"
 done
 directory="$(cd -P "$(dirname "$source" )" >/dev/null 2>&1 && pwd)"
-
+root=$(pwd)
 build_function() {
   if [ ! -d "$1" ]; then
     mkdir -p "$1"
@@ -19,8 +19,8 @@ build_function() {
 export -f build_function
 export directory
 
-targets="Beam"
-targets+=" Applications/AdminClient"
+build_function "Beam"
+targets+="Applications/AdminClient"
 targets+=" Applications/ClientTemplate"
 targets+=" Applications/DataStoreProfiler"
 targets+=" Applications/HttpFileServer"
@@ -44,4 +44,6 @@ popd
 if [ ! -d "WebApi" ]; then
   mkdir "WebApi"
 fi
-cp -r $directory/WebApi . "$@"
+if [ "$root" != "$directory" ]; then
+  cp -r $directory/WebApi . "$@"
+fi

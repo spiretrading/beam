@@ -37,3 +37,11 @@ let mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 419430
 let jobs="$(($cores<$mem?$cores:$mem))"
 
 parallel -j$jobs --no-notice build_function ::: $targets
+
+pushd $directory/WebApi
+./build.sh
+popd
+if [ ! -d "WebApi" ]; then
+  mkdir "WebApi"
+fi
+cp -r $directory/WebApi . "$@"

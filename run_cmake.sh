@@ -7,7 +7,15 @@ while [ -h "$source" ]; do
 done
 directory="$(cd -P "$(dirname "$source" )" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
-targets=" Beam"
+if [ ! -f "run_cmake.sh" ]; then
+  printf "$directory/run_cmake.sh \"\$@\"" > run_cmake.sh
+  chmod +x run_cmake.sh
+fi
+if [ ! -f "build.sh" ]; then
+  printf "$directory/build.sh \"\$@\"" > build.sh
+  chmod +x build.sh
+fi
+targets="Beam"
 targets+=" Applications/AdminClient"
 targets+=" Applications/ClientTemplate"
 targets+=" Applications/DataStoreProfiler"
@@ -26,7 +34,7 @@ for i in $targets; do
   fi
   pushd "$i"
   if [ ! -f "run_cmake.sh" ]; then
-    printf "$directory/$i/run_cmake.sh" "\$\@" > run_cmake.sh
+    printf "$directory/$i/run_cmake.sh \"\$@\"" > run_cmake.sh
     chmod +x run_cmake.sh
   fi
   $directory/$i/run_cmake.sh -DD="$root/Dependencies" "$@"

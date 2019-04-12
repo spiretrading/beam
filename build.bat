@@ -13,6 +13,16 @@ CALL:build Applications\ServiceProtocolProfiler %*
 CALL:build Applications\ServletTemplate %*
 CALL:build Applications\UidServer %*
 CALL:build Applications\WebSocketEchoServer %*
+
+PUSHD "%~dp0"\WebApi
+CALL build.bat
+POPD
+IF NOT EXIST "WebApi" (
+  mkdir "WebApi"
+)
+IF NOT "%~dp0" == "%ROOT%\" (
+  robocopy "%~dp0"/WebApi . /E
+)
 ENDLOCAL
 EXIT /B %ERRORLEVEL%
 

@@ -45,5 +45,5 @@ if [ ! -d "WebApi" ]; then
   mkdir "WebApi"
 fi
 if [ "$root" != "$directory" ]; then
-  cp -r $directory/WebApi . "$@"
+  cp -r $directory/WebApi .
 fi

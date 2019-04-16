@@ -140,18 +140,17 @@ IF NOT EXIST tclap-1.2.1 (
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
 )
-IF EXIST viper (
-  SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
-  PUSHD viper
-  FOR /f "usebackq tokens=*" %%a IN (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) DO SET commit=%%a
-  IF NOT "%commit%" == "%viper_commit%" (
-    git checkout master
-    git pull
-    git checkout %viper_commit%
-  )
-  cmake -G "Visual Studio 15 2017" .
-  POPD
+SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
+PUSHD viper
+FOR /f "usebackq tokens=*" %%a IN (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) DO SET commit=%%a
+IF NOT "%commit%" == "%viper_commit%" (
+  git checkout master
+  git pull
+  git checkout %viper_commit%
 )
+cmake -G "Visual Studio 15 2017" .
+POPD
+SET commit=
 IF NOT EXIST yaml-cpp (
   git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp
   IF EXIST yaml-cpp (

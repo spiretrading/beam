@@ -12,8 +12,8 @@ if [ ! -f Version.hpp ]; then
   touch Version.hpp
 fi
 version=$(git --git-dir="$directory/../../.git" rev-list --count --first-parent HEAD)
-if ! grep $version < Version.hpp; then
-  printf "#define CLIENT_TEMPLATE_VERSION \""> Version.hpp
+if ! grep -q $version < Version.hpp; then
+  printf "#define DATA_STORE_PROFILER_VERSION \""> Version.hpp
   printf $version >> Version.hpp
   printf \" >> Version.hpp
   printf "\n" >> Version.hpp

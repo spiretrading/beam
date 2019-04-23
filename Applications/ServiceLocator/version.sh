@@ -12,7 +12,7 @@ if [ ! -f Version.hpp ]; then
   touch Version.hpp
 fi
 version=$(git --git-dir="$directory/../../.git" rev-list --count --first-parent HEAD)
-if ! grep $version < Version.hpp; then
+if ! grep -q $version < Version.hpp; then
   printf "#define SERVICE_LOCATOR_VERSION \""> Version.hpp
   printf $version >> Version.hpp
   printf \" >> Version.hpp

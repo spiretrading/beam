@@ -131,7 +131,7 @@ namespace Network {
       : m_isOpen{false},
         m_isDeadlinePending{false},
         m_socket{socket},
-        m_deadline{m_socket->m_socket.get_io_service()} {}
+        m_deadline{*m_socket->m_ioService} {}
 
   inline UdpSocketReceiver::~UdpSocketReceiver() {
     boost::unique_lock<Threading::Mutex> lock{m_mutex};

@@ -135,8 +135,7 @@ namespace Network {
     boost::system::error_code errorCode;
     for(auto& address : m_addresses) {
       errorCode.clear();
-      boost::asio::ip::tcp::resolver resolver{
-        m_socket->m_socket.get_io_service()};
+      boost::asio::ip::tcp::resolver resolver{*m_socket->m_ioService};
       boost::asio::ip::tcp::resolver::query query{address.GetHost(),
         ToString(address.GetPort())};
       boost::asio::ip::tcp::resolver::iterator end;

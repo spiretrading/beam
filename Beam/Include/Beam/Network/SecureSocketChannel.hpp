@@ -82,7 +82,7 @@ namespace Network {
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
       Ref<SocketThreadPool> socketThreadPool)
       : m_socket(std::make_shared<Details::SecureSocketEntry>(
-          socketThreadPool->GetService())),
+          socketThreadPool->GetService(), socketThreadPool->GetService())),
         m_identifier(address),
         m_connection(m_socket, address),
         m_reader(m_socket),
@@ -91,7 +91,7 @@ namespace Network {
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
       const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
       : m_socket(std::make_shared<Details::SecureSocketEntry>(
-          socketThreadPool->GetService())),
+          socketThreadPool->GetService(), socketThreadPool->GetService())),
         m_identifier(address),
         m_connection(m_socket, address, interface),
         m_reader(m_socket),
@@ -101,7 +101,7 @@ namespace Network {
       const std::vector<IpAddress>& addresses,
       Ref<SocketThreadPool> socketThreadPool)
       : m_socket(std::make_shared<Details::SecureSocketEntry>(
-          socketThreadPool->GetService())),
+          socketThreadPool->GetService(), socketThreadPool->GetService())),
         m_identifier(addresses.front()),
         m_connection(m_socket, addresses),
         m_reader(m_socket),
@@ -111,7 +111,7 @@ namespace Network {
       const std::vector<IpAddress>& addresses, const IpAddress& interface,
       Ref<SocketThreadPool> socketThreadPool)
       : m_socket(std::make_shared<Details::SecureSocketEntry>(
-          socketThreadPool->GetService())),
+          socketThreadPool->GetService(), socketThreadPool->GetService())),
         m_identifier(addresses.front()),
         m_connection(m_socket, addresses, interface),
         m_reader(m_socket),
@@ -137,7 +137,7 @@ namespace Network {
   inline SecureSocketChannel::SecureSocketChannel(
       Ref<SocketThreadPool> socketThreadPool)
       : m_socket(std::make_shared<Details::SecureSocketEntry>(
-          socketThreadPool->GetService())),
+          socketThreadPool->GetService(), socketThreadPool->GetService())),
         m_connection(m_socket),
         m_reader(m_socket),
         m_writer(m_socket) {}

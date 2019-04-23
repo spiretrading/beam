@@ -2,6 +2,7 @@
 #define BEAM_NETWORK_DETAILS_HPP
 #include <memory>
 #include <utility>
+#include <boost/asio/io_service.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
@@ -17,6 +18,7 @@ namespace Details {
   struct SocketEntry {
     using Socket = SocketType;
     Threading::Mutex m_mutex;
+    boost::asio::io_service* m_ioService;
     Socket m_socket;
     bool m_isOpen;
     bool m_isReadPending;
@@ -24,8 +26,9 @@ namespace Details {
     Threading::ConditionVariable m_isPendingCondition;
 
     template<typename... Args>
-    SocketEntry(Args&&... args)
-        : m_socket{std::forward<Args>(args)...},
+    SocketEntry(boost::asio::io_service& ioService, Args&&... args)
+        : m_ioService(&ioService),
+          m_socket{std::forward<Args>(args)...},
           m_isOpen{false},
           m_isReadPending{false},
           m_pendingWrites{0} {}
@@ -76,6 +79,7 @@ namespace Details {
   struct SecureSocketEntry {
     using Socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
     Threading::Mutex m_mutex;
+    boost::asio::io_service* m_ioService;
     boost::asio::ssl::context m_context;
     Socket m_socket;
     bool m_isOpen;
@@ -84,8 +88,9 @@ namespace Details {
     Threading::ConditionVariable m_isPendingCondition;
 
     template<typename... Args>
-    SecureSocketEntry(Args&&... args)
-        : m_context{boost::asio::ssl::context::sslv23},
+    SecureSocketEntry(boost::asio::io_service& ioService, Args&&... args)
+        : m_ioService(&ioService),
+          m_context{boost::asio::ssl::context::sslv23},
           m_socket{std::forward<Args>(args)..., m_context},
           m_isOpen{false},
           m_isReadPending{false},

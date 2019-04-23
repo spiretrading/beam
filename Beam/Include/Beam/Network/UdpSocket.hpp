@@ -126,8 +126,7 @@ namespace Network {
       return;
     }
     boost::system::error_code errorCode;
-    boost::asio::ip::udp::resolver resolver{
-      m_socket->m_socket.get_io_service()};
+    boost::asio::ip::udp::resolver resolver{*m_socket->m_ioService};
     boost::asio::ip::udp::resolver::query query{m_address.GetHost(),
       ToString(m_address.GetPort())};
     boost::asio::ip::udp::resolver::iterator end;
@@ -195,7 +194,8 @@ namespace Network {
     m_receiver.Reset();
     m_sender.Reset();
     m_socket = std::make_shared<Details::UdpSocketEntry>(
-      m_socketThreadPool->GetService(), boost::asio::ip::udp::v4());
+      m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+      boost::asio::ip::udp::v4());
     m_receiver.Initialize(m_socket);
     m_sender.Initialize(m_socket);
   }

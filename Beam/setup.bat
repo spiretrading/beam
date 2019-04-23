@@ -1,9 +1,6 @@
 @ECHO OFF
 SETLOCAL
 SET ROOT="%cd%"
-IF NOT EXIST Catch2-2.2.1 (
-  git clone --branch v2.2.1 https://github.com/catchorg/Catch2.git Catch2-2.2.1
-)
 IF NOT EXIST cppunit-1.14.0 (
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   IF EXIST cppunit-1.14.0.tar.gz (
@@ -12,33 +9,33 @@ IF NOT EXIST cppunit-1.14.0 (
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Release
     POPD
-    rm cppunit-1.14.0.tar.gz
+    DEL cppunit-1.14.0.tar.gz
   )
 )
 IF NOT EXIST cryptopp610 (
   wget http://www.cryptopp.com/cryptopp610.zip --no-check-certificate
   IF EXIST cryptopp610.zip (
-    mkdir cryptopp610
+    MD cryptopp610
     PUSHD cryptopp610
     unzip ..\cryptopp610.zip
     devenv /Upgrade cryptlib.vcproj
     cat cryptlib.vcproj | sed "s/WholeProgramOptimization=\"1\"/WholeProgramOptimization=\"0\"/" | sed "s/WholeProgramOptimization=\"true\"/WholeProgramOptimization=\"false\"/" > cryptlib.vcproj.new
-    mv cryptlib.vcproj.new cryptlib.vcproj
+    MOVE cryptlib.vcproj.new cryptlib.vcproj
     cat cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
-    mv cryptlib.vcxproj.new cryptlib.vcxproj
+    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     cat cryptlib.vcproj | sed "s/RuntimeLibrary=\"0\"/RuntimeLibrary=\"2\"/" | sed "s/RuntimeLibrary=\"1\"/RuntimeLibrary=\"3\"/" > cryptlib.vcproj.new
-    mv cryptlib.vcproj.new cryptlib.vcproj
+    MOVE cryptlib.vcproj.new cryptlib.vcproj
     cat cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
-    mv cryptlib.vcxproj.new cryptlib.vcxproj
+    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     devenv cryptlib.vcxproj /useenv /Build "Debug"
     devenv cryptlib.vcxproj /useenv /Build "Release"
-    mkdir include
+    MD include
     PUSHD include
-    mkdir cryptopp
-    cp ..\*.h cryptopp
+    MD cryptopp
+    COPY ..\*.h cryptopp
     POPD
     POPD
-    rm cryptopp610.zip
+    DEL cryptopp610.zip
   )
 )
 IF NOT EXIST lua-5.3.1 (
@@ -46,12 +43,12 @@ IF NOT EXIST lua-5.3.1 (
   IF EXIST lua-5.3.1.tar.gz (
     gzip -d -c lua-5.3.1.tar.gz | tar -xf -
     PUSHD lua-5.3.1\src
-    cp %~dp0\Config\lua.cmake CMakeLists.txt
-    cmake -G "Visual Studio 15 2017" .
+    COPY %~dp0\Config\lua.cmake CMakeLists.txt
+    cmake .
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
     POPD
-    rm lua-5.3.1.tar.gz
+    DEL lua-5.3.1.tar.gz
   )
 )
 IF NOT EXIST mariadb-connector-c-3.0.6-src (
@@ -62,20 +59,20 @@ IF NOT EXIST mariadb-connector-c-3.0.6-src (
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     cat mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
-    mv mariadbclient.vcxproj.new mariadbclient.vcxproj
+    MOVE mariadbclient.vcxproj.new mariadbclient.vcxproj
     POPD
     cmake --build . --target mariadbclient --config Debug
     cmake --build . --target mariadbclient --config Release
     PUSHD include
     printf "#include ""mariadb_version.h""" > mysql_version.h
-    echo. >> mysql_version.h
+    ECHO. >> mysql_version.h
     printf "#include ""WinSock2.h""" >> mysql_version.h
-    echo. >> mysql_version.h
+    ECHO. >> mysql_version.h
     printf "#define CLIENT_LONG_PASSWORD 1" >> mysql_version.h
-    echo. >> mysql_version.h
+    ECHO. >> mysql_version.h
     POPD
     POPD
-    rm -rf mariadb-connector-c-3.0.6-src.zip
+    DEL mariadb-connector-c-3.0.6-src.zip
   )
 )
 IF NOT EXIST mysql++-3.2.3 (
@@ -98,7 +95,7 @@ IF NOT EXIST openssl-1.0.2g (
     CALL .\ms\do_ms
     nmake -f .\ms\nt.mak
     POPD
-    rm openssl-1.0.2g.tar.gz
+    DEL openssl-1.0.2g.tar.gz
   )
 )
 IF NOT EXIST Python-3.7.2 (
@@ -110,9 +107,9 @@ IF NOT EXIST Python-3.7.2 (
     CALL build.bat -E -c Debug -p Win32
     CALL build.bat -E -c Release -p Win32
     POPD
-    cp PC\pyconfig.h Include
+    COPY PC\pyconfig.h Include
     POPD
-    rm Python-3.7.2.tgz
+    DEL Python-3.7.2.tgz
   )
 )
 IF NOT EXIST sqlite-amalgamation-3230100 (
@@ -122,33 +119,40 @@ IF NOT EXIST sqlite-amalgamation-3230100 (
     PUSHD sqlite-amalgamation-3230100
     cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
-    cp sqlite3.lib sqlite3d.lib
-    rm sqlite3.obj
+    COPY sqlite3.lib sqlite3d.lib
+    DEL sqlite3.obj
     cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     POPD
-    rm sqlite-amalgamation-3230100.zip
+    DEL sqlite-amalgamation-3230100.zip
   )
 )
 IF NOT EXIST tclap-1.2.1 (
   wget "http://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
   IF EXIST tclap-1.2.1.tar.gz (
     gzip -d -c tclap-1.2.1.tar.gz | tar -xf -
-    rm tclap-1.2.1.tar.gz
+    DEL tclap-1.2.1.tar.gz
   )
 )
+SET BUILD_VIPER=
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
+  SET BUILD_VIPER=1
 )
 SET viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
 PUSHD viper
-FOR /f "usebackq tokens=*" %%a IN (`git log -1 ^| head -1 ^| awk "{ print $2 }"`) DO SET commit=%%a
-IF NOT "%commit%" == "%viper_commit%" (
+git merge-base --is-ancestor "%viper_commit%" HEAD
+IF NOT "%ERRORLEVEL%" == "0" (
   git checkout master
   git pull
-  git checkout %viper_commit%
+  git checkout "%viper_commit%"
+  SET BUILD_VIPER=1
 )
-cmake -G "Visual Studio 15 2017" .
+IF "%BUILD_VIPER%" == "1" (
+  CALL run_cmake.bat "-DD=%ROOT%"
+  CALL build.bat Debug
+  CALL build.bat Release
+)
 POPD
 SET commit=
 IF NOT EXIST yaml-cpp (
@@ -156,9 +160,9 @@ IF NOT EXIST yaml-cpp (
   IF EXIST yaml-cpp (
     PUSHD yaml-cpp
     git checkout 0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79
-    mkdir build
+    MD build
     PUSHD build
-    cmake -G "Visual Studio 15 2017" ..
+    cmake ..
     cmake --build . --target ALL_BUILD --config Debug
     cmake --build . --target ALL_BUILD --config Release
     POPD
@@ -167,10 +171,10 @@ IF NOT EXIST yaml-cpp (
 )
 IF NOT EXIST zlib-1.2.11 (
   git clone --branch v1.2.11 https://github.com/madler/zlib.git zlib-1.2.11
-  if EXIST zlib-1.2.11 (
+  IF EXIST zlib-1.2.11 (
     PUSHD zlib-1.2.11\contrib\vstudio\vc14
     cat zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
-    mv zlibstat.vcxproj.new zlibstat.vcxproj
+    MOVE zlibstat.vcxproj.new zlibstat.vcxproj
     msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=Debug
     msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v141 /p:Configuration=ReleaseWithoutAsm
     POPD
@@ -178,27 +182,23 @@ IF NOT EXIST zlib-1.2.11 (
 )
 IF "%NUMBER_OF_PROCESSORS%" == "" (
   SET BJAM_PROCESSORS=
-) else (
+) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
 SET BJAM_ROOT="%ROOT:\=/%"
 SET BJAM_ROOT="%BJAM_ROOT::=\:%"
 SET BJAM_CONFIG=using python : 3.7 : %BJAM_ROOT%/Python-3.7.2 : %BJAM_ROOT%/Python-3.7.2/Include : %BJAM_ROOT%/Python-3.7.2/PCBuild/win32 ;
-IF NOT EXIST boost_1_67_0 (
-  wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.zip -O boost_1_67_0.zip --no-check-certificate
-  IF EXIST boost_1_67_0.zip (
-    unzip boost_1_67_0.zip
-    PUSHD boost_1_67_0
-    wget https://www.boost.org/patches/1_67_0/0003-Python-Fix-auto-linking-logic-Windows-only.patch --no-check-certificate
-    git apply 0003-Python-Fix-auto-linking-logic-Windows-only.patch
-    PUSHD tools\build\src
-    echo %BJAM_CONFIG% > user-config.jam
-    POPD
+IF NOT EXIST boost_1_70_0 (
+  wget https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.zip -O boost_1_70_0.zip --no-check-certificate
+  IF EXIST boost_1_70_0.zip (
+    unzip boost_1_70_0.zip
+    PUSHD boost_1_70_0
+    ECHO %BJAM_CONFIG% > tools\build\src\user-config.jam
     CALL bootstrap.bat vc141
-    b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static,shared runtime-link=shared install
-    b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_67_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_70_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static,shared runtime-link=shared install
+    b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_70_0" --build-type=complete address-model=32 toolset=msvc-14.1 link=static runtime-link=shared install
     POPD
-    rm boost_1_67_0.zip
+    DEL boost_1_70_0.zip
   )
 )
 ENDLOCAL

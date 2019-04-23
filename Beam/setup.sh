@@ -158,19 +158,19 @@ if [ ! -d "zlib-1.2.11" ]; then
     rm -f v1.2.11.zip
   fi
 fi
-if [ ! -d "boost_1_67_0" ]; then
-  wget https://dl.bintray.com/boostorg/release/1.67.0/source/boost_1_67_0.tar.gz -O boost_1_67_0.tar.gz --no-check-certificate
-  if [ -f boost_1_67_0.tar.gz ]; then
-    tar xvf boost_1_67_0.tar.gz
-    pushd boost_1_67_0
+if [ ! -d "boost_1_70_0" ]; then
+  wget https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.gz -O boost_1_70_0.tar.gz --no-check-certificate
+  if [ -f boost_1_70_0.tar.gz ]; then
+    tar xvf boost_1_70_0.tar.gz
+    pushd boost_1_70_0
     pushd tools/build/src
     printf "using python : 3.7 : $root/Python-3.7.2 : $root/Python-3.7.2/include/python3.7m : $root/Python-3.7.2 ;\n" > user-config.jam
     popd
     export BOOST_BUILD_PATH=$(pwd)
     ./bootstrap.sh
-    ./b2 -j$cores --prefix="$root/boost_1_67_0" cxxflags="-std=c++17 -fPIC" install
+    ./b2 -j$cores --prefix="$root/boost_1_70_0" cxxflags="-std=c++17 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
-    rm boost_1_67_0.tar.gz
+    rm boost_1_70_0.tar.gz
   fi
 fi

@@ -5,7 +5,7 @@ if [ "$2" = "" ]
 then
   config="install"
 else
-  config=$2
+  config="$2"
 fi
 let cores="`grep -c "processor" < /proc/cpuinfo` / 2 + 1"
 let mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 8388608"

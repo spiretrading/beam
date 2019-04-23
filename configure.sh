@@ -5,11 +5,11 @@ while [ -h "$source" ]; do
   source="$(readlink "$source")"
   [[ $source != /* ]] && source="$dir/$source"
 done
-directory="$(cd -P "$(dirname "$source" )" >/dev/null 2>&1 && pwd)"
+directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
-if [ ! -f "run_cmake.sh" ]; then
-  printf "$directory/run_cmake.sh \"\$@\"" > run_cmake.sh
-  chmod +x run_cmake.sh
+if [ ! -f "configure.sh" ]; then
+  printf "$directory/configure.sh \"\$@\"" > configure.sh
+  chmod +x configure.sh
 fi
 if [ ! -f "build.sh" ]; then
   printf "$directory/build.sh \"\$@\"" > build.sh
@@ -33,10 +33,10 @@ for i in $targets; do
     mkdir -p "$i"
   fi
   pushd "$i"
-  if [ ! -f "run_cmake.sh" ]; then
-    printf "$directory/$i/run_cmake.sh \"\$@\"" > run_cmake.sh
-    chmod +x run_cmake.sh
+  if [ ! -f "configure.sh" ]; then
+    printf "$directory/$i/configure.sh \"\$@\"" > configure.sh
+    chmod +x configure.sh
   fi
-  $directory/$i/run_cmake.sh -DD="$root/Dependencies" "$@"
+  "$directory/$i/configure.sh" -DD="$root/Dependencies" "$@"
   popd
 done

@@ -5,5 +5,9 @@ while [ -h "$source" ]; do
   source="$(readlink "$source")"
   [[ $source != /* ]] && source="$dir/$source"
 done
-directory="$(cd -P "$(dirname "$source" )" >/dev/null 2>&1 && pwd)"
-cmake "$@" $directory
+directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
+if [ ! -f "build.bat" ]; then
+  echo "\"$directory"/build.sh\" '"$@"' > build.sh
+  chmod +x build.sh
+fi
+cmake $directory "$@"

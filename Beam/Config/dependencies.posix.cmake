@@ -1,8 +1,8 @@
 set(BEAM_INCLUDE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Include")
 set(BEAM_SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Source")
-set(BOOST_INCLUDE_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/include/")
-set(BOOST_DEBUG_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/lib")
-set(BOOST_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/boost_1_67_0/lib")
+set(BOOST_INCLUDE_PATH "${DEPENDENCIES_PATH}/boost_1_70_0/include/")
+set(BOOST_DEBUG_PATH "${DEPENDENCIES_PATH}/boost_1_70_0/lib")
+set(BOOST_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/boost_1_70_0/lib")
 set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
 set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")
@@ -33,9 +33,12 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/cryptopp565/lib/libcryptopp.a")
 set(LUA_INCLUDE_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/include")
-set(LUA_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
-set(LUA_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
-set(MYSQL_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/include")
+set(LUA_LIBRARY_DEBUG_PATH
+  "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
+set(LUA_LIBRARY_OPTIMIZED_PATH
+  "${DEPENDENCIES_PATH}/lua-5.3.1/install/lib/liblua.a")
+set(MYSQL_INCLUDE_PATH
+  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
@@ -54,8 +57,10 @@ set(OPEN_SSL_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/libssl.a")
 set(PYTHON_INCLUDE_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/include/python3.7m")
-set(PYTHON_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
-set(PYTHON_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
+set(PYTHON_LIBRARY_DEBUG_PATH
+  "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
+set(PYTHON_LIBRARY_OPTIMIZED_PATH
+  "${DEPENDENCIES_PATH}/Python-3.7.2/lib/libpython3.7m.a")
 set(SQLITE_INCLUDE_PATH "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100")
 set(SQLITE_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/sqlite-amalgamation-3230100/sqlite3.lib")
@@ -64,7 +69,8 @@ set(SQLITE_LIBRARY_OPTIMIZED_PATH
 set(TCLAP_INCLUDE_PATH "${DEPENDENCIES_PATH}/tclap-1.2.1/include")
 set(VIPER_INCLUDE_PATH "${DEPENDENCIES_PATH}/viper/Include")
 set(YAML_INCLUDE_PATH "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/include")
-set(YAML_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/build/libyaml-cpp.a")
+set(YAML_LIBRARY_DEBUG_PATH
+  "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/build/libyaml-cpp.a")
 set(YAML_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/yaml-cpp-0.6.2/build/libyaml-cpp.a")
 set(ZLIB_INCLUDE_PATH "${DEPENDENCIES_PATH}/zlib-1.2.11/include")

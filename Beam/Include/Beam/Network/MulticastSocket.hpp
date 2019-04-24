@@ -223,7 +223,8 @@ namespace Network {
     m_receiver.Reset();
     m_sender.Reset();
     m_socket = std::make_shared<Details::UdpSocketEntry>(
-      m_socketThreadPool->GetService(), boost::asio::ip::udp::v4());
+      m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+      boost::asio::ip::udp::v4());
     m_receiver.Initialize(m_socket);
     m_sender.Initialize(m_socket);
   }

@@ -1,7 +1,6 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-echo $root
 if [ ! -d "cppunit-1.14.0" ]; then
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   if [ -f cppunit-1.14.0.tar.gz ]; then

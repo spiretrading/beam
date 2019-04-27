@@ -28,9 +28,6 @@ IF NOT EXIST "%~1" (
   MD "%~1"
 )
 PUSHD "%~1"
-IF NOT EXIST configure.bat (
-  ECHO CALL "%~dp0%~1\configure.bat" %%* > configure.bat
-)
 CALL "%~dp0%~1\configure.bat" -DD="%ROOT%\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
 POPD
 EXIT /B 0

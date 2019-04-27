@@ -8,6 +8,7 @@ IF NOT EXIST build.bat (
   ECHO CALL "%~dp0build.bat" %%* > build.bat
 )
 CALL:configure Beam %*
+CALL:configure WebApi %*
 CALL:configure Applications\AdminClient %*
 CALL:configure Applications\ClientTemplate %*
 CALL:configure Applications\DataStoreProfiler %*

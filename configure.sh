@@ -8,14 +8,13 @@ done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
 if [ ! -f "configure.sh" ]; then
-  printf "$directory/configure.sh \"\$@\"" > configure.sh
-  chmod +x configure.sh
+  ln -s "$directory/configure.sh" configure.sh
 fi
 if [ ! -f "build.sh" ]; then
-  printf "$directory/build.sh \"\$@\"" > build.sh
-  chmod +x build.sh
+  ln -s "$directory/build.sh" build.sh
 fi
 targets="Beam"
+targets+=" WebApi"
 targets+=" Applications/AdminClient"
 targets+=" Applications/ClientTemplate"
 targets+=" Applications/DataStoreProfiler"
@@ -33,10 +32,6 @@ for i in $targets; do
     mkdir -p "$i"
   fi
   pushd "$i"
-  if [ ! -f "configure.sh" ]; then
-    printf "$directory/$i/configure.sh \"\$@\"" > configure.sh
-    chmod +x configure.sh
-  fi
   "$directory/$i/configure.sh" -DD="$root/Dependencies" "$@"
   popd
 done

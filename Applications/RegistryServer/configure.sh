@@ -6,8 +6,10 @@ while [ -h "$source" ]; do
   [[ $source != /* ]] && source="$dir/$source"
 done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
-if [ ! -f "build.bat" ]; then
-  echo "\"$directory"/build.sh\" '"$@"' > build.sh
-  chmod +x build.sh
+if [ ! -f "build.sh" ]; then
+  ln -s "$directory/build.sh" build.sh
+fi
+if [ ! -f "configure.sh" ]; then
+  ln -s "$directory/configure.sh" configure.sh
 fi
 cmake $directory "$@"

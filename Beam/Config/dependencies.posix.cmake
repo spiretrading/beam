@@ -40,9 +40,9 @@ set(LUA_LIBRARY_OPTIMIZED_PATH
 set(MYSQL_INCLUDE_PATH
   "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
+  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.so")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
+  "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.so")
 set(MYSQLPP_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql++-3.2.3/include")
 set(MYSQLPP_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")

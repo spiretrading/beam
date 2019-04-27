@@ -20,7 +20,8 @@ export -f build_function
 export directory
 
 build_function "Beam"
-targets+="Applications/AdminClient"
+targets="WebApi"
+targets+=" Applications/AdminClient"
 targets+=" Applications/ClientTemplate"
 targets+=" Applications/DataStoreProfiler"
 targets+=" Applications/HttpFileServer"
@@ -37,13 +38,3 @@ let mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 419430
 let jobs="$(($cores<$mem?$cores:$mem))"
 
 parallel -j$jobs --no-notice build_function ::: $targets
-
-if [ ! -d "WebApi" ]; then
-  mkdir "WebApi"
-fi
-if [ "$root" != "$directory" ]; then
-  cp -r "$directory/WebApi" .
-fi
-pushd "WebApi"
-./build.sh "$@"
-popd

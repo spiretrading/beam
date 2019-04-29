@@ -22,15 +22,7 @@ if [ "$1" = "reset" ]; then
   rm mod_time.txt
   rm -rf node_modules
   rm package-lock.json
-  if [ "$directory" != "$root" ]; then
-    rm package.json
-    rm tsconfig.json
-  fi
   exit 0
-fi
-if [ "$directory" != "$root" ]; then
-  cp -f "$directory/package.json" .
-  cp -f "$directory/tsconfig.json" .
 fi
 if [ ! -d "node_modules" ]; then
   UPDATE_NODE=1

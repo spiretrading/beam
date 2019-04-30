@@ -5,7 +5,7 @@ SET UPDATE_NODE=
 SET UPDATE_BUILD=
 IF "%1" == "clean" (
   IF EXIST library (
-    RMDIR /s /q library
+    RMDIR /q /s library
   )
   IF EXIST mod_time.txt (
     DEL mod_time.txt
@@ -14,13 +14,13 @@ IF "%1" == "clean" (
 )
 IF "%1" == "reset" (
   IF EXIST library (
-    RMDIR /s /q library
+    RMDIR /q /s library
   )
   IF EXIST mod_time.txt (
     DEL mod_time.txt
   )
   IF EXIST node_modules (
-    RMDIR /s /q node_modules
+    RMDIR /q /s node_modules
   )
   IF EXIST package-lock.json (
     DEL package-lock.json

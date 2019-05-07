@@ -1,6 +1,21 @@
 @ECHO OFF
 SETLOCAL
 SET ROOT="%cd%"
+SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+FOR /f "usebackq delims=" %%i IN (`%VSWHERE% -prerelease -latest -property installationPath`) DO (
+  IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
+    CALL "%%i\Common7\Tools\vsdevcmd.bat"
+  )
+)
+IF NOT EXIST Strawberry (
+  wget http://strawberryperl.com/download/5.28.2.1/strawberry-perl-5.28.2.1-64bit-portable.zip -O strawberry-perl-5.28.2.1-64bit-portable.zip --no-check-certificate
+  MD Strawberry
+  PUSHD Strawberry
+  unzip ..\strawberry-perl-5.28.2.1-64bit-portable.zip
+  POPD
+  DEL strawberry-perl-5.28.2.1-64bit-portable.zip
+)
+SET PATH=%PATH%;%ROOT%\Strawberry\perl\site\bin;%ROOT%\Strawberry\perl\bin;%ROOT%\Strawberry\c\bin
 IF NOT EXIST cppunit-1.14.0 (
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   IF EXIST cppunit-1.14.0.tar.gz (

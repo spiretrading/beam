@@ -112,21 +112,17 @@ if [ ! -d "tclap-1.2.1" ]; then
     rm -f tclap-1.2.1.tar.gz
   fi
 fi
+viper_commit="82277dd187f0f3e928b3bc6a296d9507a651029f"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/eidolonsystems/viper
 fi
-if [ -d "viper" ]; then
-  viper_commit="0631eff5a0a36d77bc45da1b0118dd49ea22953b"
-  pushd viper
-  commit="`git log -1 | head -1 | awk '{ print $2 }'`"
-  if [ "$commit" != "$viper_commit" ]; then
-    git checkout master
-    git pull
-    git checkout "$viper_commit"
-  fi
-  cmake -G "Unix Makefiles"
-  popd
+pushd viper
+if ! git merge-base --is-ancestor "$viper_commit" HEAD; then
+  git checkout master
+  git pull
+  git checkout "$viper_commit"
 fi
+popd
 if [ ! -d "yaml-cpp-0.6.2" ]; then
   git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp-0.6.2
   if [ -d "yaml-cpp-0.6.2" ]; then

@@ -1,26 +1,24 @@
-#ifndef BEAM_UIDSERVLET_HPP
-#define BEAM_UIDSERVLET_HPP
+#ifndef BEAM_UID_SERVLET_HPP
+#define BEAM_UID_SERVLET_HPP
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/UidService/UidServices.hpp"
 
-namespace Beam {
-namespace UidService {
+namespace Beam::UidService {
 
-  /*! \class UidServlet
-      \brief Provides unique ids to clients.
+  /** Provides unique ids to clients.
       \tparam ContainerType The container instantiating this servlet.
       \tparam UidDataStoreType The type of data store to use.
    */
   template<typename ContainerType, typename UidDataStoreType>
   class UidServlet : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
       //! The type of UidDataStore used.
-      typedef typename TryDereferenceType<UidDataStoreType>::type UidDataStore;
+      using UidDataStore = GetTryDereferenceType<UidDataStoreType>;
 
       //! Constructs a UidServlet.
       /*!
@@ -37,7 +35,7 @@ namespace UidService {
       void Close();
 
     private:
-      typename OptionalLocalPtr<UidDataStoreType>::type m_dataStore;
+      GetOptionalLocalPtr<UidDataStoreType> m_dataStore;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -51,7 +49,7 @@ namespace UidService {
     using Session = NullType;
     template<typename ContainerType>
     struct apply {
-      typedef UidServlet<ContainerType, UidDataStoreType> type;
+      using type = UidServlet<ContainerType, UidDataStoreType>;
     };
   };
 
@@ -102,14 +100,13 @@ namespace UidService {
   std::uint64_t UidServlet<ContainerType, UidDataStoreType>::
       OnReserveUidsRequest(ServiceProtocolClient& client,
       std::uint64_t blockSize) {
-    std::uint64_t uid;
+    auto uid = std::uint64_t();
     m_dataStore->WithTransaction(
       [&] {
-        uid = this->m_dataStore->Reserve(blockSize);
+        uid = m_dataStore->Reserve(blockSize);
       });
     return uid;
   }
-}
 }
 
 #endif

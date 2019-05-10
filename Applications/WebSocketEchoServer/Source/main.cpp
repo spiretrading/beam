@@ -34,19 +34,19 @@ namespace {
 
   void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
     m_interface = Extract<IpAddress>(config, "interface");
-    vector<IpAddress> addresses;
+    auto addresses = vector<IpAddress>();
     addresses.push_back(m_interface);
     m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
   }
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  auto configFile = string();
   try {
-    CmdLine cmd{"", ' ', "0.9-r" WEB_SOCKET_ECHO_SERVER_VERSION
-      "\nCopyright (C) 2017 Eidolon Systems Ltd."};
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto cmd = CmdLine("", ' ', "0.9-r" WEB_SOCKET_ECHO_SERVER_VERSION
+      "\nCopyright (C) 2017 Eidolon Systems Ltd.");
+    auto configArg = ValueArg<string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
@@ -55,17 +55,17 @@ int main(int argc, const char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  ServerConnectionInitializer serverConnectionInitializer;
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
   } catch(const std::exception& e) {
     cerr << "Error parsing section 'server': " << e.what() << endl;
     return -1;
   }
-  WebSocketEchoServletContainer server{Initialize(),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool))};
+  auto server = WebSocketEchoServletContainer(Initialize(),
+    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
   try {
     server.Open();
   } catch(const std::exception& e) {

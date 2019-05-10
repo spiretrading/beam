@@ -74,14 +74,7 @@ namespace Beam::UidService {
   void SqlUidDataStore<C>::WithTransaction(
       const std::function<void ()>& transaction) {
     auto lock = std::lock_guard(m_mutex);
-    m_connection->execute(Viper::start_transaction());
-    try {
-      transaction();
-    } catch(...) {
-      m_connection->execute(Viper::rollback());
-      throw;
-    }
-    m_connection->execute(Viper::commit());
+    Viper::transaction(*m_connection, transaction);
   }
 
   template<typename C>
@@ -93,7 +86,9 @@ namespace Beam::UidService {
       m_connection->open();
       if(!m_connection->has_table("next_uid")) {
         m_connection->execute(Viper::create(GetNextUidRow(), "next_uid"));
-        m_connection->execute(Viper::insert(GetNextUidRow(), "next_uid", 1));
+        auto firstUid = 1;
+        m_connection->execute(Viper::insert(GetNextUidRow(), "next_uid",
+          &firstUid));
       }
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();

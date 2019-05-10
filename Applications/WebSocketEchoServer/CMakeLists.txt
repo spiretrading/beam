@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
+project(WebSocketEchoServer)
 execute_process(COMMAND "pwd" OUTPUT_VARIABLE PWD)
 string(STRIP "${PWD}" PWD)
 file(TO_CMAKE_PATH "${PWD}" PWD)

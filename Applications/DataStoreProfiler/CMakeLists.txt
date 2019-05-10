@@ -11,7 +11,6 @@ include_directories(${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
 include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
 include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
-include_directories(SYSTEM ${MYSQLPP_INCLUDE_PATH})
 include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
 include_directories(SYSTEM ${TCLAP_INCLUDE_PATH})
 include_directories(SYSTEM ${VIPER_INCLUDE_PATH})
@@ -61,8 +60,6 @@ set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(DataStoreProfiler
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
-  debug ${MYSQLPP_LIBRARY_DEBUG_PATH}
-  optimized ${MYSQLPP_LIBRARY_OPTIMIZED_PATH}
   debug ${MYSQL_LIBRARY_DEBUG_PATH}
   optimized ${MYSQL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}

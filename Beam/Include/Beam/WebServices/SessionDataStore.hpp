@@ -1,12 +1,11 @@
-#ifndef BEAM_SESSION_DATA_STORE_HPP
+#ifndef BEAM_SES77SION_DATA_STORE_HPP
 #define BEAM_SESSION_DATA_STORE_HPP
 #include <memory>
 #include "Beam/Utilities/Concept.hpp"
 #include "Beam/WebServices/Session.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam {
-namespace WebServices {
+namespace Beam::WebServices {
 
   /*! \class SessionDataStore
       \brief Used to store persistent Sessions.
@@ -19,22 +18,22 @@ namespace WebServices {
       \return The session with the specified <i>id</i> or <code>nullptr</code>
               if no such existing session exists.
      */
-    template<typename SessionType>
-    std::unique_ptr<SessionType> Load(const std::string& id);
+    template<typename Session>
+    std::unique_ptr<Session> Load(const std::string& id);
 
     //! Stores a session.
     /*!
       \param session The session to store.
     */
-    template<typename SessionType>
-    void Store(const SessionType& session);
+    template<typename Session>
+    void Store(const Session& session);
 
     //! Deletes a session.
     /*!
       \param session The session to delete.
     */
-    template<typename SessionType>
-    void Delete(const SessionType& session);
+    template<typename Session>
+    void Delete(const Session& session);
 
     //! Executes a transactional query.
     /*!
@@ -48,7 +47,6 @@ namespace WebServices {
 
     void Close();
   };
-}
 }
 
 #endif

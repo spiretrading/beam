@@ -144,30 +144,33 @@ namespace Beam::ServiceLocator {
     return children;
   }
 
-/** TODO
-  inline DirectoryEntry MySqlServiceLocatorDataStore::LoadDirectoryEntry(
+  template<typename C>
+  DirectoryEntry SqlServiceLocatorDataStore<C>::LoadDirectoryEntry(
       unsigned int id) {
-    auto query = m_databaseConnection.query();
-    query << "SELECT type, id, name FROM "
-      "(SELECT " << DirectoryEntry::Type::ACCOUNT << " AS type, id, name "
-      "FROM accounts UNION ALL SELECT " << DirectoryEntry::Type::DIRECTORY <<
-      " AS type, id, name FROM directories) AS directory_entries WHERE id = " <<
-      id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    auto entry = std::optional<DirectoryEntry>();
+    try {
+      m_connection->execute(Viper::select(GetDirectoryEntryRow(), "accounts",
+        Viper::sym("id") == id, &entry));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    if(result.empty()) {
-      BOOST_THROW_EXCEPTION(
-        ServiceLocatorDataStoreException{"Directory entry not found."});
+    if(entry) {
+      entry->m_type == DirectoryEntry::Type::ACCOUNT;
+      return std::move(*entry);
     }
-    assert(result.size() == 1);
-    DirectoryEntry entry{static_cast<DirectoryEntry::Type>(
-      static_cast<int>(result[0][0])), static_cast<unsigned int>(result[0][1]),
-      result[0][2].c_str()};
-    return entry;
+    try {
+      m_connection->execute(Viper::select(GetDirectoryEntryRow(), "directories",
+        Viper::sym("id") == id, &entry));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
+    }
+    if(entry) {
+      entry->m_type == DirectoryEntry::Type::DIRECTORY;
+      return std::move(*entry);
+    }
+    BOOST_THROW_EXCEPTION(
+      ServiceLocatorDataStoreException("Directory entry not found."));
   }
-*/
 
   template<typename C>
   std::vector<DirectoryEntry> SqlServiceLocatorDataStore<C>::LoadAllAccounts() {

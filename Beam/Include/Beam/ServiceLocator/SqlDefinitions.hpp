@@ -120,7 +120,8 @@ namespace Beam::ServiceLocator {
     static auto ROW = Viper::Row<PermissionsRow>().
       add_column("source", &PermissionsRow::m_source).
       add_column("target", &PermissionsRow::m_target).
-      add_column("permission", &PermissionsRow::m_permission);
+      add_column("permission", &PermissionsRow::m_permission).
+      set_primary_key({"source", "target"});
     return ROW;
   }
 }

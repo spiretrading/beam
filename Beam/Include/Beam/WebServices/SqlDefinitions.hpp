@@ -34,7 +34,8 @@ namespace Beam::WebServices {
         },
         [] (auto& row, const auto& column) {
           row.m_session = IO::SharedBuffer(column.data(), column.size());
-        });
+        }).
+      set_primary_key("id");
     return ROW;
   }
 

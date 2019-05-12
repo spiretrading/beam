@@ -55,7 +55,7 @@ namespace {
     m_serviceName = Extract<string>(config, "service",
       UidService::SERVICE_NAME);
     m_interface = Extract<IpAddress>(config, "interface");
-    vector<IpAddress> addresses;
+    auto addresses = vector<IpAddress>();
     addresses.push_back(m_interface);
     m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
   }

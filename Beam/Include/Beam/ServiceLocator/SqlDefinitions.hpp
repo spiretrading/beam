@@ -35,11 +35,11 @@ namespace Beam::ServiceLocator {
   inline const auto& GetAccountsRow() {
     static auto ROW = Viper::Row<AccountsRow>().
       add_column("id",
-        [] (auto& row) -> decltype(auto) {
+        [] (auto& row) -> auto& {
           return row.m_entry.m_id;
         }).
       add_column("name", Viper::varchar(100),
-        [] (auto& row) -> decltype(auto) {
+        [] (auto& row) -> auto& {
           return row.m_entry.m_name;
         }).
       add_column("password", Viper::varchar(100), &AccountsRow::m_password).
@@ -85,7 +85,7 @@ namespace Beam::ServiceLocator {
   }
 
   //! Stores an SQL childrens row.
-  struct ChildrensRow {
+  struct ChildrenRow {
 
     //! The entry to lookup.
     unsigned int m_entry;
@@ -95,10 +95,10 @@ namespace Beam::ServiceLocator {
   };
 
   //! Returns a row representing a child entry.
-  inline const auto& GetChildrensRow() {
-    static auto ROW = Viper::Row<ChildrensRow>().
-      add_column("entry", &ChildrensRow::m_entry).
-      add_column("child", &ChildrensRow::m_child);
+  inline const auto& GetChildrenRow() {
+    static auto ROW = Viper::Row<ChildrenRow>().
+      add_column("entry", &ChildrenRow::m_entry).
+      add_column("child", &ChildrenRow::m_child);
     return ROW;
   }
 

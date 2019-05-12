@@ -342,8 +342,8 @@ namespace Beam::ServiceLocator {
       auto parentsRow = ParentsRow{entry.m_id, parent.m_id};
       m_connection->execute(Viper::insert(GetParentsRow(), "parents",
         &parentsRow));
-      auto childrensRow = ChildrensRow{parent.m_id, entry.m_id};
-      m_connection->execute(Viper::insert(GetChildrensRow(), "children",
+      auto childrensRow = ChildrenRow{parent.m_id, entry.m_id};
+      m_connection->execute(Viper::insert(GetChildrenRow(), "children",
         &childrensRow));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
@@ -399,8 +399,8 @@ namespace Beam::ServiceLocator {
         "Account not found."));
     }
     try {
-      m_connection->execute(Viper::update("accounts",
-        {Viper::sym("password"), password}, Viper::sym("id") == account.m_id));
+      m_connection->execute(Viper::update("accounts", {"password", password},
+        Viper::sym("id") == account.m_id));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }

@@ -55,6 +55,20 @@ namespace Viper {
   template<>
   inline const auto native_to_data_type_v<boost::posix_time::ptime> =
     DateTimeDataType();
+
+  template<>
+  struct ToSql<boost::posix_time::ptime> {
+    void operator ()(boost::posix_time::ptime value,
+        std::string& column) const {
+    }
+  };
+
+  template<>
+  struct FromSql<boost::posix_time::ptime> {
+    auto operator ()(const RawColumn& column) const {
+      return boost::posix_time::ptime();
+    }
+  };
 }
 
 #endif

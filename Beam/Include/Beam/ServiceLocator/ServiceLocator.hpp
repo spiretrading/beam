@@ -12,7 +12,6 @@ namespace ServiceLocator {
   template<typename DataStoreType> class CachedServiceLocatorDataStore;
   struct DirectoryEntry;
   class LocalServiceLocatorDataStore;
-  class MySqlServiceLocatorDataStore;
   class NotLoggedInException;
   class NullAuthenticator;
   class ServiceEntry;
@@ -24,6 +23,7 @@ namespace ServiceLocator {
   template<typename ContainerType, typename ServiceLocatorDataStoreType>
     class ServiceLocatorServlet;
   template<typename ServiceLocatorClientType> class SessionAuthenticator;
+  template<typename C> class SqlServiceLocatorDataStore;
   class VirtualServiceLocatorClient;
   template<typename ClientType> class WrapperServiceLocatorClient;
 }

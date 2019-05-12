@@ -61,12 +61,6 @@ namespace Network {
       //! Returns the port.
       unsigned short GetPort() const;
 
-      //! Swaps with another IpAddress.
-      /*!
-        \param address The IpAddress to swap with.
-      */
-      void Swap(IpAddress& address);
-
     private:
       std::string m_host;
       unsigned short m_port;
@@ -120,11 +114,6 @@ namespace Network {
   inline unsigned short IpAddress::GetPort() const {
     return m_port;
   }
-
-  inline void IpAddress::Swap(IpAddress& address) {
-    m_host.swap(address.m_host);
-    std::swap(m_port, address.m_port);
-  }
 }
 
   template<>
@@ -141,13 +130,6 @@ namespace Network {
     auto host = source.substr(0, colonPosition);
     auto port = Convert<unsigned short>(source.substr(colonPosition + 1));
     return {host, port};
-  }
-}
-
-namespace std {
-  template<>
-  inline void swap(Beam::Network::IpAddress& a, Beam::Network::IpAddress& b) {
-    a.Swap(b);
   }
 }
 

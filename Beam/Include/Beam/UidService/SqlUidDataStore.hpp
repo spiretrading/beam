@@ -65,7 +65,7 @@ namespace Beam::UidService {
   template<typename C>
   std::uint64_t SqlUidDataStore<C>::Reserve(std::uint64_t size) {
     auto nextUid = GetNextUid();
-    m_connection->execute(Viper::update(GetNextUidRow(), "next_uid",
+    m_connection->execute(Viper::update("next_uid",
       {"uid", Viper::literal(nextUid + size)}));
     return nextUid;
   }

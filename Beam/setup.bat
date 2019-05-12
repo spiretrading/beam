@@ -90,17 +90,6 @@ IF NOT EXIST mariadb-connector-c-3.0.6-src (
     DEL mariadb-connector-c-3.0.6-src.zip
   )
 )
-IF NOT EXIST mysql++-3.2.3 (
-  git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
-  IF EXIST mysql++-3.2.3 (
-    PUSHD mysql++-3.2.3\vc2005
-    SET CL=/I"%ROOT%\mariadb-connector-c-3.0.6-src\include"
-    devenv mysql++_mysqlpp.vcxproj /useenv /Build Debug
-    devenv mysql++_mysqlpp.vcxproj /useenv /Build Release
-    SET CL=
-    POPD
-  )
-)
 IF NOT EXIST openssl-1.0.2g (
   wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz --no-check-certificate
   IF EXIST openssl-1.0.2g.tar.gz (

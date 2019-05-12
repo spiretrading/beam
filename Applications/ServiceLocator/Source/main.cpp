@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include <tclap/CmdLine.h>
+#include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -10,8 +10,8 @@
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/CachedServiceLocatorDataStore.hpp"
-#include "Beam/ServiceLocator/MySqlServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
+#include "Beam/ServiceLocator/SqlServiceLocatorDataStore.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
@@ -32,11 +32,12 @@ using namespace boost;
 using namespace boost::posix_time;
 using namespace std;
 using namespace TCLAP;
+using namespace Viper;
 
 namespace {
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
     MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
-    MySqlServiceLocatorDataStore*>>, TcpServerSocket,
+    SqlServiceLocatorDataStore<MySql::Connection>*>>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 
   struct ServerConnectionInitializer {
@@ -48,19 +49,19 @@ namespace {
 
   void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
     m_interface = Extract<IpAddress>(config, "interface");
-    vector<IpAddress> addresses;
+    auto addresses = vector<IpAddress>();
     addresses.push_back(m_interface);
     m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
   }
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  auto configFile = string();
   try {
-    CmdLine cmd{"", ' ', "1.0-r" SERVICE_LOCATOR_VERSION
-      "\nCopyright (C) 2009 Eidolon Systems Ltd."};
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto cmd = CmdLine("", ' ', "1.0-r" SERVICE_LOCATOR_VERSION
+      "\nCopyright (C) 2009 Eidolon Systems Ltd.");
+    auto configArg = ValueArg<string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
@@ -69,28 +70,30 @@ int main(int argc, const char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  MySqlConfig mySqlConfig;
+  auto mySqlConfig = MySqlConfig();
   try {
     mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));
   } catch(const std::exception& e) {
     cerr << "Error parsing section 'data_store': " << e.what() << endl;
     return -1;
   }
-  ServerConnectionInitializer serverConnectionInitializer;
+  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
   } catch(const std::exception& e) {
     cerr << "Error parsing section 'server': " << e.what() << endl;
     return -1;
   }
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  MySqlServiceLocatorDataStore mysqlDataStore{mySqlConfig.m_address,
-    mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password};
-  ServiceLocatorServletContainer server(Initialize(Initialize(&mysqlDataStore)),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
-    std::bind(factory<std::shared_ptr<LiveTimer>>{}, seconds{10},
-    Ref(timerThreadPool)));
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto mySqlConnection = std::make_unique<MySql::Connection>(
+    mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
+    mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+  auto mysqlDataStore = SqlServiceLocatorDataStore(std::move(mySqlConnection));
+  auto server = ServiceLocatorServletContainer(Initialize(Initialize(
+    &mysqlDataStore)), Initialize(serverConnectionInitializer.m_interface,
+    Ref(socketThreadPool)), std::bind(factory<std::shared_ptr<LiveTimer>>(),
+    seconds{10}, Ref(timerThreadPool)));
   try {
     server.Open();
   } catch(const std::exception& e) {

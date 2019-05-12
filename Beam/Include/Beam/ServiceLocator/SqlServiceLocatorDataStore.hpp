@@ -116,7 +116,7 @@ namespace Beam::ServiceLocator {
     auto parentIds = std::vector<unsigned int>();
     try {
       m_connection->execute(Viper::select({"parent"}, "parents",
-        Viper::sym("entry") == entry.m_id, std::back_inserter(parentIds));
+        Viper::sym("entry") == entry.m_id, std::back_inserter(parentIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -133,7 +133,7 @@ namespace Beam::ServiceLocator {
     auto childIds = std::vector<unsigned int>();
     try {
       m_connection->execute(Viper::select({"child"}, "children",
-        Viper::sym("entry") == entry.m_id, std::back_inserter(childIds));
+        Viper::sym("entry") == entry.m_id, std::back_inserter(childIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -144,6 +144,7 @@ namespace Beam::ServiceLocator {
     return children;
   }
 
+/** TODO
   inline DirectoryEntry MySqlServiceLocatorDataStore::LoadDirectoryEntry(
       unsigned int id) {
     auto query = m_databaseConnection.query();
@@ -166,6 +167,7 @@ namespace Beam::ServiceLocator {
       result[0][2].c_str()};
     return entry;
   }
+*/
 
   template<typename C>
   std::vector<DirectoryEntry> SqlServiceLocatorDataStore<C>::LoadAllAccounts() {
@@ -402,172 +404,148 @@ namespace Beam::ServiceLocator {
   template<typename C>
   Permissions SqlServiceLocatorDataStore<C>::LoadPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
-    auto query = m_databaseConnection.query();
-    query << "SELECT permission FROM permissions WHERE source = " <<
-      source.m_id << " AND target = " << target.m_id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    try {
+      auto permission = std::optional<unsigned int>();
+      m_connection->execute(Viper::select("permission", "permissions",
+        Viper::sym("source") == source.m_id && Viper::sym("target") ==
+        target.m_id, &permission));
+      if(!permission) {
+        return Permission::NONE;
+      }
+      return Permissions::FromRepresentation(*permission);
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    if(result.empty()) {
-      return Permission::NONE;
-    }
-    return Permissions::FromRepresentation(result[0][0].conv<int>(0));
   }
 
-  inline std::vector<std::tuple<DirectoryEntry, Permissions>>
-      MySqlServiceLocatorDataStore::LoadAllPermissions(
+  template<typename C>
+  std::vector<std::tuple<DirectoryEntry, Permissions>>
+      SqlServiceLocatorDataStore<C>::LoadAllPermissions(
       const DirectoryEntry& account) {
-    std::vector<std::tuple<DirectoryEntry, Permissions>> permissions;
-    auto query = m_databaseConnection.query();
-    query << "SELECT * FROM permissions WHERE source = " << account.m_id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    auto rows = std::vector<PermissionsRow>();
+    try {
+      m_connection->execute(Viper::select(GetPermissionsRow(), "permissions",
+        Viper::sym("source") == account.m_id, std::back_inserter(rows)));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    for(mysqlpp::StoreQueryResult::const_iterator i = result.begin();
-        i != result.end(); ++i) {
-      permissions.emplace_back(LoadDirectoryEntry(static_cast<int>((*i)[1])),
-        Permissions::FromRepresentation((*i)[2].conv<int>(0)));
+    auto permissions = std::vector<std::tuple<DirectoryEntry, Permissions>>();
+    for(auto& row : rows) {
+      permissions.emplace_back(LoadDirectoryEntry(row.m_target),
+        Permissions::FromRepresentation(row.m_permission));
     }
     return permissions;
   }
 
-  inline void MySqlServiceLocatorDataStore::SetPermissions(
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::SetPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
-    auto query = m_databaseConnection.query();
-    query << "SELECT * FROM permissions WHERE source = " << source.m_id <<
-      " AND target = " << target.m_id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
-    }
-    query.reset();
-    if(result.empty()) {
-      Details::SqlInsert::permissions permissionRow{source.m_id, target.m_id,
-        static_cast<mysqlpp::sql_int_unsigned>(
-        permissions.GetBitset().to_ulong())};
-      query.insert(permissionRow);
-    } else {
-      query << "UPDATE permissions SET permission = " <<
-        permissions.GetBitset().to_ulong() << " WHERE source = " <<
-        source.m_id << " AND target = " << target.m_id;
-    }
-    if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    auto row = PermissionsRow{source.m_id, target.m_id,
+      permissions.GetBitset().to_ulong()};
+    try {
+      m_connection->execute(Viper::upsert(GetPermissionsRow(), "permissions",
+        &row));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
   }
 
-  inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
-      LoadRegistrationTime(const DirectoryEntry& account) {
+  template<typename C>
+  boost::posix_time::ptime SqlServiceLocatorDataStore<C>::LoadRegistrationTime(
+      const DirectoryEntry& account) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
+        "Account not found."));
     }
-    auto query = m_databaseConnection.query();
-    query << "SELECT registration_time FROM accounts WHERE id = " <<
-      account.m_id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    try {
+      auto registrationTime = boost::posix_time::ptime();
+      m_connection->execute(Viper::select({"registration_time"}, "accounts",
+        Viper::sym("id") == account.m_id, &registrationTime));
+      return registrationTime;
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    assert(result.size() == 1);
-    return FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
-  inline boost::posix_time::ptime MySqlServiceLocatorDataStore::
-      LoadLastLoginTime(const DirectoryEntry& account) {
+  template<typename C>
+  boost::posix_time::ptime SqlServiceLocatorDataStore<C>::LoadLastLoginTime(
+      const DirectoryEntry& account) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
+        "Account not found."));
     }
-    auto query = m_databaseConnection.query();
-    query << "SELECT last_login_time FROM accounts WHERE id = " << account.m_id;
-    auto result = query.store();
-    if(!result) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
+    try {
+      auto lastLoginTime = boost::posix_time::ptime();
+      m_connection->execute(Viper::select({"last_login_time"}, "accounts",
+        Viper::sym("id") == account.m_id, &lastLoginTime));
+      return lastLoginTime;
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    assert(result.size() == 1);
-    return FromDateTime(static_cast<mysqlpp::DateTime>(result[0][0]));
   }
 
-  inline void MySqlServiceLocatorDataStore::StoreLastLoginTime(
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::StoreLastLoginTime(
       const DirectoryEntry& account,
       const boost::posix_time::ptime& loginTime) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{
-        "Account not found."});
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
+        "Account not found."));
     }
-    auto query = m_databaseConnection.query();
-    query << "UPDATE accounts SET last_login_time = " << mysqlpp::quote <<
-      ToDateTime(loginTime) << " WHERE id = " << account.m_id;
-    if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
-    }
-  }
-
-  inline void MySqlServiceLocatorDataStore::Rename(const DirectoryEntry& entry,
-      const std::string& name) {
-    {
-      auto query = m_databaseConnection.query();
-      query << "UPDATE accounts SET name = " << mysqlpp::quote << name <<
-        " WHERE id = " << entry.m_id;
-      if(!query.execute()) {
-        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
-      }
-    }
-    {
-      auto query = m_databaseConnection.query();
-      query << "UPDATE directories SET name = " << mysqlpp::quote << name <<
-        " WHERE id = " << entry.m_id;
-      if(!query.execute()) {
-        BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
-      }
-    }
-  }
-
-  inline void MySqlServiceLocatorDataStore::WithTransaction(
-      const std::function<void ()>& transaction) {
-    boost::lock_guard<Threading::Mutex> lock{m_mutex};
-    mysqlpp::Transaction t{m_databaseConnection};
     try {
-      transaction();
-    } catch(...) {
-      t.rollback();
-      throw;
+      m_connection->execute(Viper::update("accounts",
+        {"last_login_time", loginTime}, Viper::sym("id") == account.m_id));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    t.commit();
   }
 
-  inline void MySqlServiceLocatorDataStore::Open() {
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::Rename(const DirectoryEntry& entry,
+      const std::string& name) {
+    try {
+      m_connection->execute(Viper::update("accounts", {"name", name},
+        Viper::sym("id") == entry.m_id));
+      m_connection->execute(Viper::update("directories", {"name", name},
+        Viper::sym("id") == entry.m_id));
+    } catch(const Viper::ExecuteException& e) {
+      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
+    }
+  }
+
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::WithTransaction(
+      const std::function<void ()>& transaction) {
+    auto lock = std::lock_guard(m_mutex);
+    Viper::transaction(*m_connection, transaction);
+  }
+
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
     try {
-      auto connectionResult = m_databaseConnection.set_option(
-        new mysqlpp::ReconnectOption{true});
-      if(!connectionResult) {
-        BOOST_THROW_EXCEPTION(
-          IO::IOException{"Unable to set MySQL reconnect option."});
-        return;
+      m_connection->open();
+      if(!m_connection->has_table("settings")) {
+        m_connection->execute(Viper::create(GetSettingsRow(), "settings"));
+        auto firstEntryId = 0UL;
+        m_connection->execute(Viper::insert(GetSettingsRow(), "settings",
+          &firstEntryId));
       }
-      connectionResult = m_databaseConnection.connect(m_schema.c_str(),
-        m_address.GetHost().c_str(), m_username.c_str(), m_password.c_str(),
-        m_address.GetPort());
-      if(!connectionResult) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException{std::string(
-          "Unable to connect to MySQL database - ") +
-          m_databaseConnection.error()});
-      }
-      if(!Details::LoadTables(m_databaseConnection, m_schema)) {
-        BOOST_THROW_EXCEPTION(
-          IO::IOException{"Unable to load database tables."});
-      }
-      if(!Details::LoadSettings(m_databaseConnection, Store(m_nextEntryId))) {
-        BOOST_THROW_EXCEPTION(IO::IOException{
-          "Unable to load database settings."});
-      }
+      m_connection->execute(Viper::create_if_not_exists(GetAccountsRow(),
+        "accounts"));
+      m_connection->execute(Viper::create_if_not_exists(GetDirectoriesRow(),
+        "directories"));
+      m_connection->execute(Viper::create_if_not_exists(GetParentsRow(),
+        "parents"));
+      m_connection->execute(Viper::create_if_not_exists(GetChildrenRow(),
+        "children"));
+      m_connection->execute(Viper::create_if_not_exists(GetPermissionsRow(),
+        "permissions"));
+      m_connection->execute(Viper::select(GetSettingsRow(), "settings",
+        &m_nextEntryId));
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();
@@ -575,29 +553,28 @@ namespace Beam::ServiceLocator {
     m_openState.SetOpen();
   }
 
-  inline void MySqlServiceLocatorDataStore::Close() {
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  inline void MySqlServiceLocatorDataStore::Shutdown() {
-    m_databaseConnection.disconnect();
+  template<typename C>
+  void SqlServiceLocatorDataStore<C>::Shutdown() {
+    m_connection->close();
     m_openState.SetClosed();
   }
 
-  inline unsigned int MySqlServiceLocatorDataStore::LoadNextEntryId() {
+  template<typename C>
+  unsigned int SqlServiceLocatorDataStore<C>::LoadNextEntryId() {
     auto result = m_nextEntryId;
-    auto query = m_databaseConnection.query();
-    query << "UPDATE settings SET next_entry_id = " << (m_nextEntryId + 1);
-    if(!query.execute()) {
-      BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException{query.error()});
-    }
+    m_connection->execute(Viper::update("settings",
+      {"next_entry_id", m_nextEntryId + 1}));
     ++m_nextEntryId;
     return result;
   }
-}
 }
 
 #endif

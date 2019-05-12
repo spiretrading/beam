@@ -2,6 +2,7 @@
 #define BEAM_SERVICE_LOCATOR_SQL_DEFINITIONS_HPP
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Viper/Row.hpp>
+#include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
@@ -45,6 +46,14 @@ namespace Beam::ServiceLocator {
       add_column("registration_time", &AccountsRow::m_registrationTime).
       add_column("last_login_time", &AccountsRow::m_lastLogin).
       set_primary_key("id");
+    return ROW;
+  }
+
+  //! Returns a row representing a DirectoryEntry.
+  inline const auto& GetDirectoryEntryRow() {
+    static auto ROW = Viper::Row<DirectoryEntry>().
+      add_column("id", &DirectoryEntry::m_id).
+      add_column("name", &DirectoryEntry::m_name);
     return ROW;
   }
 

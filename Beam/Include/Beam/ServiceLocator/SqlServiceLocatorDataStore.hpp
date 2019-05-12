@@ -115,8 +115,9 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& entry) {
     auto parentIds = std::vector<unsigned int>();
     try {
-      m_connection->execute(Viper::select({"parent"}, "parents",
-        Viper::sym("entry") == entry.m_id, std::back_inserter(parentIds)));
+      m_connection->execute(Viper::select(Viper::Row<unsigned int>("parent"),
+        "parents", Viper::sym("entry") == entry.m_id,
+        std::back_inserter(parentIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -132,8 +133,9 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& entry) {
     auto childIds = std::vector<unsigned int>();
     try {
-      m_connection->execute(Viper::select({"child"}, "children",
-        Viper::sym("entry") == entry.m_id, std::back_inserter(childIds)));
+      m_connection->execute(Viper::select(Viper::Row<unsigned int>("child"),
+        "children", Viper::sym("entry") == entry.m_id,
+        std::back_inserter(childIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -176,8 +178,8 @@ namespace Beam::ServiceLocator {
   std::vector<DirectoryEntry> SqlServiceLocatorDataStore<C>::LoadAllAccounts() {
     auto accountIds = std::vector<unsigned int>();
     try {
-      m_connection->execute(Viper::select({"*"}, "accounts",
-        std::back_inserter(accountIds)));
+      m_connection->execute(Viper::select(Viper::Row<unsigned int>("id"),
+        "accounts", std::back_inserter(accountIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -193,8 +195,8 @@ namespace Beam::ServiceLocator {
       LoadAllDirectories() {
     auto directoryIds = std::vector<unsigned int>();
     try {
-      m_connection->execute(Viper::select({"*"}, "directories",
-        std::back_inserter(directoryIds)));
+      m_connection->execute(Viper::select(Viper::Row<unsigned int>("id"),
+        "directories", std::back_inserter(directoryIds)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -210,8 +212,8 @@ namespace Beam::ServiceLocator {
       const std::string& name) {
     auto ids = std::vector<unsigned int>();
     try {
-      m_connection->execute(Viper::select({"id"}, "accounts",
-        Viper::sym("name") == name, std::back_inserter(ids)));
+      m_connection->execute(Viper::select(Viper::Row<unsigned int>("id"),
+        "accounts", Viper::sym("name") == name, std::back_inserter(ids)));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -381,8 +383,8 @@ namespace Beam::ServiceLocator {
     }
     auto password = std::string();
     try {
-      m_connection->execute(Viper::select({"password"}, "accounts",
-        Viper::sym("id") == account.m_id, &password));
+      m_connection->execute(Viper::select(Viper::Row<std::string>("password"),
+        "accounts", Viper::sym("id") == account.m_id, &password));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
@@ -409,7 +411,8 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& source, const DirectoryEntry& target) {
     try {
       auto permission = std::optional<unsigned int>();
-      m_connection->execute(Viper::select("permission", "permissions",
+      m_connection->execute(Viper::select(
+        Viper::Row<unsigned int>("permission"), "permissions",
         Viper::sym("source") == source.m_id && Viper::sym("target") ==
         target.m_id, &permission));
       if(!permission) {
@@ -463,8 +466,9 @@ namespace Beam::ServiceLocator {
     }
     try {
       auto registrationTime = boost::posix_time::ptime();
-      m_connection->execute(Viper::select({"registration_time"}, "accounts",
-        Viper::sym("id") == account.m_id, &registrationTime));
+      m_connection->execute(Viper::select(Viper::Row<boost::posix_time::ptime>(
+        "registration_time"), "accounts", Viper::sym("id") == account.m_id,
+        &registrationTime));
       return registrationTime;
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
@@ -480,8 +484,9 @@ namespace Beam::ServiceLocator {
     }
     try {
       auto lastLoginTime = boost::posix_time::ptime();
-      m_connection->execute(Viper::select({"last_login_time"}, "accounts",
-        Viper::sym("id") == account.m_id, &lastLoginTime));
+      m_connection->execute(Viper::select(Viper::Row<boost::posix_time::ptime>(
+        "last_login_time"), "accounts", Viper::sym("id") == account.m_id,
+        &lastLoginTime));
       return lastLoginTime;
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));

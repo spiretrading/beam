@@ -3,6 +3,7 @@
 #include <ctime>
 #include <cstdint>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <Viper/Viper.hpp>
 
 namespace Beam {
 
@@ -48,6 +49,12 @@ namespace Beam {
       boost::posix_time::milliseconds(timestamp);
     return result;
   }
+}
+
+namespace Viper {
+  template<>
+  inline const auto native_to_data_type_v<boost::posix_time::ptime> =
+    DateTimeDataType();
 }
 
 #endif

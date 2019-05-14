@@ -60,17 +60,29 @@ namespace Viper {
   struct ToSql<boost::posix_time::ptime> {
     void operator ()(boost::posix_time::ptime value,
         std::string& column) const {
-      to_sql(DateTime(value.date().year(), value.date().month(),
-        value.date().day(), value.time_of_day().hours(),
-        value.time_of_day().minutes(), value.time_of_day().seconds(),
-        value.time_of_day().total_milliseconds()), column);
+      if(value == boost::posix_time::pos_infin) {
+        to_sql(DateTime(3999, 1, 1, 1, 1, 1, 0), column);
+      } else if(value.is_special()) {
+        to_sql(DateTime(0, 0, 0, 0, 0, 0, 0), column);
+      } else {
+        to_sql(DateTime(value.date().year(), value.date().month(),
+          value.date().day(), static_cast<int>(value.time_of_day().hours()),
+          static_cast<int>(value.time_of_day().minutes()),
+          static_cast<int>(value.time_of_day().seconds()), 0), column);
+      }
     }
   };
 
   template<>
   struct FromSql<boost::posix_time::ptime> {
-    auto operator ()(const RawColumn& column) const {
-      return boost::posix_time::ptime();
+    boost::posix_time::ptime operator ()(const RawColumn& column) const {
+      auto dateTime = from_sql<DateTime>(column);
+      if(dateTime == DateTime(3999, 1, 1, 1, 1, 1, 0)) {
+        return boost::posix_time::pos_infin;
+      } else if(dateTime == DateTime(0, 0, 0, 0, 0, 0, 0)) {
+        return boost::posix_time::not_a_date_time;
+      }
+      return boost::posix_time::ptime_from_tm(to_tm(dateTime));
     }
   };
 }

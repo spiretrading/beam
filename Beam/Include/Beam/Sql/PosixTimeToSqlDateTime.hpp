@@ -15,7 +15,7 @@ namespace Beam {
   */
   inline std::uint64_t ToSqlTimestamp(
       const boost::posix_time::ptime& timestamp) {
-    static const boost::posix_time::ptime BASE(
+    static const auto BASE = boost::posix_time::ptime(
       boost::gregorian::date(1970, boost::gregorian::Jan, 1),
       boost::posix_time::seconds(0));
     if(timestamp == boost::posix_time::not_a_date_time) {
@@ -25,7 +25,7 @@ namespace Beam {
     } else if(timestamp == boost::posix_time::neg_infin) {
       return 0;
     }
-    boost::posix_time::time_duration delta = timestamp - BASE;
+    auto delta = timestamp - BASE;
     return delta.total_milliseconds();
   }
 
@@ -45,8 +45,7 @@ namespace Beam {
     } else if(timestamp == 0) {
       return boost::posix_time::neg_infin;
     }
-    boost::posix_time::ptime result = BASE +
-      boost::posix_time::milliseconds(timestamp);
+    auto result = BASE + boost::posix_time::milliseconds(timestamp);
     return result;
   }
 }
@@ -63,7 +62,7 @@ namespace Viper {
       if(value == boost::posix_time::pos_infin) {
         to_sql(DateTime(3999, 1, 1, 1, 1, 1, 0), column);
       } else if(value.is_special()) {
-        to_sql(DateTime(0, 0, 0, 0, 0, 0, 0), column);
+        to_sql(DateTime(), column);
       } else {
         to_sql(DateTime(value.date().year(), value.date().month(),
           value.date().day(), static_cast<int>(value.time_of_day().hours()),
@@ -79,7 +78,7 @@ namespace Viper {
       auto dateTime = from_sql<DateTime>(column);
       if(dateTime == DateTime(3999, 1, 1, 1, 1, 1, 0)) {
         return boost::posix_time::pos_infin;
-      } else if(dateTime == DateTime(0, 0, 0, 0, 0, 0, 0)) {
+      } else if(dateTime == DateTime()) {
         return boost::posix_time::not_a_date_time;
       }
       return boost::posix_time::ptime_from_tm(to_tm(dateTime));

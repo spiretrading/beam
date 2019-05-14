@@ -66,11 +66,11 @@ IF NOT EXIST lua-5.3.1 (
     DEL lua-5.3.1.tar.gz
   )
 )
-IF NOT EXIST mariadb-connector-c-3.0.6-src (
-  wget https://downloads.mariadb.org/f/connector-c-3.0.6/mariadb-connector-c-3.0.6-src.zip -O mariadb-connector-c-3.0.6-src.zip --no-check-certificate
-  IF EXIST mariadb-connector-c-3.0.6-src.zip (
-    unzip mariadb-connector-c-3.0.6-src.zip
-    PUSHD mariadb-connector-c-3.0.6-src
+IF NOT EXIST mariadb-connector-c-3.0.6 (
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.0.6.zip -O mariadb-connector-c-3.0.6.zip --no-check-certificate
+  IF EXIST mariadb-connector-c-3.0.6.zip (
+    unzip mariadb-connector-c-3.0.6.zip
+    PUSHD mariadb-connector-c-3.0.6
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
@@ -87,14 +87,14 @@ IF NOT EXIST mariadb-connector-c-3.0.6-src (
     ECHO. >> mysql_version.h
     POPD
     POPD
-    DEL mariadb-connector-c-3.0.6-src.zip
+    DEL mariadb-connector-c-3.0.6.zip
   )
 )
 IF NOT EXIST mysql++-3.2.3 (
   git clone https://github.com/eidolonsystems/mysqlpp mysql++-3.2.3
   IF EXIST mysql++-3.2.3 (
     PUSHD mysql++-3.2.3\vc2005
-    SET CL=/I"%ROOT%\mariadb-connector-c-3.0.6-src\include"
+    SET CL=/I"%ROOT%\mariadb-connector-c-3.0.6\include"
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Debug
     devenv mysql++_mysqlpp.vcxproj /useenv /Build Release
     SET CL=

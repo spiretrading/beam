@@ -20,11 +20,11 @@ set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
 set(LUA_INCLUDE_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/src")
 set(LUA_LIBRARY_DEBUG_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/src/Debug/lua.lib")
 set(LUA_LIBRARY_OPTIMIZED_PATH "${DEPENDENCIES_PATH}/lua-5.3.1/src/Release/lua.lib")
-set(MYSQL_INCLUDE_PATH "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/include")
+set(MYSQL_INCLUDE_PATH "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Debug/mariadbclient.lib")
+  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6/libmariadb/Debug/mariadbclient.lib")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Release/mariadbclient.lib")
+  "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6/libmariadb/Release/mariadbclient.lib")
 set(MYSQLPP_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql++-3.2.3/include")
 set(MYSQLPP_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mysql++-3.2.3/vc2005/Debug/mysqlpp.lib")

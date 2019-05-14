@@ -143,7 +143,7 @@ IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
   SET BUILD_VIPER=1
 )
-SET viper_commit="ac8a78826bab081367d1ffb4011e2d9f313bc4de"
+SET viper_commit="eb1894162f8a809c60cbc3a5f640a591b67e4863"
 PUSHD viper
 git merge-base --is-ancestor "%viper_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (

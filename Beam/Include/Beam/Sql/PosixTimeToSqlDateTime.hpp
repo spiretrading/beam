@@ -60,6 +60,10 @@ namespace Viper {
   struct ToSql<boost::posix_time::ptime> {
     void operator ()(boost::posix_time::ptime value,
         std::string& column) const {
+      to_sql(DateTime(value.date().year(), value.date().month(),
+        value.date().day(), value.time_of_day().hours(),
+        value.time_of_day().minutes(), value.time_of_day().seconds(),
+        value.time_of_day().total_milliseconds()), column);
     }
   };
 

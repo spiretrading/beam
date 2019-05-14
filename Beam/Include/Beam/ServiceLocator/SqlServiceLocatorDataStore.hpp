@@ -448,7 +448,7 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
     auto row = PermissionsRow{source.m_id, target.m_id,
-      permissions.GetBitset().to_ulong()};
+      static_cast<unsigned int>(permissions.GetBitset().to_ulong())};
     try {
       m_connection->execute(Viper::upsert(GetPermissionsRow(), "permissions",
         &row));

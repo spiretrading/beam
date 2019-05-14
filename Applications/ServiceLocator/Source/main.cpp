@@ -88,7 +88,7 @@ int main(int argc, const char** argv) {
   auto timerThreadPool = TimerThreadPool();
   auto mySqlConnection = std::make_unique<MySql::Connection>(
     mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-    mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema);
   auto mysqlDataStore = SqlServiceLocatorDataStore(std::move(mySqlConnection));
   auto server = ServiceLocatorServletContainer(Initialize(Initialize(
     &mysqlDataStore)), Initialize(serverConnectionInitializer.m_interface,

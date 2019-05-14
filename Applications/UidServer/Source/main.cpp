@@ -113,7 +113,7 @@ int main(int argc, const char** argv) {
   }
   auto mySqlConnection = std::make_unique<MySql::Connection>(
     mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-    mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema);
   auto server = UidServletContainer(Initialize(serviceLocatorClient.Get(),
     Initialize(std::move(mySqlConnection))), Initialize(
     serverConnectionInitializer.m_interface, Ref(socketThreadPool)),

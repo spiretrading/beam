@@ -157,7 +157,7 @@ namespace Beam::ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
     if(entry) {
-      entry->m_type == DirectoryEntry::Type::ACCOUNT;
+      entry->m_type = DirectoryEntry::Type::ACCOUNT;
       return std::move(*entry);
     }
     try {
@@ -167,7 +167,7 @@ namespace Beam::ServiceLocator {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
     if(entry) {
-      entry->m_type == DirectoryEntry::Type::DIRECTORY;
+      entry->m_type = DirectoryEntry::Type::DIRECTORY;
       return std::move(*entry);
     }
     BOOST_THROW_EXCEPTION(

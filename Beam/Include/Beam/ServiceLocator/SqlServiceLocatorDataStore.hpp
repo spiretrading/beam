@@ -6,7 +6,6 @@
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SqlDefinitions.hpp"
-#include "Beam/Sql/Utilities.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::ServiceLocator {
@@ -210,19 +209,18 @@ namespace Beam::ServiceLocator {
   template<typename C>
   DirectoryEntry SqlServiceLocatorDataStore<C>::LoadAccount(
       const std::string& name) {
-    auto ids = std::vector<unsigned int>();
+    auto id = std::optional<unsigned int>();
     try {
       m_connection->execute(Viper::select(Viper::Row<unsigned int>("id"),
-        "accounts", Viper::sym("name") == name, std::back_inserter(ids)));
+        "accounts", Viper::sym("name") == name, &id));
     } catch(const Viper::ExecuteException& e) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(e.what()));
     }
-    if(ids.empty()) {
+    if(!id) {
       BOOST_THROW_EXCEPTION(
         ServiceLocatorDataStoreException("Account not found."));
     }
-    assert(ids.size() == 1);
-    return DirectoryEntry::MakeAccount(ids.front(), name);
+    return DirectoryEntry::MakeAccount(*id, name);
   }
 
   template<typename C>

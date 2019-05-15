@@ -138,10 +138,9 @@ IF NOT EXIST tclap-1.2.1 (
     DEL tclap-1.2.1.tar.gz
   )
 )
-SET BUILD_VIPER=
+SET viper_commit="49ff7a2f97f605d845ed3265edf341a6bf3ee9e3"
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
-  SET BUILD_VIPER=1
 )
 SET viper_commit="49ff7a2f97f605d845ed3265edf341a6bf3ee9e3"
 PUSHD viper
@@ -150,12 +149,6 @@ IF NOT "%ERRORLEVEL%" == "0" (
   git checkout master
   git pull
   git checkout "%viper_commit%"
-  SET BUILD_VIPER=1
-)
-IF "%BUILD_VIPER%" == "1" (
-  CALL run_cmake.bat "-DD=%ROOT%"
-  CALL build.bat Debug
-  CALL build.bat Release
 )
 POPD
 SET commit=

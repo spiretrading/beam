@@ -35,7 +35,9 @@ PUSHD "%DEPENDENCIES%"
 CALL "%DIRECTORY%setup.bat"
 POPD
 IF NOT "%DEPENDENCIES%" == "%ROOT%\Dependencies" (
-  mklink /j Dependencies "%DEPENDENCIES%" > NUL
+  IF NOT EXIST Dependencies (
+    mklink /j Dependencies "%DEPENDENCIES%" > NUL
+  )
 )
 cmake -T host=x64 "%DIRECTORY%"
 ENDLOCAL

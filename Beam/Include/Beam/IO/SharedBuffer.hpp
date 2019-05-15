@@ -97,8 +97,6 @@ namespace Details {
       template<typename T>
       T Extract(std::size_t index) const;
 
-      void Swap(SharedBuffer& buffer);
-
     private:
       std::size_t m_size;
       std::size_t m_availableSize;
@@ -253,14 +251,6 @@ namespace Details {
     Append(&value, sizeof(T));
   }
 
-  inline void SharedBuffer::Swap(SharedBuffer& buffer) {
-    using std::swap;
-    m_data.swap(buffer.m_data);
-    swap(m_size, buffer.m_size);
-    swap(m_availableSize, buffer.m_availableSize);
-    swap(m_front, buffer.m_front);
-  }
-
   inline void SharedBuffer::Reset() {
     m_size = 0;
     m_front = m_data.get();
@@ -303,13 +293,6 @@ namespace Details {
 
   template<>
   struct ImplementsConcept<IO::SharedBuffer, IO::Buffer> : std::true_type {};
-}
-
-namespace std {
-  template<>
-  inline void swap(Beam::IO::SharedBuffer& a, Beam::IO::SharedBuffer& b) {
-    a.Swap(b);
-  }
 }
 
 #endif

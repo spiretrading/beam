@@ -62,12 +62,6 @@ namespace SignalHandling {
       //! Returns the list of connections in this group.
       const std::vector<boost::signals2::connection>& GetConnections() const;
 
-      //! Swaps the contents of this GroupConnection with another.
-      /*!
-        \param group The GroupConnection to swap contents with.
-      */
-      void Swap(GroupConnection& group);
-
       //! Disconnects all connections.
       void Disconnect();
 
@@ -116,24 +110,12 @@ namespace SignalHandling {
     return m_connections;
   }
 
-  inline void GroupConnection::Swap(GroupConnection& group) {
-    m_connections.swap(group.m_connections);
-  }
-
   inline void GroupConnection::Disconnect() {
     for(auto& connection : m_connections) {
       connection.disconnect();
     }
   }
 }
-}
-
-namespace std {
-  template<>
-  inline void swap(Beam::SignalHandling::GroupConnection& a,
-      Beam::SignalHandling::GroupConnection& b) {
-    a.Swap(b);
-  }
 }
 
 #endif

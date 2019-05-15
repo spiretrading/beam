@@ -39,26 +39,10 @@ namespace Network {
       //! Returns the address that this packet was received from.
       IpAddress& GetAddress();
 
-      //! Swaps this packet with another.
-      /*!
-        \param packet The Datagram packet to swap with.
-      */
-      void Swap(DatagramPacket& packet);
-
     private:
       Buffer m_data;
       IpAddress m_address;
   };
-
-  //! Exchanges the contents of two DatagramPackets.
-  /*!
-    \param a One of the two DatagramPackets to swap.
-    \param b One of the two DatagramPackets to swap.
-  */
-  template<typename BufferType>
-  void swap(DatagramPacket<BufferType>& a, DatagramPacket<BufferType>& b) {
-    a.Swap(b);
-  }
 
   template<typename BufferType>
   template<typename BufferForward, typename IpAddressForward>
@@ -85,12 +69,6 @@ namespace Network {
   template<typename BufferType>
   IpAddress& DatagramPacket<BufferType>::GetAddress() {
     return m_address;
-  }
-
-  template<typename BufferType>
-  void DatagramPacket<BufferType>::Swap(DatagramPacket& packet) {
-    m_data.Swap(packet.m_data);
-    m_address.Swap(packet.m_address);
   }
 }
 }

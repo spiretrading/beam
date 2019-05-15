@@ -61,8 +61,6 @@ namespace IO {
       template<typename T>
       T Extract(std::size_t index) const;
 
-      void Swap(BufferView& buffer);
-
     private:
       Buffer* m_buffer;
       std::size_t m_offset;
@@ -130,12 +128,6 @@ namespace IO {
   }
 
   template<typename BufferType>
-  void BufferView<BufferType>::Swap(BufferView& buffer) {
-    std::swap(m_buffer, buffer.m_buffer);
-    std::swap(m_offset, buffer.m_offset);
-  }
-
-  template<typename BufferType>
   void BufferView<BufferType>::Reset() {
     if(m_buffer->GetSize() < m_offset) {
       return;
@@ -171,11 +163,6 @@ namespace IO {
   template<typename T>
   T BufferView<BufferType>::Extract(std::size_t index) const {
     return m_buffer->Extract(index + m_offset);
-  }
-
-  template<typename BufferType>
-  void swap(IO::BufferView<BufferType>& a, IO::BufferView<BufferType>& b) {
-    a.Swap(b);
   }
 }
 

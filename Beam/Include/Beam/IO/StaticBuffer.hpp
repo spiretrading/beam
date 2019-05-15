@@ -84,8 +84,6 @@ namespace IO {
       template<typename T>
       T Extract(std::size_t index) const;
 
-      void Swap(StaticBuffer& buffer);
-
     private:
       std::size_t m_size;
       std::array<char, N> m_data;
@@ -211,14 +209,6 @@ namespace IO {
   }
 
   template<std::size_t N>
-  void StaticBuffer<N>::Swap(StaticBuffer& buffer) {
-    using std::swap;
-    m_data.swap(buffer.m_data);
-    swap(m_size, buffer.m_size);
-    swap(m_front, buffer.m_front);
-  }
-
-  template<std::size_t N>
   void StaticBuffer<N>::Reset() {
     m_size = 0;
     m_front = &m_data[0];
@@ -251,11 +241,6 @@ namespace IO {
     T value;
     std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
     return value;
-  }
-
-  template<std::size_t N>
-  void swap(IO::StaticBuffer<N>& a, IO::StaticBuffer<N>& b) {
-    a.Swap(b);
   }
 }
 

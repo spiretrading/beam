@@ -134,12 +134,6 @@ namespace IO {
     */
     template<typename T>
     T Extract(std::size_t index) const;
-
-    //! Exchanges the contents of this Buffer.
-    /*!
-      \param buffer The Buffer to swap with.
-    */
-    void Swap(Buffer& buffer);
   };
 
   //! Constructs a Buffer from a string.

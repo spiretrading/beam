@@ -43,11 +43,6 @@ set(MYSQL_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/mysql-connector-c-6.1.11-src/lib/libmysqlclient.a")
-set(MYSQLPP_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql++-3.2.3/include")
-set(MYSQLPP_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
-set(MYSQLPP_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/lib/libmysqlpp.so")
 set(OPEN_SSL_INCLUDE_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/libcrypto.a")

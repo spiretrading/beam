@@ -25,11 +25,6 @@ set(MYSQL_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Debug/mariadbclient.lib")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
   "${DEPENDENCIES_PATH}/mariadb-connector-c-3.0.6-src/libmariadb/Release/mariadbclient.lib")
-set(MYSQLPP_INCLUDE_PATH "${DEPENDENCIES_PATH}/mysql++-3.2.3/include")
-set(MYSQLPP_LIBRARY_DEBUG_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/vc2005/Debug/mysqlpp.lib")
-set(MYSQLPP_LIBRARY_OPTIMIZED_PATH
-  "${DEPENDENCIES_PATH}/mysql++-3.2.3/vc2005/Release/mysqlpp.lib")
 set(OPEN_SSL_INCLUDE_PATH "${DEPENDENCIES_PATH}/openssl-1.0.2g/inc32")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
   "${DEPENDENCIES_PATH}/openssl-1.0.2g/out32/libeay32.lib")

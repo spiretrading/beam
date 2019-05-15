@@ -3,6 +3,7 @@
 
 namespace Beam {
   template<typename ConnectionType> class DatabaseConnectionPool;
+  struct MySqlConfig;
   template<typename ConnectionType> class ScopedDatabaseConnection;
 }
 

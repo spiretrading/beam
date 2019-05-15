@@ -1,4 +1,0 @@
-#ifndef BEAM_SQL_UTILITIES_HPP
-#define BEAM_SQL_UTILITIES_HPP
-
-#endif

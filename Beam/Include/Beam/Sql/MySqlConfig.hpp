@@ -38,7 +38,7 @@ namespace Beam {
   };
 
   inline MySqlConfig MySqlConfig::Parse(const YAML::Node& node) {
-    MySqlConfig config;
+    auto config = MySqlConfig();
     config.m_address = Extract<Network::IpAddress>(node, "address");
     config.m_username = Extract<std::string>(node, "username");
     config.m_password = Extract<std::string>(node, "password");
@@ -48,7 +48,7 @@ namespace Beam {
 
   inline std::vector<MySqlConfig> MySqlConfig::ParseReplication(
       const YAML::Node& node) {
-    std::vector<MySqlConfig> config;
+    auto config = std::vector<MySqlConfig>();
     if(node.Type() != YAML::NodeType::Sequence) {
       auto primaryConfig = Parse(node);
       config.push_back(primaryConfig);
@@ -58,7 +58,7 @@ namespace Beam {
           auto primaryConfig = Parse(subNode);
           config.push_back(primaryConfig);
         } else {
-          MySqlConfig instance;
+          auto instance = MySqlConfig();
           instance.m_address = Extract<Network::IpAddress>(subNode, "address",
             config.back().m_address);
           instance.m_username = Extract<std::string>(subNode, "username",

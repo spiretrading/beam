@@ -102,7 +102,7 @@ if [ ! -d "tclap-1.2.1" ]; then
     rm -f tclap-1.2.1.tar.gz
   fi
 fi
-viper_commit="b000483dd7a58c0ab3d1c294c9c9e48be48f0cad"
+viper_commit="49ff7a2f97f605d845ed3265edf341a6bf3ee9e3"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/eidolonsystems/viper
 fi

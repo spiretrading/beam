@@ -37,5 +37,5 @@ POPD
 IF NOT "%DEPENDENCIES%" == "%ROOT%\Dependencies" (
   mklink /j Dependencies "%DEPENDENCIES%" > NUL
 )
-cmake -T host=x64 %* %~dp0
+cmake -T host=x64 %* "%~dp0"
 ENDLOCAL

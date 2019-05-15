@@ -34,4 +34,4 @@ popd
 if [ "$dependencies" != "$root/Dependencies" ]; then
   ln -s "$dependencies" Dependencies
 fi
-cmake "$@" "$directory"
+cmake "$directory"

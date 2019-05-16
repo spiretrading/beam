@@ -138,11 +138,10 @@ IF NOT EXIST tclap-1.2.1 (
     DEL tclap-1.2.1.tar.gz
   )
 )
-SET viper_commit="49ff7a2f97f605d845ed3265edf341a6bf3ee9e3"
+SET viper_commit="59eeccd8da092019c314e51496c5324f14ef4271"
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
 )
-SET viper_commit="49ff7a2f97f605d845ed3265edf341a6bf3ee9e3"
 PUSHD viper
 git merge-base --is-ancestor "%viper_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (

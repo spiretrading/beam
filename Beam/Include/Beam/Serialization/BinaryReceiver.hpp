@@ -1,5 +1,5 @@
-#ifndef BEAM_BINARYRECEIVER_HPP
-#define BEAM_BINARYRECEIVER_HPP
+#ifndef BEAM_BINARY_RECEIVER_HPP
+#define BEAM_BINARY_RECEIVER_HPP
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
@@ -12,8 +12,7 @@
 namespace Beam {
 namespace Serialization {
 
-  /*! \class BinaryReceiver
-      \brief Implements a Receiver using a binary format.
+  /** Implements a Receiver using a binary format.
       \tparam SourceType The type of Buffer to receive the data from.
    */
   template<typename SourceType>
@@ -21,7 +20,7 @@ namespace Serialization {
     public:
       static_assert(ImplementsConcept<SourceType, IO::Buffer>::value,
         "SourceType must implement the Buffer Concept.");
-      typedef SourceType Source;
+      using Source = SourceType;
 
       //! Constructs a BinaryReceiver.
       BinaryReceiver() = default;
@@ -32,7 +31,7 @@ namespace Serialization {
       */
       BinaryReceiver(Ref<TypeRegistry<BinarySender<SourceType>>> registry);
 
-      void SetSource(Ref<Source> source);
+      void SetSource(Ref<const Source> source);
 
       template<typename T>
       typename std::enable_if<std::is_fundamental<T>::value>::type Shuttle(
@@ -60,7 +59,6 @@ namespace Serialization {
       using ReceiverMixin<BinaryReceiver<SourceType>>::Shuttle;
 
     private:
-      Source* m_source;
       std::size_t m_remainingSize;
       const char* m_readIterator;
   };
@@ -71,10 +69,9 @@ namespace Serialization {
       : ReceiverMixin<BinaryReceiver<SourceType>>(Ref(registry)) {}
 
   template<typename SourceType>
-  void BinaryReceiver<SourceType>::SetSource(Ref<Source> source) {
-    m_source = source.Get();
-    m_remainingSize = m_source->GetSize();
-    m_readIterator = m_source->GetData();
+  void BinaryReceiver<SourceType>::SetSource(Ref<const Source> source) {
+    m_remainingSize = source->GetSize();
+    m_readIterator = source->GetData();
   }
 
   template<typename SourceType>
@@ -94,7 +91,7 @@ namespace Serialization {
   template<typename T>
   typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
       BinaryReceiver<SourceType>::Shuttle(const char* name, T& value) {
-    std::uint32_t size;
+    auto size = std::uint32_t();
     Shuttle(size);
     if(size < 0 || size > m_remainingSize) {
       BOOST_THROW_EXCEPTION(SerializationException(
@@ -109,7 +106,7 @@ namespace Serialization {
   template<typename SourceType>
   void BinaryReceiver<SourceType>::Shuttle(const char* name,
       std::string& value) {
-    std::uint32_t size;
+    auto size = std::uint32_t();
     Shuttle(size);
     if(size < 0 || size > m_remainingSize) {
       BOOST_THROW_EXCEPTION(SerializationException(
@@ -152,7 +149,7 @@ namespace Serialization {
 
   template<typename SourceType>
   struct Inverse<BinaryReceiver<SourceType>> {
-    typedef BinarySender<SourceType> type;
+    using type = BinarySender<SourceType>;
   };
 }
 

@@ -5,6 +5,7 @@
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Sql/Sql.hpp"
+#include "Beam/Utilities/FixedString.hpp"
 
 namespace Viper {
   template<typename T, std::size_t N>
@@ -24,6 +25,20 @@ namespace Viper {
   struct FromSql<Beam::Enum<T, N>> {
     auto operator ()(const RawColumn& column) const {
       return Beam::Enum<T, N>(from_sql<std::int32_t>(column));
+    }
+  };
+
+  template<std::size_t N>
+  struct ToSql<Beam::FixedString<N>> {
+    void operator ()(Beam::FixedString<N> value, std::string& column) const {
+      to_sql(std::string(value.GetData()), column);
+    }
+  };
+
+  template<std::size_t N>
+  struct FromSql<Beam::FixedString<N>> {
+    auto operator ()(const RawColumn& column) const {
+      return Beam::FixedString<N>(column.m_data, column.m_size);
     }
   };
 

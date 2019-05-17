@@ -15,6 +15,14 @@ namespace Beam::ServiceLocator {
     return ROW;
   }
 
+  //! Returns a row representing a DirectoryEntry.
+  inline const auto& GetDirectoryEntryRow() {
+    static auto ROW = Viper::Row<DirectoryEntry>().
+      add_column("id", &DirectoryEntry::m_id).
+      add_column("name", Viper::varchar(100), &DirectoryEntry::m_name);
+    return ROW;
+  }
+
   //! Stores an SQL row representing an account.
   struct AccountsRow {
 
@@ -33,14 +41,9 @@ namespace Beam::ServiceLocator {
 
   //! Returns a row representing an account.
   inline const auto& GetAccountsRow() {
-    static auto ROW = Viper::Row<AccountsRow>().
-      add_column("id",
+    static auto ROW = Viper::Row<AccountsRow>().extend(GetDirectoryEntryRow(),
         [] (auto& row) -> auto& {
-          return row.m_entry.m_id;
-        }).
-      add_column("name", Viper::varchar(100),
-        [] (auto& row) -> auto& {
-          return row.m_entry.m_name;
+          return row.m_entry;
         }).
       add_column("password", Viper::varchar(100), &AccountsRow::m_password).
       add_column("registration_time", &AccountsRow::m_registrationTime).
@@ -49,20 +52,9 @@ namespace Beam::ServiceLocator {
     return ROW;
   }
 
-  //! Returns a row representing a DirectoryEntry.
-  inline const auto& GetDirectoryEntryRow() {
-    static auto ROW = Viper::Row<DirectoryEntry>().
-      add_column("id", &DirectoryEntry::m_id).
-      add_column("name", &DirectoryEntry::m_name);
-    return ROW;
-  }
-
   //! Returns a row representing a directory.
   inline const auto& GetDirectoriesRow() {
-    static auto ROW = Viper::Row<DirectoryEntry>().
-      add_column("id", &DirectoryEntry::m_id).
-      add_column("name", &DirectoryEntry::m_name).
-      set_primary_key("id");
+    static auto ROW = GetDirectoryEntryRow().set_primary_key("id");
     return ROW;
   }
 

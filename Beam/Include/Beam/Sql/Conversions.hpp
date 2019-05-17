@@ -1,5 +1,6 @@
 #ifndef BEAM_SQL_CONVERSIONS_HPP
 #define BEAM_SQL_CONVERSIONS_HPP
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Viper/Conversions.hpp>
 #include <Viper/DataTypes/NativeToDataType.hpp>
 #include "Beam/Collections/Enum.hpp"
@@ -8,11 +9,31 @@
 #include "Beam/Utilities/FixedString.hpp"
 
 namespace Viper {
+  template<>
+  inline const auto native_to_data_type_v<boost::posix_time::time_duration> =
+    big_int;
+
   template<typename T, std::size_t N>
   inline const auto native_to_data_type_v<Beam::Enum<T, N>> = integer;
 
   template<>
   inline const auto native_to_data_type_v<Beam::IO::SharedBuffer> = blob();
+
+  template<>
+  struct ToSql<boost::posix_time::time_duration> {
+    void operator ()(boost::posix_time::time_duration value,
+        std::string& column) const {
+      to_sql(static_cast<std::int64_t>(value.total_microseconds()), column);
+    }
+  };
+
+  template<>
+  struct FromSql<boost::posix_time::time_duration> {
+    boost::posix_time::time_duration operator ()(
+        const RawColumn& column) const {
+      return boost::posix_time::microseconds(from_sql<std::int64_t>(column));
+    }
+  };
 
   template<typename T, std::size_t N>
   struct ToSql<Beam::Enum<T, N>> {

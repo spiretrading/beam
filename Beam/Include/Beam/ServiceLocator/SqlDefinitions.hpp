@@ -10,8 +10,7 @@ namespace Beam::ServiceLocator {
 
   //! Returns a row representing the settings table.
   inline const auto& GetSettingsRow() {
-    static auto ROW = Viper::Row<std::uint32_t>().
-      add_column("next_entry_id", Viper::uinteger);
+    static auto ROW = Viper::Row<std::uint32_t>("next_entry_id");
     return ROW;
   }
 
@@ -41,10 +40,8 @@ namespace Beam::ServiceLocator {
 
   //! Returns a row representing an account.
   inline const auto& GetAccountsRow() {
-    static auto ROW = Viper::Row<AccountsRow>().extend(GetDirectoryEntryRow(),
-        [] (auto& row) -> auto& {
-          return row.m_entry;
-        }).
+    static auto ROW = Viper::Row<AccountsRow>().extend(
+      GetDirectoryEntryRow(), &AccountsRow::m_entry).
       add_column("password", Viper::varchar(100), &AccountsRow::m_password).
       add_column("registration_time", &AccountsRow::m_registrationTime).
       add_column("last_login_time", &AccountsRow::m_lastLogin).

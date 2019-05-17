@@ -25,16 +25,7 @@ namespace Beam::WebServices {
   inline const auto& GetWebSessionsRow() {
     static auto ROW = Viper::Row<SqlSession>().
       add_column("id", Viper::varchar(64), &SqlSession::m_id).
-      add_column("session", Viper::blob(),
-        [] (auto& row) {
-          auto value = std::vector<std::byte>(row.m_session.GetSize());
-          std::memcpy(value.data(), row.m_session.GetData(),
-            row.m_session.GetSize());
-          return value;
-        },
-        [] (auto& row, const auto& column) {
-          row.m_session = IO::SharedBuffer(column.data(), column.size());
-        }).
+      add_column("session", &SqlSession::m_session).
       set_primary_key("id");
     return ROW;
   }

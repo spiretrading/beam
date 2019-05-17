@@ -8,8 +8,7 @@ namespace Beam::UidService {
 
   //! Returns a row representing the next UID.
   inline const auto& GetNextUidRow() {
-    static auto ROW = Viper::Row<std::uint64_t>().
-      add_column("uid", Viper::big_uint);
+    static auto ROW = Viper::Row<std::uint64_t>("uid");
     return ROW;
   }
 }

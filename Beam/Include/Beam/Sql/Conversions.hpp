@@ -38,14 +38,14 @@ namespace Viper {
   template<typename T, std::size_t N>
   struct ToSql<Beam::Enum<T, N>> {
     void operator ()(Beam::Enum<T, N> value, std::string& column) const {
-      to_sql(static_cast<std::int32_t>(value), column);
+      to_sql(static_cast<typename T::Type>(value), column);
     }
   };
 
   template<typename T, std::size_t N>
   struct FromSql<Beam::Enum<T, N>> {
     auto operator ()(const RawColumn& column) const {
-      return Beam::Enum<T, N>(from_sql<std::int32_t>(column));
+      return Beam::Enum<T, N>(from_sql<typename T::Type>(column));
     }
   };
 

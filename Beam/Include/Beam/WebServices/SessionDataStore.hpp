@@ -1,4 +1,4 @@
-#ifndef BEAM_SES77SION_DATA_STORE_HPP
+#ifndef BEAM_SESSION_DATA_STORE_HPP
 #define BEAM_SESSION_DATA_STORE_HPP
 #include <memory>
 #include "Beam/Utilities/Concept.hpp"

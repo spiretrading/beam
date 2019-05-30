@@ -52,8 +52,7 @@ namespace Beam {
 
 namespace Viper {
   template<>
-  inline const auto native_to_data_type_v<boost::posix_time::ptime> =
-    big_uint();
+  inline const auto native_to_data_type_v<boost::posix_time::ptime> = big_uint;
 
   template<>
   struct ToSql<boost::posix_time::ptime> {

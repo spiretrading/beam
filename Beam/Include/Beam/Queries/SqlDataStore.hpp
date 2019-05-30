@@ -127,10 +127,10 @@ namespace Beam::Queries {
     m_valueRow = m_valueRow.
       add_column("timestamp",
         [] (const auto& row) {
-          return ToSqlTimestamp(GetTimestamp(row));
+          return GetTimestamp(row);
         },
         [] (auto& row, auto value) {
-          GetTimestamp(row) = FromSqlTimestamp(value);
+          GetTimestamp(row) = value;
         });
     m_sequencedRow = Viper::Row<SequencedValue>().
       extend(m_valueRow,

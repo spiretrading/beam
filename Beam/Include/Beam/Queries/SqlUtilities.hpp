@@ -50,8 +50,7 @@ namespace Beam::Queries {
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::min<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") >= ToSqlTimestamp(timestamp),
-        &sequence));
+        index && Viper::sym("timestamp") >= timestamp, &sequence));
       if(sequence.has_value()) {
         return Sequence(*sequence);
       }
@@ -67,8 +66,7 @@ namespace Beam::Queries {
       auto connection = connectionPool.Acquire();
       connection->execute(Viper::select(
         Viper::max<std::uint64_t>("query_sequence"), table,
-        index && Viper::sym("timestamp") <= ToSqlTimestamp(timestamp),
-        &sequence));
+        index && Viper::sym("timestamp") <= timestamp, &sequence));
       if(sequence.has_value()) {
         return Sequence(*sequence);
       }

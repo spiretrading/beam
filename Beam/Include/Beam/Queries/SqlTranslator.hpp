@@ -92,9 +92,8 @@ namespace Beam::Queries {
       GetTranslation() = Viper::literal(value->GetValue<std::string>());
     } else if(value->GetType()->GetNativeType() ==
         typeid(boost::posix_time::ptime)) {
-      auto timestamp = ToSqlTimestamp(
+      GetTranslation() = Viper::literal(
         value->GetValue<boost::posix_time::ptime>());
-      GetTranslation() = Viper::literal(timestamp);
     }
   }
 

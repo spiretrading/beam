@@ -67,18 +67,18 @@ if [ ! -d "openssl-1.0.2g" ]; then
     rm openssl-1.0.2g.tar.gz
   fi
 fi
-if [ ! -d "Python-3.6.7" ]; then
-  wget https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz --no-check-certificate
-  if [ -f Python-3.6.7.tgz ]; then
-    gzip -d -c Python-3.6.7.tgz | tar -xf -
-    pushd Python-3.6.7
+if [ ! -d "Python-3.7.2" ]; then
+  wget https://www.python.org/ftp/python/3.7.2/Python-3.7.2.tgz --no-check-certificate
+  if [ -f Python-3.7.2.tgz ]; then
+    gzip -d -c Python-3.7.2.tgz | tar -xf -
+    pushd Python-3.7.2
     export CFLAGS="-fPIC"
-    ./configure --prefix="$root/Python-3.6.7"
+    ./configure --prefix="$root/Python-3.7.2"
     make -j $cores
     make install
     unset CFLAGS
     popd
-    rm Python-3.6.7.tgz
+    rm Python-3.7.2.tgz
   fi
 fi
 if [ ! -d "sqlite-amalgamation-3230100" ]; then
@@ -149,7 +149,7 @@ if [ ! -d "boost_1_70_0" ]; then
     tar xvf boost_1_70_0.tar.gz
     pushd boost_1_70_0
     pushd tools/build/src
-    printf "using python : 3.6 : $root/Python-3.6.7 : $root/Python-3.6.7/include/python3.7m : $root/Python-3.6.7 ;\n" > user-config.jam
+    printf "using python : 3.7 : $root/Python-3.7.2 : $root/Python-3.7.2/include/python3.7m : $root/Python-3.7.2 ;\n" > user-config.jam
     popd
     export BOOST_BUILD_PATH=$(pwd)
     ./bootstrap.sh

@@ -17,21 +17,18 @@ namespace {
       if(value == not_a_date_time) {
         return Py_None;
       } else if(value == neg_infin) {
-        auto result = PyDateTime_FromDateAndTime(1, 1, 1, 0, 0, 0, 0);
-        return incref(result);
+        return PyDateTime_FromDateAndTime(1, 1, 1, 0, 0, 0, 0);
       } else if(value == pos_infin) {
-        auto result = PyDateTime_FromDateAndTime(9999, 12, 31, 23, 59, 59,
-          999999);
+        return PyDateTime_FromDateAndTime(9999, 12, 31, 23, 59, 59, 999999);
         return incref(result);
       } else {
         auto day = value.date();
         auto timeOfDay = value.time_of_day();
         auto usec = static_cast<int>(timeOfDay.total_microseconds() % 1000000);
-        auto result = PyDateTime_FromDateAndTime(day.year(), day.month(),
+        return PyDateTime_FromDateAndTime(day.year(), day.month(),
           day.day(), static_cast<int>(timeOfDay.hours()),
           static_cast<int>(timeOfDay.minutes()),
           static_cast<int>(timeOfDay.seconds()), usec);
-        return incref(result);
       }
     }
   };

@@ -20,7 +20,6 @@ namespace {
         return PyDateTime_FromDateAndTime(1, 1, 1, 0, 0, 0, 0);
       } else if(value == pos_infin) {
         return PyDateTime_FromDateAndTime(9999, 12, 31, 23, 59, 59, 999999);
-        return incref(result);
       } else {
         auto day = value.date();
         auto timeOfDay = value.time_of_day();

@@ -253,7 +253,7 @@ void Beam::Python::ExportSnapshotLimit() {
       .add_property("size", &SnapshotLimit::GetSize)
       .def("from_head", &SnapshotLimit::FromHead)
       .staticmethod("from_head")
-      .def("from_tail", &SnapshotLimit::FromHead)
+      .def("from_tail", &SnapshotLimit::FromTail)
       .staticmethod("from_tail")
       .def("__str__", &SnapshotLimitToString)
       .def(self == self)

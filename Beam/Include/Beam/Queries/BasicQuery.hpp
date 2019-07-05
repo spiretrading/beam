@@ -1,5 +1,5 @@
-#ifndef BEAM_BASICQUERY_HPP
-#define BEAM_BASICQUERY_HPP
+#ifndef BEAM_BASIC_QUERY_HPP
+#define BEAM_BASIC_QUERY_HPP
 #include <ostream>
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
@@ -9,12 +9,10 @@
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class BasicQuery
-      \brief Composes various standard query types into a query with common and
-             basic functionality.
+  /** Composes various standard query types into a query with common and basic
+      functionality.
    */
   template<typename T>
   class BasicQuery : public IndexedQuery<T>, public RangedQuery,
@@ -35,11 +33,24 @@ namespace Queries {
   */
   template<typename Index>
   BasicQuery<Index> BuildCurrentQuery(Index index) {
-    BasicQuery<Index> query;
+    auto query = BasicQuery<Index>();
     query.SetIndex(std::move(index));
     query.SetRange(Range::Total());
     query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
     query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
+    return query;
+  }
+
+  //! Builds a BasicQuery that retrives only the latest value and then breaks.
+  /*!
+    \param index The index to query.
+  */
+  template<typename Index>
+  BasicQuery<Index> BuildLatestQuery(Index index) {
+    auto query = BasicQuery<Index>();
+    query.SetIndex(std::move(index));
+    query.SetRange(Range::Historical());
+    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
     return query;
   }
 
@@ -49,7 +60,7 @@ namespace Queries {
   */
   template<typename Index>
   BasicQuery<Index> BuildRealTimeQuery(Index index) {
-    BasicQuery<Index> query;
+    auto query = BasicQuery<Index>();
     query.SetIndex(std::move(index));
     query.SetRange(Range::RealTime());
     query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
@@ -73,7 +84,6 @@ namespace Queries {
     Beam::Serialization::Shuttle<InterruptableQuery>()(shuttle, *this, version);
     Beam::Serialization::Shuttle<FilteredQuery>()(shuttle, *this, version);
   }
-}
 }
 
 #endif

@@ -197,6 +197,7 @@ void Beam::Python::ExportQueries() {
   ExportSequencedValue<boost::python::object>();
   ExportIndexedValue<boost::python::object, boost::python::object>();
   def("build_current_query", &BuildCurrentQuery<boost::python::object>);
+  def("build_latest_query", &BuildRealTimeQuery<boost::python::object>);
   def("build_real_time_query", &BuildRealTimeQuery<boost::python::object>);
 }
 

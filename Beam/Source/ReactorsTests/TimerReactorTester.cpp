@@ -1,31 +1,37 @@
 #include "Beam/ReactorsTests/TimerReactorTester.hpp"
+#include <aspen/Trigger.hpp>
+#include "Beam/Reactors/TimerReactor.hpp"
+#include "Beam/Threading/TriggerTimer.hpp"
 
+using namespace Aspen;
 using namespace Beam;
 using namespace Beam::Reactors;
 using namespace Beam::Reactors::Tests;
+using namespace Beam::Threading;
+using namespace boost;
+using namespace boost::posix_time;
 
 void TimerReactorTester::TestExpiry() {
-/*
-  Trigger trigger;
-  Trigger::SetEnvironmentTrigger(trigger);
-  auto sequenceNumbers = std::make_shared<Queue<int>>();
-  trigger.GetSequenceNumberPublisher().Monitor(sequenceNumbers);
-  auto period = MakeConstantReactor(time_duration{seconds(5)});
-  std::shared_ptr<TriggerTimer> timer;
+  auto commits = Queue<bool>();
+  auto trigger = Trigger(
+    [&] {
+      commits.Push(true);
+    });
+  Trigger::set_trigger(trigger);
+  auto timer = std::shared_ptr<TriggerTimer>();
   auto timerFactory =
     [&] (time_duration duration) {
       timer = std::make_shared<TriggerTimer>();
       return timer;
     };
-  auto reactor = MakeTimerReactor<int>(timerFactory, period);
-  AssertException<ReactorUnavailableException>(*reactor, 0,
-    BaseReactor::Update::NONE);
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 1);
-  sequenceNumbers->Pop();
-  AssertValue(*reactor, 1, BaseReactor::Update::EVAL, 0);
+  auto reactor = MakeTimerReactor<int>(timerFactory, seconds(5));
+  CPPUNIT_ASSERT(reactor.commit(0) == State::CONTINUE_EVALUATED);
+  CPPUNIT_ASSERT(reactor.eval() == 0);
+  CPPUNIT_ASSERT(reactor.commit(1) == State::NONE);
   timer->Trigger();
-  CPPUNIT_ASSERT(sequenceNumbers->Top() == 2);
-  sequenceNumbers->Pop();
-  AssertValue(*reactor, 2, BaseReactor::Update::EVAL, 1);
-*/
+  commits.Top();
+  commits.Pop();
+  CPPUNIT_ASSERT(reactor.commit(2) == State::EVALUATED);
+  CPPUNIT_ASSERT(reactor.eval() == 1);
+  Trigger::set_trigger(nullptr);
 }

@@ -4,13 +4,9 @@
 #include "Beam/ReactorsTests/ReactorTests.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
-namespace Beam {
-namespace Reactors {
-namespace Tests {
+namespace Beam::Reactors::Tests {
 
-  /*  \class TimerReactorTester
-      \brief Tests the Timer Reactor.
-   */
+  /** Tests the Timer Reactor. */
   class TimerReactorTester : public CPPUNIT_NS::TestFixture {
     public:
 
@@ -22,8 +18,6 @@ namespace Tests {
         CPPUNIT_TEST(TestExpiry);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
-}
-}
 }
 
 #endif

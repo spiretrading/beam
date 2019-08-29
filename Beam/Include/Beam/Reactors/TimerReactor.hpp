@@ -2,8 +2,11 @@
 #define BEAM_TIMER_REACTOR_HPP
 #include <memory>
 #include <type_traits>
-#include <aspen/lift.hpp>
+#include <aspen/Chain.hpp>
+#include <aspen/Lift.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/FunctionObject.hpp"
 
@@ -27,23 +30,26 @@ namespace Details {
           m_period(boost::posix_time::not_a_date_time),
           m_ticks(),
           m_expiryQueue(std::make_shared<
-            MultiQueueReader<Threading::Timer::Result>>()) {
-      m_expiryQueue->Push(Threading::Timer::Result::NONE);
-    }
+            MultiQueueReader<Threading::Timer::Result>>()) {}
 
-    Tick operator ()(boost::posix_time::time_duration period,
+    std::optional<Tick> operator ()(boost::posix_time::time_duration period,
         Threading::Timer::Result timerResult) {
       if(period != m_period) {
-        if(m_timer != nullptr) {
+        auto hasTimer = m_timer != nullptr;
+        if(hasTimer) {
           m_timer->Cancel();
         }
         m_period = period;
         ResetTimer();
+        if(!hasTimer) {
+          return m_ticks;
+        }
       } else if(timerResult == Threading::Timer::Result::EXPIRED) {
         ++m_ticks;
         ResetTimer();
+        return m_ticks;
       }
-      return m_ticks;
+      return std::nullopt;
     }
 
     void ResetTimer() {
@@ -64,9 +70,9 @@ namespace Details {
     auto core = MakeFunctionObject(std::make_unique<
       Details::TimerReactorCore<Tick, std::decay_t<TimerFactory>>>(
       std::forward<TimerFactory>(timerFactory)));
-    return Aspen::lift(std::move(core),
-      std::forward<PeriodReactor>(period), QueueReactor(
-      std::static_pointer_cast<QueueReader<Threading::Timer::Result>>(
+    return Aspen::lift(std::move(core), std::forward<PeriodReactor>(period),
+      Aspen::Chain(Threading::Timer::Result(Threading::Timer::Result::NONE),
+      std::make_unique<QueueReactor<Threading::Timer::Result>>(
       core.GetFunction().m_expiryQueue)));
   }
 

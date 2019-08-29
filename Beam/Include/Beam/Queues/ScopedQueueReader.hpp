@@ -1,28 +1,29 @@
 #ifndef BEAM_SCOPED_QUEUE_READER_HPP
 #define BEAM_SCOPED_QUEUE_READER_HPP
-#include <boost/noncopyable.hpp>
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 
 namespace Beam {
 
-  /*! \class ScopedQueueReader
-      \brief Stores a handle to a QueueReader that breaks when the object goes
-             out of scope.
-      \tparam T The data to read from the Queue.
+  /**
+   * Stores a handle to a QueueReader that breaks when the object goes
+   * out of scope.
+   * @param <T> The data to read from the Queue.
    */
   template<typename T>
-  class ScopedQueueReader : private boost::noncopyable {
+  class ScopedQueueReader {
     public:
 
-      //! The type of QueueReader to manage.
+      /** The type of QueueReader to manage. */
       using Queue = QueueReader<T>;
 
-      //! Constructs a ScopedQueueReader.
-      /*!
-        \param queue The QueueReader to manage.
-      */
+      /**
+       * Constructs a ScopedQueueReader.
+       * @param queue The QueueReader to manage.
+       */
       ScopedQueueReader(std::shared_ptr<Queue> queue);
+
+      ScopedQueueReader(ScopedQueueReader&&) = default;
 
       ~ScopedQueueReader();
 
@@ -32,8 +33,13 @@ namespace Beam {
       //! Returns a pointer to the QueueReader.
       Queue* operator ->() const;
 
+      ScopedQueueReader& operator =(ScopedQueueReader&&) = default;
+
     private:
       std::shared_ptr<Queue> m_queue;
+
+      ScopedQueueReader(const ScopedQueueReader&) = delete;
+      ScopedQueueReader& operator =(const ScopedQueueReader&) = delete;
   };
 
   template<typename T>
@@ -42,7 +48,9 @@ namespace Beam {
 
   template<typename T>
   ScopedQueueReader<T>::~ScopedQueueReader() {
-    m_queue->Break();
+    if(m_queue != nullptr) {
+      m_queue->Break();
+    }
   }
 
   template<typename T>

@@ -38,7 +38,7 @@ namespace Beam {
 
   template<typename T>
   ScopedQueueReader<T>::ScopedQueueReader(std::shared_ptr<Queue> queue)
-      : m_queue{std::move(queue)} {}
+    : m_queue{std::move(queue)} {}
 
   template<typename T>
   ScopedQueueReader<T>::~ScopedQueueReader() {

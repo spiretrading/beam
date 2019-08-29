@@ -1,6 +1,18 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
+
+aspen_commit="1dd99995600c53e5d92c3e67aa113a753e9446a2"
+if [ ! -d "aspen" ]; then
+  git clone https://www.github.com/eidolonsystems/aspen
+fi
+pushd aspen
+if ! git merge-base --is-ancestor "$aspen_commit" HEAD; then
+  git checkout master
+  git pull
+  git checkout "$aspen_commit"
+fi
+popd
 if [ ! -d "cppunit-1.14.0" ]; then
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
   if [ -f cppunit-1.14.0.tar.gz ]; then

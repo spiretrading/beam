@@ -18,7 +18,6 @@
 #include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/SignalsSlots.hpp"
 #include "Beam/Python/Sql.hpp"
-#include "Beam/Python/Tasks.hpp"
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/TimeService.hpp"
 #include "Beam/Python/UidService.hpp"
@@ -68,7 +67,6 @@ BOOST_PYTHON_MODULE(beam) {
   ExportSharedObject();
   ExportSignalsSlots();
   ExportSql();
-  ExportTasks();
   ExportThreading();
   ExportTimeService();
   ExportUidService();

@@ -27,6 +27,18 @@ IF NOT EXIST cppunit-1.14.0 (
     DEL cppunit-1.14.0.tar.gz
   )
 )
+SET aspen_commit="1dd99995600c53e5d92c3e67aa113a753e9446a2"
+IF NOT EXIST aspen (
+  git clone https://www.github.com/eidolonsystems/aspen
+)
+PUSHD aspen
+git merge-base --is-ancestor "%aspen_commit%" HEAD
+IF NOT "%ERRORLEVEL%" == "0" (
+  git checkout master
+  git pull
+  git checkout "%aspen_commit%"
+)
+POPD
 IF NOT EXIST cryptopp610 (
   wget http://www.cryptopp.com/cryptopp610.zip --no-check-certificate
   IF EXIST cryptopp610.zip (

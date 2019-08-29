@@ -24,7 +24,7 @@ void TimerReactorTester::TestExpiry() {
       timer = std::make_shared<TriggerTimer>();
       return timer;
     };
-  auto reactor = MakeTimerReactor<int>(timerFactory, seconds(5));
+  auto reactor = Timer<int>(timerFactory, seconds(5));
   CPPUNIT_ASSERT(reactor.commit(0) == State::CONTINUE_EVALUATED);
   CPPUNIT_ASSERT(reactor.eval() == 0);
   CPPUNIT_ASSERT(reactor.commit(1) == State::NONE);

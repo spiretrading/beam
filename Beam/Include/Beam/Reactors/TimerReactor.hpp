@@ -5,7 +5,7 @@
 #include <aspen/Chain.hpp>
 #include <aspen/Lift.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Queues/Queue.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/FunctionObject.hpp"
@@ -22,15 +22,14 @@ namespace Details {
     Timer m_timer;
     boost::posix_time::time_duration m_period;
     Tick m_ticks;
-    std::shared_ptr<MultiQueueReader<Threading::Timer::Result>> m_expiryQueue;
+    std::shared_ptr<Queue<Threading::Timer::Result>> m_expiryQueue;
 
     template<typename TimerFactoryForward>
     TimerReactorCore(TimerFactoryForward&& timerFactory)
-        : m_timerFactory(std::forward<TimerFactoryForward>(timerFactory)),
-          m_period(boost::posix_time::not_a_date_time),
-          m_ticks(),
-          m_expiryQueue(std::make_shared<
-            MultiQueueReader<Threading::Timer::Result>>()) {}
+      : m_timerFactory(std::forward<TimerFactoryForward>(timerFactory)),
+        m_period(boost::posix_time::not_a_date_time),
+        m_ticks(),
+        m_expiryQueue(std::make_shared<Queue<Threading::Timer::Result>>()) {}
 
     std::optional<Tick> operator ()(boost::posix_time::time_duration period,
         Threading::Timer::Result timerResult) {
@@ -54,19 +53,19 @@ namespace Details {
 
     void ResetTimer() {
       m_timer = m_timerFactory(m_period);
-      m_timer->GetPublisher().Monitor(m_expiryQueue->GetWriter());
+      m_timer->GetPublisher().Monitor(m_expiryQueue);
       m_timer->Start();
     }
   };
 }
 
-  //! Makes a Reactor that increments a counter periodically.
-  /*!
-    \param timerFactory Builds Timers used to measure time.
-    \param period The period to increment the counter.
-  */
+  /**
+   * Makes a Reactor that increments a counter periodically.
+   * @param timerFactory Builds Timers used to measure time.
+   * @param period The period to increment the counter.
+   */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto MakeTimerReactor(TimerFactory&& timerFactory, PeriodReactor&& period) {
+  auto Timer(TimerFactory&& timerFactory, PeriodReactor&& period) {
     auto core = MakeFunctionObject(std::make_unique<
       Details::TimerReactorCore<Tick, std::decay_t<TimerFactory>>>(
       std::forward<TimerFactory>(timerFactory)));
@@ -74,17 +73,6 @@ namespace Details {
       Aspen::Chain(Threading::Timer::Result(Threading::Timer::Result::NONE),
       std::make_unique<QueueReactor<Threading::Timer::Result>>(
       core.GetFunction().m_expiryQueue)));
-  }
-
-  //! Makes a Reactor that increments a counter periodically.
-  /*!
-    \param timerFactory Builds Timers used to measure time.
-    \param period The period to increment the counter.
-  */
-  template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto Timer(TimerFactory&& timerFactory, PeriodReactor&& period) {
-    return MakeTimerReactor<Tick>(std::forward<TimerFactory>(timerFactory),
-      std::forward<PeriodReactor>(period));
   }
 }
 

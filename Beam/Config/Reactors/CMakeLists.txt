@@ -1,15 +1,11 @@
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/ReactorsTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/ReactorsTests/*.cpp)
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
-add_executable(ReactorsTests ${header_files} ${source_files})
-set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+add_executable(ReactorsTests ${source_files})
 target_link_libraries(ReactorsTests
-  debug ${CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized ${CPPUNIT_LIBRARY_OPTIMIZED_PATH}
   debug ${LUA_LIBRARY_DEBUG_PATH}
   optimized ${LUA_LIBRARY_OPTIMIZED_PATH})
 

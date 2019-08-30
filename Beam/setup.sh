@@ -1,16 +1,26 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-
 aspen_commit="1dd99995600c53e5d92c3e67aa113a753e9446a2"
+build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/eidolonsystems/aspen
+  build_aspen=1
 fi
 pushd aspen
 if ! git merge-base --is-ancestor "$aspen_commit" HEAD; then
   git checkout master
   git pull
   git checkout "$aspen_commit"
+  build_aspen=1
+fi
+if [ "$build_aspen" == "1" ]; then
+  ./configure.sh "-DD=$root"
+  ./build.sh
+else
+  pushd "$root"
+  ./aspen/aspen/setup.sh
+  popd
 fi
 popd
 if [ ! -d "cppunit-1.14.0" ]; then
@@ -39,6 +49,13 @@ if [ ! -d "cryptopp565" ]; then
     make install PREFIX="$root/cryptopp565"
     popd
     rm -f cryptopp565.zip
+  fi
+fi
+if [ ! -d "doctest-2.3.4" ]; then
+  wget https://github.com/onqtam/doctest/archive/2.3.4.zip --no-check-certificate
+  if [ -f "2.3.4.zip" ]; then
+    unzip 2.3.4.zip
+    rm -f 2.3.4.zip
   fi
 fi
 if [ ! -d "lua-5.3.1" ]; then

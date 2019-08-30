@@ -30,6 +30,7 @@ IF NOT EXIST cppunit-1.14.0 (
 SET aspen_commit="1dd99995600c53e5d92c3e67aa113a753e9446a2"
 IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
+  SET BUILD_ASPEN=1
 )
 PUSHD aspen
 git merge-base --is-ancestor "%aspen_commit%" HEAD
@@ -37,6 +38,16 @@ IF NOT "%ERRORLEVEL%" == "0" (
   git checkout master
   git pull
   git checkout "%aspen_commit%"
+  SET BUILD_ASPEN=1
+)
+IF "%BUILD_ASPEN%" == "1" (
+  CALL configure.bat "-DD=%ROOT%"
+  CALL build.bat Debug
+  CALL build.bat Release
+) ELSE (
+  PUSHD %ROOT%
+  CALL aspen\aspen\setup.bat
+  POPD
 )
 POPD
 IF NOT EXIST cryptopp610 (
@@ -63,6 +74,13 @@ IF NOT EXIST cryptopp610 (
     POPD
     POPD
     DEL cryptopp610.zip
+  )
+)
+IF NOT EXIST doctest-2.3.4 (
+  wget https://github.com/onqtam/doctest/archive/2.3.4.zip --no-check-certificate
+  IF EXIST 2.3.4.zip (
+    unzip 2.3.4.zip
+    DEL 2.3.4.zip
   )
 )
 IF NOT EXIST lua-5.3.1 (

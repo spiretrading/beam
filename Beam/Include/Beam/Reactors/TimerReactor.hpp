@@ -65,7 +65,7 @@ namespace Details {
    * @param period The period to increment the counter.
    */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>
-  auto Timer(TimerFactory&& timerFactory, PeriodReactor&& period) {
+  auto TimerReactor(TimerFactory&& timerFactory, PeriodReactor&& period) {
     auto core = MakeFunctionObject(std::make_unique<
       Details::TimerReactorCore<Tick, std::decay_t<TimerFactory>>>(
       std::forward<TimerFactory>(timerFactory)));

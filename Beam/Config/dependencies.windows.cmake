@@ -21,6 +21,7 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp610/Win32/Output/Debug/cryptlib.lib")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp610/Win32/Output/Release/cryptlib.lib")
+set(DOCTEST_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/doctest-2.3.4")
 set(LUA_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/src")
 set(LUA_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/src/Debug/lua.lib")

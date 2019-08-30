@@ -36,6 +36,7 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp565/lib/libcryptopp.a")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp565/lib/libcryptopp.a")
+set(DOCTEST_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/doctest-2.3.4")
 set(LUA_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/install/include")
 set(LUA_LIBRARY_DEBUG_PATH

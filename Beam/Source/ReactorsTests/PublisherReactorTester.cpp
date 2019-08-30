@@ -1,0 +1,28 @@
+#include <vector>
+#include <aspen/Trigger.hpp>
+#include <doctest/doctest.h>
+#include "Beam/Queues/Queue.hpp"
+#include "Beam/Queues/SequencePublisher.hpp"
+#include "Beam/Reactors/PublisherReactor.hpp"
+
+using namespace Aspen;
+using namespace Beam;
+using namespace Beam::Reactors;
+
+TEST_SUITE("PublisherReactorTester") {
+  TEST_CASE("Test empty publisher.") {
+    auto commits = Beam::Queue<bool>();
+    auto trigger = Trigger(
+      [&] {
+        commits.Push(true);
+      });
+    Trigger::set_trigger(trigger);
+    auto publisher = std::make_shared<SequencePublisher<int>>();
+    auto reactor = PublisherReactor(publisher);
+    REQUIRE(reactor.commit(0) == State::EMPTY);
+    publisher->Break();
+    commits.Top();
+    REQUIRE(reactor.commit(1) == State::COMPLETE_EMPTY);
+    Trigger::set_trigger(nullptr);
+  }
+}

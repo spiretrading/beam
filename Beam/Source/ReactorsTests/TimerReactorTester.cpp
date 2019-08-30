@@ -10,7 +10,7 @@ using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
 
-TEST_SUITE("TimerReactor") {
+TEST_SUITE("TimerReactorTester") {
   TEST_CASE("Test expiry") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(

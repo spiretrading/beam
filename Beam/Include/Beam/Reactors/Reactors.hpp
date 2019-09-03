@@ -6,7 +6,7 @@
 //#include "Beam/Reactors/LuaReactorParameter.hpp"
 //#include "Beam/Reactors/NativeLuaReactorParameter.hpp"
 #include "Beam/Reactors/PublisherReactor.hpp"
-//#include "Beam/Reactors/QueryReactor.hpp"
+#include "Beam/Reactors/QueryReactor.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
 

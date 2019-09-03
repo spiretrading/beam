@@ -27,7 +27,7 @@ IF NOT EXIST cppunit-1.14.0 (
     DEL cppunit-1.14.0.tar.gz
   )
 )
-SET aspen_commit="1dd99995600c53e5d92c3e67aa113a753e9446a2"
+SET aspen_commit="0d8d13552d8c7c13e70566c8390732d8c1f801d6"
 IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
   SET BUILD_ASPEN=1

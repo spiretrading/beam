@@ -19,10 +19,10 @@ TEST_SUITE("PublisherReactorTester") {
     Trigger::set_trigger(trigger);
     auto publisher = std::make_shared<SequencePublisher<int>>();
     auto reactor = PublisherReactor(publisher);
-    REQUIRE(reactor.commit(0) == State::EMPTY);
+    REQUIRE(reactor.commit(0) == State::NONE);
     publisher->Break();
     commits.Top();
-    REQUIRE(reactor.commit(1) == State::COMPLETE_EMPTY);
+    REQUIRE(reactor.commit(1) == State::COMPLETE);
     Trigger::set_trigger(nullptr);
   }
 }

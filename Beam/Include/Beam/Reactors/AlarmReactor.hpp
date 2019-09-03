@@ -76,8 +76,7 @@ namespace Details {
       std::forward<TimeClient>(timeClient)));
     return Aspen::lift(std::move(core), std::forward<ExpiryReactor>(expiry),
       Aspen::Chain(Threading::Timer::Result(Threading::Timer::Result::NONE),
-      std::make_unique<QueueReactor<Threading::Timer::Result>>(
-      core.GetFunction().m_expiryQueue)));
+      QueueReactor(core.GetFunction().m_expiryQueue)));
   }
 }
 

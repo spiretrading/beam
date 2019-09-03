@@ -17,10 +17,10 @@ TEST_SUITE("QueueReactorTester") {
     Trigger::set_trigger(trigger);
     auto queue = std::make_shared<Beam::Queue<int>>();
     auto reactor = QueueReactor(queue);
-    REQUIRE(reactor.commit(0) == State::EMPTY);
+    REQUIRE(reactor.commit(0) == State::NONE);
     queue->Break();
     commits.Top();
-    REQUIRE(reactor.commit(1) == State::COMPLETE_EMPTY);
+    REQUIRE(reactor.commit(1) == State::COMPLETE);
     Trigger::set_trigger(nullptr);
   }
   TEST_CASE("Test immediate exception.") {
@@ -32,7 +32,7 @@ TEST_SUITE("QueueReactorTester") {
     Trigger::set_trigger(trigger);
     auto queue = std::make_shared<Beam::Queue<int>>();
     auto reactor = QueueReactor(queue);
-    REQUIRE(reactor.commit(0) == State::EMPTY);
+    REQUIRE(reactor.commit(0) == State::NONE);
     queue->Break(std::runtime_error("Broken."));
     commits.Top();
     REQUIRE(reactor.commit(1) == State::COMPLETE_EVALUATED);
@@ -48,7 +48,7 @@ TEST_SUITE("QueueReactorTester") {
     Trigger::set_trigger(trigger);
     auto queue = std::make_shared<Beam::Queue<int>>();
     auto reactor = QueueReactor(queue);
-    REQUIRE(reactor.commit(0) == State::EMPTY);
+    REQUIRE(reactor.commit(0) == State::NONE);
     queue->Push(123);
     queue->Break();
     commits.Top();
@@ -68,7 +68,7 @@ TEST_SUITE("QueueReactorTester") {
     Trigger::set_trigger(trigger);
     auto queue = std::make_shared<Beam::Queue<int>>();
     auto reactor = QueueReactor(queue);
-    REQUIRE(reactor.commit(0) == State::EMPTY);
+    REQUIRE(reactor.commit(0) == State::NONE);
     queue->Push(123);
     queue->Break(std::runtime_error("Broken."));
     commits.Top();

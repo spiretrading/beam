@@ -1,6 +1,3 @@
-set(ASPEN_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/aspen/Include")
-set(BEAM_INCLUDE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Include")
-set(BEAM_SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Source")
 set(BOOST_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/include/")
 set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/lib")
@@ -15,9 +12,6 @@ set(BOOST_DATE_TIME_LIBRARY_DEBUG_PATH
   "${BOOST_DEBUG_PATH}/libboost_date_time.a")
 set(BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_date_time.a")
-set(BOOST_PYTHON_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_python36.so")
-set(BOOST_PYTHON_LIBRARY_OPTIMIZED_PATH
-  "${BOOST_OPTIMIZED_PATH}/libboost_python36.so")
 set(BOOST_SYSTEM_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_system.a")
 set(BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_system.a")
@@ -36,13 +30,6 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp565/lib/libcryptopp.a")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp565/lib/libcryptopp.a")
-set(DOCTEST_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/doctest-2.3.4")
-set(LUA_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/install/include")
-set(LUA_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/install/lib/liblua.a")
-set(LUA_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/lua-5.3.1/install/lib/liblua.a")
 set(MYSQL_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/mysql-connector-c-6.1.11-src/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
@@ -71,8 +58,6 @@ set(SQLITE_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100/sqlite3.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100/sqlite3.lib")
-set(TCLAP_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/tclap-1.2.1/include")
-set(VIPER_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/viper/Include")
 set(YAML_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/include")
 set(YAML_LIBRARY_DEBUG_PATH

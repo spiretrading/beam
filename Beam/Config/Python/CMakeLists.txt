@@ -1,11 +1,11 @@
 file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/Python/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/Python/*.cpp)
 
-include_directories(${PYTHON_INCLUDE_PATH})
+include_directories(SYSTEM ${PYBIND11_INCLUDE_PATH})
+include_directories(SYSTEM ${PYTHON_INCLUDE_PATH})
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-  add_definitions(-DBOOST_PYTHON_NO_LIB)
 endif()
 
 add_library(Python SHARED ${header_files} ${source_files})
@@ -33,9 +33,7 @@ target_link_libraries(Python
   debug ${PYTHON_LIBRARY_DEBUG_PATH}
   optimized ${PYTHON_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
-  debug ${BOOST_PYTHON_LIBRARY_DEBUG_PATH}
-  optimized ${BOOST_PYTHON_LIBRARY_OPTIMIZED_PATH})
+  optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(Python

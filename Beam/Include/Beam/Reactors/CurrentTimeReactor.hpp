@@ -1,6 +1,6 @@
 #ifndef BEAM_CURRENT_TIME_REACTOR_HPP
 #define BEAM_CURRENT_TIME_REACTOR_HPP
-#include <aspen/Lift.hpp>
+#include <Aspen/Lift.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Reactors/Reactors.hpp"

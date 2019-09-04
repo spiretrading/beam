@@ -1,7 +1,7 @@
 #ifndef BEAM_QUERY_REACTOR_HPP
 #define BEAM_QUERY_REACTOR_HPP
-#include <aspen/Lift.hpp>
-#include <aspen/Override.hpp>
+#include <Aspen/Lift.hpp>
+#include <Aspen/Override.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"

@@ -1,4 +1,4 @@
-#include <aspen/Trigger.hpp>
+#include <Aspen/Trigger.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Reactors/TimerReactor.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"

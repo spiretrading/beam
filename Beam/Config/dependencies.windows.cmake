@@ -1,3 +1,8 @@
+set(ASPEN_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/aspen/Include")
+set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
+  "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Debug/aspen.lib")
+set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
+  "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.lib")
 set(BOOST_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/include/boost-1_70")
 set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/lib")

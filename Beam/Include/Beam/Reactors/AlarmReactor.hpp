@@ -2,8 +2,8 @@
 #define BEAM_ALARM_REACTOR_HPP
 #include <memory>
 #include <type_traits>
-#include <aspen/Chain.hpp>
-#include <aspen/Lift.hpp>
+#include <Aspen/Chain.hpp>
+#include <Aspen/Lift.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Queue.hpp"

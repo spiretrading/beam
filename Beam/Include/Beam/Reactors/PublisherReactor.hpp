@@ -1,7 +1,7 @@
 #ifndef BEAM_PUBLISHER_REACTOR_HPP
 #define BEAM_PUBLISHER_REACTOR_HPP
 #include <memory>
-#include <aspen/Lift.hpp>
+#include <Aspen/Lift.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queue.hpp"

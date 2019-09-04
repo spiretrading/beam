@@ -24,6 +24,8 @@ if(UNIX)
 endif()
 
 target_link_libraries(Python
+  debug ${ASPEN_PYTHON_LIBRARY_DEBUG_PATH}
+  optimized ${ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH}
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}

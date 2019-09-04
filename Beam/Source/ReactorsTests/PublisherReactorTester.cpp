@@ -1,5 +1,5 @@
 #include <vector>
-#include <aspen/Trigger.hpp>
+#include <Aspen/Trigger.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/SequencePublisher.hpp"

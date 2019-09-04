@@ -1,6 +1,6 @@
 @ECHO OFF
 SETLOCAL
-SET ROOT="%cd%"
+SET ROOT=%cd%
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 FOR /f "usebackq delims=" %%i IN (`%VSWHERE% -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
@@ -27,11 +27,12 @@ IF NOT EXIST cppunit-1.14.0 (
     DEL cppunit-1.14.0.tar.gz
   )
 )
-SET aspen_commit="0d8d13552d8c7c13e70566c8390732d8c1f801d6"
+SET BUILD_ASPEN=
 IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
   SET BUILD_ASPEN=1
 )
+SET aspen_commit="0d8d13552d8c7c13e70566c8390732d8c1f801d6"
 PUSHD aspen
 git merge-base --is-ancestor "%aspen_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (

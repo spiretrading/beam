@@ -58,17 +58,6 @@ if [ ! -d "doctest-2.3.4" ]; then
     rm -f 2.3.4.zip
   fi
 fi
-if [ ! -d "lua-5.3.1" ]; then
-  wget http://www.lua.org/ftp/lua-5.3.1.tar.gz --no-check-certificate
-  if [ -f lua-5.3.1.tar.gz ]; then
-    gzip -d -c lua-5.3.1.tar.gz | tar -x
-    pushd lua-5.3.1
-    make -j $cores linux
-    make local
-    popd
-    rm -f lua-5.3.1.tar.gz
-  fi
-fi
 if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
   wget https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-src.tar.gz --no-check-certificate
   if [ -f mysql-connector-c-6.1.11-src.tar.gz ]; then

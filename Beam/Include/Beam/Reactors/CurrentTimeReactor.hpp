@@ -1,14 +1,14 @@
 #ifndef BEAM_CURRENT_TIME_REACTOR_HPP
 #define BEAM_CURRENT_TIME_REACTOR_HPP
+#include <aspen/Lift.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Reactors/FunctionReactor.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
+#include "Beam/Utilities/FunctionObject.hpp"
 
-namespace Beam {
-namespace Reactors {
+namespace Beam::Reactors {
 namespace Details {
   template<typename TimeClientType>
   struct CurrentTimeCore {
@@ -16,47 +16,46 @@ namespace Details {
 
     template<typename TimeClientForward>
     CurrentTimeCore(TimeClientForward&& timeClient)
-        : m_timeClient{std::forward<TimeClientForward>(timeClient)} {}
-
-    boost::posix_time::ptime operator ()() {
+        : m_timeClient{std::forward<TimeClientForward>(timeClient)} {
       m_timeClient->Open();
+    }
+
+    template<typename T>
+    auto operator ()(T&& value) {
       return m_timeClient->GetTime();
     }
   };
 }
 
-  //! Returns a Reactor that evaluates to the time when it's first evaluated.
-  /*!
-    \param timeClient The TimeClient to use.
-  */
-  template<typename TimeClient>
-  auto MakeCurrentTimeReactor(TimeClient&& timeClient) {
+  /**
+   * Returns a Reactor that evaluates to the timepoint at the moment it's
+   * evaluated.
+   * @param timeClient The TimeClient to use.
+   * @param pulse The reactor used to trigger an update.
+   */
+  template<typename TimeClient, typename P>
+  auto CurrentTimeReactor(TimeClient&& timeClient, P&& pulse) {
     auto core = MakeFunctionObject(std::make_unique<
-      Details::CurrentTimeCore<typename std::decay<TimeClient>::type>>(
+      Details::CurrentTimeCore<std::decay_t<TimeClient>>>(
       std::forward<TimeClient>(timeClient)));
-    return MakeFunctionReactor(std::move(core));
+    return Aspen::lift(std::move(core), std::forward<P>(pulse));
   }
 
-  //! Returns a Reactor that evaluates to the time when it's first evaluated.
-  /*!
-    \param timeClient The TimeClient to use.
-  */
+  /**
+   * Returns a Reactor that evaluates to the timepoint at the moment it's
+   * evaluated.
+   * @param timeClient The TimeClient to use.
+   */
   template<typename TimeClient>
-  auto CurrentTime(TimeClient&& timeClient) {
-    return MakeCurrentTimeReactor(std::forward<TimeClient>(timeClient));
+  auto CurrentTimeReactor(TimeClient&& timeClient) {
+    return CurrentTimeReactor(std::forward<TimeClient>(timeClient),
+      Aspen::constant(0));
   }
 
   //! Returns a Reactor that evaluates to the time when it's first evaluated.
-  inline auto MakeCurrentTimeReactor() {
-    return MakeCurrentTimeReactor(
-      std::make_unique<TimeService::LocalTimeClient>());
+  inline auto CurrentTimeReactor() {
+    return CurrentTimeReactor(std::make_unique<TimeService::LocalTimeClient>());
   }
-
-  //! Returns a Reactor that evaluates to the time when it's first evaluated.
-  inline auto CurrentTime() {
-    return MakeCurrentTimeReactor();
-  }
-}
 }
 
 #endif

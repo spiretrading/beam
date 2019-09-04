@@ -83,19 +83,6 @@ IF NOT EXIST doctest-2.3.4 (
     DEL 2.3.4.zip
   )
 )
-IF NOT EXIST lua-5.3.1 (
-  wget http://www.lua.org/ftp/lua-5.3.1.tar.gz --no-check-certificate
-  IF EXIST lua-5.3.1.tar.gz (
-    gzip -d -c lua-5.3.1.tar.gz | tar -xf -
-    PUSHD lua-5.3.1\src
-    COPY %~dp0\Config\lua.cmake CMakeLists.txt
-    cmake .
-    cmake --build . --target ALL_BUILD --config Debug
-    cmake --build . --target ALL_BUILD --config Release
-    POPD
-    DEL lua-5.3.1.tar.gz
-  )
-)
 IF NOT EXIST mariadb-connector-c-3.0.6 (
   wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.0.6.zip -O mariadb-connector-c-3.0.6.zip --no-check-certificate
   IF EXIST mariadb-connector-c-3.0.6.zip (

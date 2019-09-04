@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_HPP
 #define BEAM_PYTHON_HPP
 #include "Beam/Network/Network.hpp"
+#include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"

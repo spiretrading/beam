@@ -5,7 +5,7 @@
 #include <Aspen/Chain.hpp>
 #include <Aspen/Lift.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include "Beam/Queues/Queue.hpp"
+#include "Beam/Queues/MultiQueueReader.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/FunctionObject.hpp"
@@ -22,14 +22,15 @@ namespace Details {
     Timer m_timer;
     boost::posix_time::time_duration m_period;
     Tick m_ticks;
-    std::shared_ptr<Queue<Threading::Timer::Result>> m_expiryQueue;
+    std::shared_ptr<MultiQueueReader<Threading::Timer::Result>> m_expiryQueue;
 
     template<typename TimerFactoryForward>
     TimerReactorCore(TimerFactoryForward&& timerFactory)
       : m_timerFactory(std::forward<TimerFactoryForward>(timerFactory)),
         m_period(boost::posix_time::not_a_date_time),
         m_ticks(),
-        m_expiryQueue(std::make_shared<Queue<Threading::Timer::Result>>()) {}
+        m_expiryQueue(std::make_shared<
+          MultiQueueReader<Threading::Timer::Result>>()) {}
 
     std::optional<Tick> operator ()(boost::posix_time::time_duration period,
         Threading::Timer::Result timerResult) {
@@ -53,7 +54,7 @@ namespace Details {
 
     void ResetTimer() {
       m_timer = m_timerFactory(m_period);
-      m_timer->GetPublisher().Monitor(m_expiryQueue);
+      m_timer->GetPublisher().Monitor(m_expiryQueue->GetWriter());
       m_timer->Start();
     }
   };

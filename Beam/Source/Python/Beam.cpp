@@ -1,4 +1,5 @@
 #include "Beam/Python/Beam.hpp"
+#include <datetime.h>
 #include <pybind11/pybind11.h>
 #include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Threading/TimerThreadPool.hpp"

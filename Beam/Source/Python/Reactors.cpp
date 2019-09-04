@@ -16,6 +16,7 @@ using namespace pybind11;
 
 void Beam::Python::ExportTimerReactor(pybind11::module& module) {
   export_box<std::int64_t>(pybind11::module::import("aspen"), "Int64");
+  export_box<time_duration>(pybind11::module::import("aspen"), "TimeDuration");
   module.def("timer",
     [] (Box<time_duration> period) {
       auto timerFactory =

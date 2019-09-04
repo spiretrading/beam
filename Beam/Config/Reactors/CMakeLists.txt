@@ -5,9 +5,6 @@ if(MSVC)
 endif()
 
 add_executable(ReactorsTests ${source_files})
-target_link_libraries(ReactorsTests
-  debug ${LUA_LIBRARY_DEBUG_PATH}
-  optimized ${LUA_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(ReactorsTests

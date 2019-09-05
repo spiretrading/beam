@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <pybind11/pybind11.h>
 
-namespace pybind11::detail {
+namespace Beam::Python {
 
   /**
    * Implements the common functionality needed to perform type casting of
@@ -16,15 +16,17 @@ namespace pybind11::detail {
     inline static std::optional<T> m_value;
 
     static PYBIND11_DESCR name() {
-      return type_descr(_(typeid(T).name()));
+      return pybind11::detail::type_descr(
+        pybind11::detail::_(typeid(T).name()));
     }
 
     template<typename U, typename = std::enable_if_t<
       std::is_same_v<T, std::remove_cv_t<U>>>>
-    static handle cast(U* source, return_value_policy policy, handle parent) {
+    static pybind11::handle cast(U* source,
+        pybind11::return_value_policy policy, pybind11::handle parent) {
       if(source == nullptr) {
-        return none().release();
-      } else if(policy == return_value_policy::take_ownership) {
+        return pybind11::none().release();
+      } else if(policy == pybind11::return_value_policy::take_ownership) {
         auto h = cast(std::move(*source), policy, parent);
         delete source;
         return h;

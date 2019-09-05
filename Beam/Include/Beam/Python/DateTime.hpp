@@ -7,7 +7,7 @@
 namespace pybind11::detail {
   template<>
   struct BEAM_EXPORT_DLL type_caster<boost::posix_time::time_duration>
-      : BasicTypeCaster<boost::posix_time::time_duration> {
+      : Beam::Python::BasicTypeCaster<boost::posix_time::time_duration> {
     static handle cast(boost::posix_time::time_duration value,
       return_value_policy policy, handle parent);
     bool load(handle source, bool);
@@ -15,7 +15,7 @@ namespace pybind11::detail {
 
   template<>
   struct BEAM_EXPORT_DLL type_caster<boost::posix_time::ptime>
-      : BasicTypeCaster<boost::posix_time::ptime> {
+      : Beam::Python::BasicTypeCaster<boost::posix_time::ptime> {
     static handle cast(boost::posix_time::ptime value,
       return_value_policy policy, handle parent);
     bool load(handle source, bool);

@@ -15,18 +15,19 @@ namespace Beam::Python {
 
     /** The enum being cast. */
     using Enum = T;
-    static handle cast(Enum value, return_value_policy policy, handle parent);
-    bool load(handle source, bool);
+    static pybind11::handle cast(Enum value,
+      pybind11::return_value_policy policy, pybind11::handle parent);
+    bool load(pybind11::handle source, bool);
   };
 
   template<typename T>
-  handle EnumTypeCaster<T>::cast(Enum value, return_value_policy policy,
-      handle parent) {
+  pybind11::handle EnumTypeCaster<T>::cast(Enum value,
+      pybind11::return_value_policy policy, pybind11::handle parent) {
     return pybind11::cast(static_cast<typename Enum::Type>(value));
   }
 
   template<typename T>
-  bool EnumTypeCaster<T>::load(handle source, bool) {
+  bool EnumTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
       m_value.emplace(source.cast<typename Enum::Type>());
     } catch(const pybind11::cast_error&) {

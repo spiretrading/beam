@@ -15,6 +15,10 @@ using namespace boost;
 using namespace boost::posix_time;
 using namespace pybind11;
 
+void Beam::Python::ExportQueueReactor(pybind11::module& module) {
+  ExportQueueReactor<object>(module, "");
+}
+
 void Beam::Python::ExportTimerReactor(pybind11::module& module) {
   export_box<std::int64_t>(pybind11::module::import("aspen"), "Int64");
   export_box<time_duration>(pybind11::module::import("aspen"), "TimeDuration");
@@ -32,5 +36,6 @@ void Beam::Python::ExportTimerReactor(pybind11::module& module) {
 
 void Beam::Python::ExportReactors(pybind11::module& module) {
   auto submodule = module.def_submodule("reactors");
+  ExportQueueReactor(submodule);
   ExportTimerReactor(submodule);
 }

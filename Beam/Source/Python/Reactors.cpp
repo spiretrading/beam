@@ -1,4 +1,5 @@
 #include "Beam/Python/Reactors.hpp"
+#include <Aspen/Conversions.hpp>
 #include <Aspen/Python/Box.hpp>
 #include <Aspen/Python/Reactor.hpp>
 #include "Beam/Python/Beam.hpp"
@@ -24,7 +25,8 @@ void Beam::Python::ExportTimerReactor(pybind11::module& module) {
           return std::make_unique<LiveTimer>(duration,
             Ref(*GetTimerThreadPool()));
         };
-      return Box(TimerReactor<std::int64_t>(timerFactory, std::move(period)));
+      return Box(to_object(
+        TimerReactor<std::int64_t>(timerFactory, std::move(period))));
     });
 }
 

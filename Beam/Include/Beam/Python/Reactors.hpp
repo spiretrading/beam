@@ -6,6 +6,9 @@
 
 namespace Beam::Python {
 
+  /** Exports the CurrentTimeReactor class. */
+  void ExportCurrentTimeReactor(pybind11::module& module);
+
   /** Exports the QueueReactor class. */
   void ExportQueueReactor(pybind11::module& module);
 

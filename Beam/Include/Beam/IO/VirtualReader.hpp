@@ -102,7 +102,7 @@ namespace IO {
 
   template<typename ReaderType>
   std::size_t WrapperReader<ReaderType>::Read(Out<SharedBuffer> destination,
-        std::size_t size) {
+      std::size_t size) {
     return m_reader->Read(Store(destination), size);
   }
 }

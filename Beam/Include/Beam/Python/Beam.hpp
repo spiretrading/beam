@@ -1,10 +1,13 @@
 #ifndef BEAM_PYTHON_HPP
 #define BEAM_PYTHON_HPP
 #include "Beam/Network/Network.hpp"
+#include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/FixedString.hpp"
+#include "Beam/Python/IO.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"

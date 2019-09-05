@@ -4,6 +4,7 @@
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Enum.hpp"
+#include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"

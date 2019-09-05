@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <Aspen/Chain.hpp>
 #include <Aspen/Lift.hpp>
+#include <Aspen/StateReactor.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/MultiQueueReader.hpp"
@@ -34,7 +35,7 @@ namespace Details {
           MultiQueueReader<Threading::Timer::Result>>()) {}
 
     bool operator ()(const boost::posix_time::ptime& expiry,
-        Threading::Timer::Result timerResult) {
+        Aspen::State expiryState, Threading::Timer::Result timerResult) {
       if(expiry != m_expiry) {
         auto hasTimer = m_timer.has_value();
         if(hasTimer) {
@@ -43,6 +44,9 @@ namespace Details {
         }
         auto currentTime = m_timeClient->GetTime();
         if(expiry <= currentTime) {
+          if(Aspen::is_complete(expiryState)) {
+            m_expiryQueue->Break();
+          }
           return true;
         }
         m_expiry = expiry;
@@ -53,6 +57,9 @@ namespace Details {
       } else if(timerResult == Threading::Timer::Result::EXPIRED) {
         m_expiry = boost::posix_time::not_a_date_time;
         m_timer = std::nullopt;
+        if(Aspen::is_complete(expiryState)) {
+          m_expiryQueue->Break();
+        }
         return true;
       }
       return false;
@@ -71,11 +78,13 @@ namespace Details {
   template<typename TimerFactory, typename TimeClient, typename ExpiryReactor>
   auto AlarmReactor(TimeClient&& timeClient, TimerFactory&& timerFactory,
       ExpiryReactor&& expiry) {
+    auto expiryReactor = Aspen::Shared(std::forward<ExpiryReactor>(expiry));
+    auto expiryState = Aspen::StateReactor(expiryReactor);
     auto core = MakeFunctionObject(std::make_unique<Details::AlarmReactorCore<
       std::decay_t<TimerFactory>, std::decay_t<TimeClient>>>(
       std::forward<TimerFactory>(timerFactory),
       std::forward<TimeClient>(timeClient)));
-    return Aspen::lift(std::move(core), std::forward<ExpiryReactor>(expiry),
+    return Aspen::lift(std::move(core), expiryReactor, expiryState,
       Aspen::Chain(Threading::Timer::Result(Threading::Timer::Result::NONE),
       QueueReactor(core.GetFunction().m_expiryQueue)));
   }

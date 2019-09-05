@@ -6,14 +6,26 @@
 
 namespace Beam::Python {
 
-  /** Exports the CurrentTimeReactor class. */
+  /**
+   * Exports the AlarmReactor.
+   * @param module The module to export to.
+   */
+  void ExportAlarmReactor(pybind11::module& module);
+
+  /**
+   * Exports the CurrentTimeReactor.
+   * @param module The module to export to.
+   */
   void ExportCurrentTimeReactor(pybind11::module& module);
 
-  /** Exports the QueueReactor class. */
+  /**
+   * Exports the QueueReactor.
+   * @param module The module to export to.
+   */
   void ExportQueueReactor(pybind11::module& module);
 
   /**
-   * Exports the generic QueueReactor class.
+   * Exports the generic QueueReactor.
    * @param module The module to export to.
    * @param prefix The prefix to use when forming the type name.
    */
@@ -31,10 +43,16 @@ namespace Beam::Python {
     }
   }
 
-  /** Exports the TimerReactor class. */
+  /**
+   * Exports the TimerReactor.
+   * @param module The module to export to.
+   */
   void ExportTimerReactor(pybind11::module& module);
 
-  /** Exports the Reactors namespace. */
+  /**
+   * Exports the Reactors namespace.
+   * @param module The module to export to.
+   */
   void ExportReactors(pybind11::module& module);
 }
 

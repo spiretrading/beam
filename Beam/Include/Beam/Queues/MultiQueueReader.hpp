@@ -38,6 +38,7 @@ namespace Beam {
 
       virtual void Push(Source&& value) override final;
 
+      using AbstractQueue<T>::Break;
     protected:
       virtual bool IsAvailable() const override final;
 
@@ -72,8 +73,8 @@ namespace Beam {
 
   template<typename T>
   void MultiQueueReader<T>::Break(const std::exception_ptr& e) {
-    m_callbacks.Break();
-    m_queue.Break();
+    m_callbacks.Break(e);
+    m_queue.Break(e);
   }
 
   template<typename T>

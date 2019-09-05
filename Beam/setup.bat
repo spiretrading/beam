@@ -47,7 +47,7 @@ IF "%BUILD_ASPEN%" == "1" (
   CALL build.bat Release
 ) ELSE (
   PUSHD %ROOT%
-  CALL aspen\aspen\setup.bat
+  CALL aspen\setup.bat
   POPD
 )
 POPD

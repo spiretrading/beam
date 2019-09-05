@@ -19,7 +19,7 @@ if [ "$build_aspen" == "1" ]; then
   ./build.sh
 else
   pushd "$root"
-  ./aspen/aspen/setup.sh
+  ./aspen/setup.sh
   popd
 fi
 popd

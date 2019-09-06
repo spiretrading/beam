@@ -26,6 +26,7 @@
 #include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/Python/ToPythonUidClient.hpp"
 #include "Beam/Python/UidService.hpp"
+#include "Beam/Python/WebServices.hpp"
 #include "Beam/Python/Yaml.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"

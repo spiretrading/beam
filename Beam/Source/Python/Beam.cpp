@@ -31,5 +31,6 @@ PYBIND11_MODULE(beam, module) {
   ExportThreading(module);
   ExportTimeService(module);
   ExportUidService(module);
+  ExportWebServices(module);
   ExportYaml(module);
 }

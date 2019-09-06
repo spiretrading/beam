@@ -7,6 +7,7 @@
 #include "Beam/Python/Decimal.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
+#include "Beam/Python/Expect.hpp"
 #include "Beam/Python/FixedString.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/Network.hpp"

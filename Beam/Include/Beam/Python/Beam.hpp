@@ -4,6 +4,7 @@
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
+#include "Beam/Python/Decimal.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/FixedString.hpp"

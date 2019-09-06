@@ -1,6 +1,9 @@
 #ifndef BEAM_PYTHON_IO_HPP
 #define BEAM_PYTHON_IO_HPP
 #include <pybind11/pybind11.h>
+#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Python/Out.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Python {
 
@@ -51,6 +54,12 @@ namespace Beam::Python {
    * @param module The module to export to.
    */
   void ExportWriter(pybind11::module& module);
+}
+
+namespace pybind11::detail {
+  template<>
+  struct BEAM_EXPORT_DLL type_caster<Beam::Out<Beam::IO::SharedBuffer>> :
+    Beam::Python::OutTypeCaster<Beam::Out<Beam::IO::SharedBuffer>> {};
 }
 
 #endif

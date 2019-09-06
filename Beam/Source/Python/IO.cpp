@@ -42,7 +42,7 @@ void Beam::Python::ExportIO(pybind11::module& module) {
   ExportSharedBuffer(submodule);
   ExportWriter(submodule);
 
-#if 0
+#if 0 // TODO Exceptions
   ExportException<IOException, std::runtime_error>("IOException")
     .def(init<>())
     .def(init<const string&>());

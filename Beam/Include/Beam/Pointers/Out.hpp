@@ -10,6 +10,7 @@ namespace Beam {
   template<typename T>
   class Out {
     public:
+      using Type = T;
 
       //! Allows for polymorphic Out params.
       template<typename U>

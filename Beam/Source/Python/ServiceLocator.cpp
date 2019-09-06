@@ -23,59 +23,59 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct FromPythonServiceLocatorClient : VirtualServiceLocatorClient {
-    DirectoryEntry GetAccount() const override final {
+  struct FromPythonServiceLocatorClient final : VirtualServiceLocatorClient {
+    DirectoryEntry GetAccount() const override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "get_account", GetAccount);
     }
 
-    std::string GetSessionId() const override final {
+    std::string GetSessionId() const override {
       PYBIND11_OVERLOAD_PURE_NAME(std::string, VirtualServiceLocatorClient,
         "get_session_id", GetSessionId);
     }
 
-    std::string GetEncryptedSessionId(unsigned int key) const override final {
+    std::string GetEncryptedSessionId(unsigned int key) const override {
       PYBIND11_OVERLOAD_PURE_NAME(std::string, VirtualServiceLocatorClient,
         "get_encrypted_session_id", GetEncryptedSessionId, key);
     }
 
     DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password) override final {
+        const std::string& password) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "authenticate_account", AuthenticateAccount, username, password);
     }
 
     DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key) override final {
+        unsigned int key) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "authenticate_session", AuthenticateSession, sessionId, key);
     }
 
-    std::vector<ServiceEntry> Locate(const std::string& name) override final{
+    std::vector<ServiceEntry> Locate(const std::string& name) override{
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<ServiceEntry>,
         VirtualServiceLocatorClient, "locate", Locate, name);
     }
 
     ServiceEntry Register(const std::string& name,
-        const JsonObject& properties) override final {
+        const JsonObject& properties) override {
       PYBIND11_OVERLOAD_PURE_NAME(ServiceEntry, VirtualServiceLocatorClient,
         "register", Register, name, properties);
     }
 
-    std::vector<DirectoryEntry> LoadAllAccounts() override final {
+    std::vector<DirectoryEntry> LoadAllAccounts() override {
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<DirectoryEntry>,
         VirtualServiceLocatorClient, "load_all_accounts", LoadAllAccounts);
     }
 
     optional<DirectoryEntry> FindAccount(
-        const std::string& name) override final {
+        const std::string& name) override {
       PYBIND11_OVERLOAD_PURE_NAME(optional<DirectoryEntry>,
         VirtualServiceLocatorClient, "find_account", FindAccount, name);
     }
 
     DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password,
-        const DirectoryEntry& parent) override final {
+        const DirectoryEntry& parent) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "make_account", MakeAccount, name, password, parent);
     }
@@ -87,91 +87,91 @@ namespace {
     }
 
     void StorePassword(const DirectoryEntry& account,
-        const std::string& password) override final {
+        const std::string& password) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
         "store_password", StorePassword, account, password);
     }
 
     DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path) override final {
+        const std::string& path) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "load_directory_entry", LoadDirectoryEntry, root, path);
     }
 
-    DirectoryEntry LoadDirectoryEntry(unsigned int id) override final {
+    DirectoryEntry LoadDirectoryEntry(unsigned int id) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "load_directory_entry", LoadDirectoryEntry, id);
     }
 
     std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry) override final {
+        const DirectoryEntry& entry) override {
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<DirectoryEntry>,
         VirtualServiceLocatorClient, "load_parents", LoadParents, entry);
     }
 
     std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& entry) override final {
+        const DirectoryEntry& entry) override {
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<DirectoryEntry>,
         VirtualServiceLocatorClient, "load_children", LoadChildren, entry);
     }
 
-    void Delete(const DirectoryEntry& entry) override final {
+    void Delete(const DirectoryEntry& entry) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "delete",
         Delete, entry);
     }
 
     void Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override final {
+        const DirectoryEntry& parent) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
         "associate", Associate, entry, parent);
     }
 
     void Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override final {
+        const DirectoryEntry& parent) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "detach",
         Detach, entry, parent);
     }
 
     bool HasPermissions(const DirectoryEntry& account,
-        const DirectoryEntry& target, Permissions permissions) override final {
+        const DirectoryEntry& target, Permissions permissions) override {
       PYBIND11_OVERLOAD_PURE_NAME(bool, VirtualServiceLocatorClient,
         "has_permissions", HasPermissions, account, target, permissions);
     }
 
     void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions) override final {
+        const DirectoryEntry& target, Permissions permissions) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
         "store_permissions", StorePermissions, source, target, permissions);
     }
 
-    ptime LoadRegistrationTime(const DirectoryEntry& account) override final {
+    ptime LoadRegistrationTime(const DirectoryEntry& account) override {
       PYBIND11_OVERLOAD_PURE_NAME(ptime, VirtualServiceLocatorClient,
         "load_registration_time", LoadRegistrationTime, account);
     }
 
-    ptime LoadLastLoginTime(const DirectoryEntry& account) override final {
+    ptime LoadLastLoginTime(const DirectoryEntry& account) override {
       PYBIND11_OVERLOAD_PURE_NAME(ptime, VirtualServiceLocatorClient,
         "load_last_login_time", LoadLastLoginTime, account);
     }
 
     DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name) override final {
+        const std::string& name) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "rename", Rename, entry, name);
     }
 
     void SetCredentials(const std::string& username,
-        const std::string& password) override final {
+        const std::string& password) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
         "set_credentials", SetCredentials, username, password);
     }
 
-    void Open() override final {
+    void Open() override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "open",
         Open);
     }
 
-    void Close() override final {
+    void Close() override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "close",
         Close);
     }

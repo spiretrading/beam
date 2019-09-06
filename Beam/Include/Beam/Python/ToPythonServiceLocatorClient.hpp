@@ -1,7 +1,6 @@
 #ifndef BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
 #include <pybind11/pybind11.h>
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 
 namespace Beam::ServiceLocator {
@@ -11,7 +10,8 @@ namespace Beam::ServiceLocator {
    * param <C> The type of ServiceLocatorClient to wrap.
    */
   template<typename C>
-  class ToPythonServiceLocatorClient : public VirtualServiceLocatorClient {
+  class ToPythonServiceLocatorClient final :
+      public VirtualServiceLocatorClient {
     public:
 
       /** The type of ServiceLocatorClient to wrap. */
@@ -23,80 +23,80 @@ namespace Beam::ServiceLocator {
        */
       ToPythonServiceLocatorClient(std::unique_ptr<Client> client);
 
-      ~ToPythonServiceLocatorClient() override final;
+      ~ToPythonServiceLocatorClient() override;
 
-      DirectoryEntry GetAccount() const override final;
+      DirectoryEntry GetAccount() const override;
 
-      std::string GetSessionId() const override final;
+      std::string GetSessionId() const override;
 
-      std::string GetEncryptedSessionId(unsigned int key) const override final;
+      std::string GetEncryptedSessionId(unsigned int key) const override;
 
       DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password) override final;
+        const std::string& password) override;
 
       DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key) override final;
+        unsigned int key) override;
 
-      std::vector<ServiceEntry> Locate(const std::string& name) override final;
+      std::vector<ServiceEntry> Locate(const std::string& name) override;
 
       ServiceEntry Register(const std::string& name,
-        const JsonObject& properties) override final;
+        const JsonObject& properties) override;
 
-      std::vector<DirectoryEntry> LoadAllAccounts() override final;
+      std::vector<DirectoryEntry> LoadAllAccounts() override;
 
       boost::optional<DirectoryEntry> FindAccount(
-        const std::string& name) override final;
+        const std::string& name) override;
 
       DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password,
-        const DirectoryEntry& parent) override final;
+        const DirectoryEntry& parent) override;
 
       DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent) override final;
+        const DirectoryEntry& parent) override;
 
       void StorePassword(const DirectoryEntry& account,
-        const std::string& password) override final;
+        const std::string& password) override;
 
       DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path) override final;
+        const std::string& path) override;
 
-      DirectoryEntry LoadDirectoryEntry(unsigned int id) override final;
+      DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
 
       std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry) override final;
+        const DirectoryEntry& entry) override;
 
       std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& entry) override final;
+        const DirectoryEntry& entry) override;
 
-      void Delete(const DirectoryEntry& entry) override final;
+      void Delete(const DirectoryEntry& entry) override;
 
       void Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override final;
+        const DirectoryEntry& parent) override;
 
       void Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override final;
+        const DirectoryEntry& parent) override;
 
       bool HasPermissions(const DirectoryEntry& account,
-        const DirectoryEntry& target, Permissions permissions) override final;
+        const DirectoryEntry& target, Permissions permissions) override;
 
       void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions) override final;
+        const DirectoryEntry& target, Permissions permissions) override;
 
       boost::posix_time::ptime LoadRegistrationTime(
-        const DirectoryEntry& account) override final;
+        const DirectoryEntry& account) override;
 
       boost::posix_time::ptime LoadLastLoginTime(
-        const DirectoryEntry& account) override final;
+        const DirectoryEntry& account) override;
 
       DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name) override final;
+        const std::string& name) override;
 
       void SetCredentials(const std::string& username,
-        const std::string& password) override final;
+        const std::string& password) override;
 
-      void Open() override final;
+      void Open() override;
 
-      void Close() override final;
+      void Close() override;
 
     private:
       std::unique_ptr<Client> m_client;

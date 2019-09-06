@@ -1,5 +1,6 @@
 #ifndef BEAM_PUBLISHER_HPP
 #define BEAM_PUBLISHER_HPP
+#include <functional>
 #include <memory>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"

@@ -23,14 +23,6 @@
 
 namespace Beam {
 namespace UidService {
-namespace Details {
-  using UidClientSessionBuilder =
-    Services::AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::ApplicationServiceLocatorClient::Client,
-    Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
-    Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-    Threading::LiveTimer>;
-}
 
   /*! \class ApplicationUidClient
       \brief Encapsulates a standard UidClient used in an application.
@@ -38,8 +30,16 @@ namespace Details {
   class ApplicationUidClient : private boost::noncopyable {
     public:
 
+      //! The type used to build client sessions.
+      using SessionBuilder =
+        Services::AuthenticatedServiceProtocolClientBuilder<
+        ServiceLocator::ApplicationServiceLocatorClient::Client,
+        Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
+        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+        Threading::LiveTimer>;
+
       //! Defines the standard UidClient used for applications.
-      using Client = UidClient<Details::UidClientSessionBuilder>;
+      using Client = UidClient<SessionBuilder>;
 
       //! Constructs an ApplicationUidClient.
       ApplicationUidClient() = default;
@@ -93,7 +93,7 @@ namespace Details {
     auto addresses = ServiceLocator::LocateServiceAddresses(
       *serviceLocatorClientHandle, SERVICE_NAME);
     auto delay = false;
-    auto sessionBuilder = Details::UidClientSessionBuilder(
+    auto sessionBuilder = SessionBuilder(
       Ref(serviceLocatorClient),
       [=] () mutable {
         if(delay) {

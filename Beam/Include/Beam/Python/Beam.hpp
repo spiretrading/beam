@@ -24,6 +24,8 @@
 #include "Beam/Python/ToPythonServiceLocatorClient.hpp"
 #include "Beam/Python/ToPythonTimeClient.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
+#include "Beam/Python/ToPythonUidClient.hpp"
+#include "Beam/Python/UidService.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/DllExport.hpp"

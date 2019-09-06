@@ -13,6 +13,7 @@
 #include "Beam/Python/Rational.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/Ref.hpp"
+#include "Beam/Python/Routines.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/DllExport.hpp"

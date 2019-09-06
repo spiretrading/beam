@@ -18,6 +18,7 @@
 #include "Beam/Python/Ref.hpp"
 #include "Beam/Python/Routines.hpp"
 #include "Beam/Python/ServiceLocator.hpp"
+#include "Beam/Python/Sql.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/DllExport.hpp"

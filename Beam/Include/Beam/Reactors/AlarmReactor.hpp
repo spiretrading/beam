@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <Aspen/Chain.hpp>
 #include <Aspen/Lift.hpp>
+#include <Aspen/Shared.hpp>
 #include <Aspen/StateReactor.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"

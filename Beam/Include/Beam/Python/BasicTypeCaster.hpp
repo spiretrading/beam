@@ -17,7 +17,7 @@ namespace Beam::Python {
 
     static PYBIND11_DESCR name() {
       return pybind11::detail::type_descr(
-        pybind11::detail::_(typeid(T).name()));
+        pybind11::detail::_(static_cast<const char*>(typeid(T).name())));
     }
 
     template<typename U, typename = std::enable_if_t<
@@ -25,7 +25,7 @@ namespace Beam::Python {
     static pybind11::handle cast(U* source,
         pybind11::return_value_policy policy, pybind11::handle parent) {
       if(source == nullptr) {
-        return Py_NONE;
+        return Py_None;
       } else if(policy == pybind11::return_value_policy::take_ownership) {
         auto h = cast(std::move(*source), policy, parent);
         delete source;

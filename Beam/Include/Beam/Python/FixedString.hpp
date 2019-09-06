@@ -16,6 +16,7 @@ namespace Beam::Python {
     static pybind11::handle cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool);
+    using BasicTypeCaster<T>::m_value;
   };
 
   template<typename T>
@@ -29,7 +30,7 @@ namespace Beam::Python {
     if(!PyUnicode_Check(source.ptr())) {
       return false;
     }
-    m_value.emplace(PyUnicode_AsUTF8(object));
+    m_value.emplace(PyUnicode_AsUTF8(source.ptr()));
   }
 }
 

@@ -27,12 +27,12 @@ namespace Details {
   template<typename T>
   pybind11::handle DecimalTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return PyDecimal()(static_cast<std::string>(value)).release();
+    return Details::PyDecimal()(static_cast<std::string>(value)).release();
   }
 
   template<typename T>
   bool DecimalTypeCaster<T>::load(pybind11::handle source, bool) {
-    if(!PyObject_IsInstance(source.ptr(), PyDecimal().ptr())) {
+    if(!PyObject_IsInstance(source.ptr(), Details::PyDecimal().ptr())) {
       return false;
     }
     auto str = PyObject_Str(source.ptr());

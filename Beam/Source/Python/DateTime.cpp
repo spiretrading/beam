@@ -9,6 +9,9 @@ using namespace pybind11::detail;
 
 handle type_caster<time_duration>::cast(time_duration value,
     return_value_policy policy, handle parent) {
+  if(!PyDateTimeAPI) {
+    PyDateTime_IMPORT;
+  }
   auto totalMicroseconds = std::abs(value.total_microseconds());
   auto totalSeconds = totalMicroseconds / 1000000;
   auto days = totalSeconds / 86400;
@@ -58,6 +61,9 @@ bool type_caster<time_duration>::load(handle source, bool) {
 
 handle type_caster<ptime>::cast(ptime value, return_value_policy policy,
     handle parent) {
+  if(!PyDateTimeAPI) {
+    PyDateTime_IMPORT;
+  }
   if(value == not_a_date_time) {
     return Py_None;
   } else if(value == neg_infin) {

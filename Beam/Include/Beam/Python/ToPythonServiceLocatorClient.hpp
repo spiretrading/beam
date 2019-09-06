@@ -119,8 +119,8 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
-    auto release = pybind11::gil_scoped_release();
     Close();
+    auto release = pybind11::gil_scoped_release();
     m_client.reset();
   }
 
@@ -307,6 +307,7 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   void ToPythonServiceLocatorClient<C>::Close() {
+    auto release = pybind11::gil_scoped_release();
     m_client->Close();
   }
 }

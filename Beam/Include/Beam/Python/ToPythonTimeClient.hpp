@@ -54,8 +54,8 @@ namespace Beam::TimeService {
 
   template<typename C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
-    auto release = pybind11::gil_scoped_release();
     Close();
+    auto release = pybind11::gil_scoped_release();
     m_client.reset();
   }
 

@@ -72,10 +72,10 @@ void Beam::Python::ExportTimer(pybind11::module& module) {
 
 void Beam::Python::ExportTriggerTimer(pybind11::module& module) {
   class_<ToPythonTimer<TriggerTimer>, VirtualTimer>(module, "TriggerTimer")
-    .def("__init__",
+    .def(init(
       [] {
         return MakeToPythonTimer(std::make_unique<TriggerTimer>());
-      })
+      }))
     .def("trigger",
       [] (ToPythonTimer<TriggerTimer>& self) {
         self.GetTimer().Trigger();

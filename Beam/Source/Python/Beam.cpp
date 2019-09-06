@@ -26,4 +26,5 @@ PYBIND11_MODULE(beam, module) {
   ExportNetwork(module);
   ExportReactors(module);
   ExportRoutines(module);
+  ExportServiceLocator(module);
 }

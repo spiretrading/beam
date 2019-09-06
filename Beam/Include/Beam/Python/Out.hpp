@@ -21,7 +21,7 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle OutTypeCaster<T>::cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(&*value);
+    return pybind11::cast(&*value).release();
   }
 
   template<typename T>

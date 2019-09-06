@@ -21,7 +21,7 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle FixedStringTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(value.GetData());
+    return pybind11::cast(value.GetData()).release();
   }
 
   template<typename T>

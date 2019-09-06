@@ -25,7 +25,7 @@ namespace Beam::Python {
     static pybind11::handle cast(U* source,
         pybind11::return_value_policy policy, pybind11::handle parent) {
       if(source == nullptr) {
-        return pybind11::none().release();
+        return Py_NONE;
       } else if(policy == pybind11::return_value_policy::take_ownership) {
         auto h = cast(std::move(*source), policy, parent);
         delete source;

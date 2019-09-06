@@ -14,7 +14,7 @@ namespace Beam::Python {
    */
   template<typename T>
   void ExportEnumSet(pybind11::module& module, const std::string& name) {
-    pybind11::class_<T>(module, name)
+    pybind11::class_<T>(module, name.c_str())
       .def(pybind11::init())
       .def(pybind11::init<T>())
       .def(pybind11::init<typename T::Type>())

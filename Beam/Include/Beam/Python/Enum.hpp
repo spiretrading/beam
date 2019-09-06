@@ -21,7 +21,7 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle EnumTypeCaster<T>::cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(static_cast<typename Type::Type>(value));
+    return pybind11::cast(static_cast<typename Type::Type>(value)).release();
   }
 
   template<typename T>

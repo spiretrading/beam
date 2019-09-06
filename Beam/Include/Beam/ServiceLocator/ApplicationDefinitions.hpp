@@ -18,12 +18,6 @@
 
 namespace Beam {
 namespace ServiceLocator {
-namespace Details {
-  using ServiceLocatorClientSessionBuilder =
-    Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
-    std::unique_ptr<Network::TcpSocketChannel>,
-    Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
-}
 
   /*! \struct ServiceLocatorClientConfig
       \brief Stores the configuration needed to connect a ServiceLocatorClient.
@@ -53,9 +47,14 @@ namespace Details {
   class ApplicationServiceLocatorClient : private boost::noncopyable {
     public:
 
+      //! The type of session builder used by the client.
+      using SessionBuilder = Services::ServiceProtocolClientBuilder<
+        Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
+        Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
+
+
       //! Defines the standard ServiceLocatorClient used for applications.
-      using Client = ServiceLocatorClient<
-        Details::ServiceLocatorClientSessionBuilder>;
+      using Client = ServiceLocatorClient<SessionBuilder>;
 
       //! Constructs an ApplicationServiceLocatorClient.
       ApplicationServiceLocatorClient() = default;
@@ -113,7 +112,7 @@ namespace Details {
     auto socketThreadPoolHandle = socketThreadPool.Get();
     auto timerThreadPoolHandle = timerThreadPool.Get();
     auto isConnected = false;
-    Details::ServiceLocatorClientSessionBuilder sessionBuilder(
+    SessionBuilder sessionBuilder(
       [=] () mutable {
         if(isConnected) {
           BOOST_THROW_EXCEPTION(IO::NotConnectedException());

@@ -28,4 +28,6 @@ PYBIND11_MODULE(beam, module) {
   ExportRoutines(module);
   ExportServiceLocator(module);
   ExportSql(module);
+  ExportThreading(module);
+  ExportTimeService(module);
 }

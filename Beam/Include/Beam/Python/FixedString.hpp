@@ -33,4 +33,10 @@ namespace Beam::Python {
   }
 }
 
+namespace pybind11::detail {
+  template<std::size_t N>
+  struct type_caster<Beam::FixedString<N>> :
+    Beam::Python::FixedStringTypeCaster<Beam::FixedString<N>> {};
+}
+
 #endif

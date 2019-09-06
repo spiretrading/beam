@@ -12,29 +12,33 @@ namespace Beam::Python {
    */
   template<typename T>
   struct EnumTypeCaster : BasicTypeCaster<T> {
-
-    /** The enum being cast. */
-    using Enum = T;
-    static pybind11::handle cast(Enum value,
+    using Type = T;
+    static pybind11::handle cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool);
   };
 
   template<typename T>
-  pybind11::handle EnumTypeCaster<T>::cast(Enum value,
+  pybind11::handle EnumTypeCaster<T>::cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(static_cast<typename Enum::Type>(value));
+    return pybind11::cast(static_cast<typename Type::Type>(value));
   }
 
   template<typename T>
   bool EnumTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      m_value.emplace(source.cast<typename Enum::Type>());
+      m_value.emplace(source.cast<typename Type::Type>());
     } catch(const pybind11::cast_error&) {
       return false;
     }
     return true;
   }
+}
+
+namespace pybind11::detail {
+  template<typename T, std::size_t N>
+  struct type_caster<Beam::Enum<T, N>> : Beam::Python::EnumTypeCaster<
+    Beam::Enum<T, N>> {};
 }
 
 #endif

@@ -1,5 +1,6 @@
 #include "Beam/Python/Network.hpp"
 #include <pybind11/operators.h>
+#include <pybind11/stl.h>
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/WrapperChannel.hpp"

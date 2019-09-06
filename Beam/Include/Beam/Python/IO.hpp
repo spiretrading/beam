@@ -56,10 +56,4 @@ namespace Beam::Python {
   void ExportWriter(pybind11::module& module);
 }
 
-namespace pybind11::detail {
-  template<>
-  struct BEAM_EXPORT_DLL type_caster<Beam::Out<Beam::IO::SharedBuffer>> :
-    Beam::Python::OutTypeCaster<Beam::Out<Beam::IO::SharedBuffer>> {};
-}
-
 #endif

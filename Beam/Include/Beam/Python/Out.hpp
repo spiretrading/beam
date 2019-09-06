@@ -35,4 +35,10 @@ namespace Beam::Python {
   }
 }
 
+namespace pybind11::detail {
+  template<typename T>
+  struct type_caster<Beam::Out<T>> :
+    Beam::Python::OutTypeCaster<Beam::Out<T>> {};
+}
+
 #endif

@@ -35,4 +35,10 @@ namespace Beam::Python {
   }
 }
 
+namespace pybind11::detail {
+  template<typename T>
+  struct type_caster<Beam::Ref<T>> :
+    Beam::Python::RefTypeCaster<Beam::Ref<T>> {};
+}
+
 #endif

@@ -1,4 +1,5 @@
 #include "Beam/Python/IO.hpp"
+#include <pybind11/stl.h>
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/VirtualConnection.hpp"

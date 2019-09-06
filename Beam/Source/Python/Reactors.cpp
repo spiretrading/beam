@@ -2,6 +2,7 @@
 #include <Aspen/Conversions.hpp>
 #include <Aspen/Python/Box.hpp>
 #include <Aspen/Python/Reactor.hpp>
+#include <pybind11/stl.h>
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/CurrentTimeReactor.hpp"

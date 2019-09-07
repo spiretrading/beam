@@ -35,11 +35,11 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    Aspen::export_reactor<QueueReactor<T>>(module, name)
+    Aspen::export_reactor<Reactors::QueueReactor<T>>(module, name)
       .def(pybind11::init<std::shared_ptr<QueueReader<T>>>());
     if constexpr(!std::is_same_v<T, pybind11::object>) {
-      pybind11::implicitly_convertible<QueueReactor<T>,
-        QueueReactor<pybind11::object>>();
+      pybind11::implicitly_convertible<Reactors::QueueReactor<T>,
+        Reactors::QueueReactor<pybind11::object>>();
     }
   }
 

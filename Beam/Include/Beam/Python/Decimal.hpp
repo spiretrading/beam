@@ -22,6 +22,7 @@ namespace Details {
     static pybind11::handle cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool);
+    using BasicTypeCaster<T>::m_value;
   };
 
   template<typename T>

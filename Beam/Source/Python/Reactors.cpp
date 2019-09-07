@@ -59,7 +59,8 @@ void Beam::Python::ExportTimerReactor(pybind11::module& module) {
 
 void Beam::Python::ExportReactors(pybind11::module& module) {
   auto submodule = module.def_submodule("reactors");
-  export_box<std::int64_t>(pybind11::module::import("aspen"), "Int64");
+  auto aspenModule = pybind11::module::import("aspen");
+  export_box<std::int64_t>(aspenModule, "Int64");
   export_box<time_duration>(module, "TimeDuration");
   export_box<ptime>(module, "PosixTime");
   ExportAlarmReactor(submodule);

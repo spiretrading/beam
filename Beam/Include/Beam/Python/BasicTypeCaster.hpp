@@ -17,7 +17,9 @@ namespace Beam::Python {
 
     static PYBIND11_DESCR name() {
       return pybind11::detail::type_descr(
-        pybind11::detail::_(static_cast<const char*>(typeid(T).name())));
+        pybind11::detail::_(""));
+//      return pybind11::detail::type_descr(
+//        pybind11::detail::_(static_cast<const char*>(typeid(T).name())));
     }
 
     template<typename U, typename = std::enable_if_t<

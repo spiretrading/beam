@@ -20,7 +20,14 @@ namespace Beam::Python {
         name.c_str())
       .def(pybind11::init())
       .def("is_empty", &Routines::Eval<T>::IsEmpty)
-      .def("set_result", &Routines::Eval<T>::SetResult);
+      .def("set_result",
+        [] (Routines::Eval<T>& self) {
+          self.SetResult();
+        })
+      .def("set_result",
+        [] (Routines::Eval<T>& self, const T& value) {
+          self.SetResult(value);
+        });
   }
 
   /**

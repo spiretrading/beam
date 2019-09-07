@@ -3,7 +3,6 @@
 #include <memory>
 #include <Aspen/Queue.hpp>
 #include "Beam/Queues/ScopedQueueReader.hpp"
-#include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 namespace Beam::Reactors {

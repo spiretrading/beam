@@ -32,7 +32,7 @@ IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
   SET BUILD_ASPEN=1
 )
-SET aspen_commit="7119d9f59a80dfdcf9e4234c5d84ef0da384cfcd"
+SET aspen_commit="cb829f722bf847dc196f4419c5a8329aec99c188"
 PUSHD aspen
 git merge-base --is-ancestor "%aspen_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (
@@ -156,7 +156,7 @@ IF NOT EXIST tclap-1.2.1 (
     DEL tclap-1.2.1.tar.gz
   )
 )
-SET viper_commit="84a99535652ed914ec5c6c9bf55477089100ae4a"
+SET viper_commit="d6df2ec02762f75eb27580624f11008ee6d4d54d"
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
 )

@@ -2,6 +2,7 @@
 #define BEAM_PYTHON_QUERIES_HPP
 #include <string>
 #include <type_traits>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
@@ -223,7 +224,7 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle BasicQueryTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    auto query = BasicQuery<pybind11::object>();
+    auto query = Queries::BasicQuery<pybind11::object>();
     query.SetIndex(pybind11::cast(value.GetIndex()));
     query.SetRange(value.GetRange());
     query.SetSnapshotLimit(value.GetSnapshotLimit());
@@ -235,7 +236,7 @@ namespace Beam::Python {
   template<typename T>
   bool BasicQueryTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      auto query = source.cast<BasicQuery<pybind11::object>>();
+      auto query = source.cast<Queries::BasicQuery<pybind11::object>>();
       m_value.emplace();
       m_value->SetIndex(query.GetIndex().cast<typename T::Index>());
       m_value->SetRange(query.GetRange());
@@ -251,14 +252,14 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle IndexedQueryTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(IndexedQuery(
+    return pybind11::cast(Queries::IndexedQuery(
       pybind11::cast(value.GetIndex()))).release();
   }
 
   template<typename T>
   bool IndexedQueryTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      auto query = source.cast<IndexedQuery<pybind11::object>>();
+      auto query = source.cast<Queries::IndexedQuery<pybind11::object>>();
       m_value.emplace(query.GetIndex().cast<typename T::Index>());
     } catch(const pybind11::cast_error&) {
       return false;
@@ -271,7 +272,7 @@ namespace Beam::Python {
       pybind11::return_value_policy policy, pybind11::handle parent) {
     auto object = pybind11::cast(value.GetValue());
     auto index = pybind11::cast(value.GetIndex());
-    return pybind11::cast(IndexedValue(std::move(object),
+    return pybind11::cast(Queries::IndexedValue(std::move(object),
       std::move(index))).release();
   }
 
@@ -279,7 +280,7 @@ namespace Beam::Python {
   bool IndexedValueTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
       auto indexedValue = source.cast<
-        IndexedValue<pybind11::object, pybind11::object>>();
+        Queries::IndexedValue<pybind11::object, pybind11::object>>();
       m_value.emplace(indexedValue.GetValue().cast<typename Type::Value>(),
         indexedValue.GetIndex().cast<typename Type::Index>());
     } catch(const pybind11::cast_error&) {
@@ -291,14 +292,15 @@ namespace Beam::Python {
   template<typename T>
   pybind11::handle SequencedValueTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(SequencedValue(pybind11::cast(value.GetValue())),
-      value.GetSequence()).release();
+    return pybind11::cast(Queries::SequencedValue(
+      pybind11::cast(value.GetValue())), value.GetSequence()).release();
   }
 
   template<typename T>
   bool SequencedValueTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      auto sequencedValue = source.cast<SequencedValue<pybind11::object>>();
+      auto sequencedValue = source.cast<
+        Queries::SequencedValue<pybind11::object>>();
       m_value.emplace(sequencedValue.GetValue().cast<typename Type::Value>(),
         sequencedValue.GetSequence());
     } catch(const pybind11::cast_error&) {

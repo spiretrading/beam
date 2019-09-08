@@ -92,6 +92,10 @@ namespace Queries {
       Index m_index;
   };
 
+  template<typename V, typename I>
+  IndexedValue(V&& value, I&& index) ->
+    IndexedValue<std::decay_t<V>, std::decay_t<I>>;
+
   //! Makes an IndexedValue.
   /*!
     \param value The value to store.

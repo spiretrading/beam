@@ -34,8 +34,9 @@ namespace Queries {
       /*!
         \param value Initializes the value.
       */
-      template<typename ValueForward>
-      explicit NativeValue(ValueForward&& value);
+      template<typename V, typename = std::enable_if_t<
+        !std::is_base_of_v<NativeValue, std::decay_t<V>>>>
+      explicit NativeValue(V&& value);
 
       virtual ~NativeValue() = default;
 
@@ -76,22 +77,20 @@ namespace Queries {
     \param value The value to wrap.
   */
   template<typename T>
-  NativeValue<NativeDataType<typename std::decay<T>::type>> MakeNativeValue(
-      T&& value) {
-    return NativeValue<NativeDataType<typename std::decay<T>::type>>(
-      std::forward<T>(value));
+  NativeValue<NativeDataType<std::decay_t<T>>> MakeNativeValue(T&& value) {
+    return NativeValue<NativeDataType<std::decay_t<T>>>(std::forward<T>(value));
   }
 
   template<typename T>
   NativeValue<T>::NativeValue()
-      : m_value(),
-        m_type{Type::GetInstance()} {}
+    : m_value(),
+      m_type(Type::GetInstance()) {}
 
   template<typename T>
-  template<typename ValueForward>
-  NativeValue<T>::NativeValue(ValueForward&& value)
-      : m_value(std::forward<ValueForward>(value)),
-        m_type{Type::GetInstance()} {}
+  template<typename V, typename>
+  NativeValue<T>::NativeValue(V&& value)
+    : m_value(std::forward<V>(value)),
+      m_type(Type::GetInstance()) {}
 
   template<typename T>
   const DataType& NativeValue<T>::GetType() const {

@@ -88,6 +88,10 @@ namespace Queries {
       Sequence m_sequence;
   };
 
+  template<typename V>
+  SequencedValue(V&& value, const Sequence& sequence) ->
+    SequencedValue<std::decay_t<V>>;
+
   /*! \struct SequenceComparator
       \brief Defines a comparator for any two SequencedValues.
    */

@@ -18,7 +18,7 @@ namespace Beam::Python {
     static PYBIND11_DESCR name() {
       return pybind11::detail::type_descr(
         pybind11::detail::_(""));
-//      return pybind11::detail::type_descr(
+// TODO      return pybind11::detail::type_descr(
 //        pybind11::detail::_(static_cast<const char*>(typeid(T).name())));
     }
 

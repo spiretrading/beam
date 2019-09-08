@@ -13,6 +13,7 @@
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Python/Out.hpp"
+#include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Rational.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/Ref.hpp"

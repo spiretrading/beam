@@ -36,7 +36,7 @@ void SequencedValuePublisherTester::TestSnapshotWithTotalRange() {
   query.SetRange(Range::Total());
   unique_ptr<PublisherEntry> publisher = MakePublisher(query);
   vector<SequencedValue<string>> snapshot;
-  snapshot.push_back(MakeSequencedValue("hello", Sequence(3)));
+  snapshot.push_back(SequencedValue("hello", Sequence(3)));
   InitializeSnapshot(*publisher, snapshot);
   SequencedValue<string> worldValue("world", Sequence(3));
   publisher->m_publisher.Push(worldValue);

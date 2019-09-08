@@ -54,7 +54,7 @@ void IndexedValueTester::TestNotEqualsOperator() {
 }
 
 void IndexedValueTester::TestMakeIndexedValue() {
-  auto value = MakeIndexedValue(321, string("hello world"));
+  auto value = IndexedValue(321, string("hello world"));
   CPPUNIT_ASSERT(value.GetValue() == 321);
   CPPUNIT_ASSERT(value.GetIndex() == "hello world");
 }

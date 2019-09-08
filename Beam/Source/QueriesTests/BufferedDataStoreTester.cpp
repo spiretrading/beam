@@ -47,8 +47,8 @@ namespace {
   SequencedIndexedEntry StoreValue(DataStore& dataStore, string index,
       int value, const ptime& timestamp,
       const Beam::Queries::Sequence& sequence) {
-    auto entry = MakeSequencedValue(MakeIndexedValue(Entry(value, timestamp),
-      index), sequence);
+    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
+      sequence);
     dataStore.Store(entry);
     return entry;
   }

@@ -227,11 +227,9 @@ namespace Queries {
               subscriptionEntry.m_previousValue = value;
             }
             if(snapshotLimit.GetType() == SnapshotLimit::Type::TAIL) {
-              tailBuffer.push_back(MakeSequencedValue(value,
-                data.GetSequence()));
+              tailBuffer.push_back(SequencedValue(value, data.GetSequence()));
             } else {
-              headBuffer.push_back(MakeSequencedValue(value,
-                data.GetSequence()));
+              headBuffer.push_back(SequencedValue(value, data.GetSequence()));
             }
           } catch(const std::exception&) {}
         }

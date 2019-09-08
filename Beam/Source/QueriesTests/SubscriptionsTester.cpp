@@ -30,14 +30,14 @@ void SubscriptionsTester::TestPublish() {
       CPPUNIT_ASSERT(committedSnapshot.m_queryId == snapshot.m_queryId);
     });
   subscriptions.Publish(
-    MakeSequencedValue(Entry{321, second_clock::local_time() }, Sequence(5)),
+    SequencedValue(Entry{321, second_clock::local_time() }, Sequence(5)),
     [&] (std::vector<ServiceProtocolClient*>& receivingClients) {
       CPPUNIT_ASSERT(receivingClients.size() == 1);
       CPPUNIT_ASSERT(receivingClients.front() == &client);
     });
   subscriptions.End(queryId);
   subscriptions.Publish(
-    MakeSequencedValue(Entry{221, second_clock::local_time() }, Sequence(6)),
+    SequencedValue(Entry{221, second_clock::local_time()}, Sequence(6)),
     [&] (std::vector<ServiceProtocolClient*>& receivingClients) {
       CPPUNIT_ASSERT(false);
     });

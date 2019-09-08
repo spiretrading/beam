@@ -107,8 +107,8 @@ namespace Queries {
           std::transform(indexEntries.begin(), indexEntries.end(),
             std::back_inserter(values),
             [&] (const SequencedValue& value) {
-              return MakeSequencedValue(MakeIndexedValue(*value, index),
-                value.GetSequence());
+              return Queries::SequencedValue(
+                Queries::IndexedValue(*value, index), value.GetSequence());
             });
         }
       });

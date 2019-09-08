@@ -34,15 +34,15 @@ void ExpressionSubscriptionsTester::TestPublish() {
     [&] (QueryResult<SequencedValue<int>> committedSnapshot) {
       CPPUNIT_ASSERT(committedSnapshot.m_queryId == result.m_queryId);
     });
-  subscriptions.Publish(
-    MakeSequencedValue(Entry{321, second_clock::local_time() }, Sequence(5)),
+  subscriptions.Publish(SequencedValue(Entry{321, second_clock::local_time()},
+    Sequence(5)),
     [&] (ServiceProtocolClient& senderClient, int id,
         const SequencedValue<int>& value) {
       CPPUNIT_ASSERT(&senderClient == &client);
     });
   subscriptions.End(client, queryId);
-  subscriptions.Publish(
-    MakeSequencedValue(Entry{221, second_clock::local_time() }, Sequence(6)),
+  subscriptions.Publish(SequencedValue(Entry{221, second_clock::local_time()},
+    Sequence(6)),
     [&] (ServiceProtocolClient& senderClient, int id,
         const SequencedValue<int>& value) {
       CPPUNIT_ASSERT(false);

@@ -79,8 +79,8 @@ namespace Queries {
   SequencedValue<IndexedValue<Value, Index>> Sequencer::MakeSequencedValue(
       Value value, Index index) {
     auto sequence = IncrementNextSequence(GetTimestamp(value));
-    return Queries::MakeSequencedValue(MakeIndexedValue(
-      std::move(value), std::move(index)), sequence);
+    return SequencedValue(IndexedValue(std::move(value), std::move(index)),
+      sequence);
   }
 
   inline Sequence Sequencer::IncrementNextSequence(

@@ -51,7 +51,7 @@ void SequencedValueTester::TestNotEqualsOperator() {
 }
 
 void SequencedValueTester::TestMakeSequencedValue() {
-  auto value = MakeSequencedValue(321, Sequence(1));
+  auto value = SequencedValue(321, Sequence(1));
   CPPUNIT_ASSERT(value.GetValue() == 321);
   CPPUNIT_ASSERT(value.GetSequence() == Sequence(1));
 }

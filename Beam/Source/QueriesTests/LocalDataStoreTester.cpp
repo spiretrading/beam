@@ -43,8 +43,8 @@ namespace {
   SequencedIndexedEntry StoreValue(TestDataStore& dataStore, string index,
       int value, const ptime& timestamp,
       const Beam::Queries::Sequence& sequence) {
-    auto entry = MakeSequencedValue(MakeIndexedValue(Entry(value, timestamp),
-      index), sequence);
+    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
+      sequence);
     dataStore.Store(entry);
     return entry;
   }
@@ -102,17 +102,17 @@ void LocalDataStoreTester::TestStoreAndLoad() {
 void LocalDataStoreTester::TestLoadAll() {
   TestDataStore dataStore;
   IncrementalTimeClient timeClient;
-  auto valueA = MakeSequencedValue(MakeIndexedValue(
-    Entry(5, timeClient.GetTime()), "hello"), Sequence(1));
+  auto valueA = SequencedValue(IndexedValue(Entry(5, timeClient.GetTime()),
+    "hello"), Sequence(1));
   dataStore.Store(valueA);
-  auto valueB = MakeSequencedValue(MakeIndexedValue(
-    Entry(6, timeClient.GetTime()), "hello"), Sequence(2));
+  auto valueB = SequencedValue(IndexedValue(Entry(6, timeClient.GetTime()),
+    "hello"), Sequence(2));
   dataStore.Store(valueB);
-  auto valueC = MakeSequencedValue(MakeIndexedValue(
-    Entry(7, timeClient.GetTime()), "goodbye"), Sequence(1));
+  auto valueC = SequencedValue(IndexedValue(Entry(7, timeClient.GetTime()),
+    "goodbye"), Sequence(1));
   dataStore.Store(valueC);
-  auto valueD = MakeSequencedValue(MakeIndexedValue(
-    Entry(8, timeClient.GetTime()), "goodbye"), Sequence(2));
+  auto valueD = SequencedValue(IndexedValue(Entry(8, timeClient.GetTime()),
+    "goodbye"), Sequence(2));
   dataStore.Store(valueD);
   vector<SequencedIndexedEntry> entries = dataStore.LoadAll();
   vector<SequencedIndexedEntry> expectedEntries =

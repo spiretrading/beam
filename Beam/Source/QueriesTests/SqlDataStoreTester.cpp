@@ -36,8 +36,8 @@ namespace {
 
   auto StoreValue(TestDataStore& dataStore, std::string index, int value,
       const ptime& timestamp, const Queries::Sequence& sequence) {
-    auto entry = MakeSequencedValue(MakeIndexedValue(Entry{value, timestamp},
-      index), sequence);
+    auto entry = SequencedValue(IndexedValue(Entry{value, timestamp}, index),
+      sequence);
     dataStore.Store(entry);
     return entry;
   }

@@ -8,21 +8,20 @@
 
 namespace Beam::Reactors {
 
-  //! Builds a Reactor that submits a query and produces evaluates to the
-  //! result.
+  //! Builds a Reactor that submits a query and evaluates to the result.
   /*!
     \param submissionFunction The function used to submit the query.
     \param query The query to submit.
   */
   template<typename T, typename F, typename Query>
-  auto QueryReactor(F&& submissionFunction, Query query) {
-    auto queue = std::make_shared<Queue<T>>();
+  auto QueryReactor(F&& submissionFunction, Query&& query) {
     return Aspen::override(Aspen::lift(
-      [submissionFunction = std::forward<F>(submissionFunction),
-          query = std::move(query), queue = std::move(queue)] {
+      [submissionFunction = std::forward<F>(submissionFunction)]
+          (const Aspen::reactor_result_t<Query>& query) {
+        auto queue = std::make_shared<Queue<T>>();
         submissionFunction(query, queue);
-        return QueueReactor(std::move(queue));
-      }));
+        return Aspen::Shared(QueueReactor(std::move(queue)));
+      }, std::forward<Query>(query)));
   }
 
   //! Builds a Query Reactor for the current value of a specified index.

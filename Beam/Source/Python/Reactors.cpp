@@ -2,8 +2,11 @@
 #include <Aspen/Conversions.hpp>
 #include <Aspen/Python/Box.hpp>
 #include <Aspen/Python/Reactor.hpp>
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "Beam/Python/Beam.hpp"
+#include "Beam/Reactors/QueueReactor.hpp"
+#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Reactors/AlarmReactor.hpp"
 #include "Beam/Reactors/CurrentTimeReactor.hpp"
 #include "Beam/Reactors/TimerReactor.hpp"
@@ -13,6 +16,7 @@
 using namespace Aspen;
 using namespace Beam;
 using namespace Beam::Python;
+using namespace Beam::Queries;
 using namespace Beam::Reactors;
 using namespace Beam::Threading;
 using namespace Beam::TimeService;
@@ -45,8 +49,26 @@ void Beam::Python::ExportCurrentTimeReactor(pybind11::module& module) {
     });
 }
 
+void Beam::Python::ExportPublisherReactor(pybind11::module& module) {
+  module.def("monitor",
+    [] (std::shared_ptr<Publisher<object>> publisher) {
+      return Box(PublisherReactor(std::move(publisher)));
+    });
+}
+
+void Beam::Python::ExportQueryReactor(pybind11::module& module) {
+  module.def("query",
+    [] (std::function<
+        void (const BasicQuery<object>&, std::shared_ptr<QueueWriter<object>>)>
+        submissionFunction, Box<BasicQuery<object>> query) {
+      return Box(QueryReactor<object>(std::move(submissionFunction),
+        std::move(query)));
+    });
+}
+
 void Beam::Python::ExportQueueReactor(pybind11::module& module) {
-  ExportQueueReactor<object>(module, "");
+  export_reactor<QueueReactor<object>>(module, "QueueReactor")
+    .def(pybind11::init<std::shared_ptr<QueueReader<object>>>());
 }
 
 void Beam::Python::ExportTimerReactor(pybind11::module& module) {
@@ -65,6 +87,8 @@ void Beam::Python::ExportReactors(pybind11::module& module) {
   export_box<ptime>(module, "PosixTime");
   ExportAlarmReactor(submodule);
   ExportCurrentTimeReactor(submodule);
+  ExportPublisherReactor(submodule);
+  ExportQueryReactor(submodule);
   ExportQueueReactor(submodule);
   ExportTimerReactor(submodule);
 }

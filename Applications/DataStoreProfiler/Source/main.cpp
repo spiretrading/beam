@@ -81,8 +81,8 @@ namespace {
         rand() % 10000000, "dummy", timestamp};
       auto& sequence = sequences[entry.m_name];
       sequence = Increment(sequence);
-      auto sequencedIndexedEntry = MakeSequencedValue(
-        MakeIndexedValue(entry, entry.m_name), sequence);
+      auto sequencedIndexedEntry = SequencedValue(IndexedValue(
+        entry, entry.m_name), sequence);
       dataStore.Store(sequencedIndexedEntry);
       timestamp += config.m_timeStep;
     }

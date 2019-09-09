@@ -221,7 +221,7 @@ namespace {
     data.m_value = entry.m_index;
     data.m_timestamp = microsec_clock::universal_time();
     entry.m_sequence = Increment(entry.m_sequence);
-    auto value = MakeSequencedValue(MakeIndexedValue(data, entry.m_index),
+    auto value = SequencedValue(IndexedValue(data, entry.m_index),
       entry.m_sequence);
     m_dataStore.Store(value);
     m_dataSubscriptions.Publish(value,

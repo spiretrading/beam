@@ -2,72 +2,15 @@
 #define BEAM_PYTHON_QUEUES_HPP
 #include <string>
 #include <pybind11/pybind11.h>
-#include "Beam/Queues/AbstractQueue.hpp"
+#include "Beam/Python/AbstractQueue.hpp"
+#include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Python/QueueReader.hpp"
+#include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/QueueReader.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
 
 namespace Beam::Python {
-  template<typename T>
-  struct FromPythonAbstractQueue final : T {
-    using Target = typename T::Target;
-    using Source = typename T::Source;
-    using T::T;
-
-    bool IsEmpty() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
-    }
-
-    Target Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
-    }
-
-    void Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "pop", Pop);
-    }
-
-    void Push(Source&& value) override {
-      Push(value);
-    }
-
-    void Push(const Source& value) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
-    }
-  };
-
-  template<typename T>
-  struct FromPythonQueueReader final : T {
-    using Target = typename T::Target;
-    using T::T;
-
-    bool IsEmpty() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
-    }
-
-    Target Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
-    }
-
-    void Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "pop", Pop);
-    }
-  };
-
-  template<typename T>
-  struct FromPythonQueueWriter final : T {
-    using Source = typename T::Source;
-    using T::T;
-
-    void Push(Source&& value) override {
-      Push(value);
-    }
-
-    void Push(const Source& value) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
-    }
-  };
 
   /**
    * Exports the BasePublisher class.
@@ -119,9 +62,17 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<T, FromPythonAbstractQueue<T>, std::shared_ptr<T>,
-      typename T::Reader, typename T::Writer>(module, name.c_str(),
-      pybind11::multiple_inheritance());
+    auto binding = pybind11::class_<T, TrampolineAbstractQueue<T>,
+      std::shared_ptr<T>, typename T::Reader, typename T::Writer>(module,
+      name.c_str(), pybind11::multiple_inheritance());
+    if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
+      binding.def(pybind11::init(
+        [] (std::shared_ptr<AbstractQueue<pybind11::object>> queue) {
+          return MakeFromPythonAbstractQueue<typename T::Target>(
+            std::move(queue));
+        }));
+      pybind11::implicitly_convertible<AbstractQueue<pybind11::object>, T>();
+    }
   }
 
   /**
@@ -178,7 +129,8 @@ namespace Beam::Python {
       .def("is_broken", &T::IsBroken)
       .def("wait", static_cast<void (T::*)() const>(&T::Wait),
         pybind11::call_guard<pybind11::gil_scoped_release>())
-      .def("top", &T::Top);
+      .def("top", &T::Top,
+        pybind11::call_guard<pybind11::gil_scoped_release>());
   }
 
   /**
@@ -192,11 +144,20 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<T, FromPythonQueueReader<T>, std::shared_ptr<T>,
-        BaseQueue>(module, name.c_str(), pybind11::multiple_inheritance())
+    auto binding = pybind11::class_<T, TrampolineQueueReader<T>,
+        std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
+        pybind11::multiple_inheritance())
       .def("is_empty", &T::IsEmpty)
       .def("top", &T::Top)
       .def("pop", &T::Pop);
+    if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
+      binding.def(pybind11::init(
+        [] (std::shared_ptr<QueueReader<pybind11::object>> queue) {
+          return MakeFromPythonQueueReader<typename T::Target>(
+            std::move(queue));
+        }));
+      pybind11::implicitly_convertible<QueueReader<pybind11::object>, T>();
+    }
   }
 
   /**
@@ -210,10 +171,19 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<T, FromPythonQueueWriter<T>, std::shared_ptr<T>,
-        BaseQueue>(module, name.c_str(), pybind11::multiple_inheritance())
+    auto binding = pybind11::class_<T, TrampolineQueueWriter<T>,
+        std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
+        pybind11::multiple_inheritance())
       .def("push", static_cast<void (T::*)(const typename T::Source&)>(
         &T::Push));
+    if constexpr(!std::is_same_v<typename T::Source, pybind11::object>) {
+      binding.def(pybind11::init(
+        [] (std::shared_ptr<QueueWriter<pybind11::object>> queue) {
+          return MakeFromPythonQueueWriter<typename T::Source>(
+            std::move(queue));
+        }));
+      pybind11::implicitly_convertible<QueueWriter<pybind11::object>, T>();
+    }
   }
 
   /**

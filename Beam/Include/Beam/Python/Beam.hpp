@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_HPP
 #define BEAM_PYTHON_HPP
 #include "Beam/Network/Network.hpp"
+#include "Beam/Python/AbstractQueue.hpp"
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
@@ -15,6 +16,8 @@
 #include "Beam/Python/Out.hpp"
 #include "Beam/Python/Queries.hpp"
 #include "Beam/Python/Queues.hpp"
+#include "Beam/Python/QueueReader.hpp"
+#include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Python/Rational.hpp"
 #include "Beam/Python/Reactors.hpp"
 #include "Beam/Python/Ref.hpp"
@@ -28,6 +31,7 @@
 #include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/Python/ToPythonUidClient.hpp"
 #include "Beam/Python/UidService.hpp"
+#include "Beam/Python/Variant.hpp"
 #include "Beam/Python/WebServices.hpp"
 #include "Beam/Python/Yaml.hpp"
 #include "Beam/Routines/Scheduler.hpp"

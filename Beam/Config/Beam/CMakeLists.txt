@@ -39,8 +39,6 @@ file(GLOB signal_handling_header_files
 source_group("SignalHandling" FILES ${signal_handling_header_files})
 file(GLOB stomp_header_files ${BEAM_INCLUDE_PATH}/Beam/Stomp/*.hpp)
 source_group("Stomp" FILES ${stomp_header_files})
-file(GLOB tasks_header_files ${BEAM_INCLUDE_PATH}/Beam/Tasks/*.hpp)
-source_group("Tasks" FILES ${tasks_header_files})
 file(GLOB threading_header_files ${BEAM_INCLUDE_PATH}/Beam/Threading/*.hpp)
 source_group("Threading" FILES ${threading_header_files})
 file(GLOB time_service_header_files ${BEAM_INCLUDE_PATH}/Beam/TimeService/*.hpp)
@@ -58,7 +56,7 @@ file(GLOB header_files ${codecs_header_files} ${collections_header_files}
   ${registry_service_header_files} ${routines_header_files}
   ${serialization_header_files} ${service_locator_header_files}
   ${services_header_files} ${signal_handling_header_files} ${stomp_header_files}
-  ${tasks_header_files} ${threading_header_files} ${time_service_header_files}
+  ${threading_header_files} ${time_service_header_files}
   ${uid_service_header_files} ${utilities_header_files}
   ${web_services_header_files})
 if(MSVC)

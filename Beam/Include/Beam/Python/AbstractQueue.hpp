@@ -98,7 +98,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
-    : m_queue(std::make_shared<Queue<boost::python::object>>()),
+    : m_queue(std::make_shared<Queue<pybind11::object>>()),
       m_reader(MakeFromPythonQueueReader<Target>(m_queue)),
       m_writer(MakeFromPythonQueueWriter<Source>(m_queue)) {}
 

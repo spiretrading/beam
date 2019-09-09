@@ -32,7 +32,7 @@ IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
   SET BUILD_ASPEN=1
 )
-SET aspen_commit="cb829f722bf847dc196f4419c5a8329aec99c188"
+SET aspen_commit="3b2fd9b52f84e049ada126c257d1873db8e9e055"
 PUSHD aspen
 git merge-base --is-ancestor "%aspen_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (
@@ -42,7 +42,7 @@ IF NOT "%ERRORLEVEL%" == "0" (
   SET BUILD_ASPEN=1
 )
 IF "%BUILD_ASPEN%" == "1" (
-  CALL configure.bat "-DD=%ROOT%"
+  CALL configure.bat -DD="%ROOT%"
   CALL build.bat Debug
   CALL build.bat Release
 ) ELSE (

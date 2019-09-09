@@ -3,6 +3,7 @@
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 
@@ -48,12 +49,7 @@ void Beam::Python::ExportThreading(pybind11::module& module) {
   ExportTimer(submodule);
   ExportLiveTimer(submodule);
   ExportTriggerTimer(submodule);
-
-#if 0 // TODO exceptions
-  ExportException<TimeoutException, std::runtime_error>("TimeoutException")
-    .def(init<>())
-    .def(init<const string&>());
-#endif
+  register_exception<TimeoutException>(submodule, "TimeoutException");
 }
 
 void Beam::Python::ExportTimer(pybind11::module& module) {

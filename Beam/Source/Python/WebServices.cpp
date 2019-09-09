@@ -284,36 +284,25 @@ void Beam::Python::ExportUri(pybind11::module& module) {
 
 void Beam::Python::ExportWebServices(pybind11::module& module) {
   auto submodule = module.def_submodule("web_services");
-  ExportCookie(module);
-  ExportHttpClient(module);
-  ExportHttpHeader(module);
-  ExportHttpMethod(module);
-  ExportHttpRequest(module);
-  ExportHttpRequestParser(module);
-  ExportHttpResponse(module);
-  ExportHttpResponseParser(module);
-  ExportHttpStatusCode(module);
-  ExportHttpVersion(module);
-  ExportSecureSocketChannelFactory(module);
-  ExportSocketChannelFactory(module);
-  ExportTcpSocketChannelFactory(module);
-  ExportUri(module);
-#if 0 // TODO exceptions
-  ExportException<InvalidHttpRequestException, std::runtime_error>(
-    "InvalidHttpRequestException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<InvalidHttpResponseException, std::runtime_error>(
-    "InvalidHttpResponseException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<MalformedUriException, std::runtime_error>(
-    "MalformedUriException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<SessionDataStoreException, IOException>(
-    "SessionDataStoreException")
-    .def(init<>())
-    .def(init<const string&>());
-#endif
+  ExportCookie(submodule);
+  ExportHttpClient(submodule);
+  ExportHttpHeader(submodule);
+  ExportHttpMethod(submodule);
+  ExportHttpRequest(submodule);
+  ExportHttpRequestParser(submodule);
+  ExportHttpResponse(submodule);
+  ExportHttpResponseParser(submodule);
+  ExportHttpStatusCode(submodule);
+  ExportHttpVersion(submodule);
+  ExportSecureSocketChannelFactory(submodule);
+  ExportSocketChannelFactory(submodule);
+  ExportTcpSocketChannelFactory(submodule);
+  ExportUri(submodule);
+  register_exception<InvalidHttpRequestException>(submodule,
+    "InvalidHttpRequestException");
+  register_exception<InvalidHttpResponseException>(submodule,
+    "InvalidHttpResponseException");
+  register_exception<MalformedUriException>(submodule, "MalformedUriException");
+  register_exception<SessionDataStoreException>(submodule,
+    "SessionDataStoreException", GetIOException().ptr());
 }

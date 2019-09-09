@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Routines/RoutineException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 
@@ -66,8 +67,5 @@ void Beam::Python::ExportRoutines(pybind11::module& module) {
   submodule.def("spawn",
     static_cast<Routine::Id (*)(const std::function<void ()>&)>(&Spawn));
   submodule.def("wait", &Wait, call_guard<gil_scoped_release>());
-#if 0 // TODO exceptions
-  ExportException<RoutineException, std::runtime_error>("RoutineException")
-    .def(init<const string&>());
-#endif
+  register_exception<RoutineException>(submodule, "RoutineException");
 }

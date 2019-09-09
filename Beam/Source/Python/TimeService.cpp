@@ -152,13 +152,8 @@ void Beam::Python::ExportTimeService(pybind11::module& module) {
   ExportTestTimeClient(test_module);
   ExportTestTimer(test_module);
   ExportTimeServiceTestEnvironment(test_module);
-
-#if 0 // TODO Exceptions
-    ExportException<TimeServiceTestEnvironmentException, std::runtime_error>(
-      "TimeServiceTestEnvironmentException")
-      .def(init<>())
-      .def(init<const string&>());
-#endif
+  register_exception<TimeServiceTestEnvironmentException>(test_module,
+    "TimeServiceTestEnvironmentException");
 }
 
 void Beam::Python::ExportTimeServiceTestEnvironment(pybind11::module& module) {

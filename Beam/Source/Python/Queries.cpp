@@ -185,19 +185,12 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   submodule.def("build_current_query", &BuildCurrentQuery<object>);
   submodule.def("build_latest_query", &BuildRealTimeQuery<object>);
   submodule.def("build_real_time_query", &BuildRealTimeQuery<object>);
-#if 0 // TODO exceptions.
-  ExportException<ExpressionTranslationException, std::runtime_error>(
-    "ExpressionTranslationException")
-    .def(init<const string&>());
-  ExportException<QueryInterruptedException, std::runtime_error>(
-    "QueryInterruptedException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<TypeCompatibilityException, std::runtime_error>(
-    "TypeCompatibilityException")
-    .def(init<>())
-    .def(init<const string&>());
-#endif
+  register_exception<ExpressionTranslationException>(submodule,
+    "ExpressionTranslationException");
+  register_exception<QueryInterruptedException>(submodule,
+    "QueryInterruptedException");
+  register_exception<TypeCompatibilityException>(submodule,
+    "TypeCompatibilityException");
 }
 
 void Beam::Python::ExportRange(pybind11::module& module) {

@@ -45,13 +45,7 @@ void Beam::Python::ExportQueues(pybind11::module& module) {
         }
       } catch(const PipeBrokenException&) {}
     });
-
-#if 0 // TODO exceptions
- ExportException<PipeBrokenException, std::runtime_error>(
-    "PipeBrokenException")
-    .def(init<>())
-    .def(init<const string&>());
-#endif
+  register_exception<PipeBrokenException>(module, "PipeBrokenException");
 }
 
 void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {

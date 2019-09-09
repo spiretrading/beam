@@ -1,5 +1,8 @@
 #include "Beam/Python/IO.hpp"
+#include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/IO/EndOfFileException.hpp"
+#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/VirtualConnection.hpp"
@@ -9,6 +12,15 @@ using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Python;
 using namespace pybind11;
+
+namespace {
+  object ioException;
+}
+
+const object& Beam::Python::GetIOException() {
+  return ioException;
+}
+
 
 void Beam::Python::ExportChannel(pybind11::module& module) {
   class_<VirtualChannel>(module, "Channel")
@@ -42,21 +54,13 @@ void Beam::Python::ExportIO(pybind11::module& module) {
   ExportReader(submodule);
   ExportSharedBuffer(submodule);
   ExportWriter(submodule);
-
-#if 0 // TODO Exceptions
-  ExportException<IOException, std::runtime_error>("IOException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<ConnectException, IOException>("ConnectException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<EndOfFileException, IOException>("EndOfFileException")
-    .def(init<>())
-    .def(init<const string&>());
-  ExportException<NotConnectedException, IOException>("NotConnectedException")
-    .def(init<>())
-    .def(init<const string&>());
-#endif
+  ioException = register_exception<IOException>(submodule, "IOException");
+  register_exception<ConnectException>(submodule, "ConnectException",
+    ioException.ptr());
+  register_exception<EndOfFileException>(submodule, "EndOfFileException",
+    ioException.ptr());
+  register_exception<NotConnectedException>(submodule, "NotConnectedException",
+    ioException.ptr());
 }
 
 void Beam::Python::ExportOpenState(pybind11::module& module) {

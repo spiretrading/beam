@@ -34,12 +34,8 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportTcpSocketConnection(submodule);
   ExportTcpSocketReader(submodule);
   ExportTcpSocketWriter(submodule);
-
-#if 0  // TODO Exceptions
-  ExportException<SocketException, IOException>("SocketException")
-    .def(init<int, const string&>())
-    .add_property("code", &SocketException::GetCode);
-#endif
+  register_exception<SocketException>(submodule, "SocketException",
+    GetIOException().ptr());
 }
 
 void Beam::Python::ExportSocketIdentifier(pybind11::module& module) {

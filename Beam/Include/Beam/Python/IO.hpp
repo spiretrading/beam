@@ -7,6 +7,9 @@
 
 namespace Beam::Python {
 
+  /** Returns the Python object representing an IOException. */
+  BEAM_EXPORT_DLL const pybind11::object& GetIOException();
+
   /**
    * Exports the Channel class.
    * @param module The module to export to.

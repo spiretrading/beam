@@ -293,7 +293,7 @@ namespace Beam::Python {
   pybind11::handle SequencedValueTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
     return pybind11::cast(Queries::SequencedValue(
-      pybind11::cast(value.GetValue())), value.GetSequence()).release();
+      pybind11::cast(value.GetValue()), value.GetSequence())).release();
   }
 
   template<typename T>

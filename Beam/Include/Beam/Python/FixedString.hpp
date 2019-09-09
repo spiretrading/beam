@@ -31,6 +31,7 @@ namespace Beam::Python {
       return false;
     }
     m_value.emplace(PyUnicode_AsUTF8(source.ptr()));
+    return true;
   }
 }
 

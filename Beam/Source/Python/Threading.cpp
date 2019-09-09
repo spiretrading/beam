@@ -1,5 +1,6 @@
 #include "Beam/Python/Threading.hpp"
 #include "Beam/Python/Beam.hpp"
+#include "Beam/Python/Queues.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
@@ -67,7 +68,7 @@ void Beam::Python::ExportTimer(pybind11::module& module) {
     .value("EXPIRED", Timer::Result::EXPIRED)
     .value("CANCELED", Timer::Result::CANCELED)
     .value("FAIL", Timer::Result::FAIL);
-// TODO, Queues  ExportQueueSuite<Timer::Result>("TimerResult");
+  ExportQueueSuite<Timer::Result>(module, "TimerResult");
 }
 
 void Beam::Python::ExportTriggerTimer(pybind11::module& module) {

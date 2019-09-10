@@ -32,7 +32,7 @@ namespace pybind11::detail {
     auto is_converted = false;
     boost::mpl::for_each<typename boost::variant<T...>::types>(
       [&] (auto&& unused) {
-        using U = std::decay_t<decltype(unused)>();
+        using U = std::decay_t<decltype(unused)>;
         if(is_converted) {
           return;
         }

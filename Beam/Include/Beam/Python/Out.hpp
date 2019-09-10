@@ -28,7 +28,7 @@ namespace Beam::Python {
   template<typename T>
   bool OutTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      m_value.emplace(Store(*source.cast<typename Type::Type*>()));
+      m_value.emplace(Store(source.cast<typename Type::Type&>()));
     } catch(const pybind11::cast_error&) {
       return false;
     }

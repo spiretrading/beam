@@ -236,7 +236,7 @@ namespace Beam::Python {
   template<typename T>
   bool BasicQueryTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      auto query = source.cast<Queries::BasicQuery<pybind11::object>>();
+      auto query = source.cast<Queries::BasicQuery<pybind11::object>&>();
       m_value.emplace();
       m_value->SetIndex(query.GetIndex().cast<typename T::Index>());
       m_value->SetRange(query.GetRange());
@@ -259,7 +259,7 @@ namespace Beam::Python {
   template<typename T>
   bool IndexedQueryTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
-      auto query = source.cast<Queries::IndexedQuery<pybind11::object>>();
+      auto query = source.cast<Queries::IndexedQuery<pybind11::object>&>();
       m_value.emplace(query.GetIndex().cast<typename T::Index>());
     } catch(const pybind11::cast_error&) {
       return false;
@@ -280,7 +280,7 @@ namespace Beam::Python {
   bool IndexedValueTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
       auto indexedValue = source.cast<
-        Queries::IndexedValue<pybind11::object, pybind11::object>>();
+        Queries::IndexedValue<pybind11::object, pybind11::object>&>();
       m_value.emplace(indexedValue.GetValue().cast<typename Type::Value>(),
         indexedValue.GetIndex().cast<typename Type::Index>());
     } catch(const pybind11::cast_error&) {
@@ -300,7 +300,7 @@ namespace Beam::Python {
   bool SequencedValueTypeCaster<T>::load(pybind11::handle source, bool) {
     try {
       auto sequencedValue = source.cast<
-        Queries::SequencedValue<pybind11::object>>();
+        Queries::SequencedValue<pybind11::object>&>();
       m_value.emplace(sequencedValue.GetValue().cast<typename Type::Value>(),
         sequencedValue.GetSequence());
     } catch(const pybind11::cast_error&) {

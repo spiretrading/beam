@@ -1,5 +1,6 @@
 #ifndef BEAM_TO_PYTHON_TIME_CLIENT_HPP
 #define BEAM_TO_PYTHON_TIME_CLIENT_HPP
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/VirtualTimeClient.hpp"
 
 namespace Beam::TimeService {
@@ -55,7 +56,7 @@ namespace Beam::TimeService {
   template<typename C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
     Close();
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client.reset();
   }
 
@@ -72,19 +73,19 @@ namespace Beam::TimeService {
 
   template<typename C>
   boost::posix_time::ptime ToPythonTimeClient<C>::GetTime() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     return m_client->GetTime();
   }
 
   template<typename C>
   void ToPythonTimeClient<C>::Open() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client->Open();
   }
 
   template<typename C>
   void ToPythonTimeClient<C>::Close() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client->Close();
   }
 }

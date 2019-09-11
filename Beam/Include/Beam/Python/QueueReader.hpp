@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_QUEUE_READER_HPP
 #define BEAM_PYTHON_QUEUE_READER_HPP
 #include <pybind11/pybind11.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 
 namespace Beam::Python {
@@ -99,7 +100,7 @@ namespace Beam::Python {
   typename FromPythonQueueReader<T>::Target
       FromPythonQueueReader<T>::Top() const {
     if(IsEmpty()) {
-      auto release = GilRelease();
+      auto release = Python::GilRelease();
       m_source->Wait();
     }
     auto lock = pybind11::gil_scoped_acquire();

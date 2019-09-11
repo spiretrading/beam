@@ -1,5 +1,6 @@
 #ifndef BEAM_TO_PYTHON_UID_CLIENT_HPP
 #define BEAM_TO_PYTHON_UID_CLIENT_HPP
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/UidService/VirtualUidClient.hpp"
 
 namespace Beam::UidService {
@@ -48,25 +49,25 @@ namespace Beam::UidService {
   template<typename C>
   ToPythonUidClient<C>::~ToPythonUidClient() {
     Close();
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client.reset();
   }
 
   template<typename C>
   std::uint64_t ToPythonUidClient<C>::LoadNextUid() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     return m_client->LoadNextUid();
   }
 
   template<typename C>
   void ToPythonUidClient<C>::Open() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client->Open();
   }
 
   template<typename C>
   void ToPythonUidClient<C>::Close() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_client->Close();
   }
 }

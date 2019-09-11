@@ -1,6 +1,7 @@
 #include "Beam/Python/Routines.hpp"
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/RoutineException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"

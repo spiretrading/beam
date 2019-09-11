@@ -1,5 +1,6 @@
 #ifndef BEAM_TO_PYTHON_TIMER_HPP
 #define BEAM_TO_PYTHON_TIMER_HPP
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
 
@@ -58,7 +59,7 @@ namespace Beam::Threading {
   template<typename T>
   ToPythonTimer<T>::~ToPythonTimer() {
     m_timer->Cancel();
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_timer.reset();
   }
 
@@ -76,19 +77,19 @@ namespace Beam::Threading {
 
   template<typename T>
   void ToPythonTimer<T>::Start() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_timer->Start();
   }
 
   template<typename T>
   void ToPythonTimer<T>::Cancel() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_timer->Cancel();
   }
 
   template<typename T>
   void ToPythonTimer<T>::Wait() {
-    auto release = GilRelease();
+    auto release = Python::GilRelease();
     m_timer->Wait();
   }
 

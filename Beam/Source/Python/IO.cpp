@@ -7,6 +7,7 @@
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/VirtualConnection.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
@@ -41,8 +42,8 @@ void Beam::Python::ExportChannelIdentifier(pybind11::module& module) {
 
 void Beam::Python::ExportConnection(pybind11::module& module) {
   class_<VirtualConnection>(module, "Connection")
-    .def("open", &VirtualConnection::Open, call_guard<gil_scoped_release>())
-    .def("close", &VirtualConnection::Close, call_guard<gil_scoped_release>());
+    .def("open", &VirtualConnection::Open, call_guard<GilRelease>())
+    .def("close", &VirtualConnection::Close, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportIO(pybind11::module& module) {
@@ -67,34 +68,34 @@ void Beam::Python::ExportOpenState(pybind11::module& module) {
   class_<OpenState>(module, "OpenState")
     .def(init())
     .def(init<bool>())
-    .def("is_opening", &OpenState::IsOpening, call_guard<gil_scoped_release>())
-    .def("is_open", &OpenState::IsOpen, call_guard<gil_scoped_release>())
-    .def("is_running", &OpenState::IsRunning, call_guard<gil_scoped_release>())
-    .def("is_closing", &OpenState::IsClosing, call_guard<gil_scoped_release>())
-    .def("is_closed", &OpenState::IsClosed, call_guard<gil_scoped_release>())
+    .def("is_opening", &OpenState::IsOpening, call_guard<GilRelease>())
+    .def("is_open", &OpenState::IsOpen, call_guard<GilRelease>())
+    .def("is_running", &OpenState::IsRunning, call_guard<GilRelease>())
+    .def("is_closing", &OpenState::IsClosing, call_guard<GilRelease>())
+    .def("is_closed", &OpenState::IsClosed, call_guard<GilRelease>())
     .def("set_opening", &OpenState::SetOpening,
-      call_guard<gil_scoped_release>())
-    .def("set_open", &OpenState::SetOpen, call_guard<gil_scoped_release>())
+      call_guard<GilRelease>())
+    .def("set_open", &OpenState::SetOpen, call_guard<GilRelease>())
     .def("set_open_failure",
       static_cast<void (OpenState::*)()>(&OpenState::SetOpenFailure),
-      call_guard<gil_scoped_release>())
+      call_guard<GilRelease>())
     .def("set_open_failure",
       static_cast<void (OpenState::*)(const std::exception_ptr&)>(
-      &OpenState::SetOpenFailure), call_guard<gil_scoped_release>())
+      &OpenState::SetOpenFailure), call_guard<GilRelease>())
     .def("set_closing", &OpenState::SetClosing,
-      call_guard<gil_scoped_release>())
-    .def("set_closed", &OpenState::SetClosed, call_guard<gil_scoped_release>());
+      call_guard<GilRelease>())
+    .def("set_closed", &OpenState::SetClosed, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportReader(pybind11::module& module) {
   class_<VirtualReader>(module, "Reader")
     .def("is_data_available", &VirtualReader::IsDataAvailable,
-      call_guard<gil_scoped_release>())
+      call_guard<GilRelease>())
     .def("read", static_cast<std::size_t (VirtualReader::*)(Out<SharedBuffer>)>(
-      &VirtualReader::Read), call_guard<gil_scoped_release>())
+      &VirtualReader::Read), call_guard<GilRelease>())
     .def("read", static_cast<std::size_t (VirtualReader::*)(
       Out<SharedBuffer>, std::size_t)>(&VirtualReader::Read),
-      call_guard<gil_scoped_release>());
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
@@ -134,5 +135,5 @@ void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
 void Beam::Python::ExportWriter(pybind11::module& module) {
   class_<VirtualWriter>(module, "Writer")
     .def("write", static_cast<void (VirtualWriter::*)(const SharedBuffer&)>(
-      &VirtualWriter::Write), call_guard<gil_scoped_release>());
+      &VirtualWriter::Write), call_guard<GilRelease>());
 }

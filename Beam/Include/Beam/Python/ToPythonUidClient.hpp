@@ -48,25 +48,25 @@ namespace Beam::UidService {
   template<typename C>
   ToPythonUidClient<C>::~ToPythonUidClient() {
     Close();
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client.reset();
   }
 
   template<typename C>
   std::uint64_t ToPythonUidClient<C>::LoadNextUid() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_client->LoadNextUid();
   }
 
   template<typename C>
   void ToPythonUidClient<C>::Open() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->Open();
   }
 
   template<typename C>
   void ToPythonUidClient<C>::Close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->Close();
   }
 }

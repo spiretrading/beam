@@ -10,6 +10,8 @@
 #include "Beam/Python/EnumSet.hpp"
 #include "Beam/Python/Expect.hpp"
 #include "Beam/Python/FixedString.hpp"
+#include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Optional.hpp"

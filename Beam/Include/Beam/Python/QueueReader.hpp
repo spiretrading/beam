@@ -99,7 +99,7 @@ namespace Beam::Python {
   typename FromPythonQueueReader<T>::Target
       FromPythonQueueReader<T>::Top() const {
     if(IsEmpty()) {
-      auto release = pybind11::gil_scoped_release();
+      auto release = GilRelease();
       m_source->Wait();
     }
     auto lock = pybind11::gil_scoped_acquire();

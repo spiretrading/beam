@@ -1,6 +1,7 @@
 #include "Beam/Python/Queues.hpp"
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -13,7 +14,7 @@ using namespace pybind11;
 
 void Beam::Python::ExportBasePublisher(pybind11::module& module) {
   class_<BasePublisher, std::shared_ptr<BasePublisher>>(module, "BasePublisher")
-    .def("with", &BasePublisher::With, call_guard<gil_scoped_release>());
+    .def("with", &BasePublisher::With, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportBaseQueue(pybind11::module& module) {
@@ -62,7 +63,7 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
           std::function<void (const std::exception_ptr&)> breakSlot) {
         return self.GetSlot(std::move(slot), std::move(breakSlot));
       })
-    .def("wait", &RoutineTaskQueue::Wait, call_guard<gil_scoped_release>());
+    .def("wait", &RoutineTaskQueue::Wait, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportTaskQueue(pybind11::module& module) {
@@ -78,6 +79,6 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
           std::function<void (const std::exception_ptr&)> breakSlot) {
         return self.GetSlot(std::move(slot), std::move(breakSlot));
       })
-    .def("wait", &TaskQueue::Wait, call_guard<gil_scoped_release>());
+    .def("wait", &TaskQueue::Wait, call_guard<GilRelease>());
   module.def("handle_tasks", &HandleTasks);
 }

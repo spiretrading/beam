@@ -55,7 +55,7 @@ namespace Beam::TimeService {
   template<typename C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
     Close();
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client.reset();
   }
 
@@ -72,19 +72,19 @@ namespace Beam::TimeService {
 
   template<typename C>
   boost::posix_time::ptime ToPythonTimeClient<C>::GetTime() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_client->GetTime();
   }
 
   template<typename C>
   void ToPythonTimeClient<C>::Open() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->Open();
   }
 
   template<typename C>
   void ToPythonTimeClient<C>::Close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->Close();
   }
 }

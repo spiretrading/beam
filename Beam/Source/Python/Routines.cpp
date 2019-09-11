@@ -30,12 +30,12 @@ void Beam::Python::ExportRoutineHandler(pybind11::module& module) {
     .def("__del__",
       [] (RoutineHandler& self) {
         self.Wait();
-      }, call_guard<gil_scoped_release>())
+      }, call_guard<GilRelease>())
     .def_property_readonly("id", &RoutineHandler::GetId)
     .def("detach", &RoutineHandler::Detach)
-    .def("wait", &RoutineHandler::Wait, call_guard<gil_scoped_release>());
+    .def("wait", &RoutineHandler::Wait, call_guard<GilRelease>());
   module.def("flush_pending_routines", &FlushPendingRoutines,
-    call_guard<gil_scoped_release>());
+    call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
@@ -44,7 +44,7 @@ void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
     .def("__del__",
       [] (RoutineHandlerGroup& self) {
         self.Wait();
-      }, call_guard<gil_scoped_release>())
+      }, call_guard<GilRelease>())
     .def("add", static_cast<void (RoutineHandlerGroup::*)(Routine::Id)>(
       &RoutineHandlerGroup::Add))
     .def("add",
@@ -53,7 +53,7 @@ void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
       })
     .def("spawn", &RoutineHandlerGroup::Spawn<const std::function<void ()>&>)
     .def("wait", &RoutineHandlerGroup::Wait,
-      call_guard<gil_scoped_release>());
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportRoutines(pybind11::module& module) {
@@ -66,6 +66,6 @@ void Beam::Python::ExportRoutines(pybind11::module& module) {
   ExportEval<object>(submodule, "");
   submodule.def("spawn",
     static_cast<Routine::Id (*)(const std::function<void ()>&)>(&Spawn));
-  submodule.def("wait", &Wait, call_guard<gil_scoped_release>());
+  submodule.def("wait", &Wait, call_guard<GilRelease>());
   register_exception<RoutineException>(submodule, "RoutineException");
 }

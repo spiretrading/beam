@@ -58,7 +58,7 @@ namespace Beam::Threading {
   template<typename T>
   ToPythonTimer<T>::~ToPythonTimer() {
     m_timer->Cancel();
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer.reset();
   }
 
@@ -76,19 +76,19 @@ namespace Beam::Threading {
 
   template<typename T>
   void ToPythonTimer<T>::Start() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->Start();
   }
 
   template<typename T>
   void ToPythonTimer<T>::Cancel() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->Cancel();
   }
 
   template<typename T>
   void ToPythonTimer<T>::Wait() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->Wait();
   }
 

@@ -81,7 +81,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = Python::GilLock();
     m_source.reset();
   }
 
@@ -103,7 +103,7 @@ namespace Beam::Python {
       auto release = Python::GilRelease();
       m_source->Wait();
     }
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = Python::GilLock();
     return m_source->Top().cast<T>();
   }
 

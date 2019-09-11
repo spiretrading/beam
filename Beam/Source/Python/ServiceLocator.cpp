@@ -23,7 +23,7 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct FromPythonServiceLocatorClient final : VirtualServiceLocatorClient {
+  struct TrampolineServiceLocatorClient final : VirtualServiceLocatorClient {
     DirectoryEntry GetAccount() const override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "get_account", GetAccount);
@@ -272,7 +272,7 @@ void Beam::Python::ExportServiceLocator(pybind11::module& module) {
 }
 
 void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
-  class_<VirtualServiceLocatorClient, FromPythonServiceLocatorClient>(module,
+  class_<VirtualServiceLocatorClient, TrampolineServiceLocatorClient>(module,
       "ServiceLocatorClient")
     .def("get_account", &VirtualServiceLocatorClient::GetAccount)
     .def("get_session_id", &VirtualServiceLocatorClient::GetSessionId)

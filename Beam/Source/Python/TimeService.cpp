@@ -27,7 +27,7 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct FromPythonTimeClient final : VirtualTimeClient {
+  struct TrampolineTimeClient final : VirtualTimeClient {
     ptime GetTime() override {
       PYBIND11_OVERLOAD_PURE_NAME(ptime, VirtualTimeClient, "get_time",
         GetTime);
@@ -134,7 +134,7 @@ void Beam::Python::ExportTestTimer(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTimeClient(pybind11::module& module) {
-  class_<VirtualTimeClient, FromPythonTimeClient>(module, "TimeClient")
+  class_<VirtualTimeClient, TrampolineTimeClient>(module, "TimeClient")
     .def("get_time", &VirtualTimeClient::GetTime)
     .def("open", &VirtualTimeClient::Open)
     .def("close", &VirtualTimeClient::Close);

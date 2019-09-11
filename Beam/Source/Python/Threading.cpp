@@ -15,7 +15,7 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct FromPythonTimer final : VirtualTimer {
+  struct TrampolineTimer final : VirtualTimer {
     void Start() override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualTimer, "start", Start);
     }
@@ -53,7 +53,7 @@ void Beam::Python::ExportThreading(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTimer(pybind11::module& module) {
-  auto outer = class_<VirtualTimer, FromPythonTimer>(module, "Timer")
+  auto outer = class_<VirtualTimer, TrampolineTimer>(module, "Timer")
     .def("start", &VirtualTimer::Start)
     .def("cancel", &VirtualTimer::Cancel)
     .def("wait", &VirtualTimer::Wait)

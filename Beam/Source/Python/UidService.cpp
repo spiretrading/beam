@@ -21,7 +21,7 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct FromPythonUidClient final : VirtualUidClient {
+  struct TrampolineUidClient final : VirtualUidClient {
     std::uint64_t LoadNextUid() override {
       PYBIND11_OVERLOAD_PURE_NAME(std::uint64_t, VirtualUidClient,
         "load_next_uid", LoadNextUid);
@@ -73,7 +73,7 @@ void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
 }
 
 void Beam::Python::ExportUidClient(pybind11::module& module) {
-  class_<VirtualUidClient, FromPythonUidClient>(module, "UidClient")
+  class_<VirtualUidClient, TrampolineUidClient>(module, "UidClient")
     .def("load_next_uid", &VirtualUidClient::LoadNextUid)
     .def("open", &VirtualUidClient::Open)
     .def("close", &VirtualUidClient::Close);

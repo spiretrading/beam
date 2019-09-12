@@ -1,8 +1,9 @@
 #ifndef BEAM_GIL_RELEASE_HPP
 #define BEAM_GIL_RELEASE_HPP
-#include <ceval.h>
+#include <Python.h>
 #include <pystate.h>
 #include <pythread.h>
+#include <ceval.h>
 #include "Beam/Python/GilLock.hpp"
 
 namespace Beam::Python {

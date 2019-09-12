@@ -4,6 +4,8 @@
 #include <pybind11/pybind11.h>
 #include "Beam/Python/AbstractQueue.hpp"
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueReader.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -110,6 +112,39 @@ namespace Beam::Python {
         pybind11::call_guard<pybind11::gil_scoped_release>())
       .def("monitor", &Publisher<T>::Monitor,
         pybind11::call_guard<pybind11::gil_scoped_release>());
+  }
+
+  /**
+   * Exports the generic SnapshotPublisher class.
+   * @param module The module to export to.
+   * @param prefix The prefix used when forming the type name.
+   */
+  template<typename T, typename S>
+  void ExportSnapshotPublisher(pybind11::module& module,
+      const std::string& prefix) {
+    auto name = prefix + "SnapshotPublisher";
+    if(pybind11::hasattr(module, name.c_str())) {
+      return;
+    }
+    ExportPublisher<T>(module, prefix);
+    pybind11::class_<SnapshotPublisher<T, S>,
+        std::shared_ptr<SnapshotPublisher<T, S>>, Publisher<T>>(module,
+        name.c_str(), pybind11::multiple_inheritance())
+      .def("get_snapshot",
+        [] (SnapshotPublisher<T, S>& self) {
+          auto object = pybind11::object();
+          {
+            auto release = GilRelease();
+            self.WithSnapshot(
+              [&] (auto snapshot) {
+                if(snapshot.is_initialized()) {
+                  auto lock = GilLock();
+                  object = pybind11::cast(*snapshot);
+                }
+              });
+          }
+          return object;
+        });
   }
 
   /**

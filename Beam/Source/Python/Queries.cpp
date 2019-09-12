@@ -115,8 +115,18 @@ void Beam::Python::ExportIndexedValue(pybind11::module& module) {
     .def_property_readonly("index", static_cast<
       const object& (IndexedValue<object, object>::*)() const>(
       &IndexedValue<object, object>::GetIndex))
-    .def(self == self)
-    .def(self != self);
+    .def("__eq__",
+      [] (IndexedValue<object, object>& self,
+          const IndexedValue<object, object>& other) {
+        return self.GetIndex().attr("__eq__")(other.GetIndex()).cast<bool>() &&
+          self.GetValue().attr("__eq__")(other.GetValue()).cast<bool>();
+      })
+    .def("__ne__",
+      [] (IndexedValue<object, object>& self,
+          const IndexedValue<object, object>& other) {
+        return self.GetIndex().attr("__ne__")(other.GetIndex()).cast<bool>() ||
+          self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
+      });
 }
 
 void Beam::Python::ExportIndexListQuery(pybind11::module& module) {
@@ -245,8 +255,17 @@ void Beam::Python::ExportSequencedValue(pybind11::module& module) {
       &SequencedValue<object>::GetValue))
     .def_property_readonly("sequence", static_cast<Queries::Sequence (
       SequencedValue<object>::*)() const>(&SequencedValue<object>::GetSequence))
-    .def(self == self)
-    .def(self != self);
+    .def("__eq__",
+      [] (SequencedValue<object>& self,
+          const SequencedValue<object>& other) {
+        return self.GetSequence() == other.GetSequence() &&
+          self.GetValue().attr("__eq__")(other.GetValue()).cast<bool>();
+      })
+    .def("__ne__",
+      [] (SequencedValue<object>& self, const SequencedValue<object>& other) {
+        return self.GetSequence() != other.GetSequence() ||
+          self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
+      });
 }
 
 void Beam::Python::ExportSnapshotLimit(pybind11::module& module) {

@@ -38,21 +38,11 @@
 #include "Beam/Python/Yaml.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"
-#include "Beam/Utilities/DllExport.hpp"
 
 #ifdef _MSC_VER
   __pragma(warning(disable: 4251))
   __pragma(warning(disable: 4275))
 #endif
-
-BEAM_EXTERN template class BEAM_EXPORT_DLL
-  Beam::Singleton<Beam::Routines::Details::Scheduler>;
-
-BEAM_EXTERN template struct BEAM_EXPORT_DLL
-  Beam::Routines::Details::CurrentRoutineGlobal<void>;
-
-BEAM_EXTERN template struct BEAM_EXPORT_DLL
-  Beam::Routines::Details::NextId<void>;
 
 namespace Beam::Python {
 

@@ -6,7 +6,7 @@
     #define BEAM_EXPORT_DLL __declspec(dllexport)
     #define BEAM_EXTERN
   #else
-    #define BEAM_EXPORT_DLL
+    #define BEAM_EXPORT_DLL __attribute__((visibility ("default")))
     #define BEAM_EXTERN
   #endif
 #elif defined BEAM_USE_DLL
@@ -14,7 +14,7 @@
     #define BEAM_EXPORT_DLL __declspec(dllimport)
     #define BEAM_EXTERN extern
   #else
-    #define BEAM_EXPORT_DLL
+    #define BEAM_EXPORT_DLL __attribute__((visibility ("default")))
     #define BEAM_EXTERN
   #endif
 #else

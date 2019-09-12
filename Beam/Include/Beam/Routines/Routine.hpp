@@ -45,7 +45,7 @@ namespace Details {
 
 #elif defined(BEAM_BUILD_DLL)
   template<typename T>
-  struct CurrentRoutineGlobal {
+  BEAM_EXTERN struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
     static Routine*& GetInstance() {
       static thread_local Routine* value;
       return value;
@@ -53,7 +53,7 @@ namespace Details {
   };
 
   template<typename T>
-  struct NextId {
+  BEAM_EXTERN struct BEAM_EXPORT_DLL NextId {
     static std::atomic_uint64_t& GetInstance() {
       static std::atomic_uint64_t value;
       return value;
@@ -61,12 +61,12 @@ namespace Details {
   };
 #elif defined(BEAM_USE_DLL)
   template<typename T>
-  struct CurrentRoutineGlobal {
+  BEAM_EXTERN struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
     static Routine*& GetInstance();
   };
 
   template<typename T>
-  struct NextId {
+  BEAM_EXTERN struct BEAM_EXPORT_DLL NextId {
     static std::atomic_uint64_t& GetInstance();
   };
 #endif

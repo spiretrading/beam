@@ -1,10 +1,30 @@
 #ifndef BEAM_PYTHON_QUEUE_WRITER_HPP
 #define BEAM_PYTHON_QUEUE_WRITER_HPP
+#include <type_traits>
 #include <boost/throw_exception.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/Queues/QueueWriter.hpp"
 
 namespace Beam::Python {
+namespace Details {
+  template<typename T, typename Enabled = void>
+  struct Extractor;
+
+  template<typename T>
+  struct Extractor<T, typename std::enable_if_t<
+      std::is_constructible_v<T, pybind11::object>>> {
+    auto operator ()(const pybind11::object& value) {
+      return T(value);
+    }
+  };
+
+  template<typename T, typename Enabled>
+  struct Extractor {
+    auto operator ()(const pybind11::object& value) {
+      return value.cast<T>();
+    }
+  };
+}
 
   /**
    * Provides a trampoline template for exporting QueueWriter classes.
@@ -78,6 +98,46 @@ namespace Beam::Python {
     return queue;
   }
 
+  /**
+   * Wraps a QueueWriter of type T to a QueueWriter of Python objects.
+   * @param <T> The type of data to push onto the queue.
+   */
+  template<typename T>
+  class ToPythonQueueWriter final : public QueueWriter<pybind11::object> {
+    public:
+      using Source = typename QueueWriter<pybind11::object>::Source;
+
+      using Type = T;
+
+      /**
+       * Constructs a ToPythonQueueWriter.
+       * @param target The QueueWriter to wrap.
+       */
+      ToPythonQueueWriter(std::shared_ptr<QueueWriter<Type>> target);
+
+      //! Returns the QueueWriter being wrapped.
+      const std::shared_ptr<QueueWriter<Type>>& GetTarget() const;
+
+      void Push(const Source& value) override;
+
+      void Push(Source&& value) override;
+
+      void Break(const std::exception_ptr& e) override;
+
+    private:
+      std::shared_ptr<QueueWriter<Type>> m_target;
+  };
+
+  /**
+   * Returns a QueueWriter that converts Python objects into objects of an
+   * underlying QueueWriter's type.
+   */
+  template<typename T>
+  auto MakeToPythonQueueWriter(std::shared_ptr<QueueWriter<T>> target) {
+    return std::static_pointer_cast<QueueWriter<pybind11::object>>(
+      std::make_shared<ToPythonQueueWriter<T>>(std::move(target)));
+  }
+
   template<typename T>
   FromPythonQueueWriter<T>::FromPythonQueueWriter(
     std::shared_ptr<QueueWriter<pybind11::object>> target, Guard)
@@ -139,6 +199,32 @@ namespace Beam::Python {
   template<typename T>
   void FromPythonQueueWriter<T>::Bind(std::shared_ptr<void> self) {
     m_self = std::move(self);
+  }
+
+  template<typename T>
+  ToPythonQueueWriter<T>::ToPythonQueueWriter(
+      std::shared_ptr<QueueWriter<Type>> target)
+      : m_target(std::move(target)) {}
+
+  template<typename T>
+  const std::shared_ptr<QueueWriter<typename ToPythonQueueWriter<T>::Type>>&
+      ToPythonQueueWriter<T>::GetTarget() const {
+    return m_target;
+  }
+
+  template<typename T>
+  void ToPythonQueueWriter<T>::Push(const Source& value) {
+    m_target->Push(Details::Extractor<Type>()(value));
+  }
+
+  template<typename T>
+  void ToPythonQueueWriter<T>::Push(Source&& value) {
+    m_target->Push(Details::Extractor<Type>()(value));
+  }
+
+  template<typename T>
+  void ToPythonQueueWriter<T>::Break(const std::exception_ptr& e) {
+    m_target->Break(e);
   }
 }
 

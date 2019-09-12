@@ -6,12 +6,15 @@ namespace Beam {
 
   /** Implements the Singleton pattern. */
   template<typename T>
-  BEAM_EXTERN class BEAM_EXPORT_DLL Singleton {
+  class BEAM_EXPORT_DLL Singleton {
     public:
       using Type = T;
 
       //! Returns the singleton instance.
-      static Type& GetInstance();
+      static Type& GetInstance() {
+        static auto singleton = Type();
+        return singleton;
+      }
 
     protected:
       Singleton() = default;
@@ -20,12 +23,6 @@ namespace Beam {
       Singleton(const Singleton&) = delete;
       Singleton& operator =(const Singleton&) = delete;
   };
-
-  template<typename T>
-  typename Singleton<T>::Type& Singleton<T>::GetInstance() {
-    static auto singleton = Type();
-    return singleton;
-  }
 }
 
 #endif

@@ -61,12 +61,12 @@ namespace Details {
   };
 #elif defined(BEAM_USE_DLL)
   template<typename T>
-  BEAM_EXTERN struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
+  struct CurrentRoutineGlobal {
     static Routine*& GetInstance();
   };
 
   template<typename T>
-  BEAM_EXTERN struct BEAM_EXPORT_DLL NextId {
+  struct NextId {
     static std::atomic_uint64_t& GetInstance();
   };
 #endif

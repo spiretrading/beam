@@ -10,6 +10,9 @@ using namespace Beam::Python;
 using namespace Beam::Threading;
 using namespace pybind11;
 
+template struct Beam::Routines::Details::CurrentRoutineGlobal<void>;
+template struct Beam::Routines::Details::NextId<void>;
+
 SocketThreadPool* Beam::Python::GetSocketThreadPool() {
   static auto pool = new SocketThreadPool(
     boost::thread::hardware_concurrency());

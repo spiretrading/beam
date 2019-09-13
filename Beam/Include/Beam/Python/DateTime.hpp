@@ -20,6 +20,9 @@ namespace pybind11::detail {
       return_value_policy policy, handle parent);
     bool load(handle source, bool);
   };
+
+  extern template struct type_caster<boost::posix_time::time_duration>;
+  extern template struct type_caster<boost::posix_time::ptime>;
 }
 
 #endif

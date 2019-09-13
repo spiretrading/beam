@@ -59,8 +59,8 @@ namespace Details {
       return value;
     }
   };
-  extern template struct BEAM_EXPORT_DLL CurrentRoutineGlobal<void>;
-  extern template struct BEAM_EXPORT_DLL NextId<void>;
+  BEAM_EXTERN template struct BEAM_EXPORT_DLL CurrentRoutineGlobal<void>;
+  BEAM_EXTERN template struct BEAM_EXPORT_DLL NextId<void>;
 #endif
 }
 

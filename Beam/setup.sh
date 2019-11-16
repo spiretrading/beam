@@ -1,7 +1,7 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="312af436fc78982146ee8e810ac0640abaac3643"
+aspen_commit="3d16025f554c2b50196d9dbfbc45876e0756ab3d"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/eidolonsystems/aspen

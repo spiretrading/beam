@@ -1,6 +1,6 @@
 #ifndef BEAM_STATEPUBLISHER_HPP
 #define BEAM_STATEPUBLISHER_HPP
-#include "Beam/Pointers/DelayPtr.hpp"
+#include <optional>
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -51,7 +51,7 @@ namespace Beam {
       using QueueWriter<T>::Break;
     private:
       mutable Threading::RecursiveMutex m_mutex;
-      Beam::DelayPtr<T> m_value;
+      std::optional<T> m_value;
       MultiQueueWriter<T> m_queue;
   };
 
@@ -69,7 +69,7 @@ namespace Beam {
   void StatePublisher<T>::WithSnapshot(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    if(m_value.IsInitialized()) {
+    if(m_value.has_value()) {
       f(*m_value);
     } else {
       f(boost::optional<const Snapshot&>());
@@ -81,7 +81,7 @@ namespace Beam {
       std::shared_ptr<QueueWriter<Type>> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    if(m_value.IsInitialized()) {
+    if(m_value.has_value()) {
       *snapshot = *m_value;
     } else {
       *snapshot = boost::optional<Snapshot>();
@@ -99,7 +99,7 @@ namespace Beam {
   void StatePublisher<T>::Monitor(
       std::shared_ptr<QueueWriter<Type>> queue) const {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    if(m_value.IsInitialized()) {
+    if(m_value.has_value()) {
       queue->Push(*m_value);
     }
     m_queue.Monitor(queue);
@@ -108,29 +108,21 @@ namespace Beam {
   template<typename T>
   void StatePublisher<T>::Push(const T& value) {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    if(m_value.IsInitialized()) {
-      *m_value = value;
-    } else {
-      m_value.Initialize(value);
-    }
+    m_value = value;
     m_queue.Push(*m_value);
   }
 
   template<typename T>
   void StatePublisher<T>::Push(T&& value) {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    if(m_value.IsInitialized()) {
-      *m_value = std::move(value);
-    } else {
-      m_value.Initialize(std::move(value));
-    }
+    m_value = std::move(value);
     m_queue.Push(*m_value);
   }
 
   template<typename T>
   void StatePublisher<T>::Break(const std::exception_ptr& e) {
     boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    m_value.Reset();
+    m_value = std::nullopt;
     m_queue.Break(e);
   }
 }

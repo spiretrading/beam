@@ -27,10 +27,10 @@ namespace {
 
 void ServiceProtocolServerTester::setUp() {
   auto serverConnection = std::make_unique<ServerConnection>();
-  m_clientProtocol.Initialize(Initialize(string("test"),
+  m_clientProtocol.emplace(Initialize(string("test"),
     Ref(*serverConnection)), Initialize());
   RegisterTestServices(Store(m_clientProtocol->GetSlots()));
-  m_protocolServer.Initialize(std::move(serverConnection),
+  m_protocolServer.emplace(std::move(serverConnection),
     factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
   RegisterTestServices(Store(m_protocolServer->GetSlots()));
   m_protocolServer->Open();
@@ -38,8 +38,8 @@ void ServiceProtocolServerTester::setUp() {
 }
 
 void ServiceProtocolServerTester::tearDown() {
-  m_clientProtocol.Reset();
-  m_protocolServer.Reset();
+  m_clientProtocol = std::nullopt;
+  m_protocolServer = std::nullopt;
 }
 
 void ServiceProtocolServerTester::TestVoidReturnType() {

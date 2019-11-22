@@ -14,18 +14,18 @@ using namespace std;
 
 void ServiceProtocolServletContainerTester::setUp() {
   auto serverConnection = std::make_unique<ServerConnection>();
-  m_clientProtocol.Initialize(Initialize(string("test"),
+  m_clientProtocol.emplace(Initialize(string("test"),
     Ref(*serverConnection)), Initialize());
   RegisterTestServices(Store(m_clientProtocol->GetSlots()));
-  m_container.Initialize(Initialize(), std::move(serverConnection),
+  m_container.emplace(Initialize(), std::move(serverConnection),
     factory<std::shared_ptr<TriggerTimer>>());
   m_container->Open();
   m_clientProtocol->Open();
 }
 
 void ServiceProtocolServletContainerTester::tearDown() {
-  m_clientProtocol.Reset();
-  m_container.Reset();
+  m_clientProtocol = std::nullopt;
+  m_container = std::nullopt;
 }
 
 void ServiceProtocolServletContainerTester::TestVoidReturnType() {

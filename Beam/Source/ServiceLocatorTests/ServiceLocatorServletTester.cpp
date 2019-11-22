@@ -19,18 +19,18 @@ using namespace std;
 void ServiceLocatorServletTester::setUp() {
   m_dataStore = std::make_shared<LocalServiceLocatorDataStore>();
   m_serverConnection = std::make_shared<ServerConnection>();
-  m_clientProtocol.Initialize(Initialize("test", Ref(*m_serverConnection)),
+  m_clientProtocol.emplace(Initialize("test", Ref(*m_serverConnection)),
     Initialize());
   RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
-  m_container.Initialize(Initialize(m_dataStore), m_serverConnection,
+  m_container.emplace(Initialize(m_dataStore), m_serverConnection,
     factory<std::shared_ptr<TriggerTimer>>());
   m_container->Open();
   m_clientProtocol->Open();
 }
 
 void ServiceLocatorServletTester::tearDown() {
-  m_clientProtocol.Reset();
-  m_container.Reset();
+  m_clientProtocol = std::nullopt;
+  m_container = std::nullopt;
   m_dataStore.reset();
 }
 
@@ -229,7 +229,7 @@ void ServiceLocatorServletTester::TestLocatingSingleProviderService() {
   DirectoryEntry account;
   string sessionId;
   CreateAccountAndLogin(Store(account), Store(sessionId));
-  DelayPtr<ClientServiceProtocolClient> providerService;
+  std::optional<ClientServiceProtocolClient> providerService;
   DirectoryEntry provider;
   string providerSession;
   CreateAdditionalClient("user2", "password", Store(provider),
@@ -266,7 +266,7 @@ void ServiceLocatorServletTester::TestLocatingMultipleProviderService() {
   DirectoryEntry account;
   string sessionId;
   CreateAccountAndLogin(Store(account), Store(sessionId));
-  DelayPtr<ClientServiceProtocolClient> providerService;
+  std::optional<ClientServiceProtocolClient> providerService;
   DirectoryEntry firstProvider;
   string firstProviderSession;
   CreateAdditionalClient("user2", "password", Store(firstProvider),
@@ -281,7 +281,7 @@ void ServiceLocatorServletTester::TestLocatingMultipleProviderService() {
   CPPUNIT_ASSERT(registerResult.GetProperties() == properties);
 
   // Register the service using the second provider.
-  DelayPtr<ClientServiceProtocolClient> secondaryProviderService;
+  std::optional<ClientServiceProtocolClient> secondaryProviderService;
   DirectoryEntry secondProvider;
   string secondProviderSession;
   CreateAdditionalClient("user3", "password", Store(secondProvider),
@@ -551,8 +551,8 @@ void ServiceLocatorServletTester::CreateAccountAndLogin(
 
 void ServiceLocatorServletTester::CreateAdditionalClient(const string& username,
     const string& password, Out<DirectoryEntry> account, Out<string> sessionId,
-    Out<DelayPtr<ClientServiceProtocolClient>> service) {
-  service->Initialize(Initialize(string("test"), Ref(*m_serverConnection)),
+    Out<std::optional<ClientServiceProtocolClient>> service) {
+  service->emplace(Initialize(string("test"), Ref(*m_serverConnection)),
     Initialize());
   RegisterServiceLocatorServices(Store((*service)->GetSlots()));
   (*service)->Open();

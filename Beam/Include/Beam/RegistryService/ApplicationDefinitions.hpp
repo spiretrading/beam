@@ -1,10 +1,10 @@
 #ifndef BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
 #define BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
+#include <optional>
 #include <string>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/RegistryService/RegistryClient.hpp"
 #include "Beam/RegistryService/RegistryService.hpp"
@@ -73,16 +73,16 @@ namespace Details {
       const Client* Get() const;
 
     private:
-      DelayPtr<Client> m_client;
+      std::optional<Client> m_client;
   };
 
   inline void ApplicationRegistryClient::BuildSession(
       Ref<ServiceLocator::ApplicationServiceLocatorClient::Client>
       serviceLocatorClient, Ref<Network::SocketThreadPool> socketThreadPool,
       Ref<Threading::TimerThreadPool> timerThreadPool) {
-    if(m_client.IsInitialized()) {
+    if(m_client.has_value()) {
       m_client->Close();
-      m_client.Reset();
+      m_client = std::nullopt;
     }
     auto serviceLocatorClientHandle = serviceLocatorClient.Get();
     auto socketThreadPoolHandle = socketThreadPool.Get();
@@ -107,17 +107,17 @@ namespace Details {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10), Ref(*timerThreadPoolHandle));
       });
-    m_client.Initialize(sessionBuilder);
+    m_client.emplace(sessionBuilder);
   }
 
   inline ApplicationRegistryClient::Client&
       ApplicationRegistryClient::operator *() {
-    return m_client.Get();
+    return *m_client;
   }
 
   inline const ApplicationRegistryClient::Client&
       ApplicationRegistryClient::operator *() const {
-    return m_client.Get();
+    return *m_client;
   }
 
   inline ApplicationRegistryClient::Client*

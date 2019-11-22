@@ -2,9 +2,9 @@
 #define BEAM_REMOTE_HPP
 #include <atomic>
 #include <functional>
+#include <optional>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Threading/PreferredConditionVariable.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
@@ -28,7 +28,8 @@ namespace Beam {
       /*!
         \param value The value to initialize.
       */
-      using InitializationFunction = std::function<void (DelayPtr<T>& value)>;
+      using InitializationFunction =
+        std::function<void (std::optional<T>& value)>;
 
       //! Constructs a Remote object.
       Remote();
@@ -57,7 +58,7 @@ namespace Beam {
     private:
       mutable MutexType m_mutex;
       InitializationFunction m_initialize;
-      mutable DelayPtr<T> m_value;
+      mutable std::optional<T> m_value;
       mutable std::atomic_bool m_isAvailable;
       mutable bool m_isLoading;
       mutable typename Threading::PreferredConditionVariable<MutexType>::type

@@ -9,11 +9,11 @@ using namespace boost;
 using namespace std;
 
 void LocalServerConnectionTester::setUp() {
-  m_serverConnection.Initialize();
+  m_serverConnection.emplace();
 }
 
 void LocalServerConnectionTester::tearDown() {
-  m_serverConnection.Reset();
+  m_serverConnection = std::nullopt;
 }
 
 void LocalServerConnectionTester::TestAcceptThenClose() {

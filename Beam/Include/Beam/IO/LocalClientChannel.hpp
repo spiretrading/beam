@@ -1,5 +1,6 @@
 #ifndef BEAM_LOCALCLIENTCHANNEL_HPP
 #define BEAM_LOCALCLIENTCHANNEL_HPP
+#include <optional>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Channel.hpp"
@@ -8,7 +9,6 @@
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
 namespace Beam {
@@ -53,7 +53,7 @@ namespace IO {
       Identifier m_identifier;
       Reader m_reader;
       std::shared_ptr<Writer> m_writer;
-      DelayPtr<Connection> m_connection;
+      std::optional<Connection> m_connection;
   };
 
   template<typename BufferType>
@@ -63,7 +63,7 @@ namespace IO {
     auto serverChannel =  std::make_unique<LocalServerChannel<Buffer>>(name,
       Ref(server), Ref(*this));
     m_writer = std::make_shared<Writer>(Ref(serverChannel->GetReader()));
-    m_connection.Initialize(server->m_pendingChannels, m_writer);
+    m_connection.emplace(server->m_pendingChannels, m_writer);
     m_connection->m_channel = this;
     m_connection->m_endpointWriter = serverChannel->m_writer;
     serverChannel->m_connection.m_endpointWriter = m_writer;

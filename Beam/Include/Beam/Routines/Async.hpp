@@ -1,11 +1,11 @@
 #ifndef BEAM_ASYNC_HPP
 #define BEAM_ASYNC_HPP
 #include <cassert>
+#include <optional>
 #include <type_traits>
 #include <boost/call_traits.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Routines.hpp"
@@ -70,7 +70,7 @@ namespace Routines {
       mutable boost::mutex m_mutex;
       State m_state;
       Threading::Sync<SuspendedRoutineQueue> m_suspendedRoutines;
-      DelayPtr<typename StorageType<T>::type> m_result;
+      std::optional<typename StorageType<T>::type> m_result;
       std::exception_ptr m_exception;
 
       void SetState(State state);

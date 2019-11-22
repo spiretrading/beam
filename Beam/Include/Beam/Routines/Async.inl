@@ -43,9 +43,9 @@ namespace Routines {
     if(m_state == State::PENDING) {
       return;
     }
-    m_exception = {};
+    m_exception = nullptr;
     m_state = State::PENDING;
-    m_result.Reset();
+    m_result = std::nullopt;
   }
 
   template<typename T>
@@ -95,7 +95,7 @@ namespace Routines {
     auto async = m_async;
     m_async = nullptr;
     assert(async->m_state == BaseAsync::State::PENDING);
-    async->m_result.Initialize(std::forward<R>(result));
+    async->m_result.emplace(std::forward<R>(result));
     async->SetState(BaseAsync::State::COMPLETE);
   }
 
@@ -107,7 +107,7 @@ namespace Routines {
     auto async = m_async;
     m_async = nullptr;
     assert(async->m_state == BaseAsync::State::PENDING);
-    async->m_result.Initialize();
+    async->m_result.emplace();
     async->SetState(BaseAsync::State::COMPLETE);
   }
 

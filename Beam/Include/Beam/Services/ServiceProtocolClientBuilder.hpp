@@ -1,7 +1,6 @@
 #ifndef BEAM_SERVICEPROTOCOLCLIENTBUILDER_HPP
 #define BEAM_SERVICEPROTOCOLCLIENTBUILDER_HPP
 #include <functional>
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Pointers/Out.hpp"

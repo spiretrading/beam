@@ -1,5 +1,6 @@
-#ifndef BEAM_STATEQUEUE_HPP
-#define BEAM_STATEQUEUE_HPP
+#ifndef BEAM_STATE_QUEUE_HPP
+#define BEAM_STATE_QUEUE_HPP
+#include <optional>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -41,7 +42,7 @@ namespace Beam {
       using QueueWriter<T>::Break;
       using Threading::Waitable::Wait;
     private:
-      DelayPtr<T> m_value;
+      std::optional<T> m_value;
       std::exception_ptr m_breakException;
   };
 
@@ -53,7 +54,7 @@ namespace Beam {
   template<typename T>
   bool StateQueue<T>::IsEmpty() const {
     boost::lock_guard<boost::mutex> lock(this->GetMutex());
-    return !m_value.IsInitialized();
+    return !m_value.has_value();
   }
 
   template<typename T>
@@ -66,7 +67,7 @@ namespace Beam {
   T StateQueue<T>::Top() const {
     boost::unique_lock<boost::mutex> lock(this->GetMutex());
     this->Wait(lock);
-    if(!m_value.IsInitialized()) {
+    if(!m_value.has_value()) {
       std::rethrow_exception(m_breakException);
     }
     return *m_value;
@@ -78,10 +79,10 @@ namespace Beam {
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
-    if(m_value.IsInitialized()) {
+    if(m_value.has_value()) {
       *m_value = value;
     } else {
-      m_value.Initialize(value);
+      m_value.emplace(value);
       this->NotifyOne();
     }
   }
@@ -92,10 +93,10 @@ namespace Beam {
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
-    if(m_value.IsInitialized()) {
+    if(m_value.has_value()) {
       *m_value = std::move(value);
     } else {
-      m_value.Initialize(std::move(value));
+      m_value.emplace(std::move(value));
       this->NotifyOne();
     }
   }
@@ -113,12 +114,12 @@ namespace Beam {
   template<typename T>
   void StateQueue<T>::Pop() {
     boost::lock_guard<boost::mutex> lock(this->GetMutex());
-    m_value.Reset();
+    m_value = std::nullopt;
   }
 
   template<typename T>
   bool StateQueue<T>::IsAvailable() const {
-    return m_value.IsInitialized() || m_breakException != nullptr;
+    return m_value.has_value() || m_breakException != nullptr;
   }
 }
 

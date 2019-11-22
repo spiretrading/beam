@@ -9,7 +9,6 @@ namespace Beam {
   template<typename T> class CloneableMixin;
   struct VirtualCloner;
   template<typename T, typename ClonerType = VirtualCloner> class ClonePtr;
-  template<typename T> class DelayPtr;
   template<typename... Args> struct Initializer;
   template<typename T> class LocalPtr;
   template<typename T> class Out;

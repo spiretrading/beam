@@ -1,5 +1,6 @@
 #ifndef BEAM_UID_APPLICATION_DEFINITIONS_HPP
 #define BEAM_UID_APPLICATION_DEFINITIONS_HPP
+#include <optional>
 #include <string>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/SizeDeclarativeReader.hpp"
@@ -7,7 +8,6 @@
 #include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
@@ -76,16 +76,16 @@ namespace Details {
       const Client* Get() const;
 
     private:
-      DelayPtr<Client> m_client;
+      std::optional<Client> m_client;
   };
 
   inline void ApplicationUidClient::BuildSession(
       Ref<ServiceLocator::ApplicationServiceLocatorClient::Client>
       serviceLocatorClient, Ref<Network::SocketThreadPool> socketThreadPool,
       Ref<Threading::TimerThreadPool> timerThreadPool) {
-    if(m_client.IsInitialized()) {
+    if(m_client.has_value()) {
       m_client->Close();
-      m_client.Reset();
+      m_client = std::nullopt;
     }
     auto serviceLocatorClientHandle = serviceLocatorClient.Get();
     auto socketThreadPoolHandle = socketThreadPool.Get();
@@ -110,16 +110,16 @@ namespace Details {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10), Ref(*timerThreadPoolHandle));
       });
-    m_client.Initialize(sessionBuilder);
+    m_client.emplace(sessionBuilder);
   }
 
   inline ApplicationUidClient::Client& ApplicationUidClient::operator *() {
-    return m_client.Get();
+    return *m_client;
   }
 
   inline const ApplicationUidClient::Client&
       ApplicationUidClient::operator *() const {
-    return m_client.Get();
+    return *m_client;
   }
 
   inline ApplicationUidClient::Client* ApplicationUidClient::operator ->() {

@@ -1,12 +1,12 @@
 #ifndef BEAM_SERVICEPROTOCOLSERVLETCONTAINERTESTER_HPP
 #define BEAM_SERVICEPROTOCOLSERVLETCONTAINERTESTER_HPP
+#include <optional>
 #include <cppunit/extensions/HelperMacros.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -52,8 +52,8 @@ namespace Tests {
       void TestVoidReturnType();
 
     private:
-      DelayPtr<ServiceProtocolServletContainer> m_container;
-      DelayPtr<ClientServiceProtocolClient> m_clientProtocol;
+      std::optional<ServiceProtocolServletContainer> m_container;
+      std::optional<ClientServiceProtocolClient> m_clientProtocol;
 
       CPPUNIT_TEST_SUITE(ServiceProtocolServletContainerTester);
         CPPUNIT_TEST(TestVoidReturnType);

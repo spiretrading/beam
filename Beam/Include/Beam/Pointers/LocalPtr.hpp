@@ -35,7 +35,7 @@ namespace Beam {
       */
       LocalPtr(LocalPtr&& ptr);
 
-      //! Tests if this DelayPtr is initialized.
+      //! Tests if this LocalPtr is initialized.
       operator bool() const;
 
       //! Returns a reference to the value.

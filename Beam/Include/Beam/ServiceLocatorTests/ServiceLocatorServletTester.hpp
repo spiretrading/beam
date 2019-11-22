@@ -1,12 +1,12 @@
 #ifndef BEAM_SERVICELOCATORSERVLETTESTER_HPP
 #define BEAM_SERVICELOCATORSERVLETTESTER_HPP
+#include <optional>
 #include <cppunit/extensions/HelperMacros.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
@@ -163,8 +163,8 @@ namespace Tests {
     private:
       std::shared_ptr<LocalServiceLocatorDataStore> m_dataStore;
       std::shared_ptr<ServerConnection> m_serverConnection;
-      DelayPtr<ServiceProtocolServletContainer> m_container;
-      DelayPtr<ClientServiceProtocolClient> m_clientProtocol;
+      std::optional<ServiceProtocolServletContainer> m_container;
+      std::optional<ClientServiceProtocolClient> m_clientProtocol;
 
       DirectoryEntry CreateUser(const std::string& username,
         const std::string& password);
@@ -173,7 +173,7 @@ namespace Tests {
       void CreateAdditionalClient(const std::string& username,
         const std::string& password, Out<DirectoryEntry> account,
         Out<std::string> sessionId,
-        Out<DelayPtr<ClientServiceProtocolClient>> service);
+        Out<std::optional<ClientServiceProtocolClient>> service);
 
       CPPUNIT_TEST_SUITE(ServiceLocatorServletTester);
         CPPUNIT_TEST(TestLoginWithInvalidAccount);

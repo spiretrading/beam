@@ -1,10 +1,10 @@
 #ifndef BEAM_LOCALSERVERCONNECTIONTESTER_HPP
 #define BEAM_LOCALSERVERCONNECTIONTESTER_HPP
+#include <optional>
 #include <cppunit/extensions/HelperMacros.h>
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
@@ -45,7 +45,7 @@ namespace Tests {
       void TestOpenClientAfterCloseServer();
 
     private:
-      DelayPtr<ServerConnection> m_serverConnection;
+      std::optional<ServerConnection> m_serverConnection;
 
       CPPUNIT_TEST_SUITE(LocalServerConnectionTester);
         CPPUNIT_TEST(TestAcceptThenClose);

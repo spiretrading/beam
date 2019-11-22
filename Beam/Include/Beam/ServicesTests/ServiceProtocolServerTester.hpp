@@ -6,7 +6,6 @@
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/DelayPtr.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -49,8 +48,8 @@ namespace Tests {
       void TestVoidReturnType();
 
     private:
-      DelayPtr<ServiceProtocolServer> m_protocolServer;
-      DelayPtr<ClientServiceProtocolClient> m_clientProtocol;
+      std::optional<ServiceProtocolServer> m_protocolServer;
+      std::optional<ClientServiceProtocolClient> m_clientProtocol;
 
       CPPUNIT_TEST_SUITE(ServiceProtocolServerTester);
         CPPUNIT_TEST(TestVoidReturnType);

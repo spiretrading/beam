@@ -1,9 +1,6 @@
 #ifndef BEAM_PYTHON_GIL_LOCK_HPP
 #define BEAM_PYTHON_GIL_LOCK_HPP
-#include <Python.h>
-#include <pystate.h>
-#include <pythread.h>
-#include <ceval.h>
+#include <pybind11/pybind11.h>
 
 namespace Beam::Python {
 

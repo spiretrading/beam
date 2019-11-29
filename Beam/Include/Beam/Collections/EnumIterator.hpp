@@ -110,15 +110,13 @@ namespace Beam {
 
   template<typename T>
   void EnumIterator<T>::operator ++(int) {
-    m_current = static_cast<typename EnumIterator<T>::Type::Type>(
-      static_cast<int>(m_current) + 1);
+    m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
   }
 
   template<typename T>
   EnumIterator<T> EnumIterator<T>::operator ++() {
     auto i = *this;
-    m_current = static_cast<typename EnumIterator<T>::Type::Type>(
-      static_cast<int>(m_current) + 1);
+    m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
     return i;
   }
 

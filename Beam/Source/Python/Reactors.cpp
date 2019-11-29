@@ -32,7 +32,7 @@ namespace {
 
 void Beam::Python::ExportAlarmReactor(pybind11::module& module) {
   module.def("alarm",
-    [] (Box<ptime> expiry) {
+    [] (SharedBox<ptime> expiry) {
       return to_object(AlarmReactor(LocalTimeClient(), DefaultTimerFactory,
         std::move(expiry)));
     });
@@ -44,7 +44,7 @@ void Beam::Python::ExportCurrentTimeReactor(pybind11::module& module) {
       return to_object(CurrentTimeReactor(LocalTimeClient()));
     });
   module.def("current_time",
-    [] (Box<void> pulse) {
+    [] (SharedBox<void> pulse) {
       return to_object(CurrentTimeReactor(LocalTimeClient(), std::move(pulse)));
     });
 }
@@ -52,7 +52,7 @@ void Beam::Python::ExportCurrentTimeReactor(pybind11::module& module) {
 void Beam::Python::ExportPublisherReactor(pybind11::module& module) {
   module.def("monitor",
     [] (std::shared_ptr<Publisher<object>> publisher) {
-      return Box(PublisherReactor(std::move(publisher)));
+      return shared_box(PublisherReactor(std::move(publisher)));
     });
 }
 
@@ -60,8 +60,8 @@ void Beam::Python::ExportQueryReactor(pybind11::module& module) {
   module.def("query",
     [] (std::function<
         void (const BasicQuery<object>&, std::shared_ptr<QueueWriter<object>>)>
-        submissionFunction, Box<BasicQuery<object>> query) {
-      return Box(QueryReactor<object>(std::move(submissionFunction),
+        submissionFunction, SharedBox<BasicQuery<object>> query) {
+      return shared_box(QueryReactor<object>(std::move(submissionFunction),
         std::move(query)));
     });
 }
@@ -73,7 +73,7 @@ void Beam::Python::ExportQueueReactor(pybind11::module& module) {
 
 void Beam::Python::ExportTimerReactor(pybind11::module& module) {
   module.def("timer",
-    [] (Box<time_duration> period) {
+    [] (SharedBox<time_duration> period) {
       return to_object(TimerReactor<std::int64_t>(DefaultTimerFactory,
         std::move(period)));
     });

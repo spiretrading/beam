@@ -22,9 +22,15 @@ namespace Beam::Reactors {
       */
       QueueReactor(std::shared_ptr<QueueReader<Type>> queue);
 
+      QueueReactor(QueueReactor&&) = default;
+
+      ~QueueReactor();
+
       Aspen::State commit(int sequence) noexcept;
 
       Aspen::eval_result_t<Type> eval() const;
+
+      QueueReactor& operator =(QueueReactor&&) = default;
 
     private:
       struct Entry {
@@ -53,6 +59,14 @@ namespace Beam::Reactors {
       [entry = m_entry.get()] {
         MonitorQueue(*entry);
       });
+  }
+
+  template<typename T>
+  QueueReactor<T>::~QueueReactor() {
+    if(m_entry != nullptr) {
+      m_entry->m_queue->Break();
+      m_entry->m_handler.Wait();
+    }
   }
 
   template<typename T>

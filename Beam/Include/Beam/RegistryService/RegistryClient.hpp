@@ -162,38 +162,6 @@ namespace RegistryService {
       void Shutdown();
   };
 
-  //! Loads a directory, or creates it if it doesn't already exist.
-  /*!
-    \param registryClient The RegistryClient to use.
-    \param path The path to the directory to load or create.
-    \param parent The directory's parent.
-    \return directory The directory that was loaded.
-  */
-  template<typename RegistryClient>
-  RegistryEntry LoadOrCreateDirectory(RegistryClient& client,
-      const std::string& path, const RegistryEntry& parent) {
-    if(path.empty()) {
-      return parent;
-    }
-    std::string::size_type delimiter = path.find('/');
-    std::string segment;
-    if(delimiter == std::string::npos) {
-      segment = path;
-    } else {
-      segment = path.substr(0, delimiter);
-    }
-    RegistryEntry entry;
-    try {
-      entry = client.LoadPath(parent, segment);
-    } catch(const Services::ServiceRequestException&) {
-      entry = client.MakeDirectory(segment, parent);
-    }
-    if(delimiter == std::string::npos) {
-      return entry;
-    }
-    return LoadOrCreateDirectory(client, path.substr(delimiter + 1), entry);
-  }
-
   template<typename ServiceProtocolClientBuilderType>
   template<typename ClientBuilderForward>
   RegistryClient<ServiceProtocolClientBuilderType>::RegistryClient(

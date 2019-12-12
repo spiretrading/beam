@@ -1,5 +1,5 @@
-import {Date} from './date';
-import {Duration} from './duration';
+import { Date } from './date';
+import { Duration } from './duration';
 
 /** Represents a point in time. */
 export class DateTime {
@@ -46,6 +46,16 @@ export class DateTime {
       timeOfDay: Duration = Duration.ZERO) {
     this._date = date;
     this._timeOfDay = timeOfDay;
+  }
+
+  /** Returns the date. */
+  public date(): Date {
+    return this._date;
+  }
+
+  /** Returns the time of day. */
+  public timeOfDay(): Duration {
+    return this._timeOfDay;
   }
 
   /** Tests if two date/times represent the same point in time. */

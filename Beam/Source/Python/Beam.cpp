@@ -24,7 +24,7 @@ TimerThreadPool* Beam::Python::GetTimerThreadPool() {
   return pool;
 }
 
-PYBIND11_MODULE(beam, module) {
+PYBIND11_MODULE(_beam, module) {
   ExportIO(module);
   ExportNetwork(module);
   ExportQueries(module);

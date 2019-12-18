@@ -1,7 +1,7 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="3c33524781832724aedd0f357ade4275d269cf09"
+aspen_commit="26aff8ea419b6f0f2e40312a3a8bb35135da5322"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/eidolonsystems/aspen
@@ -15,7 +15,9 @@ if ! git merge-base --is-ancestor "$aspen_commit" HEAD; then
   build_aspen=1
 fi
 if [ "$build_aspen" == "1" ]; then
-  ./configure.sh "-DD=$root"
+  ./configure.sh "-DD=$root" Debug
+  ./build.sh
+  ./configure.sh "-DD=$root" Release
   ./build.sh
 else
   pushd "$root"

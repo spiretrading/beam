@@ -3,6 +3,7 @@
 #include <pybind11/stl.h>
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueWriter.hpp"
+#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -57,16 +58,22 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
     .def("get_slot",
       [] (RoutineTaskQueue& self, std::function<void (const object&)> slot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<object>>(
-          self.GetSlot(std::move(slot))));
+          std::static_pointer_cast<QueueWriter<SharedObject>>(
+          self.GetSlot<SharedObject>(
+            [slot = std::move(slot)] (const SharedObject& object) {
+              slot(*object);
+            })));
       })
     .def("get_slot",
       [] (RoutineTaskQueue& self,
           std::function<void (const object&)> slot,
           std::function<void (const std::exception_ptr&)> breakSlot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<object>>(
-          self.GetSlot(std::move(slot), std::move(breakSlot))));
+          std::static_pointer_cast<QueueWriter<SharedObject>>(
+          self.GetSlot<SharedObject>(
+            [slot = std::move(slot)] (const SharedObject& object) {
+              slot(*object);
+            }, std::move(breakSlot))));
       })
     .def("wait", &RoutineTaskQueue::Wait, call_guard<GilRelease>());
 }
@@ -78,15 +85,21 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<object>>(
-          self.GetSlot(std::move(slot))));
+          std::static_pointer_cast<QueueWriter<SharedObject>>(
+          self.GetSlot<SharedObject>(
+            [slot = std::move(slot)] (const SharedObject& object) {
+              slot(*object);
+            })));
       })
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
           std::function<void (const std::exception_ptr&)> breakSlot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<object>>(
-          self.GetSlot(std::move(slot), std::move(breakSlot))));
+          std::static_pointer_cast<QueueWriter<SharedObject>>(
+          self.GetSlot<SharedObject>(
+            [slot = std::move(slot)] (const SharedObject& object) {
+              slot(*object);
+            }, std::move(breakSlot))));
       })
     .def("wait", &TaskQueue::Wait, call_guard<GilRelease>());
   module.def("handle_tasks", &HandleTasks);

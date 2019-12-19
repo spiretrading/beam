@@ -119,7 +119,7 @@ namespace pybind11::detail {
       } else {
         m_value.emplace(d, timeOfDay);
       }
-      return !PyErr_Occurred();   
+      return !PyErr_Occurred();
     }
   };
 }

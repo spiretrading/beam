@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/RoutineException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
@@ -52,7 +53,13 @@ void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
       [] (RoutineHandlerGroup& self, RoutineHandler* handler) {
         self.Add(std::move(*handler));
       })
-    .def("spawn", &RoutineHandlerGroup::Spawn<const std::function<void ()>&>)
+    .def("spawn",
+      [] (RoutineHandlerGroup& self, const std::function<void ()>& callable) {
+        return self.Spawn(
+          [callable = SharedObject(cast(callable))] {
+            (*callable)();
+          });
+      })
     .def("wait", &RoutineHandlerGroup::Wait,
       call_guard<GilRelease>());
 }
@@ -66,7 +73,12 @@ void Beam::Python::ExportRoutines(pybind11::module& module) {
   ExportAsync<object>(submodule, "");
   ExportEval<object>(submodule, "");
   submodule.def("spawn",
-    static_cast<Routine::Id (*)(const std::function<void ()>&)>(&Spawn));
+    [] (const std::function<void ()>& callable) {
+      return Spawn(
+        [callable = SharedObject(cast(callable))] {
+          (*callable)();
+        });
+    });
   submodule.def("wait", &Wait, call_guard<GilRelease>());
   register_exception<RoutineException>(submodule, "RoutineException");
 }

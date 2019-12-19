@@ -36,11 +36,11 @@ namespace pybind11::detail {
         if(is_converted) {
           return;
         }
-        if(!pybind11::isinstance<U>(source)) {
-          return;
+        try {
+          m_value.emplace(source.cast<U>());
+          is_converted = true;
+        } catch(const pybind11::cast_error&) {
         }
-        m_value.emplace(source.cast<U>());
-        is_converted = true;
       });
     return is_converted;
   }

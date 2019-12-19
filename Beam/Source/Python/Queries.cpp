@@ -207,10 +207,14 @@ void Beam::Python::ExportRange(pybind11::module& module) {
   class_<Range>(module, "Range")
     .def(init())
     .def(init<const Range::Point&, const Range::Point&>())
-    .def_property_readonly_static("EMPTY", &Range::Empty)
-    .def_property_readonly_static("HISTORICAL", &Range::Historical)
-    .def_property_readonly_static("TOTAL", &Range::Total)
-    .def_property_readonly_static("REAL_TIME", &Range::RealTime)
+    .def_property_readonly_static("EMPTY",
+      [] (const object&) { return Range::Empty(); })
+    .def_property_readonly_static("HISTORICAL",
+      [] (const object&) { return Range::Historical(); })
+    .def_property_readonly_static("TOTAL",
+      [] (const object&) { return Range::Total(); })
+    .def_property_readonly_static("REAL_TIME",
+      [] (const object&) { return Range::RealTime(); })
     .def_property_readonly("start", &Range::GetStart)
     .def_property_readonly("end", &Range::GetEnd)
     .def(self == self)
@@ -232,9 +236,12 @@ void Beam::Python::ExportSequence(pybind11::module& module) {
   class_<Queries::Sequence>(module, "Sequence")
     .def(init())
     .def(init<Queries::Sequence::Ordinal>())
-    .def_property_readonly_static("FIRST", &Queries::Sequence::First)
-    .def_property_readonly_static("LAST", &Queries::Sequence::Last)
-    .def_property_readonly_static("PRESENT", &Queries::Sequence::Present)
+    .def_property_readonly_static("FIRST",
+      [] (const object&) { return Queries::Sequence::First(); })
+    .def_property_readonly_static("LAST",
+      [] (const object&) { return Queries::Sequence::Last(); })
+    .def_property_readonly_static("PRESENT",
+      [] (const object&) { return Queries::Sequence::Present(); })
     .def_property_readonly("ordinal", &Queries::Sequence::GetOrdinal)
     .def(self < self)
     .def(self <= self)
@@ -272,8 +279,10 @@ void Beam::Python::ExportSnapshotLimit(pybind11::module& module) {
   auto outer = class_<SnapshotLimit>(module, "SnapshotLimit")
     .def(init())
     .def(init<SnapshotLimit::Type, int>())
-    .def_property_readonly_static("NONE", &SnapshotLimit::None)
-    .def_property_readonly_static("UNLIMITED", &SnapshotLimit::Unlimited)
+    .def_property_readonly_static("NONE",
+      [] (const object&) { return SnapshotLimit::None(); })
+    .def_property_readonly_static("UNLIMITED",
+      [] (const object&) { return SnapshotLimit::Unlimited(); })
     .def_property_readonly("type", &SnapshotLimit::GetType)
     .def_property_readonly("size", &SnapshotLimit::GetSize)
     .def_static("from_head", &SnapshotLimit::FromHead)

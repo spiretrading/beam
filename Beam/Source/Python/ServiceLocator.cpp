@@ -215,9 +215,9 @@ void Beam::Python::ExportDirectoryEntry(pybind11::module& module) {
     .def_readwrite("id", &DirectoryEntry::m_id)
     .def_readwrite("name", &DirectoryEntry::m_name)
     .def_property_readonly_static("root_account",
-      &DirectoryEntry::GetRootAccount)
+      [] (const object&) { return DirectoryEntry::GetRootAccount(); })
     .def_property_readonly_static("star_directory",
-      &DirectoryEntry::GetStarDirectory)
+      [] (const object&) { return DirectoryEntry::GetStarDirectory(); })
     .def_static("make_account", static_cast<DirectoryEntry (*)(
       unsigned int, std::string)>(&DirectoryEntry::MakeAccount))
     .def_static("make_account", static_cast<DirectoryEntry (*)(unsigned int)>(

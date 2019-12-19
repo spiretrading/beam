@@ -232,8 +232,10 @@ void Beam::Python::ExportHttpStatusCode(pybind11::module& module) {
 void Beam::Python::ExportHttpVersion(pybind11::module& module) {
   class_<HttpVersion>(module, "HttpVersion")
     .def(init())
-    .def_property_readonly_static("V_1_0", &HttpVersion::Version1_0)
-    .def_property_readonly_static("V_1_1", &HttpVersion::Version1_1)
+    .def_property_readonly_static("V_1_0",
+      [] (const object&) { return HttpVersion::Version1_0(); })
+    .def_property_readonly_static("V_1_1",
+      [] (const object&) { return HttpVersion::Version1_1(); })
     .def("__str__", &lexical_cast<std::string, HttpVersion>)
     .def_property_readonly("major", &HttpVersion::GetMajor)
     .def_property_readonly("minor", &HttpVersion::GetMinor)

@@ -57,6 +57,7 @@ void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
       [] (RoutineHandlerGroup& self, const std::function<void ()>& callable) {
         return self.Spawn(
           [callable = SharedObject(cast(callable))] {
+            auto lock = GilLock();
             (*callable)();
           });
       })
@@ -76,6 +77,7 @@ void Beam::Python::ExportRoutines(pybind11::module& module) {
     [] (const std::function<void ()>& callable) {
       return Spawn(
         [callable = SharedObject(cast(callable))] {
+          auto lock = GilLock();
           (*callable)();
         });
     });

@@ -91,21 +91,15 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<SharedObject>>(
-          self.GetSlot<SharedObject>(
-            [slot = std::move(slot)] (const SharedObject& object) {
-              slot(*object);
-            })));
+          std::static_pointer_cast<QueueWriter<pybind11::object>>(
+          self.GetSlot(std::move(slot))));
       })
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
           std::function<void (const std::exception_ptr&)> breakSlot) {
         return MakeToPythonQueueWriter(
-          std::static_pointer_cast<QueueWriter<SharedObject>>(
-          self.GetSlot<SharedObject>(
-            [slot = std::move(slot)] (const SharedObject& object) {
-              slot(*object);
-            }, std::move(breakSlot))));
+          std::static_pointer_cast<QueueWriter<pybind11::object>>(
+          self.GetSlot(std::move(slot), std::move(breakSlot))));
       })
     .def("wait", &TaskQueue::Wait, call_guard<GilRelease>());
   module.def("handle_tasks", &HandleTasks);

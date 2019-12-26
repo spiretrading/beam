@@ -1,7 +1,7 @@
 #!/bin/bash
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="26aff8ea419b6f0f2e40312a3a8bb35135da5322"
+aspen_commit="b85c108d39f7096b42889fbf4a9e2128fad41a40"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/eidolonsystems/aspen
@@ -122,7 +122,7 @@ if [ ! -d "tclap-1.2.1" ]; then
     rm -f tclap-1.2.1.tar.gz
   fi
 fi
-viper_commit="d6df2ec02762f75eb27580624f11008ee6d4d54d"
+viper_commit="3998912cecaaa041b2dea37485905b3345797744"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/eidolonsystems/viper
 fi

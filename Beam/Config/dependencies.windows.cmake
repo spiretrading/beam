@@ -35,12 +35,6 @@ set(OPEN_SSL_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/ssleay32.lib")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/ssleay32.lib")
-set(PYTHON_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/Python-3.7.2/Include")
-set(PYTHON_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/Python-3.7.2/PCbuild/win32/python37.lib")
-set(PYTHON_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/Python-3.7.2/PCbuild/win32/python37.lib")
 set(SQLITE_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100")
 set(SQLITE_LIBRARY_DEBUG_PATH

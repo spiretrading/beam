@@ -8,23 +8,24 @@ FOR /f "usebackq delims=" %%i IN (`%VSWHERE% -prerelease -latest -property insta
   )
 )
 IF NOT EXIST Strawberry (
-  wget http://strawberryperl.com/download/5.28.2.1/strawberry-perl-5.28.2.1-64bit-portable.zip -O strawberry-perl-5.28.2.1-64bit-portable.zip --no-check-certificate
+  wget http://strawberryperl.com/download/5.30.1.1/strawberry-perl-5.30.1.1-64bit-portable.zip -O strawberry-perl-5.30.1.1-64bit-portable.zip --no-check-certificate
   MD Strawberry
   PUSHD Strawberry
-  unzip ..\strawberry-perl-5.28.2.1-64bit-portable.zip
+  unzip ..\strawberry-perl-5.30.1.1-64bit-portable.zip
   POPD
-  DEL strawberry-perl-5.28.2.1-64bit-portable.zip
+  DEL strawberry-perl-5.30.1.1-64bit-portable.zip
 )
 SET PATH=%PATH%;%ROOT%\Strawberry\perl\site\bin;%ROOT%\Strawberry\perl\bin;%ROOT%\Strawberry\c\bin
 IF NOT EXIST cppunit-1.14.0 (
-  wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
-  IF EXIST cppunit-1.14.0.tar.gz (
-    gzip -d -c cppunit-1.14.0.tar.gz | tar -xf -
+  wget https://github.com/freedesktop/libreoffice-cppunit/archive/cppunit-1.14.0.zip -O cppunit-1.14.0.zip --no-check-certificate
+  IF EXIST cppunit-1.14.0.zip (
+    unzip cppunit-1.14.0.zip
+    MV libreoffice-cppunit-cppunit-1.14.0 cppunit-1.14.0
     PUSHD cppunit-1.14.0\src\cppunit
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=Debug
     msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=Release
     POPD
-    DEL cppunit-1.14.0.tar.gz
+    DEL cppunit-1.14.0.zip
   )
 )
 SET BUILD_ASPEN=
@@ -51,19 +52,14 @@ IF "%BUILD_ASPEN%" == "1" (
   POPD
 )
 POPD
-IF NOT EXIST cryptopp610 (
-  wget http://www.cryptopp.com/cryptopp610.zip --no-check-certificate
-  IF EXIST cryptopp610.zip (
-    MD cryptopp610
-    PUSHD cryptopp610
-    unzip ..\cryptopp610.zip
-    devenv /Upgrade cryptlib.vcproj
-    TYPE cryptlib.vcproj | sed "s/WholeProgramOptimization=\"1\"/WholeProgramOptimization=\"0\"/" | sed "s/WholeProgramOptimization=\"true\"/WholeProgramOptimization=\"false\"/" > cryptlib.vcproj.new
-    MOVE cryptlib.vcproj.new cryptlib.vcproj
+IF NOT EXIST cryptopp820 (
+  wget https://www.cryptopp.com/cryptopp820.zip -O cryptopp820.zip --no-check-certificate
+  IF EXIST cryptopp820.zip (
+    MD cryptopp820
+    PUSHD cryptopp820
+    unzip ..\cryptopp820.zip
     TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    TYPE cryptlib.vcproj | sed "s/RuntimeLibrary=\"0\"/RuntimeLibrary=\"2\"/" | sed "s/RuntimeLibrary=\"1\"/RuntimeLibrary=\"3\"/" > cryptlib.vcproj.new
-    MOVE cryptlib.vcproj.new cryptlib.vcproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     devenv cryptlib.vcxproj /useenv /Build "Debug"
@@ -74,14 +70,14 @@ IF NOT EXIST cryptopp610 (
     COPY ..\*.h cryptopp
     POPD
     POPD
-    DEL cryptopp610.zip
+    DEL cryptopp820.zip
   )
 )
-IF NOT EXIST doctest-2.3.4 (
-  wget https://github.com/onqtam/doctest/archive/2.3.4.zip --no-check-certificate
-  IF EXIST 2.3.4.zip (
-    unzip 2.3.4.zip
-    DEL 2.3.4.zip
+IF NOT EXIST doctest-2.3.6 (
+  wget https://github.com/onqtam/doctest/archive/2.3.6.zip --no-check-certificate
+  IF EXIST 2.3.6.zip (
+    unzip 2.3.6.zip
+    DEL 2.3.6.zip
   )
 )
 IF NOT EXIST mariadb-connector-c-3.0.6 (
@@ -108,23 +104,26 @@ IF NOT EXIST mariadb-connector-c-3.0.6 (
     DEL mariadb-connector-c-3.0.6.zip
   )
 )
-IF NOT EXIST openssl-1.0.2g (
-  wget ftp://ftp.openssl.org/source/old/1.0.2/openssl-1.0.2g.tar.gz --no-check-certificate
-  IF EXIST openssl-1.0.2g.tar.gz (
-    gzip -d -c openssl-1.0.2g.tar.gz | tar -xf -
-    PUSHD openssl-1.0.2g
-    perl Configure VC-WIN32 no-asm --prefix="%ROOT%\openssl-1.0.2g"
-    CALL .\ms\do_ms
-    nmake -f .\ms\nt.mak
+IF NOT EXIST openssl-1.1.1c (
+  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate
+  IF EXIST openssl-1.1.1c.tar.gz (
+    gzip -d -c openssl-1.1.1c.tar.gz | tar -xf -
+    MOVE openssl-1.1.1c openssl-1.1.1c-build
+    PUSHD openssl-1.1.1c-build
+    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="%ROOT%\openssl-1.1.1c" --openssldir="%ROOT%\openssl-1.1.1c"
+    SET CL=/MP
+    nmake
+    nmake install
     POPD
-    DEL openssl-1.0.2g.tar.gz
+    RMDIR /S /Q openssl-1.1.1c-build
+    DEL openssl-1.1.1c.tar.gz
   )
 )
-IF NOT EXIST sqlite-amalgamation-3230100 (
-  wget https://www.sqlite.org/2018/sqlite-amalgamation-3230100.zip --no-check-certificate
-  IF EXIST sqlite-amalgamation-3230100.zip (
-    unzip sqlite-amalgamation-3230100
-    PUSHD sqlite-amalgamation-3230100
+IF NOT EXIST sqlite-amalgamation-3300100 (
+  wget https://www.sqlite.org/2019/sqlite-amalgamation-3300100.zip -O sqlite-amalgamation-3300100.zip --no-check-certificate
+  IF EXIST sqlite-amalgamation-3300100.zip (
+    unzip sqlite-amalgamation-3300100.zip
+    PUSHD sqlite-amalgamation-3300100
     cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     COPY sqlite3.lib sqlite3d.lib
@@ -132,14 +131,14 @@ IF NOT EXIST sqlite-amalgamation-3230100 (
     cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     POPD
-    DEL sqlite-amalgamation-3230100.zip
+    DEL sqlite-amalgamation-3300100.zip
   )
 )
-IF NOT EXIST tclap-1.2.1 (
-  wget "http://downloads.sourceforge.net/project/tclap/tclap-1.2.1.tar.gz?r=&ts=1309913922&use_mirror=superb-sea2" -O tclap-1.2.1.tar.gz --no-check-certificate
-  IF EXIST tclap-1.2.1.tar.gz (
-    gzip -d -c tclap-1.2.1.tar.gz | tar -xf -
-    DEL tclap-1.2.1.tar.gz
+IF NOT EXIST tclap-1.2.2 (
+  wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
+  IF EXIST v1.2.2.zip (
+    unzip v1.2.2.zip
+    DEL v1.2.2.zip
   )
 )
 SET viper_commit="3998912cecaaa041b2dea37485905b3345797744"
@@ -185,16 +184,18 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-IF NOT EXIST boost_1_70_0 (
-  wget https://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.zip -O boost_1_70_0.zip --no-check-certificate
-  IF EXIST boost_1_70_0.zip (
-    unzip boost_1_70_0.zip
-    PUSHD boost_1_70_0
+IF NOT EXIST boost_1_72_0 (
+  wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.zip -O boost_1_72_0.zip --no-check-certificate
+  IF EXIST boost_1_72_0.zip (
+    unzip boost_1_72_0.zip
+    PUSHD boost_1_72_0
+    PUSHD tools\build
     CALL bootstrap.bat vc142
-    b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_70_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
-    b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_70_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
     POPD
-    DEL boost_1_70_0.zip
+    tools\build\b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
+    tools\build\b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
+    POPD
+    DEL boost_1_72_0.zip
   )
 )
 ENDLOCAL

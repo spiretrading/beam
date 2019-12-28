@@ -4,9 +4,9 @@ set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
 set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.lib")
 set(BOOST_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/include/boost-1_70")
-set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/lib")
-set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_70_0/lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/include/boost-1_72")
+set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
+set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
 set(CPPUNIT_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cppunit-1.14.0/include")
 set(CPPUNIT_LIBRARY_DEBUG_PATH
@@ -14,11 +14,11 @@ set(CPPUNIT_LIBRARY_DEBUG_PATH
 set(CPPUNIT_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cppunit-1.14.0/lib/cppunit.lib")
 set(CRYPTOPP_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp610/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/include")
 set(CRYPTOPP_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp610/Win32/Output/Debug/cryptlib.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/Win32/Output/Debug/cryptlib.lib")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp610/Win32/Output/Release/cryptlib.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/Win32/Output/Release/cryptlib.lib")
 set(MYSQL_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.0.6/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
@@ -26,21 +26,21 @@ set(MYSQL_LIBRARY_DEBUG_PATH
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.0.6/libmariadb/Release/mariadbclient.lib")
 set(OPEN_SSL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/inc32")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/libeay32.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/lib/libcrypto.lib")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/libeay32.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/lib/libcrypto.lib")
 set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/ssleay32.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/lib/libssl.lib")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.0.2g/out32/ssleay32.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/lib/libssl.lib")
 set(SQLITE_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100")
 set(SQLITE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100/sqlite3d.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100/sqlite3d.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3230100/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100/sqlite3.lib")
 set(YAML_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/include")
 set(YAML_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Debug/libyaml-cppmdd.lib")

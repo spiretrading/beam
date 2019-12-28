@@ -55,6 +55,9 @@ if(UNIX)
     debug ${BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH})
 endif()
+if(WIN32)
+  target_link_libraries(Python Crypt32.lib)
+endif()
 
 install(TARGETS Python CONFIGURATIONS Debug
   DESTINATION ${LIB_INSTALL_DIRECTORY}/Debug)

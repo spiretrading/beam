@@ -73,4 +73,7 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     dl pthread rt)
 endif()
+if(WIN32)
+  target_link_libraries(ClientTemplate Crypt32.lib)
+endif()
 install(TARGETS ClientTemplate DESTINATION ${PROJECT_BINARY_DIR}/Application)

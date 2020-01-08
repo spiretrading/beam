@@ -38,7 +38,7 @@ if [ ! -d "cppunit-1.14.0" ]; then
     make -j $cores
     make install
     popd
-    rm -f cppunit-1.14.0.tar.gz
+    rm cppunit-1.14.0.tar.gz
   fi
 fi
 if [ ! -d "cryptopp820" ]; then
@@ -50,14 +50,14 @@ if [ ! -d "cryptopp820" ]; then
     make -j $cores
     make install PREFIX="$root/cryptopp820"
     popd
-    rm -f cryptopp820.zip
+    rm cryptopp820.zip
   fi
 fi
 if [ ! -d "doctest-2.3.6" ]; then
   wget https://github.com/onqtam/doctest/archive/2.3.6.zip --no-check-certificate
   if [ -f "2.3.6.zip" ]; then
     unzip 2.3.6.zip
-    rm -f 2.3.6.zip
+    rm 2.3.6.zip
   fi
 fi
 if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
@@ -69,7 +69,7 @@ if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
     make -j $cores
     make install
     popd
-    rm -f mysql-connector-c-6.1.11-src.tar.gz
+    rm mysql-connector-c-6.1.11-src.tar.gz
   fi
 fi
 if [ ! -d "openssl-1.1.1c" ]; then
@@ -160,7 +160,7 @@ if [ ! -d "zlib-1.2.11" ]; then
     make install
     unset CFLAGS
     popd
-    rm -f v1.2.11.zip
+    rm v1.2.11.zip
   fi
 fi
 if [ ! -d "boost_1_72_0" ]; then

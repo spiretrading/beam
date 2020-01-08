@@ -8,11 +8,12 @@ done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root=$(pwd)
 build_function() {
-  if [ ! -d "$1" ]; then
-    mkdir -p "$1"
+  location="${@: -1}"
+  if [ ! -d "$location" ]; then
+    mkdir -p "$location"
   fi
-  pushd "$1"
-  "$directory/$1/build.sh" "$@"
+  pushd "$location"
+  "$directory/$location/build.sh" "${@:1:$#-1}"
   popd
 }
 
@@ -37,4 +38,4 @@ let cores="`grep -c "processor" < /proc/cpuinfo` / 2 + 1"
 let mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 4194304"
 let jobs="$(($cores<$mem?$cores:$mem))"
 
-parallel -j$jobs --no-notice build_function ::: $targets
+parallel -j$jobs --no-notice build_function "$@" ::: $targets

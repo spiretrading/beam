@@ -20,7 +20,7 @@ build_function() {
 export -f build_function
 export directory
 
-build_function "Beam"
+build_function "$@" "Beam"
 targets="WebApi"
 targets+=" Applications/AdminClient"
 targets+=" Applications/ClientTemplate"

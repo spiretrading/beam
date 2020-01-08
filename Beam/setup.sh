@@ -26,10 +26,9 @@ else
 fi
 popd
 if [ ! -d "cppunit-1.14.0" ]; then
-  wget https://github.com/freedesktop/libreoffice-cppunit/archive/cppunit-1.14.0.zip -O cppunit-1.14.0.zip --no-check-certificate
-  if [ -f cppunit-1.14.0.zip ]; then
-    unzip cppunit-1.14.0.zip
-    mv libreoffice-cppunit-cppunit-1.14.0 cppunit-1.14.0
+  wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
+  if [ -f cppunit-1.14.0.tar.gz ]; then
+    gzip -d -c cppunit-1.14.0.tar.gz | tar -x
     pushd cppunit-1.14.0
     touch configure.new
     cat configure | sed "s/\/\* automatically generated \*\//\$ac_prefix_conf_INP/" > configure.new
@@ -39,7 +38,7 @@ if [ ! -d "cppunit-1.14.0" ]; then
     make -j $cores
     make install
     popd
-    rm -f cppunit-1.14.0.zip
+    rm -f cppunit-1.14.0.tar.gz
   fi
 fi
 if [ ! -d "cryptopp820" ]; then
@@ -114,13 +113,13 @@ if [ ! -d "sqlite-amalgamation-3300100" ]; then
 fi
 if [ ! -d "tclap-1.2.2" ]; then
   wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
-  if [ -f tclap-1.2.2.tar.gz ]; then
-    gzip -d -c tclap-1.2.2.tar.gz | tar -x
+  if [ -f v1.2.2.zip ]; then
+    unzip v1.2.2.zip
     pushd tclap-1.2.2
     ./configure
     make -j $cores
     popd
-    rm -f tclap-1.2.2.tar.gz
+    rm v1.2.2.zip
   fi
 fi
 viper_commit="3998912cecaaa041b2dea37485905b3345797744"

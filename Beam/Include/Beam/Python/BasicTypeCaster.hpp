@@ -13,7 +13,7 @@ namespace Beam::Python {
    */
   template<typename T>
   struct BasicTypeCaster {
-    inline static std::optional<T> m_value;
+    std::optional<T> m_value;
 
     static PYBIND11_DESCR name() {
       return pybind11::detail::type_descr(pybind11::detail::_(""));

@@ -30,13 +30,15 @@ using namespace Beam;
 using namespace Beam::Python;
 using namespace Beam::Queries;
 using namespace boost;
+using namespace boost::posix_time;
 using namespace pybind11;
 
 void Beam::Python::ExportBasicQuery(pybind11::module& module) {
   class_<BasicQuery<object>, IndexedQuery<object>, RangedQuery,
     SnapshotLimitedQuery, InterruptableQuery, FilteredQuery>(module, "Query")
     .def(init())
-    .def(init<const BasicQuery<object>&>());
+    .def(init<const BasicQuery<object>&>())
+    .def("__str__", &lexical_cast<std::string, BasicQuery<object>>);
 }
 
 void Beam::Python::ExportExpression(pybind11::module& module) {
@@ -84,7 +86,8 @@ void Beam::Python::ExportFilteredQuery(pybind11::module& module) {
     .def(init<const FilteredQuery&>())
     .def(init<const Expression&>())
     .def_property("filter", &FilteredQuery::GetFilter,
-      &FilteredQuery::SetFilter);
+      &FilteredQuery::SetFilter)
+    .def("__str__", &lexical_cast<std::string, FilteredQuery>);
 }
 
 void Beam::Python::ExportFunctionExpression(pybind11::module& module) {
@@ -101,7 +104,8 @@ void Beam::Python::ExportIndexedQuery(pybind11::module& module) {
     .def(init<object>())
     .def(init<const IndexedQuery<object>&>())
     .def_property("index", &IndexedQuery<object>::GetIndex,
-      &IndexedQuery<object>::SetIndex);
+      &IndexedQuery<object>::SetIndex)
+    .def("__str__", &lexical_cast<std::string, IndexedQuery<object>>);
 }
 
 void Beam::Python::ExportIndexedValue(pybind11::module& module) {
@@ -126,14 +130,16 @@ void Beam::Python::ExportIndexedValue(pybind11::module& module) {
           const IndexedValue<object, object>& other) {
         return self.GetIndex().attr("__ne__")(other.GetIndex()).cast<bool>() ||
           self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
-      });
+      })
+    .def("__str__", &lexical_cast<std::string, IndexedValue<object, object>>);
 }
 
 void Beam::Python::ExportIndexListQuery(pybind11::module& module) {
   class_<IndexListQuery, SnapshotLimitedQuery, FilteredQuery>(module,
       "IndexListQuery")
     .def(init())
-    .def(init<const IndexListQuery&>());
+    .def(init<const IndexListQuery&>())
+    .def("__str__", &lexical_cast<std::string, IndexListQuery>);
 }
 
 void Beam::Python::ExportInterruptableQuery(pybind11::module& module) {
@@ -143,7 +149,8 @@ void Beam::Python::ExportInterruptableQuery(pybind11::module& module) {
     .def(init<InterruptionPolicy>())
     .def_property("interruption_policy",
       &InterruptableQuery::GetInterruptionPolicy,
-      &InterruptableQuery::SetInterruptionPolicy);
+      &InterruptableQuery::SetInterruptionPolicy)
+    .def("__str__", &lexical_cast<std::string, InterruptableQuery>);
 }
 
 void Beam::Python::ExportInterruptionPolicy(pybind11::module& module) {
@@ -218,7 +225,8 @@ void Beam::Python::ExportRange(pybind11::module& module) {
     .def_property_readonly("start", &Range::GetStart)
     .def_property_readonly("end", &Range::GetEnd)
     .def(self == self)
-    .def(self != self);
+    .def(self != self)
+    .def("__str__", &lexical_cast<std::string, Range>);
 }
 
 void Beam::Python::ExportRangedQuery(pybind11::module& module) {
@@ -229,7 +237,8 @@ void Beam::Python::ExportRangedQuery(pybind11::module& module) {
       static_cast<void (RangedQuery::*)(const Range&)>(&RangedQuery::SetRange))
     .def("set_range", static_cast<
       void (RangedQuery::*)(const Range::Point&, const Range::Point&)>(
-      &RangedQuery::SetRange<const Range::Point&, const Range::Point&>));
+      &RangedQuery::SetRange<const Range::Point&, const Range::Point&>))
+    .def("__str__", &lexical_cast<std::string, RangedQuery>);
 }
 
 void Beam::Python::ExportSequence(pybind11::module& module) {
@@ -248,7 +257,8 @@ void Beam::Python::ExportSequence(pybind11::module& module) {
     .def(self == self)
     .def(self != self)
     .def(self >= self)
-    .def(self > self);
+    .def(self > self)
+    .def("__str__", &lexical_cast<std::string, Queries::Sequence>);
   module.def("increment", &Increment);
   module.def("decrement", &Decrement);
 }
@@ -272,7 +282,8 @@ void Beam::Python::ExportSequencedValue(pybind11::module& module) {
       [] (SequencedValue<object>& self, const SequencedValue<object>& other) {
         return self.GetSequence() != other.GetSequence() ||
           self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
-      });
+      })
+    .def("__str__", &lexical_cast<std::string, SequencedValue<object>>);
 }
 
 void Beam::Python::ExportSnapshotLimit(pybind11::module& module) {
@@ -305,7 +316,8 @@ void Beam::Python::ExportSnapshotLimitedQuery(pybind11::module& module) {
       &SnapshotLimitedQuery::SetSnapshotLimit))
     .def("set_snapshot_limit", static_cast<
       void (SnapshotLimitedQuery::*)(SnapshotLimit::Type, int)>(
-      &SnapshotLimitedQuery::SetSnapshotLimit));
+      &SnapshotLimitedQuery::SetSnapshotLimit))
+    .def("__str__", &lexical_cast<std::string, SnapshotLimitedQuery>);
 }
 
 void Beam::Python::ExportValue(pybind11::module& module) {

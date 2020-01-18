@@ -125,7 +125,8 @@ void Beam::Python::ExportTestTimeClient(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTestTimer(pybind11::module& module) {
-  class_<ToPythonTimer<TestTimer>, VirtualTimer>(module, "TestTimer")
+  class_<ToPythonTimer<TestTimer>, VirtualTimer,
+      std::shared_ptr<ToPythonTimer<TestTimer>>>(module, "TestTimer")
     .def(init(
       [] (time_duration expiry, TimeServiceTestEnvironment& environment) {
         return MakeToPythonTimer(std::make_unique<TestTimer>(expiry,

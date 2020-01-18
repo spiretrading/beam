@@ -36,7 +36,8 @@ namespace {
 }
 
 void Beam::Python::ExportLiveTimer(pybind11::module& module) {
-  class_<ToPythonTimer<LiveTimer>, VirtualTimer>(module, "LiveTimer")
+  class_<ToPythonTimer<LiveTimer>, VirtualTimer,
+      std::shared_ptr<ToPythonTimer<LiveTimer>>>(module, "LiveTimer")
     .def(init(
       [] (time_duration interval) {
         return MakeToPythonTimer(std::make_unique<LiveTimer>(interval,
@@ -53,7 +54,8 @@ void Beam::Python::ExportThreading(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTimer(pybind11::module& module) {
-  auto outer = class_<VirtualTimer, TrampolineTimer>(module, "Timer")
+  auto outer = class_<VirtualTimer, TrampolineTimer,
+      std::shared_ptr<VirtualTimer>>(module, "Timer")
     .def("start", &VirtualTimer::Start)
     .def("cancel", &VirtualTimer::Cancel)
     .def("wait", &VirtualTimer::Wait)
@@ -68,7 +70,8 @@ void Beam::Python::ExportTimer(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTriggerTimer(pybind11::module& module) {
-  class_<ToPythonTimer<TriggerTimer>, VirtualTimer>(module, "TriggerTimer")
+  class_<ToPythonTimer<TriggerTimer>, VirtualTimer,
+      std::shared_ptr<ToPythonTimer<TriggerTimer>>>(module, "TriggerTimer")
     .def(init(
       [] {
         return MakeToPythonTimer(std::make_unique<TriggerTimer>());

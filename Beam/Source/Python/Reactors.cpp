@@ -36,6 +36,13 @@ void Beam::Python::ExportAlarmReactor(pybind11::module& module) {
       return to_object(AlarmReactor(LocalTimeClient(), DefaultTimerFactory,
         std::move(expiry)));
     });
+  module.def("alarm",
+    [] (VirtualTimeClient& timeClient,
+        std::function<std::shared_ptr<VirtualTimer> (time_duration)>
+        timerFactory, SharedBox<ptime> expiry) {
+      return to_object(AlarmReactor(&timeClient, std::move(timerFactory),
+        std::move(expiry)));
+    });
 }
 
 void Beam::Python::ExportCurrentTimeReactor(pybind11::module& module) {
@@ -44,8 +51,16 @@ void Beam::Python::ExportCurrentTimeReactor(pybind11::module& module) {
       return to_object(CurrentTimeReactor(LocalTimeClient()));
     });
   module.def("current_time",
+    [] (VirtualTimeClient& timeClient) {
+      return to_object(CurrentTimeReactor(&timeClient));
+    });
+  module.def("current_time",
     [] (SharedBox<void> pulse) {
       return to_object(CurrentTimeReactor(LocalTimeClient(), std::move(pulse)));
+    });
+  module.def("current_time",
+    [] (VirtualTimeClient& timeClient, SharedBox<void> pulse) {
+      return to_object(CurrentTimeReactor(&timeClient, std::move(pulse)));
     });
 }
 
@@ -75,6 +90,12 @@ void Beam::Python::ExportTimerReactor(pybind11::module& module) {
   module.def("timer",
     [] (SharedBox<time_duration> period) {
       return to_object(TimerReactor<std::int64_t>(DefaultTimerFactory,
+        std::move(period)));
+    });
+  module.def("timer",
+    [] (std::function<std::shared_ptr<VirtualTimer> (time_duration)>
+        timerFactory, SharedBox<time_duration> period) {
+      return to_object(TimerReactor<std::int64_t>(std::move(timerFactory),
         std::move(period)));
     });
 }

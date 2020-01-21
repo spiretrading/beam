@@ -111,7 +111,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonAbstractQueue<T>::~FromPythonAbstractQueue() {
-    auto lock = Python::GilLock();
+    auto lock = GilLock();
     m_queue.reset();
   }
 

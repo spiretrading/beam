@@ -81,7 +81,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
-    auto lock = Python::GilLock();
+    auto lock = GilLock();
     m_source.reset();
   }
 
@@ -100,10 +100,10 @@ namespace Beam::Python {
   typename FromPythonQueueReader<T>::Target
       FromPythonQueueReader<T>::Top() const {
     if(IsEmpty()) {
-      auto release = Python::GilRelease();
+      auto release = GilRelease();
       m_source->Wait();
     }
-    auto lock = Python::GilLock();
+    auto lock = GilLock();
     return m_source->Top().cast<T>();
   }
 

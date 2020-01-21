@@ -47,7 +47,7 @@ void Beam::Python::ExportQueues(pybind11::module& module) {
           queue.Pop();
         }
       } catch(const PipeBrokenException&) {}
-    });
+    }, call_guard<GilRelease>());
   register_exception<PipeBrokenException>(module, "PipeBrokenException");
 }
 
@@ -96,5 +96,5 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
           self.GetSlot(std::move(slot), std::move(breakSlot))));
       })
     .def("wait", &TaskQueue::Wait, call_guard<GilRelease>());
-  module.def("handle_tasks", &HandleTasks);
+  module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

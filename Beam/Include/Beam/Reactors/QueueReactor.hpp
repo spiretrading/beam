@@ -37,6 +37,7 @@ namespace Beam::Reactors {
         Aspen::Queue<Type> m_reactor;
         Routines::RoutineHandler m_handler;
         ScopedQueueReader<Type> m_queue;
+        bool m_isComplete;
 
         Entry(std::shared_ptr<QueueReader<Type>> queue);
       };
@@ -50,7 +51,8 @@ namespace Beam::Reactors {
 
   template<typename T>
   QueueReactor<T>::Entry::Entry(std::shared_ptr<QueueReader<Type>> queue)
-    : m_queue(std::move(queue)) {}
+    : m_queue(std::move(queue)),
+      m_isComplete(false) {}
 
   template<typename T>
   QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue)
@@ -64,6 +66,7 @@ namespace Beam::Reactors {
   template<typename T>
   QueueReactor<T>::~QueueReactor() {
     if(m_entry != nullptr) {
+      m_entry->m_isComplete = true;
       m_entry->m_queue->Break();
       m_entry->m_handler.Wait();
     }
@@ -87,10 +90,14 @@ namespace Beam::Reactors {
         entry.m_reactor.push(entry.m_queue->Top());
         entry.m_queue->Pop();
       } catch(const PipeBrokenException&) {
-        entry.m_reactor.set_complete();
+        if(!entry.m_isComplete) {
+          entry.m_reactor.set_complete();
+        }
         break;
       } catch(const std::exception&) {
-        entry.m_reactor.set_complete(std::current_exception());
+        if(!entry.m_isComplete) {
+          entry.m_reactor.set_complete(std::current_exception());
+        }
         break;
       }
     }

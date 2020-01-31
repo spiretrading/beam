@@ -141,7 +141,7 @@ IF NOT EXIST tclap-1.2.2 (
     DEL v1.2.2.zip
   )
 )
-SET viper_commit="f90c8a5574c5dda7a5952b961d253f6c1ebdc018"
+SET viper_commit="009bbbb3e00269e9939a9342789334a2d56bf7f0"
 IF NOT EXIST viper (
   git clone https://www.github.com/eidolonsystems/viper
 )

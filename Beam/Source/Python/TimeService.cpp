@@ -8,6 +8,7 @@
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
+#include "Beam/TimeService/ToLocalTime.hpp"
 #include "Beam/TimeService/VirtualTimeClient.hpp"
 #include "Beam/TimeServiceTests/TestTimeClient.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
@@ -149,6 +150,15 @@ void Beam::Python::ExportTimeService(pybind11::module& module) {
   ExportIncrementalTimeClient(submodule);
   ExportLocalTimeClient(submodule);
   ExportNtpTimeClient(submodule);
+  submodule.def("to_local_time", static_cast<ptime (*)(const ptime&)>(
+    &ToLocalTime));
+  submodule.def("to_utc_time", static_cast<ptime (*)(const ptime&)>(
+    &ToUtcTime));
+  submodule.def("to_local_time", static_cast<time_duration (*)(
+    const time_duration&)>(&ToLocalTime));
+  submodule.def("to_utc_time", static_cast<time_duration (*)(
+    const time_duration&)>(&ToUtcTime));
+  submodule.def("adjust_date_time", &AdjustDateTime);
   auto test_module = submodule.def_submodule("tests");
   ExportTestTimeClient(test_module);
   ExportTestTimer(test_module);

@@ -1,7 +1,7 @@
 ---
 data_store:
   address: 127.0.0.1:3306
-  username: spireadmin
+  username: $admin_username
   password: $admin_password
   schema: data_store_profiler
 

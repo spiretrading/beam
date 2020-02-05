@@ -4,7 +4,7 @@ server:
   addresses: [$global_address:20500, $local_interface:20500]
 
 service_locator:
-  address: $local_interface:20000
+  address: $service_locator_address
   username: registry_service
   password: $admin_password
 ...

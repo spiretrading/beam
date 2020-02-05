@@ -1,16 +1,16 @@
 ---
 server:
-  interface: local_interface:20900
-  addresses: [global_address:20900, local_interface:20900]
+  interface: $local_interface:20900
+  addresses: [$global_address:20900, $local_interface:20900]
 
 data_store:
   address: 127.0.0.1:3306
   username: spireadmin
-  password: admin_password
+  password: $admin_password
   schema: spire
 
 service_locator:
-  address: local_interface:20000
+  address: $local_interface:20000
   username: uid_service
-  password: admin_password
+  password: $admin_password
 ...

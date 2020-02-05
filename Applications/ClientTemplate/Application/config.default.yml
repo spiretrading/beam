@@ -1,5 +1,5 @@
 ---
-address: local_interface:15050
+address: $local_interface:15050
 message: "hello world"
 rate: 500
 ...

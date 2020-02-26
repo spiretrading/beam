@@ -33,7 +33,7 @@ IF NOT EXIST aspen (
   git clone https://www.github.com/eidolonsystems/aspen
   SET BUILD_ASPEN=1
 )
-SET aspen_commit="2ff30d80632368f424a91c9ec607763c8b7c00e1"
+SET aspen_commit="0cd64c550dba53114e07d25ef64999d47b0a8101"
 PUSHD aspen
 git merge-base --is-ancestor "%aspen_commit%" HEAD
 IF NOT "%ERRORLEVEL%" == "0" (

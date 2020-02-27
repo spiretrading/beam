@@ -11,6 +11,7 @@ namespace Beam {
   template<std::size_t N>
   class FixedString {
     public:
+      static constexpr auto SIZE = N;
 
       //! Constructs an empty string.
       FixedString();

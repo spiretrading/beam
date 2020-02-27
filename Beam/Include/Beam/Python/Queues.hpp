@@ -3,7 +3,6 @@
 #include <string>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/AbstractQueue.hpp"
-#include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueReader.hpp"

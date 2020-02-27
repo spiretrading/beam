@@ -9,6 +9,7 @@ namespace pybind11::detail {
   template<>
   struct type_caster<boost::posix_time::time_duration>
       : Beam::Python::BasicTypeCaster<boost::posix_time::time_duration> {
+    static constexpr auto name = pybind11::detail::_("TimeDuration");
     static handle cast(boost::posix_time::time_duration value,
         return_value_policy policy, handle parent) {
       if(!PyDateTimeAPI) {
@@ -66,6 +67,7 @@ namespace pybind11::detail {
   template<>
   struct type_caster<boost::posix_time::ptime>
       : Beam::Python::BasicTypeCaster<boost::posix_time::ptime> {
+    static constexpr auto name = pybind11::detail::_("DateTime");
     static handle cast(boost::posix_time::ptime value,
         return_value_policy policy, handle parent) {
       if(!PyDateTimeAPI) {

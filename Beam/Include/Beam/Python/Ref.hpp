@@ -13,25 +13,33 @@ namespace Beam::Python {
   template<typename T>
   struct RefTypeCaster : BasicTypeCaster<T> {
     using Type = T;
-    static pybind11::handle cast(Type value,
+    using Converter = pybind11::detail::make_caster<typename Type::Type>;
+    static constexpr auto name = pybind11::detail::_("Ref[") + Converter::name +
+      pybind11::detail::_("]");
+    template<typename V>
+    static pybind11::handle cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent);
-    bool load(pybind11::handle source, bool);
+    bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
 
   template<typename T>
-  pybind11::handle RefTypeCaster<T>::cast(Type value,
+  template<typename V>
+  pybind11::handle RefTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return pybind11::cast(&*value).release();
+    policy = pybind11::detail::return_value_policy_override<
+      typename Type::Type>::policy(policy);
+    return Converter::cast(*std::forward<V>(value), policy, parent);
   }
 
   template<typename T>
-  bool RefTypeCaster<T>::load(pybind11::handle source, bool) {
-    try {
-      m_value.emplace(Ref(source.cast<typename Type::Type&>()));
-    } catch(const pybind11::cast_error&) {
+  bool RefTypeCaster<T>::load(pybind11::handle source, bool convert) {
+    auto caster = Converter();
+    if(!caster.load(source, convert)) {
       return false;
     }
+    m_value.emplace(pybind11::detail::cast_op<typename Type::Type&&>(
+      std::move(caster)));
     return true;
   }
 }

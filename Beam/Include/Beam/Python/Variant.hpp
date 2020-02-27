@@ -12,23 +12,33 @@ namespace pybind11::detail {
   struct type_caster<boost::variant<T...>> :
       Beam::Python::BasicTypeCaster<boost::variant<T...>> {
     using Type = boost::variant<T...>;
-    static pybind11::handle cast(const Type& value,
+    static constexpr auto name = pybind11::detail::_("Variant[") +
+      pybind11::detail::concat(pybind11::detail::make_caster<T>::name...) +
+      pybind11::detail::_("]");
+    template<typename V>
+    static pybind11::handle cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent);
-    bool load(pybind11::handle source, bool);
+    bool load(pybind11::handle source, bool convert);
     using Beam::Python::BasicTypeCaster<Type>::m_value;
   };
 
   template<typename... T>
-  pybind11::handle type_caster<boost::variant<T...>>::cast(const Type& value,
+  template<typename V>
+  pybind11::handle type_caster<boost::variant<T...>>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
     return boost::apply_visitor(
-      [] (auto&& value) {
-        return pybind11::cast(std::forward<decltype(value)>(value));
-      }, value);
+      [&] (auto&& value) {
+        using U = std::decay_t<decltype(value)>;
+        policy = pybind11::detail::return_value_policy_override<U>::policy(
+          policy);
+        return pybind11::detail::make_caster<U>::cast(
+          std::forward<decltype(value)>(value), policy, parent);
+      }, std::forward<V>(value));
   }
 
   template<typename... T>
-  bool type_caster<boost::variant<T...>>::load(pybind11::handle source, bool) {
+  bool type_caster<boost::variant<T...>>::load(pybind11::handle source,
+      bool convert) {
     auto is_converted = false;
     boost::mpl::for_each<typename boost::variant<T...>::types>(
       [&] (auto&& unused) {
@@ -36,11 +46,12 @@ namespace pybind11::detail {
         if(is_converted) {
           return;
         }
-        try {
-          m_value.emplace(source.cast<U>());
-          is_converted = true;
-        } catch(const pybind11::cast_error&) {
+        auto caster = pybind11::detail::make_caster<U>();
+        if(!caster.load(source, convert)) {
+          return;
         }
+        m_value.emplace(pybind11::detail::cast_op<U&&>(std::move(caster)));
+        is_converted = true;
       });
     return is_converted;
   }

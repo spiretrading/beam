@@ -15,9 +15,6 @@ namespace Beam::Python {
   struct BasicTypeCaster {
     std::optional<T> m_value;
 
-    static constexpr auto name =
-      pybind11::detail::type_descr(pybind11::detail::_(""));
-
     template<typename U, typename = std::enable_if_t<
       std::is_same_v<T, std::remove_cv_t<U>>>>
     static pybind11::handle cast(U* source,

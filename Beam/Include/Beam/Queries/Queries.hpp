@@ -2,13 +2,12 @@
 #define BEAM_QUERIES_HPP
 #include "Beam/Pointers/ClonePtr.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
+  template<typename D, typename E> class AsyncDataStore;
   class BaseEvaluatorNode;
   class BaseParameterEvaluatorNode;
   template<typename T> class BasicQuery;
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-    class BufferedDataStore;
+  template<typename D, typename E> class BufferedDataStore;
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
     class CachedDataStore;
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
@@ -86,7 +85,6 @@ namespace Queries {
   class VirtualValue;
   typedef ClonePtr<VirtualValue> Value;
   template<typename t> class WriteEvaluatorNode;
-}
 }
 
 #endif

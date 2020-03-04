@@ -88,7 +88,6 @@ namespace Beam::Queries {
       m_flushPending(false),
       m_currentDataStore(std::make_shared<ReserveDataStore>()),
       m_flushedDataStore(m_currentDataStore) {}
-
   
   template<typename D, typename E>
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>

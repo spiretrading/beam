@@ -29,12 +29,12 @@ namespace {
   using SequencedEntry = SequencedValue<Entry>;
   using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry,
     std::string>>;
-  using TestDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
+  using DataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
     Row<std::string>, SqlTranslator>;
 
   const auto PATH = "file:memdb?mode=memory&cache=shared";
 
-  auto StoreValue(TestDataStore& dataStore, std::string index, int value,
+  auto StoreValue(DataStore& dataStore, std::string index, int value,
       const ptime& timestamp, const Queries::Sequence& sequence) {
     auto entry = SequencedValue(IndexedValue(Entry{value, timestamp}, index),
       sequence);
@@ -42,7 +42,7 @@ namespace {
     return entry;
   }
 
-  void TestQuery(TestDataStore& dataStore, std::string index,
+  void TestQuery(DataStore& dataStore, std::string index,
       const Queries::Range& range, const SnapshotLimit& limit,
       const std::vector<SequencedEntry>& expectedResult) {
     BasicQuery<std::string> query;
@@ -72,7 +72,7 @@ void SqlDataStoreTester::TestStoreAndLoad() {
   connection->open();
   writerPool.Add(std::move(connection));
   auto threadPool = ThreadPool();
-  auto dataStore = TestDataStore("test", BuildValueRow(), BuildIndexRow(),
+  auto dataStore = DataStore("test", BuildValueRow(), BuildIndexRow(),
     Ref(readerPool), Ref(writerPool), Ref(threadPool));
   dataStore.Open();
   auto timeClient = IncrementalTimeClient();

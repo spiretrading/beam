@@ -26,7 +26,7 @@ namespace {
   };
 
   typedef LocalDataStore<BasicQuery<string>, Entry,
-    EvaluatorTranslator<QueryTypes>> TestDataStore;
+    EvaluatorTranslator<QueryTypes>> DataStore;
   typedef SequencedValue<Entry> SequencedEntry;
   typedef SequencedValue<IndexedValue<Entry, string>> SequencedIndexedEntry;
 
@@ -40,7 +40,7 @@ namespace {
     return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
   }
 
-  SequencedIndexedEntry StoreValue(TestDataStore& dataStore, string index,
+  SequencedIndexedEntry StoreValue(DataStore& dataStore, string index,
       int value, const ptime& timestamp,
       const Beam::Queries::Sequence& sequence) {
     auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
@@ -49,7 +49,7 @@ namespace {
     return entry;
   }
 
-  void TestQuery(TestDataStore& dataStore, string index,
+  void TestQuery(DataStore& dataStore, string index,
       const Beam::Queries::Range& range, const SnapshotLimit& limit,
       const std::vector<SequencedEntry>& expectedResult) {
     BasicQuery<string> query;
@@ -62,7 +62,7 @@ namespace {
 }
 
 void LocalDataStoreTester::TestStoreAndLoad() {
-  TestDataStore dataStore;
+  DataStore dataStore;
   IncrementalTimeClient timeClient;
   Beam::Queries::Sequence sequence(5);
   SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,
@@ -100,7 +100,7 @@ void LocalDataStoreTester::TestStoreAndLoad() {
 }
 
 void LocalDataStoreTester::TestLoadAll() {
-  TestDataStore dataStore;
+  DataStore dataStore;
   IncrementalTimeClient timeClient;
   auto valueA = SequencedValue(IndexedValue(Entry(5, timeClient.GetTime()),
     "hello"), Sequence(1));

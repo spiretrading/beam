@@ -357,7 +357,7 @@ namespace Beam::Python {
       ValueConverter::cast(std::forward<V>(value).GetValue(), valuePolicy,
       parent));
     return pybind11::cast(Queries::SequencedValue(std::move(object),
-      std::forward<V>(value).GetSequence()));
+      std::forward<V>(value).GetSequence())).release();
   }
 
   template<typename T>

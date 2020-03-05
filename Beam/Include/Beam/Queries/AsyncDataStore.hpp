@@ -14,6 +14,102 @@
 #include "Beam/Utilities/Algorithm.hpp"
 
 namespace Beam::Queries {
+namespace Details {
+  template<typename T>
+  class BaseMatches {
+    public:
+      virtual T AcquireNext() = 0;
+      virtual const T& PeekNext() const = 0;
+      virtual bool IsDepleted() const = 0;
+      virtual ~BaseMatches() {};
+  };
+
+  template<typename I>
+  class Matches final : public BaseMatches<typename I::value_type> {
+    public:
+      using Iterator = I;
+      using Type = typename Iterator::value_type;
+
+      Matches(Iterator begin, Iterator end)
+        : m_begin(std::move(begin)),
+          m_end(std::move(end)),
+          m_cur(m_begin + 1),
+          m_nextValue(*m_begin) {}
+
+      Type AcquireNext() override final {
+        auto match = std::move(m_nextValue);
+        if(m_cur == m_end) {
+          m_cur = m_begin;
+        } else {
+          m_nextValue = *m_cur;
+          ++m_cur;
+        }
+        return match;
+      }
+
+      const Type& PeekNext() const override final {
+        return m_nextValue;
+      }
+
+      bool IsDepleted() const override final {
+        return m_cur == m_begin;
+      }
+
+    private:
+      Iterator m_begin;
+      Iterator m_end;
+      Iterator m_cur;
+      Type& m_nextValue;
+  };
+
+  template<typename I>
+  std::unique_ptr<Matches<I>> MakeMatches(I begin, I end) {
+    return std::make_unique<Matches<I>>(std::move(begin), std::move(end));
+  }
+
+  template<typename T>
+  std::tuple_element_t<0, T> MergeMatches(T matches,
+      const SnapshotLimit& limit) {
+    using Type = typename std::tuple_element_t<0, T>::value_type;
+    auto data = std::list<std::unique_ptr<BaseMatches<Type>>>();
+    std::apply([&] (auto&... parts) {
+      auto testInclude = [&] (auto& part) {
+        if(!part.empty()) {
+          if(limit.GetType() == SnapshotLimit::Type::HEAD) {
+            data.push_back(MakeMatches(part.begin(), part.end()));
+          } else {
+            data.push_back(MakeMatches(part.rbegin(), part.rend()));
+          }
+        }
+      };
+      (testInclude(parts), ...);
+    }, std::move(matches));
+    auto result = std::vector<Type>();
+    for(auto i = 0; !data.empty() && i < limit.GetSize(); ++i) {
+      auto partIter = data.begin();
+      auto comparator = [](auto& lhs, auto& rhs) {
+        return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());
+      };
+      if(limit.GetType() == SnapshotLimit::Type::HEAD) {
+        partIter = std::min_element(data.begin(), data.end(), comparator);
+      } else {
+        partIter = std::max_element(data.begin(), data.end(), comparator);
+      }
+      auto& part = *partIter;
+      auto value = part->AcquireNext();
+      if(part->IsDepleted()) {
+        data.erase(partIter);
+      }
+      if(result.empty() || value != result.back()) {
+        result.push_back(std::move(value));
+      }
+    }
+    if(limit.GetType() == SnapshotLimit::Type::TAIL) {
+      std::reverse(result.begin(), result.end());
+    }
+    return result;
+  }
+}
 
   /**
    * Asynchronously writes to a data store.
@@ -71,6 +167,7 @@ namespace Beam::Queries {
       mutable boost::mutex m_mutex;
       GetOptionalLocalPtr<D> m_dataStore;
       bool m_flushPending;
+      bool m_flushInProgress;
       std::shared_ptr<ReserveDataStore> m_currentDataStore;
       std::shared_ptr<ReserveDataStore> m_flushedDataStore;
       IO::OpenState m_openState;
@@ -86,47 +183,28 @@ namespace Beam::Queries {
   AsyncDataStore<D, E>::AsyncDataStore(DS&& dataStore)
     : m_dataStore(std::forward<DS>(dataStore)),
       m_flushPending(false),
+      m_flushInProgress(false),
       m_currentDataStore(std::make_shared<ReserveDataStore>()),
       m_flushedDataStore(m_currentDataStore) {}
   
   template<typename D, typename E>
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>
       AsyncDataStore<D, E>::Load(const Query& query) {
+    auto latestMatches = std::vector<SequencedValue>();
     auto buffer = std::shared_ptr<ReserveDataStore>();
     {
       auto lock = boost::lock_guard(m_mutex);
       buffer = m_flushedDataStore;
-    }
-    auto matches = std::vector<SequencedValue>();
-    if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
-      matches = m_dataStore->Load(query);
-    } else {
-      matches = buffer->Load(query);
-    }
-    if(static_cast<int>(matches.size()) < query.GetSnapshotLimit().GetSize()) {
-      auto additionalMatches = std::vector<SequencedValue>();
-      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
-        additionalMatches = buffer->Load(query);
-      } else {
-        additionalMatches = m_dataStore->Load(query);
+      if(m_flushInProgress) {
+        latestMatches = m_currentDataStore->Load(query);
       }
-      auto mergedMatches = std::vector<SequencedValue>();
-      MergeWithoutDuplicates(additionalMatches.begin(), additionalMatches.end(),
-        matches.begin(), matches.end(), std::back_inserter(mergedMatches),
-        SequenceComparator());
-      if(static_cast<int>(mergedMatches.size()) >
-          query.GetSnapshotLimit().GetSize()) {
-        if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
-          mergedMatches.erase(mergedMatches.begin() +
-            query.GetSnapshotLimit().GetSize(), mergedMatches.end());
-        } else {
-          mergedMatches.erase(mergedMatches.begin(),
-            mergedMatches.begin() +
-            (mergedMatches.size() - query.GetSnapshotLimit().GetSize()));
-        }
-      }
-      matches = std::move(mergedMatches);
     }
+    auto bufferedMatches = m_flushedDataStore->Load(query);
+    auto dataStoreMatches = m_dataStore->Load(query);
+    auto consolidatedMatches = std::make_tuple(std::move(latestMatches),
+      std::move(bufferedMatches), std::move(dataStoreMatches));
+    auto matches = Details::MergeMatches(std::move(consolidatedMatches),
+      query.GetSnapshotLimit());
     return matches;
   }
 
@@ -203,10 +281,12 @@ namespace Beam::Queries {
       auto lock = boost::lock_guard(m_mutex);
       dataStore.swap(m_currentDataStore);
       m_flushPending = false;
+      m_flushInProgress = true;
     }
     m_dataStore->Store(dataStore->LoadAll());
     {
       auto lock = boost::lock_guard(m_mutex);
+      m_flushInProgress = false;
       m_flushedDataStore = m_currentDataStore;
     }
   }

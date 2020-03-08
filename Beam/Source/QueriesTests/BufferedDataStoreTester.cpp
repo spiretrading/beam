@@ -29,7 +29,7 @@ namespace {
 
   typedef LocalDataStore<BasicQuery<string>, Entry,
     EvaluatorTranslator<QueryTypes>> TestLocalDataStore;
-  typedef BufferedDataStore<TestLocalDataStore> TestDataStore;
+  typedef BufferedDataStore<TestLocalDataStore> DataStore;
   typedef SequencedValue<Entry> SequencedEntry;
   typedef SequencedValue<IndexedValue<Entry, string>> SequencedIndexedEntry;
 
@@ -68,7 +68,7 @@ namespace {
 
 void BufferedDataStoreTester::TestStoreAndLoad() {
   ThreadPool threadPool(1);
-  TestDataStore dataStore(Initialize(), 10, Ref(threadPool));
+  DataStore dataStore(Initialize(), 10, Ref(threadPool));
   IncrementalTimeClient timeClient;
   Beam::Queries::Sequence sequence(5);
   SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,

@@ -1,9 +1,8 @@
-#ifndef BEAM_QUERIESTESTS_HPP
-#define BEAM_QUERIESTESTS_HPP
+#ifndef BEAM_QUERIES_TESTS_HPP
+#define BEAM_QUERIES_TESTS_HPP
+#include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
-namespace Tests {
+namespace Beam::Queries::Tests {
   class BufferedDataStoreTester;
   class CachedDataStoreTester;
   class ConstantEvaluatorNodeTester;
@@ -39,8 +38,8 @@ namespace Tests {
   class SqlDataStoreTester;
   class SqlTranslatorTester;
   class SubscriptionsTester;
-}
-}
+  template<typename Q, typename V> class TestDataStore;
+  class TestDataStoreTester;
 }
 
 #endif

@@ -39,6 +39,7 @@
 #include "Beam/QueriesTests/SqlDataStoreTester.hpp"
 #include "Beam/QueriesTests/SqlTranslatorTester.hpp"
 #include "Beam/QueriesTests/SubscriptionsTester.hpp"
+#include "Beam/QueriesTests/TestDataStoreTester.hpp"
 
 using namespace Beam::Queries::Tests;
 
@@ -73,6 +74,7 @@ int main() {
   runner.addTest(ReduceEvaluatorNodeTester::suite());
   runner.addTest(SequencedValuePublisherTester::suite());
   runner.addTest(SubscriptionsTester::suite());
+  runner.addTest(TestDataStoreTester::suite());
   runner.addTest(LocalDataStoreTester::suite());
   runner.addTest(BufferedDataStoreTester::suite());
   runner.addTest(CachedDataStoreTester::suite());

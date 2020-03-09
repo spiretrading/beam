@@ -1,9 +1,8 @@
-#ifndef BEAM_REGISTRYSERVICE_HPP
-#define BEAM_REGISTRYSERVICE_HPP
+#ifndef BEAM_REGISTRY_SERVICE_HPP
+#define BEAM_REGISTRY_SERVICE_HPP
 #include <string>
 
-namespace Beam {
-namespace RegistryService {
+namespace Beam::RegistryService {
   class ApplicationRegistryClient;
   class FileSystemRegistryDataStore;
   class LocalRegistryDataStore;
@@ -18,8 +17,7 @@ namespace RegistryService {
   template<typename ClientType> class WrapperRegistryClient;
 
   // Standard name for the registry service.
-  static const std::string SERVICE_NAME = "registry_service";
-}
+  inline const std::string SERVICE_NAME = "registry_service";
 }
 
 #endif

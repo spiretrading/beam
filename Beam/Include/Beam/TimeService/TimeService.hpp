@@ -1,9 +1,8 @@
-#ifndef BEAM_TIMESERVICE_HPP
-#define BEAM_TIMESERVICE_HPP
+#ifndef BEAM_TIME_SERVICE_HPP
+#define BEAM_TIME_SERVICE_HPP
 #include <string>
 
-namespace Beam {
-namespace TimeService {
+namespace Beam::TimeService {
   class FixedTimeClient;
   class IncrementalTimeClient;
   class LocalTimeClient;
@@ -13,8 +12,7 @@ namespace TimeService {
   template<typename ClientType> class WrapperTimeClient;
 
   // Standard name for the time service.
-  static const std::string SERVICE_NAME = "time_service";
-}
+  inline const std::string SERVICE_NAME = "time_service";
 }
 
 #endif

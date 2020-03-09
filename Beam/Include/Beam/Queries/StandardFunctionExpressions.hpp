@@ -1,5 +1,5 @@
-#ifndef BEAM_STANDARDFUNCTIONEXPRESSIONS_HPP
-#define BEAM_STANDARDFUNCTIONEXPRESSIONS_HPP
+#ifndef BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
+#define BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #include <algorithm>
 #include <string>
 #include <type_traits>
@@ -13,8 +13,7 @@
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 namespace Details {
   template<typename Q,
     typename = decltype(std::declval<Q>() < std::declval<Q>())>
@@ -23,16 +22,16 @@ namespace Details {
 }
 
   //! The name used for the addition function.
-  static const std::string ADDITION_NAME = "+";
+  inline const std::string ADDITION_NAME = "+";
 
   //! The name used for the equals function.
-  static const std::string EQUALS_NAME = "==";
+  inline const std::string EQUALS_NAME = "==";
 
   //! The name used for the max function.
-  static const std::string MAX_NAME = "max";
+  inline const std::string MAX_NAME = "max";
 
   //! The name used for the min function.
-  static const std::string MIN_NAME = "min";
+  inline const std::string MIN_NAME = "min";
 
   //! Constructs a FunctionExpression representing addition.
   /*!
@@ -197,7 +196,6 @@ namespace Details {
     typedef typename boost::mpl::transform<ComparableTypes,
       MakeSignature<boost::mpl::placeholders::_1>>::type SupportedTypes;
   };
-}
 }
 
 #endif

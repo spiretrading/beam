@@ -29,7 +29,7 @@ namespace {
 
   using TestLocalDataStore = LocalDataStore<BasicQuery<string>, Entry,
     EvaluatorTranslator<QueryTypes>>;
-  using TestDataStore = AsyncDataStore<TestLocalDataStore>;
+  using DataStore = AsyncDataStore<TestLocalDataStore>;
   using SequencedEntry = SequencedValue<Entry>;
   using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry, string>>;
 
@@ -65,7 +65,7 @@ namespace {
 }
 
 void AsyncDataStoreTester::TestStoreAndLoad() {
-  auto dataStore = TestDataStore(Initialize());
+  auto dataStore = DataStore(Initialize());
   auto timeClient = IncrementalTimeClient();
   auto sequence = Beam::Queries::Sequence(5);
   auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),

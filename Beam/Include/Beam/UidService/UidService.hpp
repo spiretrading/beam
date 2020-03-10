@@ -1,5 +1,6 @@
 #ifndef BEAM_UID_SERVICE_HPP
 #define BEAM_UID_SERVICE_HPP
+#include <string>
 
 namespace Beam::UidService {
   class ApplicationUidClient;
@@ -13,7 +14,7 @@ namespace Beam::UidService {
   template<typename ClientType> class WrapperUidClient;
 
   // Standard name for the uid service.
-  constexpr auto SERVICE_NAME = "uid_service";
+  inline const std::string SERVICE_NAME = "uid_service";
 }
 
 #endif

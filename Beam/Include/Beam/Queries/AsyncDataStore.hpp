@@ -64,7 +64,7 @@ namespace Details {
     using Iterator = std::conditional_t<LT == SnapshotLimit::Type::HEAD,
       std::vector<Type>::iterator, std::vector<Type>::reverse_iterator>;
     auto data = std::list<std::unique_ptr<Matches<Iterator>>>();
-    std::apply([&] (auto&... parts) {
+    auto count = std::apply([&] (auto&... parts) {
       auto testInclude = [&] (auto& part) {
         if(!part.empty()) {
           if constexpr(LT == SnapshotLimit::Type::HEAD) {
@@ -73,10 +73,12 @@ namespace Details {
             data.push_back(MakeMatches(part.rbegin(), part.rend()));
           }
         }
+        return part.size();
       };
-      (testInclude(parts), ...);
+      return (testInclude(parts) + ...);
     }, std::move(matches));
     auto result = std::vector<Type>();
+    result.reserve(std::min(static_cast<std::size_t>(limit), count));
     for(auto i = 0; !data.empty() && i < limit; ++i) {
       auto partIter = data.begin();
       auto comparator = [](auto& lhs, auto& rhs) {

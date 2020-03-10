@@ -15,17 +15,8 @@
 
 namespace Beam::Queries {
 namespace Details {
-  template<typename T>
-  class BaseMatches {
-    public:
-      virtual T AcquireNext() = 0;
-      virtual const T& PeekNext() const = 0;
-      virtual bool IsDepleted() const = 0;
-      virtual ~BaseMatches() {};
-  };
-
   template<typename I>
-  class Matches final : public BaseMatches<typename I::value_type> {
+  class Matches {
     public:
       using Iterator = I;
       using Type = typename Iterator::value_type;
@@ -36,7 +27,7 @@ namespace Details {
           m_cur(m_begin + 1),
           m_nextValue(*m_begin) {}
 
-      Type AcquireNext() override final {
+      Type AcquireNext() {
         auto match = std::move(m_nextValue);
         if(m_cur == m_end) {
           m_cur = m_begin;
@@ -47,11 +38,11 @@ namespace Details {
         return match;
       }
 
-      const Type& PeekNext() const override final {
+      const Type& PeekNext() {
         return m_nextValue;
       }
 
-      bool IsDepleted() const override final {
+      bool IsDepleted() {
         return m_cur == m_begin;
       }
 
@@ -67,15 +58,16 @@ namespace Details {
     return std::make_unique<Matches<I>>(std::move(begin), std::move(end));
   }
 
-  template<typename T>
-  std::tuple_element_t<0, T> MergeMatches(T matches,
-      const SnapshotLimit& limit) {
+  template<SnapshotLimit::Type LT, typename T>
+  std::tuple_element_t<0, T> MergeMatches(T matches, int limit) {
     using Type = typename std::tuple_element_t<0, T>::value_type;
-    auto data = std::list<std::unique_ptr<BaseMatches<Type>>>();
+    using Iterator = std::conditional_t<LT == SnapshotLimit::Type::HEAD,
+      std::vector<Type>::iterator, std::vector<Type>::reverse_iterator>;
+    auto data = std::list<std::unique_ptr<Matches<Iterator>>>();
     std::apply([&] (auto&... parts) {
       auto testInclude = [&] (auto& part) {
         if(!part.empty()) {
-          if(limit.GetType() == SnapshotLimit::Type::HEAD) {
+          if constexpr(LT == SnapshotLimit::Type::HEAD) {
             data.push_back(MakeMatches(part.begin(), part.end()));
           } else {
             data.push_back(MakeMatches(part.rbegin(), part.rend()));
@@ -85,12 +77,12 @@ namespace Details {
       (testInclude(parts), ...);
     }, std::move(matches));
     auto result = std::vector<Type>();
-    for(auto i = 0; !data.empty() && i < limit.GetSize(); ++i) {
+    for(auto i = 0; !data.empty() && i < limit; ++i) {
       auto partIter = data.begin();
       auto comparator = [](auto& lhs, auto& rhs) {
         return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());
       };
-      if(limit.GetType() == SnapshotLimit::Type::HEAD) {
+      if constexpr(LT == SnapshotLimit::Type::HEAD) {
         partIter = std::min_element(data.begin(), data.end(), comparator);
       } else {
         partIter = std::max_element(data.begin(), data.end(), comparator);
@@ -104,7 +96,7 @@ namespace Details {
         result.push_back(std::move(value));
       }
     }
-    if(limit.GetType() == SnapshotLimit::Type::TAIL) {
+    if constexpr(LT == SnapshotLimit::Type::TAIL) {
       std::reverse(result.begin(), result.end());
     }
     return result;
@@ -203,8 +195,15 @@ namespace Details {
     auto dataStoreMatches = m_dataStore->Load(query);
     auto consolidatedMatches = std::make_tuple(std::move(latestMatches),
       std::move(bufferedMatches), std::move(dataStoreMatches));
-    auto matches = Details::MergeMatches(std::move(consolidatedMatches),
-      query.GetSnapshotLimit());
+    auto matches = [&] {
+      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
+        return Details::MergeMatches<SnapshotLimit::Type::HEAD>(
+          std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
+      } else {
+        return Details::MergeMatches<SnapshotLimit::Type::TAIL>(
+          std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
+      }
+    }();
     return matches;
   }
 

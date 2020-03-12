@@ -21,11 +21,23 @@ namespace Beam::Queries::Tests {
       //! the latest.
       void TestTailSpanningLoad();
 
+      //! Tests loading a value while flushing is not yet processed.
+      void TestBufferedLoad();
+
+      //! Tests loading a value after flushing is processed.
+      void TestFlushedLoad();
+
+      //! Tests for lack of unnecessary flush operations.
+      void TestFlushFrequency();
+
     private:
       CPPUNIT_TEST_SUITE(AsyncDataStoreTester);
         CPPUNIT_TEST(TestStoreAndLoad);
         CPPUNIT_TEST(TestHeadSpanningLoad);
         CPPUNIT_TEST(TestTailSpanningLoad);
+        CPPUNIT_TEST(TestBufferedLoad);
+        CPPUNIT_TEST(TestFlushedLoad);
+        CPPUNIT_TEST(TestFlushFrequency);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

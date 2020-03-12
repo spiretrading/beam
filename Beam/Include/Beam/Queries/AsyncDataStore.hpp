@@ -256,7 +256,6 @@ namespace Details {
     auto writeToken = Routines::Async<void>();
     m_tasks.Push(
       [&] {
-        Flush();
         writeToken.GetEval().SetResult();
       });
     writeToken.Get();
@@ -270,9 +269,9 @@ namespace Details {
     }
     m_flushPending = true;
     m_tasks.Push(
-      [=] {
-      Flush();
-    });
+      [&] {
+        Flush();
+      });
   }
 
   template<typename D, typename E>

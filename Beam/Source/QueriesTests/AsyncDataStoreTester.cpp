@@ -192,19 +192,17 @@ void AsyncDataStoreTester::TestBufferedLoad() {
   auto entryA = SequencedIndexedEntry();
   auto entryB = SequencedIndexedEntry();
   auto entryC = SequencedIndexedEntry();
-  auto storeOperations = std::vector<DataStoreDispatcher::StoreOperation>();
+  auto firstStoreOperation =
+    std::optional<DataStoreDispatcher::StoreOperation*>();
   {
     auto handler = RoutineHandler(Spawn(
       [&] {
-        for(auto i = 3; i != 0;) {
-          auto operation = operations->Top();
-          operations->Pop();
-          auto storeOperation = std::get_if<DataStoreDispatcher::StoreOperation>(
-            &*operation);
-          i -= storeOperation->m_values.size();
-          storeOperations.push_back(std::move(*storeOperation));
-        }
-      }));
+        auto operation = operations->Top();
+        operations->Pop();
+        auto storeOperation = std::get_if<DataStoreDispatcher::StoreOperation>(
+          &*operation);
+        firstStoreOperation = storeOperation;
+    }));
     auto sequence = Beam::Queries::Sequence(5);
     entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
       sequence);
@@ -249,8 +247,15 @@ void AsyncDataStoreTester::TestBufferedLoad() {
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
   }
-  for(auto& operation : storeOperations) {
-    operation.m_result.SetResult();
+  auto entriesLeft = 3 - (*firstStoreOperation)->m_values.size();
+  (*firstStoreOperation)->m_result.SetResult();
+  while(entriesLeft != 0) {
+    auto operation = operations->Top();
+    operations->Pop();
+    auto storeOperation = std::get_if<DataStoreDispatcher::StoreOperation>(
+      &*operation);
+    entriesLeft -= storeOperation->m_values.size();
+    storeOperation->m_result.SetResult();
   }
 }
 
@@ -357,13 +362,13 @@ void AsyncDataStoreTester::TestFlushFrequency() {
   auto asyncFwds = std::vector<Async<void>>(3);
   auto evalFwds = std::vector<Eval<void>>(3);
   std::transform(asyncFwds.begin(), asyncFwds.end(), evalFwds.begin(),
-    [](auto& async) {
+    [] (auto& async) {
       return async.GetEval();
     });
   auto asyncBwds = std::vector<Async<void>>(3);
   auto evalBwds = std::vector<Eval<void>>(3);
   std::transform(asyncBwds.begin(), asyncBwds.end(), evalBwds.begin(),
-    [](auto& async) {
+    [] (auto& async) {
       return async.GetEval();
     });
   auto counts = std::vector<int>();

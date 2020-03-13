@@ -1,5 +1,6 @@
 #ifndef BEAM_ASYNC_DATA_STORE_HPP
 #define BEAM_ASYNC_DATA_STORE_HPP
+#include <atomic>
 #include <memory>
 #include <vector>
 #include <boost/noncopyable.hpp>
@@ -156,14 +157,18 @@ namespace Details {
       void Close();
 
     private:
+      enum class FlushStatus : int {
+        NONE,
+        PENDING,
+        IN_PROGRESS
+      };
       using ReserveDataStore = LocalDataStore<Query, Value,
         EvaluatorTranslatorFilter>;
       mutable boost::mutex m_mutex;
       GetOptionalLocalPtr<D> m_dataStore;
-      bool m_flushPending;
-      bool m_flushInProgress;
       std::shared_ptr<ReserveDataStore> m_currentDataStore;
       std::shared_ptr<ReserveDataStore> m_flushedDataStore;
+      std::atomic<FlushStatus> m_flushStatus;
       IO::OpenState m_openState;
       RoutineTaskQueue m_tasks;
 
@@ -176,24 +181,22 @@ namespace Details {
   template<typename DS>
   AsyncDataStore<D, E>::AsyncDataStore(DS&& dataStore)
     : m_dataStore(std::forward<DS>(dataStore)),
-      m_flushPending(false),
-      m_flushInProgress(false),
       m_currentDataStore(std::make_shared<ReserveDataStore>()),
-      m_flushedDataStore(m_currentDataStore) {}
+      m_flushedDataStore(std::make_shared<ReserveDataStore>()),
+      m_flushStatus(FlushStatus::NONE) {}
   
   template<typename D, typename E>
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>
       AsyncDataStore<D, E>::Load(const Query& query) {
-    auto latestMatches = std::vector<SequencedValue>();
-    auto buffer = std::shared_ptr<ReserveDataStore>();
+    auto currentDataStore = std::shared_ptr<ReserveDataStore>();
+    auto flushedDataStore = std::shared_ptr<ReserveDataStore>();
     {
       auto lock = boost::lock_guard(m_mutex);
-      buffer = m_flushedDataStore;
-      if(m_flushInProgress) {
-        latestMatches = m_currentDataStore->Load(query);
-      }
+      currentDataStore = m_currentDataStore;
+      flushedDataStore = m_flushedDataStore;
     }
-    auto bufferedMatches = m_flushedDataStore->Load(query);
+    auto latestMatches = currentDataStore->Load(query);
+    auto bufferedMatches = flushedDataStore->Load(query);
     auto dataStoreMatches = m_dataStore->Load(query);
     auto consolidatedMatches = std::make_tuple(std::move(latestMatches),
       std::move(bufferedMatches), std::move(dataStoreMatches));
@@ -202,6 +205,7 @@ namespace Details {
         return Details::MergeMatches<SnapshotLimit::Type::HEAD>(
           std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
       } else {
+
         return Details::MergeMatches<SnapshotLimit::Type::TAIL>(
           std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
       }
@@ -264,30 +268,31 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::TestFlush() {
-    if(m_flushPending) {
-      return;
+    if(m_flushStatus.exchange(FlushStatus::PENDING) == FlushStatus::NONE) {
+      m_tasks.Push(
+        [&] {
+          Flush();
+        });
     }
-    m_flushPending = true;
-    m_tasks.Push(
-      [&] {
-        Flush();
-      });
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Flush() {
-    auto dataStore = std::make_shared<ReserveDataStore>();
-    {
-      auto lock = boost::lock_guard(m_mutex);
-      dataStore.swap(m_currentDataStore);
-      m_flushPending = false;
-      m_flushInProgress = true;
-    }
-    m_dataStore->Store(dataStore->LoadAll());
-    {
-      auto lock = boost::lock_guard(m_mutex);
-      m_flushInProgress = false;
-      m_flushedDataStore = m_currentDataStore;
+    while(m_flushStatus.exchange(FlushStatus::IN_PROGRESS) ==
+        FlushStatus::PENDING) {
+      {
+        auto lock = boost::lock_guard(m_mutex);
+        m_flushedDataStore.swap(m_currentDataStore);
+      }
+      auto data = m_flushedDataStore->LoadAll();
+      m_dataStore->Store(std::move(data));
+      auto newDataStore = std::make_shared<ReserveDataStore>();
+      {
+        auto lock = boost::lock_guard(m_mutex);
+        m_flushedDataStore = newDataStore;
+      }
+      auto inProgress = FlushStatus::IN_PROGRESS;
+      m_flushStatus.compare_exchange_strong(inProgress, FlushStatus::NONE);
     }
   }
 }

@@ -215,14 +215,12 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Store(const IndexedValue& value) {
-    auto lock = boost::lock_guard(m_mutex);
     m_currentDataStore->Store(value);
     TestFlush();
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Store(const std::vector<IndexedValue>& values) {
-    auto lock = boost::lock_guard(m_mutex);
     m_currentDataStore->Store(values);
     TestFlush();
   }

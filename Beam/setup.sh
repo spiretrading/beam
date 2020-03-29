@@ -2,7 +2,7 @@
 exit_status=0
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="094a878479dcf227f307612f2d75f4cd21a10035"
+aspen_commit="63a3e330dfc398d92afd86bc11408b9efb7c6612"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/eidolonsystems/aspen
@@ -104,22 +104,6 @@ if [ ! -d "openssl-1.1.1c" ]; then
     exit_status=1
   fi
   rm -f openssl-1.1.1c.tar.gz
-fi
-if [ ! -d "Python-3.6.7" ]; then
-  wget https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz --no-check-certificate
-  if [ "$?" == "0" ]; then
-    gzip -d -c Python-3.6.7.tgz | tar -xf -
-    pushd Python-3.6.7
-    export CFLAGS="-fPIC"
-    ./configure --prefix="$root/Python-3.6.7"
-    make -j $cores
-    make install
-    unset CFLAGS
-    popd
-  else
-    exit_status=1
-  fi
-  rm -f Python-3.6.7.tgz
 fi
 if [ ! -d "sqlite-amalgamation-3300100" ]; then
   wget https://www.sqlite.org/2019/sqlite-amalgamation-3300100.zip -O sqlite-amalgamation-3300100.zip --no-check-certificate

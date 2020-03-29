@@ -45,7 +45,7 @@ IF NOT EXIST aspen (
     SET EXIT_STATUS=1
   )
 )
-SET aspen_commit="094a878479dcf227f307612f2d75f4cd21a10035"
+SET aspen_commit="63a3e330dfc398d92afd86bc11408b9efb7c6612"
 IF EXIST aspen (
   PUSHD aspen
   git merge-base --is-ancestor "%aspen_commit%" HEAD

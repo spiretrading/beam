@@ -3,7 +3,7 @@ SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-FOR /f "usebackq delims=" %%i IN (`%VSWHERE% -prerelease -latest -property installationPath`) DO (
+FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
     CALL "%%i\Common7\Tools\vsdevcmd.bat"
   )
@@ -20,7 +20,7 @@ IF NOT EXIST Strawberry (
   )
   DEL /F /Q strawberry-perl-5.30.1.1-64bit-portable.zip
 )
-SET PATH=%PATH%;%ROOT%\Strawberry\perl\site\bin;%ROOT%\Strawberry\perl\bin;%ROOT%\Strawberry\c\bin
+SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 IF NOT EXIST cppunit-1.14.0 (
   wget https://github.com/freedesktop/libreoffice-cppunit/archive/cppunit-1.14.0.zip -O cppunit-1.14.0.zip --no-check-certificate
   IF !ERRORLEVEL! EQU 0 (
@@ -45,22 +45,22 @@ IF NOT EXIST aspen (
     SET EXIT_STATUS=1
   )
 )
-SET aspen_commit="43d81bf9f005999a607ce3d9ad9365fbb2ed93e4"
+SET aspen_commit="28959f0b215738f62a005b9668de0d21971a6840"
 IF EXIST aspen (
   PUSHD aspen
-  git merge-base --is-ancestor "%aspen_commit%" HEAD
+  git merge-base --is-ancestor "!aspen_commit!" HEAD
   IF !ERRORLEVEL! NEQ 0 (
     git checkout master
     git pull
-    git checkout "%aspen_commit%"
+    git checkout "!aspen_commit!"
     SET BUILD_ASPEN=1
   )
-  IF "%BUILD_ASPEN%" == "1" (
-    CALL configure.bat -DD="%ROOT%"
+  IF !BUILD_ASPEN! EQU 1 (
+    CALL configure.bat -DD="!ROOT!"
     CALL build.bat Debug
     CALL build.bat Release
   ) ELSE (
-    PUSHD %ROOT%
+    PUSHD !ROOT!
     CALL aspen\setup.bat
     POPD
   )
@@ -130,7 +130,7 @@ IF NOT EXIST openssl-1.1.1c (
     gzip -d -c openssl-1.1.1c.tar.gz | tar -xf -
     MOVE openssl-1.1.1c openssl-1.1.1c-build
     PUSHD openssl-1.1.1c-build
-    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="%ROOT%\openssl-1.1.1c" --openssldir="%ROOT%\openssl-1.1.1c"
+    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1c" --openssldir="!ROOT!\openssl-1.1.1c"
     SET CL=/MP
     nmake
     nmake install
@@ -177,11 +177,11 @@ IF NOT EXIST viper (
 SET viper_commit="009bbbb3e00269e9939a9342789334a2d56bf7f0"
 IF EXIST viper (
   PUSHD viper
-  git merge-base --is-ancestor "%viper_commit%" HEAD
+  git merge-base --is-ancestor "!viper_commit!" HEAD
   IF !ERRORLEVEL! NEQ 0 (
     git checkout master
     git pull
-    git checkout "%viper_commit%"
+    git checkout "!viper_commit!"
   )
   POPD
 )
@@ -229,8 +229,8 @@ IF NOT EXIST boost_1_72_0 (
     PUSHD tools\build
     CALL bootstrap.bat vc142
     POPD
-    tools\build\b2 %BJAM_PROCESSORS% --without-context --prefix="%ROOT%\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
-    tools\build\b2 %BJAM_PROCESSORS% --with-context --prefix="%ROOT%\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
@@ -238,4 +238,4 @@ IF NOT EXIST boost_1_72_0 (
   DEL /F /Q boost_1_72_0.zip
 )
 ENDLOCAL
-EXIT /B %EXIT_STATUS%
+EXIT /B !EXIT_STATUS!

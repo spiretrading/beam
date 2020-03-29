@@ -45,7 +45,7 @@ IF NOT EXIST aspen (
     SET EXIT_STATUS=1
   )
 )
-SET aspen_commit="63a3e330dfc398d92afd86bc11408b9efb7c6612"
+SET aspen_commit="43d81bf9f005999a607ce3d9ad9365fbb2ed93e4"
 IF EXIST aspen (
   PUSHD aspen
   git merge-base --is-ancestor "%aspen_commit%" HEAD
@@ -238,4 +238,4 @@ IF NOT EXIST boost_1_72_0 (
   DEL /F /Q boost_1_72_0.zip
 )
 ENDLOCAL
-EXIT %EXIT_STATUS%
+EXIT /B %EXIT_STATUS%

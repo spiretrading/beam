@@ -168,7 +168,7 @@ IF NOT EXIST tclap-1.2.2 (
   DEL /F /Q v1.2.2.zip
 )
 IF NOT EXIST viper (
-  git clone https://www.github.com/eidolonsystems/viper
+  git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! NEQ 0 (
     RD /S /Q viper
     SET EXIT_STATUS=1

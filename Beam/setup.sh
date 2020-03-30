@@ -132,7 +132,7 @@ if [ ! -d "tclap-1.2.2" ]; then
 fi
 viper_commit="009bbbb3e00269e9939a9342789334a2d56bf7f0"
 if [ ! -d "viper" ]; then
-  git clone https://www.github.com/eidolonsystems/viper
+  git clone https://www.github.com/spiretrading/viper
   if [ "$?" != "0" ]; then
     rm -rf viper
     exit_status=1

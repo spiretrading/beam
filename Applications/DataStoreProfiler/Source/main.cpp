@@ -125,8 +125,8 @@ int main(int argc, const char** argv) {
   std::srand(static_cast<unsigned int>(std::time(nullptr)));
   string configFile;
   try {
-    CmdLine cmd{"", ' ', "1.0-r" DATA_STORE_PROFILER_VERSION
-      "\nCopyright (C) 2009 Eidolon Systems Ltd."};
+    CmdLine cmd("", ' ', "1.0-r" DATA_STORE_PROFILER_VERSION
+      "\nCopyright (C) 2020 Spire Trading Inc.");
     ValueArg<string> configArg{"c", "config", "Configuration file", false,
       "config.yml", "path"};
     cmd.add(configArg);

@@ -37,7 +37,7 @@ IF NOT EXIST cppunit-1.14.0 (
 )
 SET BUILD_ASPEN=
 IF NOT EXIST aspen (
-  git clone https://www.github.com/eidolonsystems/aspen
+  git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
     SET BUILD_ASPEN=1
   ) ELSE (

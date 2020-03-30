@@ -5,7 +5,7 @@ root="$(pwd)"
 aspen_commit="28959f0b215738f62a005b9668de0d21971a6840"
 build_aspen=0
 if [ ! -d "aspen" ]; then
-  git clone https://www.github.com/eidolonsystems/aspen
+  git clone https://www.github.com/spiretrading/aspen
   if [ "$?" == "0" ]; then
     build_aspen=1
   else

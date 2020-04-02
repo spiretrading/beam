@@ -54,6 +54,15 @@ export class HttpServiceLocatorClient extends ServiceLocatorClient {
     }
   }
 
+  public async storePassword(account: DirectoryEntry,
+      password: string): Promise<void> {
+    await Services.post('/api/service_locator/store_password',
+      {
+        account: account.toJson(),
+        password: password
+      });
+  }
+
   public async close(): Promise<void> {
     if(this._account.equals(DirectoryEntry.INVALID)) {
       return;

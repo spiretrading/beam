@@ -35,6 +35,11 @@ export class EnumSet<T> {
     this._value &= ~Math.pow(2, value as any);
   }
 
+  /** Returns a clone of this set. */
+  public clone(): EnumSet<T> {
+    return new EnumSet<T>(this._value);
+  }
+
   /** Convers this set to a JSON object. */
   public toJson() {
     return this._value;

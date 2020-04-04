@@ -1,6 +1,5 @@
 #ifndef BEAM_ASYNC_DATA_STORE_HPP
 #define BEAM_ASYNC_DATA_STORE_HPP
-#include <atomic>
 #include <memory>
 #include <vector>
 #include <boost/noncopyable.hpp>
@@ -9,10 +8,9 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
+#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
-#include "Beam/Utilities/Algorithm.hpp"
 
 namespace Beam::Queries {
 namespace Details {
@@ -25,25 +23,25 @@ namespace Details {
       Matches(Iterator begin, Iterator end)
         : m_begin(std::move(begin)),
           m_end(std::move(end)),
-          m_cur(m_begin + 1),
-          m_nextValue(*m_begin) {}
+          m_cur(std::next(m_begin)),
+          m_nextValue(&*m_begin) {}
 
       Type AcquireNext() {
-        auto match = std::move(m_nextValue);
+        auto match = std::move(*m_nextValue);
         if(m_cur == m_end) {
           m_cur = m_begin;
         } else {
-          m_nextValue = *m_cur;
+          *m_nextValue = *m_cur;
           ++m_cur;
         }
         return match;
       }
 
-      const Type& PeekNext() {
-        return m_nextValue;
+      const Type& PeekNext() const {
+        return *m_nextValue;
       }
 
-      bool IsDepleted() {
+      bool IsDepleted() const {
         return m_cur == m_begin;
       }
 
@@ -51,48 +49,52 @@ namespace Details {
       Iterator m_begin;
       Iterator m_end;
       Iterator m_cur;
-      Type& m_nextValue;
+      Type* m_nextValue;
   };
 
-  template<typename I>
-  std::unique_ptr<Matches<I>> MakeMatches(I begin, I end) {
-    return std::make_unique<Matches<I>>(std::move(begin), std::move(end));
-  }
-
-  template<SnapshotLimit::Type LT, typename T>
-  std::tuple_element_t<0, T> MergeMatches(T matches, int limit) {
-    using Type = typename std::tuple_element_t<0, T>::value_type;
+  template<SnapshotLimit::Type LT, typename V>
+  V MergeMatches(V match1, V match2, V match3, int limit) {
     using Iterator = std::conditional_t<LT == SnapshotLimit::Type::HEAD,
-      std::vector<Type>::iterator, std::vector<Type>::reverse_iterator>;
-    auto data = std::list<std::unique_ptr<Matches<Iterator>>>();
-    auto count = std::apply([&] (auto&... parts) {
-      auto testInclude = [&] (auto& part) {
-        if(!part.empty()) {
-          if constexpr(LT == SnapshotLimit::Type::HEAD) {
-            data.push_back(MakeMatches(part.begin(), part.end()));
-          } else {
-            data.push_back(MakeMatches(part.rbegin(), part.rend()));
-          }
-        }
-        return part.size();
-      };
-      return (testInclude(parts) + ...);
-    }, std::move(matches));
-    auto result = std::vector<Type>();
-    result.reserve(std::min(static_cast<std::size_t>(limit), count));
-    for(auto i = 0; !data.empty() && i < limit; ++i) {
-      auto partIter = data.begin();
-      auto comparator = [](auto& lhs, auto& rhs) {
-        return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());
-      };
-      if constexpr(LT == SnapshotLimit::Type::HEAD) {
-        partIter = std::min_element(data.begin(), data.end(), comparator);
-      } else {
-        partIter = std::max_element(data.begin(), data.end(), comparator);
+      typename V::iterator, typename V::reverse_iterator>;
+    auto data = std::list<Matches<Iterator>>();
+    auto count = static_cast<int>(match1.size() + match2.size() + match3.size());
+    if constexpr(LT == SnapshotLimit::Type::HEAD) {
+      if(!match1.empty()) {
+        data.push_back(Matches(match1.begin(), match1.end()));
       }
+      if(!match2.empty()) {
+        data.push_back(Matches(match2.begin(), match2.end()));
+      }
+      if(!match3.empty()) {
+        data.push_back(Matches(match3.begin(), match3.end()));
+      }
+    } else {
+      if(!match1.empty()) {
+        data.push_back(Matches(match1.rbegin(), match1.rend()));
+      }
+      if(!match2.empty()) {
+        data.push_back(Matches(match2.rbegin(), match2.rend()));
+      }
+      if(!match3.empty()) {
+        data.push_back(Matches(match3.rbegin(), match3.rend()));
+      }
+    }
+    auto result = V();
+    result.reserve(std::min(limit, count));
+    auto comparator = [](const auto& lhs, const auto& rhs) {
+      return SequenceComparator()(lhs.PeekNext(), rhs.PeekNext());
+    };
+    for(auto i = 0; !data.empty() && i < limit; ++i) {
+      auto partIter = [&] {
+        if constexpr(LT == SnapshotLimit::Type::HEAD) {
+          return std::min_element(data.begin(), data.end(), comparator);
+        } else {
+          return std::max_element(data.begin(), data.end(), comparator);
+        }
+      }();
       auto& part = *partIter;
-      auto value = part->AcquireNext();
-      if(part->IsDepleted()) {
+      auto value = part.AcquireNext();
+      if(part.IsDepleted()) {
         data.erase(partIter);
       }
       if(result.empty() || value != result.back()) {
@@ -157,24 +159,19 @@ namespace Details {
       void Close();
 
     private:
-      enum class FlushStatus : int {
-        NONE,
-        PENDING,
-        IN_PROGRESS
-      };
       using ReserveDataStore = LocalDataStore<Query, Value,
         EvaluatorTranslatorFilter>;
       mutable boost::mutex m_mutex;
       GetOptionalLocalPtr<D> m_dataStore;
       std::shared_ptr<ReserveDataStore> m_currentDataStore;
       std::shared_ptr<ReserveDataStore> m_flushedDataStore;
-      std::atomic<FlushStatus> m_flushStatus;
+      bool m_isFlushing;
       IO::OpenState m_openState;
       RoutineTaskQueue m_tasks;
 
       void Shutdown();
-      void Flush();
       void TestFlush();
+      void Flush();
   };
 
   template<typename D, typename E>
@@ -183,44 +180,36 @@ namespace Details {
     : m_dataStore(std::forward<DS>(dataStore)),
       m_currentDataStore(std::make_shared<ReserveDataStore>()),
       m_flushedDataStore(std::make_shared<ReserveDataStore>()),
-      m_flushStatus(FlushStatus::NONE) {}
+      m_isFlushing(false) {}
   
   template<typename D, typename E>
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>
       AsyncDataStore<D, E>::Load(const Query& query) {
-    auto currentDataStore = std::shared_ptr<ReserveDataStore>();
-    auto flushedDataStore = std::shared_ptr<ReserveDataStore>();
-    {
+    auto [currentDataStore, flushedDataStore] = [&] {
       auto lock = boost::lock_guard(m_mutex);
-      currentDataStore = m_currentDataStore;
-      flushedDataStore = m_flushedDataStore;
-    }
-    auto latestMatches = currentDataStore->Load(query);
-    auto bufferedMatches = flushedDataStore->Load(query);
-    auto dataStoreMatches = m_dataStore->Load(query);
-    auto consolidatedMatches = std::make_tuple(std::move(latestMatches),
-      std::move(bufferedMatches), std::move(dataStoreMatches));
-    auto matches = [&] {
-      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
-        return Details::MergeMatches<SnapshotLimit::Type::HEAD>(
-          std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
-      } else {
-
-        return Details::MergeMatches<SnapshotLimit::Type::TAIL>(
-          std::move(consolidatedMatches), query.GetSnapshotLimit().GetSize());
-      }
+      return std::tuple{m_currentDataStore, m_flushedDataStore};
     }();
-    return matches;
+    if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
+      return Details::MergeMatches<SnapshotLimit::Type::HEAD>(
+        currentDataStore->Load(query), flushedDataStore->Load(query),
+        m_dataStore->Load(query), query.GetSnapshotLimit().GetSize());
+    } else {
+      return Details::MergeMatches<SnapshotLimit::Type::TAIL>(
+        currentDataStore->Load(query), flushedDataStore->Load(query),
+        m_dataStore->Load(query), query.GetSnapshotLimit().GetSize());
+    }
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Store(const IndexedValue& value) {
+    auto lock = boost::lock_guard(m_mutex);
     m_currentDataStore->Store(value);
     TestFlush();
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Store(const std::vector<IndexedValue>& values) {
+    auto lock = boost::lock_guard(m_mutex);
     m_currentDataStore->Store(values);
     TestFlush();
   }
@@ -236,8 +225,9 @@ namespace Details {
       return;
     }
     try {
-      m_currentDataStore->Open();
       m_dataStore->Open();
+      m_currentDataStore->Open();
+      m_flushedDataStore->Open();
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();
@@ -255,20 +245,15 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Shutdown() {
-    auto writeToken = Routines::Async<void>();
-    m_tasks.Push(
-      [&] {
-        writeToken.GetEval().SetResult();
-      });
-    writeToken.Get();
     m_openState.SetClosed();
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::TestFlush() {
-    if(m_flushStatus.exchange(FlushStatus::PENDING) == FlushStatus::NONE) {
+    if(!m_isFlushing) {
+      m_isFlushing = true;
       m_tasks.Push(
-        [&] {
+        [=] {
           Flush();
         });
     }
@@ -276,21 +261,17 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Flush() {
-    while(m_flushStatus.exchange(FlushStatus::IN_PROGRESS) ==
-        FlushStatus::PENDING) {
-      {
-        auto lock = boost::lock_guard(m_mutex);
-        m_flushedDataStore.swap(m_currentDataStore);
-      }
-      auto data = m_flushedDataStore->LoadAll();
-      m_dataStore->Store(std::move(data));
-      auto newDataStore = std::make_shared<ReserveDataStore>();
-      {
-        auto lock = boost::lock_guard(m_mutex);
-        m_flushedDataStore = newDataStore;
-      }
-      auto inProgress = FlushStatus::IN_PROGRESS;
-      m_flushStatus.compare_exchange_strong(inProgress, FlushStatus::NONE);
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      m_flushedDataStore.swap(m_currentDataStore);
+      m_isFlushing = false;
+    }
+    m_dataStore->Store(m_flushedDataStore->LoadAll());
+    auto newDataStore = std::make_shared<ReserveDataStore>();
+    newDataStore->Open();
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      m_flushedDataStore = std::move(newDataStore);
     }
   }
 }

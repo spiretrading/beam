@@ -11,6 +11,7 @@
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
+#include "Beam/Utilities/Algorithm.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
@@ -49,6 +50,10 @@ namespace {
     return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
   }
 
+  ostream& operator <<(ostream& out, const Entry& entry) {
+    return out << entry.m_value;
+  }
+
   template<typename DataStore>
   SequencedIndexedEntry StoreValue(DataStore& dataStore, string index,
       int value, const ptime& timestamp,
@@ -68,7 +73,7 @@ namespace {
     query.SetRange(range);
     query.SetSnapshotLimit(limit);
     auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(expectedResult == queryResult);
+    CPPUNIT_ASSERT_EQUAL(expectedResult, queryResult);
   }
 }
 
@@ -120,16 +125,12 @@ void AsyncDataStoreTester::TestHeadSpanningLoad() {
   sequence = Increment(sequence);
   auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
     sequence);
-  dataStore.Store(entryB);
   sequence = Increment(sequence);
   auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
     sequence);
   sequence = Increment(sequence);
   auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
     sequence);
-  sequence = Increment(sequence);
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit::Unlimited(), {entryA, entryB, entryC, entryD});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -139,6 +140,8 @@ void AsyncDataStoreTester::TestHeadSpanningLoad() {
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 4),
     {entryA, entryB, entryC, entryD});
+  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+    SnapshotLimit::Unlimited(), {entryA, entryB, entryC, entryD});
 }
 
 void AsyncDataStoreTester::TestTailSpanningLoad() {
@@ -152,14 +155,12 @@ void AsyncDataStoreTester::TestTailSpanningLoad() {
   sequence = Increment(sequence);
   auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
     sequence);
-  dataStore.Store(entryB);
   sequence = Increment(sequence);
   auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
     sequence);
   sequence = Increment(sequence);
   auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
     sequence);
-  sequence = Increment(sequence);
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryD});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),

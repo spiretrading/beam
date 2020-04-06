@@ -182,7 +182,7 @@ namespace Details {
       m_currentDataStore(std::make_shared<ReserveDataStore>()),
       m_flushedDataStore(std::make_shared<ReserveDataStore>()),
       m_isFlushing(false) {}
-  
+
   template<typename D, typename E>
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>
       AsyncDataStore<D, E>::Load(const Query& query) {

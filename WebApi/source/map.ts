@@ -44,6 +44,13 @@ export class Map<Key, Value> {
     this._collection.set(key, value);
   }
 
+  /** Removes a key from this set.
+   * @param key - The key to remove.
+   */
+  public remove(key: Key): void {
+    this._collection.delete(key);
+  }
+
   /** Converts this object to JSON. */
   public toJson(): any {
     const value = [];

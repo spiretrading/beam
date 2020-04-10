@@ -1,7 +1,7 @@
 #ifndef BEAM_ASYNC_DATA_STORE_HPP
 #define BEAM_ASYNC_DATA_STORE_HPP
+#include <array>
 #include <memory>
-#include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -14,13 +14,17 @@
 
 namespace Beam::Queries {
 namespace Details {
-  template<typename I>
+  template<typename C, SnapshotLimit::Type D>
   class Matches {
     public:
-      using Iterator = I;
+      using Container = C;
+      static constexpr Direction = D;
+      using Iterator = std::conditional_t<
+        Direction == SnapshotLimit::Type::HEAD, typename Container::iterator,
+        typename Container::reverse_iterator>;
       using Type = typename Iterator::value_type;
 
-      Matches(Iterator begin, Iterator end)
+      Matches(const Container& container)
         : m_begin(std::move(begin)),
           m_end(std::move(end)),
           m_cur(std::next(m_begin)),
@@ -56,28 +60,48 @@ namespace Details {
   V MergeMatches(V match1, V match2, V match3, int limit) {
     using Iterator = std::conditional_t<LT == SnapshotLimit::Type::HEAD,
       typename V::iterator, typename V::reverse_iterator>;
-    auto data = std::vector<Matches<Iterator>>();
+    constexpr auto MATCH_COUNT = 3;
+    auto matches = std::array<Matches<Iterator>, MATCH_COUNT>();
+    auto matchesRemaining = MATCH_COUNT;
     auto count = static_cast<int>(match1.size() + match2.size() +
       match3.size());
     if constexpr(LT == SnapshotLimit::Type::HEAD) {
       if(!match1.empty()) {
-        data.emplace_back(match1.begin(), match1.end());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match1.begin(), match1.end());
+      } else {
+        --matchesRemaining;
       }
       if(!match2.empty()) {
-        data.emplace_back(match2.begin(), match2.end());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match2.begin(), match2.end());
+      } else {
+        --matchesRemaining;
       }
       if(!match3.empty()) {
-        data.emplace_back(match3.begin(), match3.end());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match3.begin(), match3.end());
+      } else {
+        --matchesRemaining;
       }
     } else {
       if(!match1.empty()) {
-        data.emplace_back(match1.rbegin(), match1.rend());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match1.rbegin(), match1.rend());
+      } else {
+        --matchesRemaining;
       }
       if(!match2.empty()) {
-        data.emplace_back(match2.rbegin(), match2.rend());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match2.rbegin(), match2.rend());
+      } else {
+        --matchesRemaining;
       }
       if(!match3.empty()) {
-        data.emplace_back(match3.rbegin(), match3.rend());
+        matches[MATCH_COUNT - matchesRemaining] =
+          Matches(match3.rbegin(), match3.rend());
+      } else {
+        --matchesRemaining;
       }
     }
     auto result = V();
@@ -85,18 +109,18 @@ namespace Details {
     auto comparator = [](const auto& lhs, const auto& rhs) {
       return SequenceComparator()(lhs.PeekNext(), rhs.PeekNext());
     };
-    while(result.size() != limit && !data.empty()) {
+    while(result.size() != limit && !matches.empty()) {
       auto partIter = [&] {
         if(LT == SnapshotLimit::Type::HEAD) {
-          return std::min_element(data.begin(), data.end(), comparator);
+          return std::min_element(matches.begin(), matches.end(), comparator);
         } else {
-          return std::max_element(data.begin(), data.end(), comparator);
+          return std::max_element(matches.begin(), matches.end(), comparator);
         }
       }();
       auto& part = *partIter;
       auto value = part.AcquireNext();
       if(part.IsDepleted()) {
-        data.erase(partIter);
+        matches.erase(partIter);
       }
       if(result.empty() || value != result.back()) {
         result.push_back(std::move(value));

@@ -1,33 +1,41 @@
 #!/bin/bash
+exit_status=0
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="0cd64c550dba53114e07d25ef64999d47b0a8101"
+aspen_commit="28959f0b215738f62a005b9668de0d21971a6840"
 build_aspen=0
 if [ ! -d "aspen" ]; then
-  git clone https://www.github.com/eidolonsystems/aspen
-  build_aspen=1
+  git clone https://www.github.com/spiretrading/aspen
+  if [ "$?" == "0" ]; then
+    build_aspen=1
+  else
+    rm -rf aspen
+    exit_status=1
+  fi
 fi
-pushd aspen
-if ! git merge-base --is-ancestor "$aspen_commit" HEAD; then
-  git checkout master
-  git pull
-  git checkout "$aspen_commit"
-  build_aspen=1
-fi
-if [ "$build_aspen" == "1" ]; then
-  ./configure.sh "-DD=$root" Debug
-  ./build.sh
-  ./configure.sh "-DD=$root" Release
-  ./build.sh
-else
-  pushd "$root"
-  ./aspen/setup.sh
+if [ -d "aspen" ]; then
+  pushd aspen
+  if ! git merge-base --is-ancestor "$aspen_commit" HEAD; then
+    git checkout master
+    git pull
+    git checkout "$aspen_commit"
+    build_aspen=1
+  fi
+  if [ "$build_aspen" == "1" ]; then
+    ./configure.sh "-DD=$root" Debug
+    ./build.sh
+    ./configure.sh "-DD=$root" Release
+    ./build.sh
+  else
+    pushd "$root"
+    ./aspen/setup.sh
+    popd
+  fi
   popd
 fi
-popd
 if [ ! -d "cppunit-1.14.0" ]; then
   wget http://dev-www.libreoffice.org/src/cppunit-1.14.0.tar.gz --no-check-certificate
-  if [ -f cppunit-1.14.0.tar.gz ]; then
+  if [ "$?" == "0" ]; then
     gzip -d -c cppunit-1.14.0.tar.gz | tar -x
     pushd cppunit-1.14.0
     touch configure.new
@@ -38,43 +46,51 @@ if [ ! -d "cppunit-1.14.0" ]; then
     make -j $cores
     make install
     popd
-    rm cppunit-1.14.0.tar.gz
+  else
+    exit_status=1
   fi
+  rm -f cppunit-1.14.0.tar.gz
 fi
 if [ ! -d "cryptopp820" ]; then
   wget https://www.cryptopp.com/cryptopp820.zip -O cryptopp820.zip --no-check-certificate
-  if [ -f cryptopp820.zip ]; then
+  if [ "$?" == "0" ]; then
     mkdir cryptopp820
     pushd cryptopp820
     unzip ../cryptopp820.zip
     make -j $cores
     make install PREFIX="$root/cryptopp820"
     popd
-    rm cryptopp820.zip
+  else
+    exit_status=1
   fi
+  rm -f cryptopp820.zip
 fi
 if [ ! -d "doctest-2.3.6" ]; then
   wget https://github.com/onqtam/doctest/archive/2.3.6.zip --no-check-certificate
-  if [ -f "2.3.6.zip" ]; then
+  if [ "$?" == "0" ]; then
     unzip 2.3.6.zip
-    rm 2.3.6.zip
+  else
+    exit_status=1
   fi
+  rm -f 2.3.6.zip
 fi
 if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
   wget https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-src.tar.gz --no-check-certificate
-  if [ -f mysql-connector-c-6.1.11-src.tar.gz ]; then
+  if [ "$?" == "0" ]; then
     gzip -d -c mysql-connector-c-6.1.11-src.tar.gz | tar -x
     pushd mysql-connector-c-6.1.11-src
     cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="$root/mysql-connector-c-6.1.11-src"
     make -j $cores
     make install
     popd
-    rm mysql-connector-c-6.1.11-src.tar.gz
+  else
+    exit_status=1
   fi
+  rm -f mysql-connector-c-6.1.11-src.tar.gz
 fi
 if [ ! -d "openssl-1.1.1c" ]; then
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate
-  if [ -f openssl-1.1.1c.tar.gz ]; then
+  if [ "$?" == "0" ]; then
     gzip -d -c openssl-1.1.1c.tar.gz | tar -x
     pushd openssl-1.1.1c
     export LDFLAGS=-ldl
@@ -84,58 +100,56 @@ if [ ! -d "openssl-1.1.1c" ]; then
     make install
     unset LDFLAGS
     popd
-    rm openssl-1.1.1c.tar.gz
+  else
+    exit_status=1
   fi
-fi
-if [ ! -d "Python-3.6.7" ]; then
-  wget https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz --no-check-certificate
-  if [ -f Python-3.6.7.tgz ]; then
-    gzip -d -c Python-3.6.7.tgz | tar -xf -
-    pushd Python-3.6.7
-    export CFLAGS="-fPIC"
-    ./configure --prefix="$root/Python-3.6.7"
-    make -j $cores
-    make install
-    unset CFLAGS
-    popd
-    rm Python-3.6.7.tgz
-  fi
+  rm -f openssl-1.1.1c.tar.gz
 fi
 if [ ! -d "sqlite-amalgamation-3300100" ]; then
   wget https://www.sqlite.org/2019/sqlite-amalgamation-3300100.zip -O sqlite-amalgamation-3300100.zip --no-check-certificate
-  if [ -f sqlite-amalgamation-3300100.zip ]; then
+  if [ "$?" == "0" ]; then
     unzip sqlite-amalgamation-3300100.zip
     pushd sqlite-amalgamation-3300100
     gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
     popd
-    rm sqlite-amalgamation-3300100.zip
+  else
+    exit_status=1
   fi
+  rm -f sqlite-amalgamation-3300100.zip
 fi
 if [ ! -d "tclap-1.2.2" ]; then
   wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
-  if [ -f v1.2.2.zip ]; then
+  if [ "$?" == "0" ]; then
     unzip v1.2.2.zip
     pushd tclap-1.2.2
     ./configure
     make -j $cores
     popd
-    rm v1.2.2.zip
+  else
+    exit_status=1
   fi
+  rm -f v1.2.2.zip
 fi
 viper_commit="009bbbb3e00269e9939a9342789334a2d56bf7f0"
 if [ ! -d "viper" ]; then
-  git clone https://www.github.com/eidolonsystems/viper
+  git clone https://www.github.com/spiretrading/viper
+  if [ "$?" != "0" ]; then
+    rm -rf viper
+    exit_status=1
+  fi
 fi
-pushd viper
-if ! git merge-base --is-ancestor "$viper_commit" HEAD; then
-  git checkout master
-  git pull
-  git checkout "$viper_commit"
+if [ -d "viper" ]; then
+  pushd viper
+  if ! git merge-base --is-ancestor "$viper_commit" HEAD; then
+    git checkout master
+    git pull
+    git checkout "$viper_commit"
+  fi
+  popd
 fi
-popd
 if [ ! -d "yaml-cpp-0.6.2" ]; then
   git clone --branch yaml-cpp-0.6.2 https://github.com/jbeder/yaml-cpp.git yaml-cpp-0.6.2
-  if [ -d "yaml-cpp-0.6.2" ]; then
+  if [ "$?" == "0" ]; then
     pushd yaml-cpp-0.6.2
     mkdir build
     popd
@@ -147,11 +161,14 @@ if [ ! -d "yaml-cpp-0.6.2" ]; then
     unset CFLAGS
     unset CXXFLAGS
     popd
+  else
+    rm -rf yaml-cpp-0.6.2
+    exit_status=1
   fi
 fi
 if [ ! -d "zlib-1.2.11" ]; then
   wget https://github.com/madler/zlib/archive/v1.2.11.zip --no-check-certificate
-  if [ -f v1.2.11.zip ]; then
+  if [ "$?" == "0" ]; then
     unzip v1.2.11.zip
     pushd zlib-1.2.11
     export CFLAGS="-fPIC"
@@ -160,12 +177,14 @@ if [ ! -d "zlib-1.2.11" ]; then
     make install
     unset CFLAGS
     popd
-    rm v1.2.11.zip
+  else
+    exit_status=1
   fi
+  rm -f v1.2.11.zip
 fi
 if [ ! -d "boost_1_72_0" ]; then
   wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz -O boost_1_72_0.tar.gz --no-check-certificate
-  if [ -f boost_1_72_0.tar.gz ]; then
+  if [ "$?" == "0" ]; then
     tar xvf boost_1_72_0.tar.gz
     pushd boost_1_72_0
     export BOOST_BUILD_PATH=$(pwd)
@@ -173,6 +192,9 @@ if [ ! -d "boost_1_72_0" ]; then
     ./b2 -j$cores --prefix="$root/boost_1_72_0" cxxflags="-std=c++17 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
-    rm boost_1_72_0.tar.gz
+  else
+    exit_status=1
   fi
+  rm -f boost_1_72_0.tar.gz
 fi
+exit $exit_status

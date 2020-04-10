@@ -5,10 +5,28 @@
 namespace Beam::Python {
 
   /**
+   * Exports the ConditionVariable class.
+   * @param module The module to export to.
+   */
+  void ExportConditionVariable(pybind11::module& module);
+
+  /**
    * Exports the LiveTimer class.
    * @param module The module to export to.
    */
   void ExportLiveTimer(pybind11::module& module);
+
+  /**
+   * Exports the Mutex class.
+   * @param module The module to export to.
+   */
+  void ExportMutex(pybind11::module& module);
+
+  /**
+   * Exports the RecursiveMutex class.
+   * @param module The module to export to.
+   */
+  void ExportRecursiveMutex(pybind11::module& module);
 
   /**
    * Exports the Threading namespace.

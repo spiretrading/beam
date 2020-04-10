@@ -15,6 +15,10 @@
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
+#ifndef BEAM_SCHEDULER_DEFAULT_STACK_SIZE
+  #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 65536
+#endif
+
 namespace Beam {
 namespace Routines {
 namespace Details {
@@ -26,7 +30,8 @@ namespace Details {
     public:
 
       //! The default size of a Routine's stack.
-      static const std::size_t DEFAULT_STACK_SIZE = 64 * 1024;
+      static constexpr std::size_t DEFAULT_STACK_SIZE =
+        BEAM_SCHEDULER_DEFAULT_STACK_SIZE;
 
       //! Constructs a Scheduler with a number of threads equal to the system's
       //! concurrency.

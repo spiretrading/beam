@@ -1,6 +1,7 @@
 declare function require(name:string): any;
 const Collections = require('collections/fast-map');
-import { equals, fromJson, hash, toJson } from '.';
+import { equals, hash } from './comparators';
+import { fromJson, toJson } from './serialization';
 
 /** Represents a hash-based associative container.
  * @template Key The type used as a key, this type should define a hash method
@@ -41,6 +42,13 @@ export class Map<Key, Value> {
    */
   public set(key: Key, value: Value): void {
     this._collection.set(key, value);
+  }
+
+  /** Removes a key from this set.
+   * @param key - The key to remove.
+   */
+  public remove(key: Key): void {
+    this._collection.delete(key);
   }
 
   /** Converts this object to JSON. */

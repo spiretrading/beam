@@ -1,11 +1,11 @@
-import {DirectoryEntry, ServiceLocatorClient} from '.';
-import {ServiceError} from '..';
-import * as web_services from '..';
+import * as Services from '..';
+import { DirectoryEntry } from './directory_entry';
+import { ServiceLocatorClient } from './service_locator_client';
 
-/** Implements the ServiceLocatorClient using web services. */
-export class WebServiceLocatorClient extends ServiceLocatorClient {
+/** Implements the ServiceLocatorClient using HTTP requests. */
+export class HttpServiceLocatorClient extends ServiceLocatorClient {
 
-  /** Constructs a WebServiceLocatorClient. */
+  /** Constructs an HttpServiceLocatorClient. */
   constructor() {
     super();
     this._account = DirectoryEntry.INVALID;
@@ -15,7 +15,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
     }
-    let response = await web_services.post(
+    let response = await Services.post(
       '/api/service_locator/load_current_account', {});
     this._account = DirectoryEntry.fromJson(response);
     return this._account;
@@ -25,7 +25,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
     if(id === this._account.id) {
       return this._account;
     }
-    let response = await web_services.post(
+    let response = await Services.post(
       '/api/service_locator/load_directory_entry_from_id',
       {
         id: id
@@ -39,7 +39,7 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
       return this._account;
     }
     try {
-      let response = await web_services.post('/api/service_locator/login',
+      let response = await Services.post('/api/service_locator/login',
         {
           username: username,
           password: password
@@ -48,17 +48,26 @@ export class WebServiceLocatorClient extends ServiceLocatorClient {
       return this._account;
     } catch(e) {
       if(e.code === 401) {
-        throw new ServiceError('Incorrect username or password.');
+        throw new Services.ServiceError('Incorrect username or password.');
       }
       throw e;
     }
+  }
+
+  public async storePassword(account: DirectoryEntry,
+      password: string): Promise<void> {
+    await Services.post('/api/service_locator/store_password',
+      {
+        account: account.toJson(),
+        password: password
+      });
   }
 
   public async close(): Promise<void> {
     if(this._account.equals(DirectoryEntry.INVALID)) {
       return;
     }
-    await web_services.post('/api/service_locator/logout', {});
+    await Services.post('/api/service_locator/logout', {});
     this._account = DirectoryEntry.INVALID;
   }
 

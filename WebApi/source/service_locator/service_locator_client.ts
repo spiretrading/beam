@@ -23,6 +23,13 @@ export abstract class ServiceLocatorClient {
   public abstract async login(username: string, password: string):
     Promise<DirectoryEntry>;
 
+  /** Stores an account's password.
+   * @param account The account to update.
+   * @param password The account's updated password.
+   */
+  public abstract async storePassword(account: DirectoryEntry,
+    password: string): Promise<void>;
+
   /** Logs out of the service locator. */
   public abstract async close(): Promise<void>;
 }

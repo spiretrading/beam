@@ -44,7 +44,7 @@ int main(int argc, const char** argv) {
   auto configFile = string();
   try {
     auto cmd = CmdLine("", ' ', "0.9-r" WEB_SOCKET_ECHO_SERVER_VERSION
-      "\nCopyright (C) 2017 Eidolon Systems Ltd.");
+      "\nCopyright (C) 2020 Spire Trading Inc.");
     auto configArg = ValueArg<string>("c", "config", "Configuration file",
       false, "config.yml", "path");
     cmd.add(configArg);

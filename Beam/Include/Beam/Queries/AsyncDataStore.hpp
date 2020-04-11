@@ -14,74 +14,49 @@
 
 namespace Beam::Queries {
 namespace Details {
-  template<typename C, SnapshotLimit::Type D>
-  class Matches {
-    public:
-      using Container = C;
-      static constexpr auto Direction = D;
-      using Type = typename Container::value_type;
-      using Iterator = std::conditional_t<D == SnapshotLimit::Type::HEAD, Type*,
-        std::reverse_iterator<Type*>>;
+  template<SnapshotLimit::Type D, typename C>
+  struct Matches {
+    static constexpr auto Direction = D;
+    using Container = C;
+    using Type = typename Container::value_type;
+    using Iterator = std::conditional_t<D == SnapshotLimit::Type::HEAD, Type*,
+      std::reverse_iterator<Type*>>;
 
-      Matches() = default;
+    Matches() = default;
 
-      Matches(Container& container) {
-        if constexpr(Direction == SnapshotLimit::Type::HEAD) {
-          m_current = container.data() + 1;
-          m_end = container.data() + container.size();
-        } else {
-          m_current = Iterator(container.data() + container.size()) + 1;
-          m_end = Iterator(container.data());
-        }
+    Matches(Container& container) {
+      if constexpr(Direction == SnapshotLimit::Type::HEAD) {
+        m_current = container.data();
+        m_end = container.data() + container.size();
+      } else {
+        m_current = Iterator(container.data() + container.size());
+        m_end = Iterator(container.data());
       }
+    }
 
-      Type AcquireNext() {
-        auto match = std::move(PeekNext());
-        if(m_current != m_end) {
-          PeekNext() = *m_current;
-          ++m_current;
-        } else {
-          m_current = Iterator(nullptr);
-        }
-        return match;
-      }
-
-      Type& PeekNext() {
-        return *(m_current - 1);
-      }
-
-      bool IsDepleted() const {
-        if constexpr(Direction == SnapshotLimit::Type::HEAD) {
-          return m_current == nullptr;
-        } else {
-          return m_current.base() == nullptr;
-        }
-      }
-
-    private:
-      Iterator m_current;
-      Iterator m_end;
+    Iterator m_current;
+    Iterator m_end;
   };
 
-  template<SnapshotLimit::Type D, typename V>
-  V MergeMatches(V match1, V match2, V match3, int limit) {
+  template<SnapshotLimit::Type D, typename C>
+  C MergeMatches(C match1, C match2, C match3, int limit) {
     constexpr auto MATCH_COUNT = 3;
-    auto matches = std::array<Matches<V, D>, MATCH_COUNT>();
+    auto matches = std::array<Matches<D, C>, MATCH_COUNT>();
     auto matchesRemaining = 0;
     for(auto& match : {&match1, &match2, &match3}) {
       if(!match->empty()) {
-        matches[matchesRemaining] = Matches<V, D>(*match);
+        matches[matchesRemaining] = Matches<D, C>(*match);
         ++matchesRemaining;
       }
     }
-    auto result = V();
-    result.reserve(std::min(limit,
-      static_cast<int>(match1.size() + match2.size() + match3.size())));
+    auto result = C();
+    result.reserve(std::min(static_cast<std::size_t>(limit),
+      match1.size() + match2.size() + match3.size()));
     auto comparator = [](const auto& lhs, const auto& rhs) {
       if(D == SnapshotLimit::Type::HEAD) {
-        return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());
+        return SequenceComparator()(*lhs->m_current, *rhs->m_current);
       } else {
-        return SequenceComparator()(rhs->PeekNext(), lhs->PeekNext());
+        return SequenceComparator()(*rhs->m_current, *lhs->m_current);
       }
     };
     while(result.size() != limit && matchesRemaining != 0) {
@@ -89,13 +64,14 @@ namespace Details {
         if(matchesRemaining == 1) {
           return &matches[0];
         } else if(matchesRemaining == 2) {
-          return std::min({&matches[0], &matches[1]}, comparator);
+          return std::min(&matches[0], &matches[1], comparator);
         } else {
           return std::min({&matches[0], &matches[1], &matches[2]}, comparator);
         }
       }());
-      auto value = match.AcquireNext();
-      if(match.IsDepleted()) {
+      auto& value = *match.m_current;
+      ++match.m_current;
+      if(match.m_current == match.m_end) {
         std::swap(match, matches[matchesRemaining - 1]);
         --matchesRemaining;
       }

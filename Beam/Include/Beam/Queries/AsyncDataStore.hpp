@@ -19,53 +19,48 @@ namespace Details {
     public:
       using Container = C;
       static constexpr auto Direction = D;
-      using Iterator = std::conditional_t<D == SnapshotLimit::Type::HEAD,
-        typename Container::iterator, typename Container::reverse_iterator>;
-      using Type = typename Iterator::value_type;
+      using Type = typename Container::value_type;
+      using Iterator = std::conditional_t<D == SnapshotLimit::Type::HEAD, Type*,
+        std::reverse_iterator<Type*>>;
 
       Matches() = default;
 
-      template<typename T = Container, typename std::enable_if_t<
-        std::is_same_v<Iterator, typename T::iterator>, void*> = nullptr>
-      Matches(Container& container)
-        : m_begin(std::begin(container)),
-          m_end(std::end(container)),
-          m_cur(std::next(m_begin)),
-          m_nextValue(&*m_begin) {}
-
-      template<typename T = Container, typename std::enable_if_t<
-        std::is_same_v<Iterator, typename T::reverse_iterator>, void*> =
-        nullptr>
-      Matches(Container& container)
-        : m_begin(std::rbegin(container)),
-          m_end(std::rend(container)),
-          m_cur(std::next(m_begin)),
-          m_nextValue(&*m_begin) {}
+      Matches(Container& container) {
+        if constexpr(Direction == SnapshotLimit::Type::HEAD) {
+          m_current = container.data() + 1;
+          m_end = container.data() + container.size();
+        } else {
+          m_current = Iterator(container.data() + container.size()) + 1;
+          m_end = Iterator(container.data());
+        }
+      }
 
       Type AcquireNext() {
-        auto match = std::move(*m_nextValue);
-        if(m_cur == m_end) {
-          m_cur = m_begin;
+        auto match = std::move(PeekNext());
+        if(m_current != m_end) {
+          PeekNext() = *m_current;
+          ++m_current;
         } else {
-          *m_nextValue = *m_cur;
-          ++m_cur;
+          m_current = Iterator(nullptr);
         }
         return match;
       }
 
-      const Type& PeekNext() const {
-        return *m_nextValue;
+      Type& PeekNext() {
+        return *(m_current - 1);
       }
 
       bool IsDepleted() const {
-        return m_cur == m_begin;
+        if constexpr(Direction == SnapshotLimit::Type::HEAD) {
+          return m_current == nullptr;
+        } else {
+          return m_current.base() == nullptr;
+        }
       }
 
     private:
-      Iterator m_begin;
+      Iterator m_current;
       Iterator m_end;
-      Iterator m_cur;
-      Type* m_nextValue;
   };
 
   template<SnapshotLimit::Type D, typename V>
@@ -79,10 +74,9 @@ namespace Details {
         ++matchesRemaining;
       }
     }
-    auto count = static_cast<int>(match1.size() + match2.size() +
-      match3.size());
     auto result = V();
-    result.reserve(std::min(limit, count));
+    result.reserve(std::min(limit,
+      static_cast<int>(match1.size() + match2.size() + match3.size())));
     auto comparator = [](const auto& lhs, const auto& rhs) {
       if(D == SnapshotLimit::Type::HEAD) {
         return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());

@@ -343,6 +343,7 @@ void AsyncDataStoreTester::TestFlushedLoad() {
   }
 }
 
+/*
 void AsyncDataStoreTester::TestFlushFrequency() {
   auto dispatcher = std::make_shared<DataStoreDispatcher>();
   auto dataStore = IntrusiveDataStore(dispatcher);
@@ -415,3 +416,4 @@ void AsyncDataStoreTester::TestFlushFrequency() {
   sequence = Increment(sequence);
   StoreValue(dataStore, "hello", 900, timeClient.GetTime(), sequence);
 }
+*/

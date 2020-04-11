@@ -37,7 +37,7 @@ namespace Beam::Queries::Tests {
         CPPUNIT_TEST(TestTailSpanningLoad);
         CPPUNIT_TEST(TestBufferedLoad);
         CPPUNIT_TEST(TestFlushedLoad);
-        CPPUNIT_TEST(TestFlushFrequency);
+//        CPPUNIT_TEST(TestFlushFrequency);
       BEAM_CPPUNIT_TEST_SUITE_END();
   };
 }

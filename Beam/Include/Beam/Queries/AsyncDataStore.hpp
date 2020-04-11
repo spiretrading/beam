@@ -18,15 +18,27 @@ namespace Details {
   class Matches {
     public:
       using Container = C;
-      static constexpr Direction = D;
-      using Iterator = std::conditional_t<
-        Direction == SnapshotLimit::Type::HEAD, typename Container::iterator,
-        typename Container::reverse_iterator>;
+      static constexpr auto Direction = D;
+      using Iterator = std::conditional_t<D == SnapshotLimit::Type::HEAD,
+        typename Container::iterator, typename Container::reverse_iterator>;
       using Type = typename Iterator::value_type;
 
-      Matches(const Container& container)
-        : m_begin(std::move(begin)),
-          m_end(std::move(end)),
+      Matches() = default;
+
+      template<typename T = Container, typename std::enable_if_t<
+        std::is_same_v<Iterator, typename T::iterator>, void*> = nullptr>
+      Matches(Container& container)
+        : m_begin(std::begin(container)),
+          m_end(std::end(container)),
+          m_cur(std::next(m_begin)),
+          m_nextValue(&*m_begin) {}
+
+      template<typename T = Container, typename std::enable_if_t<
+        std::is_same_v<Iterator, typename T::reverse_iterator>, void*> =
+        nullptr>
+      Matches(Container& container)
+        : m_begin(std::rbegin(container)),
+          m_end(std::rend(container)),
           m_cur(std::next(m_begin)),
           m_nextValue(&*m_begin) {}
 
@@ -56,77 +68,48 @@ namespace Details {
       Type* m_nextValue;
   };
 
-  template<SnapshotLimit::Type LT, typename V>
+  template<SnapshotLimit::Type D, typename V>
   V MergeMatches(V match1, V match2, V match3, int limit) {
-    using Iterator = std::conditional_t<LT == SnapshotLimit::Type::HEAD,
-      typename V::iterator, typename V::reverse_iterator>;
     constexpr auto MATCH_COUNT = 3;
-    auto matches = std::array<Matches<Iterator>, MATCH_COUNT>();
-    auto matchesRemaining = MATCH_COUNT;
-    auto count = static_cast<int>(match1.size() + match2.size() +
-      match3.size());
-    if constexpr(LT == SnapshotLimit::Type::HEAD) {
-      if(!match1.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match1.begin(), match1.end());
-      } else {
-        --matchesRemaining;
-      }
-      if(!match2.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match2.begin(), match2.end());
-      } else {
-        --matchesRemaining;
-      }
-      if(!match3.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match3.begin(), match3.end());
-      } else {
-        --matchesRemaining;
-      }
-    } else {
-      if(!match1.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match1.rbegin(), match1.rend());
-      } else {
-        --matchesRemaining;
-      }
-      if(!match2.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match2.rbegin(), match2.rend());
-      } else {
-        --matchesRemaining;
-      }
-      if(!match3.empty()) {
-        matches[MATCH_COUNT - matchesRemaining] =
-          Matches(match3.rbegin(), match3.rend());
-      } else {
-        --matchesRemaining;
+    auto matches = std::array<Matches<V, D>, MATCH_COUNT>();
+    auto matchesRemaining = 0;
+    for(auto& match : {&match1, &match2, &match3}) {
+      if(!match->empty()) {
+        matches[matchesRemaining] = Matches<V, D>(*match);
+        ++matchesRemaining;
       }
     }
+    auto count = static_cast<int>(match1.size() + match2.size() +
+      match3.size());
     auto result = V();
     result.reserve(std::min(limit, count));
     auto comparator = [](const auto& lhs, const auto& rhs) {
-      return SequenceComparator()(lhs.PeekNext(), rhs.PeekNext());
-    };
-    while(result.size() != limit && !matches.empty()) {
-      auto partIter = [&] {
-        if(LT == SnapshotLimit::Type::HEAD) {
-          return std::min_element(matches.begin(), matches.end(), comparator);
-        } else {
-          return std::max_element(matches.begin(), matches.end(), comparator);
-        }
-      }();
-      auto& part = *partIter;
-      auto value = part.AcquireNext();
-      if(part.IsDepleted()) {
-        matches.erase(partIter);
+      if(D == SnapshotLimit::Type::HEAD) {
+        return SequenceComparator()(lhs->PeekNext(), rhs->PeekNext());
+      } else {
+        return SequenceComparator()(rhs->PeekNext(), lhs->PeekNext());
       }
-      if(result.empty() || value != result.back()) {
+    };
+    while(result.size() != limit && matchesRemaining != 0) {
+      auto& match = *([&] {
+        if(matchesRemaining == 1) {
+          return &matches[0];
+        } else if(matchesRemaining == 2) {
+          return std::min({&matches[0], &matches[1]}, comparator);
+        } else {
+          return std::min({&matches[0], &matches[1], &matches[2]}, comparator);
+        }
+      }());
+      auto value = match.AcquireNext();
+      if(match.IsDepleted()) {
+        std::swap(match, matches[matchesRemaining - 1]);
+        --matchesRemaining;
+      }
+      if(result.empty() || value.GetSequence() != result.back().GetSequence()) {
         result.push_back(std::move(value));
       }
     }
-    if(LT == SnapshotLimit::Type::TAIL) {
+    if(D == SnapshotLimit::Type::TAIL) {
       std::reverse(result.begin(), result.end());
     }
     return result;

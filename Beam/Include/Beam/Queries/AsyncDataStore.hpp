@@ -152,6 +152,9 @@ namespace Details {
       void Flush();
   };
 
+  template<typename DS>
+  AsyncDataStore(DS&& dataStore) -> AsyncDataStore<std::remove_reference_t<DS>>;
+
   template<typename D, typename E>
   template<typename DS>
   AsyncDataStore<D, E>::AsyncDataStore(DS&& dataStore)

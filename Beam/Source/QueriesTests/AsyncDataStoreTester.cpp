@@ -93,7 +93,7 @@ void AsyncDataStoreTester::TestStoreAndLoad() {
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
+    SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -103,7 +103,7 @@ void AsyncDataStoreTester::TestStoreAndLoad() {
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
+    SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -116,7 +116,7 @@ void AsyncDataStoreTester::TestStoreAndLoad() {
 
 void AsyncDataStoreTester::TestHeadSpanningLoad() {
   auto localDataStore = TestLocalDataStore();
-  auto dataStore = AsyncDataStore<TestLocalDataStore*>(&localDataStore);
+  auto dataStore = AsyncDataStore(&localDataStore);
   dataStore.Open();
   auto timeClient = IncrementalTimeClient();
   auto sequence = Beam::Queries::Sequence(5);
@@ -146,7 +146,7 @@ void AsyncDataStoreTester::TestHeadSpanningLoad() {
 
 void AsyncDataStoreTester::TestTailSpanningLoad() {
   auto localDataStore = TestLocalDataStore();
-  auto dataStore = AsyncDataStore<TestLocalDataStore*>(&localDataStore);
+  auto dataStore = AsyncDataStore(&localDataStore);
   dataStore.Open();
   auto timeClient = IncrementalTimeClient();
   auto sequence = Beam::Queries::Sequence(5);
@@ -175,20 +175,11 @@ void AsyncDataStoreTester::TestTailSpanningLoad() {
 void AsyncDataStoreTester::TestBufferedLoad() {
   auto dispatcher = std::make_shared<DataStoreDispatcher>();
   auto dataStore = IntrusiveDataStore(dispatcher);
+  Open(*dispatcher);
+  dataStore.Open();
   auto operations =
     std::make_shared<Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
   dispatcher->GetOperationPublisher().Monitor(operations);
-  {
-    auto handler = RoutineHandler(Spawn(
-      [&] {
-        auto operation = operations->Top();
-        operations->Pop();
-        auto& openOperation = std::get<DataStoreDispatcher::OpenOperation>(
-          *operation);
-        openOperation.m_result.SetResult();
-      }));
-    dataStore.Open();
-  }
   auto timeClient = IncrementalTimeClient();
   auto entryA = SequencedIndexedEntry();
   auto entryB = SequencedIndexedEntry();
@@ -228,7 +219,7 @@ void AsyncDataStoreTester::TestBufferedLoad() {
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -238,7 +229,7 @@ void AsyncDataStoreTester::TestBufferedLoad() {
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -265,20 +256,11 @@ void AsyncDataStoreTester::TestFlushedLoad() {
   auto localDataStore = TestLocalDataStore();
   auto dispatcher = std::make_shared<DataStoreDispatcher>();
   auto dataStore = IntrusiveDataStore(dispatcher);
+  Open(*dispatcher);
+  dataStore.Open();
   auto operations =
     std::make_shared<Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
   dispatcher->GetOperationPublisher().Monitor(operations);
-  {
-    auto handler = RoutineHandler(Spawn(
-      [&] {
-        auto operation = operations->Top();
-        operations->Pop();
-        auto& openOperation = std::get<DataStoreDispatcher::OpenOperation>(
-          *operation);
-        openOperation.m_result.SetResult();
-      }));
-    dataStore.Open();
-  }
   auto timeClient = IncrementalTimeClient();
   auto entryA = SequencedIndexedEntry();
   auto entryB = SequencedIndexedEntry();
@@ -321,7 +303,7 @@ void AsyncDataStoreTester::TestFlushedLoad() {
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -331,7 +313,7 @@ void AsyncDataStoreTester::TestFlushedLoad() {
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -342,78 +324,3 @@ void AsyncDataStoreTester::TestFlushedLoad() {
       SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
   }
 }
-
-/*
-void AsyncDataStoreTester::TestFlushFrequency() {
-  auto dispatcher = std::make_shared<DataStoreDispatcher>();
-  auto dataStore = IntrusiveDataStore(dispatcher);
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
-  dispatcher->GetOperationPublisher().Monitor(operations);
-  {
-    auto handler = RoutineHandler(Spawn(
-      [&] {
-        auto operation = operations->Top();
-        operations->Pop();
-        auto& openOperation = std::get<DataStoreDispatcher::OpenOperation>(
-          *operation);
-        openOperation.m_result.SetResult();
-      }));
-    dataStore.Open();
-  }
-  auto timeClient = IncrementalTimeClient();
-  auto asyncFwds = std::vector<Async<void>>(3);
-  auto evalFwds = std::vector<Eval<void>>(3);
-  for(auto& async : asyncFwds) {
-    evalFwds.push_back(async.GetEval());
-  }
-  auto asyncBwds = std::vector<Async<void>>(3);
-  auto evalBwds = std::vector<Eval<void>>(3);
-  for(auto& async : asyncBwds) {
-    evalBwds.push_back(async.GetEval());
-  }
-  auto counts = std::vector<int>();
-  auto handler = RoutineHandler(Spawn(
-    [&] {
-      auto extract = [&] {
-        auto operation = operations->Top();
-        operations->Pop();
-        auto& storeOperation = std::get<DataStoreDispatcher::StoreOperation>(
-          *operation);
-        auto count = storeOperation.m_values.size();
-        counts.push_back(count);
-        storeOperation.m_result.SetResult();
-      };
-      for(auto i = 0; i < 3; ++i) {
-        asyncFwds[i].Get();
-        extract();
-        evalBwds[i].SetResult();
-      }
-      extract();
-    }));
-  auto sequence = Beam::Queries::Sequence(5);
-  StoreValue(dataStore, "hello", 100, timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 200, timeClient.GetTime(), sequence);
-  evalFwds[0].SetResult();
-  asyncBwds[0].Get();
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 300, timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 400, timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 500, timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 600, timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 700, timeClient.GetTime(), sequence);
-  evalFwds[1].SetResult();
-  asyncBwds[1].Get();
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 800, timeClient.GetTime(), sequence);
-  evalFwds[2].SetResult();
-  asyncBwds[2].Get();
-  sequence = Increment(sequence);
-  StoreValue(dataStore, "hello", 900, timeClient.GetTime(), sequence);
-}
-*/

@@ -1,10 +1,8 @@
-#ifndef BEAM_HTTPFILESERVER_HPP
-#define BEAM_HTTPFILESERVER_HPP
+#ifndef BEAM_HTTP_FILE_SERVER_HPP
+#define BEAM_HTTP_FILE_SERVER_HPP
 
-namespace Beam {
-namespace HttpFileServer {
+namespace Beam::HttpFileServer {
   class HttpFileServlet;
-}
 }
 
 #endif

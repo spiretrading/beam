@@ -15,21 +15,20 @@ using namespace Beam::Network;
 using namespace Beam::ServiceLocator;
 using namespace Beam::Threading;
 using namespace boost;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
-  vector<string> Tokenize(const string& input) {
-    vector<string> result;
+  std::vector<std::string> Tokenize(const std::string& input) {
+    auto result = std::vector<std::string>();
     split(result, input, is_any_of(" "));
     return result;
   }
 
   DirectoryEntry LoadAccount(
       ApplicationServiceLocatorClient& serviceLocatorClient,
-      const string& name) {
+      const std::string& name) {
     if(name.empty()) {
-      throw runtime_error("No name specified.");
+      throw std::runtime_error("No name specified.");
     } else if(name[0] == '@') {
       return serviceLocatorClient->LoadDirectoryEntry(
         lexical_cast<int>(name.substr(1)));
@@ -38,13 +37,13 @@ namespace {
     if(account.is_initialized()) {
       return *account;
     }
-    throw runtime_error("Account not found.");
+    throw std::runtime_error("Account not found.");
   }
 
   DirectoryEntry LoadPath(ApplicationServiceLocatorClient& serviceLocatorClient,
-      const DirectoryEntry& currentDirectory, const string& path) {
+      const DirectoryEntry& currentDirectory, const std::string& path) {
     if(path.empty()) {
-      throw runtime_error("No path specified.");
+      throw std::runtime_error("No path specified.");
     } else if(path[0] == '/') {
       return serviceLocatorClient->LoadDirectoryEntry(
         DirectoryEntry::GetStarDirectory(), path.substr(1));
@@ -57,140 +56,143 @@ namespace {
 }
 
 int main(int argc, char** argv) {
-  string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd("", ' ', "1.0-r" ADMIN_CLIENT_VERSION
+    auto cmd = CmdLine("", ' ', "1.0-r" ADMIN_CLIENT_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    ValueArg<string> configArg("c", "config", "Configuration file", false,
-      "config.yml", "path");
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
-  } catch(ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+  } catch(const ArgException& e) {
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  ServiceLocatorClientConfig serviceLocatorClientConfig;
+  auto serviceLocatorClientConfig = ServiceLocatorClientConfig();
   try {
     serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(config);
   } catch(const std::exception& e) {
-    cerr << e.what() << endl;
+    std::cerr << e.what() << std::endl;
     return -1;
   }
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  ApplicationServiceLocatorClient serviceLocatorClient;
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
-    cout << "Connecting to the service locator: ";
+    std::cout << "Connecting to the service locator: ";
     serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_address,
       Ref(socketThreadPool), Ref(timerThreadPool));
     serviceLocatorClient->SetCredentials(serviceLocatorClientConfig.m_username,
       serviceLocatorClientConfig.m_password);
     serviceLocatorClient->Open();
   } catch(const std::exception& e) {
-    cout << e.what() << endl;
+    std::cout << e.what() << std::endl;
     return -1;
   }
-  cout << "Passed." << endl;
-  DirectoryEntry account;
-  DirectoryEntry currentDirectory;
-  vector<DirectoryEntry> children;
-  vector<DirectoryEntry> parents;
+  std::cout << "Passed." << std::endl;
+  auto account = DirectoryEntry();
+  auto currentDirectory = DirectoryEntry();
+  auto children = std::vector<DirectoryEntry>();
+  auto parents = std::vector<DirectoryEntry>();
   try {
     account = serviceLocatorClient->GetAccount();
     currentDirectory = serviceLocatorClient->LoadParents(account).front();
     children = serviceLocatorClient->LoadChildren(currentDirectory);
     parents = serviceLocatorClient->LoadParents(currentDirectory);
   } catch(const std::exception& e) {
-    cout << e.what() << endl;
+    std::cout << e.what() << std::endl;
     return -1;
   }
-  cout << "Passed." << endl;
+  std::cout << "Passed." << std::endl;
   while(!ReceivedKillEvent()) {
     try {
-      cout << ">>> ";
-      string input;
-      getline(cin, input);
-      vector<string> tokens(Tokenize(input));
+      std::cout << ">>> ";
+      auto input = std::string();
+      std::getline(std::cin, input);
+      auto tokens = Tokenize(input);
       if(tokens[0] == "mkacc") {
         serviceLocatorClient->MakeAccount(tokens.at(1), tokens.at(2),
           currentDirectory);
       } else if(tokens[0] == "password") {
-        DirectoryEntry source = LoadPath(serviceLocatorClient, currentDirectory,
+        auto source = LoadPath(serviceLocatorClient, currentDirectory,
           tokens.at(1));
         if(source.m_type != DirectoryEntry::Type::ACCOUNT) {
-          throw runtime_error("Not an account.");
+          throw std::runtime_error("Not an account.");
         }
         serviceLocatorClient->StorePassword(source, tokens.at(2));
       } else if(tokens[0] == "mkdir") {
         serviceLocatorClient->MakeDirectory(tokens.at(1), currentDirectory);
       } else if(tokens[0] == "chmod") {
-        DirectoryEntry source = LoadAccount(serviceLocatorClient, tokens.at(1));
-        DirectoryEntry target = LoadPath(serviceLocatorClient, currentDirectory,
+        auto source = LoadAccount(serviceLocatorClient, tokens.at(1));
+        auto target = LoadPath(serviceLocatorClient, currentDirectory,
           tokens.at(2));
-        Permissions permissions = Permissions::FromRepresentation(
+        auto permissions = Permissions::FromRepresentation(
           lexical_cast<int>(tokens.at(3)));
         serviceLocatorClient->StorePermissions(source, target, permissions);
       } else if(tokens[0] == "associate") {
-        DirectoryEntry entry = LoadAccount(serviceLocatorClient, tokens.at(1));
+        auto entry = LoadAccount(serviceLocatorClient, tokens.at(1));
         serviceLocatorClient->Associate(entry, currentDirectory);
       } else if(tokens[0] == "detach") {
-        DirectoryEntry child = LoadPath(serviceLocatorClient, currentDirectory,
+        auto child = LoadPath(serviceLocatorClient, currentDirectory,
           tokens.at(1));
         serviceLocatorClient->Detach(child, currentDirectory);
       } else if(tokens[0] == "cd") {
-        DirectoryEntry newDirectory = LoadPath(serviceLocatorClient,
-          currentDirectory, tokens.at(1));
+        auto newDirectory = LoadPath(serviceLocatorClient, currentDirectory,
+          tokens.at(1));
         if(newDirectory.m_type != DirectoryEntry::Type::DIRECTORY) {
-          throw runtime_error("Not a directory.");
+          throw std::runtime_error("Not a directory.");
         }
         currentDirectory = newDirectory;
         parents = serviceLocatorClient->LoadParents(currentDirectory);
         children = serviceLocatorClient->LoadChildren(currentDirectory);
       } else if(tokens[0] == "lch") {
         children = serviceLocatorClient->LoadChildren(currentDirectory);
-        for(auto i = children.begin(); i != children.end(); ++i) {
-          string type;
-          if(i->m_type == DirectoryEntry::Type::DIRECTORY) {
-            type = "<DIR>";
-          } else {
-            type = "";
-          }
-          cout << "\t" << type << "\t" << i->m_id << "\t" << i->m_name << endl;
+        for(auto& child : children) {
+          auto type = [&] {
+            if(child.m_type == DirectoryEntry::Type::DIRECTORY) {
+              return "<DIR>";
+            } else {
+              return "";
+            }
+          }();
+          std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
+            child.m_name << std::endl;
         }
       } else if(tokens[0] == "lpr") {
         parents = serviceLocatorClient->LoadParents(currentDirectory);
-        for(auto i = parents.begin(); i != parents.end(); ++i) {
-          string type;
-          if(i->m_type == DirectoryEntry::Type::DIRECTORY) {
-            type = "<DIR>";
-          } else {
-            type = "";
-          }
-          cout << "\t" << type << "\t" << i->m_id << "\t" << i->m_name << endl;
+        for(auto& parent : parents) {
+          auto type = [&] {
+            if(parent.m_type == DirectoryEntry::Type::DIRECTORY) {
+              return "<DIR>";
+            } else {
+              return "";
+            }
+          }();
+          std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
+            parent.m_name << std::endl;
         }
       } else if(tokens[0] == "del") {
-        DirectoryEntry path = LoadPath(serviceLocatorClient, currentDirectory,
+        auto path = LoadPath(serviceLocatorClient, currentDirectory,
           tokens.at(1));
         serviceLocatorClient->Delete(path);
       } else if(tokens[0] == "locate") {
-        vector<ServiceEntry> services = serviceLocatorClient->Locate(
-          tokens.at(1));
-        for(vector<ServiceEntry>::const_iterator i = services.begin();
-            i != services.end(); ++i) {
-          cout << i->GetName() << " " << i->GetId() << "\n";
-          cout << i->GetAccount().m_name << " " << i->GetAccount().m_id << "\n";
-          i->GetProperties().Save(cout);
-          cout << endl;
+        for(auto& service : serviceLocatorClient->Locate(tokens.at(1))) {
+          std::cout << service.GetName() << " " << service.GetId() << "\n";
+          std::cout << service.GetAccount().m_name << " " <<
+            service.GetAccount().m_id << "\n";
+          service.GetProperties().Save(std::cout);
+          std::cout << std::endl;
         }
       } else if(tokens[0] == "exit") {
         break;
       } else {
-        cout << "Unknown command." << endl;
+        std::cout << "Unknown command." << std::endl;
       }
     } catch(const std::exception& e) {
-      cout << e.what() << endl;
+      std::cout << e.what() << std::endl;
     }
   }
 }

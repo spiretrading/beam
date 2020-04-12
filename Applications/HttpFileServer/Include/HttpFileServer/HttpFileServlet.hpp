@@ -1,5 +1,5 @@
-#ifndef BEAM_HTTPFILESERVLET_HPP
-#define BEAM_HTTPFILESERVLET_HPP
+#ifndef BEAM_HTTP_FILE_SERVLET_HPP
+#define BEAM_HTTP_FILE_SERVLET_HPP
 #include <vector>
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/IO/SharedBuffer.hpp>
@@ -9,36 +9,31 @@
 #include <boost/noncopyable.hpp>
 #include "HttpFileServer/HttpFileServer.hpp"
 
-namespace Beam {
-namespace HttpFileServer {
+namespace Beam::HttpFileServer {
 
-  /*! \class HttpFileServlet
-      \brief Implements a web servlet for static files.
-   */
+  /** Implements a web servlet for static files. */
   class HttpFileServlet : private boost::noncopyable {
     public:
 
-      //! Constructs a HttpFileServlet.
+      /** Constructs a HttpFileServlet. */
       HttpFileServlet();
 
       ~HttpFileServlet();
 
-      //! Returns the HTTP request slots.
-      std::vector<Beam::WebServices::HttpRequestSlot> GetSlots();
+      std::vector<WebServices::HttpRequestSlot> GetSlots();
 
       void Open();
 
       void Close();
 
     private:
-      Beam::WebServices::FileStore m_fileStore;
-      Beam::IO::OpenState m_openState;
+      WebServices::FileStore m_fileStore;
+      IO::OpenState m_openState;
 
       void Shutdown();
-      Beam::WebServices::HttpResponse OnServeFile(
-        const Beam::WebServices::HttpRequest& request);
+      WebServices::HttpResponse OnServeFile(
+        const WebServices::HttpRequest& request);
   };
-}
 }
 
 #endif

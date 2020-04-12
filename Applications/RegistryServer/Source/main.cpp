@@ -32,7 +32,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -43,56 +42,59 @@ namespace {
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 
   struct ServerConnectionInitializer {
-    string m_serviceName;
+    std::string m_serviceName;
     IpAddress m_interface;
-    vector<IpAddress> m_addresses;
+    std::vector<IpAddress> m_addresses;
 
     void Initialize(const YAML::Node& config);
   };
 
   void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
-    m_serviceName = Extract<string>(config, "service",
+    m_serviceName = Extract<std::string>(config, "service",
       RegistryService::SERVICE_NAME);
     m_interface = Extract<IpAddress>(config, "interface");
-    vector<IpAddress> addresses;
+    auto addresses = std::vector<IpAddress>();
     addresses.push_back(m_interface);
-    m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
+    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
+      addresses);
   }
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd("", ' ', "1.0-r" REGISTRY_SERVER_VERSION
+    auto cmd = CmdLine("", ' ', "1.0-r" REGISTRY_SERVER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(const ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  ServerConnectionInitializer serverConnectionInitializer;
+  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
   } catch(const std::exception& e) {
-    cerr << "Error parsing section 'server': " << e.what() << endl;
+    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  ServiceLocatorClientConfig serviceLocatorClientConfig;
+  auto serviceLocatorClientConfig = ServiceLocatorClientConfig();
   try {
     serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(
       GetNode(config, "service_locator"));
   } catch(const std::exception& e) {
-    cerr << "Error parsing section 'service_locator': " << e.what() << endl;
+    std::cerr << "Error parsing section 'service_locator': " << e.what() <<
+      std::endl;
     return -1;
   }
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  ApplicationServiceLocatorClient serviceLocatorClient;
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
     serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_address,
       Ref(socketThreadPool), Ref(timerThreadPool));
@@ -100,27 +102,27 @@ int main(int argc, const char** argv) {
       serviceLocatorClientConfig.m_password);
     serviceLocatorClient->Open();
   } catch(const std::exception& e) {
-    cerr << "Error logging in: " << e.what() << endl;
+    std::cerr << "Error logging in: " << e.what() << std::endl;
     return -1;
   }
-  RegistryServletContainer server{Initialize(serviceLocatorClient.Get(),
+  auto server = RegistryServletContainer(Initialize(serviceLocatorClient.Get(),
     Initialize(Initialize(std::filesystem::current_path() / "records"))),
     Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
-    std::bind(factory<std::shared_ptr<LiveTimer>>{}, seconds{10},
-    Ref(timerThreadPool))};
+    std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10),
+    Ref(timerThreadPool)));
   try {
     server.Open();
   } catch(const std::exception& e) {
-    cerr << "Error opening server: " << e.what() << endl;
+    std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;
   }
   try {
-    JsonObject service;
+    auto service = JsonObject();
     service["addresses"] = ToString(serverConnectionInitializer.m_addresses);
     serviceLocatorClient->Register(serverConnectionInitializer.m_serviceName,
       service);
   } catch(const std::exception& e) {
-    cerr << "Error registering service: " << e.what() << endl;
+    std::cerr << "Error registering service: " << e.what() << std::endl;
     return -1;
   }
   WaitForKillEvent();

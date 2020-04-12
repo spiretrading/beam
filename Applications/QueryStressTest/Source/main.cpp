@@ -1,8 +1,8 @@
+#include <atomic>
 #include <cstdlib>
 #include <iostream>
 #include <random>
 #include <string>
-#include <boost/atomic.hpp>
 #include <boost/date_time.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
@@ -39,17 +39,16 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 
 namespace {
   using ApplicationClientBuilder = ServiceProtocolClientBuilder<
-    MessageProtocol<unique_ptr<LocalClientChannel<SharedBuffer>>,
+    MessageProtocol<std::unique_ptr<LocalClientChannel<SharedBuffer>>,
     BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
   using ApplicationClientHandler =
     ServiceProtocolClientHandler<ApplicationClientBuilder>;
   using ServerClient = ServiceProtocolClient<
-    MessageProtocol<unique_ptr<LocalServerChannel<SharedBuffer>>,
-    BinarySender<SharedBuffer>, NullEncoder>, unique_ptr<TriggerTimer>>;
+    MessageProtocol<std::unique_ptr<LocalServerChannel<SharedBuffer>>,
+    BinarySender<SharedBuffer>, NullEncoder>, std::unique_ptr<TriggerTimer>>;
 
   struct Data {
     int m_value;
@@ -93,23 +92,23 @@ namespace {
 
     private:
       struct DataEntry {
-        unique_ptr<LiveTimer> m_timer;
+        std::unique_ptr<LiveTimer> m_timer;
         int m_index;
         Queries::Sequence m_sequence;
 
-        DataEntry(unique_ptr<LiveTimer> timer, int index)
-            : m_timer(std::move(timer)),
-              m_index(index),
-              m_sequence(Queries::Sequence::First()) {}
+        DataEntry(std::unique_ptr<LiveTimer> timer, int index)
+          : m_timer(std::move(timer)),
+            m_index(index),
+            m_sequence(Queries::Sequence::First()) {}
       };
       template<typename T>
       using Subscriptions = IndexedSubscriptions<T, int, ServiceProtocolClient>;
       Subscriptions<Data> m_dataSubscriptions;
       LocalDataStore<DataQuery, Data, EvaluatorTranslator<QueryTypes>>
         m_dataStore;
-      boost::atomic_bool m_timerState;
+      std::atomic_bool m_timerState;
       TimerThreadPool m_timerThreadPool;
-      vector<unique_ptr<DataEntry>> m_dataEntries;
+      std::vector<std::unique_ptr<DataEntry>> m_dataEntries;
       OpenState m_openState;
       RoutineTaskQueue m_taskQueue;
 
@@ -131,7 +130,7 @@ namespace {
 
   template<typename ContainerType>
   DataServlet<ContainerType>::DataServlet()
-      : m_timerState(true) {}
+    : m_timerState(true) {}
 
   template<typename ContainerType>
   void DataServlet<ContainerType>::RegisterServices(
@@ -158,13 +157,13 @@ namespace {
     if(m_openState.SetOpening()) {
       return;
     }
-    auto rd = random_device();
-    auto randomizer = default_random_engine(rd());
+    auto rd = std::random_device();
+    auto randomizer = std::default_random_engine(rd());
     auto distribution = std::uniform_int_distribution<std::uint64_t>();
     for(auto i = 0; i < 200; ++i) {
       auto interval = milliseconds(10 * (rand() % 100));
-      auto entry = make_unique<DataEntry>(
-        make_unique<LiveTimer>(interval, Ref(m_timerThreadPool)), i);
+      auto entry = std::make_unique<DataEntry>(
+        std::make_unique<LiveTimer>(interval, Ref(m_timerThreadPool)), i);
       entry->m_timer->GetPublisher().Monitor(m_taskQueue.GetSlot<Timer::Result>(
         std::bind(&DataServlet::OnExpiry, this, std::placeholders::_1,
         std::ref(*entry))));
@@ -236,18 +235,18 @@ namespace {
 
   using DataServletContainer = ServiceProtocolServletContainer<MetaDataServlet,
     LocalServerConnection<SharedBuffer>*, BinarySender<SharedBuffer>,
-    NullEncoder, unique_ptr<TriggerTimer>>;
+    NullEncoder, std::unique_ptr<TriggerTimer>>;
 }
 
 int main() {
   auto server = LocalServerConnection<SharedBuffer>();
   auto servlet = DataServletContainer(Initialize(), &server,
     [] {
-      return make_unique<TriggerTimer>();
+      return std::make_unique<TriggerTimer>();
     });
   auto routines = RoutineHandlerGroup();
   auto timerThreadPool = TimerThreadPool();
-  auto count = boost::atomic_int(0);
+  auto count = std::atomic_int(0);
   routines.Spawn(
     [&] {
       while(!ReceivedKillEvent()) {
@@ -257,15 +256,15 @@ int main() {
           routines.Spawn(
             [&] {
               ++count;
-              cout << "Start: " << count << endl;
+              std::cout << "Start: " << count << std::endl;
               auto clientHandler = ApplicationClientHandler(
                 Initialize(
                 [&] {
-                  return make_unique<LocalClientChannel<SharedBuffer>>(
+                  return std::make_unique<LocalClientChannel<SharedBuffer>>(
                     "dummy", Ref(server));
                 },
                 [] {
-                  return make_unique<TriggerTimer>();
+                  return std::make_unique<TriggerTimer>();
                 }));
               RegisterQueryTypes(Store(clientHandler.GetSlots().GetRegistry()));
               RegisterQueryServices(Store(clientHandler.GetSlots()));
@@ -289,7 +288,7 @@ int main() {
                 timer.Wait();
               }
               --count;
-              cout << "Stop: " << count << endl;
+              std::cout << "Stop: " << count << std::endl;
               clientHandler.Close();
             });
         }
@@ -301,5 +300,5 @@ int main() {
   routines.Wait();
   servlet.Close();
   routines.Wait();
-  cout << "Done" << endl;
+  std::cout << "Done" << std::endl;
 }

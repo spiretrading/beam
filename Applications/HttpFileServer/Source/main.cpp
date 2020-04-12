@@ -18,7 +18,6 @@ using namespace Beam::Threading;
 using namespace Beam::WebServices;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -27,49 +26,51 @@ namespace {
 
   struct ServerConnectionInitializer {
     IpAddress m_interface;
-    vector<IpAddress> m_addresses;
+    std::vector<IpAddress> m_addresses;
 
     void Initialize(const YAML::Node& config);
   };
 
   void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
     m_interface = Extract<IpAddress>(config, "interface");
-    vector<IpAddress> addresses;
+    auto addresses = std::vector<IpAddress>();
     addresses.push_back(m_interface);
-    m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
+    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
+      addresses);
   }
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd("", ' ', "0.9-r" HTTP_FILE_SERVER_VERSION
+    auto cmd = CmdLine("", ' ', "0.9-r" HTTP_FILE_SERVER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(const ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  SocketThreadPool socketThreadPool;
-  TimerThreadPool timerThreadPool;
-  ServerConnectionInitializer serverConnectionInitializer;
+  auto socketThreadPool = SocketThreadPool();
+  auto timerThreadPool = TimerThreadPool();
+  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
   } catch(const std::exception& e) {
-    cerr << "Error parsing section 'server': " << e.what() << endl;
+    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  HttpFileServletContainer server{Initialize(),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool))};
+  auto server = HttpFileServletContainer(Initialize(),
+    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
   try {
     server.Open();
   } catch(const std::exception& e) {
-    cerr << "Error opening server: " << e.what() << endl;
+    std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;
   }
   WaitForKillEvent();

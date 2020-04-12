@@ -16,7 +16,11 @@
 #include "Beam/Utilities/Singleton.hpp"
 
 #ifndef BEAM_SCHEDULER_DEFAULT_STACK_SIZE
-  #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 131072
+  #ifdef _WIN32
+    #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 131072
+  #else
+    #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 1048576
+  #endif
 #endif
 
 namespace Beam {

@@ -4,11 +4,10 @@
 #include <tclap/CmdLine.h>
 #include <boost/optional/optional.hpp>
 #include "Beam/Sql/MySqlConfig.hpp"
-#include "Beam/Threading/ThreadPool.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
+#include "DataStoreProfiler/AsyncDataStore.hpp"
 #include "DataStoreProfiler/BufferedDataStore.hpp"
-#include "DataStoreProfiler/SessionCachedDataStore.hpp"
 #include "DataStoreProfiler/Entry.hpp"
 #include "DataStoreProfiler/MySqlDataStore.hpp"
 #include "Version.hpp"
@@ -18,7 +17,6 @@ using namespace Beam::Queries;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -34,7 +32,7 @@ namespace {
   };
 
   ProfileConfig ParseProfileConfig(const YAML::Node& config) {
-    ProfileConfig profileConfig;
+    auto profileConfig = ProfileConfig();
     profileConfig.m_indexCount = Extract<int>(config, "index_count");
     profileConfig.m_seedCount = Extract<int>(config, "seed_count");
     profileConfig.m_growthFactor = Extract<int>(config, "growth_factor");
@@ -43,14 +41,14 @@ namespace {
     profileConfig.m_startTime = Extract<ptime>(config, "start_time");
     profileConfig.m_timeStep = Extract<time_duration>(config, "time_step");
     for(auto i = 0; i < profileConfig.m_indexCount; ++i) {
-      std::string name;
+      auto name = std::string();
       do {
         name.clear();
         for(auto j = 0; j < 4; ++j) {
           name += 'A' + static_cast<char>(rand() % 26);
         }
       } while(std::find(profileConfig.m_names.begin(),
-          profileConfig.m_names.end(), name) != profileConfig.m_names.end());
+        profileConfig.m_names.end(), name) != profileConfig.m_names.end());
       profileConfig.m_names.push_back(name);
     }
     return profileConfig;
@@ -61,11 +59,11 @@ namespace {
     dataStore.Open();
     dataStore.Clear();
     auto start = boost::posix_time::microsec_clock::universal_time();
-    int groups = static_cast<int>(std::ceil(std::log2(
+    auto groups = static_cast<int>(std::ceil(std::log2(
       static_cast<double>(config.m_indexCount) / config.m_seedCount)));
-    int range = static_cast<int>(std::pow(2, groups));
+    auto range = static_cast<int>(std::pow(2, groups));
     auto timestamp = config.m_startTime;
-    unordered_map<std::string, Queries::Sequence> sequences;
+    auto sequences = std::unordered_map<std::string, Queries::Sequence>();
     for(auto i = 0; i < config.m_iterations; ++i) {
       auto group = std::abs(
         static_cast<int>(std::log2(1 + (std::rand() % range))) - (groups - 1));
@@ -77,12 +75,12 @@ namespace {
       if(index > config.m_indexCount) {
         index = lowerIndex + (index - config.m_indexCount);
       }
-      Entry entry{config.m_names[index], rand() % 100, rand() % 10000000,
+      auto entry = Entry{config.m_names[index], rand() % 100, rand() % 10000000,
         rand() % 10000000, "dummy", timestamp};
       auto& sequence = sequences[entry.m_name];
       sequence = Increment(sequence);
-      auto sequencedIndexedEntry = SequencedValue(IndexedValue(
-        entry, entry.m_name), sequence);
+      auto sequencedIndexedEntry = SequencedValue(IndexedValue(entry,
+        entry.m_name), sequence);
       dataStore.Store(sequencedIndexedEntry);
       timestamp += config.m_timeStep;
     }
@@ -106,7 +104,7 @@ namespace {
         (endTimestamp - config.m_startTime).total_milliseconds());
       auto endTime = startTime + milliseconds(rand() %
         (endTimestamp - startTime).total_milliseconds());
-      EntryQuery query;
+      auto query = EntryQuery();
       query.SetIndex(name);
       query.SetRange(startTime, endTime);
       query.SetSnapshotLimit(SnapshotLimit::Unlimited());
@@ -119,46 +117,62 @@ namespace {
     auto rate = config.m_iterations / elapsed.total_seconds();
     std::cout << "ProfileReads: " << (end - start) << " " << rate << std::endl;
   }
+
+  void ProfileBufferedDataStore(const MySqlConfig& mySqlConfig,
+      const ProfileConfig& profileConfig) {
+    auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+      mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+    auto dataStore = Beam::BufferedDataStore(&mysqlDataStore,
+      profileConfig.m_bufferSize);
+    std::cout << "BufferedDataStore" << std::endl;
+    ProfileWrites(dataStore, profileConfig);
+    ProfileReads(dataStore, profileConfig);
+  }
+
+  void ProfileAsyncDataStore(const MySqlConfig& mySqlConfig,
+      const ProfileConfig& profileConfig) {
+    auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+      mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+    auto dataStore = Beam::AsyncDataStore(&mysqlDataStore);
+    std::cout << "AsyncDataStore" << std::endl;
+    ProfileWrites(dataStore, profileConfig);
+    ProfileReads(dataStore, profileConfig);
+  }
 }
 
 int main(int argc, const char** argv) {
   std::srand(static_cast<unsigned int>(std::time(nullptr)));
-  string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd("", ' ', "1.0-r" DATA_STORE_PROFILER_VERSION
+    auto cmd = CmdLine("", ' ', "1.0-r" DATA_STORE_PROFILER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(const ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  ThreadPool threadPool;
-  ProfileConfig profileConfig;
+  auto profileConfig = ProfileConfig();
   try {
     profileConfig = ParseProfileConfig(config);
   } catch(const  std::exception& e) {
-    cerr << "Unable to parse config: " << e.what() << endl;
+    std::cerr << "Unable to parse config: " << e.what() << std::endl;
     return -1;
   }
-  MySqlConfig mySqlConfig;
+  auto mySqlConfig = MySqlConfig();
   try {
     mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));
   } catch(const std::exception& e) {
-    cerr << "Error parsing section 'data_store': " << e.what() << endl;
+    std::cerr << "Error parsing section 'data_store': " << e.what() <<
+      std::endl;
     return -1;
   }
-  MySqlDataStore mysqlDataStore{mySqlConfig.m_address, mySqlConfig.m_schema,
-    mySqlConfig.m_username, mySqlConfig.m_password};
-  Beam::BufferedDataStore<MySqlDataStore*> bufferedDataStore{&mysqlDataStore,
-    profileConfig.m_bufferSize, Ref(threadPool)};
-  Beam::SessionCachedDataStore<Beam::BufferedDataStore<MySqlDataStore*>*>
-    sessionCachedDataStore{&bufferedDataStore, 1000000};
-  ProfileWrites(bufferedDataStore, profileConfig);
-  ProfileReads(bufferedDataStore, profileConfig);
+  ProfileBufferedDataStore(mySqlConfig, profileConfig);
+  ProfileAsyncDataStore(mySqlConfig, profileConfig);
   return 0;
 }

@@ -1,5 +1,5 @@
-#ifndef BEAM_DATASTOREPROFILER_SESSIONCACHEDDATASTORE_HPP
-#define BEAM_DATASTOREPROFILER_SESSIONCACHEDDATASTORE_HPP
+#ifndef BEAM_DATA_STORE_PROFILER_SESSION_CACHED_DATASTORE_HPP
+#define BEAM_DATA_STORE_PROFILER_SESSION_CACHED_DATASTORE_HPP
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/Pointers/Dereference.hpp>
 #include <Beam/Queries/SessionCachedDataStore.hpp>
@@ -52,12 +52,16 @@ namespace Beam {
       void Shutdown();
   };
 
+  template<typename BaseDataStoreForward>
+  SessionCachedDataStore(BaseDataStoreForward&&, int) ->
+    SessionCachedDataStore<std::remove_reference_t<BaseDataStoreForward>>;
+
   template<typename BaseDataStoreType>
   template<typename BaseDataStoreForward>
   SessionCachedDataStore<BaseDataStoreType>::SessionCachedDataStore(
-      BaseDataStoreForward&& dataStore, int blockSize)
-      : m_dataStore{std::forward<BaseDataStoreForward>(dataStore)},
-        m_cachedDataStore{&*m_dataStore, blockSize} {}
+    BaseDataStoreForward&& dataStore, int blockSize)
+    : m_dataStore(std::forward<BaseDataStoreForward>(dataStore)),
+      m_cachedDataStore(&*m_dataStore, blockSize) {}
 
   template<typename BaseDataStoreType>
   SessionCachedDataStore<BaseDataStoreType>::~SessionCachedDataStore() {

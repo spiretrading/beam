@@ -1,9 +1,9 @@
-#ifndef BEAM_DATA_STORE_PROFILER_BUFFERED_DATA_STORE_HPP
-#define BEAM_DATA_STORE_PROFILER_BUFFERED_DATA_STORE_HPP
+#ifndef BEAM_DATA_STORE_PROFILER_ASYNC_DATA_STORE_HPP
+#define BEAM_DATA_STORE_PROFILER_ASYNC_DATA_STORE_HPP
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/Pointers/Dereference.hpp>
 #include <Beam/Pointers/Ref.hpp>
-#include <Beam/Queries/BufferedDataStore.hpp>
+#include <Beam/Queries/AsyncDataStore.hpp>
 #include <Beam/Queries/EvaluatorTranslator.hpp>
 #include <boost/noncopyable.hpp>
 #include "DataStoreProfiler/DataStoreQueryWrapper.hpp"
@@ -11,27 +11,24 @@
 
 namespace Beam {
 
-  /** Buffers writes to an underlying data store.
+  /** Performs asyncronous writes to an underlying data store.
       \tparam BaseDataStoreType The underlying data store to commit the data to.
    */
   template<typename BaseDataStoreType>
-  class BufferedDataStore : private boost::noncopyable {
+  class AsyncDataStore : private boost::noncopyable {
     public:
 
       //! The type of DataStore to buffer.
       using BaseDataStore = GetTryDereferenceType<BaseDataStoreType>;
 
-      //! Constructs a BufferedDataStore.
+      //! Constructs an AsyncDataStore.
       /*!
         \param dataStore Initializes the data store to commit data to.
-        \param bufferSize The number of messages to buffer before committing to
-               to the <i>dataStore</i>.
       */
       template<typename BaseDataStoreForward>
-      BufferedDataStore(BaseDataStoreForward&& dataStore,
-        std::size_t bufferSize);
+      AsyncDataStore(BaseDataStoreForward&& dataStore);
 
-      ~BufferedDataStore();
+      ~AsyncDataStore();
 
       void Clear();
 
@@ -47,54 +44,54 @@ namespace Beam {
 
     private:
       GetOptionalLocalPtr<BaseDataStoreType> m_dataStore;
-      Queries::BufferedDataStore<DataStoreQueryWrapper<BaseDataStore*>,
-        Queries::EvaluatorTranslator<Queries::QueryTypes>> m_bufferedDataStore;
+      Queries::AsyncDataStore<DataStoreQueryWrapper<BaseDataStore*>,
+        Queries::EvaluatorTranslator<Queries::QueryTypes>> m_asyncDataStore;
       IO::OpenState m_openState;
 
       void Shutdown();
   };
 
   template<typename BaseDataStoreForward>
-  BufferedDataStore(BaseDataStoreForward&&, std::size_t) ->
-    BufferedDataStore<std::remove_reference_t<BaseDataStoreForward>>;
+  AsyncDataStore(BaseDataStoreForward&&) ->
+    AsyncDataStore<std::remove_reference_t<BaseDataStoreForward>>;
 
   template<typename BaseDataStoreType>
   template<typename BaseDataStoreForward>
-  BufferedDataStore<BaseDataStoreType>::BufferedDataStore(
-    BaseDataStoreForward&& dataStore, std::size_t bufferSize)
+  AsyncDataStore<BaseDataStoreType>::AsyncDataStore(
+    BaseDataStoreForward&& dataStore)
     : m_dataStore(std::forward<BaseDataStoreForward>(dataStore)),
-      m_bufferedDataStore(&*m_dataStore, bufferSize) {}
+      m_asyncDataStore(&*m_dataStore) {}
 
   template<typename BaseDataStoreType>
-  BufferedDataStore<BaseDataStoreType>::~BufferedDataStore() {
+  AsyncDataStore<BaseDataStoreType>::~AsyncDataStore() {
     Close();
   }
 
   template<typename BaseDataStoreType>
-  void BufferedDataStore<BaseDataStoreType>::Clear() {
+  void AsyncDataStore<BaseDataStoreType>::Clear() {
     m_dataStore->Clear();
   }
 
   template<typename BaseDataStoreType>
-  std::vector<SequencedEntry> BufferedDataStore<BaseDataStoreType>::LoadEntries(
+  std::vector<SequencedEntry> AsyncDataStore<BaseDataStoreType>::LoadEntries(
       const EntryQuery& query) {
-    return m_bufferedDataStore.Load(query);
+    return m_asyncDataStore.Load(query);
   }
 
   template<typename BaseDataStoreType>
-  void BufferedDataStore<BaseDataStoreType>::Store(
+  void AsyncDataStore<BaseDataStoreType>::Store(
       const SequencedIndexedEntry& entry) {
-    m_bufferedDataStore.Store(entry);
+    m_asyncDataStore.Store(entry);
   }
 
   template<typename BaseDataStoreType>
-  void BufferedDataStore<BaseDataStoreType>::Open() {
+  void AsyncDataStore<BaseDataStoreType>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
     try {
       m_dataStore->Open();
-      m_bufferedDataStore.Open();
+      m_asyncDataStore.Open();
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();
@@ -103,7 +100,7 @@ namespace Beam {
   }
 
   template<typename BaseDataStoreType>
-  void BufferedDataStore<BaseDataStoreType>::Close() {
+  void AsyncDataStore<BaseDataStoreType>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
@@ -111,8 +108,8 @@ namespace Beam {
   }
 
   template<typename BaseDataStoreType>
-  void BufferedDataStore<BaseDataStoreType>::Shutdown() {
-    m_bufferedDataStore.Close();
+  void AsyncDataStore<BaseDataStoreType>::Shutdown() {
+    m_asyncDataStore.Close();
     m_dataStore->Close();
     m_openState.SetClosed();
   }

@@ -16,35 +16,34 @@
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/StackPrint.hpp"
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
 
-  /*! \class ScheduledRoutine
-      \brief A Routine that executes within a Scheduler.
-  */
+  /* Implements a Routine that executes within a Scheduler. */
   class ScheduledRoutine : public Routine {
     public:
 
-      //! Returns the Scheduler this Routine runs through.
+      /** Returns the Scheduler this Routine runs through. */
       Details::Scheduler& GetScheduler() const;
 
-      //! Returns the id of the context this Routine is running in.
+      /** Returns the id of the context this Routine is running in. */
       std::size_t GetContextId() const;
 
-      //! Continues execution of this Routine from its last defer point or from
-      //! the beginning if it has not yet executed.
+      /**
+       * Continues execution of this Routine from its last defer point or from
+       * the beginning if it has not yet executed.
+       */
       void Continue();
 
     protected:
 
-      //! Constructs a ScheduledRoutine.
-      /*!
-        \param contextId The id of the Context to run in, or set to the number
-               of threads in the Scheduler to assign it an arbitrary context
-               id.
-        \param stackSize The size of the stack to allocate.
-        \param scheduler The Scheduler this Routine will execute through.
-      */
+      /**
+       * Constructs a ScheduledRoutine.
+       * @param contextId The id of the Context to run in, or set to the number
+       *        of threads in the Scheduler to assign it an arbitrary context
+       *        id.
+       * @param stackSize The size of the stack to allocate.
+       * @param scheduler The Scheduler this Routine will execute through.
+       */
       ScheduledRoutine(std::size_t contextId, std::size_t stackSize,
         Ref<Details::Scheduler> scheduler);
 
@@ -58,12 +57,15 @@ namespace Routines {
 
     private:
       friend class Details::Scheduler;
-      std::size_t m_contextId;
       bool m_isPendingResume;
+      std::size_t m_stackSize;
       Details::Scheduler* m_scheduler;
+      std::size_t m_contextId;
       boost::context::continuation m_continuation;
       boost::context::continuation m_parent;
+      #ifndef NDEBUG
       std::string m_stackPrint;
+      #endif
 
       bool IsPendingResume() const;
       void SetPendingResume(bool value);
@@ -84,7 +86,8 @@ namespace Routines {
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
       SetState(State::RUNNING);
-      m_continuation = boost::context::callcc(
+      m_continuation = boost::context::callcc(std::allocator_arg,
+        boost::context::fixedsize_stack(m_stackSize),
         [=] (boost::context::continuation&& parent) {
           return InitializeRoutine(std::move(parent));
         });
@@ -97,8 +100,9 @@ namespace Routines {
 
   inline ScheduledRoutine::ScheduledRoutine(std::size_t contextId,
       std::size_t stackSize, Ref<Details::Scheduler> scheduler)
-      : m_scheduler{scheduler.Get()},
-        m_isPendingResume{false} {
+      : m_isPendingResume(false),
+        m_stackSize(stackSize),
+        m_scheduler(scheduler.Get()) {
     if(contextId == boost::thread::hardware_concurrency()) {
       m_contextId = GetId() % boost::thread::hardware_concurrency();
     } else {
@@ -153,7 +157,6 @@ namespace Routines {
     SetState(State::COMPLETE);
     return std::move(m_parent);
   }
-}
 }
 
 #endif

@@ -235,29 +235,23 @@ namespace Details {
 }
 
   template<typename F>
-  Routine::Id Spawn(F&& f) {
-    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE);
-  }
-
-  template<typename F>
-  Routine::Id Spawn(F&& f, std::size_t stackSize) {
-    return Spawn(std::forward<F>(f), stackSize, -1);
-  }
-
-  template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize, std::size_t contextId) {
     return Details::Scheduler::GetInstance().Spawn(std::forward<F>(f),
       stackSize, contextId);
   }
 
   template<typename F>
-  Routine::Id Spawn(F&& f, Eval<std::decay_t<decltype(f())>> result) {
-    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
-      std::move(result));
+  Routine::Id Spawn(F&& f, std::size_t stackSize) {
+    return Spawn(std::forward<F>(f), stackSize, static_cast<std::size_t>(-1));
   }
 
   template<typename F>
-  Routine::Id Spawn(F&& f, std::size_t stackSize,
+  Routine::Id Spawn(F&& f) {
+    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE);
+  }
+
+  template<typename F>
+  Routine::Id Spawn(F&& f, std::size_t stackSize, std::size_t contextId,
       Eval<std::decay_t<decltype(f())>> result) {
     return Spawn(
       [f = std::forward<F>(f), result = std::move(result)] {
@@ -266,7 +260,20 @@ namespace Details {
         } catch(...) {
           result.SetException(std::current_exception());
         }
-      }, stackSize);
+      }, stackSize, contextId);
+  }
+
+  template<typename F>
+  Routine::Id Spawn(F&& f, std::size_t stackSize,
+      Eval<std::decay_t<decltype(f())>> result) {
+    return Spawn(std::forward<F>(f), stackSize, static_cast<std::size_t>(-1),
+      std::move(result));
+  }
+
+  template<typename F>
+  Routine::Id Spawn(F&& f, Eval<std::decay_t<decltype(f())>> result) {
+    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
+      std::move(result));
   }
 
   inline void Wait(Routine::Id id) {

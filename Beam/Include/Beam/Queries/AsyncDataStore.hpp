@@ -226,6 +226,12 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::Shutdown() {
+    auto writeToken = Routines::Async<void>();
+    m_tasks.Push(
+      [&] {
+        writeToken.GetEval().SetResult();
+      });
+    writeToken.Get();
     m_openState.SetClosed();
   }
 

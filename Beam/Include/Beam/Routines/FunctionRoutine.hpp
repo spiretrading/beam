@@ -18,14 +18,14 @@ namespace Routines {
       //! Constructs a FunctionRoutine.
       /*!
         \param function The callable object to run.
-        \param contextId The id of the Context to run in, or set to the number
-               of threads in the Scheduler to assign it an arbitrary context id.
+        \param contextId The id of the Context to run in, or -1 to assign it an
+                         arbitrary context id.
         \param stackSize The size of the stack to allocate.
         \param scheduler The Scheduler this Routine runs through.
       */
       template<typename FunctionForward>
-      FunctionRoutine(FunctionForward&& function, std::size_t contextId,
-        std::size_t stackSize, Ref<Details::Scheduler> scheduler);
+      FunctionRoutine(FunctionForward&& function, std::size_t stackSize,
+        std::size_t contextId, Ref<Details::Scheduler> scheduler);
 
     protected:
       void Execute() override;
@@ -37,10 +37,10 @@ namespace Routines {
   template<typename F>
   template<typename FunctionForward>
   FunctionRoutine<F>::FunctionRoutine(FunctionForward&& function,
-      std::size_t contextId, std::size_t stackSize,
-      Ref<Details::Scheduler> scheduler)
-      : ScheduledRoutine(contextId, stackSize, Ref(scheduler)),
-          m_function(std::forward<FunctionForward>(function)) {}
+    std::size_t stackSize, std::size_t contextId,
+    Ref<Details::Scheduler> scheduler)
+    : ScheduledRoutine(stackSize, contextId, Ref(scheduler)),
+        m_function(std::forward<FunctionForward>(function)) {}
 
   template<typename F>
   void FunctionRoutine<F>::Execute() {

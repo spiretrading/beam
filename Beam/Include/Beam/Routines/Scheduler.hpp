@@ -55,23 +55,6 @@ namespace Details {
       //! Spawns a Routine from a callable object.
       /*!
         \param f The callable object to run within the Routine.
-        \return A unique ID used to identify the Routine.
-      */
-      template<typename F>
-      Routine::Id Spawn(F&& f);
-
-      //! Spawns a Routine from a callable object.
-      /*!
-        \param f The callable object to run within the Routine.
-        \param stackSize The size of the stack to allocate for the Routine.
-        \return A unique ID used to identify the Routine.
-      */
-      template<typename F>
-      Routine::Id Spawn(F&& f, std::size_t stackSize);
-
-      //! Spawns a Routine from a callable object.
-      /*!
-        \param f The callable object to run within the Routine.
         \param stackSize The size of the stack to allocate for the Routine.
         \param contextId The specific context id to run the Routine in, or
                set to the number of threads to assign it an arbitrary context.
@@ -156,20 +139,10 @@ namespace Details {
   }
 
   template<typename F>
-  Routine::Id Scheduler::Spawn(F&& f) {
-    return Spawn(std::forward<F>(f), DEFAULT_STACK_SIZE);
-  }
-
-  template<typename F>
-  Routine::Id Scheduler::Spawn(F&& f, std::size_t stackSize) {
-    return Spawn(std::forward<F>(f), DEFAULT_STACK_SIZE, m_threadCount);
-  }
-
-  template<typename F>
   Routine::Id Scheduler::Spawn(F&& f, std::size_t stackSize,
       std::size_t contextId) {
-    auto routine = new FunctionRoutine<std::decay_t<F>>{std::forward<F>(f),
-      contextId, stackSize, Ref(*this)};
+    auto routine = new FunctionRoutine<std::decay_t<F>>(std::forward<F>(f),
+      stackSize, contextId, Ref(*this));
     auto id = routine->GetId();
     Threading::With(m_routineIds,
       [&] (auto& routineIds) {
@@ -263,13 +236,12 @@ namespace Details {
 
   template<typename F>
   Routine::Id Spawn(F&& f) {
-    return Details::Scheduler::GetInstance().Spawn(std::forward<F>(f));
+    return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE);
   }
 
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize) {
-    return Details::Scheduler::GetInstance().Spawn(std::forward<F>(f),
-      stackSize);
+    return Spawn(std::forward<F>(f), stackSize, -1);
   }
 
   template<typename F>

@@ -1,5 +1,5 @@
-#ifndef BEAM_BUFFEREDDATASTORE_HPP
-#define BEAM_BUFFEREDDATASTORE_HPP
+#ifndef BEAM_BUFFERED_DATA_STORE_HPP
+#define BEAM_BUFFERED_DATA_STORE_HPP
 #include <algorithm>
 #include <memory>
 #include <vector>
@@ -14,55 +14,49 @@
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/ThreadPool.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class BufferedDataStore
-      \brief Buffers writes to a data store.
-      \tparam DataStoreType The type of data store to buffer writes to.
-      \tparam EvaluatorTranslatorFilterType The type of EvaluatorTranslator used
-              for filtering values.
+  /**
+   * Buffers writes to a data store.
+   * @param <D> The type of data store to buffer writes to.
+   * @param <E> The type of EvaluatorTranslator used for filtering values.
    */
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType =
-    typename TryDereferenceType<DataStoreType>::type::EvaluatorTranslatorFilter>
+  template<typename D, typename E =
+    typename GetTryDereferenceType<D>::EvaluatorTranslatorFilter>
   class BufferedDataStore : private boost::noncopyable {
     public:
 
-      //! The type of data store to buffer writes to.
-      using DataStore = GetTryDereferenceType<DataStoreType>;
+      /** The type of data store to buffer writes to. */
+      using DataStore = GetTryDereferenceType<D>;
 
-      //! The type of query used to load values.
+      /** The type of query used to load values. */
       using Query = typename DataStore::Query;
 
-      //! The type of index used.
+      /** The type of index used. */
       using Index = typename DataStore::Index;
 
-      //! The type of value to store.
+      /** The type of value to store. */
       using Value = typename DataStore::Value;
 
-      //! The SequencedValue to store.
+      /** The SequencedValue to store. */
       using SequencedValue = typename DataStore::SequencedValue;
 
-      //! The IndexedValue to store.
+      /** The IndexedValue to store. */
       using IndexedValue = typename DataStore::IndexedValue;
 
-      //! The type of EvaluatorTranslator used for filtering values.
-      using EvaluatorTranslatorFilter = EvaluatorTranslatorFilterType;
+      /** The type of EvaluatorTranslator used for filtering values. */
+      using EvaluatorTranslatorFilter = E;
 
-      //! Constructs a BufferedDataStore.
-      /*!
-        \param dataStore Initializes the data store to buffer data to.
-        \param bufferSize The number of messages to buffer before committing to
-               to the <i>dataStore</i>.
-        \param threadPool The ThreadPool to queue the writes to.
-      */
-      template<typename DataStoreForward>
-      BufferedDataStore(DataStoreForward&& dataStore, std::size_t bufferSize,
-        Ref<Threading::ThreadPool> threadPool);
+      /**
+       * Constructs a BufferedDataStore.
+       * @param dataStore Initializes the data store to buffer data to.
+       * @param bufferSize The number of messages to buffer before committing to
+       *        to the <i>dataStore</i>.
+       */
+      template<typename DS>
+      BufferedDataStore(DS&& dataStore, std::size_t bufferSize);
 
       ~BufferedDataStore();
 
@@ -80,12 +74,11 @@ namespace Queries {
       using ReserveDataStore = LocalDataStore<Query, Value,
         EvaluatorTranslatorFilter>;
       mutable boost::mutex m_mutex;
-      GetOptionalLocalPtr<DataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       std::size_t m_bufferSize;
       std::size_t m_bufferCount;
       std::shared_ptr<ReserveDataStore> m_dataStoreBuffer;
       std::shared_ptr<ReserveDataStore> m_flushedDataStore;
-      Threading::ThreadPool* m_threadPool;
       IO::OpenState m_openState;
       RoutineTaskQueue m_tasks;
 
@@ -94,48 +87,43 @@ namespace Queries {
       void TestFlush();
   };
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  template<typename DataStoreForward>
-  BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      BufferedDataStore(DataStoreForward&& dataStore, std::size_t bufferSize,
-      Ref<Threading::ThreadPool> threadPool)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)),
-        m_bufferSize(bufferSize),
-        m_bufferCount(0),
-        m_dataStoreBuffer(std::make_shared<ReserveDataStore>()),
-        m_flushedDataStore(m_dataStoreBuffer),
-        m_threadPool(threadPool.Get()) {}
+  template<typename D, typename E>
+  template<typename DS>
+  BufferedDataStore<D, E>::BufferedDataStore(DS&& dataStore,
+    std::size_t bufferSize)
+    : m_dataStore(std::forward<DS>(dataStore)),
+      m_bufferSize(bufferSize),
+      m_bufferCount(0),
+      m_dataStoreBuffer(std::make_shared<ReserveDataStore>()),
+      m_flushedDataStore(m_dataStoreBuffer) {}
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      ~BufferedDataStore() {
+  template<typename D, typename E>
+  BufferedDataStore<D, E>::~BufferedDataStore() {
     Close();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  std::vector<typename BufferedDataStore<DataStoreType,
-      EvaluatorTranslatorFilterType>::SequencedValue>
-      BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::Load(
-      const Query& query) {
-    std::shared_ptr<ReserveDataStore> buffer;
+  template<typename D, typename E>
+  std::vector<typename BufferedDataStore<D, E>::SequencedValue>
+      BufferedDataStore<D, E>::Load(const Query& query) {
+    auto buffer = std::shared_ptr<ReserveDataStore>();
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       buffer = m_flushedDataStore;
     }
-    std::vector<SequencedValue> matches;
+    auto matches = std::vector<SequencedValue>();
     if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
       matches = m_dataStore->Load(query);
     } else {
       matches = buffer->Load(query);
     }
     if(static_cast<int>(matches.size()) < query.GetSnapshotLimit().GetSize()) {
-      std::vector<SequencedValue> additionalMatches;
+      auto additionalMatches = std::vector<SequencedValue>();
       if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::HEAD) {
         additionalMatches = buffer->Load(query);
       } else {
         additionalMatches = m_dataStore->Load(query);
       }
-      std::vector<SequencedValue> mergedMatches;
+      auto mergedMatches = std::vector<SequencedValue>();
       MergeWithoutDuplicates(additionalMatches.begin(), additionalMatches.end(),
         matches.begin(), matches.end(), std::back_inserter(mergedMatches),
         SequenceComparator());
@@ -155,26 +143,24 @@ namespace Queries {
     return matches;
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::Store(
-      const IndexedValue& value) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Store(const IndexedValue& value) {
+    auto lock = boost::lock_guard(m_mutex);
     ++m_bufferCount;
     m_dataStoreBuffer->Store(value);
     TestFlush();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::Store(
-      const std::vector<IndexedValue>& values) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Store(const std::vector<IndexedValue>& values) {
+    auto lock = boost::lock_guard(m_mutex);
     m_bufferCount += values.size();
     m_dataStoreBuffer->Store(values);
     TestFlush();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::Open() {
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
@@ -188,19 +174,17 @@ namespace Queries {
     m_openState.SetOpen();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      Close() {
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType,
-      EvaluatorTranslatorFilterType>::Shutdown() {
-    Routines::Async<void> writeToken;
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Shutdown() {
+    auto writeToken = Routines::Async<void>();
     m_tasks.Push(
       [&] {
         Flush();
@@ -210,39 +194,31 @@ namespace Queries {
     m_openState.SetClosed();
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      TestFlush() {
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::TestFlush() {
     if(m_bufferCount < m_bufferSize) {
       return;
     }
     m_bufferCount = 0;
     m_tasks.Push(
       [=] {
-        Routines::Async<void> writeToken;
-        m_threadPool->Queue(
-          [=] {
-            Flush();
-          }, writeToken.GetEval());
-        writeToken.Get();
+        Flush();
       });
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void BufferedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
-      Flush() {
+  template<typename D, typename E>
+  void BufferedDataStore<D, E>::Flush() {
     auto dataStore = std::make_shared<ReserveDataStore>();
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       dataStore.swap(m_dataStoreBuffer);
     }
     m_dataStore->Store(dataStore->LoadAll());
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       m_flushedDataStore = m_dataStoreBuffer;
     }
   }
-}
 }
 
 #endif

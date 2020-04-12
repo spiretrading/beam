@@ -22,22 +22,20 @@ namespace {
     int m_value;
     ptime m_timestamp;
 
-    Entry();
+    Entry() = default;
     Entry(int value, ptime timestamp);
     bool operator ==(const Entry& rhs) const;
   };
 
-  typedef LocalDataStore<BasicQuery<string>, Entry,
-    EvaluatorTranslator<QueryTypes>> TestLocalDataStore;
-  typedef BufferedDataStore<TestLocalDataStore> DataStore;
-  typedef SequencedValue<Entry> SequencedEntry;
-  typedef SequencedValue<IndexedValue<Entry, string>> SequencedIndexedEntry;
-
-  Entry::Entry() {}
+  using TestLocalDataStore = LocalDataStore<BasicQuery<string>, Entry,
+    EvaluatorTranslator<QueryTypes>>;
+  using DataStore = BufferedDataStore<TestLocalDataStore>;
+  using SequencedEntry = SequencedValue<Entry>;
+  using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry, string>>;
 
   Entry::Entry(int value, ptime timestamp)
-      : m_value(value),
-        m_timestamp(timestamp) {}
+    : m_value(value),
+      m_timestamp(timestamp) {}
 
   bool Entry::operator ==(const Entry& rhs) const {
     return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
@@ -57,7 +55,7 @@ namespace {
   void TestQuery(DataStore& dataStore, string index,
       const Beam::Queries::Range& range, const SnapshotLimit& limit,
       const std::vector<SequencedEntry>& expectedResult) {
-    BasicQuery<string> query;
+    auto query = BasicQuery<string>();
     query.SetIndex(index);
     query.SetRange(range);
     query.SetSnapshotLimit(limit);
@@ -67,18 +65,17 @@ namespace {
 }
 
 void BufferedDataStoreTester::TestStoreAndLoad() {
-  ThreadPool threadPool(1);
-  DataStore dataStore(Initialize(), 10, Ref(threadPool));
-  IncrementalTimeClient timeClient;
-  Beam::Queries::Sequence sequence(5);
-  SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,
-    timeClient.GetTime(), sequence);
+  auto dataStore = DataStore(Initialize(), 10);
+  auto timeClient = IncrementalTimeClient();
+  auto sequence = Beam::Queries::Sequence(5);
+  auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryB = StoreValue(dataStore, "hello", 200,
-    timeClient.GetTime(), sequence);
+  auto entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 300,
-    timeClient.GetTime(), sequence);
+  auto entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
+    sequence);
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -104,24 +101,22 @@ void BufferedDataStoreTester::TestStoreAndLoad() {
 }
 
 void BufferedDataStoreTester::TestHeadSpanningLoad() {
-  TestLocalDataStore localDataStore;
-  ThreadPool threadPool(1);
-  BufferedDataStore<TestLocalDataStore*> dataStore(&localDataStore, 10,
-    Ref(threadPool));
-  IncrementalTimeClient timeClient;
-  Beam::Queries::Sequence sequence(5);
-  SequencedIndexedEntry entryA = StoreValue(localDataStore, "hello", 100,
-    timeClient.GetTime(), sequence);
+  auto localDataStore = TestLocalDataStore();
+  auto dataStore = BufferedDataStore<TestLocalDataStore*>(&localDataStore, 10);
+  auto timeClient = IncrementalTimeClient();
+  auto sequence = Beam::Queries::Sequence(5);
+  auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryB = StoreValue(localDataStore, "hello", 101,
-    timeClient.GetTime(), sequence);
+  auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
+    sequence);
   dataStore.Store(entryB);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 102,
-    timeClient.GetTime(), sequence);
+  auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryD = StoreValue(dataStore, "hello", 103,
-    timeClient.GetTime(), sequence);
+  auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit::Unlimited(), {entryA, entryB, entryC, entryD});
@@ -137,24 +132,22 @@ void BufferedDataStoreTester::TestHeadSpanningLoad() {
 }
 
 void BufferedDataStoreTester::TestTailSpanningLoad() {
-  TestLocalDataStore localDataStore;
-  ThreadPool threadPool(1);
-  BufferedDataStore<TestLocalDataStore*> dataStore(&localDataStore, 10,
-    Ref(threadPool));
-  IncrementalTimeClient timeClient;
-  Beam::Queries::Sequence sequence(5);
-  SequencedIndexedEntry entryA = StoreValue(localDataStore, "hello", 100,
-    timeClient.GetTime(), sequence);
+  auto localDataStore = TestLocalDataStore();
+  auto dataStore = BufferedDataStore<TestLocalDataStore*>(&localDataStore, 10);
+  auto timeClient = IncrementalTimeClient();
+  auto sequence = Beam::Queries::Sequence(5);
+  auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryB = StoreValue(localDataStore, "hello", 101,
-    timeClient.GetTime(), sequence);
+  auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
+    sequence);
   dataStore.Store(entryB);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 102,
-    timeClient.GetTime(), sequence);
+  auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
-  SequencedIndexedEntry entryD = StoreValue(dataStore, "hello", 103,
-    timeClient.GetTime(), sequence);
+  auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
+    sequence);
   sequence = Increment(sequence);
   TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
     SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryD});

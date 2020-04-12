@@ -3,6 +3,7 @@
 #include <cppunit/TestResult.h>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
+#include "Beam/QueriesTests/AsyncDataStoreTester.hpp"
 #include "Beam/QueriesTests/BufferedDataStoreTester.hpp"
 #include "Beam/QueriesTests/CachedDataStoreTester.hpp"
 #include "Beam/QueriesTests/ConstantEvaluatorNodeTester.hpp"
@@ -79,6 +80,7 @@ int main() {
   runner.addTest(BufferedDataStoreTester::suite());
   runner.addTest(CachedDataStoreTester::suite());
   runner.addTest(SessionCachedDataStoreTester::suite());
+  runner.addTest(AsyncDataStoreTester::suite());
   runner.addTest(ExpressionSubscriptionsTester::suite());
   runner.addTest(SqlDataStoreTester::suite());
   runner.addTest(SqlTranslatorTester::suite());

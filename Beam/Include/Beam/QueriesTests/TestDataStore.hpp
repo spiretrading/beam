@@ -95,6 +95,30 @@ namespace Beam::Queries::Tests {
       void Shutdown();
   };
 
+  /**
+   * Opens a TestDataStore.
+   * @param dataStore - The TestDataStore to open.
+   */
+  template<typename Q, typename V>
+  void Open(TestDataStore<Q, V>& dataStore) {
+    auto operations = std::make_shared<
+      Queue<std::shared_ptr<typename TestDataStore<Q, V>::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    Routines::Spawn(
+      [&] {
+        while(true) {
+          auto operation = operations->Top();
+          operations->Pop();
+          if(auto openOperation = std::get_if<
+              typename TestDataStore<Q, V>::OpenOperation>(&*operation)) {
+            openOperation->m_result.SetResult();
+            break;
+          }
+        }
+      });
+    dataStore.Open();
+  }
+
   template<typename Q, typename V>
   TestDataStore<Q, V>::~TestDataStore() {
     Close();

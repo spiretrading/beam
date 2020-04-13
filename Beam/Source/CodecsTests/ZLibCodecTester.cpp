@@ -1,32 +1,32 @@
-#include "Beam/CodecsTests/ZLibCodecTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;
-using namespace Beam::Codecs::Tests;
 using namespace Beam::IO;
-using namespace std;
 
-void ZLibCodecTester::TestEmptyMessage() {
-  ZLibEncoder encoder;
-  auto message = BufferFromString<SharedBuffer>("");
-  SharedBuffer encodedBuffer;
-  auto encodeSize = encoder.Encode(message, Store(encodedBuffer));
-  ZLibDecoder decoder;
-  SharedBuffer decodedBuffer;
-  auto decodedSize = decoder.Decode(encodedBuffer, Store(decodedBuffer));
-  CPPUNIT_ASSERT(decodedBuffer == message);
-}
+TEST_SUITE("ZLibCodec") {
+  TEST_CASE("empty_message") {
+    auto encoder = ZLibEncoder();
+    auto message = BufferFromString<SharedBuffer>("");
+    auto encodedBuffer = SharedBuffer();
+    auto encodeSize = encoder.Encode(message, Store(encodedBuffer));
+    auto decoder = ZLibDecoder();
+    auto decodedBuffer = SharedBuffer();
+    auto decodedSize = decoder.Decode(encodedBuffer, Store(decodedBuffer));
+    REQUIRE(decodedBuffer == message);
+  }
 
-void ZLibCodecTester::TestSimpleMessage() {
-  ZLibEncoder encoder;
-  auto message = BufferFromString<SharedBuffer>("hello world");
-  SharedBuffer encodedBuffer;
-  auto encodeSize = encoder.Encode(message, Store(encodedBuffer));
-  ZLibDecoder decoder;
-  SharedBuffer decodedBuffer;
-  auto decodedSize = decoder.Decode(encodedBuffer, Store(decodedBuffer));
-  CPPUNIT_ASSERT(decodedBuffer == message);
+  TEST_CASE("simple_message") {
+    auto encoder = ZLibEncoder();
+    auto message = BufferFromString<SharedBuffer>("hello world");
+    auto encodedBuffer = SharedBuffer();
+    auto encodeSize = encoder.Encode(message, Store(encodedBuffer));
+    auto decoder = ZLibDecoder();
+    auto decodedBuffer = SharedBuffer();
+    auto decodedSize = decoder.Decode(encodedBuffer, Store(decodedBuffer));
+    REQUIRE(decodedBuffer == message);
+  }
 }

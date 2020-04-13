@@ -1,8 +1,7 @@
 #ifndef BEAM_CODECS_HPP
 #define BEAM_CODECS_HPP
 
-namespace Beam {
-namespace Codecs {
+namespace Beam::Codecs {
   template<typename BufferType, typename SourceReaderType, typename DecoderType>
     class CodedReader;
   template<typename DestinationWriterType, typename EncoderType>
@@ -18,7 +17,6 @@ namespace Codecs {
   template<typename EncoderType> class SizeDeclarativeEncoder;
   class ZLibDecoder;
   class ZLibEncoder;
-}
 }
 
 #endif

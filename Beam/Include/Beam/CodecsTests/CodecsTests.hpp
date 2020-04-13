@@ -1,20 +1,9 @@
-#ifndef BEAM_CODECSTESTS_HPP
-#define BEAM_CODECSTESTS_HPP
+#ifndef BEAM_CODECS_TESTS_HPP
+#define BEAM_CODECS_TESTS_HPP
 
-namespace Beam {
-namespace Codecs {
-namespace Tests {
-  class CodedReaderTester;
-  class CodedWriterTester;
-  class NullDecoderTester;
-  class NullEncoderTester;
+namespace Beam::Codecs::Tests {
   class ReverseDecoder;
   class ReverseEncoder;
-  class SizeDeclarativeDecoderTester;
-  class SizeDeclarativeEncoderTester;
-  class ZLibCodecTester;
-}
-}
 }
 
 #endif

@@ -1,4 +1,4 @@
-#include "Beam/CodecsTests/CodedReaderTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -9,59 +9,60 @@ using namespace Beam;
 using namespace Beam::Codecs;
 using namespace Beam::Codecs::Tests;
 using namespace Beam::IO;
-using namespace std;
 
-void CodedReaderTester::TestEmpty() {
-  CodedReader<SharedBuffer, BufferReader<SharedBuffer>, ReverseDecoder>
-    codedReader(Initialize(BufferFromString<SharedBuffer>("")),
-    ReverseDecoder());
-  SharedBuffer buffer;
-  CPPUNIT_ASSERT_THROW(codedReader.Read(Store(buffer)), EndOfFileException);
-}
+TEST_SUITE("CodedReader") {
+  TEST_CASE("empty") {
+    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
+      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>("")),
+      ReverseDecoder());
+    auto buffer = SharedBuffer();
+    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+  }
 
-void CodedReaderTester::TestSingleByte() {
-  CodedReader<SharedBuffer, BufferReader<SharedBuffer>, ReverseDecoder>
-    codedReader(Initialize(BufferFromString<SharedBuffer>("a")),
-    ReverseDecoder());
-  SharedBuffer buffer;
-  CPPUNIT_ASSERT(codedReader.Read(Store(buffer)) == 1);
-  CPPUNIT_ASSERT(buffer.GetSize() == 1);
-  CPPUNIT_ASSERT(buffer.GetData()[0] == 'a');
-  CPPUNIT_ASSERT_THROW(codedReader.Read(Store(buffer)), EndOfFileException);
-}
+  TEST_CASE("single_byte") {
+    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
+      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>("a")),
+      ReverseDecoder());
+    auto buffer = SharedBuffer();
+    REQUIRE(codedReader.Read(Store(buffer)) == 1);
+    REQUIRE(buffer.GetSize() == 1);
+    REQUIRE(buffer.GetData()[0] == 'a');
+    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+  }
 
-void CodedReaderTester::TestRead() {
-  string message = "hello world";
-  string reverse = "dlrow olleh";
-  CodedReader<SharedBuffer, BufferReader<SharedBuffer>, ReverseDecoder>
-    codedReader(Initialize(BufferFromString<SharedBuffer>(message)),
-    ReverseDecoder());
-  SharedBuffer buffer;
-  CPPUNIT_ASSERT(codedReader.Read(Store(buffer)) ==
-    static_cast<int>(reverse.size()));
-  CPPUNIT_ASSERT(buffer.GetSize() == static_cast<int>(reverse.size()));
-  CPPUNIT_ASSERT(string(buffer.GetData(), buffer.GetSize()) == reverse);
-  CPPUNIT_ASSERT_THROW(codedReader.Read(Store(buffer)), EndOfFileException);
-}
+  TEST_CASE("read") {
+    auto message = std::string("hello world");
+    auto reverse = std::string("dlrow olleh");
+    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
+      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>(message)),
+      ReverseDecoder());
+    auto buffer = SharedBuffer();
+    REQUIRE(codedReader.Read(Store(buffer)) ==
+      static_cast<int>(reverse.size()));
+    REQUIRE(buffer.GetSize() == static_cast<int>(reverse.size()));
+    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == reverse);
+    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+  }
 
-void CodedReaderTester::TestReadSome() {
-  string message = "helloworld";
-  string firstReverse = "dlrow";
-  string secondReverse = "olleh";
-  CodedReader<SharedBuffer, BufferReader<SharedBuffer>, ReverseDecoder>
-    codedReader(Initialize(BufferFromString<SharedBuffer>(message)),
-    ReverseDecoder());
-  SharedBuffer buffer;
-  CPPUNIT_ASSERT(codedReader.Read(Store(buffer),
-    static_cast<int>(firstReverse.size())) ==
-    static_cast<int>(firstReverse.size()));
-  CPPUNIT_ASSERT(buffer.GetSize() == static_cast<int>(firstReverse.size()));
-  CPPUNIT_ASSERT(string(buffer.GetData(), buffer.GetSize()) == firstReverse);
-  buffer.Reset();
-  CPPUNIT_ASSERT(codedReader.Read(Store(buffer),
-    static_cast<int>(secondReverse.size())) ==
-    static_cast<int>(secondReverse.size()));
-  CPPUNIT_ASSERT(buffer.GetSize() == static_cast<int>(secondReverse.size()));
-  CPPUNIT_ASSERT(string(buffer.GetData(), buffer.GetSize()) == secondReverse);
-  CPPUNIT_ASSERT_THROW(codedReader.Read(Store(buffer)), EndOfFileException);
+  TEST_CASE("read_some") {
+    auto message = std::string("helloworld");
+    auto firstReverse = std::string("dlrow");
+    auto secondReverse = std::string("olleh");
+    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
+      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>(message)),
+      ReverseDecoder());
+    auto buffer = SharedBuffer();
+    REQUIRE(codedReader.Read(Store(buffer),
+      static_cast<int>(firstReverse.size())) ==
+      static_cast<int>(firstReverse.size()));
+    REQUIRE(buffer.GetSize() == static_cast<int>(firstReverse.size()));
+    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == firstReverse);
+    buffer.Reset();
+    REQUIRE(codedReader.Read(Store(buffer),
+      static_cast<int>(secondReverse.size())) ==
+      static_cast<int>(secondReverse.size()));
+    REQUIRE(buffer.GetSize() == static_cast<int>(secondReverse.size()));
+    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == secondReverse);
+    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+  }
 }

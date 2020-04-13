@@ -1,50 +1,54 @@
-#include "Beam/IOTests/BufferReaderTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
-using namespace Beam::IO::Tests;
 using namespace boost;
-using namespace std;
 
-void BufferReaderTester::TestCreateEmpty() {
-  BufferReader<SharedBuffer> reader(BufferFromString<SharedBuffer>(""));
-  SharedBuffer buffer;
-  CPPUNIT_ASSERT_THROW(reader.Read(Store(buffer)), EndOfFileException);
-}
+TEST_SUITE("BufferReader") {
+  TEST_CASE("create_empty") {
+    auto reader = BufferReader<SharedBuffer>(
+      BufferFromString<SharedBuffer>(""));
+    auto buffer = SharedBuffer();
+    REQUIRE_THROWS_AS(reader.Read(Store(buffer)), EndOfFileException);
+  }
 
-void BufferReaderTester::TestRead() {
-  string message = "hello world";
-  BufferReader<SharedBuffer> reader(BufferFromString<SharedBuffer>(message));
-  SharedBuffer data;
-  size_t sizeRead = reader.Read(Store(data));
-  CPPUNIT_ASSERT(message.size() == sizeRead);
-  CPPUNIT_ASSERT(data == message);
-}
+  TEST_CASE("read") {
+    auto message = std::string("hello world");
+    auto reader = BufferReader<SharedBuffer>(
+      BufferFromString<SharedBuffer>(message));
+    auto data = SharedBuffer();
+    auto sizeRead = reader.Read(Store(data));
+    REQUIRE(message.size() == sizeRead);
+    REQUIRE(data == message);
+  }
 
-void BufferReaderTester::TestReadSomeToBuffer() {
-  string message = "hello world";
-  BufferReader<SharedBuffer> reader(BufferFromString<SharedBuffer>(message));
-  SharedBuffer data;
-  size_t sizeRead = reader.Read(Store(data), 6);
-  CPPUNIT_ASSERT(sizeRead == 6);
-  CPPUNIT_ASSERT(data == "hello ");
-  data.Reset();
-  sizeRead = reader.Read(Store(data), 5);
-  CPPUNIT_ASSERT(sizeRead == 5);
-  CPPUNIT_ASSERT(data == "world");
-}
+  TEST_CASE("read_some_to_buffer") {
+    auto message = std::string("hello world");
+    auto reader = BufferReader<SharedBuffer>(
+      BufferFromString<SharedBuffer>(message));
+    auto data = SharedBuffer();
+    auto sizeRead = reader.Read(Store(data), 6);
+    REQUIRE(sizeRead == 6);
+    REQUIRE(data == "hello ");
+    data.Reset();
+    sizeRead = reader.Read(Store(data), 5);
+    REQUIRE(sizeRead == 5);
+    REQUIRE(data == "world");
+  }
 
-void BufferReaderTester::TestReadSomeToPointer() {
-  string message = "hello world";
-  BufferReader<SharedBuffer> reader(BufferFromString<SharedBuffer>(message));
-  unique_ptr<char[]> data(new char[message.size()]);
-  size_t sizeRead = reader.Read(data.get(), 6);
-  CPPUNIT_ASSERT(sizeRead == 6);
-  CPPUNIT_ASSERT(strncmp(data.get(), "hello ", 6) == 0);
-  sizeRead = reader.Read(data.get(), 5);
-  CPPUNIT_ASSERT(sizeRead == 5);
-  CPPUNIT_ASSERT(strncmp(data.get(), "world", 5) == 0);
+  TEST_CASE("read_some_to_pointer") {
+    auto message = std::string("hello world");
+    auto reader = BufferReader<SharedBuffer>(
+      BufferFromString<SharedBuffer>(message));
+    auto data = std::make_unique<char[]>(message.size());
+    auto sizeRead = reader.Read(data.get(), 6);
+    REQUIRE(sizeRead == 6);
+    REQUIRE(strncmp(data.get(), "hello ", 6) == 0);
+    sizeRead = reader.Read(data.get(), 5);
+    REQUIRE(sizeRead == 5);
+    REQUIRE(strncmp(data.get(), "world", 5) == 0);
+  }
 }

@@ -1,4 +1,3 @@
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/CollectionsTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/CollectionsTests/*.cpp)
 
 if(MSVC)
@@ -6,12 +5,6 @@ if(MSVC)
 endif()
 
 add_executable(CollectionsTests ${header_files} ${source_files})
-set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(CollectionsTests
-  debug ${CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized ${CPPUNIT_LIBRARY_OPTIMIZED_PATH}
-  debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
-  optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
 
 if(UNIX)
   target_link_libraries(CollectionsTests

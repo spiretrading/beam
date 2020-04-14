@@ -1,6 +1,6 @@
 #ifndef BEAM_COLLECTIONS_HPP
 #define BEAM_COLLECTIONS_HPP
-#include <cstdint>
+#include <cstddef>
 
 namespace Beam {
   template<typename T> class AnyIterator;

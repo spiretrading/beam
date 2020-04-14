@@ -166,7 +166,9 @@ namespace Beam::Python {
       .def(pybind11::self != pybind11::self);
     pybind11::implicitly_convertible<T, Queries::Value>();
     module.def("make_value",
-      &Queries::MakeNativeValue<const typename T::Type::Type&>);
+      [] (const typename T::Type::Type& value) {
+        return &Queries::NativeValue(value);
+      });
   }
 
   /**

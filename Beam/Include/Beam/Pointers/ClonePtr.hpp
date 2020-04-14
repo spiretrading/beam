@@ -51,14 +51,16 @@ namespace Beam {
       /*!
         \param object The ClonePtr to clone.
       */
-      template<typename U, typename UC>
+      template<typename U, typename UC,
+        typename = std::enable_if_t<std::is_base_of_v<T, U>>>
       ClonePtr(const ClonePtr<U, UC>& object);
 
       //! Clones an object into a ClonePtr.
       /*!
         \param object The object to clone.
       */
-      template<typename U>
+      template<typename U,
+        typename = std::enable_if_t<std::is_base_of_v<T, U>>>
       ClonePtr(const U& object);
 
       //! Assigns a ClonePtr by cloning it.
@@ -71,7 +73,8 @@ namespace Beam {
       /*!
         \param object The ClonePtr to clone.
       */
-      template<typename U, typename UC>
+      template<typename U, typename UC,
+        typename = std::enable_if_t<std::is_base_of_v<T, U>>>
       ClonePtr& operator =(const ClonePtr<U, UC>& object);
 
       //! Converts this object to another type.
@@ -246,13 +249,13 @@ namespace Beam {
       : m_object(Cloner()(*object)) {}
 
   template<typename T, typename ClonerType>
-  template<typename U, typename UC>
+  template<typename U, typename UC, typename>
   ClonePtr<T, ClonerType>::ClonePtr(const ClonePtr<U, UC>& object)
       : m_object(static_cast<T*>(
           typename ClonePtr<U, UC>::Cloner()(*object))) {}
 
   template<typename T, typename ClonerType>
-  template<typename U>
+  template<typename U, typename>
   ClonePtr<T, ClonerType>::ClonePtr(const U& object)
       : m_object(static_cast<T*>(Cloner()(object))) {}
 
@@ -267,7 +270,7 @@ namespace Beam {
   }
 
   template<typename T, typename ClonerType>
-  template<typename U, typename UC>
+  template<typename U, typename UC, typename>
   ClonePtr<T, ClonerType>& ClonePtr<T, ClonerType>::operator =(
       const ClonePtr<U, UC>& object) {
     m_object.reset(static_cast<T*>(

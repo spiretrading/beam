@@ -1,26 +1,26 @@
-#include "Beam/QueriesTests/NativeDataTypeTester.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include "Beam/Queries/NativeDataType.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void NativeDataTypeTester::TestInt() {
-  NativeDataType<int> nativeType;
-  CPPUNIT_ASSERT(nativeType.GetNativeType() == typeid(int));
-  DataType type(nativeType);
-  CPPUNIT_ASSERT(type->GetNativeType() == typeid(int));
-  CPPUNIT_ASSERT(type == nativeType);
-  CPPUNIT_ASSERT(type != NativeDataType<string>());
-}
+TEST_SUITE("NativeDataType") {
+  TEST_CASE("int") {
+    auto nativeType = NativeDataType<int>();
+    REQUIRE(nativeType.GetNativeType() == typeid(int));
+    auto type = DataType(nativeType);
+    REQUIRE(type->GetNativeType() == typeid(int));
+    REQUIRE(type == nativeType);
+    REQUIRE(type != NativeDataType<std::string>());
+  }
 
-void NativeDataTypeTester::TestString() {
-  NativeDataType<string> nativeType;
-  CPPUNIT_ASSERT(nativeType.GetNativeType() == typeid(string));
-  DataType type(nativeType);
-  CPPUNIT_ASSERT(type->GetNativeType() == typeid(string));
-  CPPUNIT_ASSERT(type == nativeType);
-  CPPUNIT_ASSERT(type != NativeDataType<int>());
+  TEST_CASE("string") {
+    auto nativeType = NativeDataType<std::string>();
+    REQUIRE(nativeType.GetNativeType() == typeid(std::string));
+    auto type = DataType(nativeType);
+    REQUIRE(type->GetNativeType() == typeid(std::string));
+    REQUIRE(type == nativeType);
+    REQUIRE(type != NativeDataType<int>());
+  }
 }

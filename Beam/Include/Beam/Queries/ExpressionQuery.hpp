@@ -74,8 +74,8 @@ namespace Queries {
   }
 
   inline ExpressionQuery::ExpressionQuery()
-      : m_updatePolicy{UpdatePolicy::ALL},
-        m_expression{MakeConstantExpression(true)} {}
+    : m_updatePolicy(UpdatePolicy::ALL),
+      m_expression(ConstantExpression(true)) {}
 
   inline ExpressionQuery::ExpressionQuery(const Expression& expression)
       : m_updatePolicy{UpdatePolicy::ALL},

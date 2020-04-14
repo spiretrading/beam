@@ -1,3 +1,4 @@
+#include <doctest/doctest.h>
 #include "Beam/QueriesTests/TestDataStoreTester.hpp"
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/IO/ConnectException.hpp"
@@ -55,141 +56,143 @@ namespace {
     auto operation = operations->Top();
     operations->Pop();
     auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
-    CPPUNIT_ASSERT(openOperation);
+    REQUIRE(openOperation);
     openOperation->m_result.SetResult();
-    CPPUNIT_ASSERT_NO_THROW(result.Get());
+    REQUIRE_NO_THROW(result.Get());
   }
 }
 
-void TestDataStoreTester::TestOpenException() {
-  auto dataStore = DataStore();
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-  dataStore.GetOperationPublisher().Monitor(operations);
-  auto result = Async<void>();
-  auto openRoutine = RoutineHandler(Spawn(
-    [&] {
-      try {
-        dataStore.Open();
-        result.GetEval().SetResult();
-      } catch(const std::exception&) {
-        result.GetEval().SetException(std::current_exception());
-      }
-    }));
-  auto operation = operations->Top();
-  operations->Pop();
-  auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
-  CPPUNIT_ASSERT(openOperation);
-  openOperation->m_result.SetException(ConnectException());
-  CPPUNIT_ASSERT_THROW(result.Get(), ConnectException);
-}
-
-void TestDataStoreTester::TestStore() {
-  auto dataStore = DataStore();
-  Open(dataStore);
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-  dataStore.GetOperationPublisher().Monitor(operations);
-  auto result = Async<void>();
-  auto storeRoutine = RoutineHandler(Spawn(
-    [&] {
-      try {
-        dataStore.Store(SequencedValue(IndexedValue(
-          Entry(123, ptime(date(2018, 5, 3))), std::string("hello")),
-          Sequence(110)));
-        result.GetEval().SetResult();
-      } catch(const std::exception&) {
-        result.GetEval().SetException(std::current_exception());
-      }
-    }));
-  auto operation = operations->Top();
-  operations->Pop();
-  auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
-  CPPUNIT_ASSERT(storeOperation);
-  storeOperation->m_result.SetResult();
-  CPPUNIT_ASSERT_NO_THROW(result.Get());
-}
-
-void TestDataStoreTester::TestStoreException() {
-  auto dataStore = DataStore();
-  Open(dataStore);
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-  dataStore.GetOperationPublisher().Monitor(operations);
-  auto result = Async<void>();
-  auto storeRoutine = RoutineHandler(Spawn(
-    [&] {
-      try {
-        dataStore.Store(SequencedValue(IndexedValue(
-          Entry(123, ptime(date(2018, 5, 3))), std::string("hello")),
-          Sequence(110)));
-        result.GetEval().SetResult();
-      } catch(const std::exception&) {
-        result.GetEval().SetException(std::current_exception());
-      }
-    }));
-  auto operation = operations->Top();
-  operations->Pop();
-  auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
-  CPPUNIT_ASSERT(storeOperation);
-  storeOperation->m_result.SetException(std::runtime_error("Store failed."));
-  CPPUNIT_ASSERT_THROW(result.Get(), std::runtime_error);
-}
-
-void TestDataStoreTester::TestLoad() {
-  auto dataStore = DataStore();
-  Open(dataStore);
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-  dataStore.GetOperationPublisher().Monitor(operations);
-  auto result = Async<std::vector<SequencedEntry>>();
-  auto query = BasicQuery<std::string>();
-  query.SetIndex("index");
-  query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-  auto loadRoutine = RoutineHandler(Spawn(
-    [&] {
-      try {
-        result.GetEval().SetResult(dataStore.Load(query));
-      } catch(const std::exception&) {
-        result.GetEval().SetException(std::current_exception());
-      }
-    }));
-  auto operation = operations->Top();
-  operations->Pop();
-  auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
-  CPPUNIT_ASSERT(loadOperation);
-  auto series = std::vector<SequencedEntry>();
-  for(auto i = 0; i < 10; ++i) {
-    series.push_back(SequencedValue(IndexedValue(
-      Entry(i, ptime(date(2018, i % 13 + 1, 3))), std::string("hello")),
-      Sequence(i + 100)));
+TEST_SUITE("TestDataStore") {
+  TEST_CASE("open_exception") {
+    auto dataStore = DataStore();
+    auto operations =
+      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    auto result = Async<void>();
+    auto openRoutine = RoutineHandler(Spawn(
+      [&] {
+        try {
+          dataStore.Open();
+          result.GetEval().SetResult();
+        } catch(const std::exception&) {
+          result.GetEval().SetException(std::current_exception());
+        }
+      }));
+    auto operation = operations->Top();
+    operations->Pop();
+    auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
+    REQUIRE(openOperation);
+    openOperation->m_result.SetException(ConnectException());
+    REQUIRE_THROWS_AS(result.Get(), ConnectException);
   }
-  loadOperation->m_result.SetResult(series);
-  CPPUNIT_ASSERT(result.Get() == series);
-}
 
-void TestDataStoreTester::TestLoadException() {
-  auto dataStore = DataStore();
-  Open(dataStore);
-  auto operations =
-    std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-  dataStore.GetOperationPublisher().Monitor(operations);
-  auto result = Async<std::vector<SequencedEntry>>();
-  auto query = BasicQuery<std::string>();
-  query.SetIndex("index");
-  query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-  auto loadRoutine = RoutineHandler(Spawn(
-    [&] {
-      try {
-        result.GetEval().SetResult(dataStore.Load(query));
-      } catch(const std::exception&) {
-        result.GetEval().SetException(std::current_exception());
-      }
-    }));
-  auto operation = operations->Top();
-  operations->Pop();
-  auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
-  CPPUNIT_ASSERT(loadOperation);
-  loadOperation->m_result.SetException(std::runtime_error("Load failed."));
-  CPPUNIT_ASSERT_THROW(result.Get(), std::runtime_error);
+  TEST_CASE("store") {
+    auto dataStore = DataStore();
+    Open(dataStore);
+    auto operations =
+      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    auto result = Async<void>();
+    auto storeRoutine = RoutineHandler(Spawn(
+      [&] {
+        try {
+          dataStore.Store(SequencedValue(IndexedValue(
+            Entry(123, ptime(date(2018, 5, 3))), std::string("hello")),
+            Sequence(110)));
+          result.GetEval().SetResult();
+        } catch(const std::exception&) {
+          result.GetEval().SetException(std::current_exception());
+        }
+      }));
+    auto operation = operations->Top();
+    operations->Pop();
+    auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
+    REQUIRE(storeOperation);
+    storeOperation->m_result.SetResult();
+    REQUIRE_NO_THROW(result.Get());
+  }
+
+  TEST_CASE("store_exception") {
+    auto dataStore = DataStore();
+    Open(dataStore);
+    auto operations =
+      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    auto result = Async<void>();
+    auto storeRoutine = RoutineHandler(Spawn(
+      [&] {
+        try {
+          dataStore.Store(SequencedValue(IndexedValue(
+            Entry(123, ptime(date(2018, 5, 3))), std::string("hello")),
+            Sequence(110)));
+          result.GetEval().SetResult();
+        } catch(const std::exception&) {
+          result.GetEval().SetException(std::current_exception());
+        }
+      }));
+    auto operation = operations->Top();
+    operations->Pop();
+    auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
+    REQUIRE(storeOperation);
+    storeOperation->m_result.SetException(std::runtime_error("Store failed."));
+    REQUIRE_THROWS_AS(result.Get(), std::runtime_error);
+  }
+
+  TEST_CASE("load") {
+    auto dataStore = DataStore();
+    Open(dataStore);
+    auto operations =
+      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    auto result = Async<std::vector<SequencedEntry>>();
+    auto query = BasicQuery<std::string>();
+    query.SetIndex("index");
+    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+    auto loadRoutine = RoutineHandler(Spawn(
+      [&] {
+        try {
+          result.GetEval().SetResult(dataStore.Load(query));
+        } catch(const std::exception&) {
+          result.GetEval().SetException(std::current_exception());
+        }
+      }));
+    auto operation = operations->Top();
+    operations->Pop();
+    auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
+    REQUIRE(loadOperation);
+    auto series = std::vector<SequencedEntry>();
+    for(auto i = 0; i < 10; ++i) {
+      series.push_back(SequencedValue(IndexedValue(
+        Entry(i, ptime(date(2018, i % 13 + 1, 3))), std::string("hello")),
+        Sequence(i + 100)));
+    }
+    loadOperation->m_result.SetResult(series);
+    REQUIRE(result.Get() == series);
+  }
+
+  TEST_CASE("load_exception") {
+    auto dataStore = DataStore();
+    Open(dataStore);
+    auto operations =
+      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
+    dataStore.GetOperationPublisher().Monitor(operations);
+    auto result = Async<std::vector<SequencedEntry>>();
+    auto query = BasicQuery<std::string>();
+    query.SetIndex("index");
+    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+    auto loadRoutine = RoutineHandler(Spawn(
+      [&] {
+        try {
+          result.GetEval().SetResult(dataStore.Load(query));
+        } catch(const std::exception&) {
+          result.GetEval().SetException(std::current_exception());
+        }
+      }));
+    auto operation = operations->Top();
+    operations->Pop();
+    auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
+    REQUIRE(loadOperation);
+    loadOperation->m_result.SetException(std::runtime_error("Load failed."));
+    REQUIRE_THROWS_AS(result.Get(), std::runtime_error);
+  }
 }

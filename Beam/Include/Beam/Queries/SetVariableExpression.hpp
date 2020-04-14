@@ -81,7 +81,7 @@ namespace Queries {
   }
 
   inline SetVariableExpression::SetVariableExpression()
-      : m_value(MakeConstantExpression(false)) {}
+      : m_value(ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void SetVariableExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

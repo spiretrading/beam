@@ -61,7 +61,7 @@ namespace Queries {
   }
 
   inline FilteredQuery::FilteredQuery()
-      : m_filter{MakeConstantExpression(true)} {}
+    : m_filter(ConstantExpression(true)) {}
 
   inline FilteredQuery::FilteredQuery(const Expression& filter)
       : m_filter{filter} {
@@ -95,7 +95,7 @@ namespace Serialization {
       shuttle.Shuttle("filter", value.m_filter);
       if(IsReceiver<Shuttler>::value) {
         if(value.m_filter->GetType()->GetNativeType() != typeid(bool)) {
-          value.m_filter = Queries::MakeConstantExpression(false);
+          value.m_filter = Queries::ConstantExpression(false);
           BOOST_THROW_EXCEPTION(
             SerializationException("Filter is not boolean."));
         }

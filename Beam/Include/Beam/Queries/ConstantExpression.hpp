@@ -24,6 +24,14 @@ namespace Queries {
       */
       ConstantExpression(const Value& value);
 
+      //! Constructs a ConstantExpression representing a native value.
+      /*!
+        \param value The native value to evaluate to.
+      */
+      template<typename T,
+        typename = std::enable_if_t<!std::is_constructible_v<Value, T>>>
+      ConstantExpression(const T& value);
+
       //! Copies a ConstantExpression.
       /*!
         \param expression The ConstantExpression to copy.
@@ -49,17 +57,12 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  //! Builds a ConstantExpression representing a value.
-  /*!
-    \param value The value the ConstantExpression will evaluate to.
-  */
-  template<typename T>
-  ConstantExpression MakeConstantExpression(T&& value) {
-    return ConstantExpression(MakeNativeValue(std::forward<T>(value)));
-  }
-
   inline ConstantExpression::ConstantExpression(const Value& value)
-      : m_value(value) {}
+    : m_value(value) {}
+
+  template<typename T, typename>
+  ConstantExpression::ConstantExpression(const T& value)
+    : ConstantExpression(NativeValue(value)) {}
 
   inline const Value& ConstantExpression::GetValue() const {
     return m_value;
@@ -78,7 +81,7 @@ namespace Queries {
   }
 
   inline ConstantExpression::ConstantExpression()
-      : m_value(MakeNativeValue(0)) {}
+    : m_value(NativeValue(0)) {}
 
   template<typename Shuttler>
   void ConstantExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

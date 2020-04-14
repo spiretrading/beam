@@ -81,7 +81,7 @@ namespace Queries {
 
   inline MemberAccessExpression::MemberAccessExpression()
       : m_type(BoolType()),
-        m_expression(MakeConstantExpression(false)) {}
+        m_expression(ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void MemberAccessExpression::Shuttle(Shuttler& shuttle,

@@ -68,7 +68,7 @@ namespace Queries {
   inline Expression MakeOrExpression(ForwardIterator first,
       ForwardIterator last) {
     if(first == last) {
-      return MakeConstantExpression(false);
+      return ConstantExpression(false);
     }
     if((*first)->GetType()->GetNativeType() != typeid(bool)) {
       BOOST_THROW_EXCEPTION(TypeCompatibilityException(
@@ -120,8 +120,8 @@ namespace Queries {
   }
 
   inline OrExpression::OrExpression()
-      : m_left{MakeConstantExpression(false)},
-        m_right{MakeConstantExpression(false)} {}
+      : m_left{ConstantExpression(false)},
+        m_right{ConstantExpression(false)} {}
 
   template<typename Shuttler>
   void OrExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

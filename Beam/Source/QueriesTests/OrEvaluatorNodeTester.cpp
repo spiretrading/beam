@@ -1,39 +1,43 @@
-#include "Beam/QueriesTests/OrEvaluatorNodeTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"
 #include "Beam/Queries/OrEvaluatorNode.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void OrEvaluatorNodeTester::TestConstructor() {
-  {
-    OrEvaluatorNode evaluator(std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(false)),
-      std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(false)));
-    CPPUNIT_ASSERT(evaluator.Eval() == false);
-  }
-  {
-    OrEvaluatorNode evaluator(std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(false)),
-      std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(true)));
-    CPPUNIT_ASSERT(evaluator.Eval() == true);
-  }
-  {
-    OrEvaluatorNode evaluator(std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(true)),
-      std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(false)));
-    CPPUNIT_ASSERT(evaluator.Eval() == true);
-  }
-  {
-    OrEvaluatorNode evaluator(std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(true)),
-      std::make_unique<ConstantEvaluatorNode<bool>>(
-      MakeConstantEvaluatorNode(true)));
-    CPPUNIT_ASSERT(evaluator.Eval() == true);
+TEST_SUITE("OrEvaluatorNode") {
+  TEST_CASE("constructor") {
+    {
+      auto evaluator = OrEvaluatorNode(
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(false)),
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(false)));
+      REQUIRE(!evaluator.Eval());
+    }
+    {
+      auto evaluator = OrEvaluatorNode(
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(false)),
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(true)));
+      REQUIRE(evaluator.Eval());
+    }
+    {
+      auto evaluator = OrEvaluatorNode(
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(true)),
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(false)));
+      REQUIRE(evaluator.Eval());
+    }
+    {
+      auto evaluator = OrEvaluatorNode(
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(true)),
+        std::make_unique<ConstantEvaluatorNode<bool>>(
+        ConstantEvaluatorNode(true)));
+      REQUIRE(evaluator.Eval());
+    }
   }
 }

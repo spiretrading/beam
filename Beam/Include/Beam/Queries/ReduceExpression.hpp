@@ -93,9 +93,9 @@ namespace Queries {
   }
 
   inline ReduceExpression::ReduceExpression()
-      : m_reduceExpresssion(MakeConstantExpression(0)),
-        m_seriesExpresssion(MakeConstantExpression(0)),
-        m_initialValue(MakeNativeValue(0)) {}
+      : m_reduceExpresssion(ConstantExpression(0)),
+        m_seriesExpresssion(ConstantExpression(0)),
+        m_initialValue(NativeValue(0)) {}
 
   template<typename Shuttler>
   void ReduceExpression::Shuttle(Shuttler& shuttle, unsigned int version) {

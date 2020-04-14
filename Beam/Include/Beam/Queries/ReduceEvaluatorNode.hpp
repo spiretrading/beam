@@ -33,13 +33,17 @@ namespace Queries {
       Result m_value;
   };
 
+  template<template<typename> class Node, typename T>
+  ReduceEvaluatorNode(std::unique_ptr<Evaluator>, std::unique_ptr<Node<T>>,
+    const typename EvaluatorNode<T>::Result&) -> ReduceEvaluatorNode<T>;
+
   template<typename T>
   ReduceEvaluatorNode<T>::ReduceEvaluatorNode(
-      std::unique_ptr<Evaluator> reducer,
-      std::unique_ptr<EvaluatorNode<T>> series, const Result& initialValue)
-      : m_reducer(std::move(reducer)),
-        m_series(std::move(series)),
-        m_value(initialValue) {}
+    std::unique_ptr<Evaluator> reducer,
+    std::unique_ptr<EvaluatorNode<T>> series, const Result& initialValue)
+    : m_reducer(std::move(reducer)),
+      m_series(std::move(series)),
+      m_value(initialValue) {}
 }
 }
 

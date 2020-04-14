@@ -1,3 +1,4 @@
+#include <doctest/doctest.h>
 #include "Beam/QueriesTests/SqlDataStoreTester.hpp"
 #include <string>
 #include <vector>
@@ -50,7 +51,7 @@ namespace {
     query.SetRange(range);
     query.SetSnapshotLimit(limit);
     auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(expectedResult == queryResult);
+    REQUIRE(expectedResult == queryResult);
   }
 
   auto BuildValueRow() {
@@ -62,47 +63,49 @@ namespace {
   }
 }
 
-void SqlDataStoreTester::TestStoreAndLoad() {
-  auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto connection = std::make_unique<Sqlite3::Connection>(PATH);
-  connection->open();
-  readerPool.Add(std::move(connection));
-  connection = std::make_unique<Sqlite3::Connection>(PATH);
-  connection->open();
-  writerPool.Add(std::move(connection));
-  auto threadPool = ThreadPool();
-  auto dataStore = DataStore("test", BuildValueRow(), BuildIndexRow(),
-    Ref(readerPool), Ref(writerPool), Ref(threadPool));
-  dataStore.Open();
-  auto timeClient = IncrementalTimeClient();
-  auto sequence = Queries::Sequence(5);
-  auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
-    sequence);
-  TestQuery(dataStore, "hello", Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryA});
-}
+TEST_SUITE("SqlDataStore") {
+  TEST_CASE("store_and_load") {
+    auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+    auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+    auto connection = std::make_unique<Sqlite3::Connection>(PATH);
+    connection->open();
+    readerPool.Add(std::move(connection));
+    connection = std::make_unique<Sqlite3::Connection>(PATH);
+    connection->open();
+    writerPool.Add(std::move(connection));
+    auto threadPool = ThreadPool();
+    auto dataStore = DataStore("test", BuildValueRow(), BuildIndexRow(),
+      Ref(readerPool), Ref(writerPool), Ref(threadPool));
+    dataStore.Open();
+    auto timeClient = IncrementalTimeClient();
+    auto sequence = Queries::Sequence(5);
+    auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
+      sequence);
+    TestQuery(dataStore, "hello", Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryA});
+  }
 
-void SqlDataStoreTester::TestEmbeddedIndex() {
-  auto BuildEmbeddedValueRow = [] {
-    return Row<Entry>().add_column("value", &Entry::m_value);
-  };
-  auto BuildEmbeddedIndexRow = [] {
-    return Row<int>().add_column("value");
-  };
-  using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
-    Row<int>, SqlTranslator>;
-  auto connectionPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
-  auto connection = std::make_unique<Sqlite3::Connection>(PATH);
-  connection->open();
-  readerPool.Add(std::move(connection));
-  connection = std::make_unique<Sqlite3::Connection>(PATH);
-  connection->open();
-  writerPool.Add(std::move(connection));
-  auto threadPool = ThreadPool();
-  auto dataStore = EmbeddedDataStore("test", BuildEmbeddedValueRow(),
-    BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool), Ref(threadPool));
-  dataStore.Open();
+  TEST_CASE("embedded_index") {
+    auto BuildEmbeddedValueRow = [] {
+      return Row<Entry>().add_column("value", &Entry::m_value);
+    };
+    auto BuildEmbeddedIndexRow = [] {
+      return Row<int>().add_column("value");
+    };
+    using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection, Row<Entry>,
+      Row<int>, SqlTranslator>;
+    auto connectionPool = DatabaseConnectionPool<Sqlite3::Connection>();
+    auto readerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+    auto writerPool = DatabaseConnectionPool<Sqlite3::Connection>();
+    auto connection = std::make_unique<Sqlite3::Connection>(PATH);
+    connection->open();
+    readerPool.Add(std::move(connection));
+    connection = std::make_unique<Sqlite3::Connection>(PATH);
+    connection->open();
+    writerPool.Add(std::move(connection));
+    auto threadPool = ThreadPool();
+    auto dataStore = EmbeddedDataStore("test", BuildEmbeddedValueRow(),
+      BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool), Ref(threadPool));
+    dataStore.Open();
+  }
 }

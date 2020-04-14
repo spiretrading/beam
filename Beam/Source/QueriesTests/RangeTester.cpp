@@ -1,173 +1,200 @@
-#include "Beam/QueriesTests/RangeTester.hpp"
-#include <boost/type_traits.hpp>
+#include <doctest/doctest.h>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include "Beam/Queries/Range.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
 using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
-using namespace std;
 
-void RangeTester::TestDefaultConstructor() {
-  Range range;
-  CPPUNIT_ASSERT(range.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(range.GetEnd() == Sequence::First());
-}
+TEST_SUITE("Range") {
+  TEST_CASE("default_constructor") {
+    auto range = Range();
+    REQUIRE(range.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(range.GetEnd() == Beam::Queries::Sequence::First());
+  }
 
-void RangeTester::TestEmptyRangeConstructors() {
-  Range negInfinRange(neg_infin, neg_infin);
-  CPPUNIT_ASSERT(negInfinRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(negInfinRange.GetEnd() == Sequence::First());
-  Range invalidStartDateRange(not_a_date_time, Sequence(5));
-  CPPUNIT_ASSERT(invalidStartDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(invalidStartDateRange.GetEnd() == Sequence::First());
-  Range invalidEndDateRange(Sequence(5), not_a_date_time);
-  CPPUNIT_ASSERT(invalidEndDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(invalidEndDateRange.GetEnd() == Sequence::First());
-  Range invalidDateRange(not_a_date_time, not_a_date_time);
-  CPPUNIT_ASSERT(invalidDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(invalidDateRange.GetEnd() == Sequence::First());
-}
+  TEST_CASE("empty_range_constructors") {
+    auto negInfinRange = Range(neg_infin, neg_infin);
+    REQUIRE(negInfinRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(negInfinRange.GetEnd() == Beam::Queries::Sequence::First());
+    auto invalidStartDateRange = Range(not_a_date_time,
+      Beam::Queries::Sequence(5));
+    REQUIRE(invalidStartDateRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(invalidStartDateRange.GetEnd() ==
+      Beam::Queries::Sequence::First());
+    auto invalidEndDateRange = Range(Beam::Queries::Sequence(5),
+      not_a_date_time);
+    REQUIRE(invalidEndDateRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(invalidEndDateRange.GetEnd() == Beam::Queries::Sequence::First());
+    auto invalidDateRange = Range(not_a_date_time, not_a_date_time);
+    REQUIRE(invalidDateRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(invalidDateRange.GetEnd() == Beam::Queries::Sequence::First());
+  }
 
-void RangeTester::TestTotalRangeConstructors() {
-  Range totalDateRange(neg_infin, pos_infin);
-  CPPUNIT_ASSERT(totalDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(totalDateRange.GetEnd() == Sequence::Last());
-  Range totalSequenceRange(Sequence::First(), Sequence::Last());
-  CPPUNIT_ASSERT(totalSequenceRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(totalSequenceRange.GetEnd() == Sequence::Last());
-  Range totalDateSequenceRange(neg_infin, Sequence::Last());
-  CPPUNIT_ASSERT(totalDateSequenceRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(totalDateSequenceRange.GetEnd() == Sequence::Last());
-  Range totalSequenceDateRange(Sequence::First(), pos_infin);
-  CPPUNIT_ASSERT(totalSequenceDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(totalSequenceDateRange.GetEnd() == Sequence::Last());
-}
+  TEST_CASE("total_range_constructors") {
+    auto totalDateRange = Range(neg_infin, pos_infin);
+    REQUIRE(totalDateRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(totalDateRange.GetEnd() == Beam::Queries::Sequence::Last());
+    auto totalSequenceRange = Range(Beam::Queries::Sequence::First(),
+      Beam::Queries::Sequence::Last());
+    REQUIRE(totalSequenceRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(totalSequenceRange.GetEnd() == Beam::Queries::Sequence::Last());
+    auto totalDateSequenceRange = Range(neg_infin,
+      Beam::Queries::Sequence::Last());
+    REQUIRE(totalDateSequenceRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(totalDateSequenceRange.GetEnd() == Beam::Queries::Sequence::Last());
+    auto totalSequenceDateRange = Range(Beam::Queries::Sequence::First(),
+      pos_infin);
+    REQUIRE(totalSequenceDateRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(totalSequenceDateRange.GetEnd() == Beam::Queries::Sequence::Last());
+  }
 
-void RangeTester::TestOutOfOrderConstructors() {
-  Range posToNegRange(pos_infin, neg_infin);
-  CPPUNIT_ASSERT(posToNegRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(posToNegRange.GetEnd() == Sequence::First());
-  Range sequenceRange(Sequence(5), Sequence(4));
-  CPPUNIT_ASSERT(sequenceRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(sequenceRange.GetEnd() == Sequence::First());
-  Range outOfOrderDateRange(ptime(date(2000, Jan, 13)),
-    ptime(date(1999, Jan, 13)));
-  CPPUNIT_ASSERT(outOfOrderDateRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(outOfOrderDateRange.GetEnd() == Sequence::First());
-  Range outOfOrderPosInfinRange(pos_infin, ptime(date(1999, Jan, 13)));
-  CPPUNIT_ASSERT(outOfOrderPosInfinRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(outOfOrderPosInfinRange.GetEnd() == Sequence::First());
-  Range outOfOrderNegInfinRange(ptime(date(1999, Jan, 13)), neg_infin);
-  CPPUNIT_ASSERT(outOfOrderNegInfinRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(outOfOrderNegInfinRange.GetEnd() == Sequence::First());
-}
+  TEST_CASE("out_of_order_constructors") {
+    auto posToNegRange = Range(pos_infin, neg_infin);
+    REQUIRE(posToNegRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(posToNegRange.GetEnd() == Beam::Queries::Sequence::First());
+    auto sequenceRange = Range(Beam::Queries::Sequence(5),
+      Beam::Queries::Sequence(4));
+    REQUIRE(sequenceRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(sequenceRange.GetEnd() == Beam::Queries::Sequence::First());
+    auto outOfOrderDateRange = Range(ptime(date(2000, Jan, 13)),
+      ptime(date(1999, Jan, 13)));
+    REQUIRE(outOfOrderDateRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(outOfOrderDateRange.GetEnd() == Beam::Queries::Sequence::First());
+    auto outOfOrderPosInfinRange = Range(pos_infin, ptime(date(1999, Jan, 13)));
+    REQUIRE(outOfOrderPosInfinRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(outOfOrderPosInfinRange.GetEnd() ==
+      Beam::Queries::Sequence::First());
+    auto outOfOrderNegInfinRange = Range(ptime(date(1999, Jan, 13)), neg_infin);
+    REQUIRE(outOfOrderNegInfinRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(outOfOrderNegInfinRange.GetEnd() ==
+      Beam::Queries::Sequence::First());
+  }
 
-void RangeTester::TestSequenceConstructors() {
-  Range singleRange(Sequence(1), Sequence(1));
-  CPPUNIT_ASSERT(singleRange.GetStart() == Sequence(1));
-  CPPUNIT_ASSERT(singleRange.GetEnd() == Sequence(1));
-  Range openRange(Sequence(1), Sequence(2));
-  CPPUNIT_ASSERT(openRange.GetStart() == Sequence(1));
-  CPPUNIT_ASSERT(openRange.GetEnd() == Sequence(2));
-  Range snapshotRealTimeRange(Sequence(1), Sequence::Last());
-  CPPUNIT_ASSERT(snapshotRealTimeRange.GetStart() == Sequence(1));
-  CPPUNIT_ASSERT(snapshotRealTimeRange.GetEnd() == Sequence::Last());
-  Range snapshotRange(Sequence::First(), Sequence(1));
-  CPPUNIT_ASSERT(snapshotRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(snapshotRange.GetEnd() == Sequence(1));
-}
+  TEST_CASE("sequence_constructors") {
+    auto singleRange = Range(Beam::Queries::Sequence(1),
+      Beam::Queries::Sequence(1));
+    REQUIRE(singleRange.GetStart() == Beam::Queries::Sequence(1));
+    REQUIRE(singleRange.GetEnd() == Beam::Queries::Sequence(1));
+    auto openRange = Range(Beam::Queries::Sequence(1),
+      Beam::Queries::Sequence(2));
+    REQUIRE(openRange.GetStart() == Beam::Queries::Sequence(1));
+    REQUIRE(openRange.GetEnd() == Beam::Queries::Sequence(2));
+    auto snapshotRealTimeRange = Range(Beam::Queries::Sequence(1),
+      Beam::Queries::Sequence::Last());
+    REQUIRE(snapshotRealTimeRange.GetStart() == Beam::Queries::Sequence(1));
+    REQUIRE(snapshotRealTimeRange.GetEnd() == Beam::Queries::Sequence::Last());
+    auto snapshotRange = Range(Beam::Queries::Sequence::First(),
+      Beam::Queries::Sequence(1));
+    REQUIRE(snapshotRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(snapshotRange.GetEnd() == Beam::Queries::Sequence(1));
+  }
 
-void RangeTester::TestDateConstructors() {
-  Range singleRange(ptime(date(1984, May, 6)), ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(singleRange.GetStart() == ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(singleRange.GetEnd() == ptime(date(1984, May, 6)));
-  Range openRange(ptime(date(1984, May, 6)), ptime(date(2014, May, 6)));
-  CPPUNIT_ASSERT(openRange.GetStart() == ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(openRange.GetEnd() == ptime(date(2014, May, 6)));
-  Range snapshotRealTimeRange(ptime(date(2014, May, 6)), pos_infin);
-  CPPUNIT_ASSERT(snapshotRealTimeRange.GetStart() == ptime(date(2014, May, 6)));
-  CPPUNIT_ASSERT(snapshotRealTimeRange.GetEnd() == Sequence::Last());
-  Range snapshotRange(neg_infin, ptime(date(2014, May, 6)));
-  CPPUNIT_ASSERT(snapshotRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(snapshotRange.GetEnd() == ptime(date(2014, May, 6)));
-}
+  TEST_CASE("date_constructors") {
+    auto singleRange = Range(ptime(date(1984, May, 6)),
+      ptime(date(1984, May, 6)));
+    REQUIRE(singleRange.GetStart() == ptime(date(1984, May, 6)));
+    REQUIRE(singleRange.GetEnd() == ptime(date(1984, May, 6)));
+    auto openRange = Range(ptime(date(1984, May, 6)),
+      ptime(date(2014, May, 6)));
+    REQUIRE(openRange.GetStart() == ptime(date(1984, May, 6)));
+    REQUIRE(openRange.GetEnd() == ptime(date(2014, May, 6)));
+    auto snapshotRealTimeRange = Range(ptime(date(2014, May, 6)), pos_infin);
+    REQUIRE(snapshotRealTimeRange.GetStart() == ptime(date(2014, May, 6)));
+    REQUIRE(snapshotRealTimeRange.GetEnd() == Beam::Queries::Sequence::Last());
+    auto snapshotRange = Range(neg_infin, ptime(date(2014, May, 6)));
+    REQUIRE(snapshotRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(snapshotRange.GetEnd() == ptime(date(2014, May, 6)));
+  }
 
-void RangeTester::TestMixedConstructors() {
-  Range dateSequenceRange(ptime(date(1984, May, 6)), Sequence(5));
-  CPPUNIT_ASSERT(dateSequenceRange.GetStart() == ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(dateSequenceRange.GetEnd() == Sequence(5));
-  Range sequenceDateRange(Sequence(5), ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(sequenceDateRange.GetStart() == Sequence(5));
-  CPPUNIT_ASSERT(sequenceDateRange.GetEnd() == ptime(date(1984, May, 6)));
-  Range sequenceDateSnapshotRealTimeRange(Sequence(5), pos_infin);
-  CPPUNIT_ASSERT(sequenceDateSnapshotRealTimeRange.GetStart() == Sequence(5));
-  CPPUNIT_ASSERT(sequenceDateSnapshotRealTimeRange.GetEnd() ==
-    Sequence::Last());
-  Range dateSequenceSnapshotRealTimeRange(ptime(date(1984, May, 6)),
-    Sequence::Last());
-  CPPUNIT_ASSERT(dateSequenceSnapshotRealTimeRange.GetStart() ==
-    ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(dateSequenceSnapshotRealTimeRange.GetEnd() ==
-    Sequence::Last());
-  Range sequenceDateSnapshotRange(Sequence::First(), ptime(date(1984, May, 6)));
-  CPPUNIT_ASSERT(sequenceDateSnapshotRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(sequenceDateSnapshotRange.GetEnd() ==
-    ptime(date(1984, May, 6)));
-  Range dateSequenceSnapshotRange(neg_infin, Sequence(5));
-  CPPUNIT_ASSERT(dateSequenceSnapshotRange.GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(dateSequenceSnapshotRange.GetEnd() == Sequence(5));
-}
+  TEST_CASE("mixed_constructors") {
+    auto dateSequenceRange = Range(ptime(date(1984, May, 6)),
+      Beam::Queries::Sequence(5));
+    REQUIRE(dateSequenceRange.GetStart() == ptime(date(1984, May, 6)));
+    REQUIRE(dateSequenceRange.GetEnd() == Beam::Queries::Sequence(5));
+    auto sequenceDateRange = Range(Beam::Queries::Sequence(5),
+      ptime(date(1984, May, 6)));
+    REQUIRE(sequenceDateRange.GetStart() == Beam::Queries::Sequence(5));
+    REQUIRE(sequenceDateRange.GetEnd() == ptime(date(1984, May, 6)));
+    auto sequenceDateSnapshotRealTimeRange = Range(Beam::Queries::Sequence(5),
+      pos_infin);
+    REQUIRE(sequenceDateSnapshotRealTimeRange.GetStart() ==
+      Beam::Queries::Sequence(5));
+    REQUIRE(sequenceDateSnapshotRealTimeRange.GetEnd() ==
+      Beam::Queries::Sequence::Last());
+    auto dateSequenceSnapshotRealTimeRange = Range(ptime(date(1984, May, 6)),
+      Beam::Queries::Sequence::Last());
+    REQUIRE(dateSequenceSnapshotRealTimeRange.GetStart() ==
+      ptime(date(1984, May, 6)));
+    REQUIRE(dateSequenceSnapshotRealTimeRange.GetEnd() ==
+      Beam::Queries::Sequence::Last());
+    auto sequenceDateSnapshotRange = Range(Beam::Queries::Sequence::First(),
+      ptime(date(1984, May, 6)));
+    REQUIRE(sequenceDateSnapshotRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(sequenceDateSnapshotRange.GetEnd() ==
+      ptime(date(1984, May, 6)));
+    auto dateSequenceSnapshotRange = Range(neg_infin,
+      Beam::Queries::Sequence(5));
+    REQUIRE(dateSequenceSnapshotRange.GetStart() ==
+      Beam::Queries::Sequence::First());
+    REQUIRE(dateSequenceSnapshotRange.GetEnd() == Beam::Queries::Sequence(5));
+  }
 
-void RangeTester::TestEmptyRangeValue() {
-  CPPUNIT_ASSERT(Range::Empty().GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(Range::Empty().GetEnd() == Sequence::First());
-}
+  TEST_CASE("empty_range_value") {
+    REQUIRE(Range::Empty().GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(Range::Empty().GetEnd() == Beam::Queries::Sequence::First());
+  }
 
-void RangeTester::TestTotalRangeValue() {
-  CPPUNIT_ASSERT(Range::Total().GetStart() == Sequence::First());
-  CPPUNIT_ASSERT(Range::Total().GetEnd() == Sequence::Last());
-}
+  TEST_CASE("total_range_value") {
+    REQUIRE(Range::Total().GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(Range::Total().GetEnd() == Beam::Queries::Sequence::Last());
+  }
 
-void RangeTester::TestRealTimeRangeValue() {
-  CPPUNIT_ASSERT(Range::RealTime().GetStart() == Sequence::Present());
-  CPPUNIT_ASSERT(Range::RealTime().GetEnd() == Sequence::Last());
-}
+  TEST_CASE("real_time_range_value") {
+    REQUIRE(Range::RealTime().GetStart() == Beam::Queries::Sequence::Present());
+    REQUIRE(Range::RealTime().GetEnd() == Beam::Queries::Sequence::Last());
+  }
 
-void RangeTester::TestEqualsOperator() {
-  CPPUNIT_ASSERT(Range(Sequence(1), Sequence(2)) ==
-    Range(Sequence(1), Sequence(2)));
-  CPPUNIT_ASSERT(!(Range(Sequence(1), Sequence(2)) ==
-    Range(Sequence(2), Sequence(1))));
-  CPPUNIT_ASSERT(Range(Sequence::First(), Sequence(1)) ==
-    Range(neg_infin, Sequence(1)));
-  CPPUNIT_ASSERT(Range(ptime(date(1984, May, 6)), Sequence(2)) ==
-    Range(ptime(date(1984, May, 6)), Sequence(2)));
-  CPPUNIT_ASSERT(!(Range(ptime(date(1984, May, 6)), Sequence(2)) ==
-    Range(Sequence(2), ptime(date(1984, May, 6)))));
-  CPPUNIT_ASSERT(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) ==
-    Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))));
-  CPPUNIT_ASSERT(!(Range(ptime(date(1984, May, 6)),
-    ptime(date(1985, May, 6))) == Range(ptime(date(1985, May, 6)),
-    ptime(date(1985, May, 6)))));
-}
+  TEST_CASE("equals_operator") {
+    REQUIRE(Range(Beam::Queries::Sequence(1), Beam::Queries::Sequence(2)) ==
+      Range(Beam::Queries::Sequence(1), Beam::Queries::Sequence(2)));
+    REQUIRE(!(Range(Beam::Queries::Sequence(1), Beam::Queries::Sequence(2)) ==
+      Range(Beam::Queries::Sequence(2), Beam::Queries::Sequence(1))));
+    REQUIRE(Range(Beam::Queries::Sequence::First(), Beam::Queries::Sequence(1)) ==
+      Range(neg_infin, Beam::Queries::Sequence(1)));
+    REQUIRE(Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2)) ==
+      Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2)));
+    REQUIRE(!(Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2)) ==
+      Range(Beam::Queries::Sequence(2), ptime(date(1984, May, 6)))));
+    REQUIRE(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) ==
+      Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))));
+    REQUIRE(!(Range(ptime(date(1984, May, 6)),
+      ptime(date(1985, May, 6))) == Range(ptime(date(1985, May, 6)),
+      ptime(date(1985, May, 6)))));
+  }
 
-void RangeTester::TestNotEqualsOperator() {
-  CPPUNIT_ASSERT(!(Range(Sequence(1), Sequence(2)) !=
-    Range(Sequence(1), Sequence(2))));
-  CPPUNIT_ASSERT(!(Range(Sequence::First(), Sequence(1)) !=
-    Range(neg_infin, Sequence(1))));
-  CPPUNIT_ASSERT(!(Range(ptime(date(1984, May, 6)), Sequence(2)) !=
-    Range(ptime(date(1984, May, 6)), Sequence(2))));
-  CPPUNIT_ASSERT(Range(ptime(date(1984, May, 6)), Sequence(2)) !=
-    Range(Sequence(2), ptime(date(1984, May, 6))));
-  CPPUNIT_ASSERT(!(Range(ptime(date(1984, May, 6)),
-    ptime(date(1985, May, 6))) != Range(ptime(date(1984, May, 6)),
-    ptime(date(1985, May, 6)))));
-  CPPUNIT_ASSERT(Range(ptime(date(1984, May, 6)),
-    ptime(date(1985, May, 6))) != Range(ptime(date(1985, May, 6)),
-    ptime(date(1985, May, 6))));
+  TEST_CASE("not_equals_operator") {
+    REQUIRE(!(Range(Beam::Queries::Sequence(1), Beam::Queries::Sequence(2)) !=
+      Range(Beam::Queries::Sequence(1), Beam::Queries::Sequence(2))));
+    REQUIRE(!(Range(Beam::Queries::Sequence::First(), Beam::Queries::Sequence(1)) !=
+      Range(neg_infin, Beam::Queries::Sequence(1))));
+    REQUIRE(!(Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2)) !=
+      Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2))));
+    REQUIRE(Range(ptime(date(1984, May, 6)), Beam::Queries::Sequence(2)) !=
+      Range(Beam::Queries::Sequence(2), ptime(date(1984, May, 6))));
+    REQUIRE(!(Range(ptime(date(1984, May, 6)),
+      ptime(date(1985, May, 6))) != Range(ptime(date(1984, May, 6)),
+      ptime(date(1985, May, 6)))));
+    REQUIRE(Range(ptime(date(1984, May, 6)),
+      ptime(date(1985, May, 6))) != Range(ptime(date(1985, May, 6)),
+      ptime(date(1985, May, 6))));
+  }
 }

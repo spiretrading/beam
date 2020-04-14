@@ -99,9 +99,9 @@ namespace Queries {
   }
 
   inline GlobalVariableDeclarationExpression::
-      GlobalVariableDeclarationExpression()
-      : m_initialValue{MakeConstantExpression(false)},
-        m_body{MakeConstantExpression(false)} {}
+    GlobalVariableDeclarationExpression()
+    : m_initialValue(ConstantExpression(false)),
+      m_body(ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void GlobalVariableDeclarationExpression::Shuttle(Shuttler& shuttle,

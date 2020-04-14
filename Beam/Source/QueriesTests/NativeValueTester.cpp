@@ -1,42 +1,42 @@
-#include "Beam/QueriesTests/NativeValueTester.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include "Beam/Queries/NativeValue.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void NativeValueTester::TestMakeNativeValue() {
-  auto intValue = MakeNativeValue(5);
-  CPPUNIT_ASSERT(intValue.GetType()->GetNativeType() == typeid(int));
-  auto stringValue = MakeNativeValue(string("hello world"));
-  CPPUNIT_ASSERT(stringValue.GetType()->GetNativeType() == typeid(string));
-}
+TEST_SUITE("NativeValue") {
+  TEST_CASE("make_native_value") {
+    auto intValue = NativeValue(5);
+    REQUIRE(intValue.GetType()->GetNativeType() == typeid(int));
+    auto stringValue = NativeValue(std::string("hello world"));
+    REQUIRE(stringValue.GetType()->GetNativeType() == typeid(std::string));
+  }
 
-void NativeValueTester::TestInt() {
-  NativeValue<NativeDataType<int>> nativeValue(123);
-  CPPUNIT_ASSERT(nativeValue.GetType() == NativeDataType<int>());
-  CPPUNIT_ASSERT(nativeValue.GetValue<int>() == 123);
-  NativeValue<NativeDataType<int>> defaultValue;
-  CPPUNIT_ASSERT(defaultValue.GetType() == NativeDataType<int>());
-  CPPUNIT_ASSERT(defaultValue.GetValue<int>() == 0);
-}
+  TEST_CASE("int") {
+    auto nativeValue = NativeValue(123);
+    REQUIRE(nativeValue.GetType() == NativeDataType<int>());
+    REQUIRE(nativeValue.GetValue<int>() == 123);
+    auto defaultValue = NativeValue(int());
+    REQUIRE(defaultValue.GetType() == NativeDataType<int>());
+    REQUIRE(defaultValue.GetValue<int>() == 0);
+  }
 
-void NativeValueTester::TestDecimal() {
-  NativeValue<NativeDataType<double>> nativeValue(3.14);
-  CPPUNIT_ASSERT(nativeValue.GetType() == NativeDataType<double>());
-  CPPUNIT_ASSERT(nativeValue.GetValue<double>() == 3.14);
-  NativeValue<NativeDataType<double>> defaultValue;
-  CPPUNIT_ASSERT(defaultValue.GetType() == NativeDataType<double>());
-  CPPUNIT_ASSERT(defaultValue.GetValue<double>() == 0);
-}
+  TEST_CASE("decimal") {
+    auto nativeValue = NativeValue(3.14);
+    REQUIRE(nativeValue.GetType() == NativeDataType<double>());
+    REQUIRE(nativeValue.GetValue<double>() == 3.14);
+    auto defaultValue = NativeValue(double());
+    REQUIRE(defaultValue.GetType() == NativeDataType<double>());
+    REQUIRE(defaultValue.GetValue<double>() == 0);
+  }
 
-void NativeValueTester::TestString() {
-  NativeValue<NativeDataType<string>> nativeValue("hello world");
-  CPPUNIT_ASSERT(nativeValue.GetType() == NativeDataType<string>());
-  CPPUNIT_ASSERT(nativeValue.GetValue<string>() == "hello world");
-  NativeValue<NativeDataType<string>> defaultValue;
-  CPPUNIT_ASSERT(defaultValue.GetType() == NativeDataType<string>());
-  CPPUNIT_ASSERT(defaultValue.GetValue<string>().empty());
+  TEST_CASE("string") {
+    auto nativeValue = NativeValue(std::string("hello world"));
+    REQUIRE(nativeValue.GetType() == NativeDataType<std::string>());
+    REQUIRE(nativeValue.GetValue<std::string>() == "hello world");
+    auto defaultValue = NativeValue(std::string());
+    REQUIRE(defaultValue.GetType() == NativeDataType<std::string>());
+    REQUIRE(defaultValue.GetValue<std::string>().empty());
+  }
 }

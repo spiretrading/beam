@@ -1,20 +1,20 @@
-#include "Beam/QueriesTests/ParameterExpressionTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void ParameterExpressionTester::TestConstructor() {
-  ParameterExpression parameterA(0, BoolType());
-  CPPUNIT_ASSERT(parameterA.GetIndex() == 0);
-  CPPUNIT_ASSERT(parameterA.GetType() == BoolType());
-  ParameterExpression parameterB(1, DecimalType());
-  CPPUNIT_ASSERT(parameterB.GetIndex() == 1);
-  CPPUNIT_ASSERT(parameterB.GetType() == DecimalType());
-  ParameterExpression parameterC(2, StringType());
-  CPPUNIT_ASSERT(parameterC.GetIndex() == 2);
-  CPPUNIT_ASSERT(parameterC.GetType() == StringType());
+TEST_SUITE("ParameterExpression") {
+  TEST_CASE("constructor") {
+    auto parameterA = ParameterExpression(0, BoolType());
+    REQUIRE(parameterA.GetIndex() == 0);
+    REQUIRE(parameterA.GetType() == BoolType());
+    auto parameterB = ParameterExpression(1, DecimalType());
+    REQUIRE(parameterB.GetIndex() == 1);
+    REQUIRE(parameterB.GetType() == DecimalType());
+    auto parameterC = ParameterExpression(2, StringType());
+    REQUIRE(parameterC.GetIndex() == 2);
+    REQUIRE(parameterC.GetType() == StringType());
+  }
 }

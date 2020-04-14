@@ -72,14 +72,8 @@ namespace Queries {
       typename Type::Type m_value;
   };
 
-  //! Builds a NativeValue wrapping a value.
-  /*!
-    \param value The value to wrap.
-  */
-  template<typename T>
-  NativeValue<NativeDataType<std::decay_t<T>>> MakeNativeValue(T&& value) {
-    return NativeValue<NativeDataType<std::decay_t<T>>>(std::forward<T>(value));
-  }
+  template<typename V, typename = void>
+  NativeValue(V&& value) -> NativeValue<NativeDataType<std::decay_t<V>>>;
 
   template<typename T>
   NativeValue<T>::NativeValue()

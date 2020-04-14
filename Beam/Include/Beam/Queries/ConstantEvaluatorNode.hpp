@@ -30,21 +30,10 @@ namespace Queries {
       Result m_constant;
   };
 
-  //! Makes a ConstantEvaluatorNode that wraps a value.
-  /*!
-    \param value The value to wrap.
-  */
-  template<typename T>
-  ConstantEvaluatorNode<typename std::decay<T>::type> MakeConstantEvaluatorNode(
-      T&& value) {
-    return ConstantEvaluatorNode<typename std::decay<T>::type>(
-      std::forward<T>(value));
-  }
-
   template<typename ResultType>
   ConstantEvaluatorNode<ResultType>::ConstantEvaluatorNode(
-      const Result& constant)
-      : m_constant(constant) {}
+    const Result& constant)
+    : m_constant(constant) {}
 
   template<typename ResultType>
   typename ConstantEvaluatorNode<ResultType>::Result

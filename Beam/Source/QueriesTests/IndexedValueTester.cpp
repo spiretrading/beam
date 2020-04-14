@@ -1,60 +1,62 @@
-#include "Beam/QueriesTests/IndexedValueTester.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include "Beam/Queries/IndexedValue.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void IndexedValueTester::TestDefaultConstructor() {
-  IndexedValue<int, string> intValue;
-  CPPUNIT_ASSERT(intValue.GetIndex().empty());
-  CPPUNIT_ASSERT(intValue.GetValue() == 0);
-  IndexedValue<string, string> stringValue;
-  CPPUNIT_ASSERT(stringValue.GetIndex().empty());
-  CPPUNIT_ASSERT(stringValue.GetValue().empty());
-}
+TEST_SUITE("IndexedValue") {
+  TEST_CASE("default_constructor") {
+    auto intValue = IndexedValue<int, std::string>();
+    REQUIRE(intValue.GetIndex().empty());
+    REQUIRE(intValue.GetValue() == 0);
+    auto stringValue = IndexedValue<std::string, std::string>();
+    REQUIRE(stringValue.GetIndex().empty());
+    REQUIRE(stringValue.GetValue().empty());
+  }
 
-void IndexedValueTester::TestValueAndSequenceConstructor() {
-  IndexedValue<string, string> value("hello world", "goodbye sky");
-  CPPUNIT_ASSERT(value.GetValue() == "hello world");
-  CPPUNIT_ASSERT(value.GetIndex() == "goodbye sky");
-}
+  TEST_CASE("value_and_sequence_constructor") {
+    auto value = IndexedValue<std::string, std::string>("hello world",
+      "goodbye sky");
+    REQUIRE(value.GetValue() == "hello world");
+    REQUIRE(value.GetIndex() == "goodbye sky");
+  }
 
-void IndexedValueTester::TestDereference() {
-  IndexedValue<int, string> intValue(123, "index");
-  CPPUNIT_ASSERT(*intValue == 123);
-  IndexedValue<string, string> stringValue("hello world", "index");
-  CPPUNIT_ASSERT(*stringValue == "hello world");
-}
+  TEST_CASE("dereference") {
+    auto intValue = IndexedValue<int, std::string>(123, "index");
+    REQUIRE(*intValue == 123);
+    auto stringValue = IndexedValue<std::string, std::string>(
+      "hello world", "index");
+    REQUIRE(*stringValue == "hello world");
+  }
 
-void IndexedValueTester::TestEqualsOperator() {
-  typedef IndexedValue<int, string> TestIndexedValue;
-  CPPUNIT_ASSERT(TestIndexedValue(123, "hello world") ==
-    TestIndexedValue(123, "hello world"));
-  CPPUNIT_ASSERT(!(TestIndexedValue(123, "hello world") ==
-    TestIndexedValue(321, "hello world")));
-  CPPUNIT_ASSERT(!(TestIndexedValue(123, "goodbye sky") ==
-    TestIndexedValue(123, "hello world")));
-  CPPUNIT_ASSERT(!(TestIndexedValue(123, "goodbye sky") ==
-    TestIndexedValue(321, "hello world")));
-}
+  TEST_CASE("equals_operator") {
+    using TestIndexedValue = IndexedValue<int, std::string>;
+    REQUIRE(TestIndexedValue(123, "hello world") ==
+      TestIndexedValue(123, "hello world"));
+    REQUIRE(!(TestIndexedValue(123, "hello world") ==
+      TestIndexedValue(321, "hello world")));
+    REQUIRE(!(TestIndexedValue(123, "goodbye sky") ==
+      TestIndexedValue(123, "hello world")));
+    REQUIRE(!(TestIndexedValue(123, "goodbye sky") ==
+      TestIndexedValue(321, "hello world")));
+  }
 
-void IndexedValueTester::TestNotEqualsOperator() {
-  typedef IndexedValue<int, string> TestIndexedValue;
-  CPPUNIT_ASSERT(!(TestIndexedValue(123, "hello world") !=
-    TestIndexedValue(123, "hello world")));
-  CPPUNIT_ASSERT(TestIndexedValue(123, "hello world") !=
-    TestIndexedValue(321, "hello world"));
-  CPPUNIT_ASSERT(TestIndexedValue(123, "goodbye sky") !=
-    TestIndexedValue(123, "hello world"));
-  CPPUNIT_ASSERT(TestIndexedValue(123, "goodbye sky") !=
-    TestIndexedValue(321, "hello world"));
-}
+  TEST_CASE("not_equals_operator") {
+    using TestIndexedValue = IndexedValue<int, std::string>;
+    REQUIRE(!(TestIndexedValue(123, "hello world") !=
+      TestIndexedValue(123, "hello world")));
+    REQUIRE(TestIndexedValue(123, "hello world") !=
+      TestIndexedValue(321, "hello world"));
+    REQUIRE(TestIndexedValue(123, "goodbye sky") !=
+      TestIndexedValue(123, "hello world"));
+    REQUIRE(TestIndexedValue(123, "goodbye sky") !=
+      TestIndexedValue(321, "hello world"));
+  }
 
-void IndexedValueTester::TestMakeIndexedValue() {
-  auto value = IndexedValue(321, string("hello world"));
-  CPPUNIT_ASSERT(value.GetValue() == 321);
-  CPPUNIT_ASSERT(value.GetIndex() == "hello world");
+  TEST_CASE("make_indexed_value") {
+    auto value = IndexedValue(321, std::string("hello world"));
+    REQUIRE(value.GetValue() == 321);
+    REQUIRE(value.GetIndex() == "hello world");
+  }
 }

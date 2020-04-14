@@ -1,4 +1,4 @@
-#include "Beam/QueriesTests/ReduceExpressionTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"
@@ -6,52 +6,53 @@
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace std;
 
-void ReduceExpressionTester::TestCompatibleTypeConstructor() {
-  ConstantExpression intReducer = MakeConstantExpression(1);
-  ConstantExpression intSeries = MakeConstantExpression(2);
-  IntValue initialInt = MakeNativeValue(3);
-  ReduceExpression reduceInt(intReducer, intSeries, initialInt);
-  CPPUNIT_ASSERT(reduceInt.GetType() == IntType());
-  CPPUNIT_ASSERT(reduceInt.GetReduceExpression().StaticCast<
-    ConstantExpression>().GetValue() ==
-    intReducer.GetValue().StaticCast<IntValue>());
-  CPPUNIT_ASSERT(reduceInt.GetSeriesExpression().StaticCast<
-    ConstantExpression>().GetValue() ==
-    intSeries.GetValue().StaticCast<IntValue>());
-  CPPUNIT_ASSERT(reduceInt.GetInitialValue() == initialInt);
-  ConstantExpression stringReducer = MakeConstantExpression<string>(
-    "hello world");
-  ConstantExpression stringSeries = MakeConstantExpression<string>(
-    "goodbye sky");
-  StringValue initialString = MakeNativeValue<string>("foo bar");
-  ReduceExpression reduceString(stringReducer, stringSeries, initialString);
-  CPPUNIT_ASSERT(reduceString.GetType() == StringType());
-  CPPUNIT_ASSERT(reduceString.GetReduceExpression().StaticCast<
-    ConstantExpression>().GetValue() ==
-    stringReducer.GetValue().StaticCast<StringValue>());
-  CPPUNIT_ASSERT(reduceString.GetSeriesExpression().StaticCast<
-    ConstantExpression>().GetValue() ==
-    stringSeries.GetValue().StaticCast<StringValue>());
-  CPPUNIT_ASSERT(reduceString.GetInitialValue() == initialString);
-}
+TEST_SUITE("ReduceExpression") {
+  TEST_CASE("compatible_type_constructor") {
+    auto intReducer = ConstantExpression(1);
+    auto intSeries = ConstantExpression(2);
+    auto initialInt = NativeValue(3);
+    auto reduceInt = ReduceExpression(intReducer, intSeries, initialInt);
+    REQUIRE(reduceInt.GetType() == IntType());
+    REQUIRE(reduceInt.GetReduceExpression().StaticCast<
+      ConstantExpression>().GetValue() ==
+      intReducer.GetValue().StaticCast<IntValue>());
+    REQUIRE(reduceInt.GetSeriesExpression().StaticCast<
+      ConstantExpression>().GetValue() ==
+      intSeries.GetValue().StaticCast<IntValue>());
+    REQUIRE(reduceInt.GetInitialValue() == initialInt);
+    ConstantExpression stringReducer = ConstantExpression(
+      std::string("hello world"));
+    ConstantExpression stringSeries = ConstantExpression(
+      std::string("goodbye sky"));
+    auto initialString = NativeValue(std::string("foo bar"));
+    auto reduceString = ReduceExpression(stringReducer, stringSeries,
+      initialString);
+    REQUIRE(reduceString.GetType() == StringType());
+    REQUIRE(reduceString.GetReduceExpression().StaticCast<
+      ConstantExpression>().GetValue() ==
+      stringReducer.GetValue().StaticCast<StringValue>());
+    REQUIRE(reduceString.GetSeriesExpression().StaticCast<
+      ConstantExpression>().GetValue() ==
+      stringSeries.GetValue().StaticCast<StringValue>());
+    REQUIRE(reduceString.GetInitialValue() == initialString);
+  }
 
-void ReduceExpressionTester::TestIncompatibleTypeConstructor() {
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression(0),
-    MakeConstantExpression(0), StringValue()), TypeCompatibilityException);
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression(0),
-    MakeConstantExpression<string>(""), IntValue()),
-    TypeCompatibilityException);
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression<string>(""),
-    MakeConstantExpression(0), IntValue()), TypeCompatibilityException);
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression(0),
-    MakeConstantExpression<string>(""), StringValue()),
-    TypeCompatibilityException);
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression<string>(""),
-    MakeConstantExpression(0), StringValue()), TypeCompatibilityException);
-  CPPUNIT_ASSERT_THROW(ReduceExpression(MakeConstantExpression<string>(""),
-    MakeConstantExpression<string>(""), IntValue()),
-    TypeCompatibilityException);
+  TEST_CASE("incompatible_type_constructor") {
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(0),
+      ConstantExpression(0), StringValue()), TypeCompatibilityException);
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(0),
+      ConstantExpression(std::string()), IntValue()),
+      TypeCompatibilityException);
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(std::string("")),
+      ConstantExpression(0), IntValue()), TypeCompatibilityException);
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(0),
+      ConstantExpression(std::string()), StringValue()),
+      TypeCompatibilityException);
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(std::string()),
+      ConstantExpression(0), StringValue()), TypeCompatibilityException);
+    REQUIRE_THROWS_AS(ReduceExpression(ConstantExpression(std::string()),
+      ConstantExpression(std::string()), IntValue()),
+      TypeCompatibilityException);
+  }
 }

@@ -1,4 +1,4 @@
-#include "Beam/QueriesTests/SessionCachedDataStoreTester.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <vector>
 #include <boost/date_time/posix_time/ptime.hpp>
@@ -10,12 +10,10 @@
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
 using namespace Beam::Threading;
 using namespace Beam::TimeService;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 
 namespace {
   struct Entry {
@@ -61,103 +59,105 @@ namespace {
     query.SetRange(range);
     query.SetSnapshotLimit(limit);
     auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(expectedResult == queryResult);
+    REQUIRE(expectedResult == queryResult);
   }
 }
 
-void SessionCachedDataStoreTester::TestStoreAndLoad() {
-  BaseDataStore baseDataStore;
-  DataStore dataStore(&baseDataStore, 10);
-  IncrementalTimeClient timeClient;
-  Beam::Queries::Sequence sequence(5);
-  SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,
-    timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  SequencedIndexedEntry entryB = StoreValue(dataStore, "hello", 200,
-    timeClient.GetTime(), sequence);
-  sequence = Increment(sequence);
-  SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 300,
-    timeClient.GetTime(), sequence);
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
-  TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-    SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
-}
+TEST_SUITE("SessionCachedDataStore") {
+  TEST_CASE("store_and_load") {
+    BaseDataStore baseDataStore;
+    DataStore dataStore(&baseDataStore, 10);
+    IncrementalTimeClient timeClient;
+    Beam::Queries::Sequence sequence(5);
+    SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,
+      timeClient.GetTime(), sequence);
+    sequence = Increment(sequence);
+    SequencedIndexedEntry entryB = StoreValue(dataStore, "hello", 200,
+      timeClient.GetTime(), sequence);
+    sequence = Increment(sequence);
+    SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 300,
+      timeClient.GetTime(), sequence);
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), std::vector<SequencedEntry>());
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), std::vector<SequencedEntry>());
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
+    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
+      SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
+  }
 
-void SessionCachedDataStoreTester::TestForwardCoherence() {
-  BaseDataStore baseDataStore;
-  DataStore dataStore(&baseDataStore, 10);
-  IncrementalTimeClient timeClient;
-  Beam::Queries::Sequence sequence(100);
-  auto entryA = SequencedValue(IndexedValue(Entry(100, timeClient.GetTime()),
-    "hello"), sequence);
-  baseDataStore.Store(entryA);
-  sequence = Increment(sequence);
-  auto entryB = SequencedValue(IndexedValue(Entry(200, timeClient.GetTime()),
-    "hello"), sequence);
-  baseDataStore.Store(entryB);
-  {
-    BasicQuery<string> query;
-    query.SetIndex("hello");
-    query.SetRange(Sequence(100), Sequence(101));
-    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(queryResult.size() == 2);
-    CPPUNIT_ASSERT(queryResult[0] == entryA);
-    CPPUNIT_ASSERT(queryResult[1] == entryB);
-  }
-  for(auto i = Sequence(102); i < Sequence(130); i = Increment(i)) {
-    auto entry = SequencedValue(IndexedValue(
-      Entry(static_cast<int>(i.GetOrdinal()), timeClient.GetTime()), "hello"),
-      i);
-    dataStore.Store(entry);
-  }
-  {
-    BasicQuery<string> query;
-    query.SetIndex("hello");
-    query.SetRange(Sequence(106), Sequence(107));
-    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(queryResult.size() == 2);
-    CPPUNIT_ASSERT(queryResult[0].GetSequence().GetOrdinal() == 106);
-    CPPUNIT_ASSERT(queryResult[1].GetSequence().GetOrdinal() == 107);
-  }
-  {
-    BasicQuery<string> query;
-    query.SetIndex("hello");
-    query.SetRange(Sequence(104), Sequence(105));
-    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(queryResult.size() == 2);
-    CPPUNIT_ASSERT(queryResult[0].GetSequence().GetOrdinal() == 104);
-    CPPUNIT_ASSERT(queryResult[1].GetSequence().GetOrdinal() == 105);
-  }
-  {
-    BasicQuery<string> query;
-    query.SetIndex("hello");
-    query.SetRange(Sequence(108), Sequence(115));
-    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    auto queryResult = dataStore.Load(query);
-    CPPUNIT_ASSERT(queryResult.size() == 8);
-    CPPUNIT_ASSERT(queryResult[0].GetSequence().GetOrdinal() == 108);
-    CPPUNIT_ASSERT(queryResult[7].GetSequence().GetOrdinal() == 115);
+  TEST_CASE("forward_coherence") {
+    BaseDataStore baseDataStore;
+    DataStore dataStore(&baseDataStore, 10);
+    IncrementalTimeClient timeClient;
+    Beam::Queries::Sequence sequence(100);
+    auto entryA = SequencedValue(IndexedValue(Entry(100, timeClient.GetTime()),
+      "hello"), sequence);
+    baseDataStore.Store(entryA);
+    sequence = Increment(sequence);
+    auto entryB = SequencedValue(IndexedValue(Entry(200, timeClient.GetTime()),
+      "hello"), sequence);
+    baseDataStore.Store(entryB);
+    {
+      BasicQuery<string> query;
+      query.SetIndex("hello");
+      query.SetRange(Sequence(100), Sequence(101));
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto queryResult = dataStore.Load(query);
+      REQUIRE(queryResult.size() == 2);
+      REQUIRE(queryResult[0] == entryA);
+      REQUIRE(queryResult[1] == entryB);
+    }
+    for(auto i = Sequence(102); i < Sequence(130); i = Increment(i)) {
+      auto entry = SequencedValue(IndexedValue(
+        Entry(static_cast<int>(i.GetOrdinal()), timeClient.GetTime()), "hello"),
+        i);
+      dataStore.Store(entry);
+    }
+    {
+      BasicQuery<string> query;
+      query.SetIndex("hello");
+      query.SetRange(Sequence(106), Sequence(107));
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto queryResult = dataStore.Load(query);
+      REQUIRE(queryResult.size() == 2);
+      REQUIRE(queryResult[0].GetSequence().GetOrdinal() == 106);
+      REQUIRE(queryResult[1].GetSequence().GetOrdinal() == 107);
+    }
+    {
+      BasicQuery<string> query;
+      query.SetIndex("hello");
+      query.SetRange(Sequence(104), Sequence(105));
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto queryResult = dataStore.Load(query);
+      REQUIRE(queryResult.size() == 2);
+      REQUIRE(queryResult[0].GetSequence().GetOrdinal() == 104);
+      REQUIRE(queryResult[1].GetSequence().GetOrdinal() == 105);
+    }
+    {
+      BasicQuery<string> query;
+      query.SetIndex("hello");
+      query.SetRange(Sequence(108), Sequence(115));
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto queryResult = dataStore.Load(query);
+      REQUIRE(queryResult.size() == 8);
+      REQUIRE(queryResult[0].GetSequence().GetOrdinal() == 108);
+      REQUIRE(queryResult[7].GetSequence().GetOrdinal() == 115);
+    }
   }
 }

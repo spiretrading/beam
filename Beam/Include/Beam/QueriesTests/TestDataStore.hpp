@@ -16,8 +16,8 @@ namespace Beam::Queries::Tests {
 
   /**
    * Implements a DataStore for testing purposes by reifying operations.
-   * @param Q The type of query used to load values.
-   * @param V The type value to store.
+   * @param <Q> The type of query used to load values.
+   * @param <V> The type value to store.
    */
   template<typename Q, typename V>
   class TestDataStore : private boost::noncopyable {

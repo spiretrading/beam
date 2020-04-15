@@ -11,7 +11,7 @@ using namespace boost;
 using namespace boost::posix_time;
 
 TEST_SUITE("TimerReactorTester") {
-  TEST_CASE("Test expiry") {
+  TEST_CASE("expiry") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(
       [&] {

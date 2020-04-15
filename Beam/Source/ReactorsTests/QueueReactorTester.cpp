@@ -8,7 +8,7 @@ using namespace Beam;
 using namespace Beam::Reactors;
 
 TEST_SUITE("QueueReactorTester") {
-  TEST_CASE("Test empty queue.") {
+  TEST_CASE("empty") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(
       [&] {
@@ -23,7 +23,7 @@ TEST_SUITE("QueueReactorTester") {
     REQUIRE(reactor.commit(1) == State::COMPLETE);
     Trigger::set_trigger(nullptr);
   }
-  TEST_CASE("Test immediate exception.") {
+  TEST_CASE("immediate_exception") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(
       [&] {
@@ -39,7 +39,7 @@ TEST_SUITE("QueueReactorTester") {
     REQUIRE_THROWS_AS_MESSAGE(reactor.eval(), std::runtime_error, "Broken.");
     Trigger::set_trigger(nullptr);
   }
-  TEST_CASE("Test single value.") {
+  TEST_CASE("single_value") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(
       [&] {
@@ -59,7 +59,7 @@ TEST_SUITE("QueueReactorTester") {
     REQUIRE(reactor.eval() == 123);
     Trigger::set_trigger(nullptr);
   }
-  TEST_CASE("Test single value exception.") {
+  TEST_CASE("single_value_exception") {
     auto commits = Beam::Queue<bool>();
     auto trigger = Trigger(
       [&] {

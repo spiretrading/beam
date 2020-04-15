@@ -1,23 +1,23 @@
-#include "Beam/QueuesTests/QueueTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 using namespace Beam;
 using namespace Beam::Routines;
-using namespace Beam::Tests;
-using namespace std;
 
-void QueueTester::TestBreak() {
-  Queue<int> q;
-  RoutineHandler r1 = Spawn(
-    [&] {
-      q.Top();
-    });
-  RoutineHandler r2 = Spawn(
-    [&] {
-      q.Top();
-    });
-  q.Break();
-  r1.Wait();
-  r2.Wait();
+TEST_SUITE("Queue") {
+  TEST_CASE("break") {
+    auto q = Queue<int>();
+    auto r1 = RoutineHandler(Spawn(
+      [&] {
+        q.Top();
+      }));
+    auto r2 = RoutineHandler(Spawn(
+      [&] {
+        q.Top();
+      }));
+    q.Break();
+    r1.Wait();
+    r2.Wait();
+  }
 }

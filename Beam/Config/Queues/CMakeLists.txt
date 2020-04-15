@@ -24,16 +24,9 @@ install(TARGETS QueueStressTests CONFIGURATIONS Debug
 install(TARGETS QueueStressTests CONFIGURATIONS Release RelWithDebInfo
   DESTINATION ${TEST_INSTALL_DIRECTORY}/Release)
 
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/QueuesTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/QueuesTests/*.cpp)
 
-add_executable(QueuesTests ${header_files} ${source_files})
-set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(QueuesTests
-  debug ${CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized ${CPPUNIT_LIBRARY_OPTIMIZED_PATH}
-  debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
-  optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
+add_executable(QueuesTests ${source_files})
 
 if(UNIX)
   target_link_libraries(QueuesTests

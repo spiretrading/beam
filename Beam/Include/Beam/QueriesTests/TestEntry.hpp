@@ -5,6 +5,7 @@
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <doctest/doctest.h>
+#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/QueriesTests/QueriesTests.hpp"

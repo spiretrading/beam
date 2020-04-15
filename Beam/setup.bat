@@ -174,7 +174,7 @@ IF NOT EXIST viper (
     SET EXIT_STATUS=1
   )
 )
-SET viper_commit="009bbbb3e00269e9939a9342789334a2d56bf7f0"
+SET viper_commit="bd6689bae15716921198e179a37d94e6df91ded1"
 IF EXIST viper (
   PUSHD viper
   git merge-base --is-ancestor "!viper_commit!" HEAD

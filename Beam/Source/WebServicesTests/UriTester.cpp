@@ -1,101 +1,101 @@
-#include "Beam/WebServicesTests/UriTester.hpp"
 #include <sstream>
 #include <boost/lexical_cast.hpp>
+#include <doctest/doctest.h>
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
 using namespace Beam::WebServices;
-using namespace Beam::WebServices::Tests;
 using namespace boost;
-using namespace std;
 
-void UriTester::TestSchemeOnly() {
-  Uri uri{"tcp:"};
-  CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
-  CPPUNIT_ASSERT(uri.GetUsername().empty());
-  CPPUNIT_ASSERT(uri.GetPassword().empty());
-  CPPUNIT_ASSERT(uri.GetHostname().empty());
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp:");
-}
+TEST_SUITE("Uri") {
+  TEST_CASE("scheme_only") {
+    auto uri = Uri("tcp:");
+    REQUIRE(uri.GetScheme() == "tcp");
+    REQUIRE(uri.GetUsername().empty());
+    REQUIRE(uri.GetPassword().empty());
+    REQUIRE(uri.GetHostname().empty());
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "tcp:");
+  }
 
-void UriTester::TestHostnameOnly() {
-  Uri uri{"//localhost"};
-  CPPUNIT_ASSERT(uri.GetScheme().empty());
-  CPPUNIT_ASSERT(uri.GetUsername().empty());
-  CPPUNIT_ASSERT(uri.GetPassword().empty());
-  CPPUNIT_ASSERT(uri.GetHostname() == "localhost");
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//localhost");
-}
+  TEST_CASE("hostname_only") {
+    auto uri = Uri("//localhost");
+    REQUIRE(uri.GetScheme().empty());
+    REQUIRE(uri.GetUsername().empty());
+    REQUIRE(uri.GetPassword().empty());
+    REQUIRE(uri.GetHostname() == "localhost");
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "//localhost");
+  }
 
-void UriTester::TestSchemeAndEmptyHostname() {
-  Uri uri{"tcp:/"};
-  CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
-  CPPUNIT_ASSERT(uri.GetUsername().empty());
-  CPPUNIT_ASSERT(uri.GetPassword().empty());
-  CPPUNIT_ASSERT(uri.GetHostname().empty());
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath() == "/");
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp:/");
-}
+  TEST_CASE("scheme_and_empty_hostname") {
+    auto uri = Uri("tcp:/");
+    REQUIRE(uri.GetScheme() == "tcp");
+    REQUIRE(uri.GetUsername().empty());
+    REQUIRE(uri.GetPassword().empty());
+    REQUIRE(uri.GetHostname().empty());
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath() == "/");
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "tcp:/");
+  }
 
-void UriTester::TestSchemeAndHostname() {
-  Uri uri{"tcp://localhost"};
-  CPPUNIT_ASSERT(uri.GetScheme() == "tcp");
-  CPPUNIT_ASSERT(uri.GetUsername().empty());
-  CPPUNIT_ASSERT(uri.GetPassword().empty());
-  CPPUNIT_ASSERT(uri.GetHostname() == "localhost");
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "tcp://localhost");
-}
+  TEST_CASE("scheme_and_hostname") {
+    auto uri = Uri("tcp://localhost");
+    REQUIRE(uri.GetScheme() == "tcp");
+    REQUIRE(uri.GetUsername().empty());
+    REQUIRE(uri.GetPassword().empty());
+    REQUIRE(uri.GetHostname() == "localhost");
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "tcp://localhost");
+  }
 
-void UriTester::TestUsernameOnly() {
-  Uri uri{"//a:@localhost"};
-  CPPUNIT_ASSERT(uri.GetScheme().empty());
-  CPPUNIT_ASSERT(uri.GetUsername() == "a");
-  CPPUNIT_ASSERT(uri.GetPassword().empty());
-  CPPUNIT_ASSERT(uri.GetHostname() == "localhost");
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//a:@localhost");
-}
+  TEST_CASE("username_only") {
+    auto uri = Uri("//a:@localhost");
+    REQUIRE(uri.GetScheme().empty());
+    REQUIRE(uri.GetUsername() == "a");
+    REQUIRE(uri.GetPassword().empty());
+    REQUIRE(uri.GetHostname() == "localhost");
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "//a:@localhost");
+  }
 
-void UriTester::TestPasswordOnly() {
-  Uri uri{"//:b@localhost"};
-  CPPUNIT_ASSERT(uri.GetScheme().empty());
-  CPPUNIT_ASSERT(uri.GetUsername().empty());
-  CPPUNIT_ASSERT(uri.GetPassword() == "b");
-  CPPUNIT_ASSERT(uri.GetHostname() == "localhost");
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//:b@localhost");
-}
+  TEST_CASE("password_only") {
+    auto uri = Uri("//:b@localhost");
+    REQUIRE(uri.GetScheme().empty());
+    REQUIRE(uri.GetUsername().empty());
+    REQUIRE(uri.GetPassword() == "b");
+    REQUIRE(uri.GetHostname() == "localhost");
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "//:b@localhost");
+  }
 
-void UriTester::TestUsernameAndPassword() {
-  Uri uri{"//a:b@localhost"};
-  CPPUNIT_ASSERT(uri.GetScheme().empty());
-  CPPUNIT_ASSERT(uri.GetUsername() == "a");
-  CPPUNIT_ASSERT(uri.GetPassword() == "b");
-  CPPUNIT_ASSERT(uri.GetHostname() == "localhost");
-  CPPUNIT_ASSERT(uri.GetPort() == 0);
-  CPPUNIT_ASSERT(uri.GetPath().empty());
-  CPPUNIT_ASSERT(uri.GetQuery().empty());
-  CPPUNIT_ASSERT(uri.GetFragment().empty());
-  CPPUNIT_ASSERT(lexical_cast<string>(uri) == "//a:b@localhost");
+  TEST_CASE("username_and_password") {
+    auto uri = Uri("//a:b@localhost");
+    REQUIRE(uri.GetScheme().empty());
+    REQUIRE(uri.GetUsername() == "a");
+    REQUIRE(uri.GetPassword() == "b");
+    REQUIRE(uri.GetHostname() == "localhost");
+    REQUIRE(uri.GetPort() == 0);
+    REQUIRE(uri.GetPath().empty());
+    REQUIRE(uri.GetQuery().empty());
+    REQUIRE(uri.GetFragment().empty());
+    REQUIRE(lexical_cast<std::string>(uri) == "//a:b@localhost");
+  }
 }

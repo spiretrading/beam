@@ -1,19 +1,10 @@
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/TimeServiceTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/TimeServiceTests/*.cpp)
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 
-add_executable(TimeServiceTests ${header_files} ${source_files})
-set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(TimeServiceTests
-  debug ${CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized ${CPPUNIT_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH})
+add_executable(TimeServiceTests ${source_files})
 
 if(UNIX)
   target_link_libraries(TimeServiceTests
@@ -27,10 +18,7 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
-    dl pthread rt)
-endif()
-if(WIN32)
-  target_link_libraries(TimeServiceTests Crypt32.lib)
+    pthread rt)
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL SunOS)
   target_link_libraries(TimeServiceTests rt socket nsl)

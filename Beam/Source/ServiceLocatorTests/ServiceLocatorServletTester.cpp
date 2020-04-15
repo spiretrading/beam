@@ -30,7 +30,7 @@ using namespace boost::property_tree;
 namespace {
   struct Fixture {
     using ServerConnection = LocalServerConnection<SharedBuffer>;
-    using ServiceProtocolServletContainer = ServiceProtocolServletContainer<
+    using TestServiceProtocolServletContainer = ServiceProtocolServletContainer<
       MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>,
       ServerConnection*, BinarySender<SharedBuffer>, NullEncoder,
       std::shared_ptr<TriggerTimer>>;
@@ -41,7 +41,7 @@ namespace {
 
     LocalServiceLocatorDataStore m_dataStore;
     ServerConnection m_serverConnection;
-    std::optional<ServiceProtocolServletContainer> m_container;
+    std::optional<TestServiceProtocolServletContainer> m_container;
     std::optional<ClientServiceProtocolClient> m_clientProtocol;
 
     Fixture() {

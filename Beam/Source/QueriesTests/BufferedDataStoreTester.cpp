@@ -1,66 +1,22 @@
 #include <doctest/doctest.h>
-#include <string>
 #include <vector>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/BufferedDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
+#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
+using namespace Beam::Queries::Tests;
 using namespace Beam::Threading;
 using namespace Beam::TimeService;
-using namespace boost;
-using namespace boost::posix_time;
 
 namespace {
-  struct Entry {
-    int m_value;
-    ptime m_timestamp;
-
-    Entry() = default;
-    Entry(int value, ptime timestamp);
-    bool operator ==(const Entry& rhs) const;
-  };
-
-  using TestLocalDataStore = LocalDataStore<BasicQuery<std::string>, Entry,
+  using TestLocalDataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
     EvaluatorTranslator<QueryTypes>>;
   using DataStore = BufferedDataStore<TestLocalDataStore>;
-  using SequencedEntry = SequencedValue<Entry>;
-  using SequencedIndexedEntry = SequencedValue<
-    IndexedValue<Entry, std::string>>;
-
-  Entry::Entry(int value, ptime timestamp)
-    : m_value(value),
-      m_timestamp(timestamp) {}
-
-  bool Entry::operator ==(const Entry& rhs) const {
-    return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
-  }
-
-  template<typename DataStore>
-  SequencedIndexedEntry StoreValue(DataStore& dataStore, std::string index,
-      int value, const ptime& timestamp,
-      const Beam::Queries::Sequence& sequence) {
-    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
-      sequence);
-    dataStore.Store(entry);
-    return entry;
-  }
-
-  template<typename DataStore>
-  void TestQuery(DataStore& dataStore, std::string index,
-      const Beam::Queries::Range& range, const SnapshotLimit& limit,
-      const std::vector<SequencedEntry>& expectedResult) {
-    auto query = BasicQuery<std::string>();
-    query.SetIndex(index);
-    query.SetRange(range);
-    query.SetSnapshotLimit(limit);
-    auto queryResult = dataStore.Load(query);
-    REQUIRE(expectedResult == queryResult);
-  }
 }
 
 TEST_SUITE("BufferedDataStore") {

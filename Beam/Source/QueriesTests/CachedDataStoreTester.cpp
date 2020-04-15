@@ -1,85 +1,39 @@
 #include <doctest/doctest.h>
-#include <string>
 #include <vector>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/CachedDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
+#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
+using namespace Beam::Queries::Tests;
 using namespace Beam::Threading;
 using namespace Beam::TimeService;
-using namespace boost;
-using namespace boost::posix_time;
 
 namespace {
-  struct Entry {
-    int m_value;
-    ptime m_timestamp;
-
-    Entry() = default;
-    Entry(int value, ptime timestamp);
-    bool operator ==(const Entry& rhs) const;
-  };
-
-  using BaseDataStore = LocalDataStore<BasicQuery<std::string>, Entry,
+  using BaseDataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
     EvaluatorTranslator<QueryTypes>>;
   using DataStore = CachedDataStore<BaseDataStore*,
     EvaluatorTranslator<QueryTypes>>;
-  using SequencedEntry = SequencedValue<Entry>;
-  using SequencedIndexedEntry =
-    SequencedValue<IndexedValue<Entry, std::string>>;
-
-  Entry::Entry(int value, ptime timestamp)
-    : m_value(value),
-      m_timestamp(timestamp) {}
-
-  bool Entry::operator ==(const Entry& rhs) const {
-    return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
-  }
-
-  std::ostream& operator <<(std::ostream& out, const Entry& entry) {
-    return out << entry.m_value;
-  }
-
-  SequencedIndexedEntry StoreValue(DataStore& dataStore, std::string index,
-      int value, const ptime& timestamp,
-      const Beam::Queries::Sequence& sequence) {
-    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
-      sequence);
-    dataStore.Store(entry);
-    return entry;
-  }
-
-  void TestQuery(DataStore& dataStore, std::string index,
-      const Beam::Queries::Range& range, const SnapshotLimit& limit,
-      const std::vector<SequencedEntry>& expectedResult) {
-    auto query = BasicQuery<std::string>();
-    query.SetIndex(index);
-    query.SetRange(range);
-    query.SetSnapshotLimit(limit);
-    auto queryResult = dataStore.Load(query);
-    REQUIRE(expectedResult == queryResult);
-  }
 }
 
 TEST_SUITE("CachedDataStore") {
   TEST_CASE("store_and_load") {
-    BaseDataStore baseDataStore;
-    DataStore dataStore(&baseDataStore, 10);
-    IncrementalTimeClient timeClient;
-    Beam::Queries::Sequence sequence(5);
-    SequencedIndexedEntry entryA = StoreValue(dataStore, "hello", 100,
-      timeClient.GetTime(), sequence);
+    auto baseDataStore = BaseDataStore();
+    auto dataStore = DataStore(&baseDataStore, 10);
+    auto timeClient = IncrementalTimeClient();
+    auto sequence = Beam::Queries::Sequence(5);
+    auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
+      sequence);
     sequence = Increment(sequence);
-    SequencedIndexedEntry entryB = StoreValue(dataStore, "hello", 200,
-      timeClient.GetTime(), sequence);
+    auto entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
+      sequence);
     sequence = Increment(sequence);
-    SequencedIndexedEntry entryC = StoreValue(dataStore, "hello", 300,
-      timeClient.GetTime(), sequence);
+    auto entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
+      sequence);
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
       SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
     TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -105,19 +59,19 @@ TEST_SUITE("CachedDataStore") {
   }
 
   TEST_CASE("forward_coherence") {
-    BaseDataStore baseDataStore;
-    DataStore dataStore(&baseDataStore, 10);
-    IncrementalTimeClient timeClient;
-    Beam::Queries::Sequence sequence(100);
-    auto entryA = SequencedValue(IndexedValue(Entry(100, timeClient.GetTime()),
-      "hello"), sequence);
+    auto baseDataStore = BaseDataStore();
+    auto dataStore = DataStore(&baseDataStore, 10);
+    auto timeClient = IncrementalTimeClient();
+    auto sequence = Beam::Queries::Sequence(100);
+    auto entryA = SequencedValue(IndexedValue(
+      TestEntry{100, timeClient.GetTime()}, "hello"), sequence);
     baseDataStore.Store(entryA);
     sequence = Increment(sequence);
-    auto entryB = SequencedValue(IndexedValue(Entry(200, timeClient.GetTime()),
-      "hello"), sequence);
+    auto entryB = SequencedValue(IndexedValue(
+      TestEntry{200, timeClient.GetTime()}, "hello"), sequence);
     baseDataStore.Store(entryB);
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(100),
         Beam::Queries::Sequence(101));
@@ -129,13 +83,12 @@ TEST_SUITE("CachedDataStore") {
     }
     for(auto i = Beam::Queries::Sequence(102); i < Beam::Queries::Sequence(130);
         i = Increment(i)) {
-      auto entry = SequencedValue(IndexedValue(
-        Entry(static_cast<int>(i.GetOrdinal()), timeClient.GetTime()), "hello"),
-        i);
+      auto entry = SequencedValue(IndexedValue(TestEntry{
+        static_cast<int>(i.GetOrdinal()), timeClient.GetTime()}, "hello"), i);
       dataStore.Store(entry);
     }
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(106),
         Beam::Queries::Sequence(107));
@@ -146,7 +99,7 @@ TEST_SUITE("CachedDataStore") {
       REQUIRE(queryResult[1].GetSequence().GetOrdinal() == 107);
     }
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(104),
         Beam::Queries::Sequence(105));
@@ -157,7 +110,7 @@ TEST_SUITE("CachedDataStore") {
       REQUIRE(queryResult[1].GetSequence().GetOrdinal() == 105);
     }
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(108),
         Beam::Queries::Sequence(115));
@@ -170,19 +123,19 @@ TEST_SUITE("CachedDataStore") {
   }
 
   TEST_CASE("backward_coherence") {
-    BaseDataStore baseDataStore;
-    DataStore dataStore(&baseDataStore, 10);
-    IncrementalTimeClient timeClient;
-    Beam::Queries::Sequence sequence(108);
-    auto entryA = SequencedValue(IndexedValue(Entry(100, timeClient.GetTime()),
-      "hello"), sequence);
+    auto baseDataStore = BaseDataStore();
+    auto dataStore = DataStore(&baseDataStore, 10);
+    auto timeClient = IncrementalTimeClient();
+    auto sequence = Beam::Queries::Sequence(108);
+    auto entryA = SequencedValue(IndexedValue(
+      TestEntry{100, timeClient.GetTime()}, "hello"), sequence);
     baseDataStore.Store(entryA);
     sequence = Increment(sequence);
-    auto entryB = SequencedValue(IndexedValue(Entry(200, timeClient.GetTime()),
-      "hello"), sequence);
+    auto entryB = SequencedValue(IndexedValue(
+      TestEntry{200, timeClient.GetTime()}, "hello"), sequence);
     baseDataStore.Store(entryB);
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(108),
         Beam::Queries::Sequence(109));
@@ -195,12 +148,12 @@ TEST_SUITE("CachedDataStore") {
     for(auto i = Beam::Queries::Sequence(90); i < Beam::Queries::Sequence(108);
         i = Increment(i)) {
       auto entry = SequencedValue(IndexedValue(
-        Entry(static_cast<int>(i.GetOrdinal()), timeClient.GetTime()), "hello"),
-        i);
+        TestEntry{static_cast<int>(i.GetOrdinal()), timeClient.GetTime()},
+        "hello"), i);
       dataStore.Store(entry);
     }
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(106),
         Beam::Queries::Sequence(107));
@@ -211,7 +164,7 @@ TEST_SUITE("CachedDataStore") {
       REQUIRE(queryResult[1].GetSequence() == Beam::Queries::Sequence(107));
     }
     {
-      BasicQuery<std::string> query;
+      auto query = BasicQuery<std::string>();
       query.SetIndex("hello");
       query.SetRange(Beam::Queries::Sequence(95),
         Beam::Queries::Sequence(105));

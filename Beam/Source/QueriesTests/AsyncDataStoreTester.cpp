@@ -1,17 +1,15 @@
 #include <doctest/doctest.h>
 #include <algorithm>
-#include <string>
 #include <vector>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Queries/AsyncDataStore.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/QueriesTests/TestDataStore.hpp"
+#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
-#include "Beam/Utilities/Algorithm.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
@@ -19,62 +17,14 @@ using namespace Beam::Queries::Tests;
 using namespace Beam::Routines;
 using namespace Beam::Threading;
 using namespace Beam::TimeService;
-using namespace boost;
-using namespace boost::posix_time;
 
 namespace {
-  struct Entry {
-    int m_value;
-    ptime m_timestamp;
-
-    Entry() = default;
-    Entry(int value, ptime timestamp);
-    bool operator ==(const Entry& rhs) const;
-  };
-
-  using TestLocalDataStore = LocalDataStore<BasicQuery<std::string>, Entry,
+  using TestLocalDataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
     EvaluatorTranslator<QueryTypes>>;
   using DataStore = AsyncDataStore<TestLocalDataStore>;
-  using DataStoreDispatcher = TestDataStore<BasicQuery<std::string>, Entry>;
+  using DataStoreDispatcher = TestDataStore<BasicQuery<std::string>, TestEntry>;
   using IntrusiveDataStore = AsyncDataStore<std::shared_ptr<
     DataStoreDispatcher>, EvaluatorTranslator<QueryTypes>>;
-  using SequencedEntry = SequencedValue<Entry>;
-  using SequencedIndexedEntry = SequencedValue<
-    IndexedValue<Entry, std::string>>;
-
-  Entry::Entry(int value, ptime timestamp)
-    : m_value(value),
-      m_timestamp(timestamp) {}
-
-  bool Entry::operator ==(const Entry& rhs) const {
-    return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
-  }
-
-  std::ostream& operator <<(std::ostream& out, const Entry& entry) {
-    return out << entry.m_value;
-  }
-
-  template<typename DataStore>
-  SequencedIndexedEntry StoreValue(DataStore& dataStore, std::string index,
-      int value, const ptime& timestamp,
-      const Beam::Queries::Sequence& sequence) {
-    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
-      sequence);
-    dataStore.Store(entry);
-    return entry;
-  }
-
-  template<typename DataStore>
-  void TestQuery(DataStore& dataStore, std::string index,
-      const Beam::Queries::Range& range, const SnapshotLimit& limit,
-      const std::vector<SequencedEntry>& expectedResult) {
-    auto query = BasicQuery<std::string>();
-    query.SetIndex(index);
-    query.SetRange(range);
-    query.SetSnapshotLimit(limit);
-    auto queryResult = dataStore.Load(query);
-    REQUIRE(expectedResult == queryResult);
-  }
 }
 
 TEST_SUITE("AsyncDataStore") {
@@ -182,9 +132,9 @@ TEST_SUITE("AsyncDataStore") {
       std::shared_ptr<DataStoreDispatcher::Operation>>>();
     dispatcher->GetOperationPublisher().Monitor(operations);
     auto timeClient = IncrementalTimeClient();
-    auto entryA = SequencedIndexedEntry();
-    auto entryB = SequencedIndexedEntry();
-    auto entryC = SequencedIndexedEntry();
+    auto entryA = SequencedIndexedTestEntry();
+    auto entryB = SequencedIndexedTestEntry();
+    auto entryC = SequencedIndexedTestEntry();
     auto firstStoreOperation =
       std::optional<DataStoreDispatcher::StoreOperation*>();
     {
@@ -214,7 +164,7 @@ TEST_SUITE("AsyncDataStore") {
             operations->Pop();
             auto& loadOperation = std::get<DataStoreDispatcher::LoadOperation>(
               *operation);
-            loadOperation.m_result.SetResult(std::vector<SequencedEntry>{});
+            loadOperation.m_result.SetResult(std::vector<SequencedTestEntry>());
           }
         }));
       TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
@@ -263,9 +213,9 @@ TEST_SUITE("AsyncDataStore") {
       Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
     dispatcher->GetOperationPublisher().Monitor(operations);
     auto timeClient = IncrementalTimeClient();
-    auto entryA = SequencedIndexedEntry();
-    auto entryB = SequencedIndexedEntry();
-    auto entryC = SequencedIndexedEntry();
+    auto entryA = SequencedIndexedTestEntry();
+    auto entryB = SequencedIndexedTestEntry();
+    auto entryC = SequencedIndexedTestEntry();
     {
       auto handler = RoutineHandler(Spawn(
         [&] {

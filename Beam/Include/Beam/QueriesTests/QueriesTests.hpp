@@ -4,6 +4,7 @@
 
 namespace Beam::Queries::Tests {
   template<typename Q, typename V> class TestDataStore;
+  struct TestEntry;
 }
 
 #endif

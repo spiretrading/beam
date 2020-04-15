@@ -1,61 +1,19 @@
 #include <doctest/doctest.h>
-#include <string>
 #include <vector>
-#include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
+#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
+using namespace Beam::Queries::Tests;
 using namespace Beam::TimeService;
-using namespace boost;
-using namespace boost::posix_time;
 
 namespace {
-  struct Entry {
-    int m_value;
-    ptime m_timestamp;
-
-    Entry() = default;
-    Entry(int value, ptime timestamp);
-    bool operator ==(const Entry& rhs) const;
-  };
-
-  using DataStore = LocalDataStore<BasicQuery<std::string>, Entry,
+  using DataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
     EvaluatorTranslator<QueryTypes>>;
-  using SequencedEntry = SequencedValue<Entry>;
-  using SequencedIndexedEntry = SequencedValue<IndexedValue<Entry,
-    std::string>>;
-
-  Entry::Entry(int value, ptime timestamp)
-    : m_value(value),
-      m_timestamp(timestamp) {}
-
-  bool Entry::operator ==(const Entry& rhs) const {
-    return m_value == rhs.m_value && m_timestamp == rhs.m_timestamp;
-  }
-
-  SequencedIndexedEntry StoreValue(DataStore& dataStore, std::string index,
-      int value, const ptime& timestamp,
-      const Beam::Queries::Sequence& sequence) {
-    auto entry = SequencedValue(IndexedValue(Entry(value, timestamp), index),
-      sequence);
-    dataStore.Store(entry);
-    return entry;
-  }
-
-  void TestQuery(DataStore& dataStore, std::string index,
-      const Beam::Queries::Range& range, const SnapshotLimit& limit,
-      const std::vector<SequencedEntry>& expectedResult) {
-    auto query = BasicQuery<std::string>();
-    query.SetIndex(index);
-    query.SetRange(range);
-    query.SetSnapshotLimit(limit);
-    auto queryResult = dataStore.Load(query);
-    REQUIRE(expectedResult == queryResult);
-  }
 }
 
 TEST_SUITE("LocalDataStore") {
@@ -98,17 +56,19 @@ TEST_SUITE("LocalDataStore") {
   TEST_CASE("load_all") {
     auto dataStore = DataStore();
     auto timeClient = IncrementalTimeClient();
-    auto valueA = SequencedValue(IndexedValue(Entry(5, timeClient.GetTime()),
-      "hello"), Beam::Queries::Sequence(1));
+    auto valueA = SequencedValue(IndexedValue(
+      TestEntry{5, timeClient.GetTime()}, "hello"), Beam::Queries::Sequence(1));
     dataStore.Store(valueA);
-    auto valueB = SequencedValue(IndexedValue(Entry(6, timeClient.GetTime()),
-      "hello"), Beam::Queries::Sequence(2));
+    auto valueB = SequencedValue(IndexedValue(
+      TestEntry{6, timeClient.GetTime()}, "hello"), Beam::Queries::Sequence(2));
     dataStore.Store(valueB);
-    auto valueC = SequencedValue(IndexedValue(Entry(7, timeClient.GetTime()),
-      "goodbye"), Beam::Queries::Sequence(1));
+    auto valueC = SequencedValue(IndexedValue(
+      TestEntry{7, timeClient.GetTime()}, "goodbye"),
+      Beam::Queries::Sequence(1));
     dataStore.Store(valueC);
-    auto valueD = SequencedValue(IndexedValue(Entry(8, timeClient.GetTime()),
-      "goodbye"), Beam::Queries::Sequence(2));
+    auto valueD = SequencedValue(IndexedValue(
+      TestEntry{8, timeClient.GetTime()}, "goodbye"),
+      Beam::Queries::Sequence(2));
     dataStore.Store(valueD);
     auto entries = dataStore.LoadAll();
     auto expectedEntries = std::vector{valueA, valueB, valueC, valueD};

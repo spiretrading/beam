@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <string>
+#include <doctest/doctest.h>
 #include "Beam/Queries/NativeValue.hpp"
 
 using namespace Beam;

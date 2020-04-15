@@ -1,6 +1,6 @@
-#include <doctest/doctest.h>
 #include <algorithm>
 #include <vector>
+#include <doctest/doctest.h>
 #include "Beam/Queries/AsyncDataStore.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"

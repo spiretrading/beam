@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <string>
+#include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/NativeDataType.hpp"
 #include "Beam/Queries/NativeValue.hpp"

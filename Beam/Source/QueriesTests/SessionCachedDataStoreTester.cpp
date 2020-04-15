@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <vector>
+#include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/SessionCachedDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"

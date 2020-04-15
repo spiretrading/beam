@@ -1,80 +1,85 @@
+#include <string>
 #include <doctest/doctest.h>
-#include "Beam/QueriesTests/SequencedValuePublisherTester.hpp"
-#include "Beam/Queries/SequencedValue.hpp"
+#include "Beam/Queries/BasicQuery.hpp"
+#include "Beam/Queries/SequencedValuePublisher.hpp"
 #include "Beam/Queues/Queue.hpp"
 
 using namespace Beam;
 using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
 
-SequencedValuePublisherTester::PublisherEntry::PublisherEntry(
-    const TestQuery& query)
-    : m_queue(std::make_shared<Queue<SequencedValue<string>>>()),
-      m_publisher(query, Translate(query.GetFilter()), m_queue) {}
+namespace {
+  using TestQuery = BasicQuery<int>;
+  using TestSequencedValuePublisher = SequencedValuePublisher<
+    TestQuery, std::string>;
+
+  struct PublisherEntry {
+    std::shared_ptr<Queue<SequencedValue<std::string>>> m_queue;
+    TestSequencedValuePublisher m_publisher;
+
+    PublisherEntry(const TestQuery& query)
+      : m_queue(std::make_shared<Queue<SequencedValue<std::string>>>()),
+        m_publisher(query, Translate(query.GetFilter()), m_queue) {}
+  };
+
+  void ExpectValue(Queue<SequencedValue<std::string>>& queue,
+      const SequencedValue<std::string>& expectedValue) {
+    auto value = queue.Top();
+    queue.Pop();
+    REQUIRE(value == expectedValue);
+  }
+
+  auto MakePublisher(const TestQuery& query) {
+    return std::make_unique<PublisherEntry>(query);
+  }
+
+  void InitializeSnapshot(PublisherEntry& publisher,
+      const std::vector<SequencedValue<std::string>>& snapshot) {
+    auto pushSnapshot = snapshot;
+    publisher.m_publisher.BeginSnapshot();
+    publisher.m_publisher.PushSnapshot(pushSnapshot.begin(),
+      pushSnapshot.end());
+    publisher.m_publisher.EndSnapshot(123);
+    for(auto& value : snapshot) {
+      ExpectValue(*publisher.m_queue, value);
+    }
+  }
+}
 
 TEST_SUITE("SequencedValuePublisher") {
   TEST_CASE("publish_with_total_range") {
-    TestQuery query;
+    auto query = TestQuery();
     query.SetRange(Range::Total());
-    unique_ptr<PublisherEntry> publisher = MakePublisher(query);
-    InitializeSnapshot(*publisher, vector<SequencedValue<string>>());
-    SequencedValue<string> helloValue("hello", Sequence(3));
+    auto publisher = MakePublisher(query);
+    InitializeSnapshot(*publisher, {});
+    auto helloValue = SequencedValue(std::string("hello"), Sequence(3));
     publisher->m_publisher.Push(helloValue);
     ExpectValue(*publisher->m_queue, helloValue);
-    SequencedValue<string> worldValue("world", Sequence(3));
+    auto worldValue = SequencedValue(std::string("world"), Sequence(3));
     publisher->m_publisher.Push(worldValue);
     REQUIRE(publisher->m_queue->IsEmpty());
-    SequencedValue<string> goodbyeValue("goodbye", Sequence(2));
+    auto goodbyeValue = SequencedValue(std::string("goodbye"), Sequence(2));
     publisher->m_publisher.Push(goodbyeValue);
     REQUIRE(publisher->m_queue->IsEmpty());
-    SequencedValue<string> skyValue("goodbye", Sequence(4));
+    auto skyValue = SequencedValue(std::string("goodbye"), Sequence(4));
     publisher->m_publisher.Push(skyValue);
     ExpectValue(*publisher->m_queue, skyValue);
   }
 
   TEST_CASE("snapshot_with_total_range") {
-    TestQuery query;
+    auto query = TestQuery();
     query.SetRange(Range::Total());
-    unique_ptr<PublisherEntry> publisher = MakePublisher(query);
-    vector<SequencedValue<string>> snapshot;
+    auto publisher = MakePublisher(query);
+    auto snapshot = std::vector<SequencedValue<std::string>>();
     snapshot.push_back(SequencedValue("hello", Sequence(3)));
     InitializeSnapshot(*publisher, snapshot);
-    SequencedValue<string> worldValue("world", Sequence(3));
+    auto worldValue = SequencedValue(std::string("world"), Sequence(3));
     publisher->m_publisher.Push(worldValue);
     REQUIRE(publisher->m_queue->IsEmpty());
-    SequencedValue<string> goodbyeValue("goodbye", Sequence(2));
+    auto goodbyeValue = SequencedValue(std::string("goodbye"), Sequence(2));
     publisher->m_publisher.Push(goodbyeValue);
     REQUIRE(publisher->m_queue->IsEmpty());
-    SequencedValue<string> skyValue("goodbye", Sequence(4));
+    auto skyValue = SequencedValue(std::string("goodbye"), Sequence(4));
     publisher->m_publisher.Push(skyValue);
     ExpectValue(*publisher->m_queue, skyValue);
   }
-
-unique_ptr<SequencedValuePublisherTester::PublisherEntry>
-    SequencedValuePublisherTester::MakePublisher(const TestQuery& query) {
-  unique_ptr<Evaluator> filter = Translate(query.GetFilter());
-  unique_ptr<PublisherEntry> publisherEntry =
-    std::make_unique<PublisherEntry>(query);
-  return publisherEntry;
-}
-
-void SequencedValuePublisherTester::InitializeSnapshot(
-    PublisherEntry& publisher,
-    const vector<SequencedValue<string>>& snapshot) {
-  vector<SequencedValue<string>> pushSnapshot = snapshot;
-  publisher.m_publisher.BeginSnapshot();
-  publisher.m_publisher.PushSnapshot(pushSnapshot.begin(), pushSnapshot.end());
-  publisher.m_publisher.EndSnapshot(123);
-  for(const SequencedValue<string>& value : snapshot) {
-    ExpectValue(*publisher.m_queue, value);
-  }
-}
-
-void SequencedValuePublisherTester::ExpectValue(
-    Queue<SequencedValue<string>>& queue,
-    const SequencedValue<string>& expectedValue) {
-  SequencedValue<string> value = queue.Top();
-  queue.Pop();
-  REQUIRE_EQUAL(value, expectedValue);
-}
 }

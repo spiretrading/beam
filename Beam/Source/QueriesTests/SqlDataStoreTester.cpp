@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <vector>
+#include <doctest/doctest.h>
 #include <Viper/Sqlite3/Sqlite3.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/SqlDataStore.hpp"

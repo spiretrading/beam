@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <doctest/doctest.h>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/QueriesTests/TestDataStore.hpp"

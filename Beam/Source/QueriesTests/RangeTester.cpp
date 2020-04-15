@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <boost/date_time/gregorian/gregorian.hpp>
+#include <doctest/doctest.h>
 #include "Beam/Queries/Range.hpp"
 
 using namespace Beam;

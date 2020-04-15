@@ -1,15 +1,9 @@
-#ifndef BEAM_SERVICELOCATORTESTS_HPP
-#define BEAM_SERVICELOCATORTESTS_HPP
+#ifndef BEAM_SERVICE_LOCATOR_TESTS_HPP
+#define BEAM_SERVICE_LOCATOR_TESTS_HPP
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
-namespace Tests {
-  class ServiceLocatorClientTester;
-  class ServiceLocatorServletTester;
+namespace Beam::ServiceLocator::Tests {
   class ServiceLocatorTestEnvironment;
-}
-}
 }
 
 #endif

@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <cstring>
+#include <doctest/doctest.h>
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;

@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <boost/variant/get.hpp>
+#include <doctest/doctest.h>
 #include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Parsers/Types.hpp"

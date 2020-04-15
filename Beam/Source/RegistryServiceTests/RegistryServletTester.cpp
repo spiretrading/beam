@@ -1,6 +1,6 @@
-#include <doctest/doctest.h>
 #include <boost/functional/factory.hpp>
 #include <boost/optional.hpp>
+#include <doctest/doctest.h>
 #include "Beam/RegistryService/LocalRegistryDataStore.hpp"
 #include "Beam/RegistryService/RegistryServlet.hpp"
 #include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"

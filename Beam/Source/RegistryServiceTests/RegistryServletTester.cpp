@@ -1,95 +1,100 @@
-#include "Beam/RegistryServiceTests/RegistryServletTester.hpp"
+#include <doctest/doctest.h>
 #include <boost/functional/factory.hpp>
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/ServiceLocator/SessionAuthenticator.hpp"
-#include "Beam/SignalHandling/NullSlot.hpp"
+#include <boost/optional.hpp>
+#include "Beam/RegistryService/LocalRegistryDataStore.hpp"
+#include "Beam/RegistryService/RegistryServlet.hpp"
+#include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"
+#include "Beam/ServicesTests/ServicesTests.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::RegistryService;
-using namespace Beam::RegistryService::Tests;
 using namespace Beam::ServiceLocator;
 using namespace Beam::ServiceLocator::Tests;
 using namespace Beam::Services;
 using namespace Beam::Services::Tests;
-using namespace Beam::SignalHandling;
 using namespace Beam::Threading;
 using namespace boost;
-using namespace std;
 
-void RegistryServletTester::setUp() {
-  m_serviceLocatorEnvironment.emplace();
-  m_serviceLocatorEnvironment->Open();
-  m_dataStore = std::make_shared<LocalRegistryDataStore>();
-  auto serverConnection = std::make_unique<TestServerConnection>();
-  m_clientProtocol.emplace(Initialize("test", Ref(*serverConnection)),
-    Initialize());
-  RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
-  RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
-  RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
-  auto registryServiceLocatorClient =
-    m_serviceLocatorEnvironment->BuildClient();
-  registryServiceLocatorClient->SetCredentials("root", "");
-  registryServiceLocatorClient->Open();
-  m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
-    Initialize(m_dataStore)), std::move(serverConnection),
-    factory<std::unique_ptr<TriggerTimer>>());
-  m_container->Open();
+namespace {
+  struct Fixture {
+    using ServletContainer = TestAuthenticatedServiceProtocolServletContainer<
+      MetaRegistryServlet<LocalRegistryDataStore*>>;
+    ServiceLocatorTestEnvironment m_environment;
+    LocalRegistryDataStore m_dataStore;
+    optional<ServletContainer> m_container;
+    optional<TestServiceProtocolClient> m_clientProtocol;
+
+    Fixture() {
+      m_environment.Open();
+      auto serverConnection = std::make_unique<TestServerConnection>();
+      m_clientProtocol.emplace(Initialize("test", Ref(*serverConnection)),
+        Initialize());
+      RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
+      RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
+      RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
+      auto registryServiceLocatorClient = m_environment.BuildClient();
+      registryServiceLocatorClient->SetCredentials("root", "");
+      registryServiceLocatorClient->Open();
+      m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
+        Initialize(&m_dataStore)), std::move(serverConnection),
+        factory<std::unique_ptr<TriggerTimer>>());
+      m_container->Open();
+    }
+  };
 }
 
-void RegistryServletTester::tearDown() {
-  m_clientProtocol.reset();
-  m_container.reset();
-  m_dataStore.reset();
-}
+TEST_SUITE("RegistryServlet") {
+  TEST_CASE_FIXTURE(Fixture, "make_directory") {
+    auto serviceLocatorClient = m_environment.BuildClient();
+    serviceLocatorClient->SetCredentials("root", "");
+    serviceLocatorClient->Open();
+    OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
+      Ref(*serviceLocatorClient)), *m_clientProtocol);
+    auto directoryName = std::string("directory");
+    auto directory = m_clientProtocol->SendRequest<
+      RegistryService::MakeDirectoryService>(directoryName,
+      RegistryEntry::GetRoot());
+  }
 
-void RegistryServletTester::TestMakeDirectory() {
-  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
-  serviceLocatorClient->SetCredentials("root", "");
-  serviceLocatorClient->Open();
-  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
-    Ref(*serviceLocatorClient)), *m_clientProtocol);
-  auto directoryName = string{"directory"};
-  RegistryEntry directory = m_clientProtocol->SendRequest<MakeDirectoryService>(
-    directoryName, RegistryEntry::GetRoot());
-}
+  TEST_CASE_FIXTURE(Fixture, "make_value") {
+    auto serviceLocatorClient = m_environment.BuildClient();
+    serviceLocatorClient->SetCredentials("root", "");
+    serviceLocatorClient->Open();
+    OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
+      Ref(*serviceLocatorClient)), *m_clientProtocol);
+    auto key = std::string("key");
+    auto value = BufferFromString<SharedBuffer>("value");
+    auto entry = m_clientProtocol->SendRequest<MakeValueService>(key, value,
+      RegistryEntry::GetRoot());
+  }
 
-void RegistryServletTester::TestMakeValue() {
-  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
-  serviceLocatorClient->SetCredentials("root", "");
-  serviceLocatorClient->Open();
-  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
-    Ref(*serviceLocatorClient)), *m_clientProtocol);
-  auto key = string{"key"};
-  auto value = BufferFromString<SharedBuffer>("value");
-  auto entry = m_clientProtocol->SendRequest<MakeValueService>(key, value,
-    RegistryEntry::GetRoot());
-}
+  TEST_CASE_FIXTURE(Fixture, "load_path") {
+    auto serviceLocatorClient = m_environment.BuildClient();
+    serviceLocatorClient->SetCredentials("root", "");
+    serviceLocatorClient->Open();
+    OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
+      Ref(*serviceLocatorClient)), *m_clientProtocol);
+    auto directory = RegistryEntry(RegistryEntry::Type::DIRECTORY, 0,
+      "directory", 0);
+    directory = m_dataStore.Copy(directory, RegistryEntry::GetRoot());
+    auto pathLoaded = m_clientProtocol->SendRequest<
+      RegistryService::LoadPathService>(RegistryEntry::GetRoot(), "directory");
+    REQUIRE(pathLoaded == directory);
+  }
 
-void RegistryServletTester::TestLoadPath() {
-  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
-  serviceLocatorClient->SetCredentials("root", "");
-  serviceLocatorClient->Open();
-  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
-    Ref(*serviceLocatorClient)), *m_clientProtocol);
-  RegistryEntry directory(RegistryEntry::Type::DIRECTORY, 0, "directory", 0);
-  directory = m_dataStore->Copy(directory, RegistryEntry::GetRoot());
-  RegistryEntry pathLoaded = m_clientProtocol->SendRequest<LoadPathService>(
-    RegistryEntry::GetRoot(), "directory");
-  CPPUNIT_ASSERT(pathLoaded == directory);
-}
-
-void RegistryServletTester::TestLoadValue() {
-  auto serviceLocatorClient = m_serviceLocatorEnvironment->BuildClient();
-  serviceLocatorClient->SetCredentials("root", "");
-  serviceLocatorClient->Open();
-  OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
-    Ref(*serviceLocatorClient)), *m_clientProtocol);
-  RegistryEntry valueEntry(RegistryEntry::Type::VALUE, 0, "value", 0);
-  valueEntry = m_dataStore->Copy(valueEntry, RegistryEntry::GetRoot());
-  auto value = BufferFromString<SharedBuffer>("value");
-  valueEntry = m_dataStore->Store(valueEntry, value);
-  auto loadedValue = m_clientProtocol->SendRequest<LoadValueService>(
-    valueEntry);
-  CPPUNIT_ASSERT(loadedValue == value);
+  TEST_CASE_FIXTURE(Fixture, "load_value") {
+    auto serviceLocatorClient = m_environment.BuildClient();
+    serviceLocatorClient->SetCredentials("root", "");
+    serviceLocatorClient->Open();
+    OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
+      Ref(*serviceLocatorClient)), *m_clientProtocol);
+    auto valueEntry = RegistryEntry(RegistryEntry::Type::VALUE, 0, "value", 0);
+    valueEntry = m_dataStore.Copy(valueEntry, RegistryEntry::GetRoot());
+    auto value = BufferFromString<SharedBuffer>("value");
+    valueEntry = m_dataStore.Store(valueEntry, value);
+    auto loadedValue = m_clientProtocol->SendRequest<LoadValueService>(
+      valueEntry);
+    REQUIRE(loadedValue == value);
+  }
 }

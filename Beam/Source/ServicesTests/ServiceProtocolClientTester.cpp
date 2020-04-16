@@ -1,4 +1,4 @@
-#include "Beam/ServicesTests/ServiceProtocolClientTester.hpp"
+#include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
@@ -14,170 +14,179 @@ using namespace Beam::Serialization;
 using namespace Beam::Services;
 using namespace Beam::Services::Tests;
 using namespace Beam::Threading;
-using namespace boost;
-using namespace std;
 
 namespace {
-  void OnVoidRequest(RequestToken<ServiceProtocolClientTester::
-      ServerServiceProtocolClient, VoidService>& request, int n,
+  using TestServerConnection = LocalServerConnection<SharedBuffer>;
+  using ClientChannel = LocalClientChannel<SharedBuffer>;
+  using ServerServiceProtocolClient = ServiceProtocolClient<
+    MessageProtocol<std::unique_ptr<TestServerConnection::Channel>,
+    BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
+  using ClientServiceProtocolClient = ServiceProtocolClient<
+    MessageProtocol<ClientChannel, BinarySender<SharedBuffer>, NullEncoder>,
+    TriggerTimer>;
+
+  void OnVoidRequest(
+      RequestToken<ServerServiceProtocolClient, VoidService>& request, int n,
       int* callbackCount) {
     ++*callbackCount;
     request.SetResult();
   }
 
-  void OnExceptionVoidRequest(RequestToken<ServiceProtocolClientTester::
-      ServerServiceProtocolClient, VoidService>& request, int n,
+  void OnExceptionVoidRequest(
+      RequestToken<ServerServiceProtocolClient, VoidService>& request, int n,
       int* callbackCount) {
     ++*callbackCount;
     request.SetException(ServiceRequestException());
   }
 }
 
-void ServiceProtocolClientTester::TestVoidReturnType() {
-  ServerConnection server;
-  auto callbackCount = 0;
-  RoutineHandler serverTask = Spawn(
-    [&] {
-      server.Open();
-      auto clientChannel = server.Accept();
-      ServiceProtocolClientTester::ServerServiceProtocolClient client(
-        std::move(clientChannel), Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      VoidService::AddRequestSlot(Store(client.GetSlots()),
-        std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
-        &callbackCount));
-      client.Open();
-      try {
-        while(true) {
-          auto message = client.ReadMessage();
-          auto slot = client.GetSlots().Find(*message);
-          if(slot != nullptr) {
-            message->EmitSignal(slot, Ref(client));
+TEST_SUITE("ServiceProtocolClient") {
+  TEST_CASE("void_return_type") {
+    auto server = TestServerConnection();
+    auto callbackCount = 0;
+    auto serverTask = RoutineHandler(Spawn(
+      [&] {
+        server.Open();
+        auto clientChannel = server.Accept();
+        auto client = ServerServiceProtocolClient(std::move(clientChannel),
+          Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        VoidService::AddRequestSlot(Store(client.GetSlots()),
+          std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
+          &callbackCount));
+        client.Open();
+        try {
+          while(true) {
+            auto message = client.ReadMessage();
+            auto slot = client.GetSlots().Find(*message);
+            if(slot != nullptr) {
+              message->EmitSignal(slot, Ref(client));
+            }
           }
+        } catch(const ServiceRequestException&) {
+        } catch(const EndOfFileException&) {
         }
-      } catch(const ServiceRequestException&) {
-      } catch(const EndOfFileException&) {
-      }
-    });
-  RoutineHandler clientTask = Spawn(
-    [&] {
-      ClientServiceProtocolClient client(Initialize(string("client"),
-        Ref(server)), Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      client.Open();
-      client.SendRequest<VoidService>(123);
-      client.SendRequest<VoidService>(321);
-      client.Close();
-    });
-  clientTask.Wait();
-  serverTask.Wait();
-  CPPUNIT_ASSERT(callbackCount == 2);
-}
+      }));
+    auto clientTask = RoutineHandler(Spawn(
+      [&] {
+        auto client = ClientServiceProtocolClient(
+          Initialize(std::string("client"), Ref(server)), Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        client.Open();
+        client.SendRequest<VoidService>(123);
+        client.SendRequest<VoidService>(321);
+        client.Close();
+      }));
+    clientTask.Wait();
+    serverTask.Wait();
+    REQUIRE(callbackCount == 2);
+  }
 
-void ServiceProtocolClientTester::TestException() {
-  ServerConnection server;
-  auto callbackCount = 0;
-  RoutineHandler serverTask = Spawn(
-    [&] {
-      server.Open();
-      auto clientChannel = server.Accept();
-      ServiceProtocolClientTester::ServerServiceProtocolClient client(
-        std::move(clientChannel), Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
-        OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
-        &callbackCount));
-      client.Open();
-      try {
-        while(true) {
-          auto message = client.ReadMessage();
-          auto slot = client.GetSlots().Find(*message);
-          if(slot != nullptr) {
-            message->EmitSignal(slot, Ref(client));
+  TEST_CASE("exception") {
+    auto server = TestServerConnection();
+    auto callbackCount = 0;
+    auto serverTask = RoutineHandler(Spawn(
+      [&] {
+        server.Open();
+        auto clientChannel = server.Accept();
+        auto client = ServerServiceProtocolClient(std::move(clientChannel),
+          Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
+          OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
+          &callbackCount));
+        client.Open();
+        try {
+          while(true) {
+            auto message = client.ReadMessage();
+            auto slot = client.GetSlots().Find(*message);
+            if(slot != nullptr) {
+              message->EmitSignal(slot, Ref(client));
+            }
           }
+        } catch(const ServiceRequestException&) {
+        } catch(const EndOfFileException&) {
         }
-      } catch(const ServiceRequestException&) {
-      } catch(const EndOfFileException&) {
-      }
-    });
-  RoutineHandler clientTask = Spawn(
-    [&] {
-      ClientServiceProtocolClient client(Initialize(string("client"),
-        Ref(server)), Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      client.Open();
-      CPPUNIT_ASSERT_THROW(client.SendRequest<VoidService>(123),
-        ServiceRequestException);
-      client.Close();
-    });
-  clientTask.Wait();
-  serverTask.Wait();
-  CPPUNIT_ASSERT(callbackCount == 1);
-}
+      }));
+    auto clientTask = RoutineHandler(Spawn(
+      [&] {
+        auto client = ClientServiceProtocolClient(
+          Initialize(std::string("client"), Ref(server)), Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        client.Open();
+        REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
+          ServiceRequestException);
+        client.Close();
+      }));
+    clientTask.Wait();
+    serverTask.Wait();
+    REQUIRE(callbackCount == 1);
+  }
 
-void ServiceProtocolClientTester::TestRequestBeforeConnectionClosed() {
-  ServerConnection server;
-  auto callbackCount = 0;
-  RoutineHandler serverTask = Spawn(
-    [&] {
-      server.Open();
-      auto clientChannel = server.Accept();
-      ServiceProtocolClientTester::ServerServiceProtocolClient client(
-        std::move(clientChannel), Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
-        OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
-        &callbackCount));
-      client.Open();
-      try {
-        while(true) {
-          auto message = client.ReadMessage();
-          auto slot = client.GetSlots().Find(*message);
-          if(slot != nullptr) {
-            client.Close();
+  TEST_CASE("request_before_connection_closed") {
+    auto server = TestServerConnection();
+    auto callbackCount = 0;
+    RoutineHandler serverTask = Spawn(
+      [&] {
+        server.Open();
+        auto clientChannel = server.Accept();
+        auto client = ServerServiceProtocolClient(std::move(clientChannel),
+          Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
+          OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
+          &callbackCount));
+        client.Open();
+        try {
+          while(true) {
+            auto message = client.ReadMessage();
+            auto slot = client.GetSlots().Find(*message);
+            if(slot != nullptr) {
+              client.Close();
+            }
           }
+        } catch(const ServiceRequestException&) {
+        } catch(const EndOfFileException&) {
         }
-      } catch(const ServiceRequestException&) {
-      } catch(const EndOfFileException&) {
-      }
-    });
-  RoutineHandler clientTask = Spawn(
-    [&] {
-      ClientChannel clientChannel(string("client"), Ref(server));
-      ServiceProtocolClient<MessageProtocol<ClientChannel*,
-        BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer> client(
-        &clientChannel, Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      client.Open();
-      CPPUNIT_ASSERT_THROW(client.SendRequest<VoidService>(123),
-        ServiceRequestException);
-      client.Close();
-    });
-  clientTask.Wait();
-  serverTask.Wait();
-}
+      });
+    auto clientTask = RoutineHandler(Spawn(
+      [&] {
+        auto clientChannel = ClientChannel(std::string("client"), Ref(server));
+        auto client = ServiceProtocolClient<MessageProtocol<ClientChannel*,
+          BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>(
+          &clientChannel, Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        client.Open();
+        REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
+          ServiceRequestException);
+        client.Close();
+      }));
+    clientTask.Wait();
+    serverTask.Wait();
+  }
 
-void ServiceProtocolClientTester::TestRequestAfterConnectionClosed() {
-  ServerConnection server;
-  RoutineHandler serverTask = Spawn(
-    [&] {
-      server.Open();
-      auto clientChannel = server.Accept();
-      clientChannel->GetConnection().Close();
-    });
-  RoutineHandler clientTask = Spawn(
-    [&] {
-      ClientChannel clientChannel(string("client"), Ref(server));
-      ServiceProtocolClient<MessageProtocol<ClientChannel*,
-        BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer> client(
-        &clientChannel, Initialize());
-      RegisterTestServices(Store(client.GetSlots()));
-      client.Open();
-      clientChannel.GetConnection().Close();
-      CPPUNIT_ASSERT_THROW(client.SendRequest<VoidService>(123),
-        ServiceRequestException);
-      client.Close();
-    });
-  clientTask.Wait();
-  serverTask.Wait();
+  TEST_CASE("request_after_connection_closed") {
+    auto server = TestServerConnection();
+    auto serverTask = RoutineHandler(Spawn(
+      [&] {
+        server.Open();
+        auto clientChannel = server.Accept();
+        clientChannel->GetConnection().Close();
+      }));
+    auto clientTask = RoutineHandler(Spawn(
+      [&] {
+        auto clientChannel = ClientChannel(std::string("client"), Ref(server));
+        auto client = ServiceProtocolClient<MessageProtocol<ClientChannel*,
+          BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>(
+          &clientChannel, Initialize());
+        RegisterTestServices(Store(client.GetSlots()));
+        client.Open();
+        clientChannel.GetConnection().Close();
+        REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
+          ServiceRequestException);
+        client.Close();
+      }));
+    clientTask.Wait();
+    serverTask.Wait();
+  }
 }

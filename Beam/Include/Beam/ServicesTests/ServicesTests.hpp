@@ -17,9 +17,7 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
 
-namespace Beam {
-namespace Services {
-namespace Tests {
+namespace Beam::Services::Tests {
   class ServiceProtocolClientTester;
   class ServiceProtocolServerTester;
   class ServiceProtocolServletContainerTester;
@@ -76,8 +74,6 @@ namespace Tests {
     std::unique_ptr<TestClientChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::TriggerTimer>;
-}
-}
 }
 
 #endif

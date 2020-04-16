@@ -24,14 +24,14 @@ SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT
 SET BUILD_ASPEN=
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
-  IF !ERRORLEVEL! LEQ 0 (
+  IF !ERRORLEVEL! EQU 0 (
     SET BUILD_ASPEN=1
   ) ELSE (
     RD /S /Q aspen
     SET EXIT_STATUS=1
   )
 )
-SET aspen_commit="24f511c20cd1807beda41db0f4e150b8d73f7aa0"
+SET aspen_commit="28959f0b215738f62a005b9668de0d21971a6840"
 IF EXIST aspen (
   PUSHD aspen
   git merge-base --is-ancestor "!aspen_commit!" HEAD
@@ -41,7 +41,7 @@ IF EXIST aspen (
     git checkout "!aspen_commit!"
     SET BUILD_ASPEN=1
   )
-  IF !BUILD_ASPEN! LEQ 1 (
+  IF !BUILD_ASPEN! EQU 1 (
     CALL configure.bat -DD="!ROOT!"
     CALL build.bat Debug
     CALL build.bat Release
@@ -173,7 +173,7 @@ IF EXIST viper (
 )
 IF NOT EXIST yaml-cpp (
   git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp
-  IF !ERRORLEVEL! LEQ 0 (
+  IF !ERRORLEVEL! EQU 0 (
     PUSHD yaml-cpp
     git checkout 0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79
     MD build
@@ -190,7 +190,7 @@ IF NOT EXIST yaml-cpp (
 )
 IF NOT EXIST zlib-1.2.11 (
   git clone --branch v1.2.11 https://github.com/madler/zlib.git zlib-1.2.11
-  IF !ERRORLEVEL! LEQ 0 (
+  IF !ERRORLEVEL! EQU 0 (
     PUSHD zlib-1.2.11\contrib\vstudio\vc14
     TYPE zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
     MOVE zlibstat.vcxproj.new zlibstat.vcxproj

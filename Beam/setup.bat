@@ -21,20 +21,6 @@ IF NOT EXIST Strawberry (
   DEL /F /Q strawberry-perl-5.30.1.1-64bit-portable.zip
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
-IF NOT EXIST cppunit-1.14.0 (
-  wget https://github.com/freedesktop/libreoffice-cppunit/archive/cppunit-1.14.0.zip -O cppunit-1.14.0.zip --no-check-certificate
-  IF !ERRORLEVEL! EQU 0 (
-    unzip cppunit-1.14.0.zip
-    MV libreoffice-cppunit-cppunit-1.14.0 cppunit-1.14.0
-    PUSHD cppunit-1.14.0\src\cppunit
-    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=Debug
-    msbuild cppunit.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=Release
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q cppunit-1.14.0.zip
-)
 SET BUILD_ASPEN=
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen

@@ -7,12 +7,6 @@ set(BOOST_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/include/boost-1_72")
 set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
 set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
-set(CPPUNIT_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cppunit-1.14.0/include")
-set(CPPUNIT_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cppunit-1.14.0/lib/cppunitd.lib")
-set(CPPUNIT_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cppunit-1.14.0/lib/cppunit.lib")
 set(CRYPTOPP_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/include")
 set(CRYPTOPP_LIBRARY_DEBUG_PATH

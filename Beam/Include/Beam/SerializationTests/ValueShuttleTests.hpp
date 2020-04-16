@@ -1,12 +1,9 @@
-#ifndef BEAM_VALUESHUTTLETESTS_HPP
-#define BEAM_VALUESHUTTLETESTS_HPP
-#include <cppunit/extensions/HelperMacros.h>
+#ifndef BEAM_VALUE_SHUTTLE_TESTS_HPP
+#define BEAM_VALUE_SHUTTLE_TESTS_HPP
+#include <doctest/doctest.h>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/SerializationTests/SerializationTests.hpp"
 
-namespace Beam {
-namespace Serialization {
-namespace Tests {
+namespace Beam::Serialization::Tests {
 
   //! Tests shuttling a value through a reference.
   /*!
@@ -15,16 +12,16 @@ namespace Tests {
     \param value The value to shuttle.
   */
   template<typename SenderType, typename ReceiverType, typename T>
-  static void TestShuttlingReference(SenderType&& sender,
-      ReceiverType&& receiver, const T& value) {
-    T inValue = value;
-    typename SenderType::Sink buffer;
+  void TestShuttlingReference(SenderType&& sender, ReceiverType&& receiver,
+      const T& value) {
+    auto inValue = value;
+    auto buffer = typename SenderType::Sink();
     sender.SetSink(Ref(buffer));
     sender.Shuttle(inValue);
     receiver.SetSource(Ref(buffer));
-    T outValue;
+    auto outValue = T();
     receiver.Shuttle(outValue);
-    CPPUNIT_ASSERT(inValue == outValue);
+    REQUIRE(inValue == outValue);
   }
 
   //! Tests shuttling a value directly.
@@ -34,18 +31,16 @@ namespace Tests {
     \param value The value to shuttle.
   */
   template<typename SenderType, typename ReceiverType, typename T>
-  static void TestShuttlingConstant(SenderType&& sender,
-      ReceiverType&& receiver, const T& value) {
-    typename SenderType::Sink buffer;
+  void TestShuttlingConstant(SenderType&& sender, ReceiverType&& receiver,
+      const T& value) {
+    auto buffer = typename SenderType::Sink();
     sender.SetSink(Ref(buffer));
     sender.Shuttle(value);
     receiver.SetSource(Ref(buffer));
-    T outValue;
+    auto outValue = T();
     receiver.Shuttle(outValue);
-    CPPUNIT_ASSERT(value == outValue);
+    REQUIRE(value == outValue);
   }
-}
-}
 }
 
 #endif

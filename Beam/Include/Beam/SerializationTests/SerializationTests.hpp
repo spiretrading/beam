@@ -1,20 +1,14 @@
-#ifndef BEAM_SERIALIZATIONTESTS_HPP
-#define BEAM_SERIALIZATIONTESTS_HPP
+#ifndef BEAM_SERIALIZATION_TESTS_HPP
+#define BEAM_SERIALIZATION_TESTS_HPP
 #include "Beam/Serialization/Serialization.hpp"
 
-namespace Beam {
-namespace Serialization {
-namespace Tests {
-  class BinaryShuttleTester;
+namespace Beam::Serialization::Tests {
   class ClassWithShuttleMethod;
   class ClassWithSendReceiveMethods;
   class ClassWithVersioning;
-  template<typename SenderType, typename ReceiverType> class DataShuttleTester;
   class PolymorphicBaseClass;
   class ProxiedFunctionType;
   class ProxiedMethodType;
-}
-}
 }
 
 #endif

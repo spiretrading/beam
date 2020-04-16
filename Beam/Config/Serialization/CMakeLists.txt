@@ -7,9 +7,6 @@ endif()
 
 add_executable(SerializationTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(SerializationTests
-  debug ${CPPUNIT_LIBRARY_DEBUG_PATH}
-  optimized ${CPPUNIT_LIBRARY_OPTIMIZED_PATH})
 
 add_custom_command(TARGET SerializationTests POST_BUILD
   COMMAND SerializationTests)

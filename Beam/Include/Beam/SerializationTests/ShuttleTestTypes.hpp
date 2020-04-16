@@ -1,7 +1,7 @@
 #ifndef BEAM_SHUTTLETESTTYPES_HPP
 #define BEAM_SHUTTLETESTTYPES_HPP
 #include <string>
-#include <cppunit/extensions/HelperMacros.h>
+#include <doctest/doctest.h>
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
@@ -34,7 +34,7 @@ namespace Tests {
     public:
 
       //! Constructs an uninitialized ClassWithShuttleMethod.
-      ClassWithShuttleMethod();
+      ClassWithShuttleMethod() = default;
 
       //! Constructs a ClassWithShuttleMethod.
       /*!
@@ -72,7 +72,7 @@ namespace Tests {
     public:
 
       //! Constructs an uninitialized ClassWithSendReceiveMethods.
-      ClassWithSendReceiveMethods();
+      ClassWithSendReceiveMethods() = default;
 
       //! Constructs a ClassWithSendReceiveMethods.
       /*!
@@ -98,9 +98,9 @@ namespace Tests {
       template<typename Shuttler>
       void Send(Shuttler& shuttle, unsigned int version) const {
         shuttle.Shuttle("a", m_a);
-        int b1 = m_b - 1;
+        auto b1 = m_b - 1;
         shuttle.Shuttle("b1", b1);
-        int b2 = m_b + 1;
+        auto b2 = m_b + 1;
         shuttle.Shuttle("b2", b2);
         shuttle.Shuttle("c", m_c);
       }
@@ -108,12 +108,12 @@ namespace Tests {
       template<typename Shuttler>
       void Receive(Shuttler& shuttle, unsigned int version) {
         shuttle.Shuttle("a", m_a);
-        int b1;
+        auto b1 = int();
         shuttle.Shuttle("b1", b1);
-        int b2;
+        auto b2 = int();
         shuttle.Shuttle("b2", b2);
         m_b = b1 + 1;
-        CPPUNIT_ASSERT(b2 == m_b + 1);
+        REQUIRE(b2 == m_b + 1);
         shuttle.Shuttle("c", m_c);
       }
   };
@@ -125,7 +125,7 @@ namespace Tests {
     public:
 
       //! Constructs an uninitialized ClassWithVersioning.
-      ClassWithVersioning();
+      ClassWithVersioning() = default;
 
       //! Constructs a ClassWithVersioning.
       /*!
@@ -169,7 +169,7 @@ namespace Tests {
    */
   class PolymorphicBaseClass {
     public:
-      virtual ~PolymorphicBaseClass();
+      virtual ~PolymorphicBaseClass() = default;
 
       //! Returns an identifier for this class.
       virtual std::string ToString() const = 0;
@@ -182,9 +182,7 @@ namespace Tests {
     public:
 
       //! Constructs a PolymorphicDerivedClassA.
-      PolymorphicDerivedClassA();
-
-      virtual ~PolymorphicDerivedClassA();
+      PolymorphicDerivedClassA() = default;
 
       virtual std::string ToString() const;
 
@@ -202,9 +200,7 @@ namespace Tests {
     public:
 
       //! Constructs a PolymorphicDerivedClassB.
-      PolymorphicDerivedClassB();
-
-      virtual ~PolymorphicDerivedClassB();
+      PolymorphicDerivedClassB() = default;
 
       virtual std::string ToString() const;
 
@@ -222,13 +218,13 @@ namespace Tests {
     public:
 
       //! Constructs an empty ProxiedFunctionType.
-      ProxiedFunctionType();
+      ProxiedFunctionType() = default;
 
       //! Constructs a ProxiedFunctionType.
       /*!
         \param value The value to return in the ToString.
       */
-      ProxiedFunctionType(const std::string& value);
+      explicit ProxiedFunctionType(const std::string& value);
 
       //! Tests two instances for equality.
       /*!
@@ -252,13 +248,13 @@ namespace Tests {
     public:
 
       //! Constructs an empty ProxiedMethodType.
-      ProxiedMethodType();
+      ProxiedMethodType() = default;
 
       //! Constructs a ProxiedMethodType.
       /*!
         \param value The value to return in the ToString.
       */
-      ProxiedMethodType(const std::string& value);
+      explicit ProxiedMethodType(const std::string& value);
 
       //! Tests two instances for equality.
       /*!
@@ -322,7 +318,7 @@ namespace Tests {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         Tests::ProxiedFunctionType& value) const {
-      std::string proxy;
+      auto proxy = std::string();
       shuttle.Shuttle(name, proxy);
       value = Tests::ProxiedFunctionType(proxy);
     }

@@ -3,11 +3,9 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
-#include "Beam/UidServiceTests/UidServiceTests.hpp"
 
 namespace Beam {
 namespace UidService {
-namespace Tests {
 
   /*! \class LocalUidDataStore
       \brief Implements an in memory UidDataStore.
@@ -73,7 +71,6 @@ namespace Tests {
     }
     m_openState.SetClosed();
   }
-}
 }
 }
 

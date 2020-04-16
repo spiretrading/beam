@@ -1,15 +1,9 @@
-#ifndef BEAM_UIDSERVICETESTS_HPP
-#define BEAM_UIDSERVICETESTS_HPP
+#ifndef BEAM_UID_SERVICE_TESTS_HPP
+#define BEAM_UID_SERVICE_TESTS_HPP
 #include "Beam/UidService/UidService.hpp"
 
-namespace Beam {
-namespace UidService {
-namespace Tests {
-  class UidClientTester;
+namespace Beam::UidService::Tests {
   class UidServiceTestEnvironment;
-  class UidServletTester;
-}
-}
 }
 
 #endif

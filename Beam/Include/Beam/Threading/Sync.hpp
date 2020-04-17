@@ -70,19 +70,6 @@ namespace Details {
       //! The proxy for any type of lock in use.
       class LockProxy {
         public:
-
-          //! Construct an empty proxy.
-          LockProxy() = default;
-
-          //! Constructs a proxy to a lock.
-          /*!
-            \tparam The type of the lock.
-            \param lock The pointer to the lock.
-          */
-          template<typename T>
-          explicit LockProxy(T* lock)
-            : m_lock(lock) {}
-      
           //! Locks the lock referenced.
           void lock() {
             std::visit(
@@ -104,6 +91,12 @@ namespace Details {
             WriteLock>, std::variant<WriteLock*>, std::variant<ReadLock*,
             WriteLock*>>;
           Variant m_lock;
+
+          LockProxy() = default;
+
+          template<typename T>
+          explicit LockProxy(T* lock)
+            : m_lock(lock) {}
       };
 
       //! Constructs a Sync.

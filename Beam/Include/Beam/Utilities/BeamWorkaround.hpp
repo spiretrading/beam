@@ -1,18 +1,8 @@
-#ifndef BEAM_CPPUNITWORKAROUNDS_HPP
-#define BEAM_CPPUNITWORKAROUNDS_HPP
+#ifndef BEAM_CPPWORKAROUNDS_HPP
+#define BEAM_CPPWORKAROUNDS_HPP
 #include "Beam/Utilities/Utilities.hpp"
 
 #ifdef __GNUC__
-  #define BEAM_CPPUNIT_TEST_SUITE_END()                                        \
-    _Pragma("GCC diagnostic push")                                             \
-    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")            \
-      CPPUNIT_TEST_SUITE_END();                                                \
-    _Pragma("GCC diagnostic pop")
-  #define BEAM_CPPUNIT_TEST_SUITE_END_ABSTRACT()                               \
-    _Pragma("GCC diagnostic push")                                             \
-    _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")            \
-      CPPUNIT_TEST_SUITE_END_ABSTRACT();                                       \
-    _Pragma("GCC diagnostic pop")
   #define BEAM_SUPPRESS_THIS_INITIALIZER()
   #define BEAM_UNSUPPRESS_THIS_INITIALIZER()
   #define BEAM_SUPPRESS_POD_INITIALIZER()
@@ -27,8 +17,6 @@
   #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()                                  \
     _Pragma("GCC diagnostic pop")
 #elif defined _MSC_VER
-  #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END
-  #define BEAM_CPPUNIT_TEST_SUITE_END_ABSTRACT CPPUNIT_TEST_SUITE_END_ABSTRACT
   #define BEAM_SUPPRESS_THIS_INITIALIZER() __pragma(warning(disable: 4355))
   #define BEAM_UNSUPPRESS_THIS_INITIALIZER() __pragma(warning(default: 4355))
   #define BEAM_SUPPRESS_POD_INITIALIZER() __pragma(warning(disable: 4345))
@@ -40,8 +28,6 @@
   #define BEAM_SUPPRESS_FORMAT_TRUNCATION()
   #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 #else
-  #define BEAM_CPPUNIT_TEST_SUITE_END CPPUNIT_TEST_SUITE_END
-  #define BEAM_CPPUNIT_TEST_SUITE_END_ABSTRACT CPPUNIT_TEST_SUITE_END_ABSTRACT
   #define BEAM_SUPPRESS_THIS_INITIALIZER()
   #define BEAM_UNSUPPRESS_THIS_INITIALIZER()
   #define BEAM_SUPPRESS_POD_INITIALIZER()

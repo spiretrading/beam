@@ -265,7 +265,7 @@ namespace Details {
 
   template<typename T, typename MutexType>
   Sync<T, MutexType>::Sync(Sync& sync)
-    : Sync{static_cast<const Sync&>(sync)} {}
+    : Sync(static_cast<const Sync&>(sync)) {}
 
   template<typename T, typename MutexType>
   Sync<T, MutexType>::Sync(Sync&& sync)

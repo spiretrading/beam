@@ -205,7 +205,7 @@ namespace Details {
     private:
       template<typename, typename> friend class Sync;
       template<typename S1, typename M1>
-        friend LockProxy Release(Sync<S1, M1>&);
+        friend LockRelease<LockProxy> Release(Sync<S1, M1>&);
       mutable Mutex m_mutex;
       mutable LockProxy m_lock;
       Value m_value;

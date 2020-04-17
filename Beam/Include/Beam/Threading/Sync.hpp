@@ -138,7 +138,7 @@ namespace Details {
         \param f The action to perform on the value.
       */
       template<typename F>
-      decltype(auto) With(const F& f) {
+      decltype(auto) With(F&& f) {
         if constexpr(boost::hof::is_invocable<F, Value>()) {
           return static_cast<const Sync*>(this)->With(f);
         } else {
@@ -153,7 +153,7 @@ namespace Details {
         \param f The action to perform on the value.
       */
       template<typename F>
-      decltype(auto) With(const F& f) const {
+      decltype(auto) With(F&& f) const {
         auto lock = ReadLock(m_mutex);
         m_lock = LockProxy(&lock);
         return f(m_value);
@@ -165,7 +165,7 @@ namespace Details {
         \param f The action to perform on the values.
       */
       template<typename S2, typename M2, typename F>
-      decltype(auto) With(Sync<S2, M2>& s2, const F& f) {
+      decltype(auto) With(Sync<S2, M2>& s2, F&& f) {
         auto lock1 = WriteLock(m_mutex, boost::defer_lock);
         auto lock2 = typename Sync<S2, M2>::WriteLock(s2.m_mutex,
           boost::defer_lock);
@@ -217,8 +217,8 @@ namespace Details {
     \param f The action to perform on the instance.
   */
   template<typename S1, typename M1, typename F>
-  decltype(auto) With(Sync<S1, M1>& s1, const F& f) {
-    return s1.With(f);
+  decltype(auto) With(Sync<S1, M1>& s1, F&& f) {
+    return s1.With(std::forward<F>(f));
   }
 
   //! Acquires a Sync's instance in a synchronized manner.
@@ -227,8 +227,8 @@ namespace Details {
     \param f The action to perform on the instance.
   */
   template<typename S1, typename M1, typename F>
-  decltype(auto) With(const Sync<S1, M1>& s1, const F& f) {
-    return s1.With(f);
+  decltype(auto) With(const Sync<S1, M1>& s1, F&& f) {
+    return s1.With(std::forward<F>(f));
   }
 
   //! Acquires two Syncs' instances in a synchronized manner.
@@ -238,8 +238,8 @@ namespace Details {
     \param f The action to perform on the instances.
   */
   template<typename S1, typename M1, typename S2, typename M2, typename F>
-  decltype(auto) With(Sync<S1, M1>& s1, Sync<S2, M2>& s2, const F& f) {
-    return s1.With(s2, f);
+  decltype(auto) With(Sync<S1, M1>& s1, Sync<S2, M2>& s2, F&& f) {
+    return s1.With(s2, std::forward<F>(f));
   }
 
   //! Releases a Sync.

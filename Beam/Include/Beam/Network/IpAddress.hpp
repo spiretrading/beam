@@ -6,7 +6,6 @@
 #include "Beam/Utilities/AssertionException.hpp"
 #include "Beam/Utilities/Convert.hpp"
 #include "Beam/Utilities/Endian.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace Network {

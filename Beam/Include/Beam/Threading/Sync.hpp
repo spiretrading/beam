@@ -95,9 +95,8 @@ namespace Details {
 
           LockProxy() = default;
 
-          template<typename T>
-          explicit LockProxy(T* lock)
-            : m_lock(lock) {}
+          explicit LockProxy(Variant lock)
+            : m_lock(std::move(lock)) {}
       };
 
       //! Constructs a Sync.

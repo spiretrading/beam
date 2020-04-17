@@ -88,7 +88,7 @@ namespace Details {
             std::visit(
               [] (auto& ptr) {
                 ptr->lock();
-              });
+              }, m_lock);
           }
       
           //! Unlocks the lock referenced.
@@ -96,7 +96,7 @@ namespace Details {
             std::visit(
               [] (auto& ptr) {
                 ptr->unlock();
-              });
+              }, m_lock);
           }
       
         private:

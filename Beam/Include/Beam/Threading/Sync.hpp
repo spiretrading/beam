@@ -70,6 +70,7 @@ namespace Details {
       //! The proxy for any type of lock in use.
       class LockProxy {
         public:
+
           //! Construct an empty proxy.
           LockProxy() = default;
 

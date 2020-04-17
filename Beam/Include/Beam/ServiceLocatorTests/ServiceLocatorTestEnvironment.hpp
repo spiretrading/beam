@@ -94,11 +94,11 @@ namespace Tests {
   inline std::unique_ptr<VirtualServiceLocatorClient>
       ServiceLocatorTestEnvironment::BuildClient() {
     ServiceProtocolClientBuilder builder(
-      [&] {
+      [=] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(
           "test_service_locator_client", Ref(m_serverConnection));
       },
-      [&] {
+      [] {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
     auto client = std::make_unique<ServiceLocator::ServiceLocatorClient<

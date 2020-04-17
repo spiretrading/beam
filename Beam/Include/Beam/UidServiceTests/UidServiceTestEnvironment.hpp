@@ -1,7 +1,6 @@
 #ifndef BEAM_UIDSERVICETESTENVIRONMENT_HPP
 #define BEAM_UIDSERVICETESTENVIRONMENT_HPP
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
@@ -80,11 +79,11 @@ namespace Tests {
   inline std::unique_ptr<VirtualUidClient>
       UidServiceTestEnvironment::BuildClient() {
     ServiceProtocolClientBuilder builder(
-      [&] {
+      [=] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(
           "test_uid_client", Ref(m_serverConnection));
       },
-      [&] {
+      [] {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
     auto client = std::make_unique<UidService::UidClient<

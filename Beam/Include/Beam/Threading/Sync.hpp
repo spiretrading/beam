@@ -87,6 +87,7 @@ namespace Details {
           }
       
         private:
+          friend class Sync;
           using Variant = std::conditional_t<std::is_same_v<ReadLock,
             WriteLock>, std::variant<WriteLock*>, std::variant<ReadLock*,
             WriteLock*>>;

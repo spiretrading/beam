@@ -177,7 +177,7 @@ namespace Details {
       }
 
       //! Returns the lock used for synchronization.
-      const LockProxy& GetLock() const;
+      LockProxy& GetLock() const;
 
       //! Assigns a Sync.
       /*!
@@ -283,9 +283,8 @@ namespace Details {
   }
 
   template<typename T, typename MutexType>
-  const typename Sync<T, MutexType>::LockProxy&
-      Sync<T, MutexType>::GetLock() const {
-    return *m_lock;
+  typename Sync<T, MutexType>::LockProxy& Sync<T, MutexType>::GetLock() const {
+    return m_lock;
   }
 
   template<typename T, typename MutexType>

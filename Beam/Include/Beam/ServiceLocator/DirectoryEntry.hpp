@@ -2,6 +2,7 @@
 #define BEAM_DIRECTORYENTRY_HPP
 #include <ostream>
 #include <string>
+#include <tuple>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"

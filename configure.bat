@@ -17,6 +17,7 @@ CALL:configure Applications\DataStoreProfiler %*
 CALL:configure Applications\HttpFileServer %*
 CALL:configure Applications\QueryStressTest %*
 CALL:configure Applications\RegistryServer %*
+CALL:configure Applications\Scratch %*
 CALL:configure Applications\ServiceLocator %*
 CALL:configure Applications\ServiceProtocolProfiler %*
 CALL:configure Applications\ServletTemplate %*

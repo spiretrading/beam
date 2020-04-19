@@ -4,6 +4,8 @@
 #include <ostream>
 #include <string>
 #include "Beam/Network/Network.hpp"
+#include "Beam/Parsers/CustomParser.hpp"
+#include "Beam/Parsers/Types.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
 #include "Beam/Utilities/Endian.hpp"
 
@@ -68,6 +70,18 @@ namespace Beam::Network {
     return out << source.GetHost() << ':' << source.GetPort();
   }
 
+  //! Implements a Parser for IpAddresses.
+  class IpAddressParser : public Parsers::CustomParser<IpAddress> {
+    public:
+
+      //! Constructs an IpAddressParser.
+      IpAddressParser();
+
+    private:
+      static IpAddress ToIpAddress(
+        const std::tuple<int, int, int>& source);
+  };
+
   inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
     auto normalizedAddress = ToBigEndian(ipAddress);
     const auto OCTET_COUNT = 4;
@@ -115,6 +129,12 @@ namespace Beam::Network {
 
   inline unsigned short IpAddress::GetPort() const {
     return m_port;
+  }
+
+  inline IpAddressParser::IpAddressParser() {
+    SetRule(Parsers::Convert(
+      Parsers::Plus(Parsers::Not(Parsers::Symbol(":"))) >> ':' >>
+      Parsers::int_p, ToIpAddress));
   }
 }
 

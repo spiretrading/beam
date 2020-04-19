@@ -1,8 +1,7 @@
 #ifndef BEAM_PARSERS_HPP
 #define BEAM_PARSERS_HPP
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
   class AlphaParser;
   class AnyParser;
   template<typename ResultType> class BasicParser;
@@ -25,6 +24,7 @@ namespace Parsers {
     typename Enabled = void> class ForListParser;
   template<typename IntegralType> class IntegralParser;
   template<typename ParserType> class ListParser;
+  template<typename P> class NotParser;
   template<typename LeftParserType, typename RightParserType,
     typename Enabled = void> class OrParser;
   template<typename ResultType> struct Parser;
@@ -40,7 +40,7 @@ namespace Parsers {
   class SpaceParser;
   template<typename SubParserType, typename Enabled = void> class StarParser;
   class StringParser;
-  template<typename ParserStreamType> class SubParserStream;
+  template<typename P> class SubParserStream;
   class TerminalParser;
   class TimeDurationParser;
   template<typename SubParserType> class TokenParser;
@@ -48,7 +48,6 @@ namespace Parsers {
   template<typename ParserType, typename Enabled = void> class WrapperParser;
   class VirtualParserStream;
   template<typename ParserStreamType> class WrapperParserStream;
-}
 }
 
 #endif

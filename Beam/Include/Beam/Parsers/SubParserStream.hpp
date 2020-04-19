@@ -1,27 +1,26 @@
-#ifndef BEAM_SUBPARSERSTREAM_HPP
-#define BEAM_SUBPARSERSTREAM_HPP
+#ifndef BEAM_SUB_PARSER_STREAM_HPP
+#define BEAM_SUB_PARSER_STREAM_HPP
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/ParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
-  /*! \class SubParserStream
-      \brief Implements a ParserStream that wraps an existing ParserStream,
-             useful mostly as a way to implement backtracking.
-      \tparam ParserStreamType The ParserStream to wrap.
-  */
-  template<typename ParserStreamType>
+  /**
+   * Implements a ParserStream that wraps an existing ParserStream, useful
+   * mostly as a way to implement backtracking.
+   * @param <P> The ParserStream to wrap.
+   */
+  template<typename P>
   class SubParserStream {
     public:
 
-      //! The ParserStream to wrap.
-      typedef ParserStreamType ParserStream;
+      /** The ParserStream to wrap. */
+      using ParserStream = P;
 
-      //! Constructs a SubParserStream.
-      /*!
-        \param stream The ParserStream to wrap.
-      */
+      /**
+       * Constructs a SubParserStream.
+       * @param stream The ParserStream to wrap.
+       */
       SubParserStream(ParserStream& stream);
 
       ~SubParserStream();
@@ -41,23 +40,23 @@ namespace Parsers {
       std::size_t m_sizeRead;
   };
 
-  template<typename ParserStreamType>
-  SubParserStream<ParserStreamType>::SubParserStream(ParserStream& stream)
-      : m_stream(&stream),
-        m_sizeRead(0) {}
+  template<typename P>
+  SubParserStream<P>::SubParserStream(ParserStream& stream)
+    : m_stream(&stream),
+      m_sizeRead(0) {}
 
-  template<typename ParserStreamType>
-  SubParserStream<ParserStreamType>::~SubParserStream() {
+  template<typename P>
+  SubParserStream<P>::~SubParserStream() {
     m_stream->Undo(m_sizeRead);
   }
 
-  template<typename ParserStreamType>
-  char SubParserStream<ParserStreamType>::GetChar() const {
+  template<typename P>
+  char SubParserStream<P>::GetChar() const {
     return m_stream->GetChar();
   }
 
-  template<typename ParserStreamType>
-  bool SubParserStream<ParserStreamType>::Read() {
+  template<typename P>
+  bool SubParserStream<P>::Read() {
     if(!m_stream->Read()) {
       return false;
     }
@@ -65,22 +64,21 @@ namespace Parsers {
     return true;
   }
 
-  template<typename ParserStreamType>
-  void SubParserStream<ParserStreamType>::Undo() {
+  template<typename P>
+  void SubParserStream<P>::Undo() {
     Undo(1);
   }
 
-  template<typename ParserStreamType>
-  void SubParserStream<ParserStreamType>::Undo(std::size_t count) {
+  template<typename P>
+  void SubParserStream<P>::Undo(std::size_t count) {
     m_sizeRead -= count;
     m_stream->Undo(count);
   }
 
-  template<typename ParserStreamType>
-  void SubParserStream<ParserStreamType>::Accept() {
+  template<typename P>
+  void SubParserStream<P>::Accept() {
     m_sizeRead = 0;
   }
-}
 }
 
 #endif

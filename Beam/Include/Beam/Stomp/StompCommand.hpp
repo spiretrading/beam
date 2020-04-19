@@ -1,5 +1,6 @@
 #ifndef BEAM_STOMPCOMMAND_HPP
 #define BEAM_STOMPCOMMAND_HPP
+#include <ostream>
 #include <boost/throw_exception.hpp>
 #include "Beam/Stomp/Stomp.hpp"
 #include "Beam/Stomp/StompException.hpp"
@@ -61,57 +62,41 @@ namespace Stomp {
     RECEIPT,
   };
 
-  inline const std::string& ToString(StompCommand command) {
+  inline std::ostream& operator <<(std::ostream& out, StompCommand command) {
     if(command == StompCommand::CONNECT) {
-      static std::string value{"CONNECT"};
-      return value;
+      return out << "CONNECT";
     } else if(command == StompCommand::STOMP) {
-      static std::string value{"STOMP"};
-      return value;
+      return out << "STOMP";
     } else if(command == StompCommand::CONNECTED) {
-      static std::string value{"CONNECTED"};
-      return value;
+      return out << "CONNECTED";
     } else if(command == StompCommand::ERR) {
-      static std::string value{"ERROR"};
-      return value;
+      return out << "ERROR";
     } else if(command == StompCommand::EOL) {
-      static std::string value{"\n"};
-      return value;
+      return out << '\n';
     } else if(command == StompCommand::SEND) {
-      static std::string value{"SEND"};
-      return value;
+      return out << "SEND";
     } else if(command == StompCommand::SUBSCRIBE) {
-      static std::string value{"SUBSCRIBE"};
-      return value;
+      return out << "SUBSCRIBE";
     } else if(command == StompCommand::UNSUBSCRIBE) {
-      static std::string value{"UNSUBSCRIBE"};
-      return value;
+      return out << "UNSUBSCRIBE";
     } else if(command == StompCommand::ACK) {
-      static std::string value{"ACK"};
-      return value;
+      return out << "ACK";
     } else if(command == StompCommand::NACK) {
-      static std::string value{"NACK"};
-      return value;
+      return out << "NACK";
     } else if(command == StompCommand::BEGIN) {
-      static std::string value{"BEGIN"};
-      return value;
+      return out << "BEGIN";
     } else if(command == StompCommand::COMMIT) {
-      static std::string value{"COMMIT"};
-      return value;
+      return out << "COMMIT";
     } else if(command == StompCommand::ABORT) {
-      static std::string value{"ABORT"};
-      return value;
+      return out << "ABORT";
     } else if(command == StompCommand::DISCONNECT) {
-      static std::string value{"DISCONNECT"};
-      return value;
+      return out << "DISCONNECT";
     } else if(command == StompCommand::MESSAGE) {
-      static std::string value{"MESSAGE"};
-      return value;
+      return out << "MESSAGE";
     } else if(command == StompCommand::RECEIPT) {
-      static std::string value{"RECEIPT"};
-      return value;
+      return out << "RECEIPT";
     } else {
-      BOOST_THROW_EXCEPTION(StompException{"Unknown command."});
+      return out << "NONE";
     }
   }
 }

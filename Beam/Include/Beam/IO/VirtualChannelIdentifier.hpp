@@ -1,5 +1,6 @@
 #ifndef BEAM_VIRTUALCHANNELIDENTIFIER_HPP
 #define BEAM_VIRTUALCHANNELIDENTIFIER_HPP
+#include <ostream>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Channel.hpp"
@@ -16,12 +17,14 @@ namespace IO {
     public:
       virtual ~VirtualChannelIdentifier() = default;
 
-      virtual std::string ToString() const = 0;
-
     protected:
+      friend std::ostream& operator <<(std::ostream&,
+        const VirtualChannelIdentifier&);
 
       //! Constructs a VirtualChannelIdentifier.
       VirtualChannelIdentifier() = default;
+
+      virtual std::ostream& Stream(std::ostream& out) const = 0;
   };
 
   /*! \class WrapperChannelIdentifier
@@ -50,7 +53,8 @@ namespace IO {
       //! Returns the ChannelIdentifier being wrapped.
       ChannelIdentifier& GetIdentifier();
 
-      virtual std::string ToString() const override;
+    protected:
+      std::ostream& Stream(std::ostream& out) const override;
 
     private:
       GetOptionalLocalPtr<ChannelIdentifierType> m_identifier;
@@ -68,11 +72,16 @@ namespace IO {
       identifier));
   }
 
+  std::ostream& operator <<(std::ostream& out,
+      const VirtualChannelIdentifier& identifier) {
+    return identifier.Stream(out);
+  }
+
   template<typename ChannelIdentifierType>
   template<typename ChannelIdentifierForward>
   WrapperChannelIdentifier<ChannelIdentifierType>::WrapperChannelIdentifier(
-      ChannelIdentifierForward&& identifier)
-      : m_identifier{std::forward<ChannelIdentifierForward>(identifier)} {}
+    ChannelIdentifierForward&& identifier)
+    : m_identifier{std::forward<ChannelIdentifierForward>(identifier)} {}
 
   template<typename ChannelIdentifierType>
   const typename WrapperChannelIdentifier<
@@ -88,9 +97,9 @@ namespace IO {
   }
 
   template<typename ChannelIdentifierType>
-  std::string WrapperChannelIdentifier<ChannelIdentifierType>::
-      ToString() const {
-    return m_identifier->ToString();
+  std::ostream& WrapperChannelIdentifier<ChannelIdentifierType>::Stream(
+      std::ostream& out) const {
+    return out << *m_identifier;
   }
 }
 

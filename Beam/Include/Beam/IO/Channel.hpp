@@ -1,6 +1,6 @@
 #ifndef BEAM_CHANNEL_HPP
 #define BEAM_CHANNEL_HPP
-#include <string>
+#include <ostream>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/Writer.hpp"
@@ -20,9 +20,10 @@ namespace Details {
       \brief Provides a way of identifying a Channel.
     */
   struct ChannelIdentifier : Concept<ChannelIdentifier> {
+    protected:
 
-    //! Returns the string representation of this ChannelIdentifier.
-    std::string ToString() const;
+      //! Streams the string representation of this value.
+      virtual std::ostream& Stream(std::ostream& out) const = 0;
   };
 
   /*! \struct Channel

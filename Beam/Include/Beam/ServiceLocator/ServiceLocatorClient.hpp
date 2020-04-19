@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICELOCATORCLIENT_HPP
 #define BEAM_SERVICELOCATORCLIENT_HPP
 #include <random>
+#include <string>
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
@@ -15,7 +16,6 @@
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace ServiceLocator {
@@ -360,7 +360,7 @@ namespace ServiceLocator {
   std::string ServiceLocatorClient<ServiceProtocolClientBuilderType>::
       GetEncryptedSessionId(unsigned int key) const {
     boost::lock_guard<boost::mutex> lock(m_mutex);
-    return ComputeSHA(ToString(key) + m_sessionId);
+    return ComputeSHA(std::to_string(key) + m_sessionId);
   }
 
   template<typename ServiceProtocolClientBuilderType>

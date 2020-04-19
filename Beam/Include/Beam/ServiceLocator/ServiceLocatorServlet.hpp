@@ -13,7 +13,6 @@
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Threading/Sync.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace ServiceLocator {
@@ -1016,7 +1015,7 @@ namespace ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException{"Not logged in."};
     }
-    auto salt = ToString(saltId);
+    auto salt = std::to_string(saltId);
     auto upperCaseSessionId = boost::to_upper_copy(sessionId);
     return Threading::With(m_sessions,
       [&] (Sessions& sessions) -> DirectoryEntry {

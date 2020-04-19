@@ -1,5 +1,6 @@
 #ifndef BEAM_NAMEDCHANNELIDENTIFIER_HPP
 #define BEAM_NAMEDCHANNELIDENTIFIER_HPP
+#include <ostream>
 #include <string>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/IO.hpp"
@@ -22,16 +23,22 @@ namespace IO {
       */
       NamedChannelIdentifier(std::string name);
 
-      std::string ToString() const;
+      //! Returns the name of this identifier.
+      const std::string& GetName() const;
 
     private:
       std::string m_name;
   };
 
-  inline NamedChannelIdentifier::NamedChannelIdentifier(std::string name)
-      : m_name{std::move(name)} {}
+  inline std::ostream& operator <<(std::ostream& out,
+      const NamedChannelIdentifier& identifier) {
+    return out << identifier.GetName();
+  }
 
-  inline std::string NamedChannelIdentifier::ToString() const {
+  inline NamedChannelIdentifier::NamedChannelIdentifier(std::string name)
+    : m_name{std::move(name)} {}
+
+  inline const std::string& NamedChannelIdentifier::GetName() const {
     return m_name;
   }
 }

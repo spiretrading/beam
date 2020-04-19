@@ -1,4 +1,5 @@
 #include "Beam/Python/IO.hpp"
+#include <boost/lexical_cast.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "Beam/IO/EndOfFileException.hpp"
@@ -12,6 +13,7 @@
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Python;
+using namespace boost;
 using namespace pybind11;
 
 namespace {
@@ -37,7 +39,7 @@ void Beam::Python::ExportChannel(pybind11::module& module) {
 
 void Beam::Python::ExportChannelIdentifier(pybind11::module& module) {
   class_<VirtualChannelIdentifier>(module, "ChannelIdentifier")
-    .def("__str__", &VirtualChannelIdentifier::ToString);
+    .def("__str__", &lexical_cast<std::string, VirtualChannelIdentifier>);
 }
 
 void Beam::Python::ExportConnection(pybind11::module& module) {

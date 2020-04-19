@@ -10,7 +10,6 @@
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Utilities/Bcrypt.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace ServiceLocator {
@@ -310,7 +309,7 @@ namespace ServiceLocator {
     if(!storedPassword.empty() && storedPassword[0] == '$') {
       return BCryptMatches(receivedPassword, storedPassword);
     }
-    auto receivedPasswordHash = ComputeSHA(ToString(account.m_id) +
+    auto receivedPasswordHash = ComputeSHA(std::to_string(account.m_id) +
       receivedPassword);
     return receivedPasswordHash == storedPassword;
   }

@@ -1,6 +1,7 @@
 #ifndef BEAM_ENUMERATORPARSER_HPP
 #define BEAM_ENUMERATORPARSER_HPP
 #include <vector>
+#include <boost/lexical_cast.hpp>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/Parser.hpp"
@@ -29,6 +30,14 @@ namespace Parsers {
       template<typename Iterator, typename F>
       EnumeratorParser(const Iterator& first, const Iterator& last, F toString);
 
+      //! Constructs an EnumeratorParser.
+      /*!
+        \param first An iterator to the first enumerated value.
+        \param last An iterator to one past the last enumerated value.
+      */
+      template<typename Iterator>
+      EnumeratorParser(const Iterator& first, const Iterator& last);
+
       template<typename ParserStreamType>
       bool Read(ParserStreamType& source, Result& value);
 
@@ -48,7 +57,7 @@ namespace Parsers {
 
   template<typename EnumeratorType>
   EnumeratorParser<EnumeratorType>::EnumConverter::EnumConverter(Result value)
-      : m_value(value) {}
+    : m_value(value) {}
 
   template<typename EnumeratorType>
   typename EnumeratorParser<EnumeratorType>::Result
@@ -65,6 +74,13 @@ namespace Parsers {
         EnumConverter(*i)));
     }
   }
+
+  template<typename EnumeratorType>
+  template<typename Iterator>
+  EnumeratorParser<EnumeratorType>::EnumeratorParser(const Iterator& first,
+    const Iterator& last)
+    : EnumeratorParser(first, last,
+        &boost::lexical_cast<std::string, Result>) {}
 
   template<typename EnumeratorType>
   template<typename ParserStreamType>

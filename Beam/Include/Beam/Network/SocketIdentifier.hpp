@@ -1,6 +1,6 @@
 #ifndef BEAM_SOCKETIDENTIFIER_HPP
 #define BEAM_SOCKETIDENTIFIER_HPP
-#include <cstdio>
+#include <ostream>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Network/IpAddress.hpp"
 
@@ -25,23 +25,20 @@ namespace Network {
       //! Returns the IpAddress of the socket.
       const IpAddress& GetAddress() const;
 
-      std::string ToString() const;
-
     private:
       IpAddress m_address;
   };
+
+  inline std::ostream& operator <<(std::ostream& out,
+      const SocketIdentifier& identifier) {
+    return out << identifier.GetAddress();
+  }
 
   inline SocketIdentifier::SocketIdentifier(const IpAddress& address)
     : m_address(address) {}
 
   inline const IpAddress& SocketIdentifier::GetAddress() const {
     return m_address;
-  }
-
-  inline std::string SocketIdentifier::ToString() const {
-    char portBuffer[8];
-    std::sprintf(portBuffer, ":%hu", m_address.GetPort());
-    return m_address.GetHost() + portBuffer;
   }
 }
 

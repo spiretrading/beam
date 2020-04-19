@@ -5,7 +5,6 @@
 #include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Utilities/Convert.hpp"
 
 namespace Beam {
 namespace Parsers {
@@ -162,13 +161,6 @@ namespace Details {
       const SubParser& subParser, F f) {
     return ConversionParser<typename GetParserType<SubParser>::type, F>(
       subParser, f);
-  }
-
-  template<typename T, typename SubParser>
-  ConversionParser<typename GetParserType<SubParser>::type,
-      StaticCastConverter<T>> Cast(const SubParser& subParser) {
-    return ConversionParser<typename GetParserType<SubParser>::type,
-      StaticCastConverter<T>>(subParser, StaticCastConverter<T>());
   }
 }
 }

@@ -1,5 +1,6 @@
 #ifndef BEAM_SERVERSOCKET_HPP
 #define BEAM_SERVERSOCKET_HPP
+#include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
@@ -14,7 +15,6 @@
 #include "Beam/Network/TcpSocketReader.hpp"
 #include "Beam/Network/TcpSocketWriter.hpp"
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace Network {
@@ -69,7 +69,7 @@ namespace Network {
     try {
       boost::asio::ip::tcp::resolver resolver(*m_ioService);
       boost::asio::ip::tcp::resolver::query query(m_address.GetHost(),
-        ToString(m_address.GetPort()));
+        std::to_string(m_address.GetPort()));
       boost::system::error_code error;
       auto endpointIterator = resolver.resolve(query, error);
       if(error) {

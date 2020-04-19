@@ -1,6 +1,7 @@
 #ifndef BEAM_TCPSOCKETCONNECTION_HPP
 #define BEAM_TCPSOCKETCONNECTION_HPP
 #include <functional>
+#include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
@@ -10,7 +11,6 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace Network {
@@ -137,7 +137,7 @@ namespace Network {
       errorCode.clear();
       boost::asio::ip::tcp::resolver resolver{*m_socket->m_ioService};
       boost::asio::ip::tcp::resolver::query query{address.GetHost(),
-        ToString(address.GetPort())};
+        std::to_string(address.GetPort())};
       boost::asio::ip::tcp::resolver::iterator end;
       auto endpointIterator = resolver.resolve(query, errorCode);
       if(errorCode) {

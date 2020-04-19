@@ -1,4 +1,5 @@
 #include "Beam/Python/Network.hpp"
+#include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include "Beam/IO/VirtualChannel.hpp"
@@ -12,6 +13,7 @@
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Network;
+using namespace boost;
 using namespace pybind11;
 
 void Beam::Python::ExportIpAddress(pybind11::module& module) {
@@ -19,7 +21,7 @@ void Beam::Python::ExportIpAddress(pybind11::module& module) {
     .def(init())
     .def(init<std::string, unsigned short>())
     .def(init<const IpAddress&>())
-    .def("__str__", &Convert<std::string, IpAddress>)
+    .def("__str__", &lexical_cast<std::string, IpAddress>)
     .def_property_readonly("host", &IpAddress::GetHost)
     .def_property_readonly("port", &IpAddress::GetPort)
     .def(self == self)

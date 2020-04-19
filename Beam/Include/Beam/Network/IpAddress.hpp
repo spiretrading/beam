@@ -1,14 +1,13 @@
 #ifndef BEAM_IPADDRESS_HPP
 #define BEAM_IPADDRESS_HPP
 #include <cstdint>
+#include <ostream>
 #include <string>
 #include "Beam/Network/Network.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
-#include "Beam/Utilities/Convert.hpp"
 #include "Beam/Utilities/Endian.hpp"
 
-namespace Beam {
-namespace Network {
+namespace Beam::Network {
 
   /*! \class IpAddress
       \brief Stores an IpAddress, consisting of a host and a port.
@@ -65,6 +64,10 @@ namespace Network {
       unsigned short m_port;
   };
 
+  inline std::ostream& operator <<(std::ostream& out, const IpAddress& source) {
+    return out << source.GetHost() << ':' << source.GetPort();
+  }
+
   inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
     auto normalizedAddress = ToBigEndian(ipAddress);
     const auto OCTET_COUNT = 4;
@@ -95,8 +98,8 @@ namespace Network {
   }
 
   inline IpAddress::IpAddress(std::string host, unsigned short port)
-      : m_host(std::move(host)),
-        m_port(port) {}
+    : m_host(std::move(host)),
+      m_port(port) {}
 
   inline bool IpAddress::operator ==(const IpAddress& rhs) const {
     return m_host == rhs.m_host && m_port == rhs.m_port;
@@ -112,23 +115,6 @@ namespace Network {
 
   inline unsigned short IpAddress::GetPort() const {
     return m_port;
-  }
-}
-
-  template<>
-  inline std::string Convert(const Network::IpAddress& source) {
-    return source.GetHost() + ":" + Convert<std::string>(source.GetPort());
-  }
-
-  template<>
-  inline Network::IpAddress Convert(const std::string& source) {
-    auto colonPosition = source.find(':');
-    if(colonPosition == std::string::npos) {
-      return {source, 0};
-    }
-    auto host = source.substr(0, colonPosition);
-    auto port = Convert<unsigned short>(source.substr(colonPosition + 1));
-    return {host, port};
   }
 }
 

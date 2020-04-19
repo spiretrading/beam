@@ -79,11 +79,6 @@ namespace Beam {
     return (sink << value.GetData());
   }
 
-  template<std::size_t N>
-  std::string ToString(const FixedString<N>& str) {
-    return str.GetData();
-  }
-
   template<std::size_t L, std::size_t R>
   bool operator ==(const FixedString<L>& lhs, const FixedString<R>& rhs) {
     return std::strcmp(lhs.GetData(), rhs.GetData()) == 0;

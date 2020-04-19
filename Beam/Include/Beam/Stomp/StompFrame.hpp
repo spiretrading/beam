@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <boost/lexical_cast.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Stomp/Stomp.hpp"
@@ -129,7 +130,7 @@ namespace Details {
 
   template<typename Buffer>
   void Serialize(const StompFrame& frame, Out<Buffer> buffer) {
-    auto& command = ToString(frame.GetCommand());
+    auto command = boost::lexical_cast<std::string>(frame.GetCommand());
     buffer->Append(command.c_str(), command.size());
     buffer->Append("\n", 1);
     for(auto& header : frame.GetHeaders()) {

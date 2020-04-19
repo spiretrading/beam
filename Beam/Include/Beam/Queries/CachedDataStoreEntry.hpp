@@ -7,7 +7,6 @@
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
-#include "Beam/Utilities/DefaultValue.hpp"
 #include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam {
@@ -304,7 +303,7 @@ namespace Queries {
       }
     }
     if(partitions.empty()) {
-      return Default();
+      return {};
     } else if(partitions.size() == 1) {
       return std::move(partitions.front());
     }

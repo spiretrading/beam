@@ -1,11 +1,11 @@
 #ifndef BEAM_JSONSENDER_HPP
 #define BEAM_JSONSENDER_HPP
 #include <cstring>
+#include <string>
 #include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
-#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace Serialization {
@@ -62,6 +62,8 @@ namespace Details {
       void Send(const char* name, const signed char& value);
 
       void Send(const char* name, const char& value);
+
+      void Send(const char* name, const bool& value);
 
       template<typename T>
       typename std::enable_if<std::is_fundamental<T>::value>::type Send(
@@ -147,10 +149,28 @@ namespace Details {
       m_sink->Append('\"');
       m_sink->Append(':');
     }
-    auto v = ToString(value);
     m_sink->Append('\"');
-    m_sink->Append(v.c_str(), v.size());
+    m_sink->Append(value);
     m_sink->Append('\"');
+    m_appendComma = true;
+  }
+
+  template<typename SinkType>
+  void JsonSender<SinkType>::Send(const char* name, const bool& value) {
+    if(m_appendComma) {
+      m_sink->Append(',');
+    }
+    if(name != nullptr) {
+      m_sink->Append('\"');
+      m_sink->Append(name, std::strlen(name));
+      m_sink->Append('\"');
+      m_sink->Append(':');
+    }
+    if(value) {
+      m_sink->Append("true", 4);
+    } else {
+      m_sink->Append("false", 5);
+    }
     m_appendComma = true;
   }
 
@@ -167,7 +187,7 @@ namespace Details {
       m_sink->Append('\"');
       m_sink->Append(':');
     }
-    auto v = ToString(value);
+    auto v = std::to_string(value);
     m_sink->Append(v.c_str(), v.size());
     m_appendComma = true;
   }

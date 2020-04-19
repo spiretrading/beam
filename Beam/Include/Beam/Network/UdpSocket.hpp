@@ -1,6 +1,7 @@
 #ifndef BEAM_UDPSOCKET_HPP
 #define BEAM_UDPSOCKET_HPP
 #include <optional>
+#include <string>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/OpenState.hpp"
@@ -127,7 +128,7 @@ namespace Network {
     boost::system::error_code errorCode;
     boost::asio::ip::udp::resolver resolver{*m_socket->m_ioService};
     boost::asio::ip::udp::resolver::query query{m_address.GetHost(),
-      ToString(m_address.GetPort())};
+      std::to_string(m_address.GetPort())};
     boost::asio::ip::udp::resolver::iterator end;
     auto endpointIterator = resolver.resolve(query, errorCode);
     if(errorCode) {

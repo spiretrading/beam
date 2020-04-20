@@ -72,7 +72,7 @@ namespace Details {
 
   template<typename Stream>
   bool SymbolParser::Read(Stream& source) const {
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     for(auto c : m_symbol) {
       if(!context.Read()) {
         return false;

@@ -110,7 +110,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
           return true;
@@ -139,7 +139,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context, value)) {
           context.Accept();
           return true;
@@ -149,7 +149,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
           return true;
@@ -178,7 +178,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context, value) && m_rightParser.Read(context)) {
           context.Accept();
           return true;
@@ -188,7 +188,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
           return true;
@@ -219,7 +219,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         auto leftValue = typename LeftParser::Result();
         if(!m_leftParser.Read(context, leftValue)) {
           return false;
@@ -235,7 +235,7 @@ namespace Details {
 
       template<typename ParserStreamType>
       bool Read(ParserStreamType& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
           return true;
@@ -266,7 +266,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         auto leftValue = typename LeftParser::Result();
         if(!m_leftParser.Read(context, leftValue)) {
           return false;
@@ -282,7 +282,7 @@ namespace Details {
 
       template<typename ParserStreamType>
       bool Read(ParserStreamType& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
           return true;

@@ -30,7 +30,7 @@ namespace Beam::Parsers {
       TERMINAL,
       INTEGER_DIGITS,
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }
@@ -79,7 +79,7 @@ namespace Beam::Parsers {
       TERMINAL,
       INTEGER_DIGITS,
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }

@@ -34,7 +34,7 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     auto decimalBuffer = std::array<char, 64>();
     auto count = std::size_t(0);
     if(!context.Read()) {
@@ -110,7 +110,7 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }

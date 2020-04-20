@@ -84,7 +84,7 @@ namespace Beam::Parsers {
   template<typename Stream>
   bool EnumeratorParser<E>::Read(Stream& source, Result& value) const {
     for(auto& parser : m_parsers) {
-      auto context = SubParserStream(source);
+      auto context = SubParserStream<Stream>(source);
       if(parser.Read(context, value)) {
         context.Accept();
         return true;
@@ -97,7 +97,7 @@ namespace Beam::Parsers {
   template<typename Stream>
   bool EnumeratorParser<E>::Read(Stream& source) const {
     for(auto& parser : m_parsers) {
-      auto context = SubParserStream(source);
+      auto context = SubParserStream<Stream>(source);
       if(parser.Read(context)) {
         context.Accept();
         return true;

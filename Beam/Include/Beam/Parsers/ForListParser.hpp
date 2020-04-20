@@ -42,7 +42,7 @@ namespace Beam::Parsers {
         value = m_initialValue;
         auto listValue = typename Parser::Result();
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(!m_parser.Read(context, listValue)) {
             return false;
           }
@@ -50,7 +50,7 @@ namespace Beam::Parsers {
           context.Accept();
         }
         while(true) {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           SkipSpaceParser().Read(context);
           if(!context.Read()) {
             return true;
@@ -101,7 +101,7 @@ namespace Beam::Parsers {
       bool Read(Stream& source) const {
         auto value = m_initialValue;
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(!m_parser.Read(context)) {
             return false;
           }
@@ -109,7 +109,7 @@ namespace Beam::Parsers {
           context.Accept();
         }
         while(true) {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           SkipSpaceParser().Read(context);
           if(!context.Read()) {
             return true;

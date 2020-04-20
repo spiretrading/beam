@@ -24,7 +24,7 @@ namespace Beam::Parsers {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         SkipSpaceParser().Read(context);
         if(m_subParser.Read(context, value)) {
           context.Accept();
@@ -35,7 +35,7 @@ namespace Beam::Parsers {
 
       template<typename Stream>
       bool Read(Stream& source) const {
-        auto context = SubParserStream(source);
+        auto context = SubParserStream<Stream>(source);
         SkipSpaceParser().Read(context);
         if(m_subParser.Read(context)) {
           context.Accept();

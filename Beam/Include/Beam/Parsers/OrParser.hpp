@@ -65,7 +65,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -95,7 +95,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             value = Result();
@@ -113,7 +113,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -143,7 +143,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
@@ -161,7 +161,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -194,7 +194,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
@@ -213,7 +213,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -244,7 +244,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
@@ -263,7 +263,7 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source) const {
         {
-          auto context = SubParserStream(source);
+          auto context = SubParserStream<Stream>(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;

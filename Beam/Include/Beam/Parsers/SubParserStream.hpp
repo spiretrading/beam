@@ -38,6 +38,9 @@ namespace Beam::Parsers {
     private:
       ParserStream* m_stream;
       std::size_t m_sizeRead;
+
+      SubParserStream(const SubParserStream&) = delete;
+      SubParserStream(SubParserStream&) = delete;
   };
 
   template<typename P>

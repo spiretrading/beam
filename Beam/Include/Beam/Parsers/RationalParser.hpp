@@ -34,7 +34,7 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     auto numerator = Integral(0);
     auto denominator = Integral(0);
     auto sign = Integral();
@@ -113,7 +113,7 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }

@@ -21,7 +21,7 @@ namespace Beam::Parsers {
 
   template<typename Stream>
   bool BoolParser::Read(Stream& source, bool& value) const {
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }
@@ -60,7 +60,7 @@ namespace Beam::Parsers {
 
   template<typename ParserStreamType>
   bool BoolParser::Read(ParserStreamType& source) const {
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;
     }

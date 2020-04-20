@@ -5,6 +5,7 @@
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
@@ -35,6 +36,9 @@ namespace Beam::Parsers {
       SubParser m_subParser;
   };
 
+  template<typename P>
+  NotParser(P) -> NotParser<to_parser_t<P>>;
+
   template<typename SubParser>
   auto Not(SubParser subParser) {
     return NotParser(subParser);
@@ -47,23 +51,24 @@ namespace Beam::Parsers {
   template<typename P>
   template<typename Stream>
   bool NotParser<P>::Read(Stream& source, Result& value) const {
-    auto substream = SubParserStream(source);
-    if(m_subParser.Read(substream)) {
-      return false;
+    {
+      auto substream = SubParserStream<Stream>(source);
+      if(m_subParser.Read(substream)) {
+        return false;
+      }
     }
-    if(substream.Read()) {
-      value = substream.GetChar();
+    if(source.Read()) {
+      value = source.GetChar();
     } else {
       value = boost::none;
     }
-    substream.Accept();
     return true;
   }
 
   template<typename P>
   template<typename Stream>
   bool NotParser<P>::Read(Stream& source) const {
-    auto substream = SubParserStream(source);
+    auto substream = SubParserStream<Stream>(source);
     if(m_subParser.Read(substream)) {
       return false;
     }

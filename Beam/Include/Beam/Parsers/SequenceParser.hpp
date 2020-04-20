@@ -58,7 +58,7 @@ namespace Beam::Parsers {
   template<typename P>
   template<typename Stream>
   bool SequenceParser<P>::Read(Stream& source, Result& value) const {
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     value.clear();
     for(auto i = m_parsers.begin(); i != m_parsers.end(); ++i) {
       SkipSpaceParser().Read(context);
@@ -84,7 +84,7 @@ namespace Beam::Parsers {
   template<typename P>
   template<typename Stream>
   bool SequenceParser<P>::Read(Stream& source) const {
-    auto context = SubParserStream(source);
+    auto context = SubParserStream<Stream>(source);
     for(auto i = m_parsers.begin(); i != m_parsers.end(); ++i) {
       SkipSpaceParser().Read(context);
       if(i != m_parsers.begin()) {

@@ -6,6 +6,7 @@
 #include <type_traits>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Json/JsonParser.hpp"
+#include "Beam/Parsers/RuleParser.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
@@ -26,7 +27,7 @@ namespace Serialization {
       using Source = SourceType;
 
       //! Constructs a JsonReceiver.
-      JsonReceiver() = default;
+      JsonReceiver();
 
       //! Constructs a JsonReceiver.
       /*!
@@ -80,7 +81,7 @@ namespace Serialization {
       };
       boost::optional<Parsers::ReaderParserStream<IO::BufferReader<Source>>>
         m_parserStream;
-      JsonParser m_parser;
+      Parsers::RuleParser<JsonValue> m_parser;
       using AggregateType = boost::variant<JsonObject, Sequence>;
       std::deque<AggregateType> m_aggregateQueue;
 
@@ -89,9 +90,14 @@ namespace Serialization {
   };
 
   template<typename SourceType>
-  JsonReceiver<SourceType>::JsonReceiver(Ref<TypeRegistry<
-      JsonSender<SourceType>>> registry)
-      : ReceiverMixin<JsonReceiver<SourceType>>(Ref(registry)) {}
+  JsonReceiver<SourceType>::JsonReceiver()
+    : m_parser(JsonParser()) {}
+
+  template<typename SourceType>
+  JsonReceiver<SourceType>::JsonReceiver(
+    Ref<TypeRegistry<JsonSender<SourceType>>> registry)
+    : ReceiverMixin<JsonReceiver<SourceType>>(Ref(registry)),
+      m_parser(JsonParser()) {}
 
   template<typename SourceType>
   void JsonReceiver<SourceType>::SetSource(Ref<const Source> source) {

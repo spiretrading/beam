@@ -7,7 +7,6 @@
 #include "Beam/Json/Json.hpp"
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Json/JsonValue.hpp"
-#include "Beam/Parsers/BasicParser.hpp"
 #include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/ForListParser.hpp"
 #include "Beam/Parsers/ListParser.hpp"
@@ -19,55 +18,35 @@
 
 namespace Beam {
 
-  /*! \class JsonParser
-      \brief Implements a Parser for JsonValues.
-   */
-  class JsonParser : public Parsers::BasicParser<JsonValue> {
-    public:
-
-      //! Returns a JsonParser.
-      static JsonParser& GetParser();
-
-      //! Constructs a JsonParser.
-      JsonParser();
-
-    private:
-      static JsonValue BuildJsonValue(const Details::JsonVariant& value);
-  };
-
-  inline JsonParser& JsonParser::GetParser() {
-    static auto parser = JsonParser();
-    return parser;
-  }
-
-  inline JsonParser::JsonParser() {
-    auto objectParser = Parsers::RuleParser<JsonObject>();
-    auto arrayParser = Parsers::RuleParser<std::vector<JsonValue>>();
-    auto nullParser = Parsers::Symbol("null", JsonNull());
-    auto keyParser = Parsers::string_p;
-    auto valueParser = Parsers::Convert(Parsers::string_p | nullParser |
-      Parsers::bool_p | Parsers::double_p | objectParser | arrayParser,
-      BuildJsonValue);
-    auto keyValueParser = Parsers::tokenize >> keyParser >> ':' >> valueParser;
-    objectParser.SetRule(Parsers::tokenize >> '{' >>
-      Parsers::ForList(JsonObject(), keyValueParser, ',',
-        [] (JsonObject& object,
-            const std::tuple<std::string, JsonValue>& value) {
-          object.Set(std::get<0>(value), std::get<1>(value));
-        }) >> '}');
-    arrayParser.SetRule(Parsers::tokenize >> '[' >>
-      Parsers::List(valueParser, ',') >> ']');
-    SetParser(valueParser);
-  }
-
-  inline JsonValue JsonParser::BuildJsonValue(
-      const Details::JsonVariant& value) {
-    return JsonValue(value);
+  /** Parses JSON objects. */
+  inline auto JsonParser() {
+    static const auto value = [] {
+      auto objectParser = Parsers::RuleParser<JsonObject>();
+      auto arrayParser = Parsers::RuleParser<std::vector<JsonValue>>();
+      auto nullParser = Parsers::Symbol("null", JsonNull());
+      auto keyParser = Parsers::string_p;
+      auto valueParser = Parsers::Convert(Parsers::string_p | nullParser |
+        Parsers::bool_p | Parsers::double_p | objectParser | arrayParser,
+        [] (const Details::JsonVariant& value) {
+          return JsonValue(value);
+        });
+      auto keyValueParser = Parsers::tokenize >> keyParser >> ':' >>
+        valueParser;
+      objectParser.SetRule(Parsers::tokenize >> '{' >>
+        Parsers::ForList(JsonObject(), keyValueParser, ',',
+          [] (JsonObject& object,
+              const std::tuple<std::string, JsonValue>& value) {
+            object.Set(std::get<0>(value), std::get<1>(value));
+          }) >> '}');
+      arrayParser.SetRule(Parsers::tokenize >> '[' >>
+        Parsers::List(valueParser, ',') >> ']');
+      return valueParser;
+    }();
+    return value;
   }
 }
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct IsStructure<JsonObject> : std::false_type {};
 
@@ -76,7 +55,7 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         const JsonObject& value) const {
-      std::stringstream destination;
+      auto destination = std::stringstream();
       value.Save(destination);
       shuttle.Send(name, destination.str());
     }
@@ -87,19 +66,19 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         JsonObject& value) const {
-      std::string data;
+      auto data = std::string();
       shuttle.Shuttle(name, data);
-      Parsers::ReaderParserStream<IO::BufferReader<IO::SharedBuffer>> stream(
+      auto stream = Parsers::ReaderParserStream<
+        IO::BufferReader<IO::SharedBuffer>>(
         IO::BufferFromString<IO::SharedBuffer>(data));
-      JsonValue jsonValue;
-      if(!JsonParser::GetParser().Read(stream, jsonValue) ||
+      auto jsonValue = JsonValue();
+      if(!JsonParser().Read(stream, jsonValue) ||
           boost::get<JsonObject>(&jsonValue) == nullptr) {
         BOOST_THROW_EXCEPTION(SerializationException("Invalid JSON object."));
       }
       value = boost::get<JsonObject>(jsonValue);
     }
   };
-}
 }
 
 #endif

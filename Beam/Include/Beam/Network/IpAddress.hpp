@@ -5,7 +5,6 @@
 #include <string>
 #include "Beam/Network/Network.hpp"
 #include "Beam/Parsers/ConversionParser.hpp"
-#include "Beam/Parsers/CustomParser.hpp"
 #include "Beam/Parsers/NotParser.hpp"
 #include "Beam/Parsers/PlusParser.hpp"
 #include "Beam/Parsers/Types.hpp"
@@ -73,16 +72,15 @@ namespace Beam::Network {
     return out << source.GetHost() << ':' << source.GetPort();
   }
 
-  //! Implements a Parser for IpAddresses.
-  class IpAddressParser : public Parsers::CustomParser<IpAddress> {
-    public:
-
-      //! Constructs an IpAddressParser.
-      IpAddressParser();
-
-    private:
-      static IpAddress ToIpAddress(const std::tuple<std::string, int>& source);
-  };
+  /** Parses an IpAddress. */
+  inline auto IpAddressParser() {
+    return Parsers::Convert(Parsers::PlusParser(Parsers::Not(':')) >> ':' >>
+      Parsers::int_p,
+      [] (const std::tuple<std::string, int>& source) {
+        return IpAddress(std::get<0>(source),
+          static_cast<unsigned short>(std::get<1>(source)));
+      });
+  }
 
   inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
     auto normalizedAddress = ToBigEndian(ipAddress);
@@ -131,18 +129,6 @@ namespace Beam::Network {
 
   inline unsigned short IpAddress::GetPort() const {
     return m_port;
-  }
-
-  inline IpAddressParser::IpAddressParser() {
-    SetRule(Parsers::Convert(
-      Parsers::PlusParser(Parsers::Not(Parsers::Symbol(":"))) >> ':' >>
-      Parsers::int_p, ToIpAddress));
-  }
-
-  inline IpAddress IpAddressParser::ToIpAddress(
-      const std::tuple<std::string, int>& source) {
-    return IpAddress(std::get<0>(source),
-      static_cast<unsigned short>(std::get<1>(source)));
   }
 }
 

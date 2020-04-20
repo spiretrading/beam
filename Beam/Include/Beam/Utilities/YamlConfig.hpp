@@ -213,8 +213,8 @@ namespace Beam {
   struct YamlValueExtractor<boost::posix_time::ptime> {
     boost::posix_time::ptime operator ()(const YAML::Node& node) const {
       auto rawValue = node.as<std::string>();
-      boost::posix_time::ptime value;
-      Parsers::DateTimeParser parser;
+      auto value = boost::posix_time::ptime();
+      auto parser = Parsers::DateTimeParser();
       auto source = Parsers::ParserStreamFromString(rawValue);
       BEAM_ASSERT_MESSAGE(parser.Read(source, value), "Config error at line " <<
         (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<

@@ -4,13 +4,10 @@
 namespace Beam::Parsers {
   class AlphaParser;
   class AnyParser;
-  template<typename R> class BasicParser;
   class BlankParser;
   class BoolParser;
   template<typename L, typename R, typename E = void> class ConcatenateParser;
   template<typename P, typename F, typename E = void> class ConversionParser;
-  template<typename R> class CustomParser;
-  class DateTimeParser;
   template<typename F> class DecimalParser;
   template<typename L, typename R> class DifferenceParser;
   class DigitParser;
@@ -21,6 +18,7 @@ namespace Beam::Parsers {
     class ForListParser;
   template<typename I> class IntegralParser;
   template<typename P> class ListParser;
+  template<typename R> class NoneParser;
   template<typename P> class NotParser;
   template<typename L, typename R, typename E = void> class OrParser;
   template<typename R> struct Parser;
@@ -38,7 +36,6 @@ namespace Beam::Parsers {
   class StringParser;
   template<typename P> class SubParserStream;
   class TerminalParser;
-  class TimeDurationParser;
   template<typename P> class TokenParser;
   template<typename R> class VirtualParser;
   template<typename P, typename E = void> class WrapperParser;

@@ -3,13 +3,11 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Parsers/CustomParser.hpp"
 #include "Beam/Parsers/DateParser.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/TimeDurationParser.hpp"
 #include "Beam/Parsers/Types.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class DateTimeParser
       \brief Matches a date/time in the form of yyyy-mm-dd hh:mm:ss
@@ -33,7 +31,6 @@ namespace Parsers {
         boost::gregorian::date, boost::posix_time::time_duration>& source) {
     return boost::posix_time::ptime(std::get<0>(source), std::get<1>(source));
   }
-}
 }
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef BEAM_ALPHAPARSER_HPP
 #define BEAM_ALPHAPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
@@ -9,7 +8,7 @@ namespace Beam::Parsers {
   /*! \class AlphaParser
       \brief Matches an alphabet character.
    */
-  class AlphaParser : public ParserOperators {
+  class AlphaParser {
     public:
       using Result = char;
 

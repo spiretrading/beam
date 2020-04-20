@@ -1,6 +1,6 @@
 #ifndef BEAM_PARSER_HPP
 #define BEAM_PARSER_HPP
-#include <boost/optional/optional.hpp>
+#include <string>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/ParserException.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
@@ -8,79 +8,53 @@
 #include "Beam/Utilities/Concept.hpp"
 #include "Beam/Utilities/NullType.hpp"
 
-namespace Beam {
-namespace Parsers {
-namespace Details {
-  template<typename T>
-  struct GetParserReadResultHelper {
-    typedef boost::optional<T> type;
-  };
-
-  template<>
-  struct GetParserReadResultHelper<NullType> {
-    typedef bool type;
-  };
-}
-
-  /*! \struct GetParserType
-      \brief Type trait that returns the canonical Parser for a given type.
-      \tparam T The type to get the canonical Parser for.
-   */
-  template<typename T>
-  struct GetParserType {
-
-    //! The canonical Parser for the specified type.
-    typedef T type;
-  };
-
-  /*! \struct GetParserReadResult
-      \brief Type trait that returns the type of a Parser's Read method.
-      \tparam T The type of Parser to inspect.
-   */
-  template<typename T>
-  struct GetParserReadResult {
-
-    //! The return type of the Parser's Read method.
-    typedef typename Details::GetParserReadResultHelper<
-      typename GetParserType<T>::type::Result>::type type;
-  };
+namespace Beam::Parsers {
 
   /*! \struct Parser
       \brief Concept for parsing data from a stream.
-      \tparam ResultType The data type storing the parsed value.
+      \tparam R The data type storing the parsed value.
    */
-  template<typename ResultType>
-  struct Parser : Concept<Parser<ResultType>> {
+  template<typename R>
+  struct Parser : Concept<Parser<R>> {
 
     //! The data type storing the parsed value.
-    typedef ResultType Result;
+    using Result = R;
 
     //! Parses the next value from a stream.
     /*!
       \param source The stream to parse from.
-      \return The parsed value if it exists.
+      \param result Stores the parsed value.
+      \return <code>true</code> if a value was parsed.
     */
-    template<typename ParserStreamType>
-    boost::optional<Result> Read(ParserStreamType& source);
+    template<typename Stream>
+    bool Read(Stream& source, Result& result) const;
+
+    //! Parses the next value from a stream.
+    /*!
+      \param source The stream to parse from.
+      \return <code>true</code> if a value was parsed.
+    */
+    template<typename Stream>
+    bool Read(Stream& source) const;
   };
 
   /*! \struct Parser
       \brief Concept for parsing data from a stream.
-      \tparam ResultType The data type storing the parsed value.
+      \tparam R The data type storing the parsed value.
    */
   template<>
   struct Parser<NullType> : Concept<Parser<NullType>> {
 
     //! The data type storing the parsed value.
-    typedef NullType Result;
+    using Result = NullType;
 
     //! Parses the next value from a stream.
     /*!
       \param source The stream to parse from.
       \return <code>true</code> iff the value was properly parsed.
     */
-    template<typename ParserStreamType>
-    bool Read(ParserStreamType& source);
+    template<typename Stream>
+    bool Read(Stream& source) const;
   };
 
   //! Parses a value from a string.
@@ -89,9 +63,9 @@ namespace Details {
     \return The parsed value.
   */
   template<typename Parser>
-  typename Parser::Result Parse(const std::string& source) {
-    typename Parser::Result value;
-    Parser parser;
+  auto Parse(const std::string& source) {
+    auto value = typename Parser::Result();
+    auto parser = Parser();
     auto stream = ParserStreamFromString(source);
     if(!parser.Read(stream, value)) {
       BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
@@ -105,19 +79,15 @@ namespace Details {
     \return The parsed value.
   */
   template<typename Parser, typename Buffer>
-  typename Parser::Result Parse(const Buffer& source) {
-    typename Parser::Result value;
-    ReaderParserStream<IO::BufferReader<Buffer>> stream{source};
-    Parser parser;
+  auto Parse(const Buffer& source) {
+    auto value = typename Parser::Result();
+    auto stream = ReaderParserStream(source);
+    auto parser = Parser();
     if(!parser.Read(stream, value)) {
       BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
     }
     return value;
   }
-
-  // TODO
-  class ParserOperators {};
-}
 }
 
 #endif

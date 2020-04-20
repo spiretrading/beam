@@ -8,7 +8,9 @@
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Json/JsonValue.hpp"
 #include "Beam/Parsers/BasicParser.hpp"
+#include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/ForListParser.hpp"
+#include "Beam/Parsers/ListParser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Parsers/RuleParser.hpp"
 #include "Beam/Parsers/Types.hpp"
@@ -34,27 +36,27 @@ namespace Beam {
   };
 
   inline JsonParser& JsonParser::GetParser() {
-    static JsonParser parser;
+    static auto parser = JsonParser();
     return parser;
   }
 
   inline JsonParser::JsonParser() {
-    Parsers::RuleParser<JsonObject> objectParser;
-    Parsers::RuleParser<std::vector<JsonValue>> arrayParser;
+    auto objectParser = Parsers::RuleParser<JsonObject>();
+    auto arrayParser = Parsers::RuleParser<std::vector<JsonValue>>();
     auto nullParser = Parsers::Symbol("null", JsonNull());
     auto keyParser = Parsers::string_p;
     auto valueParser = Parsers::Convert(Parsers::string_p | nullParser |
       Parsers::bool_p | Parsers::double_p | objectParser | arrayParser,
       BuildJsonValue);
     auto keyValueParser = Parsers::tokenize >> keyParser >> ':' >> valueParser;
-    objectParser = Parsers::tokenize >> '{' >>
+    objectParser.SetRule(Parsers::tokenize >> '{' >>
       Parsers::ForList(JsonObject(), keyValueParser, ',',
         [] (JsonObject& object,
             const std::tuple<std::string, JsonValue>& value) {
           object.Set(std::get<0>(value), std::get<1>(value));
-        }) >> '}';
-    arrayParser = Parsers::tokenize >> '[' >>
-      Parsers::List(valueParser, ',') >> ']';
+        }) >> '}');
+    arrayParser.SetRule(Parsers::tokenize >> '[' >>
+      Parsers::List(valueParser, ',') >> ']');
     SetParser(valueParser);
   }
 

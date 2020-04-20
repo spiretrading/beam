@@ -1,18 +1,15 @@
 #ifndef BEAM_TERMINALPARSER_HPP
 #define BEAM_TERMINALPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Parsers/ParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class TerminalParser
       \brief Matches a single character.
    */
-  class TerminalParser : public ParserOperators {
+  class TerminalParser {
     public:
-      typedef NullType Result;
+      using Result = NullType;
 
       //! Constructs a TerminalParser.
       /*!
@@ -20,30 +17,18 @@ namespace Parsers {
       */
       TerminalParser(char value);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     private:
       char m_value;
   };
 
-  /*! \class ConstTerminalParser
-      \brief Matches a single compile time character.
-   */
-  template<char C>
-  class ConstTerminalParser : public ParserOperators {
-    public:
-      typedef NullType Result;
-
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
-  };
-
   inline TerminalParser::TerminalParser(char value)
-      : m_value(value) {}
+    : m_value(value) {}
 
-  template<typename ParserStreamType>
-  bool TerminalParser::Read(ParserStreamType& source) {
+  template<typename Stream>
+  bool TerminalParser::Read(Stream& source) const {
     if(!source.Read()) {
       return false;
     }
@@ -53,20 +38,6 @@ namespace Parsers {
     }
     return true;
   }
-
-  template<char C>
-  template<typename ParserStreamType>
-  bool ConstTerminalParser<C>::Read(ParserStreamType& source) {
-    if(!source.Read()) {
-      return false;
-    }
-    if(source.GetChar() != C) {
-      source.Undo();
-      return false;
-    }
-    return true;
-  }
-}
 }
 
 #endif

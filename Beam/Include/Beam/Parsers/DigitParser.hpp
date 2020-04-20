@@ -1,28 +1,26 @@
 #ifndef BEAM_DIGITPARSER_HPP
 #define BEAM_DIGITPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class DigitParser
       \brief Matches a digit character.
    */
-  class DigitParser : public ParserOperators {
+  class DigitParser {
     public:
-      typedef char Result;
+      using Result = char;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, char& value);
+      template<typename Stream>
+      bool Read(Stream& source, char& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool DigitParser::Read(ParserStreamType& source, char& value) {
+  template<typename Stream>
+  bool DigitParser::Read(Stream& source, char& value) const {
     if(!source.Read()) {
       return false;
     }
@@ -34,8 +32,8 @@ namespace Parsers {
     return false;
   }
 
-  template<typename ParserStreamType>
-  bool DigitParser::Read(ParserStreamType& source) {
+  template<typename Stream>
+  bool DigitParser::Read(Stream& source) const {
     if(!source.Read()) {
       return false;
     }
@@ -45,7 +43,6 @@ namespace Parsers {
     source.Undo();
     return false;
   }
-}
 }
 
 #endif

@@ -3,23 +3,21 @@
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include "Beam/Collections/Enum.hpp"
-#include "Beam/Parsers/Operators.hpp"
-#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 #include "Beam/Parsers/SymbolParser.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class EnumeratorParser
       \brief Used to parse an Enumerator.
-      \tparam EnumeratorType The type of Enumerator to parse.
+      \tparam E The type of Enumerator to parse.
    */
-  template<typename EnumeratorType>
-  class EnumeratorParser : public ParserOperators {
+  template<typename E>
+  class EnumeratorParser {
     public:
-      typedef EnumeratorType Result;
+      using Result = E;
 
       //! Constructs an EnumeratorParser.
       /*!
@@ -28,7 +26,7 @@ namespace Parsers {
         \param toString The function used to convert the Enumerator to a string.
       */
       template<typename Iterator, typename F>
-      EnumeratorParser(const Iterator& first, const Iterator& last, F toString);
+      EnumeratorParser(Iterator first, Iterator last, F toString);
 
       //! Constructs an EnumeratorParser.
       /*!
@@ -36,13 +34,13 @@ namespace Parsers {
         \param last An iterator to one past the last enumerated value.
       */
       template<typename Iterator>
-      EnumeratorParser(const Iterator& first, const Iterator& last);
+      EnumeratorParser(Iterator first, Iterator last);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     private:
       struct EnumConverter {
@@ -55,39 +53,38 @@ namespace Parsers {
       std::vector<ConversionParser<SymbolParser, EnumConverter>> m_parsers;
   };
 
-  template<typename EnumeratorType>
-  EnumeratorParser<EnumeratorType>::EnumConverter::EnumConverter(Result value)
+  template<typename E>
+  EnumeratorParser<E>::EnumConverter::EnumConverter(Result value)
     : m_value(value) {}
 
-  template<typename EnumeratorType>
-  typename EnumeratorParser<EnumeratorType>::Result
-      EnumeratorParser<EnumeratorType>::EnumConverter::operator ()() const {
+  template<typename E>
+  typename EnumeratorParser<E>::Result
+      EnumeratorParser<E>::EnumConverter::operator ()() const {
     return m_value;
   }
 
-  template<typename EnumeratorType>
+  template<typename E>
   template<typename Iterator, typename F>
-  EnumeratorParser<EnumeratorType>::EnumeratorParser(const Iterator& first,
-      const Iterator& last, F toString) {
-    for(auto i = first; i != last; ++i) {
-      m_parsers.push_back(Convert(SymbolParser(toString(*i)),
-        EnumConverter(*i)));
+  EnumeratorParser<E>::EnumeratorParser(Iterator first, Iterator last,
+      F toString) {
+    while(first != last) {
+      m_parsers.push_back(Convert(SymbolParser(toString(*first)),
+        EnumConverter(*first)));
+      ++first;
     }
   }
 
-  template<typename EnumeratorType>
+  template<typename E>
   template<typename Iterator>
-  EnumeratorParser<EnumeratorType>::EnumeratorParser(const Iterator& first,
-    const Iterator& last)
+  EnumeratorParser<E>::EnumeratorParser(Iterator first, Iterator last)
     : EnumeratorParser(first, last,
         &boost::lexical_cast<std::string, Result>) {}
 
-  template<typename EnumeratorType>
-  template<typename ParserStreamType>
-  bool EnumeratorParser<EnumeratorType>::Read(ParserStreamType& source,
-      Result& value) {
-    for(ConversionParser<SymbolParser, EnumConverter>& parser : m_parsers) {
-      SubParserStream<ParserStreamType> context(source);
+  template<typename E>
+  template<typename Stream>
+  bool EnumeratorParser<E>::Read(Stream& source, Result& value) const {
+    for(auto& parser : m_parsers) {
+      auto context = SubParserStream(source);
       if(parser.Read(context, value)) {
         context.Accept();
         return true;
@@ -96,11 +93,11 @@ namespace Parsers {
     return false;
   }
 
-  template<typename EnumeratorType>
-  template<typename ParserStreamType>
-  bool EnumeratorParser<EnumeratorType>::Read(ParserStreamType& source) {
-    for(ConversionParser<SymbolParser, EnumConverter>& parser : m_parsers) {
-      SubParserStream<ParserStreamType> context(source);
+  template<typename E>
+  template<typename Stream>
+  bool EnumeratorParser<E>::Read(Stream& source) const {
+    for(auto& parser : m_parsers) {
+      auto context = SubParserStream(source);
       if(parser.Read(context)) {
         context.Accept();
         return true;
@@ -108,7 +105,6 @@ namespace Parsers {
     }
     return false;
   }
-}
 }
 
 #endif

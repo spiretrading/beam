@@ -3,13 +3,10 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-#include <boost/variant/variant.hpp>
-#include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class StarParser
       \brief Parses a sub-expression zero or more times.
@@ -17,49 +14,38 @@ namespace Parsers {
              a) NullType if the sub-expression is a NullType Parser.
              b) An std::string if the sub-expression returns a char.
              c) An std::vector of the sub-expression's Result.
-      \tparam SubParserType The parser to match zero or more times.
+      \tparam P The parser to match zero or more times.
    */
-  template<typename SubParserType, typename Enabled>
+  template<typename P, typename E>
   class StarParser {
     public:
 
       //! The parser that must match zero or more times.
-      typedef SubParserType SubParser;
+      using SubParser = P;
   };
 
-  //! Builds a StarParser.
-  /*!
-    \param subParser The SubParser to repeat.
-  */
-  template<typename SubParser>
-  StarParser<typename GetParserType<SubParser>::type> Star(
-      const SubParser& subParser) {
-    return StarParser<typename GetParserType<SubParser>::type>(subParser);
-  }
-
-  template<typename SubParserType>
-  class StarParser<SubParserType, typename std::enable_if<
-      std::is_same<typename SubParserType::Result, char>::value>::type> :
-      public ParserOperators {
+  template<typename P>
+  class StarParser<P, std::enable_if_t<
+      std::is_same_v<typename P::Result, char>>> {
     public:
-      typedef SubParserType SubParser;
-      typedef std::string Result;
+      using SubParser = P;
+      using Result = std::string;
 
-      StarParser(const SubParser& subParser)
-          : m_subParser(subParser) {}
+      StarParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value.clear();
-        char nextChar;
+        auto nextChar = char();
         while(m_subParser.Read(source, nextChar)) {
           value += nextChar;
         }
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         while(m_subParser.Read(source)) {}
         return true;
       }
@@ -68,29 +54,28 @@ namespace Parsers {
       SubParser m_subParser;
   };
 
-  template<typename SubParserType>
-  class StarParser<SubParserType, typename std::enable_if<
-      !std::is_same<typename SubParserType::Result, char>::value>::type> :
-      public ParserOperators {
+  template<typename P>
+  class StarParser<P, std::enable_if_t<
+      !std::is_same_v<typename P::Result, char>>> {
     public:
-      typedef SubParserType SubParser;
-      typedef std::vector<typename SubParser::Result> Result;
+      using SubParser = P;
+      using Result = std::vector<typename SubParser::Result>;
 
-      StarParser(const SubParser& subParser)
-          : m_subParser(subParser) {}
+      StarParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value.clear();
-        typename SubParser::Result nextValue;
+        auto nextValue = typename SubParser::Result();
         while(m_subParser.Read(source, nextValue)) {
           value.push_back(std::move(nextValue));
         }
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         while(m_subParser.Read(source)) {}
         return true;
       }
@@ -98,7 +83,18 @@ namespace Parsers {
     private:
       SubParser m_subParser;
   };
-}
+
+  template<typename SubParser>
+  StarParser(SubParser) -> StarParser<SubParser>;
+
+  //! Builds a StarParser.
+  /*!
+    \param subParser The SubParser to repeat.
+  */
+  template<typename SubParser>
+  auto Star(SubParser subParser) {
+    return StarParser(std::move(subParser));
+  }
 }
 
 #endif

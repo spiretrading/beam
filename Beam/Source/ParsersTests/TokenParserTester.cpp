@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/TokenParser.hpp"
 #include "Beam/Parsers/Types.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"

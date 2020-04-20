@@ -1,5 +1,6 @@
 #ifndef BEAM_READERPARSERSTREAM_HPP
 #define BEAM_READERPARSERSTREAM_HPP
+#include <utility>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Parsers/Parsers.hpp"
@@ -7,26 +8,25 @@
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class ReaderParserStream
       \brief Implements the ParserStream using a Reader as the data source.
-      \tparam ReaderType The Reader to use as the data source.
+      \tparam R The Reader to use as the data source.
   */
-  template<typename ReaderType>
+  template<typename R>
   class ReaderParserStream {
     public:
 
       //! The Reader to use as the data source.
-      typedef typename TryDereferenceType<ReaderType>::type Reader;
+      using Reader = GetTryDereferenceType<R>;
 
       //! Constructs a ReaderParserStream.
       /*!
         \param source Initializes the Reader used as the data source.
       */
-      template<typename ReaderForward>
-      ReaderParserStream(ReaderForward&& source);
+      template<typename RF>
+      ReaderParserStream(RF&& source);
 
       char GetChar() const;
 
@@ -39,35 +39,38 @@ namespace Parsers {
       void Accept();
 
     private:
-      typename OptionalLocalPtr<ReaderType>::type m_source;
+      GetOptionalLocalPtr<R> m_source;
       typename Reader::Buffer m_buffer;
       const char* m_position;
       std::size_t m_sizeRemaining;
   };
 
-  inline ReaderParserStream<IO::BufferReader<IO::SharedBuffer>>
-      ParserStreamFromString(const std::string& source) {
-    return IO::BufferFromString<IO::SharedBuffer>(source);
+  template<typename R>
+  ReaderParserStream(R&& source) -> ReaderParserStream<std::decay_t<R>>;
+
+  inline auto ParserStreamFromString(const std::string& source) {
+    return ReaderParserStream(
+      IO::BufferReader(IO::BufferFromString<IO::SharedBuffer>(source)));
   }
 
-  template<typename ReaderType>
-  template<typename ReaderForward>
-  ReaderParserStream<ReaderType>::ReaderParserStream(ReaderForward&& source)
-      : m_source(std::forward<ReaderForward>(source)),
-        m_position(m_buffer.GetData()),
-        m_sizeRemaining(0) {}
+  template<typename R>
+  template<typename RF>
+  ReaderParserStream<R>::ReaderParserStream(RF&& source)
+    : m_source(std::forward<RF>(source)),
+      m_position(m_buffer.GetData()),
+      m_sizeRemaining(0) {}
 
-  template<typename ReaderType>
-  char ReaderParserStream<ReaderType>::GetChar() const {
+  template<typename R>
+  char ReaderParserStream<R>::GetChar() const {
     return *m_position;
   }
 
-  template<typename ReaderType>
-  bool ReaderParserStream<ReaderType>::Read() {
-    static const std::size_t READ_SIZE = 1024;
+  template<typename R>
+  bool ReaderParserStream<R>::Read() {
+    constexpr auto READ_SIZE = std::size_t(1024);
     if(m_sizeRemaining == 0) {
-      typename Reader::Buffer buffer;
-      std::ptrdiff_t position = m_position - m_buffer.GetData();
+      auto buffer = typename Reader::Buffer();
+      auto position = m_position - m_buffer.GetData();
       try {
         m_sizeRemaining = m_source->Read(Store(buffer), READ_SIZE) - 1;
       } catch(const IO::EndOfFileException&) {
@@ -85,24 +88,23 @@ namespace Parsers {
     return true;
   }
 
-  template<typename ReaderType>
-  void ReaderParserStream<ReaderType>::Undo() {
+  template<typename R>
+  void ReaderParserStream<R>::Undo() {
     Undo(1);
   }
 
-  template<typename ReaderType>
-  void ReaderParserStream<ReaderType>::Undo(std::size_t count) {
+  template<typename R>
+  void ReaderParserStream<R>::Undo(std::size_t count) {
     m_sizeRemaining += count;
     m_position -= count;
   }
 
-  template<typename ReaderType>
-  void ReaderParserStream<ReaderType>::Accept() {
+  template<typename R>
+  void ReaderParserStream<R>::Accept() {
     if(m_sizeRemaining == 0) {
       m_buffer.Reset();
     }
   }
-}
 }
 
 #endif

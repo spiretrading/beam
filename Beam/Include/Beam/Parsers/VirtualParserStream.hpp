@@ -1,17 +1,17 @@
 #ifndef BEAM_VIRTUALPARSERSTREAM_HPP
 #define BEAM_VIRTUALPARSERSTREAM_HPP
+#include <cstddef>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/ParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class VirtualParserStream
       \brief Implements a ParserStream using virtual methods.
   */
   class VirtualParserStream {
     public:
-      virtual ~VirtualParserStream();
+      virtual ~VirtualParserStream() = default;
 
       virtual char GetChar() const = 0;
 
@@ -24,59 +24,55 @@ namespace Parsers {
       virtual void Accept() = 0;
   };
 
-  template<typename ParserStreamType>
+  template<typename S>
   class WrapperParserStream : public VirtualParserStream {
     public:
-      typedef ParserStreamType ParserStream;
+      using Stream = S;
 
-      WrapperParserStream(ParserStream& stream);
+      WrapperParserStream(Stream& stream);
 
-      virtual char GetChar() const;
+      char GetChar() const override;
 
-      virtual bool Read();
+      bool Read() override;
 
-      virtual void Undo();
+      void Undo() override;
 
-      virtual void Undo(std::size_t count);
+      void Undo(std::size_t count) override;
 
-      virtual void Accept();
+      void Accept() override;
 
     private:
-      ParserStream* m_stream;
+      Stream* m_stream;
   };
 
-  inline VirtualParserStream::~VirtualParserStream() {}
+  template<typename S>
+  WrapperParserStream<S>::WrapperParserStream(Stream& stream)
+    : m_stream(&stream) {}
 
-  template<typename ParserStreamType>
-  WrapperParserStream<ParserStreamType>::WrapperParserStream(
-      ParserStream& stream)
-      : m_stream(&stream) {}
-
-  template<typename ParserStreamType>
-  char WrapperParserStream<ParserStreamType>::GetChar() const {
+  template<typename S>
+  char WrapperParserStream<S>::GetChar() const {
     return m_stream->GetChar();
   }
 
-  template<typename ParserStreamType>
-  bool WrapperParserStream<ParserStreamType>::Read() {
+  template<typename S>
+  bool WrapperParserStream<S>::Read() {
     return m_stream->Read();
   }
 
-  template<typename ParserStreamType>
-  void WrapperParserStream<ParserStreamType>::Undo() {
+  template<typename S>
+  void WrapperParserStream<S>::Undo() {
     m_stream->Undo();
   }
 
-  template<typename ParserStreamType>
-  void WrapperParserStream<ParserStreamType>::Undo(std::size_t count) {
+  template<typename S>
+  void WrapperParserStream<S>::Undo(std::size_t count) {
     m_stream->Undo(count);
   }
 
-  template<typename ParserStreamType>
-  void WrapperParserStream<ParserStreamType>::Accept() {
+  template<typename S>
+  void WrapperParserStream<S>::Accept() {
     m_stream->Accept();
   }
-}
 }
 
 #endif

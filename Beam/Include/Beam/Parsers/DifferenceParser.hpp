@@ -1,39 +1,37 @@
 #ifndef BEAM_DIFFERENCEPARSER_HPP
 #define BEAM_DIFFERENCEPARSER_HPP
-#include <type_traits>
-#include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class DifferenceParser
       \brief Matches if the left hand parser matches but not the right hand
              parser.
-      \tparam LeftParserType The parser that must match to the left.
-      \tparam RightParserType The parser that must not match to the right.
+      \tparam L The parser that must match to the left.
+      \tparam R The parser that must not match to the right.
    */
-  template<typename LeftParserType, typename RightParserType>
-  class DifferenceParser : public ParserOperators {
+  template<typename L, typename R>
+  class DifferenceParser {
     public:
 
       //! The parser that must match to the left.
-      typedef LeftParserType LeftParser;
+      using LeftParser = L;
 
       //! The parser that must match to the right.
-      typedef RightParserType RightParser;
-      typedef typename LeftParser::Result Result;
+      using RightParser = R;
 
-      DifferenceParser(const LeftParser& leftParser,
-          const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      using Result = typename LeftParser::Result;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      DifferenceParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
+
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_rightParser.Read(context)) {
             return false;
           }
@@ -44,10 +42,10 @@ namespace Parsers {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_rightParser.Read(context)) {
             return false;
           }
@@ -62,7 +60,9 @@ namespace Parsers {
       LeftParser m_leftParser;
       RightParser m_rightParser;
   };
-}
+
+  template<typename L, typename R>
+  DifferenceParser(L, R) -> DifferenceParser<to_parser_t<L>, to_parser_t<R>>;
 }
 
 #endif

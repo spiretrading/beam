@@ -4,8 +4,7 @@
 #include <boost/exception/exception.hpp>
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class ParserException
       \brief Signals an error parsing a value.
@@ -24,11 +23,10 @@ namespace Parsers {
   };
 
   inline ParserException::ParserException()
-      : ParserException("Parser error.") {}
+    : ParserException("Parser error.") {}
 
   inline ParserException::ParserException(const std::string& message)
     : std::runtime_error(message) {}
-}
 }
 
 #endif

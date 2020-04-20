@@ -1,41 +1,30 @@
 #ifndef BEAM_TOKENPARSER_HPP
 #define BEAM_TOKENPARSER_HPP
 #include <type_traits>
-#include <boost/utility/declval.hpp>
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
-namespace Details {
-  template<typename LeftHandParser, typename RightHandParser>
-  struct TokenConcatenationType {
-    using type = decltype(boost::declval<LeftHandParser>() >>
-      boost::declval<TokenParser<
-      typename GetParserType<RightHandParser>::type>>());
-  };
-}
+namespace Beam::Parsers {
 
   /*! \class TokenParser
       \brief Parses from a sub Parser that may have leading spaces.
-      \tparam SubParserType The parser to match with optional leading spaces.
+      \tparam P The parser to match with optional leading spaces.
    */
-  template<typename SubParserType>
-  class TokenParser : public ParserOperators {
+  template<typename P>
+  class TokenParser {
     public:
 
       //! The parser to match with optional leading spaces.
-      typedef SubParserType SubParser;
-      typedef typename SubParser::Result Result;
+      using SubParser = P;
+      using Result = typename SubParser::Result;
 
-      TokenParser(const SubParser& subParser)
-          : m_subParser(subParser) {}
+      TokenParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
-        SubParserStream<ParserStreamType> context(source);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
+        auto context = SubParserStream(source);
         SkipSpaceParser().Read(context);
         if(m_subParser.Read(context, value)) {
           context.Accept();
@@ -44,9 +33,9 @@ namespace Details {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
-        SubParserStream<ParserStreamType> context(source);
+      template<typename Stream>
+      bool Read(Stream& source) const {
+        auto context = SubParserStream(source);
         SkipSpaceParser().Read(context);
         if(m_subParser.Read(context)) {
           context.Accept();
@@ -59,70 +48,72 @@ namespace Details {
       SubParser m_subParser;
   };
 
+  template<typename P>
+  TokenParser(P) -> TokenParser<to_parser_t<P>>;
+
   //! Builds a TokenParser.
   /*!
     \param subParser The Parser to match.
   */
   template<typename SubParser>
-  TokenParser<typename GetParserType<SubParser>::type> Token(
-      const SubParser& subParser) {
-    return TokenParser<typename GetParserType<SubParser>::type>(subParser);
+  auto Token(SubParser subParser) {
+    return TokenParser(std::move(subParser));
   }
 
   /*! \class ChainTokenParser
       \brief Chains multiple parsers together to form a chained TokenParser.
-      \tparam SubParserType The parser to match with optional leading spaces.
+      \tparam P The parser to match with optional leading spaces.
    */
-  template<typename SubParserType>
+  template<typename P>
   class ChainTokenParser {
     public:
 
       //! The parser to match with optional leading spaces.
-      typedef SubParserType SubParser;
-      typedef typename SubParser::Result Result;
+      using SubParser = P;
+      using Result = typename SubParser::Result;
 
       //! Constructs a ChainTokenParser.
       /*!
         \param subParser The sub Parser to match.
       */
-      ChainTokenParser(const SubParser& subParser);
+      ChainTokenParser(SubParser subParser);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
       template<typename RightHandParser>
-      auto operator >>(const RightHandParser& parser) const ->
-          ChainTokenParser<typename Details::TokenConcatenationType<
-          SubParser, RightHandParser>::type> {
-        return ChainTokenParser<typename Details::TokenConcatenationType<
-          SubParser, RightHandParser>::type>(m_subParser >> Token(parser));
+      auto operator >>(RightHandParser parser) const {
+        using SubParser = decltype(m_subParser >> Token(std::move(parser)));
+        return ChainTokenParser<std::decay_t<SubParser>>(
+          m_subParser >> Token(std::move(parser)));
       }
 
     private:
       SubParser m_subParser;
   };
 
-  template<typename SubParserType>
-  ChainTokenParser<SubParserType>::ChainTokenParser(const SubParser& subParser)
-      : m_subParser(subParser) {}
+  template<typename P>
+  ChainTokenParser(P) -> ChainTokenParser<to_parser_t<P>>;
 
-  template<typename SubParserType>
-  template<typename ParserStreamType>
-  bool ChainTokenParser<SubParserType>::Read(ParserStreamType& source) {
+  template<typename P>
+  ChainTokenParser<P>::ChainTokenParser(SubParser subParser)
+    : m_subParser(std::move(subParser)) {}
+
+  template<typename P>
+  template<typename Stream>
+  bool ChainTokenParser<P>::Read(Stream& source) const {
     return m_subParser.Read(source);
   }
 
-  template<typename SubParserType>
-  template<typename ParserStreamType>
-  bool ChainTokenParser<SubParserType>::Read(ParserStreamType& source,
-      Result& value) {
-    static_assert(!std::is_same<Result, NullType>::value, "");
+  template<typename P>
+  template<typename Stream>
+  bool ChainTokenParser<P>::Read(Stream& source, Result& value) const {
+    static_assert(!std::is_same_v<Result, NullType>);
     return m_subParser.Read(source, value);
   }
-}
 }
 
 #endif

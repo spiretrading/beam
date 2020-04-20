@@ -15,8 +15,7 @@
 #include "Beam/Parsers/TokenParser.hpp"
 #include "Beam/Parsers/Operators.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
   static const AlphaParser alpha_p = AlphaParser{};
   static const AnyParser any_p = AnyParser{};
   static const BoolParser bool_p = BoolParser{};
@@ -29,7 +28,6 @@ namespace Parsers {
   static const auto space_p = Discard(SpaceParser());
   static const StringParser string_p = StringParser{};
   static const auto tokenize = ChainTokenParser<EpsilonParser>(EpsilonParser());
-}
 }
 
 #endif

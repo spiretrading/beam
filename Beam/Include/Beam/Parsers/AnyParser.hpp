@@ -1,6 +1,5 @@
 #ifndef BEAM_ANYPARSER_HPP
 #define BEAM_ANYPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
@@ -9,7 +8,7 @@ namespace Beam::Parsers {
   /*! \class AnyParser
       \brief Matches any character.
    */
-  class AnyParser : public ParserOperators {
+  class AnyParser {
     public:
       using Result = char;
 

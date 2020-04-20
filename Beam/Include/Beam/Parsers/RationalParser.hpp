@@ -2,33 +2,31 @@
 #define BEAM_RATIONALPARSER_HPP
 #include <cctype>
 #include <boost/rational.hpp>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class RationalParser
       \brief Matches a rational value.
-      \tparam IntegralType The integral type used for the numerator/denominator.
+      \tparam I The integral type used for the numerator/denominator.
    */
-  template<typename IntegralType>
-  class RationalParser : public ParserOperators {
+  template<typename I>
+  class RationalParser {
     public:
-      using Result = boost::rational<IntegralType>;
+      using Integral = I;
+      using Result = boost::rational<Integral>;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename IntegralType>
-  template<typename ParserStreamType>
-  bool RationalParser<IntegralType>::Read(ParserStreamType& source,
-      Result& value) {
+  template<typename I>
+  template<typename Stream>
+  bool RationalParser<I>::Read(Stream& source, Result& value) const {
     enum {
       START,
       TERMINAL,
@@ -36,11 +34,11 @@ namespace Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
-    IntegralType numerator = 0;
-    IntegralType denominator = 0;
-    IntegralType sign;
-    std::size_t count = 1;
+    auto context = SubParserStream(source);
+    auto numerator = Integral(0);
+    auto denominator = Integral(0);
+    auto sign = Integral();
+    auto count = std::size_t(1);
     if(!context.Read()) {
       return false;
     }
@@ -99,14 +97,14 @@ namespace Parsers {
     auto parsedNumerator = sign * (count * numerator + denominator);
     auto parsedDenominator = count;
     auto divisor = boost::gcd(parsedNumerator, parsedDenominator);
-    value.assign(static_cast<IntegralType>(parsedNumerator / divisor),
-      static_cast<IntegralType>(parsedDenominator / divisor));
+    value.assign(static_cast<Integral>(parsedNumerator / divisor),
+      static_cast<Integral>(parsedDenominator / divisor));
     return true;
   }
 
-  template<typename IntegralType>
-  template<typename ParserStreamType>
-  bool RationalParser<IntegralType>::Read(ParserStreamType& source) {
+  template<typename I>
+  template<typename Stream>
+  bool RationalParser<I>::Read(Stream& source) const {
     enum {
       START,
       TERMINAL,
@@ -115,7 +113,7 @@ namespace Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -169,7 +167,6 @@ namespace Parsers {
     context.Accept();
     return true;
   }
-}
 }
 
 #endif

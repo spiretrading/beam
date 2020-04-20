@@ -1,7 +1,6 @@
 #ifndef BEAM_BLANKPARSER_HPP
 #define BEAM_BLANKPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
@@ -9,7 +8,7 @@ namespace Beam::Parsers {
   /*! \class BlankParser
       \brief Matches a blank character.
    */
-  class BlankParser : public ParserOperators {
+  class BlankParser {
     public:
       using Result = char;
 

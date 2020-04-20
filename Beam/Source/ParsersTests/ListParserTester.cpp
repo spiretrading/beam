@@ -1,6 +1,8 @@
 #include <doctest/doctest.h>
-#include "Beam/Parsers/Types.hpp"
+#include "Beam/Parsers/ListParser.hpp"
+#include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
+#include "Beam/Parsers/Types.hpp"
 
 using namespace Beam;
 using namespace Beam::Parsers;

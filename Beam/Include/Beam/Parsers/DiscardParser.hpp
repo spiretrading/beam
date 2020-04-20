@@ -1,51 +1,50 @@
 #ifndef BEAM_DISCARDPARSER_HPP
 #define BEAM_DISCARDPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class DiscardParser
       \brief A NullType Parser that discards any parsed value.
-      \tparam SubParserType The parser to match and then discard.
+      \tparam P The parser to match and then discard.
    */
-  template<typename SubParserType>
-  class DiscardParser : public ParserOperators {
+  template<typename P>
+  class DiscardParser {
     public:
-      typedef SubParserType SubParser;
-      typedef NullType Result;
+      using SubParser = P;
+      using Result = NullType;
 
-      DiscardParser(const SubParser& subParser);
+      DiscardParser(SubParser subParser);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     private:
       SubParser m_subParser;
   };
+
+  template<typename P>
+  DiscardParser(P) -> DiscardParser<to_parser_t<P>>;
 
   //! Builds a DiscardParser.
   /*!
     \param subParser The SubParser to discard.
   */
   template<typename SubParser>
-  DiscardParser<typename GetParserType<SubParser>::type> Discard(
-      const SubParser& subParser) {
-    return DiscardParser<typename GetParserType<SubParser>::type>(subParser);
+  auto Discard(SubParser subParser) {
+    return DiscardParser(std::move(subParser));
   }
 
-  template<typename SubParserType>
-  DiscardParser<SubParserType>::DiscardParser(const SubParser& subParser)
-      : m_subParser(subParser) {}
+  template<typename P>
+  DiscardParser<P>::DiscardParser(SubParser subParser)
+    : m_subParser(std::move(subParser)) {}
 
-  template<typename SubParserType>
-  template<typename ParserStreamType>
-  bool DiscardParser<SubParserType>::Read(ParserStreamType& source) {
+  template<typename P>
+  template<typename Stream>
+  bool DiscardParser<P>::Read(Stream& source) const {
     return m_subParser.Read(source);
   }
-}
 }
 
 #endif

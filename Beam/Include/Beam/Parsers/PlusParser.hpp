@@ -4,9 +4,9 @@
 #include <type_traits>
 #include <vector>
 #include <boost/optional.hpp>
-#include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
@@ -28,16 +28,16 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, char>>> : public ParserOperators {
+      std::is_same_v<typename P::Result, char>>> {
     public:
       using SubParser = P;
       using Result = std::string;
 
-      PlusParser(const SubParser& subParser)
-        : m_subParser(subParser) {}
+      PlusParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value.clear();
         auto nextChar = char();
         if(m_subParser.Read(source, nextChar)) {
@@ -51,8 +51,8 @@ namespace Beam::Parsers {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -66,17 +66,16 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, boost::optional<char>>>> :
-      public ParserOperators {
+      std::is_same_v<typename P::Result, boost::optional<char>>>> {
     public:
       using SubParser = P;
       using Result = std::string;
 
-      PlusParser(const SubParser& subParser)
-        : m_subParser(subParser) {}
+      PlusParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value.clear();
         auto nextChar = boost::optional<char>();
         if(m_subParser.Read(source, nextChar)) {
@@ -94,8 +93,8 @@ namespace Beam::Parsers {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -111,17 +110,16 @@ namespace Beam::Parsers {
   class PlusParser<P, std::enable_if_t<
       !std::is_same_v<typename P::Result, NullType> &&
       !std::is_same_v<typename P::Result, char> &&
-      !std::is_same_v<typename P::Result, boost::optional<char>>>> :
-      public ParserOperators {
+      !std::is_same_v<typename P::Result, boost::optional<char>>>> {
     public:
       using SubParser = P;
       using Result = std::vector<typename P::Result>;
 
-      PlusParser(const SubParser& subParser)
-        : m_subParser(subParser) {}
+      PlusParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value.clear();
         auto nextValue = typename SubParser::Result();
         if(m_subParser.Read(source, nextValue)) {
@@ -135,8 +133,8 @@ namespace Beam::Parsers {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -150,16 +148,16 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, NullType>>> : public ParserOperators {
+      std::is_same_v<typename P::Result, NullType>>> {
     public:
       using SubParser = P;
       using Result = NullType;
 
-      PlusParser(const SubParser& subParser)
-        : m_subParser(subParser) {}
+      PlusParser(SubParser subParser)
+        : m_subParser(std::move(subParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -172,7 +170,7 @@ namespace Beam::Parsers {
   };
 
   template<typename P>
-  PlusParser(const P&) -> PlusParser<P>;
+  PlusParser(const P&) -> PlusParser<to_parser_t<P>>;
 }
 
 #endif

@@ -1,28 +1,25 @@
 #ifndef BEAM_EPSILONPARSER_HPP
 #define BEAM_EPSILONPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class EpsilonParser
       \brief Does not perform any read operations and always returns
              <code>true</code>.
    */
-  class EpsilonParser : public ParserOperators {
+  class EpsilonParser {
     public:
-      typedef NullType Result;
+      using Result = NullType;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  inline bool EpsilonParser::Read(ParserStreamType& source) {
+  template<typename Stream>
+  bool EpsilonParser::Read(Stream& source) const {
     return true;
   }
-}
 }
 
 #endif

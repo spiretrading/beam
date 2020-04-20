@@ -3,9 +3,9 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 namespace Details {
@@ -97,7 +97,7 @@ namespace Details {
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_same_v<typename L::Result, NullType> &&
-      std::is_same_v<typename R::Result, NullType>>> : public ParserOperators,
+      std::is_same_v<typename R::Result, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -126,7 +126,7 @@ namespace Details {
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> : public ParserOperators,
+      !std::is_same_v<typename R::Result, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -165,7 +165,7 @@ namespace Details {
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
       !std::is_same_v<typename L::Result, NullType> &&
-      std::is_same_v<typename R::Result, NullType>>> : public ParserOperators,
+      std::is_same_v<typename R::Result, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -205,7 +205,7 @@ namespace Details {
   class ConcatenateParser<L, R, std::enable_if_t<
       !std::is_base_of_v<BaseConcatenateParser, L> &&
       !std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> : public ParserOperators,
+      !std::is_same_v<typename R::Result, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -224,7 +224,7 @@ namespace Details {
         if(!m_leftParser.Read(context, leftValue)) {
           return false;
         }
-        auto rightValue = typename RightParser::Result;
+        auto rightValue = typename RightParser::Result();
         if(!m_rightParser.Read(context, rightValue)) {
           return false;
         }
@@ -252,7 +252,7 @@ namespace Details {
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_base_of_v<BaseConcatenateParser, L> &&
       !std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> : public ParserOperators,
+      !std::is_same_v<typename R::Result, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -294,6 +294,9 @@ namespace Details {
       LeftParser m_leftParser;
       RightParser m_rightParser;
   };
+
+  template<typename L, typename R>
+  ConcatenateParser(L, R) -> ConcatenateParser<to_parser_t<L>, to_parser_t<R>>;
 }
 
 #endif

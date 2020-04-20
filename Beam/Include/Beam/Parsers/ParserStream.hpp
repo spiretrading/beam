@@ -1,10 +1,10 @@
 #ifndef BEAM_PARSERSTREAM_HPP
 #define BEAM_PARSERSTREAM_HPP
+#include <cstddef>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Utilities/Concept.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \struct ParserStream
       \brief Concept for a source used to parse data from.
@@ -33,7 +33,6 @@ namespace Parsers {
     //! Used to flush the stream's buffer.
     void Accept();
   };
-}
 }
 
 #endif

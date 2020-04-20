@@ -1,43 +1,40 @@
 #ifndef BEAM_INTEGRALPARSER_HPP
 #define BEAM_INTEGRALPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class IntegralParser
       \brief Matches an integral value.
-      \tparam IntegralType The type of integral value to parse.
+      \tparam I The type of integral value to parse.
    */
-  template<typename IntegralType>
-  class IntegralParser : public ParserOperators {
+  template<typename I>
+  class IntegralParser {
     public:
-      typedef IntegralType Result;
+      using Result = I;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename IntegralType>
-  template<typename ParserStreamType>
-  bool IntegralParser<IntegralType>::Read(ParserStreamType& source,
-      Result& value) {
+  template<typename I>
+  template<typename Stream>
+  bool IntegralParser<I>::Read(Stream& source, Result& value) const {
     enum {
       START,
       TERMINAL,
       INTEGER_DIGITS,
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
-    Result sign;
+    auto sign = Result();
     if(context.GetChar() == '-') {
       sign = -1;
       if(!context.Read()) {
@@ -74,15 +71,15 @@ namespace Parsers {
     return true;
   }
 
-  template<typename IntegralType>
-  template<typename ParserStreamType>
-  bool IntegralParser<IntegralType>::Read(ParserStreamType& source) {
+  template<typename I>
+  template<typename Stream>
+  bool IntegralParser<I>::Read(Stream& source) const {
     enum {
       START,
       TERMINAL,
       INTEGER_DIGITS,
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -114,7 +111,6 @@ namespace Parsers {
     context.Accept();
     return true;
   }
-}
 }
 
 #endif

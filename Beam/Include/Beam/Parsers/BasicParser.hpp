@@ -1,6 +1,5 @@
 #ifndef BEAM_BASICPARSER_HPP
 #define BEAM_BASICPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/RuleParser.hpp"
 
@@ -11,7 +10,7 @@ namespace Beam::Parsers {
       \tparam R The data type storing the parsed value.
    */
   template<typename R>
-  class BasicParser : public ParserOperators {
+  class BasicParser {
     public:
       using Result = R;
 
@@ -55,7 +54,7 @@ namespace Beam::Parsers {
   template<typename R>
   template<typename Parser>
   void BasicParser<R>::SetParser(Parser parser) {
-    m_parser = std::move(parser);
+    m_parser.SetRule(std::move(parser));
   }
 }
 

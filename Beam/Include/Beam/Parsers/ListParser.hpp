@@ -1,40 +1,39 @@
 #ifndef BEAM_LISTPARSER_HPP
 #define BEAM_LISTPARSER_HPP
+#include <cassert>
+#include <type_traits>
 #include <vector>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class ListParser
       \brief Matches a list of values seperated by a delimiter.
-      \tparam ParserType The Parser used for each value in the list.
+      \tparam P The Parser used for each value in the list.
    */
-  template<typename ParserType>
-  class ListParser : public ParserOperators {
+  template<typename P>
+  class ListParser {
     public:
 
       //! The Parser used for each value in the list.
-      typedef ParserType Parser;
-      typedef typename std::conditional<std::is_same<typename Parser::Result,
-        NullType>::value, NullType, std::vector<typename Parser::Result>>::type
-        Result;
+      using Parser = P;
+      using Result = std::conditional_t<std::is_same_v<typename Parser::Result,
+        NullType>, NullType, std::vector<typename Parser::Result>>;
 
       //! Constructs a ListParser.
       /*!
         \param parser The Parser to match.
         \param delimiter The delimiter used to separate list items.
       */
-      ListParser(const Parser& parser, char delimiter);
+      ListParser(Parser parser, char delimiter);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     private:
       Parser m_parser;
@@ -46,25 +45,23 @@ namespace Parsers {
     \param parser The Parser used for the values in the list.
     \param delimiter The list's delimiter.
   */
-  template<typename ParserType>
-  ListParser<typename GetParserType<ParserType>::type> List(
-      const ParserType& parser, char delimiter) {
-    return ListParser<typename GetParserType<ParserType>::type>(parser,
-      delimiter);
+  template<typename Parser>
+  auto List(Parser parser, char delimiter) {
+    return ListParser(std::move(parser), delimiter);
   }
 
-  template<typename ParserType>
-  ListParser<ParserType>::ListParser(const Parser& parser, char delimiter)
-      : m_parser(parser),
-        m_delimiter(delimiter) {}
+  template<typename P>
+  ListParser<P>::ListParser(Parser parser, char delimiter)
+    : m_parser(std::move(parser)),
+      m_delimiter(delimiter) {}
 
-  template<typename ParserType>
-  template<typename ParserStreamType>
-  bool ListParser<ParserType>::Read(ParserStreamType& source, Result& value) {
+  template<typename P>
+  template<typename Stream>
+  bool ListParser<P>::Read(Stream& source, Result& value) const {
     value.clear();
     {
-      SubParserStream<ParserStreamType> context(source);
-      typename Parser::Result listValue;
+      auto context = SubParserStream(source);
+      auto listValue = typename Parser::Result();
       if(!m_parser.Read(context, listValue)) {
         return true;
       }
@@ -72,7 +69,7 @@ namespace Parsers {
       context.Accept();
     }
     while(true) {
-      SubParserStream<ParserStreamType> context(source);
+      auto context = SubParserStream(source);
       SkipSpaceParser().Read(context);
       if(!context.Read()) {
         return true;
@@ -81,7 +78,7 @@ namespace Parsers {
         return true;
       }
       SkipSpaceParser().Read(context);
-      typename Parser::Result listValue;
+      auto listValue = typename Parser::Result();
       if(!m_parser.Read(context, listValue)) {
         return true;
       }
@@ -92,18 +89,18 @@ namespace Parsers {
     return false;
   }
 
-  template<typename ParserType>
-  template<typename ParserStreamType>
-  bool ListParser<ParserType>::Read(ParserStreamType& source) {
+  template<typename P>
+  template<typename Stream>
+  bool ListParser<P>::Read(Stream& source) const {
     {
-      SubParserStream<ParserStreamType> context(source);
+      auto context = SubParserStream(source);
       if(!m_parser.Read(context)) {
         return true;
       }
       context.Accept();
     }
     while(true) {
-      SubParserStream<ParserStreamType> context(source);
+      auto context = SubParserStream(source);
       SkipSpaceParser().Read(context);
       if(!context.Read()) {
         return true;
@@ -120,7 +117,6 @@ namespace Parsers {
     assert(false);
     return false;
   }
-}
 }
 
 #endif

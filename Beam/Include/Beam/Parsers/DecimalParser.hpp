@@ -1,34 +1,32 @@
 #ifndef BEAM_DECIMALPARSER_HPP
 #define BEAM_DECIMALPARSER_HPP
+#include <array>
 #include <cctype>
 #include <cstdlib>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class DecimalParser
       \brief Matches a decimal value.
-      \tparam FloatingType The floating point data type to store the value in.
+      \tparam F The floating point data type to store the value in.
    */
-  template<typename FloatingType>
-  class DecimalParser : public ParserOperators {
+  template<typename F>
+  class DecimalParser {
     public:
-      typedef FloatingType Result;
+      using Result = F;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename FloatingType>
-  template<typename ParserStreamType>
-  bool DecimalParser<FloatingType>::Read(ParserStreamType& source,
-      Result& value) {
+  template<typename F>
+  template<typename Stream>
+  bool DecimalParser<F>::Read(Stream& source, Result& value) const {
     enum {
       START,
       TERMINAL,
@@ -36,9 +34,9 @@ namespace Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
-    char decimalBuffer[64];
-    std::size_t count = 0;
+    auto context = SubParserStream(source);
+    auto decimalBuffer = std::array<char, 64>();
+    auto count = std::size_t(0);
     if(!context.Read()) {
       return false;
     }
@@ -98,13 +96,13 @@ namespace Parsers {
     }
     context.Accept();
     decimalBuffer[count] = '\0';
-    value = std::strtod(decimalBuffer, nullptr);
+    value = std::strtod(decimalBuffer.data(), nullptr);
     return true;
   }
 
-  template<typename FloatingType>
-  template<typename ParserStreamType>
-  bool DecimalParser<FloatingType>::Read(ParserStreamType& source) {
+  template<typename F>
+  template<typename Stream>
+  bool DecimalParser<F>::Read(Stream& source) const {
     enum {
       START,
       TERMINAL,
@@ -112,7 +110,7 @@ namespace Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    SubParserStream<ParserStreamType> context(source);
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -159,7 +157,6 @@ namespace Parsers {
     context.Accept();
     return true;
   }
-}
 }
 
 #endif

@@ -1,6 +1,5 @@
 #ifndef BEAM_BOOLPARSER_HPP
 #define BEAM_BOOLPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
@@ -9,7 +8,7 @@ namespace Beam::Parsers {
   /*! \class BoolParser
       \brief Matches a bool symbol.
    */
-  class BoolParser : public ParserOperators {
+  class BoolParser {
     public:
       using Result = bool;
 

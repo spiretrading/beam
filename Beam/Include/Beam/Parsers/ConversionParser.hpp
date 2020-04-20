@@ -1,114 +1,101 @@
 #ifndef BEAM_CONVERSIONPARSER_HPP
 #define BEAM_CONVERSIONPARSER_HPP
 #include <type_traits>
-#include <boost/utility/declval.hpp>
-#include "Beam/Parsers/Operators.hpp"
-#include "Beam/Parsers/Parser.hpp"
+#include <utility>
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 namespace Details {
-  template<typename SubParserType, typename ConversionFunctionType>
+  template<typename P, typename C>
   struct GetConversionResultType {
-    using Result = decltype(boost::declval<ConversionFunctionType>()(
-      boost::declval<typename SubParserType::Result>()));
-    using type = typename std::decay<Result>::type;
+    using Result = decltype(std::declval<C>()(
+      std::declval<typename P::Result>()));
+    using type = std::decay_t<Result>;
   };
 
-  template<typename ConversionFunctionType>
+  template<typename C>
   struct GetNullConversionResultType {
-    using type = decltype(boost::declval<ConversionFunctionType>()());
+    using type = std::decay_t<decltype(std::declval<C>()())>;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType, bool Test>
+  template<typename P, typename C, bool T>
   struct IsConversionVoid {};
 
-  template<typename SubParserType, typename ConversionFunctionType>
-  struct IsConversionVoid<SubParserType, ConversionFunctionType, false> {
-    static const bool value =
-      std::is_same<typename GetConversionResultType<SubParserType,
-      ConversionFunctionType>::type, void>::value;
+  template<typename P, typename C>
+  struct IsConversionVoid<P, C, false> {
+    static constexpr bool value = std::is_same_v<
+      typename GetConversionResultType<P, C>::type, void>;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
-  struct IsConversionVoid<SubParserType, ConversionFunctionType, true> {
-    static const bool value =
-      std::is_same<typename GetNullConversionResultType<
-      ConversionFunctionType>::type, void>::value;
+  template<typename P, typename C>
+  struct IsConversionVoid<P, C, true> {
+    static constexpr bool value = std::is_same_v<
+      typename GetNullConversionResultType<C>::type, void>;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
+  template<typename P, typename C>
   struct NoNullConversion {
-    static const bool value =
-      !std::is_same<typename SubParserType::Result, NullType>::value &&
-      !IsConversionVoid<SubParserType, ConversionFunctionType,
-      std::is_same<typename SubParserType::Result, NullType>::value>::value;
+    static constexpr bool value =
+      !std::is_same_v<typename P::Result, NullType> && !IsConversionVoid<P, C,
+      std::is_same_v<typename P::Result, NullType>>::value;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
+  template<typename P, typename C>
   struct IsSuppressingSubParser {
-    static const bool value =
-      !std::is_same<typename SubParserType::Result, NullType>::value &&
-      IsConversionVoid<SubParserType, ConversionFunctionType,
-      std::is_same<typename SubParserType::Result, NullType>::value>::value;
+    static constexpr bool value =
+      !std::is_same_v<typename P::Result, NullType> && IsConversionVoid<P, C,
+      std::is_same_v<typename P::Result, NullType>>::value;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
+  template<typename P, typename C>
   struct IsExtendingSubParser {
-    static const bool value =
-      std::is_same<typename SubParserType::Result, NullType>::value &&
-      !IsConversionVoid<SubParserType, ConversionFunctionType,
-      std::is_same<typename SubParserType::Result, NullType>::value>::value;
+    static constexpr bool value =
+      std::is_same_v<typename P::Result, NullType> && !IsConversionVoid<P, C,
+      std::is_same_v<typename P::Result, NullType>>::value;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
+  template<typename P, typename C>
   struct IsSuppressingAll {
-    static const bool value =
-      std::is_same<typename SubParserType::Result, NullType>::value &&
-      IsConversionVoid<SubParserType, ConversionFunctionType,
-      std::is_same<typename SubParserType::Result, NullType>::value>::value;
+    static constexpr bool value =
+      std::is_same_v<typename P::Result, NullType> && IsConversionVoid<P, C,
+      std::is_same_v<typename P::Result, NullType>>::value;
   };
 }
 
-  template<typename SubParserType, typename ConversionFunctionType,
-    typename Enabled>
+  template<typename P, typename C, typename E>
   class ConversionParser {};
 
-  template<typename SubParserType, typename ConversionFunctionType>
-  class ConversionParser<SubParserType, ConversionFunctionType,
-      typename std::enable_if<Details::NoNullConversion<SubParserType,
-      ConversionFunctionType>::value || Details::IsSuppressingSubParser<
-      SubParserType, ConversionFunctionType>::value>::type> :
-      public ParserOperators {
+  template<typename P, typename C>
+  class ConversionParser<P, C, std::enable_if_t<Details::NoNullConversion<P,
+      C>::value || Details::IsSuppressingSubParser<P, C>::value>> {
     public:
-      typedef SubParserType SubParser;
-      typedef ConversionFunctionType ConversionFunction;
-      typedef typename Details::GetConversionResultType<
-        SubParser, ConversionFunction>::type Result;
+      using SubParser = P;
+      using ConversionFunction = C;
+      using Result = typename Details::GetConversionResultType<
+        SubParser, ConversionFunction>::type;
 
-      ConversionParser(const SubParser& subParser,
-          ConversionFunction conversionFunction)
-          : m_subParser(subParser),
-            m_conversionFunction(conversionFunction) {}
+      ConversionParser(SubParser subParser,
+        ConversionFunction conversionFunction)
+        : m_subParser(std::move(subParser)),
+          m_conversionFunction(std::move(conversionFunction)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
-        typename SubParser::Result subValue;
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
+        auto subValue = typename SubParser::Result();
         if(!m_subParser.Read(source, subValue)) {
           return false;
         }
-        value = m_conversionFunction(subValue);
+        value = m_conversionFunction(std::move(subValue));
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
-        typename SubParser::Result subValue;
+      template<typename Stream>
+      bool Read(Stream& source) const {
+        auto subValue = typename SubParser::Result();
         if(!m_subParser.Read(source, subValue)) {
           return false;
         }
-        m_conversionFunction(subValue);
+        m_conversionFunction(std::move(subValue));
         return true;
       }
 
@@ -117,24 +104,23 @@ namespace Details {
       ConversionFunction m_conversionFunction;
   };
 
-  template<typename SubParserType, typename ConversionFunctionType>
-  class ConversionParser<SubParserType, ConversionFunctionType,
-      typename std::enable_if<Details::IsExtendingSubParser<SubParserType,
-      ConversionFunctionType>::value || Details::IsSuppressingAll<SubParserType,
-      ConversionFunctionType>::value>::type> : public ParserOperators {
+  template<typename P, typename C>
+  class ConversionParser<P, C, std::enable_if_t<
+      Details::IsExtendingSubParser<P, C>::value ||
+      Details::IsSuppressingAll<P, C>::value>> {
     public:
-      typedef SubParserType SubParser;
-      typedef ConversionFunctionType ConversionFunction;
-      typedef typename Details::GetNullConversionResultType<
-        ConversionFunction>::type Result;
+      using SubParser = P;
+      using ConversionFunction = C;
+      using Result = typename Details::GetNullConversionResultType<
+        ConversionFunction>::type;
 
-      ConversionParser(const SubParser& subParser,
-          ConversionFunction conversionFunction)
-          : m_subParser(subParser),
-            m_conversionFunction(conversionFunction) {}
+      ConversionParser(SubParser subParser,
+        ConversionFunction conversionFunction)
+        : m_subParser(std::move(subParser)),
+          m_conversionFunction(std::move(conversionFunction)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -142,8 +128,8 @@ namespace Details {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         if(!m_subParser.Read(source)) {
           return false;
         }
@@ -156,13 +142,21 @@ namespace Details {
       ConversionFunction m_conversionFunction;
   };
 
-  template<typename SubParser, typename F>
-  ConversionParser<typename GetParserType<SubParser>::type, F> Convert(
-      const SubParser& subParser, F f) {
-    return ConversionParser<typename GetParserType<SubParser>::type, F>(
-      subParser, f);
+  template<typename P, typename C>
+  ConversionParser(P, C) -> ConversionParser<P, C>;
+
+  template<typename Parser, typename F>
+  auto Convert(Parser subParser, F f) {
+    return ConversionParser(std::move(subParser), std::move(f));
   }
-}
+
+  template<typename T, typename SubParser>
+  auto Cast(SubParser subParser) {
+    return ConversionParser(std::move(subParser),
+      [] (auto&& value) {
+        return static_cast<T>(std::forward<decltype(value)>(value));
+      });
+  }
 }
 
 #endif

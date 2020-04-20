@@ -4,6 +4,7 @@
 #include <ostream>
 #include <string>
 #include "Beam/Network/Network.hpp"
+#include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/CustomParser.hpp"
 #include "Beam/Parsers/NotParser.hpp"
 #include "Beam/Parsers/PlusParser.hpp"

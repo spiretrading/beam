@@ -8,45 +8,42 @@ namespace Beam::Parsers {
   class BlankParser;
   class BoolParser;
   template<typename L, typename R, typename E = void> class ConcatenateParser;
-  template<typename SubParserType, typename ConversionFunctionType,
-    typename Enabled = void> class ConversionParser;
-  template<typename ResultType> class CustomParser;
+  template<typename P, typename F, typename E = void> class ConversionParser;
+  template<typename R> class CustomParser;
   class DateTimeParser;
-  template<typename FloatingType> class DecimalParser;
-  template<typename LeftParserType, typename RightParserType>
-    class DifferenceParser;
+  template<typename F> class DecimalParser;
+  template<typename L, typename R> class DifferenceParser;
   class DigitParser;
-  template<typename SubParserType> class DiscardParser;
-  template<typename EnumeratorType> class EnumeratorParser;
+  template<typename P> class DiscardParser;
+  template<typename E> class EnumeratorParser;
   class EpsilonParser;
-  template<typename ParserType, typename ResultType, typename ModifierType,
-    typename Enabled = void> class ForListParser;
-  template<typename IntegralType> class IntegralParser;
-  template<typename ParserType> class ListParser;
+  template<typename P, typename R, typename M, typename E = void>
+    class ForListParser;
+  template<typename I> class IntegralParser;
+  template<typename P> class ListParser;
   template<typename P> class NotParser;
-  template<typename LeftParserType, typename RightParserType,
-    typename Enabled = void> class OrParser;
-  template<typename ResultType> struct Parser;
+  template<typename L, typename R, typename E = void> class OrParser;
+  template<typename R> struct Parser;
   class ParserException;
-  template<typename ReaderType, typename ParserType> class ParserPublisher;
+  template<typename R, typename P> class ParserPublisher;
   struct ParserStream;
-  template<typename SubParserType, typename Enabled = void> class PlusParser;
-  template<typename IntegralType> class RationalParser;
-  template<typename ReaderType> class ReaderParserStream;
-  template<typename ResultType> class RuleParser;
-  template<typename ParserType> class SequenceParser;
+  template<typename P, typename E = void> class PlusParser;
+  template<typename I> class RationalParser;
+  template<typename R> class ReaderParserStream;
+  template<typename R> class RuleParser;
+  template<typename P> class SequenceParser;
   class SkipSpaceParser;
   class SpaceParser;
-  template<typename SubParserType, typename Enabled = void> class StarParser;
+  template<typename P, typename E = void> class StarParser;
   class StringParser;
   template<typename P> class SubParserStream;
   class TerminalParser;
   class TimeDurationParser;
-  template<typename SubParserType> class TokenParser;
-  template<typename ResultType> class VirtualParser;
-  template<typename ParserType, typename Enabled = void> class WrapperParser;
+  template<typename P> class TokenParser;
+  template<typename R> class VirtualParser;
+  template<typename P, typename E = void> class WrapperParser;
   class VirtualParserStream;
-  template<typename ParserStreamType> class WrapperParserStream;
+  template<typename P> class WrapperParserStream;
 }
 
 #endif

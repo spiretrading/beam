@@ -1,25 +1,24 @@
 #ifndef BEAM_SKIPSPACEPARSER_HPP
 #define BEAM_SKIPSPACEPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Utilities/NullType.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class SkipSpaceParser
       \brief Parser used to skip spaces.
    */
-  class SkipSpaceParser : public ParserOperators {
+  class SkipSpaceParser {
     public:
-      typedef NullType Result;
+      using Result = NullType;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool SkipSpaceParser::Read(ParserStreamType& source) {
+  template<typename Stream>
+  bool SkipSpaceParser::Read(Stream& source) const {
     while(true) {
       if(!source.Read()) {
         return true;
@@ -31,7 +30,6 @@ namespace Parsers {
     }
     return true;
   }
-}
 }
 
 #endif

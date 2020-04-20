@@ -1,54 +1,63 @@
 #ifndef BEAM_VIRTUALPARSER_HPP
 #define BEAM_VIRTUALPARSER_HPP
 #include <memory>
-#include "Beam/Parsers/Parser.hpp"
+#include <type_traits>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/VirtualParserStream.hpp"
+#include "Beam/Utilities/NullType.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class VirtualParser
       \brief Implements a Parser using virtual methods.
-      \tparam ResultType The data type storing the parsed value.
+      \tparam R The data type storing the parsed value.
   */
-  template<typename ResultType>
+  template<typename R>
   class VirtualParser {
     public:
-      typedef ResultType Result;
+      using Result = R;
 
-      virtual ~VirtualParser();
+      virtual ~VirtualParser() = default;
 
-      virtual bool Read(VirtualParserStream& source, Result& value) = 0;
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      virtual bool Read(VirtualParserStream& source) = 0;
+      template<typename Stream>
+      bool Read(Stream& source) const;
+
+      virtual bool Read(VirtualParserStream& source, Result& value) const = 0;
+
+      virtual bool Read(VirtualParserStream& source) const = 0;
   };
 
   template<>
   class VirtualParser<NullType> {
     public:
-      typedef NullType Result;
+      using Result = NullType;
 
-      virtual ~VirtualParser();
+      virtual ~VirtualParser() = default;
 
-      virtual bool Read(VirtualParserStream& source) = 0;
+      template<typename Stream>
+      bool Read(Stream& source) const;
+
+      virtual bool Read(VirtualParserStream& source) const = 0;
   };
 
-  template<typename ParserType, typename Enabled>
+  template<typename P, typename E>
   class WrapperParser {};
 
-  template<typename ParserType>
-  class WrapperParser<ParserType, typename std::enable_if<
-      std::is_same<typename ParserType::Result, NullType>::value>::type> :
-      public VirtualParser<typename ParserType::Result> {
+  template<typename P>
+  class WrapperParser<P, std::enable_if_t<
+      std::is_same_v<typename P::Result, NullType>>> :
+      public VirtualParser<typename P::Result> {
     public:
-      typedef ParserType Parser;
-      typedef NullType Result;
+      using Parser = P;
+      using Result = NullType;
 
-      WrapperParser(const Parser& parser)
-          : m_parser(parser) {}
+      WrapperParser(Parser parser)
+        : m_parser(std::move(parser)) {}
 
-      virtual bool Read(VirtualParserStream& source) {
+      bool Read(VirtualParserStream& source) const override {
         return m_parser.Read(source);
       }
 
@@ -56,22 +65,22 @@ namespace Parsers {
       Parser m_parser;
   };
 
-  template<typename ParserType>
-  class WrapperParser<ParserType, typename std::enable_if<
-      !std::is_same<typename ParserType::Result, NullType>::value>::type> :
-      public VirtualParser<typename ParserType::Result> {
+  template<typename P>
+  class WrapperParser<P, std::enable_if_t<
+      !std::is_same_v<typename P::Result, NullType>>> :
+      public VirtualParser<typename P::Result> {
     public:
-      typedef ParserType Parser;
-      typedef typename Parser::Result Result;
+      using Parser = P;
+      using Result = typename Parser::Result;
 
-      WrapperParser(const Parser& parser)
-          : m_parser(parser) {}
+      WrapperParser(Parser parser)
+        : m_parser(std::move(parser)) {}
 
-      virtual bool Read(VirtualParserStream& source, Result& value) {
+      bool Read(VirtualParserStream& source, Result& value) const override {
         return m_parser.Read(source, value);
       }
 
-      virtual bool Read(VirtualParserStream& source) {
+      bool Read(VirtualParserStream& source) const override {
         return m_parser.Read(source);
       }
 
@@ -79,11 +88,23 @@ namespace Parsers {
       Parser m_parser;
   };
 
-  template<typename ResultType>
-  VirtualParser<ResultType>::~VirtualParser() {}
+  template<typename R>
+  template<typename Stream>
+  bool VirtualParser<R>::Read(Stream& source, Result& value) const {
+    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)),
+      value);
+  }
 
-  inline VirtualParser<NullType>::~VirtualParser() {}
-}
+  template<typename R>
+  template<typename Stream>
+  bool VirtualParser<R>::Read(Stream& source) const {
+    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)));
+  }
+
+  template<typename Stream>
+  bool VirtualParser<NullType>::Read(Stream& source) const {
+    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)));
+  }
 }
 
 #endif

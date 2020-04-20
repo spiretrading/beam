@@ -1,31 +1,29 @@
 #ifndef BEAM_STRINGPARSER_HPP
 #define BEAM_STRINGPARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class StringParser
       \brief Matches a quoted string.
    */
-  class StringParser : public ParserOperators {
+  class StringParser {
     public:
-      typedef std::string Result;
+      using Result = std::string;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool StringParser::Read(ParserStreamType& source, Result& value) {
+  template<typename Stream>
+  bool StringParser::Read(Stream& source, Result& value) const {
     value.clear();
-    SubParserStream<ParserStreamType> context(source);
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -86,9 +84,9 @@ namespace Parsers {
     return true;
   }
 
-  template<typename ParserStreamType>
-  bool StringParser::Read(ParserStreamType& source) {
-    SubParserStream<ParserStreamType> context(source);
+  template<typename Stream>
+  bool StringParser::Read(Stream& source) const {
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -140,7 +138,6 @@ namespace Parsers {
     context.Accept();
     return true;
   }
-}
 }
 
 #endif

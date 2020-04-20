@@ -1,20 +1,19 @@
 #ifndef BEAM_ORPARSER_HPP
 #define BEAM_ORPARSER_HPP
 #include <type_traits>
+#include <boost/optional/optional.hpp>
 #include <boost/variant/variant.hpp>
-#include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 namespace Details {
   template<typename T1, typename T2, typename Enabled = void>
   struct OrResult {};
 
   template<typename T1, typename T2>
-  struct OrResult<T1, T2,
-      typename std::enable_if<std::is_same<T1, T2>::value>::type> {
+  struct OrResult<T1, T2, std::enable_if_t<std::is_same_v<T1, T2>>> {
     using type = T1;
   };
 
@@ -27,49 +26,46 @@ namespace Details {
   /*! \class OrParser
       \brief Parses a match if either of its two sub-parsers match.
              The result of the parsing is one of:
-             a) NullType if both LeftParserType and RightParserType are NullType
-                Parsers.
-             b) A boost::variant of NullType and LeftParserType's Result if only
-                RightParserType is a NullType Parser.
-             c) A boost::variant of RightParserType's Result and NullType if
-                only LeftParserType is a NullType Parser.
-             d) An boost::variant if both LeftParserType's Result and
-                RightParserType's Result if both parsers are not NullType.
-      \tparam LeftParserType The parser that must match to the left.
-      \tparam RightParserType The parser that must match to the right.
+             a) NullType if both L and R are NullType Parsers.
+             b) A boost::variant of NullType and L's Result if only R is a
+                NullType Parser.
+             c) A boost::variant of R's Result and NullType if only L is a
+                NullType Parser.
+             d) An boost::variant if both L's Result and R's Result if both
+                parsers are not NullType.
+      \tparam L The parser that must match to the left.
+      \tparam R The parser that must match to the right.
    */
-  template<typename LeftParserType, typename RightParserType, typename Enabled>
+  template<typename L, typename R, typename Enabled>
   class OrParser {
     public:
 
       //! The parser that must match to the left.
-      using LeftParser = LeftParserType;
+      using LeftParser = L;
 
       //! The parser that must match to the right.
-      using RightParser = RightParserType;
+      using RightParser = R;
   };
 
   struct BaseOrParser {};
 
-  template<typename LeftParserType, typename RightParserType>
-  class OrParser<LeftParserType, RightParserType,
-      typename std::enable_if<
-      std::is_same<typename LeftParserType::Result, NullType>::value &&
-      std::is_same<typename RightParserType::Result, NullType>::value>::type> :
-      public ParserOperators, public BaseOrParser {
+  template<typename L, typename R>
+  class OrParser<L, R, std::enable_if_t<
+      std::is_same_v<typename L::Result, NullType> &&
+      std::is_same_v<typename R::Result, NullType>>> : public BaseOrParser {
     public:
-      using LeftParser = LeftParserType;
-      using RightParser = RightParserType;
+      using LeftParser = L;
+      using RightParser = R;
       using Result = NullType;
 
-      OrParser(const LeftParser& leftParser, const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      OrParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -83,32 +79,30 @@ namespace Details {
       RightParser m_rightParser;
   };
 
-  template<typename LeftParserType, typename RightParserType>
-  class OrParser<LeftParserType, RightParserType,
-      typename std::enable_if<
-      std::is_same<typename LeftParserType::Result, NullType>::value &&
-      !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
-      public ParserOperators, public BaseOrParser {
+  template<typename L, typename R>
+  class OrParser<L, R, std::enable_if_t<
+      std::is_same_v<typename L::Result, NullType> &&
+      !std::is_same_v<typename R::Result, NullType>>> : public BaseOrParser {
     public:
-      using LeftParser = LeftParserType;
-      using RightParser = RightParserType;
+      using LeftParser = L;
+      using RightParser = R;
       using Result = boost::optional<typename RightParser::Result>;
 
-      OrParser(const LeftParser& leftParser, const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      OrParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             value = Result();
             return true;
           }
         }
-        typename RightParser::Result subValue;
+        auto subValue = typename RightParser::Result();
         if(m_rightParser.Read(source, subValue)) {
           value = std::move(subValue);
           return true;
@@ -116,10 +110,10 @@ namespace Details {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -133,26 +127,24 @@ namespace Details {
       RightParser m_rightParser;
   };
 
-  template<typename LeftParserType, typename RightParserType>
-  class OrParser<LeftParserType, RightParserType,
-      typename std::enable_if<
-      !std::is_same<typename LeftParserType::Result, NullType>::value &&
-      std::is_same<typename RightParserType::Result, NullType>::value>::type> :
-      public ParserOperators, public BaseOrParser {
+  template<typename L, typename R>
+  class OrParser<L, R, std::enable_if_t<
+      !std::is_same_v<typename L::Result, NullType> &&
+      std::is_same_v<typename R::Result, NullType>>> : public BaseOrParser {
     public:
-      using LeftParser = LeftParserType;
-      using RightParser = RightParserType;
+      using LeftParser = L;
+      using RightParser = R;
       using Result = boost::optional<typename LeftParser::Result>;
 
-      OrParser(const LeftParser& leftParser, const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      OrParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         {
-          SubParserStream<ParserStreamType> context(source);
-          typename LeftParser::Result subValue;
+          auto context = SubParserStream(source);
+          auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
             value = std::move(subValue);
@@ -166,10 +158,10 @@ namespace Details {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -183,38 +175,34 @@ namespace Details {
       RightParser m_rightParser;
   };
 
-  template<typename LeftParserType, typename RightParserType>
-  class OrParser<LeftParserType, RightParserType,
-      typename std::enable_if<
-      !std::is_base_of<BaseOrParser, LeftParserType>::value &&
-      !std::is_same<typename LeftParserType::Result, NullType>::value &&
-      !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
-      public ParserOperators, public BaseOrParser {
+  template<typename L, typename R>
+  class OrParser<L, R, std::enable_if_t<!std::is_base_of_v<BaseOrParser, L> &&
+      !std::is_same_v<typename L::Result, NullType> &&
+      !std::is_same_v<typename R::Result, NullType>>> : public BaseOrParser {
     public:
-      using LeftParser = LeftParserType;
-      using RightParser = RightParserType;
-      using Result = typename std::conditional<
-        std::is_same<typename LeftParser::Result,
-        typename RightParser::Result>::value, typename LeftParser::Result,
-        boost::variant<typename LeftParser::Result,
-        typename RightParser::Result>>::type;
+      using LeftParser = L;
+      using RightParser = R;
+      using Result = std::conditional_t<std::is_same_v<
+        typename LeftParser::Result, typename RightParser::Result>,
+        typename LeftParser::Result, boost::variant<typename LeftParser::Result,
+        typename RightParser::Result>>;
 
-      OrParser(const LeftParser& leftParser, const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      OrParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         {
-          SubParserStream<ParserStreamType> context(source);
-          typename LeftParser::Result subValue;
+          auto context = SubParserStream(source);
+          auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
             value = std::move(subValue);
             return true;
           }
         }
-        typename RightParser::Result subValue;
+        auto subValue = typename RightParser::Result();
         if(m_rightParser.Read(source, subValue)) {
           value = std::move(subValue);
           return true;
@@ -222,10 +210,10 @@ namespace Details {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -239,35 +227,32 @@ namespace Details {
       RightParser m_rightParser;
   };
 
-  template<typename LeftParserType, typename RightParserType>
-  class OrParser<LeftParserType, RightParserType,
-      typename std::enable_if<
-      std::is_base_of<BaseOrParser, LeftParserType>::value &&
-      !std::is_same<typename LeftParserType::Result, NullType>::value &&
-      !std::is_same<typename RightParserType::Result, NullType>::value>::type> :
-      public ParserOperators, public BaseOrParser {
+  template<typename L, typename R>
+  class OrParser<L, R, std::enable_if_t<std::is_base_of_v<BaseOrParser, L> &&
+      !std::is_same_v<typename L::Result, NullType> &&
+      !std::is_same_v<typename R::Result, NullType>>> : public BaseOrParser {
     public:
-      using LeftParser = LeftParserType;
-      using RightParser = RightParserType;
-      using Result = typename Details::OrResult<typename LeftParserType::Result,
-        typename RightParserType::Result>::type;
+      using LeftParser = L;
+      using RightParser = R;
+      using Result = typename Details::OrResult<typename L::Result,
+        typename R::Result>::type;
 
-      OrParser(const LeftParser& leftParser, const RightParser& rightParser)
-          : m_leftParser(leftParser),
-            m_rightParser(rightParser) {}
+      OrParser(LeftParser leftParser, RightParser rightParser)
+        : m_leftParser(std::move(leftParser)),
+          m_rightParser(std::move(rightParser)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         {
-          SubParserStream<ParserStreamType> context(source);
-          typename LeftParser::Result subValue;
+          auto context = SubParserStream(source);
+          auto subValue = typename LeftParser::Result();
           if(m_leftParser.Read(context, subValue)) {
             context.Accept();
             value = std::move(subValue);
             return true;
           }
         }
-        typename RightParser::Result subValue;
+        auto subValue = typename RightParser::Result();
         if(m_rightParser.Read(source, subValue)) {
           value = std::move(subValue);
           return true;
@@ -275,10 +260,10 @@ namespace Details {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(m_leftParser.Read(context)) {
             context.Accept();
             return true;
@@ -291,7 +276,9 @@ namespace Details {
       LeftParser m_leftParser;
       RightParser m_rightParser;
   };
-}
+
+  template<typename L, typename R>
+  OrParser(L, R) -> OrParser<to_parser_t<L>, to_parser_t<R>>;
 }
 
 #endif

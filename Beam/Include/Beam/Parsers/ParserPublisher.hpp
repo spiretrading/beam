@@ -11,8 +11,7 @@
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \enum ParserErrorPolicy
       \brief Specifies how a Parser Reactor should handle an error.
@@ -30,18 +29,18 @@ namespace Parsers {
 
   /*! \class ParserPublisher
       \brief Publishes values parsed from a Reader.
-      \tparam ReaderType The type of Reader to parse from.
-      \tparam ParserType The type of Parser to use.
+      \tparam R The type of Reader to parse from.
+      \tparam P The type of Parser to use.
    */
-  template<typename ReaderType, typename ParserType>
-  class ParserPublisher : public Publisher<typename ParserType::Result> {
+  template<typename R, typename P>
+  class ParserPublisher final : public Publisher<typename P::Result> {
     public:
 
       //! The type of Reader to parse from.
-      using Reader = ReaderType;
+      using Reader = R;
 
       //! The type of Parser to use.
-      using Parser = ParserType;
+      using Parser = P;
       using Source = typename Parser::Result;
 
       //! Constructs a ParserPublisher.
@@ -50,17 +49,16 @@ namespace Parsers {
         \param parser Initializes the Parser.
         \param errorPolicy The policy used to handle an error.
       */
-      template<typename ReaderForward>
-      ParserPublisher(ReaderForward&& reader, const Parser& parser,
+      template<typename RF>
+      ParserPublisher(RF&& reader, Parser parser,
         ParserErrorPolicy errorPolicy);
 
-      virtual void With(const std::function<void ()>& f) const override final;
+      void With(const std::function<void ()>& f) const override;
 
-      virtual void Monitor(
-        std::shared_ptr<QueueWriter<Source>> monitor) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Source>> monitor) const override;
 
     private:
-      GetOptionalLocalPtr<ReaderType> m_reader;
+      GetOptionalLocalPtr<R> m_reader;
       Parser m_parser;
       ParserErrorPolicy m_errorPolicy;
       MultiQueueWriter<Source> m_publisher;
@@ -70,42 +68,39 @@ namespace Parsers {
       void ParseLoop();
   };
 
-  template<typename ReaderType, typename ParserType>
-  template<typename ReaderForward>
-  ParserPublisher<ReaderType, ParserType>::ParserPublisher(
-      ReaderForward&& reader, const Parser& parser,
-      ParserErrorPolicy errorPolicy)
-      : m_reader(std::forward<ReaderForward>(reader)),
-        m_parser(parser),
-        m_errorPolicy(errorPolicy),
-        m_isParsing(false) {}
+  template<typename R, typename P>
+  template<typename RF>
+  ParserPublisher<R, P>::ParserPublisher(RF&& reader, Parser parser,
+    ParserErrorPolicy errorPolicy)
+    : m_reader(std::forward<RF>(reader)),
+      m_parser(std::move(parser)),
+      m_errorPolicy(errorPolicy),
+      m_isParsing(false) {}
 
-  template<typename ReaderType, typename ParserType>
-  void ParserPublisher<ReaderType, ParserType>::With(
-      const std::function<void ()>& f) const {
+  template<typename R, typename P>
+  void ParserPublisher<R, P>::With(const std::function<void ()>& f) const {
     m_publisher.With(f);
   }
 
-  template<typename ReaderType, typename ParserType>
-  void ParserPublisher<ReaderType, ParserType>::Monitor(
+  template<typename R, typename P>
+  void ParserPublisher<R, P>::Monitor(
       std::shared_ptr<QueueWriter<Source>> monitor) const {
     m_publisher.Monitor(std::move(monitor));
-    bool isParsing = m_isParsing.exchange(true);
+    auto isParsing = m_isParsing.exchange(true);
     if(!isParsing) {
-      m_parseLoop = Routines::Spawn(std::bind(
-        &ParserPublisher::ParseLoop, const_cast<ParserPublisher*>(this)));
+      m_parseLoop = Routines::Spawn(std::bind(&ParserPublisher::ParseLoop,
+        const_cast<ParserPublisher*>(this)));
     }
   }
 
-  template<typename ReaderType, typename ParserType>
-  void ParserPublisher<ReaderType, ParserType>::ParseLoop() {
-    ReaderParserStream<Reader*> stream(&*m_reader);
-    Source value;
+  template<typename R, typename P>
+  void ParserPublisher<R, P>::ParseLoop() {
+    auto stream = ReaderParserStream(&*m_reader);
+    auto value = Source();
     while(m_parser.Read(stream, value)) {
       m_publisher.Push(std::move(value));
     }
   }
-}
 }
 
 #endif

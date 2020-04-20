@@ -1,59 +1,50 @@
 #ifndef BEAM_CUSTOMPARSER_HPP
 #define BEAM_CUSTOMPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/RuleParser.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class CustomParser
       \brief Used as a base class to a custom rule based parser.
-      \tparam ResultType The data type storing the parsed value.
+      \tparam R The data type storing the parsed value.
    */
-  template<typename ResultType>
-  class CustomParser : public ParserOperators {
+  template<typename R>
+  class CustomParser {
     public:
-      typedef ResultType Result;
+      using Result = R;
 
-      //! Constructs a CustomParser.
-      CustomParser();
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
-
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     protected:
-      template<typename ParserType>
-      void SetRule(const ParserType& parser);
+      template<typename Parser>
+      void SetRule(Parser parser);
 
     private:
       RuleParser<Result> m_parser;
   };
 
-  template<typename ResultType>
-  CustomParser<ResultType>::CustomParser() {}
-
-  template<typename ResultType>
-  template<typename ParserStreamType>
-  bool CustomParser<ResultType>::Read(ParserStreamType& source, Result& value) {
+  template<typename R>
+  template<typename Stream>
+  bool CustomParser<R>::Read(Stream& source, Result& value) const {
     return m_parser.Read(source, value);
   }
 
-  template<typename ResultType>
-  template<typename ParserStreamType>
-  bool CustomParser<ResultType>::Read(ParserStreamType& source) {
+  template<typename R>
+  template<typename Stream>
+  bool CustomParser<R>::Read(Stream& source) const {
     return m_parser.Read(source);
   }
 
-  template<typename ResultType>
-  template<typename ParserType>
-  void CustomParser<ResultType>::SetRule(const ParserType& parser) {
-    m_parser = parser;
+  template<typename R>
+  template<typename Parser>
+  void CustomParser<R>::SetRule(Parser parser) {
+    m_parser.SetRule(std::move(parser));
   }
-}
 }
 
 #endif

@@ -1,66 +1,48 @@
 #ifndef BEAM_FORLISTPARSER_HPP
 #define BEAM_FORLISTPARSER_HPP
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class ForListParser
       \brief Performs an operation on each value parsed in a list.
-      \tparam ParserType The Parser used for each value in the list.
-      \tparam ResultType The type of value to iteratively update.
-      \tparam ModifierType The type of function used to perform updates.
+      \tparam P The Parser used for each value in the list.
+      \tparam R The type of value to iteratively update.
+      \tparam M The type of function used to perform updates.
    */
-  template<typename ParserType, typename ResultType, typename ModifierType,
-    typename Enabled>
+  template<typename P, typename R, typename M, typename E>
   class ForListParser {
     public:
 
       //! The Parser used for each value in the list.
-      typedef ParserType Parser;
+      using Parser = P;
   };
 
-  //! Builds a ForListParser.
-  /*!
-    \param initialValue The Parser's initial value.
-    \param parser The Parser used to match each value in the list.
-    \param delimiter The delimiter used in the list.
-    \param modifier The function used to perform updates.
-  */
-  template<typename Parser, typename Result, typename Modifier>
-  ForListParser<Parser, Result, Modifier> ForList(const Result& initialValue,
-      const Parser& parser, char delimiter, Modifier&& modifier) {
-    return ForListParser<Parser, Result, Modifier>(parser, initialValue,
-      delimiter, std::forward<Modifier>(modifier));
-  }
 
-  template<typename ParserType, typename ResultType, typename ModifierType>
-  class ForListParser<ParserType, ResultType, ModifierType,
-      typename std::enable_if<
-      !std::is_same<typename ParserType::Result, NullType>::value>::type> :
-      public ParserOperators {
+  template<typename P, typename R, typename M>
+  class ForListParser<P, R, M, std::enable_if_t<
+      !std::is_same_v<typename P::Result, NullType>>> {
     public:
-      typedef ParserType Parser;
-      typedef ResultType Result;
-      typedef ModifierType Modifier;
+      using Parser = P;
+      using Result = R;
+      using Modifier = M;
 
-      template<typename ModifierForward>
-      ForListParser(const Parser& parser, const Result& initialValue,
-          char delimiter, ModifierForward&& modifier)
-          : m_parser(parser),
-            m_initialValue(initialValue),
-            m_delimiter(delimiter),
-            m_modifier(std::forward<ModifierForward>(modifier)) {}
+      ForListParser(Parser parser, Result initialValue, char delimiter,
+        Modifier modifier)
+        : m_parser(std::move(parser)),
+          m_initialValue(std::move(initialValue)),
+          m_delimiter(delimiter),
+          m_modifier(std::move(modifier)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value) {
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const {
         value = m_initialValue;
-        typename Parser::Result listValue;
+        auto listValue = typename Parser::Result();
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(!m_parser.Read(context, listValue)) {
             return false;
           }
@@ -68,7 +50,7 @@ namespace Parsers {
           context.Accept();
         }
         while(true) {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           SkipSpaceParser().Read(context);
           if(!context.Read()) {
             return true;
@@ -87,9 +69,9 @@ namespace Parsers {
         return false;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
-        Result value;
+      template<typename Stream>
+      bool Read(Stream& source) const {
+        auto value = Result();
         return Read(source, value);
       }
 
@@ -100,29 +82,26 @@ namespace Parsers {
       Modifier m_modifier;
   };
 
-  template<typename ParserType, typename ResultType, typename ModifierType>
-  class ForListParser<ParserType, ResultType, ModifierType,
-      typename std::enable_if<
-      std::is_same<typename ParserType::Result, NullType>::value>::type> :
-      public ParserOperators {
+  template<typename P, typename R, typename M>
+  class ForListParser<P, R, M, std::enable_if_t<
+      std::is_same_v<typename P::Result, NullType>>> {
     public:
-      typedef ParserType Parser;
-      typedef ResultType Result;
-      typedef ModifierType Modifier;
+      using Parser = P;
+      using Result = R;
+      using Modifier = M;
 
-      template<typename ModifierForward>
-      ForListParser(const Parser& parser, const Result& initialValue,
-          char delimiter, ModifierForward&& modifier)
-          : m_parser(parser),
-            m_initialValue(initialValue),
-            m_delimiter(delimiter),
-            m_modifier(std::forward<ModifierForward>(modifier)) {}
+      ForListParser(Parser parser, Result initialValue, char delimiter,
+        Modifier modifier)
+        : m_parser(std::move(parser)),
+          m_initialValue(std::move(initialValue)),
+          m_delimiter(delimiter),
+          m_modifier(std::move(modifier)) {}
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) {
-        Result value = m_initialValue;
+      template<typename Stream>
+      bool Read(Stream& source) const {
+        auto value = m_initialValue;
         {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           if(!m_parser.Read(context)) {
             return false;
           }
@@ -130,7 +109,7 @@ namespace Parsers {
           context.Accept();
         }
         while(true) {
-          SubParserStream<ParserStreamType> context(source);
+          auto context = SubParserStream(source);
           SkipSpaceParser().Read(context);
           if(!context.Read()) {
             return true;
@@ -155,7 +134,24 @@ namespace Parsers {
       char m_delimiter;
       Modifier m_modifier;
   };
-}
+
+  template<typename P, typename R, typename M>
+  ForListParser(P, R, char, M) -> ForListParser<to_parser_t<P>, std::decay_t<R>,
+    std::decay_t<M>>;
+
+  //! Builds a ForListParser.
+  /*!
+    \param initialValue The Parser's initial value.
+    \param parser The Parser used to match each value in the list.
+    \param delimiter The delimiter used in the list.
+    \param modifier The function used to perform updates.
+  */
+  template<typename Parser, typename Result, typename Modifier>
+  auto ForList(Result initialValue, Parser parser, char delimiter,
+      Modifier modifier) {
+    return ForListParser(std::move(parser), std::move(initialValue),
+      delimiter, std::move(modifier));
+  }
 }
 
 #endif

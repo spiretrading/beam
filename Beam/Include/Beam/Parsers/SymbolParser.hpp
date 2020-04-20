@@ -1,20 +1,17 @@
 #ifndef BEAM_SYMBOLPARSER_HPP
 #define BEAM_SYMBOLPARSER_HPP
 #include <string>
-#include "Beam/Parsers/ConversionParser.hpp"
-#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 namespace Details {
   template<typename T>
   struct SymbolConverter {
     T m_value;
 
-    SymbolConverter(const T& value)
-        : m_value(value) {}
+    SymbolConverter(T value)
+      : m_value(std::move(value)) {}
 
     T operator ()() const {
       return m_value;
@@ -25,15 +22,15 @@ namespace Details {
   /*! \class Symbol
       \brief Matches a symbol.
    */
-  class SymbolParser : public ParserOperators {
+  class SymbolParser {
     public:
-      typedef NullType Result;
+      using Result = NullType;
 
       //! Constructs a SymbolParser.
       /*!
         \param symbol The symbol to match.
       */
-      SymbolParser(const std::string& symbol);
+      SymbolParser(std::string symbol);
 
       //! Constructs a SymbolParser.
       /*!
@@ -41,8 +38,8 @@ namespace Details {
       */
       SymbolParser(const char* symbol);
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     private:
       std::string m_symbol;
@@ -52,8 +49,8 @@ namespace Details {
   /*!
     \param symbol The symbol to match.
   */
-  inline SymbolParser Symbol(const std::string& symbol) {
-    return SymbolParser(symbol);
+  inline auto Symbol(std::string symbol) {
+    return SymbolParser(std::move(symbol));
   }
 
   //! Builds a Parser that matches a symbol and returns a value.
@@ -62,21 +59,21 @@ namespace Details {
     \param value The value to return when the <i>symbol</i> is matched.
   */
   template<typename T>
-  ConversionParser<SymbolParser, Details::SymbolConverter<T>> Symbol(
-      const std::string& symbol, const T& value) {
-    return Convert(SymbolParser(symbol), Details::SymbolConverter<T>(value));
+  auto Symbol(std::string symbol, T value) {
+    return Convert(SymbolParser(std::move(symbol)),
+      Details::SymbolConverter<T>(std::move(value)));
   }
 
-  inline SymbolParser::SymbolParser(const std::string& symbol)
-      : m_symbol(symbol) {}
+  inline SymbolParser::SymbolParser(std::string symbol)
+    : m_symbol(std::move(symbol)) {}
 
   inline SymbolParser::SymbolParser(const char* symbol)
-      : m_symbol(symbol) {}
+    : m_symbol(symbol) {}
 
-  template<typename ParserStreamType>
-  bool SymbolParser::Read(ParserStreamType& source) {
-    SubParserStream<ParserStreamType> context(source);
-    for(char c : m_symbol) {
+  template<typename Stream>
+  bool SymbolParser::Read(Stream& source) const {
+    auto context = SubParserStream(source);
+    for(auto c : m_symbol) {
       if(!context.Read()) {
         return false;
       }
@@ -87,7 +84,6 @@ namespace Details {
     context.Accept();
     return true;
   }
-}
 }
 
 #endif

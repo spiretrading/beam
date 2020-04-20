@@ -5,6 +5,8 @@
 #include <string>
 #include "Beam/Network/Network.hpp"
 #include "Beam/Parsers/CustomParser.hpp"
+#include "Beam/Parsers/NotParser.hpp"
+#include "Beam/Parsers/PlusParser.hpp"
 #include "Beam/Parsers/Types.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
 #include "Beam/Utilities/Endian.hpp"
@@ -78,8 +80,7 @@ namespace Beam::Network {
       IpAddressParser();
 
     private:
-      static IpAddress ToIpAddress(
-        const std::tuple<int, int, int>& source);
+      static IpAddress ToIpAddress(const std::tuple<std::string, int>& source);
   };
 
   inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
@@ -133,8 +134,14 @@ namespace Beam::Network {
 
   inline IpAddressParser::IpAddressParser() {
     SetRule(Parsers::Convert(
-      Parsers::Plus(Parsers::Not(Parsers::Symbol(":"))) >> ':' >>
+      Parsers::PlusParser(Parsers::Not(Parsers::Symbol(":"))) >> ':' >>
       Parsers::int_p, ToIpAddress));
+  }
+
+  inline IpAddress IpAddressParser::ToIpAddress(
+      const std::tuple<std::string, int>& source) {
+    return IpAddress(std::get<0>(source),
+      static_cast<unsigned short>(std::get<1>(source)));
   }
 }
 

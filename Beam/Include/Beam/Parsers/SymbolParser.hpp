@@ -52,8 +52,7 @@ namespace Details {
   /*!
     \param symbol The symbol to match.
   */
-  template<typename T>
-  SymbolParser Symbol(const std::string& symbol) {
+  inline SymbolParser Symbol(const std::string& symbol) {
     return SymbolParser(symbol);
   }
 

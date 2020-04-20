@@ -51,11 +51,12 @@ namespace Beam::Parsers {
     if(m_subParser.Read(substream)) {
       return false;
     }
-    if(source.Read()) {
-      value = source.GetChar();
+    if(substream.Read()) {
+      value = substream.GetChar();
     } else {
       value = boost::none;
     }
+    substream.Accept();
     return true;
   }
 

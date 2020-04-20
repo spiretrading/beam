@@ -4,26 +4,25 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class BoolParser
       \brief Matches a bool symbol.
    */
   class BoolParser : public ParserOperators {
     public:
-      typedef bool Result;
+      using Result = bool;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, bool& value);
+      template<typename Stream>
+      bool Read(Stream& source, bool& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool BoolParser::Read(ParserStreamType& source, bool& value) {
-    SubParserStream<ParserStreamType> context(source);
+  template<typename Stream>
+  bool BoolParser::Read(Stream& source, bool& value) const {
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -61,8 +60,8 @@ namespace Parsers {
   }
 
   template<typename ParserStreamType>
-  bool BoolParser::Read(ParserStreamType& source) {
-    SubParserStream<ParserStreamType> context(source);
+  bool BoolParser::Read(ParserStreamType& source) const {
+    auto context = SubParserStream(source);
     if(!context.Read()) {
       return false;
     }
@@ -96,7 +95,6 @@ namespace Parsers {
     }
     return false;
   }
-}
 }
 
 #endif

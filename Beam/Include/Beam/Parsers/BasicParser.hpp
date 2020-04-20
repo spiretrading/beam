@@ -4,26 +4,25 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/RuleParser.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class BasicParser
       \brief Simplifies building a custom Parser.
-      \tparam ResultType The data type storing the parsed value.
+      \tparam R The data type storing the parsed value.
    */
-  template<typename ResultType>
+  template<typename R>
   class BasicParser : public ParserOperators {
     public:
-      typedef ResultType Result;
+      using Result = R;
 
       //! Constructs a BasicParser.
       BasicParser();
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, Result& value);
+      template<typename Stream>
+      bool Read(Stream& source, Result& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
 
     protected:
 
@@ -32,33 +31,32 @@ namespace Parsers {
         \param parser Specifies the definition of this parser.
       */
       template<typename Parser>
-      void SetParser(const Parser& parser);
+      void SetParser(Parser parser);
 
     private:
       RuleParser<Result> m_parser;
   };
 
-  template<typename ResultType>
-  BasicParser<ResultType>::BasicParser() {}
+  template<typename R>
+  BasicParser<R>::BasicParser() {}
 
-  template<typename ResultType>
-  template<typename ParserStreamType>
-  bool BasicParser<ResultType>::Read(ParserStreamType& source, Result& value) {
+  template<typename R>
+  template<typename Stream>
+  bool BasicParser<R>::Read(Stream& source, Result& value) const {
     return m_parser.Read(source, value);
   }
 
-  template<typename ResultType>
-  template<typename ParserStreamType>
-  bool BasicParser<ResultType>::Read(ParserStreamType& source) {
+  template<typename R>
+  template<typename Stream>
+  bool BasicParser<R>::Read(Stream& source) const {
     return m_parser.Read(source);
   }
 
-  template<typename ResultType>
+  template<typename R>
   template<typename Parser>
-  void BasicParser<ResultType>::SetParser(const Parser& parser) {
-    m_parser = parser;
+  void BasicParser<R>::SetParser(Parser parser) {
+    m_parser = std::move(parser);
   }
-}
 }
 
 #endif

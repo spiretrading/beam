@@ -4,11 +4,10 @@
 namespace Beam::Parsers {
   class AlphaParser;
   class AnyParser;
-  template<typename ResultType> class BasicParser;
+  template<typename R> class BasicParser;
   class BlankParser;
   class BoolParser;
-  template<typename LeftParserType, typename RightParserType,
-    typename Enabled = void> class ConcatenateParser;
+  template<typename L, typename R, typename E = void> class ConcatenateParser;
   template<typename SubParserType, typename ConversionFunctionType,
     typename Enabled = void> class ConversionParser;
   template<typename ResultType> class CustomParser;

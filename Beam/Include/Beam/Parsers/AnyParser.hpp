@@ -4,25 +4,24 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class AnyParser
       \brief Matches any character.
    */
   class AnyParser : public ParserOperators {
     public:
-      typedef char Result;
+      using Result = char;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, char& value);
+      template<typename Stream>
+      bool Read(Stream& source, char& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool AnyParser::Read(ParserStreamType& source, char& value) {
+  template<typename Stream>
+  bool AnyParser::Read(Stream& source, char& value) const {
     if(!source.Read()) {
       return false;
     }
@@ -30,11 +29,10 @@ namespace Parsers {
     return true;
   }
 
-  template<typename ParserStreamType>
-  bool AnyParser::Read(ParserStreamType& source) {
+  template<typename Stream>
+  bool AnyParser::Read(Stream& source) const {
     return source.Read();
   }
-}
 }
 
 #endif

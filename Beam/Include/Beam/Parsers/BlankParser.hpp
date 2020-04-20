@@ -4,25 +4,24 @@
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam {
-namespace Parsers {
+namespace Beam::Parsers {
 
   /*! \class BlankParser
       \brief Matches a blank character.
    */
   class BlankParser : public ParserOperators {
     public:
-      typedef char Result;
+      using Result = char;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source, char& value);
+      template<typename Stream>
+      bool Read(Stream& source, char& value) const;
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source);
+      template<typename Stream>
+      bool Read(Stream& source) const;
   };
 
-  template<typename ParserStreamType>
-  bool BlankParser::Read(ParserStreamType& source, char& value) {
+  template<typename Stream>
+  bool BlankParser::Read(Stream& source, char& value) const {
     if(!source.Read()) {
       return false;
     }
@@ -35,7 +34,7 @@ namespace Parsers {
   }
 
   template<typename ParserStreamType>
-  bool BlankParser::Read(ParserStreamType& source) {
+  bool BlankParser::Read(ParserStreamType& source) const {
     if(!source.Read()) {
       return false;
     }
@@ -45,7 +44,6 @@ namespace Parsers {
     source.Undo();
     return false;
   }
-}
 }
 
 #endif

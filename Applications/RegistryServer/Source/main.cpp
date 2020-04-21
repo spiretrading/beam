@@ -15,9 +15,9 @@
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
-#include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
+#include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 

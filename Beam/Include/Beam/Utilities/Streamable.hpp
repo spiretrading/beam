@@ -32,18 +32,14 @@ namespace Beam {
 
   //! Adaptor type to enable unintrusive support for streaming operators.
   template<typename T>
-  class Stream {
-    public:
+  struct Stream {
+    const T* m_value;
 
-      //! Constructs a Stream.
-      /*!
-        \param value The value to stream.
-      */
-      explicit Stream(const T& value);
-
-    private:
-      friend std::ostream& operator <<(std::ostream&, const Stream& source);
-      const T* m_value;
+    //! Constructs a Stream.
+    /*!
+      \param value The value to stream.
+    */
+    explicit Stream(const T& value);
   };
 
   inline std::ostream& operator <<(std::ostream& out,
@@ -92,7 +88,7 @@ namespace Beam {
 
   template<typename T>
   std::ostream& operator <<(std::ostream& out,
-      const Stream<std::set<T>>& value) {
+      const Stream<std::set<T>>& source) {
     auto& value = *source.m_value;
     out << "{";
     for(typename std::set<T>::const_iterator i = value.begin();

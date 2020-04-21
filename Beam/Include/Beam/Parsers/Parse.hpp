@@ -9,17 +9,9 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Parsers/Traits.hpp"
+#include "Beam/Parsers/Types.hpp"
 
 namespace Beam::Parsers {
-
-  /** Specifies the default parser to use for a given type. */
-  template<typename T, typename = void>
-  const auto default_parser = std::enable_if_t<!std::is_same_v<T, T>>();
-
-  template<typename T>
-  const auto default_parser<std::vector<T>> = [] {
-    return '[' >> List(default_parser<T>, ',') >> ']';
-  }();
 
   //! Parses a value from a string.
   /*!
@@ -28,7 +20,7 @@ namespace Beam::Parsers {
   */
   template<typename Parser>
   auto ParseFrom(const Parser& parser, const std::string& source) {
-    auto value = typename to_parser_t<Parser>::Result();
+    auto value = parser_result_t<Parser>();
     auto stream = ParserStreamFromString(source);
     if(!to_parser_t<Parser>(parser).Read(stream, value)) {
       BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
@@ -43,7 +35,7 @@ namespace Beam::Parsers {
   */
   template<typename Parser, typename Buffer>
   auto ParseFrom(const Parser& parser, const Buffer& source) {
-    auto value = typename to_parser_t<Parser>::Result();
+    auto value = parser_result_t<Parser>();
     auto stream = ReaderParserStream(source);
     if(!to_parser_t<Parser>(parser).Read(stream, value)) {
       BOOST_THROW_EXCEPTION(ParserException("Invalid value."));

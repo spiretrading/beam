@@ -22,7 +22,7 @@ namespace Beam::Parsers {
       //! The parser that must match to the right.
       using RightParser = R;
 
-      using Result = typename LeftParser::Result;
+      using Result = parser_result_t<LeftParser>;
 
       DifferenceParser(LeftParser leftParser, RightParser rightParser)
         : m_leftParser(std::move(leftParser)),

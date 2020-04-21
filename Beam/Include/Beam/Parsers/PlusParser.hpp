@@ -28,7 +28,7 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, char>>> {
+      std::is_same_v<parser_result_t<P>, char>>> {
     public:
       using SubParser = P;
       using Result = std::string;
@@ -66,7 +66,7 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, boost::optional<char>>>> {
+      std::is_same_v<parser_result_t<P>, boost::optional<char>>>> {
     public:
       using SubParser = P;
       using Result = std::string;
@@ -108,12 +108,12 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      !std::is_same_v<typename P::Result, NullType> &&
-      !std::is_same_v<typename P::Result, char> &&
-      !std::is_same_v<typename P::Result, boost::optional<char>>>> {
+      !std::is_same_v<parser_result_t<P>, NullType> &&
+      !std::is_same_v<parser_result_t<P>, char> &&
+      !std::is_same_v<parser_result_t<P>, boost::optional<char>>>> {
     public:
       using SubParser = P;
-      using Result = std::vector<typename P::Result>;
+      using Result = std::vector<parser_result_t<SubParser>>;
 
       PlusParser(SubParser subParser)
         : m_subParser(std::move(subParser)) {}
@@ -121,7 +121,7 @@ namespace Beam::Parsers {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         value.clear();
-        auto nextValue = typename SubParser::Result();
+        auto nextValue = parser_result_t<SubParser>();
         if(m_subParser.Read(source, nextValue)) {
           value.push_back(std::move(nextValue));
         } else {
@@ -148,7 +148,7 @@ namespace Beam::Parsers {
 
   template<typename P>
   class PlusParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, NullType>>> {
+      std::is_same_v<parser_result_t<P>, NullType>>> {
     public:
       using SubParser = P;
       using Result = NullType;

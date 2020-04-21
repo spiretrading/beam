@@ -6,6 +6,7 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 #include "Beam/Parsers/Traits.hpp"
+#include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 namespace Details {
@@ -14,29 +15,19 @@ namespace Details {
     using type = std::tuple<T1, T2>;
   };
 
-  template<typename T1>
-  struct ConcatenateResult<T1, NullType> {
-    using type = T1;
+  template<typename T>
+  struct ConcatenateResult<T, NullType> {
+    using type = T;
   };
 
-  template<typename T1>
-  struct ConcatenateResult<NullType, T1> {
-    using type = T1;
+  template<typename T>
+  struct ConcatenateResult<NullType, T> {
+    using type = T;
   };
 
   template<typename... T1, typename... T2>
   struct ConcatenateResult<std::tuple<T1...>, std::tuple<T2...>> {
     using type = std::tuple<T1..., T2...>;
-  };
-
-  template<typename... T1>
-  struct ConcatenateResult<std::tuple<T1...>, NullType> {
-    using type = std::tuple<T1...>;
-  };
-
-  template<typename... T1>
-  struct ConcatenateResult<NullType, std::tuple<T1...>> {
-    using type = std::tuple<T1...>;
   };
 
   template<typename T1, typename... T2>
@@ -96,8 +87,8 @@ namespace Details {
 
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
-      std::is_same_v<typename L::Result, NullType> &&
-      std::is_same_v<typename R::Result, NullType>>> :
+      std::is_same_v<parser_result_t<L>, NullType> &&
+      std::is_same_v<parser_result_t<R>, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
@@ -125,13 +116,13 @@ namespace Details {
 
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
-      std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> :
+      std::is_same_v<parser_result_t<L>, NullType> &&
+      !std::is_same_v<parser_result_t<R>, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = typename RightParser::Result;
+      using Result = parser_result_t<RightParser>;
 
       ConcatenateParser(LeftParser leftParser, RightParser rightParser)
         : m_leftParser(std::move(leftParser)),
@@ -164,13 +155,13 @@ namespace Details {
 
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
-      !std::is_same_v<typename L::Result, NullType> &&
-      std::is_same_v<typename R::Result, NullType>>> :
+      !std::is_same_v<parser_result_t<L>, NullType> &&
+      std::is_same_v<parser_result_t<R>, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = typename LeftParser::Result;
+      using Result = parser_result_t<LeftParser>;
 
       ConcatenateParser(LeftParser leftParser, RightParser rightParser)
         : m_leftParser(std::move(leftParser)),
@@ -204,14 +195,14 @@ namespace Details {
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
       !std::is_base_of_v<BaseConcatenateParser, L> &&
-      !std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> :
+      !std::is_same_v<parser_result_t<L>, NullType> &&
+      !std::is_same_v<parser_result_t<R>, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = std::tuple<typename LeftParser::Result,
-        typename RightParser::Result>;
+      using Result = std::tuple<parser_result_t<LeftParser>,
+        parser_result_t<RightParser>>;
 
       ConcatenateParser(LeftParser leftParser, RightParser rightParser)
         : m_leftParser(std::move(leftParser)),
@@ -220,11 +211,11 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         auto context = SubParserStream<Stream>(source);
-        auto leftValue = typename LeftParser::Result();
+        auto leftValue = parser_result_t<LeftParser>();
         if(!m_leftParser.Read(context, leftValue)) {
           return false;
         }
-        auto rightValue = typename RightParser::Result();
+        auto rightValue = parser_result_t<RightParser>();
         if(!m_rightParser.Read(context, rightValue)) {
           return false;
         }
@@ -251,14 +242,14 @@ namespace Details {
   template<typename L, typename R>
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_base_of_v<BaseConcatenateParser, L> &&
-      !std::is_same_v<typename L::Result, NullType> &&
-      !std::is_same_v<typename R::Result, NullType>>> :
+      !std::is_same_v<parser_result_t<L>, NullType> &&
+      !std::is_same_v<parser_result_t<R>, NullType>>> :
       public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
       using Result = typename Details::ConcatenateResult<
-        typename LeftParser::Result, typename RightParser::Result>::type;
+        parser_result_t<LeftParser>, parser_result_t<RightParser>>::type;
 
       ConcatenateParser(LeftParser leftParser, RightParser rightParser)
         : m_leftParser(std::move(leftParser)),
@@ -267,11 +258,11 @@ namespace Details {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         auto context = SubParserStream<Stream>(source);
-        auto leftValue = typename LeftParser::Result();
+        auto leftValue = parser_result_t<LeftParser>();
         if(!m_leftParser.Read(context, leftValue)) {
           return false;
         }
-        auto rightValue = typename RightParser::Result();
+        auto rightValue = parser_result_t<RightParser>();
         if(!m_rightParser.Read(context, rightValue)) {
           return false;
         }

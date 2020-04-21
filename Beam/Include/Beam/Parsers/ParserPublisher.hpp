@@ -5,6 +5,7 @@
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Traits.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -33,7 +34,7 @@ namespace Beam::Parsers {
       \tparam P The type of Parser to use.
    */
   template<typename R, typename P>
-  class ParserPublisher final : public Publisher<typename P::Result> {
+  class ParserPublisher final : public Publisher<parser_result_t<P>> {
     public:
 
       //! The type of Reader to parse from.
@@ -41,7 +42,7 @@ namespace Beam::Parsers {
 
       //! The type of Parser to use.
       using Parser = P;
-      using Source = typename Parser::Result;
+      using Source = parser_result_t<Parser>;
 
       //! Constructs a ParserPublisher.
       /*!
@@ -67,6 +68,10 @@ namespace Beam::Parsers {
 
       void ParseLoop();
   };
+
+  template<typename RF, typename Parser>
+  ParserPublisher(RF&&, Parser, ParserErrorPolicy) ->
+    ParserPublisher<std::decay_t<RF>, to_parser_t<Parser>>;
 
   template<typename R, typename P>
   template<typename RF>

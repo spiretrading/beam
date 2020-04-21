@@ -5,6 +5,7 @@
 #include <vector>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
@@ -26,7 +27,7 @@ namespace Beam::Parsers {
 
   template<typename P>
   class StarParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, char>>> {
+      std::is_same_v<parser_result_t<P>, char>>> {
     public:
       using SubParser = P;
       using Result = std::string;
@@ -56,10 +57,10 @@ namespace Beam::Parsers {
 
   template<typename P>
   class StarParser<P, std::enable_if_t<
-      !std::is_same_v<typename P::Result, char>>> {
+      !std::is_same_v<parser_result_t<P>, char>>> {
     public:
       using SubParser = P;
-      using Result = std::vector<typename SubParser::Result>;
+      using Result = std::vector<parser_result_t<SubParser>>;
 
       StarParser(SubParser subParser)
         : m_subParser(std::move(subParser)) {}
@@ -67,7 +68,7 @@ namespace Beam::Parsers {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         value.clear();
-        auto nextValue = typename SubParser::Result();
+        auto nextValue = parser_result_t<SubParser>();
         while(m_subParser.Read(source, nextValue)) {
           value.push_back(std::move(nextValue));
         }
@@ -85,7 +86,7 @@ namespace Beam::Parsers {
   };
 
   template<typename SubParser>
-  StarParser(SubParser) -> StarParser<SubParser>;
+  StarParser(SubParser) -> StarParser<to_parser_t<SubParser>>;
 
   //! Builds a StarParser.
   /*!

@@ -3,15 +3,15 @@
 #include <type_traits>
 #include <utility>
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Traits.hpp"
 #include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 namespace Details {
   template<typename P, typename C>
   struct GetConversionResultType {
-    using Result = decltype(std::declval<C>()(
-      std::declval<typename P::Result>()));
-    using type = std::decay_t<Result>;
+    using type = std::decay_t<decltype(
+      std::declval<C>()(std::declval<parser_result_t<P>>()))>;
   };
 
   template<typename C>
@@ -37,29 +37,29 @@ namespace Details {
   template<typename P, typename C>
   struct NoNullConversion {
     static constexpr bool value =
-      !std::is_same_v<typename P::Result, NullType> && !IsConversionVoid<P, C,
-      std::is_same_v<typename P::Result, NullType>>::value;
+      !std::is_same_v<parser_result_t<P>, NullType> && !IsConversionVoid<P, C,
+      std::is_same_v<parser_result_t<P>, NullType>>::value;
   };
 
   template<typename P, typename C>
   struct IsSuppressingSubParser {
     static constexpr bool value =
-      !std::is_same_v<typename P::Result, NullType> && IsConversionVoid<P, C,
-      std::is_same_v<typename P::Result, NullType>>::value;
+      !std::is_same_v<parser_result_t<P>, NullType> && IsConversionVoid<P, C,
+      std::is_same_v<parser_result_t<P>, NullType>>::value;
   };
 
   template<typename P, typename C>
   struct IsExtendingSubParser {
     static constexpr bool value =
-      std::is_same_v<typename P::Result, NullType> && !IsConversionVoid<P, C,
-      std::is_same_v<typename P::Result, NullType>>::value;
+      std::is_same_v<parser_result_t<P>, NullType> && !IsConversionVoid<P, C,
+      std::is_same_v<parser_result_t<P>, NullType>>::value;
   };
 
   template<typename P, typename C>
   struct IsSuppressingAll {
     static constexpr bool value =
-      std::is_same_v<typename P::Result, NullType> && IsConversionVoid<P, C,
-      std::is_same_v<typename P::Result, NullType>>::value;
+      std::is_same_v<parser_result_t<P>, NullType> && IsConversionVoid<P, C,
+      std::is_same_v<parser_result_t<P>, NullType>>::value;
   };
 }
 
@@ -82,7 +82,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
-        auto subValue = typename SubParser::Result();
+        auto subValue = parser_result_t<SubParser>();
         if(!m_subParser.Read(source, subValue)) {
           return false;
         }
@@ -92,7 +92,7 @@ namespace Details {
 
       template<typename Stream>
       bool Read(Stream& source) const {
-        auto subValue = typename SubParser::Result();
+        auto subValue = parser_result_t<SubParser>();
         if(!m_subParser.Read(source, subValue)) {
           return false;
         }
@@ -144,7 +144,7 @@ namespace Details {
   };
 
   template<typename P, typename C>
-  ConversionParser(P, C) -> ConversionParser<P, C>;
+  ConversionParser(P, C) -> ConversionParser<to_parser_t<P>, C>;
 
   template<typename Parser, typename F>
   auto Convert(Parser subParser, F f) {

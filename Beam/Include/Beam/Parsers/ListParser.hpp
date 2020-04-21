@@ -6,6 +6,7 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
@@ -19,8 +20,8 @@ namespace Beam::Parsers {
 
       //! The Parser used for each value in the list.
       using Parser = P;
-      using Result = std::conditional_t<std::is_same_v<typename Parser::Result,
-        NullType>, NullType, std::vector<typename Parser::Result>>;
+      using Result = std::conditional_t<std::is_same_v<parser_result_t<Parser>,
+        NullType>, NullType, std::vector<parser_result_t<Parser>>>;
 
       //! Constructs a ListParser.
       /*!
@@ -39,6 +40,9 @@ namespace Beam::Parsers {
       Parser m_parser;
       char m_delimiter;
   };
+
+  template<typename P>
+  ListParser(P, char) -> ListParser<to_parser_t<P>>;
 
   //! Builds a ListParser based on its value Parser.
   /*!
@@ -61,7 +65,7 @@ namespace Beam::Parsers {
     value.clear();
     {
       auto context = SubParserStream<Stream>(source);
-      auto listValue = typename Parser::Result();
+      auto listValue = parser_result_t<Parser>();
       if(!m_parser.Read(context, listValue)) {
         return true;
       }
@@ -78,7 +82,7 @@ namespace Beam::Parsers {
         return true;
       }
       SkipSpaceParser().Read(context);
-      auto listValue = typename Parser::Result();
+      auto listValue = parser_result_t<Parser>();
       if(!m_parser.Read(context, listValue)) {
         return true;
       }

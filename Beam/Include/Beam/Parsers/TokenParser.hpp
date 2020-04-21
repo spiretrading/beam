@@ -17,7 +17,7 @@ namespace Beam::Parsers {
 
       //! The parser to match with optional leading spaces.
       using SubParser = P;
-      using Result = typename SubParser::Result;
+      using Result = parser_result_t<SubParser>;
 
       TokenParser(SubParser subParser)
         : m_subParser(std::move(subParser)) {}
@@ -70,7 +70,7 @@ namespace Beam::Parsers {
 
       //! The parser to match with optional leading spaces.
       using SubParser = P;
-      using Result = typename SubParser::Result;
+      using Result = parser_result_t<SubParser>;
 
       //! Constructs a ChainTokenParser.
       /*!

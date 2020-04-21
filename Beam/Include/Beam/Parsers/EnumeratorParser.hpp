@@ -1,5 +1,6 @@
 #ifndef BEAM_ENUMERATORPARSER_HPP
 #define BEAM_ENUMERATORPARSER_HPP
+#include <iterator>
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include "Beam/Collections/Enum.hpp"
@@ -52,6 +53,10 @@ namespace Beam::Parsers {
       };
       std::vector<ConversionParser<SymbolParser, EnumConverter>> m_parsers;
   };
+
+  template<typename Iterator, typename F>
+  EnumeratorParser(Iterator, Iterator, F) ->
+    EnumeratorParser<typename std::iterator_traits<Iterator>::value_type>;
 
   template<typename E>
   EnumeratorParser<E>::EnumConverter::EnumConverter(Result value)

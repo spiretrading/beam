@@ -24,7 +24,7 @@ namespace Beam::Parsers {
 
   template<typename P, typename R, typename M>
   class ForListParser<P, R, M, std::enable_if_t<
-      !std::is_same_v<typename P::Result, NullType>>> {
+      !std::is_same_v<parser_result_t<P>, NullType>>> {
     public:
       using Parser = P;
       using Result = R;
@@ -40,7 +40,7 @@ namespace Beam::Parsers {
       template<typename Stream>
       bool Read(Stream& source, Result& value) const {
         value = m_initialValue;
-        auto listValue = typename Parser::Result();
+        auto listValue = parser_result_t<Parser>();
         {
           auto context = SubParserStream<Stream>(source);
           if(!m_parser.Read(context, listValue)) {
@@ -84,7 +84,7 @@ namespace Beam::Parsers {
 
   template<typename P, typename R, typename M>
   class ForListParser<P, R, M, std::enable_if_t<
-      std::is_same_v<typename P::Result, NullType>>> {
+      std::is_same_v<parser_result_t<P>, NullType>>> {
     public:
       using Parser = P;
       using Result = R;

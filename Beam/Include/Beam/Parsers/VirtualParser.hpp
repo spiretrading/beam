@@ -48,8 +48,8 @@ namespace Beam::Parsers {
 
   template<typename P>
   class WrapperParser<P, std::enable_if_t<
-      std::is_same_v<typename P::Result, NullType>>> :
-      public VirtualParser<typename P::Result> {
+      std::is_same_v<parser_result_t<P>, NullType>>> :
+      public VirtualParser<NullType> {
     public:
       using Parser = P;
       using Result = NullType;
@@ -67,11 +67,11 @@ namespace Beam::Parsers {
 
   template<typename P>
   class WrapperParser<P, std::enable_if_t<
-      !std::is_same_v<typename P::Result, NullType>>> :
-      public VirtualParser<typename P::Result> {
+      !std::is_same_v<parser_result_t<P>, NullType>>> :
+      public VirtualParser<parser_result_t<P>> {
     public:
       using Parser = P;
-      using Result = typename Parser::Result;
+      using Result = parser_result_t<Parser>;
 
       WrapperParser(Parser parser)
         : m_parser(std::move(parser)) {}

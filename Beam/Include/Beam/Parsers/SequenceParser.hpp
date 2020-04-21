@@ -4,6 +4,7 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
@@ -18,9 +19,8 @@ namespace Beam::Parsers {
       //! The Parser used for each value in the list.
       using Parser = P;
 
-      using Result = std::conditional_t<std::is_same_v<
-        typename Parser::Result, NullType>, NullType,
-        std::vector<typename Parser::Result>>;
+      using Result = std::conditional_t<std::is_same_v<parser_result_t<Parser>,
+        NullType>, NullType, std::vector<parser_result_t<Parser>>>;
 
       //! Constructs a SequenceParser.
       /*!
@@ -39,6 +39,10 @@ namespace Beam::Parsers {
       std::vector<Parser> m_parsers;
       char m_delimiter;
   };
+
+  template<typename Parser>
+  SequenceParser(std::vector<Parser>, char) ->
+    SequenceParser<std::vector<to_parser_t<Parser>>>;
 
   //! Builds a SequenceParser based on the list of Parsers passed to it.
   /*!
@@ -71,7 +75,7 @@ namespace Beam::Parsers {
         }
         SkipSpaceParser().Read(context);
       }
-      auto listValue = typename Parser::Result();
+      auto listValue = parser_result_t<Parser>();
       if(!i->Read(context, listValue)) {
         return false;
       }

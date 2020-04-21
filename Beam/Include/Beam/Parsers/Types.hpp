@@ -16,17 +16,44 @@
 #include "Beam/Parsers/Operators.hpp"
 
 namespace Beam::Parsers {
-  static const AlphaParser alpha_p = AlphaParser{};
-  static const AnyParser any_p = AnyParser{};
-  static const BoolParser bool_p = BoolParser{};
-  static const DecimalParser<double> double_p = DecimalParser<double>{};
-  static const DigitParser digit_p = DigitParser{};
-  static const EpsilonParser eps_p = EpsilonParser{};
-  static const IntegralParser<int> int_p = IntegralParser<int>{};
-  static const IntegralParser<std::int64_t> int64_p =
-    IntegralParser<std::int64_t>{};
+
+  /** Specifies the default parser to use for a given type. */
+  template<typename T, typename = void>
+  const auto default_parser = std::enable_if_t<!std::is_same_v<T, T>>();
+
+  template<typename T>
+  const auto default_parser<std::vector<T>> = [] {
+    return '[' >> List(default_parser<T>, ',') >> ']';
+  }();
+
+  template<>
+  const auto default_parser<char> = AnyParser();
+
+  template<>
+  const auto default_parser<bool> = BoolParser();
+
+  template<>
+  const auto default_parser<int> = IntegralParser<int>();
+
+  template<>
+  const auto default_parser<std::int64_t> = IntegralParser<std::int64_t>();
+
+  template<>
+  const auto default_parser<double> = DecimalParser<double>();
+
+  template<>
+  const auto default_parser<std::string> = StringParser();
+
+  static const auto alpha_p = AlphaParser();
+  static const auto any_p = default_parser<char>;
+  static const auto bool_p = default_parser<bool>;
+  static const auto digit_p = DigitParser{};
+  static const auto double_p = default_parser<double>;
+  static const auto eps_p = EpsilonParser();
+  static const auto int_p = default_parser<int>;
+  static const auto int64_p = default_parser<std::int64_t>;
   static const auto space_p = Discard(SpaceParser());
-  static const StringParser string_p = StringParser{};
+  static const auto string_p = default_parser<std::string>;
   static const auto tokenize = ChainTokenParser<EpsilonParser>(EpsilonParser());
 }
 

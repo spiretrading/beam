@@ -1,6 +1,7 @@
 #ifndef BEAM_TERMINALPARSER_HPP
 #define BEAM_TERMINALPARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 

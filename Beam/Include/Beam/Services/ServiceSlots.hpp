@@ -2,7 +2,6 @@
 #define BEAM_SERVICESLOTS_HPP
 #include <memory>
 #include <unordered_map>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Services/Services.hpp"
 #include "Beam/Services/RequestToken.hpp"
 #include "Beam/Services/ServiceSlot.hpp"

@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Pointers.hpp"
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 

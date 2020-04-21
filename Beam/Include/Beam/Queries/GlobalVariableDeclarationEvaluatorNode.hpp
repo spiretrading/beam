@@ -61,7 +61,7 @@ namespace Queries {
         std::unique_ptr<BaseEvaluatorNode> initialValue,
         Out<void*> address) {
       auto evaluator = std::make_unique<GlobalVariableDeclarationEvaluatorNode<
-        Variable, Body>>(UniqueStaticCast<EvaluatorNode<Variable>>(
+        Variable, Body>>(StaticCast<std::unique_ptr<EvaluatorNode<Variable>>>(
         std::move(initialValue)));
       *address = &evaluator->GetVariable();
       return std::move(evaluator);
@@ -88,7 +88,7 @@ namespace Queries {
     static void Template(BaseEvaluatorNode& declaration,
         std::unique_ptr<BaseEvaluatorNode> body) {
       static_cast<GlobalVariableDeclarationEvaluatorNode<Variable, Body>&>(
-        declaration).SetBody(UniqueStaticCast<EvaluatorNode<Body>>(
+        declaration).SetBody(StaticCast<std::unique_ptr<EvaluatorNode<Body>>>(
         std::move(body)));
     }
 

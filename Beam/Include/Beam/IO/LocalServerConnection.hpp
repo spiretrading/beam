@@ -13,7 +13,6 @@
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Threading/Sync.hpp"
 
 namespace Beam {

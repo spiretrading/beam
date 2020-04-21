@@ -26,6 +26,7 @@
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Queries/WriteEvaluatorNode.hpp"
+#include "Beam/Utilities/Casts.hpp"
 #include "Beam/Utilities/InstantiateTemplate.hpp"
 
 namespace Beam {
@@ -272,12 +273,12 @@ namespace Queries {
   void EvaluatorTranslator<QueryTypes>::Visit(const OrExpression& expression) {
     auto leftExpression = expression.GetLeftExpression();
     leftExpression->Apply(*this);
-    auto leftEvaluator = Beam::UniqueStaticCast<EvaluatorNode<bool>>(
+    auto leftEvaluator = Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(
       GetEvaluator());
     auto rightExpression = expression.GetRightExpression();
     rightExpression->Apply(*this);
-    auto rightEvaluator = Beam::UniqueStaticCast<EvaluatorNode<bool>>(
-      GetEvaluator());
+    auto rightEvaluator = Beam::StaticCast<
+      std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
     SetEvaluator(std::make_unique<OrEvaluatorNode>(std::move(leftEvaluator),
       std::move(rightEvaluator)));
   }

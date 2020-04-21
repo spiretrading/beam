@@ -5,8 +5,8 @@
 #include <boost/noncopyable.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/TimeService/TimeService.hpp"
+#include "Beam/Utilities/Casts.hpp"
 
 namespace Beam {
 namespace TimeService {

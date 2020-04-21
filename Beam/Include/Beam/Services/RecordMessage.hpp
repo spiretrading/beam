@@ -9,7 +9,6 @@
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/repeat.hpp>
 #include <boost/preprocessor/tuple/to_list.hpp>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleRecord.hpp"
 #include "Beam/Services/RecordMessageDetails.hpp"

@@ -39,7 +39,7 @@ namespace Queries {
         std::unique_ptr<BaseEvaluatorNode> value) {
       return std::make_unique<WriteEvaluatorNode<T>>(
         static_cast<T*>(destination),
-        UniqueStaticCast<EvaluatorNode<T>>(std::move(value)));
+        StaticCast<std::unique_ptr<EvaluatorNode<T>>>(std::move(value)));
     }
 
     typedef TypeList SupportedTypes;

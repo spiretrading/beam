@@ -8,7 +8,6 @@
 #include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/mpl/transform.hpp>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"

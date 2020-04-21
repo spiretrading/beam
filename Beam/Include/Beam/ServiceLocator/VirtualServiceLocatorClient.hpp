@@ -4,7 +4,6 @@
 #include <string>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/UniquePtr.hpp"
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>

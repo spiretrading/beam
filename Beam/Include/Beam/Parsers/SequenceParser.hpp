@@ -42,7 +42,7 @@ namespace Beam::Parsers {
 
   template<typename Parser>
   SequenceParser(std::vector<Parser>, char) ->
-    SequenceParser<std::vector<to_parser_t<Parser>>>;
+    SequenceParser<to_parser_t<Parser>>;
 
   //! Builds a SequenceParser based on the list of Parsers passed to it.
   /*!

@@ -4,6 +4,8 @@
 #include "Beam/Parsers/AlphaParser.hpp"
 #include "Beam/Parsers/AnyParser.hpp"
 #include "Beam/Parsers/BoolParser.hpp"
+#include "Beam/Parsers/DateParser.hpp"
+#include "Beam/Parsers/DateTimeParser.hpp"
 #include "Beam/Parsers/DecimalParser.hpp"
 #include "Beam/Parsers/DigitParser.hpp"
 #include "Beam/Parsers/DiscardParser.hpp"
@@ -14,6 +16,7 @@
 #include "Beam/Parsers/RationalParser.hpp"
 #include "Beam/Parsers/SpaceParser.hpp"
 #include "Beam/Parsers/StringParser.hpp"
+#include "Beam/Parsers/TimeDurationParser.hpp"
 #include "Beam/Parsers/TokenParser.hpp"
 
 namespace Beam::Parsers {
@@ -41,6 +44,16 @@ namespace Beam::Parsers {
 
   template<>
   const auto default_parser<double> = DecimalParser<double>();
+
+  template<>
+  const auto default_parser<boost::gregorian::date> = DateParser();
+
+  template<>
+  const auto default_parser<boost::posix_time::ptime> = DateTimeParser();
+
+  template<>
+  const auto default_parser<boost::posix_time::time_duration> =
+    TimeDurationParser();
 
   template<typename T>
   const auto default_parser<boost::rational<T>> = RationalParser<T>();

@@ -3,9 +3,10 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/DateParser.hpp"
+#include "Beam/Parsers/IntegralParser.hpp"
+#include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/TimeDurationParser.hpp"
-#include "Beam/Parsers/Types.hpp"
 
 namespace Beam::Parsers {
 

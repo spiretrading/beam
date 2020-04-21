@@ -7,7 +7,6 @@
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/RegistryService/RegistryService.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"

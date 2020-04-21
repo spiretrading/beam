@@ -1,9 +1,10 @@
 #ifndef BEAM_TOKENPARSER_HPP
 #define BEAM_TOKENPARSER_HPP
 #include <type_traits>
+#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 

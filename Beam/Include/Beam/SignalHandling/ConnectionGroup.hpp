@@ -4,7 +4,6 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/signals2.hpp>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/SignalHandling/GroupConnection.hpp"
 #include "Beam/SignalHandling/SignalHandling.hpp"
 

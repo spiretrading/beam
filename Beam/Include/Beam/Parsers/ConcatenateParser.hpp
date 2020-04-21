@@ -233,8 +233,8 @@ namespace Details {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) const {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();
@@ -280,8 +280,8 @@ namespace Details {
         return true;
       }
 
-      template<typename ParserStreamType>
-      bool Read(ParserStreamType& source) const {
+      template<typename Stream>
+      bool Read(Stream& source) const {
         auto context = SubParserStream<Stream>(source);
         if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
           context.Accept();

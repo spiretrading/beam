@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 namespace Details {

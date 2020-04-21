@@ -170,7 +170,7 @@ namespace Beam::Parsers {
   };
 
   template<typename P>
-  PlusParser(const P&) -> PlusParser<to_parser_t<P>>;
+  PlusParser(P) -> PlusParser<to_parser_t<P>>;
 }
 
 #endif

@@ -58,8 +58,8 @@ namespace Beam::Parsers {
     return false;
   }
 
-  template<typename ParserStreamType>
-  bool BoolParser::Read(ParserStreamType& source) const {
+  template<typename Stream>
+  bool BoolParser::Read(Stream& source) const {
     auto context = SubParserStream<Stream>(source);
     if(!context.Read()) {
       return false;

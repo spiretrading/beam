@@ -13,6 +13,7 @@
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Utilities/ApplyTuple.hpp"
+#include "Beam/Utilities/Casts.hpp"
 #include "Beam/Utilities/Functional.hpp"
 
 namespace Beam {

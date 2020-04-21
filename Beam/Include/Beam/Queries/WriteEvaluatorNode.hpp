@@ -4,6 +4,7 @@
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
+#include "Beam/Utilities/Casts.hpp"
 
 namespace Beam {
 namespace Queries {

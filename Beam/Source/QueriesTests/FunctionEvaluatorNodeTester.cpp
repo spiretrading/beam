@@ -1,6 +1,5 @@
 #include <string>
 #include <doctest/doctest.h>
-#include "Beam/Pointers/UniquePtr.hpp"
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"
 #include "Beam/Queries/FunctionEvaluatorNode.hpp"
 

@@ -26,16 +26,16 @@ namespace Beam::Parsers {
         \param last An iterator to one past the last enumerated value.
         \param toString The function used to convert the Enumerator to a string.
       */
-      template<typename Iterator, typename F>
-      EnumeratorParser(Iterator first, Iterator last, F toString);
+      template<typename I1, typename I2, typename F>
+      EnumeratorParser(I1 first, I2 last, F toString);
 
       //! Constructs an EnumeratorParser.
       /*!
         \param first An iterator to the first enumerated value.
         \param last An iterator to one past the last enumerated value.
       */
-      template<typename Iterator>
-      EnumeratorParser(Iterator first, Iterator last);
+      template<typename I1, typename I2>
+      EnumeratorParser(I1 first, I2 last);
 
       template<typename Stream>
       bool Read(Stream& source, Result& value) const;
@@ -54,9 +54,13 @@ namespace Beam::Parsers {
       std::vector<ConversionParser<SymbolParser, EnumConverter>> m_parsers;
   };
 
-  template<typename Iterator, typename F>
-  EnumeratorParser(Iterator, Iterator, F) ->
-    EnumeratorParser<typename std::iterator_traits<Iterator>::value_type>;
+  template<typename I1, typename I2, typename F>
+  EnumeratorParser(I1, I2, F) ->
+    EnumeratorParser<typename std::iterator_traits<I1>::value_type>;
+
+  template<typename I1, typename I2>
+  EnumeratorParser(I1, I2) ->
+    EnumeratorParser<typename std::iterator_traits<I1>::value_type>;
 
   template<typename E>
   EnumeratorParser<E>::EnumConverter::EnumConverter(Result value)
@@ -69,9 +73,8 @@ namespace Beam::Parsers {
   }
 
   template<typename E>
-  template<typename Iterator, typename F>
-  EnumeratorParser<E>::EnumeratorParser(Iterator first, Iterator last,
-      F toString) {
+  template<typename I1, typename I2, typename F>
+  EnumeratorParser<E>::EnumeratorParser(I1 first, I2 last, F toString) {
     while(first != last) {
       m_parsers.push_back(Convert(SymbolParser(toString(*first)),
         EnumConverter(*first)));
@@ -80,9 +83,9 @@ namespace Beam::Parsers {
   }
 
   template<typename E>
-  template<typename Iterator>
-  EnumeratorParser<E>::EnumeratorParser(Iterator first, Iterator last)
-    : EnumeratorParser(first, last,
+  template<typename I1, typename I2>
+  EnumeratorParser<E>::EnumeratorParser(I1 first, I2 last)
+    : EnumeratorParser(std::move(first), std::move(last),
         &boost::lexical_cast<std::string, Result>) {}
 
   template<typename E>

@@ -1,5 +1,6 @@
 #ifndef BEAM_ENUMITERATOR_HPP
 #define BEAM_ENUMITERATOR_HPP
+#include <iterator>
 #include "Beam/Collections/Collections.hpp"
 #include "Beam/Collections/Enum.hpp"
 
@@ -10,7 +11,7 @@ namespace Beam {
       \tparam T The enum type to iterate over.
    */
   template<typename T>
-  class EnumIterator {
+  class EnumIterator : public std::iterator<std::input_iterator_tag, T> {
     public:
 
       //! The enum type to iterate over.

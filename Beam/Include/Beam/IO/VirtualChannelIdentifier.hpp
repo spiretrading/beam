@@ -6,6 +6,7 @@
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Streamable.hpp"
 
 namespace Beam {
 namespace IO {
@@ -13,18 +14,15 @@ namespace IO {
   /*! \class VirtualChannelIdentifier
       \brief Provides a pure virtual interface to a ChannelIdentifier.
    */
-  class VirtualChannelIdentifier : private boost::noncopyable {
+  class VirtualChannelIdentifier : public Streamable,
+      private boost::noncopyable {
     public:
       virtual ~VirtualChannelIdentifier() = default;
 
     protected:
-      friend std::ostream& operator <<(std::ostream&,
-        const VirtualChannelIdentifier&);
 
       //! Constructs a VirtualChannelIdentifier.
       VirtualChannelIdentifier() = default;
-
-      virtual std::ostream& Stream(std::ostream& out) const = 0;
   };
 
   /*! \class WrapperChannelIdentifier
@@ -54,7 +52,7 @@ namespace IO {
       ChannelIdentifier& GetIdentifier();
 
     protected:
-      std::ostream& Stream(std::ostream& out) const override;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       GetOptionalLocalPtr<ChannelIdentifierType> m_identifier;
@@ -70,11 +68,6 @@ namespace IO {
     return std::make_unique<WrapperChannelIdentifier<
       std::decay_t<ChannelIdentifier>>>(std::forward<ChannelIdentifier>(
       identifier));
-  }
-
-  inline std::ostream& operator <<(std::ostream& out,
-      const VirtualChannelIdentifier& identifier) {
-    return identifier.Stream(out);
   }
 
   template<typename ChannelIdentifierType>
@@ -97,7 +90,7 @@ namespace IO {
   }
 
   template<typename ChannelIdentifierType>
-  std::ostream& WrapperChannelIdentifier<ChannelIdentifierType>::Stream(
+  std::ostream& WrapperChannelIdentifier<ChannelIdentifierType>::ToStream(
       std::ostream& out) const {
     return out << *m_identifier;
   }

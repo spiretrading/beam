@@ -8,7 +8,7 @@ namespace Beam::Parsers {
 
   /*! \class VirtualParserStream
       \brief Implements a ParserStream using virtual methods.
-  */
+   */
   class VirtualParserStream {
     public:
       virtual ~VirtualParserStream() = default;

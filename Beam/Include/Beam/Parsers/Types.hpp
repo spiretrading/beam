@@ -9,11 +9,12 @@
 #include "Beam/Parsers/DiscardParser.hpp"
 #include "Beam/Parsers/EpsilonParser.hpp"
 #include "Beam/Parsers/IntegralParser.hpp"
+#include "Beam/Parsers/Operators.hpp"
 #include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/RationalParser.hpp"
 #include "Beam/Parsers/SpaceParser.hpp"
 #include "Beam/Parsers/StringParser.hpp"
 #include "Beam/Parsers/TokenParser.hpp"
-#include "Beam/Parsers/Operators.hpp"
 
 namespace Beam::Parsers {
 
@@ -41,6 +42,9 @@ namespace Beam::Parsers {
   template<>
   const auto default_parser<double> = DecimalParser<double>();
 
+  template<typename T>
+  const auto default_parser<boost::rational<T>> = RationalParser<T>();
+
   template<>
   const auto default_parser<std::string> = StringParser();
 
@@ -52,6 +56,7 @@ namespace Beam::Parsers {
   static const auto eps_p = EpsilonParser();
   static const auto int_p = default_parser<int>;
   static const auto int64_p = default_parser<std::int64_t>;
+  static const auto rational_p = default_parser<boost::rational<int>>;
   static const auto space_p = Discard(SpaceParser());
   static const auto string_p = default_parser<std::string>;
   static const auto tokenize = ChainTokenParser<EpsilonParser>(EpsilonParser());

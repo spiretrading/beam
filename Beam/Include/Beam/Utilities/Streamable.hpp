@@ -1,7 +1,12 @@
 #ifndef BEAM_STREAMABLE_HPP
 #define BEAM_STREAMABLE_HPP
+#include <map>
 #include <ostream>
+#include <set>
 #include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include <boost/core/demangle.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
@@ -25,13 +30,80 @@ namespace Beam {
         const Streamable& object);
   };
 
-  inline std::ostream& Streamable::ToStream(std::ostream& out) const {
-    return out << boost::core::demangle(typeid(*this).name());
-  }
+  //! Adaptor type to enable unintrusive support for streaming operators.
+  template<typename T>
+  class Stream {
+    public:
+
+      //! Constructs a Stream.
+      /*!
+        \param value The value to stream.
+      */
+      explicit Stream(const T& value);
+
+    private:
+      friend std::ostream& operator <<(std::ostream&, const Stream& source);
+      const T* m_value;
+  };
 
   inline std::ostream& operator <<(std::ostream& out,
       const Streamable& object) {
     return object.ToStream(out);
+  }
+
+  inline std::ostream& Streamable::ToStream(std::ostream& out) const {
+    return out << boost::core::demangle(typeid(*this).name());
+  }
+
+  template<typename T>
+  Stream<T>::Stream(const T& value)
+    : m_value(&value) {}
+
+  template<typename T, typename A>
+  std::ostream& operator <<(std::ostream& out,
+      const Stream<std::vector<T, A>>& source) {
+    auto& value = *source.m_value;
+    out << "[";
+    for(auto i = value.begin(); i != value.end(); ++i) {
+      out << *i;
+      if(i != value.end() - 1) {
+        out << ", ";
+      }
+    }
+    out << "]";
+    return out;
+  }
+
+  template<typename K, typename V>
+  std::ostream& operator <<(std::ostream& out,
+      const Stream<std::map<K, V>>& source) {
+    auto& value = *source.m_value;
+    out << "{";
+    for(typename std::map<K, V>::const_iterator i = value.begin();
+        i != value.end(); ++i) {
+      out << i->first << ": " << i->second;
+      if(i != value.end() - 1) {
+        out << ", ";
+      }
+    }
+    out << "}";
+    return out;
+  }
+
+  template<typename T>
+  std::ostream& operator <<(std::ostream& out,
+      const Stream<std::set<T>>& value) {
+    auto& value = *source.m_value;
+    out << "{";
+    for(typename std::set<T>::const_iterator i = value.begin();
+        i != value.end(); ++i) {
+      out << *i;
+      if(i != value.end() - 1) {
+        out << ", ";
+      }
+    }
+    out << "}";
+    return out;
   }
 }
 

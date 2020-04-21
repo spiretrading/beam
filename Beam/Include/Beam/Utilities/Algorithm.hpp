@@ -1,12 +1,8 @@
 #ifndef BEAM_ALGORITHM_HPP
 #define BEAM_ALGORITHM_HPP
 #include <algorithm>
-#include <deque>
 #include <iterator>
 #include <map>
-#include <ostream>
-#include <set>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -398,75 +394,6 @@ namespace Beam {
       std::end(containers)...));
     return boost::make_iterator_range(zipBegin, zipEnd);
   }
-
-  template<typename T>
-  struct Stream {};
-
-  template<typename T, typename A>
-  struct Stream<std::vector<T, A>> {
-    Stream(const std::vector<T, A>& value)
-      : m_value(&value) {}
-
-    const std::vector<T, A>* m_value;
-  };
-
-  template<typename T>
-  Stream(const T&) -> Stream<T>;
-
-  template<typename T, typename A>
-  std::ostream& operator <<(std::ostream& out,
-      const Stream<std::vector<T, A>>& source) {
-    auto& value = *source.m_value;
-    out << "[";
-    for(auto i = value.begin(); i != value.end(); ++i) {
-      out << *i;
-      if(i != value.end() - 1) {
-        out << ", ";
-      }
-    }
-    out << "]";
-    return out;
-  }
-}
-
-//! Prints a map to an ostream.
-/*!
-  \param out The stream to print to.
-  \param value The vector to print.
-  \return <i>out</i> for chaining purposes.
-*/
-template<typename K, typename V>
-std::ostream& operator <<(std::ostream& out, const std::map<K, V>& value) {
-  out << "{";
-  for(typename std::map<K, V>::const_iterator i = value.begin();
-      i != value.end(); ++i) {
-    out << i->first << ": " << i->second;
-    if(i != value.end() - 1) {
-      out << ", ";
-    }
-  }
-  out << "}";
-  return out;
-}
-
-//! Prints a set to an ostream.
-/*!
-  \param out The stream to print to.
-  \param value The vector to print.
-  \return <i>out</i> for chaining purposes.
-*/
-template<typename T>
-std::ostream& operator <<(std::ostream& out, const std::set<T>& value) {
-  out << "{";
-  for(typename std::set<T>::const_iterator i = value.begin();
-      i != value.end(); ++i) {
-    out << *i;
-    if(i != value.end() - 1) {
-      out << ", ";
-    }
-  }
-  out << "}";
-  return out;
 }
 
 #endif

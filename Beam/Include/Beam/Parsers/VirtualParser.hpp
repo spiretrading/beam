@@ -91,19 +91,21 @@ namespace Beam::Parsers {
   template<typename R>
   template<typename Stream>
   bool VirtualParser<R>::Read(Stream& source, Result& value) const {
-    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)),
-      value);
+    auto stream = WrapperParserStream(source);
+    return Read(static_cast<VirtualParserStream&>(stream), value);
   }
 
   template<typename R>
   template<typename Stream>
   bool VirtualParser<R>::Read(Stream& source) const {
-    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)));
+    auto stream = WrapperParserStream(source);
+    return Read(static_cast<VirtualParserStream&>(stream));
   }
 
   template<typename Stream>
   bool VirtualParser<NullType>::Read(Stream& source) const {
-    return Read(static_cast<VirtualParserStream&>(WrapperParserStream(source)));
+    auto stream = WrapperParserStream(source);
+    return Read(static_cast<VirtualParserStream&>(stream));
   }
 }
 

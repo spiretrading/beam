@@ -19,7 +19,6 @@
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Utilities/Convert.hpp"
 #include "Beam/Utilities/SynchronizedList.hpp"
 #include "Beam/Utilities/SynchronizedMap.hpp"
 
@@ -182,7 +181,9 @@ namespace Queries {
     auto weakQueue = MakeWeakQueue(queue);
     std::shared_ptr<QueueWriter<SequencedValue<Value>>> conversionQueue =
       MakeConverterWriterQueue<SequencedValue<Value>>(weakQueue,
-      StaticCastConverter<Value>());
+      [] (auto&& value) {
+        return static_cast<Value>(std::forward<decltype(value)>(value));
+      });
     SubmitQuery(query, conversionQueue);
   }
 

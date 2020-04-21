@@ -398,26 +398,35 @@ namespace Beam {
       std::end(containers)...));
     return boost::make_iterator_range(zipBegin, zipEnd);
   }
-}
 
-//! Prints a vector to an ostream.
-/*!
-  \param out The stream to print to.
-  \param value The vector to print.
-  \return <i>out</i> for chaining purposes.
-*/
-template<typename T>
-std::ostream& operator <<(std::ostream& out, const std::vector<T>& value) {
-  out << "[";
-  for(typename std::vector<T>::const_iterator i = value.begin();
-      i != value.end(); ++i) {
-    out << *i;
-    if(i != value.end() - 1) {
-      out << ", ";
+  template<typename T>
+  struct Stream {};
+
+  template<typename T, typename A>
+  struct Stream<std::vector<T, A>> {
+    Stream(const std::vector<T, A>& value)
+      : m_value(&value) {}
+
+    const std::vector<T, A>* m_value;
+  };
+
+  template<typename T>
+  Stream(const T&) -> Stream<T>;
+
+  template<typename T, typename A>
+  std::ostream& operator <<(std::ostream& out,
+      const Stream<std::vector<T, A>>& source) {
+    auto& value = *source.m_value;
+    out << "[";
+    for(auto i = value.begin(); i != value.end(); ++i) {
+      out << *i;
+      if(i != value.end() - 1) {
+        out << ", ";
+      }
     }
+    out << "]";
+    return out;
   }
-  out << "]";
-  return out;
 }
 
 //! Prints a map to an ostream.

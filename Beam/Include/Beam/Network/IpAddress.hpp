@@ -6,7 +6,7 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/NotParser.hpp"
-#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Parsers/PlusParser.hpp"
 #include "Beam/Parsers/Types.hpp"
 #include "Beam/Utilities/AssertionException.hpp"

@@ -10,7 +10,7 @@
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"

@@ -1,5 +1,6 @@
 #ifndef BEAM_JSONPARSER_HPP
 #define BEAM_JSONPARSER_HPP
+#include <sstream>
 #include <boost/throw_exception.hpp>
 #include <boost/variant/get.hpp>
 #include "Beam/IO/BufferReader.hpp"

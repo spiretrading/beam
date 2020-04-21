@@ -18,7 +18,7 @@ namespace Beam::Parsers {
   template<typename T>
   struct is_parser<T, std::enable_if_t<std::is_same_v<
     decltype(std::declval<T>().Read(std::declval<ReaderParserStream<
-    IO::BufferReader<IO::SharedBuffer>>>())), bool>>> : std::true_type {};
+    IO::BufferReader<IO::SharedBuffer>>&>())), bool>>> : std::true_type {};
 
   template<typename T>
   constexpr bool is_parser_v = is_parser<T>::value;

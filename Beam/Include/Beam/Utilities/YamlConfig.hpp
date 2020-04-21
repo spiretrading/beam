@@ -14,6 +14,7 @@
 #include <yaml-cpp/yaml.h>
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Parsers/DateTimeParser.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Parsers/RationalParser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -146,7 +147,7 @@ namespace Beam {
   template<>
   struct YamlValueExtractor<boost::rational<int>> {
     boost::rational<int> operator ()(const YAML::Node& node) const {
-      return Parsers::Parse<Parsers::RationalParser<int>>(
+      return Parsers::ParseFrom(Parsers::RationalParser<int>(),
         node.as<std::string>());
     }
   };

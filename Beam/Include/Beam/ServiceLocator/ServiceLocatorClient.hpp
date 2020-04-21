@@ -10,6 +10,7 @@
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
@@ -304,7 +305,7 @@ namespace ServiceLocator {
     std::uniform_int_distribution<std::size_t> distribution(
       0, services.size() - 1);
     const auto& service = services[distribution(generator)];
-    auto addresses = FromString<std::vector<Network::IpAddress>>(
+    auto addresses = Parsers::Parse<std::vector<Network::IpAddress>>(
       boost::get<std::string>(service.GetProperties().At("addresses")));
     return addresses;
   }

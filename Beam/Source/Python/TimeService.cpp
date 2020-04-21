@@ -1,5 +1,6 @@
 #include "Beam/Python/TimeService.hpp"
 #include <boost/date_time/local_time/local_time.hpp>
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonTimeClient.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
@@ -17,6 +18,7 @@
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Network;
+using namespace Beam::Parsers;
 using namespace Beam::Python;
 using namespace Beam::ServiceLocator;
 using namespace Beam::Threading;

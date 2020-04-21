@@ -1,10 +1,6 @@
 #ifndef BEAM_PARSER_HPP
 #define BEAM_PARSER_HPP
-#include <string>
 #include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Parsers/ParserException.hpp"
-#include "Beam/Parsers/ReaderParserStream.hpp"
-#include "Beam/Utilities/AssertionException.hpp"
 #include "Beam/Utilities/Concept.hpp"
 #include "Beam/Utilities/NullType.hpp"
 
@@ -56,38 +52,6 @@ namespace Beam::Parsers {
     template<typename Stream>
     bool Read(Stream& source) const;
   };
-
-  //! Parses a value from a string.
-  /*!
-    \param source The string to parse.
-    \return The parsed value.
-  */
-  template<typename Parser>
-  auto Parse(const std::string& source) {
-    auto value = typename Parser::Result();
-    auto parser = Parser();
-    auto stream = ParserStreamFromString(source);
-    if(!parser.Read(stream, value)) {
-      BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
-    }
-    return value;
-  }
-
-  //! Parses a value from a buffer.
-  /*!
-    \param source The string to parse.
-    \return The parsed value.
-  */
-  template<typename Parser, typename Buffer>
-  auto Parse(const Buffer& source) {
-    auto value = typename Parser::Result();
-    auto stream = ReaderParserStream(source);
-    auto parser = Parser();
-    if(!parser.Read(stream, value)) {
-      BOOST_THROW_EXCEPTION(ParserException("Invalid value."));
-    }
-    return value;
-  }
 }
 
 #endif

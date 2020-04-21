@@ -19,7 +19,7 @@
 namespace Beam {
 
   /** Parses JSON objects. */
-  inline auto JsonParser() {
+  inline const auto& JsonParser() {
     static const auto value = [] {
       auto objectParser = Parsers::RuleParser<JsonObject>();
       auto arrayParser = Parsers::RuleParser<std::vector<JsonValue>>();

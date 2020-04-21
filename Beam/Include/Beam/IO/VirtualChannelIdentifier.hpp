@@ -72,7 +72,7 @@ namespace IO {
       identifier));
   }
 
-  std::ostream& operator <<(std::ostream& out,
+  inline std::ostream& operator <<(std::ostream& out,
       const VirtualChannelIdentifier& identifier) {
     return identifier.Stream(out);
   }

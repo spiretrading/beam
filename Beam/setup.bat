@@ -22,23 +22,26 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
+SET ASPEN_COMMIT="28959f0b215738f62a005b9668de0d21971a6840"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
     SET BUILD_ASPEN=1
+    PUSHD aspen
+    git checkout "!ASPEN_COMMIT!"
+    POPD
   ) ELSE (
     RD /S /Q aspen
     SET EXIT_STATUS=1
   )
 )
-SET aspen_commit="28959f0b215738f62a005b9668de0d21971a6840"
 IF EXIST aspen (
   PUSHD aspen
-  git merge-base --is-ancestor "!aspen_commit!" HEAD
+  git merge-base --is-ancestor "!ASPEN_COMMIT!" HEAD
   IF !ERRORLEVEL! NEQ 0 (
     git checkout master
     git pull
-    git checkout "!aspen_commit!"
+    git checkout "!ASPEN_COMMIT!"
     SET BUILD_ASPEN=1
   )
   IF !BUILD_ASPEN! EQU 1 (
@@ -153,21 +156,25 @@ IF NOT EXIST tclap-1.2.2 (
   )
   DEL /F /Q v1.2.2.zip
 )
+SET VIPER_COMMIT="bd6689bae15716921198e179a37d94e6df91ded1"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
-  IF !ERRORLEVEL! NEQ 0 (
+  IF !ERRORLEVEL! EQU 0 (
+    PUSHD viper
+    git checkout "!VIPER_COMMIT!"
+    POPD
+  ) ELSE (
     RD /S /Q viper
     SET EXIT_STATUS=1
   )
 )
-SET viper_commit="bd6689bae15716921198e179a37d94e6df91ded1"
 IF EXIST viper (
   PUSHD viper
-  git merge-base --is-ancestor "!viper_commit!" HEAD
+  git merge-base --is-ancestor "!VIPER_COMMIT!" HEAD
   IF !ERRORLEVEL! NEQ 0 (
     git checkout master
     git pull
-    git checkout "!viper_commit!"
+    git checkout "!VIPER_COMMIT!"
   )
   POPD
 )

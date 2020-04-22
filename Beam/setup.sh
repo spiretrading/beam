@@ -8,6 +8,9 @@ if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
   if [ "$?" == "0" ]; then
     build_aspen=1
+    pushd aspen
+    git checkout "$aspen_commit"
+    popd
   else
     rm -rf aspen
     exit_status=1
@@ -115,7 +118,11 @@ fi
 viper_commit="bd6689bae15716921198e179a37d94e6df91ded1"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/spiretrading/viper
-  if [ "$?" != "0" ]; then
+  if [ "$?" == "0" ]; then
+    pushd viper
+    git checkout "$viper_commit"
+    popd
+  else
     rm -rf viper
     exit_status=1
   fi

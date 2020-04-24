@@ -59,19 +59,20 @@ if [ ! -d "doctest-2.3.6" ]; then
   fi
   rm -f 2.3.6.zip
 fi
-if [ ! -d "mysql-connector-c-6.1.11-src" ]; then
-  wget https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.11-src.tar.gz --no-check-certificate
+if [ ! -d "mariadb-connector-c-3.1.7" ]; then
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.7.zip -O mariadb-connector-c-3.1.7.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    gzip -d -c mysql-connector-c-6.1.11-src.tar.gz | tar -x
-    pushd mysql-connector-c-6.1.11-src
-    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="$root/mysql-connector-c-6.1.11-src"
+    unzip mariadb-connector-c-3.1.7.zip
+    pushd mariadb-connector-c-3.1.7
+    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
+#    cmake -G "Unix Makefiles" -DBUILD_STATIC=ON -DCMAKE_INSTALL_PREFIX:PATH="$root/mysql-connector-c++-8.0.19-src"
     make -j $cores
     make install
     popd
   else
     exit_status=1
   fi
-  rm -f mysql-connector-c-6.1.11-src.tar.gz
+  rm -f mariadb-connector-c-3.1.7.zip
 fi
 if [ ! -d "openssl-1.1.1c" ]; then
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate

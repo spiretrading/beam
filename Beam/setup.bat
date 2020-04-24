@@ -87,11 +87,11 @@ IF NOT EXIST doctest-2.3.6 (
   )
   DEL /F /Q 2.3.6.zip
 )
-IF NOT EXIST mariadb-connector-c-3.0.6 (
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.0.6.zip -O mariadb-connector-c-3.0.6.zip --no-check-certificate
+IF NOT EXIST mariadb-connector-c-3.1.7 (
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.7.zip -O mariadb-connector-c-3.1.7.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip mariadb-connector-c-3.0.6.zip
-    PUSHD mariadb-connector-c-3.0.6
+    unzip mariadb-connector-c-3.1.7.zip
+    PUSHD mariadb-connector-c-3.1.7
     cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
@@ -99,19 +99,11 @@ IF NOT EXIST mariadb-connector-c-3.0.6 (
     POPD
     cmake --build . --target mariadbclient --config Debug
     cmake --build . --target mariadbclient --config Release
-    PUSHD include
-    printf "#include ""mariadb_version.h""" > mysql_version.h
-    ECHO. >> mysql_version.h
-    printf "#include ""WinSock2.h""" >> mysql_version.h
-    ECHO. >> mysql_version.h
-    printf "#define CLIENT_LONG_PASSWORD 1" >> mysql_version.h
-    ECHO. >> mysql_version.h
-    POPD
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q mariadb-connector-c-3.0.6.zip
+  DEL /F /Q mariadb-connector-c-3.1.7.zip
 )
 IF NOT EXIST openssl-1.1.1c (
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate

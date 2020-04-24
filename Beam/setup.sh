@@ -65,7 +65,6 @@ if [ ! -d "mariadb-connector-c-3.1.7" ]; then
     unzip mariadb-connector-c-3.1.7.zip
     pushd mariadb-connector-c-3.1.7
     cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
-#    cmake -G "Unix Makefiles" -DBUILD_STATIC=ON -DCMAKE_INSTALL_PREFIX:PATH="$root/mysql-connector-c++-8.0.19-src"
     make -j $cores
     make install
     popd

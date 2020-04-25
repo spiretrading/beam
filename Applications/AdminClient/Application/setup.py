@@ -21,7 +21,7 @@ def main():
   args = parser.parse_args()
   variables = {}
   variables['username'] = args.username
-  variables['address'] = '%s:20000' % args.address
+  variables['service_locator_address'] = '%s:20000' % args.address
   variables['admin_password'] = args.password
   shutil.copy('config.default.yml', 'config.yml')
   with open('config.yml', 'r+') as file:

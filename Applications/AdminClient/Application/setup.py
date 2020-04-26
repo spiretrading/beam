@@ -13,7 +13,7 @@ def main():
   parser = argparse.ArgumentParser(
     description='v1.0 Copyright (C) 2020 Spire Trading Inc.')
   parser.add_argument('-a', '--address', type=str, help='Spire address.',
-    default=setup_utils.get_ip())
+    default=setup_utils.get_ip() + ':20000')
   parser.add_argument('-u', '--username', type=str, help='Username.',
     default='root')
   parser.add_argument('-p', '--password', type=str, help='Password.',
@@ -21,7 +21,7 @@ def main():
   args = parser.parse_args()
   variables = {}
   variables['username'] = args.username
-  variables['service_locator_address'] = '%s:20000' % args.address
+  variables['service_locator_address'] = '%s' % args.address
   variables['admin_password'] = args.password
   shutil.copy('config.default.yml', 'config.yml')
   with open('config.yml', 'r+') as file:

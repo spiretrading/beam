@@ -3,8 +3,7 @@
 
 #define BEAM_SERVICE_PARAMETERS 10
 
-namespace Beam {
-namespace Services {
+namespace Beam::Services {
   template<typename ServiceLocatorClientType, typename MessageProtocolType,
     typename TimerType> class AuthenticatedServiceProtocolClientBuilder;
   template<typename ServiceProtocolClientType> class BaseServiceSlot;
@@ -29,13 +28,11 @@ namespace Services {
     typename EncoderType, typename TimerType, typename SessionType,
     bool SupportsParallelismValue> class ServiceProtocolServer;
   template<typename ChannelType> struct ServiceProtocolServlet;
-  template<typename MetaServlet, typename ServerConnectionType,
-    typename SenderType, typename EncoderType, typename TimerType,
-    typename ServletPointerPolicy> class ServiceProtocolServletContainer;
+  template<typename M, typename C, typename S, typename E, typename T,
+    typename P> class ServiceProtocolServletContainer;
   class ServiceRequestException;
   template<typename MessageType> class ServiceSlot;
   template<typename ServiceProtocolClientType> class ServiceSlots;
-}
 }
 
 #endif

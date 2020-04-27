@@ -4,6 +4,7 @@
 #include "Beam/Python/QueueReader.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/AbstractQueue.hpp"
+#include "Beam/Queues/Queue.hpp"
 
 namespace Beam::Python {
 

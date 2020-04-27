@@ -23,43 +23,43 @@ namespace Beam::Parsers {
 
   /** Specifies the default parser to use for a given type. */
   template<typename T, typename = void>
-  const auto default_parser = std::enable_if_t<!std::is_same_v<T, T>>();
+  inline const auto default_parser = std::enable_if_t<!std::is_same_v<T, T>>();
 
   template<typename T>
-  const auto default_parser<std::vector<T>> = [] {
+  inline const auto default_parser<std::vector<T>> = [] {
     return '[' >> List(default_parser<T>, ',') >> ']';
   }();
 
   template<>
-  const auto default_parser<char> = AnyParser();
+  inline const auto default_parser<char> = AnyParser();
 
   template<>
-  const auto default_parser<bool> = BoolParser();
+  inline const auto default_parser<bool> = BoolParser();
 
   template<>
-  const auto default_parser<int> = IntegralParser<int>();
+  inline const auto default_parser<int> = IntegralParser<int>();
 
   template<>
-  const auto default_parser<std::int64_t> = IntegralParser<std::int64_t>();
+  inline const auto default_parser<std::int64_t> = IntegralParser<std::int64_t>();
 
   template<>
-  const auto default_parser<double> = DecimalParser<double>();
+  inline const auto default_parser<double> = DecimalParser<double>();
 
   template<>
-  const auto default_parser<boost::gregorian::date> = DateParser();
+  inline const auto default_parser<boost::gregorian::date> = DateParser();
 
   template<>
-  const auto default_parser<boost::posix_time::ptime> = DateTimeParser();
+  inline const auto default_parser<boost::posix_time::ptime> = DateTimeParser();
 
   template<>
-  const auto default_parser<boost::posix_time::time_duration> =
+  inline const auto default_parser<boost::posix_time::time_duration> =
     TimeDurationParser();
 
   template<typename T>
-  const auto default_parser<boost::rational<T>> = RationalParser<T>();
+  inline const auto default_parser<boost::rational<T>> = RationalParser<T>();
 
   template<>
-  const auto default_parser<std::string> = StringParser();
+  inline const auto default_parser<std::string> = StringParser();
 
   static const auto alpha_p = AlphaParser();
   static const auto any_p = default_parser<char>;

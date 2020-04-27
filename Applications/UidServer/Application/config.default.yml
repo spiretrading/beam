@@ -1,7 +1,7 @@
 ---
 server:
   interface: "$local_interface:20900"
-  addresses: ["$global_address:20900", "$local_interface:20900"]
+  addresses: ["$global_interface:20900", "$local_interface:20900"]
 
 data_store:
   address: $mysql_address

@@ -1,9 +1,9 @@
 ---
 data_store:
-  address: "127.0.0.1:3306"
-  username: $admin_username
-  password: $admin_password
-  schema: data_store_profiler
+  address: $mysql_address
+  username: $mysql_username
+  password: $mysql_password
+  schema: $mysql_schema
 
 index_count: 3000
 seed_count: 100

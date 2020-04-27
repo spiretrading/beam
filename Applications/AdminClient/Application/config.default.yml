@@ -1,3 +1,5 @@
+---
 address: $service_locator_address
-username: root
-password: ""
+username: $username
+password: $admin_password
+...

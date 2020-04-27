@@ -22,7 +22,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="24f511c20cd1807beda41db0f4e150b8d73f7aa0"
+SET ASPEN_COMMIT="1f3a1c3b7cd560fa745bfbc402de198cdc220b33"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (

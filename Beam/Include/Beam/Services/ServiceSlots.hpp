@@ -2,8 +2,9 @@
 #define BEAM_SERVICESLOTS_HPP
 #include <memory>
 #include <unordered_map>
-#include "Beam/Services/Services.hpp"
+#include "Beam/Serialization/TypeNotFoundException.hpp"
 #include "Beam/Services/RequestToken.hpp"
+#include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
 
 namespace Beam {

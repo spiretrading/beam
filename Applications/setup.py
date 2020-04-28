@@ -5,11 +5,13 @@ import os
 try:
   spec = importlib.util.spec_from_file_location('setup_utils',
     os.path.join('..', 'Python', 'setup_utils.py'))
+  setup_utils = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(setup_utils)
 except FileNotFoundError:
   spec = importlib.util.spec_from_file_location('setup_utils',
     os.path.join('Python', 'setup_utils.py'))
-setup_utils = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(setup_utils)
+  setup_utils = importlib.util.module_from_spec(spec)
+  spec.loader.exec_module(setup_utils)
 
 
 def make_sub_args(arg_vars, *args):

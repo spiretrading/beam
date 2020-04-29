@@ -1,6 +1,8 @@
 #ifndef BEAM_SYNC_HPP
 #define BEAM_SYNC_HPP
-#include <boost/noncopyable.hpp>
+#include <type_traits>
+#include <variant>
+#include <boost/hof/is_invocable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/utility/declval.hpp>
@@ -8,24 +10,83 @@
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
+namespace Details {
+  template<typename T, typename = void>
+  struct IsSharedMutex : std::false_type {};
+
+  template<typename T>
+  struct IsSharedMutex<T, std::enable_if_t<
+      std::is_void_v<decltype(boost::declval<T>().lock_shared())> &&
+      std::is_same_v<decltype(boost::declval<T>().try_lock_shared()), bool> &&
+      std::is_void_v<decltype(boost::declval<T>().unlock_shared())>>> :
+    std::true_type {};
+
+  template<typename T, typename = void>
+  struct ReadLock {
+    using type = boost::unique_lock<T>;
+  };
+
+  template<typename T>
+  struct ReadLock<T, std::enable_if_t<IsSharedMutex<T>::value>> {
+    using type = boost::shared_lock<T>;
+  };
+
+  template<typename T>
+  using GetReadLock = typename ReadLock<T>::type;
+
+  template<typename T>
+  struct WriteLock {
+    using type = boost::unique_lock<T>;
+  };
+
+  template<typename T>
+  using GetWriteLock = typename WriteLock<T>::type;
+}
 
   /*! \class Sync
       \brief Synchronizes access to a resource.
       \tparam T The type of value to store.
-      \tparam MutexType The type of mutex to use.
+      \tparam M The type of mutex to use.
    */
   BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
-  template<typename T, typename MutexType = boost::mutex>
-  class Sync : private boost::noncopyable {
+  template<typename T, typename M = boost::mutex>
+  class Sync {
     public:
 
       //! The value type stored.
       using Value = T;
 
       //! The type of mutex used.
-      using Mutex = MutexType;
+      using Mutex = M;
+
+      //! The type of the lock used for immutable access.
+      using ReadLock = Details::GetReadLock<Mutex>;
+
+      //! The type of the lock used for mutable access.
+      using WriteLock = Details::GetWriteLock<Mutex>;
+
+      //! The proxy for any type of lock in use.
+      class LockProxy {
+        public:
+
+          //! Locks the lock referenced.
+          void lock();
+
+          //! Unlocks the lock referenced.
+          void unlock();
+
+        private:
+          template<typename, typename> friend class Sync;
+          using Variant = std::conditional_t<std::is_same_v<ReadLock,
+            WriteLock>, std::variant<WriteLock*>, std::variant<ReadLock*,
+            WriteLock*>>;
+          Variant m_lock;
+
+          LockProxy() = default;
+          LockProxy(const LockProxy&) = delete;
+          explicit LockProxy(Variant lock);
+      };
 
       //! Constructs a Sync.
       /*!
@@ -52,38 +113,33 @@ namespace Threading {
       */
       Sync(Sync&& sync);
 
-      //! Returns a reference of the value.
-      T& AcquireReference();
-
       //! Returns a copy of the value.
       T Acquire() const;
 
+      //! Acquire Sync's value in a synchronized manner.
+      /*!
+        \param f The action to perform on the value.
+      */
       template<typename F>
-      decltype(auto) With(F f) {
-        boost::unique_lock<Mutex> lock(m_mutex);
-        m_lock = &lock;
-        return f(m_value);
-      }
+      decltype(auto) With(F&& f);
 
+      //! Acquires Sync's value in a synchronized manner.
+      /*!
+        \param f The action to perform on the value.
+      */
       template<typename F>
-      decltype(auto) With(F f) const {
-        boost::unique_lock<Mutex> lock(m_mutex);
-        m_lock = &lock;
-        return f(m_value);
-      }
+      decltype(auto) With(F&& f) const;
 
+      //! Atomically acquires Sync's value along with another Sync's value.
+      /*!
+        \param s2 The other Sync.
+        \param f The action to perform on the values.
+      */
       template<typename S2, typename M2, typename F>
-      decltype(auto) With(Sync<S2, M2>& s2, F f) {
-        boost::unique_lock<Mutex> lock1(m_mutex, boost::defer_lock);
-        boost::unique_lock<M2> lock2(s2.m_mutex, boost::defer_lock);
-        boost::lock(lock1, lock2);
-        m_lock = &lock1;
-        s2.m_lock = &lock2;
-        return f(m_value, s2.m_value);
-      }
+      decltype(auto) With(Sync<S2, M2>& s2, F&& f);
 
       //! Returns the lock used for synchronization.
-      boost::unique_lock<Mutex>& GetLock() const;
+      LockProxy& GetLock() const;
 
       //! Assigns a Sync.
       /*!
@@ -111,11 +167,10 @@ namespace Threading {
     private:
       template<typename, typename> friend class Sync;
       template<typename S1, typename M1>
-        friend LockRelease<boost::unique_lock<typename Sync<S1, M1>::Mutex>>
-        Release(Sync<S1, M1>&);
+        friend LockRelease<LockProxy> Release(Sync<S1, M1>&);
       mutable Mutex m_mutex;
-      mutable boost::unique_lock<Mutex>* m_lock;
-      T m_value;
+      mutable LockProxy m_lock;
+      Value m_value;
   };
   BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
 
@@ -125,8 +180,8 @@ namespace Threading {
     \param f The action to perform on the instance.
   */
   template<typename S1, typename M1, typename F>
-  decltype(auto) With(Sync<S1, M1>& s1, F f) {
-    return s1.With(f);
+  decltype(auto) With(Sync<S1, M1>& s1, F&& f) {
+    return s1.With(std::forward<F>(f));
   }
 
   //! Acquires a Sync's instance in a synchronized manner.
@@ -135,30 +190,54 @@ namespace Threading {
     \param f The action to perform on the instance.
   */
   template<typename S1, typename M1, typename F>
-  decltype(auto) With(const Sync<S1, M1>& s1, F f) {
-    return s1.With(f);
+  decltype(auto) With(const Sync<S1, M1>& s1, F&& f) {
+    return s1.With(std::forward<F>(f));
   }
 
+  //! Acquires two Syncs' instances in a synchronized manner.
+  /*!
+    \param s1 The first Sync whose instance is to be acquired.
+    \param s2 The second Sync whose instance is to be acquired.
+    \param f The action to perform on the instances.
+  */
   template<typename S1, typename M1, typename S2, typename M2, typename F>
-  decltype(auto) With(Sync<S1, M1>& s1, Sync<S2, M2>& s2, F f) {
-    return s1.With(s2, f);
+  decltype(auto) With(Sync<S1, M1>& s1, Sync<S2, M2>& s2, F&& f) {
+    return s1.With(s2, std::forward<F>(f));
   }
 
   //! Releases a Sync.
   template<typename S1, typename M1>
-  LockRelease<boost::unique_lock<typename Sync<S1, M1>::Mutex>> Release(
-      Sync<S1, M1>& s1) {
-    return LockRelease<boost::unique_lock<typename Sync<S1, M1>::Mutex>>(
-      *s1.m_lock);
+  LockRelease<typename Sync<S1, M1>::LockProxy> Release(Sync<S1, M1>& s1) {
+    return LockRelease(*s1.m_lock);
   }
 
-  template<typename T, typename MutexType>
-  template<typename... Args>
-  Sync<T, MutexType>::Sync(Args&&... args)
-      : m_value(std::forward<Args>(args)...) {}
+  template<typename T, typename M>
+  void Sync<T, M>::LockProxy::lock() {
+    std::visit(
+      [] (auto& ptr) {
+        ptr->lock();
+      }, m_lock);
+  }
 
-  template<typename T, typename MutexType>
-  Sync<T, MutexType>::Sync(const Sync& sync)
+  template<typename T, typename M>
+  void Sync<T, M>::LockProxy::unlock() {
+    std::visit(
+      [] (auto& ptr) {
+        ptr->unlock();
+      }, m_lock);
+  }
+
+  template<typename T, typename M>
+  Sync<T, M>::LockProxy::LockProxy(Variant lock)
+    : m_lock(std::move(lock)) {}
+
+  template<typename T, typename M>
+  template<typename... Args>
+  Sync<T, M>::Sync(Args&&... args)
+    : m_value(std::forward<Args>(args)...) {}
+
+  template<typename T, typename M>
+  Sync<T, M>::Sync(const Sync& sync)
   try
       : m_value((sync.m_mutex.lock(), sync.m_value)) {
     sync.m_mutex.unlock();
@@ -166,12 +245,12 @@ namespace Threading {
     sync.m_mutex.unlock();
   }
 
-  template<typename T, typename MutexType>
-  Sync<T, MutexType>::Sync(Sync& sync)
-      : Sync{static_cast<const Sync&>(sync)} {}
+  template<typename T, typename M>
+  Sync<T, M>::Sync(Sync& sync)
+    : Sync(static_cast<const Sync&>(sync)) {}
 
-  template<typename T, typename MutexType>
-  Sync<T, MutexType>::Sync(Sync&& sync)
+  template<typename T, typename M>
+  Sync<T, M>::Sync(Sync&& sync)
   try
       : m_value((sync.m_mutex.lock(), std::move(sync.m_value))) {
     sync.m_mutex.unlock();
@@ -179,31 +258,56 @@ namespace Threading {
     sync.m_mutex.unlock();
   }
 
-  template<typename T, typename MutexType>
-  T& Sync<T, MutexType>::AcquireReference() {
-    boost::lock_guard<Mutex> lock(m_mutex);
+  template<typename T, typename M>
+  T Sync<T, M>::Acquire() const {
+    auto lock = ReadLock(m_mutex);
     return m_value;
   }
 
-  template<typename T, typename MutexType>
-  T Sync<T, MutexType>::Acquire() const {
-    boost::lock_guard<Mutex> lock(m_mutex);
-    return m_value;
+  template<typename T, typename M>
+  template<typename F>
+  decltype(auto) Sync<T, M>::With(F&& f) {
+    if constexpr(boost::hof::is_invocable<F, Value>()) {
+      return static_cast<const Sync*>(this)->With(f);
+    } else {
+      auto lock = WriteLock(m_mutex);
+      m_lock = LockProxy(&lock);
+      return f(m_value);
+    }
   }
 
-  template<typename T, typename MutexType>
-  boost::unique_lock<typename Sync<T, MutexType>::Mutex>& Sync<T, MutexType>::
-      GetLock() const {
-    return *m_lock;
+  template<typename T, typename M>
+  template<typename F>
+  decltype(auto) Sync<T, M>::With(F&& f) const {
+    auto lock = ReadLock(m_mutex);
+    m_lock = LockProxy(&lock);
+    return f(m_value);
   }
 
-  template<typename T, typename MutexType>
+  template<typename T, typename M>
+  template<typename S2, typename M2, typename F>
+  decltype(auto) Sync<T, M>::With(Sync<S2, M2>& s2, F&& f) {
+    auto lock1 = WriteLock(m_mutex, boost::defer_lock);
+    auto lock2 = typename Sync<S2, M2>::WriteLock(s2.m_mutex,
+      boost::defer_lock);
+    boost::lock(lock1, lock2);
+    m_lock = LockProxy(&lock1);
+    s2.m_lock = typename Sync<S2, M2>::LockProxy(&lock2);
+    return f(m_value, s2.m_value);
+  }
+
+  template<typename T, typename M>
+  typename Sync<T, M>::LockProxy& Sync<T, M>::GetLock() const {
+    return m_lock;
+  }
+
+  template<typename T, typename M>
   template<typename U>
-  Sync<T, MutexType>& Sync<T, MutexType>::operator =(const Sync<U>& sync) {
+  Sync<T, M>& Sync<T, M>::operator =(const Sync<U>& sync) {
     if(this == &sync) {
       return *this;
     }
-    boost::lock_guard<Mutex> lock(m_mutex);
+    auto lock = WriteLock(m_mutex);
     sync.With(
       [&] (const U& value) {
         m_value = value;
@@ -211,13 +315,13 @@ namespace Threading {
     return *this;
   }
 
-  template<typename T, typename MutexType>
+  template<typename T, typename M>
   template<typename U>
-  Sync<T, MutexType>& Sync<T, MutexType>::operator =(Sync<U>&& sync) {
+  Sync<T, M>& Sync<T, M>::operator =(Sync<U>&& sync) {
     if(this == &sync) {
       return *this;
     }
-    boost::lock_guard<Mutex> lock(m_mutex);
+    auto lock = WriteLock(m_mutex);
     sync.With(
       [&] (U& value) {
         m_value = std::move(value);
@@ -225,14 +329,13 @@ namespace Threading {
     return *this;
   }
 
-  template<typename T, typename MutexType>
+  template<typename T, typename M>
   template<typename ValueForward>
-  Sync<T, MutexType>& Sync<T, MutexType>::operator =(ValueForward&& value) {
-    boost::lock_guard<Mutex> lock(m_mutex);
+  Sync<T, M>& Sync<T, M>::operator =(ValueForward&& value) {
+    auto lock = WriteLock(m_mutex);
     m_value = std::forward<ValueForward>(value);
     return *this;
   }
-}
 }
 
 #endif

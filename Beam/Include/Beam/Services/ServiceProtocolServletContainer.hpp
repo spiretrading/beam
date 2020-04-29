@@ -110,7 +110,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
     } catch(const std::exception&) {
       m_protocolServer.Close();
       m_isOpen.GetEval().SetException(std::current_exception());
-      return;
+      throw;
     }
     m_isOpen.GetEval().SetResult();
   }

@@ -70,6 +70,7 @@ namespace Details {
       //! The proxy for any type of lock in use.
       class LockProxy {
         public:
+
           //! Locks the lock referenced.
           void lock() {
             std::visit(
@@ -77,7 +78,7 @@ namespace Details {
                 ptr->lock();
               }, m_lock);
           }
-      
+
           //! Unlocks the lock referenced.
           void unlock() {
             std::visit(
@@ -85,9 +86,9 @@ namespace Details {
                 ptr->unlock();
               }, m_lock);
           }
-      
+
         private:
-          friend class Sync;
+          template<typename, typename> friend class Sync;
           using Variant = std::conditional_t<std::is_same_v<ReadLock,
             WriteLock>, std::variant<WriteLock*>, std::variant<ReadLock*,
             WriteLock*>>;

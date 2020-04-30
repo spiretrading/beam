@@ -70,17 +70,20 @@ namespace Details {
       class LockProxy {
         public:
 
-          //! Locks the lock referenced.
+          //! Locks the referenced lock.
           void lock();
 
-          //! Unlocks the lock referenced.
+          //! Tries to lock the referenced lock.
+          bool try_lock();
+
+          //! Unlocks the referenced lock.
           void unlock();
 
         private:
           template<typename, typename> friend class Sync;
           using Variant = std::conditional_t<std::is_same_v<ReadLock,
-            WriteLock>, std::variant<WriteLock*>, std::variant<ReadLock*,
-            WriteLock*>>;
+            WriteLock>, std::variant<WriteLock>, std::variant<ReadLock,
+            WriteLock>>;
           Variant m_lock;
 
           LockProxy() = default;
@@ -169,7 +172,7 @@ namespace Details {
       template<typename S1, typename M1>
         friend LockRelease<LockProxy> Release(Sync<S1, M1>&);
       mutable Mutex m_mutex;
-      mutable LockProxy m_lock;
+      mutable LockProxy* m_lock;
       Value m_value;
   };
   BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
@@ -214,16 +217,24 @@ namespace Details {
   template<typename T, typename M>
   void Sync<T, M>::LockProxy::lock() {
     std::visit(
-      [] (auto& ptr) {
-        ptr->lock();
+      [] (auto& lock) {
+        lock.lock();
+      }, m_lock);
+  }
+
+  template<typename T, typename M>
+  bool Sync<T, M>::LockProxy::try_lock() {
+    return std::visit(
+      [] (auto& lock) {
+        return lock.try_lock();
       }, m_lock);
   }
 
   template<typename T, typename M>
   void Sync<T, M>::LockProxy::unlock() {
     std::visit(
-      [] (auto& ptr) {
-        ptr->unlock();
+      [] (auto& lock) {
+        lock.unlock();
       }, m_lock);
   }
 
@@ -270,8 +281,8 @@ namespace Details {
     if constexpr(boost::hof::is_invocable<F, Value>()) {
       return static_cast<const Sync*>(this)->With(f);
     } else {
-      auto lock = WriteLock(m_mutex);
-      m_lock = LockProxy(&lock);
+      auto lock = LockProxy(WriteLock(m_mutex));
+      m_lock = &lock;
       return f(m_value);
     }
   }
@@ -279,26 +290,26 @@ namespace Details {
   template<typename T, typename M>
   template<typename F>
   decltype(auto) Sync<T, M>::With(F&& f) const {
-    auto lock = ReadLock(m_mutex);
-    m_lock = LockProxy(&lock);
+    auto lock = LockProxy(ReadLock(m_mutex));
+    m_lock = &lock;
     return f(m_value);
   }
 
   template<typename T, typename M>
   template<typename S2, typename M2, typename F>
   decltype(auto) Sync<T, M>::With(Sync<S2, M2>& s2, F&& f) {
-    auto lock1 = WriteLock(m_mutex, boost::defer_lock);
-    auto lock2 = typename Sync<S2, M2>::WriteLock(s2.m_mutex,
-      boost::defer_lock);
+    auto lock1 = LockProxy(WriteLock(m_mutex, boost::defer_lock));
+    auto lock2 = typename Sync<S2, M2>::LockProxy(
+      typename Sync<S2, M2>::WriteLock(s2.m_mutex, boost::defer_lock));
     boost::lock(lock1, lock2);
-    m_lock = LockProxy(&lock1);
-    s2.m_lock = typename Sync<S2, M2>::LockProxy(&lock2);
+    m_lock = &lock1;
+    s2.m_lock = &lock2;
     return f(m_value, s2.m_value);
   }
 
   template<typename T, typename M>
   typename Sync<T, M>::LockProxy& Sync<T, M>::GetLock() const {
-    return m_lock;
+    return *m_lock;
   }
 
   template<typename T, typename M>

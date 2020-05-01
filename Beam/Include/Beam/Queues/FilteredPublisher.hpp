@@ -1,6 +1,7 @@
 #ifndef BEAM_FILTEREDPUBLISHER_HPP
 #define BEAM_FILTEREDPUBLISHER_HPP
 #include <functional>
+#include <mutex>
 #include <unordered_set>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Dereference.hpp"

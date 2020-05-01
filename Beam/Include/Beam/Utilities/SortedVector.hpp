@@ -17,20 +17,20 @@ namespace Beam {
       typename AllocatorType = std::allocator<T>>
   class SortedVector {
     public:
-      typedef std::vector<T, AllocatorType> Vector;
-      typedef ComparatorType Comparator;
-      typedef typename Vector::value_type value_type;
-      typedef typename Vector::allocator_type allocator_type;
-      typedef typename Vector::reference reference;
-      typedef typename Vector::const_reference const_reference;
-      typedef typename Vector::pointer pointer;
-      typedef typename Vector::const_pointer const_pointer;
-      typedef typename Vector::iterator iterator;
-      typedef typename Vector::const_iterator const_iterator;
-      typedef typename Vector::reverse_iterator reverse_iterator;
-      typedef typename Vector::const_reverse_iterator const_reverse_iterator;
-      typedef typename Vector::difference_type difference_type;
-      typedef typename Vector::size_type size_type;
+      using Vector = std::vector<T, AllocatorType>;
+      using Comparator = ComparatorType;
+      using value_type = typename Vector::value_type;
+      using allocator_type = typename Vector::allocator_type;
+      using reference = typename Vector::reference;
+      using const_reference = typename Vector::const_reference;
+      using pointer = typename Vector::pointer;
+      using const_pointer = typename Vector::const_pointer;
+      using iterator = typename Vector::iterator;
+      using const_iterator = typename Vector::const_iterator;
+      using reverse_iterator = typename Vector::reverse_iterator;
+      using const_reverse_iterator = typename Vector::const_reverse_iterator;
+      using difference_type = typename Vector::difference_type;
+      using size_type = typename Vector::size_type;
 
       //! Constructs an empty SortedVector.
       SortedVector();

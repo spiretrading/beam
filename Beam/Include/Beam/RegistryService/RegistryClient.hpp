@@ -23,8 +23,8 @@ namespace RegistryService {
     public:
 
       //! The type used to build ServiceProtocolClients to the server.
-      typedef typename TryDereferenceType<
-        ServiceProtocolClientBuilderType>::type ServiceProtocolClientBuilder;
+      using ServiceProtocolClientBuilder =
+        typename TryDereferenceType<ServiceProtocolClientBuilderType>::type;
 
       //! Constructs a RegistryClient.
       /*!
@@ -153,8 +153,8 @@ namespace RegistryService {
       void Close();
 
     private:
-      typedef typename ServiceProtocolClientBuilder::Client
-        ServiceProtocolClient;
+      using ServiceProtocolClient =
+        typename ServiceProtocolClientBuilder::Client;
       Beam::Services::ServiceProtocolClientHandler<
         ServiceProtocolClientBuilderType> m_clientHandler;
       IO::OpenState m_openState;

@@ -1,8 +1,8 @@
 #ifndef BEAM_FILTEREDPUBLISHER_HPP
 #define BEAM_FILTEREDPUBLISHER_HPP
 #include <functional>
-#include <mutex>
 #include <unordered_set>
+#include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -29,15 +29,15 @@ namespace Beam {
       public Details::GetPublisherType<PublisherType>::type,
       public QueueWriter<typename PublisherType::Type> {
     public:
-      typedef typename PublisherType::Type Type;
-      typedef typename Details::GetSnapshotType<PublisherType>::type Snapshot;
+      using Type = typename PublisherType::Type;
+      using Snapshot = typename Details::GetSnapshotType<PublisherType>::type;
 
       //! Defines the function used to filter values.
       /*!
         \param value The value to test.
         \return <code>true</code> iff the <i>value</i> is to be published.
       */
-      typedef std::function<bool (const Type& value)> FilterFunction;
+      using FilterFunction = std::function<bool(const Type&)>;
 
       //! Constructs a FilteredPublisher.
       /*!

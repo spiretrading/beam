@@ -20,10 +20,10 @@ namespace IO {
   template<typename BufferType, typename SourceReaderType>
   class QueuedReader : private boost::noncopyable {
     public:
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
       //! The source to read from.
-      typedef typename TryDereferenceType<SourceReaderType>::type SourceReader;
+      using SourceReader = typename TryDereferenceType<SourceReaderType>::type;
 
       //! Constructs a QueuedReader.
       /*!

@@ -19,10 +19,10 @@ namespace IO {
   template<typename BufferType>
   class PipedReader : private boost::noncopyable {
     public:
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
       //! The type of the PipedWriter that connects to this PipedReader.
-      typedef IO::PipedWriter<Buffer> PipedWriter;
+      using PipedWriter = IO::PipedWriter<Buffer>;
 
       //! Constructs an empty PipedReader.
       PipedReader();

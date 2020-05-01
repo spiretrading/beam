@@ -14,7 +14,7 @@ namespace Queries {
   template<typename T>
   class ReadEvaluatorNode : public EvaluatorNode<T> {
     public:
-      typedef T Result;
+      using Result = T;
 
       //! Constructs a ReadEvaluatorNode.
       /*!
@@ -35,7 +35,7 @@ namespace Queries {
       return std::make_unique<ReadEvaluatorNode<T>>(static_cast<T*>(address));
     }
 
-    typedef TypeList SupportedTypes;
+    using SupportedTypes = TypeList;
   };
 
   template<typename T>

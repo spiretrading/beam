@@ -13,7 +13,7 @@ namespace IO {
    */
   class NullReader : private boost::noncopyable {
     public:
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       bool IsDataAvailable() const;
 

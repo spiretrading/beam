@@ -23,16 +23,16 @@ namespace Beam {
     public:
 
       //! The type of map being wrapped.
-      typedef MapType Map;
+      using Map = MapType;
 
       //! The type of mutex used for synchronization.
-      typedef MutexType Mutex;
+      using Mutex = MutexType;
 
       //! The type of key stored by this map.
-      typedef typename Map::key_type Key;
+      using Key = typename Map::key_type;
 
       //! The type of value stored by this map.
-      typedef typename Map::mapped_type Value;
+      using Value = typename Map::mapped_type;
 
       //! Constructs an empty map.
       SynchronizedMap();

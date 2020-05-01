@@ -50,14 +50,14 @@ namespace Detail {
 
   template<typename TemplateMetaClass>
   struct TemplateInstantiater<TemplateMetaClass, 1> {
-    typedef BOOST_TYPEOF_TPL((TemplateMetaClass::template Template<
-      typename boost::mpl::at_c<
-      typename TemplateMetaClass::SupportedTypes, 0>::type>))* FunctionType;
+    using FunctionType = boost::type_of::remove_cv_ref_t<decltype(
+      (TemplateMetaClass::template Template<typename boost::mpl::at_c<
+          typename TemplateMetaClass::SupportedTypes, 0>::type>))>*;
 
     template<typename MetaClass, typename Signatures>
     struct FindInstantiation {
       static FunctionType Invoke(const std::type_info& type) {
-        typedef typename boost::mpl::front<Signatures>::type T;
+        using T = typename boost::mpl::front<Signatures>::type;
         if(type == typeid(T)) {
           return MetaClass::template Template<T>;
         }

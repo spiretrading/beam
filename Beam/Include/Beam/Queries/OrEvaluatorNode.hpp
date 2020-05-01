@@ -12,7 +12,7 @@ namespace Queries {
    */
   class OrEvaluatorNode : public EvaluatorNode<bool> {
     public:
-      typedef bool Result;
+      using Result = bool;
 
       //! Constructs an OrEvaluatorNode.
       /*!

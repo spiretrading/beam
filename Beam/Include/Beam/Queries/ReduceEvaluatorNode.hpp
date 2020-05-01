@@ -14,7 +14,7 @@ namespace Queries {
   template<typename T>
   class ReduceEvaluatorNode : public EvaluatorNode<T> {
     public:
-      typedef typename EvaluatorNode<T>::Result Result;
+      using Result = typename EvaluatorNode<T>::Result;
 
       //! Constructs a ReduceEvaluatorNode.
       /*!

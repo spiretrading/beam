@@ -17,7 +17,7 @@ namespace Services {
     public:
 
       //! Specifies the type of ServiceProtocolClient used.
-      typedef ServiceProtocolClientType ServiceProtocolClient;
+      using ServiceProtocolClient = ServiceProtocolClientType;
 
       //! Constructs a HeartbeatMessage.
       HeartbeatMessage();

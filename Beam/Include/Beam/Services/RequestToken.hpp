@@ -19,11 +19,11 @@ namespace Services {
     public:
 
       //! The type of ServiceProtocolClient the request was received from.
-      typedef typename TryDereferenceType<ServiceProtocolClientType>::type
-        ServiceProtocolClient;
+      using ServiceProtocolClient =
+        typename TryDereferenceType<ServiceProtocolClientType>::type;
 
       //! The type of service requested.
-      typedef ServiceType Service;
+      using Service = ServiceType;
 
       //! Constructs a RequestToken.
       /*!

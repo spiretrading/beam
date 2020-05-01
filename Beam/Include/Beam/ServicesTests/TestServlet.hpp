@@ -17,8 +17,8 @@ namespace Tests {
   template<typename ContainerType>
   class TestServlet : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
       //! Constructs a TestServlet.
       TestServlet();
@@ -41,10 +41,10 @@ namespace Tests {
   };
 
   struct MetaTestServlet {
-    typedef NullType Session;
+    using Session = NullType;
     template<typename ContainerType>
     struct apply {
-      typedef TestServlet<ContainerType> type;
+      using type = TestServlet<ContainerType>;
     };
   };
 

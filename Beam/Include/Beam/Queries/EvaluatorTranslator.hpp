@@ -44,13 +44,13 @@ namespace Queries {
     public:
 
       //! Lists all value types.
-      typedef typename QueryTypes::ValueTypes ValueTypes;
+      using ValueTypes = typename QueryTypes::ValueTypes;
 
       //! Lists all native types.
-      typedef typename QueryTypes::NativeTypes NativeTypes;
+      using NativeTypes = typename QueryTypes::NativeTypes;
 
       //! Lists types that can be compared.
-      typedef typename QueryTypes::ComparableTypes ComparableTypes;
+      using ComparableTypes = typename QueryTypes::ComparableTypes;
 
       //! Translates an Expression.
       /*!

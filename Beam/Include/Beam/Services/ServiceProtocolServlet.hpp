@@ -21,7 +21,7 @@ namespace Details {
       Concept<ServiceProtocolServlet<ContainerType>> {
 
     //! The type of ServiceProtocolServletContainer instantiating the Servlet.
-    typedef ContainerType Container;
+    using Container = ContainerType;
 
     //! Registers the service handlers.
     /*!

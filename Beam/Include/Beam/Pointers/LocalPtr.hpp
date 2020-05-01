@@ -81,8 +81,8 @@ namespace Beam {
    */
   template<typename T>
   struct OptionalLocalPtr {
-    typedef typename boost::mpl::if_c<IsDereferenceable<T>::value, T,
-      LocalPtr<T>>::type type;
+    using type = typename boost::mpl::if_c<IsDereferenceable<T>::value, T,
+      LocalPtr<T>>::type;
   };
 
   template<typename T>

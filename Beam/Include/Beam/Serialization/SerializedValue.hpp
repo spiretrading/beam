@@ -43,8 +43,8 @@ namespace Serialization {
 
     private:
       friend struct DataShuttle;
-      typedef typename std::aligned_storage<sizeof(T),
-        std::alignment_of<T>::value>::type Storage;
+      using Storage = typename std::aligned_storage<sizeof(T),
+        std::alignment_of<T>::value>::type;
       Storage m_storage;
       T* m_ptr;
   };

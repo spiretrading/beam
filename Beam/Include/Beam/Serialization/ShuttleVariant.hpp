@@ -22,7 +22,7 @@ namespace Details {
   template<typename Shuttler, typename Variant, int Head, int... Tail>
   void Send(Shuttler& shuttle, IntegerSequence<Head, Tail...>, int which,
       const Variant& value) {
-    typedef typename boost::mpl::at_c<typename Variant::types, Head>::type Type;
+    using Type = typename boost::mpl::at_c<typename Variant::types, Head>::type;
     if(which == Head) {
       shuttle.Shuttle("value", boost::get<Type>(value));
       return;
@@ -39,7 +39,7 @@ namespace Details {
   template<typename Shuttler, typename Variant, int Head, int... Tail>
   void Receive(Shuttler& shuttle, IntegerSequence<Head, Tail...>, int which,
       Variant& value) {
-    typedef typename boost::mpl::at_c<typename Variant::types, Head>::type Type;
+    using Type = typename boost::mpl::at_c<typename Variant::types, Head>::type;
     if(which == Head) {
       Type v;
       shuttle.Shuttle("value", v);
@@ -63,8 +63,8 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle,
         const boost::variant<Arg, Args...>& value, unsigned int version) const {
-      typedef typename IntegerSequenceGenerator<boost::mpl::size<
-        typename boost::variant<Arg, Args...>::types>::value>::type Sequence;
+      using Sequence = typename IntegerSequenceGenerator<boost::mpl::size<
+        typename boost::variant<Arg, Args...>::types>::value>::type;
       int which = value.which();
       shuttle.Shuttle("which", which);
       Details::Send(shuttle, Sequence(), which, value);
@@ -87,8 +87,8 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, boost::variant<Arg, Args...>& value,
         unsigned int version) const {
-      typedef typename IntegerSequenceGenerator<boost::mpl::size<
-        typename boost::variant<Arg, Args...>::types>::value>::type Sequence;
+      using Sequence = typename IntegerSequenceGenerator<boost::mpl::size<
+        typename boost::variant<Arg, Args...>::types>::value>::type;
       int which;
       shuttle.Shuttle("which", which);
       Details::Receive(shuttle, Sequence(), which, value);

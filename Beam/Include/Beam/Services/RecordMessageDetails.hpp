@@ -56,11 +56,11 @@ namespace Details {
   template<typename RecordMessageType>
   class RecordMessageSlot : public ServiceSlot<RecordMessageType> {
     public:
-      typedef RecordMessageType RecordMessage;
-      typedef typename ServiceSlot<RecordMessage>::PreHook PreHook;
-      typedef typename GetRecordMessageSlotType<
+      using RecordMessage = RecordMessageType;
+      using PreHook = typename ServiceSlot<RecordMessage>::PreHook;
+      using Slot = typename GetRecordMessageSlotType<
         typename RecordMessage::ServiceProtocolClient,
-        typename RecordMessage::Record::TypeList>::type Slot;
+        typename RecordMessage::Record::TypeList>::type;
 
       template<typename SlotForward>
       RecordMessageSlot(SlotForward&& slot);

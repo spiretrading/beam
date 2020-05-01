@@ -19,10 +19,10 @@ namespace IO {
     typename ReaderType, typename WriterType>
   class BasicChannel : private boost::noncopyable {
     public:
-      typedef IdentifierType Identifier;
-      typedef typename TryDereferenceType<ConnectionType>::type Connection;
-      typedef typename TryDereferenceType<ReaderType>::type Reader;
-      typedef typename TryDereferenceType<WriterType>::type Writer;
+      using Identifier = IdentifierType;
+      using Connection = typename TryDereferenceType<ConnectionType>::type;
+      using Reader = typename TryDereferenceType<ReaderType>::type;
+      using Writer = typename TryDereferenceType<WriterType>::type;
 
       //! Constructs a BasicChannel.
       /*!

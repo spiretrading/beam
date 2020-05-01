@@ -2,7 +2,7 @@
 exit_status=0
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="1f3a1c3b7cd560fa745bfbc402de198cdc220b33"
+aspen_commit="b0a417815544ad3cf9d3567de488e74489c43fb3"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen

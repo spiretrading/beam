@@ -81,13 +81,13 @@ namespace Beam {
     if(!m_filter(value)) {
       return;
     }
-    m_target->Push(value);
+    m_destination->Push(value);
   }
 
   template<typename SourceType, typename DestinationQueueType>
   void FilterWriterQueue<SourceType, DestinationQueueType>::Break(
       const std::exception_ptr& e) {
-    m_target->Break(e);
+    m_destination->Break(e);
   }
 }
 

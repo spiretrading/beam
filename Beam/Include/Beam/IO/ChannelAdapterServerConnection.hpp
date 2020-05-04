@@ -35,7 +35,7 @@ namespace IO {
         \return The adapted Channel.
       */
       using Adapter = std::function<std::unique_ptr<Channel>(
-        std::unique_ptr<SourceChannel>&)>;
+        std::unique_ptr<SourceChannel>& source)>;
 
       //! Constructs a ChannelAdapterServerConnection.
       /*!

@@ -82,9 +82,9 @@ namespace Detail {
   #define BOOST_PP_LOCAL_MACRO(n)                                              \
   template<typename TemplateMetaClass>                                         \
   struct TemplateInstantiater<TemplateMetaClass, n> {                          \
-    using FunctionType = BOOST_PP_EXPAND(BOOST_TYPEOF_TPL                                   \
+    using FunctionType = BOOST_PP_EXPAND(BOOST_TYPEOF_TPL                      \
       (TemplateMetaClass::template Template<                                   \
-      BOOST_PP_REPEAT(n, BEAM_DEDUCE_TYPE_PARAMETERS, BOOST_PP_EMPTY)>))*;                                                            \
+      BOOST_PP_REPEAT(n, BEAM_DEDUCE_TYPE_PARAMETERS, BOOST_PP_EMPTY)>))*;     \
                                                                                \
     template<typename MetaClass, typename Signatures>                          \
     struct FindInstantiation {                                                 \

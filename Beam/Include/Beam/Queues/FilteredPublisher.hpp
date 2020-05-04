@@ -37,7 +37,7 @@ namespace Beam {
         \param value The value to test.
         \return <code>true</code> iff the <i>value</i> is to be published.
       */
-      using FilterFunction = std::function<bool(const Type&)>;
+      using FilterFunction = std::function<bool(const Type& value)>;
 
       //! Constructs a FilteredPublisher.
       /*!

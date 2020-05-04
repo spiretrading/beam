@@ -21,7 +21,9 @@ namespace Details {
   template<typename ServletType, typename ClientType>
   struct HasClientAcceptedMethod {
     using YesType = char;
-    using NoType = struct { char a[2]; };
+    using NoType = struct {
+      char a[2];
+    };
 
     template<typename C>
     static YesType Test(decltype(boost::declval<C>().HandleClientAccepted(

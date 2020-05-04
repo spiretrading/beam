@@ -38,9 +38,9 @@
   template<typename T>                                                         \
   struct Name {                                                                \
     using YesType = char;                                                      \
-    using NoType = struct {                                                           \
+    using NoType = struct {                                                    \
       char a[2];                                                               \
-    };                                                                  \
+    };                                                                         \
                                                                                \
     template<typename C>                                                       \
     static YesType Test(typename C::Typedef*);                                 \
@@ -55,9 +55,9 @@
   template<typename T>                                                         \
   struct Name {                                                                \
     using YesType = char;                                                      \
-    using NoType = struct {                                                           \
+    using NoType = struct {                                                    \
       char a[2];                                                               \
-    };                                                                  \
+    };                                                                         \
                                                                                \
     template<typename C>                                                       \
     static YesType Test(decltype(C::Variable)*);                               \

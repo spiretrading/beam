@@ -8,7 +8,10 @@ namespace Beam {
       \brief Stores a pointer using a native pointer type.
    */
   struct NativePointerPolicy {
-    template <typename T> struct apply { using type = T*; };
+    template <typename T>
+    struct apply {
+      using type = T*;
+    };
   };
 }
 

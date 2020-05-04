@@ -129,8 +129,8 @@ namespace SignalHandling {
   template<typename SlotType>                                                  \
   SlotType QueuedSignalHandler::GetSlotImplementation<SlotType, n>::Invoke(    \
       QueuedSignalHandler* handler, const SlotType& slot) {                    \
-    using ParameterTypes = typename boost::function_types::parameter_types<                   \
-      typename GetSignature<SlotType>::type>::type;             \
+    using ParameterTypes = typename boost::function_types::parameter_types<    \
+      typename GetSignature<SlotType>::type>::type;                            \
     return std::bind(static_cast<void (QueuedSignalHandler::*)(                \
       const SlotType& BOOST_PP_COMMA_IF(n)                                     \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY))>(            \

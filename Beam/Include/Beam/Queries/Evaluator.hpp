@@ -121,7 +121,7 @@ namespace Queries {
         initialValue->GetValue<T>());
     }
 
-    typedef TypeList SupportedTypes;
+    using SupportedTypes = TypeList;
   };
 
   template<typename T>

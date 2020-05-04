@@ -9,10 +9,7 @@ namespace Beam {
       \brief Stores a pointer using an std::unique_ptr.
    */
   struct UniquePointerPolicy {
-    template<typename T>
-    struct apply {
-      typedef std::unique_ptr<T> type;
-    };
+    template <typename T> struct apply { using type = std::unique_ptr<T>; };
   };
 }
 

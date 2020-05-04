@@ -22,8 +22,9 @@ namespace Details {
     BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
   struct GetRecordMessageSlotType<ServiceProtocolClientType,                   \
       boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)> > {                       \
-    typedef std::function<void (ServiceProtocolClientType& BOOST_PP_COMMA_IF(n)\
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))> type;               \
+    using type = std::function<void (                                          \
+      ServiceProtocolClientType& BOOST_PP_COMMA_IF(n)                          \
+      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
   };
 
   #define BOOST_PP_LOCAL_LIMITS (0, BEAM_SERVICE_PARAMETERS)
@@ -56,11 +57,11 @@ namespace Details {
   template<typename RecordMessageType>
   class RecordMessageSlot : public ServiceSlot<RecordMessageType> {
     public:
-      typedef RecordMessageType RecordMessage;
-      typedef typename ServiceSlot<RecordMessage>::PreHook PreHook;
-      typedef typename GetRecordMessageSlotType<
+      using RecordMessage = RecordMessageType;
+      using PreHook = typename ServiceSlot<RecordMessage>::PreHook;
+      using Slot = typename GetRecordMessageSlotType<
         typename RecordMessage::ServiceProtocolClient,
-        typename RecordMessage::Record::TypeList>::type Slot;
+        typename RecordMessage::Record::TypeList>::type;
 
       template<typename SlotForward>
       RecordMessageSlot(SlotForward&& slot);

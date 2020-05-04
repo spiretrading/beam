@@ -27,8 +27,8 @@ namespace Threading {
       //! Specifies the return type of a function.
       template<typename F>
       struct ReturnType {
-        typedef typename boost::function_traits<
-          typename std::remove_pointer<F>::type>::result_type type;
+        using type = typename boost::function_traits<
+          typename std::remove_pointer<F>::type>::result_type;
       };
 
       //! Constructs a ThreadPool.

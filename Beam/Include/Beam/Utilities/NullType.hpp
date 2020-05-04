@@ -14,10 +14,10 @@ namespace Beam {
 namespace boost {
   template<>
   struct call_traits< ::Beam::NullType> {
-    typedef ::Beam::NullType value_type;
-    typedef ::Beam::NullType reference;
-    typedef ::Beam::NullType const_reference;
-    typedef ::Beam::NullType param_type;
+    using value_type = ::Beam::NullType;
+    using reference = ::Beam::NullType;
+    using const_reference = ::Beam::NullType;
+    using param_type = ::Beam::NullType;
   };
 }
 

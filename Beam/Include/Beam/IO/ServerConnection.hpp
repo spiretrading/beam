@@ -24,7 +24,7 @@ namespace Details {
       "ChannelType must implement the Channel Concept.");
 
     //! Defines the type of Channel accepted by this server.
-    typedef ChannelType Channel;
+    using Channel = ChannelType;
 
     //! Accepts a new Channel.
     /*!

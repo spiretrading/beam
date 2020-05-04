@@ -16,11 +16,11 @@ namespace IO {
   template<typename DestinationWriterType>
   class AsyncWriter : private boost::noncopyable {
     public:
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       //! The destination to write to.
-      typedef typename TryDereferenceType<DestinationWriterType>::type
-        DestinationWriter;
+      using DestinationWriter =
+        typename TryDereferenceType<DestinationWriterType>::type;
 
       //! Constructs an AsyncWriter.
       /*!

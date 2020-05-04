@@ -37,10 +37,10 @@
 #define BEAM_DEFINE_HAS_TYPEDEF(Name, Typedef)                                 \
   template<typename T>                                                         \
   struct Name {                                                                \
-    typedef char YesType;                                                      \
-    typedef struct {                                                           \
+    using YesType = char;                                                      \
+    using NoType = struct {                                                    \
       char a[2];                                                               \
-    } NoType;                                                                  \
+    };                                                                         \
                                                                                \
     template<typename C>                                                       \
     static YesType Test(typename C::Typedef*);                                 \
@@ -54,10 +54,10 @@
 #define BEAM_DEFINE_HAS_VARIABLE(Name, Variable)                               \
   template<typename T>                                                         \
   struct Name {                                                                \
-    typedef char YesType;                                                      \
-    typedef struct {                                                           \
+    using YesType = char;                                                      \
+    using NoType = struct {                                                    \
       char a[2];                                                               \
-    } NoType;                                                                  \
+    };                                                                         \
                                                                                \
     template<typename C>                                                       \
     static YesType Test(decltype(C::Variable)*);                               \

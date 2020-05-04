@@ -27,18 +27,18 @@ namespace Services {
     public:
 
       //! The type used to build ServiceProtocolClients.
-      typedef ServiceProtocolClientBuilderType ServiceProtocolClientBuilder;
+      using ServiceProtocolClientBuilder = ServiceProtocolClientBuilderType;
 
       //! The type of ServiceProtocolClient used.
-      typedef typename ServiceProtocolClientHandler::
-        ServiceProtocolClientBuilder::Client Client;
+      using Client = typename ServiceProtocolClientHandler<
+        ServiceProtocolClientBuilderType>::ServiceProtocolClientBuilder::Client;
 
       //! The type of function used to handle a reconnection event.
       /*!
         \param client The client used for the reconnection.
       */
-      typedef std::function<void (const std::shared_ptr<Client>& client)>
-        ReconnectHandler;
+      using ReconnectHandler =
+        std::function<void(const std::shared_ptr<Client>&)>;
 
       //! Constructs a ServiceProtocolClientHandler.
       /*!

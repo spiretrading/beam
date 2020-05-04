@@ -18,9 +18,9 @@ namespace Serialization {
     BOOST_PP_COMMA_IF(i) BOOST_PP_TUPLE_ELEM(2, 0, q)
 
   #define BEAM_RECORD_DECLARE_TYPE_LIST(N, ...)                                \
-    typedef boost::mpl::vector<BOOST_PP_SEQ_FOR_EACH_I(                        \
+    using TypeList = boost::mpl::vector<BOOST_PP_SEQ_FOR_EACH_I(               \
       BEAM_RECORD_DECLARE_TYPE_LIST_, BOOST_PP_EMPTY,                          \
-      BOOST_PP_TUPLE_TO_SEQ(N, (__VA_ARGS__)))> TypeList;
+      BOOST_PP_TUPLE_TO_SEQ(N, (__VA_ARGS__)))>;
 
   #define BEAM_RECORD_DECLARE_MEMBERS_(z, n, q)                                \
     BOOST_PP_TUPLE_ELEM(2, 0, q) BOOST_PP_TUPLE_ELEM(2, 1, q);
@@ -111,7 +111,7 @@ namespace Serialization {
 
   #define BEAM_DEFINE_EMPTY_RECORD(Name)                                       \
     struct Name {                                                              \
-      typedef boost::mpl::vector<> TypeList;                                   \
+      using TypeList = boost::mpl::vector<>;                                   \
                                                                                \
       Name() {}                                                                \
                                                                                \

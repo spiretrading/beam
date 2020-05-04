@@ -20,7 +20,7 @@ namespace Beam {
     public:
 
       //! The type being read.
-      typedef T Target;
+      using Target = T;
 
       //! Constructs an AggregateQueue.
       /*!

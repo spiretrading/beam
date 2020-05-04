@@ -16,10 +16,10 @@ namespace IO {
   template<typename OStreamType>
   class BasicOStreamWriter : private boost::noncopyable {
     public:
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       //! The type of OStream being written to.
-      typedef typename TryDereferenceType<OStreamType>::type OStream;
+      using OStream = typename TryDereferenceType<OStreamType>::type;
 
       //! Constructs a BasicOStreamWriter.
       /*!

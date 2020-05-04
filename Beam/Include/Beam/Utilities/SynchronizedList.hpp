@@ -19,13 +19,13 @@ namespace Beam {
     public:
 
       //! The type of list being wrapped.
-      typedef ListType List;
+      using List = ListType;
 
       //! The type of mutex used for synchronization.
-      typedef MutexType Mutex;
+      using Mutex = MutexType;
 
       //! The type of value stored by this list.
-      typedef typename List::value_type Value;
+      using Value = typename List::value_type;
 
       //! Constructs an empty list.
       SynchronizedList();

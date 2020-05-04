@@ -20,7 +20,7 @@ namespace Details {
   struct Receiver : Concept<DataShuttle>, Concept<Receiver<SourceType>> {
 
     //! The type of Buffer used to store the data.
-    typedef SourceType Source;
+    using Source = SourceType;
 
     //! Specifies where the received data is stored.
     /*!

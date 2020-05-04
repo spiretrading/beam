@@ -22,13 +22,13 @@ namespace Queries {
   class GlobalVariableDeclarationEvaluatorNode :
       public EvaluatorNode<BodyType> {
     public:
-      typedef BodyType Result;
+      using Result = BodyType;
 
       //! The type of variable to declare.
-      typedef VariableType Variable;
+      using Variable = VariableType;
 
       //! The type of body to evaluate.
-      typedef BodyType Body;
+      using Body = BodyType;
 
       //! Constructs a GlobalVariableDeclarationEvaluatorNode.
       /*!
@@ -70,17 +70,17 @@ namespace Queries {
 
     template<typename T, typename U>
     struct CombineSignature {
-      typedef typename boost::mpl::vector<T, U>::type type;
+      using type = typename boost::mpl::vector<T, U>::type;
     };
 
     template<typename T>
     struct MakeSignature {
-      typedef typename boost::mpl::transform<TypeList,
-        CombineSignature<T, boost::mpl::placeholders::_1>>::type type;
+      using type = typename boost::mpl::transform<TypeList,
+        CombineSignature<T, boost::mpl::placeholders::_1>>::type;
     };
 
-    typedef typename boost::mpl::transform<TypeList,
-      MakeSignature<boost::mpl::placeholders::_1>>::type SupportedTypes;
+    using SupportedTypes = typename boost::mpl::transform<TypeList,
+      MakeSignature<boost::mpl::placeholders::_1>>::type;
   };
 
   template<typename TypeList>
@@ -93,8 +93,9 @@ namespace Queries {
         std::move(body)));
     }
 
-    typedef typename GlobalVariableDeclarationEvaluatorNodeTranslator<
-      TypeList>::SupportedTypes SupportedTypes;
+    using SupportedTypes =
+      typename GlobalVariableDeclarationEvaluatorNodeTranslator<
+        TypeList>::SupportedTypes;
   };
 
   template<typename VariableType, typename BodyType>

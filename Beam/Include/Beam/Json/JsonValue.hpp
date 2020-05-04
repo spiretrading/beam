@@ -25,8 +25,8 @@ namespace Beam {
   };
 
 namespace Details {
-  typedef boost::variant<std::string, JsonNull, bool, double, JsonObject,
-    std::vector<JsonValue>> JsonVariant;
+  using JsonVariant = boost::variant<std::string, JsonNull, bool, double,
+    JsonObject, std::vector<JsonValue>>;
 }
 
   /*! \class JsonValue

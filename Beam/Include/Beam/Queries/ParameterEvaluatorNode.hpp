@@ -31,7 +31,7 @@ namespace Queries {
   class ParameterEvaluatorNode : public EvaluatorNode<ResultType>,
       public BaseParameterEvaluatorNode {
     public:
-      typedef ResultType Result;
+      using Result = ResultType;
 
       //! Constructs a ParameterEvaluatorNode with a given index.
       /*!
@@ -59,7 +59,7 @@ namespace Queries {
       return new ParameterEvaluatorNode<T>(expression.GetIndex());
     }
 
-    typedef TypeList SupportedTypes;
+    using SupportedTypes = TypeList;
   };
 
   template<typename ResultType>

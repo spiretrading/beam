@@ -80,7 +80,7 @@ namespace RegistryService {
     public:
 
       //! The RegistryClient to wrap.
-      typedef typename TryDereferenceType<ClientType>::type Client;
+      using Client = typename TryDereferenceType<ClientType>::type;
 
       //! Constructs a WrapperRegistryClient.
       /*!

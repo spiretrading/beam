@@ -20,10 +20,10 @@ namespace Details {
 
   template<typename ServletType, typename ClientType>
   struct HasClientAcceptedMethod {
-    typedef char YesType;
-    typedef struct {
+    using YesType = char;
+    using NoType = struct {
       char a[2];
-    } NoType;
+    };
 
     template<typename C>
     static YesType Test(decltype(boost::declval<C>().HandleClientAccepted(
@@ -53,10 +53,8 @@ namespace Details {
 
   template<typename ServletType, typename ClientType>
   struct HasClientClosedMethod {
-    typedef char YesType;
-    typedef struct {
-      char a[2];
-    } NoType;
+    using YesType = char;
+    using NoType = struct { char a[2]; };
 
     template<typename C>
     static YesType Test(decltype(boost::declval<C>().HandleClientClosed(

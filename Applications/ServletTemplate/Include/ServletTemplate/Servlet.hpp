@@ -17,8 +17,8 @@ namespace Beam {
   template<typename ContainerType>
   class ServletTemplateServlet : private boost::noncopyable {
     public:
-      typedef ContainerType Container;
-      typedef typename Container::ServiceProtocolClient ServiceProtocolClient;
+      using Container = ContainerType;
+      using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
       //! Constructs a ServletTemplateServlet.
       ServletTemplateServlet();
@@ -56,7 +56,7 @@ namespace Beam {
     using Session = NullType;
     template<typename ContainerType>
     struct apply {
-      typedef ServletTemplateServlet<ContainerType> type;
+      using type = ServletTemplateServlet<ContainerType>;
     };
   };
 

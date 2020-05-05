@@ -20,7 +20,7 @@
         is_done_condition.notify_one();                                        \
       });                                                                      \
     if(!is_done) {                                                             \
-      if(argv[1] == "--notimeout") {                                           \
+      if(argc >= 2 && std::string(argv[1]) == "--notimeout") {                 \
         is_done_condition.wait(lock);                                          \
       } else {                                                                 \
         is_done_condition.wait_for(lock, std::chrono::seconds(timeout));       \

@@ -12,15 +12,15 @@ namespace {
     PEAR,
     BANANA);
 
-  std::string ToString(Fruit fruit) {
+  std::ostream& operator <<(std::ostream& out, Fruit fruit) {
     if(fruit == Fruit::APPLE) {
-      return "APPLE";
+      return out << "APPLE";
     } else if(fruit == Fruit::PEAR) {
-      return "PEAR";
+      return out << "PEAR";
     } else if(fruit == Fruit::BANANA) {
-      return "BANANA";
+      return out << "BANANA";
     }
-    return "NONE";
+    return out << "NONE";
   }
 }
 
@@ -32,7 +32,7 @@ namespace Beam {
 TEST_SUITE("EnumeratorParser") {
   TEST_CASE("read_enumerator") {
     auto parser = EnumeratorParser<Fruit>(begin(MakeRange<Fruit>()),
-      end(MakeRange<Fruit>()), static_cast<std::string (*)(Fruit)>(ToString));
+      end(MakeRange<Fruit>()));
     auto source = ParserStreamFromString("APPLE");
     auto value = Fruit();
     REQUIRE(parser.Read(source, value));

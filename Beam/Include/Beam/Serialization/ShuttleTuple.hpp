@@ -37,7 +37,7 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         const std::tuple<Args...>& value) const {
-      typedef typename IntegerSequenceGenerator<sizeof...(Args)>::type Sequence;
+      using Sequence = typename IntegerSequenceGenerator<sizeof...(Args)>::type;
       shuttle.StartSequence(name);
       Details::Send(shuttle, Sequence(), value);
       shuttle.EndSequence();
@@ -49,7 +49,7 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         std::tuple<Args...>& value) const {
-      typedef typename IntegerSequenceGenerator<sizeof...(Args)>::type Sequence;
+      using Sequence = typename IntegerSequenceGenerator<sizeof...(Args)>::type;
       shuttle.StartSequence(name);
       Details::Receive(shuttle, Sequence(), value);
       shuttle.EndSequence();

@@ -20,7 +20,7 @@ namespace Details {
   struct Sender : Concept<DataShuttle>, Concept<Sender<SinkType>> {
 
     //! The type of Buffer used to store the data.
-    typedef SinkType Sink;
+    using Sink = SinkType;
 
     //! Specifies where the data to be sent is stored.
     /*!

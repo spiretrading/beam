@@ -20,7 +20,7 @@ namespace Serialization {
     public:
       static_assert(ImplementsConcept<SinkType, IO::Buffer>::value,
         "SinkType must implement the Buffer Concept.");
-      typedef SinkType Sink;
+      using Sink = SinkType;
 
       //! Constructs a BinarySender.
       BinarySender() = default;

@@ -25,7 +25,7 @@ namespace SignalHandling {
     public:
 
       //! Indicates that one or more signals have been queued.
-      typedef std::function<void ()> QueuedSlot;
+      using QueuedSlot = std::function<void()>;
 
       //! Constructs a QueuedSignalHandler.
       QueuedSignalHandler();
@@ -129,8 +129,8 @@ namespace SignalHandling {
   template<typename SlotType>                                                  \
   SlotType QueuedSignalHandler::GetSlotImplementation<SlotType, n>::Invoke(    \
       QueuedSignalHandler* handler, const SlotType& slot) {                    \
-    typedef typename boost::function_types::parameter_types<                   \
-      typename GetSignature<SlotType>::type>::type ParameterTypes;             \
+    using ParameterTypes = typename boost::function_types::parameter_types<    \
+      typename GetSignature<SlotType>::type>::type;                            \
     return std::bind(static_cast<void (QueuedSignalHandler::*)(                \
       const SlotType& BOOST_PP_COMMA_IF(n)                                     \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY))>(            \

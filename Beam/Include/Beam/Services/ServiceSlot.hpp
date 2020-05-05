@@ -15,7 +15,7 @@ namespace Services {
     public:
 
       //! The signature of a pre-hook.
-      typedef std::function<void (ServiceProtocolClientType&)> PreHook;
+      using PreHook = std::function<void(ServiceProtocolClientType&)>;
 
       virtual ~BaseServiceSlot();
 
@@ -41,9 +41,9 @@ namespace Services {
     public:
 
       //! The type of Message this slot is called for.
-      typedef MessageType Message;
-      typedef typename BaseServiceSlot<
-        typename MessageType::ServiceProtocolClient>::PreHook PreHook;
+      using Message = MessageType;
+      using PreHook = typename BaseServiceSlot<
+        typename MessageType::ServiceProtocolClient>::PreHook;
 
       virtual ~ServiceSlot();
   };

@@ -9,10 +9,7 @@ namespace Beam {
       \brief Stores a pointer using an std::shared_ptr.
    */
   struct SharedPointerPolicy {
-    template<typename T>
-    struct apply {
-      typedef std::shared_ptr<T> type;
-    };
+    template <typename T> struct apply { using type = std::shared_ptr<T>; };
   };
 }
 

@@ -23,9 +23,9 @@ namespace IO {
       static const std::size_t DEFAULT_READ_SIZE = 8 * 1024;
 
       //! The type of istream to read from.
-      typedef typename TryDereferenceType<IStreamType>::type IStream;
+      using IStream = typename TryDereferenceType<IStreamType>::type;
 
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       //! Constructs a BasicIStreamReader.
       /*!

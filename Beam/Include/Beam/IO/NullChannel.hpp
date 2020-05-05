@@ -17,10 +17,10 @@ namespace IO {
    */
   class NullChannel : private boost::noncopyable {
     public:
-      typedef std::string Identifier;
-      typedef NullConnection Connection;
-      typedef NullReader Reader;
-      typedef NullWriter Writer;
+      using Identifier = std::string;
+      using Connection = NullConnection;
+      using Reader = NullReader;
+      using Writer = NullWriter;
 
       //! Constructs a default NullChannel.
       NullChannel() = default;

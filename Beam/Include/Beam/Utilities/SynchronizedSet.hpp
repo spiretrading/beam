@@ -20,13 +20,13 @@ namespace Beam {
     public:
 
       //! The type of set being wrapped.
-      typedef SetType Set;
+      using Set = SetType;
 
       //! The type of mutex used for synchronization.
-      typedef MutexType Mutex;
+      using Mutex = MutexType;
 
       //! The type of value stored by this set.
-      typedef typename Set::value_type Value;
+      using Value = typename Set::value_type;
 
       //! Constructs an empty set.
       SynchronizedSet();

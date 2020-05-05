@@ -24,8 +24,8 @@ namespace UidService {
     public:
 
       //! The type used to build ServiceProtocolClients to the server.
-      typedef typename TryDereferenceType<
-        ServiceProtocolClientBuilderType>::type ServiceProtocolClientBuilder;
+      using ServiceProtocolClientBuilder =
+        typename TryDereferenceType<ServiceProtocolClientBuilderType>::type;
 
       //! Constructs a UidClient.
       /*!
@@ -44,8 +44,8 @@ namespace UidService {
       void Close();
 
     private:
-      typedef typename ServiceProtocolClientBuilder::Client
-        ServiceProtocolClient;
+      using ServiceProtocolClient =
+        typename ServiceProtocolClientBuilder::Client;
       std::uint64_t m_nextUid;
       std::uint64_t m_lastUid;
       std::uint64_t m_blockSize;

@@ -17,17 +17,17 @@ namespace Beam {
     typename DestinationQueueType = QueueWriter<SourceType>>
   class FilterWriterQueue : public QueueWriter<SourceType> {
     public:
-      typedef SourceType Source;
+      using Source = SourceType;
 
       //! The type of Queue to push the filtered data onto.
-      typedef DestinationQueueType DestinationQueue;
+      using DestinationQueue = DestinationQueueType;
 
       //! The function used to perform the filtering.
       /*!
         \param data The data that was pushed onto the Queue.
         \return <code>true</code> iff the data satisfies the filter.
       */
-      typedef std::function<bool (const Source& data)> FilterFunction;
+      using FilterFunction = std::function<bool(const Source&)>;
 
       //! Constructs a FilterQueue.
       /*!
@@ -81,13 +81,13 @@ namespace Beam {
     if(!m_filter(value)) {
       return;
     }
-    m_target->Push(value);
+    m_destination->Push(value);
   }
 
   template<typename SourceType, typename DestinationQueueType>
   void FilterWriterQueue<SourceType, DestinationQueueType>::Break(
       const std::exception_ptr& e) {
-    m_target->Break(e);
+    m_destination->Break(e);
   }
 }
 

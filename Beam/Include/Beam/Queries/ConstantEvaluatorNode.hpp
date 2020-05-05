@@ -16,7 +16,7 @@ namespace Queries {
   template<typename ResultType>
   class ConstantEvaluatorNode : public EvaluatorNode<ResultType> {
     public:
-      typedef ResultType Result;
+      using Result = ResultType;
 
       //! Constructs a ConstantEvaluatorNode.
       /*!
@@ -48,7 +48,7 @@ namespace Queries {
       return new ConstantEvaluatorNode<T>(expression.GetValue()->GetValue<T>());
     }
 
-    typedef TypeList SupportedTypes;
+    using SupportedTypes = TypeList;
   };
 }
 }

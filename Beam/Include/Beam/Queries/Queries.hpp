@@ -79,11 +79,11 @@ namespace Beam::Queries {
   class TypeCompatibilityException;
   class VariableExpression;
   class VirtualDataType;
-  typedef ClonePtr<VirtualDataType> DataType;
+  using DataType = ClonePtr<VirtualDataType>;
   class VirtualExpression;
-  typedef ClonePtr<VirtualExpression> Expression;
+  using Expression = ClonePtr<VirtualExpression>;
   class VirtualValue;
-  typedef ClonePtr<VirtualValue> Value;
+  using Value = ClonePtr<VirtualValue>;
   template<typename t> class WriteEvaluatorNode;
 }
 

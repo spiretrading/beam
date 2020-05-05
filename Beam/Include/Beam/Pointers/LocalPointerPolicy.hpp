@@ -8,9 +8,9 @@ namespace Beam {
       \brief Stores a pointer using a LocalPtr.
    */
   struct LocalPointerPolicy {
-    template<typename T>
+    template <typename T>
     struct apply {
-      typedef LocalPtr<T> type;
+      using type = LocalPtr<T>;
     };
   };
 }

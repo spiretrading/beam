@@ -19,10 +19,10 @@ namespace IO {
   template<typename SourceReaderType>
   class SizeDeclarativeReader : private boost::noncopyable {
     public:
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       //! The source to read from.
-      typedef typename TryDereferenceType<SourceReaderType>::type SourceReader;
+      using SourceReader = typename TryDereferenceType<SourceReaderType>::type;
 
       //! Constructs a SizeDeclarativeReader.
       /*!

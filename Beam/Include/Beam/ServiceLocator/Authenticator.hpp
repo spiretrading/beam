@@ -13,7 +13,7 @@ namespace ServiceLocator {
    */
   template<typename ServiceProtocolClientType>
   struct Authenticator {
-    typedef std::function<void (ServiceProtocolClientType& client)> type;
+    using type = std::function<void(ServiceProtocolClientType&)>;
   };
 
   //! Opens a ServiceProtocolClient and authenticates the session.

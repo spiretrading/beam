@@ -14,7 +14,7 @@ namespace Threading {
     public:
 
       //! The type of lock to release.
-      typedef LockType Lock;
+      using Lock = LockType;
 
       //! Constructs a LockRelease, invoking a lock's unlock method.
       /*!

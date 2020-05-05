@@ -30,8 +30,8 @@ typename Cmp,
 typename Items > class NodeItem
 {
 private:
-    typedef Node<T, V, Cmp, Items> NodeClass;
-    typedef NodeItem<T, V, Cmp, Items> NodeItemClass;
+  using NodeClass = Node<T, V, Cmp, Items>;
+  using NodeItemClass = NodeItem<T, V, Cmp, Items>;
 
 public:
     NodeItem(const T &endSymbol, T const &key)
@@ -110,7 +110,7 @@ typename Cmp,
 typename Items > class EndNodeItem: public NodeItem<T, V, Cmp, Items>
 {
 private:
-    typedef NodeItem<T, V, Cmp, Items> ParentClass;
+  using ParentClass = NodeItem<T, V, Cmp, Items>;
 
 public:
     EndNodeItem(const T &endSymbol, T const &key)
@@ -147,7 +147,7 @@ typename Cmp,
 typename Items > class NodeItemPtrCompare
 {
 private:
-    typedef NodeItem<T, V, Cmp, Items> NodeItemClass;
+  using NodeItemClass = NodeItem<T, V, Cmp, Items>;
 
 public:
     bool operator()(const NodeItemClass *v1, const NodeItemClass *v2) const {
@@ -161,19 +161,20 @@ typename Cmp,
 typename Items > class Node
 {
 public:
-    typedef NodeItem<T, V, Cmp, Items> NodeItemClass;
-    typedef EndNodeItem<T, V, Cmp, Items> EndNodeItemClass;
-    typedef Node<T, V, Cmp, Items> NodeClass;
-    typedef typename Items::iterator ItemsContainerIter;
-    typedef typename Items::const_iterator ItemsContainerConstIter;
+  using NodeItemClass = NodeItem<T, V, Cmp, Items>;
+  using EndNodeItemClass = EndNodeItem<T, V, Cmp, Items>;
+  using NodeClass = Node<T, V, Cmp, Items>;
+  using ItemsContainerIter = typename Items::iterator;
+  using ItemsContainerConstIter = typename Items::const_iterator;
 
 public:
 
     class ConstIterator
     {
     protected:
-        typedef std::pair<const T *, const V *> KeyValuePair;
-        typedef typename NodeClass::ItemsContainerConstIter ItemsContainerConstIter;
+      using KeyValuePair = std::pair<const T*, const V*>;
+      using ItemsContainerConstIter =
+        typename NodeClass::ItemsContainerConstIter;
 
     public:
         ConstIterator(const NodeClass *node, const NodeClass * root, const T * key = 0, bool mooveToEnd = false)
@@ -460,8 +461,8 @@ public:
     class Iterator : public ConstIterator
     {
     private:
-        typedef std::pair<const T *, V *> MutableKeyValuePair;
-        MutableKeyValuePair mMutableKeyValuePair;
+      using MutableKeyValuePair = std::pair<const T*, V*>;
+      MutableKeyValuePair mMutableKeyValuePair;
 
     private:
         MutableKeyValuePair & getPair() {
@@ -778,13 +779,13 @@ int Max = 256,
 typename M = SymbolToIndexMapper<T> > class VectorItems
 {
 public:
-    typedef NodeItem<T, V, Cmp, VectorItems<T, V, Cmp, Max, M> > Item;
-    typedef std::vector<Item *> Items;
-    typedef typename Items::iterator iterator;
-    typedef typename Items::const_iterator const_iterator;
-    typedef Node<T, V, Cmp, VectorItems<T, V, Cmp, Max, M> > NodeClass;
-    typedef typename NodeClass::NodeItemClass NodeItemClass;
-    typedef typename NodeClass::EndNodeItemClass EndNodeItemClass;
+  using Item = NodeItem<T, V, Cmp, VectorItems<T, V, Cmp, Max, M>>;
+  using Items = std::vector<Item*>;
+  using iterator = typename Items::iterator;
+  using const_iterator = typename Items::const_iterator;
+  using NodeClass = Node<T, V, Cmp, VectorItems<T, V, Cmp, Max, M>>;
+  using NodeItemClass = typename NodeClass::NodeItemClass;
+  using EndNodeItemClass = typename NodeClass::EndNodeItemClass;
 
 public:
     VectorItems(T const &endSymbol)
@@ -898,13 +899,14 @@ typename V,
 typename Cmp > class SetItems
 {
 public:
-    typedef NodeItem<T, V, Cmp, SetItems<T, V, Cmp> > Item;
-    typedef std::set<Item *, NodeItemPtrCompare<T, V, Cmp, SetItems<T, V, Cmp> > > Items;
-    typedef typename Items::iterator iterator;
-    typedef typename Items::const_iterator const_iterator;
-    typedef Node<T, V, Cmp, SetItems<T, V, Cmp> > NodeClass;
-    typedef typename NodeClass::NodeItemClass NodeItemClass;
-    typedef typename NodeClass::EndNodeItemClass EndNodeItemClass;
+  using Item = NodeItem<T, V, Cmp, SetItems<T, V, Cmp>>;
+  using Items =
+    std::set<Item*, NodeItemPtrCompare<T, V, Cmp, SetItems<T, V, Cmp>>>;
+  using iterator = typename Items::iterator;
+  using const_iterator = typename Items::const_iterator;
+  using NodeClass = Node<T, V, Cmp, SetItems<T, V, Cmp>>;
+  using NodeItemClass = typename NodeClass::NodeItemClass;
+  using EndNodeItemClass = typename NodeClass::EndNodeItemClass;
 
 public:
     SetItems(T const &endSymbol)
@@ -1249,8 +1251,8 @@ typename Cmp = std::less<T>,
 typename Items = SetItems<T, V, Cmp> > class Trie
 {
 public:
-    typedef typename Node<T, V, Cmp, Items>::Iterator Iterator;
-    typedef typename Node<T, V, Cmp, Items>::ConstIterator ConstIterator;
+  using Iterator = typename Node<T, V, Cmp, Items>::Iterator;
+  using ConstIterator = typename Node<T, V, Cmp, Items>::ConstIterator;
 
 public:
     /*!

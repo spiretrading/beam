@@ -21,21 +21,21 @@ namespace IO {
     public:
 
       //! The type of ServerConnection to accept from.
-      typedef ServerConnectionType ServerConnection;
+      using ServerConnection = ServerConnectionType;
 
       //! The type of Channel to adapt from.
-      typedef typename ServerConnection::Channel SourceChannel;
+      using SourceChannel = typename ServerConnection::Channel;
 
       //! The type of Channel to adapt to.
-      typedef ChannelType Channel;
+      using Channel = ChannelType;
 
       //! Defines the type of function used to adapt a Channel.
       /*!
         \param source The Channel to adapt.
         \return The adapted Channel.
       */
-      typedef std::function<std::unique_ptr<Channel> (
-        std::unique_ptr<SourceChannel>& source)> Adapter;
+      using Adapter = std::function<std::unique_ptr<Channel>(
+        std::unique_ptr<SourceChannel>& source)>;
 
       //! Constructs a ChannelAdapterServerConnection.
       /*!

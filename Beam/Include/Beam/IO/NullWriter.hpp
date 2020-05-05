@@ -13,7 +13,7 @@ namespace IO {
    */
   class NullWriter : private boost::noncopyable {
     public:
-      typedef SharedBuffer Buffer;
+      using Buffer = SharedBuffer;
 
       void Write(const void* data, std::size_t size);
 

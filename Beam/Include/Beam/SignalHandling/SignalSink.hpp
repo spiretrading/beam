@@ -159,8 +159,8 @@ namespace Details {
   template<typename SlotType>                                                  \
   SlotType SignalSink::GetSlotImplementation<SlotType, n>::Invoke(             \
       SignalSink* sink) {                                                      \
-    typedef typename boost::function_types::parameter_types<                   \
-      typename GetSignature<SlotType>::type>::type ParameterTypes;             \
+    using ParameterTypes = typename boost::function_types::parameter_types<                   \
+      typename GetSignature<SlotType>::type>::type;             \
     return std::bind(static_cast<void (SignalSink::*)(                         \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY))>(            \
       &SignalSink::Slot<SlotType, ParameterTypes>), sink BOOST_PP_COMMA_IF(n)  \

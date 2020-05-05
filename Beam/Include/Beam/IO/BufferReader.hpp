@@ -18,7 +18,7 @@ namespace IO {
   template<typename BufferType>
   class BufferReader : private boost::noncopyable {
     public:
-      typedef BufferType Buffer;
+      using Buffer = BufferType;
 
       //! Constructs a BufferReader from a Buffer.
       /*!

@@ -23,10 +23,10 @@ namespace Serialization {
         "Sender's Inverse must implement the Receiver Concept.");
 
       //! Specifies the Sender's type.
-      typedef SenderType Sender;
+      using Sender = SenderType;
 
       //! Specifies the Receiver's type.
-      typedef typename Inverse<SenderType>::type Receiver;
+      using Receiver = typename Inverse<SenderType>::type;
 
       //! Returns the type's RTTI.
       std::type_index GetType() const;
@@ -63,11 +63,11 @@ namespace Serialization {
 
     private:
       template<typename S> friend class TypeRegistry;
-      typedef std::function<void (Sender&, void* const, unsigned int)>
-        SendFunction;
-      typedef std::function<void (Receiver&, void*, unsigned int)>
-        ReceiveFunction;
-      typedef std::function<void* ()> BuildFunction;
+      using SendFunction =
+        std::function<void(Sender&, void* const, unsigned int)>;
+      using ReceiveFunction =
+        std::function<void(Receiver&, void*, unsigned int)>;
+      using BuildFunction = std::function<void*()>;
       std::type_index m_type;
       std::string m_name;
       BuildFunction m_builder;

@@ -32,10 +32,10 @@ namespace Queries {
     public:
 
       //! The type of query submitted.
-      typedef QueryType Query;
+      using Query = QueryType;
 
       //! The type of data received.
-      typedef SequencedValue<ValueType> Value;
+      using Value = SequencedValue<ValueType>;
 
       //! Constructs a SequencedValuePublisher.
       /*!

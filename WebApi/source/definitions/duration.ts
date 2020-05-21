@@ -201,5 +201,9 @@ export class Duration {
       ':').concat(minuteComponent).concat(':').concat(seconds.toString());
   }
 
+  public toString(): string {
+    return this.toJson();
+  }
+
   private _ticks: number;
 }

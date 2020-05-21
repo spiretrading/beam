@@ -40,17 +40,17 @@ export class Date {
   }
 
   /** Returns the year. */
-  public year(): number {
+  public get year(): number {
     return this._year;
   }
 
   /** Returns the month. */
-  public month(): Date.Month {
+  public get month(): Date.Month {
     return this._month;
   }
 
   /** Returns the day. */
-  public day(): number {
+  public get day(): number {
     return this._day;
   }
 
@@ -84,6 +84,11 @@ export class Date {
       }
     })();
     return this._year.toString().concat(monthComponent).concat(dayComponent);
+  }
+
+  public toString(): string {
+    return new globalThis.Date(this.year, this.month - 1,
+      this.day).toLocaleDateString();
   }
 
   private _year: number;

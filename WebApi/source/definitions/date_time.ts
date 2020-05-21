@@ -49,12 +49,12 @@ export class DateTime {
   }
 
   /** Returns the date. */
-  public date(): Date {
+  public get date(): Date {
     return this._date;
   }
 
   /** Returns the time of day. */
-  public timeOfDay(): Duration {
+  public get timeOfDay(): Duration {
     return this._timeOfDay;
   }
 
@@ -101,6 +101,13 @@ export class DateTime {
     })();
     return this._date.toJson().concat('T').concat(hourComponent).concat(
       minuteComponent).concat(seconds.toString());
+  }
+
+  public toString(): string {
+    return new globalThis.Date(this.date.year, this.date.month - 1,
+      this.date.day, this.timeOfDay.getTotalHours(),
+      this.timeOfDay.getTotalMinutes(),
+      this.timeOfDay.getTotalSeconds()).toLocaleString();
   }
 
   private _date: Date;

@@ -2,6 +2,18 @@
 SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
+SET IS_CACHED=
+IF EXIST cache_files\beam.txt (
+  FOR /F %%i IN (
+      'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
+    FOR /F %%j IN (
+        'ls -l --time-style=full-iso cache_files\beam.txt ^| awk "{print $6 $7}"') DO (
+      IF "%%i" GEQ "%%j" (
+        EXIT /B 0
+      )
+    )
+  )
+)
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
@@ -222,5 +234,9 @@ IF NOT EXIST boost_1_72_0 (
   )
   DEL /F /Q boost_1_72_0.zip
 )
+IF NOT EXIST cache_files (
+  MD cache_files
+)
+ECHO timestamp > cache_files/beam.txt
 ENDLOCAL
 EXIT /B !EXIT_STATUS!

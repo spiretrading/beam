@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
 project(RegistryServer)
+set(D "${CMAKE_BINARY_DIR}/Dependencies" CACHE STRING
+  "Path to dependencies folder.")
+file(TO_NATIVE_PATH "${D}" D)
+if(WIN32)
+  execute_process(COMMAND cmd /c
+    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+elseif(UNIX)
+  execute_process(COMMAND "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 include(../../Beam/Config/dependencies.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
@@ -75,5 +86,14 @@ if(WIN32)
 endif()
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   target_link_libraries(RegistryServer stdc++fs)
+endif()
+if(WIN32)
+  add_custom_command(TARGET RegistryServer PRE_BUILD COMMAND cmd /c
+    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+elseif(UNIX)
+  add_custom_command(TARGET RegistryServer PRE_BUILD COMMAND
+    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
 install(TARGETS RegistryServer DESTINATION ${PROJECT_BINARY_DIR}/Application)

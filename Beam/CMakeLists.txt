@@ -64,15 +64,6 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_RELEASE} -pthreads")
 endif()
-if(WIN32)
-  add_custom_command(TARGET Beam PRE_BUILD COMMAND cmd /c
-    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-elseif(UNIX)
-  add_custom_command(TARGET Beam PRE_BUILD COMMAND
-    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-endif()
 add_subdirectory(Config/Beam)
 add_subdirectory(Config/Codecs)
 add_subdirectory(Config/Collections)

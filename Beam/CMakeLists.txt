@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
 project(Beam)
+set(D "${CMAKE_BINARY_DIR}/Dependencies" CACHE STRING
+  "Path to dependencies folder.")
+file(TO_NATIVE_PATH "${D}" D)
+if(WIN32)
+  execute_process(COMMAND cmd /c
+    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+elseif(UNIX)
+  execute_process(COMMAND "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 set(DEFAULT_BUILD_TYPE "Release")
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE
@@ -52,6 +63,15 @@ if(CYGWIN)
 endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_RELEASE} -pthreads")
+endif()
+if(WIN32)
+  add_custom_command(TARGET Beam PRE_BUILD COMMAND cmd /c
+    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+elseif(UNIX)
+  add_custom_command(TARGET Beam PRE_BUILD COMMAND
+    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
 add_subdirectory(Config/Beam)
 add_subdirectory(Config/Codecs)

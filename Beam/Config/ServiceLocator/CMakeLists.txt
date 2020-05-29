@@ -1,16 +1,13 @@
 file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/ServiceLocatorTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/ServiceLocatorTests/*.cpp)
-
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
-
 add_executable(ServiceLocatorTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(ServiceLocatorTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})
-
 if(UNIX)
   target_link_libraries(ServiceLocatorTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
@@ -25,7 +22,15 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     pthread rt)
 endif()
-
+if(WIN32)
+  add_custom_command(TARGET ServiceLocatorTests PRE_BUILD COMMAND cmd /c
+    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+elseif(UNIX)
+  add_custom_command(TARGET ServiceLocatorTests PRE_BUILD COMMAND
+    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 add_custom_command(TARGET ServiceLocatorTests POST_BUILD
   COMMAND ServiceLocatorTests)
 install(TARGETS ServiceLocatorTests CONFIGURATIONS Debug

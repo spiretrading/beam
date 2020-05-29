@@ -2,7 +2,7 @@
 exit_status=0
 let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
-aspen_commit="f0baa278ba8e4c7b14cb83e1063e1a71b1ef25e7"
+aspen_commit="f449a58bf44daccdb263fb30afa0fc55d36cc9ab"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -25,10 +25,9 @@ if [ -d "aspen" ]; then
     build_aspen=1
   fi
   if [ "$build_aspen" == "1" ]; then
-    ./configure.sh "-DD=$root" Debug
-    ./build.sh
-    ./configure.sh "-DD=$root" Release
-    ./build.sh
+    ./configure.sh "-DD=$root"
+    ./build.sh Debug
+    ./build.sh Release
   else
     pushd "$root"
     ./aspen/setup.sh

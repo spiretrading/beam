@@ -8,10 +8,15 @@ while [ -h "$source" ]; do
 done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
+if [ "$(uname -s)" = "Darwin" ]; then
+  STAT='stat -x -t "%Y%m%d%H%M%S"'
+else
+  STAT='stat'
+fi
 if [ -f "cache_files/beam.txt" ]; then
   pt="$($STAT $directory/setup.sh | grep Modify | awk '{print $2 $3}')"
   mt="$($STAT cache_files/beam.txt | grep Modify | awk '{print $2 $3}')"
-  if [ "$pt" \< "$mt" ]; then
+  if [[ ! "$pt" > "$mt" ]]; then
     exit 0
   fi
 fi

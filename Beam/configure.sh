@@ -48,6 +48,9 @@ if [ -d "$directory/Include" ]; then
     run_cmake=1
   fi
   if [ "$run_cmake" = "1" ]; then
+    if [ ! -d "CMakeFiles" ]; then
+      mkdir CMakeFiles
+    fi
     echo $include_count > "CMakeFiles/hpp_count.txt"
   fi
 fi
@@ -62,6 +65,9 @@ if [ -d "$directory/Source" ]; then
     run_cmake=1
   fi
   if [ "$run_cmake" = "1" ]; then
+    if [ ! -d "CMakeFiles" ]; then
+      mkdir CMakeFiles
+    fi
     echo $source_count > "CMakeFiles/cpp_count.txt"
   fi
 fi

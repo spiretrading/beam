@@ -39,9 +39,9 @@ else
   mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 8388608"
   jobs="$(($cores<$mem?$cores:$mem))"
   if [ "$dependencies" != "" ]; then
-    cmake -S "$directory" -DCMAKE_BUILD_TYPE=$config -DD=$dependencies
+    ./configure.sh $config -DD=$dependencies
   else
-    cmake -S "$directory" -DCMAKE_BUILD_TYPE=$config
+    ./configure.sh $config
   fi
   cmake --build "$root" --target install -- -j$jobs
 fi

@@ -192,5 +192,8 @@ if [ ! -d "boost_1_72_0" ]; then
   fi
   rm -f boost_1_72_0.tar.gz
 fi
+if [ -d cache_files ]; then
+  mkdir cache_files
+fi
 echo timestamp > cache_files/beam.txt
 exit $exit_status

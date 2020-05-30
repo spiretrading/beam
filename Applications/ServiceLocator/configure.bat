@@ -33,8 +33,7 @@ IF NOT EXIST "!DEPENDENCIES!" (
   MD "!DEPENDENCIES!"
 )
 PUSHD "!DEPENDENCIES!"
-  CALL "!DIRECTORY!..\..\Beam\setup.bat"
-)
+CALL "!DIRECTORY!..\..\Beam\setup.bat"
 POPD
 IF NOT "!DEPENDENCIES!" == "!ROOT!\Dependencies" (
   IF EXIST Dependencies (

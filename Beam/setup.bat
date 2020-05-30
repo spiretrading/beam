@@ -8,7 +8,7 @@ IF EXIST cache_files\beam.txt (
       'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
     FOR /F %%j IN (
         'ls -l --time-style=full-iso cache_files\beam.txt ^| awk "{print $6 $7}"') DO (
-      IF "%%i" GEQ "%%j" (
+      IF "%%i" LSS "%%j" (
         EXIT /B 0
       )
     )

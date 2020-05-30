@@ -33,8 +33,8 @@ IF NOT EXIST "!DEPENDENCIES!" (
   MD "!DEPENDENCIES!"
 )
 PUSHD "!DEPENDENCIES!"
-  CALL "!DIRECTORY!setup.bat"
-)
+CALL "!DIRECTORY!setup.bat"
+POPD
 IF NOT "!DEPENDENCIES!" == "!ROOT!\Dependencies" (
   IF EXIST Dependencies (
     RD /S /Q Dependencies

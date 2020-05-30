@@ -34,7 +34,6 @@ if [ ! -d "$dependencies" ]; then
 fi
 pushd "$dependencies"
 "$directory"/setup.sh
-fi
 popd
 if [ "$dependencies" != "$root/Dependencies" ] && [ ! -d Dependencies ]; then
   rm -rf Dependencies

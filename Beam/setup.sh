@@ -11,7 +11,9 @@ root="$(pwd)"
 if [ -f "cache_files/beam.txt" ]; then
   pt="$($STAT $directory/setup.sh | grep Modify | awk '{print $2 $3}')"
   mt="$($STAT cache_files/beam.txt | grep Modify | awk '{print $2 $3}')"
-  if [ "$pt" \< "$mt" ]; then
+  echo $pt
+  echo $mt
+  if [ "$mt" \> "$pt" ]; then
     exit 0
   fi
 fi

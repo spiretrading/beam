@@ -7,11 +7,6 @@ while [ -h "$source" ]; do
 done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root=$(pwd)
-if [ "$(uname -s)" = "Darwin" ]; then
-  STAT='stat -x -t "%Y%m%d%H%M%S"'
-else
-  STAT='stat'
-fi
 if [ ! -f "build.sh" ]; then
   ln -s "$directory/build.sh" build.sh
 fi

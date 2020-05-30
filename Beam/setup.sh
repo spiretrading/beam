@@ -1,5 +1,12 @@
 #!/bin/bash
 exit_status=0
+source="${BASH_SOURCE[0]}"
+while [ -h "$source" ]; do
+  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
+  source="$(readlink "$source")"
+  [[ $source != /* ]] && source="$dir/$source"
+done
+directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
 if [ -f "cache_files/beam.txt" ]; then
   pt="$($STAT $directory/setup.sh | grep Modify | awk '{print $2 $3}')"

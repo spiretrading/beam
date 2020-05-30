@@ -54,6 +54,9 @@ IF EXIST "!DIRECTORY!Include" (
       SET RUN_CMAKE=1
     )
     IF "!RUN_CMAKE!" == "1" (
+      IF NOT EXIST CMakeFiles (
+        MD CMakeFiles
+      )
       ECHO %%i > CMakeFiles\hpp_count.txt
     )
   )
@@ -70,6 +73,9 @@ IF EXIST "!DIRECTORY!Source" (
       SET RUN_CMAKE=1
     )
     IF "!RUN_CMAKE!" == "1" (
+      IF NOT EXIST CMakeFiles (
+        MD CMakeFiles
+      )
       ECHO %%i > CMakeFiles\cpp_count.txt
     )
   )

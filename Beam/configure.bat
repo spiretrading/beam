@@ -42,32 +42,42 @@ IF NOT "!DEPENDENCIES!" == "!ROOT!\Dependencies" (
   mklink /j Dependencies "!DEPENDENCIES!" > NUL
 )
 SET RUN_CMAKE=
-FOR /F %%i IN ('DIR /a-d /b /s "!DIRECTORY!Include\*.hpp" ^| wc -l') DO (
-  IF EXIST CMakeFiles\hpp_count.txt (
-    FOR /F %%j IN ('TYPE CMakeFiles\hpp_count.txt') DO (
-      IF NOT "%%i" == "%%j" (
-        SET RUN_CMAKE=1
+IF EXIST "!DIRECTORY!Include" (
+  FOR /F %%i IN ('DIR /a-d /b /s "!DIRECTORY!Include\*.hpp" ^| wc -l') DO (
+    IF EXIST CMakeFiles\hpp_count.txt (
+      FOR /F %%j IN ('TYPE CMakeFiles\hpp_count.txt') DO (
+        IF NOT "%%i" == "%%j" (
+          SET RUN_CMAKE=1
+        )
       )
+    ) ELSE (
+      SET RUN_CMAKE=1
     )
-  ) ELSE (
-    SET RUN_CMAKE=1
-  )
-  IF "!RUN_CMAKE!" == "1" (
-    ECHO %%i > CMakeFiles\hpp_count.txt
+    IF "!RUN_CMAKE!" == "1" (
+      IF NOT EXIST CMakeFiles (
+        MD CMakeFiles
+      )
+      ECHO %%i > CMakeFiles\hpp_count.txt
+    )
   )
 )
-FOR /F %%i IN ('DIR /a-d /b /s "!DIRECTORY!Source\*.cpp" ^| wc -l') DO (
-  IF EXIST CMakeFiles\cpp_count.txt (
-    FOR /F %%j IN ('TYPE CMakeFiles\cpp_count.txt') DO (
-      IF NOT "%%i" == "%%j" (
-        SET RUN_CMAKE=1
+IF EXIST "!DIRECTORY!Source" (
+  FOR /F %%i IN ('DIR /a-d /b /s "!DIRECTORY!Source\*.cpp" ^| wc -l') DO (
+    IF EXIST CMakeFiles\cpp_count.txt (
+      FOR /F %%j IN ('TYPE CMakeFiles\cpp_count.txt') DO (
+        IF NOT "%%i" == "%%j" (
+          SET RUN_CMAKE=1
+        )
       )
+    ) ELSE (
+      SET RUN_CMAKE=1
     )
-  ) ELSE (
-    SET RUN_CMAKE=1
-  )
-  IF "!RUN_CMAKE!" == "1" (
-    ECHO %%i > CMakeFiles\cpp_count.txt
+    IF "!RUN_CMAKE!" == "1" (
+      IF NOT EXIST CMakeFiles (
+        MD CMakeFiles
+      )
+      ECHO %%i > CMakeFiles\cpp_count.txt
+    )
   )
 )
 IF "!RUN_CMAKE!" == "1" (

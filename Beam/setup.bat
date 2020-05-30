@@ -2,7 +2,6 @@
 SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
-SET IS_CACHED=
 IF EXIST cache_files\beam.txt (
   FOR /F %%i IN (
       'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
@@ -237,6 +236,6 @@ IF NOT EXIST boost_1_72_0 (
 IF NOT EXIST cache_files (
   MD cache_files
 )
-ECHO timestamp > cache_files/beam.txt
+ECHO timestamp > cache_files\beam.txt
 ENDLOCAL
 EXIT /B !EXIT_STATUS!

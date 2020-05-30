@@ -1,7 +1,14 @@
 #!/bin/bash
 exit_status=0
-let cores="`grep -c "processor" < /proc/cpuinfo`"
 root="$(pwd)"
+if [ -f "cache_files/beam.txt" ]; then
+  pt="$($STAT $directory/setup.sh | grep Modify | awk '{print $2 $3}')"
+  mt="$($STAT cache_files/beam.txt | grep Modify | awk '{print $2 $3}')"
+  if [ "$pt" \< "$mt" ]; then
+    exit 0
+  fi
+fi
+cores="`grep -c "processor" < /proc/cpuinfo`"
 aspen_commit="f449a58bf44daccdb263fb30afa0fc55d36cc9ab"
 build_aspen=0
 if [ ! -d "aspen" ]; then
@@ -185,4 +192,5 @@ if [ ! -d "boost_1_72_0" ]; then
   fi
   rm -f boost_1_72_0.tar.gz
 fi
+echo timestamp > cache_files/beam.txt
 exit $exit_status

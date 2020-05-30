@@ -22,13 +22,13 @@ IF "!CONFIG!" == "" (
 )
 IF "!CONFIG!" == "clean" (
   git clean -ffxd -e *Dependencies*
-  IF EXIST Dependencies\last_check.txt (
-    DEL Dependencies\last_check.txt
+  IF EXIST Dependencies\cache_files\beam.txt (
+    DEL Dependencies\cache_files\beam.txt
   )
 ) ELSE IF "!CONFIG!" == "reset" (
   git clean -ffxd
-  IF EXIST Dependencies\last_check.txt (
-    DEL Dependencies\last_check.txt
+  IF EXIST Dependencies\cache_files\beam.txt (
+    DEL Dependencies\cache_files\beam.txt
   )
 ) ELSE (
   IF NOT "!DEPENDENCIES!" == "" (

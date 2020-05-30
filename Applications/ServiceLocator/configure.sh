@@ -33,18 +33,7 @@ if [ ! -d "$dependencies" ]; then
   mkdir -p "$dependencies"
 fi
 pushd "$dependencies"
-if [ ! -f "last_check.txt" ]; then
-  run_setup=1
-else
-  pt="$($STAT $directory/../../Beam/setup.sh | grep Modify | awk '{print $2 $3}')"
-  mt="$($STAT last_check.txt | grep Modify | awk '{print $2 $3}')"
-  if [ "$pt" \> "$mt" ]; then
-    run_setup=1
-  fi
-fi
-if [ "$run_setup" = "1" ]; then
-  "$directory"/../../Beam/setup.sh
-  echo "timestamp" > last_check.txt
+"$directory"/../../Beam/setup.sh
 fi
 popd
 if [ "$dependencies" != "$root/Dependencies" ] && [ ! -d Dependencies ]; then

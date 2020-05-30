@@ -26,13 +26,13 @@ if [ "$config" = "" ]; then
 fi
 if [ "$config" = "clean" ]; then
   git clean -ffxd -e *Dependencies*
-  if [ -f "Dependencies/last_check.txt" ]; then
-    rm "Dependencies/last_check.txt"
+  if [ -f "Dependencies/cache_files/beam.txt" ]; then
+    rm "Dependencies/cache_files/beam.txt"
   fi
 elif [ "$config" = "reset" ]; then
   git clean -ffxd
-  if [ -f "Dependencies/last_check.txt" ]; then
-    rm "Dependencies/last_check.txt"
+  if [ -f "Dependencies/cache_files/beam.txt" ]; then
+    rm "Dependencies/cache_files/beam.txt"
   fi
 else
   cores="`grep -c "processor" < /proc/cpuinfo` / 2 + 1"

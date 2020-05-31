@@ -19,10 +19,11 @@ build_function() {
 
 export -f build_function
 export directory
+export root
 
 build_function "$@" "Beam"
 targets="WebApi"
-targets+=" Applications/AdminClient"
+targets="Applications/AdminClient"
 targets+=" Applications/ClientTemplate"
 targets+=" Applications/DataStoreProfiler"
 targets+=" Applications/HttpFileServer"
@@ -38,5 +39,4 @@ targets+=" Applications/WebSocketEchoServer"
 cores="`grep -c "processor" < /proc/cpuinfo` / 2 + 1"
 mem="`grep -oP "MemTotal: +\K([[:digit:]]+)(?=.*)" < /proc/meminfo` / 4194304"
 jobs="$(($cores<$mem?$cores:$mem))"
-
 parallel -j$jobs --no-notice build_function "$@" ::: $targets

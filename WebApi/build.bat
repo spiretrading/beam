@@ -74,6 +74,7 @@ IF NOT EXIST node_modules (
 )
 IF "!UPDATE_NODE!" == "1" (
   SET UPDATE_BUILD=1
+  CALL !DIRECTORY!configure.bat
   CALL npm install
 )
 IF NOT EXIST library (

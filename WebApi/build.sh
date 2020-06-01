@@ -54,6 +54,7 @@ else
 fi
 if [ "$UPDATE_NODE" = "1" ]; then
   UPDATE_BUILD=1
+  $directory/configure.sh
   npm install
 fi
 if [ ! -d "library" ]; then

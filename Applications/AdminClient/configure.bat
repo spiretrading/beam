@@ -81,6 +81,6 @@ IF EXIST "!DIRECTORY!Source" (
   )
 )
 IF "!RUN_CMAKE!" == "1" (
-  cmake -S !DIRECTORY! -DD=!DEPENDENCIES!
+  cmake -S "!DIRECTORY!" -DD="!DEPENDENCIES!"
 )
 ENDLOCAL

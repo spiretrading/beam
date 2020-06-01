@@ -60,6 +60,7 @@ else
   fi
 fi
 if [ "$UPDATE_BUILD" = "1" ]; then
+  ./configure.sh
   if [ -d library ]; then
     rm -rf library
   fi

@@ -2,6 +2,17 @@
 SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
+IF EXIST cache_files\beam.txt (
+  FOR /F %%i IN (
+      'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
+    FOR /F %%j IN (
+        'ls -l --time-style=full-iso cache_files\beam.txt ^| awk "{print $6 $7}"') DO (
+      IF "%%i" LSS "%%j" (
+        EXIT /B 0
+      )
+    )
+  )
+)
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
@@ -22,7 +33,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="6cc76d014369316c5175f826c387920c0772b8ed"
+SET ASPEN_COMMIT="572c6735780076b94ab860a923c5fe52eeaacff0"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -222,5 +233,9 @@ IF NOT EXIST boost_1_72_0 (
   )
   DEL /F /Q boost_1_72_0.zip
 )
+IF NOT EXIST cache_files (
+  MD cache_files
+)
+ECHO timestamp > cache_files\beam.txt
 ENDLOCAL
 EXIT /B !EXIT_STATUS!

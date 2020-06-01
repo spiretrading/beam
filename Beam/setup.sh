@@ -1,8 +1,27 @@
 #!/bin/bash
 exit_status=0
-let cores="`grep -c "processor" < /proc/cpuinfo`"
+source="${BASH_SOURCE[0]}"
+while [ -h "$source" ]; do
+  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
+  source="$(readlink "$source")"
+  [[ $source != /* ]] && source="$dir/$source"
+done
+directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root="$(pwd)"
-aspen_commit="6cc76d014369316c5175f826c387920c0772b8ed"
+if [ "$(uname -s)" = "Darwin" ]; then
+  STAT='stat -x -t "%Y%m%d%H%M%S"'
+else
+  STAT='stat'
+fi
+if [ -f "cache_files/beam.txt" ]; then
+  pt="$($STAT $directory/setup.sh | grep Modify | awk '{print $2 $3}')"
+  mt="$($STAT cache_files/beam.txt | grep Modify | awk '{print $2 $3}')"
+  if [[ ! "$pt" > "$mt" ]]; then
+    exit 0
+  fi
+fi
+cores="`grep -c "processor" < /proc/cpuinfo`"
+aspen_commit="572c6735780076b94ab860a923c5fe52eeaacff0"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -185,4 +204,8 @@ if [ ! -d "boost_1_72_0" ]; then
   fi
   rm -f boost_1_72_0.tar.gz
 fi
+if [ ! -d cache_files ]; then
+  mkdir cache_files
+fi
+echo timestamp > cache_files/beam.txt
 exit $exit_status

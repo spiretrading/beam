@@ -9,6 +9,7 @@ CALL:build Applications\DataStoreProfiler %*
 CALL:build Applications\HttpFileServer %*
 CALL:build Applications\QueryStressTest %*
 CALL:build Applications\RegistryServer %*
+CALL:build Applications\Scratch %*
 CALL:build Applications\ServiceLocator %*
 CALL:build Applications\ServiceProtocolProfiler %*
 CALL:build Applications\ServletTemplate %*
@@ -22,6 +23,6 @@ IF NOT EXIST "%~1" (
   MD "%~1"
 )
 PUSHD "%~1"
-CALL "%~dp0%~1\build.bat" %~2 %~3 %~4 %~5 %~6 %~7
+CALL "%~dp0%~1\build.bat" -DD="%ROOT%\Beam\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
 POPD
 EXIT /B 0

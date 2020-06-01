@@ -117,7 +117,7 @@ IF NOT EXIST mod_time.txt (
   )
 )
 IF "!UPDATE_BUILD!" == "1" (
-  CALL configure.bat
+  CALL %~dp0configure.bat
   IF EXIST library (
     RMDIR /q /s library
   )

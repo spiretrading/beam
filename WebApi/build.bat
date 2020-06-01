@@ -1,9 +1,28 @@
 @ECHO OFF
 SETLOCAL EnableDelayedExpansion
 SET ROOT=%cd%
+:begin_args
+SET ARG=%~1
+IF "!IS_DEPENDENCY!" == "1" (
+  SET DEPENDENCIES=!ARG!
+  SET IS_DEPENDENCY=
+  SHIFT
+  GOTO begin_args
+) ELSE IF NOT "!ARG!" == "" (
+  IF "!ARG:~0,3!" == "-DD" (
+    SET IS_DEPENDENCY=1
+  ) ELSE (
+    SET CONFIG=!ARG!
+  )
+  SHIFT
+  GOTO begin_args
+)
+IF "!CONFIG!" == "" (
+  SET CONFIG=Release
+)
 SET UPDATE_NODE=
 SET UPDATE_BUILD=
-IF "%1" == "clean" (
+IF "!CONFIG!" == "clean" (
   IF EXIST library (
     RMDIR /q /s library
   )
@@ -12,7 +31,7 @@ IF "%1" == "clean" (
   )
   EXIT /B
 )
-IF "%1" == "reset" (
+IF "!CONFIG!" == "reset" (
   IF EXIST library (
     RMDIR /q /s library
   )

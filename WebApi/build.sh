@@ -7,17 +7,32 @@ while [ -h "$source" ]; do
 done
 directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
 root=$(pwd)
+for i in "$@"; do
+  case $i in
+    -DD=*)
+      dependencies="${i#*=}"
+      shift
+      ;;
+    *)
+      config="$i"
+      shift
+      ;;
+  esac
+done
+if [ "$config" = "" ]; then
+  config="Release"
+fi
 if [ "$(uname -s)" = "Darwin" ]; then
   STAT='stat -x -t "%Y%m%d%H%M%S"'
 else
   STAT='stat'
 fi
-if [ "$1" = "clean" ]; then
+if [ "$config" = "clean" ]; then
   rm -rf library
   rm -f mod_time.txt
   exit 0
 fi
-if [ "$1" = "reset" ]; then
+if [ "$config" = "reset" ]; then
   rm -rf library
   rm -f mod_time.txt
   rm -rf node_modules

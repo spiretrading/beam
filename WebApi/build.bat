@@ -55,6 +55,7 @@ IF NOT "!DIRECTORY!" == "!ROOT!\" (
   COPY /Y "!DIRECTORY!package.json" . >NUL
   COPY /Y "!DIRECTORY!tsconfig.json" . >NUL
 )
+CALL "!DIRECTORY!configure.bat"
 IF NOT EXIST node_modules (
   SET UPDATE_NODE=1
 ) ELSE (
@@ -74,7 +75,6 @@ IF NOT EXIST node_modules (
 )
 IF "!UPDATE_NODE!" == "1" (
   SET UPDATE_BUILD=1
-  CALL !DIRECTORY!configure.bat
   CALL npm install
 )
 IF NOT EXIST library (
@@ -119,7 +119,6 @@ IF NOT EXIST mod_time.txt (
   )
 )
 IF "!UPDATE_BUILD!" == "1" (
-  CALL !DIRECTORY!configure.bat
   IF EXIST library (
     RMDIR /q /s library
   )

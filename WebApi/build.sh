@@ -39,6 +39,7 @@ if [ "$config" = "reset" ]; then
   rm -f package-lock.json
   exit 0
 fi
+"$directory/configure.sh"
 if [ ! -d "node_modules" ]; then
   UPDATE_NODE=1
 else
@@ -54,7 +55,6 @@ else
 fi
 if [ "$UPDATE_NODE" = "1" ]; then
   UPDATE_BUILD=1
-  $directory/configure.sh
   npm install
 fi
 if [ ! -d "library" ]; then
@@ -76,7 +76,6 @@ else
   fi
 fi
 if [ "$UPDATE_BUILD" = "1" ]; then
-  $directory/configure.sh
   if [ -d library ]; then
     rm -rf library
   fi

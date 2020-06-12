@@ -24,11 +24,11 @@ namespace Details {
         m_slot(std::forward<SlotForward>(slot)) {}
 
     template<typename... Args>
-    void operator ()(Args&&... args) {
-      Threading::With(*m_isAlive,
+    decltype(auto) operator ()(Args&&... args) {
+      return Threading::With(*m_isAlive,
         [&] (bool isAlive) {
           if(isAlive) {
-            m_slot(std::forward<Args>(args)...);
+            return m_slot(std::forward<Args>(args)...);
           } else {
             throw std::runtime_error("Slot expired.");
           }

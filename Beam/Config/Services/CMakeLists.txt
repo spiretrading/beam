@@ -22,15 +22,6 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL SunOS)
   target_link_libraries(ServicesTests rt socket nsl)
 endif()
-if(WIN32)
-  add_custom_command(TARGET ServicesTests PRE_BUILD COMMAND cmd /c
-    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-elseif(UNIX)
-  add_custom_command(TARGET ServicesTests PRE_BUILD COMMAND
-    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-endif()
 add_custom_command(TARGET ServicesTests POST_BUILD COMMAND ServicesTests)
 install(TARGETS ServicesTests CONFIGURATIONS Debug
   DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)

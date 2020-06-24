@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="04b1d72b6a4eac9ee385cd3a640a0c133ae2fea3"
+aspen_commit="56d61ba5a31a985efb1fbf8bd05129e002e0bc5d"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen

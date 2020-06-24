@@ -20,15 +20,6 @@ endif()
 if(${CMAKE_SYSTEM_NAME} STREQUAL SunOS)
   target_link_libraries(IOTests rt socket nsl)
 endif()
-if(WIN32)
-  add_custom_command(TARGET IOTests PRE_BUILD COMMAND cmd /c
-    "CALL ${CMAKE_SOURCE_DIR}\\configure.bat -DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-elseif(UNIX)
-  add_custom_command(TARGET IOTests PRE_BUILD COMMAND
-    "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
-endif()
 add_custom_command(TARGET IOTests POST_BUILD COMMAND IOTests)
 install(TARGETS IOTests CONFIGURATIONS Debug
   DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)

@@ -2,12 +2,12 @@
 exit_status=0
 source="${BASH_SOURCE[0]}"
 while [ -h "$source" ]; do
-  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
+  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
   source="$(readlink "$source")"
   [[ $source != /* ]] && source="$dir/$source"
 done
-directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd)"
-root="$(pwd)"
+directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
+root="$(pwd -P)"
 if [ "$(uname -s)" = "Darwin" ]; then
   STAT='stat -x -t "%Y%m%d%H%M%S"'
 else
@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="8e9cf50211d7ea4f5a9b2a98504c4655e7115ecf"
+aspen_commit="2591b0b91b93a4abf8c85bc28adaf0b2a3813cae"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -194,7 +194,7 @@ if [ ! -d "boost_1_72_0" ]; then
   if [ "$?" == "0" ]; then
     tar xvf boost_1_72_0.tar.gz
     pushd boost_1_72_0
-    export BOOST_BUILD_PATH=$(pwd)
+    export BOOST_BUILD_PATH=$(pwd -P)
     ./bootstrap.sh
     ./b2 -j$cores --prefix="$root/boost_1_72_0" cxxflags="-std=c++17 -fPIC" install
     popd

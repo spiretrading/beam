@@ -152,6 +152,8 @@ namespace Queries {
       return Sequence::First();
     } else if(timestamp == boost::posix_time::pos_infin) {
       return Sequence::Last();
+    } else if(timestamp.is_not_a_date_time()) {
+      return Sequence(0);
     } else if(timestamp.is_special()) {
       BOOST_THROW_EXCEPTION(std::out_of_range{"Invalid timestamp."});
     } else {
@@ -181,6 +183,8 @@ namespace Queries {
       return Sequence::First();
     } else if(timestamp == boost::posix_time::pos_infin) {
       return Sequence::Last();
+    } else if(timestamp.is_not_a_date_time()) {
+      return sequence;
     } else {
       Sequence encodedSequence{EncodeTimestamp(timestamp).GetOrdinal() +
         sequence.GetOrdinal()};
@@ -218,6 +222,9 @@ namespace Queries {
       dateEncoding >>= MONTH_SIZE;
       auto year = static_cast<unsigned short>(
         ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding);
+      if(year == 0) {
+        return boost::posix_time::not_a_date_time;
+      }
       boost::posix_time::ptime timestamp{
         boost::gregorian::date{year, month, day},
         boost::posix_time::seconds(0)};

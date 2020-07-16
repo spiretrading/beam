@@ -125,6 +125,7 @@ if [ ! -d "tclap-1.2.2" ]; then
   if [ "$?" == "0" ]; then
     unzip v1.2.2.zip
     pushd tclap-1.2.2
+    ./autotools.sh
     ./configure
     make -j $cores
     popd

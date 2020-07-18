@@ -96,7 +96,6 @@ namespace Queries {
       Point m_end;
 
       static bool IsValid(const Point& point);
-      static bool IsOutOfOrder(const Point& start, const Point& end);
       static Point Validate(const Point& point);
       void Initialize(const Point& start, const Point& end);
   };
@@ -275,20 +274,6 @@ namespace Queries {
     return true;
   }
 
-  inline bool Range::IsOutOfOrder(const Point& start, const Point& end) {
-    if(start.which() == end.which()) {
-      if(const Sequence* startSequence = boost::get<const Sequence>(&start)) {
-        if(*startSequence > boost::get<const Sequence>(end)) {
-          return true;
-        }
-      } else if(boost::get<const boost::posix_time::ptime>(start) >
-          boost::get<const boost::posix_time::ptime>(end)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   inline Range::Point Range::Validate(const Point& point) {
     if(const boost::posix_time::ptime* pointDate =
         boost::get<const boost::posix_time::ptime>(&point)) {
@@ -309,18 +294,8 @@ namespace Queries {
       m_end = Sequence::First();
       return;
     }
-    if(IsOutOfOrder(start, end)) {
-      m_start = Sequence::First();
-      m_end = Sequence::First();
-      return;
-    }
     m_start = Validate(start);
     m_end = Validate(end);
-    if(IsOutOfOrder(m_start, m_end)) {
-      m_start = Sequence::First();
-      m_end = Sequence::First();
-      return;
-    }
   }
 }
 }

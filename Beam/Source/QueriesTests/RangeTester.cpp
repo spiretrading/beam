@@ -56,24 +56,22 @@ TEST_SUITE("Range") {
 
   TEST_CASE("out_of_order_constructors") {
     auto posToNegRange = Range(pos_infin, neg_infin);
-    REQUIRE(posToNegRange.GetStart() == Beam::Queries::Sequence::First());
+    REQUIRE(posToNegRange.GetStart() == Beam::Queries::Sequence::Last());
     REQUIRE(posToNegRange.GetEnd() == Beam::Queries::Sequence::First());
     auto sequenceRange = Range(Beam::Queries::Sequence(5),
       Beam::Queries::Sequence(4));
-    REQUIRE(sequenceRange.GetStart() == Beam::Queries::Sequence::First());
-    REQUIRE(sequenceRange.GetEnd() == Beam::Queries::Sequence::First());
+    REQUIRE(sequenceRange.GetStart() == Beam::Queries::Sequence(5));
+    REQUIRE(sequenceRange.GetEnd() == Beam::Queries::Sequence(4));
     auto outOfOrderDateRange = Range(ptime(date(2000, Jan, 13)),
       ptime(date(1999, Jan, 13)));
-    REQUIRE(outOfOrderDateRange.GetStart() == Beam::Queries::Sequence::First());
-    REQUIRE(outOfOrderDateRange.GetEnd() == Beam::Queries::Sequence::First());
+    REQUIRE(outOfOrderDateRange.GetStart() == ptime(date(2000, Jan, 13)));
+    REQUIRE(outOfOrderDateRange.GetEnd() == ptime(date(1999, Jan, 13)));
     auto outOfOrderPosInfinRange = Range(pos_infin, ptime(date(1999, Jan, 13)));
     REQUIRE(outOfOrderPosInfinRange.GetStart() ==
-      Beam::Queries::Sequence::First());
-    REQUIRE(outOfOrderPosInfinRange.GetEnd() ==
-      Beam::Queries::Sequence::First());
+      Beam::Queries::Sequence::Last());
+    REQUIRE(outOfOrderPosInfinRange.GetEnd() == ptime(date(1999, Jan, 13)));
     auto outOfOrderNegInfinRange = Range(ptime(date(1999, Jan, 13)), neg_infin);
-    REQUIRE(outOfOrderNegInfinRange.GetStart() ==
-      Beam::Queries::Sequence::First());
+    REQUIRE(outOfOrderNegInfinRange.GetStart() == ptime(date(1999, Jan, 13)));
     REQUIRE(outOfOrderNegInfinRange.GetEnd() ==
       Beam::Queries::Sequence::First());
   }

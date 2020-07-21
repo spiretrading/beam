@@ -5,6 +5,7 @@
 #include <Viper/DataTypes/NativeToDataType.hpp>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Queries/Sequence.hpp"
 #include "Beam/Sql/Sql.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 
@@ -12,6 +13,10 @@ namespace Viper {
   template<>
   inline const auto native_to_data_type_v<boost::posix_time::time_duration> =
     big_int;
+
+  template<>
+  inline const auto native_to_data_type_v<Beam::Queries::Sequence> =
+    native_to_data_type_v<Beam::Queries::Sequence::Ordinal>;
 
   template<typename T, std::size_t N>
   inline const auto native_to_data_type_v<Beam::Enum<T, N>> = integer;
@@ -32,6 +37,22 @@ namespace Viper {
     boost::posix_time::time_duration operator ()(
         const RawColumn& column) const {
       return boost::posix_time::microseconds(from_sql<std::int64_t>(column));
+    }
+  };
+
+  template<>
+  struct ToSql<Beam::Queries::Sequence> {
+    void operator ()(Beam::Queries::Sequence value,
+        std::string& column) const {
+      to_sql(value.GetOrdinal(), column);
+    }
+  };
+
+  template<>
+  struct FromSql<Beam::Queries::Sequence> {
+    Beam::Queries::Sequence operator ()(const RawColumn& column) const {
+      return Beam::Queries::Sequence(from_sql<Beam::Queries::Sequence::Ordinal>(
+        column));
     }
   };
 

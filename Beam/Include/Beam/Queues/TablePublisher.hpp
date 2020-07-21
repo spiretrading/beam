@@ -5,6 +5,7 @@
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {

@@ -11,7 +11,17 @@
 
 namespace Beam {
 namespace Serialization {
-  struct ReceiveBuilder {};
+  template<typename T>
+  T DefaultConstruct() {
+    return {};
+  }
+
+  struct ReceiveBuilder {
+    template<typename T>
+    explicit operator T() const {
+      return DefaultConstruct<T>();
+    }
+  };
 
   template<typename T, typename Enabled = void>
   struct IsDefaultConstructable : std::true_type {};

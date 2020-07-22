@@ -32,9 +32,8 @@ namespace Serialization {
       int size;
       shuttle.StartSequence(name, size);
       for(auto i = 0; i < size; ++i) {
-        T object;
-        shuttle.Shuttle(object);
-        value.push_back(std::move(object));
+        value.emplace_back();
+        shuttle.Shuttle(value.back());
       }
       shuttle.EndSequence();
     }
@@ -50,9 +49,8 @@ namespace Serialization {
       int size;
       shuttle.StartSequence(name, size);
       for(auto i = 0; i < size; ++i) {
-        T object(ReceiveBuilder{});
-        shuttle.Shuttle(object);
-        value.push_back(std::move(object));
+        value.push_back(static_cast<T>(ReceiveBuilder()));
+        shuttle.Shuttle(value.back());
       }
       shuttle.EndSequence();
     }

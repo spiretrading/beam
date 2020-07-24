@@ -175,7 +175,7 @@ namespace Beam::Serialization {
   template<>
   inline boost::gregorian::greg_year DefaultConstruct<
       boost::gregorian::greg_year>() {
-    return 0;
+    return 1900;
   }
 
   template<>

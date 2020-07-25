@@ -261,10 +261,10 @@ namespace Beam::ServiceLocator {
       IO::OpenState m_openState;
 
       void Shutdown();
+      void Login(ServiceProtocolClient& client);
       void OnReconnect(const std::shared_ptr<ServiceProtocolClient>& client);
       void OnAccountUpdate(ServiceProtocolClient& client,
         const AccountUpdate& update);
-      void Login(ServiceProtocolClient& client);
   };
 
   /**
@@ -589,6 +589,15 @@ namespace Beam::ServiceLocator {
   }
 
   template<typename B>
+  void ServiceLocatorClient<B>::Login(ServiceProtocolClient& client) {
+    auto loginResult = client.template SendRequest<LoginService>(m_username,
+      m_password);
+    auto lock = boost::lock_guard(m_mutex);
+    m_account = loginResult.account;
+    m_sessionId = loginResult.session_id;
+  }
+
+  template<typename B>
   void ServiceLocatorClient<B>::OnReconnect(
       const std::shared_ptr<ServiceProtocolClient>& client) {
     try {
@@ -623,15 +632,6 @@ namespace Beam::ServiceLocator {
         client->template SendRequest<UnmonitorAccountsService>(0);
       }
     });
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Login(ServiceProtocolClient& client) {
-    auto loginResult = client.template SendRequest<LoginService>(m_username,
-      m_password);
-    auto lock = boost::lock_guard(m_mutex);
-    m_account = loginResult.account;
-    m_sessionId = loginResult.session_id;
   }
 }
 

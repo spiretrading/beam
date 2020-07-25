@@ -12,6 +12,7 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
+#include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
@@ -126,6 +127,12 @@ namespace Beam::ServiceLocator {
        */
       void StorePassword(const DirectoryEntry& account,
         const std::string& password);
+
+      /**
+       * Monitors new and deleted accounts and pushes them to a queue.
+       * @param queue The queue to push to.
+       */
+      void MonitorAccounts(std::shared_ptr<QueueWriter<AccountUpdate>> queue);
 
       /**
        * Loads a DirectoryEntry from a path.
@@ -418,6 +425,16 @@ namespace Beam::ServiceLocator {
       const std::string& password) {
     auto client = m_clientHandler.GetClient();
     client->template SendRequest<StorePasswordService>(account, password);
+  }
+
+  template<typename B>
+  void ServiceLocatorClient<B>::MonitorAccounts(
+      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
+    auto client = m_clientHandler.GetClient();
+    auto accounts = client->template SendRequest<MonitorAccountsService>(0);
+    for(auto& account : accounts) {
+      queue->Push(AccountUpdate{account, AccountUpdate::Type::ADDED});
+    }
   }
 
   template<typename B>

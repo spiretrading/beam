@@ -5,6 +5,12 @@
 namespace Beam::Python {
 
   /**
+   * Exports the AccountUpdate struct.
+   * @param module The module to export to.
+   */
+  void ExportAccountUpdate(pybind11::module& module);
+
+  /**
    * Exports the ApplicationServiceLocatorClient class.
    * @param module The module to export to.
    */

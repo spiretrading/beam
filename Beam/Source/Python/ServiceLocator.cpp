@@ -92,6 +92,12 @@ namespace {
         "store_password", StorePassword, account, password);
     }
 
+    void MonitorAccounts(
+        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
+        "monitor_accounts", MonitorAccounts, std::move(queue));
+    }
+
     DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
@@ -178,6 +184,21 @@ namespace {
   };
 }
 
+void Beam::Python::ExportAccountUpdate(module& module) {
+  auto outer = class_<AccountUpdate>(module, "AccountUpdate")
+    .def(init())
+    .def(init<DirectoryEntry, AccountUpdate::Type>())
+    .def(init<const AccountUpdate&>())
+    .def_readwrite("account", &AccountUpdate::m_account)
+    .def_readwrite("type", &AccountUpdate::m_type)
+    .def(self == self)
+    .def(self != self)
+    .def("__str__", &lexical_cast<std::string, AccountUpdate>);
+  enum_<AccountUpdate::Type>(outer, "Type")
+    .value("ADDED", AccountUpdate::Type::ADDED)
+    .value("DELETED", AccountUpdate::Type::DELETED);
+}
+
 void Beam::Python::ExportApplicationServiceLocatorClient(
     pybind11::module& module) {
   using PythonApplicationServiceLocatorClient =
@@ -262,6 +283,7 @@ void Beam::Python::ExportServiceEntry(pybind11::module& module) {
 
 void Beam::Python::ExportServiceLocator(pybind11::module& module) {
   auto submodule = module.def_submodule("service_locator");
+  ExportAccountUpdate(submodule);
   ExportServiceLocatorClient(submodule);
   ExportApplicationServiceLocatorClient(submodule);
   ExportDirectoryEntry(submodule);
@@ -289,6 +311,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
     .def("make_account", &VirtualServiceLocatorClient::MakeAccount)
     .def("make_directory", &VirtualServiceLocatorClient::MakeDirectory)
     .def("store_password", &VirtualServiceLocatorClient::StorePassword)
+    .def("monitor_accounts", &VirtualServiceLocatorClient::MonitorAccounts)
     .def("load_directory_entry",
       static_cast<DirectoryEntry (VirtualServiceLocatorClient::*)(
       const DirectoryEntry&, const std::string&)>(
@@ -311,6 +334,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
     .def("set_credentials", &VirtualServiceLocatorClient::SetCredentials)
     .def("open", &VirtualServiceLocatorClient::Open)
     .def("close", &VirtualServiceLocatorClient::Close);
+  ExportQueueSuite<AccountUpdate>(module, "AccountUpdate");
 }
 
 void Beam::Python::ExportServiceLocatorTestEnvironment(

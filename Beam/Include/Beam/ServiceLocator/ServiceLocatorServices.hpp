@@ -5,6 +5,7 @@
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Serialization/ShuttleOptional.hpp"
 #include "Beam/Serialization/ShuttleVector.hpp"
+#include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
@@ -93,8 +94,15 @@ namespace Beam::ServiceLocator {
      * @param dummy Unused.
      * @return The list of all accounts.
      */
-    (MonitorAccountsService, "Beam.ServiceLocator.MonitorNewAccountsService",
+    (MonitorAccountsService, "Beam.ServiceLocator.MonitorAccountsService",
       std::vector<DirectoryEntry>, int, dummy),
+
+    /**
+     * Stops monitoring account updates.
+     * @param dummy Unused.
+     */
+    (UnmonitorAccountsService, "Beam.ServiceLocator.UnmonitorAccountsService",
+      void, int, dummy),
 
     /**
      * Loads a DirectoryEntry from its id.
@@ -303,11 +311,10 @@ namespace Beam::ServiceLocator {
 
     /**
      * Indicates an account has been added or deleted.
-     * @param account The account that has been added/deleted.
-     * @param is_added <code>true</code> iff the account was added.
+     * @param update The update that occurred.
      */
     (AccountUpdateMessage, "Beam.ServiceLocator.AccountUpdateMessage",
-      DirectoryEntry, account, bool, is_added));
+      AccountUpdate, update));
 }
 
 #endif

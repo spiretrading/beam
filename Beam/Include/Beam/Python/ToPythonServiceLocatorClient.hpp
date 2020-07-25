@@ -22,7 +22,7 @@ namespace Beam::ServiceLocator {
        * Constructs a ToPythonServiceLocatorClient.
        * @param client The ServiceLocatorClient to wrap.
        */
-      ToPythonServiceLocatorClient(std::unique_ptr<Client> client);
+      explicit ToPythonServiceLocatorClient(std::unique_ptr<Client> client);
 
       ~ToPythonServiceLocatorClient() override;
 
@@ -57,6 +57,9 @@ namespace Beam::ServiceLocator {
 
       void StorePassword(const DirectoryEntry& account,
         const std::string& password) override;
+
+      void MonitorAccounts(
+        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override;
 
       DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) override;
@@ -116,7 +119,7 @@ namespace Beam::ServiceLocator {
   template<typename C>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(
     std::unique_ptr<Client> client)
-    : m_client{std::move(client)} {}
+    : m_client(std::move(client)) {}
 
   template<typename C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
@@ -206,6 +209,13 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& account, const std::string& password) {
     auto release = Python::GilRelease();
     m_client->StorePassword(account, password);
+  }
+
+  template<typename C>
+  void ToPythonServiceLocatorClient<C>::MonitorAccounts(
+      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
+    auto release = Python::GilRelease();
+    m_client->MonitorAccounts(std::move(queue));
   }
 
   template<typename C>

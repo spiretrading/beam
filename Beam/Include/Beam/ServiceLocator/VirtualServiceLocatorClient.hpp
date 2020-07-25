@@ -1,5 +1,5 @@
-#ifndef BEAM_VIRTUALSERVICELOCATORCLIENT_HPP
-#define BEAM_VIRTUALSERVICELOCATORCLIENT_HPP
+#ifndef BEAM_VIRTUAL_SERVICE_LOCATOR_CLIENT_HPP
+#define BEAM_VIRTUAL_SERVICE_LOCATOR_CLIENT_HPP
 #include <memory>
 #include <string>
 #include "Beam/Pointers/Dereference.hpp"
@@ -8,17 +8,15 @@
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/Json/JsonObject.hpp"
+#include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class VirtualServiceLocatorClient
-      \brief Provides a pure virtual interface to a ServiceLocatorClient.
-   */
+  /** Provides a pure virtual interface to a ServiceLocatorClient. */
   class VirtualServiceLocatorClient : private boost::noncopyable {
     public:
       virtual ~VirtualServiceLocatorClient() = default;
@@ -53,6 +51,9 @@ namespace ServiceLocator {
 
       virtual void StorePassword(const DirectoryEntry& account,
         const std::string& password) = 0;
+
+      virtual void MonitorAccounts(
+        std::shared_ptr<QueueWriter<AccountUpdate>> queue) = 0;
 
       virtual DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) = 0;
@@ -97,110 +98,113 @@ namespace ServiceLocator {
 
     protected:
 
-      //! Constructs a VirtualServiceLocatorClient.
+      /** Constructs a VirtualServiceLocatorClient. */
       VirtualServiceLocatorClient() = default;
   };
 
-  /*! \class WrapperServiceLocatorClient
-      \brief Wraps a ServiceLocatorClient providing it with a virtual interface.
-      \tparam ClientType The type of ServiceLocatorClient to wrap.
+  /**
+   * Wraps a ServiceLocatorClient providing it with a virtual interface.
+   * @param C The type of ServiceLocatorClient to wrap.
    */
-  template<typename ClientType>
+  template<typename C>
   class WrapperServiceLocatorClient : public VirtualServiceLocatorClient {
     public:
 
-      //! The ServiceLocatorClient to wrap.
-      using Client = GetTryDereferenceType<ClientType>;
+      /** The ServiceLocatorClient to wrap. */
+      using Client = GetTryDereferenceType<C>;
 
-      //! Constructs a WrapperServiceLocatorClient.
-      /*!
-        \param client The ServiceLocatorClient to wrap.
-      */
-      template<typename ServiceLocatorClientForward>
-      WrapperServiceLocatorClient(ServiceLocatorClientForward&& client);
+      /**
+       * Constructs a WrapperServiceLocatorClient.
+       * @param client The ServiceLocatorClient to wrap.
+       */
+      template<typename CF>
+      explicit WrapperServiceLocatorClient(CF&& client);
 
-      virtual ~WrapperServiceLocatorClient() = default;
+      ~WrapperServiceLocatorClient() = default;
 
-      virtual DirectoryEntry GetAccount() const;
+      DirectoryEntry GetAccount() const override;
 
-      virtual std::string GetSessionId() const;
+      std::string GetSessionId() const override;
 
-      virtual std::string GetEncryptedSessionId(unsigned int key) const;
+      std::string GetEncryptedSessionId(unsigned int key) const override;
 
-      virtual DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password);
+      DirectoryEntry AuthenticateAccount(const std::string& username,
+        const std::string& password) override;
 
-      virtual DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key);
+      DirectoryEntry AuthenticateSession(const std::string& sessionId,
+        unsigned int key) override;
 
-      virtual std::vector<ServiceEntry> Locate(const std::string& name);
+      std::vector<ServiceEntry> Locate(const std::string& name) override;
 
-      virtual ServiceEntry Register(const std::string& name,
-        const JsonObject& properties);
+      ServiceEntry Register(const std::string& name,
+        const JsonObject& properties) override;
 
-      virtual std::vector<DirectoryEntry> LoadAllAccounts();
+      std::vector<DirectoryEntry> LoadAllAccounts() override;
 
-      virtual boost::optional<DirectoryEntry> FindAccount(
-        const std::string& name);
+      boost::optional<DirectoryEntry> FindAccount(
+        const std::string& name) override;
 
-      virtual DirectoryEntry MakeAccount(const std::string& name,
-        const std::string& password, const DirectoryEntry& parent);
+      DirectoryEntry MakeAccount(const std::string& name,
+        const std::string& password, const DirectoryEntry& parent) override;
 
-      virtual DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent);
+      DirectoryEntry MakeDirectory(const std::string& name,
+        const DirectoryEntry& parent) override;
 
-      virtual void StorePassword(const DirectoryEntry& account,
-        const std::string& password);
+      void StorePassword(const DirectoryEntry& account,
+        const std::string& password) override;
 
-      virtual DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path);
+      void MonitorAccounts(
+        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override;
 
-      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id);
+      DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
+        const std::string& path) override;
 
-      virtual std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry);
+      DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
 
-      virtual std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& entry);
+      std::vector<DirectoryEntry> LoadParents(
+        const DirectoryEntry& entry) override;
 
-      virtual void Delete(const DirectoryEntry& entry);
+      std::vector<DirectoryEntry> LoadChildren(
+        const DirectoryEntry& entry) override;
 
-      virtual void Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+      void Delete(const DirectoryEntry& entry) override;
 
-      virtual void Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent);
+      void Associate(const DirectoryEntry& entry,
+        const DirectoryEntry& parent) override;
 
-      virtual bool HasPermissions(const DirectoryEntry& account,
-        const DirectoryEntry& target, Permissions permissions);
+      void Detach(const DirectoryEntry& entry,
+        const DirectoryEntry& parent) override;
 
-      virtual void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions);
+      bool HasPermissions(const DirectoryEntry& account,
+        const DirectoryEntry& target, Permissions permissions) override;
 
-      virtual boost::posix_time::ptime LoadRegistrationTime(
-        const DirectoryEntry& account);
+      void StorePermissions(const DirectoryEntry& source,
+        const DirectoryEntry& target, Permissions permissions) override;
 
-      virtual boost::posix_time::ptime LoadLastLoginTime(
-        const DirectoryEntry& account);
+      boost::posix_time::ptime LoadRegistrationTime(
+        const DirectoryEntry& account) override;
 
-      virtual DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name);
+      boost::posix_time::ptime LoadLastLoginTime(
+        const DirectoryEntry& account) override;
 
-      virtual void SetCredentials(const std::string& username,
-        const std::string& password);
+      DirectoryEntry Rename(const DirectoryEntry& entry,
+        const std::string& name) override;
 
-      virtual void Open();
+      void SetCredentials(const std::string& username,
+        const std::string& password) override;
 
-      virtual void Close();
+      void Open() override;
+
+      void Close() override;
 
     private:
-      GetOptionalLocalPtr<ClientType> m_client;
+      GetOptionalLocalPtr<C> m_client;
   };
 
-  //! Wraps a ServiceLocatorClient into a VirtualServiceLocatorClient.
-  /*!
-    \param client The client to wrap.
-  */
+  /**
+   * Wraps a ServiceLocatorClient into a VirtualServiceLocatorClient.
+   * @param client The client to wrap.
+   */
   template<typename ServiceLocatorClient>
   std::unique_ptr<VirtualServiceLocatorClient> MakeVirtualServiceLocatorClient(
       ServiceLocatorClient&& client) {
@@ -208,173 +212,176 @@ namespace ServiceLocator {
       std::forward<ServiceLocatorClient>(client));
   }
 
-  template<typename ClientType>
-  template<typename ServiceLocatorClientForward>
-  WrapperServiceLocatorClient<ClientType>::WrapperServiceLocatorClient(
-      ServiceLocatorClientForward&& client)
-      : m_client{std::forward<ServiceLocatorClientForward>(client)} {}
+  template<typename C>
+  template<typename CF>
+  WrapperServiceLocatorClient<C>::WrapperServiceLocatorClient(CF&& client)
+      : m_client(std::forward<CF>(client)) {}
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::GetAccount() const {
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::GetAccount() const {
     return m_client->GetAccount();
   }
 
-  template<typename ClientType>
-  std::string WrapperServiceLocatorClient<ClientType>::GetSessionId() const {
+  template<typename C>
+  std::string WrapperServiceLocatorClient<C>::GetSessionId() const {
     return m_client->GetSessionId();
   }
 
-  template<typename ClientType>
-  std::string WrapperServiceLocatorClient<ClientType>::GetEncryptedSessionId(
+  template<typename C>
+  std::string WrapperServiceLocatorClient<C>::GetEncryptedSessionId(
       unsigned int key) const {
     return m_client->GetEncryptedSessionId(key);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::AuthenticateAccount(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::AuthenticateAccount(
       const std::string& username, const std::string& password) {
     return m_client->AuthenticateAccount(username, password);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::AuthenticateSession(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::AuthenticateSession(
       const std::string& sessionId, unsigned int key) {
     return m_client->AuthenticateSession(sessionId, key);
   }
 
-  template<typename ClientType>
-  std::vector<ServiceEntry> WrapperServiceLocatorClient<ClientType>::Locate(
+  template<typename C>
+  std::vector<ServiceEntry> WrapperServiceLocatorClient<C>::Locate(
       const std::string& name) {
     return m_client->Locate(name);
   }
 
-  template<typename ClientType>
-  ServiceEntry WrapperServiceLocatorClient<ClientType>::Register(
-      const std::string& name, const JsonObject& properties) {
+  template<typename C>
+  ServiceEntry WrapperServiceLocatorClient<C>::Register(const std::string& name,
+      const JsonObject& properties) {
     return m_client->Register(name, properties);
   }
 
-  template<typename ClientType>
-  std::vector<DirectoryEntry> WrapperServiceLocatorClient<ClientType>::
+  template<typename C>
+  std::vector<DirectoryEntry> WrapperServiceLocatorClient<C>::
       LoadAllAccounts() {
     return m_client->LoadAllAccounts();
   }
 
-  template<typename ClientType>
-  boost::optional<DirectoryEntry> WrapperServiceLocatorClient<ClientType>::
-      FindAccount(const std::string& name) {
+  template<typename C>
+  boost::optional<DirectoryEntry> WrapperServiceLocatorClient<C>::FindAccount(
+      const std::string& name) {
     return m_client->FindAccount(name);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::MakeAccount(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::MakeAccount(
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent) {
     return m_client->MakeAccount(name, password, parent);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::MakeDirectory(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::MakeDirectory(
       const std::string& name, const DirectoryEntry& parent) {
     return m_client->MakeDirectory(name, parent);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::StorePassword(
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::StorePassword(
       const DirectoryEntry& account, const std::string& password) {
     m_client->StorePassword(account, password);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::LoadDirectoryEntry(
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::MonitorAccounts(
+      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
+    return m_client->MonitorAccounts(queue);
+  }
+
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::LoadDirectoryEntry(
       const DirectoryEntry& root, const std::string& path) {
     return m_client->LoadDirectoryEntry(root, path);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::LoadDirectoryEntry(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::LoadDirectoryEntry(
       unsigned int id) {
     return m_client->LoadDirectoryEntry(id);
   }
 
-  template<typename ClientType>
-  std::vector<DirectoryEntry> WrapperServiceLocatorClient<ClientType>::
-      LoadParents(const DirectoryEntry& entry) {
+  template<typename C>
+  std::vector<DirectoryEntry> WrapperServiceLocatorClient<C>::LoadParents(
+      const DirectoryEntry& entry) {
     return m_client->LoadParents(entry);
   }
 
-  template<typename ClientType>
-  std::vector<DirectoryEntry> WrapperServiceLocatorClient<ClientType>::
-      LoadChildren(const DirectoryEntry& entry) {
+  template<typename C>
+  std::vector<DirectoryEntry> WrapperServiceLocatorClient<C>::LoadChildren(
+      const DirectoryEntry& entry) {
     return m_client->LoadChildren(entry);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::Delete(
-      const DirectoryEntry& entry) {
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Delete(const DirectoryEntry& entry) {
     m_client->Delete(entry);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::Associate(
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Associate(const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     m_client->Associate(entry, parent);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::Detach(
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Detach(const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     m_client->Detach(entry, parent);
   }
 
-  template<typename ClientType>
-  bool WrapperServiceLocatorClient<ClientType>::HasPermissions(
+  template<typename C>
+  bool WrapperServiceLocatorClient<C>::HasPermissions(
       const DirectoryEntry& account, const DirectoryEntry& target,
       Permissions permissions) {
     return m_client->HasPermissions(account, target, permissions);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::StorePermissions(
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::StorePermissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
     m_client->StorePermissions(source, target, permissions);
   }
 
-  template<typename ClientType>
-  boost::posix_time::ptime WrapperServiceLocatorClient<ClientType>::
-      LoadRegistrationTime(const DirectoryEntry& account) {
+  template<typename C>
+  boost::posix_time::ptime WrapperServiceLocatorClient<C>::LoadRegistrationTime(
+      const DirectoryEntry& account) {
     return m_client->LoadRegistrationTime(account);
   }
 
-  template<typename ClientType>
-  boost::posix_time::ptime WrapperServiceLocatorClient<ClientType>::
-      LoadLastLoginTime(const DirectoryEntry& account) {
+  template<typename C>
+  boost::posix_time::ptime WrapperServiceLocatorClient<C>::LoadLastLoginTime(
+      const DirectoryEntry& account) {
     return m_client->LoadLastLoginTime(account);
   }
 
-  template<typename ClientType>
-  DirectoryEntry WrapperServiceLocatorClient<ClientType>::Rename(
+  template<typename C>
+  DirectoryEntry WrapperServiceLocatorClient<C>::Rename(
       const DirectoryEntry& entry, const std::string& name) {
     return m_client->Rename(entry, name);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::SetCredentials(
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::SetCredentials(
       const std::string& username, const std::string& password) {
     m_client->SetCredentials(username, password);
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::Open() {
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Open() {
     m_client->Open();
   }
 
-  template<typename ClientType>
-  void WrapperServiceLocatorClient<ClientType>::Close() {
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Close() {
     m_client->Close();
   }
-}
 }
 
 #endif

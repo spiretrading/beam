@@ -12,6 +12,8 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
@@ -246,15 +248,22 @@ namespace Beam::ServiceLocator {
       using ServiceProtocolClient =
         typename ServiceProtocolClientBuilder::Client;
       mutable boost::mutex m_mutex;
+      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
       std::string m_username;
       std::string m_password;
       std::string m_sessionId;
       DirectoryEntry m_account;
-      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
+      std::vector<std::weak_ptr<QueueWriter<AccountUpdate>>>
+        m_accountUpdateListeners;
+      std::vector<DirectoryEntry> m_accountUpdateSnapshot;
+      MultiQueueWriter<AccountUpdate> m_accountUpdatePublisher;
+      RoutineTaskQueue m_tasks;
       IO::OpenState m_openState;
 
       void Shutdown();
       void OnReconnect(const std::shared_ptr<ServiceProtocolClient>& client);
+      void OnAccountUpdate(ServiceProtocolClient& client,
+        const AccountUpdate& update);
       void Login(ServiceProtocolClient& client);
   };
 
@@ -336,6 +345,10 @@ namespace Beam::ServiceLocator {
       std::placeholders::_1));
     RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
     RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
+    Services::AddMessageSlot<AccountUpdateMessage>(
+      Store(m_clientHandler.GetSlots()),
+      std::bind(&ServiceLocatorClient::OnAccountUpdate, this,
+      std::placeholders::_1, std::placeholders::_2));
   }
 
   template<typename B>
@@ -430,11 +443,25 @@ namespace Beam::ServiceLocator {
   template<typename B>
   void ServiceLocatorClient<B>::MonitorAccounts(
       std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
-    auto client = m_clientHandler.GetClient();
-    auto accounts = client->template SendRequest<MonitorAccountsService>(0);
-    for(auto& account : accounts) {
-      queue->Push(AccountUpdate{account, AccountUpdate::Type::ADDED});
-    }
+    m_tasks.Push([=] {
+      m_accountUpdatePublisher.Monitor(queue);
+      m_accountUpdateListeners.push_back(queue);
+      if(m_accountUpdateListeners.size() != 1) {
+        try {
+          for(auto& account : m_accountUpdateSnapshot) {
+            queue->Push(AccountUpdate{account, AccountUpdate::Type::ADDED});
+          }
+        } catch(const PipeBrokenException&) {}
+        return;
+      }
+      auto client = m_clientHandler.GetClient();
+      auto accounts = client->template SendRequest<MonitorAccountsService>(0);
+      for(auto& account : accounts) {
+        m_accountUpdateSnapshot.push_back(account);
+        m_accountUpdatePublisher.Push(
+          AccountUpdate{account, AccountUpdate::Type::ADDED});
+      }
+    });
   }
 
   template<typename B>
@@ -555,6 +582,9 @@ namespace Beam::ServiceLocator {
   template<typename B>
   void ServiceLocatorClient<B>::Shutdown() {
     m_clientHandler.Close();
+    m_tasks.Break();
+    m_tasks.Wait();
+    m_accountUpdatePublisher.Break();
     m_openState.SetClosed();
   }
 
@@ -567,6 +597,32 @@ namespace Beam::ServiceLocator {
       Close();
       throw;
     }
+  }
+
+  template<typename B>
+  void ServiceLocatorClient<B>::OnAccountUpdate(ServiceProtocolClient& client,
+      const AccountUpdate& update) {
+    m_tasks.Push([=] {
+      if(update.m_type == AccountUpdate::Type::ADDED) {
+        m_accountUpdateSnapshot.push_back(update.m_account);
+      } else {
+        auto i = std::find(m_accountUpdateSnapshot.begin(),
+          m_accountUpdateSnapshot.end(), update.m_account);
+        if(i != m_accountUpdateSnapshot.end()) {
+          m_accountUpdateSnapshot.erase(i);
+        }
+      }
+      m_accountUpdatePublisher.Push(update);
+      m_accountUpdateListeners.erase(std::remove_if(
+        m_accountUpdateListeners.begin(), m_accountUpdateListeners.end(),
+        [] (auto& listener) {
+          return listener.expired();
+        }), m_accountUpdateListeners.end());
+      if(m_accountUpdateListeners.empty()) {
+        auto client = m_clientHandler.GetClient();
+        client->template SendRequest<UnmonitorAccountsService>(0);
+      }
+    });
   }
 
   template<typename B>

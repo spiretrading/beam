@@ -5,6 +5,7 @@
 #include "Beam/SignalHandling/NullSlot.hpp"
 
 using namespace Beam;
+using namespace Beam::Routines;
 using namespace Beam::ServiceLocator;
 using namespace Beam::Services;
 using namespace Beam::Services::Tests;
@@ -75,5 +76,63 @@ TEST_SUITE("ServiceLocatorClient") {
     REQUIRE_THROWS_AS(m_serviceClient->Open(), ServiceRequestException);
   }
 
-  TEST_CASE_FIXTURE(Fixture, "monitor_directory_entry") {}
+  TEST_CASE_FIXTURE(Fixture, "monitor_accounts") {
+    auto receivedRequest = false;
+    auto receivedUnmonitor = Async<void>();
+    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
+      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
+      std::placeholders::_3, std::ref(receivedRequest)));
+    UnmonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
+      [&] (auto& client, int dummy) {
+        receivedUnmonitor.GetEval().SetResult();
+      });
+    auto testAccounts = std::vector<DirectoryEntry>();
+    testAccounts.push_back(DirectoryEntry::MakeAccount(123, "accountA"));
+    testAccounts.push_back(DirectoryEntry::MakeAccount(124, "accountB"));
+    testAccounts.push_back(DirectoryEntry::MakeAccount(125, "accountC"));
+    auto serverSideClient =
+      static_cast<TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    MonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
+      [&] (auto& client, int dummy) {
+        serverSideClient = &client;
+        return testAccounts;
+      });
+    m_serviceClient->SetCredentials("account", "password");
+    REQUIRE_NOTHROW(m_serviceClient->Open());
+    auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
+    m_serviceClient->MonitorAccounts(accountQueue);
+    auto update = accountQueue->Top();
+    accountQueue->Pop();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[0], AccountUpdate::Type::ADDED});
+    update = accountQueue->Top();
+    accountQueue->Pop();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[1], AccountUpdate::Type::ADDED});
+    update = accountQueue->Top();
+    accountQueue->Pop();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
+    SendRecordMessage<AccountUpdateMessage>(*serverSideClient,
+      AccountUpdate{testAccounts[0], AccountUpdate::Type::DELETED});
+    update = accountQueue->Top();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[0], AccountUpdate::Type::DELETED});
+    auto duplicateQueue = std::make_shared<Queue<AccountUpdate>>();
+    m_serviceClient->MonitorAccounts(duplicateQueue);
+    update = duplicateQueue->Top();
+    duplicateQueue->Pop();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[1], AccountUpdate::Type::ADDED});
+    update = duplicateQueue->Top();
+    duplicateQueue->Pop();
+    REQUIRE(update ==
+      AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
+    accountQueue = nullptr;
+    duplicateQueue = nullptr;
+    receivedRequest = false;
+    SendRecordMessage<AccountUpdateMessage>(*serverSideClient,
+      AccountUpdate{testAccounts[1], AccountUpdate::Type::DELETED});
+    REQUIRE_NOTHROW(receivedUnmonitor.Get());
+  }
 }

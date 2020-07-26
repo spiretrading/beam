@@ -455,9 +455,9 @@ namespace Beam::ServiceLocator {
         return;
       }
       auto client = m_clientHandler.GetClient();
-      auto accounts = client->template SendRequest<MonitorAccountsService>(0);
-      for(auto& account : accounts) {
-        m_accountUpdateSnapshot.push_back(account);
+      m_accountUpdateSnapshot =
+        client->template SendRequest<MonitorAccountsService>(0);
+      for(auto& account : m_accountUpdateSnapshot) {
         m_accountUpdatePublisher.Push(
           AccountUpdate{account, AccountUpdate::Type::ADDED});
       }
@@ -602,6 +602,22 @@ namespace Beam::ServiceLocator {
       const std::shared_ptr<ServiceProtocolClient>& client) {
     try {
       Login(*client);
+      m_tasks.Push([=] {
+        if(m_accountUpdateListeners.empty()) {
+          return;
+        }
+        auto client = m_clientHandler.GetClient();
+        auto accounts = client->template SendRequest<MonitorAccountsService>(0);
+        for(auto& account : accounts) {
+          auto i = std::find(m_accountUpdateSnapshot.begin(),
+            m_accountUpdateSnapshot.end(), account);
+          if(i == m_accountUpdateSnapshot.end()) {
+            m_accountUpdateSnapshot.push_back(account);
+            m_accountUpdatePublisher.Push(
+              AccountUpdate{account, AccountUpdate::Type::ADDED});
+          }
+        }
+      });
     } catch(const std::exception&) {
       Close();
       throw;
@@ -630,6 +646,7 @@ namespace Beam::ServiceLocator {
       if(m_accountUpdateListeners.empty()) {
         auto client = m_clientHandler.GetClient();
         client->template SendRequest<UnmonitorAccountsService>(0);
+        m_accountUpdateSnapshot = {};
       }
     });
   }

@@ -137,12 +137,11 @@ namespace Beam::ServiceLocator {
 
     /**
      * Loads all accounts the session is permissioned to read from.
-     * @param dummy Unused.
      * @return The list of all accounts the session is permissioned to read
      *         from.
      */
     (LoadAllAccountsService, "Beam.ServiceLocator.LoadAllAccountsService",
-      std::vector<DirectoryEntry>, int, dummy),
+      std::vector<DirectoryEntry>),
 
     /**
      * Finds an account with a specified name.

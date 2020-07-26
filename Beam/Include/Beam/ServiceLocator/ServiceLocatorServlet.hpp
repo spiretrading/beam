@@ -1,5 +1,5 @@
-#ifndef BEAM_SERVICELOCATORSERVLET_HPP
-#define BEAM_SERVICELOCATORSERVLET_HPP
+#ifndef BEAM_SERVICE_LOCATOR_SERVLET_HPP
+#define BEAM_SERVICE_LOCATOR_SERVLET_HPP
 #include <algorithm>
 #include <atomic>
 #include <random>
@@ -14,30 +14,28 @@
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Threading/Sync.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class ServiceLocatorServlet
-      \brief Handles ServiceLocator service requests.
-      \tparam ContainerType The container instantiating this servlet.
-      \tparam ServiceLocatorDataStoreType The type of data store to use.
+  /**
+   * Handles ServiceLocator service requests.
+   * @param <C> The container instantiating this servlet.
+   * @param <D> The type of data store to use.
    */
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
+  template<typename C, typename D>
   class ServiceLocatorServlet : private boost::noncopyable {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
-      //! The type of ServiceLocatorDataStore used.
-      using ServiceLocatorDataStore =
-        GetTryDereferenceType<ServiceLocatorDataStoreType>;
+      /** The type of ServiceLocatorDataStore used. */
+      using ServiceLocatorDataStore = GetTryDereferenceType<D>;
 
-      //! Constructs a ServiceLocatorServlet.
-      /*!
-        \param dataStore The data store to use.
-      */
-      template<typename DataStoreForward>
-      ServiceLocatorServlet(DataStoreForward&& dataStore);
+      /**
+       * Constructs a ServiceLocatorServlet.
+       * @param dataStore The data store to use.
+       */
+      template<typename DF>
+      ServiceLocatorServlet(DF&& dataStore);
 
       void RegisterServices(
         Out<Services::ServiceSlots<ServiceProtocolClient>> slots);
@@ -62,7 +60,7 @@ namespace ServiceLocator {
       using DirectoryEntryMonitorEntries =
         std::unordered_map<DirectoryEntry, DirectoryEntryMonitorEntry>;
       using Sessions = std::unordered_map<std::string, ServiceProtocolClient*>;
-      GetOptionalLocalPtr<ServiceLocatorDataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       Threading::Sync<Sessions> m_sessions;
       Threading::Sync<ServiceListings> m_serviceListings;
       Threading::Sync<ServiceEntryListings> m_serviceEntryListings;
@@ -88,6 +86,9 @@ namespace ServiceLocator {
         ServiceProtocolClient& client, const DirectoryEntry& entry);
       DirectoryEntry OnLoadPath(ServiceProtocolClient& client,
         const DirectoryEntry& root, const std::string& path);
+      std::vector<DirectoryEntry> OnMonitorAccounts(
+        ServiceProtocolClient& client);
+      void OnUnmonitorAccounts(ServiceProtocolClient& client);
       DirectoryEntry OnLoadDirectoryEntry(ServiceProtocolClient& client,
         unsigned int id);
       std::vector<DirectoryEntry> OnLoadParentsRequest(
@@ -95,7 +96,7 @@ namespace ServiceLocator {
       std::vector<DirectoryEntry> OnLoadChildrenRequest(
         ServiceProtocolClient& client, const DirectoryEntry& entry);
       std::vector<DirectoryEntry> OnLoadAllAccountsRequest(
-        ServiceProtocolClient& client, int dummy);
+        ServiceProtocolClient& client);
       boost::optional<DirectoryEntry> OnFindAccountRequest(
         ServiceProtocolClient& client, const std::string& name);
       DirectoryEntry OnMakeAccountRequest(ServiceProtocolClient& client,
@@ -131,27 +132,24 @@ namespace ServiceLocator {
         unsigned int saltId);
   };
 
-  template<typename ServiceLocatorDataStoreType>
+  template<typename D>
   struct MetaServiceLocatorServlet {
-    static constexpr bool SupportsParallelism = true;
+    static constexpr auto SupportsParallelism = true;
     using Session = ServiceLocatorSession;
-    template<typename ContainerType>
+    template<typename C>
     struct apply {
-      using type =
-        ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>;
+      using type = ServiceLocatorServlet<C, D>;
     };
   };
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  template<typename DataStoreForward>
-  ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      ServiceLocatorServlet(DataStoreForward&& dataStore)
-      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
+  template<typename C, typename D>
+  template<typename DF>
+  ServiceLocatorServlet<C, D>::ServiceLocatorServlet(DF&& dataStore)
+    : m_dataStore(std::forward<DF>(dataStore)) {}
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
-      slots) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::RegisterServices(
+      Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterServiceLocatorServices(Store(slots));
     RegisterServiceLocatorMessages(Store(slots));
     LoginService::AddSlot(Store(slots), std::bind(
@@ -178,6 +176,11 @@ namespace ServiceLocator {
     LoadPathService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnLoadPath, this, std::placeholders::_1,
       std::placeholders::_2, std::placeholders::_3));
+    MonitorAccountsService::AddSlot(Store(slots), std::bind(
+      &ServiceLocatorServlet::OnMonitorAccounts, this, std::placeholders::_1));
+    UnmonitorAccountsService::AddSlot(Store(slots), std::bind(
+      &ServiceLocatorServlet::OnUnmonitorAccounts, this,
+      std::placeholders::_1));
     LoadDirectoryEntryService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnLoadDirectoryEntry, this, std::placeholders::_1,
       std::placeholders::_2));
@@ -189,7 +192,7 @@ namespace ServiceLocator {
       std::placeholders::_1, std::placeholders::_2));
     LoadAllAccountsService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnLoadAllAccountsRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
+      std::placeholders::_1));
     FindAccountService::AddSlot(Store(slots), std::bind(
       &ServiceLocatorServlet::OnFindAccountRequest, this, std::placeholders::_1,
       std::placeholders::_2));
@@ -236,14 +239,14 @@ namespace ServiceLocator {
       std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      HandleClientClosed(ServiceProtocolClient& client) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::HandleClientClosed(
+      ServiceProtocolClient& client) {
     auto& session = client.GetSession();
     auto registeredServices = session.GetRegisteredServices();
     auto serviceSubscriptions = session.GetServiceSubscriptions();
     Threading::With(m_serviceEntryListings,
-      [&] (ServiceEntryListings& serviceEntryListings) {
+      [&] (auto& serviceEntryListings) {
         for(auto& registeredService : registeredServices) {
           auto& listing = serviceEntryListings[registeredService.GetName()];
           RemoveAll(listing.m_entries, registeredService);
@@ -259,21 +262,20 @@ namespace ServiceLocator {
       });
     auto monitors = session.GetMonitors();
     Threading::With(m_directoryEntryMonitorEntries,
-      [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
+      [&] (auto& directoryEntryMonitorEntries) {
         for(auto& entry : monitors) {
           auto& monitor = directoryEntryMonitorEntries[entry];
           RemoveAll(monitor.m_subscribers, &client);
         }
       });
     Threading::With(m_sessions,
-      [&] (Sessions& sessions) {
+      [&] (auto& sessions) {
         sessions.erase(session.GetSessionId());
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      Open() {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
@@ -287,8 +289,7 @@ namespace ServiceLocator {
             return;
           } catch(const ServiceLocatorDataStoreException&) {}
           auto starDirectory = m_dataStore->MakeDirectory("*",
-            DirectoryEntry{DirectoryEntry::Type::DIRECTORY,
-            static_cast<unsigned int>(-1), "*"});
+            DirectoryEntry::MakeDirectory(static_cast<unsigned int>(-1), "*"));
           auto rootAccount = m_dataStore->MakeAccount("root", "", starDirectory,
             boost::posix_time::second_clock::universal_time());
           m_dataStore->SetPermissions(rootAccount, starDirectory,
@@ -301,25 +302,22 @@ namespace ServiceLocator {
     m_openState.SetOpen();
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      Close() {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      Shutdown() {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::Shutdown() {
     m_dataStore->Close();
     m_openState.SetClosed();
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      Delete(const DirectoryEntry& entry) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::Delete(const DirectoryEntry& entry) {
     auto children = m_dataStore->LoadChildren(entry);
     for(auto& child : children) {
       auto parents = m_dataStore->LoadParents(child);
@@ -332,7 +330,7 @@ namespace ServiceLocator {
     auto parents = m_dataStore->LoadParents(entry);
     m_dataStore->Delete(entry);
     Threading::With(m_directoryEntryMonitorEntries,
-      [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
+      [&] (auto& directoryEntryMonitorEntries) {
         auto monitorIterator = directoryEntryMonitorEntries.find(entry);
         if(monitorIterator == directoryEntryMonitorEntries.end()) {
           return;
@@ -348,35 +346,34 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  LoginServiceResult ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoginRequest(
+  template<typename C, typename D>
+  LoginServiceResult ServiceLocatorServlet<C, D>::OnLoginRequest(
       ServiceProtocolClient& client, const std::string& username,
       const std::string& password) {
     auto& session = client.GetSession();
     if(!session.TryLogin()) {
-      throw Services::ServiceRequestException{"Account is already logged in."};
+      throw Services::ServiceRequestException("Account is already logged in.");
     }
-    DirectoryEntry account;
+    auto account = DirectoryEntry();
     try {
       m_dataStore->WithTransaction(
         [&] {
           try {
             account = m_dataStore->LoadAccount(username);
           } catch(const ServiceLocatorDataStoreException&) {
-            throw Services::ServiceRequestException{
-              "Invalid username or password."};
+            throw Services::ServiceRequestException(
+              "Invalid username or password.");
           }
-          std::string accountPassword;
+          auto accountPassword = std::string();
           try {
             accountPassword = m_dataStore->LoadPassword(account);
           } catch(const ServiceLocatorDataStoreException&) {
-            throw Services::ServiceRequestException{
-              "Unable to retrieve password, try again later."};
+            throw Services::ServiceRequestException(
+              "Unable to retrieve password, try again later.");
           }
           if(!ValidatePassword(account, password, accountPassword)) {
-            throw Services::ServiceRequestException{
-              "Invalid username or password."};
+            throw Services::ServiceRequestException(
+              "Invalid username or password.");
           }
           m_dataStore->StoreLastLoginTime(account,
             boost::posix_time::second_clock::universal_time());
@@ -385,32 +382,30 @@ namespace ServiceLocator {
       session.ResetLogin();
       throw;
     }
-    std::string sessionId;
+    auto sessionId = std::string();
     Threading::With(m_sessions,
-      [&] (Sessions& sessions) {
+      [&] (auto& sessions) {
         do {
           sessionId = GenerateSessionId();
         } while(sessions.find(sessionId) != sessions.end());
         sessions.insert(std::make_pair(sessionId, &client));
       });
     session.SetSessionId(account, sessionId);
-    return LoginServiceResult{account, sessionId};
+    return LoginServiceResult(account, sessionId);
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  ServiceEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnRegisterRequest(
+  template<typename C, typename D>
+  ServiceEntry ServiceLocatorServlet<C, D>::OnRegisterRequest(
       ServiceProtocolClient& client, const std::string& name,
       const JsonObject& properties) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto id = ++m_nextServiceId;
-    ServiceEntry entry{name, properties, id, session.GetAccount()};
+    auto entry = ServiceEntry(name, properties, id, session.GetAccount());
     Threading::With(m_serviceEntryListings, m_serviceListings,
-      [&] (ServiceEntryListings& serviceEntryListings,
-          ServiceListings& serviceListings) {
+      [&] (auto& serviceEntryListings, auto& serviceListings) {
         auto& listing = serviceEntryListings[name];
         listing.m_entries.push_back(entry);
         serviceListings.insert(std::make_pair(id, entry));
@@ -423,12 +418,12 @@ namespace ServiceLocator {
     return entry;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::
       OnUnregisterRequest(ServiceProtocolClient& client, int serviceId) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto registeredServices = session.GetRegisteredServices();
     auto serviceFound = false;
@@ -439,11 +434,10 @@ namespace ServiceLocator {
       }
     }
     if(!serviceFound) {
-      throw Services::ServiceRequestException{"Service not found."};
+      throw Services::ServiceRequestException("Service not found.");
     }
     Threading::With(m_serviceEntryListings, m_serviceListings,
-      [&] (ServiceEntryListings& serviceEntryListings,
-          ServiceListings& serviceListings) {
+      [&] (auto& serviceEntryListings, auto& serviceListings) {
         auto& entry = serviceListings[serviceId];
         auto& listing = serviceEntryListings[entry.GetName()];
         RemoveAll(listing.m_entries, entry);
@@ -455,40 +449,36 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<ServiceEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLocateRequest(
+  template<typename C, typename D>
+  std::vector<ServiceEntry> ServiceLocatorServlet<C, D>::OnLocateRequest(
       ServiceProtocolClient& client, const std::string& name) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto listings = Threading::With(m_serviceEntryListings,
-      [&] (ServiceEntryListings& serviceEntryListings) ->
-          std::vector<ServiceEntry> {
+      [&] (auto& serviceEntryListings) -> std::vector<ServiceEntry> {
         auto entryIterator = serviceEntryListings.find(name);
         if(entryIterator != serviceEntryListings.end()) {
           return entryIterator->second.m_entries;
         }
         return {};
       });
-    std::random_device randomDevice;
-    std::mt19937 randomGenerator{randomDevice()};
+    auto randomDevice = std::random_device();
+    auto randomGenerator = std::mt19937(randomDevice());
     std::shuffle(listings.begin(), listings.end(), randomGenerator);
     return listings;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<ServiceEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnSubscribeRequest(
+  template<typename C, typename D>
+  std::vector<ServiceEntry> ServiceLocatorServlet<C, D>::OnSubscribeRequest(
       ServiceProtocolClient& client, const std::string& serviceName) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     return Threading::With(m_serviceEntryListings,
-      [&] (ServiceEntryListings& serviceEntryListings) ->
-          std::vector<ServiceEntry> {
+      [&] (auto& serviceEntryListings) -> std::vector<ServiceEntry> {
         auto& listing = serviceEntryListings[serviceName];
         if(std::find(session.GetServiceSubscriptions().begin(),
             session.GetServiceSubscriptions().end(), serviceName) !=
@@ -501,46 +491,45 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnUnsubscribeRequest(ServiceProtocolClient& client,
-      const std::string& serviceName) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnUnsubscribeRequest(
+      ServiceProtocolClient& client, const std::string& serviceName) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     Threading::With(m_serviceEntryListings,
-      [&] (ServiceEntryListings& serviceEntryListings) {
+      [&] (auto& serviceEntryListings) {
         auto& listing = serviceEntryListings[serviceName];
         RemoveAll(listing.m_subscribers, &client);
         session.UnsubscribeService(serviceName);
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<DirectoryEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnMonitorDirectoryEntryRequest(
-      ServiceProtocolClient& client, const DirectoryEntry& entry) {
+  template<typename C, typename D>
+  std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::
+      OnMonitorDirectoryEntryRequest(ServiceProtocolClient& client,
+      const DirectoryEntry& entry) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    std::vector<DirectoryEntry> parents;
+    auto parents = std::vector<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(entry);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         parents = m_dataStore->LoadParents(validatedEntry);
       });
     Threading::With(m_directoryEntryMonitorEntries,
-      [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
+      [&] (auto& directoryEntryMonitorEntries) {
         auto& monitor = directoryEntryMonitorEntries[entry];
         if(std::find(monitor.m_subscribers.begin(), monitor.m_subscribers.end(),
             &client) != monitor.m_subscribers.end()) {
-          throw Services::ServiceRequestException{"Already subscribed."};
+          throw Services::ServiceRequestException("Already subscribed.");
         }
         monitor.m_subscribers.push_back(&client);
         session.Monitor(entry);
@@ -548,97 +537,105 @@ namespace ServiceLocator {
     return parents;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadPath(ServiceProtocolClient& client,
-      const DirectoryEntry& root, const std::string& path) {
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnLoadPath(
+      ServiceProtocolClient& client, const DirectoryEntry& root,
+      const std::string& path) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    DirectoryEntry entry;
+    auto entry = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
         entry = LoadDirectoryEntry(*m_dataStore, root, path);
         if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
       });
     return entry;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadDirectoryEntry(
+  template<typename C, typename D>
+  std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::OnMonitorAccounts(
+      ServiceProtocolClient& client) {
+    return {};
+  }
+
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnUnmonitorAccounts(
+      ServiceProtocolClient& client) {
+  }
+
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnLoadDirectoryEntry(
       ServiceProtocolClient& client, unsigned int id) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    DirectoryEntry entry;
+    auto entry = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
         entry = m_dataStore->LoadDirectoryEntry(id);
         if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
       });
     return entry;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<DirectoryEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadParentsRequest(
+  template<typename C, typename D>
+  std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::OnLoadParentsRequest(
       ServiceProtocolClient& client, const DirectoryEntry& entry) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    std::vector<DirectoryEntry> parents;
+    auto parents = std::vector<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(entry);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         parents = m_dataStore->LoadParents(validatedEntry);
       });
     return parents;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<DirectoryEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadChildrenRequest(
-      ServiceProtocolClient& client, const DirectoryEntry& entry) {
+  template<typename C, typename D>
+  std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::
+      OnLoadChildrenRequest(ServiceProtocolClient& client,
+      const DirectoryEntry& entry) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    std::vector<DirectoryEntry> children;
+    auto children = std::vector<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(entry);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         children = m_dataStore->LoadChildren(validatedEntry);
       });
     return children;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  std::vector<DirectoryEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadAllAccountsRequest(
-      ServiceProtocolClient& client, int dummy) {
+  template<typename C, typename D>
+  std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::
+      OnLoadAllAccountsRequest(ServiceProtocolClient& client) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    std::vector<DirectoryEntry> accounts;
+    auto accounts = std::vector<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
         try {
@@ -658,15 +655,15 @@ namespace ServiceLocator {
     return accounts;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  boost::optional<DirectoryEntry> ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnFindAccountRequest(
-      ServiceProtocolClient& client, const std::string& name) {
+  template<typename C, typename D>
+  boost::optional<DirectoryEntry> ServiceLocatorServlet<C, D>::
+      OnFindAccountRequest(ServiceProtocolClient& client,
+      const std::string& name) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    boost::optional<DirectoryEntry> account;
+    auto account = boost::optional<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
         try {
@@ -676,26 +673,25 @@ namespace ServiceLocator {
     return account;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnMakeAccountRequest(
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnMakeAccountRequest(
       ServiceProtocolClient& client, const std::string& name,
       const std::string& password, const DirectoryEntry& parent) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto validatedName = boost::trim_copy(name);
     if(validatedName.empty()) {
-      throw Services::ServiceRequestException{"Name is empty."};
+      throw Services::ServiceRequestException("Name is empty.");
     }
-    DirectoryEntry newEntry;
+    auto newEntry = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedParent = m_dataStore->Validate(parent);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         newEntry = m_dataStore->MakeAccount(validatedName, password,
           validatedParent, boost::posix_time::second_clock::universal_time());
@@ -703,58 +699,56 @@ namespace ServiceLocator {
     return newEntry;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnMakeDirectoryRequest(
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnMakeDirectoryRequest(
       ServiceProtocolClient& client, const std::string& name,
       const DirectoryEntry& parent) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto validatedName = boost::trim_copy(name);
     if(validatedName.empty()) {
-      throw Services::ServiceRequestException{"Name is empty."};
+      throw Services::ServiceRequestException("Name is empty.");
     }
-    DirectoryEntry newEntry;
+    auto newEntry = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedParent = m_dataStore->Validate(parent);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         newEntry = m_dataStore->MakeDirectory(validatedName, validatedParent);
       });
     return newEntry;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnDeleteDirectoryEntryRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& entry) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnDeleteDirectoryEntryRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& entry) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(entry);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         Delete(validatedEntry);
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnAssociateRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnAssociateRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     m_dataStore->WithTransaction(
       [&] {
@@ -762,13 +756,13 @@ namespace ServiceLocator {
         auto validatedParent = m_dataStore->Validate(parent);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
             Permission::MOVE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         if(!m_dataStore->Associate(validatedEntry, validatedParent)) {
           return;
         }
         Threading::With(m_directoryEntryMonitorEntries,
-          [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
+          [&] (auto& directoryEntryMonitorEntries) {
             auto monitorIterator = directoryEntryMonitorEntries.find(
               validatedEntry);
             if(monitorIterator == directoryEntryMonitorEntries.end()) {
@@ -783,13 +777,13 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnDetachRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnDetachRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     m_dataStore->WithTransaction(
       [&] {
@@ -797,18 +791,18 @@ namespace ServiceLocator {
         auto validatedParent = m_dataStore->Validate(parent);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
             Permission::MOVE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         auto parents = m_dataStore->LoadParents(validatedEntry);
         if(parents.size() == 1) {
-          throw Services::ServiceRequestException{
-            "Entry only has one parent, must be deleted instead of detached."};
+          throw Services::ServiceRequestException(
+            "Entry only has one parent, must be deleted instead of detached.");
         }
         if(!m_dataStore->Detach(validatedEntry, validatedParent)) {
           return;
         }
         Threading::With(m_directoryEntryMonitorEntries,
-          [&] (DirectoryEntryMonitorEntries& directoryEntryMonitorEntries) {
+          [&] (auto& directoryEntryMonitorEntries) {
             auto monitorIterator = directoryEntryMonitorEntries.find(
               validatedEntry);
             if(monitorIterator == directoryEntryMonitorEntries.end()) {
@@ -823,13 +817,13 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnStorePasswordRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& account, const std::string& password) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnStorePasswordRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& account,
+      const std::string& password) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     m_dataStore->WithTransaction(
       [&] {
@@ -837,21 +831,20 @@ namespace ServiceLocator {
         if(validatedAccount != session.GetAccount() &&
             !HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         m_dataStore->SetPassword(validatedAccount,
           HashPassword(validatedAccount, password));
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  bool ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnHasPermissionsRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& account, const DirectoryEntry& target,
-      Permissions permissions) {
+  template<typename C, typename D>
+  bool ServiceLocatorServlet<C, D>::OnHasPermissionsRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& account,
+      const DirectoryEntry& target, Permissions permissions) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto result = false;
     m_dataStore->WithTransaction(
@@ -861,21 +854,20 @@ namespace ServiceLocator {
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
             Permission::ADMINISTRATE) || !HasPermission(*m_dataStore,
             session.GetAccount(), validatedTarget, Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         result = HasPermission(*m_dataStore, account, target, permissions);
       });
     return result;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  void ServiceLocatorServlet<ContainerType, ServiceLocatorDataStoreType>::
-      OnStorePermissionsRequest(ServiceProtocolClient& client,
-      const DirectoryEntry& source, const DirectoryEntry& target,
-      Permissions permissions) {
+  template<typename C, typename D>
+  void ServiceLocatorServlet<C, D>::OnStorePermissionsRequest(
+      ServiceProtocolClient& client, const DirectoryEntry& source,
+      const DirectoryEntry& target, Permissions permissions) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     m_dataStore->WithTransaction(
       [&] {
@@ -885,70 +877,69 @@ namespace ServiceLocator {
             Permission::ADMINISTRATE) ||
             !HasPermission(*m_dataStore, session.GetAccount(), validatedTarget,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         m_dataStore->SetPermissions(source, validatedTarget, permissions);
       });
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  boost::posix_time::ptime ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadRegistrationTimeRequest(
-      ServiceProtocolClient& client, const DirectoryEntry& account) {
+  template<typename C, typename D>
+  boost::posix_time::ptime ServiceLocatorServlet<C, D>::
+      OnLoadRegistrationTimeRequest(ServiceProtocolClient& client,
+      const DirectoryEntry& account) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    boost::posix_time::ptime registrationTime;
+    auto registrationTime = boost::posix_time::ptime();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedAccount = m_dataStore->Validate(account);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         registrationTime = m_dataStore->LoadRegistrationTime(validatedAccount);
       });
     return registrationTime;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  boost::posix_time::ptime ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnLoadLastLoginTimeRequest(
-      ServiceProtocolClient& client, const DirectoryEntry& account) {
+  template<typename C, typename D>
+  boost::posix_time::ptime ServiceLocatorServlet<C, D>::
+      OnLoadLastLoginTimeRequest(ServiceProtocolClient& client,
+      const DirectoryEntry& account) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    boost::posix_time::ptime lastLoginTime;
+    auto lastLoginTime = boost::posix_time::ptime();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedAccount = m_dataStore->Validate(account);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
             Permission::READ)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         lastLoginTime = m_dataStore->LoadLastLoginTime(validatedAccount);
       });
     return lastLoginTime;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnRenameRequest(
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnRenameRequest(
       ServiceProtocolClient& client, const DirectoryEntry& entry,
       const std::string& name) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    DirectoryEntry result;
+    auto result = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(entry);
         if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
         auto isExistingAccount = false;
         try {
@@ -958,8 +949,8 @@ namespace ServiceLocator {
           isExistingAccount = false;
         }
         if(isExistingAccount) {
-          throw Services::ServiceRequestException{
-            "An account with the specified name exists."};
+          throw Services::ServiceRequestException(
+            "An account with the specified name exists.");
         }
         m_dataStore->Rename(validatedEntry, name);
         result = validatedEntry;
@@ -968,19 +959,18 @@ namespace ServiceLocator {
     return result;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnAuthenticateAccountRequest(
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnAuthenticateAccountRequest(
       ServiceProtocolClient& client, const std::string& username,
       const std::string& password) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
-    DirectoryEntry account;
+    auto account = DirectoryEntry();
     m_dataStore->WithTransaction(
       [&] {
-        DirectoryEntry entry;
+        auto entry = DirectoryEntry();
         try {
           entry = m_dataStore->LoadAccount(username);
         } catch(const ServiceLocatorDataStoreException&) {
@@ -988,9 +978,9 @@ namespace ServiceLocator {
         }
         if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
             Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException{"Insufficient permissions."};
+          throw Services::ServiceRequestException("Insufficient permissions.");
         }
-        std::string accountPassword;
+        auto accountPassword = std::string();
         try {
           accountPassword = m_dataStore->LoadPassword(entry);
         } catch(const ServiceLocatorDataStoreException&) {
@@ -1006,29 +996,27 @@ namespace ServiceLocator {
     return account;
   }
 
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-  DirectoryEntry ServiceLocatorServlet<ContainerType,
-      ServiceLocatorDataStoreType>::OnSessionAuthenticationRequest(
+  template<typename C, typename D>
+  DirectoryEntry ServiceLocatorServlet<C, D>::OnSessionAuthenticationRequest(
       ServiceProtocolClient& client, const std::string& sessionId,
       unsigned int saltId) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
     auto salt = std::to_string(saltId);
     auto upperCaseSessionId = boost::to_upper_copy(sessionId);
     return Threading::With(m_sessions,
-      [&] (Sessions& sessions) -> DirectoryEntry {
+      [&] (auto& sessions) {
         for(auto& session : sessions) {
           auto encodedSessionId = ComputeSHA(salt + session.first);
           if(encodedSessionId == upperCaseSessionId) {
             return session.second->GetSession().GetAccount();
           }
         }
-        throw Services::ServiceRequestException{"Session not found."};
+        throw Services::ServiceRequestException("Session not found.");
       });
   }
-}
 }
 
 #endif

@@ -408,7 +408,7 @@ namespace Beam::ServiceLocator {
   template<typename B>
   std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadAllAccounts() {
     auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadAllAccountsService>(0);
+    return client->template SendRequest<LoadAllAccountsService>();
   }
 
   template<typename B>

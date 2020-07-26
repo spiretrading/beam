@@ -12,7 +12,9 @@
 #include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
+#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Sync.hpp"
+#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam::ServiceLocator {
 
@@ -61,6 +63,8 @@ namespace Beam::ServiceLocator {
         std::unordered_map<DirectoryEntry, DirectoryEntryMonitorEntry>;
       using Sessions = std::unordered_map<std::string, ServiceProtocolClient*>;
       GetOptionalLocalPtr<D> m_dataStore;
+      SynchronizedVector<ServiceProtocolClient*, Threading::Mutex>
+        m_accountUpdateSubscribers;
       Threading::Sync<Sessions> m_sessions;
       Threading::Sync<ServiceListings> m_serviceListings;
       Threading::Sync<ServiceEntryListings> m_serviceEntryListings;
@@ -272,6 +276,7 @@ namespace Beam::ServiceLocator {
       [&] (auto& sessions) {
         sessions.erase(session.GetSessionId());
       });
+    m_accountUpdateSubscribers.Remove(&client);
   }
 
   template<typename C, typename D>
@@ -328,6 +333,16 @@ namespace Beam::ServiceLocator {
       }
     }
     auto parents = m_dataStore->LoadParents(entry);
+    if(entry.m_type == DirectoryEntry::Type::ACCOUNT) {
+      m_accountUpdateSubscribers.ForEach(
+        [&] (auto& subscriber) {
+          if(HasPermission(*m_dataStore, subscriber->GetSession().GetAccount(),
+              entry, Permission::READ)) {
+            Services::SendRecordMessage<AccountUpdateMessage>(*subscriber,
+              AccountUpdate{entry, AccountUpdate::Type::DELETED});
+          }
+        });
+    }
     m_dataStore->Delete(entry);
     Threading::With(m_directoryEntryMonitorEntries,
       [&] (auto& directoryEntryMonitorEntries) {
@@ -419,8 +434,8 @@ namespace Beam::ServiceLocator {
   }
 
   template<typename C, typename D>
-  void ServiceLocatorServlet<C, D>::
-      OnUnregisterRequest(ServiceProtocolClient& client, int serviceId) {
+  void ServiceLocatorServlet<C, D>::OnUnregisterRequest(
+      ServiceProtocolClient& client, int serviceId) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
@@ -560,12 +575,35 @@ namespace Beam::ServiceLocator {
   template<typename C, typename D>
   std::vector<DirectoryEntry> ServiceLocatorServlet<C, D>::OnMonitorAccounts(
       ServiceProtocolClient& client) {
-    return {};
+    auto& session = client.GetSession();
+    if(!session.IsLoggedIn()) {
+      throw Services::ServiceRequestException("Not logged in.");
+    }
+    return m_accountUpdateSubscribers.With(
+      [&] (auto& accountUpdateSubscribers) {
+        auto i = std::find(accountUpdateSubscribers.begin(),
+          accountUpdateSubscribers.end(), &client);
+        if(i == accountUpdateSubscribers.end()) {
+          accountUpdateSubscribers.push_back(&client);
+        }
+        auto accounts = m_dataStore->LoadAllAccounts();
+        accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
+          [&] (auto& account) {
+            return !HasPermission(*m_dataStore, session.GetAccount(), account,
+              Permission::READ);
+          }), accounts.end());
+        return accounts;
+      });
   }
 
   template<typename C, typename D>
   void ServiceLocatorServlet<C, D>::OnUnmonitorAccounts(
       ServiceProtocolClient& client) {
+    auto& session = client.GetSession();
+    if(!session.IsLoggedIn()) {
+      throw Services::ServiceRequestException("Not logged in.");
+    }
+    m_accountUpdateSubscribers.Remove(&client);
   }
 
   template<typename C, typename D>
@@ -638,19 +676,12 @@ namespace Beam::ServiceLocator {
     auto accounts = std::vector<DirectoryEntry>();
     m_dataStore->WithTransaction(
       [&] {
-        try {
-          accounts = m_dataStore->LoadAllAccounts();
-          auto i = accounts.begin();
-          while(i != accounts.end()) {
-            if(!HasPermission(*m_dataStore, session.GetAccount(), *i,
-                Permission::READ)) {
-              i = accounts.erase(i);
-            } else {
-              ++i;
-            }
-          }
-        } catch(const ServiceLocatorDataStoreException&) {
-        }
+        accounts = m_dataStore->LoadAllAccounts();
+        accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
+          [&] (auto& account) {
+            return !HasPermission(*m_dataStore, session.GetAccount(), account,
+              Permission::READ);
+          }), accounts.end());
       });
     return accounts;
   }
@@ -695,6 +726,14 @@ namespace Beam::ServiceLocator {
         }
         newEntry = m_dataStore->MakeAccount(validatedName, password,
           validatedParent, boost::posix_time::second_clock::universal_time());
+      });
+    m_accountUpdateSubscribers.ForEach(
+      [&] (auto& subscriber) {
+        if(HasPermission(*m_dataStore, subscriber->GetSession().GetAccount(),
+            newEntry, Permission::READ)) {
+          Services::SendRecordMessage<AccountUpdateMessage>(*subscriber,
+            AccountUpdate{newEntry, AccountUpdate::Type::ADDED});
+        }
       });
     return newEntry;
   }

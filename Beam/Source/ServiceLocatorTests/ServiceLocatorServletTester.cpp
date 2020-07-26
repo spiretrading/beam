@@ -48,6 +48,7 @@ namespace {
       m_clientProtocol.emplace(Initialize("test", Ref(m_serverConnection)),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
+      RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
       m_container.emplace(Initialize(&m_dataStore), &m_serverConnection,
         factory<std::shared_ptr<TriggerTimer>>());
       m_container->Open();
@@ -581,5 +582,43 @@ TEST_SUITE("ServiceLocatorServlet") {
       DirectoryEntry::GetStarDirectory(), "phantom"), ServiceRequestException);
     REQUIRE_THROWS_AS(m_clientProtocol->SendRequest<LoadPathService>(c, ""),
       ServiceRequestException);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "monitor_all_accounts") {
+    auto account = DirectoryEntry();
+    auto sessionId = std::string();
+    CreateAccountAndLogin(Store(account), Store(sessionId));
+    auto permissions = Permissions();
+    permissions.Set(Permission::ADMINISTRATE);
+    permissions.Set(Permission::READ);
+    m_dataStore.SetPermissions(account, DirectoryEntry::GetStarDirectory(),
+      permissions);
+    auto a = CreateUser("a", "");
+    auto b = CreateUser("b", "");
+    auto c = CreateUser("c", "");
+    auto accounts = m_clientProtocol->SendRequest<MonitorAccountsService>();
+    auto expectedAccounts = std::vector<DirectoryEntry>();
+    expectedAccounts.push_back(DirectoryEntry::GetRootAccount());
+    expectedAccounts.push_back(account);
+    expectedAccounts.push_back(a);
+    expectedAccounts.push_back(b);
+    expectedAccounts.push_back(c);
+    REQUIRE(std::is_permutation(accounts.begin(), accounts.end(),
+      expectedAccounts.begin(), expectedAccounts.end()));
+    auto d = m_clientProtocol->SendRequest<MakeAccountService>("d", "",
+      DirectoryEntry::GetStarDirectory());
+    auto updateMessage = std::dynamic_pointer_cast<RecordMessage<
+      AccountUpdateMessage, Fixture::ClientServiceProtocolClient>>(
+      m_clientProtocol->ReadMessage());
+    REQUIRE(updateMessage != nullptr);
+    REQUIRE(updateMessage->GetRecord().Get<0>() ==
+      AccountUpdate{d, AccountUpdate::Type::ADDED});
+    m_clientProtocol->SendRequest<DeleteDirectoryEntryService>(b);
+    updateMessage = std::dynamic_pointer_cast<RecordMessage<
+      AccountUpdateMessage, Fixture::ClientServiceProtocolClient>>(
+      m_clientProtocol->ReadMessage());
+    REQUIRE(updateMessage != nullptr);
+    REQUIRE(updateMessage->GetRecord().Get<0>() ==
+      AccountUpdate{b, AccountUpdate::Type::DELETED});
   }
 }

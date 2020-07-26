@@ -91,18 +91,16 @@ namespace Beam::ServiceLocator {
 
     /**
      * Returns all accounts and sends updates when accounts are created/removed.
-     * @param dummy Unused.
      * @return The list of all accounts.
      */
     (MonitorAccountsService, "Beam.ServiceLocator.MonitorAccountsService",
-      std::vector<DirectoryEntry>, int, dummy),
+      std::vector<DirectoryEntry>),
 
     /**
      * Stops monitoring account updates.
-     * @param dummy Unused.
      */
     (UnmonitorAccountsService, "Beam.ServiceLocator.UnmonitorAccountsService",
-      void, int, dummy),
+      void),
 
     /**
      * Loads a DirectoryEntry from its id.

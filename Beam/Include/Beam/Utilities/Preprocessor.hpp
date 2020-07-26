@@ -1,5 +1,6 @@
 #ifndef BEAM_PREPROCESSOR_HPP
 #define BEAM_PREPROCESSOR_HPP
+#include <boost/preprocessor/comparison/equal.hpp>
 #include <boost/preprocessor/facilities/expand.hpp>
 
 #ifdef _MSC_VER
@@ -48,5 +49,9 @@
 
 #define MAKE_PAIRS_(N, ...) MAKE_PAIRS__(N, __VA_ARGS__)
 #define MAKE_PAIRS(...) MAKE_PAIRS_(PP_NARG(__VA_ARGS__), __VA_ARGS__)
+
+#define BEAM_PP_NARG_IS_EMPTY(...)                                             \
+  BOOST_PP_EQUAL(PP_NARG(BEAM_DUMMY, __VA_ARGS__),                             \
+  PP_NARG(BEAM_DUMMY, BEAM_DUMMY_2, __VA_ARGS__))
 
 #endif

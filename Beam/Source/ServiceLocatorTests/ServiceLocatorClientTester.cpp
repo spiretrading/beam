@@ -16,18 +16,11 @@ using namespace boost;
 namespace {
   LoginServiceResult AcceptLoginRequest(
       TestServiceProtocolServer::ServiceProtocolClient& client,
-      const std::string& username, const std::string& password,
-      bool& receivedRequest) {
-    auto account = DirectoryEntry::MakeAccount(0, "account");
-    receivedRequest = true;
-    return LoginServiceResult(account, "sessionid");
-  }
-
-  LoginServiceResult RejectLoginRequest(
-      TestServiceProtocolServer::ServiceProtocolClient& client,
-      const std::string& username, const std::string& password,
-      bool& receivedRequest) {
-    receivedRequest = true;
+      const std::string& username, const std::string& password) {
+    if(username == "account" && password == "password") {
+      return LoginServiceResult(DirectoryEntry::MakeAccount(0, "account"),
+        "sessionid");
+    }
     throw ServiceRequestException();
   }
 
@@ -54,40 +47,30 @@ namespace {
           return channel;
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_serviceClient.emplace(builder);
+      LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
+        AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
+        std::placeholders::_3));
     }
   };
 }
 
 TEST_SUITE("ServiceLocatorClient") {
   TEST_CASE_FIXTURE(Fixture, "login_accepted") {
-    auto receivedRequest = false;
-    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3, std::ref(receivedRequest)));
     m_serviceClient->SetCredentials("account", "password");
     REQUIRE_NOTHROW(m_serviceClient->Open());
-    REQUIRE(receivedRequest);
     REQUIRE(m_serviceClient->GetAccount().m_name == "account");
     REQUIRE(m_serviceClient->GetSessionId() == "sessionid");
   }
 
   TEST_CASE_FIXTURE(Fixture, "login_rejected") {
-    auto receivedRequest = false;
-    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-      RejectLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3, std::ref(receivedRequest)));
-    m_serviceClient->SetCredentials("account", "password");
+    m_serviceClient->SetCredentials("account", "bad_password");
     REQUIRE_THROWS_AS(m_serviceClient->Open(), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "monitor_accounts") {
-    auto receivedRequest = false;
     auto receivedUnmonitor = Async<void>();
-    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3, std::ref(receivedRequest)));
     UnmonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
-      [&] (auto& client, int dummy) {
+      [&] (auto& client) {
         receivedUnmonitor.GetEval().SetResult();
       });
     auto testAccounts = std::vector<DirectoryEntry>();
@@ -97,7 +80,7 @@ TEST_SUITE("ServiceLocatorClient") {
     auto serverSideClient =
       static_cast<TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
     MonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
-      [&] (auto& client, int dummy) {
+      [&] (auto& client) {
         serverSideClient = &client;
         return testAccounts;
       });
@@ -134,17 +117,15 @@ TEST_SUITE("ServiceLocatorClient") {
       AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
     accountQueue = nullptr;
     duplicateQueue = nullptr;
-    receivedRequest = false;
     SendRecordMessage<AccountUpdateMessage>(*serverSideClient,
       AccountUpdate{testAccounts[1], AccountUpdate::Type::DELETED});
     REQUIRE_NOTHROW(receivedUnmonitor.Get());
   }
 
   TEST_CASE_FIXTURE(Fixture, "monitor_accounts_reconnect") {
-    auto receivedRequest = false;
     LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
       AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3, std::ref(receivedRequest)));
+      std::placeholders::_3));
     auto testAccounts = std::vector<DirectoryEntry>();
     testAccounts.push_back(DirectoryEntry::MakeAccount(123, "accountA"));
     testAccounts.push_back(DirectoryEntry::MakeAccount(124, "accountB"));
@@ -152,7 +133,7 @@ TEST_SUITE("ServiceLocatorClient") {
     auto serverSideClient =
       static_cast<TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
     MonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
-      [&] (auto& client, int dummy) {
+      [&] (auto& client) {
         serverSideClient = &client;
         return testAccounts;
       });

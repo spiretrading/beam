@@ -456,7 +456,7 @@ namespace Beam::ServiceLocator {
       }
       auto client = m_clientHandler.GetClient();
       m_accountUpdateSnapshot =
-        client->template SendRequest<MonitorAccountsService>(0);
+        client->template SendRequest<MonitorAccountsService>();
       for(auto& account : m_accountUpdateSnapshot) {
         m_accountUpdatePublisher.Push(
           AccountUpdate{account, AccountUpdate::Type::ADDED});
@@ -607,7 +607,7 @@ namespace Beam::ServiceLocator {
           return;
         }
         auto client = m_clientHandler.GetClient();
-        auto accounts = client->template SendRequest<MonitorAccountsService>(0);
+        auto accounts = client->template SendRequest<MonitorAccountsService>();
         for(auto& account : accounts) {
           auto i = std::find(m_accountUpdateSnapshot.begin(),
             m_accountUpdateSnapshot.end(), account);
@@ -645,7 +645,7 @@ namespace Beam::ServiceLocator {
         }), m_accountUpdateListeners.end());
       if(m_accountUpdateListeners.empty()) {
         auto client = m_clientHandler.GetClient();
-        client->template SendRequest<UnmonitorAccountsService>(0);
+        client->template SendRequest<UnmonitorAccountsService>();
         m_accountUpdateSnapshot = {};
       }
     });

@@ -1,13 +1,12 @@
-#ifndef BEAM_REGISTRYSERVICES_HPP
-#define BEAM_REGISTRYSERVICES_HPP
+#ifndef BEAM_REGISTRY_SERVICES_HPP
+#define BEAM_REGISTRY_SERVICES_HPP
 #include <vector>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Services/Service.hpp"
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/RegistryService/RegistryService.hpp"
 
-namespace Beam {
-namespace RegistryService {
+namespace Beam::RegistryService {
   BEAM_DEFINE_SERVICES(RegistryServices,
 
     /*! \interface Beam::RegistryService::LoadPathService
@@ -127,7 +126,6 @@ namespace RegistryService {
     (DeleteService, "Beam.RegistryService.DeleteService", void, RegistryEntry,
       registryEntry));
     //! \endcond
-}
 }
 
 #endif

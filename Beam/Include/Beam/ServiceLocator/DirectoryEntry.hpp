@@ -207,12 +207,6 @@ namespace Details {
 }
 
 namespace Beam {
-  template<>
-  struct EnumeratorCount<ServiceLocator::DirectoryEntry::Type> :
-    std::integral_constant<int, 2> {};
-}
-
-namespace Beam {
 namespace Serialization {
   template<>
   struct Shuttle<ServiceLocator::DirectoryEntry> {

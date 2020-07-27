@@ -1,107 +1,104 @@
 #ifndef BEAM_REGISTRYENTRY_HPP
 #define BEAM_REGISTRYENTRY_HPP
 #include <cstdint>
+#include <functional>
 #include <string>
+#include <utility>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/RegistryService/RegistryService.hpp"
+#include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace RegistryService {
+namespace Beam::RegistryService {
 namespace Details {
   BEAM_ENUM(RegistryEntryType,
 
-    //! Represents a registry directory.
+    /** Represents a registry directory. */
     DIRECTORY,
 
-    //! Represents a registry value.
+    /** Represents a registry value. */
     VALUE);
 }
 
-  /*! \struct RegistryEntry
-      \brief Represents a single entry within the registry.
-   */
+  /** Represents a single entry within the registry. */
   struct RegistryEntry {
 
-    /*! \struct Type
-        \brief Enumerates types of RegistryEntries.
-     */
+    /** Enumerates types of RegistryEntries. */
     using Type = Details::RegistryEntryType;
 
-    //! The Type.
+    /** The Type. */
     Type m_type;
 
-    //! The unique id.
+    /** The unique id. */
     std::uint64_t m_id;
 
-    //! The name.
+    /** The name. */
     std::string m_name;
 
-    //! The version.
+    /** The version. */
     std::uint64_t m_version;
 
-    //! Returns the root registry directory.
-    static RegistryEntry GetRoot();
+    /** Returns the root registry directory. */
+    static const RegistryEntry& GetRoot();
 
-    //! Constructs an empty RegistryEntry.
+    /** Constructs an empty RegistryEntry. */
     RegistryEntry();
 
-    //! Constructs a RegistryEntry.
-    /*!
-      \param type The Type.
-      \param id The id.
-      \param name The name.
-      \param version The entry's version.
-    */
-    RegistryEntry(Type type, std::uint64_t id, const std::string& name,
+    /**
+     * Constructs a RegistryEntry.
+     * @param type The Type.
+     * @param id The id.
+     * @param name The name.
+     * @param version The entry's version.
+     */
+    RegistryEntry(Type type, std::uint64_t id, std::string name,
       std::uint64_t version);
 
-    //! Tests if this RegistryEntry is less than another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this RegistryEntry's id is less than
-              <i>rhs</i>'s id.
-    */
+    /**
+     * Tests if this RegistryEntry is less than another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this RegistryEntry's id is less than
+     *         <i>rhs</i>'s id.
+     */
     bool operator <(const RegistryEntry& rhs) const;
 
-    //! Tests if this RegistryEntry identifies the same RegistryEntry as
-    //! another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this RegistryEntry identifies the same
-              RegistryEntry as <i>rhs</i>.
-    */
+    /**
+     * Tests if this RegistryEntry identifies the same RegistryEntry as
+     * another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this RegistryEntry identifies the same
+     *         RegistryEntry as <i>rhs</i>.
+     */
     bool operator ==(const RegistryEntry& rhs) const;
 
-    //! Tests if this RegistryEntry identifies a different RegistryEntry as
-    //! another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this RegistryEntry does not identify the
-              same RegistryEntry as <i>rhs</i>.
-    */
+    /**
+     * Tests if this RegistryEntry identifies a different RegistryEntry as
+     * another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this RegistryEntry does not identify the
+     *         same RegistryEntry as <i>rhs</i>.
+     */
     bool operator !=(const RegistryEntry& rhs) const;
   };
 
-  inline std::size_t hash_value(
-      const Beam::RegistryService::RegistryEntry& value) {
+  inline std::size_t hash_value(const RegistryEntry& value) {
     return static_cast<std::size_t>(value.m_id);
   }
 
-  inline RegistryEntry RegistryEntry::GetRoot() {
-    RegistryEntry rootDirectory(Type::DIRECTORY, 0, "", 0);
+  inline const RegistryEntry& RegistryEntry::GetRoot() {
+    static auto rootDirectory = RegistryEntry(Type::DIRECTORY, 0, "", 0);
     return rootDirectory;
   }
 
   inline RegistryEntry::RegistryEntry()
-      : m_id{static_cast<std::uint64_t>(-1)},
-        m_version{0} {}
+    : m_id(static_cast<std::uint64_t>(-1)),
+      m_version(0) {}
 
   inline RegistryEntry::RegistryEntry(Type type, std::uint64_t id,
-      const std::string& name, std::uint64_t version)
-      : m_type{type},
-        m_id{id},
-        m_name(name),
-        m_version{version} {}
+    std::string name, std::uint64_t version)
+    : m_type(type),
+      m_id(id),
+      m_name(std::move(name)),
+      m_version(version) {}
 
   inline bool RegistryEntry::operator <(const RegistryEntry& rhs) const {
     return m_id < rhs.m_id;
@@ -116,13 +113,7 @@ namespace Details {
   }
 }
 
-  template<>
-  struct EnumeratorCount<RegistryService::RegistryEntry::Type> :
-    std::integral_constant<int, 2> {};
-}
-
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<RegistryService::RegistryEntry> {
     template<typename Shuttler>
@@ -134,7 +125,6 @@ namespace Serialization {
       shuttle.Shuttle("version", value.m_version);
     }
   };
-}
 }
 
 namespace std {

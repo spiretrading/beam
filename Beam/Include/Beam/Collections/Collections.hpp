@@ -4,7 +4,6 @@
 
 namespace Beam {
   template<typename T> class AnyIterator;
-  template<typename T> struct EnumeratorCount;
   template<typename T, std::size_t N> class Enum;
   template<typename T> class EnumIterator;
   template<typename T> class EnumSet;

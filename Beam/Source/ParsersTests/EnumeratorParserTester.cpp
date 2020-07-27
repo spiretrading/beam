@@ -24,11 +24,6 @@ namespace {
   }
 }
 
-namespace Beam {
-  template<>
-  struct EnumeratorCount<Fruit> : std::integral_constant<int, 3> {};
-}
-
 TEST_SUITE("EnumeratorParser") {
   TEST_CASE("read_enumerator") {
     auto parser = EnumeratorParser<Fruit>(begin(MakeRange<Fruit>()),

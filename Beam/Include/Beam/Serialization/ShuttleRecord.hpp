@@ -4,7 +4,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/control/expr_if.hpp>
+#include <boost/preprocessor/control/if.hpp>
 #include <boost/preprocessor/facilities/empty.hpp>
 #include <boost/preprocessor/logical/not.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
@@ -132,11 +132,20 @@ namespace Serialization {
       };                                                                       \
     };
 
+#ifdef _MSC_VER
   #define BEAM_DEFINE_RECORD(Name, ...)                                        \
     BOOST_PP_EXPR_IF(BEAM_PP_NARG_IS_EMPTY(__VA_ARGS__),                       \
     BEAM_DEFINE_EMPTY_RECORD(Name))                                            \
     BOOST_PP_EXPR_IF(BOOST_PP_NOT(BEAM_PP_NARG_IS_EMPTY(__VA_ARGS__)),         \
     BEAM_DEFINE_RECORD_(Name, MAKE_PAIRS(__VA_ARGS__)))
+#else
+  #define BEAM_EXPAND_RECORD(...) __VA_ARGS__
+  #define BEAM_DEFINE_RECORD(Name, ...)                                        \
+    BOOST_PP_EXPAND(BEAM_EXPAND_RECORD                                         \
+      BOOST_PP_IF(BEAM_PP_NARG_IS_EMPTY(__VA_ARGS__),                          \
+        (BEAM_DEFINE_EMPTY_RECORD(Name)),                                      \
+        (BEAM_DEFINE_RECORD_(Name, MAKE_PAIRS(__VA_ARGS__)))))
+#endif
 }
 }
 

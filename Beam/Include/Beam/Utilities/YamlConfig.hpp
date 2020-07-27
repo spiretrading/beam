@@ -5,6 +5,7 @@
 #include <iterator>
 #include <string>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -18,6 +19,7 @@
 #include "Beam/Parsers/RationalParser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Pointers/Out.hpp"
+#include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
 
 namespace Beam {
@@ -258,7 +260,7 @@ namespace Beam {
         return Network::IpAddress(rawValue, 0);
       }
       auto host = rawValue.substr(0, colonPosition);
-      auto port = unsigned short();
+      auto port = std::make_unsigned_t<short>();
       try {
         port = boost::lexical_cast<unsigned short>(
           rawValue.substr(colonPosition + 1));

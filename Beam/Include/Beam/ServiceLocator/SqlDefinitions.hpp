@@ -8,39 +8,39 @@
 
 namespace Beam::ServiceLocator {
 
-  //! Returns a row representing the settings table.
+  /** Returns a row representing the settings table. */
   inline const auto& GetSettingsRow() {
-    static auto ROW = Viper::Row<std::uint32_t>("next_entry_id");
+    static const auto ROW = Viper::Row<std::uint32_t>("next_entry_id");
     return ROW;
   }
 
-  //! Returns a row representing a DirectoryEntry.
+  /** Returns a row representing a DirectoryEntry. */
   inline const auto& GetDirectoryEntryRow() {
-    static auto ROW = Viper::Row<DirectoryEntry>().
+    static const auto ROW = Viper::Row<DirectoryEntry>().
       add_column("id", &DirectoryEntry::m_id).
       add_column("name", Viper::varchar(100), &DirectoryEntry::m_name);
     return ROW;
   }
 
-  //! Stores an SQL row representing an account.
+  /** Stores an SQL row representing an account. */
   struct AccountsRow {
 
-    //! The account's DirectoryEntry.
+    /** The account's DirectoryEntry. */
     DirectoryEntry m_entry;
 
-    //! The password.
+    /** The password. */
     std::string m_password;
 
-    //! When the account was registered.
+    /** When the account was registered. */
     boost::posix_time::ptime m_registrationTime;
 
-    //! When the account last logged in.
+    /** When the account last logged in. */
     boost::posix_time::ptime m_lastLogin;
   };
 
-  //! Returns a row representing an account.
+  /** Returns a row representing an account. */
   inline const auto& GetAccountsRow() {
-    static auto ROW = Viper::Row<AccountsRow>().extend(
+    static const auto ROW = Viper::Row<AccountsRow>().extend(
       GetDirectoryEntryRow(), &AccountsRow::m_entry).
       add_column("password", Viper::varchar(100), &AccountsRow::m_password).
       add_column("registration_time", &AccountsRow::m_registrationTime).
@@ -49,64 +49,64 @@ namespace Beam::ServiceLocator {
     return ROW;
   }
 
-  //! Returns a row representing a directory.
+  /** Returns a row representing a directory. */
   inline const auto& GetDirectoriesRow() {
-    static auto ROW = GetDirectoryEntryRow().set_primary_key("id");
+    static const auto ROW = GetDirectoryEntryRow().set_primary_key("id");
     return ROW;
   }
 
-  //! Stores an SQL parents row.
+  /** Stores an SQL parents row. */
   struct ParentsRow {
 
-    //! The entry to lookup.
+    /** The entry to lookup. */
     unsigned int m_entry;
 
-    //! The id of the entry's parent.
+    /** The id of the entry's parent. */
     unsigned int m_parent;
   };
 
-  //! Returns a row representing a parent entry.
+  /** Returns a row representing a parent entry. */
   inline const auto& GetParentsRow() {
-    static auto ROW = Viper::Row<ParentsRow>().
+    static const auto ROW = Viper::Row<ParentsRow>().
       add_column("entry", &ParentsRow::m_entry).
       add_column("parent", &ParentsRow::m_parent);
     return ROW;
   }
 
-  //! Stores an SQL childrens row.
+  /** Stores an SQL childrens row. */
   struct ChildrenRow {
 
-    //! The entry to lookup.
+    /** The entry to lookup. */
     unsigned int m_entry;
 
-    //! The id of the entry's child.
+    /** The id of the entry's child. */
     unsigned int m_child;
   };
 
-  //! Returns a row representing a child entry.
+  /** Returns a row representing a child entry. */
   inline const auto& GetChildrenRow() {
-    static auto ROW = Viper::Row<ChildrenRow>().
+    static const auto ROW = Viper::Row<ChildrenRow>().
       add_column("entry", &ChildrenRow::m_entry).
       add_column("child", &ChildrenRow::m_child);
     return ROW;
   }
 
-  //! Stores an SQL permissions row.
+  /** Stores an SQL permissions row. */
   struct PermissionsRow {
 
-    //! The id of the source.
+    /** The id of the source. */
     unsigned int m_source;
 
-    //! The id of the target.
+    /** The id of the target. */
     unsigned int m_target;
 
-    //! The permission that <i>source</i> has over the <i>target</i>.
+    /** The permission that <i>source</i> has over the <i>target</i>. */
     unsigned int m_permission;
   };
 
-  //! Returns a row representing a permission.
+  /** Returns a row representing a permission. */
   inline const auto& GetPermissionsRow() {
-    static auto ROW = Viper::Row<PermissionsRow>().
+    static const auto ROW = Viper::Row<PermissionsRow>().
       add_column("source", &PermissionsRow::m_source).
       add_column("target", &PermissionsRow::m_target).
       add_column("permission", &PermissionsRow::m_permission).

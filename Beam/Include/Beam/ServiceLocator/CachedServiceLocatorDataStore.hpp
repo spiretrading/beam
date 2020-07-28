@@ -1,5 +1,5 @@
-#ifndef BEAM_CACHEDSERVICELOCATORDATASTORE_HPP
-#define BEAM_CACHEDSERVICELOCATORDATASTORE_HPP
+#ifndef BEAM_CACHED_SERVICE_LOCATOR_DATA_STORE_HPP
+#define BEAM_CACHED_SERVICE_LOCATOR_DATA_STORE_HPP
 #include <unordered_set>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -7,95 +7,94 @@
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class CachedServiceLocatorDataStore
-      \brief Caches all data from a ServiceLocatorDataStore.
-      \tparam DataStoreType The type of ServiceLocatorDataStore to cache.
+  /**
+   * Caches all data from a ServiceLocatorDataStore.
+   * @param <D> The type of ServiceLocatorDataStore to cache.
    */
-  template<typename DataStoreType>
+  template<typename D>
   class CachedServiceLocatorDataStore : public ServiceLocatorDataStore {
     public:
 
-      //! The type of ServiceLocatorDataStore to cache.
-      using DataStore = GetTryDereferenceType<DataStoreType>;
+      /** The type of ServiceLocatorDataStore to cache. */
+      using DataStore = GetTryDereferenceType<D>;
 
-      //! Constructs a CachedServiceLocatorDataStore.
-      /*!
-        \param dataStore The ServiceLocatorDataStore to cache.
-      */
-      template<typename DataStoreForward>
-      CachedServiceLocatorDataStore(DataStoreForward&& dataStore);
+      /**
+       * Constructs a CachedServiceLocatorDataStore.
+       * @param dataStore The ServiceLocatorDataStore to cache.
+       */
+      template<typename DF>
+      explicit CachedServiceLocatorDataStore(DF&& dataStore);
 
-      virtual ~CachedServiceLocatorDataStore() override;
+      ~CachedServiceLocatorDataStore() override;
 
-      virtual std::vector<DirectoryEntry> LoadParents(
+      std::vector<DirectoryEntry> LoadParents(
         const DirectoryEntry& entry) override;
 
-      virtual std::vector<DirectoryEntry> LoadChildren(
+      std::vector<DirectoryEntry> LoadChildren(
         const DirectoryEntry& directory) override;
 
-      virtual DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
+      DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
 
-      virtual std::vector<DirectoryEntry> LoadAllAccounts() override;
+      std::vector<DirectoryEntry> LoadAllAccounts() override;
 
-      virtual std::vector<DirectoryEntry> LoadAllDirectories() override;
+      std::vector<DirectoryEntry> LoadAllDirectories() override;
 
-      virtual DirectoryEntry LoadAccount(const std::string& name) override;
+      DirectoryEntry LoadAccount(const std::string& name) override;
 
-      virtual DirectoryEntry MakeAccount(const std::string& name,
+      DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password, const DirectoryEntry& parent,
-        const boost::posix_time::ptime& registrationTime) override;
+        boost::posix_time::ptime registrationTime) override;
 
-      virtual DirectoryEntry MakeDirectory(const std::string& name,
+      DirectoryEntry MakeDirectory(const std::string& name,
         const DirectoryEntry& parent) override;
 
-      virtual void Delete(const DirectoryEntry& entry) override;
+      void Delete(const DirectoryEntry& entry) override;
 
-      virtual bool Associate(const DirectoryEntry& entry,
+      bool Associate(const DirectoryEntry& entry,
         const DirectoryEntry& parent) override;
 
-      virtual bool Detach(const DirectoryEntry& entry,
+      bool Detach(const DirectoryEntry& entry,
         const DirectoryEntry& parent) override;
 
-      virtual std::string LoadPassword(const DirectoryEntry& account) override;
+      std::string LoadPassword(const DirectoryEntry& account) override;
 
-      virtual void SetPassword(const DirectoryEntry& account,
+      void SetPassword(const DirectoryEntry& account,
         const std::string& password) override;
 
-      virtual Permissions LoadPermissions(const DirectoryEntry& source,
+      Permissions LoadPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target) override;
 
-      virtual std::vector<std::tuple<DirectoryEntry, Permissions>>
+      std::vector<std::tuple<DirectoryEntry, Permissions>>
         LoadAllPermissions(const DirectoryEntry& account);
 
-      virtual void SetPermissions(const DirectoryEntry& source,
+      void SetPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target, Permissions permissions) override;
 
-      virtual boost::posix_time::ptime LoadRegistrationTime(
+      boost::posix_time::ptime LoadRegistrationTime(
         const DirectoryEntry& account) override;
 
-      virtual boost::posix_time::ptime LoadLastLoginTime(
+      boost::posix_time::ptime LoadLastLoginTime(
         const DirectoryEntry& account) override;
 
-      virtual void StoreLastLoginTime(const DirectoryEntry& account,
-        const boost::posix_time::ptime& loginTime) override;
+      void StoreLastLoginTime(const DirectoryEntry& account,
+        boost::posix_time::ptime loginTime) override;
 
-      virtual void Rename(const DirectoryEntry& entry,
+      void Rename(const DirectoryEntry& entry,
         const std::string& name) override;
 
-      virtual DirectoryEntry Validate(const DirectoryEntry& entry) override;
+      DirectoryEntry Validate(const DirectoryEntry& entry) override;
 
-      virtual void WithTransaction(
+      void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      virtual void Open() override;
+      void Open() override;
 
-      virtual void Close() override;
+      void Close() override;
 
     private:
-      GetOptionalLocalPtr<DataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       std::unordered_set<unsigned int> m_unavailableEntries;
       LocalServiceLocatorDataStore m_cache;
       IO::OpenState m_openState;
@@ -105,47 +104,46 @@ namespace ServiceLocator {
       bool IsCached(unsigned int entry);
   };
 
-  template<typename DataStoreType>
-  template<typename DataStoreForward>
-  CachedServiceLocatorDataStore<DataStoreType>::CachedServiceLocatorDataStore(
-      DataStoreForward&& dataStore)
-      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
+  template<typename D>
+  template<typename DF>
+  CachedServiceLocatorDataStore<D>::CachedServiceLocatorDataStore(
+    DF&& dataStore)
+    : m_dataStore(std::forward<DF>(dataStore)) {}
 
-  template<typename DataStoreType>
-  CachedServiceLocatorDataStore<DataStoreType>::
-      ~CachedServiceLocatorDataStore() {
+  template<typename D>
+  CachedServiceLocatorDataStore<D>::~CachedServiceLocatorDataStore() {
     Close();
   }
 
-  template<typename DataStoreType>
-  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<DataStoreType>::
-      LoadParents(const DirectoryEntry& entry) {
+  template<typename D>
+  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<D>::LoadParents(
+      const DirectoryEntry& entry) {
     if(IsCached(entry)) {
       return m_cache.LoadParents(entry);
     }
     return m_dataStore->LoadParents(entry);
   }
 
-  template<typename DataStoreType>
-  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<DataStoreType>::
-      LoadChildren(const DirectoryEntry& directory) {
+  template<typename D>
+  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<D>::LoadChildren(
+      const DirectoryEntry& directory) {
     if(IsCached(directory)) {
       return m_cache.LoadChildren(directory);
     }
     return m_dataStore->LoadChildren(directory);
   }
 
-  template<typename DataStoreType>
-  DirectoryEntry CachedServiceLocatorDataStore<DataStoreType>::
-      LoadDirectoryEntry(unsigned int id) {
+  template<typename D>
+  DirectoryEntry CachedServiceLocatorDataStore<D>::LoadDirectoryEntry(
+      unsigned int id) {
     if(IsCached(id)) {
       return m_cache.LoadDirectoryEntry(id);
     }
     return m_dataStore->LoadDirectoryEntry(id);
   }
 
-  template<typename DataStoreType>
-  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<DataStoreType>::
+  template<typename D>
+  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<D>::
       LoadAllAccounts() {
     if(m_unavailableEntries.empty()) {
       return m_cache.LoadAllAccounts();
@@ -153,8 +151,8 @@ namespace ServiceLocator {
     return m_dataStore->LoadAllAccounts();
   }
 
-  template<typename DataStoreType>
-  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<DataStoreType>::
+  template<typename D>
+  std::vector<DirectoryEntry> CachedServiceLocatorDataStore<D>::
       LoadAllDirectories() {
     if(m_unavailableEntries.empty()) {
       return m_cache.LoadAllDirectories();
@@ -162,8 +160,8 @@ namespace ServiceLocator {
     return m_dataStore->LoadAllDirectories();
   }
 
-  template<typename DataStoreType>
-  DirectoryEntry CachedServiceLocatorDataStore<DataStoreType>::LoadAccount(
+  template<typename D>
+  DirectoryEntry CachedServiceLocatorDataStore<D>::LoadAccount(
       const std::string& name) {
     try {
       return m_cache.LoadAccount(name);
@@ -172,11 +170,10 @@ namespace ServiceLocator {
     }
   }
 
-  template<typename DataStoreType>
-  DirectoryEntry CachedServiceLocatorDataStore<DataStoreType>::MakeAccount(
+  template<typename D>
+  DirectoryEntry CachedServiceLocatorDataStore<D>::MakeAccount(
       const std::string& name, const std::string& password,
-      const DirectoryEntry& parent,
-      const boost::posix_time::ptime& registrationTime) {
+      const DirectoryEntry& parent, boost::posix_time::ptime registrationTime) {
     auto account = m_dataStore->MakeAccount(name, password, parent,
       registrationTime);
     try {
@@ -201,8 +198,8 @@ namespace ServiceLocator {
     return account;
   }
 
-  template<typename DataStoreType>
-  DirectoryEntry CachedServiceLocatorDataStore<DataStoreType>::MakeDirectory(
+  template<typename D>
+  DirectoryEntry CachedServiceLocatorDataStore<D>::MakeDirectory(
       const std::string& name, const DirectoryEntry& parent) {
     auto directory = m_dataStore->MakeDirectory(name, parent);
     try {
@@ -222,9 +219,8 @@ namespace ServiceLocator {
     return directory;
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::Delete(
-      const DirectoryEntry& entry) {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::Delete(const DirectoryEntry& entry) {
     m_dataStore->Delete(entry);
     try {
       m_cache.Delete(entry);
@@ -234,9 +230,9 @@ namespace ServiceLocator {
     }
   }
 
-  template<typename DataStoreType>
-  bool CachedServiceLocatorDataStore<DataStoreType>::Associate(
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename D>
+  bool CachedServiceLocatorDataStore<D>::Associate(const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     if(IsCached(entry) && IsCached(parent)) {
       if(m_dataStore->Associate(entry, parent)) {
         m_cache.Associate(entry, parent);
@@ -249,9 +245,9 @@ namespace ServiceLocator {
     return m_dataStore->Associate(entry, parent);
   }
 
-  template<typename DataStoreType>
-  bool CachedServiceLocatorDataStore<DataStoreType>::Detach(
-      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+  template<typename D>
+  bool CachedServiceLocatorDataStore<D>::Detach(const DirectoryEntry& entry,
+      const DirectoryEntry& parent) {
     if(IsCached(entry) && IsCached(parent)) {
       if(m_dataStore->Detach(entry, parent)) {
         m_cache.Detach(entry, parent);
@@ -264,8 +260,8 @@ namespace ServiceLocator {
     return m_dataStore->Detach(entry, parent);
   }
 
-  template<typename DataStoreType>
-  std::string CachedServiceLocatorDataStore<DataStoreType>::LoadPassword(
+  template<typename D>
+  std::string CachedServiceLocatorDataStore<D>::LoadPassword(
       const DirectoryEntry& account) {
     if(IsCached(account)) {
       return m_cache.LoadPassword(account);
@@ -273,8 +269,8 @@ namespace ServiceLocator {
     return m_dataStore->LoadPassword(account);
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::SetPassword(
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::SetPassword(
       const DirectoryEntry& account, const std::string& password) {
     if(IsCached(account)) {
       m_dataStore->SetPassword(account, password);
@@ -284,8 +280,8 @@ namespace ServiceLocator {
     }
   }
 
-  template<typename DataStoreType>
-  Permissions CachedServiceLocatorDataStore<DataStoreType>::LoadPermissions(
+  template<typename D>
+  Permissions CachedServiceLocatorDataStore<D>::LoadPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
     if(IsCached(source) && IsCached(target)) {
       return m_cache.LoadPermissions(source, target);
@@ -293,9 +289,9 @@ namespace ServiceLocator {
     return m_dataStore->LoadPermissions(source, target);
   }
 
-  template<typename DataStoreType>
+  template<typename D>
   std::vector<std::tuple<DirectoryEntry, Permissions>>
-      CachedServiceLocatorDataStore<DataStoreType>::LoadAllPermissions(
+      CachedServiceLocatorDataStore<D>::LoadAllPermissions(
       const DirectoryEntry& account) {
     if(IsCached(account)) {
       return m_cache.LoadAllPermissions(account);
@@ -303,8 +299,8 @@ namespace ServiceLocator {
     return m_dataStore->LoadAllPermissions(account);
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::SetPermissions(
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::SetPermissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
     if(IsCached(source) && IsCached(target)) {
@@ -317,8 +313,8 @@ namespace ServiceLocator {
     }
   }
 
-  template<typename DataStoreType>
-  boost::posix_time::ptime CachedServiceLocatorDataStore<DataStoreType>::
+  template<typename D>
+  boost::posix_time::ptime CachedServiceLocatorDataStore<D>::
       LoadRegistrationTime(const DirectoryEntry& account) {
     if(IsCached(account)) {
       return m_cache.LoadRegistrationTime(account);
@@ -326,19 +322,18 @@ namespace ServiceLocator {
     return m_dataStore->LoadRegistrationTime(account);
   }
 
-  template<typename DataStoreType>
-  boost::posix_time::ptime CachedServiceLocatorDataStore<DataStoreType>::
-      LoadLastLoginTime(const DirectoryEntry& account) {
+  template<typename D>
+  boost::posix_time::ptime CachedServiceLocatorDataStore<D>::LoadLastLoginTime(
+      const DirectoryEntry& account) {
     if(IsCached(account)) {
       return m_cache.LoadLastLoginTime(account);
     }
     return m_dataStore->LoadLastLoginTime(account);
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::StoreLastLoginTime(
-      const DirectoryEntry& account,
-      const boost::posix_time::ptime& loginTime) {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::StoreLastLoginTime(
+      const DirectoryEntry& account, boost::posix_time::ptime loginTime) {
     if(IsCached(account)) {
       m_dataStore->StoreLastLoginTime(account, loginTime);
       m_cache.StoreLastLoginTime(account, loginTime);
@@ -347,15 +342,15 @@ namespace ServiceLocator {
     }
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::Rename(
-      const DirectoryEntry& entry, const std::string& name) {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::Rename(const DirectoryEntry& entry,
+      const std::string& name) {
     m_cache.Rename(entry, name);
     m_dataStore->Rename(entry, name);
   }
 
-  template<typename DataStoreType>
-  DirectoryEntry CachedServiceLocatorDataStore<DataStoreType>::Validate(
+  template<typename D>
+  DirectoryEntry CachedServiceLocatorDataStore<D>::Validate(
       const DirectoryEntry& entry) {
     if(IsCached(entry)) {
       return m_cache.Validate(entry);
@@ -363,8 +358,8 @@ namespace ServiceLocator {
     return m_dataStore->Validate(entry);
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::WithTransaction(
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::WithTransaction(
       const std::function<void ()>& transaction) {
     m_dataStore->WithTransaction(
       [&] {
@@ -372,8 +367,8 @@ namespace ServiceLocator {
       });
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::Open() {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
@@ -413,35 +408,30 @@ namespace ServiceLocator {
     m_openState.SetOpen();
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::Close() {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  template<typename DataStoreType>
-  void CachedServiceLocatorDataStore<DataStoreType>::Shutdown() {
+  template<typename D>
+  void CachedServiceLocatorDataStore<D>::Shutdown() {
     m_dataStore->Close();
     m_cache.Close();
     m_openState.SetClosed();
   }
 
-  template<typename DataStoreType>
-  bool CachedServiceLocatorDataStore<DataStoreType>::IsCached(
-      const DirectoryEntry& entry) {
+  template<typename D>
+  bool CachedServiceLocatorDataStore<D>::IsCached(const DirectoryEntry& entry) {
     return IsCached(entry.m_id);
   }
 
-  template<typename DataStoreType>
-  bool CachedServiceLocatorDataStore<DataStoreType>::IsCached(unsigned int id) {
-    if(m_unavailableEntries.find(id) == m_unavailableEntries.end()) {
-      return true;
-    }
-    return false;
+  template<typename D>
+  bool CachedServiceLocatorDataStore<D>::IsCached(unsigned int id) {
+    return m_unavailableEntries.find(id) == m_unavailableEntries.end();
   }
-}
 }
 
 #endif

@@ -1,32 +1,28 @@
-#ifndef BEAM_SERVICELOCATOR_HPP
-#define BEAM_SERVICELOCATOR_HPP
+#ifndef BEAM_SERVICE_LOCATOR_HPP
+#define BEAM_SERVICE_LOCATOR_HPP
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
   class ApplicationServiceLocatorClient;
   class AuthenticatedSession;
   class AuthenticationException;
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType> class AuthenticationServletAdapter;
-  template<typename ServiceProtocolClientType> struct Authenticator;
-  template<typename DataStoreType> class CachedServiceLocatorDataStore;
+  template<typename C, typename S, typename L>
+    class AuthenticationServletAdapter;
+  template<typename C> struct Authenticator;
+  template<typename D> class CachedServiceLocatorDataStore;
   struct DirectoryEntry;
   class LocalServiceLocatorDataStore;
   class NotLoggedInException;
   class NullAuthenticator;
   class ServiceEntry;
-  template<typename ServiceProtocolClientBuilderType>
-    class ServiceLocatorClient;
+  template<typename B> class ServiceLocatorClient;
   struct ServiceLocatorClientConfig;
   class ServiceLocatorDataStore;
   class ServiceLocatorDataStoreException;
-  template<typename ContainerType, typename ServiceLocatorDataStoreType>
-    class ServiceLocatorServlet;
-  template<typename ServiceLocatorClientType> class SessionAuthenticator;
+  template<typename C, typename D> class ServiceLocatorServlet;
+  template<typename C> class SessionAuthenticator;
   template<typename C> class SqlServiceLocatorDataStore;
   class VirtualServiceLocatorClient;
-  template<typename ClientType> class WrapperServiceLocatorClient;
-}
+  template<typename C> class WrapperServiceLocatorClient;
 }
 
 #endif

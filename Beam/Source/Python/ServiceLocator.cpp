@@ -217,7 +217,7 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
             return std::make_unique<TcpSocketChannel>(address,
               Ref(*GetSocketThreadPool()));
           },
-          [=] {
+          [] {
             return std::make_unique<LiveTimer>(seconds(10),
               Ref(*GetTimerThreadPool()));
           });
@@ -270,8 +270,7 @@ void Beam::Python::ExportPermissions(pybind11::module& module) {
 void Beam::Python::ExportServiceEntry(pybind11::module& module) {
   class_<ServiceEntry>(module, "ServiceEntry")
     .def(init())
-    .def(init<const std::string&, const JsonObject&, int,
-      const DirectoryEntry&>())
+    .def(init<std::string, JsonObject, int, DirectoryEntry>())
     .def(init<const ServiceEntry&>())
     .def_property_readonly("name", &ServiceEntry::GetName)
     .def_property_readonly("properties", &ServiceEntry::GetProperties)

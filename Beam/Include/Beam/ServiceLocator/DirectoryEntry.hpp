@@ -1,5 +1,5 @@
-#ifndef BEAM_DIRECTORYENTRY_HPP
-#define BEAM_DIRECTORYENTRY_HPP
+#ifndef BEAM_DIRECTORY_ENTRY_HPP
+#define BEAM_DIRECTORY_ENTRY_HPP
 #include <ostream>
 #include <string>
 #include <tuple>
@@ -7,122 +7,117 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 namespace Details {
   BEAM_ENUM(DirectoryEntryType,
 
-    //! Account.
+    /** Account. */
     ACCOUNT,
 
-    //! Directory.
+    /** Directory. */
     DIRECTORY);
 }
 
-  /*! \struct DirectoryEntry
-      \brief Represents an entry that can be stored within a directory.
-   */
+  /** Represents an entry that can be stored within a directory. */
   struct DirectoryEntry {
 
-    /*! \enum Type
-        \brief Enumerates types of DirectoryEntries.
-     */
+    /** Enumerates types of DirectoryEntries. */
     using Type = Details::DirectoryEntryType;
 
-    //! The Type.
+    /** The Type. */
     Type m_type;
 
-    //! The unique id.
+    /** The unique id. */
     unsigned int m_id;
 
-    //! The name.
+    /** The name. */
     std::string m_name;
 
-    //! Returns the DirectoryEntry representing the root account.
-    static DirectoryEntry GetRootAccount();
+    /** Returns the DirectoryEntry representing the root account. */
+    static const DirectoryEntry& GetRootAccount();
 
-    //! Returns the DirectoryEntry representing the star directory.
-    static DirectoryEntry GetStarDirectory();
+    /** Returns the DirectoryEntry representing the star directory. */
+    static const DirectoryEntry& GetStarDirectory();
 
-    //! Compares two DirectoryEntry's by name.
-    /*!
-      \param lhs The left hand side of the comparison.
-      \param rhs The right hand side of the comparison.
-      \return <code>true</code> iff <i>lhs</i>'s name preceeds <i>rhs</i>.
-    */
+    /**
+     * Compares two DirectoryEntry's by name.
+     * @param lhs The left hand side of the comparison.
+     * @param rhs The right hand side of the comparison.
+     * @return <code>true</code> iff <i>lhs</i>'s name preceeds <i>rhs</i>.
+     */
     static bool NameComparator(const DirectoryEntry& lhs,
       const DirectoryEntry& rhs);
 
-    //! Makes a DirectoryEntry representing an account.
-    /*!
-      \param id The id.
-      \param name The name.
-      \return A DirectoryEntry representing an account.
-    */
+    /**
+     * Makes a DirectoryEntry representing an account.
+     * @param id The id.
+     * @param name The name.
+     * @return A DirectoryEntry representing an account.
+     */
     static DirectoryEntry MakeAccount(unsigned int id, std::string name);
 
-    //! Makes a DirectoryEntry representing an account.
-    /*!
-      \param id The id.
-      \return An unnamed DirectoryEntry representing an account.
-    */
+    /**
+     * Makes a DirectoryEntry representing an account.
+     * @param id The id.
+     * @return An unnamed DirectoryEntry representing an account.
+     */
     static DirectoryEntry MakeAccount(unsigned int id);
 
-    //! Makes a DirectoryEntry representing a directory.
-    /*!
-      \param id The id.
-      \param name The name.
-      \return A DirectoryEntry representing a directory.
-    */
+    /**
+     * Makes a DirectoryEntry representing a directory.
+     * @param id The id.
+     * @param name The name.
+     * @return A DirectoryEntry representing a directory.
+     */
     static DirectoryEntry MakeDirectory(unsigned int id, std::string name);
 
-    //! Makes a DirectoryEntry representing a directory.
-    /*!
-      \param id The id.
-      \return An unnamed DirectoryEntry representing a directory.
-    */
+    /**
+     * Makes a DirectoryEntry representing a directory.
+     * @param id The id.
+     * @return An unnamed DirectoryEntry representing a directory.
+     */
     static DirectoryEntry MakeDirectory(unsigned int id);
 
-    //! Constructs an empty DirectoryEntry.
+    /** Constructs an empty DirectoryEntry. */
     DirectoryEntry();
 
-    //! Constructs a DirectoryEntry.
-    /*!
-      \param type The Type.
-      \param id The id.
-      \param name The name.
-    */
-    DirectoryEntry(Type type, unsigned int id, const std::string& name);
+    /**
+     * Constructs a DirectoryEntry.
+     * @param type The Type.
+     * @param id The id.
+     * @param name The name.
+     */
+    DirectoryEntry(Type type, unsigned int id, std::string name);
 
-    //! Tests if this DirectoryEntry is less than another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this DirectoryEntry's id is less than
-              <i>rhs</i>'s id.
-    */
+    /**
+     * Tests if this DirectoryEntry's id is less than another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this DirectoryEntry's id is less than
+     *         <i>rhs</i>'s id.
+     */
     bool operator <(const DirectoryEntry& rhs) const;
 
-    //! Tests if this DirectoryEntry identifies the same DirectoryEntry as
-    //! another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this DirectoryEntry identifies the same
-              DirectoryEntry as <i>rhs</i>.
-    */
+    /**
+     * Tests if this DirectoryEntry identifies the same DirectoryEntry as
+     * another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this DirectoryEntry identifies the same
+     *         DirectoryEntry as <i>rhs</i>.
+     */
     bool operator ==(const DirectoryEntry& rhs) const;
 
-    //! Tests if this DirectoryEntry identifies a different DirectoryEntry as
-    //! another.
-    /*!
-      \param rhs The right-hand side of the operation.
-      \return <code>true</code> iff this DirectoryEntry does not identify the
-              same DirectoryEntry as <i>rhs</i>.
-    */
+    /**
+     * Tests if this DirectoryEntry identifies a different DirectoryEntry as
+     * another.
+     * @param rhs The right-hand side of the operation.
+     * @return <code>true</code> iff this DirectoryEntry does not identify the
+     *         same DirectoryEntry as <i>rhs</i>.
+     */
     bool operator !=(const DirectoryEntry& rhs) const;
   };
 
   inline std::ostream& operator <<(std::ostream& out,
-      const DirectoryEntry::Type& type) {
+      DirectoryEntry::Type type) {
     if(type == DirectoryEntry::Type::ACCOUNT) {
       return out << "ACCOUNT";
     } else if(type == DirectoryEntry::Type::DIRECTORY) {
@@ -144,18 +139,17 @@ namespace Details {
     return out << ")";
   }
 
-  inline std::size_t hash_value(
-      const Beam::ServiceLocator::DirectoryEntry& value) {
+  inline std::size_t hash_value(const DirectoryEntry& value) {
     return value.m_id;
   }
 
-  inline DirectoryEntry DirectoryEntry::GetRootAccount() {
-    DirectoryEntry rootAccount(Type::ACCOUNT, 1, "root");
+  inline const DirectoryEntry& DirectoryEntry::GetRootAccount() {
+    static const auto rootAccount = DirectoryEntry::MakeAccount(1, "root");
     return rootAccount;
   }
 
-  inline DirectoryEntry DirectoryEntry::GetStarDirectory() {
-    DirectoryEntry starDirectory(Type::DIRECTORY, 0, "*");
+  inline const DirectoryEntry& DirectoryEntry::GetStarDirectory() {
+    static const auto starDirectory = DirectoryEntry::MakeDirectory(0, "*");
     return starDirectory;
   }
 
@@ -175,7 +169,7 @@ namespace Details {
 
   inline DirectoryEntry DirectoryEntry::MakeDirectory(unsigned int id,
       std::string name) {
-    return DirectoryEntry{Type::DIRECTORY, id, std::move(name)};
+    return DirectoryEntry(Type::DIRECTORY, id, std::move(name));
   }
 
   inline DirectoryEntry DirectoryEntry::MakeDirectory(unsigned int id) {
@@ -183,14 +177,14 @@ namespace Details {
   }
 
   inline DirectoryEntry::DirectoryEntry()
-      : m_type(Type::NONE),
-        m_id(-1) {}
+    : m_type(Type::NONE),
+      m_id(-1) {}
 
   inline DirectoryEntry::DirectoryEntry(Type type, unsigned int id,
-      const std::string& name)
-      : m_type(type),
-        m_id(id),
-        m_name(name) {}
+    std::string name)
+    : m_type(type),
+      m_id(id),
+      m_name(std::move(name)) {}
 
   inline bool DirectoryEntry::operator <(const DirectoryEntry& rhs) const {
     return m_id < rhs.m_id;
@@ -204,10 +198,8 @@ namespace Details {
     return !(*this == rhs);
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<ServiceLocator::DirectoryEntry> {
     template<typename Shuttler>
@@ -218,7 +210,6 @@ namespace Serialization {
       shuttle.Shuttle("name", value.m_name);
     }
   };
-}
 }
 
 namespace std {

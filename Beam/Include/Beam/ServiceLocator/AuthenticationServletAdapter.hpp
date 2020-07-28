@@ -1,5 +1,5 @@
-#ifndef BEAM_AUTHENTICATIONSERVLETADAPTER_HPP
-#define BEAM_AUTHENTICATIONSERVLETADAPTER_HPP
+#ifndef BEAM_AUTHENTICATION_SERVLET_ADAPTER_HPP
+#define BEAM_AUTHENTICATION_SERVLET_ADAPTER_HPP
 #include <type_traits>
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/Connection.hpp"
@@ -11,32 +11,30 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class AuthenticationServletAdapter
-      \brief Augments a Servlet to support authenticating with a ServiceLocator.
-      \tparam ContainerType The container instantiating this servlet.
-      \tparam ServletType The Servler to augment.
-      \tparam ServiceLocatorClientType The type of ServiceLocatorClient
-                                       connected to the ServiceLocator.
+  /**
+   * Augments a Servlet to support authenticating with a ServiceLocator.
+   * @param <C> The container instantiating this servlet.
+   * @param <S> The Servler to augment.
+   * @param <L> The type of ServiceLocatorClient connected to the
+   *            ServiceLocator.
    */
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
+  template<typename C, typename S, typename L>
   class AuthenticationServletAdapter : private boost::noncopyable {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
-      using Servlet = GetTryDereferenceType<ServletType>;
+      using Servlet = GetTryDereferenceType<S>;
 
-      //! Constructs an AuthenticationServletAdapter.
-      /*!
-        \param serviceLocatorClient Used to initialize the ServiceLocatorClient.
-        \param servlet Used to initialize the Servlet.
-      */
-      template<typename ServiceLocatorClientForward, typename ServletForward>
-      AuthenticationServletAdapter(ServiceLocatorClientForward&&
-        serviceLocatorClient, ServletForward&& servlet);
+      /**
+       * Constructs an AuthenticationServletAdapter.
+       * @param serviceLocatorClient Used to initialize the
+       *        ServiceLocatorClient.
+       * @param servlet Used to initialize the Servlet.
+       */
+      template<typename LF, typename SF>
+      AuthenticationServletAdapter(LF&& serviceLocatorClient, SF&& servlet);
 
       ~AuthenticationServletAdapter();
 
@@ -52,8 +50,8 @@ namespace ServiceLocator {
       void Close();
 
     private:
-      GetOptionalLocalPtr<ServiceLocatorClientType> m_serviceLocatorClient;
-      GetOptionalLocalPtr<ServletType> m_servlet;
+      GetOptionalLocalPtr<L> m_serviceLocatorClient;
+      GetOptionalLocalPtr<S> m_servlet;
       IO::OpenState m_openState;
 
       void Shutdown();
@@ -68,47 +66,37 @@ namespace ServiceLocator {
     public BaseSession {};
 
   template<typename BaseSession>
-  class AuthenticationServletSession<BaseSession,
-    std::enable_if_t<std::is_base_of<
-    AuthenticatedSession, BaseSession>::value>> : public BaseSession {};
+  class AuthenticationServletSession<BaseSession, std::enable_if_t<
+    std::is_base_of_v<AuthenticatedSession, BaseSession>>> :
+    public BaseSession {};
 
-  template<typename MetaServlet, typename ServiceLocatorClientType,
-    typename ServletPointerPolicy = LocalPointerPolicy>
+  template<typename S, typename L, typename P = LocalPointerPolicy>
   struct MetaAuthenticationServletAdapter {
     static constexpr bool SupportsParallelism =
-      Services::SupportsParallelism<MetaServlet>::value;
-    using Session = AuthenticationServletSession<typename MetaServlet::Session>;
-    template<typename ContainerType>
+      Services::SupportsParallelism<S>::value;
+    using Session = AuthenticationServletSession<typename S::Session>;
+    template<typename C>
     struct apply {
-      using type = AuthenticationServletAdapter<ContainerType,
-        typename ServletPointerPolicy::template apply<
-        typename MetaServlet::template apply<ContainerType>::type>::type,
-        ServiceLocatorClientType>;
+      using type = AuthenticationServletAdapter<C,
+        typename P::template apply<
+        typename S::template apply<C>::type>::type, L>;
     };
   };
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  template<typename ServiceLocatorClientForward, typename ServletForward>
-  AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::AuthenticationServletAdapter(
-      ServiceLocatorClientForward&& serviceLocatorClient,
-      ServletForward&& servlet)
-      : m_serviceLocatorClient{std::forward<ServiceLocatorClientForward>(
-          serviceLocatorClient)},
-        m_servlet{std::forward<ServletForward>(servlet)} {}
+  template<typename C, typename S, typename L>
+  template<typename LF, typename SF>
+  AuthenticationServletAdapter<C, S, L>::AuthenticationServletAdapter(
+    LF&& serviceLocatorClient, SF&& servlet)
+    : m_serviceLocatorClient(std::forward<LF>(serviceLocatorClient)),
+      m_servlet(std::forward<SF>(servlet)) {}
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::~AuthenticationServletAdapter() {
+  template<typename C, typename S, typename L>
+  AuthenticationServletAdapter<C, S, L>::~AuthenticationServletAdapter() {
     Close();
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::RegisterServices(
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     slots->GetRegistry().template Register<SendSessionIdService::Request<
       ServiceProtocolClient>>(
@@ -131,26 +119,20 @@ namespace ServiceLocator {
     slots->Acquire(std::move(servletSlots));
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::HandleClientAccepted(
-      ServiceProtocolClient& client) {}
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::HandleClientAccepted(
+    ServiceProtocolClient& client) {}
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::HandleClientClosed(
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::HandleClientClosed(
       ServiceProtocolClient& client) {
     Services::Details::InvokeClientClosed<
       Services::Details::HasClientClosedMethod<Servlet,
       ServiceProtocolClient>::value>()(*m_servlet, client);
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::Open() {
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::Open() {
     if(m_openState.SetOpening()) {
       return;
     }
@@ -163,28 +145,22 @@ namespace ServiceLocator {
     m_openState.SetOpen();
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::Close() {
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::Shutdown() {
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::Shutdown() {
     m_servlet->Close();
     m_openState.SetClosed();
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::OnSendSessionIdRequest(
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::OnSendSessionIdRequest(
       Services::RequestToken<ServiceProtocolClient, SendSessionIdService>&
       request, unsigned int key, const std::string& sessionId) {
     auto& session = request.GetSession();
@@ -197,21 +173,18 @@ namespace ServiceLocator {
         Services::Details::HasClientAcceptedMethod<Servlet,
         ServiceProtocolClient>::value>()(*m_servlet, request.GetClient());
     } catch(const std::exception& e) {
-      request.SetException(Services::ServiceRequestException{e.what()});
+      request.SetException(Services::ServiceRequestException(e.what()));
     }
   }
 
-  template<typename ContainerType, typename ServletType,
-    typename ServiceLocatorClientType>
-  void AuthenticationServletAdapter<ContainerType, ServletType,
-      ServiceLocatorClientType>::OnServiceRequest(
+  template<typename C, typename S, typename L>
+  void AuthenticationServletAdapter<C, S, L>::OnServiceRequest(
       ServiceProtocolClient& client) {
     auto& session = client.GetSession();
     if(!session.IsLoggedIn()) {
-      throw Services::ServiceRequestException{"Not logged in."};
+      throw Services::ServiceRequestException("Not logged in.");
     }
   }
-}
 }
 
 #endif

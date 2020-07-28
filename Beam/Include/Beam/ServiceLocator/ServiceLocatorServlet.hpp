@@ -37,7 +37,7 @@ namespace Beam::ServiceLocator {
        * @param dataStore The data store to use.
        */
       template<typename DF>
-      ServiceLocatorServlet(DF&& dataStore);
+      explicit ServiceLocatorServlet(DF&& dataStore);
 
       void RegisterServices(
         Out<Services::ServiceSlots<ServiceProtocolClient>> slots);

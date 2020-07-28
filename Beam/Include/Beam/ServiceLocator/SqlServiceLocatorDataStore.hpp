@@ -10,21 +10,23 @@
 
 namespace Beam::ServiceLocator {
 
-  /** Implements the ServiceLocatorDataStore using SQL.
-      \tparam C The type of SQL connection to use.
+  /**
+   * Implements the ServiceLocatorDataStore using SQL.
+   * @param <C> The type of SQL connection to use.
    */
   template<typename C>
   class SqlServiceLocatorDataStore : public ServiceLocatorDataStore {
     public:
 
-      //! The type of SQL connection to use.
+      /** The type of SQL connection to use. */
       using Connection = C;
 
-      //! Constructs an SqlServiceLocatorDataStore.
-      /*!
-        \param connection The SQL connection to use.
-      */
-      SqlServiceLocatorDataStore(std::unique_ptr<Connection> connection);
+      /**
+       * Constructs an SqlServiceLocatorDataStore.
+       * @param connection The SQL connection to use.
+       */
+      explicit SqlServiceLocatorDataStore(
+        std::unique_ptr<Connection> connection);
 
       ~SqlServiceLocatorDataStore() override;
 
@@ -44,7 +46,7 @@ namespace Beam::ServiceLocator {
 
       DirectoryEntry MakeAccount(const std::string& name,
         const std::string& password, const DirectoryEntry& parent,
-        const boost::posix_time::ptime& registrationTime) override;
+        boost::posix_time::ptime registrationTime) override;
 
       DirectoryEntry MakeDirectory(const std::string& name,
         const DirectoryEntry& parent) override;
@@ -78,7 +80,7 @@ namespace Beam::ServiceLocator {
         const DirectoryEntry& account) override;
 
       void StoreLastLoginTime(const DirectoryEntry& account,
-        const boost::posix_time::ptime& loginTime) override;
+        boost::posix_time::ptime loginTime) override;
 
       void Rename(const DirectoryEntry& entry,
         const std::string& name) override;
@@ -101,8 +103,8 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   SqlServiceLocatorDataStore<C>::SqlServiceLocatorDataStore(
-      std::unique_ptr<Connection> connection)
-      : m_connection(std::move(connection)) {}
+    std::unique_ptr<Connection> connection)
+    : m_connection(std::move(connection)) {}
 
   template<typename C>
   SqlServiceLocatorDataStore<C>::~SqlServiceLocatorDataStore() {
@@ -226,8 +228,7 @@ namespace Beam::ServiceLocator {
   template<typename C>
   DirectoryEntry SqlServiceLocatorDataStore<C>::MakeAccount(
       const std::string& name, const std::string& password,
-      const DirectoryEntry& parent,
-      const boost::posix_time::ptime& registrationTime) {
+      const DirectoryEntry& parent, boost::posix_time::ptime registrationTime) {
     if(parent.m_type != DirectoryEntry::Type::DIRECTORY) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
         "Parent must be a directory."));
@@ -493,8 +494,7 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   void SqlServiceLocatorDataStore<C>::StoreLastLoginTime(
-      const DirectoryEntry& account,
-      const boost::posix_time::ptime& loginTime) {
+      const DirectoryEntry& account, boost::posix_time::ptime loginTime) {
     if(account.m_type != DirectoryEntry::Type::ACCOUNT) {
       BOOST_THROW_EXCEPTION(ServiceLocatorDataStoreException(
         "Account not found."));

@@ -1,37 +1,29 @@
-#ifndef BEAM_NOTLOGGEDINEXCEPTION_HPP
-#define BEAM_NOTLOGGEDINEXCEPTION_HPP
+#ifndef BEAM_NOT_LOGGED_IN_EXCEPTION_HPP
+#define BEAM_NOT_LOGGED_IN_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class NotLoggedInException
-      \brief An service was requested without being logged in.
-   */
+  /** An service was requested without being logged in. */
   class NotLoggedInException : public IO::IOException {
     public:
 
-      //! Constructs a NotLoggedInException.
+      /** Constructs a NotLoggedInException. */
       NotLoggedInException();
 
-      //! Constructs a NotLoggedInException.
-      /*!
-        \param message A message describing the error.
-      */
-      NotLoggedInException(const std::string& message);
-
-      virtual ~NotLoggedInException() throw();
+      /**
+       * Constructs a NotLoggedInException.
+       * @param message A message describing the error.
+       */
+      explicit NotLoggedInException(const std::string& message);
   };
 
   inline NotLoggedInException::NotLoggedInException()
-      : IO::IOException("Client is not logged in.") {}
+    : IO::IOException("Client is not logged in.") {}
 
   inline NotLoggedInException::NotLoggedInException(const std::string& message)
-      : IO::IOException(message) {}
-
-  inline NotLoggedInException::~NotLoggedInException() throw() {}
-}
+    : IO::IOException(message) {}
 }
 
 #endif

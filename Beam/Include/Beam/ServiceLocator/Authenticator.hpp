@@ -3,31 +3,28 @@
 #include <functional>
 #include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam {
-namespace ServiceLocator {
+namespace Beam::ServiceLocator {
 
-  /*! \class Authenticator
-      \brief Specifies the function type used to authenticate a session.
-      \tparam ServiceProtocolClientType The type of ServiceProtocolClient to
-              authenticate.
+  /**
+   * Specifies the function type used to authenticate a session.
+   * @param <C> The type of ServiceProtocolClient to authenticate.
    */
-  template<typename ServiceProtocolClientType>
+  template<typename C>
   struct Authenticator {
-    using type = std::function<void(ServiceProtocolClientType&)>;
+    using type = std::function<void(C&)>;
   };
 
-  //! Opens a ServiceProtocolClient and authenticates the session.
-  /*!
-    \param authenticator The Authenticator to use.
-    \param serviceProtocolClient The ServiceProtocolClient to authenticate.
-  */
+  /**
+   * Opens a ServiceProtocolClient and authenticates the session.
+   * @param authenticator The Authenticator to use.
+   * @param serviceProtocolClient The ServiceProtocolClient to authenticate.
+   */
   template<typename Authenticator, typename ServiceProtocolClient>
   void OpenAndAuthenticate(const Authenticator& authenticator,
       ServiceProtocolClient& serviceProtocolClient) {
     serviceProtocolClient.Open();
     authenticator(serviceProtocolClient);
   }
-}
 }
 
 #endif

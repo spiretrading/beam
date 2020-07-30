@@ -1,5 +1,5 @@
-#ifndef BEAM_ENUMSET_HPP
-#define BEAM_ENUMSET_HPP
+#ifndef BEAM_ENUM_SET_HPP
+#define BEAM_ENUM_SET_HPP
 #include <bitset>
 #include <type_traits>
 #include "Beam/Collections/Collections.hpp"
@@ -10,90 +10,90 @@
 
 namespace Beam {
 
-  /*! \class EnumSet
-      \brief Stores a set of enum values.
-      \tparam T The enum type to store.
+  /**
+   * Stores a set of enum values.
+   * @param <T> The enum type to store.
    */
   template<typename T>
   class EnumSet {
     public:
 
-      //! The enum type stored.
+      /** The enum type stored. */
       using Type = T;
 
-      //! Builds an EnumSet from its underlying representation.
-      /*!
-        \param value The value to build the EnumSet from.
-      */
+      /**
+       * Builds an EnumSet from its underlying representation.
+       * @param value The value to build the EnumSet from.
+       */
       static EnumSet FromRepresentation(std::uint32_t value);
 
-      //! Constructs an empty EnumSet.
+      /** Constructs an empty EnumSet. */
       EnumSet() = default;
 
-      //! Constructs an EnumSet containing a single value.
-      /*!
-        \param value The value to store.
-      */
+      /**
+       * Constructs an EnumSet containing a single value.
+       * @param value The value to store.
+       */
       EnumSet(Type value);
 
-      //! Constructs an EnumSet containing a single value.
-      /*!
-        \param value The value to store.
-      */
+      /**
+       * Constructs an EnumSet containing a single value.
+       * @param value The value to store.
+       */
       EnumSet(typename Type::Type value);
 
-      //! Constructs an EnumSet from a bitset.
-      /*!
-        \param set The bitset to represent.
-      */
+      /**
+       * Constructs an EnumSet from a bitset.
+       * @param set The bitset to represent.
+       */
       explicit EnumSet(const std::bitset<Type::COUNT>& set);
 
-      //! Converts this set to a bitset.
+      /** Converts this set to a bitset. */
       explicit operator const std::bitset<T::COUNT>& () const;
 
-      //! Converts this set to a bitset.
+      /** Converts this set to a bitset. */
       explicit operator std::bitset<T::COUNT>& ();
 
-      //! Tests two EnumSet's for equality.
-      /*!
-        \param rhs The right hand side to test.
-        \return <code>true</code> iff this set is equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two EnumSet's for equality.
+       * @param rhs The right hand side to test.
+       * @return <code>true</code> iff this set is equal to <i>rhs</i>.
+       */
       bool operator ==(const EnumSet& rhs) const;
 
-      //! Tests two EnumSet's for inequality.
-      /*!
-        \param rhs The right hand side to test.
-        \return <code>true</code> iff this set is not equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two EnumSet's for inequality.
+       * @param rhs The right hand side to test.
+       * @return <code>true</code> iff this set is not equal to <i>rhs</i>.
+       */
       bool operator !=(const EnumSet& rhs) const;
 
-      //! Tests if a value belongs to this set.
-      /*!
-        \param value The value to test.
-        \return <code>true</code> iff the <i>value</i> is a member of this set.
-      */
+      /**
+       * Tests if a value belongs to this set.
+       * @param value The value to test.
+       * @return <code>true</code> iff the <i>value</i> is a member of this set.
+       */
       bool Test(Type value) const;
 
-      //! Adds all values in a set to this set.
-      /*!
-        \param set The set of values to add to this set.
-      */
+      /**
+       * Adds all values in a set to this set.
+       * @param set The set of values to add to this set.
+       */
       void SetAll(const EnumSet& values);
 
-      //! Adds a value to this set.
-      /*!
-        \param value The value to add to this set.
-      */
+      /**
+       * Adds a value to this set.
+       * @param value The value to add to this set.
+       */
       void Set(Type value);
 
-      //! Removes a value from this set.
-      /*!
-        \param value The value to remove from this set.
-      */
+      /**
+       * Removes a value from this set.
+       * @param value The value to remove from this set.
+       */
       void Unset(Type value);
 
-      //! Returns the bitset.
+      /** Returns the bitset. */
       const std::bitset<T::COUNT>& GetBitset() const;
 
     private:
@@ -102,22 +102,22 @@ namespace Beam {
 
   template<typename T>
   EnumSet<T> operator &(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>{lhs.GetBitset() & rhs.GetBitset()};
+    return EnumSet<T>(lhs.GetBitset() & rhs.GetBitset());
   }
 
   template<typename T>
   EnumSet<T> operator |(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>{lhs.GetBitset() | rhs.GetBitset()};
+    return EnumSet<T>(lhs.GetBitset() | rhs.GetBitset());
   }
 
   template<typename T>
   EnumSet<T> operator ^(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>{lhs.GetBitset() ^ rhs.GetBitset()};
+    return EnumSet<T>(lhs.GetBitset() ^ rhs.GetBitset());
   }
 
   template<typename T>
   EnumSet<T> EnumSet<T>::FromRepresentation(std::uint32_t value) {
-    EnumSet set;
+    auto set = EnumSet();
     set.m_bitset = value;
     return set;
   }
@@ -134,7 +134,7 @@ namespace Beam {
 
   template<typename T>
   EnumSet<T>::EnumSet(const std::bitset<Type::COUNT>& set)
-      : m_bitset{set} {}
+    : m_bitset{set} {}
 
   template<typename T>
   EnumSet<T>::operator const std::bitset<T::COUNT>& () const {
@@ -191,8 +191,7 @@ namespace Beam {
   }
 }
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<typename T>
   struct IsStructure<EnumSet<T>> : std::false_type {};
 
@@ -210,12 +209,11 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         EnumSet<T>& value) const {
-      std::bitset<EnumSet<T>::Type::COUNT> set;
+      auto set = std::bitset<EnumSet<T>::Type::COUNT>();
       shuttle.Shuttle(name, set);
       value = EnumSet<T>{set};
     }
   };
-}
 }
 
 #endif

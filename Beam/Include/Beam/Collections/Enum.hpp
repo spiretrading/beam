@@ -1,5 +1,5 @@
-#ifndef BEAM_ENUMERATOR_HPP
-#define BEAM_ENUMERATOR_HPP
+#ifndef BEAM_ENUM_HPP
+#define BEAM_ENUM_HPP
 #include <cstdint>
 #include <type_traits>
 #include "Beam/Collections/Collections.hpp"
@@ -19,79 +19,79 @@
 
 namespace Beam {
 
-  /*! \struct Enum
-      \brief Wraps an enum value.
-      \tparam T The enum type to represent.
-      \tparam N The number of members enumerated.
+  /**
+   * Wraps an enum value.
+   * @param <T> The enum type to represent.
+   * @param <N> The number of members enumerated.
    */
   template<typename T, std::size_t N>
   class Enum : public T {
     public:
 
-      //! The enum type represented.
+      /** The enum type represented. */
       using Type = typename T::Type;
 
-      //! The number of members enumerated.
-      static const std::size_t COUNT = N;
+      /** The number of members enumerated. */
+      static constexpr auto COUNT = N;
 
-      //! Constructs an Enum with a value of NONE.
+      /** Constructs an Enum with a value of NONE. */
       Enum();
 
-      //! Constructs an Enum.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an Enum.
+       * @param value The value to represent.
+       */
       Enum(Type value);
 
-      //! Constructs an Enum.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an Enum.
+       * @param value The value to represent.
+       */
       explicit Enum(int value);
 
-      //! Converts this Enum into its underlying type.
+      /** Converts this Enum into its underlying type. */
       operator Type () const;
 
-      //! Tests if this Enum comes before another.
-      /*!
-        \param rhs The Enum to test against.
-        \return <code>true</code> iff this Enum comes before <i>rhs</i>.
-      */
+      /**
+       * Tests if this Enum comes before another.
+       * @param rhs The Enum to test against.
+       * @return <code>true</code> iff this Enum comes before <i>rhs</i>.
+       */
       bool operator <(Enum rhs) const;
 
-      //! Tests if this Enum comes before another.
-      /*!
-        \param rhs The Enum to test against.
-        \return <code>true</code> iff this Enum comes before <i>rhs</i>.
-      */
+      /**
+       * Tests if this Enum comes before another.
+       * @param rhs The Enum to test against.
+       * @return <code>true</code> iff this Enum comes before <i>rhs</i>.
+       */
       bool operator <(Type rhs) const;
 
-      //! Tests two Enums for equality.
-      /*!
-        \param rhs The right hand side of the equality.
-        \return <code>true</code> iff this is equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two Enums for equality.
+       * @param rhs The right hand side of the equality.
+       * @return <code>true</code> iff this is equal to <i>rhs</i>.
+       */
       bool operator ==(Enum rhs) const;
 
-      //! Tests two Enums for inequality.
-      /*!
-        \param rhs The right hand side of the inequality.
-        \return <code>true</code> iff this is not equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two Enums for inequality.
+       * @param rhs The right hand side of the inequality.
+       * @return <code>true</code> iff this is not equal to <i>rhs</i>.
+       */
       bool operator !=(Enum rhs) const;
 
-      //! Tests two Enums for equality.
-      /*!
-        \param rhs The right hand side of the equality.
-        \return <code>true</code> iff this is equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two Enums for equality.
+       * @param rhs The right hand side of the equality.
+       * @return <code>true</code> iff this is equal to <i>rhs</i>.
+       */
       bool operator ==(Type rhs) const;
 
-      //! Tests two Enums for inequality.
-      /*!
-        \param rhs The right hand side of the inequality.
-        \return <code>true</code> iff this is not equal to <i>rhs</i>.
-      */
+      /**
+       * Tests two Enums for inequality.
+       * @param rhs The right hand side of the inequality.
+       * @return <code>true</code> iff this is not equal to <i>rhs</i>.
+       */
       bool operator !=(Type rhs) const;
 
     private:
@@ -100,15 +100,15 @@ namespace Beam {
 
   template<typename T, std::size_t N>
   Enum<T, N>::Enum()
-      : m_value(Type::NONE) {}
+    : m_value(Type::NONE) {}
 
   template<typename T, std::size_t N>
   Enum<T, N>::Enum(Type value)
-      : m_value(value) {}
+    : m_value(value) {}
 
   template<typename T, std::size_t N>
   Enum<T, N>::Enum(int value)
-      : m_value(static_cast<Type>(value)) {}
+    : m_value(static_cast<Type>(value)) {}
 
   template<typename T, std::size_t N>
   Enum<T, N>::operator Type () const {
@@ -160,8 +160,7 @@ namespace std {
   };
 }
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<typename T, std::size_t N>
   struct IsStructure<Enum<T, N>> : std::false_type {};
 
@@ -179,12 +178,11 @@ namespace Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         Enum<T, N>& value) const {
-      typename Enum<T, N>::Type e;
+      auto e = typename Enum<T, N>::Type();
       shuttle.Shuttle(name, e);
       value = e;
     }
   };
-}
 }
 
 #endif

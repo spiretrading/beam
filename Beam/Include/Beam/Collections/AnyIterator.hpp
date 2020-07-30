@@ -1,5 +1,5 @@
-#ifndef BEAM_ANYITERATOR_HPP
-#define BEAM_ANYITERATOR_HPP
+#ifndef BEAM_ANY_ITERATOR_HPP
+#define BEAM_ANY_ITERATOR_HPP
 #include <iterator>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/throw_exception.hpp>
@@ -19,44 +19,56 @@ namespace Details {
   }
 }
 
-  /*! \class AnyIterator
-      \brief A generic iterator that can be used with any underlying iterator.
-      \tparam T The type to iterate over.
+  /**
+   * A generic iterator that can be used with any underlying iterator.
+   * @param <T> The type to iterate over.
    */
   template<typename T>
   class AnyIterator : public boost::iterators::iterator_facade<AnyIterator<T>,
       T, boost::iterators::random_access_traversal_tag> {
     public:
 
-      //! The type to iterate over.
+      /** The type to iterate over. */
       using value_type = T;
 
-      //! The type used to compute the difference between two iterators.
+      /** The type used to compute the difference between two iterators. */
       using difference_type = typename boost::iterators::iterator_facade<
         AnyIterator<T>, T, boost::iterators::random_access_traversal_tag>::
         difference_type;
 
-      //! Constructs an AnyIterator.
+      /** Constructs an AnyIterator. */
       AnyIterator() = default;
 
-      //! Copies an AnyIterator.
-      /*!
-        \param iterator The iterator to copy.
-      */
+      /**
+       * Copies an AnyIterator.
+       * @param iterator The iterator to copy.
+       */
       AnyIterator(const AnyIterator& iterator);
 
-      //! Constructs an AnyIterator.
-      /*!
-        \param iterator The iterator to wrap.
-      */
-      template<typename IteratorType>
-      AnyIterator(const IteratorType& iterator);
+      /**
+       * Acquires an AnyIterator.
+       * @param iterator The iterator to acquire.
+       */
+      AnyIterator(AnyIterator&& iterator) = default;
 
-      //! Assigns an AnyIterator.
-      /*!
-        \param rhs The AnyIterator to assign from.
-      */
+      /**
+       * Constructs an AnyIterator.
+       * @param iterator The iterator to wrap.
+       */
+      template<typename I>
+      AnyIterator(I iterator);
+
+      /**
+       * Assigns an AnyIterator.
+       * \param rhs The AnyIterator to assign from.
+       */
       AnyIterator& operator =(const AnyIterator& rhs);
+
+      /**
+       * Acquires an AnyIterator.
+       * \param rhs The AnyIterator to acquire.
+       */
+      AnyIterator& operator =(AnyIterator&& rhs) = default;
 
     private:
       friend class boost::iterators::iterator_core_access;
@@ -67,23 +79,27 @@ namespace Details {
           virtual ~BaseIterator() = default;
           virtual std::unique_ptr<BaseIterator> Clone() const = 0;
           virtual bool Equals(const BaseIterator& rhs) const = 0;
-          virtual value_type& Dereference() const = 0;
+          virtual const value_type& Dereference() const = 0;
+          virtual value_type& Dereference() = 0;
           virtual void Increment() = 0;
           virtual void Decrement() = 0;
           virtual void Advance(difference_type n) = 0;
           virtual difference_type DistanceTo(const BaseIterator& rhs) const = 0;
       };
-      template<typename WrappedIterator>
+      template<typename I>
       class Iterator : public BaseIterator {
         public:
-          Iterator(const WrappedIterator& iterator);
-          virtual std::unique_ptr<BaseIterator> Clone() const;
-          virtual bool Equals(const BaseIterator& rhs) const;
-          virtual value_type& Dereference() const;
-          virtual void Increment();
-          virtual void Decrement();
-          virtual void Advance(difference_type n);
-          virtual difference_type DistanceTo(const BaseIterator& rhs) const;
+          using WrappedIterator = I;
+
+          Iterator(WrappedIterator iterator);
+          std::unique_ptr<BaseIterator> Clone() const override;
+          bool Equals(const BaseIterator& rhs) const override;
+          const value_type& Dereference() const override;
+          value_type& Dereference() override;
+          void Increment() override;
+          void Decrement() override;
+          void Advance(difference_type n) override;
+          difference_type DistanceTo(const BaseIterator& rhs) const override;
 
         private:
           WrappedIterator m_iterator;
@@ -106,15 +122,12 @@ namespace Details {
   }
 
   template<typename T>
-  template<typename IteratorType>
-  AnyIterator<T>::AnyIterator(const IteratorType& iterator)
-      : m_iterator(std::make_unique<Iterator<IteratorType>>(iterator)) {}
+  template<typename I>
+  AnyIterator<T>::AnyIterator(I iterator)
+    : m_iterator(std::make_unique<Iterator<I>>(std::move(iterator))) {}
 
   template<typename T>
   AnyIterator<T>& AnyIterator<T>::operator =(const AnyIterator& rhs) {
-    if(this == &rhs) {
-      return *this;
-    }
     if(rhs.m_iterator == nullptr) {
       m_iterator = nullptr;
     } else {
@@ -161,59 +174,64 @@ namespace Details {
 
   template<typename T>
   AnyIterator<T>::AnyIterator(std::unique_ptr<BaseIterator> iterator)
-      : m_iterator(std::move(iterator)) {}
+    : m_iterator(std::move(iterator)) {}
 
   template<typename T>
-  template<typename WrappedIterator>
-  AnyIterator<T>::Iterator<WrappedIterator>::Iterator(
-      const WrappedIterator& iterator)
-      : m_iterator(iterator) {}
+  template<typename I>
+  AnyIterator<T>::Iterator<I>::Iterator(WrappedIterator iterator)
+    : m_iterator(std::move(iterator)) {}
 
   template<typename T>
-  template<typename WrappedIterator>
+  template<typename I>
   std::unique_ptr<typename AnyIterator<T>::BaseIterator>
-      AnyIterator<T>::Iterator<WrappedIterator>::Clone() const {
+      AnyIterator<T>::Iterator<I>::Clone() const {
     return std::make_unique<Iterator>(m_iterator);
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  bool AnyIterator<T>::Iterator<WrappedIterator>::Equals(
-      const BaseIterator& rhs) const {
+  template<typename I>
+  bool AnyIterator<T>::Iterator<I>::Equals(const BaseIterator& rhs) const {
     auto& rhsIterator = static_cast<const Iterator&>(rhs);
     return m_iterator == rhsIterator.m_iterator;
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  typename AnyIterator<T>::value_type&
-      AnyIterator<T>::Iterator<WrappedIterator>::Dereference() const {
+  template<typename I>
+  const typename AnyIterator<T>::value_type&
+      AnyIterator<T>::Iterator<I>::Dereference() const {
     return *m_iterator;
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  void AnyIterator<T>::Iterator<WrappedIterator>::Increment() {
+  template<typename I>
+  typename AnyIterator<T>::value_type&
+      AnyIterator<T>::Iterator<I>::Dereference() {
+    return *m_iterator;
+  }
+
+  template<typename T>
+  template<typename I>
+  void AnyIterator<T>::Iterator<I>::Increment() {
     ++m_iterator;
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  void AnyIterator<T>::Iterator<WrappedIterator>::Decrement() {
+  template<typename I>
+  void AnyIterator<T>::Iterator<I>::Decrement() {
     Details::Decrement(m_iterator,
       typename std::iterator_traits<WrappedIterator>::iterator_category());
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  void AnyIterator<T>::Iterator<WrappedIterator>::Advance(difference_type n) {
+  template<typename I>
+  void AnyIterator<T>::Iterator<I>::Advance(difference_type n) {
     std::advance(m_iterator, n);
   }
 
   template<typename T>
-  template<typename WrappedIterator>
-  typename AnyIterator<T>::difference_type AnyIterator<T>::Iterator<
-      WrappedIterator>::DistanceTo(const BaseIterator& rhs) const {
+  template<typename I>
+  typename AnyIterator<T>::difference_type AnyIterator<T>::Iterator<I>::
+      DistanceTo(const BaseIterator& rhs) const {
     auto& rhsIterator = static_cast<const Iterator&>(rhs);
     return std::distance(m_iterator, rhsIterator.m_iterator);
   }

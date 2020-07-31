@@ -2,6 +2,7 @@
 #define BEAM_HTTPSERVER_HPP
 #include <vector>
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -11,7 +12,6 @@
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Serialization/JsonSender.hpp"
-#include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"

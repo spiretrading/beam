@@ -161,8 +161,10 @@ namespace Beam::Python {
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
       .def("is_broken", &T::IsBroken)
-      .def("wait", static_cast<void (T::*)() const>(&T::Wait),
-        pybind11::call_guard<pybind11::gil_scoped_release>())
+      .def("wait",
+        [] (const T& self) {
+          self.Wait();
+        }, pybind11::call_guard<pybind11::gil_scoped_release>())
       .def("top", &T::Top,
         pybind11::call_guard<pybind11::gil_scoped_release>());
   }

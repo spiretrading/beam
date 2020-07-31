@@ -6,21 +6,21 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
+#include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SequencedValuePublisher.hpp"
-#include "Beam/Queues/ConverterWriterQueue.hpp"
+#include "Beam/Queues/ConverterQueueWriter.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/WeakQueue.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
-#include "Beam/Utilities/SynchronizedMap.hpp"
 
 namespace Beam {
 namespace Queries {
@@ -180,7 +180,7 @@ namespace Queries {
       const std::shared_ptr<QueueWriter<Value>>& queue) {
     auto weakQueue = MakeWeakQueue(queue);
     std::shared_ptr<QueueWriter<SequencedValue<Value>>> conversionQueue =
-      MakeConverterWriterQueue<SequencedValue<Value>>(weakQueue,
+      MakeConverterQueueWriter<SequencedValue<Value>>(weakQueue,
       [] (auto&& value) {
         return static_cast<Value>(std::forward<decltype(value)>(value));
       });

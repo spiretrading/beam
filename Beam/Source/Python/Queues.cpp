@@ -109,6 +109,9 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
         return std::shared_ptr<QueueWriter<object>>{
           MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
       })
-    .def("wait", &TaskQueue::Wait, call_guard<GilRelease>());
+    .def("wait",
+      [] (const TaskQueue& self) {
+        self.Wait();
+      }, call_guard<GilRelease>());
   module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

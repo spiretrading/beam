@@ -3,12 +3,12 @@
 #include <boost/noncopyable.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironmentException.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTests.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam {
 namespace TimeService {

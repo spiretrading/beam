@@ -1,10 +1,9 @@
-#ifndef BEAM_FILTEREDPUBLISHER_HPP
-#define BEAM_FILTEREDPUBLISHER_HPP
+#ifndef BEAM_FILTERED_PUBLISHER_HPP
+#define BEAM_FILTERED_PUBLISHER_HPP
 #include <functional>
 #include <unordered_set>
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -20,101 +19,89 @@ namespace Beam {
     }
   };
 
-  /*! \class FilteredPublisher
-      \brief Filters values that get sent to a Publisher.
-      \tparam PublisherType The type of Publisher to filter.
+  /**
+   * Filters values that get sent to a Publisher.
+   * @param <P> The type of Publisher to filter.
    */
-  template<typename PublisherType>
-  class FilteredPublisher :
-      public Details::GetPublisherType<PublisherType>::type,
-      public QueueWriter<typename PublisherType::Type> {
+  template<typename P>
+  class FilteredPublisher final : public Details::GetPublisherType<P>::type,
+      public QueueWriter<typename P::Type> {
     public:
-      using Type = typename PublisherType::Type;
-      using Snapshot = typename Details::GetSnapshotType<PublisherType>::type;
+      using Type = typename P::Type;
+      using Snapshot = typename Details::GetSnapshotType<P>::type;
 
-      //! Defines the function used to filter values.
-      /*!
-        \param value The value to test.
-        \return <code>true</code> iff the <i>value</i> is to be published.
-      */
+      /**
+       * Defines the function used to filter values.
+       * @param value The value to test.
+       * @return <code>true</code> iff the <i>value</i> is to be published.
+       */
       using FilterFunction = std::function<bool(const Type& value)>;
 
-      //! Constructs a FilteredPublisher.
-      /*!
-        param filter The filter to apply.
-        \param publisher Initializes the Publisher to filter values for.
-      */
-      template<typename PublisherForward>
-      FilteredPublisher(const FilterFunction& filter,
-        PublisherForward&& publisher);
+      /**
+       * Constructs a FilteredPublisher.
+       * @param filter The filter to apply.
+       * @param publisher Initializes the Publisher to filter values for.
+       */
+      template<typename PF>
+      FilteredPublisher(const FilterFunction& filter, PF&& publisher);
 
-      virtual ~FilteredPublisher() override final;
+      void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const override;
 
-      virtual void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
+        Out<boost::optional<Snapshot>> snapshot) const override;
 
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const override final;
+      void With(const std::function<void ()>& f) const override;
 
-      virtual void With(const std::function<void ()>& f) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const override;
 
-      virtual void Monitor(
-        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
+      void Push(const Type& value) override;
 
-      virtual void Push(const Type& value) final;
+      void Push(Type&& value) override;
 
-      virtual void Push(Type&& value) final;
+      void Break(const std::exception_ptr& e) override;
 
-      virtual void Break(const std::exception_ptr& e) final;
-
-      using QueueWriter<typename PublisherType::Type>::Break;
+      using QueueWriter<Type>::Break;
     private:
       mutable boost::mutex m_mutex;
       FilterFunction m_filter;
-      LocalPtr<PublisherType> m_publisher;
+      LocalPtr<P> m_publisher;
   };
 
-  template<typename PublisherType>
-  template<typename PublisherForward>
-  FilteredPublisher<PublisherType>::FilteredPublisher(
-      const FilterFunction& filter, PublisherForward&& publisher)
-      : m_filter(filter),
-        m_publisher(std::forward<PublisherForward>(publisher)) {}
+  template<typename P>
+  template<typename PF>
+  FilteredPublisher<P>::FilteredPublisher(const FilterFunction& filter,
+    PF&& publisher)
+    : m_filter(filter),
+      m_publisher(std::forward<PF>(publisher)) {}
 
-  template<typename PublisherType>
-  FilteredPublisher<PublisherType>::~FilteredPublisher() {
-    Break();
-  }
-
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::WithSnapshot(
+  template<typename P>
+  void FilteredPublisher<P>::WithSnapshot(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     m_publisher->WithSnapshot(f);
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::Monitor(
-      std::shared_ptr<QueueWriter<Type>> monitor,
+  template<typename P>
+  void FilteredPublisher<P>::Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
       Out<boost::optional<Snapshot>> snapshot) const {
     m_publisher->Monitor(monitor, Store(snapshot));
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::With(
-      const std::function<void ()>& f) const {
+  template<typename P>
+  void FilteredPublisher<P>::With(const std::function<void ()>& f) const {
     m_publisher->With(f);
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::Monitor(
+  template<typename P>
+  void FilteredPublisher<P>::Monitor(
       std::shared_ptr<QueueWriter<Type>> queue) const {
     m_publisher->Monitor(queue);
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::Push(const Type& value) {
+  template<typename P>
+  void FilteredPublisher<P>::Push(const Type& value) {
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       if(!m_filter(value)) {
         return;
       }
@@ -122,10 +109,10 @@ namespace Beam {
     m_publisher->Push(value);
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::Push(Type&& value) {
+  template<typename P>
+  void FilteredPublisher<P>::Push(Type&& value) {
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       if(!m_filter(value)) {
         return;
       }
@@ -133,8 +120,8 @@ namespace Beam {
     m_publisher->Push(std::move(value));
   }
 
-  template<typename PublisherType>
-  void FilteredPublisher<PublisherType>::Break(const std::exception_ptr& e) {
+  template<typename P>
+  void FilteredPublisher<P>::Break(const std::exception_ptr& e) {
     m_publisher->Break(e);
   }
 }

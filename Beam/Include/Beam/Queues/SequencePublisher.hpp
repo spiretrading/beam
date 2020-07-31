@@ -1,5 +1,5 @@
-#ifndef BEAM_SEQUENCEPUBLISHER_HPP
-#define BEAM_SEQUENCEPUBLISHER_HPP
+#ifndef BEAM_SEQUENCE_PUBLISHER_HPP
+#define BEAM_SEQUENCE_PUBLISHER_HPP
 #include <vector>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/MultiQueueWriter.hpp"
@@ -10,114 +10,105 @@
 
 namespace Beam {
 
-  /*! \class SequencePublisher
-      \brief Publishes a sequence of data.
-      \tparam T The type of data to publish.
+  /**
+   * Publishes a sequence of data.
+   * @param <T> The type of data to publish.
    */
-  template<typename T, typename SequenceType = std::vector<T>>
-  class SequencePublisher : public SnapshotPublisher<T, SequenceType>,
+  template<typename T, typename S = std::vector<T>>
+  class SequencePublisher final : public SnapshotPublisher<T, S>,
       public QueueWriter<T> {
     public:
-      using Type = typename SnapshotPublisher<T, SequenceType>::Type;
-      using Snapshot = typename SnapshotPublisher<T, SequenceType>::Snapshot;
+      using Type = typename SnapshotPublisher<T, S>::Type;
+      using Snapshot = typename SnapshotPublisher<T, S>::Snapshot;
 
-      //! Constructs a SequencePublisher.
+      /** Constructs a SequencePublisher. */
       SequencePublisher() = default;
 
-      //! Constructs a SequencePublisher.
-      /*!
-        \param sequence Initializes the sequence.
-      */
-      template<typename SequenceForward>
-      SequencePublisher(SequenceForward&& sequence);
+      /**
+       * Constructs a SequencePublisher.
+       * @param sequence Initializes the sequence.
+       */
+      template<typename SF>
+      SequencePublisher(SF&& sequence);
 
-      virtual ~SequencePublisher() override final;
+      void WithSnapshot(const std::function<
+        void (boost::optional<const Snapshot&>)>& f) const override;
 
-      virtual void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
+        Out<boost::optional<Snapshot>> snapshot) const override;
 
-      virtual void Monitor(std::shared_ptr<QueueWriter<T>> monitor,
-        Out<boost::optional<Snapshot>> snapshot) const override final;
+      void With(const std::function<void ()>& f) const override;
 
-      virtual void With(const std::function<void ()>& f) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const override;
 
-      virtual void Monitor(
-        std::shared_ptr<QueueWriter<Type>> monitor) const override final;
+      void Push(const Type& value) override;
 
-      virtual void Push(const T& value) override final;
+      void Push(Type&& value) override;
 
-      virtual void Push(T&& value) override final;
+      void Break(const std::exception_ptr& e) override;
 
-      virtual void Break(const std::exception_ptr& e) override final;
+      using QueueWriter<Type>::Break;
 
-      using QueueWriter<T>::Break;
     private:
       mutable Threading::RecursiveMutex m_mutex;
-      LocalPtr<SequenceType> m_sequence;
-      MultiQueueWriter<T> m_queue;
+      LocalPtr<Snapshot> m_sequence;
+      MultiQueueWriter<Type> m_queue;
   };
 
-  template<typename T, typename SequenceType>
-  template<typename SequenceForward>
-  SequencePublisher<T, SequenceType>::SequencePublisher(
-      SequenceForward&& sequence)
-      : m_sequence(std::forward<SequenceForward>(sequence)) {}
+  template<typename T, typename S>
+  template<typename SF>
+  SequencePublisher<T, S>::SequencePublisher(SF&& sequence)
+    : m_sequence(std::forward<SF>(sequence)) {}
 
-  template<typename T, typename SequenceType>
-  SequencePublisher<T, SequenceType>::~SequencePublisher() {
-    Break();
-  }
-
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::WithSnapshot(
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::WithSnapshot(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     f(*m_sequence);
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Monitor(
-      std::shared_ptr<QueueWriter<T>> monitor,
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::Monitor(
+      std::shared_ptr<QueueWriter<Type>> monitor,
       Out<boost::optional<Snapshot>> snapshot) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     *snapshot = *m_sequence;
-    m_queue.Monitor(monitor);
+    m_queue.Monitor(std::move(monitor));
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::With(
-      const std::function<void ()>& f) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::With(const std::function<void ()>& f) const {
+    auto lock = boost::lock_guard(m_mutex);
     f();
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Monitor(
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::Monitor(
       std::shared_ptr<QueueWriter<Type>> queue) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     for(auto& i : *m_sequence) {
       queue->Push(i);
     }
-    m_queue.Monitor(queue);
+    m_queue.Monitor(std::move(queue));
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Push(const T& value) {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::Push(const Type& value) {
+    auto lock = boost::lock_guard(m_mutex);
     m_sequence->push_back(value);
     m_queue.Push(value);
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Push(T&& value) {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::Push(Type&& value) {
+    auto lock = boost::lock_guard(m_mutex);
     m_sequence->push_back(value);
     m_queue.Push(std::move(value));
   }
 
-  template<typename T, typename SequenceType>
-  void SequencePublisher<T, SequenceType>::Break(const std::exception_ptr& e) {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+  template<typename T, typename S>
+  void SequencePublisher<T, S>::Break(const std::exception_ptr& e) {
+    auto lock = boost::lock_guard(m_mutex);
     m_queue.Break(e);
   }
 }

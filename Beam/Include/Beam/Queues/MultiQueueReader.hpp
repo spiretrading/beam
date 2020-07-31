@@ -6,41 +6,38 @@
 
 namespace Beam {
 
-  /*! \class MultiQueueReader
-      \brief Consolidates multiple QueueReaders together.
-      \tparam T The type to read from the queue.
+  /**
+   * Consolidates multiple QueueReaders together.
+   * @param <T> The type to read from the queue.
    */
   template<typename T>
-  class MultiQueueReader : public AbstractQueue<T> {
+  class MultiQueueReader final : public AbstractQueue<T> {
     public:
+      using Source = typename AbstractQueue<T>::Source;
+      using Target = typename AbstractQueue<T>::Target;
 
-      //! The type to read from the queue.
-      using Target = T;
-
-      //! The type to write to the queue.
-      using Source = T;
-
-      //! Constructs a MultiQueueReader.
+      /** Constructs a MultiQueueReader. */
       MultiQueueReader() = default;
 
-      //! Returns a QueueWriter for pushing values onto this queue.
+      /** Returns a QueueWriter for pushing values onto this queue. */
       std::shared_ptr<QueueWriter<Target>> GetWriter();
 
-      virtual bool IsEmpty() const override final;
+      bool IsEmpty() const override;
 
-      virtual Target Top() const override final;
+      Target Top() const override;
 
-      virtual void Pop() override final;
+      void Pop() override;
 
-      virtual void Break(const std::exception_ptr& e) override final;
+      void Break(const std::exception_ptr& e) override;
 
-      virtual void Push(const Source& value) override final;
+      void Push(const Source& value) override;
 
-      virtual void Push(Source&& value) override final;
+      void Push(Source&& value) override;
 
       using AbstractQueue<T>::Break;
+
     protected:
-      virtual bool IsAvailable() const override final;
+      bool IsAvailable() const override;
 
     private:
       Queue<Target> m_queue;
@@ -50,8 +47,8 @@ namespace Beam {
   template<typename T>
   std::shared_ptr<QueueWriter<typename MultiQueueReader<T>::Target>>
       MultiQueueReader<T>::GetWriter() {
-    return m_callbacks.GetSlot<T>(
-      [=] (const T& value) {
+    return m_callbacks.GetSlot<Target>(
+      [=] (const Target& value) {
         m_queue.Push(value);
       });
   }

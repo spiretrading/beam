@@ -1,9 +1,8 @@
-#ifndef BEAM_AGGREGATEQUEUE_HPP
-#define BEAM_AGGREGATEQUEUE_HPP
+#ifndef BEAM_AGGREGATE_QUEUE_HPP
+#define BEAM_AGGREGATE_QUEUE_HPP
 #include <atomic>
 #include <utility>
 #include <vector>
-#include <boost/throw_exception.hpp>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -11,34 +10,31 @@
 
 namespace Beam {
 
-  /*! \class AggregateQueue
-      \brief Combines multiple Queues together into a single Queue.
-      \tparam T The data to read from the Queue.
+  /**
+   * Combines multiple Queues together into a single Queue.
+   * @param <T> The data to read from the Queue.
    */
   template<typename T>
   class AggregateQueue : public QueueReader<T> {
     public:
+      using Target = typename QueueReader<T>::Target;
 
-      //! The type being read.
-      using Target = T;
+      /**
+       * Constructs an AggregateQueue.
+       * @param sources The Queues to aggregate.
+       */
+      AggregateQueue(std::vector<std::shared_ptr<QueueReader<Target>>> sources);
 
-      //! Constructs an AggregateQueue.
-      /*!
-        \param queues The Queues to aggregate.
-      */
-      AggregateQueue(
-        const std::vector<std::shared_ptr<QueueReader<T>>>& queues);
+      bool IsEmpty() const override;
 
-      virtual bool IsEmpty() const;
+      Target Top() const override;
 
-      virtual Target Top() const;
+      void Pop() override;
 
-      virtual void Pop();
-
-      virtual void Break(const std::exception_ptr& e);
+      void Break(const std::exception_ptr& e) override;
 
     protected:
-      virtual bool IsAvailable() const;
+      bool IsAvailable() const override;
 
     private:
       std::vector<std::shared_ptr<QueueReader<T>>> m_sources;
@@ -49,11 +45,11 @@ namespace Beam {
 
   template<typename T>
   AggregateQueue<T>::AggregateQueue(
-      const std::vector<std::shared_ptr<QueueReader<T>>>& queues)
-      : m_sources(queues),
+      std::vector<std::shared_ptr<QueueReader<Target>>> sources)
+      : m_sources(std::move(sources)),
         m_destination(std::make_shared<Queue<T>>()),
         m_queueCount(static_cast<int>(queues.size())) {
-    for(const auto& source : m_sources) {
+    for(auto& source : m_sources) {
       m_routines.Spawn(
         [=] {
           try {
@@ -88,7 +84,7 @@ namespace Beam {
 
   template<typename T>
   void AggregateQueue<T>::Break(const std::exception_ptr& e) {
-    for(const auto& source : m_sources) {
+    for(auto& source : m_sources) {
       source->Break(e);
     }
     m_destination->Break(e);

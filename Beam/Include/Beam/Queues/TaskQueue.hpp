@@ -1,5 +1,5 @@
-#ifndef BEAM_TASKQUEUE_HPP
-#define BEAM_TASKQUEUE_HPP
+#ifndef BEAM_TASK_QUEUE_HPP
+#define BEAM_TASK_QUEUE_HPP
 #include <iostream>
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -8,72 +8,71 @@
 
 namespace Beam {
 
-  /*! \class TaskQueue
-      \brief Used to translate Queue pushes into task functions.
-   */
+  /** Used to translate Queue pushes into task functions. */
   class TaskQueue : public AbstractQueue<std::function<void ()>> {
     public:
-      using Target = QueueReader<std::function<void ()>>::Target;
+      using Source = AbstractQueue<std::function<void ()>>::Source;
+      using Target = AbstractQueue<std::function<void ()>>::Target;
 
-      //! Constructs a TaskQueue.
+      /** Constructs a TaskQueue. */
       TaskQueue() = default;
 
-      virtual ~TaskQueue();
-
-      //! Returns a slot Queue.
-      /*!
-        \param slot The slot to call when a new value is pushed.
-        \return A Queue that translates a push into a slot invocation.
-      */
+      /**
+       * Returns a slot Queue.
+       * @param slot The slot to call when a new value is pushed.
+       * @return A Queue that translates a push into a slot invocation.
+       */
       template<typename T>
-      std::shared_ptr<CallbackWriterQueue<T>> GetSlot(
+      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
         const std::function<void (const T& value)>& slot);
 
-      //! Returns a slot Queue.
-      /*!
-        \param slot The slot to call when a new value is pushed.
-        \param breakSlot The slot to call when this Queue is broken.
-        \return A Queue that translates a push into a slot invocation.
-      */
+      /**
+       * Returns a slot Queue.
+       * @param slot The slot to call when a new value is pushed.
+       * @param breakSlot The slot to call when this Queue is broken.
+       * @return A Queue that translates a push into a slot invocation.
+       */
       template<typename T>
-      std::shared_ptr<CallbackWriterQueue<T>> GetSlot(
+      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
         const std::function<void (const T& value)>& slot,
         const std::function<void (const std::exception_ptr& e)>& breakSlot);
 
-      virtual bool IsEmpty() const;
+      /**
+       * Directly emplaces a value and pops it off the stack.
+       * @param value Stores the popped value.
+       */
+      void Emplace(Out<std::function<void ()>> value);
 
-      virtual void Wait() const;
+      bool IsEmpty() const override;
 
-      virtual std::function<void ()> Top() const;
+      std::function<void ()> Top() const override;
 
-      virtual void Emplace(Out<std::function<void ()>> value);
+      void Pop() override;
 
-      virtual void Pop();
+      void Push(const Source& value) override;
 
-      virtual void Push(const Source& value);
+      void Push(Source&& value) override;
 
-      virtual void Push(Source&& value);
+      void Break(const std::exception_ptr& exception) override;
 
-      virtual void Break(const std::exception_ptr& exception);
+      bool IsAvailable() const override;
 
       using QueueWriter<std::function<void ()>>::Break;
-
-      virtual bool IsAvailable() const;
 
     private:
       Queue<std::function<void ()>> m_tasks;
       CallbackQueue m_callbacks;
   };
 
-  //! Implements a loop that runs tasks pushed onto a task Queue.
-  /*!
-    \param taskQueue The Queue to run tasks for.
-  */
+  /**
+   * Implements a loop that runs tasks pushed onto a task Queue.
+   * @param taskQueue The Queue to run tasks for.
+   */
   template<typename TaskQueueType>
   void TaskLoop(TaskQueueType taskQueue) {
     try {
       while(true) {
-        std::function<void ()> task;
+        auto task = std::function<void ()>();
         taskQueue->Emplace(Store(task));
         task();
       }
@@ -84,43 +83,39 @@ namespace Beam {
     }
   }
 
-  //! Spawns a Routine that executes tasks.
-  /*!
-    \param taskQueue The Queue to read the tasks from.
-    \return The spawned Routine's Id.
-  */
+  /**
+   * Spawns a Routine that executes tasks.
+   * @param taskQueue The Queue to read the tasks from.
+   * @return The spawned Routine's Id.
+   */
   template<typename TaskQueueType>
   Routines::Routine::Id SpawnTaskRoutine(TaskQueueType taskQueue) {
     return Routines::Spawn(
-      [=] {
+      [taskQueue = std::move(taskQueue)] {
         TaskLoop(taskQueue);
       });
   }
 
-  //! Pops off all tasks pushed onto a TaskQueue and invokes them.
-  /*!
-    \param tasks The TaskQueue to handle.
-  */
+  /**
+   * Pops off all tasks pushed onto a TaskQueue and invokes them.
+   * @param tasks The TaskQueue to handle.
+   */
   inline void HandleTasks(TaskQueue& tasks) {
     while(!tasks.IsEmpty()) {
-      std::function<void ()> task;
+      auto task = std::function<void ()>();
       tasks.Emplace(Store(task));
       task();
     }
   }
 
-  inline TaskQueue::~TaskQueue() {
-    Break();
-  }
-
   template<typename T>
-  std::shared_ptr<CallbackWriterQueue<T>> TaskQueue::GetSlot(
+  std::shared_ptr<CallbackQueueWriter<T>> TaskQueue::GetSlot(
       const std::function<void (const T& value)>& slot) {
     return this->GetSlot<T>(slot, [] (const std::exception_ptr&) {});
   }
 
   template<typename T>
-  std::shared_ptr<CallbackWriterQueue<T>> TaskQueue::GetSlot(
+  std::shared_ptr<CallbackQueueWriter<T>> TaskQueue::GetSlot(
       const std::function<void (const T& value)>& slot,
       const std::function<void (const std::exception_ptr& e)>& breakSlot) {
     return m_callbacks.GetSlot<T>(
@@ -138,20 +133,16 @@ namespace Beam {
       });
   }
 
+  inline void TaskQueue::Emplace(Out<std::function<void ()>> value) {
+    m_tasks.Emplace(Store(value));
+  }
+
   inline bool TaskQueue::IsEmpty() const {
     return m_tasks.IsEmpty();
   }
 
-  inline void TaskQueue::Wait() const {
-    return m_tasks.Wait();
-  }
-
   inline std::function<void ()> TaskQueue::Top() const {
     return m_tasks.Top();
-  }
-
-  inline void TaskQueue::Emplace(Out<std::function<void ()>> value) {
-    m_tasks.Emplace(Store(value));
   }
 
   inline void TaskQueue::Pop() {

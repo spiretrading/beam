@@ -1,25 +1,23 @@
-#ifndef BEAM_PIPEBROKENEXCEPTION_HPP
-#define BEAM_PIPEBROKENEXCEPTION_HPP
+#ifndef BEAM_PIPE_BROKEN_EXCEPTION_HPP
+#define BEAM_PIPE_BROKEN_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Queues/Queues.hpp"
 
 namespace Beam {
 
-  /*! \class PipeBrokenException
-      \brief Thrown when an operation is performed on a broken Queue.
-   */
+  /** Thrown when an operation is performed on a broken Queue. */
   class PipeBrokenException : public std::runtime_error,
       public boost::exception {
     public:
 
-      //! Constructs a PipeBrokenException.
+      /** Constructs a PipeBrokenException. */
       PipeBrokenException();
 
-      //! Constructs a PipeBrokenException.
-      /*!
-        \param message A message describing the error.
-      */
+      /**
+       * Constructs a PipeBrokenException.
+       * @param message A message describing the error.
+       */
       PipeBrokenException(const std::string& message);
   };
 

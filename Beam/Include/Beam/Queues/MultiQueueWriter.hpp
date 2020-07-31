@@ -1,5 +1,5 @@
-#ifndef BEAM_MULTIQUEUEWRITER_HPP
-#define BEAM_MULTIQUEUEWRITER_HPP
+#ifndef BEAM_MULTI_QUEUE_WRITER_HPP
+#define BEAM_MULTI_QUEUE_WRITER_HPP
 #include <memory>
 #include <vector>
 #include <boost/thread/locks.hpp>
@@ -11,36 +11,36 @@
 
 namespace Beam {
 
-  /*! \class MultiQueueWriter
-      \brief Used to write data to multiple Queues simultaneously.
-      \tparam T The data to store in the Queue.
+  /**
+   * Used to write data to multiple Queues simultaneously.
+   * @param <T> The data to store in the Queue.
    */
   template<typename T>
-  class MultiQueueWriter : public QueueWriter<T>, public Publisher<T> {
+  class MultiQueueWriter final : public QueueWriter<T>, public Publisher<T> {
     public:
-      using Source = T;
+      using Source = typename QueueWriter<T>::Source;
 
-      //! Constructs a MultiQueueWriter.
+      /** Constructs a MultiQueueWriter. */
       MultiQueueWriter() = default;
 
-      virtual ~MultiQueueWriter() override final;
+      ~MultiQueueWriter() override;
 
-      virtual void With(const std::function<void ()>& f) const override final;
+      void With(const std::function<void ()>& f) const override;
 
-      virtual void Push(const T& value) override final;
+      void Push(const Source& value) override;
 
-      virtual void Push(T&& value) override final;
+      void Push(Source&& value) override;
 
-      virtual void Break(const std::exception_ptr& e) override final;
+      void Break(const std::exception_ptr& e) override;
 
-      virtual void Monitor(
-        std::shared_ptr<QueueWriter<T>> queue) const override final;
+      void Monitor(std::shared_ptr<QueueWriter<Source>> queue) const override;
 
-      using QueueWriter<T>::Break;
+      using QueueWriter<Source>::Break;
+
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::exception_ptr m_exception;
-      mutable std::vector<std::weak_ptr<QueueWriter<T>>> m_queues;
+      mutable std::vector<std::weak_ptr<QueueWriter<Source>>> m_queues;
   };
 
   template<typename T>
@@ -50,40 +50,39 @@ namespace Beam {
 
   template<typename T>
   void MultiQueueWriter<T>::With(const std::function<void ()>& f) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     f();
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(const T& value) {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
-    auto i = m_queues.begin();
-    while(i != m_queues.end()) {
-      auto queue(i->lock());
-      if(queue != nullptr) {
+  void MultiQueueWriter<T>::Push(const Source& value) {
+    auto lock = boost::lock_guard(m_mutex);
+    m_queues.erase(std::remove_if(m_queues.begin(), m_queues.end(),
+      [&] (auto& weakQueue) {
+        auto queue = weakQueue.lock();
+        if(queue == nullptr) {
+          return true;
+        }
         try {
           queue->Push(value);
-          ++i;
-        } catch(const PipeBrokenException&) {
-          i = m_queues.erase(i);
+          return false;
+        } catch(const std::exception&) {
+          return true;
         }
-      } else {
-        i = m_queues.erase(i);
-      }
-    }
+      }), m_queues.end());
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(T&& value) {
-    Push(static_cast<const T&>(value));
+  void MultiQueueWriter<T>::Push(Source&& value) {
+    Push(static_cast<const Source&>(value));
   }
 
   template<typename T>
   void MultiQueueWriter<T>::Break(const std::exception_ptr& e) {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     m_exception = e;
-    for(auto& i : m_queues) {
-      auto queue = i.lock();
+    for(auto& weakQueue : m_queues) {
+      auto queue = weakQueue.lock();
       if(queue != nullptr) {
         queue->Break(e);
       }
@@ -93,10 +92,10 @@ namespace Beam {
 
   template<typename T>
   void MultiQueueWriter<T>::Monitor(
-      std::shared_ptr<QueueWriter<T>> queue) const {
-    boost::lock_guard<Threading::RecursiveMutex> lock(m_mutex);
+      std::shared_ptr<QueueWriter<Source>> queue) const {
+    auto lock = boost::lock_guard(m_mutex);
     if(m_exception == nullptr) {
-      m_queues.push_back(queue);
+      m_queues.push_back(std::move(queue));
     } else {
       queue->Break(m_exception);
     }

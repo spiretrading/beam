@@ -1,5 +1,5 @@
-#ifndef BEAM_ALIASQUEUE_HPP
-#define BEAM_ALIASQUEUE_HPP
+#ifndef BEAM_ALIAS_QUEUE_HPP
+#define BEAM_ALIAS_QUEUE_HPP
 #include <memory>
 #include <utility>
 #include <boost/throw_exception.hpp>
@@ -9,9 +9,9 @@
 
 namespace Beam {
 
-  /*! \class AliasQueue
-      \brief Wraps a Queue whose lifetime is tied to another object.
-      \tparam T The data to write to the Queue.
+  /**
+   * Wraps a Queue whose lifetime is tied to another object.
+   * @param <T> The data to write to the Queue.
    */
   template<typename T>
   class AliasQueue : public QueueWriter<T> {
@@ -19,27 +19,28 @@ namespace Beam {
       struct Guard {};
 
     public:
-      using Source = T;
+      using Source = typename QueueWriter<T>::Source;
 
-      //! Constructs an AliasQueue, for internal use only.
-      /*!
-        \param queue The Queue to wrap.
-        \param alias The object whose lifetime is managing <i>queue</i>.
-      */
+      /**
+       * Constructs an AliasQueue, for internal use only.
+       * @param queue The Queue to wrap.
+       * @param alias The object whose lifetime is managing <i>queue</i>.
+       */
       AliasQueue(std::shared_ptr<QueueWriter<T>> queue,
         std::shared_ptr<void> alias, Guard);
 
-      virtual ~AliasQueue() override;
+      ~AliasQueue() override;
 
-      virtual void Push(const Source& value) override;
+      void Push(const Source& value) override;
 
-      virtual void Push(Source&& value) override;
+      void Push(Source&& value) override;
 
-      virtual void Break(const std::exception_ptr& e) override;
+      void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<T>::Break;
     private:
-      template<typename U> friend std::shared_ptr<AliasQueue<U>> MakeAliasQueue(
+      template<typename U>
+      friend std::shared_ptr<AliasQueue<U>> MakeAliasQueue(
         std::shared_ptr<QueueWriter<U>> queue, std::shared_ptr<void> alias);
       std::shared_ptr<void> m_self;
       std::shared_ptr<QueueWriter<T>> m_queue;
@@ -48,26 +49,26 @@ namespace Beam {
       void Bind(std::shared_ptr<void> self);
   };
 
-  //! Makes an AliasQueue.
-  /*!
-    \param queue The Queue to wrap.
-    \param alias The object whose lifetime is managing <i>queue</i>.
-    \return An AliasQueue wrapping the <i>queue</i>.
-  */
+  /**
+   * Makes an AliasQueue.
+   * @param queue The Queue to wrap.
+   * @param alias The object whose lifetime is managing <i>queue</i>.
+   * @return An AliasQueue wrapping the <i>queue</i>.
+   */
   template<typename T>
   std::shared_ptr<AliasQueue<T>> MakeAliasQueue(
       std::shared_ptr<QueueWriter<T>> queue, std::shared_ptr<void> alias) {
     auto aliasQueue = std::make_shared<AliasQueue<T>>(std::move(queue),
-      std::move(alias), typename AliasQueue<T>::Guard{});
+      std::move(alias), typename AliasQueue<T>::Guard());
     aliasQueue->Bind(aliasQueue);
     return aliasQueue;
   }
 
   template<typename T>
   AliasQueue<T>::AliasQueue(std::shared_ptr<QueueWriter<T>> queue,
-      std::shared_ptr<void> alias, Guard)
-      : m_queue{std::move(queue)},
-        m_alias{std::move(alias)} {}
+    std::shared_ptr<void> alias, Guard)
+    : m_queue(std::move(queue)),
+      m_alias(std::move(alias)) {}
 
   template<typename T>
   AliasQueue<T>::~AliasQueue() {
@@ -80,7 +81,7 @@ namespace Beam {
     if(alias == nullptr) {
       m_queue.reset();
       m_self.reset();
-      BOOST_THROW_EXCEPTION(PipeBrokenException{});
+      BOOST_THROW_EXCEPTION(PipeBrokenException());
     }
     m_queue->Push(value);
   }
@@ -91,7 +92,7 @@ namespace Beam {
     if(alias == nullptr) {
       m_queue.reset();
       m_self.reset();
-      BOOST_THROW_EXCEPTION(PipeBrokenException{});
+      BOOST_THROW_EXCEPTION(PipeBrokenException());
     }
     m_queue->Push(std::move(value));
   }

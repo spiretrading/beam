@@ -7,46 +7,52 @@
 
 namespace Beam {
 
-  /*! \class Queue
-      \brief Implements a Queue that can safely block within a Routine waiting
-             for data to arrive.
-      \tparam T The data to store in the Queue.
+  /**
+   * Implements a Queue that can safely block within a Routine waiting for data
+   * to arrive.
+   * @param <T> The data to store in the Queue.
    */
   template<typename T>
   class Queue : public AbstractQueue<T> {
     public:
-      using Source = T;
-      using Target = T;
+      using Source = typename AbstractQueue<T>::Source;
+      using Target = typename AbstractQueue<T>::Target;
 
-      //! Constructs a Queue.
+      /** Constructs a Queue. */
       Queue() = default;
 
-      virtual ~Queue();
-
+      /** Returns <code>true</code> iff this Queue is broken. */
       bool IsBroken() const;
 
-      virtual bool IsEmpty() const;
+      /**
+       * Directly emplaces a value and pops it off the stack without blocking.
+       * @param value Stores the popped value.
+       */
+      bool TryEmplace(Out<Target> value);
 
-      virtual void Wait() const;
+      /**
+       * Directly emplaces a value and pops it off the stack.
+       * @param value Stores the popped value.
+       */
+      void Emplace(Out<Target> value);
 
-      virtual T Top() const;
+      bool IsEmpty() const override;
 
-      virtual bool TryEmplace(Out<T> value);
+      Target Top() const override;
 
-      virtual void Emplace(Out<T> value);
+      void Push(const Source& value) override;
 
-      virtual void Push(const T& value);
+      void Push(Source&& value) override;
 
-      virtual void Push(T&& value);
+      void Break(const std::exception_ptr& exception) override;
 
-      virtual void Break(const std::exception_ptr& exception);
+      void Pop() override;
 
-      virtual void Pop();
-
-      //! For internal use by other Queues only.
-      virtual bool IsAvailable() const;
+      /** For internal use by other Queues only. */
+      bool IsAvailable() const override;
 
       using QueueWriter<T>::Break;
+      using QueueReader<T>::Wait;
       using Threading::Waitable::Wait;
     private:
       std::deque<T> m_queue;
@@ -54,41 +60,14 @@ namespace Beam {
   };
 
   template<typename T>
-  Queue<T>::~Queue() {
-    Break();
-  }
-
-  template<typename T>
   bool Queue<T>::IsBroken() const {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
+    auto lock = boost::lock_guard(this->GetMutex());
     return m_breakException != nullptr && m_queue.empty();
   }
 
   template<typename T>
-  bool Queue<T>::IsEmpty() const {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
-    return m_queue.empty();
-  }
-
-  template<typename T>
-  void Queue<T>::Wait() const {
-    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
-    this->Wait(lock);
-  }
-
-  template<typename T>
-  T Queue<T>::Top() const {
-    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
-    this->Wait(lock);
-    if(m_queue.empty()) {
-      std::rethrow_exception(m_breakException);
-    }
-    return m_queue.front();
-  }
-
-  template<typename T>
-  bool Queue<T>::TryEmplace(Out<T> value) {
-    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
+  bool Queue<T>::TryEmplace(Out<Target> value) {
+    auto lock = boost::unique_lock(this->GetMutex());
     if(m_queue.empty()) {
       if(m_breakException == nullptr) {
         return false;
@@ -101,8 +80,8 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Emplace(Out<T> value) {
-    boost::unique_lock<boost::mutex> lock{this->GetMutex()};
+  void Queue<T>::Emplace(Out<Target> value) {
+    auto lock = boost::unique_lock(this->GetMutex());
     this->Wait(lock);
     if(m_queue.empty()) {
       std::rethrow_exception(m_breakException);
@@ -112,8 +91,24 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Push(const T& value) {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
+  bool Queue<T>::IsEmpty() const {
+    auto lock = boost::lock_guard(this->GetMutex());
+    return m_queue.empty();
+  }
+
+  template<typename T>
+  typename Queue<T>::Target Queue<T>::Top() const {
+    auto lock = boost::unique_lock(this->GetMutex());
+    this->Wait(lock);
+    if(m_queue.empty()) {
+      std::rethrow_exception(m_breakException);
+    }
+    return m_queue.front();
+  }
+
+  template<typename T>
+  void Queue<T>::Push(const Source& value) {
+    auto lock = boost::lock_guard(this->GetMutex());
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -124,8 +119,8 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Push(T&& value) {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
+  void Queue<T>::Push(Source&& value) {
+    auto lock = boost::lock_guard(this->GetMutex());
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -137,7 +132,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Break(const std::exception_ptr& exception) {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
+    auto lock = boost::lock_guard(this->GetMutex());
     if(m_breakException != nullptr) {
       return;
     }
@@ -147,7 +142,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Pop() {
-    boost::lock_guard<boost::mutex> lock{this->GetMutex()};
+    auto lock = boost::lock_guard(this->GetMutex());
     m_queue.pop_front();
   }
 

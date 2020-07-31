@@ -21,14 +21,9 @@ namespace Beam {
   template<typename T> class ResourcePool;
   template<typename T> class ScopedResource;
   template<typename T> class Singleton;
-  template<typename T, typename ComparatorType, typename AllocatorType>
-    class SortedVector;
   template<typename T> struct StorageType;
   template<typename T> struct Stream;
   class Streamable;
-  template<typename ListType, typename MutexType> class SynchronizedList;
-  template<typename MapType, typename MutexType> class SynchronizedMap;
-  template<typename SetType, typename MutexType> class SynchronizedSet;
 }
 
 #endif

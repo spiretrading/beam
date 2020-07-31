@@ -6,6 +6,8 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
+#include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/ExpressionQuery.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
@@ -15,8 +17,6 @@
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Threading/Sync.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
-#include "Beam/Utilities/SynchronizedMap.hpp"
 
 namespace Beam {
 namespace Queries {

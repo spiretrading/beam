@@ -8,13 +8,13 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Sync.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam::ServiceLocator {
 

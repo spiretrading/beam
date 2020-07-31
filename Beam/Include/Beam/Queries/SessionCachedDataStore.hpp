@@ -1,12 +1,12 @@
 #ifndef BEAM_SESSIONCACHEDDATASTORE_HPP
 #define BEAM_SESSIONCACHEDDATASTORE_HPP
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SessionCachedDataStoreEntry.hpp"
-#include "Beam/Utilities/SynchronizedMap.hpp"
 
 namespace Beam {
 namespace Queries {

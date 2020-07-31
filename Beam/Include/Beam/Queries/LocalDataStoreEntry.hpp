@@ -6,6 +6,7 @@
 #include <vector>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/range/adaptor/reversed.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/Queries.hpp"
@@ -14,7 +15,6 @@
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam {
 namespace Queries {

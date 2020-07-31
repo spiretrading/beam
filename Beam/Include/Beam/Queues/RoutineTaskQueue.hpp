@@ -19,24 +19,39 @@ namespace Beam {
       ~RoutineTaskQueue();
 
       /**
-       * Returns a slot Queue.
-       * @param slot The slot to call when a new value is pushed.
-       * @return A Queue that translates a push into a slot invocation.
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @return A queue that translates a push into a callback.
        */
-      template<typename T>
-      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
-        const std::function<void (const T& value)>& slot);
+      template<typename T, typename F>
+      auto GetSlot(F&& callback);
 
       /**
-       * Returns a slot Queue.
-       * @param slot The slot to call when a new value is pushed.
-       * @param breakSlot The slot to call when the Queue is broken.
-       * @return A Queue that translates a push into a slot invocation.
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @return A queue that translates a push into a callback.
        */
       template<typename T>
-      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
-        const std::function<void (const T& value)>& slot,
-        const std::function<void (const std::exception_ptr& e)>& breakSlot);
+      auto GetSlot(const std::function<void (const T& value)>& callback);
+
+      /**
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @param breakCallback The callback when the queue is broken.
+       * @return A queue that translates a push into a callback.
+       */
+      template<typename T, typename F, typename B>
+      auto GetSlot(F&& callback, B&& breakCallback);
+
+      /**
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @param breakCallback The callback when the queue is broken.
+       * @return A queue that translates a push into a callback.
+       */
+      template<typename T>
+      auto GetSlot(const std::function<void (const T& value)>& callback,
+        const std::function<void (const std::exception_ptr& e)>& breakCallback);
 
       /** Waits for this queue to be broken and all tasks to complete. */
       void Wait();
@@ -61,17 +76,28 @@ namespace Beam {
     Break();
   }
 
-  template<typename T>
-  std::shared_ptr<CallbackQueueWriter<T>> RoutineTaskQueue::GetSlot(
-      const std::function<void (const T& value)>& slot) {
-    return m_tasks.GetSlot(slot);
+  template<typename T, typename F>
+  auto RoutineTaskQueue::GetSlot(F&& callback) {
+    return m_tasks.GetSlot<T>(std::forward<F>(callback));
   }
 
   template<typename T>
-  std::shared_ptr<CallbackQueueWriter<T>> RoutineTaskQueue::GetSlot(
-      const std::function<void (const T& value)>& slot,
-      const std::function<void (const std::exception_ptr& e)>& breakSlot) {
-    return m_tasks.GetSlot(slot, breakSlot);
+  auto RoutineTaskQueue::GetSlot(
+      const std::function<void (const T& value)>& callback) {
+    return m_tasks.GetSlot(callback);
+  }
+
+  template<typename T, typename F, typename B>
+  auto RoutineTaskQueue::GetSlot(F&& callback, B&& breakCallback) {
+    return m_tasks.GetSlot<T>(std::forward<F>(callback),
+      std::forward<B>(breakCallback));
+  }
+
+  template<typename T>
+  auto RoutineTaskQueue::GetSlot(
+      const std::function<void (const T& value)>& callback,
+      const std::function<void (const std::exception_ptr& e)>& breakCallback) {
+    return m_tasks.GetSlot(callback, breakCallback);
   }
 
   inline void RoutineTaskQueue::Wait() {

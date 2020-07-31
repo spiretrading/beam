@@ -40,8 +40,8 @@ namespace Beam {
       using QueueWriter<T>::Break;
     private:
       template<typename U>
-      friend std::shared_ptr<AliasQueue<U>> MakeAliasQueue(
-        std::shared_ptr<QueueWriter<U>> queue, std::shared_ptr<void> alias);
+      friend auto MakeAliasQueue(std::shared_ptr<QueueWriter<U>>,
+        std::shared_ptr<void>);
       std::shared_ptr<void> m_self;
       std::shared_ptr<QueueWriter<T>> m_queue;
       std::weak_ptr<void> m_alias;
@@ -56,8 +56,8 @@ namespace Beam {
    * @return An AliasQueue wrapping the <i>queue</i>.
    */
   template<typename T>
-  std::shared_ptr<AliasQueue<T>> MakeAliasQueue(
-      std::shared_ptr<QueueWriter<T>> queue, std::shared_ptr<void> alias) {
+  auto MakeAliasQueue(std::shared_ptr<QueueWriter<T>> queue,
+      std::shared_ptr<void> alias) {
     auto aliasQueue = std::make_shared<AliasQueue<T>>(std::move(queue),
       std::move(alias), typename AliasQueue<T>::Guard());
     aliasQueue->Bind(aliasQueue);

@@ -20,24 +20,21 @@ namespace Beam {
       ~CallbackQueue();
 
       /**
-       * Returns a slot Queue.
-       * @param slot The slot to call when a new value is pushed.
-       * @return A Queue that translates a push into a slot invocation.
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @return A queue that translates a push into a callback.
        */
-      template<typename T>
-      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
-        const std::function<void (const T& value)>& slot);
+      template<typename T, typename F>
+      auto GetSlot(F&& callback);
 
       /**
-       * Returns a slot Queue.
-       * @param slot The slot to call when a new value is pushed.
-       * @param breakSlot The slot to call when the Queue is broken.
-       * @return A Queue that translates a push into a slot invocation.
+       * Returns a slot.
+       * @param callback The callback when a new value is pushed.
+       * @param breakCallback The callback when the queue is broken.
+       * @return A queue that translates a push into a callback.
        */
-      template<typename T>
-      std::shared_ptr<CallbackQueueWriter<T>> GetSlot(
-        const std::function<void (const T& value)>& slot,
-        const std::function<void (const std::exception_ptr& e)>& breakSlot);
+      template<typename T, typename F, typename B>
+      auto GetSlot(F&& callback, B&& breakCallback);
 
       void Push(const Source& value) override;
 
@@ -46,6 +43,7 @@ namespace Beam {
       void Break(const std::exception_ptr& exception) override;
 
       using QueueWriter<std::function<void ()>>::Break;
+
     private:
       bool m_isBroken;
       std::vector<std::shared_ptr<BaseQueue>> m_queues;
@@ -56,39 +54,31 @@ namespace Beam {
     : m_isBroken(false) {}
 
   inline CallbackQueue::~CallbackQueue() {
-    if(m_isBroken) {
-      return;
-    }
-    m_isBroken = true;
-    for(auto& queue : m_queues) {
-      queue->Break();
-    }
+    Break();
   }
 
-  template<typename T>
-  std::shared_ptr<CallbackQueueWriter<T>> CallbackQueue::GetSlot(
-      const std::function<void (const T& value)>& slot) {
-    return this->GetSlot<T>(slot, [] (const std::exception_ptr&) {});
+  template<typename T, typename F>
+  auto CallbackQueue::GetSlot(F&& callback) {
+    return this->GetSlot<T>(std::forward<F>(callback),
+      [] (const std::exception_ptr&) {});
   }
 
-  template<typename T>
-  std::shared_ptr<CallbackQueueWriter<T>> CallbackQueue::GetSlot(
-      const std::function<void (const T& value)>& slot,
-      const std::function<void (const std::exception_ptr& e)>& breakSlot) {
-    auto queue = std::make_shared<CallbackQueueWriter<T>>(
-      [=] (const T& value) {
+  template<typename T, typename F, typename B>
+  auto CallbackQueue::GetSlot(F&& callback, B&& breakCallback) {
+    auto queue = MakeCallbackQueueWriter<T>(
+      [=, callback = std::forward<F>(callback)] (const T& value) {
         m_tasks.Add(
           [=] {
             if(m_isBroken) {
               return;
             }
-            slot(value);
+            callback(value);
           });
       },
       [=] (const std::exception_ptr& e) {
         m_tasks.Add(
           [=] {
-            breakSlot(e);
+            breakCallback(e);
           });
       });
     m_tasks.Add(

@@ -9,7 +9,7 @@ namespace Beam {
   class BasePublisher;
   class BaseQueue;
   class CallbackQueue;
-  template<typename T> class CallbackQueueWriter;
+  template<typename T, typename C, typename B> class CallbackQueueWriter;
   template<typename T, typename S, typename C> class ConverterQueueReader;
   template<typename S, typename T, typename C> class ConverterQueueWriter;
   template<typename S, typename D> class FilterQueueWriter;

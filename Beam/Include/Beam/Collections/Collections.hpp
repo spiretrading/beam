@@ -9,6 +9,10 @@ namespace Beam {
   template<typename T> class EnumSet;
   template<typename I> class IndexedIterator;
   template<typename I> class IndexedIteratorValue;
+  template<typename T, typename C, typename A> class SortedVector;
+  template<typename T, typename M> class SynchronizedList;
+  template<typename T, typename M> class SynchronizedMap;
+  template<typename T, typename M> class SynchronizedSet;
   template<typename T> class View;
 }
 

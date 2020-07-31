@@ -1,5 +1,6 @@
 #ifndef BEAM_CACHEDDATASTOREENTRY_HPP
 #define BEAM_CACHEDDATASTOREENTRY_HPP
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
@@ -7,7 +8,6 @@
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 
 namespace Beam {
 namespace Queries {

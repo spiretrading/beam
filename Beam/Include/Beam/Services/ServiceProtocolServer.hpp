@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICEPROTOCOLSERVER_HPP
 #define BEAM_SERVICEPROTOCOLSERVER_HPP
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
@@ -11,7 +12,6 @@
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/HashTuple.hpp"
 #include "Beam/Utilities/ReportException.hpp"
-#include "Beam/Utilities/SynchronizedSet.hpp"
 
 namespace Beam {
 namespace Services {

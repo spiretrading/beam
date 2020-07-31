@@ -57,7 +57,7 @@ namespace Beam {
    * @param converter The function performing the conversion.
    */
   template<typename S, typename T, typename C>
-  auto MakeConverterWriterQueue(std::shared_ptr<T> target, C&& converter) {
+  auto MakeConverterQueueWriter(std::shared_ptr<T> target, C&& converter) {
     return std::make_shared<ConverterQueueWriter<S, T, std::decay_t<C>>>(
       std::move(target), std::forward<C>(converter));
   }

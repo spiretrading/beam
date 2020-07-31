@@ -6,6 +6,7 @@
 #include <boost/date_time.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
+#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -27,7 +28,6 @@
 #include "Beam/Threading/TriggerTimer.hpp"
 #include "Beam/Threading/TimerThreadPool.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
-#include "Beam/Utilities/SynchronizedSet.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;

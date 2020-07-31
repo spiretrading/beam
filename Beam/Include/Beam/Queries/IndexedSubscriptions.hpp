@@ -2,11 +2,11 @@
 #define BEAM_INDEXEDQUERYSUBSCRIPTIONS_HPP
 #include <boost/functional/factory.hpp>
 #include <boost/range/adaptor/map.hpp>
+#include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/Subscriptions.hpp"
-#include "Beam/Utilities/SynchronizedMap.hpp"
 
 namespace Beam {
 namespace Queries {

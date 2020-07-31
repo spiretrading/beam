@@ -1,11 +1,11 @@
 #ifndef BEAM_SERVLETTEMPLATESERVLET_HPP
 #define BEAM_SERVLETTEMPLATESERVLET_HPP
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
-#include "Beam/Utilities/SynchronizedList.hpp"
 #include "ServletTemplate/Services.hpp"
 
 namespace Beam {

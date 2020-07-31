@@ -1,7 +1,6 @@
 #ifndef BEAM_SEQUENCE_PUBLISHER_HPP
 #define BEAM_SEQUENCE_PUBLISHER_HPP
 #include <vector>
-#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -51,7 +50,7 @@ namespace Beam {
 
     private:
       mutable Threading::RecursiveMutex m_mutex;
-      LocalPtr<Snapshot> m_sequence;
+      Snapshot m_sequence;
       MultiQueueWriter<Type> m_queue;
   };
 
@@ -64,7 +63,7 @@ namespace Beam {
   void SequencePublisher<T, S>::WithSnapshot(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
-    f(*m_sequence);
+    f(m_sequence);
   }
 
   template<typename T, typename S>
@@ -72,7 +71,7 @@ namespace Beam {
       std::shared_ptr<QueueWriter<Type>> monitor,
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
-    *snapshot = *m_sequence;
+    *snapshot = m_sequence;
     m_queue.Monitor(std::move(monitor));
   }
 
@@ -86,7 +85,7 @@ namespace Beam {
   void SequencePublisher<T, S>::Monitor(
       std::shared_ptr<QueueWriter<Type>> queue) const {
     auto lock = boost::lock_guard(m_mutex);
-    for(auto& i : *m_sequence) {
+    for(auto& i : m_sequence) {
       queue->Push(i);
     }
     m_queue.Monitor(std::move(queue));
@@ -95,14 +94,14 @@ namespace Beam {
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(const Type& value) {
     auto lock = boost::lock_guard(m_mutex);
-    m_sequence->push_back(value);
+    m_sequence.push_back(value);
     m_queue.Push(value);
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(Type&& value) {
     auto lock = boost::lock_guard(m_mutex);
-    m_sequence->push_back(value);
+    m_sequence.push_back(value);
     m_queue.Push(std::move(value));
   }
 

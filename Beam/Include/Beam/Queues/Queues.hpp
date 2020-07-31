@@ -3,7 +3,7 @@
 
 namespace Beam {
   template<typename T> class AbstractQueue;
-  template<typename T> class AggregateQueue;
+  template<typename T> class AggregateQueueReader;
   template<typename T> class AliasQueue;
   class BaseCallbackWriterQueue;
   class BasePublisher;

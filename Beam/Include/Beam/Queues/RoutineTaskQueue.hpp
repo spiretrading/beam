@@ -32,7 +32,7 @@ namespace Beam {
        * @return A queue that translates a push into a callback.
        */
       template<typename T>
-      auto GetSlot(const std::function<void (const T& value)>& callback);
+      auto GetSlot(const std::function<void (const T&)>& callback);
 
       /**
        * Returns a slot.
@@ -50,8 +50,8 @@ namespace Beam {
        * @return A queue that translates a push into a callback.
        */
       template<typename T>
-      auto GetSlot(const std::function<void (const T& value)>& callback,
-        const std::function<void (const std::exception_ptr& e)>& breakCallback);
+      auto GetSlot(const std::function<void (const T&)>& callback,
+        const std::function<void (const std::exception_ptr&)>& breakCallback);
 
       /** Waits for this queue to be broken and all tasks to complete. */
       void Wait();
@@ -83,7 +83,7 @@ namespace Beam {
 
   template<typename T>
   auto RoutineTaskQueue::GetSlot(
-      const std::function<void (const T& value)>& callback) {
+      const std::function<void (const T&)>& callback) {
     return m_tasks.GetSlot(callback);
   }
 
@@ -95,8 +95,8 @@ namespace Beam {
 
   template<typename T>
   auto RoutineTaskQueue::GetSlot(
-      const std::function<void (const T& value)>& callback,
-      const std::function<void (const std::exception_ptr& e)>& breakCallback) {
+      const std::function<void (const T&)>& callback,
+      const std::function<void (const std::exception_ptr&)>& breakCallback) {
     return m_tasks.GetSlot(callback, breakCallback);
   }
 

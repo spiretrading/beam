@@ -68,17 +68,18 @@ namespace Beam {
     auto queue = MakeCallbackQueueWriter<T>(
       [=, callback = std::forward<F>(callback)] (const T& value) {
         m_tasks.Add(
-          [=] {
+          [=, callback = &callback] {
             if(m_isBroken) {
               return;
             }
-            callback(value);
+            (*callback)(value);
           });
       },
-      [=] (const std::exception_ptr& e) {
+      [=, breakCallback = std::forward<B>(breakCallback)] (
+          const std::exception_ptr& e) {
         m_tasks.Add(
-          [=] {
-            breakCallback(e);
+          [=, breakCallback = &breakCallback] {
+            (*breakCallback)(e);
           });
       });
     m_tasks.Add(

@@ -18,7 +18,7 @@ namespace Beam {
    */
   template<typename T,
     typename C = std::function<void (const typename QueueWriter<T>::Source&)>,
-    typename B = std::function<void (const std::exception_ptr& e)>>
+    typename B = std::function<void (const std::exception_ptr&)>>
   class CallbackQueueWriter final : public QueueWriter<T> {
     public:
       using Source = typename QueueWriter<T>::Source;

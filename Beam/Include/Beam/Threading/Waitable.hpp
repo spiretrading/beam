@@ -10,7 +10,17 @@ namespace Beam::Threading {
 
   /** Base class for an object that performs a blocking operation. */
   class Waitable {
+    private:
+      struct AvailableTokenDefinition;
+
     public:
+
+      /** Opaque object used to indicate when an object is available. */
+      class AvailableToken {
+        private:
+          friend struct AvailableTokenDefinition;
+          AvailableToken() = default;
+      };
 
       /** Constructs a Waitable object. */
       Waitable() = default;
@@ -23,6 +33,9 @@ namespace Beam::Threading {
        */
       virtual bool IsAvailable() const = 0;
 
+      /** Sets the availability token for this object. */
+      virtual void SetAvailableToken(AvailableToken& token);
+
     protected:
 
       /** Notifies any waiter that this object is available. */
@@ -31,15 +44,14 @@ namespace Beam::Threading {
     private:
       template<typename... T>
       friend Waitable& Wait(Waitable&, T&...);
-      struct WaitCondition {
+      struct AvailableTokenDefinition : AvailableToken {
         std::atomic_int m_counter;
         std::atomic<Waitable*> m_flag;
         ConditionVariable m_isAvailableCondition;
       };
-      std::atomic<WaitCondition*> m_condition;
+      std::atomic<AvailableTokenDefinition*> m_token;
 
-      static void Decrement(WaitCondition* condition);
-      void Wait(WaitCondition& condition);
+      static void Decrement(AvailableTokenDefinition* token);
       void Release();
   };
 
@@ -52,21 +64,21 @@ namespace Beam::Threading {
    */
   template<typename... T>
   Waitable& Wait(Waitable& a, T&... waitable) {
-    auto condition = new Waitable::WaitCondition();
-    auto args = std::array{&a, &waitable...};
-    condition->m_counter = sizeof...(T) + 2;
-    for(auto arg : args) {
-      arg->Wait(*condition);
+    auto token = new Waitable::AvailableTokenDefinition();
+    auto waitables = std::array{&a, &waitable...};
+    token->m_counter = sizeof...(T) + 2;
+    for(auto waitable : waitables) {
+      waitable->SetAvailableToken(*token);
     }
-    while(condition->m_flag == nullptr) {
-      condition->m_isAvailableCondition.wait();
+    while(token->m_flag == nullptr) {
+      token->m_isAvailableCondition.wait();
     }
-    auto waitable = condition->m_flag.load();
-    for(auto arg : args) {
-      arg->Release();
+    auto flag = token->m_flag.load();
+    for(auto waitable : waitables) {
+      waitable->Release();
     }
-    Waitable::Decrement(condition);
-    return *waitable;
+    Waitable::Decrement(token);
+    return *flag;
   }
 
   template<typename T, typename... U>
@@ -75,37 +87,37 @@ namespace Beam::Threading {
       static_cast<Waitable&>(waitable)...));
   }
 
-  inline void Waitable::Notify() {
-    auto condition = m_condition.exchange(nullptr);
-    if(condition == nullptr) {
-      return;
-    }
-    auto n = static_cast<Waitable*>(nullptr);
-    if(condition->m_flag.compare_exchange_strong(n, this)) {
-      condition->m_isAvailableCondition.notify_one();
-    }
-    Decrement(condition);
-  }
-
-  inline void Waitable::Decrement(WaitCondition* condition) {
-    if(condition->m_counter.fetch_sub(1) == 1) {
-      delete condition;
-    }
-  }
-
-  inline void Waitable::Wait(WaitCondition& condition) {
-    m_condition = &condition;
+  inline void Waitable::SetAvailableToken(AvailableToken& token) {
+    m_token = &static_cast<AvailableTokenDefinition&>(token);
     if(IsAvailable()) {
       Notify();
     }
   }
 
-  inline void Waitable::Release() {
-    auto condition = m_condition.exchange(nullptr);
-    if(condition == nullptr) {
+  inline void Waitable::Notify() {
+    auto token = m_token.exchange(nullptr);
+    if(token == nullptr) {
       return;
     }
-    Decrement(condition);
+    auto n = static_cast<Waitable*>(nullptr);
+    if(token->m_flag.compare_exchange_strong(n, this)) {
+      token->m_isAvailableCondition.notify_one();
+    }
+    Decrement(token);
+  }
+
+  inline void Waitable::Decrement(AvailableTokenDefinition* token) {
+    if(token->m_counter.fetch_sub(1) == 1) {
+      delete token;
+    }
+  }
+
+  inline void Waitable::Release() {
+    auto token = m_token.exchange(nullptr);
+    if(!token) {
+      return;
+    }
+    Decrement(token);
   }
 }
 

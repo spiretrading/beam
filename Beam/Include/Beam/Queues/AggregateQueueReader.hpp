@@ -33,6 +33,9 @@ namespace Beam {
 
       bool IsAvailable() const override;
 
+      void SetAvailableToken(
+        Threading::Waitable::AvailableToken& token) override;
+
     private:
       std::vector<std::shared_ptr<QueueReader<T>>> m_queues;
   };
@@ -78,6 +81,14 @@ namespace Beam {
       }
     }
     return false;
+  }
+
+  template<typename T>
+  void AggregateQueueReader<T>::SetAvailableToken(
+      Threading::Waitable::AvailableToken& token) {
+    for(auto& queue : m_queues) {
+      queue->SetAvailableToken(token);
+    }
   }
 }
 

@@ -43,6 +43,9 @@ namespace Beam {
 
       bool IsAvailable() const override;
 
+      void SetAvailableToken(
+        Threading::Waitable::AvailableToken& token) override;
+
       using QueueReader<KeyValuePair<K, V>>::Break;
 
     private:
@@ -77,6 +80,12 @@ namespace Beam {
   template<typename K, typename V>
   bool TaggedQueueReader<K, V>::IsAvailable() const {
     return m_values.IsAvailable();
+  }
+
+  template<typename K, typename V>
+  void TaggedQueueReader<K, V>::SetAvailableToken(
+      Threading::Waitable::AvailableToken& token) {
+    m_values.SetAvailableToken(token);
   }
 }
 

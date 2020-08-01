@@ -70,6 +70,9 @@ namespace Beam {
 
       bool IsAvailable() const override;
 
+      void SetAvailableToken(
+        Threading::Waitable::AvailableToken& token) override;
+
       using AbstractQueue<std::function<void ()>>::Break;
 
     private:
@@ -177,6 +180,11 @@ namespace Beam {
 
   inline bool TaskQueue::IsAvailable() const {
     return m_tasks.IsAvailable();
+  }
+
+  inline void TaskQueue::SetAvailableToken(
+      Threading::Waitable::AvailableToken& token) {
+    m_tasks.SetAvailableToken(token);
   }
 
   template<typename T, typename F, typename B>

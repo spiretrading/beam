@@ -48,6 +48,9 @@ namespace Beam {
 
       bool IsAvailable() const override;
 
+      void SetAvailableToken(
+        Threading::Waitable::AvailableToken& token) override;
+
     private:
       boost::compressed_pair<std::shared_ptr<SourceQueue>, Converter> m_source;
   };
@@ -93,6 +96,12 @@ namespace Beam {
   template<typename T, typename S, typename C>
   bool ConverterQueueReader<T, S, C>::IsAvailable() const {
     return m_source.first()->IsAvailable();
+  }
+
+  template<typename T, typename S, typename C>
+  void ConverterQueueReader<T, S, C>::SetAvailableToken(
+      Threading::Waitable::AvailableToken& token) {
+    m_source.first()->SetAvailableToken(token);
   }
 }
 

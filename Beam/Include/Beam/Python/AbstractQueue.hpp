@@ -74,6 +74,9 @@ namespace Beam::Python {
 
       bool IsAvailable() const override;
 
+      void SetAvailableToken(
+        Threading::Waitable::AvailableToken& token) override;
+
     private:
       std::shared_ptr<AbstractQueue<pybind11::object>> m_queue;
       std::shared_ptr<FromPythonQueueReader<Target>> m_reader;
@@ -144,6 +147,12 @@ namespace Beam::Python {
   template<typename T>
   bool FromPythonAbstractQueue<T>::IsAvailable() const {
     return m_reader->IsAvailable();
+  }
+
+  template<typename T>
+  void FromPythonAbstractQueue<T>::SetAvailableToken(
+      Threading::Waitable::AvailableToken& token) {
+    m_reader->SetAvailableToken(token);
   }
 }
 

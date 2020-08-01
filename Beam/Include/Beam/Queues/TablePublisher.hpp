@@ -6,31 +6,10 @@
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
-
-  /**
-   * Represents a single entry in a table.
-   * @param <K> The unique index/key into the table.
-   * @param <V> The value associated with the key.
-   */
-  template<typename K, typename V>
-  struct TableEntry {
-
-    /** The unique index/key into the table. */
-    using Key = K;
-
-    /** The value associated with the key. */
-    using Value = V;
-
-    /** The unique index/key into the table. */
-    Key m_key;
-
-    /** The value associated with the key. */
-    Value m_value;
-  };
 
   /**
    * Publishes updates to a table.
@@ -39,11 +18,11 @@ namespace Beam {
    */
   template<typename K, typename V>
   class TablePublisher final :
-      public SnapshotPublisher<TableEntry<K, V>, std::unordered_map<K, V>>,
-      public QueueWriter<TableEntry<K, V>> {
+      public SnapshotPublisher<KeyValuePair<K, V>, std::unordered_map<K, V>>,
+      public QueueWriter<KeyValuePair<K, V>> {
     public:
-      using Type = typename Publisher<TableEntry<K, V>>::Type;
-      using Snapshot = typename SnapshotPublisher<TableEntry<K, V>,
+      using Type = typename Publisher<KeyValuePair<K, V>>::Type;
+      using Snapshot = typename SnapshotPublisher<KeyValuePair<K, V>,
         std::unordered_map<K, V>>::Snapshot;
 
       /** The unique index/key into the table. */
@@ -94,7 +73,8 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
-      using QueueWriter<TableEntry<Key, Value>>::Break;
+      using QueueWriter<KeyValuePair<Key, Value>>::Break;
+
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
@@ -170,18 +150,6 @@ namespace Beam {
     auto lock = boost::lock_guard(m_mutex);
     m_queue.Break(e);
   }
-}
-
-namespace Beam::Serialization {
-  template<typename K, typename V>
-  struct Shuttle<TableEntry<K, V>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, TableEntry<K, V>& value,
-        unsigned int version) const {
-      shuttle.Shuttle("key", value.m_key);
-      shuttle.Shuttle("value", value.m_value);
-    }
-  };
 }
 
 #endif

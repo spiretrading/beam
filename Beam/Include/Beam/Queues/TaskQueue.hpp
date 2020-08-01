@@ -56,11 +56,11 @@ namespace Beam {
        * Directly emplaces a value and pops it off the stack.
        * @param value Stores the popped value.
        */
-      void Emplace(Out<std::function<void ()>> value);
+      void Emplace(Out<Target> value);
 
       bool IsEmpty() const override;
 
-      std::function<void ()> Top() const override;
+      Target Top() const override;
 
       void Pop() override;
 
@@ -72,10 +72,10 @@ namespace Beam {
 
       bool IsAvailable() const override;
 
-      using QueueWriter<std::function<void ()>>::Break;
+      using AbstractQueue<std::function<void ()>>::Break;
 
     private:
-      Queue<std::function<void ()>> m_tasks;
+      Queue<Target> m_tasks;
       CallbackQueue m_callbacks;
 
       template<typename T, typename F, typename B>
@@ -152,7 +152,7 @@ namespace Beam {
     return GetSlotHelper<T>(callback, breakCallback);
   }
 
-  inline void TaskQueue::Emplace(Out<std::function<void ()>> value) {
+  inline void TaskQueue::Emplace(Out<Source> value) {
     m_tasks.Emplace(Store(value));
   }
 
@@ -160,7 +160,7 @@ namespace Beam {
     return m_tasks.IsEmpty();
   }
 
-  inline std::function<void ()> TaskQueue::Top() const {
+  inline TaskQueue::Target TaskQueue::Top() const {
     return m_tasks.Top();
   }
 
@@ -168,11 +168,11 @@ namespace Beam {
     return m_tasks.Pop();
   }
 
-  inline void TaskQueue::Push(const std::function<void ()>& value) {
+  inline void TaskQueue::Push(const Source& value) {
     m_tasks.Push(value);
   }
 
-  inline void TaskQueue::Push(std::function<void ()>&& value) {
+  inline void TaskQueue::Push(Source&& value) {
     m_tasks.Push(std::move(value));
   }
 

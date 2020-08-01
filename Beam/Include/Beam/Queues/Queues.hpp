@@ -24,9 +24,8 @@ namespace Beam {
   template<typename T, typename SnapshotType> class SnapshotPublisher;
   template<typename T> class StatePublisher;
   template<typename T> class StateQueue;
-  template<typename K, typename V> struct TableEntry;
   template<typename K, typename V> class TablePublisher;
-  template<typename K, typename V> class TaggedQueue;
+  template<typename K, typename V> class TaggedQueueReader;
   class TaskQueue;
   template<typename V, typename S> class ValueSnapshotPublisher;
   template<typename T> class WeakQueue;

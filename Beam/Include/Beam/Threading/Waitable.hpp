@@ -1,76 +1,112 @@
 #ifndef BEAM_WAITABLE_HPP
 #define BEAM_WAITABLE_HPP
-#include <boost/thread/mutex.hpp>
+#include <array>
+#include <atomic>
+#include <memory>
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Threading.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class Waitable
-      \brief Base class for an object that blocks on a condition.
-   */
+  /** Base class for an object that performs a blocking operation. */
   class Waitable {
     public:
 
-      //! Constructs a Waitable object.
+      /** Constructs a Waitable object. */
       Waitable() = default;
 
       virtual ~Waitable() = default;
 
     protected:
 
-      //! Returns <code>true</code> iff the object is available.
-      /*!
-        \param waitable The object to test for availability.
-      */
-      static bool IsAvailable(const Waitable& waitable);
+      /** Notifies any waiter that this object is available. */
+      void Notify();
 
-      //! Returns <code>true</code> iff the object is available.
+      /**
+       * Returns <code>true</code> iff an otherwise blocking operation will not
+       * block on the next invokation.
+       */
       virtual bool IsAvailable() const = 0;
 
-      //! Waits for the object to be available.
-      /*!
-        \param lock The lock synchronizing access to this object.
-      */
-      void Wait(boost::unique_lock<boost::mutex>& lock) const;
-
-      //! Returns the mutex synchronizing access to this object.
-      boost::mutex& GetMutex() const;
-
-      //! Notifies one Routine that this object is available.
-      void NotifyOne();
-
-      //! Notifies all Routines that this object is available.
-      void NotifyAll();
-
     private:
-      mutable boost::mutex m_mutex;
-      mutable ConditionVariable m_isAvailableCondition;
+      template<typename... T>
+      friend Waitable& Wait(Waitable&, T&...);
+      struct WaitCondition {
+        std::atomic_int m_counter;
+        std::atomic<Waitable*> m_flag;
+        ConditionVariable m_isAvailableCondition;
+      };
+      std::atomic<WaitCondition*> m_condition;
+
+      static void Decrement(WaitCondition* condition);
+      void Wait(WaitCondition& condition);
+      void Release();
   };
 
-  inline bool Waitable::IsAvailable(const Waitable& waitable) {
-    return waitable.IsAvailable();
+  /**
+   * Blocks until a Waitable object becomes available, at which point the next
+   * otherwise blocking operation performed on that object is non-blocking.
+   * @param waitable The objects to wait on, blocking until one of them becomes
+   *        available.
+   * @return The object that is available.
+   */
+  template<typename... T>
+  Waitable& Wait(Waitable& a, T&... waitable) {
+    auto condition = new Waitable::WaitCondition();
+    auto args = std::array{&a, &waitable...};
+    condition->m_counter = sizeof...(T) + 2;
+    for(auto arg : args) {
+      arg->Wait(*condition);
+    }
+    while(condition->m_flag == nullptr) {
+      condition->m_isAvailableCondition.wait();
+    }
+    auto waitable = condition->m_flag.load();
+    for(auto arg : args) {
+      arg->Release();
+    }
+    Waitable::Decrement(condition);
+    return *waitable;
   }
 
-  inline boost::mutex& Waitable::GetMutex() const {
-    return m_mutex;
+  template<typename T, typename... U>
+  T& Wait(T& a, U&... waitable) {
+    return static_cast<T&>(Wait(static_cast<Waitable&>(a),
+      static_cast<Waitable&>(waitable)...));
   }
 
-  inline void Waitable::Wait(boost::unique_lock<boost::mutex>& lock) const {
-    while(!IsAvailable()) {
-      m_isAvailableCondition.wait(lock);
+  inline void Waitable::Notify() {
+    auto condition = m_condition.exchange(nullptr);
+    if(condition == nullptr) {
+      return;
+    }
+    auto n = static_cast<Waitable*>(nullptr);
+    if(condition->m_flag.compare_exchange_strong(n, this)) {
+      condition->m_isAvailableCondition.notify_one();
+    }
+    Decrement(condition);
+  }
+
+  inline void Waitable::Decrement(WaitCondition* condition) {
+    if(condition->m_counter.fetch_sub(1) == 1) {
+      delete condition;
     }
   }
 
-  inline void Waitable::NotifyOne() {
-    m_isAvailableCondition.notify_one();
+  inline void Waitable::Wait(WaitCondition& condition) {
+    m_condition = &condition;
+    if(IsAvailable()) {
+      Notify();
+    }
   }
 
-  inline void Waitable::NotifyAll() {
-    m_isAvailableCondition.notify_all();
+  inline void Waitable::Release() {
+    auto condition = m_condition.exchange(nullptr);
+    if(condition == nullptr) {
+      return;
+    }
+    Decrement(condition);
   }
-}
 }
 
 #endif

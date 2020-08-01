@@ -1,5 +1,5 @@
-#ifndef BEAM_TAGGED_QUEUE_HPP
-#define BEAM_TAGGED_QUEUE_HPP
+#ifndef BEAM_TAGGED_QUEUE_READER_HPP
+#define BEAM_TAGGED_QUEUE_READER_HPP
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -8,12 +8,12 @@
 namespace Beam {
 
   /**
-   * Used to tag a value pushed onto a Queue with a key/index.
+   * Used to tag a value pushed onto a QueueWriter with a key/index.
    * @param K The type used to index values pushed.
-   * @param V The type of values pushed onto the Queue.
+   * @param V The type of values pushed onto the queue.
    */
   template<typename K, typename V>
-  class TaggedQueue : public QueueReader<KeyValuePair<K, V>> {
+  class TaggedQueueReader : public QueueReader<KeyValuePair<K, V>> {
     public:
 
       /** The type used to index values pushed. */
@@ -24,16 +24,16 @@ namespace Beam {
 
       using Target = typename QueueReader<KeyValuePair<K, V>>::Target;
 
-      /** Constructs a TaggedQueue. */
-      TaggedQueue() = default;
+      /** Constructs a TaggedQueueReader. */
+      TaggedQueueReader() = default;
 
       /**
-       * Returns a Queue linked to a specified key.
+       * Returns a QueueWriter linked to a specified key.
        * @param key The key used to identify values pushed onto this Queue.
-       * @return A Queue that tags values pushed onto it with the specified
-       *         <i>key</i>.
+       * @return A QueueWriter that tags values pushed onto it with the
+       *         specified <i>key</i>.
        */
-      std::shared_ptr<CallbackQueueWriter<Value>> GetSlot(Key key);
+      auto GetSlot(Key key);
 
       bool IsEmpty() const override;
 
@@ -54,37 +54,37 @@ namespace Beam {
   };
 
   template<typename K, typename V>
-  std::shared_ptr<CallbackQueueWriter<typename TaggedQueue<K, V>::Value>>
-      TaggedQueue<K, V>::GetSlot(Key key) {
+  auto TaggedQueueReader<K, V>::GetSlot(Key key) {
     return m_callbacks.GetSlot<Value>(
-      [=] (const Value& value) {
-        m_values.Push(MakeKeyValuePair(key, value));
+      [key = std::move(key)] (const Value& value) {
+        m_values.Push(KeyValuePair(key, value));
       });
   }
 
   template<typename K, typename V>
-  bool TaggedQueue<K, V>::IsEmpty() const {
+  bool TaggedQueueReader<K, V>::IsEmpty() const {
     return m_values.IsEmpty();
   }
 
   template<typename K, typename V>
-  typename TaggedQueue<K, V>::Target TaggedQueue<K, V>::Top() const {
+  typename TaggedQueueReader<K, V>::Target
+      TaggedQueueReader<K, V>::Top() const {
     return m_values.Top();
   }
 
   template<typename K, typename V>
-  void TaggedQueue<K, V>::Pop() {
+  void TaggedQueueReader<K, V>::Pop() {
     return m_values.Pop();
   }
 
   template<typename K, typename V>
-  void TaggedQueue<K, V>::Break(const std::exception_ptr& exception) {
+  void TaggedQueueReader<K, V>::Break(const std::exception_ptr& exception) {
     m_callbacks.Break(exception);
     m_values.Break(exception);
   }
 
   template<typename K, typename V>
-  bool TaggedQueue<K, V>::IsAvailable() const {
+  bool TaggedQueueReader<K, V>::IsAvailable() const {
     return m_values.IsAvailable();
   }
 }

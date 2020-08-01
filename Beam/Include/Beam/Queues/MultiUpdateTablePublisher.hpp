@@ -3,10 +3,10 @@
 #include <unordered_map>
 #include <vector>
 #include "Beam/Queues/MultiQueueWriter.hpp"
-#include "Beam/Queues/TablePublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
 
@@ -17,13 +17,13 @@ namespace Beam {
    */
   template<typename K, typename V>
   class MultiUpdateTablePublisher final : public SnapshotPublisher<
-      std::vector<TableEntry<K, V>>, std::unordered_map<K, V>>,
-      public QueueWriter<std::vector<TableEntry<K, V>>> {
+      std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>,
+      public QueueWriter<std::vector<KeyValuePair<K, V>>> {
     public:
-      using Type = typename SnapshotPublisher<std::vector<TableEntry<K, V>>,
+      using Type = typename SnapshotPublisher<std::vector<KeyValuePair<K, V>>,
         std::unordered_map<K, V>>::Type;
-      using Snapshot = typename SnapshotPublisher<std::vector<TableEntry<K, V>>,
-        std::unordered_map<K, V>>::Snapshot;
+      using Snapshot = typename SnapshotPublisher<
+        std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::Snapshot;
 
       /** The unique index/key into the table. */
       using Key = K;
@@ -45,7 +45,7 @@ namespace Beam {
        * Pushes a single update.
        * @param update The update to push.
        */
-      void Push(const TableEntry<Key, Value>& update);
+      void Push(const KeyValuePair<Key, Value>& update);
 
       /**
        * Pushes a key/value pair onto the table.
@@ -84,8 +84,8 @@ namespace Beam {
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Push(
-      const TableEntry<Key, Value>& update) {
-    auto value = std::vector<TableEntry<Key, Value>>();
+      const KeyValuePair<Key, Value>& update) {
+    auto value = std::vector<KeyValuePair<Key, Value>>();
     value.push_back(update);
     Push(value);
   }
@@ -93,7 +93,7 @@ namespace Beam {
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Push(const Key& key,
       const Value& value) {
-    Push(TableEntry{key, value});
+    Push(KeyValuePair(key, value));
   }
 
   template<typename K, typename V>
@@ -126,7 +126,7 @@ namespace Beam {
     if(!m_table.empty()) {
       auto update = Type();
       for(auto& i : m_table) {
-        update.push_back(TableEntry{i.first, i.second});
+        update.push_back(KeyValuePair(i.first, i.second));
       }
       queue->Push(std::move(update));
     }

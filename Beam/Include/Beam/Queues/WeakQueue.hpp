@@ -50,7 +50,7 @@ namespace Beam {
 
   template<typename T>
   WeakQueue<T>::WeakQueue(std::shared_ptr<QueueWriter<T>> queue)
-    : m_queue{std::move(queue)} {}
+    : m_queue(std::move(queue)) {}
 
   template<typename T>
   WeakQueue<T>::~WeakQueue() {

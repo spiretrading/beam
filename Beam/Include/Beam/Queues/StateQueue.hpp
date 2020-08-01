@@ -35,7 +35,7 @@ namespace Beam {
       /** For internal use by other Queues only. */
       bool IsAvailable() const;
 
-      using QueueWriter<Source>::Break;
+      using AbstractQueue<T>::Break;
       using Threading::Waitable::Wait;
 
     private:

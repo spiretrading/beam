@@ -87,8 +87,7 @@ namespace Beam::Reactors {
   void QueueReactor<T>::MonitorQueue(Entry& entry) {
     while(true) {
       try {
-        entry.m_reactor.push(entry.m_queue->Top());
-        entry.m_queue->Pop();
+        entry.m_reactor.push(entry.m_queue->Pop());
       } catch(const PipeBrokenException&) {
         if(!entry.m_isComplete) {
           entry.m_reactor.set_complete();

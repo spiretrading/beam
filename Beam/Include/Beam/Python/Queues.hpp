@@ -161,7 +161,7 @@ namespace Beam::Python {
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
       .def("is_broken", &T::IsBroken)
-      .def("top", &T::Top, pybind11::call_guard<GilRelease>());
+      .def("pop", &T::Pop, pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -179,7 +179,6 @@ namespace Beam::Python {
         std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
         pybind11::multiple_inheritance())
       .def("is_empty", &T::IsEmpty)
-      .def("top", &T::Top)
       .def("pop", &T::Pop);
     if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
       binding.def(pybind11::init(

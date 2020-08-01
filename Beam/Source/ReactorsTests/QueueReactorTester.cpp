@@ -19,7 +19,7 @@ TEST_SUITE("QueueReactorTester") {
     auto reactor = QueueReactor(queue);
     REQUIRE(reactor.commit(0) == State::NONE);
     queue->Break();
-    commits.Top();
+    commits.Pop();
     REQUIRE(reactor.commit(1) == State::COMPLETE);
     Trigger::set_trigger(nullptr);
   }
@@ -34,7 +34,7 @@ TEST_SUITE("QueueReactorTester") {
     auto reactor = QueueReactor(queue);
     REQUIRE(reactor.commit(0) == State::NONE);
     queue->Break(std::runtime_error("Broken."));
-    commits.Top();
+    commits.Pop();
     REQUIRE(reactor.commit(1) == State::COMPLETE_EVALUATED);
     REQUIRE_THROWS_AS_MESSAGE(reactor.eval(), std::runtime_error, "Broken.");
     Trigger::set_trigger(nullptr);
@@ -51,9 +51,7 @@ TEST_SUITE("QueueReactorTester") {
     REQUIRE(reactor.commit(0) == State::NONE);
     queue->Push(123);
     queue->Break();
-    commits.Top();
     commits.Pop();
-    commits.Top();
     commits.Pop();
     REQUIRE(reactor.commit(1) == State::COMPLETE_EVALUATED);
     REQUIRE(reactor.eval() == 123);
@@ -71,9 +69,7 @@ TEST_SUITE("QueueReactorTester") {
     REQUIRE(reactor.commit(0) == State::NONE);
     queue->Push(123);
     queue->Break(std::runtime_error("Broken."));
-    commits.Top();
     commits.Pop();
-    commits.Top();
     commits.Pop();
     REQUIRE(reactor.commit(1) == State::CONTINUE_EVALUATED);
     REQUIRE(reactor.eval() == 123);

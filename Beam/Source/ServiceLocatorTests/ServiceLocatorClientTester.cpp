@@ -88,31 +88,26 @@ TEST_SUITE("ServiceLocatorClient") {
     REQUIRE_NOTHROW(m_serviceClient->Open());
     auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
     m_serviceClient->MonitorAccounts(accountQueue);
-    auto update = accountQueue->Top();
-    accountQueue->Pop();
+    auto update = accountQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[0], AccountUpdate::Type::ADDED});
-    update = accountQueue->Top();
-    accountQueue->Pop();
+    update = accountQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[1], AccountUpdate::Type::ADDED});
-    update = accountQueue->Top();
-    accountQueue->Pop();
+    update = accountQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
     SendRecordMessage<AccountUpdateMessage>(*serverSideClient,
       AccountUpdate{testAccounts[0], AccountUpdate::Type::DELETED});
-    update = accountQueue->Top();
+    update = accountQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[0], AccountUpdate::Type::DELETED});
     auto duplicateQueue = std::make_shared<Queue<AccountUpdate>>();
     m_serviceClient->MonitorAccounts(duplicateQueue);
-    update = duplicateQueue->Top();
-    duplicateQueue->Pop();
+    update = duplicateQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[1], AccountUpdate::Type::ADDED});
-    update = duplicateQueue->Top();
-    duplicateQueue->Pop();
+    update = duplicateQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
     accountQueue = nullptr;
@@ -142,16 +137,14 @@ TEST_SUITE("ServiceLocatorClient") {
     auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
     m_serviceClient->MonitorAccounts(accountQueue);
     for(auto i = std::size_t(0); i != testAccounts.size(); ++i) {
-      accountQueue->Top();
       accountQueue->Pop();
     }
     testAccounts.push_back(DirectoryEntry::MakeAccount(135, "accountD"));
     m_clientChannels.back()->GetConnection().Close();
-    auto recoveredAccount = accountQueue->Top();
-    accountQueue->Pop();
+    auto recoveredAccount = accountQueue->Pop();
     REQUIRE(recoveredAccount ==
       AccountUpdate{testAccounts.back(), AccountUpdate::Type::ADDED});
     m_serviceClient->Close();
-    REQUIRE_THROWS_AS(accountQueue->Top(), PipeBrokenException);
+    REQUIRE_THROWS_AS(accountQueue->Pop(), PipeBrokenException);
   }
 }

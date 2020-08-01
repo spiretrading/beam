@@ -38,6 +38,7 @@ namespace Beam {
       void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<T>::Break;
+
     private:
       template<typename U>
       friend auto MakeAliasQueue(std::shared_ptr<QueueWriter<U>>,

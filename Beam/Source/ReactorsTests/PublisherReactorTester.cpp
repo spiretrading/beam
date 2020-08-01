@@ -21,7 +21,7 @@ TEST_SUITE("PublisherReactorTester") {
     auto reactor = PublisherReactor(publisher);
     REQUIRE(reactor.commit(0) == State::NONE);
     publisher->Break();
-    commits.Top();
+    commits.Pop();
     REQUIRE(reactor.commit(1) == State::COMPLETE);
     Trigger::set_trigger(nullptr);
   }

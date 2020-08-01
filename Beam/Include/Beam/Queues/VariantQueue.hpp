@@ -42,11 +42,7 @@ namespace Beam {
         return m_queue.IsEmpty();                                              \
       }                                                                        \
                                                                                \
-      Target Top() const override {                                            \
-        return m_queue.Top();                                                  \
-      }                                                                        \
-                                                                               \
-      void Pop() override {                                                    \
+      Target Pop() override {                                                  \
         return m_queue.Pop();                                                  \
       }                                                                        \
                                                                                \
@@ -56,7 +52,6 @@ namespace Beam {
         m_queue.Break(e);                                                      \
       }                                                                        \
                                                                                \
-    protected:                                                                 \
       bool IsAvailable() const override {                                      \
         return m_queue.IsAvailable();                                          \
       }                                                                        \

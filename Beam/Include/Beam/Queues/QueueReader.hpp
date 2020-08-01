@@ -25,10 +25,7 @@ namespace Beam {
        * Returns the first value in the queue, blocking until a value is
        * available.
        */
-      virtual Target Top() const = 0;
-
-      /** Removes the top value in the Queue. */
-      virtual void Pop() = 0;
+      virtual Target Pop() = 0;
   };
 
   /**

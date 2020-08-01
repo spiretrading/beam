@@ -19,12 +19,8 @@ namespace Beam::Python {
       PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
     }
 
-    Target Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
-    }
-
-    void Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "pop", Pop);
+    Target Pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
     }
   };
 
@@ -51,9 +47,7 @@ namespace Beam::Python {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -96,19 +90,13 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  typename FromPythonQueueReader<T>::Target
-      FromPythonQueueReader<T>::Top() const {
-    if(IsEmpty()) {
+  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
+    if(!IsAvailable()) {
       auto release = GilRelease();
       Threading::Wait(*m_source);
     }
     auto lock = GilLock();
-    return m_source->Top().cast<T>();
-  }
-
-  template<typename T>
-  void FromPythonQueueReader<T>::Pop() {
-    m_source->Pop();
+    return m_source->Pop().cast<T>();
   }
 
   template<typename T>

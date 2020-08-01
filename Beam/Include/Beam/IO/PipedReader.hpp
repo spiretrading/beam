@@ -60,8 +60,7 @@ namespace IO {
         return true;
       }
       if(!m_messages->IsEmpty()) {
-        m_reader = m_messages->Top();
-        m_messages->Pop();
+        m_reader = m_messages->Pop();
       } else {
         return false;
       }
@@ -81,8 +80,7 @@ namespace IO {
       try {
         return m_reader.Read(destination, size);
       } catch(const EndOfFileException&) {
-        m_reader = m_messages->Top();
-        m_messages->Pop();
+        m_reader = m_messages->Pop();
       }
     }
   }
@@ -94,8 +92,7 @@ namespace IO {
       try {
         return m_reader.Read(Store(destination), size);
       } catch(const EndOfFileException&) {
-        m_reader = m_messages->Top();
-        m_messages->Pop();
+        m_reader = m_messages->Pop();
       }
     }
   }

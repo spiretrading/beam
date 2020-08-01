@@ -24,9 +24,7 @@ namespace Beam {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -34,10 +32,9 @@ namespace Beam {
 
       void Push(Source&& value) override;
 
-      using AbstractQueue<T>::Break;
-
-    protected:
       bool IsAvailable() const override;
+
+      using AbstractQueue<T>::Break;
 
     private:
       Queue<Target> m_queue;
@@ -59,12 +56,7 @@ namespace Beam {
   }
 
   template<typename T>
-  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Top() const {
-    return m_queue.Top();
-  }
-
-  template<typename T>
-  void MultiQueueReader<T>::Pop() {
+  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Pop()  {
     return m_queue.Pop();
   }
 

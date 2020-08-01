@@ -10,11 +10,11 @@ TEST_SUITE("Queue") {
     auto q = Queue<int>();
     auto r1 = RoutineHandler(Spawn(
       [&] {
-        q.Top();
+        q.Pop();
       }));
     auto r2 = RoutineHandler(Spawn(
       [&] {
-        q.Top();
+        q.Pop();
       }));
     q.Break();
     r1.Wait();

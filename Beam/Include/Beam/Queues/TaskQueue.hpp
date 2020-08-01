@@ -60,9 +60,7 @@ namespace Beam {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Push(const Source& value) override;
 
@@ -160,11 +158,7 @@ namespace Beam {
     return m_tasks.IsEmpty();
   }
 
-  inline TaskQueue::Target TaskQueue::Top() const {
-    return m_tasks.Top();
-  }
-
-  inline void TaskQueue::Pop() {
+  inline TaskQueue::Target TaskQueue::Pop() {
     return m_tasks.Pop();
   }
 

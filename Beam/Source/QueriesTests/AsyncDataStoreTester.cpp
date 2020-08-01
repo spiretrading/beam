@@ -140,8 +140,7 @@ TEST_SUITE("AsyncDataStore") {
     {
       auto handler = RoutineHandler(Spawn(
         [&] {
-          auto operation = operations->Top();
-          operations->Pop();
+          auto operation = operations->Pop();
           auto storeOperation = std::get_if<
             DataStoreDispatcher::StoreOperation>(&*operation);
           firstStoreOperation = storeOperation;
@@ -160,8 +159,7 @@ TEST_SUITE("AsyncDataStore") {
       auto handler = RoutineHandler(Spawn(
         [&] {
           for(auto i = 0; i != 11; ++i) {
-            auto operation = operations->Top();
-            operations->Pop();
+            auto operation = operations->Pop();
             auto& loadOperation = std::get<DataStoreDispatcher::LoadOperation>(
               *operation);
             loadOperation.m_result.SetResult(std::vector<SequencedTestEntry>());
@@ -194,8 +192,7 @@ TEST_SUITE("AsyncDataStore") {
     auto entriesLeft = 3 - (*firstStoreOperation)->m_values.size();
     (*firstStoreOperation)->m_result.SetResult();
     while(entriesLeft != 0) {
-      auto operation = operations->Top();
-      operations->Pop();
+      auto operation = operations->Pop();
       auto& storeOperation = std::get<DataStoreDispatcher::StoreOperation>(
         *operation);
       entriesLeft -= storeOperation.m_values.size();
@@ -220,8 +217,7 @@ TEST_SUITE("AsyncDataStore") {
       auto handler = RoutineHandler(Spawn(
         [&] {
           for(auto i = 3; i != 0;) {
-            auto operation = operations->Top();
-            operations->Pop();
+            auto operation = operations->Pop();
             auto& storeOperation = std::get<
               DataStoreDispatcher::StoreOperation>(*operation);
             i -= storeOperation.m_values.size();
@@ -243,8 +239,7 @@ TEST_SUITE("AsyncDataStore") {
       auto handler = RoutineHandler(Spawn(
         [&] {
           for(auto i = 0; i != 11; ++i) {
-            auto operation = operations->Top();
-            operations->Pop();
+            auto operation = operations->Pop();
             auto& loadOperation = std::get<DataStoreDispatcher::LoadOperation>(
               *operation);
             auto values = localDataStore.Load(loadOperation.m_query);

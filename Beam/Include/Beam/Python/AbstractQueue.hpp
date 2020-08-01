@@ -22,12 +22,8 @@ namespace Beam::Python {
       PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
     }
 
-    Target Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
-    }
-
-    void Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "pop", Pop);
+    Target Pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
     }
 
     void Push(Source&& value) override {
@@ -68,9 +64,7 @@ namespace Beam::Python {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Push(const Source& value) override;
 
@@ -128,13 +122,8 @@ namespace Beam::Python {
 
   template<typename T>
   typename FromPythonAbstractQueue<T>::Target
-      FromPythonAbstractQueue<T>::Top() const {
-    return m_reader->Top();
-  }
-
-  template<typename T>
-  void FromPythonAbstractQueue<T>::Pop() {
-    m_reader->Pop();
+      FromPythonAbstractQueue<T>::Pop() {
+    return m_reader->Pop();
   }
 
   template<typename T>

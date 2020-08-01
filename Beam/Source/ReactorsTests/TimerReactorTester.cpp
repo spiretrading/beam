@@ -29,7 +29,6 @@ TEST_SUITE("TimerReactorTester") {
     REQUIRE(reactor.eval() == 0);
     REQUIRE(reactor.commit(1) == State::NONE);
     timer->Trigger();
-    commits.Top();
     commits.Pop();
     REQUIRE(reactor.commit(2) == State::EVALUATED);
     REQUIRE(reactor.eval() == 1);

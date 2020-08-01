@@ -40,15 +40,13 @@ namespace Beam {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
+      Target Pop() override;
 
       void Push(const Source& value) override;
 
       void Push(Source&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
-
-      void Pop() override;
 
       bool IsAvailable() const override;
 
@@ -103,7 +101,7 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Queue<T>::Target Queue<T>::Top() const {
+  typename Queue<T>::Target Queue<T>::Pop() {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
@@ -111,7 +109,9 @@ namespace Beam {
     if(m_queue.empty()) {
       std::rethrow_exception(m_breakException);
     }
-    return m_queue.front();
+    auto value = std::move(m_queue.front());
+    m_queue.pop_front();
+    return value;
   }
 
   template<typename T>
@@ -149,12 +149,6 @@ namespace Beam {
     m_breakException = exception;
     m_isAvailableCondition.notify_all();
     this->Notify();
-  }
-
-  template<typename T>
-  void Queue<T>::Pop() {
-    auto lock = boost::lock_guard(m_mutex);
-    m_queue.pop_front();
   }
 
   template<typename T>

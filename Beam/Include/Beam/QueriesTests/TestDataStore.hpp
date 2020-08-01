@@ -107,8 +107,7 @@ namespace Beam::Queries::Tests {
     Routines::Spawn(
       [&] {
         while(true) {
-          auto operation = operations->Top();
-          operations->Pop();
+          auto operation = operations->Pop();
           if(auto openOperation = std::get_if<
               typename TestDataStore<Q, V>::OpenOperation>(&*operation)) {
             openOperation->m_result.SetResult();

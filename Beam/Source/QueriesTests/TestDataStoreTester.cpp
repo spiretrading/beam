@@ -33,8 +33,7 @@ namespace {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
     REQUIRE(openOperation);
     openOperation->m_result.SetResult();
@@ -58,8 +57,7 @@ TEST_SUITE("TestDataStore") {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
     REQUIRE(openOperation);
     openOperation->m_result.SetException(ConnectException());
@@ -84,8 +82,7 @@ TEST_SUITE("TestDataStore") {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
     REQUIRE(storeOperation);
     storeOperation->m_result.SetResult();
@@ -110,8 +107,7 @@ TEST_SUITE("TestDataStore") {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto storeOperation = std::get_if<DataStore::StoreOperation>(&*operation);
     REQUIRE(storeOperation);
     storeOperation->m_result.SetException(std::runtime_error("Store failed."));
@@ -136,8 +132,7 @@ TEST_SUITE("TestDataStore") {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
     REQUIRE(loadOperation);
     auto series = std::vector<SequencedTestEntry>();
@@ -168,8 +163,7 @@ TEST_SUITE("TestDataStore") {
           result.GetEval().SetException(std::current_exception());
         }
       }));
-    auto operation = operations->Top();
-    operations->Pop();
+    auto operation = operations->Pop();
     auto loadOperation = std::get_if<DataStore::LoadOperation>(&*operation);
     REQUIRE(loadOperation);
     loadOperation->m_result.SetException(std::runtime_error("Load failed."));

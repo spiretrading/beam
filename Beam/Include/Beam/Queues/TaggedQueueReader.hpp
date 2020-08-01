@@ -37,16 +37,13 @@ namespace Beam {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Break(const std::exception_ptr& exception) override;
 
-      using QueueReader<KeyValuePair<K, V>>::Break;
-
-    protected:
       bool IsAvailable() const override;
+
+      using QueueReader<KeyValuePair<K, V>>::Break;
 
     private:
       Queue<Target> m_values;
@@ -67,13 +64,7 @@ namespace Beam {
   }
 
   template<typename K, typename V>
-  typename TaggedQueueReader<K, V>::Target
-      TaggedQueueReader<K, V>::Top() const {
-    return m_values.Top();
-  }
-
-  template<typename K, typename V>
-  void TaggedQueueReader<K, V>::Pop() {
+  typename TaggedQueueReader<K, V>::Target TaggedQueueReader<K, V>::Pop() {
     return m_values.Pop();
   }
 

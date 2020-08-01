@@ -46,6 +46,7 @@ namespace Beam {
       void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<Source>::Break;
+
     private:
       std::shared_ptr<TargetQueue> m_target;
       Converter m_converter;

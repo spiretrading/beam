@@ -83,11 +83,10 @@ namespace IO {
       LocalServerConnection<BufferType>::Accept() {
     PendingChannelEntry* entry;
     try {
-      entry = m_pendingChannels->Top();
+      entry = m_pendingChannels->Pop();
     } catch(const std::exception&) {
       BOOST_THROW_EXCEPTION(EndOfFileException());
     }
-    m_pendingChannels->Pop();
     auto channel = Threading::With(m_clientToServerChannels,
       [&] (ClientToServerChannels& clientToServerChannels) {
         auto channelIterator = clientToServerChannels.find(
@@ -114,8 +113,7 @@ namespace IO {
   void LocalServerConnection<BufferType>::Close() {
     m_pendingChannels->Break(NotConnectedException());
     while(!m_pendingChannels->IsEmpty()) {
-      PendingChannelEntry* entry = m_pendingChannels->Top();
-      m_pendingChannels->Pop();
+      PendingChannelEntry* entry = m_pendingChannels->Pop();
       entry->m_result.SetException(ConnectException("Server unavailable."));
     }
   }

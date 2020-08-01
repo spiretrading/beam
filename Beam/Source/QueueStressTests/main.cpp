@@ -12,7 +12,6 @@ int main() {
     [=] {
       while(true) {
         receiverQueue->Push(123);
-        senderQueue->Top();
         senderQueue->Pop();
       }
     });
@@ -20,7 +19,6 @@ int main() {
     routines.Spawn(
       [=] {
         while(true) {
-          receiverQueue->Top();
           receiverQueue->Pop();
           senderQueue->Push(true);
         }

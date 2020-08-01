@@ -42,13 +42,10 @@ namespace Beam {
 
       bool IsEmpty() const override;
 
-      Target Top() const override;
-
-      void Pop() override;
+      Target Pop() override;
 
       void Break(const std::exception_ptr& e) override;
 
-    protected:
       bool IsAvailable() const override;
 
     private:
@@ -84,13 +81,8 @@ namespace Beam {
 
   template<typename T, typename S, typename C>
   typename ConverterQueueReader<T, S, C>::Target
-      ConverterQueueReader<T, S, C>::Top() const {
-    return m_source.second()(m_source.first()->Top());
-  }
-
-  template<typename T, typename S, typename C>
-  void ConverterQueueReader<T, S, C>::Pop() {
-    m_source.first()->Pop();
+      ConverterQueueReader<T, S, C>::Pop() {
+    return m_source.second()(m_source.first()->Pop());
   }
 
   template<typename T, typename S, typename C>
@@ -100,7 +92,7 @@ namespace Beam {
 
   template<typename T, typename S, typename C>
   bool ConverterQueueReader<T, S, C>::IsAvailable() const {
-    return !m_source.first()->IsEmpty();
+    return m_source.first()->IsAvailable();
   }
 }
 

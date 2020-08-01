@@ -23,8 +23,7 @@ namespace {
 
   void ExpectValue(Queue<SequencedValue<std::string>>& queue,
       const SequencedValue<std::string>& expectedValue) {
-    auto value = queue.Top();
-    queue.Pop();
+    auto value = queue.Pop();
     REQUIRE(value == expectedValue);
   }
 

@@ -172,14 +172,12 @@ void Beam::Python::ExportTimeService(pybind11::module& module) {
 void Beam::Python::ExportTimeServiceTestEnvironment(pybind11::module& module) {
   class_<TimeServiceTestEnvironment>(module, "TimeServiceTestEnvironment")
     .def(init())
-  .def("set_time", &TimeServiceTestEnvironment::SetTime,
-      call_guard<gil_scoped_release>())
-  .def("advance_time", &TimeServiceTestEnvironment::AdvanceTime,
-    call_guard<gil_scoped_release>())
-  .def("get_time", &TimeServiceTestEnvironment::GetTime,
-    call_guard<gil_scoped_release>())
-  .def("open", &TimeServiceTestEnvironment::Open,
-    call_guard<gil_scoped_release>())
-  .def("close", &TimeServiceTestEnvironment::Close,
-    call_guard<gil_scoped_release>());
+    .def("set_time", &TimeServiceTestEnvironment::SetTime,
+      call_guard<GilRelease>())
+    .def("advance_time", &TimeServiceTestEnvironment::AdvanceTime,
+      call_guard<GilRelease>())
+    .def("get_time", &TimeServiceTestEnvironment::GetTime,
+      call_guard<GilRelease>())
+    .def("open", &TimeServiceTestEnvironment::Open, call_guard<GilRelease>())
+    .def("close", &TimeServiceTestEnvironment::Close, call_guard<GilRelease>());
 }

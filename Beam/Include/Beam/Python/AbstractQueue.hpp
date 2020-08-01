@@ -78,7 +78,6 @@ namespace Beam::Python {
 
       void Break(const std::exception_ptr& e) override;
 
-    protected:
       bool IsAvailable() const override;
 
     private:
@@ -105,7 +104,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(
-      std::shared_ptr<AbstractQueue<pybind11::object>> queue)
+    std::shared_ptr<AbstractQueue<pybind11::object>> queue)
     : m_queue(std::move(queue)),
       m_reader(MakeFromPythonQueueReader<Target>(m_queue)),
       m_writer(MakeFromPythonQueueWriter<Source>(m_queue)) {}
@@ -155,7 +154,7 @@ namespace Beam::Python {
 
   template<typename T>
   bool FromPythonAbstractQueue<T>::IsAvailable() const {
-    return QueueReader<T>::IsAvailable(*m_reader);
+    return m_reader->IsAvailable();
   }
 }
 

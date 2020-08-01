@@ -29,13 +29,6 @@ namespace Beam {
 
       /** Removes the top value in the Queue. */
       virtual void Pop() = 0;
-
-      /** Blocks until a value is available to be popped. */
-      void Wait() const;
-
-    protected:
-      template<typename U>
-      static bool IsAvailable(const QueueReader<U>& queue);
   };
 
   /**
@@ -66,19 +59,6 @@ namespace Beam {
     } catch(const std::exception&) {
       breakCallback(std::current_exception());
     }
-  }
-
-  template<typename T>
-  void QueueReader<T>::Wait() const {
-    auto lock = boost::unique_lock(GetMutex());
-    Threading::Waitable::Wait(lock);
-  }
-
-  template<typename T>
-  template<typename U>
-  bool QueueReader<T>::IsAvailable(const QueueReader<U>& queue) {
-    return Threading::Waitable::IsAvailable(
-      static_cast<const Threading::Waitable&>(queue));
   }
 }
 

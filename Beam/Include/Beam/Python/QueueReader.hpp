@@ -57,7 +57,6 @@ namespace Beam::Python {
 
       void Break(const std::exception_ptr& e) override;
 
-    protected:
       bool IsAvailable() const override;
 
     private:
@@ -101,7 +100,7 @@ namespace Beam::Python {
       FromPythonQueueReader<T>::Top() const {
     if(IsEmpty()) {
       auto release = GilRelease();
-      m_source->Wait();
+      Threading::Wait(*m_source);
     }
     auto lock = GilLock();
     return m_source->Top().cast<T>();
@@ -119,7 +118,7 @@ namespace Beam::Python {
 
   template<typename T>
   bool FromPythonQueueReader<T>::IsAvailable() const {
-    return QueueReader<T>::IsAvailable(*m_source);
+    return m_source->IsAvailable();
   }
 }
 

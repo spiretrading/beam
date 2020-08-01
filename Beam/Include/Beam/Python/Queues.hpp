@@ -108,9 +108,9 @@ namespace Beam::Python {
     pybind11::class_<Publisher<T>, std::shared_ptr<Publisher<T>>,
         BasePublisher>(module, name.c_str(), pybind11::multiple_inheritance())
       .def("with", &Publisher<T>::With,
-        pybind11::call_guard<pybind11::gil_scoped_release>())
+        pybind11::call_guard<GilRelease>())
       .def("monitor", &Publisher<T>::Monitor,
-        pybind11::call_guard<pybind11::gil_scoped_release>());
+        pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -161,12 +161,7 @@ namespace Beam::Python {
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
       .def("is_broken", &T::IsBroken)
-      .def("wait",
-        [] (const T& self) {
-          self.Wait();
-        }, pybind11::call_guard<pybind11::gil_scoped_release>())
-      .def("top", &T::Top,
-        pybind11::call_guard<pybind11::gil_scoped_release>());
+      .def("top", &T::Top, pybind11::call_guard<GilRelease>());
   }
 
   /**

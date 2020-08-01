@@ -46,7 +46,7 @@ namespace Beam::Python {
       .def(pybind11::init())
       .def("get_eval", &Routines::Async<T>::GetEval)
       .def("get", &Routines::Async<T>::Get,
-        pybind11::call_guard<pybind11::gil_scoped_release>())
+        pybind11::call_guard<GilRelease>())
       .def("get_exception", &Routines::Async<T>::GetException)
       .def_property_readonly("state", &Routines::Async<T>::GetState)
       .def("reset", &Routines::Async<T>::Reset);

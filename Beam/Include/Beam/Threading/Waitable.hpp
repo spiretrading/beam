@@ -17,16 +17,16 @@ namespace Beam::Threading {
 
       virtual ~Waitable() = default;
 
-    protected:
-
-      /** Notifies any waiter that this object is available. */
-      void Notify();
-
       /**
        * Returns <code>true</code> iff an otherwise blocking operation will not
        * block on the next invokation.
        */
       virtual bool IsAvailable() const = 0;
+
+    protected:
+
+      /** Notifies any waiter that this object is available. */
+      void Notify();
 
     private:
       template<typename... T>

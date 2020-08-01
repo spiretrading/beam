@@ -341,9 +341,9 @@ void Beam::Python::ExportServiceLocatorTestEnvironment(
   class_<ServiceLocatorTestEnvironment>(module, "ServiceLocatorTestEnvironment")
     .def(init())
     .def("open", &ServiceLocatorTestEnvironment::Open,
-      call_guard<gil_scoped_release>())
+      call_guard<GilRelease>())
     .def("close", &ServiceLocatorTestEnvironment::Close,
-      call_guard<gil_scoped_release>())
+      call_guard<GilRelease>())
     .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_value_policy::reference_internal)
     .def("build_client",

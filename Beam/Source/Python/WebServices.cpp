@@ -55,7 +55,7 @@ void Beam::Python::ExportHttpClient(pybind11::module& module) {
         return std::make_unique<HttpClient>(
           TcpSocketChannelFactory(interface, Ref(*GetSocketThreadPool())));
       }))
-    .def("send", &HttpClient::Send, call_guard<gil_scoped_release>());
+    .def("send", &HttpClient::Send, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportHttpHeader(pybind11::module& module) {

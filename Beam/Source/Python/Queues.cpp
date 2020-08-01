@@ -46,7 +46,7 @@ void Beam::Python::ExportQueues(pybind11::module& module) {
         while(true) {
           if(queue.IsEmpty()) {
             auto release = GilRelease();
-            queue.Wait();
+            Wait(queue);
           }
           l.append(queue.Top());
           queue.Pop();
@@ -108,10 +108,6 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
           self.GetSlot(std::move(slot), std::move(breakSlot)));
         return std::shared_ptr<QueueWriter<object>>{
           MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
-      })
-    .def("wait",
-      [] (const TaskQueue& self) {
-        self.Wait();
-      }, call_guard<GilRelease>());
+      });
   module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

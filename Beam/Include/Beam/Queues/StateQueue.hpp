@@ -1,9 +1,11 @@
 #ifndef BEAM_STATE_QUEUE_HPP
 #define BEAM_STATE_QUEUE_HPP
 #include <optional>
+#include <boost/thread/mutex.hpp>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
+#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
 
@@ -32,27 +34,31 @@ namespace Beam {
 
       void Pop() override;
 
-      /** For internal use by other Queues only. */
-      bool IsAvailable() const;
+      bool IsAvailable() const override;
 
       using AbstractQueue<T>::Break;
-      using Threading::Waitable::Wait;
 
     private:
+      mutable boost::mutex m_mutex;
+      mutable Threading::ConditionVariable m_isAvailableCondition;
       std::optional<Source> m_value;
       std::exception_ptr m_breakException;
+
+      bool UnlockedIsAvailable() const;
   };
 
   template<typename T>
   bool StateQueue<T>::IsEmpty() const {
-    auto lock = boost::lock_guard(this->GetMutex());
-    return !m_value.has_value();
+    auto lock = boost::lock_guard(m_mutex);
+    return !m_value;
   }
 
   template<typename T>
   typename StateQueue<T>::Target StateQueue<T>::Top() const {
-    auto lock = boost::unique_lock(this->GetMutex());
-    this->Wait(lock);
+    auto lock = boost::unique_lock(m_mutex);
+    while(!UnlockedIsAvailable()) {
+      m_isAvailableCondition.wait(lock);
+    }
     if(!m_value) {
       std::rethrow_exception(m_breakException);
     }
@@ -61,7 +67,7 @@ namespace Beam {
 
   template<typename T>
   void StateQueue<T>::Push(const Source& value) {
-    auto lock = boost::lock_guard(this->GetMutex());
+    auto lock = boost::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);
     }
@@ -69,13 +75,14 @@ namespace Beam {
       *m_value = value;
     } else {
       m_value.emplace(value);
-      this->NotifyOne();
+      m_isAvailableCondition.notify_one();
+      this->Notify();
     }
   }
 
   template<typename T>
   void StateQueue<T>::Push(Source&& value) {
-    auto lock = boost::lock_guard(this->GetMutex());
+    auto lock = boost::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);
     }
@@ -83,28 +90,36 @@ namespace Beam {
       *m_value = std::move(value);
     } else {
       m_value.emplace(std::move(value));
-      this->NotifyOne();
+      m_isAvailableCondition.notify_one();
+      this->Notify();
     }
   }
 
   template<typename T>
   void StateQueue<T>::Break(const std::exception_ptr& exception) {
-    auto lock = boost::lock_guard(this->GetMutex());
+    auto lock = boost::lock_guard(m_mutex);
     if(m_breakException) {
       return;
     }
     m_breakException = exception;
-    this->NotifyAll();
+    m_isAvailableCondition.notify_all();
+    this->Notify();
   }
 
   template<typename T>
   void StateQueue<T>::Pop() {
-    auto lock = boost::lock_guard(this->GetMutex());
+    auto lock = boost::lock_guard(m_mutex);
     m_value = std::nullopt;
   }
 
   template<typename T>
   bool StateQueue<T>::IsAvailable() const {
+    auto lock = boost::lock_guard(m_mutex);
+    return UnlockedIsAvailable();
+  }
+
+  template<typename T>
+  bool StateQueue<T>::UnlockedIsAvailable() const {
     return m_value || m_breakException;
   }
 }

@@ -4,14 +4,13 @@
 namespace Beam {
   template<typename T> class AbstractQueue;
   template<typename T> class AggregateQueueReader;
-  template<typename T> class AliasQueue;
-  class BaseCallbackWriterQueue;
+  template<typename T> class AliasQueueWriter;
   class BasePublisher;
   class BaseQueue;
   class CallbackQueue;
   template<typename T, typename C, typename B> class CallbackQueueWriter;
-  template<typename T, typename S, typename C> class ConverterQueueReader;
-  template<typename S, typename T, typename C> class ConverterQueueWriter;
+  template<typename T, typename C> class ConverterQueueReader;
+  template<typename T, typename C> class ConverterQueueWriter;
   template<typename S, typename D> class FilterQueueWriter;
   template<typename T> class MultiQueueReader;
   template<typename T> class MultiQueueWriter;
@@ -20,7 +19,9 @@ namespace Beam {
   template<typename T> class Queue;
   template<typename T> class QueueReader;
   template<typename T> class QueueWriter;
-  template<typename Q> class ScopedQueue;
+  class ScopedBaseQueue;
+  template<typename T> class ScopedQueueReader;
+  template<typename T> class ScopedQueueWriter;
   template<typename T, typename S> class SequencePublisher;
   template<typename T, typename S> class SnapshotPublisher;
   template<typename T> class StatePublisher;

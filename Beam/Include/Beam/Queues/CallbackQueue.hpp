@@ -7,7 +7,7 @@
 
 namespace Beam {
 
-  /** Used to translate Queue pushes into callbacks. */
+  /** Used to translate QueueWriter pushes into callbacks. */
   class CallbackQueue : public QueueWriter<std::function<void ()>> {
     public:
 

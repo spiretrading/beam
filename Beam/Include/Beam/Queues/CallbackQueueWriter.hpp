@@ -40,7 +40,7 @@ namespace Beam {
        * @param callback The function to call when data is pushed onto this
        *        queue.
        */
-      CallbackQueueWriter(Callback callback);
+      explicit CallbackQueueWriter(Callback callback);
 
       /**
        * Constructs a CallbackWriterQueue.

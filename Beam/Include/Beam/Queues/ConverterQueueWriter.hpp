@@ -1,26 +1,22 @@
 #ifndef BEAM_CONVERTER_QUEUE_WRITER_HPP
 #define BEAM_CONVERTER_QUEUE_WRITER_HPP
-#include <functional>
-#include <memory>
 #include <type_traits>
+#include <utility>
+#include <boost/compressed_pair.hpp>
 #include "Beam/Queues/Queues.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam {
 
   /**
    * Used to convert data pushed from a source into another type.
-   * @param <S> The type of data being pushed onto the Queue.
-   * @param <T> The Queue to push the converted data to.
+   * @param <T> The type of data being pushed onto the QueueWriter.
    * @param <C> The type of function performing the conversion.
    */
-  template<typename S, typename T, typename C>
+  template<typename T, typename C>
   class ConverterQueueWriter : public QueueWriter<S> {
     public:
-      using Source = typename QueueWriter<S>::Source;
-
-      /** The Queue to push the converted data to. */
-      using TargetQueue = T;
+      using Source = typename QueueWriter<T>::Source;
 
       /**
        * The type of function performing the conversion.
@@ -35,9 +31,7 @@ namespace Beam {
        * @param converter The function performing the conversion.
        */
       template<typename CF>
-      ConverterQueueWriter(std::shared_ptr<TargetQueue> target, CF&& converter);
-
-      ~ConverterQueueWriter() override;
+      ConverterQueueWriter(ScopedQueueWriter<Source> target, CF&& converter);
 
       void Push(const Source& value) override;
 
@@ -48,7 +42,7 @@ namespace Beam {
       using QueueWriter<Source>::Break;
 
     private:
-      std::shared_ptr<TargetQueue> m_target;
+      ScopedQueueWriter<Source> m_target;
       Converter m_converter;
   };
 
@@ -57,53 +51,48 @@ namespace Beam {
    * @param target The target to push the converted data onto.
    * @param converter The function performing the conversion.
    */
-  template<typename S, typename T, typename C>
-  auto MakeConverterQueueWriter(std::shared_ptr<T> target, C&& converter) {
-    return std::make_shared<ConverterQueueWriter<S, T, std::decay_t<C>>>(
+  template<typename T, typename C>
+  auto MakeConverterQueueWriter(ScopedQueueWriter<T> target, C&& converter) {
+    return std::make_shared<ConverterQueueWriter<T, std::decay_t<C>>>(
       std::move(target), std::forward<C>(converter));
   }
 
   /**
    * Builds a ConverterWriterQueue used to push tasks.
    * @param target The target to push the converted data onto.
-   * @param task The task to perform when a value is pushed onto the Queue.
+   * @param task The task to perform when a value is pushed onto the
+   *        QueueWriter.
    */
-  template<typename S, typename T>
-  auto MakeTaskConverterQueue(std::shared_ptr<T> target,
-      const std::function<void (const S&)>& task) {
+  template<typename T, typename F>
+  auto MakeTaskConverterQueue(ScopedQueueWriter<T> target, F&& task) {
     return MakeConverterWriterQueue(std::move(target),
-      [=] (const S& source) -> std::function<void ()> {
+      [task = std::forward<F>(task)] (const T& source) {
         return [=] {
           task(source);
         };
       });
   }
 
-  template<typename S, typename T, typename C>
+  template<typename T, typename C>
   template<typename CF>
-  ConverterQueueWriter<S, T, C>::ConverterQueueWriter(
-    std::shared_ptr<TargetQueue> target, CF&& converter)
+  ConverterQueueWriter<T, C>::ConverterQueueWriter(
+    ScopedQueueWriter<Source> target, CF&& converter)
     : m_target(std::move(target)),
       m_converter(std::forward<CF>(converter)) {}
 
-  template<typename S, typename T, typename C>
-  ConverterQueueWriter<S, T, C>::~ConverterQueueWriter() {
-    Break();
+  template<typename T, typename C>
+  void ConverterQueueWriter<T, C>::Push(const Source& value) {
+    m_target.Push(m_converter(value));
   }
 
-  template<typename S, typename T, typename C>
-  void ConverterQueueWriter<S, T, C>::Push(const Source& value) {
-    m_target->Push(m_converter(value));
+  template<typename T, typename C>
+  void ConverterQueueWriter<T, C>::Push(Source&& value) {
+    m_target.Push(m_converter(std::move(value)));
   }
 
-  template<typename S, typename T, typename C>
-  void ConverterQueueWriter<S, T, C>::Push(Source&& value) {
-    m_target->Push(m_converter(std::move(value)));
-  }
-
-  template<typename S, typename T, typename C>
-  void ConverterQueueWriter<S, T, C>::Break(const std::exception_ptr& e) {
-    m_target->Break(e);
+  template<typename T, typename C>
+  void ConverterQueueWriter<T, C>::Break(const std::exception_ptr& e) {
+    m_target.Break(e);
   }
 }
 

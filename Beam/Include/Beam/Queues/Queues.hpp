@@ -20,8 +20,9 @@ namespace Beam {
   template<typename T> class Queue;
   template<typename T> class QueueReader;
   template<typename T> class QueueWriter;
-  template<typename T, typename SequenceType> class SequencePublisher;
-  template<typename T, typename SnapshotType> class SnapshotPublisher;
+  template<typename Q> class ScopedQueue;
+  template<typename T, typename S> class SequencePublisher;
+  template<typename T, typename S> class SnapshotPublisher;
   template<typename T> class StatePublisher;
   template<typename T> class StateQueue;
   template<typename K, typename V> class TablePublisher;

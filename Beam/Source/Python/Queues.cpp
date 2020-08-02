@@ -44,10 +44,12 @@ void Beam::Python::ExportQueues(pybind11::module& module) {
     [] (QueueReader<object>& queue, list l) {
       try {
         while(true) {
+/** TODO
           if(!queue.IsAvailable()) {
             auto release = GilRelease();
             Threading::Wait(queue);
           }
+*/
           l.append(queue.Pop());
         }
       } catch(const PipeBrokenException&) {}

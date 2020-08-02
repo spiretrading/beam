@@ -51,11 +51,6 @@ namespace Beam::Python {
 
       void Break(const std::exception_ptr& e) override;
 
-      bool IsAvailable() const override;
-
-      void SetAvailableToken(
-        Threading::Waitable::AvailableToken& token) override;
-
     private:
       std::shared_ptr<QueueReader<pybind11::object>> m_source;
   };
@@ -94,10 +89,12 @@ namespace Beam::Python {
 
   template<typename T>
   typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
+/** TODO
     if(!IsAvailable()) {
       auto release = GilRelease();
       Threading::Wait(*m_source);
     }
+*/
     auto lock = GilLock();
     return m_source->Pop().cast<T>();
   }
@@ -105,17 +102,6 @@ namespace Beam::Python {
   template<typename T>
   void FromPythonQueueReader<T>::Break(const std::exception_ptr& e) {
     m_source->Break(e);
-  }
-
-  template<typename T>
-  bool FromPythonQueueReader<T>::IsAvailable() const {
-    return m_source->IsAvailable();
-  }
-
-  template<typename T>
-  void FromPythonQueueReader<T>::SetAvailableToken(
-      Threading::Waitable::AvailableToken& token) {
-    m_source->SetAvailableToken(token);
   }
 }
 

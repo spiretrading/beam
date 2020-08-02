@@ -2,7 +2,7 @@
 #define BEAM_QUEUE_REACTOR_HPP
 #include <memory>
 #include <Aspen/Queue.hpp>
-#include "Beam/Queues/ScopedQueueReader.hpp"
+#include "Beam/Queues/ScopedQueue.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 namespace Beam::Reactors {
@@ -36,7 +36,7 @@ namespace Beam::Reactors {
       struct Entry {
         Aspen::Queue<Type> m_reactor;
         Routines::RoutineHandler m_handler;
-        ScopedQueueReader<Type> m_queue;
+        ScopedQueue<std::shared_ptr<QueueReader<Type>>> m_queue;
         bool m_isComplete;
 
         Entry(std::shared_ptr<QueueReader<Type>> queue);

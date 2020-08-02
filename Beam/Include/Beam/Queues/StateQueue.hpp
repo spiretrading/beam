@@ -32,8 +32,6 @@ namespace Beam {
 
       void Break(const std::exception_ptr& exception) override;
 
-      bool IsAvailable() const override;
-
       using AbstractQueue<T>::Break;
 
     private:
@@ -76,7 +74,6 @@ namespace Beam {
     } else {
       m_value.emplace(value);
       m_isAvailableCondition.notify_one();
-      this->Notify();
     }
   }
 
@@ -91,7 +88,6 @@ namespace Beam {
     } else {
       m_value.emplace(std::move(value));
       m_isAvailableCondition.notify_one();
-      this->Notify();
     }
   }
 
@@ -103,13 +99,6 @@ namespace Beam {
     }
     m_breakException = exception;
     m_isAvailableCondition.notify_all();
-    this->Notify();
-  }
-
-  template<typename T>
-  bool StateQueue<T>::IsAvailable() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return UnlockedIsAvailable();
   }
 
   template<typename T>

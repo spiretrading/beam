@@ -3,7 +3,6 @@
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/Queues.hpp"
-#include "Beam/Threading/Waitable.hpp"
 
 namespace Beam {
 
@@ -12,7 +11,7 @@ namespace Beam {
    * @param <T> The data to read from the Queue.
    */
   template<typename T>
-  class QueueReader : public virtual BaseQueue, public Threading::Waitable {
+  class QueueReader : public virtual BaseQueue {
     public:
 
       /** The type being read. */
@@ -46,8 +45,7 @@ namespace Beam {
   }
 
   template<typename Queue, typename F1, typename F2>
-  void Monitor(const Queue& queue, const F1& valueCallback,
-      const F2& breakCallback) {
+  void Monitor(const Queue& queue, F1&& valueCallback, F2&& breakCallback) {
     try {
       while(true) {
         valueCallback(queue->Top());

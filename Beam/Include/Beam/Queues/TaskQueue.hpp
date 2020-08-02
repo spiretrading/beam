@@ -68,11 +68,6 @@ namespace Beam {
 
       void Break(const std::exception_ptr& exception) override;
 
-      bool IsAvailable() const override;
-
-      void SetAvailableToken(
-        Threading::Waitable::AvailableToken& token) override;
-
       using AbstractQueue<std::function<void ()>>::Break;
 
     private:
@@ -176,15 +171,6 @@ namespace Beam {
   inline void TaskQueue::Break(const std::exception_ptr& exception) {
     m_callbacks.Break(exception);
     m_tasks.Break(exception);
-  }
-
-  inline bool TaskQueue::IsAvailable() const {
-    return m_tasks.IsAvailable();
-  }
-
-  inline void TaskQueue::SetAvailableToken(
-      Threading::Waitable::AvailableToken& token) {
-    m_tasks.SetAvailableToken(token);
   }
 
   template<typename T, typename F, typename B>

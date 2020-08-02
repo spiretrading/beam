@@ -1,32 +1,29 @@
-#ifndef BEAM_CONDITIONVARIABLE_HPP
-#define BEAM_CONDITIONVARIABLE_HPP
+#ifndef BEAM_CONDITION_VARIABLE_HPP
+#define BEAM_CONDITION_VARIABLE_HPP
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Threading/Sync.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class ConditionVariable
-      \brief Implements a condition variable that suspends the current Routine.
-   */
+  /** Implements a condition variable that suspends the current Routine. */
   class ConditionVariable : private boost::noncopyable {
     public:
 
-      //! Constructs a ConditionVariable.
+      /** Constructs a ConditionVariable. */
       ConditionVariable() = default;
 
-      //! Suspends the current Routine until a notification is received.
-      /*!
-        \param lock The lock synchronizing the notification event.
-      */
+      /**
+       * Suspends the current Routine until a notification is received.
+       * @param lock The lock synchronizing the notification event.
+       */
       template<typename... Lock>
       void wait(Lock&... lock);
 
-      //! Triggers a notification event for a single suspended Routine.
+      /** Triggers a notification event for a single suspended Routine. */
       void notify_one();
 
-      //! Triggers a notification event for all suspended Routine.
+      /** Triggers a notification event for all suspended Routine. */
       void notify_all();
 
     private:
@@ -45,7 +42,6 @@ namespace Threading {
   inline void ConditionVariable::notify_all() {
     Routines::Resume(Store(m_suspendedRoutines));
   }
-}
 }
 
 #include "Beam/Routines/SuspendedRoutineQueue.inl"

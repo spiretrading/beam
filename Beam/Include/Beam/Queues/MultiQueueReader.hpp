@@ -32,11 +32,6 @@ namespace Beam {
 
       void Push(Source&& value) override;
 
-      bool IsAvailable() const override;
-
-      void SetAvailableToken(
-        Threading::Waitable::AvailableToken& token) override;
-
       using AbstractQueue<T>::Break;
 
     private:
@@ -77,17 +72,6 @@ namespace Beam {
   template<typename T>
   void MultiQueueReader<T>::Push(Source&& value) {
     m_queue.Push(std::move(value));
-  }
-
-  template<typename T>
-  bool MultiQueueReader<T>::IsAvailable() const {
-    return m_queue.IsAvailable();
-  }
-
-  template<typename T>
-  void MultiQueueReader<T>::SetAvailableToken(
-      Threading::Waitable::AvailableToken& token) {
-    m_queue.SetAvailableToken(token);
   }
 }
 

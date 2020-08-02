@@ -48,8 +48,6 @@ namespace Beam {
 
       void Break(const std::exception_ptr& exception) override;
 
-      bool IsAvailable() const override;
-
       using QueueWriter<T>::Break;
 
     private:
@@ -123,7 +121,6 @@ namespace Beam {
     m_queue.push_back(value);
     if(m_queue.size() == 1) {
       m_isAvailableCondition.notify_one();
-      this->Notify();
     }
   }
 
@@ -136,7 +133,6 @@ namespace Beam {
     m_queue.push_back(std::move(value));
     if(m_queue.size() == 1) {
       m_isAvailableCondition.notify_one();
-      this->Notify();
     }
   }
 
@@ -148,13 +144,6 @@ namespace Beam {
     }
     m_breakException = exception;
     m_isAvailableCondition.notify_all();
-    this->Notify();
-  }
-
-  template<typename T>
-  bool Queue<T>::IsAvailable() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return UnlockedIsAvailable();
   }
 
   template<typename T>

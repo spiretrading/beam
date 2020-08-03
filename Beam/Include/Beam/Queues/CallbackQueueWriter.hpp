@@ -64,7 +64,7 @@ namespace Beam {
         BreakCallback m_breakCallback;
       };
       mutable Threading::RecursiveMutex m_mutex;
-      bool m_isBroken;
+      std::exception_ptr m_exception;
       boost::optional<Callbacks> m_callbacks;
   };
 
@@ -100,14 +100,13 @@ namespace Beam {
   template<typename T, typename C, typename B>
   CallbackQueueWriter<T, C, B>::CallbackQueueWriter(Callback callback,
     BreakCallback breakCallback)
-    : m_isBroken(false),
-      m_callbacks({std::move(callback), std::move(breakCallback)}) {}
+    : m_callbacks({std::move(callback), std::move(breakCallback)}) {}
 
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(const Source& value) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_isBroken) {
-      return;
+    if(m_exception) {
+      std::rethrow_exception(m_exception);
     }
     m_callbacks->m_callback(value);
   }
@@ -115,8 +114,8 @@ namespace Beam {
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(Source&& value) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_isBroken) {
-      return;
+    if(m_exception) {
+      std::rethrow_exception(m_exception);
     }
     m_callbacks->m_callback(std::move(value));
   }
@@ -125,10 +124,10 @@ namespace Beam {
   void CallbackQueueWriter<T, C, B>::Break(const std::exception_ptr& e) {
     {
       auto lock = boost::lock_guard(m_mutex);
-      if(m_isBroken) {
+      if(m_exception) {
         return;
       }
-      m_isBroken = true;
+      m_exception = e;
     }
     m_callbacks->m_breakCallback(e);
     m_callbacks.reset();

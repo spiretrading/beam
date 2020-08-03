@@ -3,6 +3,8 @@
 #include <vector>
 #include "Beam/Queues/CallbackQueueWriter.hpp"
 #include "Beam/Queues/Queues.hpp"
+#include "Beam/Queues/ScopedBaseQueue.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/Threading/TaskRunner.hpp"
 
 namespace Beam {
@@ -45,9 +47,13 @@ namespace Beam {
       using QueueWriter<std::function<void ()>>::Break;
 
     private:
+      mutable std::mutex m_mutex;
+      std::exception_ptr m_exception;
       bool m_isBroken;
-      std::vector<std::shared_ptr<BaseQueue>> m_queues;
+      std::vector<ScopedBaseQueue<>> m_queues;
       Threading::TaskRunner m_tasks;
+
+      void Rethrow();
   };
 
   inline CallbackQueue::CallbackQueue()
@@ -69,9 +75,6 @@ namespace Beam {
       [=, callback = std::forward<F>(callback)] (const T& value) {
         m_tasks.Add(
           [=, callback = &callback] {
-            if(m_isBroken) {
-              return;
-            }
             (*callback)(value);
           });
       },
@@ -85,46 +88,47 @@ namespace Beam {
     m_tasks.Add(
       [=] {
         if(m_isBroken) {
-          queue->Break();
+          queue->Break(m_exception);
         } else {
           m_queues.push_back(std::move(queue));
         }
       });
-    return queue;
+    return ScopedQueueWriter(queue);
   }
 
   inline void CallbackQueue::Push(const Source& value) {
-    m_tasks.Add(
-      [=] {
-        if(m_isBroken) {
-          return;
-        }
-        value();
-      });
+    Rethrow();
+    m_tasks.Add(value);
   }
 
   inline void CallbackQueue::Push(Source&& value) {
-    m_tasks.Add(
-      [=, value = std::move(value)] {
-        if(m_isBroken) {
-          return;
-        }
-        value();
-      });
+    Rethrow();
+    m_tasks.Add(std::move(value));
   }
 
   inline void CallbackQueue::Break(const std::exception_ptr& exception) {
+    {
+      auto lock = std::lock_guard(m_mutex);
+      if(m_exception) {
+        return;
+      }
+      m_exception = exception;
+    }
     m_tasks.Add(
       [=] {
-        if(m_isBroken) {
-          return;
-        }
         m_isBroken = true;
         for(auto& queue : m_queues) {
-          queue->Break(exception);
+          queue.Break(m_exception);
         }
         m_queues.clear();
       });
+  }
+
+  inline void CallbackQueue::Rethrow() {
+    auto lock = std::lock_guard(m_mutex);
+    if(m_exception) {
+      std::rethrow_exception(m_exception);
+    }
   }
 }
 

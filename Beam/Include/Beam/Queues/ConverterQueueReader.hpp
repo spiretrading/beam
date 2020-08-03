@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <boost/compressed_pair.hpp>
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueReader.hpp"
 
@@ -10,16 +11,25 @@ namespace Beam {
 
   /**
    * Used to convert data pushed into a QueueReader.
-   * @param <T> The type of data to read from this QueueReader.
+   * @param <T> The type of data to pop and convert.
    * @param <C> The type of function performing the conversion.
    */
   template<typename T, typename C>
-  class ConverterQueueReader : public QueueReader<T> {
+  class ConverterQueueReader :
+      public QueueReader<std::invoke_result_t<C, const T&>> {
     public:
-      using Target = typename QueueReader<T>::Target;
+      using Target = typename QueueReader<
+        std::invoke_result_t<C, const T&>>::Target;
 
-      /** The type of function performing the conversion. */
+      /**
+       * The type of function performing the conversion.
+       * @param target The value that was popped from the QueueReader.
+       * @return The value to pop from this QueueReader.
+       */
       using Converter = C;
+
+      /** The type that the <i>Target</i> is converted to. */
+      using Source = std::invoke_result_t<Converter, const T&>;
 
       /**
        * Constructs a ConverterReaderQueue.
@@ -27,7 +37,7 @@ namespace Beam {
        * @param converter Initializes the Converter.
        */
       template<typename CF>
-      ConverterQueueReader(ScopedQueueReader<Target> source, CF&& converter);
+      ConverterQueueReader(ScopedQueueReader<T> source, CF&& converter);
 
       bool IsEmpty() const override;
 
@@ -36,8 +46,15 @@ namespace Beam {
       void Break(const std::exception_ptr& e) override;
 
     private:
-      boost::compressed_pair<ScopedQueueReader<Target>, Converter> m_source;
+      boost::compressed_pair<ScopedQueueReader<T>, Converter> m_source;
+
+      ConverterQueueReader(const ConverterQueueReader&) = delete;
+      ConverterQueueReader& operator =(const ConverterQueueReader&) = delete;
   };
+
+  template<typename QueueReader, typename C>
+  ConverterQueueReader(QueueReader&&, C&&) -> ConverterQueueReader<
+    typename GetTryDereferenceType<QueueReader>::Target, std::decay_t<C>>;
 
   /**
    * Builds a ConverterReaderQueue.
@@ -52,8 +69,8 @@ namespace Beam {
 
   template<typename T, typename C>
   template<typename CF>
-  ConverterQueueReader<T, C>::ConverterQueueReader(
-    ScopedQueueReader<Target> source, CF&& converter)
+  ConverterQueueReader<T, C>::ConverterQueueReader(ScopedQueueReader<T> source,
+    CF&& converter)
     : m_source(std::move(source), std::forward<CF>(converter)) {}
 
   template<typename T, typename C>

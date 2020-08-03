@@ -1,14 +1,13 @@
 #ifndef BEAM_BASE_QUEUE_HPP
 #define BEAM_BASE_QUEUE_HPP
 #include <exception>
-#include <boost/noncopyable.hpp>
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
 
 namespace Beam {
 
   /** Base class for a Queue. */
-  class BaseQueue : private boost::noncopyable {
+  class BaseQueue {
     public:
       virtual ~BaseQueue() = default;
 
@@ -27,6 +26,15 @@ namespace Beam {
        */
       template<typename E>
       void Break(const E& e);
+
+    protected:
+
+      /** Constructs a BaseQueue. */
+      BaseQueue() = default;
+
+    private:
+      BaseQueue(const BaseQueue&) = delete;
+      BaseQueue& operator =(const BaseQueue&) = delete;
   };
 
   inline void BaseQueue::Break() {

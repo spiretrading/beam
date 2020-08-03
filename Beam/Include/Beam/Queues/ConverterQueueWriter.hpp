@@ -25,13 +25,16 @@ namespace Beam {
        */
       using Converter = C;
 
+      /** The type that the <i>Source</i> is converted to. */
+      using Target = std::invoke_result_t<Converter, const Source&>;
+
       /**
        * Constructs a ConverterQueue.
        * @param target The target to push the converted data onto.
        * @param converter The function performing the conversion.
        */
       template<typename CF>
-      ConverterQueueWriter(ScopedQueueWriter<Source> target, CF&& converter);
+      ConverterQueueWriter(ScopedQueueWriter<Target> target, CF&& converter);
 
       void Push(const Source& value) override;
 
@@ -42,7 +45,7 @@ namespace Beam {
       using QueueWriter<Source>::Break;
 
     private:
-      ScopedQueueWriter<Source> m_target;
+      ScopedQueueWriter<Target> m_target;
       Converter m_converter;
   };
 
@@ -51,11 +54,12 @@ namespace Beam {
    * @param target The target to push the converted data onto.
    * @param converter The function performing the conversion.
    */
-  template<typename QueueWriter, typename C>
-  auto MakeConverterQueueWriter(QueueWriter&& target, C&& converter) {
-    return std::make_shared<ConverterQueueWriter<
-      typename GetTryDereferenceType<QueueWriter>::Source, std::decay_t<C>>>(
-      std::forward<QueueWriter>(target), std::forward<C>(converter));
+  template<typename T, typename C>
+  auto MakeConverterQueueWriter(
+      ScopedQueueWriter<std::invoke_result_t<C, const T&>> target,
+      C&& converter) {
+    return std::make_shared<ConverterQueueWriter<T, std::decay_t<C>>>(
+      std::move(target), std::forward<C>(converter));
   }
 
   /**
@@ -64,10 +68,11 @@ namespace Beam {
    * @param task The task to perform when a value is pushed onto the
    *        QueueWriter.
    */
-  template<typename QueueWriter, typename F>
-  auto MakeTaskConverterQueue(QueueWriter&& target, F&& task) {
-    return MakeConverterWriterQueue(std::forward<QueueWriter>(target),
-      [task = std::forward<F>(task)] (const auto& source) {
+  template<typename T, typename C>
+  auto MakeTaskConverterQueue(
+      ScopedQueueWriter<std::invoke_result_t<C, const T&>> target, C&& task) {
+    return MakeConverterWriterQueue(std::move(target),
+      [task = std::forward<C>(task)] (const auto& source) {
         return [=] {
           task(source);
         };
@@ -77,7 +82,7 @@ namespace Beam {
   template<typename T, typename C>
   template<typename CF>
   ConverterQueueWriter<T, C>::ConverterQueueWriter(
-    ScopedQueueWriter<Source> target, CF&& converter)
+    ScopedQueueWriter<Target> target, CF&& converter)
     : m_target(std::move(target)),
       m_converter(std::forward<CF>(converter)) {}
 

@@ -11,7 +11,7 @@ namespace Beam {
   template<typename T, typename C, typename B> class CallbackQueueWriter;
   template<typename T, typename C> class ConverterQueueReader;
   template<typename T, typename C> class ConverterQueueWriter;
-  template<typename S, typename D> class FilterQueueWriter;
+  template<typename T, typename F> class FilteredQueueWriter;
   template<typename T> class MultiQueueReader;
   template<typename T> class MultiQueueWriter;
   class PipeBrokenException;
@@ -19,9 +19,9 @@ namespace Beam {
   template<typename T> class Queue;
   template<typename T> class QueueReader;
   template<typename T> class QueueWriter;
-  class ScopedBaseQueue;
-  template<typename T> class ScopedQueueReader;
-  template<typename T> class ScopedQueueWriter;
+  template<typename Q> class ScopedBaseQueue;
+  template<typename T, typename Q> class ScopedQueueReader;
+  template<typename T, typename Q> class ScopedQueueWriter;
   template<typename T, typename S> class SequencePublisher;
   template<typename T, typename S> class SnapshotPublisher;
   template<typename T> class StatePublisher;

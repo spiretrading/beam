@@ -41,11 +41,6 @@ namespace Beam {
 
       void Break(const std::exception_ptr& exception) override;
 
-      bool IsAvailable() const override;
-
-      void SetAvailableToken(
-        Threading::Waitable::AvailableToken& token) override;
-
       using QueueReader<KeyValuePair<K, V>>::Break;
 
     private:
@@ -75,17 +70,6 @@ namespace Beam {
   void TaggedQueueReader<K, V>::Break(const std::exception_ptr& exception) {
     m_callbacks.Break(exception);
     m_values.Break(exception);
-  }
-
-  template<typename K, typename V>
-  bool TaggedQueueReader<K, V>::IsAvailable() const {
-    return m_values.IsAvailable();
-  }
-
-  template<typename K, typename V>
-  void TaggedQueueReader<K, V>::SetAvailableToken(
-      Threading::Waitable::AvailableToken& token) {
-    m_values.SetAvailableToken(token);
   }
 }
 

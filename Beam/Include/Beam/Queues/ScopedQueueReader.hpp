@@ -1,6 +1,10 @@
 #ifndef BEAM_SCOPED_QUEUE_READER_HPP
 #define BEAM_SCOPED_QUEUE_READER_HPP
 #include <memory>
+#include <type_traits>
+#include <utility>
+#include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 
@@ -10,19 +14,25 @@ namespace Beam {
    * Stores a handle to a QueueReader that breaks when the object goes out of
    * scope.
    * @param <T> The type of data to read from the QueueReader.
+   * @param <Q> The type of QueueReader to handle.
    */
-  template<typename T>
+  template<typename T, typename Q = std::shared_ptr<QueueReader<T>>>
   class ScopedQueueReader : public QueueReader<T> {
     public:
-      using Target = typename QueueReader<T>::Target;
+
+      /** The type of QueueReader to handle. */
+      using QueueReader = GetTryDereferenceType<Q>;
+      using Target = typename Beam::QueueReader<T>::Target;
 
       /**
        * Constructs a ScopedQueueReader.
        * @param queue The QueueReader to manage.
        */
-      ScopedQueueReader(std::shared_ptr<QueueReader<Target>> queue);
+      template<typename QF, typename = std::enable_if_t<
+        !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>>>>
+      ScopedQueueReader(QF&& queue);
 
-      ScopedQueueReader(ScopedQueueReader&& queue) = default;
+      ScopedQueueReader(ScopedQueueReader&& queue);
 
       ~ScopedQueueReader() override;
 
@@ -30,35 +40,61 @@ namespace Beam {
 
       Target Pop() override;
 
-      ScopedQueueReader& operator =(ScopedQueueReader&& queue) = default;
+      void Break(const std::exception_ptr& e) override;
+
+      ScopedQueueReader& operator =(ScopedQueueReader&& queue);
+
+      using Beam::QueueReader<T>::Break;
 
     private:
-      std::shared_ptr<QueueReader<Target>> m_queue;
-
-      ScopedQueueReader(const ScopedQueueReader&) = delete;
-      ScopedQueueReader& operator =(const ScopedQueueReader&) = delete;
+      GetOptionalLocalPtr<Q> m_queue;
   };
 
-  template<typename T>
-  ScopedQueueReader<T>::ScopedQueueReader(
-    std::shared_ptr<QueueReader<Target>> queue)
-    : m_queue(std::move(queue)) {}
+  template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
+    ScopedQueueReader<typename GetTryDereferenceType<Q>::Target,
+    std::decay_t<Q>>, std::decay_t<Q>>>>
+  ScopedQueueReader(Q&&) -> ScopedQueueReader<
+    typename GetTryDereferenceType<Q>::Target, std::decay_t<Q>>;
 
-  template<typename T>
-  ScopedQueueReader<T>::~ScopedQueueReader() {
+  template<typename T, typename Q>
+  template<typename QF, typename>
+  ScopedQueueReader<T, Q>::ScopedQueueReader(QF&& queue)
+    : m_queue(std::forward<QF>(queue)) {}
+
+  template<typename T, typename Q>
+  ScopedQueueReader<T, Q>::ScopedQueueReader(ScopedQueueReader&& queue)
+    : m_queue(std::move(queue.m_queue)) {}
+
+  template<typename T, typename Q>
+  ScopedQueueReader<T, Q>::~ScopedQueueReader() {
     if(m_queue) {
       m_queue->Break();
     }
   }
 
-  template<typename T>
-  bool ScopedQueueReader<T>::IsEmpty() const {
+  template<typename T, typename Q>
+  bool ScopedQueueReader<T, Q>::IsEmpty() const {
     return m_queue->IsEmpty();
   }
 
-  template<typename T>
-  typename ScopedQueueReader<T>::Target ScopedQueueReader<T>::Pop() {
+  template<typename T, typename Q>
+  typename ScopedQueueReader<T, Q>::Target ScopedQueueReader<T, Q>::Pop() {
     return m_queue->Pop();
+  }
+
+  template<typename T, typename Q>
+  void ScopedQueueReader<T, Q>::Break(const std::exception_ptr& e) {
+    if(m_queue) {
+      m_queue->Break(e);
+    }
+  }
+
+  template<typename T, typename Q>
+  ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
+      ScopedQueueReader&& queue) {
+    Break();
+    m_queue = std::move(queue.m_queue);
+    return *this;
   }
 }
 

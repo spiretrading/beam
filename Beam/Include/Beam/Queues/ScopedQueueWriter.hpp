@@ -1,6 +1,10 @@
 #ifndef BEAM_SCOPED_QUEUE_WRITER_HPP
 #define BEAM_SCOPED_QUEUE_WRITER_HPP
 #include <memory>
+#include <type_traits>
+#include <utility>
+#include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 
@@ -10,19 +14,25 @@ namespace Beam {
    * Stores a handle to a QueueWriter that breaks when the object goes out of
    * scope.
    * @param <T> The type of data to read from the QueueWriter.
+   * @param <Q> The type of QueueWriter to handle.
    */
-  template<typename T>
+  template<typename T, typename Q = std::shared_ptr<QueueWriter<T>>>
   class ScopedQueueWriter : public QueueWriter<T> {
     public:
-      using Source = typename QueueWriter<T>::Source;
+
+      /** The type of QueueWriter to handle. */
+      using QueueWriter = GetTryDereferenceType<Q>;
+      using Source = typename Beam::QueueWriter<T>::Source;
 
       /**
        * Constructs a ScopedQueueWriter.
        * @param queue The QueueWriter to manage.
        */
-      ScopedQueueWriter(std::shared_ptr<QueueWriter<Source>> queue);
+      template<typename QF, typename = std::enable_if_t<
+        !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>>>>
+      ScopedQueueWriter(QF&& queue);
 
-      ScopedQueueWriter(ScopedQueueWriter&& queue) = default;
+      ScopedQueueWriter(ScopedQueueWriter&& queue);
 
       ~ScopedQueueWriter() override;
 
@@ -30,35 +40,61 @@ namespace Beam {
 
       void Push(Source&& value) override;
 
-      ScopedQueueWriter& operator =(ScopedQueueWriter&& queue) = default;
+      void Break(const std::exception_ptr& e) override;
+
+      ScopedQueueWriter& operator =(ScopedQueueWriter&& queue);
+
+     using Beam::QueueWriter<T>::Break;
 
     private:
-      std::shared_ptr<QueueWriter<Source>> m_queue;
-
-      ScopedQueueWriter(const ScopedQueueWriter&) = delete;
-      ScopedQueueWriter& operator =(const ScopedQueueWriter&) = delete;
+      GetOptionalLocalPtr<Q> m_queue;
   };
 
-  template<typename T>
-  ScopedQueueWriter<T>::ScopedQueueWriter(
-    std::shared_ptr<QueueWriter<Source>> queue)
-    : m_queue(std::move(queue)) {}
+  template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
+    ScopedQueueWriter<typename GetTryDereferenceType<Q>::Source,
+    std::decay_t<Q>>, std::decay_t<Q>>>>
+  ScopedQueueWriter(Q&&) -> ScopedQueueWriter<
+    typename GetTryDereferenceType<Q>::Source, std::decay_t<Q>>;
 
-  template<typename T>
-  ScopedQueueWriter<T>::~ScopedQueueWriter() {
+  template<typename T, typename Q>
+  template<typename QF, typename>
+  ScopedQueueWriter<T, Q>::ScopedQueueWriter(QF&& queue)
+    : m_queue(std::forward<QF>(queue)) {}
+
+  template<typename T, typename Q>
+  ScopedQueueWriter<T, Q>::ScopedQueueWriter(ScopedQueueWriter&& queue)
+    : m_queue(std::move(queue.m_queue)) {}
+
+  template<typename T, typename Q>
+  ScopedQueueWriter<T, Q>::~ScopedQueueWriter() {
     if(m_queue) {
       m_queue->Break();
     }
   }
 
-  template<typename T>
-  void ScopedQueueWriter<T>::Push(const Source& value) {
+  template<typename T, typename Q>
+  void ScopedQueueWriter<T, Q>::Push(const Source& value) {
     m_queue->Push(value);
   }
 
-  template<typename T>
-  void ScopedQueueWriter<T>::Push(Source&& value) {
+  template<typename T, typename Q>
+  void ScopedQueueWriter<T, Q>::Push(Source&& value) {
     m_queue->Push(std::move(value));
+  }
+
+  template<typename T, typename Q>
+  void ScopedQueueWriter<T, Q>::Break(const std::exception_ptr& e) {
+    if(m_queue) {
+      m_queue->Break(e);
+    }
+  }
+
+  template<typename T, typename Q>
+  ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
+      ScopedQueueWriter&& queue) {
+    Break();
+    m_queue = std::move(queue.m_queue);
+    return *this;
   }
 }
 

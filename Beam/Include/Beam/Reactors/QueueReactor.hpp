@@ -2,7 +2,7 @@
 #define BEAM_QUEUE_REACTOR_HPP
 #include <memory>
 #include <Aspen/Queue.hpp>
-#include "Beam/Queues/ScopedQueue.hpp"
+#include "Beam/Queues/ScopedQueueReader.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
 namespace Beam::Reactors {
@@ -20,7 +20,7 @@ namespace Beam::Reactors {
       /*!
         \param queue The Queue to monitor.
       */
-      QueueReactor(std::shared_ptr<QueueReader<Type>> queue);
+      QueueReactor(ScopedQueueReader<Type> queue);
 
       QueueReactor(QueueReactor&&) = default;
 
@@ -36,26 +36,29 @@ namespace Beam::Reactors {
       struct Entry {
         Aspen::Queue<Type> m_reactor;
         Routines::RoutineHandler m_handler;
-        ScopedQueue<std::shared_ptr<QueueReader<Type>>> m_queue;
+        ScopedQueueReader<Type> m_queue;
         bool m_isComplete;
 
-        Entry(std::shared_ptr<QueueReader<Type>> queue);
+        Entry(ScopedQueueReader<Type> queue);
       };
       std::unique_ptr<Entry> m_entry;
 
       static void MonitorQueue(Entry& entry);
   };
 
-  template<typename Q>
-  QueueReactor(std::shared_ptr<Q>) -> QueueReactor<typename Q::Target>;
+  template<typename T>
+  QueueReactor(ScopedQueueReader<T>) -> QueueReactor<T>;
 
   template<typename T>
-  QueueReactor<T>::Entry::Entry(std::shared_ptr<QueueReader<Type>> queue)
+  QueueReactor(T&&) -> QueueReactor<typename GetTryDereferenceType<T>::Target>;
+
+  template<typename T>
+  QueueReactor<T>::Entry::Entry(ScopedQueueReader<Type> queue)
     : m_queue(std::move(queue)),
       m_isComplete(false) {}
 
   template<typename T>
-  QueueReactor<T>::QueueReactor(std::shared_ptr<QueueReader<Type>> queue)
+  QueueReactor<T>::QueueReactor(ScopedQueueReader<Type> queue)
       : m_entry(std::make_unique<Entry>(std::move(queue))) {
     m_entry->m_handler = Routines::Spawn(
       [entry = m_entry.get()] {
@@ -67,7 +70,7 @@ namespace Beam::Reactors {
   QueueReactor<T>::~QueueReactor() {
     if(m_entry != nullptr) {
       m_entry->m_isComplete = true;
-      m_entry->m_queue->Break();
+      m_entry->m_queue.Break();
       m_entry->m_handler.Wait();
     }
   }
@@ -87,7 +90,7 @@ namespace Beam::Reactors {
   void QueueReactor<T>::MonitorQueue(Entry& entry) {
     while(true) {
       try {
-        entry.m_reactor.push(entry.m_queue->Pop());
+        entry.m_reactor.push(entry.m_queue.Pop());
       } catch(const PipeBrokenException&) {
         if(!entry.m_isComplete) {
           entry.m_reactor.set_complete();

@@ -22,7 +22,7 @@ namespace Beam {
        * Constructs a WeakQueue.
        * @param queue The Queue wrap.
        */
-      WeakQueue(std::shared_ptr<QueueWriter<T>> queue);
+      WeakQueue(std::shared_ptr<QueueWriter<Source>> queue);
 
       ~WeakQueue() override;
 
@@ -35,7 +35,7 @@ namespace Beam {
       using QueueWriter<T>::Break;
 
     private:
-      std::weak_ptr<QueueWriter<T>> m_queue;
+      std::weak_ptr<QueueWriter<Source>> m_queue;
   };
 
   /**
@@ -49,7 +49,7 @@ namespace Beam {
   }
 
   template<typename T>
-  WeakQueue<T>::WeakQueue(std::shared_ptr<QueueWriter<T>> queue)
+  WeakQueue<T>::WeakQueue(std::shared_ptr<QueueWriter<Source>> queue)
     : m_queue(std::move(queue)) {}
 
   template<typename T>

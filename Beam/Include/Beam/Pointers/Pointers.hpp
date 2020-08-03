@@ -11,6 +11,7 @@ namespace Beam {
   template<typename T, typename ClonerType = VirtualCloner> class ClonePtr;
   template<typename... Args> struct Initializer;
   template<typename T> class LocalPtr;
+  template<typename T> class NativePtr;
   template<typename T> class Out;
   template<typename T> class Ref;
 }

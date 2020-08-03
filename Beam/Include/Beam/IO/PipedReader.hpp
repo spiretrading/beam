@@ -45,8 +45,8 @@ namespace IO {
 
   template<typename BufferType>
   PipedReader<BufferType>::PipedReader()
-      : m_reader(BufferFromString<Buffer>("")),
-        m_messages(std::make_shared<Queue<BufferReader<Buffer>>>()) {}
+    : m_reader(BufferFromString<Buffer>("")),
+      m_messages(std::make_shared<Queue<BufferReader<Buffer>>>()) {}
 
   template<typename BufferType>
   PipedReader<BufferType>::~PipedReader() {

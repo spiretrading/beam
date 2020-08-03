@@ -6,7 +6,8 @@
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
+#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
@@ -24,6 +25,9 @@ namespace Beam {
       MultiQueueWriter() = default;
 
       ~MultiQueueWriter() override;
+
+      /** Returns the number of queues being monitored. */
+      int GetSize() const;
 
       void With(const std::function<void ()>& f) const override;
 
@@ -46,6 +50,12 @@ namespace Beam {
   template<typename T>
   MultiQueueWriter<T>::~MultiQueueWriter() {
     Break();
+  }
+
+  template<typename T>
+  int MultiQueueWriter<T>::GetSize() const {
+    auto lock = boost::lock_guard(m_mutex);
+    return static_cast<int>(m_queues.size());
   }
 
   template<typename T>
@@ -86,10 +96,10 @@ namespace Beam {
   template<typename T>
   void MultiQueueWriter<T>::Monitor(ScopedQueueWriter<Source> queue) const {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_exception == nullptr) {
-      m_queues.push_back(std::move(queue));
-    } else {
+    if(m_exception) {
       queue.Break(m_exception);
+    } else {
+      m_queues.push_back(std::move(queue));
     }
   }
 }

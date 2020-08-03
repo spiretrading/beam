@@ -110,8 +110,8 @@ TEST_SUITE("ServiceLocatorClient") {
     update = duplicateQueue->Pop();
     REQUIRE(update ==
       AccountUpdate{testAccounts[2], AccountUpdate::Type::ADDED});
-    accountQueue = nullptr;
-    duplicateQueue = nullptr;
+    accountQueue->Break();
+    duplicateQueue->Break();
     SendRecordMessage<AccountUpdateMessage>(*serverSideClient,
       AccountUpdate{testAccounts[1], AccountUpdate::Type::DELETED});
     REQUIRE_NOTHROW(receivedUnmonitor.Get());

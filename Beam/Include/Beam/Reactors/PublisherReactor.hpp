@@ -33,7 +33,7 @@ namespace Details {
   auto PublisherReactor(const Publisher<Type>& publisher) {
     auto queue = std::make_shared<Queue<Type>>();
     publisher.Monitor(queue);
-    return QueueReactor(queue);
+    return QueueReactor(std::move(queue));
   }
 
   /**

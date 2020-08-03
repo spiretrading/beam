@@ -134,7 +134,7 @@ namespace Beam::ServiceLocator {
        * Monitors new and deleted accounts and pushes them to a queue.
        * @param queue The queue to push to.
        */
-      void MonitorAccounts(std::shared_ptr<QueueWriter<AccountUpdate>> queue);
+      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue);
 
       /**
        * Loads a DirectoryEntry from a path.
@@ -253,8 +253,6 @@ namespace Beam::ServiceLocator {
       std::string m_password;
       std::string m_sessionId;
       DirectoryEntry m_account;
-      std::vector<std::weak_ptr<QueueWriter<AccountUpdate>>>
-        m_accountUpdateListeners;
       std::vector<DirectoryEntry> m_accountUpdateSnapshot;
       MultiQueueWriter<AccountUpdate> m_accountUpdatePublisher;
       RoutineTaskQueue m_tasks;
@@ -442,18 +440,19 @@ namespace Beam::ServiceLocator {
 
   template<typename B>
   void ServiceLocatorClient<B>::MonitorAccounts(
-      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
-    m_tasks.Push([=] {
-      m_accountUpdatePublisher.Monitor(queue);
-      m_accountUpdateListeners.push_back(queue);
-      if(m_accountUpdateListeners.size() != 1) {
+      ScopedQueueWriter<AccountUpdate> queue) {
+    m_tasks.Push([=, queue = std::make_shared<ScopedQueueWriter<AccountUpdate>>(
+        std::move(queue))] {
+      if(m_accountUpdatePublisher.GetSize() != 0) {
         try {
           for(auto& account : m_accountUpdateSnapshot) {
             queue->Push(AccountUpdate{account, AccountUpdate::Type::ADDED});
           }
+          m_accountUpdatePublisher.Monitor(std::move(*queue));
         } catch(const PipeBrokenException&) {}
         return;
       }
+      m_accountUpdatePublisher.Monitor(std::move(*queue));
       auto client = m_clientHandler.GetClient();
       m_accountUpdateSnapshot =
         client->template SendRequest<MonitorAccountsService>();
@@ -603,7 +602,7 @@ namespace Beam::ServiceLocator {
     try {
       Login(*client);
       m_tasks.Push([=] {
-        if(m_accountUpdateListeners.empty()) {
+        if(m_accountUpdatePublisher.GetSize() == 0) {
           return;
         }
         auto client = m_clientHandler.GetClient();
@@ -638,12 +637,7 @@ namespace Beam::ServiceLocator {
         }
       }
       m_accountUpdatePublisher.Push(update);
-      m_accountUpdateListeners.erase(std::remove_if(
-        m_accountUpdateListeners.begin(), m_accountUpdateListeners.end(),
-        [] (auto& listener) {
-          return listener.expired();
-        }), m_accountUpdateListeners.end());
-      if(m_accountUpdateListeners.empty()) {
+      if(m_accountUpdatePublisher.GetSize() == 0) {
         auto client = m_clientHandler.GetClient();
         client->template SendRequest<UnmonitorAccountsService>();
         m_accountUpdateSnapshot = {};

@@ -53,8 +53,7 @@ namespace Beam::ServiceLocator {
       virtual void StorePassword(const DirectoryEntry& account,
         const std::string& password) = 0;
 
-      virtual void MonitorAccounts(
-        std::shared_ptr<QueueWriter<AccountUpdate>> queue) = 0;
+      virtual void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue) = 0;
 
       virtual DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) = 0;
@@ -154,8 +153,7 @@ namespace Beam::ServiceLocator {
       void StorePassword(const DirectoryEntry& account,
         const std::string& password) override;
 
-      void MonitorAccounts(
-        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override;
+      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue) override;
 
       DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) override;
@@ -291,8 +289,8 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   void WrapperServiceLocatorClient<C>::MonitorAccounts(
-      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
-    return m_client->MonitorAccounts(queue);
+      ScopedQueueWriter<AccountUpdate> queue) {
+    return m_client->MonitorAccounts(std::move(queue));
   }
 
   template<typename C>

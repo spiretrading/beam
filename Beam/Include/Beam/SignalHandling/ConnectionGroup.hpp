@@ -49,28 +49,6 @@ namespace SignalHandling {
       void AddConnection(const void* publisher,
         const SignalHandling::GroupConnection& connection);
 
-      //! Adds a connection associated with a publisher.
-      /*!
-        \param publisher The publisher to associate the connection with.
-        \param connection The connection to manage.
-      */
-      template<typename T>
-      void AddConnection(const std::shared_ptr<T>& publisher,
-          const boost::signals2::connection& connection) {
-        AddConnection(publisher.get(), connection);
-      }
-
-      //! Adds a connection associated with a publisher.
-      /*!
-        \param publisher The publisher to associate the connection with.
-        \param connection The connection to manage.
-      */
-      template<typename T>
-      void AddConnection(const std::unique_ptr<T>& publisher,
-          const boost::signals2::connection& connection) {
-        AddConnection(publisher.get(), connection);
-      }
-
       //! Disconnects all connections associated with a publisher.
       /*!
         \param publisher The publisher to disconnect all connections from.

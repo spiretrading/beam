@@ -56,7 +56,7 @@ namespace Beam::Parsers {
 
       void With(const std::function<void ()>& f) const override;
 
-      void Monitor(std::shared_ptr<QueueWriter<Source>> monitor) const override;
+      void Monitor(ScopedQueueWriter<Source> monitor) const override;
 
     private:
       GetOptionalLocalPtr<R> m_reader;
@@ -88,8 +88,7 @@ namespace Beam::Parsers {
   }
 
   template<typename R, typename P>
-  void ParserPublisher<R, P>::Monitor(
-      std::shared_ptr<QueueWriter<Source>> monitor) const {
+  void ParserPublisher<R, P>::Monitor(ScopedQueueWriter<Source> monitor) const {
     m_publisher.Monitor(std::move(monitor));
     auto isParsing = m_isParsing.exchange(true);
     if(!isParsing) {

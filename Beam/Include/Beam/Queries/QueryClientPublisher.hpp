@@ -77,16 +77,15 @@ namespace Queries {
         \param query The query to submit.
         \param queue The QueueWriter receiving the result of the query.
       */
-      void SubmitQuery(const Query& query, const std::shared_ptr<
-        QueueWriter<SequencedValue<Value>>>& queue);
+      void SubmitQuery(const Query& query,
+        ScopedQueueWriter<SequencedValue<Value>> queue);
 
       //! Submits a query.
       /*!
         \param query The query to submit.
         \param queue The QueueWriter receiving the result of the query.
       */
-      void SubmitQuery(const Query& query,
-        const std::shared_ptr<QueueWriter<Value>>& queue);
+      void SubmitQuery(const Query& query, ScopedQueueWriter<Value> queue);
 
       //! Publishes a value to all subscribers.
       /*!
@@ -132,13 +131,13 @@ namespace Queries {
   void QueryClientPublisher<ValueType, QueryType, EvaluatorTranslatorType,
       ServiceProtocolClientHandlerType, QueryServiceType, EndQueryMessageType>::
       SubmitQuery(const Query& query,
-      const std::shared_ptr<QueueWriter<SequencedValue<Value>>>& queue) {
+      ScopedQueueWriter<SequencedValue<Value>> queue) {
     if(query.GetRange().GetEnd() == Sequence::Last()) {
       m_queryRoutines.Spawn(
-        [=] {
+        [=, queue = std::move(queue)] {
           auto filter = Translate<EvaluatorTranslator>(query.GetFilter());
           auto publisher = std::make_shared<Publisher>(query, std::move(filter),
-            queue);
+            std::move(queue));
           auto& publisherList = m_publishers.Get(query.GetIndex());
           try {
             publisher->BeginSnapshot();
@@ -156,16 +155,16 @@ namespace Queries {
         });
     } else {
       m_queryRoutines.Spawn(
-        [=] {
+        [=, queue = std::move(queue)] {
           try {
             auto client = m_clientHandler->GetClient();
             auto queryResult = client->template SendRequest<QueryService>(
               query);
             for(auto& value : queryResult.m_snapshot) {
-              queue->Push(std::move(value));
+              queue.Push(std::move(value));
             }
           } catch(const std::exception&) {}
-          queue->Break();
+          queue.Break();
         });
     }
   }
@@ -175,15 +174,13 @@ namespace Queries {
     typename QueryServiceType, typename EndQueryMessageType>
   void QueryClientPublisher<ValueType, QueryType, EvaluatorTranslatorType,
       ServiceProtocolClientHandlerType, QueryServiceType, EndQueryMessageType>::
-      SubmitQuery(const Query& query,
-      const std::shared_ptr<QueueWriter<Value>>& queue) {
-    auto weakQueue = MakeWeakQueueWriter(queue);
+      SubmitQuery(const Query& query, ScopedQueueWriter<Value> queue) {
     auto conversionQueue = MakeConverterQueueWriter<SequencedValue<Value>>(
-      std::move(weakQueue),
+      std::move(queue),
       [] (auto&& value) {
         return static_cast<Value>(std::forward<decltype(value)>(value));
       });
-    SubmitQuery(query, conversionQueue);
+    SubmitQuery(query, std::move(conversionQueue));
   }
 
   template<typename ValueType, typename QueryType,

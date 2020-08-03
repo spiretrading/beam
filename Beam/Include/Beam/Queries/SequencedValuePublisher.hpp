@@ -17,7 +17,7 @@
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam {
 namespace Queries {
@@ -44,10 +44,7 @@ namespace Queries {
         \param queue The queue to publish the data to.
       */
       SequencedValuePublisher(const Query& query,
-        std::unique_ptr<Evaluator> filter,
-        const std::shared_ptr<QueueWriter<Value>>& queue);
-
-      ~SequencedValuePublisher();
+        std::unique_ptr<Evaluator> filter, ScopedQueueWriter<Value> queue);
 
       //! Returns the id of the query.
       int GetId() const;
@@ -95,7 +92,7 @@ namespace Queries {
       mutable boost::mutex m_mutex;
       Query m_query;
       std::unique_ptr<Evaluator> m_filter;
-      std::shared_ptr<QueueWriter<Value>> m_queue;
+      ScopedQueueWriter<Value> m_queue;
       int m_queryId;
       Sequence m_lastSequence;
       std::vector<Value> m_writeLog;
@@ -104,17 +101,12 @@ namespace Queries {
   template<typename QueryType, typename ValueType>
   SequencedValuePublisher<QueryType, ValueType>::SequencedValuePublisher(
       const Query& query, std::unique_ptr<Evaluator> filter,
-      const std::shared_ptr<QueueWriter<Value>>& queue)
+      ScopedQueueWriter<Value> queue)
       : m_query(query),
         m_filter(std::move(filter)),
-        m_queue(queue),
+        m_queue(std::move(queue)),
         m_queryId(-1),
         m_lastSequence(Sequence::First()) {}
-
-  template<typename QueryType, typename ValueType>
-  SequencedValuePublisher<QueryType, ValueType>::~SequencedValuePublisher() {
-    Break();
-  }
 
   template<typename QueryType, typename ValueType>
   int SequencedValuePublisher<QueryType, ValueType>::GetId() const {
@@ -134,7 +126,7 @@ namespace Queries {
       if(value.GetSequence() > m_lastSequence &&
           TestFilter(*m_filter, *value)) {
         m_lastSequence = value.GetSequence();
-        m_queue->Push(std::forward<ValueForward>(value));
+        m_queue.Push(std::forward<ValueForward>(value));
       }
     }
   }
@@ -148,14 +140,14 @@ namespace Queries {
       if(value.GetSequence() > m_lastSequence &&
           TestFilter(*m_filter, *value)) {
         m_lastSequence = value.GetSequence();
-        m_queue->Push(std::move(value));
+        m_queue.Push(std::move(value));
       }
     }
   }
 
   template<typename QueryType, typename ValueType>
   void SequencedValuePublisher<QueryType, ValueType>::Break() {
-    m_queue->Break();
+    m_queue.Break();
   }
 
   template<typename QueryType, typename ValueType>
@@ -174,7 +166,7 @@ namespace Queries {
       if(value.GetSequence() > m_lastSequence &&
           TestFilter(*m_filter, *value)) {
         m_lastSequence = value.GetSequence();
-        m_queue->Push(std::move(value));
+        m_queue.Push(std::move(value));
       }
     }
   }
@@ -202,7 +194,7 @@ namespace Queries {
       recoveryQuery.SetRange(startPoint, m_query.GetRange().GetEnd());
       return recoveryQuery;
     } else {
-      m_queue->Break(QueryInterruptedException());
+      m_queue.Break(QueryInterruptedException());
       BOOST_THROW_EXCEPTION(QueryInterruptedException());
     }
   }

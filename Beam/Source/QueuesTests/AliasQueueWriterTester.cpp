@@ -27,4 +27,13 @@ TEST_SUITE("AliasQueueWriter") {
     REQUIRE(source->Pop() == 456);
     REQUIRE_THROWS_AS(source->Pop(), PipeBrokenException);
   }
+
+  TEST_CASE("break_on_destruction") {
+    auto source = std::make_shared<Queue<int>>();
+    auto alias = std::make_shared<int>(123);
+    {
+      auto queue = MakeAliasQueueWriter(source, alias);
+    }
+    REQUIRE(!source->IsBroken());
+  }
 }

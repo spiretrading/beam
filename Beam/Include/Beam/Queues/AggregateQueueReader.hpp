@@ -5,6 +5,7 @@
 #include <vector>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/Queues.hpp"
+#include "Beam/Queues/ScopedQueueReader.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 
 namespace Beam {
@@ -23,7 +24,7 @@ namespace Beam {
        * @param queues The QueueReaders to aggregate.
        */
       explicit AggregateQueueReader(
-        std::vector<std::shared_ptr<QueueReader<T>>> queues);
+        std::vector<ScopedQueueReader<Target>> queues);
 
       ~AggregateQueueReader() override;
 
@@ -36,15 +37,15 @@ namespace Beam {
       using QueueReader<T>::Break;
 
     private:
-      std::vector<std::shared_ptr<QueueReader<T>>> m_queues;
-      Queue<T> m_destination;
+      std::vector<ScopedQueueReader<Target>> m_queues;
       std::atomic_int m_queueCount;
+      Queue<Target> m_destination;
       Routines::RoutineHandlerGroup m_routines;
   };
 
   template<typename T>
   AggregateQueueReader<T>::AggregateQueueReader(
-      std::vector<std::shared_ptr<QueueReader<T>>> queues)
+      std::vector<ScopedQueueReader<Target>> queues)
       : m_queues(std::move(queues)),
         m_queueCount(static_cast<int>(m_queues.size())) {
     if(m_queueCount == 0) {
@@ -52,14 +53,14 @@ namespace Beam {
     } else {
       for(auto& queue : m_queues) {
         m_routines.Spawn(
-          [=] {
+          [=, queue = &queue] {
             try {
               while(true) {
                 m_destination.Push(queue->Pop());
               }
             } catch(const std::exception&) {
               if(m_queueCount.fetch_sub(1) == 1) {
-                m_destination.Break();
+                m_destination.Break(std::current_exception());
               }
             }
           });
@@ -85,7 +86,7 @@ namespace Beam {
   template<typename T>
   void AggregateQueueReader<T>::Break(const std::exception_ptr& e) {
     for(auto& queue : m_queues) {
-      queue->Break(e);
+      queue.Break(e);
     }
     m_destination.Break(e);
   }

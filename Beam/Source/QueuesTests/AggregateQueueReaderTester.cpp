@@ -17,9 +17,9 @@ TEST_SUITE("AggregateQueueReader") {
 
   TEST_CASE("single") {
     auto source = std::make_shared<Queue<int>>();
-    auto queues = std::vector<std::shared_ptr<QueueReader<int>>>();
+    auto queues = std::vector<ScopedQueueReader<int>>();
     queues.push_back(source);
-    auto queue = AggregateQueueReader(queues);
+    auto queue = AggregateQueueReader(std::move(queues));
     source->Push(123);
     REQUIRE(queue.Pop() == 123);
     source->Push(321);
@@ -31,10 +31,10 @@ TEST_SUITE("AggregateQueueReader") {
   TEST_CASE("double") {
     auto source1 = std::make_shared<Queue<int>>();
     auto source2 = std::make_shared<Queue<int>>();
-    auto queues = std::vector<std::shared_ptr<QueueReader<int>>>();
+    auto queues = std::vector<ScopedQueueReader<int>>();
     queues.push_back(source1);
     queues.push_back(source2);
-    auto queue = AggregateQueueReader(queues);
+    auto queue = AggregateQueueReader(std::move(queues));
     source2->Push(3);
     source1->Push(1);
     source2->Push(4);
@@ -65,15 +65,28 @@ TEST_SUITE("AggregateQueueReader") {
   TEST_CASE("break") {
     auto source1 = std::make_shared<Queue<int>>();
     auto source2 = std::make_shared<Queue<int>>();
-    auto queues = std::vector<std::shared_ptr<QueueReader<int>>>();
+    auto queues = std::vector<ScopedQueueReader<int>>();
     queues.push_back(source1);
     queues.push_back(source2);
-    auto queue = AggregateQueueReader(queues);
+    auto queue = AggregateQueueReader(std::move(queues));
     source2->Push(3);
     source1->Push(1);
     queue.Pop();
     queue.Pop();
     queue.Break();
+    REQUIRE(source1->IsBroken());
+    REQUIRE(source2->IsBroken());
+  }
+
+  TEST_CASE("break_on_destruction") {
+    auto source1 = std::make_shared<Queue<int>>();
+    auto source2 = std::make_shared<Queue<int>>();
+    auto queues = std::vector<ScopedQueueReader<int>>();
+    queues.push_back(source1);
+    queues.push_back(source2);
+    {
+      auto queue = AggregateQueueReader(std::move(queues));
+    }
     REQUIRE(source1->IsBroken());
     REQUIRE(source2->IsBroken());
   }

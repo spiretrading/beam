@@ -43,7 +43,7 @@ namespace Beam {
       friend auto MakeAliasQueueWriter(QueueWriter&&, std::shared_ptr<void>);
       mutable boost::mutex m_mutex;
       std::shared_ptr<void> m_self;
-      ScopedQueueWriter<T> m_queue;
+      ScopedQueueWriter<Source> m_queue;
       std::weak_ptr<void> m_alias;
 
       std::shared_ptr<void> GetAlias();

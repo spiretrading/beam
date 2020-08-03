@@ -2,7 +2,6 @@
 #define BEAM_CONVERTER_QUEUE_READER_HPP
 #include <type_traits>
 #include <utility>
-#include <boost/compressed_pair.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueReader.hpp"
@@ -45,11 +44,11 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
-    private:
-      boost::compressed_pair<ScopedQueueReader<T>, Converter> m_source;
+      using QueueReader<std::invoke_result_t<C, const T&>>::Break;
 
-      ConverterQueueReader(const ConverterQueueReader&) = delete;
-      ConverterQueueReader& operator =(const ConverterQueueReader&) = delete;
+    private:
+      ScopedQueueReader<T> m_source;
+      Converter m_converter;
   };
 
   template<typename QueueReader, typename C>
@@ -61,32 +60,34 @@ namespace Beam {
    * @param source The QueueReader to convert.
    * @param converter The conversion function to use.
    */
-  template<typename T, typename C>
-  auto MakeConverterQueueReader(ScopedQueueReader<T> source, C&& converter) {
-    return std::make_shared<ConverterQueueReader<T, std::decay_t<C>>>(
-      std::move(queue), std::forward<C>(converter));
+  template<typename QueueReader, typename C>
+  auto MakeConverterQueueReader(QueueReader&& source, C&& converter) {
+    using Source = typename GetTryDereferenceType<QueueReader>::Target;
+    return std::make_shared<ConverterQueueReader<Source, std::decay_t<C>>>(
+      std::forward<QueueReader>(source), std::forward<C>(converter));
   }
 
   template<typename T, typename C>
   template<typename CF>
   ConverterQueueReader<T, C>::ConverterQueueReader(ScopedQueueReader<T> source,
     CF&& converter)
-    : m_source(std::move(source), std::forward<CF>(converter)) {}
+    : m_source(std::move(source)),
+      m_converter(std::forward<CF>(converter)) {}
 
   template<typename T, typename C>
   bool ConverterQueueReader<T, C>::IsEmpty() const {
-    return m_source.first().IsEmpty();
+    return m_source.IsEmpty();
   }
 
   template<typename T, typename C>
   typename ConverterQueueReader<T, C>::Target
       ConverterQueueReader<T, C>::Pop() {
-    return m_source.second()(m_source.first().Pop());
+    return m_converter(m_source.Pop());
   }
 
   template<typename T, typename C>
   void ConverterQueueReader<T, C>::Break(const std::exception_ptr& e) {
-    m_source.first().Break(e);
+    m_source.Break(e);
   }
 }
 

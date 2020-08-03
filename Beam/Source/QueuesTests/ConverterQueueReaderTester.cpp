@@ -9,8 +9,21 @@ TEST_SUITE("ConverterQueueReader") {
   TEST_CASE("push") {
     auto source = std::make_shared<Queue<int>>();
     auto converter = ConverterQueueReader(source,
-      [] (int value) {
+      [] (auto value) {
         return std::to_string(value);
       });
+    source->Push(12);
+    REQUIRE(converter.Pop() == "12");
+    converter.Break();
+    REQUIRE(source->IsBroken());
+    REQUIRE_THROWS_AS(converter.Pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("break_on_destroy") {
+    auto source = std::make_shared<Queue<int>>();
+    {
+      auto converter = MakeConverterQueueReader(source, [] (auto) {});
+    }
+    REQUIRE(source->IsBroken());
   }
 }

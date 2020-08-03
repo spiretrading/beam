@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_ROUTINES_HPP
 #define BEAM_PYTHON_ROUTINES_HPP
 #include <pybind11/pybind11.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Routines/Async.hpp"
 
 namespace Beam::Python {

@@ -178,8 +178,7 @@ namespace Queries {
       SubmitQuery(const Query& query,
       const std::shared_ptr<QueueWriter<Value>>& queue) {
     auto weakQueue = MakeWeakQueueWriter(queue);
-    std::shared_ptr<QueueWriter<SequencedValue<Value>>> conversionQueue =
-      MakeConverterQueueWriter<SequencedValue<Value>>(weakQueue,
+    auto conversionQueue = MakeConverterQueueWriter(std::move(weakQueue),
       [] (auto&& value) {
         return static_cast<Value>(std::forward<decltype(value)>(value));
       });

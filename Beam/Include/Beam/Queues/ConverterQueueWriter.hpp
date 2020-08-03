@@ -51,10 +51,11 @@ namespace Beam {
    * @param target The target to push the converted data onto.
    * @param converter The function performing the conversion.
    */
-  template<typename T, typename C>
-  auto MakeConverterQueueWriter(ScopedQueueWriter<T> target, C&& converter) {
-    return std::make_shared<ConverterQueueWriter<T, std::decay_t<C>>>(
-      std::move(target), std::forward<C>(converter));
+  template<typename QueueWriter, typename C>
+  auto MakeConverterQueueWriter(QueueWriter&& target, C&& converter) {
+    return std::make_shared<ConverterQueueWriter<
+      typename GetTryDereferenceType<QueueWriter>::Source, std::decay_t<C>>>(
+      std::forward<QueueWriter>(target), std::forward<C>(converter));
   }
 
   /**
@@ -63,10 +64,10 @@ namespace Beam {
    * @param task The task to perform when a value is pushed onto the
    *        QueueWriter.
    */
-  template<typename T, typename F>
-  auto MakeTaskConverterQueue(ScopedQueueWriter<T> target, F&& task) {
-    return MakeConverterWriterQueue(std::move(target),
-      [task = std::forward<F>(task)] (const T& source) {
+  template<typename QueueWriter, typename F>
+  auto MakeTaskConverterQueue(QueueWriter&& target, F&& task) {
+    return MakeConverterWriterQueue(std::forward<QueueWriter>(target),
+      [task = std::forward<F>(task)] (const auto& source) {
         return [=] {
           task(source);
         };

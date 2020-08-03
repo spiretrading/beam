@@ -39,9 +39,8 @@ namespace Beam {
       using QueueWriter<T>::Break;
 
     private:
-      template<typename U>
-      friend auto MakeAliasQueueWriter(ScopedQueueWriter<U>,
-        std::shared_ptr<void>);
+      template<typename QueueWriter>
+      friend auto MakeAliasQueueWriter(QueueWriter&&, std::shared_ptr<void>);
       mutable boost::mutex m_mutex;
       std::shared_ptr<void> m_self;
       ScopedQueueWriter<T> m_queue;
@@ -56,11 +55,12 @@ namespace Beam {
    * @param queue The QueueWriter to wrap.
    * @param alias The object whose lifetime is managing <i>queue</i>.
    */
-  template<typename T>
-  auto MakeAliasQueueWriter(ScopedQueueWriter<T> queue,
-      std::shared_ptr<void> alias) {
-    auto aliasQueue = std::make_shared<AliasQueueWriter<T>>(std::move(queue),
-      std::move(alias), typename AliasQueue<T>::Guard());
+  template<typename QueueWriter>
+  auto MakeAliasQueueWriter(QueueWriter&& queue, std::shared_ptr<void> alias) {
+    using Source = typename GetTryDereferenceType<QueueWriter>::Source;
+    auto aliasQueue = std::make_shared<AliasQueueWriter<Source>>(
+      std::forward<QueueWriter>(queue), std::move(alias),
+      typename AliasQueueWriter<Source>::Guard());
     aliasQueue->Bind(aliasQueue);
     return aliasQueue;
   }

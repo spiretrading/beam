@@ -2,14 +2,14 @@
 #define BEAM_CONVERTER_QUEUE_WRITER_HPP
 #include <type_traits>
 #include <utility>
-#include <boost/compressed_pair.hpp>
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam {
 
   /**
-   * Used to convert data pushed from a source into another type.
+   * Used to push converted data onto a QueueWriter.
    * @param <T> The type of data being pushed onto the QueueWriter.
    * @param <C> The type of function performing the conversion.
    */
@@ -42,7 +42,7 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
-      using QueueWriter<Source>::Break;
+      using QueueWriter<T>::Break;
 
     private:
       ScopedQueueWriter<Target> m_target;

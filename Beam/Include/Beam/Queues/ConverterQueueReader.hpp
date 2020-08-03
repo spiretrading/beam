@@ -9,7 +9,7 @@
 namespace Beam {
 
   /**
-   * Used to convert data pushed into a QueueReader.
+   * Used to convert data popped off a QueueReader.
    * @param <T> The type of data to pop and convert.
    * @param <C> The type of function performing the conversion.
    */

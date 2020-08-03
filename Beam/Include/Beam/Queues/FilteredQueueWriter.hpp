@@ -1,7 +1,9 @@
 #ifndef BEAM_FILTERED_QUEUE_WRITER_HPP
 #define BEAM_FILTERED_QUEUE_WRITER_HPP
-#include <memory>
+#include <mutex>
 #include <type_traits>
+#include <utility>
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 
@@ -37,24 +39,26 @@ namespace Beam {
       using QueueWriter<T>::Break;
 
     private:
+      mutable std::mutex m_mutex;
+      std::exception_ptr m_exception;
       ScopedQueueWriter<Source> m_destination;
       Filter m_filter;
   };
 
-  template<typename Source, typename F>
-  FilteredQueueWriter(ScopedQueueWriter<Source>, F&&) ->
-    FilteredQueueWriter<Source, std::decay_t<F>>;
+  template<typename QueueWriter, typename F>
+  FilteredQueueWriter(QueueWriter&&, F&&) -> FilteredQueueWriter<
+    typename GetTryDereferenceType<QueueWriter>::Source, std::decay_t<F>>;
 
   /**
    * Makes a FilteredWriterQueue.
    * @param destination The QueueWriter to push the filtered data onto.
    * @param filter The function performing the filtering.
    */
-  template<typename Source, typename F>
-  auto MakeFilteredQueueWriter(ScopedQueueWriter<Source> destination,
-      F&& filter) {
-    return std::make_shared<FilteredQueueWriter<Source, std::decay_t<F>>>(
-      std::move(destination), std::forward<F>(filter));
+  template<typename QueueWriter, typename F>
+  auto MakeFilteredQueueWriter(QueueWriter&& destination, F&& filter) {
+    using Target = typename GetTryDereferenceType<QueueWriter>::Source;
+    return std::make_shared<FilteredQueueWriter<Target, std::decay_t<F>>>(
+      std::forward<QueueWriter>(destination), std::forward<F>(filter));
   }
 
   template<typename T, typename F>
@@ -66,6 +70,12 @@ namespace Beam {
 
   template<typename T, typename F>
   void FilteredQueueWriter<T, F>::Push(const Source& value) {
+    {
+      auto lock = std::lock_guard(m_mutex);
+      if(m_exception) {
+        std::rethrow_exception(m_exception);
+      }
+    }
     if(!m_filter(value)) {
       return;
     }
@@ -74,6 +84,12 @@ namespace Beam {
 
   template<typename T, typename F>
   void FilteredQueueWriter<T, F>::Push(Source&& value) {
+    {
+      auto lock = std::lock_guard(m_mutex);
+      if(m_exception) {
+        std::rethrow_exception(m_exception);
+      }
+    }
     if(!m_filter(value)) {
       return;
     }
@@ -82,6 +98,13 @@ namespace Beam {
 
   template<typename T, typename F>
   void FilteredQueueWriter<T, F>::Break(const std::exception_ptr& e) {
+    {
+      auto lock = std::lock_guard(m_mutex);
+      if(m_exception) {
+        return;
+      }
+      m_exception = e;
+    }
     m_destination.Break(e);
   }
 }

@@ -93,7 +93,7 @@ namespace Beam {
           m_queues.push_back(std::move(queue));
         }
       });
-    return ScopedQueueWriter(queue);
+    return ScopedQueueWriter(std::move(queue));
   }
 
   inline void CallbackQueue::Push(const Source& value) {

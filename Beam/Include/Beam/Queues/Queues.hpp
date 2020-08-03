@@ -30,7 +30,7 @@ namespace Beam {
   template<typename K, typename V> class TaggedQueueReader;
   class TaskQueue;
   template<typename V, typename S> class ValueSnapshotPublisher;
-  template<typename T> class WeakQueue;
+  template<typename T> class WeakQueueWriter;
 }
 
 #endif

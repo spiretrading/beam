@@ -52,15 +52,6 @@ namespace Beam {
         m_queue.Break(e);                                                      \
       }                                                                        \
                                                                                \
-      bool IsAvailable() const override {                                      \
-        return m_queue.IsAvailable();                                          \
-      }                                                                        \
-                                                                               \
-      void SetAvailableToken(                                                  \
-          Threading::Waitable::AvailableToken& token) override {               \
-        m_queue.SetAvailableToken(token);                                      \
-      }                                                                        \
-                                                                               \
     private:                                                                   \
       Queue<boost::variant<BOOST_PP_ENUM_PARAMS(n, A)>> m_queue;               \
   };

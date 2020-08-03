@@ -14,7 +14,7 @@ namespace Beam {
    * @param <C> The type of function performing the conversion.
    */
   template<typename T, typename C>
-  class ConverterQueueWriter : public QueueWriter<S> {
+  class ConverterQueueWriter : public QueueWriter<T> {
     public:
       using Source = typename QueueWriter<T>::Source;
 

@@ -15,8 +15,7 @@
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SequencedValuePublisher.hpp"
 #include "Beam/Queues/ConverterQueueWriter.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Queues/WeakQueue.hpp"
+#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -178,7 +177,7 @@ namespace Queries {
       ServiceProtocolClientHandlerType, QueryServiceType, EndQueryMessageType>::
       SubmitQuery(const Query& query,
       const std::shared_ptr<QueueWriter<Value>>& queue) {
-    auto weakQueue = MakeWeakQueue(queue);
+    auto weakQueue = MakeWeakQueueWriter(queue);
     std::shared_ptr<QueueWriter<SequencedValue<Value>>> conversionQueue =
       MakeConverterQueueWriter<SequencedValue<Value>>(weakQueue,
       [] (auto&& value) {

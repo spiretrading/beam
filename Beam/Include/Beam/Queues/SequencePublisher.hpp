@@ -27,8 +27,9 @@ namespace Beam {
        * Constructs a SequencePublisher.
        * @param sequence Initializes the sequence.
        */
-      template<typename SF>
-      SequencePublisher(SF&& sequence);
+      template<typename SF, typename = std::enable_if_t<
+        !std::is_base_of_v<StatePublisher, std::decay_t<SF>>>>
+      explicit SequencePublisher(SF&& sequence);
 
       void WithSnapshot(const std::function<
         void (boost::optional<const Snapshot&>)>& f) const override;
@@ -55,7 +56,7 @@ namespace Beam {
   };
 
   template<typename T, typename S>
-  template<typename SF>
+  template<typename SF, typename>
   SequencePublisher<T, S>::SequencePublisher(SF&& sequence)
     : m_sequence(std::forward<SF>(sequence)) {}
 

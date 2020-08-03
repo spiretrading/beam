@@ -1,5 +1,6 @@
 #ifndef BEAM_STATE_PUBLISHER_HPP
 #define BEAM_STATE_PUBLISHER_HPP
+#include <type_traits>
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -26,8 +27,9 @@ namespace Beam {
        * Constructs a StatePublisher.
        * @param value The initial state of the value to publish.
        */
-      template<typename VF>
-      StatePublisher(VF&& value);
+      template<typename VF, typename = std::enable_if_t<
+        !std::is_base_of_v<StatePublisher, std::decay_t<VF>>>>
+      explicit StatePublisher(VF&& value);
 
       void WithSnapshot(const std::function<
         void (boost::optional<const Snapshot&>)>& f) const override;
@@ -54,7 +56,7 @@ namespace Beam {
   };
 
   template<typename T>
-  template<typename VF>
+  template<typename VF, typename>
   StatePublisher<T>::StatePublisher(VF&& value)
     : m_value(std::forward<VF>(value)) {}
 

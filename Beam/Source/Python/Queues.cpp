@@ -4,7 +4,7 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Python/SharedObject.hpp"
-#include "Beam/Queues/AliasQueue.hpp"
+#include "Beam/Queues/AliasQueueWriter.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -70,7 +70,7 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
             (*slot)(*object);
           }));
         return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
+          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
       })
     .def("get_slot",
       [] (RoutineTaskQueue& self, object slot, object breakSlot) {
@@ -86,7 +86,7 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
               (*breakSlot)(e);
             }));
         return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
+          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
       })
     .def("wait", &RoutineTaskQueue::Wait, call_guard<GilRelease>());
 }
@@ -100,7 +100,7 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
         auto queue = std::static_pointer_cast<QueueWriter<pybind11::object>>(
           self.GetSlot(std::move(slot)));
         return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
+          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
       })
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
@@ -108,7 +108,7 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
         auto queue = std::static_pointer_cast<QueueWriter<pybind11::object>>(
           self.GetSlot(std::move(slot), std::move(breakSlot)));
         return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueue(MakeToPythonQueueWriter(queue), queue)};
+          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
       });
   module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

@@ -34,12 +34,12 @@ namespace Beam {
       void WithSnapshot(const std::function<
         void (boost::optional<const Snapshot&>)>& f) const override;
 
-      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
+      void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
 
       void With(const std::function<void ()>& f) const override;
 
-      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const override;
+      void Monitor(ScopedQueueWriter<Type> monitor) const override;
 
       void Push(const Type& value) override;
 
@@ -68,7 +68,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void StatePublisher<T>::Monitor(std::shared_ptr<QueueWriter<Type>> queue,
+  void StatePublisher<T>::Monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_value;
@@ -82,11 +82,10 @@ namespace Beam {
   }
 
   template<typename T>
-  void StatePublisher<T>::Monitor(
-      std::shared_ptr<QueueWriter<Type>> queue) const {
+  void StatePublisher<T>::Monitor(ScopedQueueWriter<Type> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     if(m_value) {
-      queue->Push(*m_value);
+      queue.Push(*m_value);
     }
     m_queue.Monitor(queue);
   }

@@ -29,6 +29,9 @@ namespace Beam {
         !std::is_base_of_v<ScopedBaseQueue, std::decay_t<QF>>>>
       ScopedBaseQueue(QF&& queue);
 
+      template<typename U>
+      ScopedBaseQueue(ScopedBaseQueue<U>&& queue);
+
       ScopedBaseQueue(ScopedBaseQueue&& queue);
 
       ~ScopedBaseQueue() override;
@@ -37,9 +40,13 @@ namespace Beam {
 
       ScopedBaseQueue& operator =(ScopedBaseQueue&& queue);
 
+      template<typename U>
+      ScopedBaseQueue& operator =(ScopedBaseQueue<U>&& queue);
+
       using Beam::BaseQueue::Break;
 
     private:
+      template<typename> friend class ScopedBaseQueue;
       GetOptionalLocalPtr<Q> m_queue;
   };
 
@@ -51,6 +58,11 @@ namespace Beam {
   template<typename QF, typename>
   ScopedBaseQueue<Q>::ScopedBaseQueue(QF&& queue)
     : m_queue(std::forward<QF>(queue)) {}
+
+  template<typename Q>
+  template<typename U>
+  ScopedBaseQueue<Q>::ScopedBaseQueue(ScopedBaseQueue<U>&& queue)
+    : m_queue(std::move(queue.m_queue)) {}
 
   template<typename Q>
   ScopedBaseQueue<Q>::ScopedBaseQueue(ScopedBaseQueue&& queue)
@@ -72,6 +84,15 @@ namespace Beam {
 
   template<typename Q>
   ScopedBaseQueue<Q>& ScopedBaseQueue<Q>::operator =(ScopedBaseQueue&& queue) {
+    Break();
+    m_queue = std::move(queue.m_queue);
+    return *this;
+  }
+
+  template<typename Q>
+  template<typename U>
+  ScopedBaseQueue<Q>& ScopedBaseQueue<Q>::operator =(
+      ScopedBaseQueue<U>&& queue) {
     Break();
     m_queue = std::move(queue.m_queue);
     return *this;

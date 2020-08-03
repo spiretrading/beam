@@ -32,6 +32,9 @@ namespace Beam {
         !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>>>>
       ScopedQueueWriter(QF&& queue);
 
+      template<typename U>
+      ScopedQueueWriter(ScopedQueueWriter<Source, U>&& queue);
+
       ScopedQueueWriter(ScopedQueueWriter&& queue);
 
       ~ScopedQueueWriter() override;
@@ -44,9 +47,13 @@ namespace Beam {
 
       ScopedQueueWriter& operator =(ScopedQueueWriter&& queue);
 
+      template<typename U>
+      ScopedQueueWriter& operator =(ScopedQueueWriter<Source, U>&& queue);
+
      using Beam::QueueWriter<T>::Break;
 
     private:
+      template<typename, typename> friend class ScopedQueueWriter;
       GetOptionalLocalPtr<Q> m_queue;
   };
 
@@ -60,6 +67,12 @@ namespace Beam {
   template<typename QF, typename>
   ScopedQueueWriter<T, Q>::ScopedQueueWriter(QF&& queue)
     : m_queue(std::forward<QF>(queue)) {}
+
+  template<typename T, typename Q>
+  template<typename U>
+  ScopedQueueWriter<T, Q>::ScopedQueueWriter(
+    ScopedQueueWriter<Source, U>&& queue)
+    : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
   ScopedQueueWriter<T, Q>::ScopedQueueWriter(ScopedQueueWriter&& queue)
@@ -92,6 +105,15 @@ namespace Beam {
   template<typename T, typename Q>
   ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
       ScopedQueueWriter&& queue) {
+    Break();
+    m_queue = std::move(queue.m_queue);
+    return *this;
+  }
+
+  template<typename T, typename Q>
+  template<typename U>
+  ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
+      ScopedQueueWriter<Source, U>&& queue) {
     Break();
     m_queue = std::move(queue.m_queue);
     return *this;

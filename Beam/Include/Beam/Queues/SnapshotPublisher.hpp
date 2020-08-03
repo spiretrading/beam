@@ -42,7 +42,7 @@ namespace Beam {
        * @param monitor The monitor to publish updates to.
        * @param snapshot Where to store the current Snapshot.
        */
-      virtual void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
+      virtual void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const = 0;
 
       using Publisher<T>::Monitor;

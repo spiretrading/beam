@@ -4,6 +4,7 @@
 #include <memory>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Queues/Queues.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam {
 
@@ -37,8 +38,7 @@ namespace Beam {
        * Monitors updates to this Publisher.
        * @param monitor The monitor to publish updates to.
        */
-      virtual void Monitor(
-        std::shared_ptr<QueueWriter<Type>> monitor) const = 0;
+      virtual void Monitor(ScopedQueueWriter<Type> monitor) const = 0;
   };
 
   /**

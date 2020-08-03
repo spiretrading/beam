@@ -32,6 +32,9 @@ namespace Beam {
         !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>>>>
       ScopedQueueReader(QF&& queue);
 
+      template<typename U>
+      ScopedQueueReader(ScopedQueueReader<Target, U>&& queue);
+
       ScopedQueueReader(ScopedQueueReader&& queue);
 
       ~ScopedQueueReader() override;
@@ -43,6 +46,9 @@ namespace Beam {
       void Break(const std::exception_ptr& e) override;
 
       ScopedQueueReader& operator =(ScopedQueueReader&& queue);
+
+      template<typename U>
+      ScopedQueueReader& operator =(ScopedQueueReader<Target, U>&& queue);
 
       using Beam::QueueReader<T>::Break;
 
@@ -60,6 +66,12 @@ namespace Beam {
   template<typename QF, typename>
   ScopedQueueReader<T, Q>::ScopedQueueReader(QF&& queue)
     : m_queue(std::forward<QF>(queue)) {}
+
+  template<typename T, typename Q>
+  template<typename U>
+  ScopedQueueReader<T, Q>::ScopedQueueReader(
+    ScopedQueueReader<Target, U>&& queue)
+    : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
   ScopedQueueReader<T, Q>::ScopedQueueReader(ScopedQueueReader&& queue)
@@ -92,6 +104,15 @@ namespace Beam {
   template<typename T, typename Q>
   ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
       ScopedQueueReader&& queue) {
+    Break();
+    m_queue = std::move(queue.m_queue);
+    return *this;
+  }
+
+  template<typename T, typename Q>
+  template<typename U>
+  ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
+      ScopedQueueReader<Target, U>&& queue) {
     Break();
     m_queue = std::move(queue.m_queue);
     return *this;

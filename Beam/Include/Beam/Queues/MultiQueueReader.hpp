@@ -20,7 +20,7 @@ namespace Beam {
       MultiQueueReader() = default;
 
       /** Returns a QueueWriter for pushing values onto this queue. */
-      std::shared_ptr<QueueWriter<Target>> GetWriter();
+      auto GetWriter();
 
       bool IsEmpty() const override;
 
@@ -40,8 +40,7 @@ namespace Beam {
   };
 
   template<typename T>
-  std::shared_ptr<QueueWriter<typename MultiQueueReader<T>::Target>>
-      MultiQueueReader<T>::GetWriter() {
+  auto MultiQueueReader<T>::GetWriter() {
     return m_callbacks.GetSlot<Target>(
       [=] (const Target& value) {
         m_queue.Push(value);

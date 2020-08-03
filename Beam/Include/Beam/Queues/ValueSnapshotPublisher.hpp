@@ -26,9 +26,8 @@ namespace Beam {
        * @param snapshot The current Snapshot.
        * @param monitor The monitor to initialize.
        */
-      using InitializationFunction = std::function<
-        void (const Snapshot& snapshot,
-        const std::shared_ptr<QueueWriter<Type>>& monitor)>;
+      using InitializationFunction = std::function<void (
+        const Snapshot& snapshot, const ScopedQueueWriter<Type>& monitor)>;
 
       /**
        * The function called to update the Snapshot.
@@ -36,16 +35,16 @@ namespace Beam {
        * @param value The value pushed.
        * @return <code>true</code> iff the <i>value</i> should be published.
        */
-      using FilteredUpdateFunction = std::function<
-        bool (Snapshot& snapshot, const Type& value)>;
+      using FilteredUpdateFunction = std::function<bool (
+        Snapshot& snapshot, const Type& value)>;
 
       /**
        * The function called to update the Snapshot.
        * @param snapshot The current Snapshot.
        * @param value The value pushed.
        */
-      using UpdateFunction = std::function<
-        void (Snapshot& snapshot, const Type& value)>;
+      using UpdateFunction = std::function<void (
+        Snapshot& snapshot, const Type& value)>;
 
       /**
        * Constructs a ValueSnapshotPublisher.
@@ -71,12 +70,12 @@ namespace Beam {
       void WithSnapshot(const std::function<
         void (boost::optional<const Snapshot&>)>& f) const override;
 
-      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor,
+      void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
 
       void With(const std::function<void ()>& f) const override;
 
-      void Monitor(std::shared_ptr<QueueWriter<Type>> monitor) const override;
+      void Monitor(ScopedQueueWriter<Type> monitor) const override;
 
       void Push(const Type& value) override;
 
@@ -124,8 +123,7 @@ namespace Beam {
   }
 
   template<typename V, typename S>
-  void ValueSnapshotPublisher<V, S>::Monitor(
-      std::shared_ptr<QueueWriter<Type>> queue,
+  void ValueSnapshotPublisher<V, S>::Monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = *m_snapshot;
@@ -141,7 +139,7 @@ namespace Beam {
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Monitor(
-      std::shared_ptr<QueueWriter<Type>> queue) const {
+      ScopedQueueWriter<Type> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     m_initialize(*m_snapshot, queue);
     m_queue.Monitor(std::move(queue));

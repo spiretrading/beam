@@ -23,6 +23,16 @@ TEST_SUITE("ScopedBaseQueue") {
     REQUIRE(q.IsBroken());
   }
 
+  TEST_CASE("move_convert") {
+    auto q = std::make_shared<Queue<int>>();
+    auto s1 = ScopedQueueWriter(q);
+    auto s2 = ScopedQueueWriter<int, std::shared_ptr<QueueWriter<int>>>(
+      std::move(s1));
+    REQUIRE(!q->IsBroken());
+    s2.Push(123);
+    REQUIRE(q->Pop() == 123);
+  }
+
   TEST_CASE("assign") {
     auto q1 = std::make_shared<Queue<int>>();
     auto q2 = std::make_shared<Queue<int>>();

@@ -20,10 +20,10 @@ namespace Beam {
 
       /**
        * Constructs an AggregateQueueReader.
-       * @param sources The QueueReaders to aggregate.
+       * @param queues The QueueReaders to aggregate.
        */
       explicit AggregateQueueReader(
-        std::vector<std::shared_ptr<QueueReader<Target>>> sources);
+        std::vector<std::shared_ptr<QueueReader<Target>>> queues);
 
       ~AggregateQueueReader() override;
 
@@ -33,8 +33,10 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
+      using QueueReader<T>::Break;
+
     private:
-      std::vector<std::shared_ptr<QueueReader<T>>> m_sources;
+      std::vector<std::shared_ptr<QueueReader<T>>> m_queues;
       Queue<T> m_destination;
       std::atomic_int m_queueCount;
       Routines::RoutineHandlerGroup m_routines;
@@ -42,22 +44,26 @@ namespace Beam {
 
   template<typename T>
   AggregateQueueReader<T>::AggregateQueueReader(
-      std::vector<std::shared_ptr<QueueReader<Target>>> sources)
-      : m_sources(std::move(sources)),
-        m_queueCount(static_cast<int>(queues.size())) {
-    for(auto& source : m_sources) {
-      m_routines.Spawn(
-        [=] {
-          try {
-            while(true) {
-              m_destination.Push(source->Pop());
+      std::vector<std::shared_ptr<QueueReader<Target>>> queues)
+      : m_queues(std::move(queues)),
+        m_queueCount(static_cast<int>(m_queues.size())) {
+    if(m_queueCount == 0) {
+      Break();
+    } else {
+      for(auto& queue : m_queues) {
+        m_routines.Spawn(
+          [=] {
+            try {
+              while(true) {
+                m_destination.Push(queue->Pop());
+              }
+            } catch(const std::exception&) {
+              if(m_queueCount.fetch_sub(1) == 1) {
+                m_destination.Break();
+              }
             }
-          } catch(const std::exception&) {
-            if(m_queueCount.fetch_sub(1) == 1) {
-              m_destination.Break();
-            }
-          }
-        });
+          });
+      }
     }
   }
 
@@ -78,8 +84,8 @@ namespace Beam {
 
   template<typename T>
   void AggregateQueueReader<T>::Break(const std::exception_ptr& e) {
-    for(auto& source : m_sources) {
-      source->Break(e);
+    for(auto& queue : m_queues) {
+      queue->Break(e);
     }
     m_destination.Break(e);
   }

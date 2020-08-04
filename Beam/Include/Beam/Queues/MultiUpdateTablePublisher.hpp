@@ -54,9 +54,8 @@ namespace Beam {
        */
       void Push(const Key& key, const Value& value);
 
-      virtual void WithSnapshot(
-        const std::function<void (boost::optional<const Snapshot&>)>& f)
-        const = 0;
+      void WithSnapshot(const std::function<void (
+        boost::optional<const Snapshot&>)>& f) const override;
 
       void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;

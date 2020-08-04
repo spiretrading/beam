@@ -18,6 +18,11 @@ namespace Beam {
        * @param f The synchronized action to perform.
        */
       virtual void With(const std::function<void ()>& f) const = 0;
+
+    protected:
+
+      /** Constructs a BasePublisher. */
+      BasePublisher() = default;
   };
 
   /**
@@ -31,14 +36,16 @@ namespace Beam {
       /** The type of data published. */
       using Type = T;
 
-      /** Constructs a Publisher. */
-      Publisher() = default;
-
       /**
        * Monitors updates to this Publisher.
        * @param monitor The monitor to publish updates to.
        */
       virtual void Monitor(ScopedQueueWriter<Type> monitor) const = 0;
+
+    protected:
+
+      /** Constructs a Publisher. */
+      Publisher() = default;
   };
 
   /**

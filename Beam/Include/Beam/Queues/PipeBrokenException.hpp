@@ -18,7 +18,7 @@ namespace Beam {
        * Constructs a PipeBrokenException.
        * @param message A message describing the error.
        */
-      PipeBrokenException(const std::string& message);
+      explicit PipeBrokenException(const std::string& message);
   };
 
   inline PipeBrokenException::PipeBrokenException()

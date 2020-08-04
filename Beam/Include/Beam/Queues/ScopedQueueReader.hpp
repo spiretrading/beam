@@ -29,7 +29,9 @@ namespace Beam {
        * @param queue The QueueReader to manage.
        */
       template<typename QF, typename = std::enable_if_t<
-        !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>>>>
+        !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>> &&
+        std::is_same_v<typename GetTryDereferenceType<QF>::Target,
+        QueueReader::Target>>>
       ScopedQueueReader(QF&& queue);
 
       template<typename U>

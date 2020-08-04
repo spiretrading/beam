@@ -15,7 +15,6 @@
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SequencedValuePublisher.hpp"
 #include "Beam/Queues/ConverterQueueWriter.hpp"
-#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -134,7 +133,7 @@ namespace Queries {
       ScopedQueueWriter<SequencedValue<Value>> queue) {
     if(query.GetRange().GetEnd() == Sequence::Last()) {
       m_queryRoutines.Spawn(
-        [=, queue = std::move(queue)] {
+        [=, queue = std::move(queue)] () mutable {
           auto filter = Translate<EvaluatorTranslator>(query.GetFilter());
           auto publisher = std::make_shared<Publisher>(query, std::move(filter),
             std::move(queue));
@@ -155,7 +154,7 @@ namespace Queries {
         });
     } else {
       m_queryRoutines.Spawn(
-        [=, queue = std::move(queue)] {
+        [=, queue = std::move(queue)] () mutable {
           try {
             auto client = m_clientHandler->GetClient();
             auto queryResult = client->template SendRequest<QueryService>(

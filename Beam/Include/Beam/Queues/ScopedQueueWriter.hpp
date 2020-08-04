@@ -29,7 +29,9 @@ namespace Beam {
        * @param queue The QueueWriter to manage.
        */
       template<typename QF, typename = std::enable_if_t<
-        !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>>>>
+        !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>> &&
+        std::is_same_v<typename GetTryDereferenceType<QF>::Source,
+        QueueWriter::Source>>>
       ScopedQueueWriter(QF&& queue);
 
       template<typename U>

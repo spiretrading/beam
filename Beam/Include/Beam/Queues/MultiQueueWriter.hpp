@@ -7,7 +7,6 @@
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
@@ -23,8 +22,6 @@ namespace Beam {
 
       /** Constructs a MultiQueueWriter. */
       MultiQueueWriter() = default;
-
-      ~MultiQueueWriter() override;
 
       /** Returns the number of queues being monitored. */
       int GetSize() const;
@@ -46,11 +43,6 @@ namespace Beam {
       std::exception_ptr m_exception;
       mutable std::vector<ScopedQueueWriter<Source>> m_queues;
   };
-
-  template<typename T>
-  MultiQueueWriter<T>::~MultiQueueWriter() {
-    Break();
-  }
 
   template<typename T>
   int MultiQueueWriter<T>::GetSize() const {

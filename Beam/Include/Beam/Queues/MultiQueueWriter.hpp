@@ -26,6 +26,9 @@ namespace Beam {
       /** Returns the number of queues being monitored. */
       int GetSize() const;
 
+      template<typename F>
+      decltype(auto) With(F&& f) const;
+
       void With(const std::function<void ()>& f) const override;
 
       void Push(const Source& value) override;
@@ -48,6 +51,13 @@ namespace Beam {
   int MultiQueueWriter<T>::GetSize() const {
     auto lock = boost::lock_guard(m_mutex);
     return static_cast<int>(m_queues.size());
+  }
+
+  template<typename T>
+  template<typename F>
+  decltype(auto) MultiQueueWriter<T>::With(F&& f) const {
+    auto lock = boost::lock_guard(m_mutex);
+    return f();
   }
 
   template<typename T>

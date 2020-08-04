@@ -72,9 +72,9 @@ namespace Beam {
   auto MakeTaskConverterQueue(
       ScopedQueueWriter<std::invoke_result_t<C, const T&>> target, C&& task) {
     return MakeConverterWriterQueue(std::move(target),
-      [task = std::forward<C>(task)] (const auto& source) {
-        return [=] {
-          task(source);
+      [task = std::forward<C>(task)] (auto&& source) {
+        return [=, source = std::forward<decltype(source)>(source)] () mutable {
+          task(std::forward<decltype(source)>(source));
         };
       });
   }

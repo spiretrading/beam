@@ -7,8 +7,8 @@
 namespace Beam {
 
   /**
-   * Consolidates multiple QueueReaders together.
-   * @param <T> The type to read from the queue.
+   * Implements a multiple writer, single reader AbstractQueue.
+   * @param <T> The type to push and pop.
    */
   template<typename T>
   class MultiQueueReader final : public AbstractQueue<T> {
@@ -42,8 +42,8 @@ namespace Beam {
   template<typename T>
   auto MultiQueueReader<T>::GetWriter() {
     return m_callbacks.GetSlot<Target>(
-      [=] (const Target& value) {
-        m_queue.Push(value);
+      [=] (auto&& value) {
+        m_queue.Push(std::forward<decltype(value)>(value));
       });
   }
 

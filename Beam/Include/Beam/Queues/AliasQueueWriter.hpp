@@ -100,17 +100,17 @@ namespace Beam {
   std::shared_ptr<void> AliasQueueWriter<T>::GetAlias() {
     {
       auto lock = std::lock_guard(m_mutex);
+      if(!m_self) {
+        return nullptr;
+      }
       auto alias = m_alias.lock();
       if(alias) {
         return alias;
       }
-      if(!m_self) {
-        BOOST_THROW_EXCEPTION(PipeBrokenException());
-      }
       m_self.reset();
     }
     m_queue.Break();
-    BOOST_THROW_EXCEPTION(PipeBrokenException());
+    return nullptr;
   }
 
   template<typename T>

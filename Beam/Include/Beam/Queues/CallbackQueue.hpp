@@ -72,10 +72,11 @@ namespace Beam {
   template<typename T, typename F, typename B>
   auto CallbackQueue::GetSlot(F&& callback, B&& breakCallback) {
     auto queue = MakeCallbackQueueWriter<T>(
-      [=, callback = std::forward<F>(callback)] (const T& value) {
+      [=, callback = std::forward<F>(callback)] (auto&& value) {
         m_tasks.Add(
-          [=, callback = &callback] {
-            (*callback)(value);
+          [callback = &callback,
+              value = std::forward<decltype(value)>(value)] () mutable {
+            (*callback)(std::forward<decltype(value)>(value));
           });
       },
       [=, breakCallback = std::forward<B>(breakCallback)] (

@@ -35,9 +35,9 @@ namespace Beam {
        */
       auto GetSlot(Key key);
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& exception) override;
 
@@ -57,13 +57,14 @@ namespace Beam {
   }
 
   template<typename K, typename V>
-  bool TaggedQueueReader<K, V>::IsEmpty() const {
-    return m_values.IsEmpty();
+  typename TaggedQueueReader<K, V>::Target TaggedQueueReader<K, V>::Pop() {
+    return m_values.Pop();
   }
 
   template<typename K, typename V>
-  typename TaggedQueueReader<K, V>::Target TaggedQueueReader<K, V>::Pop() {
-    return m_values.Pop();
+  boost::optional<typename TaggedQueueReader<K, V>::Target>
+      TaggedQueueReader<K, V>::TryPop() {
+    return m_values.TryPop();
   }
 
   template<typename K, typename V>

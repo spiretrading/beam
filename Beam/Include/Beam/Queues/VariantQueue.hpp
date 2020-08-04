@@ -46,6 +46,10 @@ namespace Beam {
         return m_queue.Pop();                                                  \
       }                                                                        \
                                                                                \
+      boost::optional<Target> TryPop() override {                              \
+        return m_queue.TryPop();                                               \
+      }                                                                        \
+                                                                               \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PUSH, BOOST_PP_EMPTY);                   \
                                                                                \
       void Break(const std::exception_ptr& e) override {                       \

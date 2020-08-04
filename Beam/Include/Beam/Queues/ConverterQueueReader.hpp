@@ -38,9 +38,9 @@ namespace Beam {
       template<typename CF>
       ConverterQueueReader(ScopedQueueReader<T> source, CF&& converter);
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -75,14 +75,19 @@ namespace Beam {
       m_converter(std::forward<CF>(converter)) {}
 
   template<typename T, typename C>
-  bool ConverterQueueReader<T, C>::IsEmpty() const {
-    return m_source.IsEmpty();
-  }
-
-  template<typename T, typename C>
   typename ConverterQueueReader<T, C>::Target
       ConverterQueueReader<T, C>::Pop() {
     return m_converter(m_source.Pop());
+  }
+
+  template<typename T, typename C>
+  boost::optional<typename ConverterQueueReader<T, C>::Target>
+      ConverterQueueReader<T, C>::TryPop() {
+    auto v = m_source.TryPop();
+    if(v) {
+      return m_converter(std::move(*v));
+    }
+    return boost::none;
   }
 
   template<typename T, typename C>

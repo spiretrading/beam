@@ -22,7 +22,8 @@ TEST_SUITE("ConverterQueueReader") {
   TEST_CASE("break_on_destroy") {
     auto source = std::make_shared<Queue<int>>();
     {
-      auto converter = MakeConverterQueueReader(source, [] (auto) {});
+      auto converter = MakeConverterQueueReader(source,
+        [] (auto) { return false; });
     }
     REQUIRE(source->IsBroken());
   }

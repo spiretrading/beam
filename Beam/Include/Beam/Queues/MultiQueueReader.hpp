@@ -22,9 +22,9 @@ namespace Beam {
       /** Returns a QueueWriter for pushing values onto this queue. */
       auto GetWriter();
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -48,13 +48,14 @@ namespace Beam {
   }
 
   template<typename T>
-  bool MultiQueueReader<T>::IsEmpty() const {
-    return m_queue.IsEmpty();
+  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Pop()  {
+    return m_queue.Pop();
   }
 
   template<typename T>
-  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Pop()  {
-    return m_queue.Pop();
+  boost::optional<typename MultiQueueReader<T>::Target>
+      MultiQueueReader<T>::TryPop()  {
+    return m_queue.TryPop();
   }
 
   template<typename T>

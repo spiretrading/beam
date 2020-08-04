@@ -59,8 +59,9 @@ namespace IO {
       if(m_reader.IsDataAvailable()) {
         return true;
       }
-      if(!m_messages->IsEmpty()) {
-        m_reader = m_messages->Pop();
+      auto reader = m_messages->TryPop();
+      if(reader) {
+        m_reader = std::move(*reader);
       } else {
         return false;
       }

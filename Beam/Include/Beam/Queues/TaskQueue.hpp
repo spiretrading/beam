@@ -52,9 +52,9 @@ namespace Beam {
       auto GetSlot(const std::function<void (const T&)>& callback,
         const std::function<void (const std::exception_ptr&)>& breakCallback);
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Push(const Source& value) override;
 
@@ -107,8 +107,8 @@ namespace Beam {
    * @param tasks The TaskQueue to handle.
    */
   inline void HandleTasks(TaskQueue& tasks) {
-    while(!tasks.IsEmpty()) {
-      tasks.Pop()();
+    while(auto task = tasks.TryPop()) {
+      (*task)();
     }
   }
 
@@ -138,12 +138,12 @@ namespace Beam {
     return GetSlotHelper<T>(callback, breakCallback);
   }
 
-  inline bool TaskQueue::IsEmpty() const {
-    return m_tasks.IsEmpty();
-  }
-
   inline TaskQueue::Target TaskQueue::Pop() {
     return m_tasks.Pop();
+  }
+
+  inline boost::optional<TaskQueue::Target> TaskQueue::TryPop() {
+    return m_tasks.TryPop();
   }
 
   inline void TaskQueue::Push(const Source& value) {

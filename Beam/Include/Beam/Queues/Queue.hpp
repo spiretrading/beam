@@ -26,9 +26,9 @@ namespace Beam {
       /** Returns <code>true</code> iff this Queue is broken. */
       bool IsBroken() const;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Push(const Source& value) override;
 
@@ -54,12 +54,6 @@ namespace Beam {
   }
 
   template<typename T>
-  bool Queue<T>::IsEmpty() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return m_queue.empty();
-  }
-
-  template<typename T>
   typename Queue<T>::Target Queue<T>::Pop() {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
@@ -67,6 +61,17 @@ namespace Beam {
     }
     if(m_queue.empty()) {
       std::rethrow_exception(m_breakException);
+    }
+    auto value = std::move(m_queue.front());
+    m_queue.pop_front();
+    return value;
+  }
+
+  template<typename T>
+  boost::optional<typename Queue<T>::Target> Queue<T>::TryPop() {
+    auto lock = boost::lock_guard(m_mutex);
+    if(m_queue.empty()) {
+      return boost::none;
     }
     auto value = std::move(m_queue.front());
     m_queue.pop_front();

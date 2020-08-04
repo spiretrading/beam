@@ -55,10 +55,10 @@ TEST_SUITE("SequencedValuePublisher") {
     ExpectValue(*publisher->m_queue, helloValue);
     auto worldValue = SequencedValue(std::string("world"), Sequence(3));
     publisher->m_publisher.Push(worldValue);
-    REQUIRE(publisher->m_queue->IsEmpty());
+    REQUIRE(!publisher->m_queue->TryPop());
     auto goodbyeValue = SequencedValue(std::string("goodbye"), Sequence(2));
     publisher->m_publisher.Push(goodbyeValue);
-    REQUIRE(publisher->m_queue->IsEmpty());
+    REQUIRE(!publisher->m_queue->TryPop());
     auto skyValue = SequencedValue(std::string("goodbye"), Sequence(4));
     publisher->m_publisher.Push(skyValue);
     ExpectValue(*publisher->m_queue, skyValue);
@@ -73,10 +73,10 @@ TEST_SUITE("SequencedValuePublisher") {
     InitializeSnapshot(*publisher, snapshot);
     auto worldValue = SequencedValue(std::string("world"), Sequence(3));
     publisher->m_publisher.Push(worldValue);
-    REQUIRE(publisher->m_queue->IsEmpty());
+    REQUIRE(!publisher->m_queue->TryPop());
     auto goodbyeValue = SequencedValue(std::string("goodbye"), Sequence(2));
     publisher->m_publisher.Push(goodbyeValue);
-    REQUIRE(publisher->m_queue->IsEmpty());
+    REQUIRE(!publisher->m_queue->TryPop());
     auto skyValue = SequencedValue(std::string("goodbye"), Sequence(4));
     publisher->m_publisher.Push(skyValue);
     ExpectValue(*publisher->m_queue, skyValue);

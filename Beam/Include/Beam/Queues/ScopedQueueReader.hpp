@@ -41,9 +41,9 @@ namespace Beam {
 
       ~ScopedQueueReader() override;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -87,13 +87,14 @@ namespace Beam {
   }
 
   template<typename T, typename Q>
-  bool ScopedQueueReader<T, Q>::IsEmpty() const {
-    return m_queue->IsEmpty();
+  typename ScopedQueueReader<T, Q>::Target ScopedQueueReader<T, Q>::Pop() {
+    return m_queue->Pop();
   }
 
   template<typename T, typename Q>
-  typename ScopedQueueReader<T, Q>::Target ScopedQueueReader<T, Q>::Pop() {
-    return m_queue->Pop();
+  boost::optional<typename ScopedQueueReader<T, Q>::Target>
+      ScopedQueueReader<T, Q>::TryPop() {
+    return m_queue->TryPop();
   }
 
   template<typename T, typename Q>

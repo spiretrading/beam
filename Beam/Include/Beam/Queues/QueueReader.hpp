@@ -1,5 +1,6 @@
 #ifndef BEAM_QUEUE_READER_HPP
 #define BEAM_QUEUE_READER_HPP
+#include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -17,14 +18,17 @@ namespace Beam {
       /** The type being read. */
       using Target = T;
 
-      /** Returns <code>true</code> iff the Queue is empty. */
-      virtual bool IsEmpty() const = 0;
-
       /**
        * Returns the first value in the queue, blocking until a value is
        * available.
        */
       virtual Target Pop() = 0;
+
+      /**
+       * Returns the first value in the queue if one is available without
+       * blocking, otherwise returns <i>boost::none</i>.
+       */
+      virtual boost::optional<Target> TryPop() = 0;
   };
 
   /**

@@ -10,7 +10,7 @@ TEST_SUITE("MultiQueueReader") {
     reader.Break();
     REQUIRE_THROWS_AS(reader.Push(1), PipeBrokenException);
     REQUIRE_THROWS_AS(reader.Pop(), PipeBrokenException);
-    REQUIRE(reader.IsEmpty());
+    REQUIRE(!reader.TryPop());
   }
 
   TEST_CASE("single_writer") {
@@ -26,6 +26,6 @@ TEST_SUITE("MultiQueueReader") {
     reader.Break();
     REQUIRE_THROWS_AS(reader.Push(1), PipeBrokenException);
     REQUIRE_THROWS_AS(reader.Pop(), PipeBrokenException);
-    REQUIRE(reader.IsEmpty());
+    REQUIRE(!reader.TryPop());
   }
 }

@@ -112,9 +112,8 @@ namespace IO {
   template<typename BufferType>
   void LocalServerConnection<BufferType>::Close() {
     m_pendingChannels->Break(NotConnectedException());
-    while(!m_pendingChannels->IsEmpty()) {
-      PendingChannelEntry* entry = m_pendingChannels->Pop();
-      entry->m_result.SetException(ConnectException("Server unavailable."));
+    while(auto entry = m_pendingChannels->TryPop()) {
+      (*entry)->m_result.SetException(ConnectException("Server unavailable."));
     }
   }
 

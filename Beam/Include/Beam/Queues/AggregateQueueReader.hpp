@@ -28,9 +28,9 @@ namespace Beam {
 
       ~AggregateQueueReader() override;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -74,13 +74,14 @@ namespace Beam {
   }
 
   template<typename T>
-  bool AggregateQueueReader<T>::IsEmpty() const {
-    return m_destination.IsEmpty();
+  typename AggregateQueueReader<T>::Target AggregateQueueReader<T>::Pop() {
+    return m_destination.Pop();
   }
 
   template<typename T>
-  typename AggregateQueueReader<T>::Target AggregateQueueReader<T>::Pop() {
-    return m_destination.Pop();
+  boost::optional<typename AggregateQueueReader<T>::Target>
+      AggregateQueueReader<T>::TryPop() {
+    return m_destination.TryPop();
   }
 
   template<typename T>

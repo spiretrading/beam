@@ -1,6 +1,6 @@
 #ifndef BEAM_STATE_QUEUE_HPP
 #define BEAM_STATE_QUEUE_HPP
-#include <optional>
+#include <boost/optional/optional.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
@@ -22,9 +22,9 @@ namespace Beam {
       /** Constructs a StateQueue. */
       StateQueue() = default;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Push(const Source& value) override;
 
@@ -37,17 +37,11 @@ namespace Beam {
     private:
       mutable boost::mutex m_mutex;
       mutable Threading::ConditionVariable m_isAvailableCondition;
-      std::optional<Source> m_value;
+      boost::optional<Source> m_value;
       std::exception_ptr m_breakException;
 
       bool UnlockedIsAvailable() const;
   };
-
-  template<typename T>
-  bool StateQueue<T>::IsEmpty() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return !m_value;
-  }
 
   template<typename T>
   typename StateQueue<T>::Target StateQueue<T>::Pop() {
@@ -59,7 +53,18 @@ namespace Beam {
       std::rethrow_exception(m_breakException);
     }
     auto value = std::move(*m_value);
-    m_value = std::nullopt;
+    m_value = boost::none;
+    return value;
+  }
+
+  template<typename T>
+  boost::optional<typename StateQueue<T>::Target> StateQueue<T>::TryPop() {
+    auto lock = boost::lock_guard(m_mutex);
+    if(!m_value) {
+      return boost::none;
+    }
+    auto value = std::move(*m_value);
+    m_value = boost::none;
     return value;
   }
 

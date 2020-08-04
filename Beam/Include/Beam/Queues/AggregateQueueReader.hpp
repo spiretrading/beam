@@ -24,7 +24,7 @@ namespace Beam {
        * @param queues The QueueReaders to aggregate.
        */
       explicit AggregateQueueReader(
-        std::vector<ScopedQueueReader<Target>> queues);
+        std::vector<ScopedQueueReader<T>> queues);
 
       ~AggregateQueueReader() override;
 
@@ -45,7 +45,7 @@ namespace Beam {
 
   template<typename T>
   AggregateQueueReader<T>::AggregateQueueReader(
-      std::vector<ScopedQueueReader<Target>> queues)
+      std::vector<ScopedQueueReader<T>> queues)
       : m_queues(std::move(queues)),
         m_queueCount(static_cast<int>(m_queues.size())) {
     if(m_queueCount == 0) {

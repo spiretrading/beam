@@ -26,18 +26,6 @@ namespace Beam {
       /** Returns <code>true</code> iff this Queue is broken. */
       bool IsBroken() const;
 
-      /**
-       * Directly emplaces a value and pops it off the stack without blocking.
-       * @param value Stores the popped value.
-       */
-      bool TryEmplace(Out<Target> value);
-
-      /**
-       * Directly emplaces a value and pops it off the stack.
-       * @param value Stores the popped value.
-       */
-      void Emplace(Out<Target> value);
-
       bool IsEmpty() const override;
 
       Target Pop() override;
@@ -63,33 +51,6 @@ namespace Beam {
   bool Queue<T>::IsBroken() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_breakException != nullptr && m_queue.empty();
-  }
-
-  template<typename T>
-  bool Queue<T>::TryEmplace(Out<Target> value) {
-    auto lock = boost::unique_lock(m_mutex);
-    if(m_queue.empty()) {
-      if(m_breakException == nullptr) {
-        return false;
-      }
-      std::rethrow_exception(m_breakException);
-    }
-    *value = std::move(m_queue.front());
-    m_queue.pop_front();
-    return true;
-  }
-
-  template<typename T>
-  void Queue<T>::Emplace(Out<Target> value) {
-    auto lock = boost::unique_lock(m_mutex);
-    while(!UnlockedIsAvailable()) {
-      m_isAvailableCondition.wait(lock);
-    }
-    if(m_queue.empty()) {
-      std::rethrow_exception(m_breakException);
-    }
-    *value = std::move(m_queue.front());
-    m_queue.pop_front();
   }
 
   template<typename T>

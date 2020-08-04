@@ -52,12 +52,6 @@ namespace Beam {
       auto GetSlot(const std::function<void (const T&)>& callback,
         const std::function<void (const std::exception_ptr&)>& breakCallback);
 
-      /**
-       * Directly emplaces a value and pops it off the stack.
-       * @param value Stores the popped value.
-       */
-      void Emplace(Out<Target> value);
-
       bool IsEmpty() const override;
 
       Target Pop() override;
@@ -86,9 +80,7 @@ namespace Beam {
   void TaskLoop(TaskQueueType taskQueue) {
     try {
       while(true) {
-        auto task = std::function<void ()>();
-        taskQueue->Emplace(Store(task));
-        task();
+        taskQueue->Pop()();
       }
     } catch(const PipeBrokenException&) {
       return;
@@ -116,9 +108,7 @@ namespace Beam {
    */
   inline void HandleTasks(TaskQueue& tasks) {
     while(!tasks.IsEmpty()) {
-      auto task = std::function<void ()>();
-      tasks.Emplace(Store(task));
-      task();
+      tasks.Pop()();
     }
   }
 
@@ -146,10 +136,6 @@ namespace Beam {
       const std::function<void (const T&)>& callback,
       const std::function<void (const std::exception_ptr&)>& breakCallback) {
     return GetSlotHelper<T>(callback, breakCallback);
-  }
-
-  inline void TaskQueue::Emplace(Out<Source> value) {
-    m_tasks.Emplace(Store(value));
   }
 
   inline bool TaskQueue::IsEmpty() const {

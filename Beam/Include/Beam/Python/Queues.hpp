@@ -107,10 +107,11 @@ namespace Beam::Python {
     }
     pybind11::class_<Publisher<T>, std::shared_ptr<Publisher<T>>,
         BasePublisher>(module, name.c_str(), pybind11::multiple_inheritance())
-      .def("with", &Publisher<T>::With,
-        pybind11::call_guard<GilRelease>())
-      .def("monitor", &Publisher<T>::Monitor,
-        pybind11::call_guard<GilRelease>());
+      .def("with", &Publisher<T>::With, pybind11::call_guard<GilRelease>())
+      .def("monitor",
+        [] (Publisher<T>& self, std::shared_ptr<QueueWriter<T>> queue) {
+          return self.Monitor(std::move(queue));
+        }, pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -136,7 +137,7 @@ namespace Beam::Python {
             auto release = GilRelease();
             self.WithSnapshot(
               [&] (auto snapshot) {
-                if(snapshot.is_initialized()) {
+                if(snapshot) {
                   auto lock = GilLock();
                   object = pybind11::cast(*snapshot);
                 }
@@ -160,8 +161,8 @@ namespace Beam::Python {
     pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Source>>(
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
-      .def("is_broken", &T::IsBroken)
-      .def("pop", &T::Pop, pybind11::call_guard<GilRelease>());
+      .def("pop", &T::Pop, pybind11::call_guard<GilRelease>())
+      .def("try_pop", &T::TryPop);
   }
 
   /**
@@ -178,8 +179,8 @@ namespace Beam::Python {
     auto binding = pybind11::class_<T, TrampolineQueueReader<T>,
         std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
         pybind11::multiple_inheritance())
-      .def("is_empty", &T::IsEmpty)
-      .def("pop", &T::Pop);
+      .def("pop", &T::Pop)
+      .def("try_pop", &T::TryPop);
     if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
       binding.def(pybind11::init(
         [] (std::shared_ptr<QueueReader<pybind11::object>> queue) {

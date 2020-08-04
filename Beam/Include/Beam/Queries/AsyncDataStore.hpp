@@ -122,7 +122,7 @@ namespace Details {
        * @param dataStore Initializes the data store to buffer data to.
        */
       template<typename DS>
-      AsyncDataStore(DS&& dataStore);
+      explicit AsyncDataStore(DS&& dataStore);
 
       ~AsyncDataStore();
 

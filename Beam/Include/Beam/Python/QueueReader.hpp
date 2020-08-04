@@ -2,6 +2,7 @@
 #define BEAM_PYTHON_QUEUE_READER_HPP
 #include <pybind11/pybind11.h>
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/Optional.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 
 namespace Beam::Python {
@@ -15,12 +16,12 @@ namespace Beam::Python {
     using Target = typename T::Target;
     using T::T;
 
-    bool IsEmpty() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
-    }
-
     Target Pop() override {
       PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
+    }
+
+    boost::optional<Target> TryPop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "try_pop", TryPop);
     }
   };
 
@@ -45,9 +46,9 @@ namespace Beam::Python {
       //! Returns the QueueReader being wrapped.
       const std::shared_ptr<QueueReader<pybind11::object>>& GetSource() const;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -68,7 +69,7 @@ namespace Beam::Python {
   template<typename T>
   FromPythonQueueReader<T>::FromPythonQueueReader(
     std::shared_ptr<QueueReader<pybind11::object>> source)
-    : m_source{std::move(source)} {}
+    : m_source(std::move(source)) {}
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
@@ -83,20 +84,24 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  bool FromPythonQueueReader<T>::IsEmpty() const {
-    return m_source->IsEmpty();
+  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
+    auto value = m_source->TryPop();
+    if(!value) {
+      auto release = GilRelease();
+      value = m_source->Pop();
+    }
+    auto lock = GilLock();
+    return value->cast<Target>();
   }
 
   template<typename T>
-  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
-/** TODO
-    if(!IsAvailable()) {
-      auto release = GilRelease();
-      Threading::Wait(*m_source);
+  boost::optional<typename FromPythonQueueReader<T>::Target>
+      FromPythonQueueReader<T>::TryPop() {
+    if(auto value = m_source->TryPop()) {
+      auto lock = GilLock();
+      return value->cast<T>();
     }
-*/
-    auto lock = GilLock();
-    return m_source->Pop().cast<T>();
+    return boost::none;
   }
 
   template<typename T>

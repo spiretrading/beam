@@ -58,8 +58,7 @@ namespace Beam::ServiceLocator {
       void StorePassword(const DirectoryEntry& account,
         const std::string& password) override;
 
-      void MonitorAccounts(
-        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override;
+      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue) override;
 
       DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
         const std::string& path) override;
@@ -213,7 +212,7 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   void ToPythonServiceLocatorClient<C>::MonitorAccounts(
-      std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
+      ScopedQueueWriter<AccountUpdate> queue) {
     auto release = Python::GilRelease();
     m_client->MonitorAccounts(std::move(queue));
   }

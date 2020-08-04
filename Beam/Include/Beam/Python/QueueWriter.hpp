@@ -4,7 +4,7 @@
 #include <boost/throw_exception.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/GilLock.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam::Python {
 namespace Details {
@@ -114,10 +114,7 @@ namespace Details {
        * Constructs a ToPythonQueueWriter.
        * @param target The QueueWriter to wrap.
        */
-      ToPythonQueueWriter(std::shared_ptr<QueueWriter<Type>> target);
-
-      //! Returns the QueueWriter being wrapped.
-      const std::shared_ptr<QueueWriter<Type>>& GetTarget() const;
+      ToPythonQueueWriter(ScopedQueueWriter<Type> target);
 
       void Push(const Source& value) override;
 
@@ -126,7 +123,7 @@ namespace Details {
       void Break(const std::exception_ptr& e) override;
 
     private:
-      std::shared_ptr<QueueWriter<Type>> m_target;
+      ScopedQueueWriter<Type> m_target;
   };
 
   /**
@@ -134,7 +131,7 @@ namespace Details {
    * underlying QueueWriter's type.
    */
   template<typename T>
-  auto MakeToPythonQueueWriter(std::shared_ptr<QueueWriter<T>> target) {
+  auto MakeToPythonQueueWriter(ScopedQueueWriter<T> target) {
     return std::static_pointer_cast<QueueWriter<pybind11::object>>(
       std::make_shared<ToPythonQueueWriter<T>>(std::move(target)));
   }
@@ -203,29 +200,22 @@ namespace Details {
   }
 
   template<typename T>
-  ToPythonQueueWriter<T>::ToPythonQueueWriter(
-      std::shared_ptr<QueueWriter<Type>> target)
-      : m_target(std::move(target)) {}
-
-  template<typename T>
-  const std::shared_ptr<QueueWriter<typename ToPythonQueueWriter<T>::Type>>&
-      ToPythonQueueWriter<T>::GetTarget() const {
-    return m_target;
-  }
+  ToPythonQueueWriter<T>::ToPythonQueueWriter(ScopedQueueWriter<Type> target)
+    : m_target(std::move(target)) {}
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(const Source& value) {
-    m_target->Push(Details::Extractor<Type>()(value));
+    m_target.Push(Details::Extractor<Type>()(value));
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(Source&& value) {
-    m_target->Push(Details::Extractor<Type>()(value));
+    m_target.Push(Details::Extractor<Type>()(value));
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::Break(const std::exception_ptr& e) {
-    m_target->Break(e);
+    m_target.Break(e);
   }
 }
 

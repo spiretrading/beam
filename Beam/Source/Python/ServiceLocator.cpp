@@ -92,8 +92,7 @@ namespace {
         "store_password", StorePassword, account, password);
     }
 
-    void MonitorAccounts(
-        std::shared_ptr<QueueWriter<AccountUpdate>> queue) override {
+    void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
         "monitor_accounts", MonitorAccounts, std::move(queue));
     }
@@ -310,7 +309,11 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
     .def("make_account", &VirtualServiceLocatorClient::MakeAccount)
     .def("make_directory", &VirtualServiceLocatorClient::MakeDirectory)
     .def("store_password", &VirtualServiceLocatorClient::StorePassword)
-    .def("monitor_accounts", &VirtualServiceLocatorClient::MonitorAccounts)
+    .def("monitor_accounts",
+      [] (VirtualServiceLocatorClient& self,
+          std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
+        return self.MonitorAccounts(std::move(queue));
+      })
     .def("load_directory_entry",
       static_cast<DirectoryEntry (VirtualServiceLocatorClient::*)(
       const DirectoryEntry&, const std::string&)>(

@@ -44,13 +44,12 @@ void Beam::Python::ExportQueues(pybind11::module& module) {
     [] (QueueReader<object>& queue, list l) {
       try {
         while(true) {
-/** TODO
-          if(!queue.IsAvailable()) {
+          auto value = queue.TryPop();
+          if(!value) {
             auto release = GilRelease();
-            Threading::Wait(queue);
+            value = queue.Pop();
           }
-*/
-          l.append(queue.Pop());
+          l.append(std::move(value));
         }
       } catch(const PipeBrokenException&) {}
     });
@@ -63,30 +62,26 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
     .def(init())
     .def("get_slot",
       [] (RoutineTaskQueue& self, object slot) {
-        auto queue = std::static_pointer_cast<QueueWriter<SharedObject>>(
-          self.GetSlot<SharedObject>(
+        auto queue = self.GetSlot<SharedObject>(
           [slot = SharedObject(std::move(slot))](const SharedObject& object) {
             auto lock = GilLock();
             (*slot)(*object);
-          }));
-        return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
+          });
+        return MakeToPythonQueueWriter(std::move(queue));
       })
     .def("get_slot",
       [] (RoutineTaskQueue& self, object slot, object breakSlot) {
-        auto queue = std::static_pointer_cast<QueueWriter<SharedObject>>(
-          self.GetSlot<SharedObject>(
-            [slot = SharedObject(std::move(slot))](const SharedObject& object) {
-              auto lock = GilLock();
-              (*slot)(*object);
-            },
-            [breakSlot = SharedObject(std::move(breakSlot))](
-                const std::exception_ptr& e) {
-              auto lock = GilLock();
-              (*breakSlot)(e);
-            }));
-        return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
+        auto queue = self.GetSlot<SharedObject>(
+          [slot = SharedObject(std::move(slot))](const SharedObject& object) {
+            auto lock = GilLock();
+            (*slot)(*object);
+          },
+          [breakSlot = SharedObject(std::move(breakSlot))](
+              const std::exception_ptr& e) {
+            auto lock = GilLock();
+            (*breakSlot)(e);
+          });
+        return MakeToPythonQueueWriter(std::move(queue));
       })
     .def("wait", &RoutineTaskQueue::Wait, call_guard<GilRelease>());
 }
@@ -97,18 +92,14 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
     .def(init())
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot) {
-        auto queue = std::static_pointer_cast<QueueWriter<pybind11::object>>(
-          self.GetSlot(std::move(slot)));
-        return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
+        auto queue = self.GetSlot(std::move(slot));
+        return MakeToPythonQueueWriter(std::move(queue));
       })
     .def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
           std::function<void (const std::exception_ptr&)> breakSlot) {
-        auto queue = std::static_pointer_cast<QueueWriter<pybind11::object>>(
-          self.GetSlot(std::move(slot), std::move(breakSlot)));
-        return std::shared_ptr<QueueWriter<object>>{
-          MakeAliasQueueWriter(MakeToPythonQueueWriter(queue), queue)};
+        auto queue = self.GetSlot(std::move(slot), std::move(breakSlot));
+        return MakeToPythonQueueWriter(std::move(queue));
       });
   module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

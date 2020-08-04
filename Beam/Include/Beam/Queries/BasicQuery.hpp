@@ -11,8 +11,9 @@
 
 namespace Beam::Queries {
 
-  /** Composes various standard query types into a query with common and basic
-      functionality.
+  /**
+   * Composes various standard query types into a query with common and basic
+   * functionality.
    */
   template<typename T>
   class BasicQuery : public IndexedQuery<T>, public RangedQuery,
@@ -27,10 +28,10 @@ namespace Beam::Queries {
       friend struct Serialization::DataShuttle;
   };
 
-  //! Builds a BasicQuery that streams the most recent value produced.
-  /*!
-    \param index The index to query.
-  */
+  /**
+   * Builds a BasicQuery that streams the most recent value produced.
+   * @param index The index to query.
+   */
   template<typename Index>
   BasicQuery<Index> BuildCurrentQuery(Index index) {
     auto query = BasicQuery<Index>();
@@ -41,10 +42,10 @@ namespace Beam::Queries {
     return query;
   }
 
-  //! Builds a BasicQuery that retrives only the latest value and then breaks.
-  /*!
-    \param index The index to query.
-  */
+  /**
+   * Builds a BasicQuery that retrives only the latest value and then breaks.
+   * @param index The index to query.
+   */
   template<typename Index>
   BasicQuery<Index> BuildLatestQuery(Index index) {
     auto query = BasicQuery<Index>();
@@ -54,10 +55,10 @@ namespace Beam::Queries {
     return query;
   }
 
-  //! Builds a BasicQuery that streams real time values.
-  /*!
-    \param index The index to query.
-  */
+  /**
+   * Builds a BasicQuery that streams real time values.
+   * @param index The index to query.
+   */
   template<typename Index>
   BasicQuery<Index> BuildRealTimeQuery(Index index) {
     auto query = BasicQuery<Index>();

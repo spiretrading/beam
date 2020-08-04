@@ -17,22 +17,6 @@ namespace Beam::Python {
     using Target = typename T::Target;
     using Source = typename T::Source;
     using T::T;
-
-    bool IsEmpty() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(bool, T, "is_empty", IsEmpty);
-    }
-
-    Target Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
-    }
-
-    void Push(Source&& value) override {
-      Push(value);
-    }
-
-    void Push(const Source& value) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
-    }
   };
 
   /**
@@ -62,15 +46,17 @@ namespace Beam::Python {
       //! Returns the AbstractQueue being wrapped.
       const std::shared_ptr<AbstractQueue<pybind11::object>>& GetQueue() const;
 
-      bool IsEmpty() const override;
-
       Target Pop() override;
+
+      boost::optional<Target> TryPop() override;
 
       void Push(const Source& value) override;
 
       void Push(Source&& value) override;
 
       void Break(const std::exception_ptr& e) override;
+
+      using AbstractQueue<T>::Break;
 
     private:
       std::shared_ptr<AbstractQueue<pybind11::object>> m_queue;
@@ -114,14 +100,15 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  bool FromPythonAbstractQueue<T>::IsEmpty() const {
-    return m_reader->IsEmpty();
-  }
-
-  template<typename T>
   typename FromPythonAbstractQueue<T>::Target
       FromPythonAbstractQueue<T>::Pop() {
     return m_reader->Pop();
+  }
+
+  template<typename T>
+  boost::optional<typename FromPythonAbstractQueue<T>::Target>
+      FromPythonAbstractQueue<T>::TryPop() {
+    return m_reader->TryPop();
   }
 
   template<typename T>

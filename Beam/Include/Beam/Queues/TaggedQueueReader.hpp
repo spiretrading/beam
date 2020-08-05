@@ -51,7 +51,7 @@ namespace Beam {
   template<typename K, typename V>
   auto TaggedQueueReader<K, V>::GetSlot(Key key) {
     return m_callbacks.GetSlot<Value>(
-      [key = std::move(key)] (const Value& value) {
+      [=, key = std::move(key)] (const Value& value) {
         m_values.Push(KeyValuePair(key, value));
       });
   }

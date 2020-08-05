@@ -8,7 +8,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/Json/JsonObject.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"

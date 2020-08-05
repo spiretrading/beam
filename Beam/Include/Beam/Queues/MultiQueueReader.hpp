@@ -22,6 +22,10 @@ namespace Beam {
       /** Returns a QueueWriter for pushing values onto this queue. */
       auto GetWriter();
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -45,6 +49,17 @@ namespace Beam {
       [=] (auto&& value) {
         m_queue.Push(std::forward<decltype(value)>(value));
       });
+  }
+
+  template<typename T>
+  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Top() const {
+    return m_queue.Top();
+  }
+
+  template<typename T>
+  boost::optional<typename MultiQueueReader<T>::Target>
+      MultiQueueReader<T>::TryTop() const {
+    return m_queue.TryTop();
   }
 
   template<typename T>

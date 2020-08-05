@@ -28,6 +28,10 @@ namespace Beam {
 
       ~AggregateQueueReader() override;
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -71,6 +75,18 @@ namespace Beam {
   template<typename T>
   AggregateQueueReader<T>::~AggregateQueueReader() {
     Break();
+  }
+
+  template<typename T>
+  typename AggregateQueueReader<T>::Target
+      AggregateQueueReader<T>::Top() const {
+    return m_destination.Top();
+  }
+
+  template<typename T>
+  boost::optional<typename AggregateQueueReader<T>::Target>
+      AggregateQueueReader<T>::TryTop() const {
+    return m_destination.TryTop();
   }
 
   template<typename T>

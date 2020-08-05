@@ -26,6 +26,10 @@ namespace Beam {
       /** Returns <code>true</code> iff this Queue is broken. */
       bool IsBroken() const;
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -51,6 +55,27 @@ namespace Beam {
   bool Queue<T>::IsBroken() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_breakException != nullptr && m_queue.empty();
+  }
+
+  template<typename T>
+  typename Queue<T>::Target Queue<T>::Top() const {
+    auto lock = boost::unique_lock(m_mutex);
+    while(!UnlockedIsAvailable()) {
+      m_isAvailableCondition.wait(lock);
+    }
+    if(m_queue.empty()) {
+      std::rethrow_exception(m_breakException);
+    }
+    return m_queue.front();
+  }
+
+  template<typename T>
+  boost::optional<typename Queue<T>::Target> Queue<T>::TryTop() const {
+    auto lock = boost::lock_guard(m_mutex);
+    if(m_queue.empty()) {
+      return boost::none;
+    }
+    return m_queue.front();
   }
 
   template<typename T>

@@ -52,6 +52,10 @@ namespace Beam {
       auto GetSlot(const std::function<void (const T&)>& callback,
         const std::function<void (const std::exception_ptr&)>& breakCallback);
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -136,6 +140,14 @@ namespace Beam {
       const std::function<void (const T&)>& callback,
       const std::function<void (const std::exception_ptr&)>& breakCallback) {
     return GetSlotHelper<T>(callback, breakCallback);
+  }
+
+  inline TaskQueue::Target TaskQueue::Top() const {
+    return m_tasks.Top();
+  }
+
+  inline boost::optional<TaskQueue::Target> TaskQueue::TryTop() const {
+    return m_tasks.TryTop();
   }
 
   inline TaskQueue::Target TaskQueue::Pop() {

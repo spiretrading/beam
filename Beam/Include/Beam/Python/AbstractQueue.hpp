@@ -46,6 +46,10 @@ namespace Beam::Python {
       //! Returns the AbstractQueue being wrapped.
       const std::shared_ptr<AbstractQueue<pybind11::object>>& GetQueue() const;
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -97,6 +101,18 @@ namespace Beam::Python {
   const std::shared_ptr<AbstractQueue<pybind11::object>>&
       FromPythonAbstractQueue<T>::GetQueue() const {
     return m_queue;
+  }
+
+  template<typename T>
+  typename FromPythonAbstractQueue<T>::Target
+      FromPythonAbstractQueue<T>::Top() const {
+    return m_reader->Top();
+  }
+
+  template<typename T>
+  boost::optional<typename FromPythonAbstractQueue<T>::Target>
+      FromPythonAbstractQueue<T>::TryTop() const {
+    return m_reader->TryTop();
   }
 
   template<typename T>

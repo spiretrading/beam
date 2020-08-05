@@ -35,6 +35,10 @@ namespace Beam {
        */
       auto GetSlot(Key key);
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -54,6 +58,18 @@ namespace Beam {
       [key = std::move(key)] (const Value& value) {
         m_values.Push(KeyValuePair(key, value));
       });
+  }
+
+  template<typename K, typename V>
+  typename TaggedQueueReader<K, V>::Target
+      TaggedQueueReader<K, V>::Top() const {
+    return m_values.Top();
+  }
+
+  template<typename K, typename V>
+  boost::optional<typename TaggedQueueReader<K, V>::Target>
+      TaggedQueueReader<K, V>::TryTop() const {
+    return m_values.TryTop();
   }
 
   template<typename K, typename V>

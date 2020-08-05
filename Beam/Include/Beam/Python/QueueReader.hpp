@@ -16,12 +16,22 @@ namespace Beam::Python {
     using Target = typename T::Target;
     using T::T;
 
+    Target Top() const override {
+      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
+    }
+
+    boost::optional<Target> TryTop() const override {
+      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Target>, T, "try_top",
+        TryTop);
+    }
+
     Target Pop() override {
       PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
     }
 
     boost::optional<Target> TryPop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "try_pop", TryPop);
+      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Target>, T, "try_pop",
+        TryPop);
     }
   };
 
@@ -45,6 +55,10 @@ namespace Beam::Python {
 
       //! Returns the QueueReader being wrapped.
       const std::shared_ptr<QueueReader<pybind11::object>>& GetSource() const;
+
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
 
       Target Pop() override;
 
@@ -84,14 +98,42 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
-    auto value = m_source->TryPop();
-    if(!value) {
-      auto release = GilRelease();
-      value = m_source->Pop();
+  typename FromPythonQueueReader<T>::Target
+      FromPythonQueueReader<T>::Top() const {
+    if(auto value = TryTop()) {
+      return std::move(*value);
     }
+    auto value = [&] {
+      auto release = GilRelease();
+
+      // TODO This is a data race.
+      return m_source->Top();
+    }();
     auto lock = GilLock();
-    return value->cast<Target>();
+    return value.cast<Target>();
+  }
+
+  template<typename T>
+  boost::optional<typename FromPythonQueueReader<T>::Target>
+      FromPythonQueueReader<T>::TryTop() const {
+    if(auto value = m_source->TryTop()) {
+      auto lock = GilLock();
+      return value->cast<Target>();
+    }
+    return boost::none;
+  }
+
+  template<typename T>
+  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
+    if(auto value = TryPop()) {
+      return std::move(*value);
+    }
+    auto value = [&] {
+      auto release = GilRelease();
+      return m_source->Pop();
+    }();
+    auto lock = GilLock();
+    return value.cast<Target>();
   }
 
   template<typename T>
@@ -99,7 +141,7 @@ namespace Beam::Python {
       FromPythonQueueReader<T>::TryPop() {
     if(auto value = m_source->TryPop()) {
       auto lock = GilLock();
-      return value->cast<T>();
+      return value->cast<Target>();
     }
     return boost::none;
   }

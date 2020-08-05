@@ -38,8 +38,12 @@ namespace Beam {
                                                                                \
       VariantQueue() = default;                                                \
                                                                                \
-      bool IsEmpty() const override {                                          \
-        return m_queue.IsEmpty();                                              \
+      Target Top() const override {                                            \
+        return m_queue.Top();                                                  \
+      }                                                                        \
+                                                                               \
+      boost::optional<Target> TryTop() const override {                        \
+        return m_queue.TryTop();                                               \
       }                                                                        \
                                                                                \
       Target Pop() override {                                                  \

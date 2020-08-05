@@ -38,6 +38,10 @@ namespace Beam {
       template<typename CF>
       ConverterQueueReader(ScopedQueueReader<T> source, CF&& converter);
 
+      Target Top() const override;
+
+      boost::optional<Target> TryTop() const override;
+
       Target Pop() override;
 
       boost::optional<Target> TryPop() override;
@@ -73,6 +77,22 @@ namespace Beam {
     CF&& converter)
     : m_source(std::move(source)),
       m_converter(std::forward<CF>(converter)) {}
+
+  template<typename T, typename C>
+  typename ConverterQueueReader<T, C>::Target
+      ConverterQueueReader<T, C>::Top() const {
+    return m_converter(m_source.Top());
+  }
+
+  template<typename T, typename C>
+  boost::optional<typename ConverterQueueReader<T, C>::Target>
+      ConverterQueueReader<T, C>::TryTop() const {
+    auto v = m_source.TryTop();
+    if(v) {
+      return m_converter(std::move(*v));
+    }
+    return boost::none;
+  }
 
   template<typename T, typename C>
   typename ConverterQueueReader<T, C>::Target

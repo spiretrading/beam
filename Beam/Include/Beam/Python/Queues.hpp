@@ -161,6 +161,8 @@ namespace Beam::Python {
     pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Source>>(
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
+      .def("top", &T::Top, pybind11::call_guard<GilRelease>())
+      .def("try_top", &T::TryTop)
       .def("pop", &T::Pop, pybind11::call_guard<GilRelease>())
       .def("try_pop", &T::TryPop);
   }
@@ -179,6 +181,8 @@ namespace Beam::Python {
     auto binding = pybind11::class_<T, TrampolineQueueReader<T>,
         std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
         pybind11::multiple_inheritance())
+      .def("top", &T::Top, pybind11::call_guard<GilRelease>())
+      .def("try_top", &T::TryTop)
       .def("pop", &T::Pop)
       .def("try_pop", &T::TryPop);
     if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {

@@ -14,10 +14,10 @@ namespace Beam {
   struct KeyValuePair {
 
     /** The pair's key. */
-    using Key = KeyType;
+    using Key = K;
 
     /** The value associated with the key. */
-    using Value = ValueType;
+    using Value = V;
 
     /** The pair's key. */
     Key m_key;

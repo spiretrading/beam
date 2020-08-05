@@ -27,7 +27,7 @@ namespace Beam {
        * @param monitor The monitor to initialize.
        */
       using InitializationFunction = std::function<void (
-        const Snapshot& snapshot, const ScopedQueueWriter<Type>& monitor)>;
+        const Snapshot& snapshot, ScopedQueueWriter<Type>& monitor)>;
 
       /**
        * The function called to update the Snapshot.

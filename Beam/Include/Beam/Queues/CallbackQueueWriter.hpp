@@ -88,7 +88,7 @@ namespace Beam {
    */
   template<typename T, typename C>
   auto MakeCallbackQueueWriter(C&& callback) {
-    return MakeCallbackQueueWriter(std::forward<C>(callback),
+    return MakeCallbackQueueWriter<T>(std::forward<C>(callback),
       [] (const std::exception_ptr&) {});
   }
 

@@ -64,7 +64,11 @@ namespace Beam {
   void StatePublisher<T>::WithSnapshot(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
-    f(m_value);
+    if(m_value) {
+      f(*m_value);
+    } else {
+      f(boost::none);
+    }
   }
 
   template<typename T>
@@ -72,7 +76,7 @@ namespace Beam {
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_value;
-    m_queue.Monitor(queue);
+    m_queue.Monitor(std::move(queue));
   }
 
   template<typename T>
@@ -87,7 +91,7 @@ namespace Beam {
     if(m_value) {
       queue.Push(*m_value);
     }
-    m_queue.Monitor(queue);
+    m_queue.Monitor(std::move(queue));
   }
 
   template<typename T>

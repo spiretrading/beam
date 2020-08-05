@@ -41,8 +41,7 @@ namespace Beam {
   void FlushQueue(const Queue& queue, Iterator destination) {
     try {
       while(true) {
-        *destination = queue->Top();
-        queue->Pop();
+        *destination = queue->Pop();
         ++destination;
       }
     } catch(const std::exception&) {}
@@ -52,8 +51,7 @@ namespace Beam {
   void Monitor(const Queue& queue, F1&& valueCallback, F2&& breakCallback) {
     try {
       while(true) {
-        valueCallback(queue->Top());
-        queue->Pop();
+        valueCallback(queue->Pop());
       }
     } catch(const std::exception&) {
       breakCallback(std::current_exception());

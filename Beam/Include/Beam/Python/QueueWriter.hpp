@@ -14,8 +14,8 @@ namespace Details {
   template<typename T>
   struct Extractor<T, typename std::enable_if_t<
       std::is_constructible_v<T, pybind11::object>>> {
-    auto operator ()(const pybind11::object& value) {
-      return T(value);
+    auto operator ()(pybind11::object value) {
+      return T(std::move(value));
     }
   };
 
@@ -130,8 +130,8 @@ namespace Details {
    * Returns a QueueWriter that converts Python objects into objects of an
    * underlying QueueWriter's type.
    */
-  template<typename T>
-  auto MakeToPythonQueueWriter(ScopedQueueWriter<T> target) {
+  template<typename T, typename Q>
+  auto MakeToPythonQueueWriter(ScopedQueueWriter<T, Q> target) {
     return std::static_pointer_cast<QueueWriter<pybind11::object>>(
       std::make_shared<ToPythonQueueWriter<T>>(std::move(target)));
   }
@@ -210,7 +210,7 @@ namespace Details {
 
   template<typename T>
   void ToPythonQueueWriter<T>::Push(Source&& value) {
-    m_target.Push(Details::Extractor<Type>()(value));
+    m_target.Push(Details::Extractor<Type>()(std::move(value)));
   }
 
   template<typename T>

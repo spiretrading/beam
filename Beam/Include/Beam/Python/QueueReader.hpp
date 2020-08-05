@@ -110,7 +110,7 @@ namespace Beam::Python {
       return m_source->Top();
     }();
     auto lock = GilLock();
-    return value.cast<Target>();
+    return value.template cast<Target>();
   }
 
   template<typename T>
@@ -118,7 +118,7 @@ namespace Beam::Python {
       FromPythonQueueReader<T>::TryTop() const {
     if(auto value = m_source->TryTop()) {
       auto lock = GilLock();
-      return value->cast<Target>();
+      return value->template cast<Target>();
     }
     return boost::none;
   }
@@ -133,7 +133,7 @@ namespace Beam::Python {
       return m_source->Pop();
     }();
     auto lock = GilLock();
-    return value.cast<Target>();
+    return value.template cast<Target>();
   }
 
   template<typename T>
@@ -141,7 +141,7 @@ namespace Beam::Python {
       FromPythonQueueReader<T>::TryPop() {
     if(auto value = m_source->TryPop()) {
       auto lock = GilLock();
-      return value->cast<Target>();
+      return value->template cast<Target>();
     }
     return boost::none;
   }

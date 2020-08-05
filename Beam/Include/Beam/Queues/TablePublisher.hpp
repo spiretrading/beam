@@ -112,7 +112,7 @@ namespace Beam {
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_table;
-    m_queue.Monitor(queue);
+    m_queue.Monitor(std::move(queue));
   }
 
   template<typename K, typename V>
@@ -127,7 +127,7 @@ namespace Beam {
     for(auto& i : m_table) {
       queue.Push(Type{i.first, i.second});
     }
-    m_queue.Monitor(queue);
+    m_queue.Monitor(std::move(queue));
   }
 
   template<typename K, typename V>

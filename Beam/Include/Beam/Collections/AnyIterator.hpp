@@ -164,6 +164,9 @@ namespace Details {
   template<typename T>
   typename AnyIterator<T>::difference_type AnyIterator<T>::distance_to(
       const AnyIterator& other) const {
+    if(m_iterator == nullptr && other.m_iterator == nullptr) {
+      return 0;
+    }
     return m_iterator->DistanceTo(*other.m_iterator);
   }
 

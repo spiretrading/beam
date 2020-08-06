@@ -30,6 +30,16 @@ namespace Details {
     return boost::make_transform_iterator(std::forward<Iterator>(iterator),
       Details::Dereference<Iterator>());
   }
+
+  /**
+   * Makes a View that dereferences elements within a Collection.
+   * @param collection The Collection to create the dereferenced View over.
+   */
+  template<typename Collection>
+  auto MakeDereferenceView(Collection&& collection) {
+    return View(MakeDereferenceIterator(collection.begin()),
+      MakeDereferenceIterator(collection.end()));
+  }
 }
 
 #endif

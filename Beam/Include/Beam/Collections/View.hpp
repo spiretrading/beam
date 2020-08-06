@@ -5,21 +5,9 @@
 #include <type_traits>
 #include "Beam/Collections/AnyIterator.hpp"
 #include "Beam/Collections/Collections.hpp"
-#include "Beam/Collections/DereferenceIterator.hpp"
 #include "Beam/Collections/SharedIterator.hpp"
 
 namespace Beam {
-namespace Details {
-  template<typename Collection>
-  struct IteratorType {
-    using Iterator = decltype(std::declval<Collection>().begin());
-  };
-
-  template<typename Collection>
-  struct ViewType {
-    using type = View<typename IteratorType<Collection>::Iterator::value_type>;
-  };
-}
 
   /**
    * Provides a shallow view over a collection or pair of iterators.
@@ -46,6 +34,9 @@ namespace Details {
 
       /** A pointer to the type being viewed. */
       using pointer = typename iterator::pointer;
+
+      /** Constructs an empty View. */
+      View() = default;
 
       /**
        * Constructs a View from a collection.
@@ -132,6 +123,12 @@ namespace Details {
       iterator m_end;
   };
 
+  template<typename Collection>
+  View(Collection&&) -> View<decltype(*std::declval<Collection>().begin())>;
+
+  template<typename B, typename E>
+  View(B&&, E&&) -> View<decltype(*std::declval<B>())>;
+
   /**
    * Drops the last elements of a View.
    * @param view The View to drop elements from.
@@ -143,16 +140,6 @@ namespace Details {
     } else {
       return View(view.begin(), view.begin() + (view.size() - 1));
     }
-  }
-
-  /**
-   * Makes a View that dereferences elements within a Collection.
-   * @param collection The Collection to create the dereferenced View over.
-   */
-  template<typename Collection>
-  auto MakeDereferenceView(Collection&& collection) {
-    return View(MakeDereferenceIterator(collection.begin()),
-      MakeDereferenceIterator(collection.end()));
   }
 
   template<typename T>

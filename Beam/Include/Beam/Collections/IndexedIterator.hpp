@@ -81,6 +81,16 @@ namespace Beam {
       IndexedIteratorValue<I>& dereference() const;
   };
 
+  /**
+   * Makes a View that indexes over a collection.
+   * @param collection The Collection to index.
+   */
+  template<typename Collection>
+  auto MakeIndexedView(Collection&& collection) {
+    return View(IndexedIterator(collection.begin()),
+      IndexedIterator(collection.end()));
+  }
+
   template<typename I>
   IndexedIteratorValue<I>::IndexedIteratorValue()
     : m_index(-1) {}

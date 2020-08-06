@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <boost/throw_exception.hpp>
 #include <pybind11/pybind11.h>
+#include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 
@@ -136,6 +137,22 @@ namespace Details {
       std::make_shared<ToPythonQueueWriter<T>>(std::move(target)));
   }
 
+  /**
+   * Provides a caster from a std::shared_ptr<QueueWriter<T>> to a
+   * ScopedQueueWriter<T>.
+   */
+  template<typename T>
+  struct ScopedQueueWriterTypeCaster : BasicTypeCaster<T> {
+    using Type = T;
+    using Converter = pybind11::detail::make_caster<
+      std::shared_ptr<QueueWriter<typename Type::Source>>>;
+    static constexpr auto name = pybind11::detail::_("ScopedQueueWriter");
+    static pybind11::handle cast(Type value,
+      pybind11::return_value_policy policy, pybind11::handle parent);
+    bool load(pybind11::handle source, bool);
+    using BasicTypeCaster<T>::m_value;
+  };
+
   template<typename T>
   FromPythonQueueWriter<T>::FromPythonQueueWriter(
     std::shared_ptr<QueueWriter<pybind11::object>> target, Guard)
@@ -217,6 +234,34 @@ namespace Details {
   void ToPythonQueueWriter<T>::Break(const std::exception_ptr& e) {
     m_target.Break(e);
   }
+
+  template<typename T>
+  pybind11::handle ScopedQueueWriterTypeCaster<T>::cast(Type value,
+      pybind11::return_value_policy policy, pybind11::handle parent) {
+    policy = pybind11::detail::return_value_policy_override<
+      std::shared_ptr<QueueWriter<typename Type::Source>>>::policy(policy);
+    return Converter::cast(std::shared_ptr<QueueWriter<typename Type::Source>>(
+      std::make_shared<Type>(std::move(value))), policy, parent);
+  }
+
+  template<typename T>
+  bool ScopedQueueWriterTypeCaster<T>::load(pybind11::handle source,
+      bool convert) {
+    auto caster = Converter();
+    if(!caster.load(source, convert)) {
+      return false;
+    }
+    m_value.emplace(pybind11::detail::cast_op<
+      std::shared_ptr<QueueWriter<typename Type::Source>>&&>(
+      std::move(caster)));
+    return true;
+  }
+}
+
+namespace pybind11::detail {
+  template<typename T>
+  struct type_caster<Beam::ScopedQueueWriter<T>> :
+    Beam::Python::ScopedQueueWriterTypeCaster<Beam::ScopedQueueWriter<T>> {};
 }
 
 #endif

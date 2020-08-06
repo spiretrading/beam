@@ -2,12 +2,12 @@
 #define BEAM_WEBSERVICES_SESSIONSTORE_HPP
 #include <memory>
 #include <boost/noncopyable.hpp>
+#include "Beam/Collections/SynchronizedMap.hpp"
+#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
-#include "Beam/Utilities/SynchronizedMap.hpp"
-#include "Beam/Utilities/SynchronizedSet.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
 #include "Beam/WebServices/NullSessionDataStore.hpp"

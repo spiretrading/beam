@@ -309,11 +309,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
     .def("make_account", &VirtualServiceLocatorClient::MakeAccount)
     .def("make_directory", &VirtualServiceLocatorClient::MakeDirectory)
     .def("store_password", &VirtualServiceLocatorClient::StorePassword)
-    .def("monitor_accounts",
-      [] (VirtualServiceLocatorClient& self,
-          std::shared_ptr<QueueWriter<AccountUpdate>> queue) {
-        return self.MonitorAccounts(std::move(queue));
-      })
+    .def("monitor_accounts", &VirtualServiceLocatorClient::MonitorAccounts)
     .def("load_directory_entry",
       static_cast<DirectoryEntry (VirtualServiceLocatorClient::*)(
       const DirectoryEntry&, const std::string&)>(

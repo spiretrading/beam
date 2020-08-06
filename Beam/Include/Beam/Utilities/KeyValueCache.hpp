@@ -3,7 +3,7 @@
 #include <functional>
 #include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Utilities/SynchronizedMap.hpp"
+#include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {

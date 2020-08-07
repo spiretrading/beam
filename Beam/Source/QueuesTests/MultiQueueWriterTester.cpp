@@ -1,12 +1,12 @@
 #include <doctest/doctest.h>
-#include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
 
 using namespace Beam;
 
-TEST_SUITE("MultiQueueReader") {
+TEST_SUITE("MultiQueueWriter") {
   TEST_CASE("break_immediately") {
-    auto reader = MultiQueueReader<int>();
+    auto reader = MultiQueueWriter<int>();
     reader.Break();
     REQUIRE_THROWS_AS(reader.Push(1), PipeBrokenException);
     REQUIRE_THROWS_AS(reader.Pop(), PipeBrokenException);
@@ -14,7 +14,7 @@ TEST_SUITE("MultiQueueReader") {
   }
 
   TEST_CASE("single_writer") {
-    auto reader = MultiQueueReader<int>();
+    auto reader = MultiQueueWriter<int>();
     auto writer = reader.GetWriter();
     writer.Push(123);
     REQUIRE(reader.Pop() == 123);

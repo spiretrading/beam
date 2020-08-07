@@ -5,7 +5,7 @@
 #include <Aspen/Chain.hpp>
 #include <Aspen/Lift.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/FunctionObject.hpp"
@@ -22,7 +22,7 @@ namespace Details {
     Timer m_timer;
     boost::posix_time::time_duration m_period;
     Tick m_ticks;
-    std::shared_ptr<MultiQueueReader<Threading::Timer::Result>> m_expiryQueue;
+    std::shared_ptr<MultiQueueWriter<Threading::Timer::Result>> m_expiryQueue;
 
     template<typename TimerFactoryForward>
     TimerReactorCore(TimerFactoryForward&& timerFactory)
@@ -30,7 +30,7 @@ namespace Details {
         m_period(boost::posix_time::not_a_date_time),
         m_ticks(),
         m_expiryQueue(std::make_shared<
-          MultiQueueReader<Threading::Timer::Result>>()) {}
+          MultiQueueWriter<Threading::Timer::Result>>()) {}
 
     std::optional<Tick> operator ()(boost::posix_time::time_duration period,
         Threading::Timer::Result timerResult) {

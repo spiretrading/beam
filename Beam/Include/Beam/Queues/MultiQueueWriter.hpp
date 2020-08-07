@@ -1,5 +1,5 @@
-#ifndef BEAM_MULTI_QUEUE_READER_HPP
-#define BEAM_MULTI_QUEUE_READER_HPP
+#ifndef BEAM_MULTI_QUEUE_WRITER_HPP
+#define BEAM_MULTI_QUEUE_WRITER_HPP
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -11,13 +11,13 @@ namespace Beam {
    * @param <T> The type to push and pop.
    */
   template<typename T>
-  class MultiQueueReader final : public AbstractQueue<T> {
+  class MultiQueueWriter final : public AbstractQueue<T> {
     public:
       using Source = typename AbstractQueue<T>::Source;
       using Target = typename AbstractQueue<T>::Target;
 
-      /** Constructs a MultiQueueReader. */
-      MultiQueueReader() = default;
+      /** Constructs a MultiQueueWriter. */
+      MultiQueueWriter() = default;
 
       /** Returns a QueueWriter for pushing values onto this queue. */
       auto GetWriter();
@@ -44,7 +44,7 @@ namespace Beam {
   };
 
   template<typename T>
-  auto MultiQueueReader<T>::GetWriter() {
+  auto MultiQueueWriter<T>::GetWriter() {
     return m_callbacks.GetSlot<Target>(
       [=] (auto&& value) {
         m_queue.Push(std::forward<decltype(value)>(value));
@@ -52,40 +52,40 @@ namespace Beam {
   }
 
   template<typename T>
-  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Top() const {
+  typename MultiQueueWriter<T>::Target MultiQueueWriter<T>::Top() const {
     return m_queue.Top();
   }
 
   template<typename T>
-  boost::optional<typename MultiQueueReader<T>::Target>
-      MultiQueueReader<T>::TryTop() const {
+  boost::optional<typename MultiQueueWriter<T>::Target>
+      MultiQueueWriter<T>::TryTop() const {
     return m_queue.TryTop();
   }
 
   template<typename T>
-  typename MultiQueueReader<T>::Target MultiQueueReader<T>::Pop()  {
+  typename MultiQueueWriter<T>::Target MultiQueueWriter<T>::Pop()  {
     return m_queue.Pop();
   }
 
   template<typename T>
-  boost::optional<typename MultiQueueReader<T>::Target>
-      MultiQueueReader<T>::TryPop()  {
+  boost::optional<typename MultiQueueWriter<T>::Target>
+      MultiQueueWriter<T>::TryPop()  {
     return m_queue.TryPop();
   }
 
   template<typename T>
-  void MultiQueueReader<T>::Break(const std::exception_ptr& e) {
+  void MultiQueueWriter<T>::Break(const std::exception_ptr& e) {
     m_callbacks.Break(e);
     m_queue.Break(e);
   }
 
   template<typename T>
-  void MultiQueueReader<T>::Push(const Source& value) {
+  void MultiQueueWriter<T>::Push(const Source& value) {
     m_queue.Push(value);
   }
 
   template<typename T>
-  void MultiQueueReader<T>::Push(Source&& value) {
+  void MultiQueueWriter<T>::Push(Source&& value) {
     m_queue.Push(std::move(value));
   }
 }

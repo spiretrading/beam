@@ -8,7 +8,7 @@
 #include <Aspen/StateReactor.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/MultiQueueReader.hpp"
+#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/Functional.hpp"
@@ -24,7 +24,7 @@ namespace Details {
     GetOptionalLocalPtr<TimeClientType> m_timeClient;
     std::optional<GetOptionalLocalPtr<Timer>> m_timer;
     boost::posix_time::ptime m_expiry;
-    std::shared_ptr<MultiQueueReader<Threading::Timer::Result>> m_expiryQueue;
+    std::shared_ptr<MultiQueueWriter<Threading::Timer::Result>> m_expiryQueue;
 
     template<typename TimerFactoryForward, typename TimeClientForward>
     AlarmReactorCore(TimerFactoryForward&& timerFactory,
@@ -33,7 +33,7 @@ namespace Details {
         m_timeClient(std::forward<TimeClientForward>(timeClient)),
         m_expiry(boost::posix_time::not_a_date_time),
         m_expiryQueue(std::make_shared<
-          MultiQueueReader<Threading::Timer::Result>>()) {}
+          MultiQueueWriter<Threading::Timer::Result>>()) {}
 
     bool operator ()(const boost::posix_time::ptime& expiry,
         Aspen::State expiryState, Threading::Timer::Result timerResult) {

@@ -1,7 +1,7 @@
 #ifndef BEAM_SEQUENCE_PUBLISHER_HPP
 #define BEAM_SEQUENCE_PUBLISHER_HPP
 #include <vector>
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
@@ -53,7 +53,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       Snapshot m_sequence;
-      MultiQueueWriter<Type> m_queue;
+      QueueWriterPublisher<Type> m_queue;
   };
 
   /**

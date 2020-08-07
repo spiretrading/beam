@@ -1,7 +1,7 @@
 #ifndef BEAM_TRIGGERTIMER_HPP
 #define BEAM_TRIGGERTIMER_HPP
 #include <boost/noncopyable.hpp>
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Timer.hpp"
@@ -38,7 +38,7 @@ namespace Threading {
       mutable Mutex m_mutex;
       int m_state;
       Timer::Result m_result;
-      MultiQueueWriter<Timer::Result> m_publisher;
+      QueueWriterPublisher<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
 
       void Publish();

@@ -1,9 +1,9 @@
 #ifndef BEAM_QUEUE_READER_PUBLISHER_HPP
 #define BEAM_QUEUE_READER_PUBLISHER_HPP
 #include <atomic>
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/ScopedQueueReader.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
@@ -34,7 +34,7 @@ namespace Beam {
     private:
       std::atomic_bool m_isReading;
       ScopedQueueReader<T, Q> m_reader;
-      MultiQueueWriter<T> m_writer;
+      QueueWriterPublisher<T> m_writer;
       Routines::RoutineHandler m_routine;
 
       void Start();

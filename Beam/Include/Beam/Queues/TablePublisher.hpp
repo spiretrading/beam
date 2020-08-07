@@ -1,7 +1,7 @@
 #ifndef BEAM_TABLE_PUBLISHER_HPP
 #define BEAM_TABLE_PUBLISHER_HPP
 #include <unordered_map>
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -78,7 +78,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
-      MultiQueueWriter<Type> m_queue;
+      QueueWriterPublisher<Type> m_queue;
   };
 
   template<typename K, typename V>

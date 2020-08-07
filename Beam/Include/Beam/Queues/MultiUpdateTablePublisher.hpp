@@ -2,9 +2,9 @@
 #define BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
 #include <unordered_map>
 #include <vector>
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
@@ -71,7 +71,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
-      MultiQueueWriter<Type> m_queue;
+      QueueWriterPublisher<Type> m_queue;
   };
 
   template<typename K, typename V>

@@ -8,8 +8,8 @@
 #include "Beam/Python/QueueReader.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 
 namespace Beam::Python {
 
@@ -74,24 +74,6 @@ namespace Beam::Python {
         }));
       pybind11::implicitly_convertible<AbstractQueue<pybind11::object>, T>();
     }
-  }
-
-  /**
-   * Exports the generic MultiQueueWriter class.
-   * @param module The module to export to.
-   * @param prefix The prefix used when forming the type name.
-   */
-  template<typename T>
-  void ExportMultiQueueWriter(pybind11::module& module,
-      const std::string& prefix) {
-    auto name = prefix + "MultiQueueWriter";
-    if(pybind11::hasattr(module, name.c_str())) {
-      return;
-    }
-    pybind11::class_<T, std::shared_ptr<T>, QueueWriter<typename T::Source>,
-        Publisher<typename T::Source>>(module, name.c_str(),
-        pybind11::multiple_inheritance())
-      .def(pybind11::init());
   }
 
   /**
@@ -222,6 +204,24 @@ namespace Beam::Python {
   }
 
   /**
+   * Exports the generic QueueWriterPublisher class.
+   * @param module The module to export to.
+   * @param prefix The prefix used when forming the type name.
+   */
+  template<typename T>
+  void ExportQueueWriterPublisher(pybind11::module& module,
+      const std::string& prefix) {
+    auto name = prefix + "QueueWriterPublisher";
+    if(pybind11::hasattr(module, name.c_str())) {
+      return;
+    }
+    pybind11::class_<T, std::shared_ptr<T>, QueueWriter<typename T::Source>,
+        Publisher<typename T::Source>>(module, name.c_str(),
+        pybind11::multiple_inheritance())
+      .def(pybind11::init());
+  }
+
+  /**
    * Exports a suite of Queue and Publisher classes for a specific type.
    * @param module The module to export to.
    * @param prefix The prefix used when forming the type name.
@@ -233,7 +233,7 @@ namespace Beam::Python {
     ExportAbstractQueue<AbstractQueue<T>>(module, prefix);
     ExportQueue<Queue<T>>(module, prefix);
     ExportPublisher<T>(module, prefix);
-    ExportMultiQueueWriter<MultiQueueWriter<T>>(module, prefix);
+    ExportQueueWriterPublisher<QueueWriterPublisher<T>>(module, prefix);
   }
 }
 

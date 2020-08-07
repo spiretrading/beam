@@ -1,5 +1,5 @@
-#ifndef BEAM_MULTI_QUEUE_WRITER_HPP
-#define BEAM_MULTI_QUEUE_WRITER_HPP
+#ifndef BEAM_QUEUE_WRITER_PUBLISHER_HPP
+#define BEAM_QUEUE_WRITER_PUBLISHER_HPP
 #include <memory>
 #include <vector>
 #include <boost/thread/locks.hpp>
@@ -12,18 +12,19 @@
 namespace Beam {
 
   /**
-   * Used to write data to multiple Queues simultaneously.
-   * @param <T> The data to store in the Queue.
+   * Values pushed to this Publisher are pushed onto a series of QueuesWriters.
+   * @param <T> The data to publish.
    */
   template<typename T>
-  class MultiQueueWriter final : public QueueWriter<T>, public Publisher<T> {
+  class QueueWriterPublisher final : public QueueWriter<T>,
+      public Publisher<T> {
     public:
       using Source = typename QueueWriter<T>::Source;
 
-      /** Constructs a MultiQueueWriter. */
-      MultiQueueWriter() = default;
+      /** Constructs a QueueWriterPublisher. */
+      QueueWriterPublisher() = default;
 
-      /** Returns the number of queues being monitored. */
+      /** Returns the number of QueueWriters being monitored. */
       int GetSize() const;
 
       template<typename F>
@@ -48,26 +49,26 @@ namespace Beam {
   };
 
   template<typename T>
-  int MultiQueueWriter<T>::GetSize() const {
+  int QueueWriterPublisher<T>::GetSize() const {
     auto lock = boost::lock_guard(m_mutex);
     return static_cast<int>(m_queues.size());
   }
 
   template<typename T>
   template<typename F>
-  decltype(auto) MultiQueueWriter<T>::With(F&& f) const {
+  decltype(auto) QueueWriterPublisher<T>::With(F&& f) const {
     auto lock = boost::lock_guard(m_mutex);
     return f();
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::With(const std::function<void ()>& f) const {
+  void QueueWriterPublisher<T>::With(const std::function<void ()>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f();
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(const Source& value) {
+  void QueueWriterPublisher<T>::Push(const Source& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_queues.erase(std::remove_if(m_queues.begin(), m_queues.end(),
       [&] (auto& queue) {
@@ -81,12 +82,12 @@ namespace Beam {
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(Source&& value) {
+  void QueueWriterPublisher<T>::Push(Source&& value) {
     Push(static_cast<const Source&>(value));
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Break(const std::exception_ptr& e) {
+  void QueueWriterPublisher<T>::Break(const std::exception_ptr& e) {
     auto lock = boost::lock_guard(m_mutex);
     m_exception = e;
     for(auto& queue : m_queues) {
@@ -96,7 +97,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Monitor(ScopedQueueWriter<Source> queue) const {
+  void QueueWriterPublisher<T>::Monitor(ScopedQueueWriter<Source> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     if(m_exception) {
       queue.Break(m_exception);

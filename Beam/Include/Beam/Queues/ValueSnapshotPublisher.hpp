@@ -1,9 +1,9 @@
 #ifndef BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
 #define BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 
@@ -90,7 +90,7 @@ namespace Beam {
       InitializationFunction m_initialize;
       FilteredUpdateFunction m_update;
       LocalPtr<Snapshot> m_snapshot;
-      MultiQueueWriter<Type> m_queue;
+      QueueWriterPublisher<Type> m_queue;
   };
 
   template<typename V, typename S>

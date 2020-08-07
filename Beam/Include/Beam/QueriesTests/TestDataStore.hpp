@@ -8,8 +8,8 @@
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/QueriesTests/QueriesTests.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/QueueReader.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Routines/Async.hpp"
 
 namespace Beam::Queries::Tests {
@@ -90,7 +90,7 @@ namespace Beam::Queries::Tests {
 
     private:
       IO::OpenState m_openState;
-      MultiQueueWriter<std::shared_ptr<Operation>> m_operationPublisher;
+      QueueWriterPublisher<std::shared_ptr<Operation>> m_operationPublisher;
 
       void Shutdown();
   };

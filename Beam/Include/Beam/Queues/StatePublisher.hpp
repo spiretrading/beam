@@ -1,7 +1,7 @@
 #ifndef BEAM_STATE_PUBLISHER_HPP
 #define BEAM_STATE_PUBLISHER_HPP
 #include <type_traits>
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -52,7 +52,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       boost::optional<Type> m_value;
-      MultiQueueWriter<Type> m_queue;
+      QueueWriterPublisher<Type> m_queue;
   };
 
   template<typename T>

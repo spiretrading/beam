@@ -12,7 +12,7 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
@@ -254,7 +254,7 @@ namespace Beam::ServiceLocator {
       std::string m_sessionId;
       DirectoryEntry m_account;
       std::vector<DirectoryEntry> m_accountUpdateSnapshot;
-      MultiQueueWriter<AccountUpdate> m_accountUpdatePublisher;
+      QueueWriterPublisher<AccountUpdate> m_accountUpdatePublisher;
       RoutineTaskQueue m_tasks;
       IO::OpenState m_openState;
 

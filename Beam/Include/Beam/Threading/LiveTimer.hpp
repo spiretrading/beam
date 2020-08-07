@@ -4,7 +4,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Timer.hpp"
@@ -43,7 +43,7 @@ namespace Threading {
       boost::posix_time::time_duration m_interval;
       boost::asio::deadline_timer m_deadLineTimer;
       bool m_isPending;
-      MultiQueueWriter<Timer::Result> m_publisher;
+      QueueWriterPublisher<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
   };
 

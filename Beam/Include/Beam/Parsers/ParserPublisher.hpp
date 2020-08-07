@@ -7,8 +7,8 @@
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/Traits.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Queues/Publisher.hpp"
+#include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 
@@ -62,7 +62,7 @@ namespace Beam::Parsers {
       GetOptionalLocalPtr<R> m_reader;
       Parser m_parser;
       ParserErrorPolicy m_errorPolicy;
-      MultiQueueWriter<Source> m_publisher;
+      QueueWriterPublisher<Source> m_publisher;
       mutable std::atomic_bool m_isParsing;
       mutable Routines::RoutineHandler m_parseLoop;
 

@@ -11,7 +11,7 @@
 namespace Beam {
 
   /**
-   * Wraps a QueueWriter using a weak pointer.
+   * Wraps a shared_ptr<QueueWriter<T>> using a weak pointer.
    * @param <T> The data to push onto the QueueWriter.
    */
   template<typename T>

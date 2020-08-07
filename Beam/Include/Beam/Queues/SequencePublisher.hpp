@@ -5,6 +5,7 @@
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
+#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
@@ -54,6 +55,26 @@ namespace Beam {
       Snapshot m_sequence;
       MultiQueueWriter<Type> m_queue;
   };
+
+  /**
+   * Makes a SequencePublisher that publishes monitored values.
+   * @param publisher The publisher to monitor.
+   * @return A SequencePublisher that publishes all monitored values from the
+   *         the specified <i>publisher</i>.
+   */
+  template<typename PF>
+  auto MakeSequencePublisherAdaptor(PF&& publisher) {
+    using Publisher = std::remove_reference_t<PF>;
+    using Type = typename GetTryDereferenceType<Publisher>::Type;
+    auto holder = std::make_shared<std::tuple<SequencePublisher<Type>,
+      boost::optional<Publisher>>>();
+    std::get<1>(*holder).emplace(std::forward<PF>(publisher));
+    auto sequencePublisher = std::shared_ptr<SequencePublisher<Type>>(holder,
+      &std::get<0>(*holder));
+    (*std::get<1>(*holder))->Monitor(MakeWeakQueueWriter(
+      std::static_pointer_cast<QueueWriter<Type>>(sequencePublisher)));
+    return sequencePublisher;
+  }
 
   template<typename T, typename S>
   template<typename SF, typename>

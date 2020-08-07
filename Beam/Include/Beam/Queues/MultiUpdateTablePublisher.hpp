@@ -71,7 +71,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
-      QueueWriterPublisher<Type> m_queue;
+      QueueWriterPublisher<Type> m_publisher;
   };
 
   template<typename K, typename V>
@@ -107,7 +107,7 @@ namespace Beam {
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_table;
-    m_queue.Monitor(std::move(queue));
+    m_publisher.Monitor(std::move(queue));
   }
 
   template<typename K, typename V>
@@ -128,7 +128,7 @@ namespace Beam {
       }
       queue.Push(std::move(update));
     }
-    m_queue.Monitor(std::move(queue));
+    m_publisher.Monitor(std::move(queue));
   }
 
   template<typename K, typename V>
@@ -140,13 +140,13 @@ namespace Beam {
     for(auto& i : value) {
       m_table[i.m_key] = i.m_value;
     }
-    m_queue.Push(value);
+    m_publisher.Push(value);
   }
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Break(const std::exception_ptr& e) {
     auto lock = boost::lock_guard(m_mutex);
-    m_queue.Break(e);
+    m_publisher.Break(e);
   }
 }
 

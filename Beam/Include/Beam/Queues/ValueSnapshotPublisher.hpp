@@ -90,7 +90,7 @@ namespace Beam {
       InitializationFunction m_initialize;
       FilteredUpdateFunction m_update;
       LocalPtr<Snapshot> m_snapshot;
-      QueueWriterPublisher<Type> m_queue;
+      QueueWriterPublisher<Type> m_publisher;
   };
 
   template<typename V, typename S>
@@ -127,7 +127,7 @@ namespace Beam {
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = *m_snapshot;
-    m_queue.Monitor(std::move(queue));
+    m_publisher.Monitor(std::move(queue));
   }
 
   template<typename V, typename S>
@@ -142,7 +142,7 @@ namespace Beam {
       ScopedQueueWriter<Type> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     m_initialize(*m_snapshot, queue);
-    m_queue.Monitor(std::move(queue));
+    m_publisher.Monitor(std::move(queue));
   }
 
   template<typename V, typename S>
@@ -151,7 +151,7 @@ namespace Beam {
     if(!m_update(*m_snapshot, value)) {
       return;
     }
-    m_queue.Push(value);
+    m_publisher.Push(value);
   }
 
   template<typename V, typename S>
@@ -160,13 +160,13 @@ namespace Beam {
     if(!m_update(*m_snapshot, value)) {
       return;
     }
-    m_queue.Push(std::move(value));
+    m_publisher.Push(std::move(value));
   }
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Break(const std::exception_ptr& e) {
     auto lock = boost::lock_guard(m_mutex);
-    m_queue.Break(e);
+    m_publisher.Break(e);
   }
 }
 

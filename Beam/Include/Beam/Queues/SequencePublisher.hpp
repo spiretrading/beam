@@ -53,7 +53,7 @@ namespace Beam {
     private:
       mutable Threading::RecursiveMutex m_mutex;
       Snapshot m_sequence;
-      QueueWriterPublisher<Type> m_queue;
+      QueueWriterPublisher<Type> m_publisher;
   };
 
   /**
@@ -93,7 +93,7 @@ namespace Beam {
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_sequence;
-    m_queue.Monitor(std::move(monitor));
+    m_publisher.Monitor(std::move(monitor));
   }
 
   template<typename T, typename S>
@@ -108,27 +108,27 @@ namespace Beam {
     for(auto& i : m_sequence) {
       queue.Push(i);
     }
-    m_queue.Monitor(std::move(queue));
+    m_publisher.Monitor(std::move(queue));
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(const Type& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_sequence.push_back(value);
-    m_queue.Push(value);
+    m_publisher.Push(value);
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(Type&& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_sequence.push_back(value);
-    m_queue.Push(std::move(value));
+    m_publisher.Push(std::move(value));
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Break(const std::exception_ptr& e) {
     auto lock = boost::lock_guard(m_mutex);
-    m_queue.Break(e);
+    m_publisher.Break(e);
   }
 }
 

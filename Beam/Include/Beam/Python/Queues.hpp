@@ -90,10 +90,8 @@ namespace Beam::Python {
     pybind11::class_<Publisher<T>, std::shared_ptr<Publisher<T>>,
         BasePublisher>(module, name.c_str(), pybind11::multiple_inheritance())
       .def("with", &Publisher<T>::With, pybind11::call_guard<GilRelease>())
-      .def("monitor",
-        [] (Publisher<T>& self, std::shared_ptr<QueueWriter<T>> queue) {
-          return self.Monitor(std::move(queue));
-        }, pybind11::call_guard<GilRelease>());
+      .def("monitor", &Publisher<T>::Monitor,
+        pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -218,7 +216,8 @@ namespace Beam::Python {
     pybind11::class_<T, std::shared_ptr<T>, QueueWriter<typename T::Target>,
         Publisher<typename T::Target>>(module, name.c_str(),
         pybind11::multiple_inheritance())
-      .def(pybind11::init());
+      .def(pybind11::init())
+      .def("__len__", &T::GetSize);
   }
 
   /**

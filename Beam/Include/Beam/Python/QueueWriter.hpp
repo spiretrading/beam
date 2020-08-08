@@ -6,6 +6,7 @@
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
+#include "Beam/Queues/WeakQueueWriter.hpp"
 
 namespace Beam::Python {
 namespace Details {
@@ -251,9 +252,9 @@ namespace Details {
     if(!caster.load(source, convert)) {
       return false;
     }
-    m_value.emplace(pybind11::detail::cast_op<
+    m_value.emplace(MakeWeakQueueWriter(pybind11::detail::cast_op<
       std::shared_ptr<QueueWriter<typename Type::Target>>&&>(
-      std::move(caster)));
+      std::move(caster))));
     return true;
   }
 }

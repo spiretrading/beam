@@ -33,24 +33,24 @@ namespace Beam {
       BOOST_PP_REPEAT(n, BEAM_INHERIT_QUEUE, BOOST_PP_EMPTY),                  \
       public QueueReader<boost::variant<BOOST_PP_ENUM_PARAMS(n, A)>> {         \
     public:                                                                    \
-      using Target = typename QueueReader<                                     \
-        boost::variant<BOOST_PP_ENUM_PARAMS(n, A)>>::Target;                   \
+      using Source = typename QueueReader<                                     \
+        boost::variant<BOOST_PP_ENUM_PARAMS(n, A)>>::Source;                   \
                                                                                \
       VariantQueue() = default;                                                \
                                                                                \
-      Target Top() const override {                                            \
+      Source Top() const override {                                            \
         return m_queue.Top();                                                  \
       }                                                                        \
                                                                                \
-      boost::optional<Target> TryTop() const override {                        \
+      boost::optional<Source> TryTop() const override {                        \
         return m_queue.TryTop();                                               \
       }                                                                        \
                                                                                \
-      Target Pop() override {                                                  \
+      Source Pop() override {                                                  \
         return m_queue.Pop();                                                  \
       }                                                                        \
                                                                                \
-      boost::optional<Target> TryPop() override {                              \
+      boost::optional<Source> TryPop() override {                              \
         return m_queue.TryPop();                                               \
       }                                                                        \
                                                                                \

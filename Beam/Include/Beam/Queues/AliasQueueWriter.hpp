@@ -20,19 +20,19 @@ namespace Beam {
       struct Guard {};
 
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /**
        * Constructs an AliasQueueWriter, for internal use only.
        * @param queue The QueueWriter to wrap.
        * @param alias The object whose lifetime is managing <i>queue</i>.
        */
-      AliasQueueWriter(ScopedQueueWriter<Source> queue,
+      AliasQueueWriter(ScopedQueueWriter<Target> queue,
         std::shared_ptr<void> alias, Guard);
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -43,7 +43,7 @@ namespace Beam {
       friend auto MakeAliasQueueWriter(QueueWriter&&, std::shared_ptr<void>);
       mutable boost::mutex m_mutex;
       std::shared_ptr<void> m_self;
-      ScopedQueueWriter<Source> m_queue;
+      ScopedQueueWriter<Target> m_queue;
       std::weak_ptr<void> m_alias;
 
       std::shared_ptr<void> GetAlias();
@@ -57,28 +57,28 @@ namespace Beam {
    */
   template<typename QueueWriter>
   auto MakeAliasQueueWriter(QueueWriter&& queue, std::shared_ptr<void> alias) {
-    using Source = typename GetTryDereferenceType<QueueWriter>::Source;
-    auto aliasQueue = std::make_shared<AliasQueueWriter<Source>>(
+    using Target = typename GetTryDereferenceType<QueueWriter>::Target;
+    auto aliasQueue = std::make_shared<AliasQueueWriter<Target>>(
       std::forward<QueueWriter>(queue), std::move(alias),
-      typename AliasQueueWriter<Source>::Guard());
+      typename AliasQueueWriter<Target>::Guard());
     aliasQueue->Bind(aliasQueue);
     return aliasQueue;
   }
 
   template<typename T>
-  AliasQueueWriter<T>::AliasQueueWriter(ScopedQueueWriter<Source> queue,
+  AliasQueueWriter<T>::AliasQueueWriter(ScopedQueueWriter<Target> queue,
     std::shared_ptr<void> alias, Guard)
     : m_queue(std::move(queue)),
       m_alias(std::move(alias)) {}
 
   template<typename T>
-  void AliasQueueWriter<T>::Push(const Source& value) {
+  void AliasQueueWriter<T>::Push(const Target& value) {
     auto alias = GetAlias();
     m_queue.Push(value);
   }
 
   template<typename T>
-  void AliasQueueWriter<T>::Push(Source&& value) {
+  void AliasQueueWriter<T>::Push(Target&& value) {
     auto alias = GetAlias();
     m_queue.Push(std::move(value));
   }

@@ -17,19 +17,19 @@ namespace Beam {
   template<typename T>
   class WeakQueueWriter : public QueueWriter<T> {
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /**
        * Constructs a WeakQueueWriter.
        * @param queue The Queue wrap.
        */
-      explicit WeakQueueWriter(std::shared_ptr<QueueWriter<Source>> queue);
+      explicit WeakQueueWriter(std::shared_ptr<QueueWriter<Target>> queue);
 
       ~WeakQueueWriter() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -37,9 +37,9 @@ namespace Beam {
 
     private:
       mutable std::mutex m_mutex;
-      std::weak_ptr<QueueWriter<Source>> m_queue;
+      std::weak_ptr<QueueWriter<Target>> m_queue;
 
-      std::shared_ptr<QueueWriter<Source>> Lock() const;
+      std::shared_ptr<QueueWriter<Target>> Lock() const;
   };
 
   /**
@@ -54,7 +54,7 @@ namespace Beam {
 
   template<typename T>
   WeakQueueWriter<T>::WeakQueueWriter(
-    std::shared_ptr<QueueWriter<Source>> queue)
+    std::shared_ptr<QueueWriter<Target>> queue)
     : m_queue(std::move(queue)) {}
 
   template<typename T>
@@ -63,13 +63,13 @@ namespace Beam {
   }
 
   template<typename T>
-  void WeakQueueWriter<T>::Push(const Source& value) {
+  void WeakQueueWriter<T>::Push(const Target& value) {
     auto queue = Lock();
     queue->Push(value);
   }
 
   template<typename T>
-  void WeakQueueWriter<T>::Push(Source&& value) {
+  void WeakQueueWriter<T>::Push(Target&& value) {
     auto queue = Lock();
     queue->Push(std::move(value));
   }
@@ -87,7 +87,7 @@ namespace Beam {
   }
 
   template<typename T>
-  std::shared_ptr<QueueWriter<typename WeakQueueWriter<T>::Source>>
+  std::shared_ptr<QueueWriter<typename WeakQueueWriter<T>::Target>>
       WeakQueueWriter<T>::Lock() const {
     auto lock = std::lock_guard(m_mutex);
     auto queue = m_queue.lock();

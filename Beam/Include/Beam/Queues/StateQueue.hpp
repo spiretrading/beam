@@ -16,23 +16,23 @@ namespace Beam {
   template<typename T>
   class StateQueue : public AbstractQueue<T> {
     public:
-      using Source = typename AbstractQueue<T>::Source;
       using Target = typename AbstractQueue<T>::Target;
+      using Source = typename AbstractQueue<T>::Source;
 
       /** Constructs a StateQueue. */
       StateQueue() = default;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
 
@@ -41,14 +41,14 @@ namespace Beam {
     private:
       mutable boost::mutex m_mutex;
       mutable Threading::ConditionVariable m_isAvailableCondition;
-      boost::optional<Source> m_value;
+      boost::optional<Target> m_value;
       std::exception_ptr m_breakException;
 
       bool UnlockedIsAvailable() const;
   };
 
   template<typename T>
-  typename StateQueue<T>::Target StateQueue<T>::Top() const {
+  typename StateQueue<T>::Source StateQueue<T>::Top() const {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
@@ -60,7 +60,7 @@ namespace Beam {
   }
 
   template<typename T>
-  boost::optional<typename StateQueue<T>::Target>
+  boost::optional<typename StateQueue<T>::Source>
       StateQueue<T>::TryTop() const {
     auto lock = boost::lock_guard(m_mutex);
     if(!m_value) {
@@ -70,7 +70,7 @@ namespace Beam {
   }
 
   template<typename T>
-  typename StateQueue<T>::Target StateQueue<T>::Pop() {
+  typename StateQueue<T>::Source StateQueue<T>::Pop() {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
@@ -84,7 +84,7 @@ namespace Beam {
   }
 
   template<typename T>
-  boost::optional<typename StateQueue<T>::Target> StateQueue<T>::TryPop() {
+  boost::optional<typename StateQueue<T>::Source> StateQueue<T>::TryPop() {
     auto lock = boost::lock_guard(m_mutex);
     if(!m_value) {
       return boost::none;
@@ -95,7 +95,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void StateQueue<T>::Push(const Source& value) {
+  void StateQueue<T>::Push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);
@@ -109,7 +109,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void StateQueue<T>::Push(Source&& value) {
+  void StateQueue<T>::Push(Target&& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);

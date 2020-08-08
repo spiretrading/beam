@@ -22,7 +22,7 @@ namespace Beam {
 
       /** The type of QueueReader to handle. */
       using QueueReader = GetTryDereferenceType<Q>;
-      using Target = typename Beam::QueueReader<T>::Target;
+      using Source = typename Beam::QueueReader<T>::Source;
 
       /**
        * Constructs a ScopedQueueReader.
@@ -30,31 +30,31 @@ namespace Beam {
        */
       template<typename QF, typename = std::enable_if_t<
         !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>> &&
-        std::is_same_v<typename GetTryDereferenceType<QF>::Target,
-        typename QueueReader::Target>>>
+        std::is_same_v<typename GetTryDereferenceType<QF>::Source,
+        typename QueueReader::Source>>>
       ScopedQueueReader(QF&& queue);
 
       template<typename U>
-      ScopedQueueReader(ScopedQueueReader<Target, U>&& queue);
+      ScopedQueueReader(ScopedQueueReader<Source, U>&& queue);
 
       ScopedQueueReader(ScopedQueueReader&& queue);
 
       ~ScopedQueueReader() override;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
       ScopedQueueReader& operator =(ScopedQueueReader&& queue);
 
       template<typename U>
-      ScopedQueueReader& operator =(ScopedQueueReader<Target, U>&& queue);
+      ScopedQueueReader& operator =(ScopedQueueReader<Source, U>&& queue);
 
       using Beam::QueueReader<T>::Break;
 
@@ -63,10 +63,10 @@ namespace Beam {
   };
 
   template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
-    ScopedQueueReader<typename GetTryDereferenceType<Q>::Target,
+    ScopedQueueReader<typename GetTryDereferenceType<Q>::Source,
     std::decay_t<Q>>, std::decay_t<Q>>>>
   ScopedQueueReader(Q&&) -> ScopedQueueReader<
-    typename GetTryDereferenceType<Q>::Target, std::decay_t<Q>>;
+    typename GetTryDereferenceType<Q>::Source, std::decay_t<Q>>;
 
   template<typename T, typename Q>
   template<typename QF, typename>
@@ -76,7 +76,7 @@ namespace Beam {
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueReader<T, Q>::ScopedQueueReader(
-    ScopedQueueReader<Target, U>&& queue)
+    ScopedQueueReader<Source, U>&& queue)
     : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
@@ -91,24 +91,24 @@ namespace Beam {
   }
 
   template<typename T, typename Q>
-  typename ScopedQueueReader<T, Q>::Target
+  typename ScopedQueueReader<T, Q>::Source
       ScopedQueueReader<T, Q>::Top() const {
     return m_queue->Top();
   }
 
   template<typename T, typename Q>
-  boost::optional<typename ScopedQueueReader<T, Q>::Target>
+  boost::optional<typename ScopedQueueReader<T, Q>::Source>
       ScopedQueueReader<T, Q>::TryTop() const {
     return m_queue->TryTop();
   }
 
   template<typename T, typename Q>
-  typename ScopedQueueReader<T, Q>::Target ScopedQueueReader<T, Q>::Pop() {
+  typename ScopedQueueReader<T, Q>::Source ScopedQueueReader<T, Q>::Pop() {
     return m_queue->Pop();
   }
 
   template<typename T, typename Q>
-  boost::optional<typename ScopedQueueReader<T, Q>::Target>
+  boost::optional<typename ScopedQueueReader<T, Q>::Source>
       ScopedQueueReader<T, Q>::TryPop() {
     return m_queue->TryPop();
   }
@@ -131,7 +131,7 @@ namespace Beam {
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
-      ScopedQueueReader<Target, U>&& queue) {
+      ScopedQueueReader<Source, U>&& queue) {
     Break();
     m_queue = std::move(queue.m_queue);
     return *this;

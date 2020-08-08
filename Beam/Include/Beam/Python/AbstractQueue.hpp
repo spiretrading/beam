@@ -14,8 +14,8 @@ namespace Beam::Python {
    */
   template<typename T>
   struct TrampolineAbstractQueue final : T {
-    using Target = typename T::Target;
     using Source = typename T::Source;
+    using Target = typename T::Target;
     using T::T;
   };
 
@@ -28,8 +28,8 @@ namespace Beam::Python {
     public:
       using Reader = typename AbstractQueue<T>::Reader;
       using Writer = typename AbstractQueue<T>::Writer;
-      using Target = typename Reader::Target;
-      using Source = typename Writer::Source;
+      using Source = typename Reader::Source;
+      using Target = typename Writer::Target;
 
       /** Constructs a default FromPythonAbstractQueue. */
       FromPythonAbstractQueue();
@@ -46,17 +46,17 @@ namespace Beam::Python {
       //! Returns the AbstractQueue being wrapped.
       const std::shared_ptr<AbstractQueue<pybind11::object>>& GetQueue() const;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -64,8 +64,8 @@ namespace Beam::Python {
 
     private:
       std::shared_ptr<AbstractQueue<pybind11::object>> m_queue;
-      std::shared_ptr<FromPythonQueueReader<Target>> m_reader;
-      std::shared_ptr<FromPythonQueueWriter<Source>> m_writer;
+      std::shared_ptr<FromPythonQueueReader<Source>> m_reader;
+      std::shared_ptr<FromPythonQueueWriter<Target>> m_writer;
   };
 
   /**
@@ -81,15 +81,15 @@ namespace Beam::Python {
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
     : m_queue(std::make_shared<Queue<pybind11::object>>()),
-      m_reader(MakeFromPythonQueueReader<Target>(m_queue)),
-      m_writer(MakeFromPythonQueueWriter<Source>(m_queue)) {}
+      m_reader(MakeFromPythonQueueReader<Source>(m_queue)),
+      m_writer(MakeFromPythonQueueWriter<Target>(m_queue)) {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(
     std::shared_ptr<AbstractQueue<pybind11::object>> queue)
     : m_queue(std::move(queue)),
-      m_reader(MakeFromPythonQueueReader<Target>(m_queue)),
-      m_writer(MakeFromPythonQueueWriter<Source>(m_queue)) {}
+      m_reader(MakeFromPythonQueueReader<Source>(m_queue)),
+      m_writer(MakeFromPythonQueueWriter<Target>(m_queue)) {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::~FromPythonAbstractQueue() {
@@ -104,36 +104,36 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  typename FromPythonAbstractQueue<T>::Target
+  typename FromPythonAbstractQueue<T>::Source
       FromPythonAbstractQueue<T>::Top() const {
     return m_reader->Top();
   }
 
   template<typename T>
-  boost::optional<typename FromPythonAbstractQueue<T>::Target>
+  boost::optional<typename FromPythonAbstractQueue<T>::Source>
       FromPythonAbstractQueue<T>::TryTop() const {
     return m_reader->TryTop();
   }
 
   template<typename T>
-  typename FromPythonAbstractQueue<T>::Target
+  typename FromPythonAbstractQueue<T>::Source
       FromPythonAbstractQueue<T>::Pop() {
     return m_reader->Pop();
   }
 
   template<typename T>
-  boost::optional<typename FromPythonAbstractQueue<T>::Target>
+  boost::optional<typename FromPythonAbstractQueue<T>::Source>
       FromPythonAbstractQueue<T>::TryPop() {
     return m_reader->TryPop();
   }
 
   template<typename T>
-  void FromPythonAbstractQueue<T>::Push(const Source& value) {
+  void FromPythonAbstractQueue<T>::Push(const Target& value) {
     m_writer->Push(value);
   }
 
   template<typename T>
-  void FromPythonAbstractQueue<T>::Push(Source&& value) {
+  void FromPythonAbstractQueue<T>::Push(Target&& value) {
     m_writer->Push(std::move(value));
   }
 

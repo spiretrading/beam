@@ -43,7 +43,7 @@ namespace Beam {
 
   template<typename Q>
   QueueReaderPublisher(Q&&) ->
-    QueueReaderPublisher<typename GetTryDereferenceType<Q>::Target>;
+    QueueReaderPublisher<typename GetTryDereferenceType<Q>::Source>;
 
   template<typename T, typename Q>
   QueueReaderPublisher<T, Q>::QueueReaderPublisher(

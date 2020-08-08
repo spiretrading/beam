@@ -16,31 +16,31 @@ namespace Beam {
     public:
 
       /** The type being read. */
-      using Target = T;
+      using Source = T;
 
       /**
        * Returns the first value in the queue, blocking until a value is
        * available.
        */
-      virtual Target Top() const = 0;
+      virtual Source Top() const = 0;
 
       /**
        * Returns the first value in the queue if one is available without
        * blocking, otherwise returns <i>boost::none</i>.
        */
-      virtual boost::optional<Target> TryTop() const = 0;
+      virtual boost::optional<Source> TryTop() const = 0;
 
       /**
        * Returns the first value in the queue and pops it, blocking until a
        * value is available.
        */
-      virtual Target Pop() = 0;
+      virtual Source Pop() = 0;
 
       /**
        * Returns the first value in the queue if one is available and pops it
        * without blocking, otherwise returns <i>boost::none</i>.
        */
-      virtual boost::optional<Target> TryPop() = 0;
+      virtual boost::optional<Source> TryPop() = 0;
   };
 
   /**

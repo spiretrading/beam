@@ -17,18 +17,18 @@ namespace Beam {
   class ConverterQueueReader :
       public QueueReader<std::invoke_result_t<C, const T&>> {
     public:
-      using Target = typename QueueReader<
-        std::invoke_result_t<C, const T&>>::Target;
+      using Source = typename QueueReader<
+        std::invoke_result_t<C, const T&>>::Source;
 
       /**
        * The type of function performing the conversion.
-       * @param target The value that was popped from the QueueReader.
+       * @param source The value that was popped from the QueueReader.
        * @return The value to pop from this QueueReader.
        */
       using Converter = C;
 
-      /** The type that the <i>Target</i> is converted to. */
-      using Source = std::invoke_result_t<Converter, const T&>;
+      /** The type that the <i>Source</i> is converted to. */
+      using Target = std::invoke_result_t<Converter, const T&>;
 
       /**
        * Constructs a ConverterReaderQueue.
@@ -38,13 +38,13 @@ namespace Beam {
       template<typename CF>
       ConverterQueueReader(ScopedQueueReader<T> source, CF&& converter);
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -57,7 +57,7 @@ namespace Beam {
 
   template<typename QueueReader, typename C>
   ConverterQueueReader(QueueReader&&, C&&) -> ConverterQueueReader<
-    typename GetTryDereferenceType<QueueReader>::Target, std::decay_t<C>>;
+    typename GetTryDereferenceType<QueueReader>::Source, std::decay_t<C>>;
 
   /**
    * Builds a ConverterReaderQueue.
@@ -66,7 +66,7 @@ namespace Beam {
    */
   template<typename QueueReader, typename C>
   auto MakeConverterQueueReader(QueueReader&& source, C&& converter) {
-    using Source = typename GetTryDereferenceType<QueueReader>::Target;
+    using Source = typename GetTryDereferenceType<QueueReader>::Source;
     return std::make_shared<ConverterQueueReader<Source, std::decay_t<C>>>(
       std::forward<QueueReader>(source), std::forward<C>(converter));
   }
@@ -79,13 +79,13 @@ namespace Beam {
       m_converter(std::forward<CF>(converter)) {}
 
   template<typename T, typename C>
-  typename ConverterQueueReader<T, C>::Target
+  typename ConverterQueueReader<T, C>::Source
       ConverterQueueReader<T, C>::Top() const {
     return m_converter(m_source.Top());
   }
 
   template<typename T, typename C>
-  boost::optional<typename ConverterQueueReader<T, C>::Target>
+  boost::optional<typename ConverterQueueReader<T, C>::Source>
       ConverterQueueReader<T, C>::TryTop() const {
     auto v = m_source.TryTop();
     if(v) {
@@ -95,13 +95,13 @@ namespace Beam {
   }
 
   template<typename T, typename C>
-  typename ConverterQueueReader<T, C>::Target
+  typename ConverterQueueReader<T, C>::Source
       ConverterQueueReader<T, C>::Pop() {
     return m_converter(m_source.Pop());
   }
 
   template<typename T, typename C>
-  boost::optional<typename ConverterQueueReader<T, C>::Target>
+  boost::optional<typename ConverterQueueReader<T, C>::Source>
       ConverterQueueReader<T, C>::TryPop() {
     auto v = m_source.TryPop();
     if(v) {

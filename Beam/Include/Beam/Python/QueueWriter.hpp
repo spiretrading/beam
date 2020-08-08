@@ -34,14 +34,14 @@ namespace Details {
    */
   template<typename T>
   struct TrampolineQueueWriter final : T {
-    using Source = typename T::Source;
+    using Target = typename T::Target;
     using T::T;
 
-    void Push(Source&& value) override {
+    void Push(Target&& value) override {
       Push(value);
     }
 
-    void Push(const Source& value) override {
+    void Push(const Target& value) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
     }
   };
@@ -56,7 +56,7 @@ namespace Details {
       struct Guard {};
 
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /**
        * Constructs a FromPythonQueueWriter.
@@ -70,9 +70,9 @@ namespace Details {
       //! Returns the QueueWriter being wrapped.
       const std::shared_ptr<QueueWriter<pybind11::object>>& GetTarget() const;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -107,7 +107,7 @@ namespace Details {
   template<typename T>
   class ToPythonQueueWriter final : public QueueWriter<pybind11::object> {
     public:
-      using Source = typename QueueWriter<pybind11::object>::Source;
+      using Target = typename QueueWriter<pybind11::object>::Target;
 
       using Type = T;
 
@@ -117,9 +117,9 @@ namespace Details {
        */
       ToPythonQueueWriter(ScopedQueueWriter<Type> target);
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -145,7 +145,7 @@ namespace Details {
   struct ScopedQueueWriterTypeCaster : BasicTypeCaster<T> {
     using Type = T;
     using Converter = pybind11::detail::make_caster<
-      std::shared_ptr<QueueWriter<typename Type::Source>>>;
+      std::shared_ptr<QueueWriter<typename Type::Target>>>;
     static constexpr auto name = pybind11::detail::_("ScopedQueueWriter");
     static pybind11::handle cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent);
@@ -171,7 +171,7 @@ namespace Details {
   }
 
   template<typename T>
-  void FromPythonQueueWriter<T>::Push(const Source& value) {
+  void FromPythonQueueWriter<T>::Push(const Target& value) {
     auto lock = GilLock();
     if(m_target == nullptr) {
       BOOST_THROW_EXCEPTION(PipeBrokenException());
@@ -186,7 +186,7 @@ namespace Details {
   }
 
   template<typename T>
-  void FromPythonQueueWriter<T>::Push(Source&& value) {
+  void FromPythonQueueWriter<T>::Push(Target&& value) {
     auto lock = GilLock();
     if(m_target == nullptr) {
       BOOST_THROW_EXCEPTION(PipeBrokenException());
@@ -221,12 +221,12 @@ namespace Details {
     : m_target(std::move(target)) {}
 
   template<typename T>
-  void ToPythonQueueWriter<T>::Push(const Source& value) {
+  void ToPythonQueueWriter<T>::Push(const Target& value) {
     m_target.Push(Details::Extractor<Type>()(value));
   }
 
   template<typename T>
-  void ToPythonQueueWriter<T>::Push(Source&& value) {
+  void ToPythonQueueWriter<T>::Push(Target&& value) {
     m_target.Push(Details::Extractor<Type>()(std::move(value)));
   }
 
@@ -239,8 +239,8 @@ namespace Details {
   pybind11::handle ScopedQueueWriterTypeCaster<T>::cast(Type value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
     policy = pybind11::detail::return_value_policy_override<
-      std::shared_ptr<QueueWriter<typename Type::Source>>>::policy(policy);
-    return Converter::cast(std::shared_ptr<QueueWriter<typename Type::Source>>(
+      std::shared_ptr<QueueWriter<typename Type::Target>>>::policy(policy);
+    return Converter::cast(std::shared_ptr<QueueWriter<typename Type::Target>>(
       std::make_shared<Type>(std::move(value))), policy, parent);
   }
 
@@ -252,7 +252,7 @@ namespace Details {
       return false;
     }
     m_value.emplace(pybind11::detail::cast_op<
-      std::shared_ptr<QueueWriter<typename Type::Source>>&&>(
+      std::shared_ptr<QueueWriter<typename Type::Target>>&&>(
       std::move(caster)));
     return true;
   }

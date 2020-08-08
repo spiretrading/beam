@@ -13,24 +13,24 @@ namespace Beam::Python {
    */
   template<typename T>
   struct TrampolineQueueReader final : T {
-    using Target = typename T::Target;
+    using Source = typename T::Source;
     using T::T;
 
-    Target Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "top", Top);
+    Source Top() const override {
+      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "top", Top);
     }
 
-    boost::optional<Target> TryTop() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Target>, T, "try_top",
+    boost::optional<Source> TryTop() const override {
+      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_top",
         TryTop);
     }
 
-    Target Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(Target, T, "pop", Pop);
+    Source Pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "pop", Pop);
     }
 
-    boost::optional<Target> TryPop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Target>, T, "try_pop",
+    boost::optional<Source> TryPop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_pop",
         TryPop);
     }
   };
@@ -42,7 +42,7 @@ namespace Beam::Python {
   template<typename T>
   class FromPythonQueueReader final : public QueueReader<T> {
     public:
-      using Target = typename QueueReader<T>::Target;
+      using Source = typename QueueReader<T>::Source;
 
       /**
        * Constructs a FromPythonQueueReader.
@@ -56,13 +56,13 @@ namespace Beam::Python {
       //! Returns the QueueReader being wrapped.
       const std::shared_ptr<QueueReader<pybind11::object>>& GetSource() const;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -98,7 +98,7 @@ namespace Beam::Python {
   }
 
   template<typename T>
-  typename FromPythonQueueReader<T>::Target
+  typename FromPythonQueueReader<T>::Source
       FromPythonQueueReader<T>::Top() const {
     if(auto value = TryTop()) {
       return std::move(*value);
@@ -110,21 +110,21 @@ namespace Beam::Python {
       return m_source->Top();
     }();
     auto lock = GilLock();
-    return value.template cast<Target>();
+    return value.template cast<Source>();
   }
 
   template<typename T>
-  boost::optional<typename FromPythonQueueReader<T>::Target>
+  boost::optional<typename FromPythonQueueReader<T>::Source>
       FromPythonQueueReader<T>::TryTop() const {
     if(auto value = m_source->TryTop()) {
       auto lock = GilLock();
-      return value->template cast<Target>();
+      return value->template cast<Source>();
     }
     return boost::none;
   }
 
   template<typename T>
-  typename FromPythonQueueReader<T>::Target FromPythonQueueReader<T>::Pop() {
+  typename FromPythonQueueReader<T>::Source FromPythonQueueReader<T>::Pop() {
     if(auto value = TryPop()) {
       return std::move(*value);
     }
@@ -133,15 +133,15 @@ namespace Beam::Python {
       return m_source->Pop();
     }();
     auto lock = GilLock();
-    return value.template cast<Target>();
+    return value.template cast<Source>();
   }
 
   template<typename T>
-  boost::optional<typename FromPythonQueueReader<T>::Target>
+  boost::optional<typename FromPythonQueueReader<T>::Source>
       FromPythonQueueReader<T>::TryPop() {
     if(auto value = m_source->TryPop()) {
       auto lock = GilLock();
-      return value->template cast<Target>();
+      return value->template cast<Source>();
     }
     return boost::none;
   }

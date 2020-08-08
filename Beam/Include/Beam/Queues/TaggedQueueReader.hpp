@@ -22,7 +22,7 @@ namespace Beam {
       /** The type of values pushed onto the Queue. */
       using Value = V;
 
-      using Target = typename QueueReader<KeyValuePair<K, V>>::Target;
+      using Source = typename QueueReader<KeyValuePair<K, V>>::Source;
 
       /** Constructs a TaggedQueueReader. */
       TaggedQueueReader() = default;
@@ -35,20 +35,20 @@ namespace Beam {
        */
       auto GetSlot(Key key);
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& exception) override;
 
       using QueueReader<KeyValuePair<K, V>>::Break;
 
     private:
-      Queue<Target> m_values;
+      Queue<Source> m_values;
       CallbackQueue m_callbacks;
   };
 
@@ -61,24 +61,24 @@ namespace Beam {
   }
 
   template<typename K, typename V>
-  typename TaggedQueueReader<K, V>::Target
+  typename TaggedQueueReader<K, V>::Source
       TaggedQueueReader<K, V>::Top() const {
     return m_values.Top();
   }
 
   template<typename K, typename V>
-  boost::optional<typename TaggedQueueReader<K, V>::Target>
+  boost::optional<typename TaggedQueueReader<K, V>::Source>
       TaggedQueueReader<K, V>::TryTop() const {
     return m_values.TryTop();
   }
 
   template<typename K, typename V>
-  typename TaggedQueueReader<K, V>::Target TaggedQueueReader<K, V>::Pop() {
+  typename TaggedQueueReader<K, V>::Source TaggedQueueReader<K, V>::Pop() {
     return m_values.Pop();
   }
 
   template<typename K, typename V>
-  boost::optional<typename TaggedQueueReader<K, V>::Target>
+  boost::optional<typename TaggedQueueReader<K, V>::Source>
       TaggedQueueReader<K, V>::TryPop() {
     return m_values.TryPop();
   }

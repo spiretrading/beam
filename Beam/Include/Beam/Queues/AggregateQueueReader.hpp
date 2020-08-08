@@ -17,7 +17,7 @@ namespace Beam {
   template<typename T>
   class AggregateQueueReader : public QueueReader<T> {
     public:
-      using Target = typename QueueReader<T>::Target;
+      using Source = typename QueueReader<T>::Source;
 
       /**
        * Constructs an AggregateQueueReader.
@@ -28,22 +28,22 @@ namespace Beam {
 
       ~AggregateQueueReader() override;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
       using QueueReader<T>::Break;
 
     private:
-      std::vector<ScopedQueueReader<Target>> m_queues;
+      std::vector<ScopedQueueReader<Source>> m_queues;
       std::atomic_int m_queueCount;
-      Queue<Target> m_destination;
+      Queue<Source> m_destination;
       Routines::RoutineHandlerGroup m_routines;
   };
 
@@ -78,24 +78,24 @@ namespace Beam {
   }
 
   template<typename T>
-  typename AggregateQueueReader<T>::Target
+  typename AggregateQueueReader<T>::Source
       AggregateQueueReader<T>::Top() const {
     return m_destination.Top();
   }
 
   template<typename T>
-  boost::optional<typename AggregateQueueReader<T>::Target>
+  boost::optional<typename AggregateQueueReader<T>::Source>
       AggregateQueueReader<T>::TryTop() const {
     return m_destination.TryTop();
   }
 
   template<typename T>
-  typename AggregateQueueReader<T>::Target AggregateQueueReader<T>::Pop() {
+  typename AggregateQueueReader<T>::Source AggregateQueueReader<T>::Pop() {
     return m_destination.Pop();
   }
 
   template<typename T>
-  boost::optional<typename AggregateQueueReader<T>::Target>
+  boost::optional<typename AggregateQueueReader<T>::Source>
       AggregateQueueReader<T>::TryPop() {
     return m_destination.TryPop();
   }

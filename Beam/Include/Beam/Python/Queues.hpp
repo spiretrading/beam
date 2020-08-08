@@ -57,8 +57,8 @@ namespace Beam::Python {
   template<typename T>
   void ExportAbstractQueue(pybind11::module& module,
       const std::string& prefix) {
-    using Target = typename T::Target;
     using Source = typename T::Source;
+    using Target = typename T::Target;
     auto name = prefix + "AbstractQueue";
     if(pybind11::hasattr(module, name.c_str())) {
       return;
@@ -66,10 +66,10 @@ namespace Beam::Python {
     auto binding = pybind11::class_<T, TrampolineAbstractQueue<T>,
       std::shared_ptr<T>, typename T::Reader, typename T::Writer>(module,
       name.c_str(), pybind11::multiple_inheritance());
-    if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
+    if constexpr(!std::is_same_v<typename T::Source, pybind11::object>) {
       binding.def(pybind11::init(
         [] (std::shared_ptr<AbstractQueue<pybind11::object>> queue) {
-          return MakeFromPythonAbstractQueue<typename T::Target>(
+          return MakeFromPythonAbstractQueue<typename T::Source>(
             std::move(queue));
         }));
       pybind11::implicitly_convertible<AbstractQueue<pybind11::object>, T>();
@@ -140,7 +140,7 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Source>>(
+    pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Target>>(
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
       .def("top", &T::Top, pybind11::call_guard<GilRelease>())
@@ -167,10 +167,10 @@ namespace Beam::Python {
       .def("try_top", &T::TryTop)
       .def("pop", &T::Pop)
       .def("try_pop", &T::TryPop);
-    if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
+    if constexpr(!std::is_same_v<typename T::Source, pybind11::object>) {
       binding.def(pybind11::init(
         [] (std::shared_ptr<QueueReader<pybind11::object>> queue) {
-          return MakeFromPythonQueueReader<typename T::Target>(
+          return MakeFromPythonQueueReader<typename T::Source>(
             std::move(queue));
         }));
       pybind11::implicitly_convertible<QueueReader<pybind11::object>, T>();
@@ -191,12 +191,12 @@ namespace Beam::Python {
     auto binding = pybind11::class_<T, TrampolineQueueWriter<T>,
         std::shared_ptr<T>, BaseQueue>(module, name.c_str(),
         pybind11::multiple_inheritance())
-      .def("push", static_cast<void (T::*)(const typename T::Source&)>(
+      .def("push", static_cast<void (T::*)(const typename T::Target&)>(
         &T::Push));
-    if constexpr(!std::is_same_v<typename T::Source, pybind11::object>) {
+    if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
       binding.def(pybind11::init(
         [] (std::shared_ptr<QueueWriter<pybind11::object>> queue) {
-          return MakeFromPythonQueueWriter<typename T::Source>(
+          return MakeFromPythonQueueWriter<typename T::Target>(
             std::move(queue));
         }));
       pybind11::implicitly_convertible<QueueWriter<pybind11::object>, T>();
@@ -215,8 +215,8 @@ namespace Beam::Python {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<T, std::shared_ptr<T>, QueueWriter<typename T::Source>,
-        Publisher<typename T::Source>>(module, name.c_str(),
+    pybind11::class_<T, std::shared_ptr<T>, QueueWriter<typename T::Target>,
+        Publisher<typename T::Target>>(module, name.c_str(),
         pybind11::multiple_inheritance())
       .def(pybind11::init());
   }

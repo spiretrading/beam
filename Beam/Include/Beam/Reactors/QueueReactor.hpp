@@ -50,7 +50,7 @@ namespace Beam::Reactors {
   QueueReactor(ScopedQueueReader<T>) -> QueueReactor<T>;
 
   template<typename T>
-  QueueReactor(T&&) -> QueueReactor<typename GetTryDereferenceType<T>::Target>;
+  QueueReactor(T&&) -> QueueReactor<typename GetTryDereferenceType<T>::Source>;
 
   template<typename T>
   QueueReactor<T>::Entry::Entry(ScopedQueueReader<Type> queue)

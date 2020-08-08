@@ -14,7 +14,7 @@ namespace Beam {
     public:
 
       /** The type being pushed. */
-      using Source = QueueWriter<std::function<void ()>>::Source;
+      using Target = QueueWriter<std::function<void ()>>::Target;
 
       /** Constructs a CallbackQueue. */
       CallbackQueue();
@@ -38,9 +38,9 @@ namespace Beam {
       template<typename T, typename F, typename B>
       auto GetSlot(F&& callback, B&& breakCallback);
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
 
@@ -97,12 +97,12 @@ namespace Beam {
     return ScopedQueueWriter(std::move(queue));
   }
 
-  inline void CallbackQueue::Push(const Source& value) {
+  inline void CallbackQueue::Push(const Target& value) {
     Rethrow();
     m_tasks.Add(value);
   }
 
-  inline void CallbackQueue::Push(Source&& value) {
+  inline void CallbackQueue::Push(Target&& value) {
     Rethrow();
     m_tasks.Add(std::move(value));
   }

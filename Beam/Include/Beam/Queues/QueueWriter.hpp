@@ -14,19 +14,19 @@ namespace Beam {
     public:
 
       /** The type being pushed. */
-      using Source = T;
+      using Target = T;
 
       /**
        * Adds a value to the end of the Queue.
        * @param value The value to add to the end of the Queue.
        */
-      virtual void Push(const Source& value) = 0;
+      virtual void Push(const Target& value) = 0;
 
       /**
        * Adds a value to the end of the Queue.
        * @param value The value to add to the end of the Queue.
        */
-      virtual void Push(Source&& value) = 0;
+      virtual void Push(Target&& value) = 0;
   };
 }
 

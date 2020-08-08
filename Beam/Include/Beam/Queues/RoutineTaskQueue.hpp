@@ -11,7 +11,7 @@ namespace Beam {
     public:
 
       /** The type being pushed. */
-      using Source = QueueWriter<std::function<void ()>>::Source;
+      using Target = QueueWriter<std::function<void ()>>::Target;
 
       /** Constructs a RoutineTaskQueue. */
       RoutineTaskQueue();
@@ -56,9 +56,9 @@ namespace Beam {
       /** Waits for this queue to be broken and all tasks to complete. */
       void Wait();
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
 
@@ -104,11 +104,11 @@ namespace Beam {
     m_routine.Wait();
   }
 
-  inline void RoutineTaskQueue::Push(const Source& value) {
+  inline void RoutineTaskQueue::Push(const Target& value) {
     m_tasks.Push(value);
   }
 
-  inline void RoutineTaskQueue::Push(Source&& value) {
+  inline void RoutineTaskQueue::Push(Target&& value) {
     m_tasks.Push(std::move(value));
   }
 

@@ -17,8 +17,8 @@ namespace Beam {
   template<typename T>
   class Queue : public AbstractQueue<T> {
     public:
-      using Source = typename AbstractQueue<T>::Source;
       using Target = typename AbstractQueue<T>::Target;
+      using Source = typename AbstractQueue<T>::Source;
 
       /** Constructs a Queue. */
       Queue() = default;
@@ -26,17 +26,17 @@ namespace Beam {
       /** Returns <code>true</code> iff this Queue is broken. */
       bool IsBroken() const;
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
 
@@ -58,7 +58,7 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Queue<T>::Target Queue<T>::Top() const {
+  typename Queue<T>::Source Queue<T>::Top() const {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
@@ -70,7 +70,7 @@ namespace Beam {
   }
 
   template<typename T>
-  boost::optional<typename Queue<T>::Target> Queue<T>::TryTop() const {
+  boost::optional<typename Queue<T>::Source> Queue<T>::TryTop() const {
     auto lock = boost::lock_guard(m_mutex);
     if(m_queue.empty()) {
       return boost::none;
@@ -79,7 +79,7 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Queue<T>::Target Queue<T>::Pop() {
+  typename Queue<T>::Source Queue<T>::Pop() {
     auto lock = boost::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
@@ -93,7 +93,7 @@ namespace Beam {
   }
 
   template<typename T>
-  boost::optional<typename Queue<T>::Target> Queue<T>::TryPop() {
+  boost::optional<typename Queue<T>::Source> Queue<T>::TryPop() {
     auto lock = boost::lock_guard(m_mutex);
     if(m_queue.empty()) {
       return boost::none;
@@ -104,7 +104,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Push(const Source& value) {
+  void Queue<T>::Push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
@@ -116,7 +116,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Push(Source&& value) {
+  void Queue<T>::Push(Target&& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);

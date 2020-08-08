@@ -17,11 +17,11 @@ namespace Beam {
    * @param <B> The type called when this queue is broken.
    */
   template<typename T,
-    typename C = std::function<void (const typename QueueWriter<T>::Source&)>,
+    typename C = std::function<void (const typename QueueWriter<T>::Target&)>,
     typename B = std::function<void (const std::exception_ptr&)>>
   class CallbackQueueWriter final : public QueueWriter<T> {
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /**
        * The function to call when data is pushed onto this queue.
@@ -50,9 +50,9 @@ namespace Beam {
        */
       CallbackQueueWriter(Callback callback, BreakCallback breakCallback);
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
@@ -103,7 +103,7 @@ namespace Beam {
     : m_callbacks({std::move(callback), std::move(breakCallback)}) {}
 
   template<typename T, typename C, typename B>
-  void CallbackQueueWriter<T, C, B>::Push(const Source& value) {
+  void CallbackQueueWriter<T, C, B>::Push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);
@@ -112,7 +112,7 @@ namespace Beam {
   }
 
   template<typename T, typename C, typename B>
-  void CallbackQueueWriter<T, C, B>::Push(Source&& value) {
+  void CallbackQueueWriter<T, C, B>::Push(Target&& value) {
     auto lock = boost::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);

@@ -22,10 +22,10 @@ namespace Beam {
       using Writer = QueueWriter<T>;
 
       /** The type being read from the Queue. */
-      using Target = typename Reader::Target;
+      using Source = typename Reader::Source;
 
       /** The type being pushed onto the Queue. */
-      using Source = typename Writer::Source;
+      using Target = typename Writer::Target;
   };
 }
 

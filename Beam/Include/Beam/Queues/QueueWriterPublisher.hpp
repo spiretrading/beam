@@ -19,7 +19,7 @@ namespace Beam {
   class QueueWriterPublisher final : public QueueWriter<T>,
       public Publisher<T> {
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /** Constructs a QueueWriterPublisher. */
       QueueWriterPublisher() = default;
@@ -32,20 +32,20 @@ namespace Beam {
 
       void With(const std::function<void ()>& f) const override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
-      void Monitor(ScopedQueueWriter<Source> queue) const override;
+      void Monitor(ScopedQueueWriter<Target> queue) const override;
 
-      using QueueWriter<Source>::Break;
+      using QueueWriter<Target>::Break;
 
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::exception_ptr m_exception;
-      mutable std::vector<ScopedQueueWriter<Source>> m_queues;
+      mutable std::vector<ScopedQueueWriter<Target>> m_queues;
   };
 
   template<typename T>
@@ -68,7 +68,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void QueueWriterPublisher<T>::Push(const Source& value) {
+  void QueueWriterPublisher<T>::Push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_queues.erase(std::remove_if(m_queues.begin(), m_queues.end(),
       [&] (auto& queue) {
@@ -82,8 +82,8 @@ namespace Beam {
   }
 
   template<typename T>
-  void QueueWriterPublisher<T>::Push(Source&& value) {
-    Push(static_cast<const Source&>(value));
+  void QueueWriterPublisher<T>::Push(Target&& value) {
+    Push(static_cast<const Target&>(value));
   }
 
   template<typename T>
@@ -97,7 +97,7 @@ namespace Beam {
   }
 
   template<typename T>
-  void QueueWriterPublisher<T>::Monitor(ScopedQueueWriter<Source> queue) const {
+  void QueueWriterPublisher<T>::Monitor(ScopedQueueWriter<Target> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     if(m_exception) {
       queue.Break(m_exception);

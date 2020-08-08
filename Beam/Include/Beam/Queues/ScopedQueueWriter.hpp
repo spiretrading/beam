@@ -22,7 +22,7 @@ namespace Beam {
 
       /** The type of QueueWriter to handle. */
       using QueueWriter = GetTryDereferenceType<Q>;
-      using Source = typename Beam::QueueWriter<T>::Source;
+      using Target = typename Beam::QueueWriter<T>::Target;
 
       /**
        * Constructs a ScopedQueueWriter.
@@ -30,27 +30,27 @@ namespace Beam {
        */
       template<typename QF, typename = std::enable_if_t<
         !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>> &&
-        std::is_same_v<typename GetTryDereferenceType<QF>::Source,
-        typename QueueWriter::Source>>>
+        std::is_same_v<typename GetTryDereferenceType<QF>::Target,
+        typename QueueWriter::Target>>>
       ScopedQueueWriter(QF&& queue);
 
       template<typename U>
-      ScopedQueueWriter(ScopedQueueWriter<Source, U>&& queue);
+      ScopedQueueWriter(ScopedQueueWriter<Target, U>&& queue);
 
       ScopedQueueWriter(ScopedQueueWriter&& queue);
 
       ~ScopedQueueWriter() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
       ScopedQueueWriter& operator =(ScopedQueueWriter&& queue);
 
       template<typename U>
-      ScopedQueueWriter& operator =(ScopedQueueWriter<Source, U>&& queue);
+      ScopedQueueWriter& operator =(ScopedQueueWriter<Target, U>&& queue);
 
      using Beam::QueueWriter<T>::Break;
 
@@ -60,10 +60,10 @@ namespace Beam {
   };
 
   template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
-    ScopedQueueWriter<typename GetTryDereferenceType<Q>::Source,
+    ScopedQueueWriter<typename GetTryDereferenceType<Q>::Target,
     std::decay_t<Q>>, std::decay_t<Q>>>>
   ScopedQueueWriter(Q&&) -> ScopedQueueWriter<
-    typename GetTryDereferenceType<Q>::Source, std::decay_t<Q>>;
+    typename GetTryDereferenceType<Q>::Target, std::decay_t<Q>>;
 
   template<typename T, typename Q>
   template<typename QF, typename>
@@ -73,7 +73,7 @@ namespace Beam {
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueWriter<T, Q>::ScopedQueueWriter(
-    ScopedQueueWriter<Source, U>&& queue)
+    ScopedQueueWriter<Target, U>&& queue)
     : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
@@ -88,12 +88,12 @@ namespace Beam {
   }
 
   template<typename T, typename Q>
-  void ScopedQueueWriter<T, Q>::Push(const Source& value) {
+  void ScopedQueueWriter<T, Q>::Push(const Target& value) {
     m_queue->Push(value);
   }
 
   template<typename T, typename Q>
-  void ScopedQueueWriter<T, Q>::Push(Source&& value) {
+  void ScopedQueueWriter<T, Q>::Push(Target&& value) {
     m_queue->Push(std::move(value));
   }
 
@@ -115,7 +115,7 @@ namespace Beam {
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
-      ScopedQueueWriter<Source, U>&& queue) {
+      ScopedQueueWriter<Target, U>&& queue) {
     Break();
     m_queue = std::move(queue.m_queue);
     return *this;

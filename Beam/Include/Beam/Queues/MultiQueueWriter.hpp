@@ -13,8 +13,8 @@ namespace Beam {
   template<typename T>
   class MultiQueueWriter final : public AbstractQueue<T> {
     public:
-      using Source = typename AbstractQueue<T>::Source;
       using Target = typename AbstractQueue<T>::Target;
+      using Source = typename AbstractQueue<T>::Source;
 
       /** Constructs a MultiQueueWriter. */
       MultiQueueWriter() = default;
@@ -22,53 +22,53 @@ namespace Beam {
       /** Returns a QueueWriter for pushing values onto this queue. */
       auto GetWriter();
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
       void Break(const std::exception_ptr& e) override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       using AbstractQueue<T>::Break;
 
     private:
-      Queue<Target> m_queue;
+      Queue<Source> m_queue;
       CallbackQueue m_callbacks;
   };
 
   template<typename T>
   auto MultiQueueWriter<T>::GetWriter() {
-    return m_callbacks.GetSlot<Target>(
+    return m_callbacks.GetSlot<Source>(
       [=] (auto&& value) {
         m_queue.Push(std::forward<decltype(value)>(value));
       });
   }
 
   template<typename T>
-  typename MultiQueueWriter<T>::Target MultiQueueWriter<T>::Top() const {
+  typename MultiQueueWriter<T>::Source MultiQueueWriter<T>::Top() const {
     return m_queue.Top();
   }
 
   template<typename T>
-  boost::optional<typename MultiQueueWriter<T>::Target>
+  boost::optional<typename MultiQueueWriter<T>::Source>
       MultiQueueWriter<T>::TryTop() const {
     return m_queue.TryTop();
   }
 
   template<typename T>
-  typename MultiQueueWriter<T>::Target MultiQueueWriter<T>::Pop()  {
+  typename MultiQueueWriter<T>::Source MultiQueueWriter<T>::Pop()  {
     return m_queue.Pop();
   }
 
   template<typename T>
-  boost::optional<typename MultiQueueWriter<T>::Target>
+  boost::optional<typename MultiQueueWriter<T>::Source>
       MultiQueueWriter<T>::TryPop()  {
     return m_queue.TryPop();
   }
@@ -80,12 +80,12 @@ namespace Beam {
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(const Source& value) {
+  void MultiQueueWriter<T>::Push(const Target& value) {
     m_queue.Push(value);
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(Source&& value) {
+  void MultiQueueWriter<T>::Push(Target&& value) {
     m_queue.Push(std::move(value));
   }
 }

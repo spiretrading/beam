@@ -16,7 +16,7 @@ namespace Beam {
   template<typename T, typename C>
   class ConverterQueueWriter : public QueueWriter<T> {
     public:
-      using Source = typename QueueWriter<T>::Source;
+      using Target = typename QueueWriter<T>::Target;
 
       /**
        * The type of function performing the conversion.
@@ -25,8 +25,8 @@ namespace Beam {
        */
       using Converter = C;
 
-      /** The type that the <i>Source</i> is converted to. */
-      using Target = std::invoke_result_t<Converter, const Source&>;
+      /** The type that the <i>Target</i> is converted to. */
+      using Destination = std::invoke_result_t<Converter, const Target&>;
 
       /**
        * Constructs a ConverterQueue.
@@ -34,18 +34,19 @@ namespace Beam {
        * @param converter The function performing the conversion.
        */
       template<typename CF>
-      ConverterQueueWriter(ScopedQueueWriter<Target> target, CF&& converter);
+      ConverterQueueWriter(ScopedQueueWriter<Destination> target,
+        CF&& converter);
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<T>::Break;
 
     private:
-      ScopedQueueWriter<Target> m_target;
+      ScopedQueueWriter<Destination> m_target;
       Converter m_converter;
   };
 
@@ -82,17 +83,17 @@ namespace Beam {
   template<typename T, typename C>
   template<typename CF>
   ConverterQueueWriter<T, C>::ConverterQueueWriter(
-    ScopedQueueWriter<Target> target, CF&& converter)
+    ScopedQueueWriter<Destination> target, CF&& converter)
     : m_target(std::move(target)),
       m_converter(std::forward<CF>(converter)) {}
 
   template<typename T, typename C>
-  void ConverterQueueWriter<T, C>::Push(const Source& value) {
+  void ConverterQueueWriter<T, C>::Push(const Target& value) {
     m_target.Push(m_converter(value));
   }
 
   template<typename T, typename C>
-  void ConverterQueueWriter<T, C>::Push(Source&& value) {
+  void ConverterQueueWriter<T, C>::Push(Target&& value) {
     m_target.Push(m_converter(std::move(value)));
   }
 

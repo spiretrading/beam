@@ -11,8 +11,8 @@ namespace Beam {
   /** Used to translate queue pushes into task functions. */
   class TaskQueue : public AbstractQueue<std::function<void ()>> {
     public:
-      using Source = AbstractQueue<std::function<void ()>>::Source;
       using Target = AbstractQueue<std::function<void ()>>::Target;
+      using Source = AbstractQueue<std::function<void ()>>::Source;
 
       /** Constructs a TaskQueue. */
       TaskQueue() = default;
@@ -52,24 +52,24 @@ namespace Beam {
       auto GetSlot(const std::function<void (const T&)>& callback,
         const std::function<void (const std::exception_ptr&)>& breakCallback);
 
-      Target Top() const override;
+      Source Top() const override;
 
-      boost::optional<Target> TryTop() const override;
+      boost::optional<Source> TryTop() const override;
 
-      Target Pop() override;
+      Source Pop() override;
 
-      boost::optional<Target> TryPop() override;
+      boost::optional<Source> TryPop() override;
 
-      void Push(const Source& value) override;
+      void Push(const Target& value) override;
 
-      void Push(Source&& value) override;
+      void Push(Target&& value) override;
 
       void Break(const std::exception_ptr& exception) override;
 
       using AbstractQueue<std::function<void ()>>::Break;
 
     private:
-      Queue<Target> m_tasks;
+      Queue<Source> m_tasks;
       CallbackQueue m_callbacks;
 
       template<typename T, typename F, typename B>
@@ -142,27 +142,27 @@ namespace Beam {
     return GetSlotHelper<T>(callback, breakCallback);
   }
 
-  inline TaskQueue::Target TaskQueue::Top() const {
+  inline TaskQueue::Source TaskQueue::Top() const {
     return m_tasks.Top();
   }
 
-  inline boost::optional<TaskQueue::Target> TaskQueue::TryTop() const {
+  inline boost::optional<TaskQueue::Source> TaskQueue::TryTop() const {
     return m_tasks.TryTop();
   }
 
-  inline TaskQueue::Target TaskQueue::Pop() {
+  inline TaskQueue::Source TaskQueue::Pop() {
     return m_tasks.Pop();
   }
 
-  inline boost::optional<TaskQueue::Target> TaskQueue::TryPop() {
+  inline boost::optional<TaskQueue::Source> TaskQueue::TryPop() {
     return m_tasks.TryPop();
   }
 
-  inline void TaskQueue::Push(const Source& value) {
+  inline void TaskQueue::Push(const Target& value) {
     m_tasks.Push(value);
   }
 
-  inline void TaskQueue::Push(Source&& value) {
+  inline void TaskQueue::Push(Target&& value) {
     m_tasks.Push(std::move(value));
   }
 

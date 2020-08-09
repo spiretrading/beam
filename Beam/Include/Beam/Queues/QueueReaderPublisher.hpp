@@ -83,6 +83,7 @@ namespace Beam {
       }
     } catch(const std::exception&) {
       m_writer.Break(std::current_exception());
+      m_reader.Break(std::current_exception());
     }
   }
 }

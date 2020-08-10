@@ -61,6 +61,23 @@ TEST_SUITE("View") {
     REQUIRE(*view.begin() == 5);
     REQUIRE(*(view.begin() + 1) == 1);
     REQUIRE(*(view.begin() + 2) == 2);
-    auto view2 = View(view);
+  }
+
+  TEST_CASE("move_const_view") {
+    auto v = std::vector<int>();
+    v.push_back(3);
+    auto view = View(v);
+    auto cview = View<const int>(std::move(view));
+    REQUIRE(view.empty());
+    REQUIRE(*cview.begin() == 3);
+  }
+
+  TEST_CASE("copy_const_view") {
+    auto v = std::vector<int>();
+    v.push_back(3);
+    auto view = View(v);
+    auto cview = View<const int>(view);
+    REQUIRE(*view.begin() == 3);
+    REQUIRE(*cview.begin() == 3);
   }
 }

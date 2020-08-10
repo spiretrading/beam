@@ -69,10 +69,26 @@ namespace Beam {
       View(const View& view) = default;
 
       /**
+       * Copies a View.
+       * @param view The View to copy.
+       */
+      template<typename U, typename = std::enable_if_t<
+        std::is_same_v<U, std::remove_const_t<Type>> && std::is_const_v<Type>>>
+      View(const View<U>& view);
+
+      /**
        * Moves a View.
        * @param view The View to move.
        */
       View(View&& view) = default;
+
+      /**
+       * Moves a View.
+       * @param view The View to move.
+       */
+      template<typename U, typename = std::enable_if_t<
+        std::is_same_v<U, std::remove_const_t<Type>> && std::is_const_v<Type>>>
+      View(View<U>&& view);
 
       /**
        * Constructs a View from two iterators.
@@ -172,6 +188,16 @@ namespace Beam {
     m_begin = SharedIterator(sharedCollection, sharedCollection->begin());
     m_end = SharedIterator(sharedCollection, sharedCollection->end());
   }
+
+  template<typename T>
+  template<typename U, typename>
+  View<T>::View(const View<U>& view)
+    : View(view.m_begin, view.m_end) {}
+
+  template<typename T>
+  template<typename U, typename>
+  View<T>::View(View<U>&& view)
+    : View(std::move(view.m_begin), std::move(view.m_end)) {}
 
   template<typename T>
   template<typename BeginIterator, typename EndIterator>

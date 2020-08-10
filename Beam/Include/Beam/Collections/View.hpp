@@ -49,7 +49,8 @@ namespace Beam {
        * Constructs a View from a collection.
        * @param collection The Collection to view.
        */
-      template<typename Collection>
+      template<typename Collection, typename = std::enable_if_t<
+        !std::is_base_of_v<View, std::remove_reference_t<Collection>>>>
       View(Collection& collection);
 
       /**
@@ -57,7 +58,7 @@ namespace Beam {
        * @param collection The Collection to view.
        */
       template<typename Collection, typename = std::enable_if_t<
-        !std::is_base_of_v<View, std::decay_t<Collection>> &&
+        !std::is_base_of_v<View, std::remove_reference_t<Collection>> &&
         !std::is_lvalue_reference_v<Collection>>>
       View(Collection&& collection);
 
@@ -158,7 +159,7 @@ namespace Beam {
       m_end(collection.cend()) {}
 
   template<typename T>
-  template<typename Collection>
+  template<typename Collection, typename>
   View<T>::View(Collection& collection)
     : m_begin(collection.begin()),
       m_end(collection.end()) {}

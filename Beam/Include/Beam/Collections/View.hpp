@@ -56,7 +56,9 @@ namespace Beam {
        * Constructs a View from a collection.
        * @param collection The Collection to view.
        */
-      template<typename Collection>
+      template<typename Collection, typename = std::enable_if_t<
+        !std::is_base_of_v<View, std::decay_t<Collection>> &&
+        !std::is_lvalue_reference_v<Collection>>>
       View(Collection&& collection);
 
       /**
@@ -64,6 +66,12 @@ namespace Beam {
        * @param view The View to copy.
        */
       View(const View& view) = default;
+
+      /**
+       * Moves a View.
+       * @param view The View to move.
+       */
+      View(View&& view) = default;
 
       /**
        * Constructs a View from two iterators.
@@ -124,7 +132,8 @@ namespace Beam {
   };
 
   template<typename Collection>
-  View(Collection&&) -> View<decltype(*std::declval<Collection>().begin())>;
+  View(Collection&&) -> View<std::remove_reference_t<
+    decltype(*std::declval<Collection>().begin())>>;
 
   template<typename B, typename E>
   View(B&&, E&&) -> View<decltype(*std::declval<B>())>;
@@ -155,7 +164,7 @@ namespace Beam {
       m_end(collection.end()) {}
 
   template<typename T>
-  template<typename Collection>
+  template<typename Collection, typename>
   View<T>::View(Collection&& collection) {
     auto sharedCollection = std::make_shared<Collection>(
       std::forward<Collection>(collection));
@@ -186,7 +195,7 @@ namespace Beam {
 
   template<typename T>
   bool View<T>::empty() const {
-    return size() == 0;
+    return m_begin == m_end;
   }
 
   template<typename T>

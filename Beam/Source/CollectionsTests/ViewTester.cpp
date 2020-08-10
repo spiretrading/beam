@@ -41,4 +41,13 @@ TEST_SUITE("View") {
     REQUIRE(view.begin()->GetIndex() == 0);
     REQUIRE(view.begin()->GetValue() == 3);
   }
+
+  TEST_CASE("move") {
+    auto source = std::vector<int>();
+    source.push_back(10);
+    auto view1 = View(source);
+    auto view2 = std::move(view1);
+    REQUIRE(view1.empty());
+    REQUIRE(*view2.begin() == 10);
+  }
 }

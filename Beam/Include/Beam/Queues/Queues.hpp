@@ -16,6 +16,7 @@ namespace Beam {
   class PipeBrokenException;
   template<typename T> class Publisher;
   template<typename T> class Queue;
+  template<typename T, typename U> class QueuePipe;
   template<typename T> class QueueReader;
   template<typename T, typename Q> class QueueReaderPublisher;
   template<typename T> class QueueWriter;

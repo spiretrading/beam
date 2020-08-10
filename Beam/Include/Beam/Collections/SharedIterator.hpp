@@ -13,20 +13,29 @@ namespace Beam {
   class SharedIterator {
     public:
 
-      /** C The type of collection this iterator shares ownership of. */
+      /** The type of collection this iterator shares ownership of. */
       using Collection = C;
 
-      using difference_type = std::ptrdiff_t;
-      using iterator_category = std::forward_iterator_tag;
+      /** The type of iterator being wrapped. */
+      using base_iterator = typename Collection::iterator;
+
+      /** The type used to identify distance between iterators. */
+      using difference_type = typename std::iterator_traits<
+        base_iterator>::difference_type;
+
+      /** The category of the iterator. */
+      using iterator_category = typename std::iterator_traits<
+        base_iterator>::iterator_category;
 
       /** The type to iterate over. */
-      using value_type = typename Collection::iterator::value_type;
+      using value_type = typename std::iterator_traits<
+        base_iterator>::value_type;
 
       /** A reference to the type being iterated over. */
-      using reference = typename Collection::iterator::reference;
+      using reference = typename std::iterator_traits<base_iterator>::reference;
 
       /** A pointer to the type being iterated over. */
-      using pointer = typename Collection::iterator::pointer;
+      using pointer = typename std::iterator_traits<base_iterator>::pointer;
 
       /**
        * Constructs a SharedIterator from a collection and an iterator to the
@@ -35,7 +44,7 @@ namespace Beam {
        * @param iterator The iterator into the collection.
        */
       SharedIterator(std::shared_ptr<Collection> collection,
-        typename Collection::iterator iterator);
+        base_iterator iterator);
 
       /**
        * Returns a SharedIterator to an offset from this SharedIterator.
@@ -70,12 +79,12 @@ namespace Beam {
 
     private:
       std::shared_ptr<Collection> m_collection;
-      typename Collection::iterator m_iterator;
+      base_iterator m_iterator;
   };
 
   template<typename C>
   SharedIterator<C>::SharedIterator(std::shared_ptr<Collection> collection,
-    typename Collection::iterator iterator)
+    base_iterator iterator)
     : m_collection(std::move(collection)),
       m_iterator(std::move(iterator)) {}
 

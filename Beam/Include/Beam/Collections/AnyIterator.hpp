@@ -1,6 +1,8 @@
 #ifndef BEAM_ANY_ITERATOR_HPP
 #define BEAM_ANY_ITERATOR_HPP
 #include <iterator>
+#include <memory>
+#include <type_traits>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Utilities/Utilities.hpp"
@@ -113,6 +115,10 @@ namespace Details {
       difference_type distance_to(const AnyIterator& other) const;
       value_type& dereference() const;
   };
+
+  template<typename I>
+  AnyIterator(I&&) -> AnyIterator<std::remove_reference_t<
+    decltype(*std::declval<I>())>>;
 
   template<typename T>
   AnyIterator<T>::AnyIterator(const AnyIterator& iterator) {

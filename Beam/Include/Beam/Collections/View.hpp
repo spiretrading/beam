@@ -136,7 +136,7 @@ namespace Beam {
     decltype(*std::declval<Collection>().begin())>>;
 
   template<typename B, typename E>
-  View(B&&, E&&) -> View<decltype(*std::declval<B>())>;
+  View(B&&, E&&) -> View<std::remove_reference_t<decltype(*std::declval<B>())>>;
 
   /**
    * Drops the last elements of a View.

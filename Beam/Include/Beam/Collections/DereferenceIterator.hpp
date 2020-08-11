@@ -5,7 +5,8 @@
 #include <type_traits>
 #include <utility>
 #include <boost/iterator/transform_iterator.hpp>
-#include "Beam/Utilities/Utilities.hpp"
+#include "Beam/Collections/Collections.hpp"
+#include "Beam/Collections/View.hpp"
 
 namespace Beam {
 namespace Details {

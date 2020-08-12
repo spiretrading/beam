@@ -76,10 +76,9 @@ namespace Beam {
         std::rethrow_exception(m_exception);
       }
     }
-    if(!m_filter(value)) {
-      return;
+    if(m_filter(value)) {
+      m_destination.Push(value);
     }
-    m_destination.Push(value);
   }
 
   template<typename T, typename F>
@@ -90,10 +89,9 @@ namespace Beam {
         std::rethrow_exception(m_exception);
       }
     }
-    if(!m_filter(value)) {
-      return;
+    if(m_filter(value)) {
+      m_destination.Push(std::move(value));
     }
-    m_destination.Push(std::move(value));
   }
 
   template<typename T, typename F>

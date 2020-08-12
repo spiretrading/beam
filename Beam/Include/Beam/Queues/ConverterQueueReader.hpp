@@ -31,7 +31,7 @@ namespace Beam {
       using Target = std::invoke_result_t<Converter, const T&>;
 
       /**
-       * Constructs a ConverterReaderQueue.
+       * Constructs a ConverterQueueReader.
        * @param source The QueueReader to convert.
        * @param converter Initializes the Converter.
        */

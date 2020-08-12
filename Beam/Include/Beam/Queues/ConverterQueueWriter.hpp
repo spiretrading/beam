@@ -29,7 +29,7 @@ namespace Beam {
       using Destination = std::invoke_result_t<Converter, const Target&>;
 
       /**
-       * Constructs a ConverterQueue.
+       * Constructs a ConverterQueueWriter.
        * @param target The target to push the converted data onto.
        * @param converter The function performing the conversion.
        */
@@ -64,7 +64,7 @@ namespace Beam {
   }
 
   /**
-   * Builds a ConverterWriterQueue used to push tasks.
+   * Builds a ConverterQueueWriter used to push tasks.
    * @param target The target to push the converted data onto.
    * @param task The task to perform when a value is pushed onto the
    *        QueueWriter.

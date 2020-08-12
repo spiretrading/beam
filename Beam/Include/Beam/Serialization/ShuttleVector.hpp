@@ -29,7 +29,7 @@ namespace Serialization {
     void operator ()(Shuttler& shuttle, const char* name,
         std::vector<T, A>& value) const {
       value.clear();
-      int size;
+      auto size = int();
       shuttle.StartSequence(name, size);
       for(auto i = 0; i < size; ++i) {
         value.emplace_back();
@@ -46,7 +46,7 @@ namespace Serialization {
     void operator ()(Shuttler& shuttle, const char* name,
         std::vector<T, A>& value) const {
       value.clear();
-      int size;
+      auto size = int();
       shuttle.StartSequence(name, size);
       for(auto i = 0; i < size; ++i) {
         value.push_back(static_cast<T>(ReceiveBuilder()));

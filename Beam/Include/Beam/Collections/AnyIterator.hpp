@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/throw_exception.hpp>
-#include "Beam/Utilities/Utilities.hpp"
+#include "Beam/Collections/Collections.hpp"
 #include "Beam/Utilities/NotSupportedException.hpp"
 
 namespace Beam {

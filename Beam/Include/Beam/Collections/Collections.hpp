@@ -7,8 +7,8 @@ namespace Beam {
   template<typename T, std::size_t N> class Enum;
   template<typename T> class EnumIterator;
   template<typename T> class EnumSet;
-  template<typename I> class IndexedIterator;
-  template<typename I> class IndexedIteratorValue;
+  template<typename I> class IndexIterator;
+  template<typename I> class IndexIteratorValue;
   template<typename T, typename C, typename A> class SortedVector;
   template<typename T, typename M> class SynchronizedList;
   template<typename T, typename M> class SynchronizedMap;

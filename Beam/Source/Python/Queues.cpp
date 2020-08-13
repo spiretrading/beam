@@ -4,7 +4,6 @@
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Python/SharedObject.hpp"
-#include "Beam/Queues/AliasQueueWriter.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -100,6 +99,7 @@ void Beam::Python::ExportTaskQueue(pybind11::module& module) {
           std::function<void (const std::exception_ptr&)> breakSlot) {
         auto queue = self.GetSlot(std::move(slot), std::move(breakSlot));
         return MakeToPythonQueueWriter(std::move(queue));
-      });
+      })
+    .def("pop", &TaskQueue::Pop, call_guard<GilRelease>());
   module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
 }

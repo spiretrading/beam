@@ -1,7 +1,7 @@
 #include <vector>
 #include <doctest/doctest.h>
 #include "Beam/Collections/DereferenceIterator.hpp"
-#include "Beam/Collections/IndexedIterator.hpp"
+#include "Beam/Collections/IndexIterator.hpp"
 #include "Beam/Collections/View.hpp"
 
 using namespace Beam;
@@ -47,7 +47,7 @@ TEST_SUITE("View") {
     v.push_back(3);
     v.push_back(2);
     v.push_back(7);
-    auto view = MakeIndexedView(v);
+    auto view = MakeIndexView(v);
     REQUIRE(view.begin()->GetIndex() == 0);
     REQUIRE(view.begin()->GetValue() == 3);
   }

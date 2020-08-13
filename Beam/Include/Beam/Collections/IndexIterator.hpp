@@ -1,5 +1,5 @@
-#ifndef BEAM_INDEXED_ITERATOR_HPP
-#define BEAM_INDEXED_ITERATOR_HPP
+#ifndef BEAM_INDEX_ITERATOR_HPP
+#define BEAM_INDEX_ITERATOR_HPP
 #include <boost/iterator/iterator_facade.hpp>
 #include "Beam/Collections/Collections.hpp"
 #include "Beam/Collections/View.hpp"
@@ -11,21 +11,21 @@ namespace Beam {
    * @param <I> The type of iterator to store.
    */
   template<typename I>
-  class IndexedIteratorValue {
+  class IndexIteratorValue {
     public:
 
       /** The type of iterator to store. */
       using Iterator = I;
 
-      /** Constructs an IndexedIteratorValue. */
-      IndexedIteratorValue();
+      /** Constructs an IndexIteratorValue. */
+      IndexIteratorValue();
 
       /**
-       * Constructs an IndexedIteratorValue.
+       * Constructs an IndexIteratorValue.
        * @param iterator The iterator to store.
        * @param index The index of the iterator.
        */
-      IndexedIteratorValue(Iterator iterator, std::size_t index);
+      IndexIteratorValue(Iterator iterator, std::size_t index);
 
       /** Returns the value represented by the iterator. */
       const typename Iterator::value_type& GetValue() const;
@@ -37,7 +37,7 @@ namespace Beam {
       std::size_t GetIndex() const;
 
     private:
-      friend class IndexedIterator<Iterator>;
+      friend class IndexIterator<Iterator>;
       Iterator m_iterator;
       std::size_t m_index;
   };
@@ -47,8 +47,8 @@ namespace Beam {
    * @param <I> The type of iterator to store.
    */
   template<typename I>
-  class IndexedIterator : public boost::iterators::iterator_facade<
-      IndexedIterator<I>, IndexedIteratorValue<I>,
+  class IndexIterator : public boost::iterators::iterator_facade<
+      IndexIterator<I>, IndexIteratorValue<I>,
       boost::iterators::random_access_traversal_tag> {
     public:
 
@@ -57,28 +57,28 @@ namespace Beam {
 
       /** The type used to compute the difference between two iterators. */
       using difference_type = typename boost::iterators::iterator_facade<
-        IndexedIterator<I>, IndexedIteratorValue<I>,
+        IndexIterator<Iterator>, IndexIteratorValue<Iterator>,
         boost::iterators::random_access_traversal_tag>::difference_type;
 
-      /** Constructs an IndexedIterator. */
-      IndexedIterator() = default;
+      /** Constructs an IndexIterator. */
+      IndexIterator() = default;
 
       /**
-       * Constructs an IndexedIterator.
+       * Constructs an IndexIterator.
        * @param iterator The iterator to store.
        */
-      IndexedIterator(Iterator iterator);
+      IndexIterator(Iterator iterator);
 
     private:
       friend class boost::iterators::iterator_core_access;
-      mutable IndexedIteratorValue<I> m_value;
+      mutable IndexIteratorValue<I> m_value;
 
       void decrement();
       void increment();
-      bool equal(const IndexedIterator& other) const;
+      bool equal(const IndexIterator& other) const;
       void advance(difference_type n);
-      difference_type distance_to(const IndexedIterator& other) const;
-      IndexedIteratorValue<I>& dereference() const;
+      difference_type distance_to(const IndexIterator& other) const;
+      IndexIteratorValue<I>& dereference() const;
   };
 
   /**
@@ -86,73 +86,73 @@ namespace Beam {
    * @param collection The Collection to index.
    */
   template<typename Collection>
-  auto MakeIndexedView(Collection&& collection) {
-    return View(IndexedIterator(collection.begin()),
-      IndexedIterator(collection.end()));
+  auto MakeIndexView(Collection&& collection) {
+    return View(IndexIterator(collection.begin()),
+      IndexIterator(collection.end()));
   }
 
   template<typename I>
-  IndexedIteratorValue<I>::IndexedIteratorValue()
+  IndexIteratorValue<I>::IndexIteratorValue()
     : m_index(-1) {}
 
   template<typename I>
-  IndexedIteratorValue<I>::IndexedIteratorValue(Iterator iterator,
+  IndexIteratorValue<I>::IndexIteratorValue(Iterator iterator,
     std::size_t index)
     : m_iterator(std::move(iterator)),
       m_index(index) {}
 
   template<typename I>
-  const typename IndexedIteratorValue<I>::Iterator::value_type&
-      IndexedIteratorValue<I>::GetValue() const {
+  const typename IndexIteratorValue<I>::Iterator::value_type&
+      IndexIteratorValue<I>::GetValue() const {
     return *m_iterator;
   }
 
   template<typename I>
-  typename IndexedIteratorValue<I>::Iterator::value_type&
-      IndexedIteratorValue<I>::GetValue() {
+  typename IndexIteratorValue<I>::Iterator::value_type&
+      IndexIteratorValue<I>::GetValue() {
     return *m_iterator;
   }
 
   template<typename I>
-  std::size_t IndexedIteratorValue<I>::GetIndex() const {
+  std::size_t IndexIteratorValue<I>::GetIndex() const {
     return m_index;
   }
 
   template<typename I>
-  IndexedIterator<I>::IndexedIterator(Iterator iterator)
-      : m_value(std::move(iterator), 0) {}
+  IndexIterator<I>::IndexIterator(Iterator iterator)
+    : m_value(std::move(iterator), 0) {}
 
   template<typename I>
-  void IndexedIterator<I>::decrement() {
+  void IndexIterator<I>::decrement() {
     --m_value.m_iterator;
     --m_value.m_index;
   }
 
   template<typename I>
-  void IndexedIterator<I>::increment() {
+  void IndexIterator<I>::increment() {
     ++m_value.m_iterator;
     ++m_value.m_index;
   }
 
   template<typename I>
-  void IndexedIterator<I>::advance(difference_type n) {
+  void IndexIterator<I>::advance(difference_type n) {
     m_value.m_iterator = m_value.m_iterator + n;
     m_value.m_index += n;
   }
 
   template<typename I>
-  bool IndexedIterator<I>::equal(const IndexedIterator& rhs) const {
+  bool IndexIterator<I>::equal(const IndexIterator& rhs) const {
     return m_value.m_iterator == rhs.m_value.m_iterator;
   }
 
   template<typename I>
-  typename IndexedIterator<I>::difference_type
-      IndexedIterator<I>::distance_to(const IndexedIterator& other) const {
+  typename IndexIterator<I>::difference_type
+      IndexIterator<I>::distance_to(const IndexIterator& other) const {
     return std::distance(m_value.m_iterator, other.m_value.m_iterator);
   }
 
   template<typename I>
-  IndexedIteratorValue<I>& IndexedIterator<I>::dereference() const {
+  IndexIteratorValue<I>& IndexIterator<I>::dereference() const {
     return m_value;
   }
 }

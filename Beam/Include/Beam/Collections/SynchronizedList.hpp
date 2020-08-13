@@ -3,8 +3,8 @@
 #include <vector>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
+#include "Beam/Collections/Collections.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 

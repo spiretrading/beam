@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
-#include "Beam/Utilities/Utilities.hpp"
+#include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
 

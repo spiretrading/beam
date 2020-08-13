@@ -7,8 +7,7 @@
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Threading/LockRelease.hpp"
-#include "Beam/Utilities/Utilities.hpp"
+#include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
 

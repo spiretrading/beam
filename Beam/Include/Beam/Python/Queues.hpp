@@ -141,8 +141,7 @@ namespace Beam::Python {
     pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Target>>(
         module, name.c_str(), pybind11::multiple_inheritance())
       .def(pybind11::init())
-      .def("pop", &T::Pop, pybind11::call_guard<GilRelease>())
-      .def("try_pop", &T::TryPop);
+      .def("pop", &T::Pop, pybind11::call_guard<GilRelease>());
   }
 
   /**

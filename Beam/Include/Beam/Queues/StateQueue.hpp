@@ -22,6 +22,9 @@ namespace Beam {
       /** Constructs a StateQueue. */
       StateQueue() = default;
 
+      /** Blocks until a value is available and returns it without popping. */
+      Source Peek() const;
+
       Source Pop() override;
 
       boost::optional<Source> TryPop() override;
@@ -42,6 +45,18 @@ namespace Beam {
 
       bool UnlockedIsAvailable() const;
   };
+
+  template<typename T>
+  typename StateQueue<T>::Source StateQueue<T>::Peek() const {
+    auto lock = boost::unique_lock(m_mutex);
+    while(!UnlockedIsAvailable()) {
+      m_isAvailableCondition.wait(lock);
+    }
+    if(!m_value) {
+      std::rethrow_exception(m_breakException);
+    }
+    return *m_value;
+  }
 
   template<typename T>
   typename StateQueue<T>::Source StateQueue<T>::Pop() {

@@ -20,4 +20,15 @@ TEST_SUITE("StateQueue") {
     r1.Wait();
     r2.Wait();
   }
+
+  TEST_CASE("peek") {
+    auto q = StateQueue<int>();
+    q.Push(123);
+    q.Push(456);
+    REQUIRE(q.Peek() == 456);
+    REQUIRE(q.Peek() == 456);
+    REQUIRE(q.Pop() == 456);
+    q.Break();
+    REQUIRE_THROWS_AS(q.Peek(), PipeBrokenException);
+  }
 }

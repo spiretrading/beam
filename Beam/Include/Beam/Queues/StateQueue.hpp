@@ -22,10 +22,6 @@ namespace Beam {
       /** Constructs a StateQueue. */
       StateQueue() = default;
 
-      Source Top() const override;
-
-      boost::optional<Source> TryTop() const override;
-
       Source Pop() override;
 
       boost::optional<Source> TryPop() override;
@@ -46,28 +42,6 @@ namespace Beam {
 
       bool UnlockedIsAvailable() const;
   };
-
-  template<typename T>
-  typename StateQueue<T>::Source StateQueue<T>::Top() const {
-    auto lock = boost::unique_lock(m_mutex);
-    while(!UnlockedIsAvailable()) {
-      m_isAvailableCondition.wait(lock);
-    }
-    if(!m_value) {
-      std::rethrow_exception(m_breakException);
-    }
-    return *m_value;
-  }
-
-  template<typename T>
-  boost::optional<typename StateQueue<T>::Source>
-      StateQueue<T>::TryTop() const {
-    auto lock = boost::lock_guard(m_mutex);
-    if(!m_value) {
-      return boost::none;
-    }
-    return *m_value;
-  }
 
   template<typename T>
   typename StateQueue<T>::Source StateQueue<T>::Pop() {

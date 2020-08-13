@@ -16,15 +16,6 @@ namespace Beam::Python {
     using Source = typename T::Source;
     using T::T;
 
-    Source Top() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "top", Top);
-    }
-
-    boost::optional<Source> TryTop() const override {
-      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_top",
-        TryTop);
-    }
-
     Source Pop() override {
       PYBIND11_OVERLOAD_PURE_NAME(Source, T, "pop", Pop);
     }
@@ -55,10 +46,6 @@ namespace Beam::Python {
 
       //! Returns the QueueReader being wrapped.
       const std::shared_ptr<QueueReader<pybind11::object>>& GetSource() const;
-
-      Source Top() const override;
-
-      boost::optional<Source> TryTop() const override;
 
       Source Pop() override;
 
@@ -95,32 +82,6 @@ namespace Beam::Python {
   const std::shared_ptr<QueueReader<pybind11::object>>&
       FromPythonQueueReader<T>::GetSource() const {
     return m_source;
-  }
-
-  template<typename T>
-  typename FromPythonQueueReader<T>::Source
-      FromPythonQueueReader<T>::Top() const {
-    if(auto value = TryTop()) {
-      return std::move(*value);
-    }
-    auto value = [&] {
-      auto release = GilRelease();
-
-      // TODO This is a data race.
-      return m_source->Top();
-    }();
-    auto lock = GilLock();
-    return value.template cast<Source>();
-  }
-
-  template<typename T>
-  boost::optional<typename FromPythonQueueReader<T>::Source>
-      FromPythonQueueReader<T>::TryTop() const {
-    if(auto value = m_source->TryTop()) {
-      auto lock = GilLock();
-      return value->template cast<Source>();
-    }
-    return boost::none;
   }
 
   template<typename T>

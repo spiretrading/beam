@@ -38,14 +38,6 @@ namespace Beam {
                                                                                \
       VariantQueue() = default;                                                \
                                                                                \
-      Source Top() const override {                                            \
-        return m_queue.Top();                                                  \
-      }                                                                        \
-                                                                               \
-      boost::optional<Source> TryTop() const override {                        \
-        return m_queue.TryTop();                                               \
-      }                                                                        \
-                                                                               \
       Source Pop() override {                                                  \
         return m_queue.Pop();                                                  \
       }                                                                        \

@@ -41,10 +41,6 @@ namespace Beam {
 
       ~ScopedQueueReader() override;
 
-      Source Top() const override;
-
-      boost::optional<Source> TryTop() const override;
-
       Source Pop() override;
 
       boost::optional<Source> TryPop() override;
@@ -88,18 +84,6 @@ namespace Beam {
     if(m_queue) {
       m_queue->Break();
     }
-  }
-
-  template<typename T, typename Q>
-  typename ScopedQueueReader<T, Q>::Source
-      ScopedQueueReader<T, Q>::Top() const {
-    return m_queue->Top();
-  }
-
-  template<typename T, typename Q>
-  boost::optional<typename ScopedQueueReader<T, Q>::Source>
-      ScopedQueueReader<T, Q>::TryTop() const {
-    return m_queue->TryTop();
   }
 
   template<typename T, typename Q>

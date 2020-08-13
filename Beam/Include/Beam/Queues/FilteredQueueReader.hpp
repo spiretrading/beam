@@ -33,10 +33,6 @@ namespace Beam {
       template<typename FF>
       FilteredQueueReader(ScopedQueueReader<T> source, FF&& filter);
 
-      Source Top() const override;
-
-      boost::optional<Source> TryTop() const override;
-
       Source Pop() override;
 
       boost::optional<Source> TryPop() override;
@@ -72,18 +68,6 @@ namespace Beam {
     FF&& filter)
     : m_source(std::move(source)),
       m_filter(std::forward<FF>(filter)) {}
-
-  template<typename T, typename F>
-  typename FilteredQueueReader<T, F>::Source
-      FilteredQueueReader<T, F>::Top() const {
-    return {};
-  }
-
-  template<typename T, typename F>
-  boost::optional<typename FilteredQueueReader<T, F>::Source>
-      FilteredQueueReader<T, F>::TryTop() const {
-    return boost::none;
-  }
 
   template<typename T, typename F>
   typename FilteredQueueReader<T, F>::Source FilteredQueueReader<T, F>::Pop() {

@@ -19,4 +19,16 @@ TEST_SUITE("SequencePublisher") {
     REQUIRE(monitor->Pop() == 1);
     REQUIRE(monitor->Pop() == 4);
   }
+
+  TEST_CASE("monitor_snapshot") {
+    auto publisher = SequencePublisher<int>();
+    publisher.Push(3);
+    publisher.Push(1);
+    publisher.Push(4);
+    auto monitor = std::make_shared<Queue<int>>();
+    auto snapshot = boost::optional<std::vector<int>>();
+    publisher.Monitor(monitor, Store(snapshot));
+    REQUIRE(snapshot.is_initialized());
+    REQUIRE(*snapshot == std::vector{3, 1, 4});
+  }
 }

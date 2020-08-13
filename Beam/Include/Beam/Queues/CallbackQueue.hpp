@@ -87,7 +87,7 @@ namespace Beam {
           });
       });
     m_tasks.Add(
-      [=] {
+      [=] () mutable {
         if(m_isBroken) {
           queue->Break(m_exception);
         } else {
@@ -121,7 +121,6 @@ namespace Beam {
         for(auto& queue : m_queues) {
           queue.Break(m_exception);
         }
-        m_queues.clear();
       });
   }
 

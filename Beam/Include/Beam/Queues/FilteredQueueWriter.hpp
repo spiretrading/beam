@@ -10,7 +10,7 @@
 namespace Beam {
 
   /**
-   * Filters data pushed onto a Queue.
+   * Filters data pushed onto a QueueWriter.
    * @param <T> The type of data to filter.
    * @param <F> The type used to filter the data.
    */
@@ -19,13 +19,17 @@ namespace Beam {
     public:
       using Target = typename QueueWriter<T>::Target;
 
-      /** The type used to filter the data. */
+      /**
+       * The type used to filter the data.
+       * @param value The value to test.
+       * @return <code>false</code> iff the <i>value</i> should be filtered out.
+       */
       using Filter = F;
 
       /**
        * Constructs a FilteredQueueWriter.
        * @param destination The QueueWriter to push the filtered data onto.
-       * @param filter The function performing the filtering.
+       * @param filter The function used to filter values.
        */
       template<typename FF>
       FilteredQueueWriter(ScopedQueueWriter<Target> destination, FF&& filter);

@@ -1,6 +1,8 @@
 #ifndef BEAM_QUEUE_READER_HPP
 #define BEAM_QUEUE_READER_HPP
+#include <type_traits>
 #include <boost/optional/optional.hpp>
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/Queues.hpp"
@@ -38,11 +40,24 @@ namespace Beam {
    *        <i>queue<i> to.
    */
   template<typename Queue, typename Iterator>
-  void FlushQueue(const Queue& queue, Iterator destination) {
+  std::enable_if_t<std::is_base_of_v<QueueReader<typename GetTryDereferenceType<
+      Queue>::Source>, GetTryDereferenceType<Queue>>> Flush(const Queue& queue,
+      Iterator destination) {
     try {
       while(true) {
         *destination = queue->Pop();
         ++destination;
+      }
+    } catch(const std::exception&) {}
+  }
+
+  template<typename Queue, typename F>
+  std::enable_if_t<std::is_base_of_v<QueueReader<typename GetTryDereferenceType<
+      Queue>::Source>, GetTryDereferenceType<Queue>>> ForEach(
+      const Queue& queue, F&& f) {
+    try {
+      while(true) {
+        f(queue->Pop());
       }
     } catch(const std::exception&) {}
   }

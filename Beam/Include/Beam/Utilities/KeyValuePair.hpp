@@ -1,5 +1,6 @@
 #ifndef BEAM_KEY_VALUE_PAIR_HPP
 #define BEAM_KEY_VALUE_PAIR_HPP
+#include <ostream>
 #include <utility>
 #include "Beam/Serialization/DataShuttle.hpp"
 
@@ -34,12 +35,34 @@ namespace Beam {
      * @param value The value to associate with the <i>key</i>.
      */
     KeyValuePair(Key key, Value value);
+
+    /** Tests if another pair has an equal key and value. */
+    bool operator ==(const KeyValuePair& pair) const;
+
+    /** Tests if another pair has a non-equal key or value. */
+    bool operator !=(const KeyValuePair& pair) const;
   };
 
-  template<typename KeyType, typename ValueType>
-  KeyValuePair<KeyType, ValueType>::KeyValuePair(Key key, Value value)
+  template<typename Key, typename Value>
+  std::ostream& operator <<(std::ostream& out,
+      const KeyValuePair<Key, Value>& pair) {
+    return out << '(' << pair.m_key << ' ' << pair.m_value << ')';
+  }
+
+  template<typename K, typename V>
+  KeyValuePair<K, V>::KeyValuePair(Key key, Value value)
     : m_key(std::move(key)),
       m_value(std::move(value)) {}
+
+  template<typename K, typename V>
+  bool KeyValuePair<K, V>::operator ==(const KeyValuePair& pair) const {
+    return m_key == pair.m_key && m_value == pair.m_value;
+  }
+
+  template<typename K, typename V>
+  bool KeyValuePair<K, V>::operator !=(const KeyValuePair& pair) const {
+    return !(*this == pair);
+  }
 }
 
 namespace Beam::Serialization {

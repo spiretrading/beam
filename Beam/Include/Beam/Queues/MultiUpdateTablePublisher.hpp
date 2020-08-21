@@ -35,13 +35,6 @@ namespace Beam {
       MultiUpdateTablePublisher() = default;
 
       /**
-       * Gives synchronized access to the snapshot.
-       * @param f The action to perform on the snapshot.
-       */
-      template<typename F>
-      decltype(auto) WithSnapshot(F&& f);
-
-      /**
        * Pushes a single update.
        * @param update The update to push.
        */
@@ -54,8 +47,9 @@ namespace Beam {
        */
       void Push(const Key& key, const Value& value);
 
-      void WithSnapshot(const std::function<void (
-        boost::optional<const Snapshot&>)>& f) const override;
+      void With(
+        const std::function<void (boost::optional<const Snapshot&>)>& f)
+        const override;
 
       void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
@@ -68,18 +62,14 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
+      using QueueWriter<std::vector<KeyValuePair<K, V>>>::Break;
+      using SnapshotPublisher<
+        std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::With;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
       QueueWriterPublisher<Type> m_publisher;
   };
-
-  template<typename K, typename V>
-  template<typename F>
-  decltype(auto) MultiUpdateTablePublisher<K, V>::WithSnapshot(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
-    return f(m_table);
-  }
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Push(
@@ -96,7 +86,7 @@ namespace Beam {
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::WithSnapshot(
+  void MultiUpdateTablePublisher<K, V>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f(m_table);

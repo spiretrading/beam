@@ -75,7 +75,8 @@ namespace Beam {
       void Break(const std::exception_ptr& e) override;
 
       using QueueWriter<KeyValuePair<Key, Value>>::Break;
-
+      using SnapshotPublisher<
+        KeyValuePair<K, V>, std::unordered_map<K, V>>::With;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;

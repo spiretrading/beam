@@ -31,6 +31,7 @@ namespace Beam {
 
       void Monitor(ScopedQueueWriter<Type> monitor) const override;
 
+      using Publisher<T>::With;
     private:
       std::atomic_bool m_isReading;
       ScopedQueueReader<T, Q> m_reader;

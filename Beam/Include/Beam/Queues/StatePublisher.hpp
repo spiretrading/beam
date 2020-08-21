@@ -48,8 +48,8 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
-      using QueueWriter<Type>::Break;
-
+      using QueueWriter<T>::Break;
+      using SnapshotPublisher<T, T>::With;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       boost::optional<Type> m_value;

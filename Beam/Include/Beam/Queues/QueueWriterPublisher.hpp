@@ -27,9 +27,6 @@ namespace Beam {
       /** Returns the number of QueueWriters being monitored. */
       int GetSize() const;
 
-      template<typename F>
-      decltype(auto) With(F&& f) const;
-
       void With(const std::function<void ()>& f) const override;
 
       void Push(const Target& value) override;
@@ -41,7 +38,7 @@ namespace Beam {
       void Monitor(ScopedQueueWriter<Target> queue) const override;
 
       using QueueWriter<Target>::Break;
-
+      using Publisher<T>::With;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       std::exception_ptr m_exception;
@@ -52,13 +49,6 @@ namespace Beam {
   int QueueWriterPublisher<T>::GetSize() const {
     auto lock = boost::lock_guard(m_mutex);
     return static_cast<int>(m_queues.size());
-  }
-
-  template<typename T>
-  template<typename F>
-  decltype(auto) QueueWriterPublisher<T>::With(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
-    return f();
   }
 
   template<typename T>

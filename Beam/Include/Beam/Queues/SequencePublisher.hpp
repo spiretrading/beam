@@ -49,8 +49,8 @@ namespace Beam {
 
       void Break(const std::exception_ptr& e) override;
 
-      using QueueWriter<Type>::Break;
-
+      using QueueWriter<T>::Break;
+      using SnapshotPublisher<T, S>::With;
     private:
       mutable Threading::RecursiveMutex m_mutex;
       Snapshot m_sequence;

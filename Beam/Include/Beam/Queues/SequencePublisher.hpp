@@ -32,8 +32,9 @@ namespace Beam {
         !std::is_base_of_v<StatePublisher, std::decay_t<SF>>>>
       explicit SequencePublisher(SF&& sequence);
 
-      void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override;
+      void With(
+        const std::function<void (boost::optional<const Snapshot&>)>& f)
+        const override;
 
       void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
@@ -82,7 +83,7 @@ namespace Beam {
     : m_sequence(std::forward<SF>(sequence)) {}
 
   template<typename T, typename S>
-  void SequencePublisher<T, S>::WithSnapshot(
+  void SequencePublisher<T, S>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f(m_sequence);

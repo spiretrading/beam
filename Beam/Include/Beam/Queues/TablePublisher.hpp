@@ -57,8 +57,9 @@ namespace Beam {
        */
       void Delete(const Type& value);
 
-      void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override;
+      void With(
+        const std::function<void (boost::optional<const Snapshot&>)>& f)
+        const override;
 
       void Monitor(ScopedQueueWriter<Type> queue,
         Out<boost::optional<Snapshot>> snapshot) const override;
@@ -101,7 +102,7 @@ namespace Beam {
   }
 
   template<typename K, typename V>
-  void TablePublisher<K, V>::WithSnapshot(
+  void TablePublisher<K, V>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f(m_table);

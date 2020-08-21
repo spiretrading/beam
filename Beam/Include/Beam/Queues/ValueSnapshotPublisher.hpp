@@ -67,8 +67,9 @@ namespace Beam {
         const InitializationFunction& initialize,
         const FilteredUpdateFunction& update, SF&& snapshot);
 
-      void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override;
+      void With(
+        const std::function<void (boost::optional<const Snapshot&>)>& f)
+        const override;
 
       void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
@@ -116,7 +117,7 @@ namespace Beam {
       m_snapshot(std::forward<SF>(snapshot)) {}
 
   template<typename V, typename S>
-  void ValueSnapshotPublisher<V, S>::WithSnapshot(
+  void ValueSnapshotPublisher<V, S>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f(*m_snapshot);

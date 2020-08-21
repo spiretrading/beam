@@ -31,8 +31,9 @@ namespace Beam {
         !std::is_base_of_v<StatePublisher, std::decay_t<VF>>>>
       explicit StatePublisher(VF&& value);
 
-      void WithSnapshot(const std::function<
-        void (boost::optional<const Snapshot&>)>& f) const override;
+      void With(
+        const std::function<void (boost::optional<const Snapshot&>)>& f)
+        const override;
 
       void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
@@ -61,7 +62,7 @@ namespace Beam {
     : m_value(std::forward<VF>(value)) {}
 
   template<typename T>
-  void StatePublisher<T>::WithSnapshot(
+  void StatePublisher<T>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     if(m_value) {

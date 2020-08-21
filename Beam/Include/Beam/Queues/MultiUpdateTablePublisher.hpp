@@ -39,7 +39,7 @@ namespace Beam {
        * @param f The action to perform on the snapshot.
        */
       template<typename F>
-      void WithSnapshot(F f);
+      decltype(auto) WithSnapshot(F&& f);
 
       /**
        * Pushes a single update.
@@ -76,9 +76,9 @@ namespace Beam {
 
   template<typename K, typename V>
   template<typename F>
-  void MultiUpdateTablePublisher<K, V>::WithSnapshot(F f) {
+  decltype(auto) MultiUpdateTablePublisher<K, V>::WithSnapshot(F&& f) {
     auto lock = boost::lock_guard(m_mutex);
-    f(m_table);
+    return f(m_table);
   }
 
   template<typename K, typename V>

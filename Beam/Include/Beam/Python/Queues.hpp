@@ -110,20 +110,28 @@ namespace Beam::Python {
     pybind11::class_<SnapshotPublisher<T, S>,
         std::shared_ptr<SnapshotPublisher<T, S>>, Publisher<T>>(module,
         name.c_str(), pybind11::multiple_inheritance())
-      .def("get_snapshot",
-        [] (SnapshotPublisher<T, S>& self) {
-          auto object = pybind11::object();
+      .def("snapshot_monitor",
+        [] (SnapshotPublisher<T, S>& self, ScopedQueueWriter<T> writer) {
+          auto snapshot = boost::optional<S>();
           {
             auto release = GilRelease();
-            self.WithSnapshot(
-              [&] (auto snapshot) {
-                if(snapshot) {
-                  auto lock = GilLock();
-                  object = pybind11::cast(*snapshot);
-                }
-              });
+            self.Monitor(std::move(writer), Store(snapshot));
           }
-          return object;
+          if(snapshot) {
+            return pybind11::cast(*snapshot);
+          }
+          return pybind11::object();
+        })
+      .def("get_snapshot",
+        [] (SnapshotPublisher<T, S>& self) {
+          auto snapshot = [&] {
+            auto release = GilRelease();
+            return self.GetSnapshot();
+          }();
+          if(snapshot) {
+            return pybind11::cast(*snapshot);
+          }
+          return pybind11::object();
         });
   }
 

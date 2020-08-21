@@ -1,5 +1,6 @@
 #ifndef BEAM_SNAPSHOT_PUBLISHER_HPP
 #define BEAM_SNAPSHOT_PUBLISHER_HPP
+#include <type_traits>
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -33,9 +34,21 @@ namespace Beam {
        * Performs a synchronized action with this Publisher's Snapshot.
        * @param f The action to perform.
        */
-      virtual void WithSnapshot(
+      template<typename F, typename = std::enable_if_t<
+        !std::is_same_v<std::invoke_result_t<F,
+        boost::optional<const Snapshot&>>, void>>>
+      decltype(auto) With(F&& f) const;
+
+      /**
+       * Performs a synchronized action with this Publisher's Snapshot.
+       * @param f The action to perform.
+       */
+      virtual void With(
         const std::function<void (boost::optional<const Snapshot&>)>& f)
         const = 0;
+
+      /** Returns the snapshot. */
+      virtual boost::optional<Snapshot> GetSnapshot() const;
 
       /**
        * Monitors updates to this SnapshotPublisher.
@@ -45,8 +58,39 @@ namespace Beam {
       virtual void Monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const = 0;
 
+      using Publisher<T>::With;
       using Publisher<T>::Monitor;
   };
+
+  template<typename T, typename S>
+  template<typename F, typename>
+  decltype(auto) SnapshotPublisher<T, S>::With(F&& f) const {
+    using R = std::invoke_result_t<F, boost::optional<const Snapshot&>>;
+    if constexpr(std::is_reference_v<R>) {
+      auto result = static_cast<std::remove_reference_t<R>*>(nullptr);
+      With([&] (auto snapshot) {
+        result = &f(std::move(snapshot));
+      });
+      return *result;
+    } else {
+      auto result = boost::optional<R>();
+      With([&] (auto snapshot) {
+        result.emplace(f(std::move(snapshot)));
+      });
+      return R(std::move(*result));
+    }
+  }
+
+  template<typename T, typename S>
+  boost::optional<typename SnapshotPublisher<T, S>::Snapshot>
+      SnapshotPublisher<T, S>::GetSnapshot() const {
+    return With([] (auto s) -> boost::optional<Snapshot> {
+      if(s) {
+        return std::move(*s);
+      }
+      return boost::none;
+    });
+  }
 
 namespace Details {
   template<typename PublisherType, bool IsSnapshot = false>

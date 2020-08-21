@@ -30,5 +30,8 @@ TEST_SUITE("SequencePublisher") {
     publisher.Monitor(monitor, Store(snapshot));
     REQUIRE(snapshot.is_initialized());
     REQUIRE(*snapshot == std::vector{3, 1, 4});
+    auto getter = publisher.GetSnapshot();
+    REQUIRE(getter.is_initialized());
+    REQUIRE(*getter == std::vector{3, 1, 4});
   }
 }

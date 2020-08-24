@@ -16,7 +16,9 @@ using namespace pybind11;
 
 void Beam::Python::ExportBasePublisher(pybind11::module& module) {
   class_<BasePublisher, std::shared_ptr<BasePublisher>>(module, "BasePublisher")
-    .def("with", &BasePublisher::With, call_guard<GilRelease>());
+    .def("with", static_cast<void (BasePublisher::*)(
+      const std::function<void ()>&) const>(&BasePublisher::With),
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportBaseQueue(pybind11::module& module) {

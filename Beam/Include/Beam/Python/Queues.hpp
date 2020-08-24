@@ -89,7 +89,6 @@ namespace Beam::Python {
     }
     pybind11::class_<Publisher<T>, std::shared_ptr<Publisher<T>>,
         BasePublisher>(module, name.c_str(), pybind11::multiple_inheritance())
-      .def("with", &Publisher<T>::With, pybind11::call_guard<GilRelease>())
       .def("monitor", &Publisher<T>::Monitor,
         pybind11::call_guard<GilRelease>());
   }

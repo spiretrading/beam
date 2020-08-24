@@ -8,6 +8,18 @@ using namespace Beam::Python;
 using namespace boost;
 using namespace pybind11;
 
+KeyValuePair<object, object>::KeyValuePair(Key key, Value value)
+  : m_key(std::move(key)),
+    m_value(std::move(value)) {}
+
+bool KeyValuePair<object, object>::operator ==(const KeyValuePair& pair) const {
+  return m_key.equal(pair.m_key) && m_value.equal(pair.m_value);
+}
+
+bool KeyValuePair<object, object>::operator !=(const KeyValuePair& pair) const {
+  return !(*this == pair);
+}
+
 void Beam::Python::ExportKeyValuePair(pybind11::module& module) {
   class_<KeyValuePair<object, object>>(module, "KeyValuePair")
     .def(init())

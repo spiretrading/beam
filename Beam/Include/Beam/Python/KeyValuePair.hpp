@@ -3,6 +3,27 @@
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
+namespace Beam {
+
+  /**
+   * Specialization of KeyValuePair when the key and value are
+   * pybind11::objects.
+   */
+  template<>
+  struct KeyValuePair<pybind11::object, pybind11::object> {
+    using Key = pybind11::object;
+    using Value = pybind11::object;
+
+    Key m_key;
+    Value m_value;
+
+    KeyValuePair() = default;
+    KeyValuePair(Key key, Value value);
+    bool operator ==(const KeyValuePair& pair) const;
+    bool operator !=(const KeyValuePair& pair) const;
+  };
+}
+
 namespace Beam::Python {
 
   /**

@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_KEY_VALUE_PAIR_HPP
 #define BEAM_PYTHON_KEY_VALUE_PAIR_HPP
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
@@ -18,9 +19,9 @@ namespace Beam {
     Value m_value;
 
     KeyValuePair() = default;
-    KeyValuePair(Key key, Value value);
-    bool operator ==(const KeyValuePair& pair) const;
-    bool operator !=(const KeyValuePair& pair) const;
+    BEAM_EXPORT_DLL KeyValuePair(Key key, Value value);
+    BEAM_EXPORT_DLL bool operator ==(const KeyValuePair& pair) const;
+    BEAM_EXPORT_DLL bool operator !=(const KeyValuePair& pair) const;
   };
 }
 

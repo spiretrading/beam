@@ -79,19 +79,19 @@ namespace Beam {
        * Adds all values in a set to this set.
        * @param set The set of values to add to this set.
        */
-      void SetAll(const EnumSet& values);
+      EnumSet& SetAll(const EnumSet& values);
 
       /**
        * Adds a value to this set.
        * @param value The value to add to this set.
        */
-      void Set(Type value);
+      EnumSet& Set(Type value);
 
       /**
        * Removes a value from this set.
        * @param value The value to remove from this set.
        */
-      void Unset(Type value);
+      EnumSet& Unset(Type value);
 
       /** Returns the bitset. */
       const std::bitset<T::COUNT>& GetBitset() const;
@@ -165,24 +165,25 @@ namespace Beam {
   }
 
   template<typename T>
-  void EnumSet<T>::SetAll(const EnumSet& values) {
+  EnumSet<T>& EnumSet<T>::SetAll(const EnumSet& values) {
     m_bitset |= values.m_bitset;
+    return *this;
   }
 
   template<typename T>
-  void EnumSet<T>::Set(Type value) {
-    if(value == Type::NONE) {
-      return;
+  EnumSet<T>& EnumSet<T>::Set(Type value) {
+    if(value != Type::NONE) {
+      m_bitset.set(static_cast<int>(value));
     }
-    m_bitset.set(static_cast<int>(value));
+    return *this;
   }
 
   template<typename T>
-  void EnumSet<T>::Unset(Type value) {
-    if(value == Type::NONE) {
-      return;
+  EnumSet<T>& EnumSet<T>::Unset(Type value) {
+    if(value != Type::NONE) {
+      m_bitset.reset(static_cast<int>(value));
     }
-    m_bitset.reset(static_cast<int>(value));
+    return *this;
   }
 
   template<typename T>

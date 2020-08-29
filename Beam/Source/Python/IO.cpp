@@ -44,7 +44,6 @@ void Beam::Python::ExportChannelIdentifier(pybind11::module& module) {
 
 void Beam::Python::ExportConnection(pybind11::module& module) {
   class_<VirtualConnection>(module, "Connection")
-    .def("open", &VirtualConnection::Open, call_guard<GilRelease>())
     .def("close", &VirtualConnection::Close, call_guard<GilRelease>());
 }
 

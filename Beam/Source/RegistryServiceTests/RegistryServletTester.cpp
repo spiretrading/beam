@@ -27,19 +27,19 @@ namespace {
 
     Fixture() {
       m_environment.Open();
-      auto serverConnection = std::make_unique<TestServerConnection>();
+      auto registryServiceLocatorClient = m_environment.BuildClient();
+      registryServiceLocatorClient->SetCredentials("root", "");
+      registryServiceLocatorClient->Open();
+      auto serverConnection = std::make_shared<TestServerConnection>();
+      m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
+        Initialize(&m_dataStore)), serverConnection,
+        factory<std::unique_ptr<TriggerTimer>>());
+      m_container->Open();
       m_clientProtocol.emplace(Initialize("test", *serverConnection),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
       RegisterRegistryServices(Store(m_clientProtocol->GetSlots()));
-      auto registryServiceLocatorClient = m_environment.BuildClient();
-      registryServiceLocatorClient->SetCredentials("root", "");
-      registryServiceLocatorClient->Open();
-      m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
-        Initialize(&m_dataStore)), std::move(serverConnection),
-        factory<std::unique_ptr<TriggerTimer>>());
-      m_container->Open();
     }
   };
 }

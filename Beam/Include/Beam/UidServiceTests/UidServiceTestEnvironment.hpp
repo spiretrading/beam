@@ -81,7 +81,7 @@ namespace Tests {
     ServiceProtocolClientBuilder builder(
       [=] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(
-          "test_uid_client", Ref(m_serverConnection));
+          "test_uid_client", m_serverConnection);
       },
       [] {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();

@@ -87,7 +87,6 @@ namespace WebServices {
     if(!m_channel.is_initialized() || m_channel->m_endPoint != endPoint) {
       m_channel.reset();
       auto channel = m_channelBuilder(request.GetUri());
-      channel->GetConnection().Open();
       m_channel.emplace(endPoint, std::move(channel));
       isNewChannel = true;
     }

@@ -27,13 +27,14 @@ namespace {
   struct Fixture {
     using TestServiceLocatorClient = ServiceLocatorClient<
       TestServiceProtocolClientBuilder>;
+    std::shared_ptr<TestServerConnection> m_serverConnection;
     optional<TestServiceProtocolServer> m_protocolServer;
     optional<TestServiceLocatorClient> m_serviceClient;
     std::vector<TestServiceProtocolClientBuilder::Channel*> m_clientChannels;
 
-    Fixture() {
-      auto serverConnection = std::make_shared<TestServerConnection>();
-      m_protocolServer.emplace(serverConnection,
+    Fixture()
+        : m_serverConnection(std::make_shared<TestServerConnection>()) {
+      m_protocolServer.emplace(m_serverConnection,
         factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
       RegisterServiceLocatorServices(Store(m_protocolServer->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_protocolServer->GetSlots()));
@@ -41,11 +42,11 @@ namespace {
         [=] {
           auto channel = std::make_unique<
             TestServiceProtocolClientBuilder::Channel>("test",
-            *serverConnection);
+            *m_serverConnection);
           m_clientChannels.push_back(channel.get());
           return channel;
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
-      m_serviceClient.emplace(builder);
+      m_serviceClient.emplace("account", "password", builder);
       LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
         AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
         std::placeholders::_3));
@@ -55,15 +56,18 @@ namespace {
 
 TEST_SUITE("ServiceLocatorClient") {
   TEST_CASE_FIXTURE(Fixture, "login_accepted") {
-    m_serviceClient->SetCredentials("account", "password");
-    REQUIRE_NOTHROW(m_serviceClient->Open());
     REQUIRE(m_serviceClient->GetAccount().m_name == "account");
     REQUIRE(m_serviceClient->GetSessionId() == "sessionid");
   }
 
   TEST_CASE_FIXTURE(Fixture, "login_rejected") {
-    m_serviceClient->SetCredentials("account", "bad_password");
-    REQUIRE_THROWS_AS(m_serviceClient->Open(), ServiceRequestException);
+    auto builder = TestServiceProtocolClientBuilder(
+      [=] {
+        return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
+          "test", *m_serverConnection);
+      }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
+    REQUIRE_THROWS_AS(TestServiceLocatorClient("account", "bad_password",
+      builder), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "monitor_accounts") {
@@ -83,8 +87,6 @@ TEST_SUITE("ServiceLocatorClient") {
         serverSideClient = &client;
         return testAccounts;
       });
-    m_serviceClient->SetCredentials("account", "password");
-    REQUIRE_NOTHROW(m_serviceClient->Open());
     auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
     m_serviceClient->MonitorAccounts(accountQueue);
     auto update = accountQueue->Pop();
@@ -131,8 +133,6 @@ TEST_SUITE("ServiceLocatorClient") {
         serverSideClient = &client;
         return testAccounts;
       });
-    m_serviceClient->SetCredentials("account", "password");
-    REQUIRE_NOTHROW(m_serviceClient->Open());
     auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
     m_serviceClient->MonitorAccounts(accountQueue);
     for(auto i = std::size_t(0); i != testAccounts.size(); ++i) {

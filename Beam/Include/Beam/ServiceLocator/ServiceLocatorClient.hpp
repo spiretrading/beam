@@ -36,10 +36,13 @@ namespace Beam::ServiceLocator {
 
       /**
        * Constructs a ServiceLocatorClient.
+       * @param username The username.
+       * @param password The password.
        * @param clientBuilder Initializes the ServiceProtocolClientBuilder.
        */
       template<typename BF>
-      explicit ServiceLocatorClient(BF&& clientBuilder);
+      ServiceLocatorClient(std::string username, std::string password,
+        BF&& clientBuilder);
 
       ~ServiceLocatorClient();
 
@@ -232,25 +235,15 @@ namespace Beam::ServiceLocator {
       DirectoryEntry Rename(const DirectoryEntry& entry,
         const std::string& name);
 
-      /**
-       * Sets the credentials used to login to the ServiceLocatorServer.
-       * @param username The username.
-       * @param password The password.
-       */
-      void SetCredentials(const std::string& username,
-        const std::string& password);
-
-      void Open();
-
       void Close();
 
     private:
       using ServiceProtocolClient =
         typename ServiceProtocolClientBuilder::Client;
       mutable boost::mutex m_mutex;
-      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
       std::string m_username;
       std::string m_password;
+      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
       std::string m_sessionId;
       DirectoryEntry m_account;
       std::vector<DirectoryEntry> m_accountUpdateSnapshot;
@@ -336,8 +329,12 @@ namespace Beam::ServiceLocator {
 
   template<typename B>
   template<typename BF>
-  ServiceLocatorClient<B>::ServiceLocatorClient(BF&& clientBuilder)
-      : m_clientHandler(std::forward<BF>(clientBuilder)) {
+  ServiceLocatorClient<B>::ServiceLocatorClient(std::string username,
+      std::string password, BF&& clientBuilder)
+      : m_username(std::move(username)),
+        m_password(std::move(password)),
+        m_clientHandler(std::forward<BF>(clientBuilder)) {
+    m_openState.SetOpening();
     m_clientHandler.SetReconnectHandler(
       std::bind(&ServiceLocatorClient::OnReconnect, this,
       std::placeholders::_1));
@@ -347,6 +344,14 @@ namespace Beam::ServiceLocator {
       Store(m_clientHandler.GetSlots()),
       std::bind(&ServiceLocatorClient::OnAccountUpdate, this,
       std::placeholders::_1, std::placeholders::_2));
+    try {
+      auto client = m_clientHandler.GetClient();
+      Login(*client);
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
   }
 
   template<typename B>
@@ -545,28 +550,6 @@ namespace Beam::ServiceLocator {
       const std::string& name) {
     auto client = m_clientHandler.GetClient();
     return client->template SendRequest<RenameService>(entry, name);
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::SetCredentials(const std::string& username,
-      const std::string& password) {
-    m_username = username;
-    m_password = password;
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      auto client = m_clientHandler.GetClient();
-      Login(*client);
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename B>

@@ -94,11 +94,6 @@ namespace Beam::ServiceLocator {
       DirectoryEntry Rename(const DirectoryEntry& entry,
         const std::string& name) override;
 
-      void SetCredentials(const std::string& username,
-        const std::string& password) override;
-
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -300,19 +295,6 @@ namespace Beam::ServiceLocator {
       const DirectoryEntry& entry, const std::string& name) {
     auto release = Python::GilRelease();
     return m_client->Rename(entry, name);
-  }
-
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::SetCredentials(
-      const std::string& username, const std::string& password) {
-    auto release = Python::GilRelease();
-    m_client->SetCredentials(username, password);
-  }
-
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Open() {
-    auto release = Python::GilRelease();
-    m_client->Open();
   }
 
   template<typename C>

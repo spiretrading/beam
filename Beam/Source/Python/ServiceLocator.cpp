@@ -165,17 +165,6 @@ namespace {
         "rename", Rename, entry, name);
     }
 
-    void SetCredentials(const std::string& username,
-        const std::string& password) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
-        "set_credentials", SetCredentials, username, password);
-    }
-
-    void Open() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "open",
-        Open);
-    }
-
     void Close() override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient, "close",
         Close);
@@ -205,7 +194,8 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
   class_<ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>,
       VirtualServiceLocatorClient>(module, "ApplicationServiceLocatorClient")
     .def(init(
-      [] (const IpAddress& address) {
+      [] (std::string username, std::string password, IpAddress address) {
+        auto release = GilRelease();
         auto isConnected = false;
         auto sessionBuilder = ApplicationServiceLocatorClient::SessionBuilder(
           [=] () mutable {
@@ -222,7 +212,7 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
           });
         return MakeToPythonServiceLocatorClient(
           std::make_unique<PythonApplicationServiceLocatorClient>(
-          sessionBuilder));
+          std::move(username), std::move(password), sessionBuilder));
       }));
 }
 
@@ -329,8 +319,6 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
     .def("load_last_login_time",
       &VirtualServiceLocatorClient::LoadLastLoginTime)
     .def("rename", &VirtualServiceLocatorClient::Rename)
-    .def("set_credentials", &VirtualServiceLocatorClient::SetCredentials)
-    .def("open", &VirtualServiceLocatorClient::Open)
     .def("close", &VirtualServiceLocatorClient::Close);
   ExportQueueSuite<AccountUpdate>(module, "AccountUpdate");
 }

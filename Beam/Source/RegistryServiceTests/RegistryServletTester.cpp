@@ -27,8 +27,6 @@ namespace {
 
     Fixture() {
       auto registryServiceLocatorClient = m_environment.BuildClient();
-      registryServiceLocatorClient->SetCredentials("root", "");
-      registryServiceLocatorClient->Open();
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
         Initialize(&m_dataStore)), serverConnection,
@@ -45,8 +43,6 @@ namespace {
 TEST_SUITE("RegistryServlet") {
   TEST_CASE_FIXTURE(Fixture, "make_directory") {
     auto serviceLocatorClient = m_environment.BuildClient();
-    serviceLocatorClient->SetCredentials("root", "");
-    serviceLocatorClient->Open();
     OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
       Ref(*serviceLocatorClient)), *m_clientProtocol);
     auto directoryName = std::string("directory");
@@ -57,8 +53,6 @@ TEST_SUITE("RegistryServlet") {
 
   TEST_CASE_FIXTURE(Fixture, "make_value") {
     auto serviceLocatorClient = m_environment.BuildClient();
-    serviceLocatorClient->SetCredentials("root", "");
-    serviceLocatorClient->Open();
     OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
       Ref(*serviceLocatorClient)), *m_clientProtocol);
     auto key = std::string("key");
@@ -69,8 +63,6 @@ TEST_SUITE("RegistryServlet") {
 
   TEST_CASE_FIXTURE(Fixture, "load_path") {
     auto serviceLocatorClient = m_environment.BuildClient();
-    serviceLocatorClient->SetCredentials("root", "");
-    serviceLocatorClient->Open();
     OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
       Ref(*serviceLocatorClient)), *m_clientProtocol);
     auto directory = RegistryEntry(RegistryEntry::Type::DIRECTORY, 0,
@@ -83,8 +75,6 @@ TEST_SUITE("RegistryServlet") {
 
   TEST_CASE_FIXTURE(Fixture, "load_value") {
     auto serviceLocatorClient = m_environment.BuildClient();
-    serviceLocatorClient->SetCredentials("root", "");
-    serviceLocatorClient->Open();
     OpenAndAuthenticate(SessionAuthenticator<VirtualServiceLocatorClient>(
       Ref(*serviceLocatorClient)), *m_clientProtocol);
     auto valueEntry = RegistryEntry(RegistryEntry::Type::VALUE, 0, "value", 0);

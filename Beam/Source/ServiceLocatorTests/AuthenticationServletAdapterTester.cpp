@@ -47,22 +47,19 @@ namespace {
           return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
             "test", *serviceLocatorServerConnection);
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
-      m_serviceLocatorClient.emplace(builder);
-      auto serviceClient = std::make_unique<TestServiceLocatorClient>(builder);
       m_dataStore.MakeAccount("test", "1234",
         DirectoryEntry::GetStarDirectory(), second_clock::universal_time());
       m_dataStore.MakeAccount("test2", "1234",
         DirectoryEntry::GetStarDirectory(), second_clock::universal_time());
-      serviceClient->SetCredentials("test", "1234");
-      serviceClient->Open();
+      m_serviceLocatorClient.emplace("test2", "1234", builder);
+      auto serviceClient = std::make_unique<TestServiceLocatorClient>(
+        "test", "1234", builder);
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_container.emplace(Initialize(std::move(serviceClient), Initialize()),
         serverConnection, factory<std::unique_ptr<TriggerTimer>>());
       m_clientProtocol.emplace(Initialize("test", *serverConnection),
         Initialize());
       RegisterTestServices(Store(m_clientProtocol->GetSlots()));
-      m_serviceLocatorClient->SetCredentials("test2", "1234");
-      m_serviceLocatorClient->Open();
     }
   };
 }

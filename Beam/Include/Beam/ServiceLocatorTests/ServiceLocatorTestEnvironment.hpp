@@ -43,6 +43,10 @@ namespace Tests {
       VirtualServiceLocatorClient& GetRoot();
 
       //! Builds a new ServiceLocatorClient.
+      std::unique_ptr<VirtualServiceLocatorClient> BuildClient(
+        std::string username, std::string password);
+
+      //! Builds a new ServiceLocatorClient.
       std::unique_ptr<VirtualServiceLocatorClient> BuildClient();
 
     private:
@@ -67,9 +71,7 @@ namespace Tests {
   inline ServiceLocatorTestEnvironment::ServiceLocatorTestEnvironment()
       : m_container(&m_dataStore, &m_serverConnection,
           boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {
-    m_root = BuildClient();
-    m_root->SetCredentials("root", "");
-    m_root->Open();
+    m_root = BuildClient("root", "");
   }
 
   inline ServiceLocatorTestEnvironment::~ServiceLocatorTestEnvironment() {
@@ -86,7 +88,8 @@ namespace Tests {
   }
 
   inline std::unique_ptr<VirtualServiceLocatorClient>
-      ServiceLocatorTestEnvironment::BuildClient() {
+      ServiceLocatorTestEnvironment::BuildClient(std::string username,
+      std::string password) {
     ServiceProtocolClientBuilder builder(
       [=] {
         return std::make_unique<ServiceProtocolClientBuilder::Channel>(
@@ -96,8 +99,14 @@ namespace Tests {
         return std::make_unique<ServiceProtocolClientBuilder::Timer>();
       });
     auto client = std::make_unique<ServiceLocator::ServiceLocatorClient<
-      ServiceProtocolClientBuilder>>(builder);
+      ServiceProtocolClientBuilder>>(std::move(username), std::move(password),
+      builder);
     return MakeVirtualServiceLocatorClient(std::move(client));
+  }
+
+  inline std::unique_ptr<VirtualServiceLocatorClient>
+      ServiceLocatorTestEnvironment::BuildClient() {
+    return BuildClient("root", "");
   }
 }
 }

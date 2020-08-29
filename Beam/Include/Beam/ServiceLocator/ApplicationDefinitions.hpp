@@ -52,12 +52,15 @@ namespace Beam::ServiceLocator {
 
       /**
        * Builds the session.
+       * @param username The session's username.
+       * @param password The session's password.
        * @param address The IP address to connect to.
        * @param socketThreadPool The SocketThreadPool used for the socket
        *        connection.
        * @param timerThreadPool The TimerThreadPool used for heartbeats.
        */
-      void BuildSession(const Network::IpAddress& address,
+      void BuildSession(std::string username, std::string password,
+        const Network::IpAddress& address,
         Ref<Network::SocketThreadPool> socketThreadPool,
         Ref<Threading::TimerThreadPool> timerThreadPool);
 
@@ -93,6 +96,7 @@ namespace Beam::ServiceLocator {
   }
 
   inline void ApplicationServiceLocatorClient::BuildSession(
+      std::string username, std::string password,
       const Network::IpAddress& address,
       Ref<Network::SocketThreadPool> socketThreadPool,
       Ref<Threading::TimerThreadPool> timerThreadPool) {
@@ -116,7 +120,7 @@ namespace Beam::ServiceLocator {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10), Ref(*timerThreadPoolHandle));
       });
-    m_client.emplace(sessionBuilder);
+    m_client.emplace(std::move(username), std::move(password), sessionBuilder);
   }
 
   inline ApplicationServiceLocatorClient::Client&

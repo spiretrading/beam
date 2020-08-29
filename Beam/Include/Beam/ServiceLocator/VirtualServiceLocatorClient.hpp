@@ -89,11 +89,6 @@ namespace Beam::ServiceLocator {
       virtual DirectoryEntry Rename(const DirectoryEntry& entry,
         const std::string& name) = 0;
 
-      virtual void SetCredentials(const std::string& username,
-        const std::string& password) = 0;
-
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
 
     protected:
@@ -188,11 +183,6 @@ namespace Beam::ServiceLocator {
 
       DirectoryEntry Rename(const DirectoryEntry& entry,
         const std::string& name) override;
-
-      void SetCredentials(const std::string& username,
-        const std::string& password) override;
-
-      void Open() override;
 
       void Close() override;
 
@@ -364,17 +354,6 @@ namespace Beam::ServiceLocator {
   DirectoryEntry WrapperServiceLocatorClient<C>::Rename(
       const DirectoryEntry& entry, const std::string& name) {
     return m_client->Rename(entry, name);
-  }
-
-  template<typename C>
-  void WrapperServiceLocatorClient<C>::SetCredentials(
-      const std::string& username, const std::string& password) {
-    m_client->SetCredentials(username, password);
-  }
-
-  template<typename C>
-  void WrapperServiceLocatorClient<C>::Open() {
-    m_client->Open();
   }
 
   template<typename C>

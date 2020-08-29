@@ -87,8 +87,6 @@ namespace Beam::ServiceLocator {
 
       void WithTransaction(const std::function<void ()>& transaction) override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -103,8 +101,35 @@ namespace Beam::ServiceLocator {
 
   template<typename C>
   SqlServiceLocatorDataStore<C>::SqlServiceLocatorDataStore(
-    std::unique_ptr<Connection> connection)
-    : m_connection(std::move(connection)) {}
+      std::unique_ptr<Connection> connection)
+      : m_connection(std::move(connection)) {
+    m_openState.SetOpening();
+    try {
+      m_connection->open();
+      if(!m_connection->has_table("settings")) {
+        m_connection->execute(Viper::create(GetSettingsRow(), "settings"));
+        auto firstEntryId = 0UL;
+        m_connection->execute(Viper::insert(GetSettingsRow(), "settings",
+          &firstEntryId));
+      }
+      m_connection->execute(Viper::create_if_not_exists(GetAccountsRow(),
+        "accounts"));
+      m_connection->execute(Viper::create_if_not_exists(GetDirectoriesRow(),
+        "directories"));
+      m_connection->execute(Viper::create_if_not_exists(GetParentsRow(),
+        "parents"));
+      m_connection->execute(Viper::create_if_not_exists(GetChildrenRow(),
+        "children"));
+      m_connection->execute(Viper::create_if_not_exists(GetPermissionsRow(),
+        "permissions"));
+      m_connection->execute(Viper::select(GetSettingsRow(), "settings",
+        &m_nextEntryId));
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename C>
   SqlServiceLocatorDataStore<C>::~SqlServiceLocatorDataStore() {
@@ -525,38 +550,6 @@ namespace Beam::ServiceLocator {
       const std::function<void ()>& transaction) {
     auto lock = std::lock_guard(m_mutex);
     Viper::transaction(*m_connection, transaction);
-  }
-
-  template<typename C>
-  void SqlServiceLocatorDataStore<C>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_connection->open();
-      if(!m_connection->has_table("settings")) {
-        m_connection->execute(Viper::create(GetSettingsRow(), "settings"));
-        auto firstEntryId = 0UL;
-        m_connection->execute(Viper::insert(GetSettingsRow(), "settings",
-          &firstEntryId));
-      }
-      m_connection->execute(Viper::create_if_not_exists(GetAccountsRow(),
-        "accounts"));
-      m_connection->execute(Viper::create_if_not_exists(GetDirectoriesRow(),
-        "directories"));
-      m_connection->execute(Viper::create_if_not_exists(GetParentsRow(),
-        "parents"));
-      m_connection->execute(Viper::create_if_not_exists(GetChildrenRow(),
-        "children"));
-      m_connection->execute(Viper::create_if_not_exists(GetPermissionsRow(),
-        "permissions"));
-      m_connection->execute(Viper::select(GetSettingsRow(), "settings",
-        &m_nextEntryId));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename C>

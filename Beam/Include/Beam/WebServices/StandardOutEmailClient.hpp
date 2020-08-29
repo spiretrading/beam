@@ -15,11 +15,11 @@ namespace WebServices {
    */
   class StandardOutEmailClient : private boost::noncopyable {
     public:
+      StandardOutEmailClient();
+
       ~StandardOutEmailClient();
 
       void Send(const Email& email);
-
-      void Open();
 
       void Close();
 
@@ -27,19 +27,16 @@ namespace WebServices {
       IO::OpenState m_openState;
   };
 
+  inline StandardOutEmailClient::StandardOutEmailClient() {
+    m_openState.SetOpen();
+  }
+
   inline StandardOutEmailClient::~StandardOutEmailClient() {
     Close();
   }
 
   inline void StandardOutEmailClient::Send(const Email& email) {
     std::cout << email << std::flush;
-  }
-
-  inline void StandardOutEmailClient::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void StandardOutEmailClient::Close() {

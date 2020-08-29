@@ -30,7 +30,6 @@ namespace {
 TEST_SUITE("AsyncDataStore") {
   TEST_CASE("store_and_load") {
     auto dataStore = DataStore(Initialize());
-    dataStore.Open();
     auto timeClient = IncrementalTimeClient();
     auto sequence = Beam::Queries::Sequence(5);
     auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
@@ -68,7 +67,6 @@ TEST_SUITE("AsyncDataStore") {
   TEST_CASE("head_spanning_load") {
     auto localDataStore = TestLocalDataStore();
     auto dataStore = AsyncDataStore(&localDataStore);
-    dataStore.Open();
     auto timeClient = IncrementalTimeClient();
     auto sequence = Beam::Queries::Sequence(5);
     auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
@@ -98,7 +96,6 @@ TEST_SUITE("AsyncDataStore") {
   TEST_CASE("tail_spanning_load") {
     auto localDataStore = TestLocalDataStore();
     auto dataStore = AsyncDataStore(&localDataStore);
-    dataStore.Open();
     auto timeClient = IncrementalTimeClient();
     auto sequence = Beam::Queries::Sequence(5);
     auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
@@ -126,8 +123,6 @@ TEST_SUITE("AsyncDataStore") {
   TEST_CASE("buffered_load") {
     auto dispatcher = std::make_shared<DataStoreDispatcher>();
     auto dataStore = IntrusiveDataStore(dispatcher);
-    Open(*dispatcher);
-    dataStore.Open();
     auto operations = std::make_shared<Queue<
       std::shared_ptr<DataStoreDispatcher::Operation>>>();
     dispatcher->GetOperationPublisher().Monitor(operations);
@@ -204,8 +199,6 @@ TEST_SUITE("AsyncDataStore") {
     auto localDataStore = TestLocalDataStore();
     auto dispatcher = std::make_shared<DataStoreDispatcher>();
     auto dataStore = IntrusiveDataStore(dispatcher);
-    Open(*dispatcher);
-    dataStore.Open();
     auto operations = std::make_shared<
       Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
     dispatcher->GetOperationPublisher().Monitor(operations);

@@ -45,8 +45,6 @@ namespace Beam::WebServices {
       template<typename F>
       void WithTransaction(F&& transaction);
 
-      void Open();
-
       void Close();
 
     private:
@@ -62,7 +60,18 @@ namespace Beam::WebServices {
   template<typename C>
   SqlSessionDataStore<C>::SqlSessionDataStore(
       std::unique_ptr<Connection> connection)
-      : m_connection(std::move(connection)) {}
+      : m_connection(std::move(connection)) {
+    m_openState.SetOpening();
+    try {
+      m_connection->open();
+      m_connection->execute(Viper::create_if_not_exists(GetWebSessionsRow(),
+        "web_sessions"));
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename C>
   SqlSessionDataStore<C>::~SqlSessionDataStore() {
@@ -113,22 +122,6 @@ namespace Beam::WebServices {
   void SqlSessionDataStore<C>::WithTransaction(F&& transaction) {
     auto lock = std::lock_guard(m_mutex);
     Viper::transaction(*m_connection, std::forward<F>(transaction));
-  }
-
-  template<typename C>
-  void SqlSessionDataStore<C>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_connection->open();
-      m_connection->execute(Viper::create_if_not_exists(GetWebSessionsRow(),
-        "web_sessions"));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename C>

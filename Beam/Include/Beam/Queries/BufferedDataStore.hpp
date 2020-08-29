@@ -66,8 +66,6 @@ namespace Beam::Queries {
 
       void Store(const std::vector<IndexedValue>& values);
 
-      void Open();
-
       void Close();
 
     private:
@@ -95,7 +93,9 @@ namespace Beam::Queries {
       m_bufferSize(bufferSize),
       m_bufferCount(0),
       m_dataStoreBuffer(std::make_shared<ReserveDataStore>()),
-      m_flushedDataStore(m_dataStoreBuffer) {}
+      m_flushedDataStore(m_dataStoreBuffer) {
+    m_openState.SetOpen();
+  }
 
   template<typename D, typename E>
   BufferedDataStore<D, E>::~BufferedDataStore() {
@@ -157,21 +157,6 @@ namespace Beam::Queries {
     m_bufferCount += values.size();
     m_dataStoreBuffer->Store(values);
     TestFlush();
-  }
-
-  template<typename D, typename E>
-  void BufferedDataStore<D, E>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStoreBuffer->Open();
-      m_dataStore->Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename D, typename E>

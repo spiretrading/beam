@@ -21,8 +21,6 @@ namespace WebServices {
 
       ~WebSocketConnection();
 
-      void Open();
-
       void Close();
 
     private:
@@ -35,11 +33,6 @@ namespace WebServices {
   template<typename WebSocketType>
   WebSocketConnection<WebSocketType>::~WebSocketConnection() {
     Close();
-  }
-
-  template<typename WebSocketType>
-  void WebSocketConnection<WebSocketType>::Open() {
-    m_socket->Open();
   }
 
   template<typename WebSocketType>

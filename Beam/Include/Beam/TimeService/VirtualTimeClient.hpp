@@ -20,8 +20,6 @@ namespace TimeService {
 
       virtual boost::posix_time::ptime GetTime() = 0;
 
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
 
     protected:
@@ -55,8 +53,6 @@ namespace TimeService {
       Client& GetClient();
 
       virtual boost::posix_time::ptime GetTime() override;
-
-      virtual void Open() override;
 
       virtual void Close() override;
 
@@ -106,11 +102,6 @@ namespace TimeService {
   template<typename ClientType>
   boost::posix_time::ptime WrapperTimeClient<ClientType>::GetTime() {
     return m_client->GetTime();
-  }
-
-  template<typename ClientType>
-  void WrapperTimeClient<ClientType>::Open() {
-    m_client->Open();
   }
 
   template<typename ClientType>

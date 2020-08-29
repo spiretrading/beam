@@ -30,8 +30,6 @@ namespace Beam::UidService {
       void RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
         slots);
 
-      void Open();
-
       void Close();
 
     private:
@@ -57,7 +55,9 @@ namespace Beam::UidService {
   template<typename DataStoreForward>
   UidServlet<ContainerType, UidDataStoreType>::UidServlet(
       DataStoreForward&& dataStore)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)) {}
+      : m_dataStore(std::forward<DataStoreForward>(dataStore)) {
+    m_openState.SetOpen();
+  }
 
   template<typename ContainerType, typename UidDataStoreType>
   void UidServlet<ContainerType, UidDataStoreType>::RegisterServices(
@@ -66,20 +66,6 @@ namespace Beam::UidService {
     ReserveUidsService::AddSlot(Store(slots), std::bind(
       &UidServlet::OnReserveUidsRequest, this, std::placeholders::_1,
       std::placeholders::_2));
-  }
-
-  template<typename ContainerType, typename UidDataStoreType>
-  void UidServlet<ContainerType, UidDataStoreType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStore->Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ContainerType, typename UidDataStoreType>

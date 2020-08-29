@@ -45,8 +45,6 @@ namespace Beam::ServiceLocator {
 
       void HandleClientClosed(ServiceProtocolClient& client);
 
-      void Open();
-
       void Close();
 
     private:
@@ -86,9 +84,11 @@ namespace Beam::ServiceLocator {
   template<typename C, typename S, typename L>
   template<typename LF, typename SF>
   AuthenticationServletAdapter<C, S, L>::AuthenticationServletAdapter(
-    LF&& serviceLocatorClient, SF&& servlet)
-    : m_serviceLocatorClient(std::forward<LF>(serviceLocatorClient)),
-      m_servlet(std::forward<SF>(servlet)) {}
+      LF&& serviceLocatorClient, SF&& servlet)
+      : m_serviceLocatorClient(std::forward<LF>(serviceLocatorClient)),
+        m_servlet(std::forward<SF>(servlet)) {
+    m_openState.SetOpen();
+  }
 
   template<typename C, typename S, typename L>
   AuthenticationServletAdapter<C, S, L>::~AuthenticationServletAdapter() {
@@ -129,20 +129,6 @@ namespace Beam::ServiceLocator {
     Services::Details::InvokeClientClosed<
       Services::Details::HasClientClosedMethod<Servlet,
       ServiceProtocolClient>::value>()(*m_servlet, client);
-  }
-
-  template<typename C, typename S, typename L>
-  void AuthenticationServletAdapter<C, S, L>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_servlet->Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename C, typename S, typename L>

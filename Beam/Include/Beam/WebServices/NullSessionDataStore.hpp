@@ -31,8 +31,6 @@ namespace WebServices {
       template<typename F>
       void WithTransaction(F&& transaction);
 
-      void Open();
-
       void Close();
   };
 
@@ -55,9 +53,9 @@ namespace WebServices {
   void NullSessionDataStore::Delete(const SessionType& session) {}
 
   template<typename F>
-  void NullSessionDataStore::WithTransaction(F&& transaction) {}
-
-  inline void NullSessionDataStore::Open() {}
+  void NullSessionDataStore::WithTransaction(F&& transaction) {
+    transaction();
+  }
 
   inline void NullSessionDataStore::Close() {}
 }

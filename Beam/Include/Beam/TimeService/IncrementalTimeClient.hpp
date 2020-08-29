@@ -33,8 +33,6 @@ namespace TimeService {
 
       boost::posix_time::ptime GetTime();
 
-      void Open();
-
       void Close();
 
     private:
@@ -47,13 +45,17 @@ namespace TimeService {
 
   inline IncrementalTimeClient::IncrementalTimeClient()
       : m_currentTime(boost::posix_time::second_clock::universal_time()),
-        m_increment(boost::posix_time::seconds(1)) {}
+        m_increment(boost::posix_time::seconds(1)) {
+    m_openState.SetOpen();
+  }
 
   inline IncrementalTimeClient::IncrementalTimeClient(
       const boost::posix_time::ptime& initialTime,
       const boost::posix_time::time_duration& increment)
       : m_currentTime(initialTime),
-        m_increment(increment) {}
+        m_increment(increment) {
+    m_openState.SetOpen();
+  }
 
   inline IncrementalTimeClient::~IncrementalTimeClient() {
     Close();
@@ -63,13 +65,6 @@ namespace TimeService {
     boost::posix_time::ptime time = m_currentTime;
     m_currentTime += m_increment;
     return time;
-  }
-
-  inline void IncrementalTimeClient::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void IncrementalTimeClient::Close() {

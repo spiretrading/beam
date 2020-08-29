@@ -74,8 +74,6 @@ namespace TimeService {
 
       boost::posix_time::ptime GetTime();
 
-      void Open();
-
       void Close();
 
     private:
@@ -177,7 +175,21 @@ namespace TimeService {
   NtpTimeClient<ChannelType, TimerType>::NtpTimeClient(
       std::vector<std::unique_ptr<Channel>> sources, TimerForward&& timer)
       : m_sources(std::move(sources)),
-        m_timer{std::forward<TimerForward>(timer)} {}
+        m_timer{std::forward<TimerForward>(timer)} {
+    m_openState.SetOpening();
+    try {
+      Synchronize();
+      m_timer->GetPublisher().Monitor(
+        m_callbacks.GetSlot<Threading::Timer::Result>(
+        std::bind(&NtpTimeClient::OnTimerExpired, this,
+        std::placeholders::_1)));
+      m_timer->Start();
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename ChannelType, typename TimerType>
   NtpTimeClient<ChannelType, TimerType>::~NtpTimeClient() {
@@ -193,25 +205,6 @@ namespace TimeService {
           origin.m_startPoint.time_since_epoch()).count() / 1000);
       });
     return Truncate(time, boost::posix_time::milliseconds(1));
-  }
-
-  template<typename ChannelType, typename TimerType>
-  void NtpTimeClient<ChannelType, TimerType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      Synchronize();
-      m_timer->GetPublisher().Monitor(
-        m_callbacks.GetSlot<Threading::Timer::Result>(
-        std::bind(&NtpTimeClient::OnTimerExpired, this,
-        std::placeholders::_1)));
-      m_timer->Start();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ChannelType, typename TimerType>
@@ -239,11 +232,6 @@ namespace TimeService {
       requestPacket.fill(0);
       requestPacket[0] = 0x1B;
       typename Channel::Reader::Buffer readBuffer;
-      try {
-        source->GetConnection().Open();
-      } catch(const IO::IOException&) {
-        continue;
-      }
       auto clientTransmissionTimestamp =
         boost::posix_time::microsec_clock::universal_time();
       auto encodedClientTransmissionTimestamp = NtpTimeFromPosixTime(

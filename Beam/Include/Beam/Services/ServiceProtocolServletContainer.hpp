@@ -90,13 +90,6 @@ BEAM_SUPPRESS_THIS_INITIALIZER()
           std::placeholders::_1)) {
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->RegisterServices(Store(m_protocolServer.GetSlots()));
-    try {
-      m_servlet->Open();
-    } catch(const std::exception&) {
-      m_protocolServer.Close();
-      m_isOpen.GetEval().SetException(std::current_exception());
-      throw;
-    }
     m_isOpen.GetEval().SetResult();
   }
 

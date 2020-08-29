@@ -20,8 +20,6 @@ namespace WebServices {
       */
       void Send(const Email& email);
 
-      void Open();
-
       void Close();
   };
 }

@@ -27,10 +27,6 @@ namespace {
         "load_next_uid", LoadNextUid);
     }
 
-    void Open() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualUidClient, "open", Open);
-    }
-
     void Close() override {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualUidClient, "close", Close);
     }
@@ -75,7 +71,6 @@ void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
 void Beam::Python::ExportUidClient(pybind11::module& module) {
   class_<VirtualUidClient, TrampolineUidClient>(module, "UidClient")
     .def("load_next_uid", &VirtualUidClient::LoadNextUid)
-    .def("open", &VirtualUidClient::Open)
     .def("close", &VirtualUidClient::Close);
 }
 

@@ -97,8 +97,6 @@ namespace Beam::ServiceLocator {
       void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -127,7 +125,9 @@ namespace Beam::ServiceLocator {
   };
 
   inline LocalServiceLocatorDataStore::LocalServiceLocatorDataStore()
-    : m_nextId(0) {}
+      : m_nextId(0) {
+    m_openState.SetOpen();
+  }
 
   inline LocalServiceLocatorDataStore::~LocalServiceLocatorDataStore() {
     Close();
@@ -454,13 +454,6 @@ namespace Beam::ServiceLocator {
       const std::function<void ()>& transaction) {
     auto lock = boost::lock_guard(m_mutex);
     transaction();
-  }
-
-  inline void LocalServiceLocatorDataStore::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void LocalServiceLocatorDataStore::Close() {

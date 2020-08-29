@@ -139,8 +139,6 @@ namespace Details {
 
       ~HttpServletContainer();
 
-      void Open();
-
       void Close();
 
     private:
@@ -161,12 +159,6 @@ namespace Details {
   HttpServletContainer<ServletType, ServerConnectionType>::
       ~HttpServletContainer() {
     Close();
-  }
-
-  template<typename ServletType, typename ServerConnectionType>
-  void HttpServletContainer<ServletType, ServerConnectionType>::Open() {
-    m_servlet->Open();
-    m_server->Open();
   }
 
   template<typename ServletType, typename ServerConnectionType>

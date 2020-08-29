@@ -37,7 +37,6 @@ TEST_SUITE("StompServer") {
       "accept-version:1.2\n"
       "host:testhost\n\n\n");
     m_clientChannel->GetWriter().Write(contents);
-    m_server->Open();
     auto responseBuffer = SharedBuffer();
     m_clientChannel->GetReader().Read(Store(responseBuffer));
     auto parser = StompFrameParser();

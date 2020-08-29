@@ -89,8 +89,6 @@ namespace Beam::ServiceLocator {
       void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -107,8 +105,42 @@ namespace Beam::ServiceLocator {
   template<typename D>
   template<typename DF>
   CachedServiceLocatorDataStore<D>::CachedServiceLocatorDataStore(
-    DF&& dataStore)
-    : m_dataStore(std::forward<DF>(dataStore)) {}
+      DF&& dataStore)
+      : m_dataStore(std::forward<DF>(dataStore)) {
+    m_openState.SetOpening();
+    try {
+      auto directories = m_dataStore->LoadAllDirectories();
+      for(auto& directory : directories) {
+        m_cache.Store(directory);
+      }
+      for(auto& directory : directories) {
+        auto parents = m_dataStore->LoadParents(directory);
+        for(auto& parent : parents) {
+          m_cache.Associate(directory, parent);
+        }
+      }
+      auto accounts = m_dataStore->LoadAllAccounts();
+      for(auto& account : accounts) {
+        auto password = m_dataStore->LoadPassword(account);
+        auto registrationTime = m_dataStore->LoadRegistrationTime(account);
+        auto lastLoginTime = m_dataStore->LoadLastLoginTime(account);
+        m_cache.Store(account, password, registrationTime, lastLoginTime);
+        auto parents = m_dataStore->LoadParents(account);
+        for(auto& parent : parents) {
+          m_cache.Associate(account, parent);
+        }
+        auto permissions = m_dataStore->LoadAllPermissions(account);
+        for(auto& permission : permissions) {
+          m_cache.SetPermissions(account, std::get<0>(permission),
+            std::get<1>(permission));
+        }
+      }
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename D>
   CachedServiceLocatorDataStore<D>::~CachedServiceLocatorDataStore() {
@@ -365,47 +397,6 @@ namespace Beam::ServiceLocator {
       [&] {
         m_cache.WithTransaction(transaction);
       });
-  }
-
-  template<typename D>
-  void CachedServiceLocatorDataStore<D>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStore->Open();
-      m_cache.Open();
-      auto directories = m_dataStore->LoadAllDirectories();
-      for(auto& directory : directories) {
-        m_cache.Store(directory);
-      }
-      for(auto& directory : directories) {
-        auto parents = m_dataStore->LoadParents(directory);
-        for(auto& parent : parents) {
-          m_cache.Associate(directory, parent);
-        }
-      }
-      auto accounts = m_dataStore->LoadAllAccounts();
-      for(auto& account : accounts) {
-        auto password = m_dataStore->LoadPassword(account);
-        auto registrationTime = m_dataStore->LoadRegistrationTime(account);
-        auto lastLoginTime = m_dataStore->LoadLastLoginTime(account);
-        m_cache.Store(account, password, registrationTime, lastLoginTime);
-        auto parents = m_dataStore->LoadParents(account);
-        for(auto& parent : parents) {
-          m_cache.Associate(account, parent);
-        }
-        auto permissions = m_dataStore->LoadAllPermissions(account);
-        for(auto& permission : permissions) {
-          m_cache.SetPermissions(account, std::get<0>(permission),
-            std::get<1>(permission));
-        }
-      }
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename D>

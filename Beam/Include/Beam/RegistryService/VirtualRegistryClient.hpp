@@ -61,8 +61,6 @@ namespace RegistryService {
 
       virtual void Delete(const RegistryEntry& registryEntry) = 0;
 
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
 
     protected:
@@ -117,8 +115,6 @@ namespace RegistryService {
         const IO::SharedBuffer& value, const RegistryEntry& parent);
 
       virtual void Delete(const RegistryEntry& registryEntry);
-
-      virtual void Open();
 
       virtual void Close();
 
@@ -271,11 +267,6 @@ namespace RegistryService {
   void WrapperRegistryClient<ClientType>::Delete(
       const RegistryEntry& registryEntry) {
     m_client->Delete(registryEntry);
-  }
-
-  template<typename ClientType>
-  void WrapperRegistryClient<ClientType>::Open() {
-    m_client->Open();
   }
 
   template<typename ClientType>

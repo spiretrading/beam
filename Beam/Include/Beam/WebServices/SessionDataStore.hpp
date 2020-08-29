@@ -43,8 +43,6 @@ namespace Beam::WebServices {
     template<typename F>
     void WithTransaction(F&& transaction);
 
-    void Open();
-
     void Close();
   };
 }

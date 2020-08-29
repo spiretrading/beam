@@ -16,9 +16,7 @@ namespace Details {
 
     template<typename TimeClientForward>
     CurrentTimeCore(TimeClientForward&& timeClient)
-        : m_timeClient{std::forward<TimeClientForward>(timeClient)} {
-      m_timeClient->Open();
-    }
+        : m_timeClient{std::forward<TimeClientForward>(timeClient)} {}
 
     template<typename T>
     auto operator ()(T&& value) {

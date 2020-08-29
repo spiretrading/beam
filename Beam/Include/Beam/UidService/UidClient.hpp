@@ -39,8 +39,6 @@ namespace UidService {
       //! Returns the next available UID.
       std::uint64_t LoadNextUid();
 
-      void Open();
-
       void Close();
 
     private:
@@ -67,6 +65,7 @@ namespace UidService {
         m_blockSize(10),
         m_clientHandler(std::forward<ClientBuilderForward>(clientBuilder)) {
     RegisterUidServices(Store(m_clientHandler.GetSlots()));
+    m_openState.SetOpen();
   }
 
   template<typename ServiceProtocolClientBuilderType>
@@ -104,19 +103,6 @@ namespace UidService {
     auto uid = m_nextUid;
     ++m_nextUid;
     return uid;
-  }
-
-  template<typename ServiceProtocolClientBuilderType>
-  void UidClient<ServiceProtocolClientBuilderType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ServiceProtocolClientBuilderType>

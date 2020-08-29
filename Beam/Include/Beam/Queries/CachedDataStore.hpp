@@ -59,8 +59,6 @@ namespace Queries {
 
       void Store(const std::vector<IndexedValue>& values);
 
-      void Open();
-
       void Close();
 
     private:
@@ -80,7 +78,9 @@ namespace Queries {
   CachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
       CachedDataStore(DataStoreForward&& dataStore, int blockSize)
       : m_dataStore(std::forward<DataStoreForward>(dataStore)),
-        m_blockSize(blockSize) {}
+        m_blockSize(blockSize) {
+    m_openState.SetOpen();
+  }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
   CachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::
@@ -113,20 +113,6 @@ namespace Queries {
       auto& cache = LoadCache(value->GetIndex());
       cache.Store(value);
     }
-  }
-
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void CachedDataStore<DataStoreType, EvaluatorTranslatorFilterType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStore->Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename DataStoreType, typename EvaluatorTranslatorFilterType>

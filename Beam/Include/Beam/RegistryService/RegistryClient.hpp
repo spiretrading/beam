@@ -148,8 +148,6 @@ namespace RegistryService {
       */
       void Delete(const RegistryEntry& registryEntry);
 
-      void Open();
-
       void Close();
 
     private:
@@ -168,6 +166,7 @@ namespace RegistryService {
       ClientBuilderForward&& clientBuilder)
       : m_clientHandler(std::forward<ClientBuilderForward>(clientBuilder)) {
     RegisterRegistryServices(Beam::Store(m_clientHandler.GetSlots()));
+    m_openState.SetOpen();
   }
 
   template<typename ServiceProtocolClientBuilderType>
@@ -278,20 +277,6 @@ namespace RegistryService {
       const RegistryEntry& registryEntry) {
     std::shared_ptr<ServiceProtocolClient> client = m_clientHandler.GetClient();
     client->template SendRequest<DeleteService>(registryEntry);
-  }
-
-  template<typename ServiceProtocolClientBuilderType>
-  void RegistryClient<ServiceProtocolClientBuilderType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_clientHandler.Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ServiceProtocolClientBuilderType>

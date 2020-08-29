@@ -59,19 +59,11 @@ namespace Beam::Queries::Tests {
         Routines::Eval<void> m_result;
       };
 
-      /** Stores an open operation. */
-      struct OpenOperation {
-
-        /** Used to indicate the result of the open operation. */
-        Routines::Eval<void> m_result;
-      };
-
       /** Represents an operation that can be performed on this DataStore. */
-      using Operation = std::variant<LoadOperation, StoreOperation,
-        OpenOperation>;
+      using Operation = std::variant<LoadOperation, StoreOperation>;
 
       /** Constructs a TestDataStore. */
-      TestDataStore() = default;
+      TestDataStore();
 
       ~TestDataStore();
 
@@ -84,8 +76,6 @@ namespace Beam::Queries::Tests {
 
       void Store(const std::vector<IndexedValue>& values);
 
-      void Open();
-
       void Close();
 
     private:
@@ -95,27 +85,9 @@ namespace Beam::Queries::Tests {
       void Shutdown();
   };
 
-  /**
-   * Opens a TestDataStore.
-   * @param dataStore - The TestDataStore to open.
-   */
   template<typename Q, typename V>
-  void Open(TestDataStore<Q, V>& dataStore) {
-    auto operations = std::make_shared<
-      Queue<std::shared_ptr<typename TestDataStore<Q, V>::Operation>>>();
-    dataStore.GetOperationPublisher().Monitor(operations);
-    Routines::Spawn(
-      [&] {
-        while(true) {
-          auto operation = operations->Pop();
-          if(auto openOperation = std::get_if<
-              typename TestDataStore<Q, V>::OpenOperation>(&*operation)) {
-            openOperation->m_result.SetResult();
-            break;
-          }
-        }
-      });
-    dataStore.Open();
+  TestDataStore<Q, V>::TestDataStore() {
+    m_openState.SetOpen();
   }
 
   template<typename Q, typename V>
@@ -152,24 +124,6 @@ namespace Beam::Queries::Tests {
       StoreOperation{values, async.GetEval()});
     m_operationPublisher.Push(operation);
     async.Get();
-  }
-
-  template<typename Q, typename V>
-  void TestDataStore<Q, V>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      auto async = Routines::Async<void>();
-      auto operation = std::make_shared<Operation>(
-        OpenOperation{async.GetEval()});
-      m_operationPublisher.Push(operation);
-      async.Get();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename Q, typename V>

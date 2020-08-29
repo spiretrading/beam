@@ -44,8 +44,6 @@ namespace Beam::ServiceLocator {
 
       void HandleClientClosed(ServiceProtocolClient& client);
 
-      void Open();
-
       void Close();
 
     private:
@@ -149,7 +147,29 @@ namespace Beam::ServiceLocator {
   template<typename C, typename D>
   template<typename DF>
   ServiceLocatorServlet<C, D>::ServiceLocatorServlet(DF&& dataStore)
-    : m_dataStore(std::forward<DF>(dataStore)) {}
+      : m_dataStore(std::forward<DF>(dataStore)) {
+    m_openState.SetOpening();
+    try {
+      m_nextServiceId = 1;
+      m_dataStore->WithTransaction(
+        [&] {
+          try {
+            m_dataStore->LoadDirectoryEntry(0);
+            return;
+          } catch(const ServiceLocatorDataStoreException&) {}
+          auto starDirectory = m_dataStore->MakeDirectory("*",
+            DirectoryEntry::MakeDirectory(static_cast<unsigned int>(-1), "*"));
+          auto rootAccount = m_dataStore->MakeAccount("root", "", starDirectory,
+            boost::posix_time::second_clock::universal_time());
+          m_dataStore->SetPermissions(rootAccount, starDirectory,
+            static_cast<Permissions>(~0));
+        });
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename C, typename D>
   void ServiceLocatorServlet<C, D>::RegisterServices(
@@ -277,34 +297,6 @@ namespace Beam::ServiceLocator {
         sessions.erase(session.GetSessionId());
       });
     m_accountUpdateSubscribers.Remove(&client);
-  }
-
-  template<typename C, typename D>
-  void ServiceLocatorServlet<C, D>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_nextServiceId = 1;
-      m_dataStore->Open();
-      m_dataStore->WithTransaction(
-        [&] {
-          try {
-            m_dataStore->LoadDirectoryEntry(0);
-            return;
-          } catch(const ServiceLocatorDataStoreException&) {}
-          auto starDirectory = m_dataStore->MakeDirectory("*",
-            DirectoryEntry::MakeDirectory(static_cast<unsigned int>(-1), "*"));
-          auto rootAccount = m_dataStore->MakeAccount("root", "", starDirectory,
-            boost::posix_time::second_clock::universal_time());
-          m_dataStore->SetPermissions(rootAccount, starDirectory,
-            static_cast<Permissions>(~0));
-        });
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename C, typename D>

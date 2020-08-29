@@ -25,8 +25,6 @@ namespace UidService {
       virtual void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      virtual void Open() override;
-
       virtual void Close() override;
 
     private:
@@ -36,7 +34,9 @@ namespace UidService {
   };
 
   inline LocalUidDataStore::LocalUidDataStore()
-      : m_nextUid{1} {}
+      : m_nextUid{1} {
+    m_openState.SetOpen();
+  }
 
   inline LocalUidDataStore::~LocalUidDataStore() {
     Close();
@@ -56,13 +56,6 @@ namespace UidService {
       const std::function<void ()>& transaction) {
     boost::lock_guard<Threading::Mutex> lock{m_mutex};
     transaction();
-  }
-
-  inline void LocalUidDataStore::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void LocalUidDataStore::Close() {

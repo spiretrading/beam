@@ -20,8 +20,6 @@ namespace UidService {
 
       virtual std::uint64_t LoadNextUid() = 0;
 
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
 
     protected:
@@ -52,8 +50,6 @@ namespace UidService {
 
       virtual std::uint64_t LoadNextUid() override;
 
-      virtual void Open() override;
-
       virtual void Close() override;
 
     private:
@@ -78,11 +74,6 @@ namespace UidService {
   template<typename ClientType>
   std::uint64_t WrapperUidClient<ClientType>::LoadNextUid() {
     return m_client->LoadNextUid();
-  }
-
-  template<typename ClientType>
-  void WrapperUidClient<ClientType>::Open() {
-    m_client->Open();
   }
 
   template<typename ClientType>

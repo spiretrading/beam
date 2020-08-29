@@ -47,8 +47,6 @@ namespace RegistryService {
       virtual void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      virtual void Open() override;
-
       virtual void Close() override;
 
     private:
@@ -67,6 +65,7 @@ namespace RegistryService {
     m_entries.insert(std::make_pair(root.m_id, root));
     m_parents.insert(std::make_pair(root.m_id, root.m_id));
     m_children.insert(std::make_pair(root.m_id, std::vector<std::uint64_t>()));
+    m_openState.SetOpen();
   }
 
   inline LocalRegistryDataStore::~LocalRegistryDataStore() {
@@ -188,13 +187,6 @@ namespace RegistryService {
       const std::function<void ()>& transaction) {
     boost::lock_guard<Threading::Mutex> lock{m_mutex};
     transaction();
-  }
-
-  inline void LocalRegistryDataStore::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void LocalRegistryDataStore::Close() {

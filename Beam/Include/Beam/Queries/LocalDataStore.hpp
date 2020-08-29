@@ -69,8 +69,6 @@ namespace Queries {
       */
       void Store(const std::vector<IndexedValue>& values);
 
-      void Open();
-
       void Close();
 
     private:
@@ -144,11 +142,6 @@ namespace Queries {
       Store(value);
     }
   }
-
-  template<typename QueryType, typename ValueType,
-    typename EvaluatorTranslatorFilterType>
-  void LocalDataStore<QueryType, ValueType, EvaluatorTranslatorFilterType>::
-      Open() {}
 
   template<typename QueryType, typename ValueType,
     typename EvaluatorTranslatorFilterType>

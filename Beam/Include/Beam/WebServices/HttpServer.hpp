@@ -71,8 +71,6 @@ namespace WebServices {
 
       ~HttpServer();
 
-      void Open();
-
       void Close();
 
     private:
@@ -115,27 +113,13 @@ namespace WebServices {
     badRequestResponse.Encode(Store(BAD_REQUEST_RESPONSE_BUFFER));
     HttpResponse notFoundResponse{HttpStatusCode::NOT_FOUND};
     notFoundResponse.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
+    m_openState.SetOpen();
+    m_acceptRoutine = Routines::Spawn(std::bind(&HttpServer::AcceptLoop, this));
   }
 
   template<typename ServerConnectionType>
   HttpServer<ServerConnectionType>::~HttpServer() {
     Close();
-  }
-
-  template<typename ServerConnectionType>
-  void HttpServer<ServerConnectionType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_serverConnection->Open();
-      m_acceptRoutine = Routines::Spawn(
-        std::bind(&HttpServer::AcceptLoop, this));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ServerConnectionType>
@@ -170,13 +154,6 @@ namespace WebServices {
       clients.Insert(channel);
       clientRoutines.Spawn(
         [=, &clients] {
-          try {
-            channel->GetConnection().Open();
-          } catch(const std::exception&) {
-            std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
-            clients.Erase(channel);
-            return;
-          }
           HttpRequestParser parser;
           typename Channel::Reader::Buffer requestBuffer;
           typename Channel::Writer::Buffer responseBuffer;

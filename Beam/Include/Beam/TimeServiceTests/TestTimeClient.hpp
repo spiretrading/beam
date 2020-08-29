@@ -28,8 +28,6 @@ namespace Tests {
 
       boost::posix_time::ptime GetTime();
 
-      void Open();
-
       void Close();
 
     private:
@@ -44,7 +42,16 @@ namespace Tests {
 
   inline TestTimeClient::TestTimeClient(
       Ref<TimeServiceTestEnvironment> environment)
-      : m_environment{environment.Get()} {}
+      : m_environment{environment.Get()} {
+    m_openState.SetOpening();
+    try {
+      m_environment->Add(this);
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   inline TestTimeClient::~TestTimeClient() {
     Close();
@@ -52,20 +59,6 @@ namespace Tests {
 
   inline boost::posix_time::ptime TestTimeClient::GetTime() {
     return m_timeClient.GetTime();
-  }
-
-  inline void TestTimeClient::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_environment->Add(this);
-      m_timeClient.Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   inline void TestTimeClient::Close() {

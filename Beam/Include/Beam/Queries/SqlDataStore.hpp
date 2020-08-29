@@ -98,8 +98,6 @@ namespace Beam::Queries {
       */
       void Store(const std::vector<IndexedValue>& values);
 
-      void Open();
-
       void Close();
 
     private:
@@ -182,6 +180,13 @@ namespace Beam::Queries {
     timestamp_index.push_back("query_sequence");
     timestamp_index.push_back("timestamp");
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
+    auto result =  Routines::Async<void>();
+    auto connection = m_writerPool->Acquire();
+    m_threadPool->Queue(
+      [&] {
+        connection->execute(create_if_not_exists(m_row, m_table));
+      }, result.GetEval());
+    result.Get();
   }
 
   template<typename C, typename V, typename I, typename T>
@@ -239,17 +244,6 @@ namespace Beam::Queries {
       [&] {
         connection->execute(Viper::insert(m_row, m_table, values.begin(),
           values.end()));
-      }, result.GetEval());
-    result.Get();
-  }
-
-  template<typename C, typename V, typename I, typename T>
-  void SqlDataStore<C, V, I, T>::Open() {
-    auto result =  Routines::Async<void>();
-    auto connection = m_writerPool->Acquire();
-    m_threadPool->Queue(
-      [&] {
-        connection->execute(create_if_not_exists(m_row, m_table));
       }, result.GetEval());
     result.Get();
   }

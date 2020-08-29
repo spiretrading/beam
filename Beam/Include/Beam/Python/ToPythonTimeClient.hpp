@@ -32,8 +32,6 @@ namespace Beam::TimeService {
 
       boost::posix_time::ptime GetTime() override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -75,12 +73,6 @@ namespace Beam::TimeService {
   boost::posix_time::ptime ToPythonTimeClient<C>::GetTime() {
     auto release = Python::GilRelease();
     return m_client->GetTime();
-  }
-
-  template<typename C>
-  void ToPythonTimeClient<C>::Open() {
-    auto release = Python::GilRelease();
-    m_client->Open();
   }
 
   template<typename C>

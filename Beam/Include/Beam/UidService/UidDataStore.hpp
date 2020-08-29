@@ -31,8 +31,6 @@ namespace UidService {
       virtual void WithTransaction(
         const std::function<void ()>& transaction) = 0;
 
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
   };
 }

@@ -26,7 +26,6 @@ namespace {
     optional<TestServiceProtocolClient> m_clientProtocol;
 
     Fixture() {
-      m_environment.Open();
       auto registryServiceLocatorClient = m_environment.BuildClient();
       registryServiceLocatorClient->SetCredentials("root", "");
       registryServiceLocatorClient->Open();

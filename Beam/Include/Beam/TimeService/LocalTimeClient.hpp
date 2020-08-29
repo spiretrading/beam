@@ -14,16 +14,12 @@ namespace Beam::TimeService {
 
       boost::posix_time::ptime GetTime();
 
-      void Open();
-
       void Close();
   };
 
   inline boost::posix_time::ptime LocalTimeClient::GetTime() {
     return boost::posix_time::microsec_clock::universal_time();
   }
-
-  inline void LocalTimeClient::Open() {}
 
   inline void LocalTimeClient::Close() {}
 }

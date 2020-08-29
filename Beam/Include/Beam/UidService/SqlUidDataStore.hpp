@@ -33,8 +33,6 @@ namespace Beam::UidService {
 
       void WithTransaction(const std::function<void ()>& transaction) override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -48,7 +46,22 @@ namespace Beam::UidService {
 
   template<typename C>
   SqlUidDataStore<C>::SqlUidDataStore(std::unique_ptr<Connection> connection)
-    : m_connection(std::move(connection)) {}
+      : m_connection(std::move(connection)) {
+    m_openState.SetOpening();
+    try {
+      m_connection->open();
+      if(!m_connection->has_table("next_uid")) {
+        m_connection->execute(Viper::create(GetNextUidRow(), "next_uid"));
+        auto firstUid = 1;
+        m_connection->execute(Viper::insert(GetNextUidRow(), "next_uid",
+          &firstUid));
+      }
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename C>
   SqlUidDataStore<C>::~SqlUidDataStore() {
@@ -75,26 +88,6 @@ namespace Beam::UidService {
       const std::function<void ()>& transaction) {
     auto lock = std::lock_guard(m_mutex);
     Viper::transaction(*m_connection, transaction);
-  }
-
-  template<typename C>
-  void SqlUidDataStore<C>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_connection->open();
-      if(!m_connection->has_table("next_uid")) {
-        m_connection->execute(Viper::create(GetNextUidRow(), "next_uid"));
-        auto firstUid = 1;
-        m_connection->execute(Viper::insert(GetNextUidRow(), "next_uid",
-          &firstUid));
-      }
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename C>

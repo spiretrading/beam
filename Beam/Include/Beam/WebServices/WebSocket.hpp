@@ -126,8 +126,6 @@ namespace Details {
       template<typename Buffer>
       void Write(const Buffer& buffer);
 
-      void Open();
-
       void Close();
 
     private:
@@ -144,6 +142,7 @@ namespace Details {
       typename Channel::Reader::Buffer m_frameBuffer;
       IO::OpenState m_openState;
 
+      void Open();
       void Shutdown();
   };
 
@@ -189,6 +188,7 @@ namespace Details {
         m_uri.SetPort(443);
       }
     }
+    Open();
   }
 
   template<typename ChannelType>
@@ -314,11 +314,17 @@ namespace Details {
   }
 
   template<typename ChannelType>
-  void WebSocket<ChannelType>::Open() {
-    static auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-    if(m_openState.SetOpening()) {
+  void WebSocket<ChannelType>::Close() {
+    if(m_openState.SetClosing()) {
       return;
     }
+    Shutdown();
+  }
+
+  template<typename ChannelType>
+  void WebSocket<ChannelType>::Open() {
+    static auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    m_openState.SetOpening();
     try {
       HttpRequest request{HttpVersion::Version1_1(), HttpMethod::GET, m_uri};
       request.Add(HttpHeader{"Upgrade", "websocket"});
@@ -362,7 +368,6 @@ namespace Details {
       sendStream << request;
       sendStream.flush();
       m_channel = m_channelBuilder(m_uri);
-      m_channel->GetConnection().Open();
       m_channel->GetWriter().Write(sendBuffer);
       typename Channel::Reader::Buffer receiveBuffer;
       while(true) {
@@ -394,14 +399,6 @@ namespace Details {
     }
     m_frameBuffer = m_parser.GetRemainingBuffer();
     m_openState.SetOpen();
-  }
-
-  template<typename ChannelType>
-  void WebSocket<ChannelType>::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
   }
 
   template<typename ChannelType>

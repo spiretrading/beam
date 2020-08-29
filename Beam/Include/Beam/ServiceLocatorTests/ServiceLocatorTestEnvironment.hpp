@@ -36,9 +36,6 @@ namespace Tests {
 
       ~ServiceLocatorTestEnvironment();
 
-      //! Opens the servlet.
-      void Open();
-
       //! Closes the servlet.
       void Close();
 
@@ -69,16 +66,14 @@ namespace Tests {
 
   inline ServiceLocatorTestEnvironment::ServiceLocatorTestEnvironment()
       : m_container(&m_dataStore, &m_serverConnection,
-          boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {}
-
-  inline ServiceLocatorTestEnvironment::~ServiceLocatorTestEnvironment() {
-    Close();
-  }
-
-  inline void ServiceLocatorTestEnvironment::Open() {
+          boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {
     m_root = BuildClient();
     m_root->SetCredentials("root", "");
     m_root->Open();
+  }
+
+  inline ServiceLocatorTestEnvironment::~ServiceLocatorTestEnvironment() {
+    Close();
   }
 
   inline void ServiceLocatorTestEnvironment::Close() {

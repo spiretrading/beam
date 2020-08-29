@@ -31,8 +31,6 @@ namespace TimeService {
 
       boost::posix_time::ptime GetTime();
 
-      void Open();
-
       void Close();
 
     private:
@@ -43,7 +41,9 @@ namespace TimeService {
   };
 
   inline FixedTimeClient::FixedTimeClient(const boost::posix_time::ptime& time)
-      : m_time{time} {}
+      : m_time{time} {
+    m_openState.SetOpen();
+  }
 
   inline FixedTimeClient::~FixedTimeClient() {
     Close();
@@ -55,13 +55,6 @@ namespace TimeService {
 
   inline boost::posix_time::ptime FixedTimeClient::GetTime() {
     return m_time;
-  }
-
-  inline void FixedTimeClient::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   inline void FixedTimeClient::Close() {

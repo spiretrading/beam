@@ -16,8 +16,6 @@ namespace TimeService {
       //! Returns the current time in UTC.
     boost::posix_time::ptime GetTime();
 
-    void Open();
-
     void Close();
   };
 

@@ -44,8 +44,6 @@ namespace Stomp {
       */
       void Write(const StompFrame& frame);
 
-      void Open();
-
       void Close();
 
     private:
@@ -62,7 +60,24 @@ namespace Stomp {
   template<typename ChannelType>
   template<typename ChannelForward>
   StompServer<ChannelType>::StompServer(ChannelForward&& channel)
-      : m_channel{std::forward<ChannelForward>(channel)} {}
+      : m_channel{std::forward<ChannelForward>(channel)} {
+    m_openState.SetOpening();
+    try {
+      auto connectFrame = Read();
+      if(connectFrame.GetCommand() != StompCommand::CONNECT &&
+          connectFrame.GetCommand() != StompCommand::STOMP) {
+        BOOST_THROW_EXCEPTION(IO::ConnectException{"CONNECT expected."});
+      }
+      StompFrame connectedFrame{StompCommand::CONNECTED};
+      connectedFrame.AddHeader({"version", "1.2"});
+      connectedFrame.AddHeader({"heart-beat", "0,0"});
+      Write(connectedFrame);
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename ChannelType>
   StompServer<ChannelType>::~StompServer() {
@@ -111,28 +126,6 @@ namespace Stomp {
     if(frame.GetCommand() == StompCommand::ERR) {
       m_channel->GetConnection().Close();
     }
-  }
-
-  template<typename ChannelType>
-  void StompServer<ChannelType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      auto connectFrame = Read();
-      if(connectFrame.GetCommand() != StompCommand::CONNECT &&
-          connectFrame.GetCommand() != StompCommand::STOMP) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException{"CONNECT expected."});
-      }
-      StompFrame connectedFrame{StompCommand::CONNECTED};
-      connectedFrame.AddHeader({"version", "1.2"});
-      connectedFrame.AddHeader({"heart-beat", "0,0"});
-      Write(connectedFrame);
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ChannelType>

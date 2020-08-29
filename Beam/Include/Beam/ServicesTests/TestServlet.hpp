@@ -29,8 +29,6 @@ namespace Tests {
 
       void HandleClientClosed(ServiceProtocolClient& client);
 
-      void Open();
-
       void Close();
 
     private:
@@ -67,9 +65,6 @@ namespace Tests {
   template<typename ContainerType>
   void TestServlet<ContainerType>::HandleClientClosed(
     ServiceProtocolClient& client) {}
-
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::Open() {}
 
   template<typename ContainerType>
   void TestServlet<ContainerType>::Close() {}

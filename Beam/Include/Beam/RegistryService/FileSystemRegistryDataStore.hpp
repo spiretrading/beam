@@ -57,8 +57,6 @@ namespace RegistryService {
       virtual void WithTransaction(
         const std::function<void ()>& transaction) override;
 
-      virtual void Open() override;
-
       virtual void Close() override;
 
     private:
@@ -75,7 +73,28 @@ namespace RegistryService {
 
   inline FileSystemRegistryDataStore::FileSystemRegistryDataStore(
       const std::filesystem::path& root)
-      : m_root{root} {}
+      : m_root{root} {
+    m_openState.SetOpening();
+    std::filesystem::create_directories(m_root);
+    if(!std::filesystem::exists(m_root / "settings.dat")) {
+      IO::BasicOStreamWriter<std::ofstream> writer(
+        Initialize(m_root / "settings.dat", std::ios::binary));
+      IO::SharedBuffer buffer;
+      Serialization::BinarySender<IO::SharedBuffer> sender;
+      sender.SetSink(Ref(buffer));
+      sender.Send(std::uint64_t(1));
+      writer.Write(buffer);
+    }
+    try {
+      auto root = LoadRegistryEntry(RegistryEntry::GetRoot().m_id);
+    } catch(const std::exception&) {
+      Details::RegistryEntryRecord rootRecord;
+      rootRecord.m_registryEntry = RegistryEntry::GetRoot();
+      rootRecord.m_parent = 0;
+      SaveRecord(rootRecord);
+    }
+    m_openState.SetOpen();
+  }
 
   inline FileSystemRegistryDataStore::~FileSystemRegistryDataStore() {
     Close();
@@ -180,31 +199,6 @@ namespace RegistryService {
       const std::function<void ()>& transaction) {
     boost::lock_guard<Threading::Mutex> lock{m_mutex};
     transaction();
-  }
-
-  inline void FileSystemRegistryDataStore::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    std::filesystem::create_directories(m_root);
-    if(!std::filesystem::exists(m_root / "settings.dat")) {
-      IO::BasicOStreamWriter<std::ofstream> writer(
-        Initialize(m_root / "settings.dat", std::ios::binary));
-      IO::SharedBuffer buffer;
-      Serialization::BinarySender<IO::SharedBuffer> sender;
-      sender.SetSink(Ref(buffer));
-      sender.Send(std::uint64_t(1));
-      writer.Write(buffer);
-    }
-    try {
-      auto root = LoadRegistryEntry(RegistryEntry::GetRoot().m_id);
-    } catch(const std::exception&) {
-      Details::RegistryEntryRecord rootRecord;
-      rootRecord.m_registryEntry = RegistryEntry::GetRoot();
-      rootRecord.m_parent = 0;
-      SaveRecord(rootRecord);
-    }
-    m_openState.SetOpen();
   }
 
   inline void FileSystemRegistryDataStore::Close() {

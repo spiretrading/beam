@@ -34,8 +34,6 @@ namespace RegistryService {
       void RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
         slots);
 
-      void Open();
-
       void Close();
 
     private:
@@ -81,7 +79,9 @@ namespace RegistryService {
   template<typename DataStoreForward>
   RegistryServlet<ContainerType, RegistryDataStoreType>::RegistryServlet(
       DataStoreForward&& dataStore)
-      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {}
+      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {
+    m_openState.SetOpen();
+  }
 
   template<typename ContainerType, typename RegistryDataStoreType>
   void RegistryServlet<ContainerType, RegistryDataStoreType>::RegisterServices(
@@ -117,20 +117,6 @@ namespace RegistryService {
     DeleteService::AddSlot(Store(slots), std::bind(
       &RegistryServlet::OnDeleteRequest, this, std::placeholders::_1,
       std::placeholders::_2));
-  }
-
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStore->Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ContainerType, typename RegistryDataStoreType>

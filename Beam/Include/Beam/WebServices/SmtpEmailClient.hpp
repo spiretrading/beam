@@ -45,8 +45,6 @@ namespace WebServices {
 
       void Send(const Email& email);
 
-      void Open();
-
       void Close();
 
     private:
@@ -61,7 +59,9 @@ namespace WebServices {
   template<typename ChannelType>
   SmtpEmailClient<ChannelType>::SmtpEmailClient(
       const ChannelBuilder& channelBuilder)
-      : m_channelBuilder{channelBuilder} {}
+      : m_channelBuilder{channelBuilder} {
+    m_openState.SetOpen();
+  }
 
   template<typename ChannelType>
   SmtpEmailClient<ChannelType>::~SmtpEmailClient() {
@@ -92,7 +92,6 @@ namespace WebServices {
         channel->GetWriter().Write(command.c_str(), command.size());
         channel->GetReader().Read(Store(reply));
       };
-    channel->GetConnection().Open();
     ss << "EHLO\r\n";
     WriteCommand();
     if(m_username.is_initialized()) {
@@ -116,14 +115,6 @@ namespace WebServices {
     ss << "QUIT\r\n";
     WriteCommand();
     channel->GetConnection().Close();
-  }
-
-  template<typename ChannelType>
-  void SmtpEmailClient<ChannelType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ChannelType>

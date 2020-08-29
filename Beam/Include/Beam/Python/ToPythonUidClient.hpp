@@ -25,8 +25,6 @@ namespace Beam::UidService {
 
       std::uint64_t LoadNextUid() override;
 
-      void Open() override;
-
       void Close() override;
 
     private:
@@ -57,12 +55,6 @@ namespace Beam::UidService {
   std::uint64_t ToPythonUidClient<C>::LoadNextUid() {
     auto release = Python::GilRelease();
     return m_client->LoadNextUid();
-  }
-
-  template<typename C>
-  void ToPythonUidClient<C>::Open() {
-    auto release = Python::GilRelease();
-    m_client->Open();
   }
 
   template<typename C>

@@ -18,55 +18,11 @@ using namespace boost::posix_time;
 
 namespace {
   using DataStore = TestDataStore<BasicQuery<std::string>, TestEntry>;
-
-  void Open(DataStore& dataStore) {
-    auto operations =
-      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-    dataStore.GetOperationPublisher().Monitor(operations);
-    auto result = Async<void>();
-    auto openRoutine = RoutineHandler(Spawn(
-      [&] {
-        try {
-          dataStore.Open();
-          result.GetEval().SetResult();
-        } catch(const std::exception&) {
-          result.GetEval().SetException(std::current_exception());
-        }
-      }));
-    auto operation = operations->Pop();
-    auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
-    REQUIRE(openOperation);
-    openOperation->m_result.SetResult();
-    REQUIRE_NOTHROW(result.Get());
-  }
 }
 
 TEST_SUITE("TestDataStore") {
-  TEST_CASE("open_exception") {
-    auto dataStore = DataStore();
-    auto operations =
-      std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
-    dataStore.GetOperationPublisher().Monitor(operations);
-    auto result = Async<void>();
-    auto openRoutine = RoutineHandler(Spawn(
-      [&] {
-        try {
-          dataStore.Open();
-          result.GetEval().SetResult();
-        } catch(const std::exception&) {
-          result.GetEval().SetException(std::current_exception());
-        }
-      }));
-    auto operation = operations->Pop();
-    auto openOperation = std::get_if<DataStore::OpenOperation>(&*operation);
-    REQUIRE(openOperation);
-    openOperation->m_result.SetException(ConnectException());
-    REQUIRE_THROWS_AS(result.Get(), ConnectException);
-  }
-
   TEST_CASE("store") {
     auto dataStore = DataStore();
-    Open(dataStore);
     auto operations =
       std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
     dataStore.GetOperationPublisher().Monitor(operations);
@@ -91,7 +47,6 @@ TEST_SUITE("TestDataStore") {
 
   TEST_CASE("store_exception") {
     auto dataStore = DataStore();
-    Open(dataStore);
     auto operations =
       std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
     dataStore.GetOperationPublisher().Monitor(operations);
@@ -116,7 +71,6 @@ TEST_SUITE("TestDataStore") {
 
   TEST_CASE("load") {
     auto dataStore = DataStore();
-    Open(dataStore);
     auto operations =
       std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
     dataStore.GetOperationPublisher().Monitor(operations);
@@ -147,7 +101,6 @@ TEST_SUITE("TestDataStore") {
 
   TEST_CASE("load_exception") {
     auto dataStore = DataStore();
-    Open(dataStore);
     auto operations =
       std::make_shared<Queue<std::shared_ptr<DataStore::Operation>>>();
     dataStore.GetOperationPublisher().Monitor(operations);

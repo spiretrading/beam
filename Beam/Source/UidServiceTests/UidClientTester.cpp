@@ -29,7 +29,6 @@ namespace {
             "test", *serverConnection);
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_uidClient.emplace(builder);
-      m_uidClient->Open();
     }
   };
 }

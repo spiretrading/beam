@@ -338,9 +338,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
 void Beam::Python::ExportServiceLocatorTestEnvironment(
     pybind11::module& module) {
   class_<ServiceLocatorTestEnvironment>(module, "ServiceLocatorTestEnvironment")
-    .def(init())
-    .def("open", &ServiceLocatorTestEnvironment::Open,
-      call_guard<GilRelease>())
+    .def(init(), call_guard<GilRelease>())
     .def("close", &ServiceLocatorTestEnvironment::Close,
       call_guard<GilRelease>())
     .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,

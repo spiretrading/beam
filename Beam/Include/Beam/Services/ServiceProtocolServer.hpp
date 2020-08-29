@@ -197,7 +197,6 @@ namespace Services {
       clientRoutines.Spawn(
         [=, &clients] {
           try {
-            client->Open();
             m_acceptSlot(*client);
             HandleMessagesLoop(*client);
           } catch(const std::exception&) {

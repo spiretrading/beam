@@ -64,8 +64,6 @@ namespace Beam::Services {
 
       ~ServiceProtocolServletContainer();
 
-      void Open();
-
       void Close();
 
     private:
@@ -92,18 +90,6 @@ BEAM_SUPPRESS_THIS_INITIALIZER()
           std::placeholders::_1)) {
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->RegisterServices(Store(m_protocolServer.GetSlots()));
-  }
-
-  template<typename M, typename C, typename S, typename E, typename T,
-    typename P>
-  ServiceProtocolServletContainer<M, C, S, E, T, P>::
-      ~ServiceProtocolServletContainer() {
-    Close();
-  }
-
-  template<typename M, typename C, typename S, typename E, typename T,
-    typename P>
-  void ServiceProtocolServletContainer<M, C, S, E, T, P>::Open() {
     try {
       m_servlet->Open();
     } catch(const std::exception&) {
@@ -112,6 +98,13 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
       throw;
     }
     m_isOpen.GetEval().SetResult();
+  }
+
+  template<typename M, typename C, typename S, typename E, typename T,
+    typename P>
+  ServiceProtocolServletContainer<M, C, S, E, T, P>::
+      ~ServiceProtocolServletContainer() {
+    Close();
   }
 
   template<typename M, typename C, typename S, typename E, typename T,

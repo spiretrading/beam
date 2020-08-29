@@ -33,9 +33,6 @@ namespace Tests {
 
       ~UidServiceTestEnvironment();
 
-      //! Opens the servlet.
-      void Open();
-
       //! Closes the servlet.
       void Close();
 
@@ -66,10 +63,6 @@ namespace Tests {
 
   inline UidServiceTestEnvironment::~UidServiceTestEnvironment() {
     Close();
-  }
-
-  inline void UidServiceTestEnvironment::Open() {
-    m_container.Open();
   }
 
   inline void UidServiceTestEnvironment::Close() {

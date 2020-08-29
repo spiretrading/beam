@@ -76,9 +76,7 @@ namespace Services {
 
   template<typename MessageProtocolType, typename TimerType>
   void ServiceProtocolClientBuilder<MessageProtocolType, TimerType>::Open(
-      Client& client) {
-    client.Open();
-  }
+      Client& client) {}
 }
 }
 

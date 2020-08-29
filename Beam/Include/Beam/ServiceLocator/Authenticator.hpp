@@ -22,7 +22,6 @@ namespace Beam::ServiceLocator {
   template<typename Authenticator, typename ServiceProtocolClient>
   void OpenAndAuthenticate(const Authenticator& authenticator,
       ServiceProtocolClient& serviceProtocolClient) {
-    serviceProtocolClient.Open();
     authenticator(serviceProtocolClient);
   }
 }

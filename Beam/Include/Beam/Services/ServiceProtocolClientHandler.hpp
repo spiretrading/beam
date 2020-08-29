@@ -64,8 +64,6 @@ namespace Services {
       */
       void SetReconnectHandler(const ReconnectHandler& reconnectHandler);
 
-      void Open();
-
       void Close();
 
     private:
@@ -79,7 +77,6 @@ namespace Services {
       IO::OpenState m_openState;
 
       void Shutdown();
-      bool IsClientAvailable();
       void BuildClient();
       void MessageLoop(std::shared_ptr<Client> client);
   };
@@ -89,7 +86,16 @@ namespace Services {
   ServiceProtocolClientHandler<ServiceProtocolClientBuilderType>::
       ServiceProtocolClientHandler(BuilderForward&& builder)
       : m_builder(std::forward<BuilderForward>(builder)),
-        m_reconnectHandler([] (const std::shared_ptr<Client>&) {}) {}
+        m_reconnectHandler([] (const std::shared_ptr<Client>&) {}) {
+    m_openState.SetOpening();
+    try {
+      BuildClient();
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename ServiceProtocolClientBuilderType>
   ServiceProtocolClientHandler<ServiceProtocolClientBuilderType>::
@@ -133,20 +139,6 @@ namespace Services {
   void ServiceProtocolClientHandler<ServiceProtocolClientBuilderType>::
       SetReconnectHandler(const ReconnectHandler& reconnectHandler) {
     m_reconnectHandler = reconnectHandler;
-  }
-
-  template<typename ServiceProtocolClientBuilderType>
-  void ServiceProtocolClientHandler<ServiceProtocolClientBuilderType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      BuildClient();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ServiceProtocolClientBuilderType>

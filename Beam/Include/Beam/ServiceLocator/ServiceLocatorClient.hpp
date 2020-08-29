@@ -560,7 +560,6 @@ namespace Beam::ServiceLocator {
       return;
     }
     try {
-      m_clientHandler.Open();
       auto client = m_clientHandler.GetClient();
       Login(*client);
     } catch(const std::exception&) {

@@ -53,7 +53,6 @@ TEST_SUITE("ServiceProtocolClient") {
         VoidService::AddRequestSlot(Store(client.GetSlots()),
           std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
           &callbackCount));
-        client.Open();
         try {
           while(true) {
             auto message = client.ReadMessage();
@@ -71,7 +70,6 @@ TEST_SUITE("ServiceProtocolClient") {
         auto client = ClientServiceProtocolClient(Initialize("client", server),
           Initialize());
         RegisterTestServices(Store(client.GetSlots()));
-        client.Open();
         client.SendRequest<VoidService>(123);
         client.SendRequest<VoidService>(321);
         client.Close();
@@ -93,7 +91,6 @@ TEST_SUITE("ServiceProtocolClient") {
         VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
           OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
           &callbackCount));
-        client.Open();
         try {
           while(true) {
             auto message = client.ReadMessage();
@@ -111,7 +108,6 @@ TEST_SUITE("ServiceProtocolClient") {
         auto client = ClientServiceProtocolClient(Initialize("client", server),
           Initialize());
         RegisterTestServices(Store(client.GetSlots()));
-        client.Open();
         REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
           ServiceRequestException);
         client.Close();
@@ -133,7 +129,6 @@ TEST_SUITE("ServiceProtocolClient") {
         VoidService::AddRequestSlot(Store(client.GetSlots()), std::bind(
           OnExceptionVoidRequest, std::placeholders::_1, std::placeholders::_2,
           &callbackCount));
-        client.Open();
         try {
           while(true) {
             auto message = client.ReadMessage();
@@ -153,7 +148,6 @@ TEST_SUITE("ServiceProtocolClient") {
           BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>(
           &clientChannel, Initialize());
         RegisterTestServices(Store(client.GetSlots()));
-        client.Open();
         REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
           ServiceRequestException);
         client.Close();
@@ -176,7 +170,6 @@ TEST_SUITE("ServiceProtocolClient") {
           BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>(
           &clientChannel, Initialize());
         RegisterTestServices(Store(client.GetSlots()));
-        client.Open();
         clientChannel.GetConnection().Close();
         REQUIRE_THROWS_AS(client.SendRequest<VoidService>(123),
           ServiceRequestException);

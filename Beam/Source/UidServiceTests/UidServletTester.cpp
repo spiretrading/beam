@@ -23,11 +23,9 @@ namespace {
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_container.emplace(&m_dataStore, serverConnection,
         factory<std::unique_ptr<TriggerTimer>>());
-      m_container->Open();
       m_clientProtocol.emplace(Initialize("test", *serverConnection),
         Initialize());
       RegisterUidServices(Store(m_clientProtocol->GetSlots()));
-      m_clientProtocol->Open();
     }
   };
 }

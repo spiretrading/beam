@@ -112,7 +112,6 @@ namespace UidService {
       return;
     }
     try {
-      m_clientHandler.Open();
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();

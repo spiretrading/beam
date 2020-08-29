@@ -37,8 +37,6 @@ namespace Details {
     //! Handler for when a ServiceProtocolClient has been closed.
     void HandleClientClosed(typename Container::ServiceProtocolClient& client);
 
-    void Open();
-
     void Close();
   };
 

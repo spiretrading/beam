@@ -157,8 +157,6 @@ namespace Details {
       //! Spawns a Message handling loop for this ServiceProtocolClient.
       void SpawnMessageHandler();
 
-      void Open();
-
       void Close();
 
     private:
@@ -249,7 +247,22 @@ namespace Details {
           Initialize(), Initialize()),
         m_timer(std::forward<TimerForward>(timer)),
         m_nextRequestId(1),
-        m_isShuttingDown(false) {}
+        m_isShuttingDown(false) {
+    m_openState.SetOpening();
+    try {
+      m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
+      m_timer->GetPublisher().Monitor(m_timerQueue);
+      m_timer->Start();
+      m_timerLoop = Routines::Spawn(
+        std::bind(&ServiceProtocolClient::TimerLoop, this));
+      m_readLoop = Routines::Spawn(
+        std::bind(&ServiceProtocolClient::ReadLoop, this));
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename MessageProtocolType, typename TimerType,
     typename ServiceSlotsPolicy, typename SessionType,
@@ -263,7 +276,22 @@ namespace Details {
           Initialize(), Initialize()),
         m_timer(std::forward<TimerForward>(timer)),
         m_nextRequestId(1),
-        m_isShuttingDown(false) {}
+        m_isShuttingDown(false) {
+    m_openState.SetOpening();
+    try {
+      m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
+      m_timer->GetPublisher().Monitor(m_timerQueue);
+      m_timer->Start();
+      m_timerLoop = Routines::Spawn(
+        std::bind(&ServiceProtocolClient::TimerLoop, this));
+      m_readLoop = Routines::Spawn(
+        std::bind(&ServiceProtocolClient::ReadLoop, this));
+    } catch(const std::exception&) {
+      m_openState.SetOpenFailure();
+      Shutdown();
+    }
+    m_openState.SetOpen();
+  }
 
   template<typename MessageProtocolType, typename TimerType,
     typename ServiceSlotsPolicy, typename SessionType,
@@ -412,33 +440,6 @@ namespace Details {
       SessionType, SupportsParallelismValue>::SpawnMessageHandler() {
     m_messageHandler = Routines::Spawn(
       std::bind(HandleMessagesLoop<ServiceProtocolClient>, std::ref(*this)));
-  }
-
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
-      m_isShuttingDown = false;
-    }
-    try {
-      m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
-      m_timer->GetPublisher().Monitor(m_timerQueue);
-      m_timer->Start();
-      m_timerLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::TimerLoop, this));
-      m_readLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::ReadLoop, this));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename MessageProtocolType, typename TimerType,

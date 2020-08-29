@@ -34,7 +34,6 @@ namespace {
       m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
         Initialize(&m_dataStore)), serverConnection,
         factory<std::unique_ptr<TriggerTimer>>());
-      m_container->Open();
       m_clientProtocol.emplace(Initialize("test", *serverConnection),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));

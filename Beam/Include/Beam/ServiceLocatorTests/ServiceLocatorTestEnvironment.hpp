@@ -76,7 +76,6 @@ namespace Tests {
   }
 
   inline void ServiceLocatorTestEnvironment::Open() {
-    m_container.Open();
     m_root = BuildClient();
     m_root->SetCredentials("root", "");
     m_root->Open();

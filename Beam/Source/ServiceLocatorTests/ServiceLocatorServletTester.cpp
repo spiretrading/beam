@@ -47,12 +47,10 @@ namespace {
     Fixture()
         : m_container(Initialize(&m_dataStore), &m_serverConnection,
             factory<std::shared_ptr<TriggerTimer>>()) {
-      m_container.Open();
       m_clientProtocol.emplace(Initialize("test", m_serverConnection),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));
-      m_clientProtocol->Open();
     }
 
     DirectoryEntry CreateUser(const std::string& username,
@@ -80,7 +78,6 @@ namespace {
         Out<std::optional<ClientServiceProtocolClient>> service) {
       service->emplace(Initialize("test", m_serverConnection), Initialize());
       RegisterServiceLocatorServices(Store((*service)->GetSlots()));
-      (*service)->Open();
       CreateUser(username, password);
       auto result = (*service)->SendRequest<LoginService>(username, password);
       *account = result.account;

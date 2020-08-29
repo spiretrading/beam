@@ -45,8 +45,6 @@ namespace {
           m_clientProtocol(Initialize("test", m_serverConnection),
             Initialize()) {
       RegisterTestServices(Store(m_clientProtocol.GetSlots()));
-      m_container.Open();
-      m_clientProtocol.Open();
     }
   };
 }

@@ -1,12 +1,14 @@
 #include <doctest/doctest.h>
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Stomp/StompServer.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Routines;
 using namespace Beam::Stomp;
+using namespace boost;
 
 namespace {
   struct Fixture {
@@ -16,16 +18,13 @@ namespace {
     using TestStompServer = StompServer<std::unique_ptr<ServerChannel>>;
 
     ServerConnection m_serverConnection;
-    boost::optional<ClientChannel> m_clientChannel;
-    boost::optional<TestStompServer> m_server;
+    optional<ClientChannel> m_clientChannel;
+    optional<TestStompServer> m_server;
 
     Fixture() {
-      m_serverConnection.Open();
-      m_clientChannel.emplace("stomp", Ref(m_serverConnection));
-      Spawn(
-        [&] {
-          m_clientChannel->GetConnection().Open();
-        });
+      auto task = RoutineHandler(Spawn([&] {
+        m_clientChannel.emplace("stomp", m_serverConnection);
+      }));
       m_server.emplace(m_serverConnection.Accept());
     }
   };

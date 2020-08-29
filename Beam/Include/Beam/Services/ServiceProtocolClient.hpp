@@ -427,7 +427,6 @@ namespace Details {
       m_isShuttingDown = false;
     }
     try {
-      m_protocol.GetChannel().GetConnection().Open();
       m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
       m_timer->GetPublisher().Monitor(m_timerQueue);
       m_timer->Start();

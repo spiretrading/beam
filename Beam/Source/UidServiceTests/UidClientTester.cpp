@@ -15,20 +15,18 @@ using namespace boost;
 namespace {
   struct Fixture {
     using TestUidClient = UidClient<TestServiceProtocolClientBuilder>;
-
-    boost::optional<TestServiceProtocolServer> m_protocolServer;
-    boost::optional<TestUidClient> m_uidClient;
+    optional<TestServiceProtocolServer> m_protocolServer;
+    optional<TestUidClient> m_uidClient;
 
     Fixture() {
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_protocolServer.emplace(serverConnection,
         factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
-      m_protocolServer->Open();
       RegisterUidServices(Store(m_protocolServer->GetSlots()));
       auto builder = TestServiceProtocolClientBuilder(
         [=] {
           return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
-            "test", Ref(*serverConnection));
+            "test", *serverConnection);
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_uidClient.emplace(builder);
       m_uidClient->Open();

@@ -35,7 +35,6 @@ namespace {
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_protocolServer.emplace(serverConnection,
         factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
-      m_protocolServer->Open();
       RegisterServiceLocatorServices(Store(m_protocolServer->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_protocolServer->GetSlots()));
       auto builder = TestServiceProtocolClientBuilder(

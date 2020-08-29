@@ -16,8 +16,6 @@ namespace IO {
     public:
       virtual ~VirtualConnection() = default;
 
-      virtual void Open() = 0;
-
       virtual void Close() = 0;
 
     protected:
@@ -52,8 +50,6 @@ namespace IO {
       //! Returns the Connection being wrapped.
       Connection& GetConnection();
 
-      virtual void Open() override;
-
       virtual void Close() override;
 
     private:
@@ -87,11 +83,6 @@ namespace IO {
   typename WrapperConnection<ConnectionType>::Connection&
       WrapperConnection<ConnectionType>::GetConnection() {
     return *m_connection; 
-  }
-
-  template<typename ConnectionType>
-  void WrapperConnection<ConnectionType>::Open() {
-    return m_connection->Open();
   }
 
   template<typename ConnectionType>

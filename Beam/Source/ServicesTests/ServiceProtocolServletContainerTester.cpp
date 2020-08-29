@@ -28,36 +28,31 @@ namespace {
   using TestServerConnection = LocalServerConnection<SharedBuffer>;
   using TestClientChannel = LocalClientChannel<SharedBuffer>;
   using TestServiceProtocolServletContainer = ServiceProtocolServletContainer<
-    MetaTestServlet, std::unique_ptr<TestServerConnection>,
-    BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<TriggerTimer>>;
+    MetaTestServlet, TestServerConnection*, BinarySender<SharedBuffer>,
+    NullEncoder, std::shared_ptr<TriggerTimer>>;
   using ClientServiceProtocolClient = ServiceProtocolClient<
     MessageProtocol<TestClientChannel, BinarySender<SharedBuffer>, NullEncoder>,
     TriggerTimer>;
 
   struct Fixture {
-    optional<TestServiceProtocolServletContainer> m_container;
-    optional<ClientServiceProtocolClient> m_clientProtocol;
+    TestServerConnection m_serverConnection;
+    TestServiceProtocolServletContainer m_container;
+    ClientServiceProtocolClient m_clientProtocol;
 
-    Fixture() {
-      auto serverConnection = std::make_unique<TestServerConnection>();
-      m_clientProtocol.emplace(Initialize(std::string("test"),
-        Ref(*serverConnection)), Initialize());
-      RegisterTestServices(Store(m_clientProtocol->GetSlots()));
-      m_container.emplace(Initialize(), std::move(serverConnection),
-        factory<std::shared_ptr<TriggerTimer>>());
-      m_container->Open();
-      m_clientProtocol->Open();
+    Fixture()
+        : m_container(Initialize(), &m_serverConnection,
+            factory<std::shared_ptr<TriggerTimer>>()),
+          m_clientProtocol(Initialize("test", m_serverConnection),
+            Initialize()) {
+      RegisterTestServices(Store(m_clientProtocol.GetSlots()));
+      m_container.Open();
+      m_clientProtocol.Open();
     }
   };
 }
 
 TEST_SUITE("ServiceProtocolServletContainer") {
   TEST_CASE_FIXTURE(Fixture, "void_return_type") {
-    auto task = RoutineHandler(Spawn(
-      [&] {
-        m_clientProtocol->SendRequest<VoidService>(123);
-        m_container->Close();
-      }));
-    task.Wait();
+    m_clientProtocol.SendRequest<VoidService>(123);
   }
 }

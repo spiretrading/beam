@@ -9,21 +9,10 @@ using namespace Beam::Routines;
 using namespace boost;
 
 TEST_SUITE("LocalServerConnection") {
-  TEST_CASE("accept_then_close") {
+  TEST_CASE("close_then_accept") {
     auto server = LocalServerConnection<SharedBuffer>();
-    auto handled = false;
-    auto task = RoutineHandler(Spawn(
-      [&] {
-        server.Open();
-        server.Close();
-        try {
-          server.Accept();
-        } catch(const EndOfFileException&) {
-          handled = true;
-        }
-      }));
-    task.Wait();
-    REQUIRE(handled);
+    server.Close();
+    REQUIRE_THROWS_AS(server.Accept(), EndOfFileException);
   }
 
   TEST_CASE("accept_pending_channel") {
@@ -41,17 +30,10 @@ TEST_SUITE("LocalServerConnection") {
   TEST_CASE("open_client_then_close_server") {
     auto server = LocalServerConnection<SharedBuffer>();
     auto handled = false;
-    auto isOpen = false;
-    server.Open();
     auto clientTask = RoutineHandler(Spawn(
       [&] {
-        auto client = LocalClientChannel<SharedBuffer>("client", Ref(server));
-        client.GetConnection().Open();
+        auto client = LocalClientChannel("client", server);
       }));
     server.Accept();
-    clientTask.Wait();
-  }
-
-  TEST_CASE("TestOpenClientAfterCloseServer") {
   }
 }

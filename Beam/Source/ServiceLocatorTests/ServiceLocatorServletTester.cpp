@@ -45,7 +45,7 @@ namespace {
     std::optional<ClientServiceProtocolClient> m_clientProtocol;
 
     Fixture() {
-      m_clientProtocol.emplace(Initialize("test", Ref(m_serverConnection)),
+      m_clientProtocol.emplace(Initialize("test", m_serverConnection),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));

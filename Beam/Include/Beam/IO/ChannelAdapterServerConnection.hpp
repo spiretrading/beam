@@ -50,8 +50,6 @@ namespace IO {
 
       std::unique_ptr<Channel> Accept();
 
-      void Open();
-
       void Close();
 
     private:
@@ -80,12 +78,6 @@ namespace IO {
     std::unique_ptr<SourceChannel> source = m_connection->Accept();
     std::unique_ptr<Channel> channel(m_adapter(source));
     return std::move(channel);
-  }
-
-  template<typename ServerConnectionType, typename ChannelType>
-  void ChannelAdapterServerConnection<ServerConnectionType, ChannelType>::
-      Open() {
-    m_connection->Open();
   }
 
   template<typename ServerConnectionType, typename ChannelType>

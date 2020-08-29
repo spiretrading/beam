@@ -1,31 +1,33 @@
-#ifndef BEAM_LOCALCLIENTCHANNEL_HPP
-#define BEAM_LOCALCLIENTCHANNEL_HPP
+#ifndef BEAM_LOCAL_CLIENT_CHANNEL_HPP
+#define BEAM_LOCAL_CLIENT_CHANNEL_HPP
 #include <optional>
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/LocalConnection.hpp"
-#include "Beam/IO/LocalServerChannel.hpp"
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
-#include "Beam/Pointers/Ref.hpp"
 
 namespace Beam {
 namespace IO {
+namespace Details {
+  template<typename Buffer>
+  void Connect(LocalServerConnection<Buffer>&, LocalClientChannel<Buffer>&,
+    const std::string&);
+}
 
-  /*! \class LocalClientChannel
-      \brief Implements the client side of a local Channel.
-      \tparam BufferType The type of Buffer to use.
+  /**
+   * Implements the client side of a local Channel.
+   * @param <B> The type of Buffer to use.
    */
-  template<typename BufferType>
-  class LocalClientChannel : private boost::noncopyable {
+  template<typename B>
+  class LocalClientChannel {
     public:
 
-      //! The type of Buffer to use.
-      using Buffer = BufferType;
+      /** The type of Buffer to use. */
+      using Buffer = B;
 
-      //! The type of LocalServerConnection this connects to.
+      /** The type of LocalServerConnection this connects to. */
       using LocalServerConnection = IO::LocalServerConnection<Buffer>;
 
       using Identifier = NamedChannelIdentifier;
@@ -33,13 +35,13 @@ namespace IO {
       using Reader = PipedReader<Buffer>;
       using Writer = PipedWriter<Buffer>;
 
-      //! Constructs a LocalClientChannel.
-      /*!
-        \param name The name of the Channel.
-        \param server The server to connect to.
-      */
+      /**
+       * Constructs a LocalClientChannel.
+       * @param name The name of the Channel.
+       * @param server The server to connect to.
+       */
       LocalClientChannel(const std::string& name,
-        Ref<LocalServerConnection> server);
+        LocalServerConnection& server);
 
       const Identifier& GetIdentifier() const;
 
@@ -50,57 +52,52 @@ namespace IO {
       Writer& GetWriter();
 
     private:
+      friend class LocalServerConnection;
       Identifier m_identifier;
-      Reader m_reader;
+      std::unique_ptr<Reader> m_reader;
       std::shared_ptr<Writer> m_writer;
       std::optional<Connection> m_connection;
+
+      LocalClientChannel(const LocalClientChannel&) = delete;
+      LocalClientChannel& operator =(const LocalClientChannel&) = delete;
   };
 
-  template<typename BufferType>
-  LocalClientChannel<BufferType>::LocalClientChannel(const std::string& name,
-      Ref<LocalServerConnection> server)
+  template<typename B>
+  LocalClientChannel<B>::LocalClientChannel(const std::string& name,
+      LocalServerConnection& server)
       : m_identifier("client@" + name) {
-    auto serverChannel =  std::make_unique<LocalServerChannel<Buffer>>(name,
-      Ref(server), Ref(*this));
-    m_writer = std::make_shared<Writer>(Ref(serverChannel->GetReader()));
-    m_connection.emplace(server->m_pendingChannels, m_writer);
-    m_connection->m_channel = this;
-    m_connection->m_endpointWriter = serverChannel->m_writer;
-    serverChannel->m_connection.m_endpointWriter = m_writer;
-    server->AddChannel(Ref(*this), std::move(serverChannel));
+    Details::Connect(server, *this, name);
   }
 
-  template<typename BufferType>
-  const typename LocalClientChannel<BufferType>::Identifier&
-      LocalClientChannel<BufferType>::GetIdentifier() const {
+  template<typename B>
+  const typename LocalClientChannel<B>::Identifier&
+      LocalClientChannel<B>::GetIdentifier() const {
     return m_identifier;
   }
 
-  template<typename BufferType>
-  typename LocalClientChannel<BufferType>::Connection&
-      LocalClientChannel<BufferType>::GetConnection() {
+  template<typename B>
+  typename LocalClientChannel<B>::Connection&
+      LocalClientChannel<B>::GetConnection() {
     return *m_connection;
   }
 
-  template<typename BufferType>
-  typename LocalClientChannel<BufferType>::Reader&
-      LocalClientChannel<BufferType>::GetReader() {
-    return m_reader;
+  template<typename B>
+  typename LocalClientChannel<B>::Reader& LocalClientChannel<B>::GetReader() {
+    return *m_reader;
   }
 
-  template<typename BufferType>
-  typename LocalClientChannel<BufferType>::Writer&
-      LocalClientChannel<BufferType>::GetWriter() {
+  template<typename B>
+  typename LocalClientChannel<B>::Writer& LocalClientChannel<B>::GetWriter() {
     return *m_writer;
   }
 }
 
-  template<typename BufferType>
-  struct ImplementsConcept<IO::LocalClientChannel<BufferType>,
-    IO::Channel<typename IO::LocalClientChannel<BufferType>::Identifier,
-    typename IO::LocalClientChannel<BufferType>::Connection,
-    typename IO::LocalClientChannel<BufferType>::Reader,
-    typename IO::LocalClientChannel<BufferType>::Writer>> : std::true_type {};
+  template<typename B>
+  struct ImplementsConcept<IO::LocalClientChannel<B>,
+    IO::Channel<typename IO::LocalClientChannel<B>::Identifier,
+    typename IO::LocalClientChannel<B>::Connection,
+    typename IO::LocalClientChannel<B>::Reader,
+    typename IO::LocalClientChannel<B>::Writer>> : std::true_type {};
 }
 
 #endif

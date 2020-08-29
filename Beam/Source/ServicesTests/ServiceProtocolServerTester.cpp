@@ -30,27 +30,24 @@ using namespace boost;
 namespace {
   using TestServerConnection = LocalServerConnection<SharedBuffer>;
   using TestClientChannel = LocalClientChannel<SharedBuffer>;
-  using TestServiceProtocolServer = ServiceProtocolServer<
-    std::unique_ptr<TestServerConnection>, BinarySender<SharedBuffer>,
-    NullEncoder, std::shared_ptr<TriggerTimer>>;
+  using TestServiceProtocolServer = ServiceProtocolServer<TestServerConnection*,
+    BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<TriggerTimer>>;
   using ClientServiceProtocolClient = ServiceProtocolClient<
     MessageProtocol<TestClientChannel, BinarySender<SharedBuffer>, NullEncoder>,
     TriggerTimer>;
 
   struct Fixture {
-    boost::optional<TestServiceProtocolServer> m_protocolServer;
-    boost::optional<ClientServiceProtocolClient> m_clientProtocol;
+    TestServerConnection m_serverConnection;
+    TestServiceProtocolServer m_protocolServer;
+    ClientServiceProtocolClient m_clientProtocol;
 
-    Fixture() {
-      auto serverConnection = std::make_unique<TestServerConnection>();
-      m_clientProtocol.emplace(Initialize(std::string("test"),
-        Ref(*serverConnection)), Initialize());
-      RegisterTestServices(Store(m_clientProtocol->GetSlots()));
-      m_protocolServer.emplace(std::move(serverConnection),
-        factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
-      RegisterTestServices(Store(m_protocolServer->GetSlots()));
-      m_protocolServer->Open();
-      m_clientProtocol->Open();
+    Fixture()
+      : m_protocolServer(&m_serverConnection,
+          factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot()),
+        m_clientProtocol(Initialize("test", m_serverConnection), Initialize()) {
+      RegisterTestServices(Store(m_protocolServer.GetSlots()));
+      RegisterTestServices(Store(m_clientProtocol.GetSlots()));
+      m_clientProtocol.Open();
     }
   };
 
@@ -64,18 +61,13 @@ namespace {
 
 TEST_SUITE("ServiceProtocolServer") {
   TEST_CASE_FIXTURE(Fixture, "void_return_type") {
-    auto task = RoutineHandler(Spawn(
-      [&] {
-        auto callbackTriggered = false;
-        VoidService::AddRequestSlot(Store(m_protocolServer->GetSlots()),
-          std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
-          &callbackTriggered));
+    auto callbackTriggered = false;
+    VoidService::AddRequestSlot(Store(m_protocolServer.GetSlots()),
+      std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
+      &callbackTriggered));
   
-        // Startup and invoke the service.
-        m_clientProtocol->SendRequest<VoidService>(123);
-        REQUIRE(callbackTriggered);
-        m_protocolServer->Close();
-      }));
-    task.Wait();
+    // Startup and invoke the service.
+    m_clientProtocol.SendRequest<VoidService>(123);
+    REQUIRE(callbackTriggered);
   }
 }

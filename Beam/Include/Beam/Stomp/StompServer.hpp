@@ -119,7 +119,6 @@ namespace Stomp {
       return;
     }
     try {
-      m_channel->GetConnection().Open();
       auto connectFrame = Read();
       if(connectFrame.GetCommand() != StompCommand::CONNECT &&
           connectFrame.GetCommand() != StompCommand::STOMP) {

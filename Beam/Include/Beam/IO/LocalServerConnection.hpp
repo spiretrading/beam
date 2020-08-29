@@ -1,138 +1,123 @@
-#ifndef BEAM_LOCALSERVERCONNECTION_HPP
-#define BEAM_LOCALSERVERCONNECTION_HPP
-#include <unordered_map>
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_LOCAL_SERVER_CONNECTION_HPP
+#define BEAM_LOCAL_SERVER_CONNECTION_HPP
+#include <memory>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerChannel.hpp"
-#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/Sync.hpp"
 
 namespace Beam {
 namespace IO {
+namespace Details {
+  template<typename Buffer>
+  void Connect(LocalServerConnection<Buffer>& server,
+    LocalClientChannel<Buffer>& client, const std::string&);
+}
 
-  /*! \class LocalServerConnection
-      \brief Implements a local ServerConnection.
-      \tparam BufferType The type of Buffer the server's Channels read/write to.
+  /**
+   * Implements a local ServerConnection.
+   * @param <B> The type of Buffer the server's Channels read/write to.
    */
-  template<typename BufferType>
-  class LocalServerConnection : private boost::noncopyable {
+  template<typename B>
+  class LocalServerConnection {
     public:
 
-      //! The type of Buffer used by the Channel's Readers and Writers.
-      using Buffer = BufferType;
+      /** The type of Buffer used by the Channel's Readers and Writers. */
+      using Buffer = B;
 
-      using Channel = IO::LocalServerChannel<Buffer>;
+      using Channel = LocalServerChannel<Buffer>;
 
-      //! Constructs a LocalServerConnection.
-      LocalServerConnection();
+      /** Constructs a LocalServerConnection. */
+      LocalServerConnection() = default;
 
       ~LocalServerConnection();
 
       std::unique_ptr<Channel> Accept();
 
-      void Open();
-
       void Close();
 
     private:
-      friend class IO::LocalServerChannel<Buffer>;
-      using ClientToServerChannels = std::unordered_map<
-        LocalClientChannel<Buffer>*, std::unique_ptr<Channel>>;
+      template<typename Buffer>
+      friend void Details::Connect(IO::LocalServerConnection<Buffer>&,
+        IO::LocalClientChannel<Buffer>&, const std::string&);
       struct PendingChannelEntry {
-        LocalClientChannel<Buffer>* m_clientChannel;
+        LocalClientChannel<Buffer>* m_client;
+        std::string m_name;
         Routines::Eval<void> m_result;
-
-        PendingChannelEntry(Ref<LocalClientChannel<Buffer>> clientChannel,
-          Routines::Eval<void>&& result);
       };
-      friend class LocalClientChannel<Buffer>;
-      friend class LocalConnection<Buffer>;
-      Threading::Sync<ClientToServerChannels> m_clientToServerChannels;
-      std::shared_ptr<Queue<PendingChannelEntry*>> m_pendingChannels;
+      Queue<PendingChannelEntry*> m_pendingChannels;
 
-      void AddChannel(Ref<LocalClientChannel<Buffer>> clientChannel,
-        std::unique_ptr<Channel> channel);
+      LocalServerConnection(const LocalServerConnection&) = delete;
+      LocalServerConnection& operator =(const LocalServerConnection&) = delete;
+      void Connect(LocalClientChannel<Buffer>& client, const std::string& name);
   };
 
-  template<typename BufferType>
-  LocalServerConnection<BufferType>::PendingChannelEntry::PendingChannelEntry(
-      Ref<LocalClientChannel<Buffer>> clientChannel,
-      Routines::Eval<void>&& result)
-      : m_clientChannel{clientChannel.Get()},
-        m_result{std::move(result)} {}
-
-  template<typename BufferType>
-  LocalServerConnection<BufferType>::LocalServerConnection()
-      : m_pendingChannels{std::make_shared<Queue<PendingChannelEntry*>>()} {}
-
-  template<typename BufferType>
-  LocalServerConnection<BufferType>::~LocalServerConnection() {
+  template<typename B>
+  LocalServerConnection<B>::~LocalServerConnection() {
     Close();
   }
 
-  template<typename BufferType>
-  std::unique_ptr<typename LocalServerConnection<BufferType>::Channel>
-      LocalServerConnection<BufferType>::Accept() {
-    PendingChannelEntry* entry;
-    try {
-      entry = m_pendingChannels->Pop();
-    } catch(const std::exception&) {
-      BOOST_THROW_EXCEPTION(EndOfFileException());
-    }
-    auto channel = Threading::With(m_clientToServerChannels,
-      [&] (ClientToServerChannels& clientToServerChannels) {
-        auto channelIterator = clientToServerChannels.find(
-          entry->m_clientChannel);
-        if(channelIterator == clientToServerChannels.end()) {
-          return std::unique_ptr<Channel>{};
-        }
-        auto channel = std::move(channelIterator->second);
-        clientToServerChannels.erase(channelIterator);
-        return channel;
-      });
-    if(channel == nullptr) {
-      return Accept();
-    }
-    channel->m_connection.m_isOpen = true;
+  template<typename B>
+  std::unique_ptr<typename LocalServerConnection<B>::Channel>
+      LocalServerConnection<B>::Accept() {
+    auto entry = [&] {
+      try {
+        return m_pendingChannels.Pop();
+      } catch(const std::exception&) {
+        BOOST_THROW_EXCEPTION(EndOfFileException());
+      }
+    }();
+    auto serverReader = std::make_unique<PipedReader<Buffer>>();
+    auto clientWriter = std::make_shared<PipedWriter<Buffer>>(
+      Ref(*serverReader));
+    auto clientReader = std::make_unique<PipedReader<Buffer>>();
+    auto serverWriter = std::make_shared<PipedWriter<Buffer>>(
+      Ref(*clientReader));
+    auto channel = std::make_unique<Channel>(entry->m_name,
+      std::move(serverReader), serverWriter, clientWriter);
+    entry->m_client->m_reader = std::move(clientReader);
+    entry->m_client->m_writer = clientWriter;
+    entry->m_client->m_connection.emplace(std::move(clientWriter),
+      std::move(serverWriter));
     entry->m_result.SetResult();
     return channel;
   }
 
-  template<typename BufferType>
-  void LocalServerConnection<BufferType>::Open() {}
-
-  template<typename BufferType>
-  void LocalServerConnection<BufferType>::Close() {
-    m_pendingChannels->Break(NotConnectedException());
-    while(auto entry = m_pendingChannels->TryPop()) {
+  template<typename B>
+  void LocalServerConnection<B>::Close() {
+    m_pendingChannels.Break(ConnectException("Server unavailable."));
+    while(auto entry = m_pendingChannels.TryPop()) {
       (*entry)->m_result.SetException(ConnectException("Server unavailable."));
     }
   }
 
-  template<typename BufferType>
-  void LocalServerConnection<BufferType>::AddChannel(
-      Ref<LocalClientChannel<Buffer>> clientChannel,
-      std::unique_ptr<Channel> channel) {
-    Threading::With(m_clientToServerChannels,
-      [&] (ClientToServerChannels& clientToServerChannels) {
-        clientToServerChannels.insert(std::make_pair(clientChannel.Get(),
-          std::move(channel)));
-      });
+  template<typename B>
+  void LocalServerConnection<B>::Connect(LocalClientChannel<Buffer>& client,
+      const std::string& name) {
+    auto result = Routines::Async<void>();
+    auto entry = PendingChannelEntry{&client, name, result.GetEval()};
+    m_pendingChannels.Push(&entry);
+    result.Get();
+  }
+
+namespace Details {
+  template<typename Buffer>
+  void Connect(LocalServerConnection<Buffer>& server,
+      LocalClientChannel<Buffer>& client, const std::string& name) {
+    server.Connect(client, name);
   }
 }
+}
 
-  template<typename BufferType>
-  struct ImplementsConcept<IO::LocalServerConnection<BufferType>,
-    IO::ServerConnection<typename IO::LocalServerConnection<
-    BufferType>::Channel>> : std::true_type {};
+  template<typename B>
+  struct ImplementsConcept<IO::LocalServerConnection<B>,
+    IO::ServerConnection<typename IO::LocalServerConnection<B>::Channel>> :
+    std::true_type {};
 }
 
 #endif

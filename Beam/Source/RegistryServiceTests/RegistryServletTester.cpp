@@ -28,7 +28,7 @@ namespace {
     Fixture() {
       m_environment.Open();
       auto serverConnection = std::make_unique<TestServerConnection>();
-      m_clientProtocol.emplace(Initialize("test", Ref(*serverConnection)),
+      m_clientProtocol.emplace(Initialize("test", *serverConnection),
         Initialize());
       RegisterServiceLocatorServices(Store(m_clientProtocol->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_clientProtocol->GetSlots()));

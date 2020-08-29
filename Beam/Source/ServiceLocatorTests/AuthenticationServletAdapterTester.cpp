@@ -45,7 +45,7 @@ namespace {
       auto builder = TestServiceProtocolClientBuilder(
         [=] {
           return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
-            "test", Ref(*serviceLocatorServerConnectionHandle));
+            "test", *serviceLocatorServerConnectionHandle);
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_serviceLocatorClient.emplace(builder);
       auto serviceClient = std::make_unique<TestServiceLocatorClient>(builder);

@@ -99,8 +99,6 @@ namespace Services {
       //! Returns the ServiceSlots shared amongst all ServiceProtocolClients.
       ServiceSlots<ServiceProtocolClient>& GetSlots();
 
-      void Open();
-
       void Close();
 
     private:
@@ -129,7 +127,11 @@ namespace Services {
           serverConnection)),
         m_timerFactory(timerFactory),
         m_acceptSlot(acceptSlot),
-        m_clientClosedSlot(clientClosedSlot) {}
+        m_clientClosedSlot(clientClosedSlot),
+        m_acceptRoutine(Routines::Spawn(
+          std::bind(&ServiceProtocolServer::AcceptLoop, this))) {
+    m_openState.SetOpen();
+  }
 
   template<typename ServerConnectionType, typename SenderType,
     typename EncoderType, typename TimerType, typename SessionType,
@@ -149,25 +151,6 @@ namespace Services {
       SenderType, EncoderType, TimerType, SessionType,
       SupportsParallelismValue>::GetSlots() {
     return m_slots;
-  }
-
-  template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolServer<ServerConnectionType, SenderType, EncoderType,
-      TimerType, SessionType, SupportsParallelismValue>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_serverConnection->Open();
-      m_acceptRoutine = Routines::Spawn(
-        std::bind(&ServiceProtocolServer::AcceptLoop, this));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename ServerConnectionType, typename SenderType,

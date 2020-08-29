@@ -104,7 +104,6 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
   template<typename M, typename C, typename S, typename E, typename T,
     typename P>
   void ServiceProtocolServletContainer<M, C, S, E, T, P>::Open() {
-    m_protocolServer.Open();
     try {
       m_servlet->Open();
     } catch(const std::exception&) {

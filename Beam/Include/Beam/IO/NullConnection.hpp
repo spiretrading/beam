@@ -17,8 +17,6 @@ namespace IO {
 
       ~NullConnection();
 
-      void Open();
-
       void Close();
   };
 
@@ -27,8 +25,6 @@ namespace IO {
   inline NullConnection::~NullConnection() {
     Close();
   }
-
-  inline void NullConnection::Open() {}
 
   inline void NullConnection::Close() {}
 }

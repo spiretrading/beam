@@ -11,9 +11,6 @@ namespace IO {
    */
   struct Connection : Concept<Connection> {
 
-    //! Opens the Connection.
-    void Open();
-
     //! Closes the existing Connection.
     /*!
       \param result The result of the operation.

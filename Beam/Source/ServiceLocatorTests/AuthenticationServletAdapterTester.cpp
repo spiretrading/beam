@@ -31,41 +31,38 @@ namespace {
       MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>>;
 
     LocalServiceLocatorDataStore m_dataStore;
-    boost::optional<ServiceProtocolServletContainer> m_container;
-    boost::optional<Services::Tests::TestServiceProtocolClient>
-      m_clientProtocol;
-    boost::optional<ServiceLocatorContainer> m_serviceLocatorContainer;
-    boost::optional<TestServiceLocatorClient> m_serviceLocatorClient;
+    optional<ServiceLocatorContainer> m_serviceLocatorContainer;
+    optional<TestServiceLocatorClient> m_serviceLocatorClient;
+    optional<ServiceProtocolServletContainer> m_container;
+    optional<TestServiceProtocolClient> m_clientProtocol;
 
     Fixture() {
       auto serviceLocatorServerConnection =
-        std::make_unique<TestServerConnection>();
-      auto serviceLocatorServerConnectionHandle =
-        serviceLocatorServerConnection.get();
+        std::make_shared<TestServerConnection>();
+      m_serviceLocatorContainer.emplace(&m_dataStore,
+        serviceLocatorServerConnection,
+        factory<std::unique_ptr<TriggerTimer>>());
+      m_serviceLocatorContainer->Open();
       auto builder = TestServiceProtocolClientBuilder(
         [=] {
           return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
-            "test", *serviceLocatorServerConnectionHandle);
+            "test", *serviceLocatorServerConnection);
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_serviceLocatorClient.emplace(builder);
       auto serviceClient = std::make_unique<TestServiceLocatorClient>(builder);
-      m_serviceLocatorContainer.emplace(&m_dataStore,
-        std::move(serviceLocatorServerConnection),
-        factory<std::unique_ptr<TriggerTimer>>());
-      m_serviceLocatorContainer->Open();
       m_dataStore.MakeAccount("test", "1234",
         DirectoryEntry::GetStarDirectory(), second_clock::universal_time());
       m_dataStore.MakeAccount("test2", "1234",
         DirectoryEntry::GetStarDirectory(), second_clock::universal_time());
-      auto serverConnection = std::make_unique<TestServerConnection>();
-      m_clientProtocol.emplace(Initialize("test", Ref(*serverConnection)),
-        Initialize());
-      RegisterTestServices(Store(m_clientProtocol->GetSlots()));
       serviceClient->SetCredentials("test", "1234");
       serviceClient->Open();
+      auto serverConnection = std::make_shared<TestServerConnection>();
       m_container.emplace(Initialize(std::move(serviceClient), Initialize()),
-        std::move(serverConnection), factory<std::unique_ptr<TriggerTimer>>());
+        serverConnection, factory<std::unique_ptr<TriggerTimer>>());
       m_container->Open();
+      m_clientProtocol.emplace(Initialize("test", *serverConnection),
+        Initialize());
+      RegisterTestServices(Store(m_clientProtocol->GetSlots()));
       m_clientProtocol->Open();
       m_serviceLocatorClient->SetCredentials("test2", "1234");
       m_serviceLocatorClient->Open();

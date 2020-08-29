@@ -27,8 +27,8 @@ namespace {
   struct Fixture {
     using TestServiceLocatorClient = ServiceLocatorClient<
       TestServiceProtocolClientBuilder>;
-    boost::optional<TestServiceProtocolServer> m_protocolServer;
-    boost::optional<TestServiceLocatorClient> m_serviceClient;
+    optional<TestServiceProtocolServer> m_protocolServer;
+    optional<TestServiceLocatorClient> m_serviceClient;
     std::vector<TestServiceProtocolClientBuilder::Channel*> m_clientChannels;
 
     Fixture() {
@@ -41,7 +41,7 @@ namespace {
         [=] {
           auto channel = std::make_unique<
             TestServiceProtocolClientBuilder::Channel>("test",
-            Ref(*serverConnection));
+            *serverConnection);
           m_clientChannels.push_back(channel.get());
           return channel;
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());

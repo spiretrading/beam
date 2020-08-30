@@ -1,7 +1,8 @@
 #include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/NullChannel.hpp"
+#include "Beam/IO/LocalClientChannel.hpp"
+#include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queries/Subscriptions.hpp"
 #include "Beam/QueriesTests/TestEntry.hpp"
@@ -15,6 +16,7 @@ using namespace Beam::Codecs;
 using namespace Beam::IO;
 using namespace Beam::Queries;
 using namespace Beam::Queries::Tests;
+using namespace Beam::Routines;
 using namespace Beam::Serialization;
 using namespace Beam::Services;
 using namespace Beam::Threading;
@@ -23,15 +25,21 @@ using namespace boost::posix_time;
 
 namespace {
   using TestServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<NullChannel, BinarySender<SharedBuffer>, NullEncoder>,
-    TriggerTimer>;
+    MessageProtocol<LocalClientChannel<SharedBuffer>,
+    BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
 }
 
 TEST_SUITE("Subscriptions") {
   TEST_CASE("publish") {
     using TestSubscriptions =
       Subscriptions<TestEntry, TestServiceProtocolClient>;
-    auto client = TestServiceProtocolClient(Initialize(), Initialize());
+    auto server = LocalServerConnection<SharedBuffer>();
+    auto serverChannel = std::unique_ptr<LocalServerChannel<SharedBuffer>>();
+    Spawn([&] {
+      serverChannel = server.Accept();
+    });
+    auto client = TestServiceProtocolClient(Initialize("test", server),
+      Initialize());
     auto subscriptions = TestSubscriptions();
     auto filter = Translate(ConstantExpression(true));
     auto queryId = subscriptions.Initialize(client, Range::Total(),

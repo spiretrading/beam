@@ -38,6 +38,9 @@ namespace {
         factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
       RegisterServiceLocatorServices(Store(m_protocolServer->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_protocolServer->GetSlots()));
+      LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
+        AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
+        std::placeholders::_3));
       auto builder = TestServiceProtocolClientBuilder(
         [=] {
           auto channel = std::make_unique<
@@ -47,9 +50,6 @@ namespace {
           return channel;
         }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
       m_serviceClient.emplace("account", "password", builder);
-      LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-        AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-        std::placeholders::_3));
     }
   };
 }

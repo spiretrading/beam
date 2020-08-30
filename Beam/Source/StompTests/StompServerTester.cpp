@@ -24,6 +24,11 @@ namespace {
     Fixture() {
       auto task = RoutineHandler(Spawn([&] {
         m_clientChannel.emplace("stomp", m_serverConnection);
+        auto contents = BufferFromString<SharedBuffer>(
+          "CONNECT\n"
+          "accept-version:1.2\n"
+          "host:testhost\n\n\n");
+        m_clientChannel->GetWriter().Write(contents);
       }));
       m_server.emplace(m_serverConnection.Accept());
     }
@@ -32,11 +37,6 @@ namespace {
 
 TEST_SUITE("StompServer") {
   TEST_CASE_FIXTURE(Fixture, "receiving_connect_command") {
-    auto contents = BufferFromString<SharedBuffer>(
-      "CONNECT\n"
-      "accept-version:1.2\n"
-      "host:testhost\n\n\n");
-    m_clientChannel->GetWriter().Write(contents);
     auto responseBuffer = SharedBuffer();
     m_clientChannel->GetReader().Read(Store(responseBuffer));
     auto parser = StompFrameParser();

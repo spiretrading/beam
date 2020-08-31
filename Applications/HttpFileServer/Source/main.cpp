@@ -65,10 +65,10 @@ int main(int argc, const char** argv) {
     std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  auto server = HttpFileServletContainer(Initialize(),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
+  auto server = boost::optional<HttpFileServletContainer>();
   try {
-    server.Open();
+    server.emplace(Initialize(), Initialize(
+      serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

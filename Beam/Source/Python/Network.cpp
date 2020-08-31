@@ -8,6 +8,7 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
+#include "Beam/Network/TcpSocketOptions.hpp"
 #include "Beam/Python/Beam.hpp"
 
 using namespace Beam;
@@ -34,6 +35,7 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportSocketIdentifier(submodule);
   ExportTcpSocketChannel(submodule);
   ExportTcpSocketConnection(submodule);
+  ExportTcpSocketOptions(submodule);
   ExportTcpSocketReader(submodule);
   ExportTcpSocketWriter(submodule);
   register_exception<SocketException>(submodule, "SocketException",
@@ -70,9 +72,24 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           std::move(channel));
       }))
     .def(init(
+      [] (const IpAddress& address, const TcpSocketOptions& options) {
+        auto channel = std::make_unique<TcpSocketChannel>(address, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
+          std::move(channel));
+      }))
+    .def(init(
       [] (const IpAddress& address, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(address, interface,
           Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
+          std::move(channel));
+      }))
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface,
+          const TcpSocketOptions& options) {
+        auto channel = std::make_unique<TcpSocketChannel>(address, interface,
+          options, Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
       }))
@@ -84,9 +101,25 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           std::move(channel));
       }))
     .def(init(
+      [] (const std::vector<IpAddress>& addresses,
+          const TcpSocketOptions& options) {
+        auto channel = std::make_unique<TcpSocketChannel>(addresses, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
+          std::move(channel));
+      }))
+    .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses, interface,
           Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
+          std::move(channel));
+      }))
+    .def(init(
+      [] (const std::vector<IpAddress>& addresses, const IpAddress& interface,
+          const TcpSocketOptions& options) {
+        auto channel = std::make_unique<TcpSocketChannel>(addresses, interface,
+          options, Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
       }));
@@ -94,14 +127,15 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
 
 void Beam::Python::ExportTcpSocketConnection(pybind11::module& module) {
   class_<WrapperConnection<TcpSocketConnection*>, VirtualConnection>(module,
-    "TcpSocketConnection")
-  .def_property("write_buffer_size",
-    [] (WrapperConnection<TcpSocketConnection*>& self) {
-      return self.GetConnection().GetWriteBufferSize();
-    },
-    [] (WrapperConnection<TcpSocketConnection*>& self, int size) {
-      return self.GetConnection().SetWriteBufferSize(size);
-    });
+    "TcpSocketConnection");
+}
+
+void Beam::Python::ExportTcpSocketOptions(pybind11::module& module) {
+  class_<TcpSocketOptions>(module, "TcpSocketOptions")
+    .def(init<>())
+    .def(init<const TcpSocketOptions&>())
+    .def_readwrite("no_delay_enabled", &TcpSocketOptions::m_noDelayEnabled)
+    .def_readwrite("write_buffer_size", &TcpSocketOptions::m_writeBufferSize);
 }
 
 void Beam::Python::ExportTcpSocketReader(pybind11::module& module) {

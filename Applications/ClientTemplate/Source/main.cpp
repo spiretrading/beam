@@ -105,7 +105,6 @@ int main(int argc, const char** argv) {
   }
   RegisterServletTemplateServices(Store(client->GetSlots()));
   RegisterServletTemplateMessages(Store(client->GetSlots()));
-  client->Open();
   auto result = client->SendRequest<EchoService>(message, rate);
   std::cout << result << std::endl;
   auto counter = 0;

@@ -1,37 +1,53 @@
-#ifndef BEAM_SERVERSOCKET_HPP
-#define BEAM_SERVERSOCKET_HPP
+#ifndef BEAM_TCP_SERVER_SOCKET_HPP
+#define BEAM_TCP_SERVER_SOCKET_HPP
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/ServerConnection.hpp"
-#include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Network/TcpSocketConnection.hpp"
-#include "Beam/Network/TcpSocketReader.hpp"
-#include "Beam/Network/TcpSocketWriter.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
 namespace Beam {
 namespace Network {
 
-  /*! \class TcpServerSocket
-      \brief Implements a server socket.
-   */
+  /** Implements a TCP server socket. */
   class TcpServerSocket : private boost::noncopyable {
     public:
       using Channel = TcpSocketChannel;
 
-      //! Constructs a TcpServerSocket.
-      /*!
-        \param address The IP address to bind to.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a TcpServerSocket.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      TcpServerSocket(Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a TcpServerSocket.
+       * @param options The set of TcpSocketOptions to apply.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      TcpServerSocket(const TcpSocketOptions& options,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a TcpServerSocket.
+       * @param address The IP address to bind to.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       TcpServerSocket(const IpAddress& address,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a TcpServerSocket.
+       * @param address The IP address to bind to.
+       * @param options The set of TcpSocketOptions to apply.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      TcpServerSocket(const IpAddress& address, const TcpSocketOptions& options,
         Ref<SocketThreadPool> socketThreadPool);
 
       ~TcpServerSocket();
@@ -42,6 +58,7 @@ namespace Network {
 
     private:
       IpAddress m_address;
+      TcpSocketOptions m_options;
       SocketThreadPool* m_socketThreadPool;
       boost::asio::io_service* m_ioService;
       boost::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
@@ -50,17 +67,31 @@ namespace Network {
       void Shutdown();
   };
 
+  inline TcpServerSocket::TcpServerSocket(
+    Ref<SocketThreadPool> socketThreadPool)
+    : TcpServerSocket(TcpSocketOptions(), Ref(socketThreadPool)) {}
+
+  inline TcpServerSocket::TcpServerSocket(const TcpSocketOptions& options,
+    Ref<SocketThreadPool> socketThreadPool)
+    : TcpServerSocket(IpAddress("0.0.0.0", 0), options,
+        Ref(socketThreadPool)) {}
+
   inline TcpServerSocket::TcpServerSocket(const IpAddress& address,
-      Ref<SocketThreadPool> socketThreadPool)
+    Ref<SocketThreadPool> socketThreadPool)
+    : TcpServerSocket(address, TcpSocketOptions(), Ref(socketThreadPool)) {}
+
+  inline TcpServerSocket::TcpServerSocket(const IpAddress& address,
+      const TcpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
+        m_options(options),
         m_socketThreadPool(socketThreadPool.Get()),
         m_ioService(&m_socketThreadPool->GetService()) {
     m_openState.SetOpening();
     try {
-      boost::asio::ip::tcp::resolver resolver(*m_ioService);
-      boost::asio::ip::tcp::resolver::query query(m_address.GetHost(),
+      auto resolver = boost::asio::ip::tcp::resolver(*m_ioService);
+      auto query = boost::asio::ip::tcp::resolver::query(m_address.GetHost(),
         std::to_string(m_address.GetPort()));
-      boost::system::error_code error;
+      auto error = boost::system::error_code();
       auto endpointIterator = resolver.resolve(query, error);
       if(error) {
         BOOST_THROW_EXCEPTION(SocketException(error.value(), error.message()));
@@ -71,10 +102,10 @@ namespace Network {
       Shutdown();
     } catch(const boost::system::system_error& e) {
       m_openState.SetOpenFailure(
-        SocketException{e.code().value(), e.code().message()});
+        SocketException(e.code().value(), e.code().message()));
       Shutdown();
     } catch(const std::exception& e) {
-      m_openState.SetOpenFailure(IO::ConnectException{e.what()});
+      m_openState.SetOpenFailure(IO::ConnectException(e.what()));
       Shutdown();
     }
     m_openState.SetOpen();
@@ -86,12 +117,12 @@ namespace Network {
 
   inline std::unique_ptr<typename TcpServerSocket::Channel>
       TcpServerSocket::Accept() {
-    Routines::Async<void> acceptAsync;
-    Routines::Eval<void> acceptEval = acceptAsync.GetEval();
-    std::unique_ptr<Channel> channel(new TcpSocketChannel{
-      Ref(*m_socketThreadPool)});
+    auto acceptAsync = Routines::Async<void>();
+    auto acceptEval = acceptAsync.GetEval();
+    auto channel = std::unique_ptr<Channel>(new TcpSocketChannel(
+      Ref(*m_socketThreadPool)));
     m_acceptor->async_accept(channel->m_socket->m_socket,
-      [&] (const boost::system::error_code& error) {
+      [&] (const auto& error) {
         if(error) {
           if(Details::IsEndOfFile(error)) {
             acceptEval.SetException(IO::EndOfFileException(error.message()));
@@ -102,11 +133,11 @@ namespace Network {
           return;
         }
         try {
-          IpAddress address(
+          auto address = IpAddress(
             channel->m_socket->m_socket.remote_endpoint().address().to_string(),
             channel->m_socket->m_socket.remote_endpoint().port());
           channel->SetAddress(address);
-          channel->GetConnection().SetOpen();
+          channel->GetConnection().Open(m_options, {}, boost::none);
           acceptEval.SetResult();
         } catch(const std::exception&) {
           acceptEval.SetException(std::current_exception());

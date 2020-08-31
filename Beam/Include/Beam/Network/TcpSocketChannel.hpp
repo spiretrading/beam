@@ -116,8 +116,7 @@ namespace Network {
       Reader m_reader;
       Writer m_writer;
 
-      TcpSocketChannel(const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+      TcpSocketChannel(Ref<SocketThreadPool> socketThreadPool);
       void SetAddress(const IpAddress& address);
   };
 
@@ -152,7 +151,7 @@ namespace Network {
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
         socketThreadPool->GetService(), socketThreadPool->GetService())),
       m_identifier(addresses.front()),
-      m_connection(options, m_socket, addresses),
+      m_connection(m_socket, options, addresses),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
@@ -168,7 +167,7 @@ namespace Network {
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
         socketThreadPool->GetService(), socketThreadPool->GetService())),
       m_identifier(addresses.front()),
-      m_connection(options, m_socket, addresses, interface),
+      m_connection(m_socket, options, addresses, interface),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
@@ -189,19 +188,16 @@ namespace Network {
     return m_writer;
   }
 
-  inline TcpSocketChannel::TcpSocketChannel(const TcpSocketOptions& options,
+  inline TcpSocketChannel::TcpSocketChannel(
     Ref<SocketThreadPool> socketThreadPool)
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
         socketThreadPool->GetService(), socketThreadPool->GetService())),
-      m_connection(options, m_socket),
+      m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
   inline void TcpSocketChannel::SetAddress(const IpAddress& address) {
     m_identifier = SocketIdentifier(address);
-    auto addresses = std::vector<IpAddress>();
-    addresses.push_back(address);
-    m_connection.m_addresses = addresses;
   }
 }
 

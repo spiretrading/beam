@@ -97,22 +97,21 @@ int main(int argc, const char** argv) {
   auto timerThreadPool = TimerThreadPool();
   auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
-    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_address,
-      Ref(socketThreadPool), Ref(timerThreadPool));
-    serviceLocatorClient->SetCredentials(serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password);
-    serviceLocatorClient->Open();
+    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
+      serviceLocatorClientConfig.m_password,
+      serviceLocatorClientConfig.m_address, Ref(socketThreadPool),
+      Ref(timerThreadPool));
   } catch(const std::exception& e) {
     std::cerr << "Error logging in: " << e.what() << std::endl;
     return -1;
   }
-  auto server = RegistryServletContainer(Initialize(serviceLocatorClient.Get(),
-    Initialize(Initialize(std::filesystem::current_path() / "records"))),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
-    std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10),
-    Ref(timerThreadPool)));
+  auto server = boost::optional<RegistryServletContainer>();
   try {
-    server.Open();
+    server.emplace(Initialize(serviceLocatorClient.Get(),
+      Initialize(Initialize(std::filesystem::current_path() / "records"))),
+      Initialize(serverConnectionInitializer.m_interface,
+      Ref(socketThreadPool)), std::bind(factory<std::shared_ptr<LiveTimer>>(),
+      seconds(10), Ref(timerThreadPool)));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

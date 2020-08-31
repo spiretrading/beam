@@ -27,25 +27,23 @@ namespace Network {
       friend class TcpSocketChannel;
       friend class TcpServerSocket;
       std::shared_ptr<Details::TcpSocketEntry> m_socket;
-      std::vector<IpAddress> m_addresses;
-      boost::optional<IpAddress> m_interface;
       IO::OpenState m_openState;
 
-      TcpSocketConnection(const TcpSocketOptions& options,
-        std::shared_ptr<Details::TcpSocketEntry> socket);
-      TcpSocketConnection(const TcpSocketOptions& options,
-        std::shared_ptr<Details::TcpSocketEntry> socket,
-        const IpAddress& address);
-      TcpSocketConnection(const TcpSocketOptions& options,
-        std::shared_ptr<Details::TcpSocketEntry> socket,
-        const IpAddress& address, const IpAddress& interface);
-      TcpSocketConnection(const TcpSocketOptions& options,
-        std::shared_ptr<Details::TcpSocketEntry> socket,
-        std::vector<IpAddress> addresses);
-      TcpSocketConnection(const TcpSocketOptions& options,
-        std::shared_ptr<Details::TcpSocketEntry> socket,
-        std::vector<IpAddress> addresses, const IpAddress& interface);
-      void Open(const TcpSocketOptions& options);
+      TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket);
+      TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket,
+        const TcpSocketOptions& options, const IpAddress& address);
+      TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket,
+        const TcpSocketOptions& options, const IpAddress& address,
+        const IpAddress& interface);
+      TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket,
+        const TcpSocketOptions& options,
+        const std::vector<IpAddress>& addresses);
+      TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket,
+        const TcpSocketOptions& options,
+        const std::vector<IpAddress>& addresses, const IpAddress& interface);
+      void Open(const TcpSocketOptions& options,
+        const std::vector<IpAddress>& addresses,
+        const boost::optional<IpAddress>& interface);
       void Shutdown();
   };
 
@@ -61,47 +59,43 @@ namespace Network {
   }
 
   inline TcpSocketConnection::TcpSocketConnection(
-    const TcpSocketOptions& options,
     std::shared_ptr<Details::TcpSocketEntry> socket)
-    : TcpSocketConnection(options, std::move(socket),
-        std::vector<IpAddress>()) {}
+    : m_socket(std::move(socket)) {}
 
   inline TcpSocketConnection::TcpSocketConnection(
-    const TcpSocketOptions& options,
-    std::shared_ptr<Details::TcpSocketEntry> socket, const IpAddress& address)
-    : TcpSocketConnection(options, std::move(socket),
+    std::shared_ptr<Details::TcpSocketEntry> socket,
+    const TcpSocketOptions& options, const IpAddress& address)
+    : TcpSocketConnection(std::move(socket), options,
         std::vector<IpAddress>{address}) {}
 
   inline TcpSocketConnection::TcpSocketConnection(
-    const TcpSocketOptions& options,
     std::shared_ptr<Details::TcpSocketEntry> socket,
-    const IpAddress& address, const IpAddress& interface)
-    : TcpSocketConnection(options, std::move(socket),
+    const TcpSocketOptions& options, const IpAddress& address,
+    const IpAddress& interface)
+    : TcpSocketConnection(std::move(socket), options,
         std::vector<IpAddress>{address}, interface) {}
 
   inline TcpSocketConnection::TcpSocketConnection(
-      const TcpSocketOptions& options,
       std::shared_ptr<Details::TcpSocketEntry> socket,
-      std::vector<IpAddress> addresses)
-      : m_socket(std::move(socket)),
-        m_addresses(std::move(addresses)) {
-    Open(options);
+      const TcpSocketOptions& options, const std::vector<IpAddress>& addresses)
+      : m_socket(std::move(socket)) {
+    Open(options, addresses, boost::none);
   }
 
   inline TcpSocketConnection::TcpSocketConnection(
-      const TcpSocketOptions& options,
       std::shared_ptr<Details::TcpSocketEntry> socket,
-      std::vector<IpAddress> addresses, const IpAddress& interface)
-      : m_socket(std::move(socket)),
-        m_addresses(std::move(addresses)),
-        m_interface(interface) {
-    Open(options);
+      const TcpSocketOptions& options, const std::vector<IpAddress>& addresses,
+      const IpAddress& interface)
+      : m_socket(std::move(socket)) {
+    Open(options, addresses, interface);
   }
 
-  inline void TcpSocketConnection::Open(const TcpSocketOptions& options) {
+  inline void TcpSocketConnection::Open(const TcpSocketOptions& options,
+      const std::vector<IpAddress>& addresses,
+      const boost::optional<IpAddress>& interface) {
     m_openState.SetOpening();
     auto errorCode = boost::system::error_code();
-    for(auto& address : m_addresses) {
+    for(auto& address : addresses) {
       errorCode.clear();
       auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioService);
       auto query = boost::asio::ip::tcp::resolver::query(address.GetHost(),
@@ -116,10 +110,10 @@ namespace Network {
       while(errorCode && endpointIterator != end) {
         auto closeError = boost::system::error_code();
         m_socket->m_socket.close(closeError);
-        if(m_interface) {
+        if(interface) {
           auto localEndpoint = boost::asio::ip::tcp::endpoint(
-            boost::asio::ip::address::from_string(m_interface->GetHost(),
-            errorCode), m_interface->GetPort());
+            boost::asio::ip::address::from_string(interface->GetHost(),
+            errorCode), interface->GetPort());
           if(errorCode) {
             m_openState.SetOpenFailure(
               IO::ConnectException(errorCode.message()));

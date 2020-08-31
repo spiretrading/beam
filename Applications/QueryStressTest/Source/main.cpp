@@ -86,8 +86,6 @@ namespace {
 
       void HandleClientClosed(ServiceProtocolClient& client);
 
-      void Open();
-
       void Close();
 
     private:
@@ -130,7 +128,25 @@ namespace {
 
   template<typename ContainerType>
   DataServlet<ContainerType>::DataServlet()
-    : m_timerState(true) {}
+      : m_timerState(true) {
+    m_openState.SetOpening();
+    auto rd = std::random_device();
+    auto randomizer = std::default_random_engine(rd());
+    auto distribution = std::uniform_int_distribution<std::uint64_t>();
+    for(auto i = 0; i < 200; ++i) {
+      auto interval = milliseconds(10 * (rand() % 100));
+      auto entry = std::make_unique<DataEntry>(
+        std::make_unique<LiveTimer>(interval, Ref(m_timerThreadPool)), i);
+      entry->m_timer->GetPublisher().Monitor(m_taskQueue.GetSlot<Timer::Result>(
+        std::bind(&DataServlet::OnExpiry, this, std::placeholders::_1,
+        std::ref(*entry))));
+      m_dataEntries.push_back(std::move(entry));
+    }
+    m_openState.SetOpen();
+    for(auto& entry : m_dataEntries) {
+      entry->m_timer->Start();
+    }
+  }
 
   template<typename ContainerType>
   void DataServlet<ContainerType>::RegisterServices(
@@ -150,29 +166,6 @@ namespace {
   void DataServlet<ContainerType>::HandleClientClosed(
       ServiceProtocolClient& client) {
     m_dataSubscriptions.RemoveAll(client);
-  }
-
-  template<typename ContainerType>
-  void DataServlet<ContainerType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    auto rd = std::random_device();
-    auto randomizer = std::default_random_engine(rd());
-    auto distribution = std::uniform_int_distribution<std::uint64_t>();
-    for(auto i = 0; i < 200; ++i) {
-      auto interval = milliseconds(10 * (rand() % 100));
-      auto entry = std::make_unique<DataEntry>(
-        std::make_unique<LiveTimer>(interval, Ref(m_timerThreadPool)), i);
-      entry->m_timer->GetPublisher().Monitor(m_taskQueue.GetSlot<Timer::Result>(
-        std::bind(&DataServlet::OnExpiry, this, std::placeholders::_1,
-        std::ref(*entry))));
-      m_dataEntries.push_back(std::move(entry));
-    }
-    m_openState.SetOpen();
-    for(auto& entry : m_dataEntries) {
-      entry->m_timer->Start();
-    }
   }
 
   template<typename ContainerType>
@@ -261,7 +254,7 @@ int main() {
                 Initialize(
                 [&] {
                   return std::make_unique<LocalClientChannel<SharedBuffer>>(
-                    "dummy", Ref(server));
+                    "dummy", server);
                 },
                 [] {
                   return std::make_unique<TriggerTimer>();
@@ -274,7 +267,6 @@ int main() {
                 ServiceProtocolClientHandler<ApplicationClientBuilder>,
                 QueryDataService, EndDataQueryMessage>(Ref(clientHandler));
               publisher.AddMessageHandler<DataQueryMessage>();
-              clientHandler.Open();
               auto timer = LiveTimer(milliseconds(100), Ref(timerThreadPool));
               auto duration = 10 * (rand() % 20);
               for(auto i = 0; i < duration; ++i) {
@@ -296,7 +288,6 @@ int main() {
         timer.Wait();
       }
     });
-  servlet.Open();
   routines.Wait();
   servlet.Close();
   routines.Wait();

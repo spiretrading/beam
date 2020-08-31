@@ -18,7 +18,6 @@ using namespace Beam::WebServices;
 using namespace Beam::WebSocketEchoServer;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -27,31 +26,33 @@ namespace {
 
   struct ServerConnectionInitializer {
     IpAddress m_interface;
-    vector<IpAddress> m_addresses;
+    std::vector<IpAddress> m_addresses;
 
     void Initialize(const YAML::Node& config);
   };
 
   void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
     m_interface = Extract<IpAddress>(config, "interface");
-    auto addresses = vector<IpAddress>();
+    auto addresses = std::vector<IpAddress>();
     addresses.push_back(m_interface);
-    m_addresses = Extract<vector<IpAddress>>(config, "addresses", addresses);
+    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
+      addresses);
   }
 }
 
 int main(int argc, const char** argv) {
-  auto configFile = string();
+  auto configFile = std::string();
   try {
     auto cmd = CmdLine("", ' ', "0.9-r" WEB_SOCKET_ECHO_SERVER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto configArg = ValueArg<string>("c", "config", "Configuration file",
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
       false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(const ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
@@ -61,15 +62,15 @@ int main(int argc, const char** argv) {
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
   } catch(const std::exception& e) {
-    cerr << "Error parsing section 'server': " << e.what() << endl;
+    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  auto server = WebSocketEchoServletContainer(Initialize(),
-    Initialize(serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
+  auto server = boost::optional<WebSocketEchoServletContainer>();
   try {
-    server.Open();
+    server.emplace(Initialize(), Initialize(
+      serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
   } catch(const std::exception& e) {
-    cerr << "Error opening server: " << e.what() << endl;
+    std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;
   }
   WaitForKillEvent();

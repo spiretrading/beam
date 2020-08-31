@@ -38,8 +38,6 @@ namespace Network {
 
       std::unique_ptr<Channel> Accept();
 
-      void Open();
-
       void Close();
 
     private:
@@ -56,16 +54,8 @@ namespace Network {
       Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
         m_socketThreadPool(socketThreadPool.Get()),
-        m_ioService(&m_socketThreadPool->GetService()) {}
-
-  inline TcpServerSocket::~TcpServerSocket() {
-    Close();
-  }
-
-  inline void TcpServerSocket::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
+        m_ioService(&m_socketThreadPool->GetService()) {
+    m_openState.SetOpening();
     try {
       boost::asio::ip::tcp::resolver resolver(*m_ioService);
       boost::asio::ip::tcp::resolver::query query(m_address.GetHost(),
@@ -88,6 +78,10 @@ namespace Network {
       Shutdown();
     }
     m_openState.SetOpen();
+  }
+
+  inline TcpServerSocket::~TcpServerSocket() {
+    Close();
   }
 
   inline std::unique_ptr<typename TcpServerSocket::Channel>

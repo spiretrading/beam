@@ -20,6 +20,7 @@ namespace Network {
   class TcpServerSocket;
   class TcpSocketChannel;
   class TcpSocketConnection;
+  struct TcpSocketOptions;
   class TcpSocketReader;
   class TcpSocketWriter;
   class UdpSocket;

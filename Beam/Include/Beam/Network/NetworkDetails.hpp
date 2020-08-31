@@ -11,13 +11,11 @@
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam {
-namespace Network {
-namespace Details {
-  template<typename SocketType>
+namespace Beam::Network::Details {
+  template<typename S>
   struct SocketEntry {
-    using Socket = SocketType;
-    Threading::Mutex m_mutex;
+    using Socket = S;
+    mutable Threading::Mutex m_mutex;
     boost::asio::io_service* m_ioService;
     Socket m_socket;
     bool m_isOpen;
@@ -27,15 +25,15 @@ namespace Details {
 
     template<typename... Args>
     SocketEntry(boost::asio::io_service& ioService, Args&&... args)
-        : m_ioService(&ioService),
-          m_socket{std::forward<Args>(args)...},
-          m_isOpen{false},
-          m_isReadPending{false},
-          m_pendingWrites{0} {}
+      : m_ioService(&ioService),
+        m_socket(std::forward<Args>(args)...),
+        m_isOpen(false),
+        m_isReadPending(false),
+        m_pendingWrites(0) {}
 
     void Close() {
-      boost::system::error_code errorCode;
-      boost::unique_lock<Threading::Mutex> lock(m_mutex);
+      auto errorCode = boost::system::error_code();
+      auto lock = std::unique_lock(m_mutex);
       if(!m_isOpen) {
         return;
       }
@@ -51,7 +49,7 @@ namespace Details {
     }
 
     void EndReadOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       m_isReadPending = false;
       if(!m_isOpen) {
         m_isPendingCondition.notify_all();
@@ -59,15 +57,15 @@ namespace Details {
     }
 
     void BeginWriteOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       if(!m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
       }
       ++m_pendingWrites;
     }
 
     void EndWriteOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       --m_pendingWrites;
       if(m_pendingWrites == 0 && !m_isOpen) {
         m_isPendingCondition.notify_all();
@@ -89,16 +87,16 @@ namespace Details {
 
     template<typename... Args>
     SecureSocketEntry(boost::asio::io_service& ioService, Args&&... args)
-        : m_ioService(&ioService),
-          m_context{boost::asio::ssl::context::sslv23},
-          m_socket{std::forward<Args>(args)..., m_context},
-          m_isOpen{false},
-          m_isReadPending{false},
-          m_pendingWrites{0} {}
+      : m_ioService(&ioService),
+        m_context(boost::asio::ssl::context::sslv23),
+        m_socket(std::forward<Args>(args)..., m_context),
+        m_isOpen(false),
+        m_isReadPending(false),
+        m_pendingWrites(0) {}
 
     void Close() {
-      boost::system::error_code errorCode;
-      boost::unique_lock<Threading::Mutex> lock(m_mutex);
+      auto errorCode = boost::system::error_code();
+      auto lock = std::unique_lock(m_mutex);
       if(!m_isOpen) {
         return;
       }
@@ -115,7 +113,7 @@ namespace Details {
     }
 
     void EndReadOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       m_isReadPending = false;
       if(!m_isOpen) {
         m_isPendingCondition.notify_all();
@@ -123,15 +121,15 @@ namespace Details {
     }
 
     void BeginWriteOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       if(!m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
       }
       ++m_pendingWrites;
     }
 
     void EndWriteOperation() {
-      boost::lock_guard<Threading::Mutex> lock{m_mutex};
+      auto lock = std::lock_guard(m_mutex);
       --m_pendingWrites;
       if(m_pendingWrites == 0 && !m_isOpen) {
         m_isPendingCondition.notify_all();
@@ -151,8 +149,6 @@ namespace Details {
       error == boost::asio::error::shut_down ||
       error == boost::asio::error::timed_out;
   }
-}
-}
 }
 
 #endif

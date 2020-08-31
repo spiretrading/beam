@@ -83,11 +83,10 @@ int main(int argc, char** argv) {
   auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
     std::cout << "Connecting to the service locator: ";
-    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_address,
-      Ref(socketThreadPool), Ref(timerThreadPool));
-    serviceLocatorClient->SetCredentials(serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password);
-    serviceLocatorClient->Open();
+    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
+      serviceLocatorClientConfig.m_password,
+      serviceLocatorClientConfig.m_address, Ref(socketThreadPool),
+      Ref(timerThreadPool));
   } catch(const std::exception& e) {
     std::cout << e.what() << std::endl;
     return -1;

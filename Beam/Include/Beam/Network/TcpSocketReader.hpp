@@ -1,5 +1,5 @@
-#ifndef BEAM_TCPSOCKETREADER_HPP
-#define BEAM_TCPSOCKETREADER_HPP
+#ifndef BEAM_TCP_SOCKET_READER_HPP
+#define BEAM_TCP_SOCKET_READER_HPP
 #include <boost/noncopyable.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
@@ -13,9 +13,7 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class TcpSocketReader
-      \brief Reads from a TCP socket.
-   */
+  /** Reads from a TCP socket. */
   class TcpSocketReader : private boost::noncopyable {
     public:
       using Buffer = IO::SharedBuffer;
@@ -32,16 +30,16 @@ namespace Network {
 
     private:
       friend class TcpSocketChannel;
-      static const std::size_t DEFAULT_READ_SIZE = 8 * 1024;
+      static constexpr auto DEFAULT_READ_SIZE = std::size_t(8 * 1024);
       std::shared_ptr<Details::TcpSocketEntry> m_socket;
 
-      TcpSocketReader(const std::shared_ptr<Details::TcpSocketEntry>& socket);
+      TcpSocketReader(std::shared_ptr<Details::TcpSocketEntry> socket);
   };
 
   inline bool TcpSocketReader::IsDataAvailable() const {
-    boost::asio::socket_base::bytes_readable command(true);
+    auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
+      auto lock = std::lock_guard(m_socket->m_mutex);
       m_socket->m_socket.io_control(command);
     }
     return command.get() > 0;
@@ -54,15 +52,15 @@ namespace Network {
 
   inline std::size_t TcpSocketReader::Read(char* destination,
       std::size_t size) {
-    Routines::Async<std::size_t> readResult;
+    auto readResult = Routines::Async<std::size_t>();
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
+      auto lock = std::lock_guard(m_socket->m_mutex);
       if(!m_socket->m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
       }
       m_socket->m_isReadPending = true;
       m_socket->m_socket.async_read_some(boost::asio::buffer(destination, size),
-        [&] (const boost::system::error_code& error, std::size_t readSize) {
+        [&] (const auto& error, auto readSize) {
           if(error) {
             if(Details::IsEndOfFile(error)) {
               readResult.GetEval().SetException(
@@ -80,7 +78,7 @@ namespace Network {
       auto result = readResult.Get();
       m_socket->EndReadOperation();
       return result;
-    } catch(...) {
+    } catch(const std::exception&) {
       m_socket->EndReadOperation();
       BOOST_RETHROW;
     }
@@ -89,7 +87,6 @@ namespace Network {
   template<typename BufferType>
   std::size_t TcpSocketReader::Read(Out<BufferType> destination,
       std::size_t size) {
-    static const auto DEFAULT_READ_SIZE = std::size_t{8 * 1024};
     auto initialSize = destination->GetSize();
     auto readSize = std::min(DEFAULT_READ_SIZE, size);
     destination->Grow(readSize);
@@ -99,8 +96,8 @@ namespace Network {
   }
 
   inline TcpSocketReader::TcpSocketReader(
-      const std::shared_ptr<Details::TcpSocketEntry>& socket)
-      : m_socket(socket) {}
+    std::shared_ptr<Details::TcpSocketEntry> socket)
+    : m_socket(std::move(socket)) {}
 }
 
   template<typename BufferType>

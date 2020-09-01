@@ -56,7 +56,6 @@ namespace {
 
   template<typename DataStore>
   void ProfileWrites(DataStore& dataStore, const ProfileConfig& config) {
-    dataStore.Open();
     dataStore.Clear();
     auto start = boost::posix_time::microsec_clock::universal_time();
     auto groups = static_cast<int>(std::ceil(std::log2(
@@ -93,7 +92,6 @@ namespace {
 
   template<typename DataStore>
   void ProfileReads(DataStore& dataStore, const ProfileConfig& config) {
-    dataStore.Open();
     auto endTimestamp = config.m_startTime +
       config.m_timeStep * config.m_iterations;
     auto start = boost::posix_time::microsec_clock::universal_time();

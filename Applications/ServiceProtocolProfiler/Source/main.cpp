@@ -12,6 +12,7 @@
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
+#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
@@ -56,7 +57,6 @@ namespace {
   }
 
   void ServerLoop(ApplicationServerConnection& server) {
-    server.Open();
     RoutineHandlerGroup routines;
     while(true) {
       std::shared_ptr<ServerChannel> channel{server.Accept()};
@@ -69,7 +69,6 @@ namespace {
           EchoService::AddSlot(Store(client.GetSlots()),
             std::bind(OnEchoRequest, std::placeholders::_1,
             std::placeholders::_2));
-          client.Open();
           try {
             auto counter = 0;
             while(true) {
@@ -89,11 +88,10 @@ namespace {
   }
 
   void ClientLoop(ApplicationServerConnection& server) {
-    ClientChannel channel(string("client"), Ref(server));
+    ClientChannel channel(string("client"), server);
     ApplicationClientServiceProtocolClient client(&channel, Initialize());
     RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
     RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
-    client.Open();
     auto counter = 0;
     while(true) {
       auto timestamp = microsec_clock::universal_time();

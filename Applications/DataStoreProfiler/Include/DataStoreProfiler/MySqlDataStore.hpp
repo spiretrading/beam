@@ -59,25 +59,20 @@ namespace Beam {
 
   inline MySqlDataStore::MySqlDataStore(Network::IpAddress address,
       std::string schema, std::string username, std::string password)
-      : m_dataStore("entries", BuildValueRow(), BuildIndexRow(),
+      : m_readerPool(std::thread::hardware_concurrency(), [=] {
+          auto connection = std::make_unique<Viper::MySql::Connection>(
+            address.GetHost(), address.GetPort(), username, password, schema);
+          connection->open();
+          return connection;
+        }),
+        m_writerPool(std::thread::hardware_concurrency(), [=] {
+          auto connection = std::make_unique<Viper::MySql::Connection>(
+            address.GetHost(), address.GetPort(), username, password, schema);
+          connection->open();
+          return connection;
+        }),
+        m_dataStore("entries", BuildValueRow(), BuildIndexRow(),
           Ref(m_readerPool), Ref(m_writerPool), Ref(m_threadPool)) {
-    m_openState.SetOpening();
-    try {
-      for(auto i = std::size_t(0);
-          i <= std::thread::hardware_concurrency(); ++i) {
-        auto readerConnection = std::make_unique<Viper::MySql::Connection>(
-          address.GetHost(), address.GetPort(), username, password, schema);
-        readerConnection->open();
-        m_readerPool.Add(std::move(readerConnection));
-        auto writerConnection = std::make_unique<Viper::MySql::Connection>(
-          address.GetHost(), address.GetPort(), username, password, schema);
-        writerConnection->open();
-        m_writerPool.Add(std::move(writerConnection));
-      }
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
     m_openState.SetOpen();
   }
 

@@ -36,7 +36,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace std;
 using namespace TCLAP;
 
 namespace {
@@ -44,26 +43,26 @@ namespace {
   using ApplicationServerConnection = LocalServerConnection<SharedBuffer>;
   using ServerChannel = ApplicationServerConnection::Channel;
   using ApplicationServerServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<std::shared_ptr<ServerChannel>, BinarySender<SharedBuffer>,
+    MessageProtocol<std::unique_ptr<ServerChannel>, BinarySender<SharedBuffer>,
     ServiceEncoder>, TriggerTimer>;
   using ClientChannel = LocalClientChannel<SharedBuffer>;
   using ApplicationClientServiceProtocolClient = ServiceProtocolClient<
     MessageProtocol<ClientChannel*, BinarySender<SharedBuffer>,
     ServiceEncoder>, TriggerTimer>;
 
-  string OnEchoRequest(ApplicationServerServiceProtocolClient& client,
-      string message) {
+  std::string OnEchoRequest(ApplicationServerServiceProtocolClient& client,
+      std::string message) {
     return message;
   }
 
   void ServerLoop(ApplicationServerConnection& server) {
-    RoutineHandlerGroup routines;
+    auto routines = RoutineHandlerGroup();
     while(true) {
-      std::shared_ptr<ServerChannel> channel{server.Accept()};
+      auto channel = server.Accept();
       routines.Spawn(
-        [=] {
-          ApplicationServerServiceProtocolClient client(std::move(channel),
-            Initialize());
+        [channel = std::move(channel)] () mutable {
+          auto client = ApplicationServerServiceProtocolClient(
+            std::move(channel), Initialize());
           RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
           RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
           EchoService::AddSlot(Store(client.GetSlots()),
@@ -76,7 +75,7 @@ namespace {
               auto timestamp = microsec_clock::universal_time();
               ++counter;
               if(counter % 100000 == 0) {
-                cout << boost::format("Server: %1% %2%\n") % &client %
+                std::cout << boost::format("Server: %1% %2%\n") % &client %
                   timestamp << std::flush;
               }
             }
@@ -88,8 +87,9 @@ namespace {
   }
 
   void ClientLoop(ApplicationServerConnection& server) {
-    ClientChannel channel(string("client"), server);
-    ApplicationClientServiceProtocolClient client(&channel, Initialize());
+    auto channel = ClientChannel("client", server);
+    auto client = ApplicationClientServiceProtocolClient(&channel,
+      Initialize());
     RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
     RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
     auto counter = 0;
@@ -98,7 +98,8 @@ namespace {
       SendRecordMessage<EchoMessage>(client, timestamp, "hello world");
       ++counter;
       if(counter % 100000 == 0) {
-        cout << boost::format("Client: %1% %2%\n") % &channel % timestamp <<
+        std::cout <<
+          boost::format("Client: %1% %2%\n") % &channel % timestamp <<
           std::flush;
       }
       Defer();
@@ -108,17 +109,18 @@ namespace {
 }
 
 int main(int argc, const char** argv) {
-  string configFile;
+  auto configFile = std::string();
   try {
-    CmdLine cmd("", ' ', "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
+    auto cmd = CmdLine("", ' ', "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    ValueArg<string> configArg{"c", "config", "Configuration file", false,
-      "config.yml", "path"};
+    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
+      false, "config.yml", "path");
     cmd.add(configArg);
     cmd.parse(argc, argv);
     configFile = configArg.getValue();
   } catch(const ArgException& e) {
-    cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
+      std::endl;
     return -1;
   }
   auto config = Require(LoadFile, configFile);
@@ -126,8 +128,8 @@ int main(int argc, const char** argv) {
   if(clientCount == 0) {
     clientCount = static_cast<int>(boost::thread::hardware_concurrency());
   }
-  ApplicationServerConnection server;
-  RoutineHandlerGroup routines;
+  auto server = ApplicationServerConnection();
+  auto routines = RoutineHandlerGroup();
   routines.Spawn(
     [&] {
       ServerLoop(server);

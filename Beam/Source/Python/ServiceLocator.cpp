@@ -195,7 +195,6 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
       VirtualServiceLocatorClient>(module, "ApplicationServiceLocatorClient")
     .def(init(
       [] (std::string username, std::string password, IpAddress address) {
-        auto release = GilRelease();
         auto isConnected = false;
         auto sessionBuilder = ApplicationServiceLocatorClient::SessionBuilder(
           [=] () mutable {
@@ -213,7 +212,7 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
         return MakeToPythonServiceLocatorClient(
           std::make_unique<PythonApplicationServiceLocatorClient>(
           std::move(username), std::move(password), sessionBuilder));
-      }));
+      }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportDirectoryEntry(pybind11::module& module) {
@@ -332,7 +331,13 @@ void Beam::Python::ExportServiceLocatorTestEnvironment(
     .def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_value_policy::reference_internal)
     .def("build_client",
+      [] (ServiceLocatorTestEnvironment& self, std::string username,
+          std::string password) {
+        return MakeToPythonServiceLocatorClient(self.BuildClient(
+          std::move(username), std::move(password)));
+      }, call_guard<GilRelease>())
+    .def("build_client",
       [] (ServiceLocatorTestEnvironment& self) {
         return MakeToPythonServiceLocatorClient(self.BuildClient());
-      });
+      }, call_guard<GilRelease>());
 }

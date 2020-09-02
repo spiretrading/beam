@@ -70,21 +70,21 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const TcpSocketOptions& options) {
         auto channel = std::make_unique<TcpSocketChannel>(address, options,
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(address, interface,
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface,
           const TcpSocketOptions& options) {
@@ -92,14 +92,14 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           options, Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses,
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses,
           const TcpSocketOptions& options) {
@@ -107,14 +107,14 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses, interface,
           Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }))
+      }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface,
           const TcpSocketOptions& options) {
@@ -122,7 +122,7 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
           options, Ref(*GetSocketThreadPool()));
         return new WrapperVirtualChannel<std::unique_ptr<TcpSocketChannel>>(
           std::move(channel));
-      }));
+      }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportTcpSocketConnection(pybind11::module& module) {

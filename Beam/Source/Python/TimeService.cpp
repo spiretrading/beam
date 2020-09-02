@@ -110,7 +110,7 @@ void Beam::Python::ExportNtpTimeClient(pybind11::module& module) {
             }
           }();
         return MakeToPythonTimeClient(std::move(timeClient)).release();
-      }));
+      }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportTestTimeClient(pybind11::module& module) {

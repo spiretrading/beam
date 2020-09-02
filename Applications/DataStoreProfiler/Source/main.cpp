@@ -71,7 +71,7 @@ namespace {
       auto groupSize = config.m_seedCount * static_cast<int>(
         std::pow(2, group));
       auto index = lowerIndex + (rand() % groupSize);
-      if(index > config.m_indexCount) {
+      if(index >= config.m_indexCount) {
         index = lowerIndex + (index - config.m_indexCount);
       }
       auto entry = Entry{config.m_names[index], rand() % 100, rand() % 10000000,
@@ -118,23 +118,38 @@ namespace {
 
   void ProfileBufferedDataStore(const MySqlConfig& mySqlConfig,
       const ProfileConfig& profileConfig) {
-    auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
-      mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
-    auto dataStore = Beam::BufferedDataStore(&mysqlDataStore,
-      profileConfig.m_bufferSize);
     std::cout << "BufferedDataStore" << std::endl;
-    ProfileWrites(dataStore, profileConfig);
-    ProfileReads(dataStore, profileConfig);
+    {
+      auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+        mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+      auto dataStore = Beam::BufferedDataStore(&mysqlDataStore,
+        profileConfig.m_bufferSize);
+      ProfileWrites(dataStore, profileConfig);
+    }
+    {
+      auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+        mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+      auto dataStore = Beam::BufferedDataStore(&mysqlDataStore,
+        profileConfig.m_bufferSize);
+      ProfileReads(dataStore, profileConfig);
+    }
   }
 
   void ProfileAsyncDataStore(const MySqlConfig& mySqlConfig,
       const ProfileConfig& profileConfig) {
-    auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
-      mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
-    auto dataStore = Beam::AsyncDataStore(&mysqlDataStore);
     std::cout << "AsyncDataStore" << std::endl;
-    ProfileWrites(dataStore, profileConfig);
-    ProfileReads(dataStore, profileConfig);
+    {
+      auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+        mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+      auto dataStore = Beam::AsyncDataStore(&mysqlDataStore);
+      ProfileWrites(dataStore, profileConfig);
+    }
+    {
+      auto mysqlDataStore = MySqlDataStore(mySqlConfig.m_address,
+        mySqlConfig.m_schema, mySqlConfig.m_username, mySqlConfig.m_password);
+      auto dataStore = Beam::AsyncDataStore(&mysqlDataStore);
+      ProfileReads(dataStore, profileConfig);
+    }
   }
 }
 

@@ -37,10 +37,6 @@ namespace Beam {
         m_dataStore->Store(values);
       }
 
-      void Open() {
-        m_dataStore->Open();
-      }
-
       void Close() {
         m_dataStore->Close();
       }

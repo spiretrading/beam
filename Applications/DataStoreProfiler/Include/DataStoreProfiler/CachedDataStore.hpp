@@ -39,8 +39,6 @@ namespace Beam {
 
       void Store(const std::vector<SequencedIndexedEntry>& entries);
 
-      void Open();
-
       void Close();
 
     private:
@@ -57,7 +55,9 @@ namespace Beam {
   CachedDataStore<BaseDataStoreType>::CachedDataStore(
       BaseDataStoreForward&& dataStore, int blockSize)
       : m_dataStore{std::forward<BaseDataStoreForward>(dataStore)},
-        m_cachedDataStore{&*m_dataStore, blockSize} {}
+        m_cachedDataStore{&*m_dataStore, blockSize} {
+    m_openState.SetOpen();
+  }
 
   template<typename BaseDataStoreType>
   CachedDataStore<BaseDataStoreType>::~CachedDataStore() {
@@ -79,21 +79,6 @@ namespace Beam {
   void CachedDataStore<BaseDataStoreType>::Store(
       const SequencedIndexedEntry& entry) {
     m_cachedDataStore.Store(entry);
-  }
-
-  template<typename BaseDataStoreType>
-  void CachedDataStore<BaseDataStoreType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    try {
-      m_dataStore->Open();
-      m_cachedDataStore.Open();
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
   }
 
   template<typename BaseDataStoreType>

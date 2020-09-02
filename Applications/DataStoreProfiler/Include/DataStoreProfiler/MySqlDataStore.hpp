@@ -117,7 +117,7 @@ namespace Beam {
       add_column("item_a", &Entry::m_itemA).
       add_column("item_b", &Entry::m_itemB).
       add_column("item_c", &Entry::m_itemC).
-      add_column("item_d", &Entry::m_itemD);
+      add_column("item_d", Viper::varchar(100), &Entry::m_itemD);
   }
 
   inline Viper::Row<std::string> MySqlDataStore::BuildIndexRow() {

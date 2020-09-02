@@ -52,7 +52,7 @@ namespace Details {
       Writer& GetWriter();
 
     private:
-      friend class LocalServerConnection;
+      friend LocalServerConnection;
       Identifier m_identifier;
       std::unique_ptr<Reader> m_reader;
       std::shared_ptr<Writer> m_writer;

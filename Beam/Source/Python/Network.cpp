@@ -3,14 +3,12 @@
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include "Beam/IO/VirtualChannel.hpp"
-#include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/VirtualServerConnection.hpp"
 #include "Beam/IO/WrapperChannel.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/SocketIdentifier.hpp"
+#include "Beam/Network/MulticastSocketChannel.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Network/TcpSocketOptions.hpp"
+#include "Beam/Network/UdpSocketChannel.hpp"
 #include "Beam/Python/Beam.hpp"
 
 using namespace Beam;
@@ -18,6 +16,26 @@ using namespace Beam::IO;
 using namespace Beam::Network;
 using namespace boost;
 using namespace pybind11;
+
+void Beam::Python::ExportDatagramPacket(pybind11::module& module) {
+  class_<DatagramPacket<SharedBuffer>>(module, "DatagramPacket")
+    .def(init())
+    .def(init<SharedBuffer, IpAddress>())
+    .def_property("data",
+      [] (DatagramPacket<SharedBuffer>& self) {
+        return self.GetData();
+      },
+      [] (DatagramPacket<SharedBuffer>& self, SharedBuffer buffer) {
+        self.GetData() = std::move(buffer);
+      })
+    .def_property("address",
+      [] (DatagramPacket<SharedBuffer>& self) {
+        return self.GetAddress();
+      },
+      [] (DatagramPacket<SharedBuffer>& self, IpAddress address) {
+        self.GetAddress() = std::move(address);
+      });
+}
 
 void Beam::Python::ExportIpAddress(pybind11::module& module) {
   class_<IpAddress>(module, "IpAddress")
@@ -31,9 +49,102 @@ void Beam::Python::ExportIpAddress(pybind11::module& module) {
     .def(self != self);
 }
 
+void Beam::Python::ExportMulticastSocket(pybind11::module& module) {
+  class_<MulticastSocket>(module, "MulticastSocket")
+    .def(init(
+      [] (const IpAddress& group) {
+        return std::make_unique<MulticastSocket>(group,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const MulticastSocketOptions& options) {
+        return std::make_unique<MulticastSocket>(group, options,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const IpAddress& interface) {
+        return std::make_unique<MulticastSocket>(group, interface,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const IpAddress& interface,
+          const MulticastSocketOptions& options) {
+        return std::make_unique<MulticastSocket>(group, interface, options,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def_property_readonly("group", &MulticastSocket::GetGroup)
+    .def_property_readonly("receiver", &MulticastSocket::GetReceiver,
+      return_value_policy::reference_internal)
+    .def_property_readonly("sender", &MulticastSocket::GetSender,
+      return_value_policy::reference_internal);
+}
+
+void Beam::Python::ExportMulticastSocketChannel(pybind11::module& module) {
+  class_<WrapperVirtualChannel<std::unique_ptr<MulticastSocketChannel>>,
+      VirtualChannel>(module, "MulticastSocketChannel")
+    .def(init(
+      [] (const IpAddress& group) {
+        auto channel = std::make_unique<MulticastSocketChannel>(group,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<
+          std::unique_ptr<MulticastSocketChannel>>(std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const MulticastSocketOptions& options) {
+        auto channel = std::make_unique<MulticastSocketChannel>(group, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<
+          std::unique_ptr<MulticastSocketChannel>>(std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const IpAddress& interface) {
+        auto channel = std::make_unique<MulticastSocketChannel>(group,
+          interface, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<
+          std::unique_ptr<MulticastSocketChannel>>(std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& group, const IpAddress& interface,
+          const MulticastSocketOptions& options) {
+        auto channel = std::make_unique<MulticastSocketChannel>(group,
+          interface, options, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<
+          std::unique_ptr<MulticastSocketChannel>>(std::move(channel));
+      }), call_guard<GilRelease>());
+}
+
+void Beam::Python::ExportMulticastSocketConnection(pybind11::module& module) {
+  class_<WrapperConnection<MulticastSocketConnection*>, VirtualConnection>(
+    module, "MulticastSocketConnection");
+}
+
+void Beam::Python::ExportMulticastSocketOptions(pybind11::module& module) {
+  class_<MulticastSocketOptions, UdpSocketOptions>(module,
+      "MulticastSocketOptions")
+    .def(init<>())
+    .def(init<const MulticastSocketOptions&>());
+}
+
+void Beam::Python::ExportMulticastSocketReader(pybind11::module& module) {
+  class_<WrapperReader<MulticastSocketReader*>, VirtualReader>(module,
+    "MulticastSocketReader");
+}
+
+void Beam::Python::ExportMulticastSocketWriter(pybind11::module& module) {
+  class_<WrapperWriter<MulticastSocketWriter*>, VirtualWriter>(module,
+    "MulticastSocketWriter");
+}
+
 void Beam::Python::ExportNetwork(pybind11::module& module) {
   auto submodule = module.def_submodule("network");
+  ExportDatagramPacket(submodule);
   ExportIpAddress(submodule);
+  ExportMulticastSocket(submodule);
+  ExportMulticastSocketChannel(submodule);
+  ExportMulticastSocketConnection(submodule);
+  ExportMulticastSocketOptions(submodule);
+  ExportMulticastSocketReader(submodule);
+  ExportMulticastSocketWriter(submodule);
   ExportSocketIdentifier(submodule);
   ExportTcpServerSocket(submodule);
   ExportTcpSocketChannel(submodule);
@@ -41,6 +152,14 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportTcpSocketOptions(submodule);
   ExportTcpSocketReader(submodule);
   ExportTcpSocketWriter(submodule);
+  ExportUdpSocket(submodule);
+  ExportUdpSocketChannel(submodule);
+  ExportUdpSocketConnection(submodule);
+  ExportUdpSocketOptions(submodule);
+  ExportUdpSocketReader(submodule);
+  ExportUdpSocketReceiver(submodule);
+  ExportUdpSocketSender(submodule);
+  ExportUdpSocketWriter(submodule);
   register_exception<SocketException>(submodule, "SocketException",
     GetIOException().ptr());
 }
@@ -67,6 +186,29 @@ void Beam::Python::ExportSocketIdentifier(pybind11::module& module) {
 void Beam::Python::ExportTcpServerSocket(pybind11::module& module) {
   class_<WrapperServerConnection<std::unique_ptr<TcpServerSocket>>,
     VirtualServerConnection>(module, "TcpServerSocket")
+    .def(init(
+      [] {
+        return new WrapperServerConnection<std::unique_ptr<TcpServerSocket>>(
+          std::make_unique<TcpServerSocket>(Ref(*GetSocketThreadPool())));
+      }))
+    .def(init(
+      [] (const TcpSocketOptions& options) {
+        return new WrapperServerConnection<std::unique_ptr<TcpServerSocket>>(
+          std::make_unique<TcpServerSocket>(options,
+          Ref(*GetSocketThreadPool())));
+      }))
+    .def(init(
+      [] (const IpAddress& interface) {
+        return new WrapperServerConnection<std::unique_ptr<TcpServerSocket>>(
+          std::make_unique<TcpServerSocket>(interface,
+          Ref(*GetSocketThreadPool())));
+      }))
+    .def(init(
+      [] (const IpAddress& interface, const TcpSocketOptions& options) {
+        return new WrapperServerConnection<std::unique_ptr<TcpServerSocket>>(
+          std::make_unique<TcpServerSocket>(interface, options,
+          Ref(*GetSocketThreadPool())));
+      }))
     .def("accept",
       &WrapperServerConnection<std::unique_ptr<TcpServerSocket>>::Accept,
       call_guard<GilRelease>())
@@ -160,4 +302,125 @@ void Beam::Python::ExportTcpSocketReader(pybind11::module& module) {
 void Beam::Python::ExportTcpSocketWriter(pybind11::module& module) {
   class_<WrapperWriter<TcpSocketWriter*>, VirtualWriter>(module,
     "TcpSocketWriter");
+}
+
+void Beam::Python::ExportUdpSocket(pybind11::module& module) {
+  class_<UdpSocket>(module, "UdpSocket")
+    .def(init(
+      [] (const IpAddress& address) {
+        return std::make_unique<UdpSocket>(address,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const UdpSocketOptions& options) {
+        return std::make_unique<UdpSocket>(address, options,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface) {
+        return std::make_unique<UdpSocket>(address, interface,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface,
+          const UdpSocketOptions& options) {
+        return std::make_unique<UdpSocket>(address, interface, options,
+          Ref(*GetSocketThreadPool()));
+      }), call_guard<GilRelease>())
+    .def_property_readonly("address", &UdpSocket::GetAddress)
+    .def_property_readonly("receiver", &UdpSocket::GetReceiver,
+      return_value_policy::reference_internal)
+    .def_property_readonly("sender", &UdpSocket::GetSender,
+      return_value_policy::reference_internal);
+}
+
+void Beam::Python::ExportUdpSocketChannel(pybind11::module& module) {
+  class_<WrapperVirtualChannel<std::unique_ptr<UdpSocketChannel>>,
+      VirtualChannel>(module, "UdpSocketChannel")
+    .def(init(
+      [] (const IpAddress& address) {
+        auto channel = std::make_unique<UdpSocketChannel>(address,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<UdpSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const UdpSocketOptions& options) {
+        auto channel = std::make_unique<UdpSocketChannel>(address, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<UdpSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface) {
+        auto channel = std::make_unique<UdpSocketChannel>(address, interface,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<UdpSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface,
+          const UdpSocketOptions& options) {
+        auto channel = std::make_unique<UdpSocketChannel>(address, interface,
+          options, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<UdpSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>());
+}
+
+void Beam::Python::ExportUdpSocketConnection(pybind11::module& module) {
+  class_<WrapperConnection<UdpSocketConnection*>, VirtualConnection>(module,
+    "UdpSocketConnection");
+}
+
+void Beam::Python::ExportUdpSocketOptions(pybind11::module& module) {
+  class_<UdpSocketOptions>(module, "UdpSocketOptions")
+    .def(init<>())
+    .def(init<const UdpSocketOptions&>())
+    .def_readwrite("timeout", &UdpSocketOptions::m_timeout)
+    .def_readwrite("ttl", &UdpSocketOptions::m_ttl)
+    .def_readwrite("ttl", &UdpSocketOptions::m_ttl)
+    .def_readwrite("enable_loopback", &UdpSocketOptions::m_enableLoopback)
+    .def_readwrite("max_datagram_size", &UdpSocketOptions::m_maxDatagramSize)
+    .def_readwrite("received_buffer_size",
+      &UdpSocketOptions::m_receiveBufferSize);
+}
+
+void Beam::Python::ExportUdpSocketReader(pybind11::module& module) {
+  class_<WrapperReader<UdpSocketReader*>, VirtualReader>(module,
+    "UdpSocketReader");
+}
+
+void Beam::Python::ExportUdpSocketReceiver(pybind11::module& module) {
+  class_<UdpSocketReceiver>(module, "UdpSocketReceiver")
+    .def("receive",
+      [] (UdpSocketReceiver& self, Out<DatagramPacket<SharedBuffer>> packet) {
+        return self.Receive(Store(packet));
+      }, call_guard<GilRelease>())
+    .def("receive",
+      [] (UdpSocketReceiver& self, Out<DatagramPacket<SharedBuffer>> packet,
+          std::size_t size) {
+        return self.Receive(Store(packet), size);
+      }, call_guard<GilRelease>())
+    .def("receive",
+      [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer,
+          Out<IpAddress> address) {
+        return self.Receive(Store(buffer), Store(address));
+      }, call_guard<GilRelease>())
+    .def("receive",
+      [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer, std::size_t size,
+          Out<IpAddress> address) {
+        return self.Receive(Store(buffer), size, Store(address));
+      }, call_guard<GilRelease>());
+}
+
+void Beam::Python::ExportUdpSocketSender(pybind11::module& module) {
+  class_<UdpSocketSender>(module, "UdpSocketSender")
+    .def("send", &UdpSocketSender::Send<SharedBuffer>,
+      call_guard<GilRelease>());
+}
+
+void Beam::Python::ExportUdpSocketWriter(pybind11::module& module) {
+  class_<WrapperWriter<UdpSocketWriter*>, VirtualWriter>(module,
+    "UdpSocketWriter");
 }

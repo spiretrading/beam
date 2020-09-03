@@ -1,6 +1,5 @@
-#ifndef BEAM_MULTICASTSOCKETWRITER_HPP
-#define BEAM_MULTICASTSOCKETWRITER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_MULTICAST_SOCKET_WRITER_HPP
+#define BEAM_MULTICAST_SOCKET_WRITER_HPP
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Network/MulticastSocket.hpp"
@@ -9,10 +8,8 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class MulticastSocketWriter
-      \brief Provides the Writer interface to a MulticastSocketSender.
-   */
-  class MulticastSocketWriter : private boost::noncopyable {
+  /** Provides the Writer interface to a MulticastSocketSender. */
+  class MulticastSocketWriter {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -26,8 +23,8 @@ namespace Network {
       std::shared_ptr<MulticastSocket> m_socket;
       IpAddress m_destination;
 
-      MulticastSocketWriter(const std::shared_ptr<MulticastSocket>& socket,
-        const IpAddress& destination);
+      MulticastSocketWriter(std::shared_ptr<MulticastSocket> socket,
+        IpAddress destination);
   };
 
   inline void MulticastSocketWriter::Write(const void* data, std::size_t size) {
@@ -40,15 +37,14 @@ namespace Network {
   }
 
   inline MulticastSocketWriter::MulticastSocketWriter(
-      const std::shared_ptr<MulticastSocket>& socket,
-      const IpAddress& destination)
-      : m_socket(socket),
-        m_destination(destination) {}
+    std::shared_ptr<MulticastSocket> socket, IpAddress destination)
+    : m_socket(std::move(socket)),
+      m_destination(std::move(destination)) {}
 }
 
   template<typename BufferType>
   struct ImplementsConcept<Network::MulticastSocketWriter,
-      IO::Writer<BufferType>> : std::true_type {};
+    IO::Writer<BufferType>> : std::true_type {};
 }
 
 #endif

@@ -1,6 +1,5 @@
-#ifndef BEAM_MULTICASTSOCKETCONNECTION_HPP
-#define BEAM_MULTICASTSOCKETCONNECTION_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_MULTICAST_SOCKET_CONNECTION_HPP
+#define BEAM_MULTICAST_SOCKET_CONNECTION_HPP
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Network/MulticastSocket.hpp"
 #include "Beam/Network/Network.hpp"
@@ -8,14 +7,10 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class MulticastSocketConnection
-      \brief Provides a Connection interface for a MulticastSocket.
-   */
+  /** Provides a Connection interface for a MulticastSocket. */
   class MulticastSocketConnection : private boost::noncopyable {
     public:
       ~MulticastSocketConnection();
-
-      void Open();
 
       void Close();
 
@@ -23,15 +18,14 @@ namespace Network {
       friend class MulticastSocketChannel;
       std::shared_ptr<MulticastSocket> m_socket;
 
-      MulticastSocketConnection(const std::shared_ptr<MulticastSocket>& socket);
+      MulticastSocketConnection(std::shared_ptr<MulticastSocket> socket);
+      MulticastSocketConnection(const MulticastSocketConnection&) = delete;
+      MulticastSocketConnection& operator =(
+        const MulticastSocketConnection&) = delete;
   };
 
   inline MulticastSocketConnection::~MulticastSocketConnection() {
     Close();
-  }
-
-  inline void MulticastSocketConnection::Open() {
-    m_socket->Open();
   }
 
   inline void MulticastSocketConnection::Close() {
@@ -39,8 +33,8 @@ namespace Network {
   }
 
   inline MulticastSocketConnection::MulticastSocketConnection(
-      const std::shared_ptr<MulticastSocket>& socket)
-      : m_socket(socket) {}
+    std::shared_ptr<MulticastSocket> socket)
+    : m_socket(std::move(socket)) {}
 }
 
   template<>

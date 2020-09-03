@@ -76,13 +76,13 @@ namespace Beam::Network {
       IpAddress m_group;
       SocketThreadPool* m_socketThreadPool;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      std::optional<UdpSocketReceiver> m_receiver;
-      std::optional<UdpSocketSender> m_sender;
+      boost::optional<UdpSocketReceiver> m_receiver;
+      boost::optional<UdpSocketSender> m_sender;
       IO::OpenState m_openState;
 
       MulticastSocket(const MulticastSocket&) = delete;
       MulticastSocket& operator =(const MulticastSocket&) = delete;
-      void Open(boost::optional<IpAddress> interface,
+      void Open(const IpAddress& interface,
         const MulticastSocketOptions& options);
       void Shutdown();
   };
@@ -92,15 +92,10 @@ namespace Beam::Network {
     : MulticastSocket(group, MulticastSocketOptions(), Ref(socketThreadPool)) {}
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-      const MulticastSocketOptions& options,
-      Ref<SocketThreadPool> socketThreadPool)
-      : m_group(group),
-        m_socketThreadPool(socketThreadPool.Get()),
-        m_socket(std::make_shared<Details::UdpSocketEntry>(
-          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
-          boost::asio::ip::udp::v4())) {
-    Open(boost::none, options);
-  }
+    const MulticastSocketOptions& options,
+    Ref<SocketThreadPool> socketThreadPool)
+    : MulticastSocket(group, IpAddress("0.0.0.0", 0), options,
+        Ref(socketThreadPool)) {}
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
     const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
@@ -126,32 +121,6 @@ namespace Beam::Network {
     return m_group;
   }
 
-  inline void MulticastSocket::SetTtl(int ttl) {
-    boost::system::error_code errorCode;
-    boost::asio::ip::multicast::hops hops(ttl);
-    {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
-      m_socket->m_socket.set_option(hops, errorCode);
-    }
-    if(errorCode) {
-      BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-        errorCode.message()));
-    }
-  }
-
-  inline void MulticastSocket::SetLoopback(bool enable) {
-    boost::system::error_code errorCode;
-    boost::asio::ip::multicast::enable_loopback option(enable);
-    {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
-      m_socket->m_socket.set_option(option);
-    }
-    if(errorCode) {
-      BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-        errorCode.message()));
-    }
-  }
-
   inline UdpSocketReceiver& MulticastSocket::GetReceiver() {
     return *m_receiver;
   }
@@ -171,14 +140,13 @@ namespace Beam::Network {
       const MulticastSocketOptions& options) {
     m_openState.SetOpening();
     try {
-    auto errorCode = boost::system::error_code();
+      auto errorCode = boost::system::error_code();
       auto outboundInterface = boost::asio::ip::address_v4::from_string(
-        m_interface.GetHost(), errorCode);
+        interface.GetHost(), errorCode);
       if(errorCode) {
         BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
           errorCode.message()));
       }
-      errorCode.clear();
       m_socket->m_socket.set_option(
         boost::asio::ip::multicast::outbound_interface(outboundInterface),
         errorCode);
@@ -204,20 +172,30 @@ namespace Beam::Network {
         BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
           errorCode.message()));
       }
-      boost::asio::ip::multicast::join_group joinGroup(
+      auto joinGroup = boost::asio::ip::multicast::join_group(
         boost::asio::ip::address_v4::from_string(m_group.GetHost()),
-        boost::asio::ip::address_v4::from_string(m_interface.GetHost()));
+        boost::asio::ip::address_v4::from_string(interface.GetHost()));
       m_socket->m_socket.set_option(joinGroup, errorCode);
       if(errorCode) {
         BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
           errorCode.message()));
       }
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    try {
-      m_receiver->Open(m_receiverSettings);
+      if(options.m_ttl >= 0) {
+        m_socket->m_socket.set_option(boost::asio::ip::multicast::hops(
+          options.m_ttl), errorCode);
+        if(errorCode) {
+          BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+            errorCode.message()));
+        }
+      }
+      m_socket->m_socket.set_option(boost::asio::ip::multicast::enable_loopback(
+        options.m_enableLoopback), errorCode);
+      if(errorCode) {
+        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+          errorCode.message()));
+      }
+      m_receiver.emplace(options, m_socket);
+      m_sender.emplace(options, m_socket);
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();
@@ -228,7 +206,6 @@ namespace Beam::Network {
 
   inline void MulticastSocket::Shutdown() {
     m_socket->Close();
-    Reset();
     m_openState.SetClosed();
   }
 }

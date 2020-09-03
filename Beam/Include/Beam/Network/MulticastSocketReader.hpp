@@ -1,6 +1,5 @@
-#ifndef BEAM_MULTICASTSOCKETREADER_HPP
-#define BEAM_MULTICASTSOCKETREADER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_MULTICAST_SOCKET_READER_HPP
+#define BEAM_MULTICAST_SOCKET_READER_HPP
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/MulticastSocket.hpp"
@@ -10,10 +9,8 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class MulticastSocketReader
-      \brief Implements the Reader interface for a MulticastSocketReceiver.
-   */
-  class MulticastSocketReader : private boost::noncopyable {
+  /** Implements the Reader interface for a MulticastSocketReceiver. */
+  class MulticastSocketReader {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -32,14 +29,16 @@ namespace Network {
       std::shared_ptr<MulticastSocket> m_socket;
       IpAddress m_destination;
 
-      MulticastSocketReader(const std::shared_ptr<MulticastSocket>& socket,
-        const IpAddress& destination);
+      MulticastSocketReader(std::shared_ptr<MulticastSocket> socket,
+        IpAddress destination);
+      MulticastSocketReader(const MulticastSocketReader&) = delete;
+      MulticastSocketReader& operator =(const MulticastSocketReader&) = delete;
   };
 
   inline bool MulticastSocketReader::IsDataAvailable() const {
-    boost::asio::socket_base::bytes_readable command(true);
+    auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_socket->m_mutex};
+      auto lock = boost::lock_guard(m_socket->m_socket->m_mutex);
       m_socket->m_socket->m_socket.io_control(command);
     }
     return command.get() > 0;
@@ -65,15 +64,14 @@ namespace Network {
   }
 
   inline MulticastSocketReader::MulticastSocketReader(
-      const std::shared_ptr<MulticastSocket>& socket,
-      const IpAddress& destination)
-      : m_socket(socket),
-        m_destination(destination) {}
+    std::shared_ptr<MulticastSocket> socket, IpAddress destination)
+    : m_socket(std::move(socket)),
+      m_destination(std::move(destination)) {}
 }
 
   template<typename BufferType>
   struct ImplementsConcept<Network::MulticastSocketReader,
-      IO::Reader<BufferType>> : std::true_type {};
+    IO::Reader<BufferType>> : std::true_type {};
 }
 
 #endif

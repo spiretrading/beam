@@ -35,19 +35,20 @@ namespace Network {
 
       /**
        * Constructs a TcpServerSocket.
-       * @param address The IP address to bind to.
+       * @param interface The interface to bind to.
        * @param socketThreadPool The thread pool used for the sockets.
        */
-      TcpServerSocket(const IpAddress& address,
+      TcpServerSocket(const IpAddress& interface,
         Ref<SocketThreadPool> socketThreadPool);
 
       /**
        * Constructs a TcpServerSocket.
-       * @param address The IP address to bind to.
+       * @param interface The interface to bind to.
        * @param options The set of TcpSocketOptions to apply.
        * @param socketThreadPool The thread pool used for the sockets.
        */
-      TcpServerSocket(const IpAddress& address, const TcpSocketOptions& options,
+      TcpServerSocket(const IpAddress& interface,
+        const TcpSocketOptions& options,
         Ref<SocketThreadPool> socketThreadPool);
 
       ~TcpServerSocket();
@@ -57,7 +58,6 @@ namespace Network {
       void Close();
 
     private:
-      IpAddress m_address;
       TcpSocketOptions m_options;
       SocketThreadPool* m_socketThreadPool;
       boost::asio::io_service* m_ioService;
@@ -76,21 +76,20 @@ namespace Network {
     : TcpServerSocket(IpAddress("0.0.0.0", 0), options,
         Ref(socketThreadPool)) {}
 
-  inline TcpServerSocket::TcpServerSocket(const IpAddress& address,
+  inline TcpServerSocket::TcpServerSocket(const IpAddress& interface,
     Ref<SocketThreadPool> socketThreadPool)
-    : TcpServerSocket(address, TcpSocketOptions(), Ref(socketThreadPool)) {}
+    : TcpServerSocket(interface, TcpSocketOptions(), Ref(socketThreadPool)) {}
 
-  inline TcpServerSocket::TcpServerSocket(const IpAddress& address,
+  inline TcpServerSocket::TcpServerSocket(const IpAddress& interface,
       const TcpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
-      : m_address(address),
-        m_options(options),
+      : m_options(options),
         m_socketThreadPool(socketThreadPool.Get()),
         m_ioService(&m_socketThreadPool->GetService()) {
     m_openState.SetOpening();
     try {
       auto resolver = boost::asio::ip::tcp::resolver(*m_ioService);
-      auto query = boost::asio::ip::tcp::resolver::query(m_address.GetHost(),
-        std::to_string(m_address.GetPort()));
+      auto query = boost::asio::ip::tcp::resolver::query(interface.GetHost(),
+        std::to_string(interface.GetPort()));
       auto error = boost::system::error_code();
       auto endpointIterator = resolver.resolve(query, error);
       if(error) {

@@ -1,6 +1,5 @@
-#ifndef BEAM_SECURESOCKETREADER_HPP
-#define BEAM_SECURESOCKETREADER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_SECURE_SOCKET_READER_HPP
+#define BEAM_SECURE_SOCKET_READER_HPP
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -13,10 +12,8 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class SecureSocketReader
-      \brief Reads from an SSL socket.
-   */
-  class SecureSocketReader : private boost::noncopyable {
+  /** Reads from an SSL socket. */
+  class SecureSocketReader {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -32,17 +29,18 @@ namespace Network {
 
     private:
       friend class SecureSocketChannel;
-      static const std::size_t DEFAULT_READ_SIZE = 8 * 1024;
+      static constexpr auto DEFAULT_READ_SIZE = std::size_t(8 * 1024);
       std::shared_ptr<Details::SecureSocketEntry> m_socket;
 
-      SecureSocketReader(
-        const std::shared_ptr<Details::SecureSocketEntry>& socket);
+      SecureSocketReader(std::shared_ptr<Details::SecureSocketEntry> socket);
+      SecureSocketReader(const SecureSocketReader&) = delete;
+      SecureSocketReader& operator =(const SecureSocketReader&) = delete;
   };
 
   inline bool SecureSocketReader::IsDataAvailable() const {
-    boost::asio::socket_base::bytes_readable command(true);
+    auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
+      auto lock = boost::lock_guard(m_socket->m_mutex);
       m_socket->m_socket.lowest_layer().io_control(command);
     }
     return command.get() > 0;
@@ -55,15 +53,15 @@ namespace Network {
 
   inline std::size_t SecureSocketReader::Read(char* destination,
       std::size_t size) {
-    Routines::Async<std::size_t> readResult;
+    auto readResult = Routines::Async<std::size_t>();
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_mutex};
+      auto lock = std::lock_guard(m_socket->m_mutex);
       if(!m_socket->m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
       }
       m_socket->m_isReadPending = true;
       m_socket->m_socket.async_read_some(boost::asio::buffer(destination, size),
-        [&] (const boost::system::error_code& error, std::size_t readSize) {
+        [&] (const auto& error, auto readSize) {
           if(error) {
             if(Details::IsEndOfFile(error)) {
               readResult.GetEval().SetException(
@@ -81,7 +79,7 @@ namespace Network {
       auto result = readResult.Get();
       m_socket->EndReadOperation();
       return result;
-    } catch(...) {
+    } catch(const std::exception&) {
       m_socket->EndReadOperation();
       BOOST_RETHROW;
     }
@@ -90,7 +88,6 @@ namespace Network {
   template<typename BufferType>
   std::size_t SecureSocketReader::Read(Out<BufferType> destination,
       std::size_t size) {
-    static const auto DEFAULT_READ_SIZE = std::size_t{8 * 1024};
     auto initialSize = destination->GetSize();
     auto readSize = std::min(DEFAULT_READ_SIZE, size);
     destination->Grow(readSize);
@@ -100,8 +97,8 @@ namespace Network {
   }
 
   inline SecureSocketReader::SecureSocketReader(
-      const std::shared_ptr<Details::SecureSocketEntry>& socket)
-      : m_socket(socket) {}
+    std::shared_ptr<Details::SecureSocketEntry> socket)
+    : m_socket(std::move(socket)) {}
 }
 
   template<typename BufferType>

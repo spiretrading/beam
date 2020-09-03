@@ -1,8 +1,6 @@
 #ifndef BEAM_TCP_SOCKET_CONNECTION_HPP
 #define BEAM_TCP_SOCKET_CONNECTION_HPP
-#include <functional>
 #include <string>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Connection.hpp"
@@ -41,6 +39,8 @@ namespace Network {
       TcpSocketConnection(std::shared_ptr<Details::TcpSocketEntry> socket,
         const TcpSocketOptions& options,
         const std::vector<IpAddress>& addresses, const IpAddress& interface);
+      TcpSocketConnection(const TcpSocketConnection&) = delete;
+      TcpSocketConnection& operator =(const TcpSocketConnection&) = delete;
       void Open(const TcpSocketOptions& options,
         const std::vector<IpAddress>& addresses,
         const boost::optional<IpAddress>& interface);

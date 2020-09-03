@@ -12,6 +12,7 @@ namespace Network {
   class MulticastSocketWriter;
   class SecureSocketChannel;
   class SecureSocketConnection;
+  struct SecureSocketOptions;
   class SecureSocketReader;
   class SecureSocketWriter;
   class SocketException;

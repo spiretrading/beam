@@ -2,7 +2,6 @@
 #define BEAM_TCP_SOCKET_WRITER_HPP
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -17,7 +16,7 @@ namespace Beam {
 namespace Network {
 
   /** Writes to a TCP socket. */
-  class TcpSocketWriter : private boost::noncopyable {
+  class TcpSocketWriter {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -32,6 +31,8 @@ namespace Network {
       Threading::TaskRunner m_tasks;
 
       TcpSocketWriter(std::shared_ptr<Details::TcpSocketEntry> socket);
+      TcpSocketWriter(const TcpSocketWriter&) = delete;
+      TcpSocketWriter& operator =(const TcpSocketWriter&) = delete;
   };
 
   inline void TcpSocketWriter::Write(const void* data, std::size_t size) {

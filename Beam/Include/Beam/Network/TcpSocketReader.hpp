@@ -1,6 +1,5 @@
 #ifndef BEAM_TCP_SOCKET_READER_HPP
 #define BEAM_TCP_SOCKET_READER_HPP
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -14,7 +13,7 @@ namespace Beam {
 namespace Network {
 
   /** Reads from a TCP socket. */
-  class TcpSocketReader : private boost::noncopyable {
+  class TcpSocketReader {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -34,6 +33,8 @@ namespace Network {
       std::shared_ptr<Details::TcpSocketEntry> m_socket;
 
       TcpSocketReader(std::shared_ptr<Details::TcpSocketEntry> socket);
+      TcpSocketReader(const TcpSocketReader&) = delete;
+      TcpSocketReader& operator =(const TcpSocketReader&) = delete;
   };
 
   inline bool TcpSocketReader::IsDataAvailable() const {

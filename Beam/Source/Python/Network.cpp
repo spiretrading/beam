@@ -6,6 +6,7 @@
 #include "Beam/IO/VirtualServerConnection.hpp"
 #include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/Network/MulticastSocketChannel.hpp"
+#include "Beam/Network/SecureSocketChannel.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Network/UdpSocketChannel.hpp"
@@ -146,6 +147,11 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportMulticastSocketOptions(submodule);
   ExportMulticastSocketReader(submodule);
   ExportMulticastSocketWriter(submodule);
+  ExportSecureSocketChannel(submodule);
+  ExportSecureSocketConnection(submodule);
+  ExportSecureSocketOptions(submodule);
+  ExportSecureSocketReader(submodule);
+  ExportSecureSocketWriter(submodule);
   ExportSocketIdentifier(submodule);
   ExportTcpServerSocket(submodule);
   ExportTcpSocketChannel(submodule);
@@ -163,6 +169,91 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportUdpSocketWriter(submodule);
   register_exception<SocketException>(submodule, "SocketException",
     GetIOException().ptr());
+}
+
+void Beam::Python::ExportSecureSocketChannel(pybind11::module& module) {
+  class_<WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>,
+      VirtualChannel>(module, "SecureSocketChannel")
+    .def(init(
+      [] (const IpAddress& address) {
+        auto channel = std::make_unique<SecureSocketChannel>(address,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const SecureSocketOptions& options) {
+        auto channel = std::make_unique<SecureSocketChannel>(address, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface) {
+        auto channel = std::make_unique<SecureSocketChannel>(address, interface,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const IpAddress& address, const IpAddress& interface,
+          const SecureSocketOptions& options) {
+        auto channel = std::make_unique<SecureSocketChannel>(address, interface,
+          options, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const std::vector<IpAddress>& addresses) {
+        auto channel = std::make_unique<SecureSocketChannel>(addresses,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const std::vector<IpAddress>& addresses,
+          const SecureSocketOptions& options) {
+        auto channel = std::make_unique<SecureSocketChannel>(addresses, options,
+          Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const std::vector<IpAddress>& addresses, const IpAddress& interface) {
+        auto channel = std::make_unique<SecureSocketChannel>(addresses,
+          interface, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>())
+    .def(init(
+      [] (const std::vector<IpAddress>& addresses, const IpAddress& interface,
+          const SecureSocketOptions& options) {
+        auto channel = std::make_unique<SecureSocketChannel>(addresses, interface,
+          options, Ref(*GetSocketThreadPool()));
+        return new WrapperVirtualChannel<std::unique_ptr<SecureSocketChannel>>(
+          std::move(channel));
+      }), call_guard<GilRelease>());
+}
+
+void Beam::Python::ExportSecureSocketConnection(pybind11::module& module) {
+  class_<WrapperConnection<SecureSocketConnection*>, VirtualConnection>(module,
+    "SecureSocketConnection");
+}
+
+void Beam::Python::ExportSecureSocketOptions(pybind11::module& module) {
+  class_<SecureSocketOptions, TcpSocketOptions>(module, "SecureSocketOptions")
+    .def(init<>())
+    .def(init<const SecureSocketOptions&>());
+}
+
+void Beam::Python::ExportSecureSocketReader(pybind11::module& module) {
+  class_<WrapperReader<SecureSocketReader*>, VirtualReader>(module,
+    "SecureSocketReader");
+}
+
+void Beam::Python::ExportSecureSocketWriter(pybind11::module& module) {
+  class_<WrapperWriter<SecureSocketWriter*>, VirtualWriter>(module,
+    "SecureSocketWriter");
 }
 
 void Beam::Python::ExportSocketIdentifier(pybind11::module& module) {

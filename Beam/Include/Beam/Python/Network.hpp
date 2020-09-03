@@ -59,6 +59,36 @@ namespace Beam::Python {
   void ExportNetwork(pybind11::module& module);
 
   /**
+   * Exports the SecureSocketChannel class.
+   * @param module The module to export to.
+   */
+  void ExportSecureSocketChannel(pybind11::module& module);
+
+  /**
+   * Exports the SecureSocketConnection class.
+   * @param module The module to export to.
+   */
+  void ExportSecureSocketConnection(pybind11::module& module);
+
+  /**
+   * Exports the SecureSocketOptions class.
+   * @param module The module to export to.
+   */
+  void ExportSecureSocketOptions(pybind11::module& module);
+
+  /**
+   * Exports the SecureSocketReader class.
+   * @param module The module to export to.
+   */
+  void ExportSecureSocketReader(pybind11::module& module);
+
+  /**
+   * Exports the SecureSocketWriter class.
+   * @param module The module to export to.
+   */
+  void ExportSecureSocketWriter(pybind11::module& module);
+
+  /**
    * Exports the SocketIdentifier class.
    * @param module The module to export to.
    */

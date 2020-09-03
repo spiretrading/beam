@@ -1,42 +1,39 @@
-#ifndef BEAM_DATAGRAMPACKET_HPP
-#define BEAM_DATAGRAMPACKET_HPP
+#ifndef BEAM_DATAGRAM_PACKET_HPP
+#define BEAM_DATAGRAM_PACKET_HPP
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 
-namespace Beam {
-namespace Network {
+namespace Beam::Network {
 
-  /*! \class DatagramPacket
-      \brief Stores a single datagram packet.
-   */
-  template<typename BufferType>
+  /** Stores a single datagram packet. */
+  template<typename B>
   class DatagramPacket {
     public:
 
-      //! The type of Buffer stored.
-      using Buffer = BufferType;
+      /** The type of Buffer stored. */
+      using Buffer = B;
 
-      //! Constructs a DatagramPacket.
+      /** Constructs an empty DatagramPacket. */
       DatagramPacket() = default;
 
-      //! Constructs a DatagramPacket.
-      /*!
-        \param data The data stored by the packet.
-        \param address The address that this packet was received from.
-      */
-      template<typename BufferForward, typename IpAddressForward>
-      DatagramPacket(BufferForward&& data, IpAddressForward&& address);
+      /**
+       * Constructs a DatagramPacket.
+       * @param data The data stored by the packet.
+       * @param address The address that this packet was received from.
+       */
+      template<typename BF>
+      DatagramPacket(BF&& data, IpAddress address);
 
-      //! Returns the data stored by this packet.
+      /** Returns the data stored by this packet. */
       const Buffer& GetData() const;
 
-      //! Returns the data stored by this packet.
+      /** Returns the data stored by this packet. */
       Buffer& GetData();
 
-      //! Returns the address that this packet was received from.
+      /** Returns the address that this packet was received from. */
       const IpAddress& GetAddress() const;
 
-      //! Returns the address that this packet was received from.
+      /** Returns the address that this packet was received from. */
       IpAddress& GetAddress();
 
     private:
@@ -44,33 +41,31 @@ namespace Network {
       IpAddress m_address;
   };
 
-  template<typename BufferType>
-  template<typename BufferForward, typename IpAddressForward>
-  DatagramPacket<BufferType>::DatagramPacket(BufferForward&& data,
-      IpAddressForward&& address)
-      : m_data(std::forward<BufferForward>(data)),
-        m_address(std::forward<IpAddressForward>(address)) {}
+  template<typename B>
+  template<typename BF>
+  DatagramPacket<B>::DatagramPacket(BF&& data, IpAddress address)
+    : m_data(std::forward<BF>(data)),
+      m_address(std::move(address)) {}
 
-  template<typename BufferType>
-  const BufferType& DatagramPacket<BufferType>::GetData() const {
+  template<typename B>
+  const typename DatagramPacket<B>::Buffer& DatagramPacket<B>::GetData() const {
     return m_data;
   }
 
-  template<typename BufferType>
-  BufferType& DatagramPacket<BufferType>::GetData() {
+  template<typename B>
+  typename DatagramPacket<B>::Buffer& DatagramPacket<B>::GetData() {
     return m_data;
   }
 
-  template<typename BufferType>
-  const IpAddress& DatagramPacket<BufferType>::GetAddress() const {
+  template<typename B>
+  const IpAddress& DatagramPacket<B>::GetAddress() const {
     return m_address;
   }
 
-  template<typename BufferType>
-  IpAddress& DatagramPacket<BufferType>::GetAddress() {
+  template<typename B>
+  IpAddress& DatagramPacket<B>::GetAddress() {
     return m_address;
   }
-}
 }
 
 #endif

@@ -12,7 +12,8 @@
 #include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
-namespace Beam::Network {
+namespace Beam {
+namespace Network {
 
   /** Implements the Channel interface using an SSL socket over TCP. */
   class SecureSocketChannel {

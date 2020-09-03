@@ -1,5 +1,6 @@
-#ifndef BEAM_IPADDRESS_HPP
-#define BEAM_IPADDRESS_HPP
+#ifndef BEAM_IP_ADDRESS_HPP
+#define BEAM_IP_ADDRESS_HPP
+#include <array>
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -13,54 +14,52 @@
 
 namespace Beam::Network {
 
-  /*! \class IpAddress
-      \brief Stores an IpAddress, consisting of a host and a port.
-   */
+  /** Stores an IpAddress, consisting of a host and a port. */
   class IpAddress {
     public:
 
-      //! Converts an IP address represented as an int to a string.
-      /*!
-        \param ipAddress The IP address to convert, in integer form.
-        \return The string representation of the <i>ipAddress</i>.
-      */
+      /**
+       * Converts an IP address represented as an int to a string.
+       * @param ipAddress The IP address to convert, in integer form.
+       * @return The string representation of the <i>ipAddress</i>.
+       */
       static std::string IntToString(std::uint32_t ipAddress);
 
-      //! Converts an IP address represented as a string to an int.
-      /*!
-        \param ipAddress The IP address to convert, in string form.
-        \return The int representation of the <i>ipAddress</i>.
-      */
+      /**
+       * Converts an IP address represented as a string to an int.
+       * @param ipAddress The IP address to convert, in string form.
+       * @return The int representation of the <i>ipAddress</i>.
+       */
       static std::uint32_t StringToInt(const std::string& ipAddress);
 
-      //! Constructs an empty IpAddress.
+      /** Constructs an empty IpAddress. */
       IpAddress() = default;
 
-      //! Constructs an IpAddress.
-      /*!
-        \param host The host.
-        \param port The port.
-      */
+      /**
+       * Constructs an IpAddress.
+       * @param host The host.
+       * @param port The port.
+       */
       IpAddress(std::string host, unsigned short port);
 
-      //! Returns <code>true</code> iff the host and port are identical.
-      /*!
-        \param rhs The right hand side of the comparison.
-        \return <code>true</code> iff the two IpAddresses are equal.
-      */
+      /**
+       * Returns <code>true</code> iff the host and port are identical.
+       * @param rhs The right hand side of the comparison.
+       * @return <code>true</code> iff the two IpAddresses are equal.
+       */
       bool operator ==(const IpAddress& rhs) const;
 
-      //! Returns <code>true</code> iff the host or port are different.
-      /*!
-        \param rhs The right hand side of the comparison.
-        \return <code>true</code> iff the two IpAddresses are not equal.
-      */
+      /**
+       * Returns <code>true</code> iff the host or port are different.
+       * @param rhs The right hand side of the comparison.
+       * @return <code>true</code> iff the two IpAddresses are not equal.
+       */
       bool operator !=(const IpAddress& rhs) const;
 
-      //! Returns the host.
+      /** Returns the host. */
       const std::string& GetHost() const;
 
-      //! Returns the port.
+      /** Returns the port. */
       unsigned short GetPort() const;
 
     private:
@@ -76,7 +75,7 @@ namespace Beam::Network {
   inline auto IpAddressParser() {
     return Parsers::Convert(Parsers::PlusParser(Parsers::Not(':')) >> ':' >>
       Parsers::int_p,
-      [] (const std::tuple<std::string, int>& source) {
+      [] (const auto& source) {
         return IpAddress(std::get<0>(source),
           static_cast<unsigned short>(std::get<1>(source)));
       });
@@ -84,26 +83,27 @@ namespace Beam::Network {
 
   inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
     auto normalizedAddress = ToBigEndian(ipAddress);
-    const auto OCTET_COUNT = 4;
-    unsigned int octets[OCTET_COUNT];
+    constexpr auto OCTET_COUNT = 4;
+    auto octets = std::array<unsigned int, OCTET_COUNT>();
     for(auto i = 0; i < OCTET_COUNT; ++i) {
       octets[i] = (reinterpret_cast<const unsigned char*>(
         &normalizedAddress))[i];
     }
-    const auto BUFFER_SIZE = 16;
-    char buffer[BUFFER_SIZE];
-    std::sprintf(buffer, "%-u.%-u.%-u.%-u", octets[0], octets[1], octets[2],
-      octets[3]);
-    return buffer;
+    constexpr auto BUFFER_SIZE = 16;
+    auto buffer = std::array<char, BUFFER_SIZE>();
+    std::sprintf(buffer.data(), "%-u.%-u.%-u.%-u", octets[0], octets[1],
+      octets[2], octets[3]);
+    return buffer.data();
   }
 
   inline std::uint32_t IpAddress::StringToInt(const std::string& ipAddress) {
-    const auto OCTET_COUNT = 4;
-    unsigned int octets[OCTET_COUNT] = {0};
+    constexpr auto OCTET_COUNT = 4;
+    auto octets = std::array<unsigned int, OCTET_COUNT>();
+    octets.fill(0);
     auto result = std::sscanf(ipAddress.c_str(), "%u.%u.%u.%u", &octets[0],
       &octets[1], &octets[2], &octets[3]);
     BEAM_ASSERT(result == 4);
-    auto intAddress = std::uint32_t{0};
+    auto intAddress = std::uint32_t(0);
     for(auto i = 0; i < OCTET_COUNT; ++i) {
       reinterpret_cast<unsigned char*>(&intAddress)[i] =
         static_cast<unsigned char>(octets[i]);

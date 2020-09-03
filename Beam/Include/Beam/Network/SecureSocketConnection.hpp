@@ -8,8 +8,8 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SecureSocketChannel.hpp"
 #include "Beam/Network/SocketException.hpp"
+#include "Beam/Network/SecureSocketOptions.hpp"
 
 namespace Beam {
 namespace Network {
@@ -99,7 +99,7 @@ namespace Network {
     m_openState.SetOpening();
     m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);
     auto errorCode = boost::system::error_code();
-    for(auto& address : m_addresses) {
+    for(auto& address : addresses) {
       errorCode.clear();
       auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioService);
       auto query = boost::asio::ip::tcp::resolver::query(address.GetHost(),

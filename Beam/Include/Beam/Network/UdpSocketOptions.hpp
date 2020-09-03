@@ -10,6 +10,12 @@ namespace Beam::Network {
     /** The timeout on receive operations. */
     boost::posix_time::time_duration m_timeout;
 
+    /** The TTL setting. */
+    int m_ttl;
+
+    /** Whether to enable loopback. */
+    bool m_enableLoopback;
+
     /** The max datagram size. */
     std::size_t m_maxDatagramSize;
 
@@ -22,6 +28,7 @@ namespace Beam::Network {
 
   inline UdpSocketOptions::UdpSocketOptions()
     : m_timeout(boost::posix_time::pos_infin),
+      m_ttl(-1),
       m_maxDatagramSize(2 * 1024),
       m_receiveBufferSize(8 * 1024) {}
 }

@@ -1,12 +1,12 @@
-#ifndef BEAM_MULTICASTSOCKET_HPP
-#define BEAM_MULTICASTSOCKET_HPP
-#include <optional>
+#ifndef BEAM_MULTICAST_SOCKET_HPP
+#define BEAM_MULTICAST_SOCKET_HPP
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #include <boost/asio/ip/unicast.hpp>
-#include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Network/MulticastSocketOptions.hpp"
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
@@ -16,96 +16,110 @@
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam {
-namespace Network {
+namespace Beam::Network {
 
-  /*! \class MulticastSocket
-      \brief Implements a UDP socket used to join a multicast group.
-   */
-  class MulticastSocket : private boost::noncopyable {
+  /** Implements a UDP socket used to join a multicast group. */
+  class MulticastSocket {
     public:
 
-      //! Constructs a MulticastSocket.
-      /*!
-        \param group The multicast group to join.
-        \param interface The interface to listen on.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a MulticastSocket.
+       * @param group The multicast group to join.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      MulticastSocket(const IpAddress& group,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a MulticastSocket.
+       * @param group The multicast group to join.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      MulticastSocket(const IpAddress& group,
+        const MulticastSocketOptions& options,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a MulticastSocket.
+       * @param group The multicast group to join.
+       * @param interface The interface to listen on.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       MulticastSocket(const IpAddress& group, const IpAddress& interface,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a MulticastSocket.
+       * @param group The multicast group to join.
+       * @param interface The interface to listen on.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      MulticastSocket(const IpAddress& group, const IpAddress& interface,
+        const MulticastSocketOptions& options,
         Ref<SocketThreadPool> socketThreadPool);
 
       ~MulticastSocket();
 
-      //! Returns the Settings used by the UdpSocketReceiver.
-      const UdpSocketReceiver::Settings& GetReceiverSettings() const;
-
-      //! Sets the Settings used by the UdpSocketReceiver.
-      /*!
-        \param settings The Settings for the UdpSocketReceiver to use.
-      */
-      void SetReceiverSettings(const UdpSocketReceiver::Settings& settings);
-
-      //! Returns the multicast group to join.
+      /** Returns the multicast group to join. */
       const IpAddress& GetGroup() const;
 
-      //! Sets the TTL on the socket.
-      /*!
-        \param ttl The TTL on the socket.
-      */
-      void SetTtl(int ttl);
-
-      //! Sets the loop-back option.
-      /*!
-        \param enable <code>true</code> iff you wish to enable the multicast
-               loopback.
-      */
-      void SetLoopback(bool enable);
-
-      //! Returns the socket's receiver.
+      /** Returns the socket's receiver. */
       UdpSocketReceiver& GetReceiver();
 
-      //! Returns the socket's sender.
+      /** Returns the socket's sender. */
       UdpSocketSender& GetSender();
-
-      void Open();
 
       void Close();
 
     private:
       friend class MulticastSocketReader;
       IpAddress m_group;
-      IpAddress m_interface;
       SocketThreadPool* m_socketThreadPool;
-      UdpSocketReceiver::Settings m_receiverSettings;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       std::optional<UdpSocketReceiver> m_receiver;
       std::optional<UdpSocketSender> m_sender;
       IO::OpenState m_openState;
 
+      MulticastSocket(const MulticastSocket&) = delete;
+      MulticastSocket& operator =(const MulticastSocket&) = delete;
+      void Open(boost::optional<IpAddress> interface,
+        const MulticastSocketOptions& options);
       void Shutdown();
-      void Reset();
   };
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
+    Ref<SocketThreadPool> socketThreadPool)
+    : MulticastSocket(group, MulticastSocketOptions(), Ref(socketThreadPool)) {}
+
+  inline MulticastSocket::MulticastSocket(const IpAddress& group,
+      const MulticastSocketOptions& options,
+      Ref<SocketThreadPool> socketThreadPool)
       : m_group(group),
-        m_interface(interface),
-        m_socketThreadPool(socketThreadPool.Get()) {
-    Reset();
+        m_socketThreadPool(socketThreadPool.Get()),
+        m_socket(std::make_shared<Details::UdpSocketEntry>(
+          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          boost::asio::ip::udp::v4())) {
+    Open(boost::none, options);
+  }
+
+  inline MulticastSocket::MulticastSocket(const IpAddress& group,
+    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
+    : MulticastSocket(group, interface, MulticastSocketOptions(),
+        Ref(socketThreadPool)) {}
+
+  inline MulticastSocket::MulticastSocket(const IpAddress& group,
+      const IpAddress& interface, const MulticastSocketOptions& options,
+      Ref<SocketThreadPool> socketThreadPool)
+      : m_group(group),
+        m_socketThreadPool(socketThreadPool.Get()),
+        m_socket(std::make_shared<Details::UdpSocketEntry>(
+          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          boost::asio::ip::udp::v4())) {
+    Open(interface, options);
   }
 
   inline MulticastSocket::~MulticastSocket() {
     Close();
-  }
-
-  inline const UdpSocketReceiver::Settings& MulticastSocket::
-      GetReceiverSettings() const {
-    return m_receiverSettings;
-  }
-
-  inline void MulticastSocket::SetReceiverSettings(
-      const UdpSocketReceiver::Settings& settings) {
-    m_receiverSettings = settings;
   }
 
   inline const IpAddress& MulticastSocket::GetGroup() const {
@@ -146,12 +160,18 @@ namespace Network {
     return *m_sender;
   }
 
-  inline void MulticastSocket::Open() {
-    if(m_openState.SetOpening()) {
+  inline void MulticastSocket::Close() {
+    if(m_openState.SetClosing()) {
       return;
     }
+    Shutdown();
+  }
+
+  inline void MulticastSocket::Open(const IpAddress& interface,
+      const MulticastSocketOptions& options) {
+    m_openState.SetOpening();
     try {
-      boost::system::error_code errorCode;
+    auto errorCode = boost::system::error_code();
       auto outboundInterface = boost::asio::ip::address_v4::from_string(
         m_interface.GetHost(), errorCode);
       if(errorCode) {
@@ -206,30 +226,11 @@ namespace Network {
     m_openState.SetOpen();
   }
 
-  inline void MulticastSocket::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
-  }
-
   inline void MulticastSocket::Shutdown() {
     m_socket->Close();
     Reset();
     m_openState.SetClosed();
   }
-
-  inline void MulticastSocket::Reset() {
-    m_socket.reset();
-    m_receiver = std::nullopt;
-    m_sender = std::nullopt;
-    m_socket = std::make_shared<Details::UdpSocketEntry>(
-      m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
-      boost::asio::ip::udp::v4());
-    m_receiver.emplace(m_socket);
-    m_sender.emplace(m_socket);
-  }
-}
 }
 
 #endif

@@ -34,7 +34,8 @@ void Beam::Python::ExportDatagramPacket(pybind11::module& module) {
       },
       [] (DatagramPacket<SharedBuffer>& self, IpAddress address) {
         self.GetAddress() = std::move(address);
-      });
+      })
+    .def("__str__", &lexical_cast<std::string, DatagramPacket<SharedBuffer>>);
 }
 
 void Beam::Python::ExportIpAddress(pybind11::module& module) {

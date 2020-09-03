@@ -1,5 +1,6 @@
 #ifndef BEAM_DATAGRAM_PACKET_HPP
 #define BEAM_DATAGRAM_PACKET_HPP
+#include <ostream>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 
@@ -40,6 +41,12 @@ namespace Beam::Network {
       Buffer m_data;
       IpAddress m_address;
   };
+
+  template<typename Buffer>
+  std::ostream& operator <<(std::ostream& out,
+      const DatagramPacket<Buffer>& packet) {
+    return out << packet.GetAddress() << ':' << packet.GetData();
+  }
 
   template<typename B>
   template<typename BF>

@@ -1,7 +1,6 @@
 #ifndef BEAM_TCP_SOCKET_CHANNEL_HPP
 #define BEAM_TCP_SOCKET_CHANNEL_HPP
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
@@ -17,7 +16,7 @@ namespace Beam {
 namespace Network {
 
   /** Implements the Channel interface using a TCP socket. */
-  class TcpSocketChannel : private boost::noncopyable {
+  class TcpSocketChannel {
     public:
       using Identifier = SocketIdentifier;
       using Connection = TcpSocketConnection;
@@ -117,6 +116,8 @@ namespace Network {
       Writer m_writer;
 
       TcpSocketChannel(Ref<SocketThreadPool> socketThreadPool);
+      TcpSocketChannel(const TcpSocketChannel&) = delete;
+      TcpSocketChannel& operator =(const TcpSocketChannel&) = delete;
       void SetAddress(const IpAddress& address);
   };
 

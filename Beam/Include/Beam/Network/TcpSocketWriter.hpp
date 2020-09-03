@@ -38,24 +38,23 @@ namespace Network {
   inline void TcpSocketWriter::Write(const void* data, std::size_t size) {
     auto writeResult = Routines::Async<void>();
     m_socket->BeginWriteOperation();
-    m_tasks.Add(
-      [&] {
-        auto lock = std::lock_guard(m_socket->m_mutex);
-        boost::asio::async_write(m_socket->m_socket,
-          boost::asio::buffer(data, size),
-          [&] (const auto& error, auto writeSize) {
-            if(error) {
-              if(Details::IsEndOfFile(error)) {
-                writeResult.GetEval().SetException(IO::EndOfFileException());
-              } else {
-                writeResult.GetEval().SetException(
-                  SocketException{error.value(), error.message()});
-              }
+    m_tasks.Add([&] {
+      auto lock = std::lock_guard(m_socket->m_mutex);
+      boost::asio::async_write(m_socket->m_socket,
+        boost::asio::buffer(data, size),
+        [&] (const auto& error, auto writeSize) {
+          if(error) {
+            if(Details::IsEndOfFile(error)) {
+              writeResult.GetEval().SetException(IO::EndOfFileException());
             } else {
-              writeResult.GetEval().SetResult();
+              writeResult.GetEval().SetException(
+                SocketException{error.value(), error.message()});
             }
-          });
-      });
+          } else {
+            writeResult.GetEval().SetResult();
+          }
+        });
+    });
     try {
       writeResult.Get();
       m_socket->EndWriteOperation();

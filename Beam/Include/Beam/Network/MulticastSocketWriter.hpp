@@ -25,6 +25,8 @@ namespace Network {
 
       MulticastSocketWriter(std::shared_ptr<MulticastSocket> socket,
         IpAddress destination);
+      MulticastSocketWriter(const MulticastSocketWriter&) = delete;
+      MulticastSocketWriter& operator =(const MulticastSocketWriter&) = delete;
   };
 
   inline void MulticastSocketWriter::Write(const void* data, std::size_t size) {

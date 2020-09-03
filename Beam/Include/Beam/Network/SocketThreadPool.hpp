@@ -2,26 +2,22 @@
 #define BEAM_SOCKET_THREAD_POOL_HPP
 #include <memory>
 #include <boost/asio/io_service.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/thread.hpp>
 #include "Beam/Network/Network.hpp"
 
-namespace Beam {
-namespace Network {
+namespace Beam::Network {
 
-  /*! \class SocketThreadPool
-      \brief Provides the thread pool used by a group of socket Channels.
-   */
-  class SocketThreadPool : private boost::noncopyable {
+  /** Provides the thread pool used by a group of socket Channels. */
+  class SocketThreadPool {
     public:
 
-      //! Constructs a SocketThreadPool.
+      /** Constructs a SocketThreadPool. */
       SocketThreadPool();
 
-      //! Constructs a SocketThreadPool.
-      /*!
-        \param threadCount The number of threads to use.
-      */
+      /**
+       * Constructs a SocketThreadPool.
+       * @param threadCount The number of threads to use.
+       */
       SocketThreadPool(std::size_t threadCount);
 
       ~SocketThreadPool();
@@ -37,21 +33,22 @@ namespace Network {
       std::size_t m_threadCount;
       std::unique_ptr<boost::thread[]> m_threads;
 
+      SocketThreadPool(const SocketThreadPool&) = delete;
+      SocketThreadPool& operator =(const SocketThreadPool&) = delete;
       boost::asio::io_service& GetService();
   };
 
   inline SocketThreadPool::SocketThreadPool()
-      : SocketThreadPool(boost::thread::hardware_concurrency()) {}
+    : SocketThreadPool(boost::thread::hardware_concurrency()) {}
 
   inline SocketThreadPool::SocketThreadPool(std::size_t threadCount)
       : m_work(m_service),
         m_threadCount(threadCount),
         m_threads(std::make_unique<boost::thread[]>(m_threadCount)) {
     for(std::size_t i = 0; i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread(
-        [=] {
-          m_service.run();
-        });
+      m_threads[i] = boost::thread([=] {
+        m_service.run();
+      });
     }
   }
 
@@ -65,7 +62,6 @@ namespace Network {
   inline boost::asio::io_service& SocketThreadPool::GetService() {
     return m_service;
   }
-}
 }
 
 #endif

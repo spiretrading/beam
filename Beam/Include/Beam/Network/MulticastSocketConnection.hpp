@@ -8,7 +8,7 @@ namespace Beam {
 namespace Network {
 
   /** Provides a Connection interface for a MulticastSocket. */
-  class MulticastSocketConnection : private boost::noncopyable {
+  class MulticastSocketConnection {
     public:
       ~MulticastSocketConnection();
 

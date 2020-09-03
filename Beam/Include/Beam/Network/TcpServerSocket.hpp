@@ -1,7 +1,6 @@
 #ifndef BEAM_TCP_SERVER_SOCKET_HPP
 #define BEAM_TCP_SERVER_SOCKET_HPP
 #include <string>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -15,7 +14,7 @@ namespace Beam {
 namespace Network {
 
   /** Implements a TCP server socket. */
-  class TcpServerSocket : private boost::noncopyable {
+  class TcpServerSocket {
     public:
       using Channel = TcpSocketChannel;
 
@@ -64,6 +63,8 @@ namespace Network {
       boost::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
       IO::OpenState m_openState;
 
+      TcpServerSocket(const TcpServerSocket&) = delete;
+      TcpServerSocket& operator =(const TcpServerSocket&) = delete;
       void Shutdown();
   };
 

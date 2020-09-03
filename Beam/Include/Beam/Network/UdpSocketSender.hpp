@@ -62,26 +62,24 @@ namespace Beam::Network {
       const IpAddress& destination) {
     auto writeResult = Routines::Async<void>();
     m_socket->BeginWriteOperation();
-    m_tasks.Add(
-      [&] {
-        auto destinationEndpoint = boost::asio::ip::udp::endpoint(
-          boost::asio::ip::address::from_string(destination.GetHost()),
-          destination.GetPort());
-        m_socket->m_socket.async_send_to(boost::asio::buffer(data, size),
-            destinationEndpoint,
-          [&] (const auto& error, auto writeSize) {
-            if(error) {
-              if(Details::IsEndOfFile(error)) {
-                writeResult.GetEval().SetException(IO::EndOfFileException());
-                return;
-              }
-              writeResult.GetEval().SetException(SocketException(error.value(),
-                error.message()));
-              return;
-            }
-            writeResult.GetEval().SetResult();
-          });
+    m_tasks.Add([&] {
+      auto destinationEndpoint = boost::asio::ip::udp::endpoint(
+        boost::asio::ip::address::from_string(destination.GetHost()),
+        destination.GetPort());
+      m_socket->m_socket.async_send_to(boost::asio::buffer(data, size),
+          destinationEndpoint, [&] (const auto& error, auto writeSize) {
+        if(error) {
+          if(Details::IsEndOfFile(error)) {
+            writeResult.GetEval().SetException(IO::EndOfFileException());
+            return;
+          }
+          writeResult.GetEval().SetException(SocketException(error.value(),
+            error.message()));
+          return;
+        }
+        writeResult.GetEval().SetResult();
       });
+    });
     try {
       writeResult.Get();
       m_socket->EndWriteOperation();

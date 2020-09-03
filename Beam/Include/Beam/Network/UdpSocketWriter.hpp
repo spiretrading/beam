@@ -24,6 +24,8 @@ namespace Network {
       std::shared_ptr<UdpSocket> m_socket;
 
       UdpSocketWriter(std::shared_ptr<UdpSocket> socket);
+      UdpSocketWriter(const UdpSocketWriter&) = delete;
+      UdpSocketWriter& operator =(const UdpSocketWriter&) = delete;
   };
 
   inline void UdpSocketWriter::Write(const void* data, std::size_t size) {

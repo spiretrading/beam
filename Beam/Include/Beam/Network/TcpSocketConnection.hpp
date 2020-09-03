@@ -15,7 +15,7 @@ namespace Beam {
 namespace Network {
 
   /** Implements a Connection using a TCP socket. */
-  class TcpSocketConnection : private boost::noncopyable {
+  class TcpSocketConnection {
     public:
       ~TcpSocketConnection();
 

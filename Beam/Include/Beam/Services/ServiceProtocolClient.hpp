@@ -166,8 +166,10 @@ namespace Details {
       std::unordered_map<int, Routines::BaseEval*> m_pendingRequests;
       Queue<std::shared_ptr<Message<ServiceProtocolClient>>> m_messages;
       bool m_isShuttingDown;
+      std::atomic_bool m_isReading;
       IO::OpenState m_openState;
 
+      void Open();
       void Shutdown();
       void Fail(void* source);
       void ReadLoop();
@@ -235,13 +237,9 @@ namespace Details {
         m_timer(std::forward<TF>(timer)),
         m_timerQueue(std::make_shared<Queue<Threading::Timer::Result>>()),
         m_nextRequestId(1),
-        m_isShuttingDown(false) {
+        m_isShuttingDown(false),
+        m_isReading(false) {
     m_timer->GetPublisher().Monitor(m_timerQueue);
-    m_timer->Start();
-    m_timerLoop = Routines::Spawn(
-      std::bind(&ServiceProtocolClient::TimerLoop, this));
-    m_readLoop = Routines::Spawn(
-      std::bind(&ServiceProtocolClient::ReadLoop, this));
     m_openState.SetOpen();
   }
 
@@ -324,6 +322,7 @@ namespace Details {
       }
       m_pendingRequests.insert(std::make_pair(requestId, &resultEval));
     }
+    Open();
     try {
       m_protocol.Send(&request);
     } catch(const std::exception&) {
@@ -345,6 +344,7 @@ namespace Details {
   template<typename M, typename T, typename P, typename S, bool V>
   std::shared_ptr<Message<ServiceProtocolClient<M, T, P, S, V>>>
       ServiceProtocolClient<M, T, P, S, V>::ReadMessage() {
+    Open();
     return m_messages.Pop();
   }
 
@@ -360,6 +360,18 @@ namespace Details {
       return;
     }
     Shutdown();
+  }
+
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::Open() {
+    if(m_isReading.exchange(true)) {
+      return;
+    }
+    m_timer->Start();
+    m_timerLoop = Routines::Spawn(
+      std::bind(&ServiceProtocolClient::TimerLoop, this));
+    m_readLoop = Routines::Spawn(
+      std::bind(&ServiceProtocolClient::ReadLoop, this));
   }
 
   template<typename M, typename T, typename P, typename S, bool V>

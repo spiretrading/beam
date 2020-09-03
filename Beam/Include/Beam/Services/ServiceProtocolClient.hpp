@@ -1,5 +1,5 @@
-#ifndef BEAM_SERVICEPROTOCOLCLIENT_HPP
-#define BEAM_SERVICEPROTOCOLCLIENT_HPP
+#ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HPP
+#define BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #include <atomic>
 #include <iostream>
 #include <unordered_map>
@@ -29,141 +29,134 @@
 #include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
 #include "Beam/Threading/Timer.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/NullType.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/StaticMemberChecks.hpp"
 
-namespace Beam {
-namespace Services {
+namespace Beam::Services {
 namespace Details {
   BEAM_DEFINE_HAS_VARIABLE(HasParallelism, SupportsParallelism);
 }
 
-  /*! \class ServiceProtocolClient
-      \brief Implements the service protocol on top of a Channel.
-      \tparam MessageProtocolType The type of MessageProtocol used to send and
-              receive messages.
-      \tparam TimerType The type of Timer used for heartbeats.
-      \tparam ServiceSlotsPolicy The pointer policy used for ServiceSlots.
-      \tparam SessionType Stores session information.
-      \tparam SupportsParallelismValue Whether this client supports handling
-              messages in parallel.
+  /**
+   * Implements the service protocol on top of a Channel.
+   * @param M The type of MessageProtocol used to send and receive messages.
+   * @param T The type of Timer used for heartbeats.
+   * @param P The pointer policy used for ServiceSlots.
+   * @param S Stores session information.
+   * @param V Whether this client supports handling messages in parallel.
    */
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy = LocalPointerPolicy,
-    typename SessionType = NullType, bool SupportsParallelismValue = false>
+  template<typename M, typename T, typename P = LocalPointerPolicy,
+    typename S = NullType, bool V = false>
   class ServiceProtocolClient : private boost::noncopyable {
     public:
 
-      //! The type of MessageProtocol used to send and receive messages.
-      using MessageProtocol = MessageProtocolType;
+      /** The type of MessageProtocol used to send and receive messages. */
+      using MessageProtocol = M;
 
-      //! The type of ServiceSlots used.
+      /** The type of ServiceSlots used. */
       using ServiceSlots = Services::ServiceSlots<ServiceProtocolClient>;
 
-      //! The type of Timer used.
-      using Timer = TimerType;
+      /** The type of Timer used. */
+      using Timer = T;
 
-      //! The type of Session info stored.
-      using Session = SessionType;
+      /** The type of Session info stored. */
+      using Session = S;
 
-      //! Whether this client supports handling messages in parallel.
-      static constexpr bool SupportsParallelism = SupportsParallelismValue;
+      /** Whether this client supports handling messages in parallel. */
+      static constexpr auto SupportsParallelism = V;
 
-      //! Constructs a ServiceProtocolClient.
-      /*!
-        \param channel Initializes the client's Channel.
-        \param slots Initializes the ServiceSlots.
-        \param timer The type of Timer used.
-      */
-      template<typename ChannelForward, typename ServiceSlotsForward,
-        typename TimerForward>
-      ServiceProtocolClient(ChannelForward&& channel,
-        ServiceSlotsForward&& slots, TimerForward&& timer);
+      /**
+       * Constructs a ServiceProtocolClient.
+       * @param channel Initializes the client's Channel.
+       * @param slots Initializes the ServiceSlots.
+       * @param timer The type of Timer used.
+       */
+      template<typename CF, typename SF, typename TF>
+      ServiceProtocolClient(CF&& channel, SF&& slots, TF&& timer);
 
-      //! Constructs a ServiceProtocolClient.
-      /*!
-        \param channel Initializes the client's Channel.
-        \param timer The type of Timer used.
-      */
-      template<typename ChannelForward, typename TimerForward>
-      ServiceProtocolClient(ChannelForward&& channel, TimerForward&& timer);
+      /**
+       * Constructs a ServiceProtocolClient.
+       * @param channel Initializes the client's Channel.
+       * @param timer The type of Timer used.
+       */
+      template<typename CF, typename TF>
+      ServiceProtocolClient(CF&& channel, TF&& timer);
 
       ~ServiceProtocolClient();
 
-      //! Returns the ServiceSlots.
+      /** Returns the ServiceSlots. */
       const ServiceSlots& GetSlots() const;
 
-      //! Returns the ServiceSlots.
+      /** Returns the ServiceSlots. */
       ServiceSlots& GetSlots();
 
-      //! Returns the session info.
+      /** Returns the session info. */
       const Session& GetSession() const;
 
-      //! Returns the session info.
+      /** Returns the session info. */
       Session& GetSession();
 
-      //! Clones a ServiceRequestException usable with this protocol.
-      /*!
-        \param e The ServiceRequestException to clone.
-      */
+      /**
+       * Clones a ServiceRequestException usable with this protocol.
+       * @param e The ServiceRequestException to clone.
+       */
       std::unique_ptr<ServiceRequestException> CloneException(
         const ServiceRequestException& e);
 
-      //! Encodes a Message using this client's MessageProtocol.
-      /*!
-        \param message The Message to encode.
-        \param buffer The Buffer to store the encoded Message in.
-      */
+      /**
+       * Encodes a Message using this client's MessageProtocol.
+       * @param message The Message to encode.
+       * @param buffer The Buffer to store the encoded Message in.
+       */
       template<typename Buffer>
       void Encode(const Message<ServiceProtocolClient>& message,
         Out<Buffer> buffer);
 
-      //! Sends a Message.
-      /*!
-        \param message The Message to send.
-      */
+      /**
+       * Sends a Message.
+       * @param message The Message to send.
+       */
       void Send(const Message<ServiceProtocolClient>& message);
 
-      //! Sends a Buffer.
-      /*!
-        \param buffer The Buffer to send.
-      */
-      template<typename Buffer>
-      typename std::enable_if<ImplementsConcept<
-        Buffer, IO::Buffer>::value>::type Send(const Buffer& buffer);
+      /**
+       * Sends a Buffer.
+       * @param buffer The Buffer to send.
+       */
+      template<typename Buffer, typename =
+        std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>>
+      void Send(const Buffer& buffer);
 
-      //! Sends a request for a Service.
-      /*!
-        \param parameters The Service's parameters.
-        \return The response to this Service::Request.
-      */
+      /**
+       * Sends a request for a Service.
+       * @param parameters The Service's parameters.
+       * @return The response to this Service::Request.
+       */
       template<typename Service>
       GetStorageType<typename Service::Return> SendServiceRequest(
         const typename Service::Parameters& parameters);
 
-      //! Sends a request for a Service.
-      /*!
-        \param args The parameters to send.
-        \return The response to this Service::Request.
-      */
+      /**
+       * Sends a request for a Service.
+       * @param args The parameters to send.
+       * @return The response to this Service::Request.
+       */
       template<typename Service, typename... Args>
       GetStorageType<typename Service::Return> SendRequest(Args&&... args);
 
-      //! Reads a Message from the Channel.
+      /** Reads a Message from the Channel. */
       std::shared_ptr<Message<ServiceProtocolClient>> ReadMessage();
 
-      //! Spawns a Message handling loop for this ServiceProtocolClient.
+      /** Spawns a Message handling loop for this ServiceProtocolClient. */
       void SpawnMessageHandler();
 
       void Close();
 
     private:
       mutable boost::mutex m_mutex;
-      typename ServiceSlotsPolicy::template apply<ServiceSlots>::type m_slots;
+      typename P::template apply<ServiceSlots>::type m_slots;
       MessageProtocol m_protocol;
-      GetOptionalLocalPtr<TimerType> m_timer;
+      GetOptionalLocalPtr<T> m_timer;
       Session m_session;
       Routines::RoutineHandler m_readLoop;
       Routines::RoutineHandler m_timerLoop;
@@ -181,35 +174,35 @@ namespace Details {
       void TimerLoop();
   };
 
-  /*! \class SupportsParallelism
-      \brief A type trait to determine whether a servlet handles parallel
-             message handling.
-      \tparam T The type of ServiceProtocolClient.
+  /**
+   * A type trait to determine whether a servlet handles parallel message
+   * handling.
+   * @param <T> The type of ServiceProtocolClient.
    */
   template<typename T, typename Enabled = void>
   struct SupportsParallelism {
-    static constexpr bool value = false;
+    static constexpr auto value = false;
   };
 
   template<typename T>
-  struct SupportsParallelism<T, typename std::enable_if<
-      Details::HasParallelism<T>::value>::type> {
-    static constexpr bool value = T::SupportsParallelism;
+  struct SupportsParallelism<T,
+      std::enable_if_t<Details::HasParallelism<T>::value>> {
+    static constexpr auto value = T::SupportsParallelism;
   };
 
-  //! Implements a basic Message handling loop for a ServiceProtocolClient.
-  /*!
-    \param client The ServiceProtocolClient to handle the Messages for.
-  */
+  /**
+   * Implements a basic Message handling loop for a ServiceProtocolClient.
+   * @param client The ServiceProtocolClient to handle the Messages for.
+   */
   template<typename ServiceProtocolClientType>
   void HandleMessagesLoop(ServiceProtocolClientType& client) {
-    Routines::RoutineHandlerGroup routines;
+    auto routines = Routines::RoutineHandlerGroup();
     try {
       while(true) {
         auto message = client.ReadMessage();
         auto slot = client.GetSlots().Find(*message);
         if(slot != nullptr) {
-          if(SupportsParallelism<ServiceProtocolClientType>::value) {
+          if constexpr(SupportsParallelism<ServiceProtocolClientType>::value) {
             routines.Spawn(
               [&, message = std::move(message), slot = std::move(slot)] {
                 try {
@@ -230,172 +223,101 @@ namespace Details {
     } catch(const IO::EndOfFileException&) {
       return;
     }
-  };
+  }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  template<typename ChannelForward, typename ServiceSlotsForward,
-    typename TimerForward>
-  ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::ServiceProtocolClient(
-      ChannelForward&& channel, ServiceSlotsForward&& slots,
-      TimerForward&& timer)
-      : m_slots(std::forward<ServiceSlotsForward>(slots)),
-        m_protocol(std::forward<ChannelForward>(channel),
-          Ref(m_slots->GetRegistry()), Ref(m_slots->GetRegistry()),
-          Initialize(), Initialize()),
-        m_timer(std::forward<TimerForward>(timer)),
+  template<typename M, typename T, typename P, typename S, bool V>
+  template<typename CF, typename SF, typename TF>
+  ServiceProtocolClient<M, T, P, S, V>::ServiceProtocolClient(CF&& channel,
+      SF&& slots, TF&& timer)
+      : m_slots(std::forward<SF>(slots)),
+        m_protocol(std::forward<CF>(channel), Ref(m_slots->GetRegistry()),
+          Ref(m_slots->GetRegistry()), Initialize(), Initialize()),
+        m_timer(std::forward<TF>(timer)),
+        m_timerQueue(std::make_shared<Queue<Threading::Timer::Result>>()),
         m_nextRequestId(1),
         m_isShuttingDown(false) {
-    m_openState.SetOpening();
-    try {
-      m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
-      m_timer->GetPublisher().Monitor(m_timerQueue);
-      m_timer->Start();
-      m_timerLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::TimerLoop, this));
-      m_readLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::ReadLoop, this));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
+    m_timer->GetPublisher().Monitor(m_timerQueue);
+    m_timer->Start();
+    m_timerLoop = Routines::Spawn(
+      std::bind(&ServiceProtocolClient::TimerLoop, this));
+    m_readLoop = Routines::Spawn(
+      std::bind(&ServiceProtocolClient::ReadLoop, this));
     m_openState.SetOpen();
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  template<typename ChannelForward, typename TimerForward>
-  ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::ServiceProtocolClient(
-      ChannelForward&& channel, TimerForward&& timer)
-      : m_protocol(std::forward<ChannelForward>(channel),
-          Ref(m_slots->GetRegistry()), Ref(m_slots->GetRegistry()),
-          Initialize(), Initialize()),
-        m_timer(std::forward<TimerForward>(timer)),
-        m_nextRequestId(1),
-        m_isShuttingDown(false) {
-    m_openState.SetOpening();
-    try {
-      m_timerQueue = std::make_shared<Queue<Threading::Timer::Result>>();
-      m_timer->GetPublisher().Monitor(m_timerQueue);
-      m_timer->Start();
-      m_timerLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::TimerLoop, this));
-      m_readLoop = Routines::Spawn(
-        std::bind(&ServiceProtocolClient::ReadLoop, this));
-    } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
-    }
-    m_openState.SetOpen();
-  }
+  template<typename M, typename T, typename P, typename S, bool V>
+  template<typename CF, typename TF>
+  ServiceProtocolClient<M, T, P, S, V>::ServiceProtocolClient(CF&& channel,
+    TF&& timer)
+    : ServiceProtocolClient(std::forward<CF>(channel), Initialize(),
+        std::forward<TF>(timer)) {}
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::~ServiceProtocolClient() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  ServiceProtocolClient<M, T, P, S, V>::~ServiceProtocolClient() {
     Close();
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  const typename ServiceProtocolClient<MessageProtocolType, TimerType,
-      ServiceSlotsPolicy, SessionType, SupportsParallelismValue>::ServiceSlots&
-      ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::GetSlots() const {
+  template<typename M, typename T, typename P, typename S, bool V>
+  const typename ServiceProtocolClient<M, T, P, S, V>::ServiceSlots&
+      ServiceProtocolClient<M, T, P, S, V>::GetSlots() const {
     return *m_slots;
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  typename ServiceProtocolClient<MessageProtocolType, TimerType,
-      ServiceSlotsPolicy, SessionType, SupportsParallelismValue>::ServiceSlots&
-      ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::GetSlots() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  typename ServiceProtocolClient<M, T, P, S, V>::ServiceSlots&
+      ServiceProtocolClient<M, T, P, S, V>::GetSlots() {
     return *m_slots;
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  const typename ServiceProtocolClient<MessageProtocolType, TimerType,
-      ServiceSlotsPolicy, SessionType, SupportsParallelismValue>::Session&
-      ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::GetSession() const {
+  template<typename M, typename T, typename P, typename S, bool V>
+  const typename ServiceProtocolClient<M, T, P, S, V>::Session&
+      ServiceProtocolClient<M, T, P, S, V>::GetSession() const {
     return m_session;
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  typename ServiceProtocolClient<MessageProtocolType, TimerType,
-      ServiceSlotsPolicy, SessionType, SupportsParallelismValue>::Session&
-      ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::GetSession() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  typename ServiceProtocolClient<M, T, P, S, V>::Session&
+      ServiceProtocolClient<M, T, P, S, V>::GetSession() {
     return m_session;
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
+  template<typename M, typename T, typename P, typename S, bool V>
   std::unique_ptr<ServiceRequestException> ServiceProtocolClient<
-      MessageProtocolType, TimerType, ServiceSlotsPolicy, SessionType,
-      SupportsParallelismValue>::CloneException(
-      const ServiceRequestException& e) {
+      M, T, P, S, V>::CloneException(const ServiceRequestException& e) {
     return m_protocol.Clone(e);
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
+  template<typename M, typename T, typename P, typename S, bool V>
   template<typename Buffer>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Encode(
+  void ServiceProtocolClient<M, T, P, S, V>::Encode(
       const Message<ServiceProtocolClient>& message, Out<Buffer> buffer) {
     m_protocol.Encode(&message, Store(buffer));
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Send(
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::Send(
       const Message<ServiceProtocolClient>& message) {
     m_protocol.Send(&message);
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  template<typename Buffer>
-  typename std::enable_if<ImplementsConcept<
-      Buffer, IO::Buffer>::value>::type ServiceProtocolClient<
-      MessageProtocolType, TimerType, ServiceSlotsPolicy, SessionType,
-      SupportsParallelismValue>::Send(const Buffer& buffer) {
+  template<typename M, typename T, typename P, typename S, bool V>
+  template<typename Buffer, typename>
+  void ServiceProtocolClient<M, T, P, S, V>::Send(const Buffer& buffer) {
     m_protocol.Send(buffer);
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
+  template<typename M, typename T, typename P, typename S, bool V>
   template<typename Service>
-  GetStorageType<typename Service::Return> ServiceProtocolClient<
-      MessageProtocolType, TimerType, ServiceSlotsPolicy, SessionType,
-      SupportsParallelismValue>::SendServiceRequest(
+  GetStorageType<typename Service::Return>
+      ServiceProtocolClient<M, T, P, S, V>::SendServiceRequest(
       const typename Service::Parameters& parameters) {
-    Routines::Async<typename Service::Return> resultAsync;
+    auto resultAsync = Routines::Async<typename Service::Return>();
     auto resultEval = resultAsync.GetEval();
     auto requestId = ++m_nextRequestId;
-    typename Service::template Request<ServiceProtocolClient> request(requestId,
-      parameters);
+    auto request = typename Service::template Request<ServiceProtocolClient>(
+      requestId, parameters);
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       if(!m_openState.IsOpen() || m_isShuttingDown) {
         BOOST_THROW_EXCEPTION(ServiceRequestException(
           "ServiceProtocolClient closed."));
@@ -405,69 +327,50 @@ namespace Details {
     try {
       m_protocol.Send(&request);
     } catch(const std::exception&) {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       m_pendingRequests.erase(requestId);
       BOOST_RETHROW;
     }
     return std::move(resultAsync.Get());
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
+  template<typename M, typename T, typename P, typename S, bool V>
   template<typename Service, typename... Args>
-  GetStorageType<typename Service::Return> ServiceProtocolClient<
-      MessageProtocolType, TimerType, ServiceSlotsPolicy, SessionType,
-      SupportsParallelismValue>::SendRequest(Args&&... args) {
+  GetStorageType<typename Service::Return>
+      ServiceProtocolClient<M, T, P, S, V>::SendRequest(Args&&... args) {
     return SendServiceRequest<Service>(
       typename Service::Parameters(std::forward<Args>(args)...));
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  std::shared_ptr<Message<ServiceProtocolClient<MessageProtocolType, TimerType,
-      ServiceSlotsPolicy, SessionType, SupportsParallelismValue>>>
-      ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::ReadMessage() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  std::shared_ptr<Message<ServiceProtocolClient<M, T, P, S, V>>>
+      ServiceProtocolClient<M, T, P, S, V>::ReadMessage() {
     return m_messages.Pop();
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::SpawnMessageHandler() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::SpawnMessageHandler() {
     m_messageHandler = Routines::Spawn(
       std::bind(HandleMessagesLoop<ServiceProtocolClient>, std::ref(*this)));
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Close() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
     Shutdown();
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Shutdown() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::Shutdown() {
     Fail(nullptr);
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::Fail(void* source) {
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::Fail(void* source) {
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       m_isShuttingDown = true;
     }
     m_protocol.GetChannel().GetConnection().Close();
@@ -480,9 +383,9 @@ namespace Details {
       m_readLoop.Wait();
     }
     m_messageHandler.Wait();
-    std::unordered_map<int, Routines::BaseEval*> pendingRequests;
+    auto pendingRequests = std::unordered_map<int, Routines::BaseEval*>();
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = boost::lock_guard(m_mutex);
       pendingRequests.swap(m_pendingRequests);
     }
     for(auto& eval : pendingRequests | boost::adaptors::map_values) {
@@ -492,17 +395,14 @@ namespace Details {
     m_openState.SetClosed();
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::ReadLoop() {
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::ReadLoop() {
     while(true) {
-      std::unique_ptr<Message<ServiceProtocolClient>> message;
+      auto message = std::unique_ptr<Message<ServiceProtocolClient>>();
       try {
         message = m_protocol.template Receive<
           std::unique_ptr<Message<ServiceProtocolClient>>>();
-        if(message == nullptr) {
+        if(!message) {
           Fail(&m_readLoop);
           return;
         }
@@ -517,19 +417,17 @@ namespace Details {
       auto serviceMessage =
         dynamic_cast<ServiceMessage<ServiceProtocolClient>*>(message.get());
       if(serviceMessage != nullptr && serviceMessage->IsResponseMessage()) {
-        Routines::BaseEval* eval;
+        auto eval = static_cast<Routines::BaseEval*>(nullptr);
         {
-          boost::lock_guard<boost::mutex> lock(m_mutex);
+          auto lock = boost::lock_guard(m_mutex);
           auto responseIterator = m_pendingRequests.find(
             serviceMessage->GetRequestId());
           if(responseIterator != m_pendingRequests.end()) {
             eval = responseIterator->second;
             m_pendingRequests.erase(responseIterator);
-          } else {
-            eval = nullptr;
           }
         }
-        if(eval != nullptr) {
+        if(eval) {
           serviceMessage->SetEval(*eval);
         }
       } else {
@@ -547,12 +445,9 @@ namespace Details {
     }
   }
 
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue>
-  void ServiceProtocolClient<MessageProtocolType, TimerType, ServiceSlotsPolicy,
-      SessionType, SupportsParallelismValue>::TimerLoop() {
-    HeartbeatMessage<ServiceProtocolClient> heartbeatMessage;
+  template<typename M, typename T, typename P, typename S, bool V>
+  void ServiceProtocolClient<M, T, P, S, V>::TimerLoop() {
+    auto heartbeatMessage = HeartbeatMessage<ServiceProtocolClient>();
     try {
       while(m_openState.IsRunning()) {
         if(m_timerQueue->Pop() == Threading::Timer::Result::EXPIRED) {
@@ -566,7 +461,6 @@ namespace Details {
       return;
     }
   }
-}
 }
 
 #endif

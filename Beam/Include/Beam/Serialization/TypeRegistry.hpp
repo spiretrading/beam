@@ -1,10 +1,9 @@
-#ifndef BEAM_TYPEREGISTRY_HPP
-#define BEAM_TYPEREGISTRY_HPP
+#ifndef BEAM_TYPE_REGISTRY_HPP
+#define BEAM_TYPE_REGISTRY_HPP
 #include <functional>
 #include <string>
 #include <typeindex>
 #include <unordered_map>
-#include <boost/noncopyable.hpp>
 #include <boost/preprocessor/list/for_each.hpp>
 #include <boost/preprocessor/tuple/to_list.hpp>
 #include "Beam/Pointers/Ref.hpp"
@@ -21,9 +20,8 @@
   registry->template Register<BEAM_GET_TYPE_NAME q>(BEAM_GET_TYPE_UID q);
 
 #define BEAM_REGISTER_TYPES_(Name, TypeList)                                   \
-  template<typename SenderType>                                                \
-  void Name(::Beam::Out< ::Beam::Serialization::TypeRegistry<                  \
-      SenderType>> registry) {                                                 \
+  template<typename S>                                                         \
+  void Name(::Beam::Out< ::Beam::Serialization::TypeRegistry<S>> registry) {   \
     BOOST_PP_LIST_FOR_EACH(BEAM_REGISTER_TYPE, BOOST_PP_EMPTY, TypeList);      \
   }
 
@@ -31,8 +29,7 @@
   BEAM_REGISTER_TYPES_(Name, BOOST_PP_TUPLE_TO_LIST(PP_NARG(__VA_ARGS__),      \
     (__VA_ARGS__)))
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
 namespace Details {
   struct NullShuttle {
     template<typename Shuttler>
@@ -40,54 +37,57 @@ namespace Details {
   };
 }
 
-  /*! \class TypeRegistry
-      \brief Stores a registry of polymorphic types capable of serialization.
-      \tparam SenderType The type of Sender.
+  /**
+   * Stores a registry of polymorphic types capable of serialization.
+   * @param <S> The type of Sender.
    */
-  template<typename SenderType>
-  class TypeRegistry : private boost::noncopyable {
+  template<typename S>
+  class TypeRegistry {
     public:
 
-      //! Specifies the Sender's type.
-      using Sender = SenderType;
+      /** Specifies the Sender's type. */
+      using Sender = S;
 
-      //! Specifies the Receiver's type.
-      using Receiver = typename Inverse<SenderType>::type;
+      /** Specifies the Receiver's type. */
+      using Receiver = typename Inverse<S>::type;
 
-      //! The TypeEntries stored by this registry.
+      /** The TypeEntries stored by this registry. */
       using TypeEntry = Serialization::TypeEntry<Sender>;
 
-      //! Constructs a TypeRegistry.
+      /** Constructs a TypeRegistry. */
       TypeRegistry();
 
-      //! Returns the TypeEntry for a specified type.
+      /** Copies a TypeRegistry. */
+      TypeRegistry(const TypeRegistry& registry);
+
+      /** Returns the TypeEntry for a specified type. */
       template<typename T>
       const TypeEntry& GetEntry() const;
 
-      //! Returns the TypeEntry for a given value.
+      /** Returns the TypeEntry for a given value. */
       template<typename T>
       const TypeEntry& GetEntry(const T& value) const;
 
-      //! Returns the TypeEntry with a given name.
-      /*!
-        \param name The name of the TypeEntry.
-        \return The TypeEntry with the specified <i>name</i>.
-      */
+      /**
+       * Returns the TypeEntry with a given name.
+       * @param name The name of the TypeEntry.
+       * @return The TypeEntry with the specified <i>name</i>.
+       */
       const TypeEntry& GetEntry(const std::string& name) const;
 
-      //! Registers a type.
-      /*!
-        \tparam T The type to register.
-        \param name The name of the type to register.
-      */
+      /**
+       * Registers a type.
+       * @param <T> The type to register.
+       * @param name The name of the type to register.
+       */
       template<typename T>
       void Register(const std::string& name);
 
-      //! Acquires all types in another TypeRegistry.
-      /*!
-        \param registry The registry whose types are to be acquired.
-      */
-      void Acquire(TypeRegistry&& registry);
+      /**
+       * Adds all types from an existing registry.
+       * @param registry The TypeRegistry to add.
+       */
+      void Add(const TypeRegistry& registry);
 
     private:
       using TypeEntryIterator =
@@ -102,87 +102,87 @@ namespace Details {
         unsigned int version);
   };
 
-  template<typename SenderType>
-  TypeRegistry<SenderType>::TypeRegistry() {
+  template<typename S>
+  TypeRegistry<S>::TypeRegistry() {
     Register<Details::NullShuttle>("__null");
   }
 
-  template<typename SenderType>
+  template<typename S>
+  TypeRegistry<S>::TypeRegistry(const TypeRegistry& registry) {
+    Add(registry);
+  }
+
+  template<typename S>
   template<typename T>
-  const TypeEntry<SenderType>& TypeRegistry<SenderType>::GetEntry() const {
-    std::type_index type{typeid(T)};
+  const TypeEntry<S>& TypeRegistry<S>::GetEntry() const {
+    auto type = std::type_index(typeid(T));
     auto typeIterator = m_types.find(type);
     if(typeIterator == m_types.end()) {
-      throw TypeNotFoundException{type.name()};
+      BOOST_THROW_EXCEPTION(TypeNotFoundException(type.name()));
     }
     return typeIterator->second;
   }
 
-  template<typename SenderType>
+  template<typename S>
   template<typename T>
-  const TypeEntry<SenderType>& TypeRegistry<SenderType>::GetEntry(
-      const T& value) const {
-    std::type_index type{typeid(*(&const_cast<T&>(value)))};
+  const TypeEntry<S>& TypeRegistry<S>::GetEntry(const T& value) const {
+    auto type = std::type_index(typeid(*(&const_cast<T&>(value))));
     auto typeIterator = m_types.find(type);
     if(typeIterator == m_types.end()) {
-      throw TypeNotFoundException{type.name()};
+      BOOST_THROW_EXCEPTION(TypeNotFoundException(type.name()));
     }
     return typeIterator->second;
   }
 
-  template<typename SenderType>
-  const TypeEntry<SenderType>& TypeRegistry<SenderType>::GetEntry(
-      const std::string& name) const {
+  template<typename S>
+  const TypeEntry<S>& TypeRegistry<S>::GetEntry(const std::string& name) const {
     auto typeIterator = m_typeNames.find(name);
     if(typeIterator == m_typeNames.end()) {
-      BOOST_THROW_EXCEPTION(TypeNotFoundException{name});
+      BOOST_THROW_EXCEPTION(TypeNotFoundException(name));
     }
     return typeIterator->second->second;
   }
 
-  template<typename SenderType>
+  template<typename S>
   template<typename T>
-  void TypeRegistry<SenderType>::Register(const std::string& name) {
-    typename TypeEntry::BuildFunction builder =
-      static_cast<T* (*)()>(&DataShuttle::Builder<T>);
-    typename TypeEntry::SendFunction sender = &Send<T>;
-    typename TypeEntry::ReceiveFunction receiver = &Receive<T>;
-    std::type_index type{typeid(T)};
-    TypeEntry entry(type, name, std::move(builder), std::move(sender),
+  void TypeRegistry<S>::Register(const std::string& name) {
+    auto builder = static_cast<T* (*)()>(&DataShuttle::Builder<T>);
+    auto sender = &Send<T>;
+    auto receiver = &Receive<T>;
+    auto type = std::type_index(typeid(T));
+    auto entry = TypeEntry(type, name, std::move(builder), std::move(sender),
       std::move(receiver));
-    auto insertResult = m_types.insert(std::make_pair(type, std::move(entry)));
+    auto insertResult = m_types.insert(std::pair(type, std::move(entry)));
     if(insertResult.second) {
-      m_typeNames.insert(std::make_pair(name, insertResult.first));
+      m_typeNames.insert(std::pair(name, insertResult.first));
     }
   }
 
-  template<typename SenderType>
-  void TypeRegistry<SenderType>::Acquire(TypeRegistry&& registry) {
+  template<typename S>
+  void TypeRegistry<S>::Add(const TypeRegistry& registry) {
     for(auto& typeEntry : registry.m_typeNames) {
-      TypeEntry entry{std::move(typeEntry.second->second)};
-      std::type_index type{entry.GetType()};
-      auto insertResult = m_types.insert(
-        std::make_pair(type, std::move(entry)));
+      auto entry = TypeEntry(typeEntry.second->second);
+      auto type = std::type_index(entry.GetType());
+      auto insertResult = m_types.insert(std::pair(type, std::move(entry)));
       if(insertResult.second) {
-        m_typeNames.insert(std::make_pair(typeEntry.first, insertResult.first));
+        m_typeNames.insert(std::pair(typeEntry.first, insertResult.first));
       }
     }
   }
 
-  template<typename SenderType>
+  template<typename S>
   template<typename T>
-  void TypeRegistry<SenderType>::Send(Sender& sender, void* value,
+  void TypeRegistry<S>::Send(Sender& sender, void* value,
       unsigned int version) {
     Serialization::Send<T>()(sender, *static_cast<T*>(value), version);
   }
 
-  template<typename SenderType>
+  template<typename S>
   template<typename T>
-  void TypeRegistry<SenderType>::Receive(Receiver& receiver, void* value,
+  void TypeRegistry<S>::Receive(Receiver& receiver, void* value,
       unsigned int version) {
     Serialization::Receive<T>()(receiver, *static_cast<T*>(value), version);
   }
-}
 }
 
 #endif

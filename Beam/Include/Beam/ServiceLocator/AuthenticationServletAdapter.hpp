@@ -116,7 +116,7 @@ namespace Beam::ServiceLocator {
       [&] (auto& name, auto& slot) {
         slot.AddPreHook(serviceRequestPreHook);
       });
-    slots->Acquire(std::move(servletSlots));
+    slots->Add(std::move(servletSlots));
   }
 
   template<typename C, typename S, typename L>

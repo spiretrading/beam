@@ -4,35 +4,28 @@
 #define BEAM_SERVICE_PARAMETERS 10
 
 namespace Beam::Services {
-  template<typename ServiceLocatorClientType, typename MessageProtocolType,
-    typename TimerType> class AuthenticatedServiceProtocolClientBuilder;
-  template<typename ServiceProtocolClientType> class BaseServiceSlot;
-  template<typename ServiceProtocolClientType> class HeartbeatMessage;
-  template<typename ServiceProtocolClientType> class Message;
-  template<typename ChannelType, typename SenderType, typename EncoderType>
-    class MessageProtocol;
-  template<typename RecordType, typename ServiceProtocolClientType>
-    class RecordMessage;
-  template<typename ServiceProtocolClientType, typename ServiceType>
-    class RequestToken;
-  template<typename ReturnType, typename ParametersType> class Service;
-  template<typename ServiceProtocolClientType> class ServiceMessage;
-  template<typename MessageProtocolType, typename TimerType,
-    typename ServiceSlotsPolicy, typename SessionType,
-    bool SupportsParallelismValue> class ServiceProtocolClient;
-  template<typename MessageProtocolType, typename TimerType>
-    class ServiceProtocolClientBuilder;
-  template<typename ServiceProtocolClientBuilderType>
-    class ServiceProtocolClientHandler;
-  template<typename ServerConnectionType, typename SenderType,
-    typename EncoderType, typename TimerType, typename SessionType,
-    bool SupportsParallelismValue> class ServiceProtocolServer;
-  template<typename ChannelType> struct ServiceProtocolServlet;
+  template<typename C, typename M, typename T>
+    class AuthenticatedServiceProtocolClientBuilder;
+  template<typename C> class BaseServiceSlot;
+  template<typename C> class HeartbeatMessage;
+  template<typename C> class Message;
+  template<typename C, typename S, typename E> class MessageProtocol;
+  template<typename R, typename C> class RecordMessage;
+  template<typename C, typename S> class RequestToken;
+  template<typename R, typename P> class Service;
+  template<typename C> class ServiceMessage;
+  template<typename M, typename T, typename P, typename S, bool V>
+    class ServiceProtocolClient;
+  template<typename M, typename T> class ServiceProtocolClientBuilder;
+  template<typename B> class ServiceProtocolClientHandler;
+  template<typename C, typename S, typename E, typename T, typename Q, bool V>
+    class ServiceProtocolServer;
+  template<typename C> struct ServiceProtocolServlet;
   template<typename M, typename C, typename S, typename E, typename T,
     typename P> class ServiceProtocolServletContainer;
   class ServiceRequestException;
-  template<typename MessageType> class ServiceSlot;
-  template<typename ServiceProtocolClientType> class ServiceSlots;
+  template<typename M> class ServiceSlot;
+  template<typename C> class ServiceSlots;
 }
 
 #endif

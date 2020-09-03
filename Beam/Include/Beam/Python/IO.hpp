@@ -47,6 +47,12 @@ namespace Beam::Python {
   void ExportReader(pybind11::module& module);
 
   /**
+   * Exports the ServerConnection class.
+   * @param module The module to export to.
+   */
+  void ExportServerConnection(pybind11::module& module);
+
+  /**
    * Exports the SharedBuffer class.
    * @param module The module to export to.
    */

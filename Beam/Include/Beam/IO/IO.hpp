@@ -38,12 +38,14 @@ namespace IO {
   class VirtualChannelIdentifier;
   class VirtualConnection;
   class VirtualReader;
+  class VirtualServerConnection;
   class VirtualWriter;
-  template<typename ChannelType> class WrapperVirtualChannel;
-  template<typename ChannelIdentifierType> class WrapperChannelIdentifier;
-  template<typename ConnectionType> class WrapperConnection;
-  template<typename ReaderType> class WrapperReader;
-  template<typename WriterType> class WrapperWriter;
+  template<typename C> class WrapperVirtualChannel;
+  template<typename I> class WrapperChannelIdentifier;
+  template<typename C> class WrapperConnection;
+  template<typename R> class WrapperReader;
+  template<typename C> class WrapperServerConnection;
+  template<typename W> class WrapperWriter;
   template<typename BufferType> struct Writer;
 }
 }

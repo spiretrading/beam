@@ -157,13 +157,12 @@ namespace TimeService {
       const std::vector<Network::IpAddress>& sources,
       Ref<Network::SocketThreadPool> socketThreadPool,
       Ref<Threading::TimerThreadPool> timerThreadPool) {
-    std::vector<std::unique_ptr<Network::UdpSocketChannel>> channels;
+    auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
+    auto options = Network::UdpSocketOptions();
+    options.m_timeout = boost::posix_time::seconds(1);
     for(auto& source : sources) {
       auto channel = std::make_unique<Network::UdpSocketChannel>(source,
-        Ref(socketThreadPool));
-      auto settings = channel->GetSocket().GetReceiverSettings();
-      settings.m_timeout = boost::posix_time::seconds(1);
-      channel->GetSocket().SetReceiverSettings(settings);
+        options, Ref(socketThreadPool));
       channels.push_back(std::move(channel));
     }
     return std::make_unique<LiveNtpTimeClient>(std::move(channels),

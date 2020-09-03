@@ -1,9 +1,8 @@
-#ifndef BEAM_VIRTUALCHANNELIDENTIFIER_HPP
-#define BEAM_VIRTUALCHANNELIDENTIFIER_HPP
+#ifndef BEAM_VIRTUAL_CHANNEL_IDENTIFIER_HPP
+#define BEAM_VIRTUAL_CHANNEL_IDENTIFIER_HPP
 #include <ostream>
-#include <boost/noncopyable.hpp>
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/Channel.hpp"
+#include "Beam/IO/IO.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Utilities/Streamable.hpp"
@@ -11,57 +10,54 @@
 namespace Beam {
 namespace IO {
 
-  /*! \class VirtualChannelIdentifier
-      \brief Provides a pure virtual interface to a ChannelIdentifier.
-   */
-  class VirtualChannelIdentifier : public Streamable,
-      private boost::noncopyable {
+  /** Provides a pure virtual interface to a ChannelIdentifier. */
+  class VirtualChannelIdentifier : public Streamable {
     public:
       virtual ~VirtualChannelIdentifier() = default;
 
     protected:
 
-      //! Constructs a VirtualChannelIdentifier.
+      /** Constructs a VirtualChannelIdentifier. */
       VirtualChannelIdentifier() = default;
+
+    private:
+      VirtualChannelIdentifier(const VirtualChannelIdentifier&) = delete;
+      VirtualChannelIdentifier& operator =(
+        const VirtualChannelIdentifier&) = delete;
   };
 
-  /*! \class WrapperChannelIdentifier
-      \brief Wraps a ChannelIdentifier providing it with a virtual interface.
-      \tparam ChannelIdentifierType The type of ChannelIdentifier to wrap.
+  /**
+   * Wraps a ChannelIdentifier providing it with a virtual interface.
+   * @param <I> The type of ChannelIdentifier to wrap.
    */
-  template<typename ChannelIdentifierType>
+  template<typename I>
   class WrapperChannelIdentifier : public VirtualChannelIdentifier {
     public:
 
-      //! The ChannelIdentifier to wrap.
-      using ChannelIdentifier = GetTryDereferenceType<ChannelIdentifierType>;
+      /** The ChannelIdentifier to wrap. */
+      using ChannelIdentifier = GetTryDereferenceType<I>;
 
-      //! Constructs a WrapperChannelIdentifier.
-      /*!
-        \param identifier The ChannelIdentifier to wrap.
-      */
-      template<typename ChannelIdentifierForward>
-      WrapperChannelIdentifier(ChannelIdentifierForward&& identifier);
+      /**
+       * Constructs a WrapperChannelIdentifier.
+       * @param identifier The ChannelIdentifier to wrap.
+       */
+      template<typename IF>
+      WrapperChannelIdentifier(IF&& identifier);
 
-      virtual ~WrapperChannelIdentifier() override = default;
-
-      //! Returns the ChannelIdentifier being wrapped.
-      const ChannelIdentifier& GetIdentifier() const;
-
-      //! Returns the ChannelIdentifier being wrapped.
-      ChannelIdentifier& GetIdentifier();
+      /** Returns the base identifier. */
+      const ChannelIdentifier& GetBase() const;
 
     protected:
       std::ostream& ToStream(std::ostream& out) const override;
 
     private:
-      GetOptionalLocalPtr<ChannelIdentifierType> m_identifier;
+      GetOptionalLocalPtr<I> m_identifier;
   };
 
-  //! Wraps a ChannelIdentifier into a VirtualChannelIdentifier.
-  /*!
-    \param identifier The ChannelIdentifier to wrap.
-  */
+  /**
+   * Wraps a ChannelIdentifier into a VirtualChannelIdentifier.
+   * @param identifier The ChannelIdentifier to wrap.
+   */
   template<typename ChannelIdentifier>
   std::unique_ptr<VirtualChannelIdentifier> MakeVirtualChannelIdentifier(
       ChannelIdentifier&& identifier) {
@@ -70,28 +66,19 @@ namespace IO {
       identifier));
   }
 
-  template<typename ChannelIdentifierType>
-  template<typename ChannelIdentifierForward>
-  WrapperChannelIdentifier<ChannelIdentifierType>::WrapperChannelIdentifier(
-    ChannelIdentifierForward&& identifier)
-    : m_identifier{std::forward<ChannelIdentifierForward>(identifier)} {}
+  template<typename I>
+  template<typename IF>
+  WrapperChannelIdentifier<I>::WrapperChannelIdentifier(IF&& identifier)
+    : m_identifier(std::forward<IF>(identifier)) {}
 
-  template<typename ChannelIdentifierType>
-  const typename WrapperChannelIdentifier<
-      ChannelIdentifierType>::ChannelIdentifier& WrapperChannelIdentifier<
-      ChannelIdentifierType>::GetIdentifier() const {
+  template<typename I>
+  const typename WrapperChannelIdentifier<I>::ChannelIdentifier&
+      WrapperChannelIdentifier<I>::GetBase() const {
     return *m_identifier;
   }
 
-  template<typename ChannelIdentifierType>
-  typename WrapperChannelIdentifier<ChannelIdentifierType>::ChannelIdentifier&
-      WrapperChannelIdentifier<ChannelIdentifierType>::GetIdentifier() {
-    return *m_identifier;
-  }
-
-  template<typename ChannelIdentifierType>
-  std::ostream& WrapperChannelIdentifier<ChannelIdentifierType>::ToStream(
-      std::ostream& out) const {
+  template<typename I>
+  std::ostream& WrapperChannelIdentifier<I>::ToStream(std::ostream& out) const {
     return out << *m_identifier;
   }
 }

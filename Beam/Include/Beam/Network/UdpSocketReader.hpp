@@ -1,6 +1,5 @@
-#ifndef BEAM_UDPSOCKETREADER_HPP
-#define BEAM_UDPSOCKETREADER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_UDP_SOCKET_READER_HPP
+#define BEAM_UDP_SOCKET_READER_HPP
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/UdpSocket.hpp"
@@ -9,10 +8,8 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class UdpSocketReader
-      \brief Implements the Reader interface for a UdpReceiver.
-   */
-  class UdpSocketReader : private boost::noncopyable {
+  /** Implements the Reader interface for a UdpReceiver. */
+  class UdpSocketReader {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -30,13 +27,15 @@ namespace Network {
       friend class UdpSocketChannel;
       std::shared_ptr<UdpSocket> m_socket;
 
-      UdpSocketReader(const std::shared_ptr<UdpSocket>& socket);
+      UdpSocketReader(std::shared_ptr<UdpSocket> socket);
+      UdpSocketReader(const UdpSocketReader&) = delete;
+      UdpSocketReader& operator =(const UdpSocketReader&) = delete;
   };
 
   inline bool UdpSocketReader::IsDataAvailable() const {
-    boost::asio::socket_base::bytes_readable command(true);
+    auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      boost::lock_guard<Threading::Mutex> lock{m_socket->m_socket->m_mutex};
+      auto lock = boost::lock_guard(m_socket->m_socket->m_mutex);
       m_socket->m_socket->m_socket.io_control(command);
     }
     return command.get() > 0;
@@ -64,9 +63,8 @@ namespace Network {
       Store(address));
   }
 
-  inline UdpSocketReader::UdpSocketReader(
-      const std::shared_ptr<UdpSocket>& socket)
-      : m_socket(socket) {}
+  inline UdpSocketReader::UdpSocketReader(std::shared_ptr<UdpSocket> socket)
+    : m_socket(std::move(socket)) {}
 }
 
   template<typename BufferType>

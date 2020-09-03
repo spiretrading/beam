@@ -4,9 +4,11 @@
 #include <pybind11/stl.h>
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
+#include "Beam/IO/VirtualServerConnection.hpp"
 #include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
+#include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Network/TcpSocketOptions.hpp"
 #include "Beam/Python/Beam.hpp"
@@ -33,6 +35,7 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   auto submodule = module.def_submodule("network");
   ExportIpAddress(submodule);
   ExportSocketIdentifier(submodule);
+  ExportTcpServerSocket(submodule);
   ExportTcpSocketChannel(submodule);
   ExportTcpSocketConnection(submodule);
   ExportTcpSocketOptions(submodule);
@@ -57,8 +60,19 @@ void Beam::Python::ExportSocketIdentifier(pybind11::module& module) {
       }))
     .def_property_readonly("address",
       [] (WrapperChannelIdentifier<SocketIdentifier>& self) {
-        return self.GetIdentifier().GetAddress();
+        return self.GetBase().GetAddress();
       });
+}
+
+void Beam::Python::ExportTcpServerSocket(pybind11::module& module) {
+  class_<WrapperServerConnection<std::unique_ptr<TcpServerSocket>>,
+    VirtualServerConnection>(module, "TcpServerSocket")
+    .def("accept",
+      &WrapperServerConnection<std::unique_ptr<TcpServerSocket>>::Accept,
+      call_guard<GilRelease>())
+    .def("close",
+      &WrapperServerConnection<std::unique_ptr<TcpServerSocket>>::Close,
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {

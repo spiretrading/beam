@@ -1,6 +1,5 @@
-#ifndef BEAM_VIRTUALCHANNEL_HPP
-#define BEAM_VIRTUALCHANNEL_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_VIRTUAL_CHANNEL_HPP
+#define BEAM_VIRTUAL_CHANNEL_HPP
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
@@ -13,17 +12,12 @@
 namespace Beam {
 namespace IO {
 
-  /*! \class VirtualChannel
-      \brief Provides a pure virtual interface to a Channel.
-   */
-  class VirtualChannel : private boost::noncopyable {
+  /** Provides a pure virtual interface to a Channel. */
+  class VirtualChannel {
     public:
       using Identifier = VirtualChannelIdentifier;
-
       using Connection = VirtualConnection;
-
       using Reader = VirtualReader;
-
       using Writer = VirtualWriter;
 
       virtual ~VirtualChannel() = default;
@@ -38,92 +32,89 @@ namespace IO {
 
     protected:
 
-      //! Constructs a VirtualChannel.
+      /** Constructs a VirtualChannel. */
       VirtualChannel() = default;
+
+    private:
+      VirtualChannel(const VirtualChannel&) = delete;
+      VirtualChannel& operator =(const VirtualChannel&) = delete;
   };
 
-  /*! \class WrapperChannel
-      \brief Wraps a Channel providing it with a virtual interface.
-      \tparam ChannelType The type of Channel to wrap.
+  /**
+   * Wraps a Channel providing it with a virtual interface.
+   * @param <C> The type of Channel to wrap.
    */
-  template<typename ChannelType>
+  template<typename C>
   class WrapperVirtualChannel : public VirtualChannel {
     public:
 
-      //! The Channel to wrap.
-      using Channel = GetTryDereferenceType<ChannelType>;
-
+      /** The Channel to wrap. */
+      using Channel = GetTryDereferenceType<C>;
       using Identifier = typename Channel::Identifier;
-
       using Connection = typename Channel::Connection;
-
       using Reader = typename Channel::Reader;
-
       using Writer = typename Channel::Writer;
 
-      //! Constructs a WrapperChannel.
-      /*!
-        \param channel The Channel to wrap.
-      */
-      template<typename ChannelForward>
-      WrapperVirtualChannel(ChannelForward&& channel);
+      /**
+       * Constructs a WrapperChannel.
+       * @param channel The Channel to wrap.
+       */
+      template<typename CF>
+      WrapperVirtualChannel(CF&& channel);
 
-      virtual ~WrapperVirtualChannel() override = default;
+      const VirtualChannelIdentifier& GetIdentifier() const override;
 
-      virtual const VirtualChannelIdentifier& GetIdentifier() const override;
+      VirtualConnection& GetConnection() override;
 
-      virtual VirtualConnection& GetConnection() override;
+      VirtualReader& GetReader() override;
 
-      virtual VirtualReader& GetReader() override;
-
-      virtual VirtualWriter& GetWriter() override;
+      VirtualWriter& GetWriter() override;
 
     private:
-      GetOptionalLocalPtr<ChannelType> m_channel;
+      GetOptionalLocalPtr<C> m_channel;
       std::unique_ptr<VirtualChannelIdentifier> m_identifier;
       std::unique_ptr<VirtualConnection> m_connection;
       std::unique_ptr<VirtualReader> m_reader;
       std::unique_ptr<VirtualWriter> m_writer;
   };
 
-  //! Wraps a Channel into a VirtualChannel.
-  /*!
-    \param channel The Channel to wrap.
-  */
+  /**
+   * Wraps a Channel into a VirtualChannel.
+   * @param channel The Channel to wrap.
+   */
   template<typename Channel>
   std::unique_ptr<VirtualChannel> MakeVirtualChannel(Channel&& channel) {
     return std::make_unique<WrapperVirtualChannel<std::decay_t<Channel>>>(
       std::forward<Channel>(channel));
   }
 
-  template<typename ChannelType>
-  template<typename ChannelForward>
-  WrapperVirtualChannel<ChannelType>::WrapperVirtualChannel(
-      ChannelForward&& channel)
-      : m_channel{std::forward<ChannelForward>(channel)},
-        m_identifier{MakeVirtualChannelIdentifier(&m_channel->GetIdentifier())},
-        m_connection{MakeVirtualConnection(&m_channel->GetConnection())},
-        m_reader{MakeVirtualReader(&m_channel->GetReader())},
-        m_writer{MakeVirtualWriter(&m_channel->GetWriter())} {}
+  template<typename C>
+  template<typename CF>
+  WrapperVirtualChannel<C>::WrapperVirtualChannel(CF&& channel)
+    : m_channel(std::forward<CF>(channel)),
+      m_identifier(MakeVirtualChannelIdentifier(&m_channel->GetIdentifier())),
+      m_connection(MakeVirtualConnection(&m_channel->GetConnection())),
+      m_reader(MakeVirtualReader(&m_channel->GetReader())),
+      m_writer(MakeVirtualWriter(&m_channel->GetWriter())) {}
 
-  template<typename ChannelType>
-  const VirtualChannelIdentifier& WrapperVirtualChannel<ChannelType>::
-      GetIdentifier() const {
+  template<typename C>
+  const VirtualChannelIdentifier&
+      WrapperVirtualChannel<C>::GetIdentifier() const {
     return *m_identifier;
   }
 
-  template<typename ChannelType>
-  VirtualConnection& WrapperVirtualChannel<ChannelType>::GetConnection() {
+  template<typename C>
+  VirtualConnection& WrapperVirtualChannel<C>::GetConnection() {
     return *m_connection;
   }
 
-  template<typename ChannelType>
-  VirtualReader& WrapperVirtualChannel<ChannelType>::GetReader() {
+  template<typename C>
+  VirtualReader& WrapperVirtualChannel<C>::GetReader() {
     return *m_reader;
   }
 
-  template<typename ChannelType>
-  VirtualWriter& WrapperVirtualChannel<ChannelType>::GetWriter() {
+  template<typename C>
+  VirtualWriter& WrapperVirtualChannel<C>::GetWriter() {
     return *m_writer;
   }
 }

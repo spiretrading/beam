@@ -1,6 +1,5 @@
-#ifndef BEAM_VIRTUALCONNECTION_HPP
-#define BEAM_VIRTUALCONNECTION_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_VIRTUAL_CONNECTION_HPP
+#define BEAM_VIRTUAL_CONNECTION_HPP
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -9,10 +8,8 @@
 namespace Beam {
 namespace IO {
 
-  /*! \class VirtualConnection
-      \brief Provides a pure virtual interface to a Connection.
-   */
-  class VirtualConnection : private boost::noncopyable {
+  /** Provides a pure virtual interface to a Connection. */
+  class VirtualConnection {
     public:
       virtual ~VirtualConnection() = default;
 
@@ -20,46 +17,42 @@ namespace IO {
 
     protected:
 
-      //! Constructs a VirtualConnection.
+      /** Constructs a VirtualConnection. */
       VirtualConnection() = default;
+
+    private:
+      VirtualConnection(const VirtualConnection&) = delete;
+      VirtualConnection& operator =(const VirtualConnection&) = delete;
   };
 
-  /*! \class WrapperConnection
-      \brief Wraps a Connection providing it with a virtual interface.
-      \tparam ConnectionType The type of Connection to wrap.
+  /**
+   * Wraps a Connection providing it with a virtual interface.
+   * @param <C> The type of Connection to wrap.
    */
-  template<typename ConnectionType>
+  template<typename C>
   class WrapperConnection : public VirtualConnection {
     public:
 
-      //! The Connection to wrap.
-      using Connection = GetTryDereferenceType<ConnectionType>;
+      /** The Connection to wrap. */
+      using Connection = GetTryDereferenceType<C>;
 
-      //! Constructs a WrapperConnection.
-      /*!
-        \param connection The Connection to wrap.
-      */
-      template<typename ConnectionForward>
-      WrapperConnection(ConnectionForward&& connection);
+      /**
+       * Constructs a WrapperConnection.
+       * @param connection The Connection to wrap.
+       */
+      template<typename CF>
+      WrapperConnection(CF&& connection);
 
-      virtual ~WrapperConnection() override = default;
-
-      //! Returns the Connection being wrapped.
-      const Connection& GetConnection() const;
-
-      //! Returns the Connection being wrapped.
-      Connection& GetConnection();
-
-      virtual void Close() override;
+      void Close() override;
 
     private:
-      GetOptionalLocalPtr<ConnectionType> m_connection;
+      GetOptionalLocalPtr<C> m_connection;
   };
 
-  //! Wraps a Connection into a VirtualConnection.
-  /*!
-    \param connection The Connection to wrap.
-  */
+  /**
+   * Wraps a Connection into a VirtualConnection.
+   * @param connection The Connection to wrap.
+   */
   template<typename Connection>
   std::unique_ptr<VirtualConnection> MakeVirtualConnection(
       Connection&& connection) {
@@ -67,33 +60,20 @@ namespace IO {
       std::forward<Connection>(connection));
   }
 
-  template<typename ConnectionType>
-  template<typename ConnectionForward>
-  WrapperConnection<ConnectionType>::WrapperConnection(
-      ConnectionForward&& connection)
-      : m_connection{std::forward<ConnectionForward>(connection)} {}
+  template<typename C>
+  template<typename CF>
+  WrapperConnection<C>::WrapperConnection(CF&& connection)
+    : m_connection(std::forward<CF>(connection)) {}
 
-  template<typename ConnectionType>
-  const typename WrapperConnection<ConnectionType>::Connection&
-      WrapperConnection<ConnectionType>::GetConnection() const {
-    return *m_connection;
-  }
-
-  template<typename ConnectionType>
-  typename WrapperConnection<ConnectionType>::Connection&
-      WrapperConnection<ConnectionType>::GetConnection() {
-    return *m_connection; 
-  }
-
-  template<typename ConnectionType>
-  void WrapperConnection<ConnectionType>::Close() {
-    return m_connection->Close();
+  template<typename C>
+  void WrapperConnection<C>::Close() {
+    m_connection->Close();
   }
 }
 
   template<>
-  struct ImplementsConcept<IO::VirtualConnection,
-    IO::Connection> : std::true_type {};
+  struct ImplementsConcept<IO::VirtualConnection, IO::Connection> :
+    std::true_type {};
 }
 
 #endif

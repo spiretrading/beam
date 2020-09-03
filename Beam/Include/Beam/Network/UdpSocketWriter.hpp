@@ -1,6 +1,5 @@
-#ifndef BEAM_UDPSOCKETWRITER_HPP
-#define BEAM_UDPSOCKETWRITER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_UDP_SOCKET_WRITER_HPP
+#define BEAM_UDP_SOCKET_WRITER_HPP
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Network/Network.hpp"
@@ -10,10 +9,8 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class UdpSocketWriter
-      \brief Provides the Writer interface to a UdpSocketSender.
-   */
-  class UdpSocketWriter : private boost::noncopyable {
+  /** Provides the Writer interface to a UdpSocketSender. */
+  class UdpSocketWriter {
     public:
       using Buffer = IO::SharedBuffer;
 
@@ -26,7 +23,7 @@ namespace Network {
       friend class UdpSocketChannel;
       std::shared_ptr<UdpSocket> m_socket;
 
-      UdpSocketWriter(const std::shared_ptr<UdpSocket>& socket);
+      UdpSocketWriter(std::shared_ptr<UdpSocket> socket);
   };
 
   inline void UdpSocketWriter::Write(const void* data, std::size_t size) {
@@ -38,9 +35,8 @@ namespace Network {
     Write(data.GetData(), data.GetSize());
   }
 
-  inline UdpSocketWriter::UdpSocketWriter(
-      const std::shared_ptr<UdpSocket>& socket)
-      : m_socket(socket) {}
+  inline UdpSocketWriter::UdpSocketWriter(std::shared_ptr<UdpSocket> socket)
+    : m_socket(std::move(socket)) {}
 }
 
   template<typename BufferType>

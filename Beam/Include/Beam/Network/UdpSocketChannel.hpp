@@ -1,6 +1,5 @@
-#ifndef BEAM_UDPSOCKETCHANNEL_HPP
-#define BEAM_UDPSOCKETCHANNEL_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_UDP_SOCKET_CHANNEL_HPP
+#define BEAM_UDP_SOCKET_CHANNEL_HPP
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
 #include "Beam/Network/UdpSocket.hpp"
@@ -11,35 +10,51 @@
 namespace Beam {
 namespace Network {
 
-  /*! \class UdpSocketChannel
-      \brief Implements the Channel interface using a UDP socket.
-   */
-  class UdpSocketChannel : private boost::noncopyable {
+  /** Implements the Channel interface using a UDP socket. */
+  class UdpSocketChannel {
     public:
       using Identifier = SocketIdentifier;
       using Connection = UdpSocketConnection;
       using Reader = UdpSocketReader;
       using Writer = UdpSocketWriter;
 
-      //! Constructs a UdpSocketChannel.
-      /*!
-        \param address The address to open.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a UdpSocketChannel.
+       * @param address The address to open.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       UdpSocketChannel(const IpAddress& address,
         Ref<SocketThreadPool> socketThreadPool);
 
-      //! Constructs a UdpSocketChannel.
-      /*!
-        \param address The address to open.
-        \param interface The interface to use.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a UdpSocketChannel.
+       * @param address The address to open.
+       * @param options The options to apply to the socket.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      UdpSocketChannel(const IpAddress& address,
+        const UdpSocketOptions& options,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a UdpSocketChannel.
+       * @param address The address to open.
+       * @param interface The interface to use.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
         Ref<SocketThreadPool> socketThreadPool);
 
-      //! Returns the underlying UdpSocket.
-      UdpSocket& GetSocket();
+      /**
+       * Constructs a UdpSocketChannel.
+       * @param address The address to open.
+       * @param interface The interface to use.
+       * @param options The options to apply to the socket.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
+        const UdpSocketOptions& options,
+        Ref<SocketThreadPool> socketThreadPool);
 
       const Identifier& GetIdentifier() const;
 
@@ -55,31 +70,41 @@ namespace Network {
       Connection m_connection;
       Reader m_reader;
       Writer m_writer;
+
+      UdpSocketChannel(const UdpSocketChannel&) = delete;
+      UdpSocketChannel& operator =(const UdpSocketChannel&) = delete;
   };
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-      Ref<SocketThreadPool> socketThreadPool)
-      : m_identifier(address),
-        m_socket(std::make_shared<UdpSocket>(address, Ref(socketThreadPool))),
-        m_connection(m_socket),
-        m_reader(m_socket),
-        m_writer(m_socket) {}
+    Ref<SocketThreadPool> socketThreadPool)
+    : UdpSocketChannel(address, UdpSocketOptions(), Ref(socketThreadPool)) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-      : m_identifier(address),
-        m_socket(std::make_shared<UdpSocket>(address, interface,
-          Ref(socketThreadPool))),
-        m_connection(m_socket),
-        m_reader(m_socket),
-        m_writer(m_socket) {}
+    const UdpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
+    : m_identifier(address),
+      m_socket(std::make_shared<UdpSocket>(address, options,
+        Ref(socketThreadPool))),
+      m_connection(m_socket),
+      m_reader(m_socket),
+      m_writer(m_socket) {}
 
-  inline UdpSocket& UdpSocketChannel::GetSocket() {
-    return *m_socket;
-  }
+  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
+    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
+    : UdpSocketChannel(address, interface, UdpSocketOptions(),
+        Ref(socketThreadPool)) {}
 
-  inline const UdpSocketChannel::Identifier& UdpSocketChannel::
-      GetIdentifier() const {
+  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
+    const IpAddress& interface, const UdpSocketOptions& options,
+    Ref<SocketThreadPool> socketThreadPool)
+    : m_identifier(address),
+      m_socket(std::make_shared<UdpSocket>(address, interface,
+        Ref(socketThreadPool))),
+      m_connection(m_socket),
+      m_reader(m_socket),
+      m_writer(m_socket) {}
+
+  inline const UdpSocketChannel::Identifier&
+      UdpSocketChannel::GetIdentifier() const {
     return m_identifier;
   }
 

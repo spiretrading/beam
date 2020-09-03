@@ -23,6 +23,12 @@ namespace Beam::Python {
   void ExportSocketIdentifier(pybind11::module& module);
 
   /**
+   * Exports the TcpServerSocket class.
+   * @param module The module to export to.
+   */
+  void ExportTcpServerSocket(pybind11::module& module);
+
+  /**
    * Exports the TcpSocketChannel class.
    * @param module The module to export to.
    */

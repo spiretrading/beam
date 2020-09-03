@@ -1,9 +1,8 @@
-#ifndef BEAM_UDPSOCKET_HPP
-#define BEAM_UDPSOCKET_HPP
-#include <optional>
+#ifndef BEAM_UDP_SOCKET_HPP
+#define BEAM_UDP_SOCKET_HPP
 #include <string>
 #include <boost/asio/ip/udp.hpp>
-#include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/Network.hpp"
@@ -15,98 +14,111 @@
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam {
-namespace Network {
+namespace Beam::Network {
 
-  /*! \class UdpSocket
-      \brief Implements a UDP socket.
-   */
-  class UdpSocket : private boost::noncopyable {
+  /** Implements a UDP socket. */
+  class UdpSocket {
     public:
 
-      //! Constructs a UdpSocket.
-      /*!
-        \param address The address to connect to.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a UdpSocket.
+       * @param address The address to send to.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       UdpSocket(const IpAddress& address,
         Ref<SocketThreadPool> socketThreadPool);
 
-      //! Constructs a UdpSocket.
-      /*!
-        \param address The address to connect to.
-        \param interface The interface to use.
-        \param socketThreadPool The thread pool used for the sockets.
-      */
+      /**
+       * Constructs a UdpSocket.
+       * @param address The address to send to.
+       * @param options The options to apply to this socket.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      UdpSocket(const IpAddress& address, const UdpSocketOptions& options,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a UdpSocket.
+       * @param address The address to send to.
+       * @param interface The interface to use.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
       UdpSocket(const IpAddress& address, const IpAddress& interface,
+        Ref<SocketThreadPool> socketThreadPool);
+
+      /**
+       * Constructs a UdpSocket.
+       * @param address The address to send to.
+       * @param interface The interface to use.
+       * @param options The options to apply to this socket.
+       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      UdpSocket(const IpAddress& address, const IpAddress& interface,
+        const UdpSocketOptions& options,
         Ref<SocketThreadPool> socketThreadPool);
 
       ~UdpSocket();
 
-      //! Returns the Settings used by the UdpSocketReceiver.
-      const UdpSocketReceiver::Settings& GetReceiverSettings() const;
-
-      //! Sets the Settings used by the UdpSocketReceiver.
-      /*!
-        \param settings The Settings for the UdpSocketReceiver to use.
-      */
-      void SetReceiverSettings(const UdpSocketReceiver::Settings& settings);
-
-      //! Returns the address.
+      /** Returns the IpAddress to send and receive from. */
       const IpAddress& GetAddress() const;
 
-      //! Returns the socket's receiver.
+      /** Returns the socket's receiver. */
       UdpSocketReceiver& GetReceiver();
 
-      //! Returns the socket's sender.
+      /** Returns the socket's sender. */
       UdpSocketSender& GetSender();
-
-      void Open();
 
       void Close();
 
     private:
       friend class UdpSocketReader;
       IpAddress m_address;
-      std::optional<IpAddress> m_interface;
       SocketThreadPool* m_socketThreadPool;
-      UdpSocketReceiver::Settings m_receiverSettings;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      std::optional<UdpSocketReceiver> m_receiver;
-      std::optional<UdpSocketSender> m_sender;
+      boost::optional<UdpSocketReceiver> m_receiver;
+      boost::optional<UdpSocketSender> m_sender;
       IO::OpenState m_openState;
 
+      UdpSocket(const UdpSocket&) = delete;
+      UdpSocket& operator =(const UdpSocket&) = delete;
+      void Open(boost::optional<IpAddress> interface,
+        const UdpSocketOptions& options);
       void Shutdown();
-      void Reset();
   };
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
+    Ref<SocketThreadPool> socketThreadPool)
+    : UdpSocket(address, UdpSocketOptions(), Ref(socketThreadPool)) {}
+
+  inline UdpSocket::UdpSocket(const IpAddress& address,
+      const UdpSocketOptions& options,
       Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
-        m_socketThreadPool(socketThreadPool.Get()) {
-    Reset();
+        m_socketThreadPool(socketThreadPool.Get()),
+        m_socket(std::make_shared<Details::UdpSocketEntry>(
+          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          boost::asio::ip::udp::v4())) {
+    Open(boost::none, options);
   }
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-      const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
+    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
+    : UdpSocket(address, interface, UdpSocketOptions(),
+        Ref(socketThreadPool)) {}
+
+  inline UdpSocket::UdpSocket(const IpAddress& address,
+      const IpAddress& interface, const UdpSocketOptions& options,
+      Ref<SocketThreadPool> socketThreadPool)
       : m_address(address),
-        m_interface(interface),
-        m_socketThreadPool(socketThreadPool.Get()) {
-    Reset();
+        m_socketThreadPool(socketThreadPool.Get()),
+        m_socket(std::make_shared<Details::UdpSocketEntry>(
+          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          boost::asio::ip::udp::v4())) {
+    Open(interface, options);
   }
 
   inline UdpSocket::~UdpSocket() {
     Close();
-  }
-
-  inline const UdpSocketReceiver::Settings& UdpSocket::
-      GetReceiverSettings() const {
-    return m_receiverSettings;
-  }
-
-  inline void UdpSocket::SetReceiverSettings(
-      const UdpSocketReceiver::Settings& settings) {
-    m_receiverSettings = settings;
   }
 
   inline const IpAddress& UdpSocket::GetAddress() const {
@@ -121,15 +133,14 @@ namespace Network {
     return *m_sender;
   }
 
-  inline void UdpSocket::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    boost::system::error_code errorCode;
-    boost::asio::ip::udp::resolver resolver{*m_socket->m_ioService};
-    boost::asio::ip::udp::resolver::query query{m_address.GetHost(),
-      std::to_string(m_address.GetPort())};
-    boost::asio::ip::udp::resolver::iterator end;
+  inline void UdpSocket::Open(boost::optional<IpAddress> interface,
+      const UdpSocketOptions& options) {
+    m_openState.SetOpening();
+    auto errorCode = boost::system::error_code();
+    auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_ioService);
+    auto query = boost::asio::ip::udp::resolver::query(m_address.GetHost(),
+      std::to_string(m_address.GetPort()));
+    auto end = boost::asio::ip::udp::resolver::iterator();
     auto endpointIterator = resolver.resolve(query, errorCode);
     if(errorCode) {
       m_openState.SetOpenFailure(IO::ConnectException(errorCode.message()));
@@ -137,18 +148,18 @@ namespace Network {
     }
     auto isAddressResolved = false;
     while(endpointIterator != end) {
-      boost::asio::ip::udp::endpoint endPoint = *endpointIterator;
+      auto endPoint = boost::asio::ip::udp::endpoint(*endpointIterator);
       auto address = endPoint.address().to_string();
       if(!address.empty()) {
-        m_address = IpAddress{address, m_address.GetPort()};
+        m_address = IpAddress(address, m_address.GetPort());
         isAddressResolved = true;
         break;
       }
       ++endpointIterator;
     }
     if(!isAddressResolved) {
-      m_openState.SetOpenFailure(IO::ConnectException{
-        "Unable to resolve IP address."});
+      m_openState.SetOpenFailure(IO::ConnectException(
+        "Unable to resolve IP address."));
       Shutdown();
     }
     m_socket->m_socket.set_option(
@@ -157,17 +168,18 @@ namespace Network {
       m_openState.SetOpenFailure(IO::ConnectException(errorCode.message()));
       Shutdown();
     }
-    if(m_interface.has_value()) {
+    if(interface) {
       m_socket->m_socket.bind(boost::asio::ip::udp::endpoint(
-        boost::asio::ip::address_v4::from_string(m_interface->GetHost()),
-        m_interface->GetPort()), errorCode);
+        boost::asio::ip::address_v4::from_string(interface->GetHost()),
+        interface->GetPort()), errorCode);
       if(errorCode) {
         m_openState.SetOpenFailure(IO::ConnectException(errorCode.message()));
         Shutdown();
       }
     }
     try {
-      m_receiver->Open(m_receiverSettings);
+      m_receiver.emplace(options, m_socket);
+      m_sender.emplace(options, m_socket);
     } catch(const std::exception&) {
       m_openState.SetOpenFailure();
       Shutdown();
@@ -185,21 +197,8 @@ namespace Network {
 
   inline void UdpSocket::Shutdown() {
     m_socket->Close();
-    Reset();
     m_openState.SetClosed();
   }
-
-  inline void UdpSocket::Reset() {
-    m_socket.reset();
-    m_receiver = std::nullopt;
-    m_sender = std::nullopt;
-    m_socket = std::make_shared<Details::UdpSocketEntry>(
-      m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
-      boost::asio::ip::udp::v4());
-    m_receiver.emplace(m_socket);
-    m_sender.emplace(m_socket);
-  }
-}
 }
 
 #endif

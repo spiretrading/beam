@@ -7,6 +7,7 @@
 #include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/IO/VirtualChannelIdentifier.hpp"
 #include "Beam/IO/VirtualConnection.hpp"
+#include "Beam/IO/VirtualServerConnection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
@@ -23,7 +24,6 @@ namespace {
 const object& Beam::Python::GetIOException() {
   return ioException;
 }
-
 
 void Beam::Python::ExportChannel(pybind11::module& module) {
   class_<VirtualChannel>(module, "Channel")
@@ -44,7 +44,7 @@ void Beam::Python::ExportChannelIdentifier(pybind11::module& module) {
 
 void Beam::Python::ExportConnection(pybind11::module& module) {
   class_<VirtualConnection>(module, "Connection")
-    .def("close", &VirtualConnection::Close, call_guard<GilRelease>());
+    .def("close", &VirtualConnection::Close);
 }
 
 void Beam::Python::ExportIO(pybind11::module& module) {
@@ -54,6 +54,7 @@ void Beam::Python::ExportIO(pybind11::module& module) {
   ExportConnection(submodule);
   ExportOpenState(submodule);
   ExportReader(submodule);
+  ExportServerConnection(submodule);
   ExportSharedBuffer(submodule);
   ExportWriter(submodule);
   ioException = register_exception<IOException>(submodule, "IOException");
@@ -90,13 +91,16 @@ void Beam::Python::ExportOpenState(pybind11::module& module) {
 
 void Beam::Python::ExportReader(pybind11::module& module) {
   class_<VirtualReader>(module, "Reader")
-    .def("is_data_available", &VirtualReader::IsDataAvailable,
-      call_guard<GilRelease>())
+    .def("is_data_available", &VirtualReader::IsDataAvailable)
     .def("read", static_cast<std::size_t (VirtualReader::*)(Out<SharedBuffer>)>(
-      &VirtualReader::Read), call_guard<GilRelease>())
+      &VirtualReader::Read))
     .def("read", static_cast<std::size_t (VirtualReader::*)(
-      Out<SharedBuffer>, std::size_t)>(&VirtualReader::Read),
-      call_guard<GilRelease>());
+      Out<SharedBuffer>, std::size_t)>(&VirtualReader::Read));
+}
+
+void Beam::Python::ExportServerConnection(pybind11::module& module) {
+  class_<VirtualServerConnection, VirtualConnection>(module, "ServerConnection")
+    .def("accept", &VirtualServerConnection::Accept);
 }
 
 void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
@@ -136,5 +140,5 @@ void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
 void Beam::Python::ExportWriter(pybind11::module& module) {
   class_<VirtualWriter>(module, "Writer")
     .def("write", static_cast<void (VirtualWriter::*)(const SharedBuffer&)>(
-      &VirtualWriter::Write), call_guard<GilRelease>());
+      &VirtualWriter::Write));
 }

@@ -10,7 +10,7 @@
 namespace Beam {
 namespace WebServices {
 namespace Details {
-  BEAM_DEFINE_HAS_METHOD(IsServletClass, Open, void);
+  BEAM_DEFINE_HAS_METHOD(IsServletClass, Close, void);
   template<typename ContainerType, typename ServletType,
     bool dummy = IsServletClass<ServletType>::value>
   struct GetServletHelper;

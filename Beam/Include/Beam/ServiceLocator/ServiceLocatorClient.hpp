@@ -562,10 +562,10 @@ namespace Beam::ServiceLocator {
 
   template<typename B>
   void ServiceLocatorClient<B>::Shutdown() {
-    m_clientHandler.Close();
     m_tasks.Break();
     m_tasks.Wait();
     m_accountUpdatePublisher.Break();
+    m_clientHandler.Close();
     m_openState.SetClosed();
   }
 

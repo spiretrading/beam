@@ -4,7 +4,7 @@
 
 using namespace Beam;
 
-TEST_SUITE("ScopedBaseQueue") {
+TEST_SUITE("ScopedQueueWriter") {
   TEST_CASE("break") {
     auto q = Queue<int>();
     {

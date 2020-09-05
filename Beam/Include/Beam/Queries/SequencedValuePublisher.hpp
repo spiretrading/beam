@@ -94,7 +94,7 @@ namespace Queries {
       std::unique_ptr<Evaluator> m_filter;
       ScopedQueueWriter<Value> m_queue;
       int m_queryId;
-      Sequence m_lastSequence;
+      Sequence m_nextSequence;
       std::vector<Value> m_writeLog;
   };
 
@@ -106,7 +106,7 @@ namespace Queries {
         m_filter(std::move(filter)),
         m_queue(std::move(queue)),
         m_queryId(-1),
-        m_lastSequence(Sequence::First()) {}
+        m_nextSequence(Sequence::First()) {}
 
   template<typename QueryType, typename ValueType>
   int SequencedValuePublisher<QueryType, ValueType>::GetId() const {
@@ -123,9 +123,9 @@ namespace Queries {
     if(m_queryId == -1) {
       m_writeLog.emplace_back(std::forward<ValueForward>(value));
     } else {
-      if(value.GetSequence() > m_lastSequence &&
+      if(value.GetSequence() >= m_nextSequence &&
           TestFilter(*m_filter, *value)) {
-        m_lastSequence = value.GetSequence();
+        m_nextSequence = Increment(value.GetSequence());
         m_queue.Push(std::forward<ValueForward>(value));
       }
     }
@@ -137,9 +137,9 @@ namespace Queries {
       ForwardIterator begin, ForwardIterator end) {
     boost::lock_guard<boost::mutex> lock(m_mutex);
     for(auto& value : boost::iterator_range<ForwardIterator>(begin, end)) {
-      if(value.GetSequence() > m_lastSequence &&
+      if(value.GetSequence() >= m_nextSequence &&
           TestFilter(*m_filter, *value)) {
-        m_lastSequence = value.GetSequence();
+        m_nextSequence = Increment(value.GetSequence());
         m_queue.Push(std::move(value));
       }
     }
@@ -163,9 +163,9 @@ namespace Queries {
     std::vector<Value> writeLog;
     writeLog.swap(m_writeLog);
     for(const auto& value : writeLog) {
-      if(value.GetSequence() > m_lastSequence &&
+      if(value.GetSequence() >= m_nextSequence &&
           TestFilter(*m_filter, *value)) {
-        m_lastSequence = value.GetSequence();
+        m_nextSequence = Increment(value.GetSequence());
         m_queue.Push(std::move(value));
       }
     }
@@ -184,10 +184,10 @@ namespace Queries {
           InterruptionPolicy::IGNORE_CONTINUE) {
         startPoint = Sequence::Present();
       } else {
-        if(m_lastSequence == Sequence::First()) {
+        if(m_nextSequence == Sequence::First()) {
           startPoint = m_query.GetRange().GetStart();
         } else {
-          startPoint = Increment(m_lastSequence);
+          startPoint = m_nextSequence;
         }
       }
       auto recoveryQuery = m_query;

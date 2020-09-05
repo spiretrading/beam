@@ -18,8 +18,7 @@ namespace Beam::Queries {
   template<typename ResultType> class EvaluatorNode;
   template<typename QueryTypes> class EvaluatorTranslator;
   class ExpressionQuery;
-  template<typename InputType, typename OutputType,
-    typename ServiceProtocolClientType> class ExpressionSubscriptions;
+  template<typename I, typename O, typename C> class ExpressionSubscriptions;
   class ExpressionTranslationException;
   class ExpressionVisitor;
   class FilteredQuery;

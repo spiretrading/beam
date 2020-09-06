@@ -141,24 +141,18 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   auto submodule = module.def_submodule("network");
   ExportDatagramPacket(submodule);
   ExportIpAddress(submodule);
-  ExportMulticastSocket(submodule);
-  ExportMulticastSocketChannel(submodule);
-  ExportMulticastSocketConnection(submodule);
-  ExportMulticastSocketOptions(submodule);
-  ExportMulticastSocketReader(submodule);
-  ExportMulticastSocketWriter(submodule);
-  ExportSecureSocketChannel(submodule);
-  ExportSecureSocketConnection(submodule);
-  ExportSecureSocketOptions(submodule);
-  ExportSecureSocketReader(submodule);
-  ExportSecureSocketWriter(submodule);
-  ExportSocketIdentifier(submodule);
   ExportTcpServerSocket(submodule);
   ExportTcpSocketChannel(submodule);
   ExportTcpSocketConnection(submodule);
   ExportTcpSocketOptions(submodule);
   ExportTcpSocketReader(submodule);
   ExportTcpSocketWriter(submodule);
+  ExportSecureSocketChannel(submodule);
+  ExportSecureSocketConnection(submodule);
+  ExportSecureSocketOptions(submodule);
+  ExportSecureSocketReader(submodule);
+  ExportSecureSocketWriter(submodule);
+  ExportSocketIdentifier(submodule);
   ExportUdpSocket(submodule);
   ExportUdpSocketChannel(submodule);
   ExportUdpSocketConnection(submodule);
@@ -167,6 +161,12 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
   ExportUdpSocketReceiver(submodule);
   ExportUdpSocketSender(submodule);
   ExportUdpSocketWriter(submodule);
+  ExportMulticastSocket(submodule);
+  ExportMulticastSocketChannel(submodule);
+  ExportMulticastSocketConnection(submodule);
+  ExportMulticastSocketOptions(submodule);
+  ExportMulticastSocketReader(submodule);
+  ExportMulticastSocketWriter(submodule);
   register_exception<SocketException>(submodule, "SocketException",
     GetIOException().ptr());
 }

@@ -1,8 +1,10 @@
+file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/RegistryServiceTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/RegistryServiceTests/*.cpp)
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
 add_executable(RegistryServiceTests ${header_files} ${source_files})
+set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(RegistryServiceTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})

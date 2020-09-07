@@ -1,8 +1,10 @@
+file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/TimeServiceTests/*.hpp)
 file(GLOB source_files ${BEAM_SOURCE_PATH}/TimeServiceTests/*.cpp)
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
-add_executable(TimeServiceTests ${source_files})
+add_executable(TimeServiceTests ${header_files} ${source_files})
+set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 if(UNIX)
   target_link_libraries(TimeServiceTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

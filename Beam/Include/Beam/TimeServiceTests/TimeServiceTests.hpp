@@ -1,17 +1,12 @@
-#ifndef BEAM_TIMESERVICETESTS_HPP
-#define BEAM_TIMESERVICETESTS_HPP
+#ifndef BEAM_TIME_SERVICE_TESTS_HPP
+#define BEAM_TIME_SERVICE_TESTS_HPP
 #include "Beam/TimeService/TimeService.hpp"
 
-namespace Beam {
-namespace TimeService {
-namespace Tests {
-  class NtpTimeClientTester;
+namespace Beam::TimeService::Tests {
   class TimeServiceTestEnvironment;
   class TimeServiceTestEnvironmentException;
   class TestTimeClient;
   class TestTimer;
-}
-}
 }
 
 #endif

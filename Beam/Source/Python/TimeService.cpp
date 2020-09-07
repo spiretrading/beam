@@ -167,6 +167,7 @@ void Beam::Python::ExportTimeService(pybind11::module& module) {
 void Beam::Python::ExportTimeServiceTestEnvironment(pybind11::module& module) {
   class_<TimeServiceTestEnvironment>(module, "TimeServiceTestEnvironment")
     .def(init(), call_guard<GilRelease>())
+    .def(init<ptime>(), call_guard<GilRelease>())
     .def("__del__",
       [] (TimeServiceTestEnvironment& self) {
         self.Close();

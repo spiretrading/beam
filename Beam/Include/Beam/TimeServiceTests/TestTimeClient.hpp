@@ -1,27 +1,22 @@
-#ifndef BEAM_TESTTIMECLIENT_HPP
-#define BEAM_TESTTIMECLIENT_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_TEST_TIME_CLIENT_HPP
+#define BEAM_TEST_TIME_CLIENT_HPP
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTests.hpp"
 
-namespace Beam {
-namespace TimeService {
-namespace Tests {
+namespace Beam::TimeService::Tests {
 
-  /*! \class TestTimeClient
-      \brief A TimeClient used by the TestEnvironment.
-   */
-  class TestTimeClient : private boost::noncopyable {
+  /** A TimeClient used by the TestEnvironment. */
+  class TestTimeClient {
     public:
 
-      //! Constructs a TestTimeClient.
-      /*!
-        \param environment The TimeServiceTestEnvironment this client belongs
-               to.
-      */
+      /**
+       * Constructs a TestTimeClient.
+       * @param environment The TimeServiceTestEnvironment this client belongs
+       *        to.
+       */
       TestTimeClient(Ref<TimeServiceTestEnvironment> environment);
 
       ~TestTimeClient();
@@ -36,6 +31,8 @@ namespace Tests {
       TimeService::FixedTimeClient m_timeClient;
       IO::OpenState m_openState;
 
+      TestTimeClient(const TestTimeClient&) = delete;
+      TestTimeClient& operator =(const TestTimeClient&) = delete;
       void Shutdown();
       void SetTime(boost::posix_time::ptime time);
   };
@@ -79,16 +76,13 @@ namespace Tests {
   }
 
   inline void TimeServiceTestEnvironment::Add(TestTimeClient* timeClient) {
-    m_timeClients.With(
-      [&] (auto& timeClients) {
-        timeClients.push_back(timeClient);
-        if(m_currentTime != boost::posix_time::not_a_date_time) {
-          timeClient->SetTime(m_currentTime);
-        }
-      });
+    m_timeClients.With([&] (auto& timeClients) {
+      timeClients.push_back(timeClient);
+      if(m_currentTime != boost::posix_time::not_a_date_time) {
+        timeClient->SetTime(m_currentTime);
+      }
+    });
   }
-}
-}
 }
 
 #endif

@@ -1,7 +1,6 @@
-#ifndef BEAM_TIMESERVICETESTENVIRONMENT_HPP
-#define BEAM_TIMESERVICETESTENVIRONMENT_HPP
-#include <boost/noncopyable.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#ifndef BEAM_TIME_SERVICE_TEST_ENVIRONMENT_HPP
+#define BEAM_TIME_SERVICE_TEST_ENVIRONMENT_HPP
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -10,39 +9,39 @@
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironmentException.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTests.hpp"
 
-namespace Beam {
-namespace TimeService {
-namespace Tests {
+namespace Beam::TimeService::Tests {
   void Fail(TestTimer& timer);
   void Trigger(TestTimer& timer);
 
-  /*! \class TimeServiceTestEnvironment
-      \brief Simulates the passing of time.
-   */
-  class TimeServiceTestEnvironment : private boost::noncopyable {
+  /** Simulates the passing of time. */
+  class TimeServiceTestEnvironment {
     public:
 
-      //! Constructs a TimeServiceTestEnvironment.
+      /** Constructs a TimeServiceTestEnvironment using the system time. */
       TimeServiceTestEnvironment();
+
+      /**
+       * Constructs a TimeServiceTestEnvironment.
+       * @param time The time to set the environment to.
+       */
+      TimeServiceTestEnvironment(boost::posix_time::ptime time);
 
       ~TimeServiceTestEnvironment();
 
-      //! Sets the time.
-      /*!
-        \param time The time to set the environment to.
-      */
+      /**
+       * Sets the time.
+       * @param time The time to set the environment to.
+       */
       void SetTime(boost::posix_time::ptime time);
 
-      //! Advances the time by a certain amount.
-      /*!
-        \param duration The amount of time to advance the environment by.
-      */
+      /**
+       * Advances the time by a certain amount.
+       * @param duration The amount of time to advance the environment by.
+       */
       void AdvanceTime(boost::posix_time::time_duration duration);
 
-      //! Returns the time.
+      /** Returns the time. */
       boost::posix_time::ptime GetTime() const;
-
-      void Open();
 
       void Close();
 
@@ -60,8 +59,10 @@ namespace Tests {
       SynchronizedVector<TimerEntry> m_timers;
       IO::OpenState m_openState;
 
+      TimeServiceTestEnvironment(const TimeServiceTestEnvironment&) = delete;
+      TimeServiceTestEnvironment& operator =(
+        const TimeServiceTestEnvironment&) = delete;
       void Shutdown();
-      
       void LockedSetTime(boost::posix_time::ptime time,
         boost::unique_lock<Threading::Mutex>& lock);
       void Add(TestTimeClient* timeClient);
@@ -71,7 +72,16 @@ namespace Tests {
   };
 
   inline TimeServiceTestEnvironment::TimeServiceTestEnvironment()
-      : m_nextTrigger(boost::posix_time::pos_infin) {}
+    : TimeServiceTestEnvironment(
+        boost::posix_time::second_clock::universal_time()) {}
+
+  inline TimeServiceTestEnvironment::TimeServiceTestEnvironment(
+      boost::posix_time::ptime time)
+      : m_nextTrigger(boost::posix_time::pos_infin) {
+    m_openState.SetOpening();
+    SetTime(time);
+    m_openState.SetOpen();
+  }
 
   inline TimeServiceTestEnvironment::~TimeServiceTestEnvironment() {
     Close();
@@ -102,17 +112,6 @@ namespace Tests {
   inline boost::posix_time::ptime TimeServiceTestEnvironment::GetTime() const {
     auto lock = boost::unique_lock(m_mutex);
     return m_currentTime;
-  }
-
-  inline void TimeServiceTestEnvironment::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    if(m_currentTime == boost::posix_time::not_a_date_time) {
-      m_currentTime = boost::posix_time::ptime(
-        boost::gregorian::date(2016, 7, 31), boost::posix_time::seconds(0));
-    }
-    m_openState.SetOpen();
   }
 
   inline void TimeServiceTestEnvironment::Close() {
@@ -194,8 +193,6 @@ namespace Tests {
         return entry.m_timer == timer;
       });
   }
-}
-}
 }
 
 #endif

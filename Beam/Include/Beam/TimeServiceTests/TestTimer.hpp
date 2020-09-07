@@ -1,6 +1,5 @@
-#ifndef BEAM_TESTTIMER_HPP
-#define BEAM_TESTTIMER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_TEST_TIMER_HPP
+#define BEAM_TEST_TIMER_HPP
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
@@ -11,17 +10,15 @@ namespace Beam {
 namespace TimeService {
 namespace Tests {
 
-  /*! \class TestTimer
-      \brief The type of Timer used by the TestEnvironment.
-   */
-  class TestTimer : private boost::noncopyable {
+  /** The type of Timer used by the TestEnvironment. */
+  class TestTimer {
     public:
 
-      //! Constructs a TestTimer.
-      /*!
-        \param interval The time interval before expiring.
-        \param environment The TestEnvironment this Timer belongs to.
-      */
+      /**
+       * Constructs a TestTimer.
+       * @param interval The time interval before expiring.
+       * @param environment The TestEnvironment this Timer belongs to.
+       */
       TestTimer(boost::posix_time::time_duration interval,
         Ref<TimeServiceTestEnvironment> environment);
 
@@ -44,13 +41,16 @@ namespace Tests {
       TimeServiceTestEnvironment* m_environment;
       bool m_hasStarted;
       Threading::TriggerTimer m_timer;
+
+      TestTimer(const TestTimer&) = delete;
+      TestTimer& operator =(const TestTimer&) = delete;
   };
 
   inline TestTimer::TestTimer(boost::posix_time::time_duration interval,
-      Ref<TimeServiceTestEnvironment> environment)
-      : m_interval(interval),
-        m_environment(environment.Get()),
-        m_hasStarted(false) {}
+    Ref<TimeServiceTestEnvironment> environment)
+    : m_interval(interval),
+      m_environment(environment.Get()),
+      m_hasStarted(false) {}
 
   inline TestTimer::~TestTimer() {
     Cancel();

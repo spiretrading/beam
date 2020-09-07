@@ -28,16 +28,12 @@ namespace {
 
   struct TrampolineServerConnection final : VirtualServerConnection {
     std::unique_ptr<VirtualChannel> Accept() override {
-      auto lock = GilLock();
-      if(auto overload = get_overload(
-          static_cast<const VirtualServerConnection*>(this), "accept")) {
-        auto channel = overload();
+      return MakeVirtualChannel(PythonAccept());
+    }
 
-        /** TODO */
-        return nullptr;
-      }
-      pybind11_fail(
-        "Tried to call pure virtual function VirtualServerConnection::accept");
+    std::shared_ptr<VirtualChannel> PythonAccept() {
+      PYBIND11_OVERLOAD_PURE_NAME(std::shared_ptr<VirtualChannel>,
+        VirtualServerConnection, "accept", PythonAccept);
     }
   };
 

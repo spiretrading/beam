@@ -85,6 +85,10 @@ void Beam::Python::ExportUidService(pybind11::module& module) {
 void Beam::Python::ExportUidServiceTestEnvironment(pybind11::module& module) {
   class_<UidServiceTestEnvironment>(module, "UidServiceTestEnvironment")
     .def(init(), call_guard<GilRelease>())
+    .def("__del__",
+      [] (UidServiceTestEnvironment& self) {
+        self.Close();
+      }, call_guard<GilRelease>())
     .def("close", &UidServiceTestEnvironment::Close, call_guard<GilRelease>())
     .def("build_client",
       [] (UidServiceTestEnvironment& self) {

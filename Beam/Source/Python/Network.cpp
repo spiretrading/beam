@@ -74,11 +74,16 @@ void Beam::Python::ExportMulticastSocket(pybind11::module& module) {
         return std::make_unique<MulticastSocket>(group, interface, options,
           Ref(*GetSocketThreadPool()));
       }), call_guard<GilRelease>())
+    .def("__del__",
+      [] (MulticastSocket& self) {
+        self.Close();
+      }, call_guard<GilRelease>())
     .def_property_readonly("group", &MulticastSocket::GetGroup)
     .def_property_readonly("receiver", &MulticastSocket::GetReceiver,
       return_value_policy::reference_internal)
     .def_property_readonly("sender", &MulticastSocket::GetSender,
-      return_value_policy::reference_internal);
+      return_value_policy::reference_internal)
+    .def("close", &MulticastSocket::Close, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportMulticastSocketChannel(pybind11::module& module) {
@@ -390,11 +395,16 @@ void Beam::Python::ExportUdpSocket(pybind11::module& module) {
         return std::make_unique<UdpSocket>(address, interface, options,
           Ref(*GetSocketThreadPool()));
       }), call_guard<GilRelease>())
+    .def("__del__",
+      [] (UdpSocket& self) {
+        self.Close();
+      }, call_guard<GilRelease>())
     .def_property_readonly("address", &UdpSocket::GetAddress)
     .def_property_readonly("receiver", &UdpSocket::GetReceiver,
       return_value_policy::reference_internal)
     .def_property_readonly("sender", &UdpSocket::GetSender,
-      return_value_policy::reference_internal);
+      return_value_policy::reference_internal)
+    .def("close", &UdpSocket::Close);
 }
 
 void Beam::Python::ExportUdpSocketChannel(pybind11::module& module) {

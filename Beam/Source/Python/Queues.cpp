@@ -66,23 +66,22 @@ void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
         self.Wait();
       }, call_guard<GilRelease>())
     .def("get_slot",
-      [] (RoutineTaskQueue& self, object slot) {
+      [] (RoutineTaskQueue& self, SharedObject slot) {
         auto queue = self.GetSlot<SharedObject>(
-          [slot = SharedObject(std::move(slot))](const SharedObject& object) {
+          [=] (const SharedObject& object) {
             auto lock = GilLock();
             (*slot)(*object);
           });
         return MakeToPythonQueueWriter(std::move(queue));
       })
     .def("get_slot",
-      [] (RoutineTaskQueue& self, object slot, object breakSlot) {
+      [] (RoutineTaskQueue& self, SharedObject slot, SharedObject breakSlot) {
         auto queue = self.GetSlot<SharedObject>(
-          [slot = SharedObject(std::move(slot))](const SharedObject& object) {
+          [=](const SharedObject& object) {
             auto lock = GilLock();
             (*slot)(*object);
           },
-          [breakSlot = SharedObject(std::move(breakSlot))](
-              const std::exception_ptr& e) {
+          [=](const std::exception_ptr& e) {
             auto lock = GilLock();
             (*breakSlot)(e);
           });

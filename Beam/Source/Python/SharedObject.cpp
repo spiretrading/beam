@@ -31,5 +31,6 @@ pybind11::handle SharedObjectTypeCaster::cast(const SharedObject& value,
 }
 
 bool SharedObjectTypeCaster::load(pybind11::handle source, bool) {
-  return false;
+  m_value.emplace(reinterpret_borrow<object>(std::move(source)));
+  return true;
 }

@@ -2,6 +2,7 @@
 #define BEAM_CALLBACK_QUEUE_WRITER_HPP
 #include <functional>
 #include <memory>
+#include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
@@ -58,10 +59,13 @@ namespace Beam {
       using QueueWriter<T>::Break;
 
     private:
+      struct Callbacks {
+        Callback m_callback;
+        BreakCallback m_breakCallback;
+      };
       mutable Threading::RecursiveMutex m_mutex;
       std::exception_ptr m_exception;
-      Callback m_callback;
-      BreakCallback m_breakCallback;
+      boost::optional<Callbacks> m_callbacks;
   };
 
   /**
@@ -96,8 +100,7 @@ namespace Beam {
   template<typename T, typename C, typename B>
   CallbackQueueWriter<T, C, B>::CallbackQueueWriter(Callback callback,
     BreakCallback breakCallback)
-    : m_callback(std::move(callback)),
-      m_breakCallback(std::move(breakCallback)) {}
+    : m_callbacks({std::move(callback), std::move(breakCallback)}) {}
 
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(const Target& value) {
@@ -105,7 +108,7 @@ namespace Beam {
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
-    m_callback(value);
+    m_callbacks->m_callback(value);
   }
 
   template<typename T, typename C, typename B>
@@ -114,7 +117,7 @@ namespace Beam {
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
-    m_callback(std::move(value));
+    m_callbacks->m_callback(std::move(value));
   }
 
   template<typename T, typename C, typename B>
@@ -126,7 +129,8 @@ namespace Beam {
       }
       m_exception = e;
     }
-    m_breakCallback(e);
+    m_callbacks->m_breakCallback(e);
+    m_callbacks.reset();
   }
 }
 

@@ -162,16 +162,18 @@ namespace Beam {
   template<typename T, typename F, typename B>
   auto TaskQueue::GetSlotHelper(F&& callback, B&& breakCallback) {
     return m_callbacks.GetSlot<T>(
-      [=, callback = std::forward<F>(callback)] (const T& value) {
+      [=, callback = std::make_shared<std::remove_reference_t<F>>(
+          std::forward<F>(callback))] (const T& value) {
         m_tasks.Push(
-          [=, callback = &callback] {
+          [=] {
             (*callback)(value);
           });
       },
-      [=, breakCallback = std::forward<B>(breakCallback)] (
+      [=, breakCallback = std::make_shared<std::remove_reference_t<B>>(
+          std::forward<B>(breakCallback))] (
           const std::exception_ptr& e) {
         m_tasks.Push(
-          [=, breakCallback = &breakCallback] () {
+          [=] () {
             (*breakCallback)(e);
           });
       });

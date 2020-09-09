@@ -84,7 +84,6 @@ namespace Beam::Network {
       MulticastSocket& operator =(const MulticastSocket&) = delete;
       void Open(const IpAddress& interface,
         const MulticastSocketOptions& options);
-      void Shutdown();
   };
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
@@ -133,12 +132,12 @@ namespace Beam::Network {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
+    m_socket->Close();
+    m_openState.Close();
   }
 
   inline void MulticastSocket::Open(const IpAddress& interface,
       const MulticastSocketOptions& options) {
-    m_openState.SetOpening();
     try {
       auto errorCode = boost::system::error_code();
       auto outboundInterface = boost::asio::ip::address_v4::from_string(
@@ -197,16 +196,10 @@ namespace Beam::Network {
       m_receiver.emplace(options, m_socket);
       m_sender.emplace(options, m_socket);
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
     m_socket->m_isOpen = true;
-    m_openState.SetOpen();
-  }
-
-  inline void MulticastSocket::Shutdown() {
-    m_socket->Close();
-    m_openState.SetClosed();
   }
 }
 

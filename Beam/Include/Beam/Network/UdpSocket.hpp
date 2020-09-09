@@ -3,6 +3,7 @@
 #include <string>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/optional/optional.hpp>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/Network.hpp"
@@ -83,7 +84,6 @@ namespace Beam::Network {
       UdpSocket& operator =(const UdpSocket&) = delete;
       void Open(boost::optional<IpAddress> interface,
         const UdpSocketOptions& options);
-      void Shutdown();
   };
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
@@ -137,12 +137,12 @@ namespace Beam::Network {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
+    m_socket->Close();
+    m_openState.Close();
   }
 
   inline void UdpSocket::Open(boost::optional<IpAddress> interface,
       const UdpSocketOptions& options) {
-    m_openState.SetOpening();
     try {
       auto errorCode = boost::system::error_code();
       auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_ioService);
@@ -187,16 +187,10 @@ namespace Beam::Network {
       m_receiver.emplace(options, m_socket);
       m_sender.emplace(options, m_socket);
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
     m_socket->m_isOpen = true;
-    m_openState.SetOpen();
-  }
-
-  inline void UdpSocket::Shutdown() {
-    m_socket->Close();
-    m_openState.SetClosed();
   }
 }
 

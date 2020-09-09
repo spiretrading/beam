@@ -4,6 +4,7 @@
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/IO.hpp"
+#include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 
 namespace Beam {
@@ -38,7 +39,7 @@ namespace IO {
     private:
       std::shared_ptr<PipedWriter<Buffer>> m_writer;
       std::shared_ptr<PipedWriter<Buffer>> m_endpointWriter;
-      std::atomic_bool m_isOpen;
+      OpenState m_openState;
 
       LocalConnection(const LocalConnection&) = delete;
       LocalConnection& operator =(const LocalConnection&) = delete;
@@ -49,8 +50,7 @@ namespace IO {
     std::shared_ptr<PipedWriter<Buffer>> writer,
     std::shared_ptr<PipedWriter<Buffer>> endpointWriter)
     : m_writer(std::move(writer)),
-      m_endpointWriter(std::move(endpointWriter)),
-      m_isOpen(true) {}
+      m_endpointWriter(std::move(endpointWriter)) {}
 
   template<typename B>
   LocalConnection<B>::~LocalConnection() {
@@ -59,11 +59,12 @@ namespace IO {
 
   template<typename B>
   void LocalConnection<B>::Close() {
-    if(!m_isOpen.exchange(false)) {
+    if(m_openState.SetClosing()) {
       return;
     }
     m_endpointWriter->Break();
     m_writer->Break();
+    m_openState.Close();
   }
 }
 

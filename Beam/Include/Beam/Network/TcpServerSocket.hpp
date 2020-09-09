@@ -65,7 +65,6 @@ namespace Network {
 
       TcpServerSocket(const TcpServerSocket&) = delete;
       TcpServerSocket& operator =(const TcpServerSocket&) = delete;
-      void Shutdown();
   };
 
   inline TcpServerSocket::TcpServerSocket(
@@ -86,7 +85,6 @@ namespace Network {
       : m_options(options),
         m_socketThreadPool(socketThreadPool.Get()),
         m_ioService(&m_socketThreadPool->GetService()) {
-    m_openState.SetOpening();
     try {
       auto resolver = boost::asio::ip::tcp::resolver(*m_ioService);
       auto query = boost::asio::ip::tcp::resolver::query(interface.GetHost(),
@@ -98,17 +96,16 @@ namespace Network {
       }
       m_acceptor.emplace(*m_ioService, *endpointIterator);
     } catch(const SocketException&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     } catch(const boost::system::system_error& e) {
-      m_openState.SetOpenFailure(
+      Close();
+      BOOST_THROW_EXCEPTION(
         SocketException(e.code().value(), e.code().message()));
-      Shutdown();
     } catch(const std::exception& e) {
-      m_openState.SetOpenFailure(IO::ConnectException(e.what()));
-      Shutdown();
+      Close();
+      BOOST_THROW_EXCEPTION(IO::ConnectException(e.what()));
     }
-    m_openState.SetOpen();
   }
 
   inline TcpServerSocket::~TcpServerSocket() {
@@ -151,14 +148,10 @@ namespace Network {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  inline void TcpServerSocket::Shutdown() {
-    if(m_acceptor.is_initialized()) {
+    if(m_acceptor) {
       m_acceptor->close();
     }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 }
 

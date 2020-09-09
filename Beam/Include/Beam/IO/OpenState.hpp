@@ -4,7 +4,9 @@
 #include <cassert>
 #include <cstdint>
 #include <boost/thread/mutex.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/IO.hpp"
+#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam::IO {
@@ -26,6 +28,12 @@ namespace Beam::IO {
 
       /** Returns <code>true</code> iff the state is closed. */
       bool IsClosed() const;
+
+      /**
+       * Tests if the state is open and raises a NotConnectionException
+       * otherwise.
+       */
+      void EnsureOpen() const;
 
       /** Sets the state to closing and returns the prior closing state. */
       bool SetClosing();
@@ -64,6 +72,12 @@ namespace Beam::IO {
 
   inline bool OpenState::IsClosed() const {
     return m_state == State::CLOSED;
+  }
+
+  inline void OpenState::EnsureOpen() const {
+    if(m_state != State::OPEN) {
+      BOOST_THROW_EXCEPTION(NotConnectedException());
+    }
   }
 
   inline bool OpenState::SetClosing() {

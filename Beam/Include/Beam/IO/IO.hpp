@@ -1,8 +1,7 @@
 #ifndef BEAM_IO_HPP
 #define BEAM_IO_HPP
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
   template<typename DestinationWriterType> class AsyncWriter;
   struct Buffer;
   template<typename BufferType> class BufferView;
@@ -47,7 +46,6 @@ namespace IO {
   template<typename C> class WrapperServerConnection;
   template<typename W> class WrapperWriter;
   template<typename BufferType> struct Writer;
-}
 }
 
 #endif

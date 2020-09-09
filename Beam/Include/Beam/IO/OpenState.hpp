@@ -96,10 +96,13 @@ namespace Beam::IO {
   }
 
   inline void OpenState::Close() {
-    auto lock = boost::lock_guard(m_mutex);
-    if(m_state.exchange(State::CLOSED) != State::CLOSED) {
-      m_closingCondition.notify_all();
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      if(m_state.exchange(State::CLOSED) == State::CLOSED) {
+        return;
+      }
     }
+    m_closingCondition.notify_all();
   }
 }
 

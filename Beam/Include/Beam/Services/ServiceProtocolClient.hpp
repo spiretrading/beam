@@ -164,7 +164,6 @@ namespace Details {
       std::atomic_int m_nextRequestId;
       std::unordered_map<int, Routines::BaseEval*> m_pendingRequests;
       Queue<std::shared_ptr<Message<ServiceProtocolClient>>> m_messages;
-      bool m_isShuttingDown;
       std::atomic_bool m_isReading;
       IO::OpenState m_openState;
 
@@ -172,7 +171,7 @@ namespace Details {
       ServiceProtocolClient& operator =(
         const ServiceProtocolClient&) = delete;
       void Open();
-      void Fail(void* source);
+      void Shutdown();
       void ReadLoop();
       void TimerLoop();
   };
@@ -197,27 +196,26 @@ namespace Details {
    * Implements a basic Message handling loop for a ServiceProtocolClient.
    * @param client The ServiceProtocolClient to handle the Messages for.
    */
-  template<typename ServiceProtocolClientType>
-  void HandleMessagesLoop(ServiceProtocolClientType& client) {
+  template<typename ServiceProtocolClient>
+  void HandleMessagesLoop(ServiceProtocolClient& client) {
     auto routines = Routines::RoutineHandlerGroup();
     try {
       while(true) {
         auto message = client.ReadMessage();
-        auto slot = client.GetSlots().Find(*message);
-        if(slot != nullptr) {
-          if constexpr(SupportsParallelism<ServiceProtocolClientType>::value) {
+        if(auto slot = client.GetSlots().Find(*message)) {
+          if constexpr(SupportsParallelism<ServiceProtocolClient>::value) {
             routines.Spawn(
               [&, message = std::move(message), slot = std::move(slot)] {
                 try {
                   message->EmitSignal(slot, Ref(client));
-                } catch(...) {
+                } catch(const std::exception&) {
                   client.Close();
                 }
               });
           } else {
             try {
               message->EmitSignal(slot, Ref(client));
-            } catch(...) {
+            } catch(const std::exception&) {
               client.Close();
             }
           }
@@ -238,7 +236,6 @@ namespace Details {
         m_timer(std::forward<TF>(timer)),
         m_timerQueue(std::make_shared<Queue<Threading::Timer::Result>>()),
         m_nextRequestId(1),
-        m_isShuttingDown(false),
         m_isReading(false) {
     m_timer->GetPublisher().Monitor(m_timerQueue);
   }
@@ -316,11 +313,7 @@ namespace Details {
       requestId, parameters);
     {
       auto lock = boost::lock_guard(m_mutex);
-      if(!m_openState.IsOpen() || m_isShuttingDown) {
-        BOOST_THROW_EXCEPTION(ServiceRequestException(
-          "ServiceProtocolClient closed."));
-      }
-      m_pendingRequests.insert(std::make_pair(requestId, &resultEval));
+      m_pendingRequests.insert(std::pair(requestId, &resultEval));
     }
     Open();
     try {
@@ -359,7 +352,11 @@ namespace Details {
     if(m_openState.SetClosing()) {
       return;
     }
-    Fail(nullptr);
+    Shutdown();
+    m_readLoop.Wait();
+    m_messageHandler.Wait();
+    m_timerLoop.Wait();
+    m_openState.Close();
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -375,21 +372,10 @@ namespace Details {
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
-  void ServiceProtocolClient<M, T, P, S, V>::Fail(void* source) {
-    {
-      auto lock = boost::lock_guard(m_mutex);
-      m_isShuttingDown = true;
-    }
-    m_protocol.GetChannel().GetConnection().Close();
+  void ServiceProtocolClient<M, T, P, S, V>::Shutdown() {
+    m_protocol.Close();
     m_messages.Break(IO::EndOfFileException());
-    if(source != &m_timerLoop) {
-      m_timer->Cancel();
-      m_timerLoop.Wait();
-    }
-    if(source != &m_readLoop) {
-      m_readLoop.Wait();
-    }
-    m_messageHandler.Wait();
+    m_timer->Cancel();
     auto pendingRequests = std::unordered_map<int, Routines::BaseEval*>();
     {
       auto lock = boost::lock_guard(m_mutex);
@@ -399,7 +385,6 @@ namespace Details {
       eval->SetException(ServiceRequestException(
         "ServiceProtocolClient closed."));
     }
-    m_openState.Close();
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -410,30 +395,30 @@ namespace Details {
         message = m_protocol.template Receive<
           std::unique_ptr<Message<ServiceProtocolClient>>>();
         if(!message) {
-          Fail(&m_readLoop);
           return;
         }
       } catch(const IO::EndOfFileException&) {
-        Fail(&m_readLoop);
+        Shutdown();
         return;
       } catch(const std::exception&) {
         std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
-        Fail(&m_readLoop);
+        Shutdown();
         return;
       }
       auto serviceMessage =
         dynamic_cast<ServiceMessage<ServiceProtocolClient>*>(message.get());
       if(serviceMessage != nullptr && serviceMessage->IsResponseMessage()) {
-        auto eval = static_cast<Routines::BaseEval*>(nullptr);
-        {
+        auto eval = [&] {
           auto lock = boost::lock_guard(m_mutex);
           auto responseIterator = m_pendingRequests.find(
             serviceMessage->GetRequestId());
           if(responseIterator != m_pendingRequests.end()) {
-            eval = responseIterator->second;
+            auto eval = responseIterator->second;
             m_pendingRequests.erase(responseIterator);
+            return eval;
           }
-        }
+          return static_cast<Routines::BaseEval*>(nullptr);
+        }();
         if(eval) {
           serviceMessage->SetEval(*eval);
         }
@@ -441,11 +426,11 @@ namespace Details {
         try {
           m_messages.Push(std::move(message));
         } catch(const IO::EndOfFileException&) {
-          Fail(&m_readLoop);
+          Shutdown();
           return;
         } catch(const std::exception&) {
           std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
-          Fail(&m_readLoop);
+          Shutdown();
           return;
         }
       }

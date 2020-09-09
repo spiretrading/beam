@@ -120,7 +120,7 @@ TEST_SUITE("ServiceProtocolClient") {
   TEST_CASE("request_before_connection_closed") {
     auto server = TestServerConnection();
     auto callbackCount = 0;
-    RoutineHandler serverTask = Spawn(
+    auto serverTask = RoutineHandler(Spawn(
       [&] {
         auto clientChannel = server.Accept();
         auto client = ServerServiceProtocolClient(std::move(clientChannel),
@@ -140,7 +140,7 @@ TEST_SUITE("ServiceProtocolClient") {
         } catch(const ServiceRequestException&) {
         } catch(const EndOfFileException&) {
         }
-      });
+      }));
     auto clientTask = RoutineHandler(Spawn(
       [&] {
         auto clientChannel = ClientChannel("client", server);

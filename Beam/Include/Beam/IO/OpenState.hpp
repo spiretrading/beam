@@ -1,213 +1,92 @@
-#ifndef BEAM_OPENSTATE_HPP
-#define BEAM_OPENSTATE_HPP
+#ifndef BEAM_OPEN_STATE_HPP
+#define BEAM_OPEN_STATE_HPP
+#include <atomic>
 #include <cassert>
-#include <boost/noncopyable.hpp>
+#include <cstdint>
 #include <boost/thread/mutex.hpp>
-#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Utilities/Rethrow.hpp"
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
 
-  /*! \class OpenState
-      \brief Stores state about whether a Connection/Client is open.
-   */
-  class OpenState : private boost::noncopyable {
+  /** Stores state about whether a Connection/Client is open. */
+  class OpenState {
     public:
 
-      //! Constructs an OpenState.
+      /** Constructs an OpenState. */
       OpenState();
-
-      //! Constructs an OpenState.
-      /*!
-        \param isOpen Whether the initial state is open.
-      */
-      explicit OpenState(bool isOpen);
 
       ~OpenState();
 
-      //! Returns <code>true</code> iff the state is opening.
-      bool IsOpening() const;
-
-      //! Returns <code>true</code> iff the state is open.
+      /** Returns <code>true</code> iff the state is open. */
       bool IsOpen() const;
 
-      //! Returns <code>true</code> iff the state is either opening or open.
-      bool IsRunning() const;
-
-      //! Returns <code>true</code> iff the state is closing.
+      /** Returns <code>true</code> iff the state is closing. */
       bool IsClosing() const;
 
-      //! Returns <code>true</code> iff the state is closed.
+      /** Returns <code>true</code> iff the state is closed. */
       bool IsClosed() const;
 
-      //! Sets the state to opening and returns the prior opening state.
-      bool SetOpening();
-
-      //! Sets the state to open and returns the prior open state.
-      void SetOpen();
-
-      //! Indicates that the Open operation failed, can only be invoked from
-      //! within the body of a catch handler.
-      void SetOpenFailure();
-
-      //! Indicates that the Open operation failed.
-      /*!
-        \param exception The reason for the failure.
-      */
-      void SetOpenFailure(const std::exception_ptr& exception);
-
-      //! Indicates that the Open operation failed.
-      /*!
-        \param exception The reason for the failure.
-      */
-      template<typename E>
-      void SetOpenFailure(const E& exception);
-
-      //! Sets the state to closing and returns the prior closing state.
+      /** Sets the state to closing and returns the prior closing state. */
       bool SetClosing();
 
-      //! Sets the state to closed and returns the prior open state.
-      void SetClosed();
+      /** Sets the state to closed and returns the prior open state. */
+      void Close();
 
     private:
+      enum class State : std::uint8_t {
+        OPEN,
+        CLOSING,
+        CLOSED
+      };
       mutable boost::mutex m_mutex;
-      bool m_isOpen;
-      bool m_isTransitioning;
-      Threading::ConditionVariable m_isTransitioningCondition;
-      std::exception_ptr m_exception;
+      std::atomic<State> m_state;
+      Threading::ConditionVariable m_closingCondition;
 
-      bool LockedIsOpening() const;
-      bool LockedIsOpen() const;
-      bool LockedIsClosing() const;
-      bool LockedIsClosed() const;
+      OpenState(const OpenState&) = delete;
+      OpenState& operator =(const OpenState&) = delete;
   };
 
   inline OpenState::OpenState()
-      : OpenState{false} {}
-
-  inline OpenState::OpenState(bool isOpen)
-      : m_isOpen{isOpen},
-        m_isTransitioning{false} {}
+    : m_state(State::OPEN) {}
 
   inline OpenState::~OpenState() {
     assert(IsClosed());
   }
 
-  inline bool OpenState::IsOpening() const {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    return LockedIsOpening();
-  }
-
   inline bool OpenState::IsOpen() const {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    return LockedIsOpen();
-  }
-
-  inline bool OpenState::IsRunning() const {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    return LockedIsOpening() || LockedIsOpen();
+    return m_state == State::OPEN;
   }
 
   inline bool OpenState::IsClosing() const {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    return LockedIsClosing();
+    return m_state == State::CLOSING;
   }
 
   inline bool OpenState::IsClosed() const {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    return LockedIsClosed();
-  }
-
-  inline bool OpenState::SetOpening() {
-    boost::unique_lock<boost::mutex> lock{m_mutex};
-    if(LockedIsOpen()) {
-      return true;
-    } else if(LockedIsOpening()) {
-      while(LockedIsOpening()) {
-        m_isTransitioningCondition.wait(lock);
-      }
-      Rethrow(m_exception);
-      return true;
-    } else if(LockedIsClosing()) {
-      BOOST_THROW_EXCEPTION(ConnectException{"Connection is closing."});
-    } else {
-      assert(LockedIsClosed());
-      m_isTransitioning = true;
-      return false;
-    }
-  }
-
-  inline void OpenState::SetOpenFailure() {
-    SetOpenFailure(std::current_exception());
-  }
-
-  inline void OpenState::SetOpenFailure(const std::exception_ptr& exception) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    m_exception = exception;
-  }
-
-  template<typename E>
-  void OpenState::SetOpenFailure(const E& exception) {
-    SetOpenFailure(std::make_exception_ptr(exception));
-  }
-
-  inline void OpenState::SetOpen() {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    if(LockedIsOpen()) {
-      return;
-    }
-    m_isTransitioning = false;
-    m_isOpen = true;
-    m_isTransitioningCondition.notify_all();
+    return m_state == State::CLOSED;
   }
 
   inline bool OpenState::SetClosing() {
-    boost::unique_lock<boost::mutex> lock{m_mutex};
-    if(LockedIsOpen()) {
-      m_isTransitioning = true;
+    static auto OPEN = State::OPEN;
+    if(m_state.compare_exchange_strong(OPEN, State::CLOSING)) {
       return false;
-    } else if(LockedIsClosing()) {
-      while(LockedIsClosing()) {
-        m_isTransitioningCondition.wait(lock);
-      }
-      return true;
-    } else {
+    }
+    if(m_state == State::CLOSED) {
       return true;
     }
-  }
-
-  inline void OpenState::SetClosed() {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    if(LockedIsClosed()) {
-      return;
+    auto lock = boost::unique_lock(m_mutex);
+    while(m_state != State::CLOSED) {
+      m_closingCondition.wait(lock);
     }
-    m_isTransitioning = false;
-    m_isOpen = false;
-    m_isTransitioningCondition.notify_all();
-    auto exception = m_exception;
-    m_exception = std::exception_ptr{};
-    Rethrow(exception);
+    return true;
   }
 
-  inline bool OpenState::LockedIsOpening() const {
-    return m_isTransitioning && !m_isOpen;
+  inline void OpenState::Close() {
+    auto lock = boost::lock_guard(m_mutex);
+    if(m_state.exchange(State::CLOSED) != State::CLOSED) {
+      m_closingCondition.notify_all();
+    }
   }
-
-  inline bool OpenState::LockedIsOpen() const {
-    return !m_isTransitioning && m_isOpen;
-  }
-
-  inline bool OpenState::LockedIsClosing() const {
-    return m_isTransitioning && m_isOpen;
-  }
-
-  inline bool OpenState::LockedIsClosed() const {
-    return !m_isTransitioning && !m_isOpen;
-  }
-}
 }
 
 #endif

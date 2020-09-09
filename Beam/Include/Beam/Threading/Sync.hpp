@@ -2,7 +2,6 @@
 #define BEAM_SYNC_HPP
 #include <type_traits>
 #include <variant>
-#include <boost/hof/is_invocable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/utility/declval.hpp>
@@ -278,13 +277,9 @@ namespace Details {
   template<typename T, typename M>
   template<typename F>
   decltype(auto) Sync<T, M>::With(F&& f) {
-    if constexpr(boost::hof::is_invocable<F, Value>()) {
-      return static_cast<const Sync*>(this)->With(f);
-    } else {
-      auto lock = LockProxy(WriteLock(m_mutex));
-      m_lock = &lock;
-      return f(m_value);
-    }
+    auto lock = LockProxy(WriteLock(m_mutex));
+    m_lock = &lock;
+    return f(m_value);
   }
 
   template<typename T, typename M>

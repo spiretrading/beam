@@ -60,7 +60,7 @@ namespace Beam::Services {
       */
       template<typename SF, typename CF>
       ServiceProtocolServletContainer(SF&& servlet, CF&& serverConnection,
-        const typename ServiceProtocolServer::TimerFactory& timerFactory);
+        typename ServiceProtocolServer::TimerFactory timerFactory);
 
       ~ServiceProtocolServletContainer();
 
@@ -71,6 +71,10 @@ namespace Beam::Services {
       Routines::Async<void> m_isOpen;
       ServiceProtocolServer m_protocolServer;
 
+      ServiceProtocolServletContainer(
+        const ServiceProtocolServletContainer&) = delete;
+      ServiceProtocolServletContainer& operator =(
+        const ServiceProtocolServletContainer&) = delete;
       void OnClientAccepted(ServiceProtocolClient& client);
       void OnClientClosed(ServiceProtocolClient& client);
   };
@@ -80,10 +84,11 @@ namespace Beam::Services {
   template<typename SF, typename CF>
   ServiceProtocolServletContainer<M, C, S, E, T, P>::
       ServiceProtocolServletContainer(SF&& servlet, CF&& serverConnection,
-      const typename ServiceProtocolServer::TimerFactory& timerFactory)
+      typename ServiceProtocolServer::TimerFactory timerFactory)
 BEAM_SUPPRESS_THIS_INITIALIZER()
       : m_servlet(std::forward<SF>(servlet)),
-        m_protocolServer(std::forward<CF>(serverConnection), timerFactory,
+        m_protocolServer(std::forward<CF>(serverConnection),
+          std::move(timerFactory),
           std::bind(&ServiceProtocolServletContainer::OnClientAccepted, this,
           std::placeholders::_1), std::bind(
           &ServiceProtocolServletContainer::OnClientClosed, this,

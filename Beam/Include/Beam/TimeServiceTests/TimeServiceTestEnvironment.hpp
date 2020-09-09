@@ -62,7 +62,6 @@ namespace Beam::TimeService::Tests {
       TimeServiceTestEnvironment(const TimeServiceTestEnvironment&) = delete;
       TimeServiceTestEnvironment& operator =(
         const TimeServiceTestEnvironment&) = delete;
-      void Shutdown();
       void LockedSetTime(boost::posix_time::ptime time,
         boost::unique_lock<Threading::Mutex>& lock);
       void Add(TestTimeClient* timeClient);
@@ -78,9 +77,12 @@ namespace Beam::TimeService::Tests {
   inline TimeServiceTestEnvironment::TimeServiceTestEnvironment(
       boost::posix_time::ptime time)
       : m_nextTrigger(boost::posix_time::pos_infin) {
-    m_openState.SetOpening();
-    SetTime(time);
-    m_openState.SetOpen();
+    try {
+      SetTime(time);
+    } catch(const std::exception&) {
+      Close();
+      BOOST_RETHROW;
+    }
   }
 
   inline TimeServiceTestEnvironment::~TimeServiceTestEnvironment() {
@@ -118,15 +120,11 @@ namespace Beam::TimeService::Tests {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  inline void TimeServiceTestEnvironment::Shutdown() {
     auto pendingTimers = m_timers.Acquire();
     for(auto& pendingTimer : pendingTimers) {
       Fail(*pendingTimer.m_timer);
     }
-    m_openState.SetClosed();
+    m_openState.Close();
     Routines::FlushPendingRoutines();
   }
 
@@ -137,14 +135,13 @@ namespace Beam::TimeService::Tests {
         m_currentTime >= time) {
       return;
     }
-    auto delta =
-      [&] {
-        if(m_currentTime == boost::posix_time::not_a_date_time) {
-          return boost::posix_time::time_duration{};
-        } else {
-          return time - m_currentTime;
-        }
-      }();
+    auto delta = [&] {
+      if(m_currentTime == boost::posix_time::not_a_date_time) {
+        return boost::posix_time::time_duration{};
+      } else {
+        return time - m_currentTime;
+      }
+    }();
     while(delta > m_nextTrigger) {
       delta -= m_nextTrigger;
       LockedSetTime(m_currentTime + m_nextTrigger, lock);
@@ -154,26 +151,23 @@ namespace Beam::TimeService::Tests {
       m_nextTrigger = boost::posix_time::pos_infin;
     }
     m_currentTime = time;
-    m_timeClients.ForEach(
-      [&] (auto& timeClient) {
-        timeClient->SetTime(time);
-      });
+    m_timeClients.ForEach([&] (auto& timeClient) {
+      timeClient->SetTime(time);
+    });
     auto expiredTimers = std::vector<TestTimer*>();
-    m_timers.With(
-      [&] (auto& timers) {
-        auto i = timers.begin();
-        while(i != timers.end()) {
-          auto& timer = *i;
+    m_timers.With([&] (auto& timers) {
+      timers.erase(std::remove_if(timers.begin(), timers.end(),
+        [&] (auto& timer) {
           timer.m_timeRemaining -= delta;
           if(timer.m_timeRemaining <= boost::posix_time::seconds(0)) {
             expiredTimers.push_back(timer.m_timer);
-            i = timers.erase(i);
+            return true;
           } else {
             m_nextTrigger = std::min(m_nextTrigger, timer.m_timeRemaining);
-            ++i;
+            return false;
           }
-        }
-      });
+        }), timers.end());
+    });
     {
       auto release = Threading::Release(lock);
       for(auto& expiredTimer : expiredTimers) {
@@ -188,10 +182,9 @@ namespace Beam::TimeService::Tests {
   }
 
   inline void TimeServiceTestEnvironment::Remove(TestTimer* timer) {
-    m_timers.RemoveIf(
-      [&] (auto& entry) {
-        return entry.m_timer == timer;
-      });
+    m_timers.RemoveIf([&] (auto& entry) {
+      return entry.m_timer == timer;
+    });
   }
 }
 

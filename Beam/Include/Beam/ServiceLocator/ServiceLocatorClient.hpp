@@ -3,7 +3,6 @@
 #include <random>
 #include <string>
 #include <vector>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
@@ -28,7 +27,7 @@ namespace Beam::ServiceLocator {
    * @param <B> The type used to build ServiceProtocolClients to the server.
    */
   template<typename B>
-  class ServiceLocatorClient : private boost::noncopyable {
+  class ServiceLocatorClient {
     public:
 
       /** The type used to build ServiceProtocolClients to the server. */
@@ -251,7 +250,8 @@ namespace Beam::ServiceLocator {
       RoutineTaskQueue m_tasks;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      ServiceLocatorClient(const ServiceLocatorClient&) = delete;
+      ServiceLocatorClient& operator =(const ServiceLocatorClient&) = delete;
       void Login(ServiceProtocolClient& client);
       void OnReconnect(const std::shared_ptr<ServiceProtocolClient>& client);
       void OnAccountUpdate(ServiceProtocolClient& client,
@@ -334,7 +334,6 @@ namespace Beam::ServiceLocator {
       : m_username(std::move(username)),
         m_password(std::move(password)),
         m_clientHandler(std::forward<BF>(clientBuilder)) {
-    m_openState.SetOpening();
     m_clientHandler.SetReconnectHandler(
       std::bind(&ServiceLocatorClient::OnReconnect, this,
       std::placeholders::_1));
@@ -348,10 +347,9 @@ namespace Beam::ServiceLocator {
       auto client = m_clientHandler.GetClient();
       Login(*client);
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename B>
@@ -557,16 +555,11 @@ namespace Beam::ServiceLocator {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Shutdown() {
     m_tasks.Break();
     m_tasks.Wait();
     m_accountUpdatePublisher.Break();
     m_clientHandler.Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename B>
@@ -601,7 +594,7 @@ namespace Beam::ServiceLocator {
       });
     } catch(const std::exception&) {
       Close();
-      throw;
+      BOOST_RETHROW;
     }
   }
 

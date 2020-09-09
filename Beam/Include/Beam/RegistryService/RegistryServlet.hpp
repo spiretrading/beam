@@ -1,35 +1,33 @@
-#ifndef BEAM_REGISTRYSERVLET_HPP
-#define BEAM_REGISTRYSERVLET_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_REGISTRY_SERVLET_HPP
+#define BEAM_REGISTRY_SERVLET_HPP
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/RegistryService/RegistryService.hpp"
 #include "Beam/RegistryService/RegistryServices.hpp"
 #include "Beam/RegistryService/RegistrySession.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 
-namespace Beam {
-namespace RegistryService {
+namespace Beam::RegistryService {
 
-  /*! \class RegistryServlet
-      \brief Provides access to a registry of resources and data.
-      \tparam ContainerType The container instantiating this servlet.
-      \tparam RegistryDataStoreType The type of data store to use.
+  /**
+   * Provides access to a registry of resources and data.
+   * @param C The container instantiating this servlet.
+   * @param D The type of data store to use.
    */
-  template<typename ContainerType, typename RegistryDataStoreType>
-  class RegistryServlet : private boost::noncopyable {
+  template<typename C, typename D>
+  class RegistryServlet {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
-      //! The type of RegistryDataStore used.
-      using RegistryDataStore = GetTryDereferenceType<RegistryDataStoreType>;
+      /** The type of RegistryDataStore used. */
+      using RegistryDataStore = GetTryDereferenceType<D>;
 
-      //! Constructs a RegistryServlet.
-      /*!
-        \param dataStore The data store to use.
-      */
-      template<typename DataStoreForward>
-      RegistryServlet(DataStoreForward&& dataStore);
+      /**
+       * Constructs a RegistryServlet.
+       * @param dataStore The data store to use.
+       */
+      template<typename DF>
+      RegistryServlet(DF&& dataStore);
 
       void RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
         slots);
@@ -37,10 +35,11 @@ namespace RegistryService {
       void Close();
 
     private:
-      GetOptionalLocalPtr<RegistryDataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      RegistryServlet(const RegistryServlet&) = delete;
+      RegistryServlet& operator =(const RegistryServlet&) = delete;
       RegistryEntry OnLoadPathRequest(ServiceProtocolClient& client,
         const RegistryEntry& root, const std::string& path);
       RegistryEntry OnLoadParentRequest(ServiceProtocolClient& client,
@@ -65,26 +64,23 @@ namespace RegistryService {
         const RegistryEntry& registryEntry);
   };
 
-  template<typename RegistryDataStoreType>
+  template<typename D>
   struct MetaRegistryServlet {
-    static constexpr bool SupportsParallelism = true;
+    static constexpr auto SupportsParallelism = true;
     using Session = RegistrySession;
-    template<typename ContainerType>
+    template<typename C>
     struct apply {
-      using type = RegistryServlet<ContainerType, RegistryDataStoreType>;
+      using type = RegistryServlet<C, D>;
     };
   };
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  template<typename DataStoreForward>
-  RegistryServlet<ContainerType, RegistryDataStoreType>::RegistryServlet(
-      DataStoreForward&& dataStore)
-      : m_dataStore{std::forward<DataStoreForward>(dataStore)} {
-    m_openState.SetOpen();
-  }
+  template<typename C, typename D>
+  template<typename DF>
+  RegistryServlet<C, D>::RegistryServlet(DF&& dataStore)
+    : m_dataStore(std::forward<DF>(dataStore)) {}
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::RegisterServices(
+  template<typename C, typename D>
+  void RegistryServlet<C, D>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterRegistryServices(Store(slots));
     LoadPathService::AddSlot(Store(slots), std::bind(
@@ -119,25 +115,20 @@ namespace RegistryService {
       std::placeholders::_2));
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::Close() {
+  template<typename C, typename D>
+  void RegistryServlet<C, D>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::Shutdown() {
     m_dataStore->Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnLoadPathRequest(ServiceProtocolClient& client,
-      const RegistryEntry& root, const std::string& path) {
-    RegistryEntry entry;
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnLoadPathRequest(
+      ServiceProtocolClient& client, const RegistryEntry& root,
+      const std::string& path) {
+    auto entry = RegistryEntry();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedRoot = m_dataStore->Validate(root);
@@ -146,66 +137,58 @@ namespace RegistryService {
     return entry;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnLoadParentRequest(ServiceProtocolClient& client,
-      const RegistryEntry& registryEntry) {
-    RegistryEntry parent;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(registryEntry);
-        parent = m_dataStore->LoadParent(validatedEntry);
-      });
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnLoadParentRequest(
+      ServiceProtocolClient& client, const RegistryEntry& registryEntry) {
+    auto parent = RegistryEntry();
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(registryEntry);
+      parent = m_dataStore->LoadParent(validatedEntry);
+    });
     return parent;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  std::vector<RegistryEntry>
-      RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnLoadChildrenRequest(ServiceProtocolClient& client,
-      const RegistryEntry& registryEntry) {
-    std::vector<RegistryEntry> children;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(registryEntry);
-        children = m_dataStore->LoadChildren(validatedEntry);
-      });
+  template<typename C, typename D>
+  std::vector<RegistryEntry> RegistryServlet<C, D>::OnLoadChildrenRequest(
+      ServiceProtocolClient& client, const RegistryEntry& registryEntry) {
+    auto children = std::vector<RegistryEntry>();
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(registryEntry);
+      children = m_dataStore->LoadChildren(validatedEntry);
+    });
     return children;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnMakeDirectoryRequest(ServiceProtocolClient& client,
-      const std::string& name, const RegistryEntry& parent) {
-    RegistryEntry newEntry;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedParent = m_dataStore->Validate(parent);
-        RegistryEntry validatedEntry(RegistryEntry::Type::DIRECTORY, -1, name,
-          0);
-        newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
-      });
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnMakeDirectoryRequest(
+      ServiceProtocolClient& client, const std::string& name,
+      const RegistryEntry& parent) {
+    auto newEntry = RegistryEntry();
+    m_dataStore->WithTransaction([&] {
+      auto validatedParent = m_dataStore->Validate(parent);
+      auto validatedEntry = RegistryEntry(RegistryEntry::Type::DIRECTORY, -1,
+        name, 0);
+      newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
+    });
     return newEntry;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnCopyRequest(ServiceProtocolClient& client,
-      const RegistryEntry& registryEntry, const RegistryEntry& destination) {
-    RegistryEntry copiedEntry;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(registryEntry);
-        auto validatedDestination = m_dataStore->Validate(destination);
-        copiedEntry = m_dataStore->Copy(validatedEntry, validatedDestination);
-      });
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnCopyRequest(
+      ServiceProtocolClient& client, const RegistryEntry& registryEntry,
+      const RegistryEntry& destination) {
+    auto copiedEntry = RegistryEntry();
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(registryEntry);
+      auto validatedDestination = m_dataStore->Validate(destination);
+      copiedEntry = m_dataStore->Copy(validatedEntry, validatedDestination);
+    });
     return copiedEntry;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::OnMoveRequest(
-      ServiceProtocolClient& client, const RegistryEntry& registryEntry,
-      const RegistryEntry& destination) {
+  template<typename C, typename D>
+  void RegistryServlet<C, D>::OnMoveRequest(ServiceProtocolClient& client,
+      const RegistryEntry& registryEntry, const RegistryEntry& destination) {
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(registryEntry);
@@ -214,11 +197,10 @@ namespace RegistryService {
       });
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  IO::SharedBuffer RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnLoadValueRequest(ServiceProtocolClient& client,
-      const RegistryEntry& registryEntry) {
-    IO::SharedBuffer value;
+  template<typename C, typename D>
+  IO::SharedBuffer RegistryServlet<C, D>::OnLoadValueRequest(
+      ServiceProtocolClient& client, const RegistryEntry& registryEntry) {
+    auto value = IO::SharedBuffer();
     m_dataStore->WithTransaction(
       [&] {
         auto validatedEntry = m_dataStore->Validate(registryEntry);
@@ -227,56 +209,53 @@ namespace RegistryService {
     return value;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnMakeValueRequest(ServiceProtocolClient& client, const std::string& name,
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnMakeValueRequest(
+      ServiceProtocolClient& client, const std::string& name,
       const IO::SharedBuffer& value, const RegistryEntry& parent) {
-    RegistryEntry newEntry;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedParent = m_dataStore->Validate(parent);
-        RegistryEntry validatedEntry(RegistryEntry::Type::VALUE, -1, name, 0);
+    auto newEntry = RegistryEntry();
+    m_dataStore->WithTransaction([&] {
+      auto validatedParent = m_dataStore->Validate(parent);
+      auto validatedEntry = RegistryEntry(RegistryEntry::Type::VALUE, -1, name,
+        0);
+      newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
+      m_dataStore->Store(newEntry, value);
+    });
+    return newEntry;
+  }
+
+  template<typename C, typename D>
+  RegistryEntry RegistryServlet<C, D>::OnStoreValueRequest(
+      ServiceProtocolClient& client, const std::string& name,
+      const IO::SharedBuffer& value, const RegistryEntry& parent) {
+    auto newEntry = RegistryEntry();
+    m_dataStore->WithTransaction([&] {
+      auto validatedParent = m_dataStore->Validate(parent);
+      auto children = m_dataStore->LoadChildren(validatedParent);
+      auto childIterator = std::find_if(children.begin(), children.end(),
+        [&] (auto& child) {
+          return child.m_name == name;
+        });
+      if(childIterator == children.end()) {
+        auto validatedEntry = RegistryEntry(RegistryEntry::Type::VALUE, -1,
+          name, 0);
         newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
         m_dataStore->Store(newEntry, value);
-      });
+      } else {
+        newEntry = m_dataStore->Store(*childIterator, value);
+      }
+    });
     return newEntry;
   }
 
-  template<typename ContainerType, typename RegistryDataStoreType>
-  RegistryEntry RegistryServlet<ContainerType, RegistryDataStoreType>::
-      OnStoreValueRequest(ServiceProtocolClient& client,
-      const std::string& name, const IO::SharedBuffer& value,
-      const RegistryEntry& parent) {
-    RegistryEntry newEntry;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedParent = m_dataStore->Validate(parent);
-        auto children = m_dataStore->LoadChildren(validatedParent);
-        auto childIterator = std::find_if(children.begin(), children.end(),
-          [&] (auto& child) {
-            return child.m_name == name;
-          });
-        if(childIterator == children.end()) {
-          RegistryEntry validatedEntry(RegistryEntry::Type::VALUE, -1, name, 0);
-          newEntry = m_dataStore->Copy(validatedEntry, validatedParent);
-          m_dataStore->Store(newEntry, value);
-        } else {
-          newEntry = m_dataStore->Store(*childIterator, value);
-        }
-      });
-    return newEntry;
+  template<typename C, typename D>
+  void RegistryServlet<C, D>::OnDeleteRequest(ServiceProtocolClient& client,
+      const RegistryEntry& registryEntry) {
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(registryEntry);
+      m_dataStore->Delete(validatedEntry);
+    });
   }
-
-  template<typename ContainerType, typename RegistryDataStoreType>
-  void RegistryServlet<ContainerType, RegistryDataStoreType>::OnDeleteRequest(
-      ServiceProtocolClient& client, const RegistryEntry& registryEntry) {
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(registryEntry);
-        m_dataStore->Delete(validatedEntry);
-      });
-  }
-}
 }
 
 #endif

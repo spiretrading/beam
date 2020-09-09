@@ -81,11 +81,11 @@ namespace Beam::IO {
   }
 
   inline bool OpenState::SetClosing() {
-    static auto OPEN = State::OPEN;
-    if(m_state.compare_exchange_strong(OPEN, State::CLOSING)) {
+    auto expected = State::OPEN;
+    if(m_state.compare_exchange_strong(expected, State::CLOSING)) {
       return false;
     }
-    if(m_state == State::CLOSED) {
+    if(expected == State::CLOSED) {
       return true;
     }
     auto lock = boost::unique_lock(m_mutex);

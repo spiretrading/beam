@@ -33,21 +33,18 @@ namespace Beam::TimeService::Tests {
 
       TestTimeClient(const TestTimeClient&) = delete;
       TestTimeClient& operator =(const TestTimeClient&) = delete;
-      void Shutdown();
       void SetTime(boost::posix_time::ptime time);
   };
 
   inline TestTimeClient::TestTimeClient(
       Ref<TimeServiceTestEnvironment> environment)
-      : m_environment{environment.Get()} {
-    m_openState.SetOpening();
+      : m_environment(environment.Get()) {
     try {
       m_environment->Add(this);
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   inline TestTimeClient::~TestTimeClient() {
@@ -62,13 +59,9 @@ namespace Beam::TimeService::Tests {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  inline void TestTimeClient::Shutdown() {
     m_timeClient.Close();
     m_environment->Remove(this);
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   inline void TestTimeClient::SetTime(boost::posix_time::ptime time) {

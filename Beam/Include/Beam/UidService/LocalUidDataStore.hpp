@@ -1,31 +1,27 @@
-#ifndef BEAM_LOCALUIDDATASTORE_HPP
-#define BEAM_LOCALUIDDATASTORE_HPP
+#ifndef BEAM_LOCAL_UID_DATA_STORE_HPP
+#define BEAM_LOCAL_UID_DATA_STORE_HPP
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
-namespace Beam {
-namespace UidService {
+namespace Beam::UidService {
 
-  /*! \class LocalUidDataStore
-      \brief Implements an in memory UidDataStore.
-   */
+  /** Implements an in memory UidDataStore. */
   class LocalUidDataStore : public UidDataStore {
     public:
 
-      //! Constructs a LocalUidDataStore.
+      /** Constructs a LocalUidDataStore starting from a UID of 1. */
       LocalUidDataStore();
 
-      virtual ~LocalUidDataStore() override;
+      ~LocalUidDataStore() override;
 
-      virtual std::uint64_t GetNextUid() override;
+      std::uint64_t GetNextUid() override;
 
-      virtual std::uint64_t Reserve(std::uint64_t size) override;
+      std::uint64_t Reserve(std::uint64_t size) override;
 
-      virtual void WithTransaction(
-        const std::function<void ()>& transaction) override;
+      void WithTransaction(const std::function<void ()>& transaction) override;
 
-      virtual void Close() override;
+      void Close() override;
 
     private:
       mutable Threading::Mutex m_mutex;
@@ -34,9 +30,7 @@ namespace UidService {
   };
 
   inline LocalUidDataStore::LocalUidDataStore()
-      : m_nextUid{1} {
-    m_openState.SetOpen();
-  }
+    : m_nextUid(1) {}
 
   inline LocalUidDataStore::~LocalUidDataStore() {
     Close();
@@ -54,17 +48,13 @@ namespace UidService {
 
   inline void LocalUidDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<Threading::Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     transaction();
   }
 
   inline void LocalUidDataStore::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
-}
 }
 
 #endif

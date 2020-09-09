@@ -3,7 +3,6 @@
 #include <memory>
 #include <variant>
 #include <vector>
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
@@ -20,7 +19,7 @@ namespace Beam::Queries::Tests {
    * @param <V> The type value to store.
    */
   template<typename Q, typename V>
-  class TestDataStore : private boost::noncopyable {
+  class TestDataStore {
     public:
 
       /** The type of query used to load values. */
@@ -63,7 +62,7 @@ namespace Beam::Queries::Tests {
       using Operation = std::variant<LoadOperation, StoreOperation>;
 
       /** Constructs a TestDataStore. */
-      TestDataStore();
+      TestDataStore() = default;
 
       ~TestDataStore();
 
@@ -82,13 +81,9 @@ namespace Beam::Queries::Tests {
       IO::OpenState m_openState;
       QueueWriterPublisher<std::shared_ptr<Operation>> m_operationPublisher;
 
-      void Shutdown();
+      TestDataStore(const TestDataStore&) = delete;
+      TestDataStore& operator =(const TestDataStore&) = delete;
   };
-
-  template<typename Q, typename V>
-  TestDataStore<Q, V>::TestDataStore() {
-    m_openState.SetOpen();
-  }
 
   template<typename Q, typename V>
   TestDataStore<Q, V>::~TestDataStore() {
@@ -128,15 +123,7 @@ namespace Beam::Queries::Tests {
 
   template<typename Q, typename V>
   void TestDataStore<Q, V>::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
-  }
-
-  template<typename Q, typename V>
-  void TestDataStore<Q, V>::Shutdown() {
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 }
 

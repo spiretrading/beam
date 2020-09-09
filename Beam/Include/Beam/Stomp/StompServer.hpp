@@ -1,6 +1,5 @@
-#ifndef BEAM_STOMPSERVER_HPP
-#define BEAM_STOMPSERVER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_STOMP_SERVER_HPP
+#define BEAM_STOMP_SERVER_HPP
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/ConnectException.hpp"
@@ -12,86 +11,82 @@
 #include "Beam/Stomp/StompFrameParser.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam {
-namespace Stomp {
+namespace Beam::Stomp {
 
-  /*! \class StompServer
-      \brief Represents the server side of the STOMP protocol.
-      \tparam ChannelType The type of Channel to provide the protocol to.
+  /**
+   * Represents the server side of the STOMP protocol.
+   * @param <C> The type of Channel to provide the protocol to.
    */
-  template<typename ChannelType>
-  class StompServer : private boost::noncopyable {
+  template<typename C>
+  class StompServer {
     public:
 
-      //! The type of Channel to provide the protocol to.
-      using Channel = GetTryDereferenceType<ChannelType>;
+      /** The type of Channel to provide the protocol to. */
+      using Channel = GetTryDereferenceType<C>;
 
-      //! Constructs a StompServer.
-      /*!
-        \param channel The Channel to provide the protocol to.
-      */
-      template<typename ChannelForward>
-      StompServer(ChannelForward&& channel);
+      /**
+       * Constructs a StompServer.
+       * @param channel The Channel to provide the protocol to.
+       */
+      template<typename CF>
+      StompServer(CF&& channel);
 
       ~StompServer();
 
-      //! Reads a frame from the Channel.
+      /** Reads a frame from the Channel. */
       StompFrame Read();
 
-      //! Writes a frame to the Channel.
-      /*!
-        \param frame The frame to write.
-      */
+      /**
+       * Writes a frame to the Channel.
+       * @param frame The frame to write.
+       */
       void Write(const StompFrame& frame);
 
       void Close();
 
     private:
-      mutable Threading::Mutex m_writeMutex;
-      GetOptionalLocalPtr<ChannelType> m_channel;
+      mutable Threading::Mutex m_mutex;
+      GetOptionalLocalPtr<C> m_channel;
       StompFrameParser m_parser;
       typename Channel::Reader::Buffer m_readBuffer;
       typename Channel::Writer::Buffer m_writeBuffer;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      StompServer(const StompServer&) = delete;
+      StompServer& operator =(const StompServer&) = delete;
   };
 
-  template<typename ChannelType>
-  template<typename ChannelForward>
-  StompServer<ChannelType>::StompServer(ChannelForward&& channel)
-      : m_channel{std::forward<ChannelForward>(channel)} {
-    m_openState.SetOpening();
+  template<typename C>
+  template<typename CF>
+  StompServer<C>::StompServer(CF&& channel)
+      : m_channel(std::forward<CF>(channel)) {
     try {
       auto connectFrame = Read();
       if(connectFrame.GetCommand() != StompCommand::CONNECT &&
           connectFrame.GetCommand() != StompCommand::STOMP) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException{"CONNECT expected."});
+        BOOST_THROW_EXCEPTION(IO::ConnectException("CONNECT expected."));
       }
-      StompFrame connectedFrame{StompCommand::CONNECTED};
+      auto connectedFrame = StompFrame(StompCommand::CONNECTED);
       connectedFrame.AddHeader({"version", "1.2"});
       connectedFrame.AddHeader({"heart-beat", "0,0"});
       Write(connectedFrame);
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
-  template<typename ChannelType>
-  StompServer<ChannelType>::~StompServer() {
+  template<typename C>
+  StompServer<C>::~StompServer() {
     Close();
   }
 
-  template<typename ChannelType>
-  StompFrame StompServer<ChannelType>::Read() {
+  template<typename C>
+  StompFrame StompServer<C>::Read() {
     while(true) {
-      auto frame = m_parser.GetNextFrame();
-      if(frame.is_initialized()) {
-        auto receipt = frame->FindHeader("receipt");
-        if(receipt.is_initialized()) {
-          StompFrame receiptFrame{StompCommand::RECEIPT};
+      if(auto frame = m_parser.GetNextFrame()) {
+        if(auto receipt = frame->FindHeader("receipt")) {
+          auto receiptFrame = StompFrame(StompCommand::RECEIPT);
           receiptFrame.AddHeader({"receipt-id", *receipt});
           try {
             Write(receiptFrame);
@@ -103,7 +98,7 @@ namespace Stomp {
             frame->GetCommand() == StompCommand::DISCONNECT) {
           if(frame->GetCommand() == StompCommand::DISCONNECT) {
             Close();
-            BOOST_THROW_EXCEPTION(IO::EndOfFileException{});
+            BOOST_THROW_EXCEPTION(IO::EndOfFileException());
           }
           continue;
         }
@@ -115,10 +110,10 @@ namespace Stomp {
     }
   }
 
-  template<typename ChannelType>
-  void StompServer<ChannelType>::Write(const StompFrame& frame) {
+  template<typename C>
+  void StompServer<C>::Write(const StompFrame& frame) {
     {
-      boost::lock_guard<Threading::Mutex> lock{m_writeMutex};
+      auto lock = boost::lock_guard(m_mutex);
       m_writeBuffer.Reset();
       Serialize(frame, Store(m_writeBuffer));
       m_channel->GetWriter().Write(m_writeBuffer);
@@ -128,20 +123,14 @@ namespace Stomp {
     }
   }
 
-  template<typename ChannelType>
-  void StompServer<ChannelType>::Close() {
+  template<typename C>
+  void StompServer<C>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ChannelType>
-  void StompServer<ChannelType>::Shutdown() {
     m_channel->GetConnection().Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
-}
 }
 
 #endif

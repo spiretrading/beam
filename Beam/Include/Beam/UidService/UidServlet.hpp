@@ -1,31 +1,31 @@
 #ifndef BEAM_UID_SERVLET_HPP
 #define BEAM_UID_SERVLET_HPP
-#include <boost/noncopyable.hpp>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/UidService/UidServices.hpp"
 
 namespace Beam::UidService {
 
-  /** Provides unique ids to clients.
-      \tparam ContainerType The container instantiating this servlet.
-      \tparam UidDataStoreType The type of data store to use.
+  /**
+   * Provides unique ids to clients.
+   * @param <C> The container instantiating this servlet.
+   * @param <D> The type of data store to use.
    */
-  template<typename ContainerType, typename UidDataStoreType>
-  class UidServlet : private boost::noncopyable {
+  template<typename C, typename D>
+  class UidServlet {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
-      //! The type of UidDataStore used.
-      using UidDataStore = GetTryDereferenceType<UidDataStoreType>;
+      /** The type of UidDataStore used. */
+      using UidDataStore = GetTryDereferenceType<D>;
 
-      //! Constructs a UidServlet.
-      /*!
-        \param dataStore The data store to use.
-      */
-      template<typename DataStoreForward>
-      UidServlet(DataStoreForward&& dataStore);
+      /**
+       * Constructs a UidServlet.
+       * @param dataStore The data store to use.
+       */
+      template<typename DF>
+      UidServlet(DF&& dataStore);
 
       void RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
         slots);
@@ -33,34 +33,32 @@ namespace Beam::UidService {
       void Close();
 
     private:
-      GetOptionalLocalPtr<UidDataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      UidServlet(const UidServlet&) = delete;
+      UidServlet& operator =(const UidServlet&) = delete;
       std::uint64_t OnReserveUidsRequest(ServiceProtocolClient& client,
         std::uint64_t blockSize);
   };
 
-  template<typename UidDataStoreType>
+  template<typename D>
   struct MetaUidServlet {
-    static constexpr bool SupportsParallelism = true;
+    static constexpr auto SupportsParallelism = true;
     using Session = NullType;
-    template<typename ContainerType>
+    template<typename C>
     struct apply {
-      using type = UidServlet<ContainerType, UidDataStoreType>;
+      using type = UidServlet<C, D>;
     };
   };
 
-  template<typename ContainerType, typename UidDataStoreType>
-  template<typename DataStoreForward>
-  UidServlet<ContainerType, UidDataStoreType>::UidServlet(
-      DataStoreForward&& dataStore)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)) {
-    m_openState.SetOpen();
-  }
+  template<typename C, typename D>
+  template<typename DF>
+  UidServlet<C, D>::UidServlet(DF&& dataStore)
+    : m_dataStore(std::forward<DF>(dataStore)) {}
 
-  template<typename ContainerType, typename UidDataStoreType>
-  void UidServlet<ContainerType, UidDataStoreType>::RegisterServices(
+  template<typename C, typename D>
+  void UidServlet<C, D>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterUidServices(Store(slots));
     ReserveUidsService::AddSlot(Store(slots), std::bind(
@@ -68,29 +66,22 @@ namespace Beam::UidService {
       std::placeholders::_2));
   }
 
-  template<typename ContainerType, typename UidDataStoreType>
-  void UidServlet<ContainerType, UidDataStoreType>::Close() {
+  template<typename C, typename D>
+  void UidServlet<C, D>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ContainerType, typename UidDataStoreType>
-  void UidServlet<ContainerType, UidDataStoreType>::Shutdown() {
     m_dataStore->Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
-  template<typename ContainerType, typename UidDataStoreType>
-  std::uint64_t UidServlet<ContainerType, UidDataStoreType>::
-      OnReserveUidsRequest(ServiceProtocolClient& client,
-      std::uint64_t blockSize) {
+  template<typename C, typename D>
+  std::uint64_t UidServlet<C, D>::OnReserveUidsRequest(
+      ServiceProtocolClient& client, std::uint64_t blockSize) {
     auto uid = std::uint64_t();
-    m_dataStore->WithTransaction(
-      [&] {
-        uid = m_dataStore->Reserve(blockSize);
-      });
+    m_dataStore->WithTransaction([&] {
+      uid = m_dataStore->Reserve(blockSize);
+    });
     return uid;
   }
 }

@@ -2,6 +2,7 @@
 #include <boost/lexical_cast.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/VirtualChannel.hpp"
@@ -118,24 +119,12 @@ void Beam::Python::ExportIO(pybind11::module& module) {
 void Beam::Python::ExportOpenState(pybind11::module& module) {
   class_<OpenState>(module, "OpenState")
     .def(init())
-    .def(init<bool>())
-    .def("is_opening", &OpenState::IsOpening, call_guard<GilRelease>())
-    .def("is_open", &OpenState::IsOpen, call_guard<GilRelease>())
-    .def("is_running", &OpenState::IsRunning, call_guard<GilRelease>())
-    .def("is_closing", &OpenState::IsClosing, call_guard<GilRelease>())
-    .def("is_closed", &OpenState::IsClosed, call_guard<GilRelease>())
-    .def("set_opening", &OpenState::SetOpening,
-      call_guard<GilRelease>())
-    .def("set_open", &OpenState::SetOpen, call_guard<GilRelease>())
-    .def("set_open_failure",
-      static_cast<void (OpenState::*)()>(&OpenState::SetOpenFailure),
-      call_guard<GilRelease>())
-    .def("set_open_failure",
-      static_cast<void (OpenState::*)(const std::exception_ptr&)>(
-      &OpenState::SetOpenFailure), call_guard<GilRelease>())
-    .def("set_closing", &OpenState::SetClosing,
-      call_guard<GilRelease>())
-    .def("set_closed", &OpenState::SetClosed, call_guard<GilRelease>());
+    .def_property_readonly("is_open", &OpenState::IsOpen)
+    .def_property_readonly("is_closing", &OpenState::IsClosing)
+    .def_property_readonly("is_closed", &OpenState::IsClosed)
+    .def("ensure_open", &OpenState::EnsureOpen)
+    .def("set_closing", &OpenState::SetClosing, call_guard<GilRelease>())
+    .def("close", &OpenState::Close, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportReader(pybind11::module& module) {

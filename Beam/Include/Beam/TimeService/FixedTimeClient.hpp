@@ -1,32 +1,28 @@
-#ifndef BEAM_FIXEDTIMECLIENT_HPP
-#define BEAM_FIXEDTIMECLIENT_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_FIXED_TIME_CLIENT_HPP
+#define BEAM_FIXED_TIME_CLIENT_HPP
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/TimeService/TimeService.hpp"
 
-namespace Beam {
-namespace TimeService {
+namespace Beam::TimeService {
 
-  /*! \class FixedTimeClient
-      \brief A TimeClient whose value is set programmatically.
-   */
-  class FixedTimeClient : private boost::noncopyable {
+  /** A TimeClient whose value is set programmatically. */
+  class FixedTimeClient {
     public:
 
-      //! Constructs a FixedTimeClient.
+      /** Constructs a FixedTimeClient. */
       FixedTimeClient() = default;
 
-      //! Constructs a FixedTimeClient.
-      /*!
-        \param time The time to use.
-      */
+      /**
+       * Constructs a FixedTimeClient.
+       * @param time The time to use.
+       */
       FixedTimeClient(const boost::posix_time::ptime& time);
 
       ~FixedTimeClient();
 
-      //! Sets the time to use.
+      /** Sets the time to use. */
       void SetTime(const boost::posix_time::ptime& time);
 
       boost::posix_time::ptime GetTime();
@@ -37,13 +33,12 @@ namespace TimeService {
       IO::OpenState m_openState;
       boost::posix_time::ptime m_time;
 
-      void Shutdown();
+      FixedTimeClient(const FixedTimeClient&) = delete;
+      FixedTimeClient& operator =(const FixedTimeClient&) = delete;
   };
 
   inline FixedTimeClient::FixedTimeClient(const boost::posix_time::ptime& time)
-      : m_time{time} {
-    m_openState.SetOpen();
-  }
+    : m_time(time) {}
 
   inline FixedTimeClient::~FixedTimeClient() {
     Close();
@@ -58,16 +53,8 @@ namespace TimeService {
   }
 
   inline void FixedTimeClient::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
+    m_openState.Close();
   }
-
-  inline void FixedTimeClient::Shutdown() {
-    m_openState.SetClosed();
-  }
-}
 }
 
 #endif

@@ -125,9 +125,7 @@ namespace Beam::ServiceLocator {
   };
 
   inline LocalServiceLocatorDataStore::LocalServiceLocatorDataStore()
-      : m_nextId(0) {
-    m_openState.SetOpen();
-  }
+    : m_nextId(0) {}
 
   inline LocalServiceLocatorDataStore::~LocalServiceLocatorDataStore() {
     Close();
@@ -457,10 +455,7 @@ namespace Beam::ServiceLocator {
   }
 
   inline void LocalServiceLocatorDataStore::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   inline std::shared_ptr<LocalServiceLocatorDataStore::AccountEntry>

@@ -76,7 +76,6 @@ namespace Beam::Services {
         const ServiceProtocolClientHandler&) = delete;
       ServiceProtocolClientHandler& operator =(
         const ServiceProtocolClientHandler&) = delete;
-      void Shutdown();
       void BuildClient();
       void MessageLoop(std::shared_ptr<Client> client);
   };
@@ -86,14 +85,12 @@ namespace Beam::Services {
   ServiceProtocolClientHandler<B>::ServiceProtocolClientHandler(BF&& builder)
       : m_builder(std::forward<BF>(builder)),
         m_reconnectHandler([] (const std::shared_ptr<Client>&) {}) {
-    m_openState.SetOpening();
     try {
       BuildClient();
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename B>
@@ -137,11 +134,6 @@ namespace Beam::Services {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename B>
-  void ServiceProtocolClientHandler<B>::Shutdown() {
     auto client = [&] {
       auto lock = boost::lock_guard(m_mutex);
       return m_client;
@@ -150,16 +142,14 @@ namespace Beam::Services {
       client->Close();
     }
     m_messageHandlers.Wait();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename B>
   void ServiceProtocolClientHandler<B>::BuildClient() {
     m_client = [&] {
       while(true) {
-        if(m_openState.IsClosing() || m_openState.IsClosed()) {
-          BOOST_THROW_EXCEPTION(IO::NotConnectedException());
-        }
+        m_openState.EnsureOpen();
         try {
           auto client = std::shared_ptr(m_builder->Build(m_slots));
           m_builder->Open(*client);
@@ -169,7 +159,7 @@ namespace Beam::Services {
             throw IO::NotConnectedException();
           }
         } catch(const std::exception&) {
-          m_openState.SetClosed();
+          m_openState.Close();
           BOOST_RETHROW;
         }
         Routines::Defer();
@@ -179,7 +169,7 @@ namespace Beam::Services {
       try {
         m_reconnectHandler(m_client);
       } catch(const std::exception&) {
-        m_openState.SetClosed();
+        m_openState.Close();
         return;
       }
     }

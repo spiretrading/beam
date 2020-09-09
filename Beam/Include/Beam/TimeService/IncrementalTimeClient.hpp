@@ -1,33 +1,32 @@
-#ifndef BEAM_INCREMENTALTIMECLIENT_HPP
-#define BEAM_INCREMENTALTIMECLIENT_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_INCREMENTAL_TIME_CLIENT_HPP
+#define BEAM_INCREMENTAL_TIME_CLIENT_HPP
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/TimeService/TimeService.hpp"
 
-namespace Beam {
-namespace TimeService {
+namespace Beam::TimeService {
 
-  /*! \class IncrementalTimeClient
-      \brief A TimeClient that increments its internal clock by a fixed amount
-             every time the current time is requested.  Useful for testing and
-             debugging.
+  /**
+   * A TimeClient that increments its internal clock by a fixed amount every
+   * time the current time is requested. Useful for testing and debugging.
    */
-  class IncrementalTimeClient : private boost::noncopyable {
+  class IncrementalTimeClient {
     public:
 
-      //! Constructs an IncrementalTimeClient using the current universal time
-      //! as the initial time and increments of 1 second.
+      /**
+       * Constructs an IncrementalTimeClient using the current universal time as
+       * the initial time and increments of 1 second.
+       */
       IncrementalTimeClient();
 
-      //! Constructs an IncrementalTimeClient.
-      /*!
-        \param initialTime The initial time to use.
-        \param increment The amount to increment the time by on each request.
-      */
-      IncrementalTimeClient(const boost::posix_time::ptime& initialTime,
-        const boost::posix_time::time_duration& increment);
+      /**
+       * Constructs an IncrementalTimeClient.
+       * @param initialTime The initial time to use.
+       * @param increment The amount to increment the time by on each request.
+       */
+      IncrementalTimeClient(boost::posix_time::ptime initialTime,
+        boost::posix_time::time_duration increment);
 
       ~IncrementalTimeClient();
 
@@ -40,44 +39,33 @@ namespace TimeService {
       boost::posix_time::ptime m_currentTime;
       boost::posix_time::time_duration m_increment;
 
-      void Shutdown();
+      IncrementalTimeClient(const IncrementalTimeClient&) = delete;
+      IncrementalTimeClient& operator =(const IncrementalTimeClient&) = delete;
   };
 
   inline IncrementalTimeClient::IncrementalTimeClient()
-      : m_currentTime(boost::posix_time::second_clock::universal_time()),
-        m_increment(boost::posix_time::seconds(1)) {
-    m_openState.SetOpen();
-  }
+    : m_currentTime(boost::posix_time::second_clock::universal_time()),
+      m_increment(boost::posix_time::seconds(1)) {}
 
   inline IncrementalTimeClient::IncrementalTimeClient(
-      const boost::posix_time::ptime& initialTime,
-      const boost::posix_time::time_duration& increment)
-      : m_currentTime(initialTime),
-        m_increment(increment) {
-    m_openState.SetOpen();
-  }
+    boost::posix_time::ptime initialTime,
+    boost::posix_time::time_duration increment)
+    : m_currentTime(initialTime),
+      m_increment(increment) {}
 
   inline IncrementalTimeClient::~IncrementalTimeClient() {
     Close();
   }
 
   inline boost::posix_time::ptime IncrementalTimeClient::GetTime() {
-    boost::posix_time::ptime time = m_currentTime;
+    auto time = m_currentTime;
     m_currentTime += m_increment;
     return time;
   }
 
   inline void IncrementalTimeClient::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
+    m_openState.Close();
   }
-
-  inline void IncrementalTimeClient::Shutdown() {
-    m_openState.SetClosed();
-  }
-}
 }
 
 #endif

@@ -3,7 +3,6 @@
 #include <atomic>
 #include <iostream>
 #include <unordered_map>
-#include <boost/noncopyable.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/IO/Buffer.hpp"
@@ -48,7 +47,7 @@ namespace Details {
    */
   template<typename M, typename T, typename P = LocalPointerPolicy,
     typename S = NullType, bool V = false>
-  class ServiceProtocolClient : private boost::noncopyable {
+  class ServiceProtocolClient {
     public:
 
       /** The type of MessageProtocol used to send and receive messages. */
@@ -169,8 +168,10 @@ namespace Details {
       std::atomic_bool m_isReading;
       IO::OpenState m_openState;
 
+      ServiceProtocolClient(const ServiceProtocolClient&) = delete;
+      ServiceProtocolClient& operator =(
+        const ServiceProtocolClient&) = delete;
       void Open();
-      void Shutdown();
       void Fail(void* source);
       void ReadLoop();
       void TimerLoop();
@@ -240,7 +241,6 @@ namespace Details {
         m_isShuttingDown(false),
         m_isReading(false) {
     m_timer->GetPublisher().Monitor(m_timerQueue);
-    m_openState.SetOpen();
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -359,7 +359,7 @@ namespace Details {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
+    Fail(nullptr);
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -372,11 +372,6 @@ namespace Details {
       std::bind(&ServiceProtocolClient::TimerLoop, this));
     m_readLoop = Routines::Spawn(
       std::bind(&ServiceProtocolClient::ReadLoop, this));
-  }
-
-  template<typename M, typename T, typename P, typename S, bool V>
-  void ServiceProtocolClient<M, T, P, S, V>::Shutdown() {
-    Fail(nullptr);
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -404,7 +399,7 @@ namespace Details {
       eval->SetException(ServiceRequestException(
         "ServiceProtocolClient closed."));
     }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -461,7 +456,7 @@ namespace Details {
   void ServiceProtocolClient<M, T, P, S, V>::TimerLoop() {
     auto heartbeatMessage = HeartbeatMessage<ServiceProtocolClient>();
     try {
-      while(m_openState.IsRunning()) {
+      while(m_openState.IsOpen()) {
         if(m_timerQueue->Pop() == Threading::Timer::Result::EXPIRED) {
           Send(heartbeatMessage);
         } else {

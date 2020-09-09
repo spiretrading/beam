@@ -95,7 +95,6 @@ namespace Beam::ServiceLocator {
       unsigned int m_nextEntryId;
       IO::OpenState m_openState;
 
-      void Shutdown();
       unsigned int LoadNextEntryId();
   };
 
@@ -103,7 +102,6 @@ namespace Beam::ServiceLocator {
   SqlServiceLocatorDataStore<C>::SqlServiceLocatorDataStore(
       std::unique_ptr<Connection> connection)
       : m_connection(std::move(connection)) {
-    m_openState.SetOpening();
     try {
       m_connection->open();
       if(!m_connection->has_table("settings")) {
@@ -125,10 +123,9 @@ namespace Beam::ServiceLocator {
       m_connection->execute(Viper::select(GetSettingsRow(), "settings",
         &m_nextEntryId));
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename C>
@@ -557,13 +554,8 @@ namespace Beam::ServiceLocator {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename C>
-  void SqlServiceLocatorDataStore<C>::Shutdown() {
     m_connection->close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename C>

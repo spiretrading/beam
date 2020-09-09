@@ -1,62 +1,55 @@
-#ifndef BEAM_WEBSOCKETECHOSERVLET_HPP
-#define BEAM_WEBSOCKETECHOSERVLET_HPP
+#ifndef BEAM_WEB_SOCKET_ECHO_SERVLET_HPP
+#define BEAM_WEB_SOCKET_ECHO_SERVLET_HPP
 #include <iostream>
 #include <vector>
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/WebServices/HttpRequestSlot.hpp>
 #include <Beam/WebServices/HttpServerPredicates.hpp>
 #include <Beam/WebServices/HttpUpgradeSlot.hpp>
-#include <boost/noncopyable.hpp>
 
-namespace Beam {
-namespace WebSocketEchoServer {
+namespace Beam::WebSocketEchoServer {
 
-  /*! \class WebSocketEchoServlet
-      \brief Implements a web servlet that echo's messages.
-   */
-  template<typename ContainerType>
-  class WebSocketEchoServlet : private boost::noncopyable {
+  /** Implements a web servlet that echo's messages. */
+  template<typename C>
+  class WebSocketEchoServlet {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using WebSocketChannel = typename Container::WebSocketChannel;
       using WebSocketSlot = typename Container::WebSocketSlot;
 
-      //! Constructs a WebSocketEchoServlet.
+      /** Constructs a WebSocketEchoServlet. */
       WebSocketEchoServlet() = default;
 
       ~WebSocketEchoServlet();
 
-      //! Returns the web socket upgrade slots.
+      /** Returns the web socket upgrade slots. */
       std::vector<WebSocketSlot> GetWebSocketSlots();
-
-      void Open();
 
       void Close();
 
     private:
       Beam::IO::OpenState m_openState;
 
-      void Shutdown();
       void OnUpgrade(const Beam::WebServices::HttpRequest& request,
         std::unique_ptr<WebSocketChannel> channel);
   };
 
   struct MetaWebSocketEchoServlet {
-    template<typename ContainerType>
+    template<typename C>
     struct apply {
-      using type = WebSocketEchoServlet<ContainerType>;
+      using type = WebSocketEchoServlet<C>;
     };
   };
 
-  template<typename ContainerType>
-  WebSocketEchoServlet<ContainerType>::~WebSocketEchoServlet() {
+  template<typename C>
+  WebSocketEchoServlet<C>::~WebSocketEchoServlet() {
     Close();
   }
 
-  template<typename ContainerType>
-  std::vector<typename WebSocketEchoServlet<ContainerType>::WebSocketSlot>
-      WebSocketEchoServlet<ContainerType>::GetWebSocketSlots() {
-    std::vector<WebSocketSlot> slots;
+  template<typename C>
+  std::vector<typename WebSocketEchoServlet<C>::WebSocketSlot>
+      WebSocketEchoServlet<C>::GetWebSocketSlots() {
+    auto slots = std::vector<WebSocketSlot>();
     slots.emplace_back(
       Beam::WebServices::MatchAny(Beam::WebServices::HttpMethod::GET),
       std::bind(&WebSocketEchoServlet::OnUpgrade, this, std::placeholders::_1,
@@ -64,42 +57,24 @@ namespace WebSocketEchoServer {
     return slots;
   }
 
-  template<typename ContainerType>
-  void WebSocketEchoServlet<ContainerType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_openState.SetOpen();
+  template<typename C>
+  void WebSocketEchoServlet<C>::Close() {
+    m_openState.Close();
   }
 
-  template<typename ContainerType>
-  void WebSocketEchoServlet<ContainerType>::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    Shutdown();
-  }
-
-  template<typename ContainerType>
-  void WebSocketEchoServlet<ContainerType>::Shutdown() {
-    m_openState.SetClosed();
-  }
-
-  template<typename ContainerType>
-  void WebSocketEchoServlet<ContainerType>::OnUpgrade(
+  template<typename C>
+  void WebSocketEchoServlet<C>::OnUpgrade(
       const Beam::WebServices::HttpRequest& request,
       std::unique_ptr<WebSocketChannel> channel) {
-    Beam::Routines::Spawn(
-      [=, channel = std::move(channel)] {
-        while(true) {
-          typename WebSocketChannel::Reader::Buffer buffer;
-          channel->GetReader().Read(Beam::Store(buffer));
-          std::cout << buffer << std::endl;
-          channel->GetWriter().Write(buffer);
-        }
-      });
+    Beam::Routines::Spawn([=, channel = std::move(channel)] {
+      while(true) {
+        auto buffer = typename WebSocketChannel::Reader::Buffer();
+        channel->GetReader().Read(Beam::Store(buffer));
+        std::cout << buffer << std::endl;
+        channel->GetWriter().Write(buffer);
+      }
+    });
   }
-}
 }
 
 #endif

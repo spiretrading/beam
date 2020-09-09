@@ -9,20 +9,21 @@
 
 namespace Beam::UidService {
 
-  /** Implements the UidDataStore using SQL.
-      \tparam C The type of SQL connection.
+  /**
+   * Implements the UidDataStore using SQL.
+   * @param <C> The type of SQL connection.
    */
   template<typename C>
   class SqlUidDataStore : public UidDataStore {
     public:
 
-      //! The type of SQL connection.
+      /** The type of SQL connection. */
       using Connection = C;
 
-      //! Constructs an SqlUidDataStore.
-      /*!
-        \param connection The connection to the SQL database.
-      */
+      /**
+       * Constructs an SqlUidDataStore.
+       * @param connection The connection to the SQL database.
+       */
       SqlUidDataStore(std::unique_ptr<Connection> connection);
 
       ~SqlUidDataStore() override;
@@ -40,14 +41,11 @@ namespace Beam::UidService {
       std::unique_ptr<Connection> m_connection;
       std::uint64_t m_nextUid;
       IO::OpenState m_openState;
-
-      void Shutdown();
   };
 
   template<typename C>
   SqlUidDataStore<C>::SqlUidDataStore(std::unique_ptr<Connection> connection)
       : m_connection(std::move(connection)) {
-    m_openState.SetOpening();
     try {
       m_connection->open();
       if(!m_connection->has_table("next_uid")) {
@@ -57,10 +55,9 @@ namespace Beam::UidService {
           &firstUid));
       }
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename C>
@@ -95,13 +92,8 @@ namespace Beam::UidService {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename C>
-  void SqlUidDataStore<C>::Shutdown() {
     m_connection->close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 }
 

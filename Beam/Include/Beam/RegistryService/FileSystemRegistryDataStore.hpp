@@ -1,5 +1,5 @@
-#ifndef BEAM_FILESYSTEMREGISTRYDATASTORE_HPP
-#define BEAM_FILESYSTEMREGISTRYDATASTORE_HPP
+#ifndef BEAM_FILE_SYSTEM_REGISTRY_DATA_STORE_HPP
+#define BEAM_FILE_SYSTEM_REGISTRY_DATA_STORE_HPP
 #include <filesystem>
 #include <fstream>
 #include <boost/lexical_cast.hpp>
@@ -15,49 +15,43 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam {
-namespace RegistryService {
+namespace Beam::RegistryService {
 
-  /*! \class FileSystemRegistryDataStore
-      \brief Implements the RegistryDataStore using the local file system.
-   */
+  /** Implements the RegistryDataStore using the local file system. */
   class FileSystemRegistryDataStore : public RegistryDataStore {
     public:
 
-      //! Constructs a FileSystemRegistryDataStore.
-      /*!
-        \param root The directory storing the files.
-      */
+      /**
+       * Constructs a FileSystemRegistryDataStore.
+       * @param root The directory storing the files.
+       */
       FileSystemRegistryDataStore(const std::filesystem::path& root);
 
-      virtual ~FileSystemRegistryDataStore() override;
+      ~FileSystemRegistryDataStore() override;
 
-      virtual RegistryEntry LoadParent(
-        const RegistryEntry& registryEntry) override;
+      RegistryEntry LoadParent(const RegistryEntry& registryEntry) override;
 
-      virtual std::vector<RegistryEntry> LoadChildren(
+      std::vector<RegistryEntry> LoadChildren(
         const RegistryEntry& directory) override;
 
-      virtual RegistryEntry LoadRegistryEntry(std::uint64_t id) override;
+      RegistryEntry LoadRegistryEntry(std::uint64_t id) override;
 
-      virtual RegistryEntry Copy(const RegistryEntry& source,
+      RegistryEntry Copy(const RegistryEntry& source,
         const RegistryEntry& destination) override;
 
-      virtual void Move(const RegistryEntry& source,
+      void Move(const RegistryEntry& source,
         const RegistryEntry& destination) override;
 
-      virtual void Delete(const RegistryEntry& registryEntry) override;
+      void Delete(const RegistryEntry& registryEntry) override;
 
-      virtual IO::SharedBuffer Load(
-        const RegistryEntry& registryEntry) override;
+      IO::SharedBuffer Load(const RegistryEntry& registryEntry) override;
 
-      virtual RegistryEntry Store(const RegistryEntry& registryEntry,
+      RegistryEntry Store(const RegistryEntry& registryEntry,
         const IO::SharedBuffer& value) override;
 
-      virtual void WithTransaction(
-        const std::function<void ()>& transaction) override;
+      void WithTransaction(const std::function<void ()>& transaction) override;
 
-      virtual void Close() override;
+      void Close() override;
 
     private:
       mutable Threading::Mutex m_mutex;
@@ -73,14 +67,13 @@ namespace RegistryService {
 
   inline FileSystemRegistryDataStore::FileSystemRegistryDataStore(
       const std::filesystem::path& root)
-      : m_root{root} {
-    m_openState.SetOpening();
+      : m_root(root) {
     std::filesystem::create_directories(m_root);
     if(!std::filesystem::exists(m_root / "settings.dat")) {
-      IO::BasicOStreamWriter<std::ofstream> writer(
+      auto writer = IO::BasicOStreamWriter<std::ofstream>(
         Initialize(m_root / "settings.dat", std::ios::binary));
-      IO::SharedBuffer buffer;
-      Serialization::BinarySender<IO::SharedBuffer> sender;
+      auto buffer = IO::SharedBuffer();
+      auto sender = Serialization::BinarySender<IO::SharedBuffer>();
       sender.SetSink(Ref(buffer));
       sender.Send(std::uint64_t(1));
       writer.Write(buffer);
@@ -88,12 +81,11 @@ namespace RegistryService {
     try {
       auto root = LoadRegistryEntry(RegistryEntry::GetRoot().m_id);
     } catch(const std::exception&) {
-      Details::RegistryEntryRecord rootRecord;
+      auto rootRecord = Details::RegistryEntryRecord();
       rootRecord.m_registryEntry = RegistryEntry::GetRoot();
       rootRecord.m_parent = 0;
       SaveRecord(rootRecord);
     }
-    m_openState.SetOpen();
   }
 
   inline FileSystemRegistryDataStore::~FileSystemRegistryDataStore() {
@@ -109,11 +101,10 @@ namespace RegistryService {
   inline std::vector<RegistryEntry> FileSystemRegistryDataStore::LoadChildren(
       const RegistryEntry& directory) {
     auto record = LoadRecord(directory.m_id);
-    std::vector<RegistryEntry> children;
+    auto children = std::vector<RegistryEntry>();
     std::transform(record.m_children.begin(), record.m_children.end(),
-      std::back_inserter(children),
-      [&] (auto id) {
-        return this->LoadRegistryEntry(id);
+      std::back_inserter(children), [&] (auto id) {
+        return LoadRegistryEntry(id);
       });
     return children;
   }
@@ -127,14 +118,14 @@ namespace RegistryService {
   inline RegistryEntry FileSystemRegistryDataStore::Copy(
       const RegistryEntry& source, const RegistryEntry& destination) {
     auto destinationRecord = LoadRecord(destination.m_id);
-    Details::RegistryEntryRecord sourceRecord;
+    auto sourceRecord = Details::RegistryEntryRecord();
     try {
       sourceRecord = LoadRecord(source.m_id);
     } catch(const std::exception&) {
       sourceRecord.m_registryEntry = source;
     }
     sourceRecord.m_registryEntry.m_id = LoadNextEntryId();
-    std::vector<std::uint64_t> children;
+    auto children = std::vector<std::uint64_t>();
     children.swap(sourceRecord.m_children);
     sourceRecord.m_parent = destination.m_id;
     destinationRecord.m_children.push_back(sourceRecord.m_registryEntry.m_id);
@@ -178,7 +169,7 @@ namespace RegistryService {
       const RegistryEntry& registryEntry) {
     auto record = LoadRecord(registryEntry.m_id);
     if(record.m_registryEntry.m_type != RegistryEntry::Type::VALUE) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException{"Entry not found."});
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException("Entry not found."));
     }
     return record.m_value;
   }
@@ -187,7 +178,7 @@ namespace RegistryService {
       const RegistryEntry& registryEntry, const IO::SharedBuffer& value) {
     auto record = LoadRecord(registryEntry.m_id);
     if(record.m_registryEntry.m_type != RegistryEntry::Type::VALUE) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException{"Entry not found."});
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException("Entry not found."));
     }
     record.m_value = value;
     ++record.m_registryEntry.m_version;
@@ -197,15 +188,12 @@ namespace RegistryService {
 
   inline void FileSystemRegistryDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    boost::lock_guard<Threading::Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     transaction();
   }
 
   inline void FileSystemRegistryDataStore::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   inline std::filesystem::path FileSystemRegistryDataStore::GetPath(
@@ -217,18 +205,18 @@ namespace RegistryService {
 
   inline Details::RegistryEntryRecord FileSystemRegistryDataStore::LoadRecord(
       std::uint64_t id) {
-    Details::RegistryEntryRecord record;
+    auto record = Details::RegistryEntryRecord();
     try {
-      IO::BasicIStreamReader<std::ifstream> reader(Initialize(GetPath(id),
-        std::ios::binary));
-      IO::SharedBuffer buffer;
+      auto reader = IO::BasicIStreamReader<std::ifstream>(
+        Initialize(GetPath(id), std::ios::binary));
+      auto buffer = IO::SharedBuffer();
       reader.Read(Beam::Store(buffer));
-      Serialization::BinaryReceiver<IO::SharedBuffer> receiver;
+      auto receiver = Serialization::BinaryReceiver<IO::SharedBuffer>();
       receiver.SetSource(Ref(buffer));
       receiver.Shuttle(record);
     } catch(const std::exception&) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException{
-        "Unable to load entry."});
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException(
+        "Unable to load entry."));
     }
     return record;
   }
@@ -236,43 +224,42 @@ namespace RegistryService {
   inline void FileSystemRegistryDataStore::SaveRecord(
       const Details::RegistryEntryRecord& record) {
     try {
-      IO::BasicOStreamWriter<std::ofstream> writer(
+      auto writer = IO::BasicOStreamWriter<std::ofstream>(
         Initialize(GetPath(record.m_registryEntry.m_id), std::ios::binary));
-      IO::SharedBuffer buffer;
-      Serialization::BinarySender<IO::SharedBuffer> sender;
+      auto buffer = IO::SharedBuffer();
+      auto sender = Serialization::BinarySender<IO::SharedBuffer>();
       sender.SetSink(Ref(buffer));
       sender.Shuttle(record);
       writer.Write(buffer);
     } catch(const std::exception&) {
-      BOOST_THROW_EXCEPTION(RegistryDataStoreException{
-        "Unable to save entry."});
+      BOOST_THROW_EXCEPTION(RegistryDataStoreException(
+        "Unable to save entry."));
     }
   }
 
   inline std::uint64_t FileSystemRegistryDataStore::LoadNextEntryId() {
-    std::uint64_t value;
+    auto value = std::uint64_t();
     {
-      IO::BasicIStreamReader<std::ifstream> reader(
+      auto reader = IO::BasicIStreamReader<std::ifstream>(
         Initialize(m_root / "settings.dat", std::ios::binary));
-      IO::SharedBuffer buffer;
+      auto buffer = IO::SharedBuffer();
       reader.Read(Beam::Store(buffer));
-      Serialization::BinaryReceiver<IO::SharedBuffer> receiver;
+      auto receiver = Serialization::BinaryReceiver<IO::SharedBuffer>();
       receiver.SetSource(Ref(buffer));
       receiver.Shuttle(value);
       ++value;
     }
     {
-      IO::BasicOStreamWriter<std::ofstream> writer(
+      auto writer = IO::BasicOStreamWriter<std::ofstream>(
         Initialize(m_root / "settings.dat", std::ios::binary));
-      IO::SharedBuffer buffer;
-      Serialization::BinarySender<IO::SharedBuffer> sender;
+      auto buffer = IO::SharedBuffer();
+      auto sender = Serialization::BinarySender<IO::SharedBuffer>();
       sender.SetSink(Ref(buffer));
       sender.Shuttle(value);
       writer.Write(buffer);
     }
     return value;
   }
-}
 }
 
 #endif

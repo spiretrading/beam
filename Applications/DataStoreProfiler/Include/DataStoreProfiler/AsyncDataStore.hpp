@@ -5,28 +5,28 @@
 #include <Beam/Pointers/Ref.hpp>
 #include <Beam/Queries/AsyncDataStore.hpp>
 #include <Beam/Queries/EvaluatorTranslator.hpp>
-#include <boost/noncopyable.hpp>
 #include "DataStoreProfiler/DataStoreQueryWrapper.hpp"
 #include "DataStoreProfiler/EntryQuery.hpp"
 
 namespace Beam {
 
-  /** Performs asyncronous writes to an underlying data store.
-      \tparam BaseDataStoreType The underlying data store to commit the data to.
+  /**
+   * Performs asyncronous writes to an underlying data store.
+   * @param <D> The underlying data store to commit the data to.
    */
-  template<typename BaseDataStoreType>
-  class AsyncDataStore : private boost::noncopyable {
+  template<typename D>
+  class AsyncDataStore {
     public:
 
-      //! The type of DataStore to buffer.
-      using BaseDataStore = GetTryDereferenceType<BaseDataStoreType>;
+      /** The type of DataStore to buffer. */
+      using BaseDataStore = GetTryDereferenceType<D>;
 
-      //! Constructs an AsyncDataStore.
-      /*!
-        \param dataStore Initializes the data store to commit data to.
-      */
-      template<typename BaseDataStoreForward>
-      AsyncDataStore(BaseDataStoreForward&& dataStore);
+      /**
+       * Constructs an AsyncDataStore.
+       * @param dataStore Initializes the data store to commit data to.
+       */
+      template<typename DF>
+      AsyncDataStore(DF&& dataStore);
 
       ~AsyncDataStore();
 
@@ -41,62 +41,53 @@ namespace Beam {
       void Close();
 
     private:
-      GetOptionalLocalPtr<BaseDataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       Queries::AsyncDataStore<DataStoreQueryWrapper<BaseDataStore*>,
         Queries::EvaluatorTranslator<Queries::QueryTypes>> m_asyncDataStore;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      AsyncDataStore(const AsyncDataStore&) = delete;
+      AsyncDataStore& operator =(const AsyncDataStore&) = delete;
   };
 
-  template<typename BaseDataStoreForward>
-  AsyncDataStore(BaseDataStoreForward&&) ->
-    AsyncDataStore<std::remove_reference_t<BaseDataStoreForward>>;
+  template<typename DF>
+  AsyncDataStore(DF&&) -> AsyncDataStore<std::remove_reference_t<DF>>;
 
-  template<typename BaseDataStoreType>
-  template<typename BaseDataStoreForward>
-  AsyncDataStore<BaseDataStoreType>::AsyncDataStore(
-    BaseDataStoreForward&& dataStore)
-    : m_dataStore(std::forward<BaseDataStoreForward>(dataStore)),
-      m_asyncDataStore(&*m_dataStore) {
-    m_openState.SetOpen();
-  }
+  template<typename D>
+  template<typename DF>
+  AsyncDataStore<D>::AsyncDataStore(DF&& dataStore)
+    : m_dataStore(std::forward<DF>(dataStore)),
+      m_asyncDataStore(&*m_dataStore) {}
 
-  template<typename BaseDataStoreType>
-  AsyncDataStore<BaseDataStoreType>::~AsyncDataStore() {
+  template<typename D>
+  AsyncDataStore<D>::~AsyncDataStore() {
     Close();
   }
 
-  template<typename BaseDataStoreType>
-  void AsyncDataStore<BaseDataStoreType>::Clear() {
+  template<typename D>
+  void AsyncDataStore<D>::Clear() {
     m_dataStore->Clear();
   }
 
-  template<typename BaseDataStoreType>
-  std::vector<SequencedEntry> AsyncDataStore<BaseDataStoreType>::LoadEntries(
+  template<typename D>
+  std::vector<SequencedEntry> AsyncDataStore<D>::LoadEntries(
       const EntryQuery& query) {
     return m_asyncDataStore.Load(query);
   }
 
-  template<typename BaseDataStoreType>
-  void AsyncDataStore<BaseDataStoreType>::Store(
-      const SequencedIndexedEntry& entry) {
+  template<typename D>
+  void AsyncDataStore<D>::Store(const SequencedIndexedEntry& entry) {
     m_asyncDataStore.Store(entry);
   }
 
-  template<typename BaseDataStoreType>
-  void AsyncDataStore<BaseDataStoreType>::Close() {
+  template<typename D>
+  void AsyncDataStore<D>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename BaseDataStoreType>
-  void AsyncDataStore<BaseDataStoreType>::Shutdown() {
     m_asyncDataStore.Close();
     m_dataStore->Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 }
 

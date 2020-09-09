@@ -97,7 +97,6 @@ namespace Beam::ServiceLocator {
       LocalServiceLocatorDataStore m_cache;
       IO::OpenState m_openState;
 
-      void Shutdown();
       bool IsCached(const DirectoryEntry& entry);
       bool IsCached(unsigned int entry);
   };
@@ -107,7 +106,6 @@ namespace Beam::ServiceLocator {
   CachedServiceLocatorDataStore<D>::CachedServiceLocatorDataStore(
       DF&& dataStore)
       : m_dataStore(std::forward<DF>(dataStore)) {
-    m_openState.SetOpening();
     try {
       auto directories = m_dataStore->LoadAllDirectories();
       for(auto& directory : directories) {
@@ -136,10 +134,9 @@ namespace Beam::ServiceLocator {
         }
       }
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename D>
@@ -393,10 +390,9 @@ namespace Beam::ServiceLocator {
   template<typename D>
   void CachedServiceLocatorDataStore<D>::WithTransaction(
       const std::function<void ()>& transaction) {
-    m_dataStore->WithTransaction(
-      [&] {
-        m_cache.WithTransaction(transaction);
-      });
+    m_dataStore->WithTransaction([&] {
+      m_cache.WithTransaction(transaction);
+    });
   }
 
   template<typename D>
@@ -404,14 +400,9 @@ namespace Beam::ServiceLocator {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename D>
-  void CachedServiceLocatorDataStore<D>::Shutdown() {
     m_dataStore->Close();
     m_cache.Close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename D>

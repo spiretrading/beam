@@ -22,15 +22,12 @@ namespace Beam::HttpFileServer {
 
       std::vector<WebServices::HttpRequestSlot> GetSlots();
 
-      void Open();
-
       void Close();
 
     private:
       WebServices::FileStore m_fileStore;
       IO::OpenState m_openState;
 
-      void Shutdown();
       WebServices::HttpResponse OnServeFile(
         const WebServices::HttpRequest& request);
   };

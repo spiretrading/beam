@@ -23,22 +23,8 @@ std::vector<HttpRequestSlot> HttpFileServlet::GetSlots() {
   return slots;
 }
 
-void HttpFileServlet::Open() {
-  if(m_openState.SetOpening()) {
-    return;
-  }
-  m_openState.SetOpen();
-}
-
 void HttpFileServlet::Close() {
-  if(m_openState.SetClosing()) {
-    return;
-  }
-  Shutdown();
-}
-
-void HttpFileServlet::Shutdown() {
-  m_openState.SetClosed();
+  m_openState.Close();
 }
 
 HttpResponse HttpFileServlet::OnServeFile(const HttpRequest& request) {

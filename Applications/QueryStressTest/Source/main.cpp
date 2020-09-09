@@ -110,7 +110,6 @@ namespace {
       OpenState m_openState;
       RoutineTaskQueue m_taskQueue;
 
-      void Shutdown();
       void OnDataRequest(
         RequestToken<ServiceProtocolClient, QueryDataService>& request,
         const DataQuery& query);
@@ -129,7 +128,6 @@ namespace {
   template<typename ContainerType>
   DataServlet<ContainerType>::DataServlet()
       : m_timerState(true) {
-    m_openState.SetOpening();
     auto rd = std::random_device();
     auto randomizer = std::default_random_engine(rd());
     auto distribution = std::uniform_int_distribution<std::uint64_t>();
@@ -142,7 +140,6 @@ namespace {
         std::ref(*entry))));
       m_dataEntries.push_back(std::move(entry));
     }
-    m_openState.SetOpen();
     for(auto& entry : m_dataEntries) {
       entry->m_timer->Start();
     }
@@ -173,16 +170,11 @@ namespace {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ContainerType>
-  void DataServlet<ContainerType>::Shutdown() {
     m_timerState = false;
     for(auto& entry : m_dataEntries) {
       entry->m_timer->Cancel();
     }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
   template<typename ContainerType>

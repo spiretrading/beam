@@ -1,7 +1,6 @@
-#ifndef BEAM_HTTPSERVER_HPP
-#define BEAM_HTTPSERVER_HPP
+#ifndef BEAM_HTTP_SERVER_HPP
+#define BEAM_HTTP_SERVER_HPP
 #include <vector>
-#include <boost/noncopyable.hpp>
 #include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
@@ -19,54 +18,49 @@
 #include "Beam/WebServices/WebSocketChannel.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam {
-namespace WebServices {
+namespace Beam::WebServices {
 
-  /*! \class HttpServer
-      \brief Implements an HTTP server.
-      \tparam ServerConnectionType The type of ServerConnection accepting
-              Channels.
+  /**
+   * Implements an HTTP server.
+   * @param <C> The type of ServerConnection accepting Channels.
    */
-  template<typename ServerConnectionType>
-  class HttpServer : private boost::noncopyable {
+  template<typename C>
+  class HttpServer {
     public:
 
-      //! The type of ServerConnection accepting Channels.
-      using ServerConnection = GetTryDereferenceType<ServerConnectionType>;
+      /** The type of ServerConnection accepting Channels. */
+      using ServerConnection = GetTryDereferenceType<C>;
 
-      //! The type of Channel accepted by the ServerConnection.
+      /** The type of Channel accepted by the ServerConnection. */
       using Channel = typename ServerConnection::Channel;
 
-      //! The type of WebSocket used.
-      using WebSocket =
-        ::Beam::WebServices::WebSocket<std::shared_ptr<Channel>>;
+      /** The type of WebSocket used. */
+      using WebSocket = Beam::WebServices::WebSocket<std::shared_ptr<Channel>>;
 
-      //! The type of WebSocketChannel used.
-      using WebSocketChannel = ::Beam::WebServices::WebSocketChannel<
+      /** The type of WebSocketChannel used. */
+      using WebSocketChannel = Beam::WebServices::WebSocketChannel<
         std::shared_ptr<Channel>>;
 
-      //! The type of slot used to upgrade to a WebSocket.
+      /** The type of slot used to upgrade to a WebSocket. */
       using WebSocketSlot =
-        ::Beam::WebServices::HttpUpgradeSlot<WebSocketChannel>;
+        Beam::WebServices::HttpUpgradeSlot<WebSocketChannel>;
 
-      //! Constructs an HttpServer.
-      /*!
-        \param serverConnection Initializes the ServerConnection.
-        \param slots The slots handling the HttpServerRequests.
-      */
-      template<typename ServerConnectionForward>
-      HttpServer(ServerConnectionForward&& serverConnection,
-        std::vector<HttpRequestSlot> slots);
+      /**
+       * Constructs an HttpServer.
+       * @param serverConnection Initializes the ServerConnection.
+       * @param slots The slots handling the HttpServerRequests.
+       */
+      template<typename CF>
+      HttpServer(CF&& serverConnection, std::vector<HttpRequestSlot> slots);
 
-      //! Constructs an HttpServer.
-      /*!
-        \param serverConnection Initializes the ServerConnection.
-        \param slots The slots handling the HttpServerRequests.
-        \param webSocketSlots The slots handling WebSocket upgrade requests.
-      */
-      template<typename ServerConnectionForward>
-      HttpServer(ServerConnectionForward&& serverConnection,
-        std::vector<HttpRequestSlot> slots,
+      /**
+       * Constructs an HttpServer.
+       * @param serverConnection Initializes the ServerConnection.
+       * @param slots The slots handling the HttpServerRequests.
+       * @param webSocketSlots The slots handling WebSocket upgrade requests.
+       */
+      template<typename CF>
+      HttpServer(CF&& serverConnection, std::vector<HttpRequestSlot> slots,
         std::vector<WebSocketSlot> webSocketSlots);
 
       ~HttpServer();
@@ -76,13 +70,14 @@ namespace WebServices {
     private:
       typename Channel::Writer::Buffer BAD_REQUEST_RESPONSE_BUFFER;
       typename Channel::Writer::Buffer NOT_FOUND_RESPONSE_BUFFER;
-      GetOptionalLocalPtr<ServerConnectionType> m_serverConnection;
+      GetOptionalLocalPtr<C> m_serverConnection;
       std::vector<HttpRequestSlot> m_slots;
       std::vector<WebSocketSlot> m_webSocketSlots;
       Routines::RoutineHandler m_acceptRoutine;
       IO::OpenState m_openState;
 
-      void Shutdown();
+      HttpServer(const HttpServer&) = delete;
+      HttpServer& operator =(const HttpServer&) = delete;
       void AcceptLoop();
       bool UpgradeConnection(const HttpRequest& request,
         const std::shared_ptr<Channel>& channel,
@@ -91,58 +86,49 @@ namespace WebServices {
         typename Channel::Writer::Buffer& responseBuffer);
   };
 
-  template<typename ServerConnectionType>
-  template<typename ServerConnectionForward>
-  HttpServer<ServerConnectionType>::HttpServer(
-      ServerConnectionForward&& serverConnection,
-      std::vector<HttpRequestSlot> slots)
-      : HttpServer{std::forward<ServerConnectionForward>(serverConnection),
-          std::move(slots), std::vector<WebSocketSlot>()} {}
+  template<typename C>
+  template<typename CF>
+  HttpServer<C>::HttpServer(CF&& serverConnection,
+    std::vector<HttpRequestSlot> slots)
+    : HttpServer(std::forward<CF>(serverConnection), std::move(slots),
+        std::vector<WebSocketSlot>()) {}
 
-  template<typename ServerConnectionType>
-  template<typename ServerConnectionForward>
-  HttpServer<ServerConnectionType>::HttpServer(
-      ServerConnectionForward&& serverConnection,
+  template<typename C>
+  template<typename CF>
+  HttpServer<C>::HttpServer(CF&& serverConnection,
       std::vector<HttpRequestSlot> slots,
       std::vector<WebSocketSlot> webSocketSlots)
-      : m_serverConnection{std::forward<ServerConnectionForward>(
-          serverConnection)},
-        m_slots{std::move(slots)},
-        m_webSocketSlots{std::move(webSocketSlots)} {
-    HttpResponse badRequestResponse{HttpStatusCode::BAD_REQUEST};
+      : m_serverConnection(std::forward<CF>(serverConnection)),
+        m_slots(std::move(slots)),
+        m_webSocketSlots(std::move(webSocketSlots)) {
+    auto badRequestResponse = HttpResponse(HttpStatusCode::BAD_REQUEST);
     badRequestResponse.Encode(Store(BAD_REQUEST_RESPONSE_BUFFER));
-    HttpResponse notFoundResponse{HttpStatusCode::NOT_FOUND};
+    auto notFoundResponse = HttpResponse(HttpStatusCode::NOT_FOUND);
     notFoundResponse.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
-    m_openState.SetOpen();
     m_acceptRoutine = Routines::Spawn(std::bind(&HttpServer::AcceptLoop, this));
   }
 
-  template<typename ServerConnectionType>
-  HttpServer<ServerConnectionType>::~HttpServer() {
+  template<typename C>
+  HttpServer<C>::~HttpServer() {
     Close();
   }
 
-  template<typename ServerConnectionType>
-  void HttpServer<ServerConnectionType>::Close() {
+  template<typename C>
+  void HttpServer<C>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ServerConnectionType>
-  void HttpServer<ServerConnectionType>::Shutdown() {
     m_serverConnection->Close();
     m_acceptRoutine.Wait();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
-  template<typename ServerConnectionType>
-  void HttpServer<ServerConnectionType>::AcceptLoop() {
-    SynchronizedUnorderedSet<std::shared_ptr<Channel>> clients;
-    Routines::RoutineHandlerGroup clientRoutines;
+  template<typename C>
+  void HttpServer<C>::AcceptLoop() {
+    auto clients = SynchronizedUnorderedSet<std::shared_ptr<Channel>>();
+    auto clientRoutines = Routines::RoutineHandlerGroup();
     while(true) {
-      std::shared_ptr<Channel> channel;
+      auto channel = std::shared_ptr<Channel>();
       try {
         channel = m_serverConnection->Accept();
       } catch(const IO::EndOfFileException&) {
@@ -152,56 +138,55 @@ namespace WebServices {
         continue;
       }
       clients.Insert(channel);
-      clientRoutines.Spawn(
-        [=, &clients] {
-          HttpRequestParser parser;
-          typename Channel::Reader::Buffer requestBuffer;
-          typename Channel::Writer::Buffer responseBuffer;
-          try {
-            while(true) {
-              channel->GetReader().Read(Store(requestBuffer));
-              parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
-              requestBuffer.Reset();
-              auto request = parser.GetNextRequest();
-              while(request.is_initialized()) {
-                std::cout << *request << "\n\n\n" << std::flush;
-                responseBuffer.Reset();
-                if(request->GetSpecialHeaders().m_connection ==
-                    ConnectionHeader::UPGRADE) {
-                  auto wasUpgraded = UpgradeConnection(*request, channel,
-                    responseBuffer);
-                  if(wasUpgraded) {
-                    clients.Erase(channel);
-                    return;
-                  }
-                } else {
-                  auto keepAlive = HandleHttpRequest(*request, *channel,
-                    responseBuffer);
-                  if(!keepAlive) {
-                    clients.Erase(channel);
-                    channel->GetConnection().Close();
-                    return;
-                  }
+      clientRoutines.Spawn([=, &clients] {
+        auto parser = HttpRequestParser();
+        auto requestBuffer = typename Channel::Reader::Buffer();
+        auto responseBuffer = typename Channel::Writer::Buffer();
+        try {
+          while(true) {
+            channel->GetReader().Read(Store(requestBuffer));
+            parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
+            requestBuffer.Reset();
+            auto request = parser.GetNextRequest();
+            while(request.is_initialized()) {
+              std::cout << *request << "\n\n\n" << std::flush;
+              responseBuffer.Reset();
+              if(request->GetSpecialHeaders().m_connection ==
+                  ConnectionHeader::UPGRADE) {
+                auto wasUpgraded = UpgradeConnection(*request, channel,
+                  responseBuffer);
+                if(wasUpgraded) {
+                  clients.Erase(channel);
+                  return;
                 }
-                request = parser.GetNextRequest();
+              } else {
+                auto keepAlive = HandleHttpRequest(*request, *channel,
+                  responseBuffer);
+                if(!keepAlive) {
+                  clients.Erase(channel);
+                  channel->GetConnection().Close();
+                  return;
+                }
               }
+              request = parser.GetNextRequest();
             }
-          } catch(const std::exception&) {}
-          clients.Erase(channel);
-        });
+          }
+        } catch(const std::exception&) {}
+        clients.Erase(channel);
+      });
     }
-    std::unordered_set<std::shared_ptr<Channel>> pendingClients;
+    auto pendingClients = std::unordered_set<std::shared_ptr<Channel>>();
     clients.Swap(pendingClients);
     for(auto& client : pendingClients) {
       client->GetConnection().Close();
     }
   }
 
-  template<typename ServerConnectionType>
-  bool HttpServer<ServerConnectionType>::UpgradeConnection(
-      const HttpRequest& request, const std::shared_ptr<Channel>& channel,
+  template<typename C>
+  bool HttpServer<C>::UpgradeConnection(const HttpRequest& request,
+      const std::shared_ptr<Channel>& channel,
       typename Channel::Writer::Buffer& responseBuffer) {
-    static auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    static constexpr auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     auto protocol = request.GetHeader("Upgrade");
     if(!protocol.is_initialized()) {
       channel->GetWriter().Write(BAD_REQUEST_RESPONSE_BUFFER);
@@ -218,7 +203,7 @@ namespace WebServices {
         *key + MAGIC_TOKEN)));
       for(auto& slot : m_webSocketSlots) {
         if(slot.m_predicate(request)) {
-          HttpResponse response{HttpStatusCode::SWITCHING_PROTOCOLS};
+          auto response = HttpResponse(HttpStatusCode::SWITCHING_PROTOCOLS);
           response.SetHeader({"Connection", "Upgrade"});
           response.SetHeader({"Upgrade", "websocket"});
           response.SetHeader({"Sec-WebSocket-Accept", acceptToken});
@@ -237,10 +222,9 @@ namespace WebServices {
     return false;
   }
 
-  template<typename ServerConnectionType>
-  bool HttpServer<ServerConnectionType>::HandleHttpRequest(
-      const HttpRequest& request, Channel& channel,
-      typename Channel::Writer::Buffer& responseBuffer) {
+  template<typename C>
+  bool HttpServer<C>::HandleHttpRequest(const HttpRequest& request,
+      Channel& channel, typename Channel::Writer::Buffer& responseBuffer) {
     auto foundSlot = false;
     for(auto& slot : m_slots) {
       if(slot.m_predicate(request)) {
@@ -249,11 +233,11 @@ namespace WebServices {
           response.Encode(Store(responseBuffer));
         } catch(const std::exception& e) {
           responseBuffer.Reset();
-          HttpResponse response{HttpStatusCode::INTERNAL_SERVER_ERROR};
+          auto response = HttpResponse(HttpStatusCode::INTERNAL_SERVER_ERROR);
           response.SetHeader({"Content-Type", "application/json"});
-          Serialization::JsonSender<IO::SharedBuffer> jsonSender;
+          auto jsonSender = Serialization::JsonSender<IO::SharedBuffer>();
           response.SetBody(Serialization::Encode<IO::SharedBuffer>(jsonSender,
-            std::string{e.what()}));
+            std::string(e.what())));
           response.Encode(Store(responseBuffer));
         }
         channel.GetWriter().Write(responseBuffer);
@@ -266,7 +250,6 @@ namespace WebServices {
     }
     return request.GetSpecialHeaders().m_connection != ConnectionHeader::CLOSE;
   }
-}
 }
 
 #endif

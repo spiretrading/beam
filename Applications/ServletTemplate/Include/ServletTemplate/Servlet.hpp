@@ -1,6 +1,5 @@
-#ifndef BEAM_SERVLETTEMPLATESERVLET_HPP
-#define BEAM_SERVLETTEMPLATESERVLET_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_SERVLET_TEMPLATE_SERVLET_HPP
+#define BEAM_SERVLET_TEMPLATE_SERVLET_HPP
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
@@ -10,25 +9,23 @@
 
 namespace Beam {
 
-  /*! \class ServletTemplateServlet
-      \brief Basic template used to develop a servlet.
-      \tparam ContainerType The container instantiating this servlet.
+  /**
+   * Basic template used to develop a servlet.
+   * @param <C> The container instantiating this servlet.
    */
-  template<typename ContainerType>
-  class ServletTemplateServlet : private boost::noncopyable {
+  template<typename C>
+  class ServletTemplateServlet {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
-      //! Constructs a ServletTemplateServlet.
+      /** Constructs a ServletTemplateServlet. */
       ServletTemplateServlet();
 
       void RegisterServices(
         Out<Services::ServiceSlots<ServiceProtocolClient>> slots);
 
       void HandleClientClosed(ServiceProtocolClient& client);
-
-      void Open();
 
       void Close();
 
@@ -46,7 +43,6 @@ namespace Beam {
       IO::OpenState m_openState;
       RoutineTaskQueue m_taskQueue;
 
-      void Shutdown();
       void OnEchoTimer(Threading::Timer::Result result);
       int OnEchoRequest(ServiceProtocolClient& client,
         const std::string& message, int rate);
@@ -54,17 +50,25 @@ namespace Beam {
 
   struct MetaServletTemplateServlet {
     using Session = NullType;
-    template<typename ContainerType>
+    template<typename C>
     struct apply {
-      using type = ServletTemplateServlet<ContainerType>;
+      using type = ServletTemplateServlet<C>;
     };
   };
 
-  template<typename ContainerType>
-  ServletTemplateServlet<ContainerType>::ServletTemplateServlet() {}
+  template<typename C>
+  ServletTemplateServlet<C>::ServletTemplateServlet() {
+    m_echoTimer = std::make_unique<Threading::LiveTimer>(
+      boost::posix_time::milliseconds(100), Ref(m_timerThreadPool));
+    m_echoTimer->GetPublisher().Monitor(
+      m_taskQueue.GetSlot<Threading::Timer::Result>(
+      std::bind(&ServletTemplateServlet::OnEchoTimer, this,
+      std::placeholders::_1)));
+    m_echoTimer->Start();
+  }
 
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::RegisterServices(
+  template<typename C>
+  void ServletTemplateServlet<C>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterServletTemplateServices(Store(slots));
     RegisterServletTemplateMessages(Store(slots));
@@ -73,84 +77,58 @@ namespace Beam {
       std::placeholders::_2, std::placeholders::_3));
   }
 
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::HandleClientClosed(
+  template<typename C>
+  void ServletTemplateServlet<C>::HandleClientClosed(
       ServiceProtocolClient& client) {
-    m_echoEntries.RemoveIf(
-      [&] (const EchoEntry& entry) {
-        return entry.m_client == &client;
-      });
+    m_echoEntries.RemoveIf([&] (const auto& entry) {
+      return entry.m_client == &client;
+    });
   }
 
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::Open() {
-    if(m_openState.SetOpening()) {
-      return;
-    }
-    m_echoTimer = std::make_unique<Threading::LiveTimer>(
-      boost::posix_time::milliseconds(100), Ref(m_timerThreadPool));
-    m_echoTimer->GetPublisher().Monitor(
-      m_taskQueue.GetSlot<Threading::Timer::Result>(
-      std::bind(&ServletTemplateServlet::OnEchoTimer, this,
-      std::placeholders::_1)));
-    m_openState.SetOpen();
-    m_echoTimer->Start();
-  }
-
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::Close() {
+  template<typename C>
+  void ServletTemplateServlet<C>::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::Shutdown() {
     m_echoTimer->Cancel();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 
-  template<typename ContainerType>
-  void ServletTemplateServlet<ContainerType>::OnEchoTimer(
-      Threading::Timer::Result result) {
+  template<typename C>
+  void ServletTemplateServlet<C>::OnEchoTimer(Threading::Timer::Result result) {
     if(result != Threading::Timer::Result::EXPIRED) {
       return;
     }
-    m_echoEntries.ForEach(
-      [&] (EchoEntry& entry) {
-        if(entry.m_messages == 0) {
-          --entry.m_countdown;
-          if(entry.m_countdown == 0) {
-            auto timestamp =
-              boost::posix_time::microsec_clock::universal_time();
-            Beam::Services::SendRecordMessage<EchoMessage>(*entry.m_client,
-              timestamp, entry.m_message);
-            entry.m_countdown = 10 / entry.m_rate;
-          }
-        } else {
+    m_echoEntries.ForEach([&] (auto& entry) {
+      if(entry.m_messages == 0) {
+        --entry.m_countdown;
+        if(entry.m_countdown == 0) {
           auto timestamp = boost::posix_time::microsec_clock::universal_time();
-          for(auto i = 0; i < entry.m_messages; ++i) {
-            Beam::Services::SendRecordMessage<EchoMessage>(*entry.m_client,
-              timestamp, entry.m_message);
-          }
+          Beam::Services::SendRecordMessage<EchoMessage>(*entry.m_client,
+            timestamp, entry.m_message);
+          entry.m_countdown = 10 / entry.m_rate;
         }
-      });
+      } else {
+        auto timestamp = boost::posix_time::microsec_clock::universal_time();
+        for(auto i = 0; i < entry.m_messages; ++i) {
+          Beam::Services::SendRecordMessage<EchoMessage>(*entry.m_client,
+            timestamp, entry.m_message);
+        }
+      }
+    });
     m_echoTimer->Start();
   }
 
-  template<typename ContainerType>
-  int ServletTemplateServlet<ContainerType>::OnEchoRequest(
-      ServiceProtocolClient& client, const std::string& message, int rate) {
-    int countdown;
-    int messages;
-    if(rate > 10) {
-      messages = rate / 10;
-      countdown = 0;
-    } else {
-      countdown = 10 / rate;
-      messages = 0;
-    }
+  template<typename C>
+  int ServletTemplateServlet<C>::OnEchoRequest(ServiceProtocolClient& client,
+      const std::string& message, int rate) {
+    auto [countdown, messages] = [&] {
+      if(rate > 10) {
+        return std::tuple(0, rate / 10);
+      } else {
+        return std::tuple(10 / rate, 0);
+      }
+    }();
     auto entry = EchoEntry{&client, message, rate, countdown, messages};
     m_echoEntries.PushBack(entry);
     return 0;

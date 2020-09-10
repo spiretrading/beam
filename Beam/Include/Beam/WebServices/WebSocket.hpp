@@ -358,7 +358,9 @@ namespace Details {
         request.Add(HttpHeader{"Sec-WebSocket-Version", m_version});
       }
       auto sendBuffer = typename Channel::Writer::Buffer();
-      auto sendStream = IO::BufferOutputStream(Ref(sendBuffer));
+      auto sendStream =
+        IO::BufferOutputStream<typename Channel::Writer::Buffer>(
+        Ref(sendBuffer));
       sendStream << request;
       sendStream.flush();
       m_channel = m_channelBuilder(m_uri);

@@ -15,20 +15,21 @@
 
 namespace Beam::WebServices {
 
-  /** Stores persistent web sessions in a MySQL database.
-      \tparam - The SQL connection to use.
+  /**
+   * Stores persistent web sessions in a MySQL database.
+   * @param <C> The SQL connection to use.
    */
   template<typename C>
   class SqlSessionDataStore : private boost::noncopyable {
     public:
 
-      //! The SQL connection to use.
+      /** The SQL connection to use. */
       using Connection = C;
 
-      //! Constructs a SqlSessionDataStore.
-      /*!
-        \param connection The SQL connection.
-      */
+      /**
+       * Constructs a SqlSessionDataStore.
+       * @param connection The SQL connection.
+       */
       SqlSessionDataStore(std::unique_ptr<Connection> connection);
 
       ~SqlSessionDataStore();
@@ -53,24 +54,20 @@ namespace Beam::WebServices {
       Serialization::JsonSender<IO::SharedBuffer> m_sender;
       Serialization::JsonReceiver<IO::SharedBuffer> m_receiver;
       IO::OpenState m_openState;
-
-      void Shutdown();
   };
 
   template<typename C>
   SqlSessionDataStore<C>::SqlSessionDataStore(
       std::unique_ptr<Connection> connection)
       : m_connection(std::move(connection)) {
-    m_openState.SetOpening();
     try {
       m_connection->open();
       m_connection->execute(Viper::create_if_not_exists(GetWebSessionsRow(),
         "web_sessions"));
     } catch(const std::exception&) {
-      m_openState.SetOpenFailure();
-      Shutdown();
+      Close();
+      BOOST_RETHROW;
     }
-    m_openState.SetOpen();
   }
 
   template<typename C>
@@ -129,13 +126,8 @@ namespace Beam::WebServices {
     if(m_openState.SetClosing()) {
       return;
     }
-    Shutdown();
-  }
-
-  template<typename C>
-  void SqlSessionDataStore<C>::Shutdown() {
     m_connection->close();
-    m_openState.SetClosed();
+    m_openState.Close();
   }
 }
 

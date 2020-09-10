@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
 #define BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
 #include "Beam/IO/Connection.hpp"
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"

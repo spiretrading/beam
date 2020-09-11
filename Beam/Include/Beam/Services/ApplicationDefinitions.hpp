@@ -66,6 +66,9 @@ namespace Details {
       boost::optional<Client> m_client;
       std::unique_ptr<ServiceLocator::VirtualServiceLocatorClient>
         m_serviceLocatorClient;
+
+      ApplicationClient(const ApplicationClient&) = delete;
+      ApplicationClient& operator =(const ApplicationClient&) = delete;
   };
 
   template<template<typename> class C, typename N, typename B>

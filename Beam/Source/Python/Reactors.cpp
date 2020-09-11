@@ -24,24 +24,22 @@ using namespace boost;
 using namespace boost::posix_time;
 using namespace pybind11;
 
-namespace {
-  auto DefaultTimerFactory(time_duration duration) {
-    return std::make_unique<LiveTimer>(duration);
-  }
-}
-
 void Beam::Python::ExportAlarmReactor(pybind11::module& module) {
   module.def("alarm",
     [] (SharedBox<ptime> expiry) {
-      return to_object(AlarmReactor(LocalTimeClient(), DefaultTimerFactory,
-        std::move(expiry)));
+      return to_object(AlarmReactor(LocalTimeClient(),
+        [] (time_duration duration) {
+          return std::make_unique<LiveTimer>(duration);
+        }, std::move(expiry)));
     });
   module.def("alarm",
     [] (VirtualTimeClient& timeClient,
         std::function<std::shared_ptr<VirtualTimer> (time_duration)>
         timerFactory, SharedBox<ptime> expiry) {
-      return to_object(AlarmReactor(&timeClient, std::move(timerFactory),
-        std::move(expiry)));
+      return to_object(AlarmReactor(&timeClient,
+        [] (time_duration duration) {
+          return std::make_unique<LiveTimer>(duration);
+        }, std::move(expiry)));
     });
 }
 

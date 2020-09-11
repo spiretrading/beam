@@ -57,7 +57,7 @@ void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
             delay = true;
             return std::make_unique<TcpSocketChannel>(addresses);
           },
-          [=] {
+          [] {
             return std::make_unique<LiveTimer>(seconds(10));
           });
         return MakeToPythonUidClient(

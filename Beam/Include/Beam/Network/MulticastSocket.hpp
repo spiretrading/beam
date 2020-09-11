@@ -12,8 +12,8 @@
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
-#include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam::Network {

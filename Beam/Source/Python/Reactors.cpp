@@ -87,8 +87,10 @@ void Beam::Python::ExportQueueReactor(pybind11::module& module) {
 void Beam::Python::ExportTimerReactor(pybind11::module& module) {
   module.def("timer",
     [] (SharedBox<time_duration> period) {
-      return to_object(TimerReactor<std::int64_t>(DefaultTimerFactory,
-        std::move(period)));
+      return to_object(TimerReactor<std::int64_t>(
+        [] (time_duration duration) {
+          return std::make_unique<LiveTimer>(duration);
+        }, std::move(period)));
     });
   module.def("timer",
     [] (std::function<std::shared_ptr<VirtualTimer> (time_duration)>

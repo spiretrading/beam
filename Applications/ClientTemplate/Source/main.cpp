@@ -88,8 +88,6 @@ int main(int argc, const char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto message = std::string();
   auto client = boost::optional<ApplicationClient>();
   auto rate = 0;
@@ -97,8 +95,7 @@ int main(int argc, const char** argv) {
     auto addresses = ParseAddress(config);
     message = Extract<std::string>(config, "message");
     rate = Extract<int>(config, "rate");
-    client.emplace(Initialize(addresses, Ref(socketThreadPool)),
-      Initialize(seconds{10}, Ref(timerThreadPool)));
+    client.emplace(Initialize(addresses), Initialize(seconds(10)));
   } catch(const std::exception& e) {
     std::cerr << "Unable to initialize client: " << e.what() << std::endl;
     return -1;

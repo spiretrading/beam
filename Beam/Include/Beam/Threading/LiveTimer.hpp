@@ -1,32 +1,26 @@
-#ifndef BEAM_LIVETIMER_HPP
-#define BEAM_LIVETIMER_HPP
+#ifndef BEAM_LIVE_TIMER_HPP
+#define BEAM_LIVE_TIMER_HPP
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Threading/Timer.hpp"
-#include "Beam/Threading/TimerThreadPool.hpp"
 
 namespace Beam {
 namespace Threading {
 
-  /*! \class LiveTimer
-      \brief Implements a Timer using a live timer.
-   */
-  class LiveTimer : private boost::noncopyable {
+  /** Implements a Timer using a live timer. */
+  class LiveTimer {
     public:
 
-      //! Constructs a LiveTimer.
-      /*!
-        \param interval The time interval before expiring.
-        \param timerThreadPool The thread pool used to trigger the timer's
-               expired slot.
-      */
-      LiveTimer(boost::posix_time::time_duration interval,
-        Ref<TimerThreadPool> timerThreadPool);
+      /**
+       * Constructs a LiveTimer.
+       * @param interval The time interval before expiring.
+       */
+      LiveTimer(boost::posix_time::time_duration interval);
 
       ~LiveTimer();
 
@@ -45,40 +39,43 @@ namespace Threading {
       bool m_isPending;
       QueueWriterPublisher<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
+
+      LiveTimer(const LiveTimer&) = delete;
+      LiveTimer& operator =(const LiveTimer&) = delete;
   };
 
-  inline LiveTimer::LiveTimer(boost::posix_time::time_duration interval,
-    Ref<TimerThreadPool> timerThreadPool)
-      : m_interval(interval),
-        m_deadLineTimer(timerThreadPool->GetService()),
-        m_isPending(false) {}
+  inline LiveTimer::LiveTimer(boost::posix_time::time_duration interval)
+    : m_interval(interval),
+      m_deadLineTimer(ServiceThreadPool().GetInstance().GetService()),
+      m_isPending(false) {}
 
   inline LiveTimer::~LiveTimer() {
     Cancel();
   }
 
   inline void LiveTimer::Start() {
-    boost::lock_guard<Mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     if(m_isPending) {
       return;
     }
     m_isPending = true;
     m_deadLineTimer.expires_from_now(m_interval);
-    m_deadLineTimer.async_wait(
-      [=] (const boost::system::error_code& error) {
-        boost::lock_guard<Mutex> lock(m_mutex);
+    m_deadLineTimer.async_wait([=] (const auto& error) {
+      {
+        auto lock = boost::lock_guard(m_mutex);
         if(error) {
           m_publisher.Push(Timer::Result::CANCELED);
         } else {
           m_publisher.Push(Timer::Result::EXPIRED);
         }
         m_isPending = false;
-        m_trigger.notify_all();
-      });
+      }
+      m_trigger.notify_all();
+    });
   }
 
   inline void LiveTimer::Cancel() {
-    boost::unique_lock<Mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     if(m_isPending) {
       m_deadLineTimer.cancel();
       while(m_isPending) {
@@ -88,7 +85,7 @@ namespace Threading {
   }
 
   inline void LiveTimer::Wait() {
-    boost::unique_lock<Mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     while(m_isPending) {
       m_trigger.wait(lock);
     }

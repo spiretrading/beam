@@ -47,13 +47,11 @@ void Beam::Python::ExportHttpClient(pybind11::module& module) {
   class_<HttpClient>(module, "HttpClient")
     .def(init(
       [] {
-        return std::make_unique<HttpClient>(
-          TcpSocketChannelFactory(Ref(*GetSocketThreadPool())));
+        return std::make_unique<HttpClient>(TcpSocketChannelFactory());
       }))
     .def(init(
       [] (const IpAddress& interface) {
-        return std::make_unique<HttpClient>(
-          TcpSocketChannelFactory(interface, Ref(*GetSocketThreadPool())));
+        return std::make_unique<HttpClient>(TcpSocketChannelFactory(interface));
       }))
     .def("send", &HttpClient::Send, call_guard<GilRelease>());
 }
@@ -245,29 +243,17 @@ void Beam::Python::ExportHttpVersion(pybind11::module& module) {
 
 void Beam::Python::ExportSecureSocketChannelFactory(pybind11::module& module) {
   class_<SecureSocketChannelFactory>(module, "SecureSocketChannelFactory")
-    .def(init(
-      [] {
-        return std::make_unique<SecureSocketChannelFactory>(
-          Ref(*GetSocketThreadPool()));
-      }));
+    .def(init());
 }
 
 void Beam::Python::ExportSocketChannelFactory(pybind11::module& module) {
   class_<SocketChannelFactory>(module, "SocketChannelFactory")
-    .def(init(
-      [] {
-        return std::make_unique<SocketChannelFactory>(
-          Ref(*GetSocketThreadPool()));
-      }));
+    .def(init());
 }
 
 void Beam::Python::ExportTcpSocketChannelFactory(pybind11::module& module) {
   class_<TcpSocketChannelFactory>(module, "TcpSocketChannelFactory")
-    .def(init(
-      [] {
-        return std::make_unique<TcpSocketChannelFactory>(
-          Ref(*GetSocketThreadPool()));
-      }));
+    .def(init());
 }
 
 void Beam::Python::ExportUri(pybind11::module& module) {

@@ -55,8 +55,7 @@ void Beam::Python::ExportLiveTimer(module& module) {
       std::shared_ptr<ToPythonTimer<LiveTimer>>>(module, "LiveTimer")
     .def(init(
       [] (time_duration interval) {
-        return MakeToPythonTimer(std::make_unique<LiveTimer>(interval,
-          Ref(*GetTimerThreadPool())));
+        return MakeToPythonTimer(std::make_unique<LiveTimer>(interval));
       }));
 }
 

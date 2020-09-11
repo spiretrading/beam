@@ -202,12 +202,10 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
               throw NotConnectedException();
             }
             isConnected = true;
-            return std::make_unique<TcpSocketChannel>(address,
-              Ref(*GetSocketThreadPool()));
+            return std::make_unique<TcpSocketChannel>(address);
           },
           [] {
-            return std::make_unique<LiveTimer>(seconds(10),
-              Ref(*GetTimerThreadPool()));
+            return std::make_unique<LiveTimer>(seconds(10));
           });
         return MakeToPythonServiceLocatorClient(
           std::make_unique<PythonApplicationServiceLocatorClient>(

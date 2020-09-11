@@ -2,24 +2,24 @@
 #define BEAM_THREADING_HPP
 
 namespace Beam::Threading {
-  template<typename MutexType> class CallOnce;
+  template<typename M> class CallOnce;
   class ConditionVariable;
   class LiveTimer;
-  template<typename LockType> class LockRelease;
+  template<typename L> class LockRelease;
   class Mutex;
-  template<bool Acquire, typename MutexType> class OptionalLock;
-  template<typename MutexType> struct PreferredConditionVariable;
+  template<bool A, typename M> class OptionalLock;
+  template<typename M> struct PreferredConditionVariable;
   class RecursiveMutex;
+  class ServiceThreadPool;
   template<typename T, typename M> class Sync;
   class TaskRunner;
   class ThreadPool;
   class TimedConditionVariable;
   class TimeoutException;
   struct Timer;
-  class TimerThreadPool;
   class TriggerTimer;
   class VirtualTimer;
-  template<typename TimerType> class WrapperTimer;
+  template<typename T> class WrapperTimer;
 }
 
 #endif

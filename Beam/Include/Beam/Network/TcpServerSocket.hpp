@@ -9,6 +9,7 @@
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 
 namespace Beam {
 namespace Network {
@@ -18,37 +19,28 @@ namespace Network {
     public:
       using Channel = TcpSocketChannel;
 
-      /**
-       * Constructs a TcpServerSocket.
-       * @param socketThreadPool The thread pool used for the sockets.
-       */
-      TcpServerSocket(Ref<SocketThreadPool> socketThreadPool);
+      /** Constructs a TcpServerSocket. */
+      TcpServerSocket();
 
       /**
        * Constructs a TcpServerSocket.
        * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      TcpServerSocket(const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+      TcpServerSocket(const TcpSocketOptions& options);
 
       /**
        * Constructs a TcpServerSocket.
        * @param interface The interface to bind to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      TcpServerSocket(const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
+      TcpServerSocket(const IpAddress& interface);
 
       /**
        * Constructs a TcpServerSocket.
        * @param interface The interface to bind to.
        * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       TcpServerSocket(const IpAddress& interface,
-        const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const TcpSocketOptions& options);
 
       ~TcpServerSocket();
 
@@ -58,7 +50,6 @@ namespace Network {
 
     private:
       TcpSocketOptions m_options;
-      SocketThreadPool* m_socketThreadPool;
       boost::asio::io_service* m_ioService;
       boost::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
       IO::OpenState m_openState;
@@ -67,24 +58,19 @@ namespace Network {
       TcpServerSocket& operator =(const TcpServerSocket&) = delete;
   };
 
-  inline TcpServerSocket::TcpServerSocket(
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpServerSocket(TcpSocketOptions(), Ref(socketThreadPool)) {}
+  inline TcpServerSocket::TcpServerSocket()
+    : TcpServerSocket(TcpSocketOptions()) {}
 
-  inline TcpServerSocket::TcpServerSocket(const TcpSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpServerSocket(IpAddress("0.0.0.0", 0), options,
-        Ref(socketThreadPool)) {}
+  inline TcpServerSocket::TcpServerSocket(const TcpSocketOptions& options)
+    : TcpServerSocket(IpAddress("0.0.0.0", 0), options) {}
 
-  inline TcpServerSocket::TcpServerSocket(const IpAddress& interface,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpServerSocket(interface, TcpSocketOptions(), Ref(socketThreadPool)) {}
+  inline TcpServerSocket::TcpServerSocket(const IpAddress& interface)
+    : TcpServerSocket(interface, TcpSocketOptions()) {}
 
   inline TcpServerSocket::TcpServerSocket(const IpAddress& interface,
-      const TcpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
+      const TcpSocketOptions& options)
       : m_options(options),
-        m_socketThreadPool(socketThreadPool.Get()),
-        m_ioService(&m_socketThreadPool->GetService()) {
+        m_ioService(&Threading::ServiceThreadPool::GetInstance().GetService()) {
     try {
       auto resolver = boost::asio::ip::tcp::resolver(*m_ioService);
       auto query = boost::asio::ip::tcp::resolver::query(interface.GetHost(),
@@ -116,8 +102,7 @@ namespace Network {
       TcpServerSocket::Accept() {
     auto acceptAsync = Routines::Async<void>();
     auto acceptEval = acceptAsync.GetEval();
-    auto channel = std::unique_ptr<Channel>(new TcpSocketChannel(
-      Ref(*m_socketThreadPool)));
+    auto channel = std::unique_ptr<Channel>(new TcpSocketChannel());
     m_acceptor->async_accept(channel->m_socket->m_socket,
       [&] (const auto& error) {
         if(error) {

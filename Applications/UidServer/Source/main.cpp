@@ -103,14 +103,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
     serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
       serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address, Ref(socketThreadPool),
-      Ref(timerThreadPool));
+      serviceLocatorClientConfig.m_address);
   } catch(const std::exception& e) {
     std::cerr << "Error logging in: " << e.what() << std::endl;
     return -1;
@@ -122,9 +119,8 @@ int main(int argc, const char** argv) {
   try {
     server.emplace(Initialize(serviceLocatorClient.Get(),
       Initialize(std::move(mySqlConnection))), Initialize(
-      serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
-      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10),
-      Ref(timerThreadPool)));
+      serverConnectionInitializer.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

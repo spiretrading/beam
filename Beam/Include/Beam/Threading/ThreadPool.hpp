@@ -1,5 +1,5 @@
-#ifndef BEAM_THREADPOOL_HPP
-#define BEAM_THREADPOOL_HPP
+#ifndef BEAM_THREAD_POOL_HPP
+#define BEAM_THREAD_POOL_HPP
 #include <deque>
 #include <functional>
 #include <iostream>
@@ -15,44 +15,41 @@
 #include "Beam/Utilities/Functional.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class ThreadPool
-      \brief Implements a thread pool for running Tasks.
-   */
-  class ThreadPool : private boost::noncopyable {
+  /** Implements a thread pool for running Tasks. */
+  class ThreadPool {
     public:
 
-      //! Specifies the return type of a function.
+      /** Specifies the return type of a function. */
       template<typename F>
       struct ReturnType {
         using type = typename boost::function_traits<
           typename std::remove_pointer<F>::type>::result_type;
       };
 
-      //! Constructs a ThreadPool.
+      /** Constructs a ThreadPool. */
       ThreadPool();
 
-      //! Constructs a ThreadPool.
-      /*!
-        \param maxThreadCount The maximum number of threads to allocate.
-      */
+      /**
+       * Constructs a ThreadPool.
+       * @param maxThreadCount The maximum number of threads to allocate.
+       */
       ThreadPool(std::size_t maxThreadCount);
 
       ~ThreadPool();
 
-      //! Returns the maximum thread count.
+      /** Returns the maximum thread count. */
       std::size_t GetMaxThreadCount() const;
 
-      //! Blocks until all running threads have completed.
+      /** Blocks until all running threads have completed. */
       void WaitForCompletion();
 
-      //! Queues a function to be run within an allocated thread.
-      /*!
-        \param function The function execute.
-        \param result The result of the <i>function</i>.
-      */
+      /**
+       * Queues a function to be run within an allocated thread.
+       * @param function The function execute.
+       * @param result The result of the <i>function</i>.
+       */
       template<typename F, typename R>
       void Queue(F&& function, Routines::Eval<R> result);
 
@@ -60,8 +57,8 @@ namespace Threading {
       class TaskThread;
       class BaseTask : private boost::noncopyable {
         public:
-          BaseTask();
-          virtual ~BaseTask();
+          BaseTask() = default;
+          virtual ~BaseTask() = default;
           virtual void Run() = 0;
       };
       template<typename F, typename R>
@@ -110,14 +107,12 @@ namespace Threading {
       std::deque<BaseTask*> m_tasks;
       boost::condition_variable m_threadsFinishedCondition;
 
+      ThreadPool(const ThreadPool&) = delete;
+      ThreadPool& operator =(const ThreadPool&) = delete;
       void QueueTask(BaseTask& task);
       bool AddThread(TaskThread& taskThread);
       void RemoveThread(TaskThread& taskThread);
   };
-
-  inline ThreadPool::BaseTask::BaseTask() {}
-
-  inline ThreadPool::BaseTask::~BaseTask() {}
 
   template<typename F, typename R>
   void ThreadPool::Invoker<F, R>::operator ()(F& function,
@@ -143,8 +138,8 @@ namespace Threading {
   template<typename F, typename R>
   template<typename U>
   ThreadPool::Task<F, R>::Task(U&& function, Routines::Eval<R> result)
-      : m_function(std::forward<U>(function)),
-        m_result(std::move(result)) {}
+    : m_function(std::forward<U>(function)),
+      m_result(std::move(result)) {}
 
   template<typename F, typename R>
   void ThreadPool::Task<F, R>::Run() {
@@ -152,15 +147,16 @@ namespace Threading {
   }
 
   inline ThreadPool::TaskThread::TaskThread(ThreadPool& threadPool)
-      : m_threadPool(&threadPool),
-        m_task(nullptr),
-        m_available(true),
-        m_stopped(false) {
-    m_thread = boost::thread(std::bind(&TaskThread::Run, this));
-  }
+    : m_threadPool(&threadPool),
+      m_task(nullptr),
+      m_available(true),
+      m_stopped(false),
+      m_thread([=] {
+        Run();
+      }) {}
 
   inline bool ThreadPool::TaskThread::SetTask(BaseTask& task) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     assert(m_task == nullptr);
     if(!m_available) {
       return false;
@@ -173,17 +169,16 @@ namespace Threading {
   inline void ThreadPool::TaskThread::Run() {
     while(true) {
       {
-        boost::unique_lock<boost::mutex> lock(m_mutex);
+        auto lock = boost::unique_lock(m_mutex);
         if(m_task == nullptr) {
-          boost::posix_time::time_duration waitTime =
-            boost::posix_time::seconds(LOWER_BOUND_WAIT_TIME) +
+          auto waitTime = boost::posix_time::seconds(LOWER_BOUND_WAIT_TIME) +
             boost::posix_time::seconds(rand() % (UPPER_BOUND_WAIT_TIME -
             LOWER_BOUND_WAIT_TIME));
           if(!m_available ||
               (!m_taskAvailableCondition.timed_wait(lock, waitTime) &&
               m_task == nullptr) || !m_available) {
             m_available = false;
-            bool stopped = m_stopped;
+            auto stopped = m_stopped;
             lock.unlock();
             if(!stopped) {
               m_threadPool->RemoveThread(*this);
@@ -209,7 +204,7 @@ namespace Threading {
   }
 
   inline void ThreadPool::TaskThread::Stop() {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     m_available = false;
     m_stopped = true;
     m_task = nullptr;
@@ -217,23 +212,20 @@ namespace Threading {
   }
 
   inline ThreadPool::ThreadPool()
-      : m_maxThreadCount(boost::thread::hardware_concurrency()),
-        m_runningThreads(0),
-        m_activeThreads(0),
-        m_isWaitingForCompletion(false) {}
+    : ThreadPool(boost::thread::hardware_concurrency()) {}
 
   inline ThreadPool::ThreadPool(std::size_t maxThreadCount)
-      : m_maxThreadCount(maxThreadCount),
-        m_runningThreads(0),
-        m_activeThreads(0),
-        m_isWaitingForCompletion(false) {}
+    : m_maxThreadCount(maxThreadCount),
+      m_runningThreads(0),
+      m_activeThreads(0),
+      m_isWaitingForCompletion(false) {}
 
   inline ThreadPool::~ThreadPool() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     m_isWaitingForCompletion = true;
     m_maxThreadCount = 0;
     while(!m_threads.empty()) {
-      TaskThread* taskThread = m_threads.back();
+      auto taskThread = m_threads.back();
       taskThread->Stop();
       m_threads.pop_back();
     }
@@ -247,7 +239,7 @@ namespace Threading {
   }
 
   inline void ThreadPool::WaitForCompletion() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     m_isWaitingForCompletion = true;
     while(m_activeThreads != 0) {
       m_threadsFinishedCondition.wait(lock);
@@ -257,17 +249,16 @@ namespace Threading {
 
   template<typename F, typename R>
   void ThreadPool::Queue(F&& function, Routines::Eval<R> result) {
-    Task<F, R>* task = new Task<F, R>(std::forward<F>(function),
-      std::move(result));
+    auto task = new Task<F, R>(std::forward<F>(function), std::move(result));
     QueueTask(*task);
   }
 
   inline void ThreadPool::QueueTask(BaseTask& task) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
-    bool threadFound = false;
+    auto lock = boost::lock_guard(m_mutex);
+    auto threadFound = false;
     while(!threadFound) {
       if(m_threads.empty() && m_runningThreads < m_maxThreadCount) {
-        TaskThread* taskThread = new TaskThread(*this);
+        auto taskThread = new TaskThread(*this);
         taskThread->SetTask(task);
         ++m_activeThreads;
         ++m_runningThreads;
@@ -276,7 +267,7 @@ namespace Threading {
         m_tasks.push_back(&task);
         return;
       }
-      TaskThread* taskThread = m_threads.front();
+      auto taskThread = m_threads.front();
       m_threads.pop_front();
       threadFound = taskThread->SetTask(task);
       if(threadFound) {
@@ -286,7 +277,7 @@ namespace Threading {
   }
 
   inline bool ThreadPool::AddThread(TaskThread& taskThread) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     if(m_maxThreadCount == 0) {
       --m_activeThreads;
       --m_runningThreads;
@@ -303,7 +294,7 @@ namespace Threading {
       }
       return true;
     }
-    BaseTask* task = m_tasks.front();
+    auto task = m_tasks.front();
     if(!taskThread.SetTask(*task)) {
       --m_activeThreads;
       --m_runningThreads;
@@ -314,11 +305,10 @@ namespace Threading {
   }
 
   inline void ThreadPool::RemoveThread(TaskThread& taskThread) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     --m_runningThreads;
     RemoveFirst(m_threads, &taskThread);
   }
-}
 }
 
 #endif

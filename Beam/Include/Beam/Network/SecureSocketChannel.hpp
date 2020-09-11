@@ -9,8 +9,8 @@
 #include "Beam/Network/SecureSocketReader.hpp"
 #include "Beam/Network/SecureSocketWriter.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 
 namespace Beam {
 namespace Network {
@@ -26,78 +26,63 @@ namespace Network {
       /**
        * Constructs a SecureSocketChannel.
        * @param address The IP address to connect to.
-       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      SecureSocketChannel(const IpAddress& address);
+
+      /**
+       * Constructs a SecureSocketChannel.
+       * @param address The IP address to connect to.
+       * @param options The options to apply to the socket.
        */
       SecureSocketChannel(const IpAddress& address,
-        Ref<SocketThreadPool> socketThreadPool);
-
-      /**
-       * Constructs a SecureSocketChannel.
-       * @param address The IP address to connect to.
-       * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
-       */
-      SecureSocketChannel(const IpAddress& address,
-        const SecureSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const SecureSocketOptions& options);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param address The IP address to connect to.
        * @param interface The interface to bind to.
-       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      SecureSocketChannel(const IpAddress& address, const IpAddress& interface);
+
+      /**
+       * Constructs a SecureSocketChannel.
+       * @param address The IP address to connect to.
+       * @param interface The interface to bind to.
+       * @param options The options to apply to the socket.
        */
       SecureSocketChannel(const IpAddress& address, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
-
-      /**
-       * Constructs a SecureSocketChannel.
-       * @param address The IP address to connect to.
-       * @param interface The interface to bind to.
-       * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
-       */
-      SecureSocketChannel(const IpAddress& address, const IpAddress& interface,
-        const SecureSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const SecureSocketOptions& options);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      SecureSocketChannel(const std::vector<IpAddress>& addresses,
-        Ref<SocketThreadPool> socketThreadPool);
+      SecureSocketChannel(const std::vector<IpAddress>& addresses);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       SecureSocketChannel(const std::vector<IpAddress>& addresses,
-        const SecureSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const SecureSocketOptions& options);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param interface The interface to bind to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       SecureSocketChannel(const std::vector<IpAddress>& addresses,
-        const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool);
+        const IpAddress& interface);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param interface The interface to bind to.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       SecureSocketChannel(const std::vector<IpAddress>& addresses,
-        const IpAddress& interface, const SecureSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const IpAddress& interface, const SecureSocketOptions& options);
 
       const Identifier& GetIdentifier() const;
 
@@ -115,60 +100,52 @@ namespace Network {
       Reader m_reader;
       Writer m_writer;
 
-      SecureSocketChannel(Ref<SocketThreadPool> socketThreadPool);
+      SecureSocketChannel();
       SecureSocketChannel(const SecureSocketChannel&) = delete;
       SecureSocketChannel& operator =(const SecureSocketChannel&) = delete;
       void SetAddress(const IpAddress& address);
   };
 
-  inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(address, SecureSocketOptions(),
-        Ref(socketThreadPool)) {}
+  inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address)
+    : SecureSocketChannel(address, SecureSocketOptions()) {}
 
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    const SecureSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(std::vector<IpAddress>{address}, options,
-        Ref(socketThreadPool)) {}
+    const SecureSocketOptions& options)
+    : SecureSocketChannel(std::vector<IpAddress>{address}, options) {}
 
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(address, interface, SecureSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : SecureSocketChannel(address, interface, SecureSocketOptions()) {}
 
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    const IpAddress& interface, const SecureSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(std::vector<IpAddress>{address}, interface, options,
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface, const SecureSocketOptions& options)
+    : SecureSocketChannel(std::vector<IpAddress>{address}, interface,
+        options) {}
 
   inline SecureSocketChannel::SecureSocketChannel(
-    const std::vector<IpAddress>& addresses,
-    Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(addresses, SecureSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const std::vector<IpAddress>& addresses)
+    : SecureSocketChannel(addresses, SecureSocketOptions()) {}
 
   inline SecureSocketChannel::SecureSocketChannel(
-    const std::vector<IpAddress>& addresses, const SecureSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
+    const std::vector<IpAddress>& addresses, const SecureSocketOptions& options)
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
   inline SecureSocketChannel::SecureSocketChannel(
-    const std::vector<IpAddress>& addresses, const IpAddress& interface,
-    Ref<SocketThreadPool> socketThreadPool)
-    : SecureSocketChannel(addresses, interface, SecureSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const std::vector<IpAddress>& addresses, const IpAddress& interface)
+    : SecureSocketChannel(addresses, interface, SecureSocketOptions()) {}
 
   inline SecureSocketChannel::SecureSocketChannel(
     const std::vector<IpAddress>& addresses, const IpAddress& interface,
-    const SecureSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
+    const SecureSocketOptions& options)
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses, interface),
       m_reader(m_socket),
@@ -191,10 +168,10 @@ namespace Network {
     return m_writer;
   }
 
-  inline SecureSocketChannel::SecureSocketChannel(
-    Ref<SocketThreadPool> socketThreadPool)
+  inline SecureSocketChannel::SecureSocketChannel()
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}

@@ -79,14 +79,11 @@ int main(int argc, const char** argv) {
     std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto server = boost::optional<ServletTemplateServletContainer>();
   try {
-    server.emplace(Initialize(), Initialize(
-      serverConnectionInitializer.m_interface, Ref(socketThreadPool)),
-      std::bind(factory<std::shared_ptr<LiveTimer>>{}, seconds{10},
-      Ref(timerThreadPool)));
+    server.emplace(Initialize(),
+      Initialize(serverConnectionInitializer.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

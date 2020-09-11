@@ -86,8 +86,6 @@ int main(int argc, const char** argv) {
     std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto mySqlConnection = std::make_unique<MySql::Connection>(
     mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
     mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema);
@@ -95,9 +93,8 @@ int main(int argc, const char** argv) {
   auto server = boost::optional<ServiceLocatorServletContainer>();
   try {
     server.emplace(Initialize(Initialize(&mysqlDataStore)),
-      Initialize(serverConnectionInitializer.m_interface,
-      Ref(socketThreadPool)), std::bind(factory<std::shared_ptr<LiveTimer>>(),
-      seconds(10), Ref(timerThreadPool)));
+      Initialize(serverConnectionInitializer.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

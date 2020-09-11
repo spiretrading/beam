@@ -37,7 +37,6 @@ namespace Beam {
         int m_countdown;
         int m_messages;
       };
-      Threading::TimerThreadPool m_timerThreadPool;
       SynchronizedVector<EchoEntry> m_echoEntries;
       std::unique_ptr<Threading::LiveTimer> m_echoTimer;
       IO::OpenState m_openState;
@@ -59,7 +58,7 @@ namespace Beam {
   template<typename C>
   ServletTemplateServlet<C>::ServletTemplateServlet() {
     m_echoTimer = std::make_unique<Threading::LiveTimer>(
-      boost::posix_time::milliseconds(100), Ref(m_timerThreadPool));
+      boost::posix_time::milliseconds(100));
     m_echoTimer->GetPublisher().Monitor(
       m_taskQueue.GetSlot<Threading::Timer::Result>(
       std::bind(&ServletTemplateServlet::OnEchoTimer, this,

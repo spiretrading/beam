@@ -6,7 +6,6 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Network/UdpSocketOptions.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/TaskRunner.hpp"

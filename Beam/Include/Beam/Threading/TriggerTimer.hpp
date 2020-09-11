@@ -1,6 +1,5 @@
-#ifndef BEAM_TRIGGERTIMER_HPP
-#define BEAM_TRIGGERTIMER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_TRIGGER_TIMER_HPP
+#define BEAM_TRIGGER_TIMER_HPP
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
@@ -9,21 +8,19 @@
 namespace Beam {
 namespace Threading {
 
-  /*! \class TriggerTimer
-      \brief A Timer that expires when explicitly triggered.
-   */
-  class TriggerTimer : private boost::noncopyable {
+  /** A Timer that expires when explicitly triggered. */
+  class TriggerTimer {
     public:
 
-      //! Constructs a TriggerTimer.
+      /** Constructs a TriggerTimer. */
       TriggerTimer();
 
       ~TriggerTimer();
 
-      //! Triggers the Timer to expire.
+      /** Triggers the Timer to expire. */
       void Trigger();
 
-      //! Causes the Timer to fail.
+      /** Causes the Timer to fail. */
       void Fail();
 
       void Start();
@@ -41,18 +38,20 @@ namespace Threading {
       QueueWriterPublisher<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
 
+      TriggerTimer(const TriggerTimer&) = delete;
+      TriggerTimer& operator =(const TriggerTimer&) = delete;
       void Publish();
   };
 
   inline TriggerTimer::TriggerTimer()
-      : m_state{0} {}
+    : m_state(0) {}
 
   inline TriggerTimer::~TriggerTimer() {
     Cancel();
   }
 
   inline void TriggerTimer::Trigger() {
-    boost::lock_guard<Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     m_result = Timer::Result::EXPIRED;
     if(m_state == 0) {
       m_state = 2;
@@ -62,7 +61,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Fail() {
-    boost::lock_guard<Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     m_result = Timer::Result::FAIL;
     if(m_state == 0) {
       m_state = 2;
@@ -72,7 +71,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Start() {
-    boost::lock_guard<Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     if(m_state == 0) {
       m_state = 1;
     } else if(m_state == 2) {
@@ -81,7 +80,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Cancel() {
-    boost::lock_guard<Mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     if(m_state == 0) {
       m_state = 1;
     } else if(m_state == 1) {
@@ -93,7 +92,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Wait() {
-    boost::unique_lock<Mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     while(m_state != 0) {
       m_trigger.wait(lock);
     }

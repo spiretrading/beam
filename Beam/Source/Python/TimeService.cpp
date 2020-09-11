@@ -103,8 +103,7 @@ void Beam::Python::ExportNtpTimeClient(pybind11::module& module) {
               auto& timeService = timeServices.front();
               auto ntpPool = Parse<std::vector<IpAddress>>(
                 get<std::string>(timeService.GetProperties().At("addresses")));
-              return MakeLiveNtpTimeClient(ntpPool, Ref(*GetSocketThreadPool()),
-                Ref(*GetTimerThreadPool()));
+              return MakeLiveNtpTimeClient(ntpPool);
             } catch(const std::exception&) {
               throw ConnectException("Unable to initialize NTP time client.");
             }

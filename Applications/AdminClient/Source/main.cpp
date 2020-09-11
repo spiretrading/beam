@@ -11,9 +11,7 @@
 #include "Version.hpp"
 
 using namespace Beam;
-using namespace Beam::Network;
 using namespace Beam::ServiceLocator;
-using namespace Beam::Threading;
 using namespace boost;
 using namespace TCLAP;
 
@@ -78,15 +76,12 @@ int main(int argc, char** argv) {
     std::cerr << e.what() << std::endl;
     return -1;
   }
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto serviceLocatorClient = ApplicationServiceLocatorClient();
   try {
     std::cout << "Connecting to the service locator: ";
     serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
       serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address, Ref(socketThreadPool),
-      Ref(timerThreadPool));
+      serviceLocatorClientConfig.m_address);
   } catch(const std::exception& e) {
     std::cout << e.what() << std::endl;
     return -1;

@@ -9,10 +9,10 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam::Network {
@@ -24,39 +24,31 @@ namespace Beam::Network {
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      UdpSocket(const IpAddress& address,
-        Ref<SocketThreadPool> socketThreadPool);
+      UdpSocket(const IpAddress& address);
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        * @param options The options to apply to this socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      UdpSocket(const IpAddress& address, const UdpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+      UdpSocket(const IpAddress& address, const UdpSocketOptions& options);
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        * @param interface The interface to use.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      UdpSocket(const IpAddress& address, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
+      UdpSocket(const IpAddress& address, const IpAddress& interface);
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        * @param interface The interface to use.
        * @param options The options to apply to this socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       UdpSocket(const IpAddress& address, const IpAddress& interface,
-        const UdpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const UdpSocketOptions& options);
 
       ~UdpSocket();
 
@@ -74,7 +66,6 @@ namespace Beam::Network {
     private:
       friend class UdpSocketReader;
       IpAddress m_address;
-      SocketThreadPool* m_socketThreadPool;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       boost::optional<UdpSocketReceiver> m_receiver;
       boost::optional<UdpSocketSender> m_sender;
@@ -86,33 +77,29 @@ namespace Beam::Network {
         const UdpSocketOptions& options);
   };
 
-  inline UdpSocket::UdpSocket(const IpAddress& address,
-    Ref<SocketThreadPool> socketThreadPool)
-    : UdpSocket(address, UdpSocketOptions(), Ref(socketThreadPool)) {}
+  inline UdpSocket::UdpSocket(const IpAddress& address)
+    : UdpSocket(address, UdpSocketOptions()) {}
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-      const UdpSocketOptions& options,
-      Ref<SocketThreadPool> socketThreadPool)
+      const UdpSocketOptions& options)
       : m_address(address),
-        m_socketThreadPool(socketThreadPool.Get()),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
           boost::asio::ip::udp::v4())) {
     Open(boost::none, options);
   }
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : UdpSocket(address, interface, UdpSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : UdpSocket(address, interface, UdpSocketOptions()) {}
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
-      const IpAddress& interface, const UdpSocketOptions& options,
-      Ref<SocketThreadPool> socketThreadPool)
+      const IpAddress& interface, const UdpSocketOptions& options)
       : m_address(address),
-        m_socketThreadPool(socketThreadPool.Get()),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
           boost::asio::ip::udp::v4())) {
     Open(interface, options);
   }

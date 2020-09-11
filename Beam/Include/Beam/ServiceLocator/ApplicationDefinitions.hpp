@@ -55,14 +55,9 @@ namespace Beam::ServiceLocator {
        * @param username The session's username.
        * @param password The session's password.
        * @param address The IP address to connect to.
-       * @param socketThreadPool The SocketThreadPool used for the socket
-       *        connection.
-       * @param timerThreadPool The TimerThreadPool used for heartbeats.
        */
       void BuildSession(std::string username, std::string password,
-        const Network::IpAddress& address,
-        Ref<Network::SocketThreadPool> socketThreadPool,
-        Ref<Threading::TimerThreadPool> timerThreadPool);
+        const Network::IpAddress& address);
 
       /** Returns a reference to the Client. */
       Client& operator *();
@@ -97,15 +92,11 @@ namespace Beam::ServiceLocator {
 
   inline void ApplicationServiceLocatorClient::BuildSession(
       std::string username, std::string password,
-      const Network::IpAddress& address,
-      Ref<Network::SocketThreadPool> socketThreadPool,
-      Ref<Threading::TimerThreadPool> timerThreadPool) {
+      const Network::IpAddress& address) {
     if(m_client.has_value()) {
       m_client->Close();
       m_client = std::nullopt;
     }
-    auto socketThreadPoolHandle = socketThreadPool.Get();
-    auto timerThreadPoolHandle = timerThreadPool.Get();
     auto isConnected = false;
     auto sessionBuilder = SessionBuilder(
       [=] () mutable {
@@ -113,12 +104,11 @@ namespace Beam::ServiceLocator {
           BOOST_THROW_EXCEPTION(IO::NotConnectedException());
         }
         isConnected = true;
-        return std::make_unique<Network::TcpSocketChannel>(address,
-          Ref(*socketThreadPoolHandle));
+        return std::make_unique<Network::TcpSocketChannel>(address);
       },
-      [=] {
+      [] {
         return std::make_unique<Threading::LiveTimer>(
-          boost::posix_time::seconds(10), Ref(*timerThreadPoolHandle));
+          boost::posix_time::seconds(10));
       });
     m_client.emplace(std::move(username), std::move(password), sessionBuilder);
   }

@@ -68,14 +68,11 @@ namespace Beam {
         \param timeout The amount of time to wait for an object before
                constructing a new one.
         \param objectBuilder The function used to build objects.
-        \param timerThreadPool The thread pool used for timed operations.
         \param minObjectCount The minimum number of objects to build.
         \param maxObjectCount The maximum number of objects to build.
       */
       ResourcePool(const boost::posix_time::time_duration& timeout,
-        const ObjectBuilder& objectBuilder,
-        Ref<Threading::TimerThreadPool> timerThreadPool,
-        std::size_t minObjectCount = 1,
+        const ObjectBuilder& objectBuilder, std::size_t minObjectCount = 1,
         std::size_t maxObjectCount = std::numeric_limits<std::size_t>::max());
 
       //! Resets the pool.
@@ -100,15 +97,13 @@ namespace Beam {
 
   template<typename T>
   ResourcePool<T>::ResourcePool(const boost::posix_time::time_duration& timeout,
-      const ObjectBuilder& objectBuilder,
-      Ref<Threading::TimerThreadPool> timerThreadPool,
-      std::size_t minObjectCount, std::size_t maxObjectCount)
+      const ObjectBuilder& objectBuilder, std::size_t minObjectCount,
+      std::size_t maxObjectCount)
       : m_timeout{timeout},
         m_objectBuilder{objectBuilder},
         m_minObjectCount{std::max<std::size_t>(1, minObjectCount)},
         m_maxObjectCount{std::max(m_minObjectCount, maxObjectCount)},
-        m_currentObjectCount{m_minObjectCount},
-        m_objectAvailableCondition{Ref(timerThreadPool)} {
+        m_currentObjectCount{m_minObjectCount} {
     for(std::size_t i = 0; i < m_currentObjectCount; ++i) {
       m_objects.push_back(m_objectBuilder());
     }

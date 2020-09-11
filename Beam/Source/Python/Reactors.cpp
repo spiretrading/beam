@@ -26,7 +26,7 @@ using namespace pybind11;
 
 namespace {
   auto DefaultTimerFactory(time_duration duration) {
-    return std::make_unique<LiveTimer>(duration, Ref(*GetTimerThreadPool()));
+    return std::make_unique<LiveTimer>(duration);
   }
 }
 

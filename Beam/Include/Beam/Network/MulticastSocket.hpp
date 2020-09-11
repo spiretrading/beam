@@ -10,9 +10,9 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
@@ -25,38 +25,30 @@ namespace Beam::Network {
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      MulticastSocket(const IpAddress& group,
-        Ref<SocketThreadPool> socketThreadPool);
+      MulticastSocket(const IpAddress& group);
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       MulticastSocket(const IpAddress& group,
-        const MulticastSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const MulticastSocketOptions& options);
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
        * @param interface The interface to listen on.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      MulticastSocket(const IpAddress& group, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
+      MulticastSocket(const IpAddress& group, const IpAddress& interface);
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
        * @param interface The interface to listen on.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       MulticastSocket(const IpAddress& group, const IpAddress& interface,
-        const MulticastSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const MulticastSocketOptions& options);
 
       ~MulticastSocket();
 
@@ -74,7 +66,6 @@ namespace Beam::Network {
     private:
       friend class MulticastSocketReader;
       IpAddress m_group;
-      SocketThreadPool* m_socketThreadPool;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       boost::optional<UdpSocketReceiver> m_receiver;
       boost::optional<UdpSocketSender> m_sender;
@@ -86,28 +77,23 @@ namespace Beam::Network {
         const MulticastSocketOptions& options);
   };
 
-  inline MulticastSocket::MulticastSocket(const IpAddress& group,
-    Ref<SocketThreadPool> socketThreadPool)
-    : MulticastSocket(group, MulticastSocketOptions(), Ref(socketThreadPool)) {}
+  inline MulticastSocket::MulticastSocket(const IpAddress& group)
+    : MulticastSocket(group, MulticastSocketOptions()) {}
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-    const MulticastSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
-    : MulticastSocket(group, IpAddress("0.0.0.0", 0), options,
-        Ref(socketThreadPool)) {}
+    const MulticastSocketOptions& options)
+    : MulticastSocket(group, IpAddress("0.0.0.0", 0), options) {}
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : MulticastSocket(group, interface, MulticastSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : MulticastSocket(group, interface, MulticastSocketOptions()) {}
 
   inline MulticastSocket::MulticastSocket(const IpAddress& group,
-      const IpAddress& interface, const MulticastSocketOptions& options,
-      Ref<SocketThreadPool> socketThreadPool)
+      const IpAddress& interface, const MulticastSocketOptions& options)
       : m_group(group),
-        m_socketThreadPool(socketThreadPool.Get()),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          m_socketThreadPool->GetService(), m_socketThreadPool->GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetService(),
           boost::asio::ip::udp::v4())) {
     Open(interface, options);
   }

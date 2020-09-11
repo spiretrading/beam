@@ -1,52 +1,62 @@
-#ifndef BEAM_OPTIONALLOCK_HPP
-#define BEAM_OPTIONALLOCK_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_OPTIONAL_LOCK_HPP
+#define BEAM_OPTIONAL_LOCK_HPP
 #include <boost/thread/mutex.hpp>
 #include "Beam/Threading/Threading.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class OptionalLock
-      \brief Acquires a mutex based on a template parameter.
-      \tparam Acquire <code>true</code> iff the mutex should be acquired.
-      \tparam MutexType The type of Mutex to acquire.
+  /**
+   * Acquires a mutex based on a template parameter.
+   * @param <A> <code>true</code> iff the mutex should be acquired.
+   * @param <M> The type of mutex to acquire.
    */
-  template<bool Acquire, typename MutexType = boost::mutex>
+  template<bool A, typename M = boost::mutex>
   class OptionalLock {};
 
-  template<typename MutexType>
-  class OptionalLock<true, MutexType> : private boost::noncopyable {
+  template<typename M>
+  class OptionalLock<true, M> {
     public:
 
-      //! Constructs an OptionalLock.
-      /*!
-        \param mutex The mutex to lock.
-      */
-      OptionalLock(MutexType& mutex);
+      /** The type of mutex to acquire. */
+      using Mutex = M;
+
+      /**
+       * Constructs an OptionalLock.
+       * @param mutex The mutex to lock.
+       */
+      OptionalLock(M& mutex);
 
     private:
-      boost::lock_guard<MutexType> m_lock;
+      boost::lock_guard<Mutex> m_lock;
+
+      OptionalLock(const OptionalLock&) = delete;
+      OptionalLock& operator =(const OptionalLock&) = delete;
   };
 
-  template<typename MutexType>
-  class OptionalLock<false, MutexType> : private boost::noncopyable {
+  template<typename M>
+  class OptionalLock<false, M> {
     public:
 
-      //! Constructs an OptionalLock.
-      /*!
-        \param mutex The mutex to lock.
-      */
-      OptionalLock(MutexType& mutex);
+      /** The type of mutex to acquire. */
+      using Mutex = M;
+
+      /**
+       * Constructs an OptionalLock.
+       * @param mutex The mutex to lock.
+       */
+      OptionalLock(Mutex& mutex);
+
+    private:
+      OptionalLock(const OptionalLock&) = delete;
+      OptionalLock& operator =(const OptionalLock&) = delete;
   };
 
-  template<typename MutexType>
-  OptionalLock<true, MutexType>::OptionalLock(MutexType& mutex)
-      : m_lock(mutex) {}
+  template<typename M>
+  OptionalLock<true, M>::OptionalLock(Mutex& mutex)
+    : m_lock(mutex) {}
 
-  template<typename MutexType>
-  OptionalLock<false, MutexType>::OptionalLock(MutexType& mutex) {}
-}
+  template<typename M>
+  OptionalLock<false, M>::OptionalLock(Mutex& mutex) {}
 }
 
 #endif

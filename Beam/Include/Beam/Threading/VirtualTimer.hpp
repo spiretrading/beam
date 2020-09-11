@@ -1,6 +1,5 @@
-#ifndef BEAM_VIRTUALTIMER_HPP
-#define BEAM_VIRTUALTIMER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_VIRTUAL_TIMER_HPP
+#define BEAM_VIRTUAL_TIMER_HPP
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Threading/Timer.hpp"
@@ -8,10 +7,8 @@
 namespace Beam {
 namespace Threading {
 
-  /*! \class VirtualTimer
-      \brief Provides a virtual interface for a Timer.
-   */
-  class VirtualTimer : private boost::noncopyable {
+  /** Provides a virtual interface for a Timer. */
+  class VirtualTimer {
     public:
       virtual ~VirtualTimer() = default;
 
@@ -25,91 +22,93 @@ namespace Threading {
 
     protected:
 
-      //! Constructs a VirtualTimer.
+      /** Constructs a VirtualTimer. */
       VirtualTimer() = default;
+
+    private:
+      VirtualTimer(const VirtualTimer&) = delete;
+      VirtualTimer& operator =(const VirtualTimer&) = delete;
   };
 
-  /*! \class WrapperTimer
-      \brief Wraps a Timer providing it with a virtual interface.
-      \tparam TimerType The type of Timer to wrap.
+  /**
+   * Wraps a Timer providing it with a virtual interface.
+   * @param <T> The type of Timer to wrap.
    */
-  template<typename TimerType>
+  template<typename T>
   class WrapperTimer : public VirtualTimer {
     public:
 
-      //! The Timer to wrap.
-      using Timer = GetTryDereferenceType<TimerType>;
+      /** The Timer to wrap. */
+      using Timer = GetTryDereferenceType<T>;
 
-      //! Constructs a WrapperTimer.
-      /*!
-        \param timer The Timer to wrap.
-      */
-      template<typename TimerForward>
-      WrapperTimer(TimerForward&& timer);
+      /**
+       * Constructs a WrapperTimer.
+       * @param timer The Timer to wrap.
+       */
+      template<typename TF>
+      WrapperTimer(TF&& timer);
 
-      //! Returns the Timer being wrapped.
+      /** Returns the Timer being wrapped. */
       const Timer& GetTimer() const;
 
-      //! Returns the Timer being wrapped.
+      /** Returns the Timer being wrapped. */
       Timer& GetTimer();
 
-      virtual void Start() override;
+      void Start() override;
 
-      virtual void Cancel() override;
+      void Cancel() override;
 
-      virtual void Wait() override;
+      void Wait() override;
 
-      virtual const Publisher<Threading::Timer::Result>& GetPublisher()
-        const override;
+      const Publisher<Threading::Timer::Result>& GetPublisher() const override;
 
     private:
-      GetOptionalLocalPtr<TimerType> m_timer;
+      GetOptionalLocalPtr<T> m_timer;
   };
 
-  //! Wraps a Timer into a VirtualTimer.
-  /*!
-    \param timer The Timer to wrap.
-  */
+  /**
+   * Wraps a Timer into a VirtualTimer.
+   * @param timer The Timer to wrap.
+   */
   template<typename Timer>
   std::unique_ptr<VirtualTimer> MakeVirtualTimer(Timer&& timer) {
-    return std::make_unique<WrapperTimer<typename std::decay<Timer>::type>>(
+    return std::make_unique<WrapperTimer<std::decay_t<Timer>>>(
       std::forward<Timer>(timer));
   }
 
-  template<typename TimerType>
-  template<typename TimerForward>
-  WrapperTimer<TimerType>::WrapperTimer(TimerForward&& timer)
-      : m_timer{std::forward<TimerForward>(timer)} {}
+  template<typename T>
+  template<typename TF>
+  WrapperTimer<T>::WrapperTimer(TF&& timer)
+    : m_timer(std::forward<TF>(timer)) {}
 
-  template<typename TimerType>
-  const typename WrapperTimer<TimerType>::Timer&
-      WrapperTimer<TimerType>::GetTimer() const {
+  template<typename T>
+  const typename WrapperTimer<T>::Timer& WrapperTimer<T>::GetTimer() const {
     return *m_timer;
   }
 
-  template<typename TimerType>
-  typename WrapperTimer<TimerType>::Timer& WrapperTimer<TimerType>::GetTimer() {
+  template<typename T>
+  typename WrapperTimer<T>::Timer& WrapperTimer<T>::GetTimer() {
     return *m_timer;
   }
 
-  template<typename TimerType>
-  void WrapperTimer<TimerType>::Start() {
+  template<typename T>
+  void WrapperTimer<T>::Start() {
     m_timer->Start();
   }
 
-  template<typename TimerType>
-  void WrapperTimer<TimerType>::Cancel() {
+  template<typename T>
+  void WrapperTimer<T>::Cancel() {
     m_timer->Cancel();
   }
 
-  template<typename TimerType>
-  void WrapperTimer<TimerType>::Wait() {
+  template<typename T>
+  void WrapperTimer<T>::Wait() {
     m_timer->Wait();
   }
 
-  template<typename TimerType>
-  const Publisher<Threading::Timer::Result>& WrapperTimer<TimerType>::
-      GetPublisher() const {
+  template<typename T>
+  const Publisher<Threading::Timer::Result>&
+      WrapperTimer<T>::GetPublisher() const {
     return m_timer->GetPublisher();
   }
 }

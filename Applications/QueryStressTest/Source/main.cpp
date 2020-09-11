@@ -26,7 +26,6 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
-#include "Beam/Threading/TimerThreadPool.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 
 using namespace Beam;
@@ -105,7 +104,6 @@ namespace {
       LocalDataStore<DataQuery, Data, EvaluatorTranslator<QueryTypes>>
         m_dataStore;
       std::atomic_bool m_timerState;
-      TimerThreadPool m_timerThreadPool;
       std::vector<std::unique_ptr<DataEntry>> m_dataEntries;
       OpenState m_openState;
       RoutineTaskQueue m_taskQueue;
@@ -134,7 +132,7 @@ namespace {
     for(auto i = 0; i < 200; ++i) {
       auto interval = milliseconds(10 * (rand() % 100));
       auto entry = std::make_unique<DataEntry>(
-        std::make_unique<LiveTimer>(interval, Ref(m_timerThreadPool)), i);
+        std::make_unique<LiveTimer>(interval), i);
       entry->m_timer->GetPublisher().Monitor(m_taskQueue.GetSlot<Timer::Result>(
         std::bind(&DataServlet::OnExpiry, this, std::placeholders::_1,
         std::ref(*entry))));
@@ -230,12 +228,11 @@ int main() {
       return std::make_unique<TriggerTimer>();
     });
   auto routines = RoutineHandlerGroup();
-  auto timerThreadPool = TimerThreadPool();
   auto count = std::atomic_int(0);
   routines.Spawn(
     [&] {
       while(!ReceivedKillEvent()) {
-        auto timer = LiveTimer(seconds(10), Ref(timerThreadPool));
+        auto timer = LiveTimer(seconds(10));
         auto clients = rand() % 200;
         for(auto i = 0; i < clients; ++i) {
           routines.Spawn(
@@ -259,7 +256,7 @@ int main() {
                 ServiceProtocolClientHandler<ApplicationClientBuilder>,
                 QueryDataService, EndDataQueryMessage>(Ref(clientHandler));
               publisher.AddMessageHandler<DataQueryMessage>();
-              auto timer = LiveTimer(milliseconds(100), Ref(timerThreadPool));
+              auto timer = LiveTimer(milliseconds(100));
               auto duration = 10 * (rand() % 20);
               for(auto i = 0; i < duration; ++i) {
                 auto query = DataQuery();

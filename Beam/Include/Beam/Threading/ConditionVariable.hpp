@@ -7,7 +7,7 @@
 namespace Beam::Threading {
 
   /** Implements a condition variable that suspends the current Routine. */
-  class ConditionVariable : private boost::noncopyable {
+  class ConditionVariable {
     public:
 
       /** Constructs a ConditionVariable. */
@@ -28,6 +28,9 @@ namespace Beam::Threading {
 
     private:
       Sync<Routines::SuspendedRoutineQueue> m_suspendedRoutines;
+
+      ConditionVariable(const ConditionVariable&) = delete;
+      ConditionVariable& operator =(const ConditionVariable&) = delete;
   };
 
   template<typename... Lock>

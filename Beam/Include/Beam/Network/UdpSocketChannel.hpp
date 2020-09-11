@@ -21,40 +21,32 @@ namespace Network {
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      UdpSocketChannel(const IpAddress& address,
-        Ref<SocketThreadPool> socketThreadPool);
+      UdpSocketChannel(const IpAddress& address);
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       UdpSocketChannel(const IpAddress& address,
-        const UdpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const UdpSocketOptions& options);
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        * @param interface The interface to use.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
+      UdpSocketChannel(const IpAddress& address, const IpAddress& interface);
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        * @param interface The interface to use.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
-        const UdpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const UdpSocketOptions& options);
 
       const Identifier& GetIdentifier() const;
 
@@ -75,30 +67,25 @@ namespace Network {
       UdpSocketChannel& operator =(const UdpSocketChannel&) = delete;
   };
 
-  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    Ref<SocketThreadPool> socketThreadPool)
-    : UdpSocketChannel(address, UdpSocketOptions(), Ref(socketThreadPool)) {}
+  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address)
+    : UdpSocketChannel(address, UdpSocketOptions()) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    const UdpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
+    const UdpSocketOptions& options)
     : m_identifier(address),
-      m_socket(std::make_shared<UdpSocket>(address, options,
-        Ref(socketThreadPool))),
+      m_socket(std::make_shared<UdpSocket>(address, options)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : UdpSocketChannel(address, interface, UdpSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : UdpSocketChannel(address, interface, UdpSocketOptions()) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    const IpAddress& interface, const UdpSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
+    const IpAddress& interface, const UdpSocketOptions& options)
     : m_identifier(address),
-      m_socket(std::make_shared<UdpSocket>(address, interface,
-        Ref(socketThreadPool))),
+      m_socket(std::make_shared<UdpSocket>(address, interface)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}

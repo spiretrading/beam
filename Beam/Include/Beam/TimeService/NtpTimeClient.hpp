@@ -145,25 +145,20 @@ namespace Beam::TimeService {
   /**
    * Builds a LiveNtpTimeClient using a list of NTP server addresses.
    * @param sources The list of NTP server addresses.
-   * @param socketThreadPool The SocketThreadPool used by the UdpSocketChannels.
-   * @param timerThreadPool The TimerThreadPool used to pace the synchronization
-   *        points.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
   inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
-      const std::vector<Network::IpAddress>& sources,
-      Ref<Network::SocketThreadPool> socketThreadPool,
-      Ref<Threading::TimerThreadPool> timerThreadPool) {
+      const std::vector<Network::IpAddress>& sources) {
     auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
     auto options = Network::UdpSocketOptions();
     options.m_timeout = boost::posix_time::seconds(1);
     for(auto& source : sources) {
       auto channel = std::make_unique<Network::UdpSocketChannel>(source,
-        options, Ref(socketThreadPool));
+        options);
       channels.push_back(std::move(channel));
     }
     return std::make_unique<LiveNtpTimeClient>(std::move(channels),
-      Initialize(boost::posix_time::minutes(30), Ref(timerThreadPool)));
+      Initialize(boost::posix_time::minutes(30)));
   }
 
   template<typename C, typename T>

@@ -16,7 +16,6 @@ namespace Beam::Network {
   class SecureSocketWriter;
   class SocketException;
   class SocketIdentifier;
-  class SocketThreadPool;
   class TcpServerSocket;
   class TcpSocketChannel;
   class TcpSocketConnection;

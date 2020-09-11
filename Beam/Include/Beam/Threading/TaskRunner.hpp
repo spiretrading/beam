@@ -1,8 +1,7 @@
-#ifndef BEAM_TASKRUNNER_HPP
-#define BEAM_TASKRUNNER_HPP
+#ifndef BEAM_TASK_RUNNER_HPP
+#define BEAM_TASK_RUNNER_HPP
 #include <deque>
 #include <functional>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -11,31 +10,28 @@
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class TaskRunner
-      \brief Runs a series of tasks that get pushed.
-   */
-  class TaskRunner : private boost::noncopyable {
+  /** Runs a series of tasks that get pushed. */
+  class TaskRunner {
     public:
 
-      //! Defines the type of a Task.
+      /** Defines the type of a Task. */
       using Task = std::function<void ()>;
 
-      //! Constructs a TaskRunner.
+      /** Constructs a TaskRunner. */
       TaskRunner();
 
       ~TaskRunner();
 
-      //! Adds a task.
-      /*!
-        \param task The task to perform.
-      */
+      /**
+       * Adds a task.
+       * @param task The task to perform.
+       */
       template<typename F>
       void Add(F&& task);
 
-      //! Returns <code>true</code> iff no Tasks remain pending or running.
+      /** Returns <code>true</code> iff no Tasks remain pending or running. */
       bool IsEmpty() const;
 
     private:
@@ -44,14 +40,16 @@ namespace Threading {
       std::deque<Task> m_pendingTasks;
       boost::condition_variable m_handlingTaskCondition;
 
+      TaskRunner(const TaskRunner&) = delete;
+      TaskRunner& operator =(const TaskRunner&) = delete;
       void HandleTasks(boost::unique_lock<boost::mutex>& lock);
   };
 
   inline TaskRunner::TaskRunner()
-      : m_handlingTasks(false) {}
+    : m_handlingTasks(false) {}
 
   inline TaskRunner::~TaskRunner() {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     while(m_handlingTasks || !m_pendingTasks.empty()) {
       m_handlingTaskCondition.wait(lock);
     }
@@ -59,7 +57,7 @@ namespace Threading {
 
   template<typename F>
   inline void TaskRunner::Add(F&& task) {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    auto lock = boost::unique_lock(m_mutex);
     m_pendingTasks.push_back(std::forward<F>(task));
     if(m_handlingTasks) {
       return;
@@ -68,17 +66,17 @@ namespace Threading {
   }
 
   inline bool TaskRunner::IsEmpty() const {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = boost::lock_guard(m_mutex);
     return m_pendingTasks.empty() && !m_handlingTasks;
   }
 
   inline void TaskRunner::HandleTasks(boost::unique_lock<boost::mutex>& lock) {
     m_handlingTasks = true;
     while(!m_pendingTasks.empty()) {
-      Task task(std::move(m_pendingTasks.front()));
+      auto task = Task(std::move(m_pendingTasks.front()));
       m_pendingTasks.pop_front();
       {
-        LockRelease<boost::unique_lock<boost::mutex>> release(lock);
+        auto release = Release(lock);
         try {
           task();
         } catch(const std::exception&) {
@@ -89,7 +87,6 @@ namespace Threading {
     m_handlingTasks = false;
     m_handlingTaskCondition.notify_all();
   }
-}
 }
 
 #endif

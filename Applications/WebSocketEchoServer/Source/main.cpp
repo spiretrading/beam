@@ -2,7 +2,6 @@
 #include <iostream>
 #include <tclap/CmdLine.h>
 #include "Beam/Network/TcpServerSocket.hpp"
-#include "Beam/Threading/TimerThreadPool.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
@@ -13,7 +12,6 @@
 using namespace Beam;
 using namespace Beam::IO;
 using namespace Beam::Network;
-using namespace Beam::Threading;
 using namespace Beam::WebServices;
 using namespace Beam::WebSocketEchoServer;
 using namespace boost;
@@ -56,8 +54,6 @@ int main(int argc, const char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  auto socketThreadPool = SocketThreadPool();
-  auto timerThreadPool = TimerThreadPool();
   auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
     serverConnectionInitializer.Initialize(GetNode(config, "server"));
@@ -68,7 +64,7 @@ int main(int argc, const char** argv) {
   auto server = boost::optional<WebSocketEchoServletContainer>();
   try {
     server.emplace(Initialize(), Initialize(
-      serverConnectionInitializer.m_interface, Ref(socketThreadPool)));
+      serverConnectionInitializer.m_interface));
   } catch(const std::exception& e) {
     std::cerr << "Error opening server: " << e.what() << std::endl;
     return -1;

@@ -47,13 +47,4 @@
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/Threading.hpp"
 
-namespace Beam::Python {
-
-  /** Returns the default SocketThreadPool used by Beam objects. */
-  BEAM_EXPORT_DLL Network::SocketThreadPool* GetSocketThreadPool();
-
-  /** Returns the default TimerThreadPool used by Beam objects. */
-  BEAM_EXPORT_DLL Threading::TimerThreadPool* GetTimerThreadPool();
-}
-
 #endif

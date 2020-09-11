@@ -7,47 +7,47 @@
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Threading.hpp"
 
-namespace Beam {
-namespace Threading {
+namespace Beam::Threading {
 
-  /*! \class Mutex
-      \brief Implements a mutex that suspends the current Routine.
-   */
-  class Mutex : private boost::noncopyable {
+  /** Implements a mutex that suspends the current Routine. */
+  class Mutex {
     public:
 
-      //! Constructs a Mutex.
+      /** Constructs a Mutex. */
       Mutex();
 
       ~Mutex();
 
-      //! Locks this Mutex.
+      /** Locks this Mutex. */
       void lock();
 
-      //! Tries to locks this Mutex.
+      /** Tries to locks this Mutex. */
       bool try_lock();
 
-      //! Unlocks this Mutex.
+      /** Unlocks this Mutex. */
       void unlock();
 
     private:
       boost::mutex m_mutex;
       int m_counter;
       Routines::SuspendedRoutineQueue m_suspendedRoutines;
+
+      Mutex(const Mutex&) = delete;
+      Mutex& operator =(const Mutex&) = delete;
   };
 
   inline Mutex::Mutex()
-      : m_counter{0} {}
+    : m_counter(0) {}
 
   inline Mutex::~Mutex() {
     assert(m_counter == 0);
   }
 
   inline void Mutex::lock() {
-    boost::unique_lock<boost::mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
-      Routines::SuspendedRoutineNode currentRoutine;
+      auto currentRoutine = Routines::SuspendedRoutineNode();
       m_suspendedRoutines.push_back(currentRoutine);
       currentRoutine.m_routine->PendingSuspend();
       auto release = Release(lock);
@@ -56,7 +56,7 @@ namespace Threading {
   }
 
   inline bool Mutex::try_lock() {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     if(m_counter > 0) {
       return false;
     }
@@ -65,9 +65,9 @@ namespace Threading {
   }
 
   inline void Mutex::unlock() {
-    Routines::Routine* routine;
+    auto routine = static_cast<Routines::Routine*>(nullptr);
     {
-      boost::lock_guard<boost::mutex> lock{m_mutex};
+      auto lock = boost::lock_guard(m_mutex);
       --m_counter;
       if(m_counter == 0) {
         return;
@@ -77,7 +77,6 @@ namespace Threading {
     }
     Routines::Resume(routine);
   }
-}
 }
 
 #endif

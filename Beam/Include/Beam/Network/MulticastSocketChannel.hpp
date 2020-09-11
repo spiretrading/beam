@@ -21,40 +21,33 @@ namespace Network {
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      MulticastSocketChannel(const IpAddress& group,
-        Ref<SocketThreadPool> socketThreadPool);
+      MulticastSocketChannel(const IpAddress& group);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       MulticastSocketChannel(const IpAddress& group,
-        const MulticastSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const MulticastSocketOptions& options);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param interface The interface to use.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      MulticastSocketChannel(const IpAddress& group, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
+      MulticastSocketChannel(const IpAddress& group,
+        const IpAddress& interface);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param interface The interface to use.
        * @param options The options to apply to the socket.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       MulticastSocketChannel(const IpAddress& group, const IpAddress& interface,
-        const MulticastSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const MulticastSocketOptions& options);
 
       const Identifier& GetIdentifier() const;
 
@@ -76,32 +69,25 @@ namespace Network {
         const MulticastSocketChannel&) = delete;
   };
 
-  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    Ref<SocketThreadPool> socketThreadPool)
-    : MulticastSocketChannel(group, MulticastSocketOptions(),
-        Ref(socketThreadPool)) {}
+  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group)
+    : MulticastSocketChannel(group, MulticastSocketOptions()) {}
 
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const MulticastSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
+    const MulticastSocketOptions& options)
     : m_identifier(group),
-      m_socket(std::make_shared<MulticastSocket>(group, options,
-        Ref(socketThreadPool))),
+      m_socket(std::make_shared<MulticastSocket>(group, options)),
       m_connection(m_socket),
       m_reader(m_socket, group),
       m_writer(m_socket, group) {}
 
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : MulticastSocketChannel(group, interface, MulticastSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : MulticastSocketChannel(group, interface, MulticastSocketOptions()) {}
 
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const IpAddress& interface, const MulticastSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
+    const IpAddress& interface, const MulticastSocketOptions& options)
     : m_identifier(group),
-      m_socket(std::make_shared<MulticastSocket>(group, interface,
-        Ref(socketThreadPool))),
+      m_socket(std::make_shared<MulticastSocket>(group, interface)),
       m_connection(m_socket),
       m_reader(m_socket, group),
       m_writer(m_socket, group) {}

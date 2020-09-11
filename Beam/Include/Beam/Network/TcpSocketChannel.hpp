@@ -5,12 +5,12 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
-#include "Beam/Network/SocketThreadPool.hpp"
 #include "Beam/Network/TcpSocketConnection.hpp"
 #include "Beam/Network/TcpSocketOptions.hpp"
 #include "Beam/Network/TcpSocketReader.hpp"
 #include "Beam/Network/TcpSocketWriter.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Threading/ServiceThreadPool.hpp"
 
 namespace Beam {
 namespace Network {
@@ -26,78 +26,63 @@ namespace Network {
       /**
        * Constructs a TcpSocketChannel.
        * @param address The IP address to connect to.
-       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      TcpSocketChannel(const IpAddress& address);
+
+      /**
+       * Constructs a TcpSocketChannel.
+       * @param address The IP address to connect to.
+       * @param options The set of TcpSocketOptions to apply.
        */
       TcpSocketChannel(const IpAddress& address,
-        Ref<SocketThreadPool> socketThreadPool);
-
-      /**
-       * Constructs a TcpSocketChannel.
-       * @param address The IP address to connect to.
-       * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
-       */
-      TcpSocketChannel(const IpAddress& address,
-        const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const TcpSocketOptions& options);
 
       /**
        * Constructs a TcpSocketChannel.
        * @param address The IP address to connect to.
        * @param interface The interface to bind to.
-       * @param socketThreadPool The thread pool used for the sockets.
+       */
+      TcpSocketChannel(const IpAddress& address, const IpAddress& interface);
+
+      /**
+       * Constructs a TcpSocketChannel.
+       * @param address The IP address to connect to.
+       * @param interface The interface to bind to.
+       * @param options The set of TcpSocketOptions to apply.
        */
       TcpSocketChannel(const IpAddress& address, const IpAddress& interface,
-        Ref<SocketThreadPool> socketThreadPool);
-
-      /**
-       * Constructs a TcpSocketChannel.
-       * @param address The IP address to connect to.
-       * @param interface The interface to bind to.
-       * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
-       */
-      TcpSocketChannel(const IpAddress& address, const IpAddress& interface,
-        const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const TcpSocketOptions& options);
 
       /**
        * Constructs a TcpSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
-      TcpSocketChannel(const std::vector<IpAddress>& addresses,
-        Ref<SocketThreadPool> socketThreadPool);
+      TcpSocketChannel(const std::vector<IpAddress>& addresses);
 
       /**
        * Constructs a TcpSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       TcpSocketChannel(const std::vector<IpAddress>& addresses,
-        const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const TcpSocketOptions& options);
 
       /**
        * Constructs a TcpSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param interface The interface to bind to.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       TcpSocketChannel(const std::vector<IpAddress>& addresses,
-        const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool);
+        const IpAddress& interface);
 
       /**
        * Constructs a TcpSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        * @param interface The interface to bind to.
        * @param options The set of TcpSocketOptions to apply.
-       * @param socketThreadPool The thread pool used for the sockets.
        */
       TcpSocketChannel(const std::vector<IpAddress>& addresses,
-        const IpAddress& interface, const TcpSocketOptions& options,
-        Ref<SocketThreadPool> socketThreadPool);
+        const IpAddress& interface, const TcpSocketOptions& options);
 
       const Identifier& GetIdentifier() const;
 
@@ -115,58 +100,51 @@ namespace Network {
       Reader m_reader;
       Writer m_writer;
 
-      TcpSocketChannel(Ref<SocketThreadPool> socketThreadPool);
+      TcpSocketChannel();
       TcpSocketChannel(const TcpSocketChannel&) = delete;
       TcpSocketChannel& operator =(const TcpSocketChannel&) = delete;
       void SetAddress(const IpAddress& address);
   };
 
-  inline TcpSocketChannel::TcpSocketChannel(const IpAddress& address,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(address, TcpSocketOptions(), Ref(socketThreadPool)) {}
+  inline TcpSocketChannel::TcpSocketChannel(const IpAddress& address)
+    : TcpSocketChannel(address, TcpSocketOptions()) {}
 
   inline TcpSocketChannel::TcpSocketChannel(const IpAddress& address,
-    const TcpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(std::vector<IpAddress>{address}, options,
-        Ref(socketThreadPool)) {}
+    const TcpSocketOptions& options)
+    : TcpSocketChannel(std::vector<IpAddress>{address}, options) {}
 
   inline TcpSocketChannel::TcpSocketChannel(const IpAddress& address,
-    const IpAddress& interface, Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(address, interface, TcpSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface)
+    : TcpSocketChannel(address, interface, TcpSocketOptions()) {}
 
   inline TcpSocketChannel::TcpSocketChannel(const IpAddress& address,
-    const IpAddress& interface, const TcpSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(std::vector<IpAddress>{address}, interface, options,
-        Ref(socketThreadPool)) {}
+    const IpAddress& interface, const TcpSocketOptions& options)
+    : TcpSocketChannel(std::vector<IpAddress>{address}, interface, options) {}
 
   inline TcpSocketChannel::TcpSocketChannel(
-    const std::vector<IpAddress>& addresses,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(addresses, TcpSocketOptions(), Ref(socketThreadPool)) {}
+    const std::vector<IpAddress>& addresses)
+    : TcpSocketChannel(addresses, TcpSocketOptions()) {}
 
   inline TcpSocketChannel::TcpSocketChannel(
-    const std::vector<IpAddress>& addresses, const TcpSocketOptions& options,
-    Ref<SocketThreadPool> socketThreadPool)
+    const std::vector<IpAddress>& addresses, const TcpSocketOptions& options)
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
   inline TcpSocketChannel::TcpSocketChannel(
-    const std::vector<IpAddress>& addresses, const IpAddress& interface,
-    Ref<SocketThreadPool> socketThreadPool)
-    : TcpSocketChannel(addresses, interface, TcpSocketOptions(),
-        Ref(socketThreadPool)) {}
+    const std::vector<IpAddress>& addresses, const IpAddress& interface)
+    : TcpSocketChannel(addresses, interface, TcpSocketOptions()) {}
 
   inline TcpSocketChannel::TcpSocketChannel(
     const std::vector<IpAddress>& addresses, const IpAddress& interface,
-    const TcpSocketOptions& options, Ref<SocketThreadPool> socketThreadPool)
+    const TcpSocketOptions& options)
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses, interface),
       m_reader(m_socket),
@@ -189,10 +167,10 @@ namespace Network {
     return m_writer;
   }
 
-  inline TcpSocketChannel::TcpSocketChannel(
-    Ref<SocketThreadPool> socketThreadPool)
+  inline TcpSocketChannel::TcpSocketChannel()
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        socketThreadPool->GetService(), socketThreadPool->GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetService(),
+        Threading::ServiceThreadPool::GetInstance().GetService())),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}

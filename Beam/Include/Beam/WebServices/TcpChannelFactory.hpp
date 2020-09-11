@@ -1,5 +1,5 @@
-#ifndef BEAM_WEBSERVICES_TCPCHANNELFACTORY_HPP
-#define BEAM_WEBSERVICES_TCPCHANNELFACTORY_HPP
+#ifndef BEAM_WEB_SERVICES_TCP_CHANNEL_FACTORY_HPP
+#define BEAM_WEB_SERVICES_TCP_CHANNEL_FACTORY_HPP
 #include <boost/optional/optional.hpp>
 #include <memory>
 #include "Beam/IO/VirtualChannel.hpp"
@@ -9,81 +9,62 @@
 #include "Beam/WebServices/Uri.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam {
-namespace WebServices {
+namespace Beam::WebServices {
 
-  /*! \class TcpSocketChannelFactory
-      \brief Implements a Channel factory using either a TcpSocketChannel or
-             SecureSocketChannel depending on the protocol.
+  /**
+   * Implements a Channel factory using either a TcpSocketChannel or
+   * SecureSocketChannel depending on the protocol.
    */
   class TcpSocketChannelFactory {
     public:
 
-      //! Constructs a TcpSocketChannelFactory.
-      /*!
-        \param socketThreadPool The SocketThreadPool all constructed Channels
-               should use.
-      */
-      TcpSocketChannelFactory(Ref<Network::SocketThreadPool> socketThreadPool);
+      /** Constructs a TcpSocketChannelFactory. */
+      TcpSocketChannelFactory() = default;
 
-      //! Constructs a TcpSocketChannelFactory.
-      /*!
-        \param interface The interface to bind to.
-        \param socketThreadPool The SocketThreadPool all constructed Channels
-               should use.
-      */
-      TcpSocketChannelFactory(Network::IpAddress interface,
-        Ref<Network::SocketThreadPool> socketThreadPool);
+      /**
+       * Constructs a TcpSocketChannelFactory.
+       * @param interface The interface to bind to.
+       */
+      TcpSocketChannelFactory(Network::IpAddress interface);
 
-      //! Returns a new Channel.
-      /*!
-        \param uri The URI that the Channel should connect to.
-      */
+      /**
+       * Returns a new Channel.
+       * @param uri The URI that the Channel should connect to.
+       */
       std::unique_ptr<IO::VirtualChannel> operator ()(const Uri& uri) const;
 
     private:
       boost::optional<Network::IpAddress> m_interface;
-      Network::SocketThreadPool* m_socketThreadPool;
   };
 
   inline TcpSocketChannelFactory::TcpSocketChannelFactory(
-      Ref<Network::SocketThreadPool> socketThreadPool)
-      : m_socketThreadPool{socketThreadPool.Get()} {}
-
-  inline TcpSocketChannelFactory::TcpSocketChannelFactory(
-      Network::IpAddress interface,
-      Ref<Network::SocketThreadPool> socketThreadPool)
-      : m_interface{std::move(interface)},
-        m_socketThreadPool{socketThreadPool.Get()} {}
+    Network::IpAddress interface)
+    : m_interface(std::move(interface)) {}
 
   inline std::unique_ptr<IO::VirtualChannel>
       TcpSocketChannelFactory::operator ()(const Uri& url) const {
-    Network::IpAddress address{url.GetHostname(), url.GetPort()};
+    auto address = Network::IpAddress(url.GetHostname(), url.GetPort());
     if(url.GetScheme() == "https" || url.GetScheme() == "wss") {
-      auto baseSocket =
-        [&] {
-          if(m_interface.is_initialized()) {
-            return std::make_unique<Network::SecureSocketChannel>(
-              std::move(address), *m_interface, Ref(*m_socketThreadPool));
-          }
+      auto baseSocket = [&] {
+        if(m_interface) {
           return std::make_unique<Network::SecureSocketChannel>(
-            std::move(address), Ref(*m_socketThreadPool));
-        }();
+            std::move(address), *m_interface);
+        }
+        return std::make_unique<Network::SecureSocketChannel>(
+          std::move(address));
+      }();
       return IO::MakeVirtualChannel(std::move(baseSocket));
     } else {
-      auto baseSocket =
-        [&] {
-          if(m_interface.is_initialized()) {
-            return std::make_unique<Network::TcpSocketChannel>(
-              std::move(address), *m_interface, Ref(*m_socketThreadPool));
-          }
+      auto baseSocket = [&] {
+        if(m_interface) {
           return std::make_unique<Network::TcpSocketChannel>(std::move(address),
-            Ref(*m_socketThreadPool));
-        }();
+            *m_interface);
+        }
+        return std::make_unique<Network::TcpSocketChannel>(std::move(address));
+      }();
       return IO::MakeVirtualChannel(std::move(baseSocket));
     }
   }
-}
 }
 
 #endif

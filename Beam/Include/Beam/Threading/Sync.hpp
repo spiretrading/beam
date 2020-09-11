@@ -43,39 +43,39 @@ namespace Details {
   using GetWriteLock = typename WriteLock<T>::type;
 }
 
-  /*! \class Sync
-      \brief Synchronizes access to a resource.
-      \tparam T The type of value to store.
-      \tparam M The type of mutex to use.
+  /**
+   * Synchronizes access to a resource.
+   * @param <T> The type of value to store.
+   * @param <M> The type of mutex to use.
    */
   BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
   template<typename T, typename M = boost::mutex>
   class Sync {
     public:
 
-      //! The value type stored.
+      /** The value type stored. */
       using Value = T;
 
-      //! The type of mutex used.
+      /** The type of mutex used. */
       using Mutex = M;
 
-      //! The type of the lock used for immutable access.
+      /** The type of the lock used for immutable access. */
       using ReadLock = Details::GetReadLock<Mutex>;
 
-      //! The type of the lock used for mutable access.
+      /** The type of the lock used for mutable access. */
       using WriteLock = Details::GetWriteLock<Mutex>;
 
-      //! The proxy for any type of lock in use.
+      /** The proxy for any type of lock in use. */
       class LockProxy {
         public:
 
-          //! Locks the referenced lock.
+          /** Locks the referenced lock. */
           void lock();
 
-          //! Tries to lock the referenced lock.
+          /** Tries to lock the referenced lock. */
           bool try_lock();
 
-          //! Unlocks the referenced lock.
+          /** Unlocks the referenced lock. */
           void unlock();
 
         private:
@@ -90,81 +90,81 @@ namespace Details {
           explicit LockProxy(Variant lock);
       };
 
-      //! Constructs a Sync.
-      /*!
-        \param args The parameters to pass to the synchronized value.
-      */
+      /**
+       * Constructs a Sync.
+       * @param args The parameters to pass to the synchronized value.
+       */
       template<typename... Args>
       Sync(Args&&... args);
 
-      //! Copies a Sync.
-      /*!
-        \param sync The Sync to copy.
-      */
+      /**
+       * Copies a Sync.
+       * @param sync The Sync to copy.
+       */
       Sync(const Sync& sync);
 
-      //! Copies a Sync.
-      /*!
-        \param sync The Sync to copy.
-      */
+      /**
+       * Copies a Sync.
+       * @param sync The Sync to copy.
+       */
       Sync(Sync& sync);
 
-      //! Moves a Sync.
-      /*!
-        \param sync The Sync to move.
-      */
+      /**
+       * Moves a Sync.
+       * @param sync The Sync to move.
+       */
       Sync(Sync&& sync);
 
-      //! Returns a copy of the value.
+      /** Returns a copy of the value. */
       T Acquire() const;
 
-      //! Acquire Sync's value in a synchronized manner.
-      /*!
-        \param f The action to perform on the value.
-      */
+      /**
+       * Acquire Sync's value in a synchronized manner.
+       * @param f The action to perform on the value.
+       */
       template<typename F>
       decltype(auto) With(F&& f);
 
-      //! Acquires Sync's value in a synchronized manner.
-      /*!
-        \param f The action to perform on the value.
-      */
+      /**
+       * Acquires Sync's value in a synchronized manner.
+       * @param f The action to perform on the value.
+       */
       template<typename F>
       decltype(auto) With(F&& f) const;
 
-      //! Atomically acquires Sync's value along with another Sync's value.
-      /*!
-        \param s2 The other Sync.
-        \param f The action to perform on the values.
-      */
+      /**
+       * Atomically acquires Sync's value along with another Sync's value.
+       * @param s2 The other Sync.
+       * @param f The action to perform on the values.
+       */
       template<typename S2, typename M2, typename F>
       decltype(auto) With(Sync<S2, M2>& s2, F&& f);
 
-      //! Returns the lock used for synchronization.
+      /** Returns the lock used for synchronization. */
       LockProxy& GetLock() const;
 
-      //! Assigns a Sync.
-      /*!
-        \param sync The Sync to assign from.
-        \return A reference to <i>*this</i>.
-      */
+      /**
+       * Assigns a Sync.
+       * @param sync The Sync to assign from.
+       * @return A reference to <i>*this</i>.
+       */
       template<typename U>
       Sync& operator =(const Sync<U>& sync);
 
-      //! Assigns a Sync.
-      /*!
-        \param sync The Sync to assign from.
-        \return A reference to <i>*this</i>.
-      */
+      /**
+       * Assigns a Sync.
+       * @param sync The Sync to assign from.
+       * @return A reference to <i>*this</i>.
+       */
       template<typename U>
       Sync& operator =(Sync<U>&& sync);
 
-      //! Assigns a value.
-      /*!
-        \param value The value to assign.
-      */
-      template<typename ValueForward>
-      Sync& operator =(ValueForward&& value);
+      /**
+       * Assigns a value.
+       * @param value The value to assign.
+       */
+      template<typename U>
+      Sync& operator =(U&& value);
 
     private:
       template<typename, typename> friend class Sync;
@@ -176,38 +176,38 @@ namespace Details {
   };
   BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS()
 
-  //! Acquires a Sync's instance in a synchronized manner.
-  /*!
-    \param sync The Sync whose instance is to be acquired.
-    \param f The action to perform on the instance.
-  */
+  /**
+   * Acquires a Sync's instance in a synchronized manner.
+   * @param sync The Sync whose instance is to be acquired.
+   * @param f The action to perform on the instance.
+   */
   template<typename S1, typename M1, typename F>
   decltype(auto) With(Sync<S1, M1>& s1, F&& f) {
     return s1.With(std::forward<F>(f));
   }
 
-  //! Acquires a Sync's instance in a synchronized manner.
-  /*!
-    \param sync The Sync whose instance is to be acquired.
-    \param f The action to perform on the instance.
-  */
+  /**
+   * Acquires a Sync's instance in a synchronized manner.
+   * @param sync The Sync whose instance is to be acquired.
+   * @param f The action to perform on the instance.
+   */
   template<typename S1, typename M1, typename F>
   decltype(auto) With(const Sync<S1, M1>& s1, F&& f) {
     return s1.With(std::forward<F>(f));
   }
 
-  //! Acquires two Syncs' instances in a synchronized manner.
-  /*!
-    \param s1 The first Sync whose instance is to be acquired.
-    \param s2 The second Sync whose instance is to be acquired.
-    \param f The action to perform on the instances.
-  */
+  /**
+   * Acquires two Syncs' instances in a synchronized manner.
+   * @param s1 The first Sync whose instance is to be acquired.
+   * @param s2 The second Sync whose instance is to be acquired.
+   * @param f The action to perform on the instances.
+   */
   template<typename S1, typename M1, typename S2, typename M2, typename F>
   decltype(auto) With(Sync<S1, M1>& s1, Sync<S2, M2>& s2, F&& f) {
     return s1.With(s2, std::forward<F>(f));
   }
 
-  //! Releases a Sync.
+  /** Releases a Sync. */
   template<typename S1, typename M1>
   LockRelease<typename Sync<S1, M1>::LockProxy> Release(Sync<S1, M1>& s1) {
     return LockRelease(*s1.m_lock);
@@ -215,26 +215,23 @@ namespace Details {
 
   template<typename T, typename M>
   void Sync<T, M>::LockProxy::lock() {
-    std::visit(
-      [] (auto& lock) {
-        lock.lock();
-      }, m_lock);
+    std::visit([] (auto& lock) {
+      lock.lock();
+    }, m_lock);
   }
 
   template<typename T, typename M>
   bool Sync<T, M>::LockProxy::try_lock() {
-    return std::visit(
-      [] (auto& lock) {
-        return lock.try_lock();
-      }, m_lock);
+    return std::visit([] (auto& lock) {
+      return lock.try_lock();
+    }, m_lock);
   }
 
   template<typename T, typename M>
   void Sync<T, M>::LockProxy::unlock() {
-    std::visit(
-      [] (auto& lock) {
-        lock.unlock();
-      }, m_lock);
+    std::visit([] (auto& lock) {
+      lock.unlock();
+    }, m_lock);
   }
 
   template<typename T, typename M>
@@ -314,10 +311,9 @@ namespace Details {
       return *this;
     }
     auto lock = WriteLock(m_mutex);
-    sync.With(
-      [&] (const U& value) {
-        m_value = value;
-      });
+    sync.With([&] (const U& value) {
+      m_value = value;
+    });
     return *this;
   }
 
@@ -328,18 +324,17 @@ namespace Details {
       return *this;
     }
     auto lock = WriteLock(m_mutex);
-    sync.With(
-      [&] (U& value) {
-        m_value = std::move(value);
-      });
+    sync.With([&] (U& value) {
+      m_value = std::move(value);
+    });
     return *this;
   }
 
   template<typename T, typename M>
-  template<typename ValueForward>
-  Sync<T, M>& Sync<T, M>::operator =(ValueForward&& value) {
+  template<typename U>
+  Sync<T, M>& Sync<T, M>::operator =(U&& value) {
     auto lock = WriteLock(m_mutex);
-    m_value = std::forward<ValueForward>(value);
+    m_value = std::forward<U>(value);
     return *this;
   }
 }

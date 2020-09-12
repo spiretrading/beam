@@ -69,7 +69,7 @@ namespace Routines {
       friend class Eval<T>;
       mutable boost::mutex m_mutex;
       State m_state;
-      Threading::Sync<SuspendedRoutineQueue> m_suspendedRoutines;
+      SuspendedRoutineQueue m_suspendedRoutines;
       std::optional<typename StorageType<T>::type> m_result;
       std::exception_ptr m_exception;
 

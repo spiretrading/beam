@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include <tclap/CmdLine.h>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
@@ -45,31 +44,27 @@ namespace {
 }
 
 namespace Beam {
-  static const std::string SERVICE_NAME = "TEMPLATE_SERVICE";
+  static const auto SERVICE_NAME = std::string("TEMPLATE_SERVICE");
 
   BEAM_DEFINE_SERVICES(ServletTemplateServices,
 
-    /*! \interface Beam::ServletTemplate::EchoService
-        \brief Submits a request to echo a message at a specified rate.
-        \param message <code>std::string</code> The message to echo.
-        \param rate The number of times per second to repeat the message.
-        \return <code>int</code> unusued.
-    */
-    //! \cond
+    /**
+     * Submits a request to echo a message at a specified rate.
+     * @param message <code>std::string</code> The message to echo.
+     * @param rate The number of times per second to repeat the message.
+     * @return <code>int</code> unusued.
+     */
     (EchoService, "Beam.ServletTemplate.EchoService", int, std::string, message,
       int, rate));
-    //! \endcond
 
   BEAM_DEFINE_MESSAGES(ServletTemplateMessages,
 
-    /*! \interface Beam::ServletTemplate::EchoMessage
-        \brief Sends an echo'd message.
-        \param message The message that was requested to be echo'd.
-    */
-    //! \cond
+    /**
+     * Sends an echo'd message.
+     * @param message The message that was requested to be echo'd.
+     */
     (EchoMessage, "Beam.ServletTemplate.EchoMessage", boost::posix_time::ptime,
       timestamp, std::string, message));
-    //! \endcond
 }
 
 int main(int argc, const char** argv) {
@@ -89,7 +84,7 @@ int main(int argc, const char** argv) {
   }
   auto config = Require(LoadFile, configFile);
   auto message = std::string();
-  auto client = boost::optional<ApplicationClient>();
+  auto client = optional<ApplicationClient>();
   auto rate = 0;
   try {
     auto addresses = ParseAddress(config);

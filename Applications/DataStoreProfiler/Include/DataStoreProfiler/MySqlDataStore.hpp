@@ -8,15 +8,13 @@
 #include <Beam/Queries/SqlDataStore.hpp>
 #include <Beam/Queries/SqlTranslator.hpp>
 #include <Beam/Sql/DatabaseConnectionPool.hpp>
-#include <Beam/Threading/ThreadPool.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/MySql/Connection.hpp>
 
 namespace Beam {
 
   /** Stores data in a MySQL database. */
-  class MySqlDataStore : private boost::noncopyable {
+  class MySqlDataStore {
     public:
 
       /**
@@ -48,10 +46,11 @@ namespace Beam {
         Queries::SqlTranslator>;
       DatabaseConnectionPool<Viper::MySql::Connection> m_readerPool;
       DatabaseConnectionPool<Viper::MySql::Connection> m_writerPool;
-      Threading::ThreadPool m_threadPool;
       DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_dataStore;
       IO::OpenState m_openState;
 
+      MySqlDataStore(const MySqlDataStore&) = delete;
+      MySqlDataStore& operator =(const MySqlDataStore&) = delete;
       static Viper::Row<Entry> BuildValueRow();
       static Viper::Row<std::string> BuildIndexRow();
   };
@@ -71,7 +70,7 @@ namespace Beam {
         return connection;
       }),
       m_dataStore("entries", BuildValueRow(), BuildIndexRow(),
-        Ref(m_readerPool), Ref(m_writerPool), Ref(m_threadPool)) {}
+        Ref(m_readerPool), Ref(m_writerPool)) {}
 
   inline MySqlDataStore::~MySqlDataStore() {
     Close();

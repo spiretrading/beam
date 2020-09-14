@@ -42,9 +42,8 @@ TEST_SUITE("SqlDataStore") {
         connection->open();
         return connection;
       });
-    auto threadPool = ThreadPool();
     auto dataStore = DataStore("test", BuildValueRow(), BuildIndexRow(),
-      Ref(readerPool), Ref(writerPool), Ref(threadPool));
+      Ref(readerPool), Ref(writerPool));
     auto timeClient = IncrementalTimeClient();
     auto sequence = Queries::Sequence(5);
     auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
@@ -71,9 +70,7 @@ TEST_SUITE("SqlDataStore") {
         connection->open();
         return connection;
       });
-    auto threadPool = ThreadPool();
     auto dataStore = EmbeddedDataStore("test", BuildValueRow(),
-      BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool),
-      Ref(threadPool));
+      BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool));
   }
 }

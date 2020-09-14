@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
-#include <boost/noncopyable.hpp>
 #include <Viper/Viper.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
@@ -18,84 +17,83 @@
 
 namespace Beam::Queries {
 
-  /** Loads and stores SequencedValue's in an SQL database.
-      \tparam C The type of SQL connection to query.
-      \tparam V The type of SQL row to store the value.
-      \tparam I The type of SQL row to store the index.
-      \tparam T The type of SqlTranslator used for filtering values.
+  /**
+   * Loads and stores SequencedValue's in an SQL database.
+   * @param <C> The type of SQL connection to query.
+   * @param <V> The type of SQL row to store the value.
+   * @param <I> The type of SQL row to store the index.
+   * @param <T> The type of SqlTranslator used for filtering values.
    */
   template<typename C, typename V, typename I, typename T>
-  class SqlDataStore : private boost::noncopyable {
+  class SqlDataStore {
     public:
 
-      //! The type of SQL connection to query.
+      /** The type of SQL connection to query. */
       using Connection = C;
 
-      //! The type of SQL row to store the value.
+      /** The type of SQL row to store the value. */
       using ValueRow = V;
 
-      //! The type of SQL row to store the index.
+      /** The type of SQL row to store the index. */
       using IndexRow = I;
 
-      //! The type of SqlTranslator used for filtering values.
+      /** The type of SqlTranslator used for filtering values. */
       using SqlTranslator = T;
 
-      //! The type of value to store.
+      /** The type of value to store. */
       using Value = typename ValueRow::Type;
 
-      //! The type of index.
+      /** The type of index. */
       using Index = typename IndexRow::Type;
 
-      //! The type of query used to load values.
+      /** The type of query used to load values. */
       using Query = BasicQuery<Index>;
 
-      //! The SequencedValue to store.
+      /** The SequencedValue to store. */
       using SequencedValue = ::Beam::Queries::SequencedValue<Value>;
 
-      //! The IndexedValue to store.
+      /** The IndexedValue to store. */
       using IndexedValue = ::Beam::Queries::SequencedValue<
         ::Beam::Queries::IndexedValue<Value, Index>>;
 
-      //! Constructs an SqlDataStore.
-      /*!
-        \param table The name of the SQL table.
-        \param valueRow The SQL row to store the value.
-        \param indexRow The SQL row to store the index.
-        \param readerPool The pool of SQL connections used for reading.
-        \param writerPool The pool of SQL connections used for writing.
-        \param threadPool Used to perform asynchronous reads and writes.
-      */
+      /**
+       * Constructs an SqlDataStore.
+       * @param table The name of the SQL table.
+       * @param valueRow The SQL row to store the value.
+       * @param indexRow The SQL row to store the index.
+       * @param readerPool The pool of SQL connections used for reading.
+       * @param writerPool The pool of SQL connections used for writing.
+       */
       SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
         Ref<DatabaseConnectionPool<Connection>> readerPool,
-        Ref<DatabaseConnectionPool<Connection>> writerPool,
-        Ref<Threading::ThreadPool> threadPool);
+        Ref<DatabaseConnectionPool<Connection>> writerPool);
 
       ~SqlDataStore();
 
-      //! Executes a search query.
-      /*!
-        \param query The search query to execute.
-        \return The list of the values that satisfy the search <i>query</i>.
-      */
+      /**
+       * Executes a search query.
+       * @param query The search query to execute.
+       * @return The list of the values that satisfy the search <i>query</i>.
+       */
       std::vector<SequencedValue> Load(const Query& query);
 
-      //! Executes a search query.
-      /*!
-        \param query The search query to execute.
-        \return The list of the values that satisfy the search <i>query</i>.
-      */
+      /**
+       * Executes a search query.
+       * @param query The search query to execute.
+       * @return The list of the values that satisfy the search <i>query</i>.
+       */
       std::vector<SequencedValue> Load(const Viper::Expression& query);
 
-      //! Stores a Value.
-      /*!
-        \param value The Value to store.
-      */
+      /**
+       * Stores a Value.
+       * @param value The Value to store.
+       */
       void Store(const IndexedValue& value);
 
-      //! Stores a list of Values.
-      /*!
-        \param values The list of Values to store.
-      */
+      /**
+       * Stores a list of Values.
+       * @param values The list of Values to store.
+       */
       void Store(const std::vector<IndexedValue>& values);
 
       void Close();
@@ -108,20 +106,17 @@ namespace Beam::Queries {
       Viper::Row<SequencedValue> m_sequencedRow;
       DatabaseConnectionPool<Connection>* m_readerPool;
       DatabaseConnectionPool<Connection>* m_writerPool;
-      Threading::ThreadPool* m_threadPool;
   };
 
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
       IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
-      Ref<DatabaseConnectionPool<Connection>> writerPool,
-      Ref<Threading::ThreadPool> threadPool)
+      Ref<DatabaseConnectionPool<Connection>> writerPool)
       : m_table(std::move(table)),
         m_valueRow(std::move(valueRow)),
         m_indexRow(std::move(indexRow)),
         m_readerPool(readerPool.Get()),
-        m_writerPool(writerPool.Get()),
-        m_threadPool(threadPool.Get()) {
+        m_writerPool(writerPool.Get()) {
     m_valueRow = m_valueRow.
       add_column("timestamp",
         [] (const auto& row) {
@@ -182,11 +177,9 @@ namespace Beam::Queries {
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    m_threadPool->Queue(
-      [&] {
-        connection->execute(create_if_not_exists(m_row, m_table));
-      }, result.GetEval());
-    result.Get();
+    Threading::Park([&] {
+      connection->execute(create_if_not_exists(m_row, m_table));
+    });
   }
 
   template<typename C, typename V, typename I, typename T>
@@ -197,8 +190,8 @@ namespace Beam::Queries {
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
       SqlDataStore<C, V, I, T>::Load(const Query& query) {
-    std::optional<Viper::Expression> index;
-    std::string column;
+    auto index = std::optional<Viper::Expression>();
+    auto column = std::string();
     for(auto i = std::size_t(0); i != m_indexRow.get_columns().size(); ++i) {
       m_indexRow.append_value(query.GetIndex(), i, column);
       auto term = Viper::sym(m_indexRow.get_columns()[i].m_name) ==
@@ -214,25 +207,22 @@ namespace Beam::Queries {
       index.emplace();
     }
     return LoadSqlQuery<SqlTranslator>(query, m_sequencedRow, m_table, *index,
-      *m_threadPool, *m_readerPool);
+      *m_readerPool);
   }
 
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
       SqlDataStore<C, V, I, T>::Load(const Viper::Expression& query) {
-    return LoadSqlQuery(query, m_sequencedRow, m_table, *m_threadPool,
-      *m_readerPool);
+    return LoadSqlQuery(query, m_sequencedRow, m_table, *m_readerPool);
   }
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::Store(const IndexedValue& value) {
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    m_threadPool->Queue(
-      [&] {
-        connection->execute(Viper::insert(m_row, m_table, &value));
-      }, result.GetEval());
-    result.Get();
+    Threading::Park([&] {
+      connection->execute(Viper::insert(m_row, m_table, &value));
+    });
   }
 
   template<typename C, typename V, typename I, typename T>
@@ -240,12 +230,10 @@ namespace Beam::Queries {
       const std::vector<IndexedValue>& values) {
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    m_threadPool->Queue(
-      [&] {
-        connection->execute(Viper::insert(m_row, m_table, values.begin(),
-          values.end()));
-      }, result.GetEval());
-    result.Get();
+    Threading::Park([&] {
+      connection->execute(Viper::insert(m_row, m_table, values.begin(),
+        values.end()));
+    });
   }
 
   template<typename C, typename V, typename I, typename T>

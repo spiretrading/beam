@@ -1,49 +1,22 @@
 #ifndef BEAM_THREAD_POOL_HPP
 #define BEAM_THREAD_POOL_HPP
 #include <deque>
-#include <functional>
 #include <iostream>
 #include <type_traits>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/type_traits.hpp>
-#include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
-#include "Beam/Utilities/Functional.hpp"
 #include "Beam/Utilities/ReportException.hpp"
+#include "Beam/Utilities/Singleton.hpp"
 
 namespace Beam::Threading {
 
   /** Implements a thread pool for running Tasks. */
-  class ThreadPool {
+  class ThreadPool : public Singleton<ThreadPool> {
     public:
-
-      /** Specifies the return type of a function. */
-      template<typename F>
-      struct ReturnType {
-        using type = typename boost::function_traits<
-          typename std::remove_pointer<F>::type>::result_type;
-      };
-
-      /** Constructs a ThreadPool. */
-      ThreadPool();
-
-      /**
-       * Constructs a ThreadPool.
-       * @param maxThreadCount The maximum number of threads to allocate.
-       */
-      ThreadPool(std::size_t maxThreadCount);
-
       ~ThreadPool();
-
-      /** Returns the maximum thread count. */
-      std::size_t GetMaxThreadCount() const;
-
-      /** Blocks until all running threads have completed. */
-      void WaitForCompletion();
 
       /**
        * Queues a function to be run within an allocated thread.
@@ -54,12 +27,11 @@ namespace Beam::Threading {
       void Queue(F&& function, Routines::Eval<R> result);
 
     private:
-      class TaskThread;
-      class BaseTask : private boost::noncopyable {
-        public:
-          BaseTask() = default;
-          virtual ~BaseTask() = default;
-          virtual void Run() = 0;
+      friend class Singleton<ThreadPool>;
+      struct TaskThread;
+      struct BaseTask {
+        virtual ~BaseTask() = default;
+        virtual void Run() = 0;
       };
       template<typename F, typename R>
       struct Invoker {
@@ -70,31 +42,27 @@ namespace Beam::Threading {
         void operator ()(F& function, Routines::Eval<void> result) const;
       };
       template<typename F, typename R>
-      class Task : public BaseTask {
-        public:
-          template<typename U>
-          Task(U&& function, Routines::Eval<R> result);
-          void Run();
+      struct Task : BaseTask {
+        F m_function;
+        Routines::Eval<R> m_result;
 
-        private:
-          F m_function;
-          Routines::Eval<R> m_result;
+        template<typename U>
+        Task(U&& function, Routines::Eval<R> result);
+        void Run() override;
       };
-      class TaskThread {
-        public:
-          TaskThread(ThreadPool& threadPool);
-          bool SetTask(BaseTask& task);
-          void Run();
-          void Stop();
+      struct TaskThread {
+        boost::mutex m_mutex;
+        ThreadPool* m_threadPool;
+        BaseTask* m_task;
+        bool m_available;
+        bool m_stopped;
+        boost::thread m_thread;
+        boost::condition_variable m_taskAvailableCondition;
 
-        private:
-          boost::mutex m_mutex;
-          ThreadPool* m_threadPool;
-          BaseTask* volatile m_task;
-          volatile bool m_available;
-          volatile bool m_stopped;
-          boost::thread m_thread;
-          boost::condition_variable m_taskAvailableCondition;
+        TaskThread(ThreadPool& threadPool);
+        bool SetTask(BaseTask& task);
+        void Run();
+        void Stop();
       };
       static constexpr auto LOWER_BOUND_WAIT_TIME = 30;
       static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
@@ -107,12 +75,26 @@ namespace Beam::Threading {
       std::deque<BaseTask*> m_tasks;
       boost::condition_variable m_threadsFinishedCondition;
 
+      ThreadPool();
       ThreadPool(const ThreadPool&) = delete;
       ThreadPool& operator =(const ThreadPool&) = delete;
       void QueueTask(BaseTask& task);
       bool AddThread(TaskThread& taskThread);
       void RemoveThread(TaskThread& taskThread);
   };
+
+  /**
+   * Invokes a blocking function (usually IO) within a thread pool.
+   * @param f The blocking function to invoke.
+   * @return The result of invoking <i>f</i>.
+   */
+  template<typename F>
+  auto Park(F&& f) {
+    using Result = std::invoke_result_t<F>;
+    auto result = Routines::Async<Result>();
+    ThreadPool::GetInstance().Queue(std::forward<F>(f), result.GetEval());
+    return std::move(result.Get());
+  }
 
   template<typename F, typename R>
   void ThreadPool::Invoker<F, R>::operator ()(F& function,
@@ -211,15 +193,6 @@ namespace Beam::Threading {
     m_taskAvailableCondition.notify_all();
   }
 
-  inline ThreadPool::ThreadPool()
-    : ThreadPool(boost::thread::hardware_concurrency()) {}
-
-  inline ThreadPool::ThreadPool(std::size_t maxThreadCount)
-    : m_maxThreadCount(maxThreadCount),
-      m_runningThreads(0),
-      m_activeThreads(0),
-      m_isWaitingForCompletion(false) {}
-
   inline ThreadPool::~ThreadPool() {
     auto lock = boost::unique_lock(m_mutex);
     m_isWaitingForCompletion = true;
@@ -234,18 +207,11 @@ namespace Beam::Threading {
     }
   }
 
-  inline std::size_t ThreadPool::GetMaxThreadCount() const {
-    return m_maxThreadCount;
-  }
-
-  inline void ThreadPool::WaitForCompletion() {
-    auto lock = boost::unique_lock(m_mutex);
-    m_isWaitingForCompletion = true;
-    while(m_activeThreads != 0) {
-      m_threadsFinishedCondition.wait(lock);
-    }
-    m_isWaitingForCompletion = false;
-  }
+  inline ThreadPool::ThreadPool()
+    : m_maxThreadCount(boost::thread::hardware_concurrency()),
+      m_runningThreads(0),
+      m_activeThreads(0),
+      m_isWaitingForCompletion(false) {}
 
   template<typename F, typename R>
   void ThreadPool::Queue(F&& function, Routines::Eval<R> result) {

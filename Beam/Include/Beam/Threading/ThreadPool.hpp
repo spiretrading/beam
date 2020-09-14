@@ -7,6 +7,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
+#include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"

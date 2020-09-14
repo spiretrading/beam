@@ -6,6 +6,7 @@
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Threading/ThreadPool.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
 #include "Beam/Threading/VirtualTimer.hpp"
@@ -102,6 +103,7 @@ void Beam::Python::ExportThreading(module& module) {
   ExportLiveTimer(submodule);
   ExportTriggerTimer(submodule);
   register_exception<TimeoutException>(submodule, "TimeoutException");
+  ThreadPool::GetInstance();
 }
 
 void Beam::Python::ExportTimer(module& module) {

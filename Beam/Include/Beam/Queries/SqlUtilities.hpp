@@ -12,7 +12,6 @@
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Queries/SqlTranslator.hpp"
-#include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam::Queries {
 
@@ -47,11 +46,9 @@ namespace Beam::Queries {
         query.GetRange().GetStart());
       auto sequence = std::optional<std::uint64_t>();
       auto connection = connectionPool.Acquire();
-      Threading::Park([&] {
-        connection->execute(Viper::select(
-          Viper::min<std::uint64_t>("query_sequence"), table,
-          index && Viper::sym("timestamp") >= timestamp, &sequence));
-      });
+      connection->execute(Viper::select(
+        Viper::min<std::uint64_t>("query_sequence"), table,
+        index && Viper::sym("timestamp") >= timestamp, &sequence));
       if(sequence) {
         return Sequence(*sequence);
       }
@@ -65,11 +62,9 @@ namespace Beam::Queries {
         query.GetRange().GetEnd());
       auto sequence = std::optional<std::uint64_t>();
       auto connection = connectionPool.Acquire();
-      Threading::Park([&] {
-        connection->execute(Viper::select(
-          Viper::max<std::uint64_t>("query_sequence"), table,
-          index && Viper::sym("timestamp") <= timestamp, &sequence));
-      });
+      connection->execute(Viper::select(
+        Viper::max<std::uint64_t>("query_sequence"), table,
+        index && Viper::sym("timestamp") <= timestamp, &sequence));
       if(sequence) {
         return Sequence(*sequence);
       }
@@ -92,13 +87,11 @@ namespace Beam::Queries {
       const std::string& table, ConnectionPool& connectionPool) {
     using Type = typename Row::Type;
     auto connection = connectionPool.Acquire();
-    return Threading::Park([&] {
-      auto rows = std::vector<Type>();
-      connection->execute(Viper::select(row, table, expression,
-        Viper::order_by("query_sequence", Viper::Order::ASC),
-        std::back_inserter(rows)));
-      return rows;
-    });
+    auto rows = std::vector<Type>();
+    connection->execute(Viper::select(row, table, expression,
+      Viper::order_by("query_sequence", Viper::Order::ASC),
+      std::back_inserter(rows)));
+    return rows;
   }
 
   /**
@@ -136,16 +129,13 @@ namespace Beam::Queries {
         auto limit = std::min(MAX_READS_PER_QUERY,
           subsetQuery.GetSnapshotLimit().GetSize());
         auto connection = connectionPool.Acquire();
-        auto partition = Threading::Park([&] {
-          auto partition = std::vector<Type>();
-          connection->execute(Viper::select(row,
-            Viper::select({"*"}, table, index && range && filter,
-            Viper::order_by("query_sequence", Viper::Order::DESC),
-            Viper::limit(limit)),
-            Viper::order_by("query_sequence", Viper::Order::ASC),
-            std::back_inserter(partition)));
-          return partition;
-        });
+        auto partition = std::vector<Type>();
+        connection->execute(Viper::select(row,
+          Viper::select({"*"}, table, index && range && filter,
+          Viper::order_by("query_sequence", Viper::Order::DESC),
+          Viper::limit(limit)),
+          Viper::order_by("query_sequence", Viper::Order::ASC),
+          std::back_inserter(partition)));
         partitions.push_back(std::move(partition));
         remainingLimit -= partitions.back().size();
         if(partitions.back().empty() ||
@@ -171,14 +161,10 @@ namespace Beam::Queries {
         auto limit = std::min(MAX_READS_PER_QUERY,
           subsetQuery.GetSnapshotLimit().GetSize());
         auto connection = connectionPool.Acquire();
-        auto partition = Threading::Park([&] {
-          auto partition = std::vector<Type>();
-          connection->execute(
-            Viper::select(row, table, index && range && filter,
-            Viper::order_by("query_sequence", Viper::Order::ASC),
-            Viper::limit(limit), std::back_inserter(partition)));
-          return partition;
-        });
+        auto partition = std::vector<Type>();
+        connection->execute(Viper::select(row, table, index && range && filter,
+          Viper::order_by("query_sequence", Viper::Order::ASC),
+          Viper::limit(limit), std::back_inserter(partition)));
         if(query.GetSnapshotLimit() != SnapshotLimit::Unlimited()) {
           remainingLimit -= partition.size();
         }

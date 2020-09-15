@@ -9,6 +9,7 @@
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
+#include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
@@ -130,6 +131,7 @@ namespace Beam::Threading {
   }
 
   inline ThreadPool::TaskThread::TaskThread(ThreadPool& threadPool)
+BEAM_SUPPRESS_THIS_INITIALIZER()
     : m_threadPool(&threadPool),
       m_task(nullptr),
       m_available(true),
@@ -137,6 +139,7 @@ namespace Beam::Threading {
       m_thread([=] {
         Run();
       }) {}
+BEAM_UNSUPPRESS_THIS_INITIALIZER()
 
   inline bool ThreadPool::TaskThread::SetTask(BaseTask& task) {
     auto lock = boost::lock_guard(m_mutex);

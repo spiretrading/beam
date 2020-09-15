@@ -102,8 +102,10 @@ void Beam::Python::ExportThreading(module& module) {
   ExportTimer(submodule);
   ExportLiveTimer(submodule);
   ExportTriggerTimer(submodule);
+  module.def("park", [] (const std::function<void ()>& f) {
+    Park(f);
+  }, call_guard<GilRelease>());
   register_exception<TimeoutException>(submodule, "TimeoutException");
-  ThreadPool::GetInstance();
 }
 
 void Beam::Python::ExportTimer(module& module) {

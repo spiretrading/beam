@@ -14,6 +14,7 @@
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
+#include "Beam/Sql/SqlConnection.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/UidService/SqlUidDataStore.hpp"
 #include "Beam/UidService/UidServlet.hpp"
@@ -40,7 +41,7 @@ using namespace Viper;
 namespace {
   using UidServletContainer = ServiceProtocolServletContainer<
     MetaAuthenticationServletAdapter<
-    MetaUidServlet<SqlUidDataStore<MySql::Connection>>,
+    MetaUidServlet<SqlUidDataStore<SqlConnection<MySql::Connection>>>,
     ApplicationServiceLocatorClient::Client*>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 
@@ -112,10 +113,10 @@ int main(int argc, const char** argv) {
     std::cerr << "Error logging in: " << e.what() << std::endl;
     return -1;
   }
-  auto mySqlConnection = std::make_unique<MySql::Connection>(
+  auto mySqlConnection = MakeSqlConnection(MySql::Connection(
     mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema);
-  auto server = boost::optional<UidServletContainer>();
+    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema));
+  auto server = optional<UidServletContainer>();
   try {
     server.emplace(Initialize(serviceLocatorClient.Get(),
       Initialize(std::move(mySqlConnection))), Initialize(

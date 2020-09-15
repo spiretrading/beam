@@ -14,6 +14,7 @@
 #include "Beam/ServiceLocator/SqlServiceLocatorDataStore.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
+#include "Beam/Sql/SqlConnection.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -36,8 +37,9 @@ using namespace Viper;
 namespace {
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
     MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
-    SqlServiceLocatorDataStore<MySql::Connection>*>>, TcpServerSocket,
-    BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
+    SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>*>>,
+    TcpServerSocket, BinarySender<SharedBuffer>, NullEncoder,
+    std::shared_ptr<LiveTimer>>;
 
   struct ServerConnectionInitializer {
     IpAddress m_interface;
@@ -86,11 +88,11 @@ int main(int argc, const char** argv) {
     std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
     return -1;
   }
-  auto mySqlConnection = std::make_unique<MySql::Connection>(
+  auto mySqlConnection = MakeSqlConnection(MySql::Connection(
     mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema);
+    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema));
   auto mysqlDataStore = SqlServiceLocatorDataStore(std::move(mySqlConnection));
-  auto server = boost::optional<ServiceLocatorServletContainer>();
+  auto server = optional<ServiceLocatorServletContainer>();
   try {
     server.emplace(Initialize(Initialize(&mysqlDataStore)),
       Initialize(serverConnectionInitializer.m_interface),

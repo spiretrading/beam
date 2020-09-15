@@ -13,7 +13,6 @@
 #include "Beam/Queries/SqlUtilities.hpp"
 #include "Beam/Sql/DatabaseConnectionPool.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
-#include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam::Queries {
 
@@ -177,9 +176,7 @@ namespace Beam::Queries {
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    Threading::Park([&] {
-      connection->execute(create_if_not_exists(m_row, m_table));
-    });
+    connection->execute(create_if_not_exists(m_row, m_table));
   }
 
   template<typename C, typename V, typename I, typename T>
@@ -220,9 +217,7 @@ namespace Beam::Queries {
   void SqlDataStore<C, V, I, T>::Store(const IndexedValue& value) {
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    Threading::Park([&] {
-      connection->execute(Viper::insert(m_row, m_table, &value));
-    });
+    connection->execute(Viper::insert(m_row, m_table, &value));
   }
 
   template<typename C, typename V, typename I, typename T>
@@ -230,10 +225,8 @@ namespace Beam::Queries {
       const std::vector<IndexedValue>& values) {
     auto result =  Routines::Async<void>();
     auto connection = m_writerPool->Acquire();
-    Threading::Park([&] {
-      connection->execute(Viper::insert(m_row, m_table, values.begin(),
-        values.end()));
-    });
+    connection->execute(Viper::insert(m_row, m_table, values.begin(),
+      values.end()));
   }
 
   template<typename C, typename V, typename I, typename T>

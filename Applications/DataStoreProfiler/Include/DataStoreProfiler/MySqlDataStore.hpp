@@ -8,6 +8,7 @@
 #include <Beam/Queries/SqlDataStore.hpp>
 #include <Beam/Queries/SqlTranslator.hpp>
 #include <Beam/Sql/DatabaseConnectionPool.hpp>
+#include <Beam/Sql/SqlConnection.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/MySql/Connection.hpp>
 
@@ -42,10 +43,12 @@ namespace Beam {
 
     private:
       template<typename V, typename I>
-      using DataStore = Queries::SqlDataStore<Viper::MySql::Connection, V, I,
-        Queries::SqlTranslator>;
-      DatabaseConnectionPool<Viper::MySql::Connection> m_readerPool;
-      DatabaseConnectionPool<Viper::MySql::Connection> m_writerPool;
+      using DataStore = Queries::SqlDataStore<
+        SqlConnection<Viper::MySql::Connection>, V, I, Queries::SqlTranslator>;
+      DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>
+        m_readerPool;
+      DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>
+        m_writerPool;
       DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_dataStore;
       IO::OpenState m_openState;
 
@@ -58,14 +61,14 @@ namespace Beam {
   inline MySqlDataStore::MySqlDataStore(Network::IpAddress address,
     std::string schema, std::string username, std::string password)
     : m_readerPool(std::thread::hardware_concurrency(), [=] {
-        auto connection = std::make_unique<Viper::MySql::Connection>(
-          address.GetHost(), address.GetPort(), username, password, schema);
+        auto connection = MakeSqlConnection(Viper::MySql::Connection(
+          address.GetHost(), address.GetPort(), username, password, schema));
         connection->open();
         return connection;
       }),
       m_writerPool(std::thread::hardware_concurrency(), [=] {
-        auto connection = std::make_unique<Viper::MySql::Connection>(
-          address.GetHost(), address.GetPort(), username, password, schema);
+        auto connection = MakeSqlConnection(Viper::MySql::Connection(
+          address.GetHost(), address.GetPort(), username, password, schema));
         connection->open();
         return connection;
       }),

@@ -2,6 +2,7 @@
 #define BEAM_SQL_CONNECTION_HPP
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <Viper/CommitStatement.hpp>
 #include <Viper/CreateTableStatement.hpp>
@@ -32,6 +33,8 @@ namespace Beam {
        */
       template<typename CF>
       SqlConnection(CF&& connection);
+
+      SqlConnection(SqlConnection&&) = default;
 
       ~SqlConnection();
 
@@ -65,6 +68,8 @@ namespace Beam {
 
       void close();
 
+      SqlConnection& operator =(SqlConnection&&) = default;
+
     private:
       GetOptionalLocalPtr<C> m_connection;
 
@@ -82,6 +87,9 @@ namespace Beam {
     return std::make_unique<SqlConnection<Connection>>(
       std::forward<Connection>(connection));
   }
+
+  template<typename C>
+  SqlConnection(C&& connection) -> SqlConnection<std::remove_reference_t<C>>;
 
   template<typename C>
   template<typename CF>

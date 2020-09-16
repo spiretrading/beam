@@ -19,9 +19,6 @@ for i in "$@"; do
       ;;
   esac
 done
-if [ "$config" = "" ]; then
-  config="Release"
-fi
 if [ "$(uname -s)" = "Darwin" ]; then
   STAT='stat -x -t "%Y%m%d%H%M%S"'
 else

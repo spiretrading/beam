@@ -21,9 +21,10 @@ TEST_SUITE("FunctionExpression") {
     REQUIRE(function.GetName() == "unary");
     REQUIRE(function.GetType() == BoolType());
     REQUIRE(function.GetParameters().size() == 1);
-    REQUIRE(typeid(*function.GetParameters()[0]) == typeid(ConstantExpression));
-    auto p1 = function.GetParameters()[0].StaticCast<ConstantExpression>();
-    REQUIRE(p1.GetValue()->GetValue<std::string>() == "hello world");
+    auto& p1 = *function.GetParameters()[0];
+    REQUIRE(typeid(p1) == typeid(ConstantExpression));
+    auto c1 = function.GetParameters()[0].StaticCast<ConstantExpression>();
+    REQUIRE(c1.GetValue()->GetValue<std::string>() == "hello world");
   }
 
   TEST_CASE("binary_function") {
@@ -34,11 +35,13 @@ TEST_SUITE("FunctionExpression") {
     REQUIRE(function.GetName() == "binary");
     REQUIRE(function.GetType() == IntType());
     REQUIRE(function.GetParameters().size() == 2);
-    REQUIRE(typeid(*function.GetParameters()[0]) == typeid(ConstantExpression));
-    auto p1 = function.GetParameters()[0].StaticCast<ConstantExpression>();
-    REQUIRE(p1.GetValue()->GetValue<int>() == 5);
-    REQUIRE(typeid(*function.GetParameters()[1]) == typeid(ConstantExpression));
-    auto p2 = function.GetParameters()[1].StaticCast<ConstantExpression>();
-    REQUIRE(p2.GetValue()->GetValue<int>() == 6);
+    auto& p1 = *function.GetParameters()[0];
+    REQUIRE(typeid(p1) == typeid(ConstantExpression));
+    auto c1 = function.GetParameters()[0].StaticCast<ConstantExpression>();
+    REQUIRE(c1.GetValue()->GetValue<int>() == 5);
+    auto& p2 = *function.GetParameters()[1];
+    REQUIRE(typeid(p2) == typeid(ConstantExpression));
+    auto c2 = function.GetParameters()[1].StaticCast<ConstantExpression>();
+    REQUIRE(c2.GetValue()->GetValue<int>() == 6);
   }
 }

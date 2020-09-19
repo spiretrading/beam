@@ -24,6 +24,10 @@ namespace Beam::Python {
       PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_pop",
         TryPop);
     }
+
+    void Break(const std::exception_ptr& e) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "close", Break, e);
+    }
   };
 
   /**

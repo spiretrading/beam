@@ -36,6 +36,11 @@ namespace {
       PYBIND11_OVERLOAD_PURE_NAME(std::shared_ptr<VirtualChannel>,
         VirtualServerConnection, "accept", PythonAccept);
     }
+
+    void Close() override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServerConnection, "close",
+        Close);
+    }
   };
 
   struct TrampolineReader final : VirtualReader {

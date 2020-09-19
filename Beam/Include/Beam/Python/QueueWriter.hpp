@@ -45,6 +45,10 @@ namespace Details {
     void Push(const Target& value) override {
       PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
     }
+
+    void Break(const std::exception_ptr& e) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "close", Break, e);
+    }
   };
 
   /**

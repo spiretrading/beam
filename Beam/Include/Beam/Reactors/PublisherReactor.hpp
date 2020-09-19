@@ -9,15 +9,15 @@
 
 namespace Beam::Reactors {
 namespace Details {
-  template<typename PublisherType>
+  template<typename P>
   struct PublisherReactorCore {
-    using Publisher = PublisherType;
+    using Publisher = P;
     using Type = typename GetTryDereferenceType<Publisher>::Type;
     Publisher m_publisher;
 
-    template<typename PublisherForward>
-    PublisherReactorCore(PublisherForward&& publisher)
-      : m_publisher(std::forward<PublisherForward>(publisher)) {}
+    template<typename PF>
+    PublisherReactorCore(PF&& publisher)
+      : m_publisher(std::forward<PF>(publisher)) {}
 
     const Type& operator ()(const Type& type) const {
       return type;
@@ -44,8 +44,7 @@ namespace Details {
   template<typename Publisher>
   auto PublisherReactor(std::shared_ptr<Publisher> publisher) {
     return Aspen::lift(Details::PublisherReactorCore<
-      std::shared_ptr<Publisher>>(std::move(publisher)),
-      PublisherReactor(*publisher));
+      std::shared_ptr<Publisher>>(publisher), PublisherReactor(*publisher));
   }
 }
 

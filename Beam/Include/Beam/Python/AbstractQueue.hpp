@@ -17,6 +17,27 @@ namespace Beam::Python {
     using Source = typename T::Source;
     using Target = typename T::Target;
     using T::T;
+
+    Source Pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "pop", Pop);
+    }
+
+    boost::optional<Source> TryPop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_pop",
+        TryPop);
+    }
+
+    void Push(Target&& value) override {
+      Push(value);
+    }
+
+    void Push(const Target& value) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
+    }
+
+    void Break(const std::exception_ptr& e) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "close", Break, e);
+    }
   };
 
   /**

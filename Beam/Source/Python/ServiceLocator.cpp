@@ -81,7 +81,7 @@ namespace {
     }
 
     DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent) {
+        const DirectoryEntry& parent) override {
       PYBIND11_OVERLOAD_PURE_NAME(DirectoryEntry, VirtualServiceLocatorClient,
         "make_directory", MakeDirectory, name, parent);
     }

@@ -7,14 +7,16 @@ using namespace Beam::Queries;
 TEST_SUITE("FilteredQuery") {
   TEST_CASE("default_constructor") {
     auto query = FilteredQuery();
-    REQUIRE(typeid(*query.GetFilter()) == typeid(ConstantExpression));
+    auto& f = *query.GetFilter();
+    REQUIRE(typeid(f) == typeid(ConstantExpression));
     auto filter = query.GetFilter().StaticCast<ConstantExpression>();
     REQUIRE(filter.GetValue()->GetValue<bool>() == true);
   }
 
   TEST_CASE("filter_constructor") {
     auto query = FilteredQuery(ConstantExpression(false));
-    REQUIRE(typeid(*query.GetFilter()) == typeid(ConstantExpression));
+    auto& f = *query.GetFilter();
+    REQUIRE(typeid(f) == typeid(ConstantExpression));
     auto filter = query.GetFilter().StaticCast<ConstantExpression>();
     REQUIRE(filter.GetValue()->GetValue<bool>() == false);
     try {

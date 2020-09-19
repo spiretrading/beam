@@ -67,7 +67,7 @@ namespace Beam::ServiceLocator {
         const DirectoryEntry& target) override;
 
       std::vector<std::tuple<DirectoryEntry, Permissions>>
-        LoadAllPermissions(const DirectoryEntry& account);
+        LoadAllPermissions(const DirectoryEntry& account) override;
 
       void SetPermissions(const DirectoryEntry& source,
         const DirectoryEntry& target, Permissions permissions) override;

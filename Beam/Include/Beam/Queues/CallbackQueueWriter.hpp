@@ -7,6 +7,7 @@
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam {
 
@@ -129,7 +130,11 @@ namespace Beam {
       }
       m_exception = e;
     }
-    m_callbacks->m_breakCallback(e);
+    try {
+      m_callbacks->m_breakCallback(e);
+    } catch(const std::exception&) {
+      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+    }
     m_callbacks.reset();
   }
 }

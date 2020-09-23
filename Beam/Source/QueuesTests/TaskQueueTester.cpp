@@ -12,7 +12,8 @@ TEST_SUITE("TaskQueue") {
       [&] (const auto& e) {
         receivedBreak = true;
       });
-    slot.Break();
+    queue.Pop()();
+    queue.Pop()();
     REQUIRE(receivedBreak);
   }
 }

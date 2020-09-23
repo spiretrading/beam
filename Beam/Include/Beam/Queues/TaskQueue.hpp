@@ -1,5 +1,6 @@
 #ifndef BEAM_TASK_QUEUE_HPP
 #define BEAM_TASK_QUEUE_HPP
+#include <atomic>
 #include <iostream>
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -15,7 +16,7 @@ namespace Beam {
       using Source = AbstractQueue<std::function<void ()>>::Source;
 
       /** Constructs a TaskQueue. */
-      TaskQueue() = default;
+      TaskQueue();
 
       /**
        * Returns a slot.
@@ -65,6 +66,7 @@ namespace Beam {
       using AbstractQueue<std::function<void ()>>::Break;
 
     private:
+      std::atomic_bool m_isBroken;
       Queue<Source> m_tasks;
       CallbackQueue m_callbacks;
 
@@ -96,10 +98,9 @@ namespace Beam {
    */
   template<typename TaskQueueType>
   Routines::Routine::Id SpawnTaskRoutine(TaskQueueType taskQueue) {
-    return Routines::Spawn(
-      [taskQueue = std::move(taskQueue)] {
-        TaskLoop(taskQueue);
-      });
+    return Routines::Spawn([taskQueue = std::move(taskQueue)] {
+      TaskLoop(taskQueue);
+    });
   }
 
   /**
@@ -111,6 +112,9 @@ namespace Beam {
       (*task)();
     }
   }
+
+  inline TaskQueue::TaskQueue()
+    : m_isBroken(false) {}
 
   template<typename T, typename F>
   auto TaskQueue::GetSlot(F&& callback) {
@@ -132,8 +136,7 @@ namespace Beam {
   }
 
   template<typename T>
-  auto TaskQueue::GetSlot(
-      const std::function<void (const T&)>& callback,
+  auto TaskQueue::GetSlot(const std::function<void (const T&)>& callback,
       const std::function<void (const std::exception_ptr&)>& breakCallback) {
     return GetSlotHelper<T>(callback, breakCallback);
   }
@@ -155,8 +158,12 @@ namespace Beam {
   }
 
   inline void TaskQueue::Break(const std::exception_ptr& exception) {
-    m_callbacks.Break(exception);
-    m_tasks.Break(exception);
+    if(!m_isBroken.exchange(true)) {
+      m_callbacks.Break(exception);
+      Push([=] {
+        m_tasks.Break(exception);
+      });
+    }
   }
 
   template<typename T, typename F, typename B>
@@ -164,18 +171,15 @@ namespace Beam {
     return m_callbacks.GetSlot<T>(
       [=, callback = std::make_shared<std::remove_reference_t<F>>(
           std::forward<F>(callback))] (const T& value) {
-        m_tasks.Push(
-          [=] {
-            (*callback)(value);
-          });
+        m_tasks.Push([=] {
+          (*callback)(value);
+        });
       },
       [=, breakCallback = std::make_shared<std::remove_reference_t<B>>(
-          std::forward<B>(breakCallback))] (
-          const std::exception_ptr& e) {
-        m_tasks.Push(
-          [=] () {
-            (*breakCallback)(e);
-          });
+          std::forward<B>(breakCallback))] (const std::exception_ptr& e) {
+        m_tasks.Push([=] () {
+          (*breakCallback)(e);
+        });
       });
   }
 }

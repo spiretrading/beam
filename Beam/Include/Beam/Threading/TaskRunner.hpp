@@ -73,7 +73,7 @@ namespace Beam::Threading {
   inline void TaskRunner::HandleTasks(boost::unique_lock<boost::mutex>& lock) {
     m_handlingTasks = true;
     while(!m_pendingTasks.empty()) {
-      auto task = Task(std::move(m_pendingTasks.front()));
+      auto task = std::move(m_pendingTasks.front());
       m_pendingTasks.pop_front();
       {
         auto release = Release(lock);

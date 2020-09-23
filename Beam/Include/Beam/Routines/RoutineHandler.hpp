@@ -1,78 +1,77 @@
-#ifndef BEAM_ROUTINEHANDLER_HPP
-#define BEAM_ROUTINEHANDLER_HPP
+#ifndef BEAM_ROUTINE_HANDLER_HPP
+#define BEAM_ROUTINE_HANDLER_HPP
 #include <atomic>
-#include <boost/noncopyable.hpp>
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
 
-  /*! \class RoutineHandler
-      \brief Used to spawn a Routine and wait for its completion.
-   */
-  class RoutineHandler : private boost::noncopyable {
+  /** Used to spawn a Routine and wait for its completion. */
+  class RoutineHandler {
     public:
 
-      //! Constructs a RoutineHandler.
+      /** Constructs a RoutineHandler. */
       RoutineHandler();
 
-      //! Constructs a RoutineHandler.
-      /*!
-        \param id The Id of the Routine to manage.
-      */
+      /**
+       * Constructs a RoutineHandler.
+       * @param id The Id of the Routine to manage.
+       */
       RoutineHandler(Routine::Id id);
 
-      //! Acquires a RoutineHandler.
-      /*!
-        \param routineHandler The RoutineHandler to acquire.
-      */
+      /**
+       * Acquires a RoutineHandler.
+       * @param routineHandler The RoutineHandler to acquire.
+       */
       RoutineHandler(RoutineHandler&& routineHandler);
 
       ~RoutineHandler();
 
-      //! Assigns a Routine to this handler.
-      /*!
-        \param id The Id of the Routine to handle.
-      */
+      /**
+       * Assigns a Routine to this handler.
+       * @param id The Id of the Routine to handle.
+       */
       RoutineHandler& operator =(Routine::Id id);
 
-      //! Acquires a RoutineHandler.
-      /*!
-        \param routineHandler The RoutineHandler to acquire.
-      */
+      /**
+       * Acquires a RoutineHandler.
+       * @param routineHandler The RoutineHandler to acquire.
+       */
       RoutineHandler& operator =(RoutineHandler&& routineHandler);
 
-      //! Returns the Routine's id.
+      /** Returns the Routine's id. */
       Routine::Id GetId() const;
 
-      //! Detaches the current Routine from this handler.
+      /** Detaches the current Routine from this handler. */
       void Detach();
 
-      //! Waits for the completion of the previously spawned Routine.
+      /** Waits for the completion of the previously spawned Routine. */
       void Wait();
 
     private:
       Routine::Id m_id;
+
+      RoutineHandler(const RoutineHandler&) = delete;
+      RoutineHandler& operator =(const RoutineHandler&) = delete;
   };
 
-  //! Waits for all pending Routines to complete.
+  /** Waits for all pending Routines to complete. */
   inline void FlushPendingRoutines() {
     auto& scheduler = Details::Scheduler::GetInstance();
-    Threading::Mutex threadCountMutex;
-    Threading::ConditionVariable threadCountCondition;
-    auto threadCount = scheduler.GetThreadCount();
-    std::vector<RoutineHandler> routines;
-    std::atomic_bool isComplete{true};
-    for(std::size_t i = 0; i < scheduler.GetThreadCount(); ++i) {
-      routines.emplace_back(Spawn(
-        [&] {
+    auto threadCountMutex = Threading::Mutex();
+    auto threadCountCondition = Threading::ConditionVariable();
+    while(true) {
+      auto threadCount = scheduler.GetThreadCount();
+      auto routines = std::vector<RoutineHandler>();
+      auto isComplete = std::atomic_bool(true);
+      for(auto i = std::size_t(0); i < scheduler.GetThreadCount(); ++i) {
+        routines.emplace_back(Spawn([&] {
           auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
           {
-            boost::unique_lock<Threading::Mutex> lock{threadCountMutex};
+            auto lock = boost::unique_lock(threadCountMutex);
             --threadCount;
             if(threadCount == 0) {
               threadCountCondition.notify_all();
@@ -82,27 +81,26 @@ namespace Routines {
               }
             }
           }
-          if(routine.GetScheduler().HasPendingRoutines(
-              routine.GetContextId())) {
+          if(scheduler.HasPendingRoutines(routine.GetContextId())) {
             isComplete = false;
           }
-        },
-        Details::Scheduler::DEFAULT_STACK_SIZE, i));
-    }
-    routines.clear();
-    if(!isComplete) {
-      FlushPendingRoutines();
+        }, Details::Scheduler::DEFAULT_STACK_SIZE, i));
+      }
+      routines.clear();
+      if(isComplete) {
+        break;
+      }
     }
   }
 
   inline RoutineHandler::RoutineHandler()
-      : m_id{0} {}
+    : RoutineHandler(0) {}
 
   inline RoutineHandler::RoutineHandler(Routine::Id id)
-      : m_id{id} {}
+    : m_id(id) {}
 
   inline RoutineHandler::RoutineHandler(RoutineHandler&& routineHandler)
-      : m_id{routineHandler.m_id} {
+      : RoutineHandler(routineHandler.m_id) {
     routineHandler.Detach();
   }
 
@@ -144,7 +142,6 @@ namespace Routines {
     Details::Scheduler::GetInstance().Wait(m_id);
     m_id = 0;
   }
-}
 }
 
 #endif

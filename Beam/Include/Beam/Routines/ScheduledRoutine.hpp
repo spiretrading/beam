@@ -22,9 +22,6 @@ namespace Beam::Routines {
   class ScheduledRoutine : public Routine {
     public:
 
-      /** Returns the Scheduler this Routine runs through. */
-      Details::Scheduler& GetScheduler() const;
-
       /** Returns the id of the context this Routine is running in. */
       std::size_t GetContextId() const;
 
@@ -41,10 +38,8 @@ namespace Beam::Routines {
        * @param stackSize The size of the stack to allocate.
        * @param contextId The id of the Context to run in, or -1 to assign it an
        *        arbitrary context id.
-       * @param scheduler The Scheduler this Routine will execute through.
        */
-      ScheduledRoutine(std::size_t stackSize, std::size_t contextId,
-        Ref<Details::Scheduler> scheduler);
+      ScheduledRoutine(std::size_t stackSize, std::size_t contextId);
 
       void Defer() override;
 
@@ -58,7 +53,6 @@ namespace Beam::Routines {
       friend class Details::Scheduler;
       bool m_isPendingResume;
       std::size_t m_stackSize;
-      Details::Scheduler* m_scheduler;
       std::size_t m_contextId;
       boost::context::continuation m_continuation;
       boost::context::continuation m_parent;
@@ -71,10 +65,6 @@ namespace Beam::Routines {
       boost::context::continuation InitializeRoutine(
         boost::context::continuation&& parent);
   };
-
-  inline Details::Scheduler& ScheduledRoutine::GetScheduler() const {
-    return *m_scheduler;
-  }
 
   inline std::size_t ScheduledRoutine::GetContextId() const {
     return m_contextId;
@@ -98,10 +88,9 @@ namespace Beam::Routines {
   }
 
   inline ScheduledRoutine::ScheduledRoutine(std::size_t stackSize,
-      std::size_t contextId, Ref<Details::Scheduler> scheduler)
+      std::size_t contextId)
       : m_isPendingResume(false),
-        m_stackSize(stackSize),
-        m_scheduler(scheduler.Get()) {
+        m_stackSize(stackSize) {
     if(contextId == -1) {
       m_contextId = GetId() % boost::thread::hardware_concurrency();
     } else {

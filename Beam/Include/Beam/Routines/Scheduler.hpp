@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -23,52 +22,55 @@
   #endif
 #endif
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
 namespace Details {
 
-  /*! \class Scheduler
-      \brief Schedules the execution of Routines across multiple threads.
-   */
+  /** Schedules the execution of Routines across multiple threads. */
   class Scheduler : public Singleton<Scheduler> {
     public:
 
-      //! The default size of a Routine's stack.
+      /** The default size of a Routine's stack. */
       static constexpr std::size_t DEFAULT_STACK_SIZE =
         BEAM_SCHEDULER_DEFAULT_STACK_SIZE;
 
-      //! Constructs a Scheduler with a number of threads equal to the system's
-      //! concurrency.
+      /**
+       * Constructs a Scheduler with a number of threads equal to the system's
+       * concurrency.
+       */
       Scheduler();
 
       ~Scheduler();
 
-      //! Returns the number of threads used by the Scheduler.
+      /** Returns the number of threads used by the Scheduler. */
       std::size_t GetThreadCount() const;
 
-      //! Returns <code>true</code> iff the context with the specified <i>id</i>
-      //! has Routines pending.
+      /**
+       * Returns <code>true</code> iff the context with the specified <i>id</i>
+       * has Routines pending.
+       */
       bool HasPendingRoutines(std::size_t contextId) const;
 
-      //! Waits for a Routine to complete.
-      /*!
-        \param id The id of the Routine to wait for.
-      */
+      /**
+       * Waits for a Routine to complete.
+       * @param id The id of the Routine to wait for.
+       */
       void Wait(Routine::Id id);
 
-      //! Spawns a Routine from a callable object.
-      /*!
-        \param f The callable object to run within the Routine.
-        \param stackSize The size of the stack to allocate for the Routine.
-        \param contextId The specific context id to run the Routine in, or
-               set to the number of threads to assign it an arbitrary context.
-        \return A unique ID used to identify the Routine.
-      */
+      /**
+       * Spawns a Routine from a callable object.
+       * @param f The callable object to run within the Routine.
+       * @param stackSize The size of the stack to allocate for the Routine.
+       * @param contextId The specific context id to run the Routine in, or
+       *        set to the number of threads to assign it an arbitrary context.
+       * @return A unique ID used to identify the Routine.
+       */
       template<typename F>
       Routine::Id Spawn(F&& f, std::size_t stackSize, std::size_t contextId);
 
-      //! Waits for any currently executing Routines to COMPLETE and stops
-      //! executing any new ones.
+      /**
+       * Waits for any currently executing Routines to COMPLETE and stops
+       * executing any new ones.
+       */
       void Stop();
 
     private:
@@ -96,17 +98,16 @@ namespace Details {
   };
 
   inline Scheduler::Context::Context()
-      : m_isRunning{true} {}
+    : m_isRunning(true) {}
 
   inline Scheduler::Scheduler()
       : m_threadCount(boost::thread::hardware_concurrency()),
         m_threads(std::make_unique<boost::thread[]>(m_threadCount)),
-        m_contexts{std::make_unique<Context[]>(m_threadCount)} {
-    for(std::size_t i = 0; i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread(
-        [=] {
-          Run(m_contexts[i]);
-        });
+        m_contexts(std::make_unique<Context[]>(m_threadCount)) {
+    for(auto i = std::size_t(0); i < m_threadCount; ++i) {
+      m_threads[i] = boost::thread([=] {
+        Run(m_contexts[i]);
+      });
     }
   }
 
@@ -120,23 +121,22 @@ namespace Details {
 
   inline bool Scheduler::HasPendingRoutines(std::size_t contextId) const {
     auto& context = m_contexts[contextId];
-    boost::lock_guard<boost::mutex> lock{context.m_mutex};
+    auto lock = boost::lock_guard(context.m_mutex);
     return !context.m_pendingRoutines.empty();
   }
 
   inline void Scheduler::Wait(Routine::Id id) {
     assert(GetCurrentRoutine().GetId() != id);
-    Async<void> waitAsync;
-    auto wait = Threading::With(m_routineIds,
-      [&] (auto& routineIds) {
-        auto routineIterator = routineIds.find(id);
-        if(routineIterator == routineIds.end()) {
-          return false;
-        }
-        auto routine = routineIterator->second;
-        routine->Wait(waitAsync.GetEval());
-        return true;
-      });
+    auto waitAsync = Async<void>();
+    auto wait = Threading::With(m_routineIds, [&] (auto& routineIds) {
+      auto routineIterator = routineIds.find(id);
+      if(routineIterator == routineIds.end()) {
+        return false;
+      }
+      auto routine = routineIterator->second;
+      routine->Wait(waitAsync.GetEval());
+      return true;
+    });
     if(wait) {
       waitAsync.Get();
     }
@@ -145,20 +145,19 @@ namespace Details {
   template<typename F>
   Routine::Id Scheduler::Spawn(F&& f, std::size_t stackSize,
       std::size_t contextId) {
-    auto routine = new FunctionRoutine<std::decay_t<F>>(std::forward<F>(f),
-      stackSize, contextId, Ref(*this));
+    auto routine = new FunctionRoutine(std::forward<F>(f), stackSize,
+      contextId);
     auto id = routine->GetId();
-    Threading::With(m_routineIds,
-      [&] (auto& routineIds) {
-        routineIds.insert(std::make_pair(id, routine));
-      });
+    Threading::With(m_routineIds, [&] (auto& routineIds) {
+      routineIds.insert(std::pair(id, routine));
+    });
     Queue(*routine);
     return id;
   }
 
   inline void Scheduler::Queue(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{context.m_mutex};
+    auto lock = boost::lock_guard(context.m_mutex);
     context.m_pendingRoutines.push_back(&routine);
     if(context.m_pendingRoutines.size() == 1) {
       context.m_pendingRoutinesAvailableCondition.notify_all();
@@ -167,7 +166,7 @@ namespace Details {
 
   inline void Scheduler::Suspend(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{context.m_mutex};
+    auto lock = boost::lock_guard(context.m_mutex);
     routine.SetState(Routine::State::SUSPENDED);
     if(routine.IsPendingResume()) {
       routine.SetPendingResume(false);
@@ -180,7 +179,7 @@ namespace Details {
 
   inline void Scheduler::Resume(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    boost::lock_guard<boost::mutex> lock{context.m_mutex};
+    auto lock = boost::lock_guard(context.m_mutex);
     auto routineIterator = context.m_suspendedRoutines.find(&routine);
     if(routineIterator == context.m_suspendedRoutines.end()) {
       routine.SetPendingResume(true);
@@ -194,24 +193,24 @@ namespace Details {
   inline void Scheduler::Stop() {
     for(std::size_t i = 0; i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
-      boost::lock_guard<boost::mutex> contextLock{context.m_mutex};
+      auto lock = boost::lock_guard(context.m_mutex);
       context.m_isRunning = false;
       context.m_pendingRoutinesAvailableCondition.notify_all();
     }
-    for(std::size_t i = 0; i != m_threadCount; ++i) {
+    for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       m_threads[i].join();
     }
-    for(std::size_t i = 0; i != m_threadCount; ++i) {
+    for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
-      boost::lock_guard<boost::mutex> contextLock{context.m_mutex};
+      auto lock = boost::lock_guard(context.m_mutex);
     }
   }
 
   inline void Scheduler::Run(Context& context) {
     while(true) {
-      ScheduledRoutine* routine;
+      auto routine = static_cast<ScheduledRoutine*>(nullptr);
       {
-        boost::unique_lock<boost::mutex> lock{context.m_mutex};
+        auto lock = boost::unique_lock(context.m_mutex);
         while(context.m_pendingRoutines.empty()) {
           if(!context.m_isRunning && context.m_pendingRoutines.empty() &&
               context.m_suspendedRoutines.empty()) {
@@ -224,10 +223,9 @@ namespace Details {
       }
       routine->Continue();
       if(routine->GetState() == Routine::State::COMPLETE) {
-        Threading::With(m_routineIds,
-          [&] (auto& routineIds) {
-            routineIds.erase(routine->GetId());
-          });
+        Threading::With(m_routineIds, [&] (auto& routineIds) {
+          routineIds.erase(routine->GetId());
+        });
         delete routine;
       } else if(routine->GetState() == Routine::State::PENDING_SUSPEND) {
         Suspend(*routine);
@@ -256,26 +254,26 @@ namespace Details {
 
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize, std::size_t contextId,
-      Eval<std::decay_t<decltype(f())>> result) {
-    return Spawn(
-      [f = std::forward<F>(f), result = std::move(result)] {
-        try {
-          result.SetResult(f());
-        } catch(...) {
-          result.SetException(std::current_exception());
-        }
-      }, stackSize, contextId);
+      Eval<std::remove_reference_t<decltype(f())>> result) {
+    return Spawn([f = std::forward<F>(f), result = std::move(result)] {
+      try {
+        result.SetResult(f());
+      } catch(...) {
+        result.SetException(std::current_exception());
+      }
+    }, stackSize, contextId);
   }
 
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize,
-      Eval<std::decay_t<decltype(f())>> result) {
+      Eval<std::remove_reference_t<decltype(f())>> result) {
     return Spawn(std::forward<F>(f), stackSize, static_cast<std::size_t>(-1),
       std::move(result));
   }
 
   template<typename F>
-  Routine::Id Spawn(F&& f, Eval<std::decay_t<decltype(f())>> result) {
+  Routine::Id Spawn(F&& f,
+      Eval<std::remove_reference_t<decltype(f())>> result) {
     return Spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
       std::move(result));
   }
@@ -285,9 +283,8 @@ namespace Details {
   }
 
   inline void ScheduledRoutine::Resume() {
-    m_scheduler->Resume(*this);
+    Details::Scheduler::GetInstance().Resume(*this);
   }
-}
 }
 
 #endif

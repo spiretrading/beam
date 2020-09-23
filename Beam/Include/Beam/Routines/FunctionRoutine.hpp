@@ -4,28 +4,26 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/Routines/ScheduledRoutine.hpp"
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
 
-  /*! \class FunctionRoutine
-      \brief Implements a Routine using a callable object.
-      \tparam F The type of the callable object to run.
+  /**
+   * Implements a Routine using a callable object.
+   * @param <F> The type of the callable object to run.
    */
   template<typename F>
   class FunctionRoutine final : public ScheduledRoutine {
     public:
 
-      //! Constructs a FunctionRoutine.
-      /*!
-        \param function The callable object to run.
-        \param contextId The id of the Context to run in, or -1 to assign it an
-                         arbitrary context id.
-        \param stackSize The size of the stack to allocate.
-        \param scheduler The Scheduler this Routine runs through.
-      */
-      template<typename FunctionForward>
-      FunctionRoutine(FunctionForward&& function, std::size_t stackSize,
-        std::size_t contextId, Ref<Details::Scheduler> scheduler);
+      /**
+       * Constructs a FunctionRoutine.
+       * @param function The callable object to run.
+       * @param contextId The id of the Context to run in, or -1 to assign it an
+       *        arbitrary context id.
+       * @param stackSize The size of the stack to allocate.
+       */
+      template<typename FF>
+      FunctionRoutine(FF&& function, std::size_t stackSize,
+        std::size_t contextId);
 
     protected:
       void Execute() override;
@@ -35,12 +33,15 @@ namespace Routines {
   };
 
   template<typename F>
-  template<typename FunctionForward>
-  FunctionRoutine<F>::FunctionRoutine(FunctionForward&& function,
-    std::size_t stackSize, std::size_t contextId,
-    Ref<Details::Scheduler> scheduler)
-    : ScheduledRoutine(stackSize, contextId, Ref(scheduler)),
-        m_function(std::forward<FunctionForward>(function)) {}
+  FunctionRoutine(F&&, std::size_t, std::size_t) ->
+    FunctionRoutine<std::remove_reference_t<F>>;
+
+  template<typename F>
+  template<typename FF>
+  FunctionRoutine<F>::FunctionRoutine(FF&& function, std::size_t stackSize,
+    std::size_t contextId)
+    : ScheduledRoutine(stackSize, contextId),
+      m_function(std::forward<FF>(function)) {}
 
   template<typename F>
   void FunctionRoutine<F>::Execute() {
@@ -52,7 +53,6 @@ namespace Routines {
     }
     m_function = boost::none;
   }
-}
 }
 
 #endif

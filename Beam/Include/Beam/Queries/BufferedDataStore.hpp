@@ -162,13 +162,11 @@ namespace Beam::Queries {
     if(m_openState.SetClosing()) {
       return;
     }
-    auto writeToken = Routines::Async<void>();
-    m_tasks.Push(
-      [&] {
-        Flush();
-        writeToken.GetEval().SetResult();
-      });
-    writeToken.Get();
+    m_tasks.Push([&] {
+      Flush();
+    });
+    m_tasks.Break();
+    m_tasks.Wait();
     m_openState.Close();
   }
 
@@ -178,10 +176,9 @@ namespace Beam::Queries {
       return;
     }
     m_bufferCount = 0;
-    m_tasks.Push(
-      [=] {
-        Flush();
-      });
+    m_tasks.Push([=] {
+      Flush();
+    });
   }
 
   template<typename D, typename E>

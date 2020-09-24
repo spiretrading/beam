@@ -555,9 +555,9 @@ namespace Beam::ServiceLocator {
     if(m_openState.SetClosing()) {
       return;
     }
+    m_accountUpdatePublisher.Break();
     m_tasks.Break();
     m_tasks.Wait();
-    m_accountUpdatePublisher.Break();
     m_clientHandler.Close();
     m_openState.Close();
   }

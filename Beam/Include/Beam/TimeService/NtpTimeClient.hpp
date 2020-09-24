@@ -80,7 +80,7 @@ namespace Beam::TimeService {
       GetOptionalLocalPtr<T> m_timer;
       Threading::Sync<Origin> m_origin;
       IO::OpenState m_openState;
-      RoutineTaskQueue m_callbacks;
+      RoutineTaskQueue m_tasks;
 
       NtpTimeClient(const NtpTimeClient&) = delete;
       NtpTimeClient& operator =(const NtpTimeClient&) = delete;
@@ -169,8 +169,7 @@ namespace Beam::TimeService {
         m_timer(std::forward<TF>(timer)) {
     try {
       Synchronize();
-      m_timer->GetPublisher().Monitor(
-        m_callbacks.GetSlot<Threading::Timer::Result>(
+      m_timer->GetPublisher().Monitor(m_tasks.GetSlot<Threading::Timer::Result>(
         std::bind(&NtpTimeClient::OnTimerExpired, this,
         std::placeholders::_1)));
       m_timer->Start();
@@ -202,7 +201,8 @@ namespace Beam::TimeService {
       return;
     }
     m_timer->Cancel();
-    m_callbacks.Break();
+    m_tasks.Break();
+    m_tasks.Wait();
     m_openState.Close();
   }
 

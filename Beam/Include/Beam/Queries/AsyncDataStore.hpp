@@ -51,7 +51,7 @@ namespace Details {
     auto result = C();
     result.reserve(std::min(static_cast<std::size_t>(limit),
       match1.size() + match2.size() + match3.size()));
-    auto comparator = [](const auto& lhs, const auto& rhs) {
+    auto comparator = [] (const auto& lhs, const auto& rhs) {
       if(D == SnapshotLimit::Type::HEAD) {
         return SequenceComparator()(*lhs->m_current, *rhs->m_current);
       } else {
@@ -203,11 +203,8 @@ namespace Details {
     if(m_openState.SetClosing()) {
       return;
     }
-    auto writeToken = Routines::Async<void>();
-    m_tasks.Push([&] {
-      writeToken.GetEval().SetResult();
-    });
-    writeToken.Get();
+    m_tasks.Break();
+    m_tasks.Wait();
     m_openState.Close();
   }
 

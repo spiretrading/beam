@@ -1,44 +1,47 @@
 #ifndef BEAM_QUERY_EXPRESSION_VISITOR_HPP
 #define BEAM_QUERY_EXPRESSION_VISITOR_HPP
-#include <boost/noncopyable.hpp>
 #include "Beam/Queries/Queries.hpp"
 
 namespace Beam::Queries {
 
   /** Implements the visitor pattern for Expressions. */
-  class ExpressionVisitor : private boost::noncopyable {
+  class ExpressionVisitor {
     public:
       virtual ~ExpressionVisitor() = default;
 
-      //! Visits a ConstantExpression.
+      /** Visits a ConstantExpression. */
       virtual void Visit(const ConstantExpression& expression);
 
-      //! Visits a FunctionExpression.
+      /** Visits a FunctionExpression. */
       virtual void Visit(const FunctionExpression& expression);
 
-      //! Visits a GlobalVariableDeclarationExpression.
+      /** Visits a GlobalVariableDeclarationExpression. */
       virtual void Visit(const GlobalVariableDeclarationExpression& expression);
 
-      //! Visits a MemberAccessExpression.
+      /** Visits a MemberAccessExpression. */
       virtual void Visit(const MemberAccessExpression& expression);
 
-      //! Visits an OrExpression.
+      /** Visits an OrExpression. */
       virtual void Visit(const OrExpression& expression);
 
-      //! Visits a ParameterExpression.
+      /** Visits a ParameterExpression. */
       virtual void Visit(const ParameterExpression& expression);
 
-      //! Visits a ReduceExpression.
+      /** Visits a ReduceExpression. */
       virtual void Visit(const ReduceExpression& expression);
 
-      //! Visits a SetVariableExpression.
+      /** Visits a SetVariableExpression. */
       virtual void Visit(const SetVariableExpression& expression);
 
-      //! Visits a VariableExpression.
+      /** Visits a VariableExpression. */
       virtual void Visit(const VariableExpression& expression);
 
-      //! Visits the base class VirtualExpression.
+      /** Visits the base class VirtualExpression. */
       virtual void Visit(const VirtualExpression& expression);
+
+    private:
+      ExpressionVisitor(const ExpressionVisitor&) = delete;
+      ExpressionVisitor& operator =(const ExpressionVisitor&) = delete;
   };
 
   inline void ExpressionVisitor::Visit(const VirtualExpression& expression) {}

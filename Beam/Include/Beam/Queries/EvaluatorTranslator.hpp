@@ -1,5 +1,5 @@
-#ifndef BEAM_EVALUATORTRANSLATOR_HPP
-#define BEAM_EVALUATORTRANSLATOR_HPP
+#ifndef BEAM_EVALUATOR_TRANSLATOR_HPP
+#define BEAM_EVALUATOR_TRANSLATOR_HPP
 #include <array>
 #include <memory>
 #include <unordered_map>
@@ -29,70 +29,72 @@
 #include "Beam/Utilities/Casts.hpp"
 #include "Beam/Utilities/InstantiateTemplate.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  //! The maximum number of supported parameters.
+  /** The maximum number of supported parameters. */
   const int MAX_EVALUATOR_PARAMETERS = 2;
 
-  /*! \class EvaluatorTranslator
-      \brief Translates an Expression into an EvaluatorNode.
-      \tparam QueryTypes The list of types supported.
+  /**
+   * Translates an Expression into an EvaluatorNode.
+   * @param <QueryTypes> The list of types supported.
    */
   template<typename QueryTypes>
-  class EvaluatorTranslator : public ExpressionVisitor {
+  class EvaluatorTranslator : protected ExpressionVisitor {
     public:
 
-      //! Lists all value types.
+      /** Lists all value types. */
       using ValueTypes = typename QueryTypes::ValueTypes;
 
-      //! Lists all native types.
+      /** Lists all native types. */
       using NativeTypes = typename QueryTypes::NativeTypes;
 
-      //! Lists types that can be compared.
+      /** Lists types that can be compared. */
       using ComparableTypes = typename QueryTypes::ComparableTypes;
 
-      //! Translates an Expression.
-      /*!
-        \param expression The Expression to translate.
-      */
+      /**
+       * Translates an Expression.
+       * @param expression The Expression to translate.
+       */
       void Translate(const Expression& expression);
 
-      //! Returns the EvaluatorNode that was last translated.
+      /** Returns the EvaluatorNode that was last translated. */
       std::unique_ptr<BaseEvaluatorNode> GetEvaluator();
 
-      //! Returns the parameters that were translated.
+      /** Returns the parameters that were translated. */
       const std::vector<BaseParameterEvaluatorNode*>& GetParameters() const;
 
-      //! Creates a new instance of this translator, typically used for
-      //! sub-expressions.
+      /**
+       * Creates a new instance of this translator, typically used for
+       *  sub-expressions.
+       */
       virtual std::unique_ptr<EvaluatorTranslator> NewTranslator() const;
-
-      virtual void Visit(const ConstantExpression& expression);
-
-      virtual void Visit(const FunctionExpression& expression);
-
-      virtual void Visit(const GlobalVariableDeclarationExpression& expression);
-
-      virtual void Visit(const OrExpression& expression);
-
-      virtual void Visit(const ParameterExpression& expression);
-
-      virtual void Visit(const ReduceExpression& expression);
-
-      virtual void Visit(const SetVariableExpression& expression);
-
-      virtual void Visit(const VariableExpression& expression);
-
-      virtual void Visit(const VirtualExpression& expression);
 
     protected:
 
-      //! Sets the most recently translated evaluator.
-      /*!
-        \param evaluator The most recently translated evaluator.
-      */
+      /**
+       * Sets the most recently translated evaluator.
+       * @param evaluator The most recently translated evaluator.
+       */
       void SetEvaluator(std::unique_ptr<BaseEvaluatorNode> evaluator);
+
+      void Visit(const ConstantExpression& expression) override;
+
+      void Visit(const FunctionExpression& expression) override;
+
+      void Visit(
+        const GlobalVariableDeclarationExpression& expression) override;
+
+      void Visit(const OrExpression& expression) override;
+
+      void Visit(const ParameterExpression& expression) override;
+
+      void Visit(const ReduceExpression& expression) override;
+
+      void Visit(const SetVariableExpression& expression) override;
+
+      void Visit(const VariableExpression& expression) override;
+
+      void Visit(const VirtualExpression& expression) override;
 
     private:
       struct VariableEntry {
@@ -110,20 +112,21 @@ namespace Queries {
 
   template<typename QueryTypes>
   EvaluatorTranslator<QueryTypes>::VariableEntry::VariableEntry(void* address,
-      const std::type_info& type)
-      : m_address(address),
-        m_type(&type) {}
+    const std::type_info& type)
+    : m_address(address),
+      m_type(&type) {}
 
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::Translate(
       const Expression& expression) {
     expression->Apply(*this);
-    std::array<boost::optional<const std::type_info*>, 2> parameterChecks;
+    auto parameterChecks =
+      std::array<boost::optional<const std::type_info*>, 2>();
     auto maxIndex = -1;
-    for(const auto& parameter : m_parameters) {
+    for(auto& parameter : m_parameters) {
       maxIndex = std::max(maxIndex, parameter->GetIndex());
       auto& parameterCheck = parameterChecks[parameter->GetIndex()];
-      if(parameterCheck.is_initialized()) {
+      if(parameterCheck) {
         if(**parameterCheck != parameter->GetResultType()) {
           BOOST_THROW_EXCEPTION(ExpressionTranslationException(
             "Parameter type mismatch."));
@@ -133,7 +136,7 @@ namespace Queries {
       }
     }
     for(auto i = 0; i <= maxIndex; ++i) {
-      if(!parameterChecks[i].is_initialized()) {
+      if(!parameterChecks[i]) {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Missing parameter."));
       }
@@ -159,6 +162,12 @@ namespace Queries {
   }
 
   template<typename QueryTypes>
+  void EvaluatorTranslator<QueryTypes>::SetEvaluator(
+      std::unique_ptr<BaseEvaluatorNode> evaluator) {
+    m_evaluator = std::move(evaluator);
+  }
+
+  template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::Visit(
       const ConstantExpression& expression) {
     m_evaluator.reset(Instantiate<ConstantEvaluatorNodeTranslator<NativeTypes>>(
@@ -173,11 +182,11 @@ namespace Queries {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Invalid parameters."));
       }
-      const auto& leftExpression = expression.GetParameters()[0];
+      auto& leftExpression = expression.GetParameters()[0];
       leftExpression->Apply(*this);
-      std::vector<std::unique_ptr<BaseEvaluatorNode>> parameters;
+      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
       parameters.push_back(std::move(m_evaluator));
-      const auto& rightExpression = expression.GetParameters()[1];
+      auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
       m_evaluator.reset(Instantiate<
@@ -189,11 +198,11 @@ namespace Queries {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Invalid parameters."));
       }
-      const auto& leftExpression = expression.GetParameters()[0];
+      auto& leftExpression = expression.GetParameters()[0];
       leftExpression->Apply(*this);
-      std::vector<std::unique_ptr<BaseEvaluatorNode>> parameters;
+      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
       parameters.push_back(std::move(m_evaluator));
-      const auto& rightExpression = expression.GetParameters()[1];
+      auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
       m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
@@ -205,11 +214,11 @@ namespace Queries {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Invalid parameters."));
       }
-      const auto& leftExpression = expression.GetParameters()[0];
+      auto& leftExpression = expression.GetParameters()[0];
       leftExpression->Apply(*this);
-      std::vector<std::unique_ptr<BaseEvaluatorNode>> parameters;
+      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
       parameters.push_back(std::move(m_evaluator));
-      const auto& rightExpression = expression.GetParameters()[1];
+      auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
       m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
@@ -221,11 +230,11 @@ namespace Queries {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
           "Invalid parameters."));
       }
-      const auto& leftExpression = expression.GetParameters()[0];
+      auto& leftExpression = expression.GetParameters()[0];
       leftExpression->Apply(*this);
-      std::vector<std::unique_ptr<BaseEvaluatorNode>> parameters;
+      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
       parameters.push_back(std::move(m_evaluator));
-      const auto& rightExpression = expression.GetParameters()[1];
+      auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
       m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
@@ -241,16 +250,16 @@ namespace Queries {
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::Visit(
       const GlobalVariableDeclarationExpression& expression) {
-    const auto& initialValueExpression = expression.GetInitialValue();
+    auto& initialValueExpression = expression.GetInitialValue();
     initialValueExpression->Apply(*this);
     auto initialValueEvaluator = std::move(GetEvaluator());
-    const auto& bodyExpression = expression.GetBody();
-    void* address;
-    auto globalVariableEvaluator(Instantiate<
+    auto& bodyExpression = expression.GetBody();
+    auto address = static_cast<void*>(nullptr);
+    auto globalVariableEvaluator = Instantiate<
       GlobalVariableDeclarationEvaluatorNodeTranslator<NativeTypes>>(
       initialValueExpression->GetType()->GetNativeType(),
       bodyExpression->GetType()->GetNativeType())(
-      std::move(initialValueEvaluator), Store(address)));
+      std::move(initialValueEvaluator), Store(address));
     auto& variables = m_variables[expression.GetName()];
     variables.emplace_back(address,
       initialValueExpression->GetType()->GetNativeType());
@@ -301,7 +310,7 @@ namespace Queries {
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::Visit(
       const SetVariableExpression& expression) {
-    const auto& variable = FindVariable(expression.GetName());
+    auto& variable = FindVariable(expression.GetName());
     if(*variable.m_type != expression.GetType()->GetNativeType()) {
       BOOST_THROW_EXCEPTION(ExpressionTranslationException("Type mismatch."));
     }
@@ -317,7 +326,7 @@ namespace Queries {
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::Visit(
       const VariableExpression& expression) {
-    const auto& variable = FindVariable(expression.GetName());
+    auto& variable = FindVariable(expression.GetName());
     if(*variable.m_type != expression.GetType()->GetNativeType()) {
       BOOST_THROW_EXCEPTION(ExpressionTranslationException("Type mismatch."));
     }
@@ -334,12 +343,6 @@ namespace Queries {
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::SetEvaluator(
-      std::unique_ptr<BaseEvaluatorNode> evaluator) {
-    m_evaluator = std::move(evaluator);
-  }
-
-  template<typename QueryTypes>
   const typename EvaluatorTranslator<QueryTypes>::VariableEntry&
       EvaluatorTranslator<QueryTypes>::FindVariable(
       const std::string& name) const {
@@ -351,7 +354,6 @@ namespace Queries {
     }
     return variableIterator->second.back();
   }
-}
 }
 
 #endif

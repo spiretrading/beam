@@ -20,94 +20,92 @@ namespace Details {
   std::false_type HasLessThanTest(...);
 }
 
-  //! The name used for the addition function.
+  /** The name used for the addition function. */
   inline const std::string ADDITION_NAME = "+";
 
-  //! The name used for the equals function.
+  /** The name used for the equals function. */
   inline const std::string EQUALS_NAME = "==";
 
-  //! The name used for the max function.
+  /** The name used for the max function. */
   inline const std::string MAX_NAME = "max";
 
-  //! The name used for the min function.
+  /** The name used for the min function. */
   inline const std::string MIN_NAME = "min";
 
-  //! Constructs a FunctionExpression representing addition.
-  /*!
-    \param The left hand side of the expression.
-    \param The right hand side of the expression.
-    \return A FunctionExpression representing addition.
-  */
+  /**
+   * Constructs a FunctionExpression representing addition.
+   * @param The left hand side of the expression.
+   * @param The right hand side of the expression.
+   * @return A FunctionExpression representing addition.
+   */
   inline FunctionExpression MakeAdditionExpression(const Expression& left,
       const Expression& right) {
-    std::vector<Expression> parameters;
+    auto parameters = std::vector<Expression>();
     parameters.push_back(left);
     parameters.push_back(right);
-    FunctionExpression expression(ADDITION_NAME, left->GetType(),
+    auto expression = FunctionExpression(ADDITION_NAME, left->GetType(),
       std::move(parameters));
     return expression;
   }
 
-  //! Constructs a FunctionExpression representing equality.
-  /*!
-    \param The left hand side of the expression.
-    \param The right hand side of the expression.
-    \return A FunctionExpression representing equality.
-  */
+  /**
+   * Constructs a FunctionExpression representing equality.
+   * @param The left hand side of the expression.
+   * @param The right hand side of the expression.
+   * @return A FunctionExpression representing equality.
+   */
   inline FunctionExpression MakeEqualsExpression(const Expression& left,
       const Expression& right) {
-    std::vector<Expression> parameters;
+    auto parameters = std::vector<Expression>();
     parameters.push_back(left);
     parameters.push_back(right);
-    FunctionExpression expression(EQUALS_NAME, BoolType(),
+    auto expression = FunctionExpression(EQUALS_NAME, BoolType(),
       std::move(parameters));
     return expression;
   }
 
-  //! Constructs a FunctionExpression representing the max function.
-  /*!
-    \param The left hand side of the expression.
-    \param The right hand side of the expression.
-    \return A FunctionExpression representing the max function.
-  */
+  /**
+   * Constructs a FunctionExpression representing the max function.
+   * @param The left hand side of the expression.
+   * @param The right hand side of the expression.
+   * @return A FunctionExpression representing the max function.
+   */
   inline FunctionExpression MakeMaxExpression(const Expression& left,
       const Expression& right) {
-    std::vector<Expression> parameters;
+    auto parameters = std::vector<Expression>();
     parameters.push_back(left);
     parameters.push_back(right);
-    FunctionExpression expression(MAX_NAME, left->GetType(),
+    auto expression = FunctionExpression(MAX_NAME, left->GetType(),
       std::move(parameters));
     return expression;
   }
 
-  //! Constructs a FunctionExpression representing the min function.
-  /*!
-    \param The left hand side of the expression.
-    \param The right hand side of the expression.
-    \return A FunctionExpression representing the min function.
-  */
+  /**
+   * Constructs a FunctionExpression representing the min function.
+   * @param The left hand side of the expression.
+   * @param The right hand side of the expression.
+   * @return A FunctionExpression representing the min function.
+   */
   inline FunctionExpression MakeMinExpression(const Expression& left,
       const Expression& right) {
-    std::vector<Expression> parameters;
+    auto parameters = std::vector<Expression>();
     parameters.push_back(left);
     parameters.push_back(right);
-    FunctionExpression expression(MIN_NAME, left->GetType(),
+    auto expression = FunctionExpression(MIN_NAME, left->GetType(),
       std::move(parameters));
     return expression;
   }
 
-  /*! \struct HasLessThan
-      \brief Tests if a type has a less than operator.
-      \tparam T The type to test.
+  /**
+   * Tests if a type has a less than operator.
+   * @param <T> The type to test.
    */
   template<typename T>
   struct HasLessThan :
     std::is_same<decltype(Details::HasLessThanTest(std::declval<T>())),
     std::true_type>::type {};
 
-  /*! \struct AdditionExpressionTranslator
-      \brief Contains the meta-data needed to translate an addition Expression.
-   */
+  /** Contains the meta-data needed to translate an addition Expression. */
   struct AdditionExpressionTranslator {
     template<typename T0, typename T1>
     struct Operation {
@@ -124,9 +122,7 @@ namespace Details {
         boost::posix_time::time_duration>>;
   };
 
-  /*! \struct EqualsExpressionTranslator
-      \brief Contains the meta-data needed to translate an equals Expression.
-   */
+  /** Contains the meta-data needed to translate an equals Expression. */
   template<typename ValueTypes>
   struct EqualsExpressionTranslator {
     template<typename T0, typename T1>
@@ -145,9 +141,7 @@ namespace Details {
       MakeSignature<boost::mpl::placeholders::_1>>::type;
   };
 
-  /*! \struct MaxExpressionTranslator
-      \brief Contains the meta-data needed to translate a max Expression.
-   */
+  /** Contains the meta-data needed to translate a max Expression. */
   template<typename ValueTypes>
   struct MaxExpressionTranslator {
     template<typename T0, typename T1>
@@ -170,9 +164,7 @@ namespace Details {
       MakeSignature<boost::mpl::placeholders::_1>>::type;
   };
 
-  /*! \struct MinExpressionTranslator
-      \brief Contains the meta-data needed to translate a min Expression.
-   */
+  /** Contains the meta-data needed to translate a min Expression. */
   template<typename ValueTypes>
   struct MinExpressionTranslator {
     template<typename T0, typename T1>

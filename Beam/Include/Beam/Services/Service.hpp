@@ -210,18 +210,16 @@ namespace Details {
       for(auto& preHook : m_preHooks) {
         preHook(*protocol.Get());
       }
+      auto token = RequestToken<ServiceProtocolClientType, Service>(
+        Ref(protocol), requestId);
+      InvokeSlot<RequestToken<ServiceProtocolClientType, Service>>()(m_slot,
+        token, parameters);
     } catch(const ServiceRequestException& e) {
       protocol->Send(Response(requestId, protocol->CloneException(e)));
-      return;
     } catch(const std::exception& e) {
       protocol->Send(Response(requestId, protocol->CloneException(
         ServiceRequestException(e.what()))));
-      return;
     }
-    auto token = RequestToken<ServiceProtocolClientType, Service>(Ref(protocol),
-      requestId);
-    InvokeSlot<RequestToken<ServiceProtocolClientType, Service>>()(m_slot,
-      token, parameters);
   }
 
   template<typename ServiceType, typename ServiceProtocolClientType>

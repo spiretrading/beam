@@ -70,7 +70,7 @@ namespace Beam::Threading {
       static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
       boost::mutex m_mutex;
       std::size_t m_maxThreadCount;
-      std::size_t m_isWaitingForCompletion;
+      bool m_isWaitingForCompletion;
       std::size_t m_runningThreads;
       std::size_t m_activeThreads;
       std::deque<TaskThread*> m_threads;
@@ -92,7 +92,7 @@ namespace Beam::Threading {
    */
   template<typename F>
   auto Park(F&& f) {
-    using Result = std::invoke_result_t<F>;
+    using Result = std::remove_reference_t<std::invoke_result_t<F>>;
     auto result = Routines::Async<Result>();
     ThreadPool::GetInstance().Queue(std::forward<F>(f), result.GetEval());
     return std::move(result.Get());

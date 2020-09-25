@@ -38,6 +38,9 @@ namespace Beam::Threading {
     private:
       Lock* m_lock;
       bool m_isReleased;
+
+      LockRelease(const LockRelease&) = delete;
+      LockRelease& operator =(const LockRelease&) = delete;
   };
 
   /**

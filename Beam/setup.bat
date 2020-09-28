@@ -159,7 +159,7 @@ IF NOT EXIST tclap-1.2.2 (
   )
   DEL /F /Q v1.2.2.zip
 )
-SET VIPER_COMMIT="b4793ce00a6fa934d3efe564c1de489b371a3663"
+SET VIPER_COMMIT="99212c81d5a4b5b60bf9a585cdf51eec62888bc7"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! EQU 0 (

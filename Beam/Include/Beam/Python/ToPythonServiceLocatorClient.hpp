@@ -43,6 +43,8 @@ namespace Beam::ServiceLocator {
       ServiceEntry Register(const std::string& name,
         const JsonObject& properties) override;
 
+      void Unregister(const ServiceEntry& service) override;
+
       std::vector<DirectoryEntry> LoadAllAccounts() override;
 
       boost::optional<DirectoryEntry> FindAccount(
@@ -167,6 +169,13 @@ namespace Beam::ServiceLocator {
       const std::string& name, const JsonObject& properties) {
     auto release = Python::GilRelease();
     return m_client->Register(name, properties);
+  }
+
+  template<typename C>
+  void ToPythonServiceLocatorClient<C>::Unregister(
+      const ServiceEntry& service) {
+    auto release = Python::GilRelease();
+    return m_client->Unregister(service);
   }
 
   template<typename C>

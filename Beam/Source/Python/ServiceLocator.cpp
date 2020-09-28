@@ -62,6 +62,11 @@ namespace {
         "register", Register, name, properties);
     }
 
+    void Unregister(const ServiceEntry& service) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
+        "unregister", Unregister, service);
+    }
+
     std::vector<DirectoryEntry> LoadAllAccounts() override {
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<DirectoryEntry>,
         VirtualServiceLocatorClient, "load_all_accounts", LoadAllAccounts);
@@ -291,6 +296,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
       &VirtualServiceLocatorClient::AuthenticateSession)
     .def("locate", &VirtualServiceLocatorClient::Locate)
     .def("register", &VirtualServiceLocatorClient::Register)
+    .def("unregister", &VirtualServiceLocatorClient::Unregister)
     .def("load_all_accounts", &VirtualServiceLocatorClient::LoadAllAccounts)
     .def("find_account", &VirtualServiceLocatorClient::FindAccount)
     .def("make_account", &VirtualServiceLocatorClient::MakeAccount)

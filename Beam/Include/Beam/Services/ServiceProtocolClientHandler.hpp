@@ -134,8 +134,8 @@ namespace Beam::Services {
         }
         return m_client;
       } catch(const IO::ConnectException&) {
-        auto release = Threading::Release(lock);
         auto timer = m_builder->BuildTimer();
+        auto release = Threading::Release(lock);
         timer->Start();
         timer->Wait();
       } catch(const std::exception&) {

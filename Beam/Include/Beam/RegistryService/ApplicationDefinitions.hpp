@@ -1,7 +1,7 @@
 #ifndef BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
 #define BEAM_REGISTRY_APPLICATION_DEFINITIONS_HPP
-#include <optional>
 #include <string>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
@@ -13,92 +13,78 @@
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
-#include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/throw_exception.hpp>
 
-namespace Beam {
-namespace RegistryService {
-namespace Details {
-  using RegistryClientSessionBuilder =
-    Services::AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::ApplicationServiceLocatorClient::Client,
-    Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
-    Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-    Threading::LiveTimer>;
-}
+namespace Beam::RegistryService {
 
-  /*! \class ApplicationRegistryClient
-      \brief Encapsulates a standard RegistryClient used in an application.
-   */
-  class ApplicationRegistryClient : private boost::noncopyable {
+  /** Encapsulates a standard RegistryClient used in an application. */
+  class ApplicationRegistryClient {
     public:
 
-      //! Defines the standard RegistryClient used for applications.
-      using Client = RegistryClient<Details::RegistryClientSessionBuilder>;
+      /** The type used to build client sessions. */
+      using SessionBuilder =
+        Services::AuthenticatedServiceProtocolClientBuilder<
+        ServiceLocator::ApplicationServiceLocatorClient::Client,
+        Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
+        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+        Threading::LiveTimer>;
 
-      //! Constructs an ApplicationRegistryClient.
+      /** Defines the standard RegistryClient used for applications. */
+      using Client = RegistryClient<SessionBuilder>;
+
+      /** Constructs an ApplicationRegistryClient. */
       ApplicationRegistryClient() = default;
 
-      //! Builds the session.
-      /*!
-        \param serviceLocatorClient The ServiceLocatorClient used to
-               authenticate sessions.
-      */
+      /**
+       * Builds the session.
+       * @param serviceLocatorClient The ServiceLocatorClient used to
+       *        authenticate sessions.
+       */
       void BuildSession(
         Ref<ServiceLocator::ApplicationServiceLocatorClient::Client>
         serviceLocatorClient);
 
-      //! Returns a reference to the Client.
+      /** Returns a reference to the Client. */
       Client& operator *();
 
-      //! Returns a reference to the Client.
+      /** Returns a reference to the Client. */
       const Client& operator *() const;
 
-      //! Returns a pointer to the Client.
+      /** Returns a pointer to the Client. */
       Client* operator ->();
 
-      //! Returns a pointer to the Client.
+      /** Returns a pointer to the Client. */
       const Client* operator ->() const;
 
-      //! Returns a pointer to the Client.
+      /** Returns a pointer to the Client. */
       Client* Get();
 
-      //! Returns a pointer to the Client.
+      /** Returns a pointer to the Client. */
       const Client* Get() const;
 
     private:
-      std::optional<Client> m_client;
+      boost::optional<Client> m_client;
+
+      ApplicationRegistryClient(const ApplicationRegistryClient&) = delete;
+      ApplicationRegistryClient& operator =(
+        const ApplicationRegistryClient&) = delete;
   };
 
   inline void ApplicationRegistryClient::BuildSession(
       Ref<ServiceLocator::ApplicationServiceLocatorClient::Client>
       serviceLocatorClient) {
-    if(m_client.has_value()) {
-      m_client->Close();
-      m_client = std::nullopt;
-    }
-    auto serviceLocatorClientHandle = serviceLocatorClient.Get();
+    m_client = boost::none;
     auto addresses = ServiceLocator::LocateServiceAddresses(
-      *serviceLocatorClientHandle, SERVICE_NAME);
-    auto delay = false;
+      *serviceLocatorClient, SERVICE_NAME);
     auto sessionBuilder = Details::RegistryClientSessionBuilder(
       Ref(serviceLocatorClient),
-      [=] () mutable {
-        if(delay) {
-          auto delayTimer = Threading::LiveTimer(boost::posix_time::seconds(3));
-          delayTimer.Start();
-          delayTimer.Wait();
-        }
-        delay = true;
+      [=] {
         return std::make_unique<Network::TcpSocketChannel>(addresses);
       },
       [] {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10));
       });
-    m_client.emplace(sessionBuilder);
+    m_client.emplace(std::move(sessionBuilder));
   }
 
   inline ApplicationRegistryClient::Client&
@@ -129,7 +115,6 @@ namespace Details {
       ApplicationRegistryClient::Get() const {
     return &*m_client;
   }
-}
 }
 
 #endif

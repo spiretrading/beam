@@ -15,12 +15,12 @@ namespace Beam::ServiceLocator {
   };
 
   /**
-   * Opens a ServiceProtocolClient and authenticates the session.
+   * Authenticates a ServiceProtocolClient.
    * @param authenticator The Authenticator to use.
    * @param serviceProtocolClient The ServiceProtocolClient to authenticate.
    */
   template<typename Authenticator, typename ServiceProtocolClient>
-  void OpenAndAuthenticate(const Authenticator& authenticator,
+  void Authenticate(const Authenticator& authenticator,
       ServiceProtocolClient& serviceProtocolClient) {
     authenticator(serviceProtocolClient);
   }

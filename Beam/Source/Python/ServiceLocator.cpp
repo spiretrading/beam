@@ -200,13 +200,8 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
       VirtualServiceLocatorClient>(module, "ApplicationServiceLocatorClient")
     .def(init(
       [] (std::string username, std::string password, IpAddress address) {
-        auto isConnected = false;
         auto sessionBuilder = ApplicationServiceLocatorClient::SessionBuilder(
-          [=] () mutable {
-            if(isConnected) {
-              throw NotConnectedException();
-            }
-            isConnected = true;
+          [=] {
             return std::make_unique<TcpSocketChannel>(address);
           },
           [] {
@@ -214,7 +209,7 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
           });
         return MakeToPythonServiceLocatorClient(
           std::make_unique<PythonApplicationServiceLocatorClient>(
-          std::move(username), std::move(password), sessionBuilder));
+          std::move(username), std::move(password), std::move(sessionBuilder)));
       }), call_guard<GilRelease>());
 }
 

@@ -6,7 +6,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedMap.hpp"
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Network/IpAddress.hpp"
@@ -255,7 +255,7 @@ namespace Beam::ServiceLocator {
       DirectoryEntry m_account;
       std::vector<DirectoryEntry> m_accountUpdateSnapshot;
       QueueWriterPublisher<AccountUpdate> m_accountUpdatePublisher;
-      Beam::SynchronizedUnorderedMap<int, ServiceEntry> m_services;
+      Beam::SynchronizedVector<ServiceEntry> m_services;
       RoutineTaskQueue m_tasks;
       IO::OpenState m_openState;
 
@@ -342,10 +342,9 @@ namespace Beam::ServiceLocator {
       std::string password, BF&& clientBuilder)
       : m_username(std::move(username)),
         m_password(std::move(password)),
-        m_clientHandler(std::forward<BF>(clientBuilder)) {
-    m_clientHandler.SetReconnectHandler(
-      std::bind(&ServiceLocatorClient::OnReconnect, this,
-      std::placeholders::_1));
+        m_clientHandler(std::forward<BF>(clientBuilder),
+          std::bind(&ServiceLocatorClient::OnReconnect, this,
+          std::placeholders::_1)) {
     RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
     RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
     Services::AddMessageSlot<AccountUpdateMessage>(
@@ -414,7 +413,7 @@ namespace Beam::ServiceLocator {
     auto client = m_clientHandler.GetClient();
     auto service = client->template SendRequest<RegisterService>(name,
       properties);
-    m_services.Insert(service.GetId(), service);
+    m_services.PushBack(service);
     return service;
   }
 
@@ -422,7 +421,9 @@ namespace Beam::ServiceLocator {
   void ServiceLocatorClient<B>::Unregister(const ServiceEntry& service) {
     auto client = m_clientHandler.GetClient();
     client->template SendRequest<UnregisterService>(service.GetId());
-    m_services.Erase(service.GetId());
+    m_services.RemoveIf([&] (const auto& s) {
+      return s.GetId() == service.GetId();
+    });
   }
 
   template<typename B>
@@ -594,14 +595,12 @@ namespace Beam::ServiceLocator {
   void ServiceLocatorClient<B>::OnReconnect(
       const std::shared_ptr<ServiceProtocolClient>& client) {
     Login(*client);
-    auto services = std::unordered_map<int, ServiceEntry>();
+    auto services = std::vector<ServiceEntry>();
     m_services.Swap(services);
-    for(auto& service : services | boost::adaptors::map_values) {
-      auto newService = client->template SendRequest<RegisterService>(
-        service.GetName(), service.GetProperties());
-      m_services.Insert(newService.GetId(), newService);
-    }
     m_tasks.Push([=] {
+      for(auto& service : services) {
+        Register(service.GetName(), service.GetProperties());
+      }
       if(m_accountUpdatePublisher.GetSize() == 0) {
         return;
       }

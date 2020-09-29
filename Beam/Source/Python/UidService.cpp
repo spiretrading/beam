@@ -45,23 +45,16 @@ void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
       [] (VirtualServiceLocatorClient& serviceLocatorClient) {
         auto addresses = LocateServiceAddresses(serviceLocatorClient,
           UidService::SERVICE_NAME);
-        auto delay = false;
-        auto sessionBuilder = SessionBuilder(
-          Ref(serviceLocatorClient),
-          [=] () mutable {
-            if(delay) {
-              auto delayTimer = LiveTimer(seconds(3));
-              delayTimer.Start();
-              delayTimer.Wait();
-            }
-            delay = true;
+        auto sessionBuilder = SessionBuilder(Ref(serviceLocatorClient),
+          [=] {
             return std::make_unique<TcpSocketChannel>(addresses);
           },
           [] {
             return std::make_unique<LiveTimer>(seconds(10));
           });
         return MakeToPythonUidClient(
-          std::make_unique<PythonApplicationUidClient>(sessionBuilder));
+          std::make_unique<PythonApplicationUidClient>(
+          std::move(sessionBuilder)));
       }), call_guard<GilRelease>());
 }
 

@@ -75,8 +75,7 @@ namespace Beam::RegistryService {
     m_client = boost::none;
     auto addresses = ServiceLocator::LocateServiceAddresses(
       *serviceLocatorClient, SERVICE_NAME);
-    auto sessionBuilder = Details::RegistryClientSessionBuilder(
-      Ref(serviceLocatorClient),
+    auto sessionBuilder = SessionBuilder(Ref(serviceLocatorClient),
       [=] {
         return std::make_unique<Network::TcpSocketChannel>(addresses);
       },

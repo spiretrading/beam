@@ -102,7 +102,7 @@ int main(int argc, const char** argv) {
     std::cerr << "Error logging in: " << e.what() << std::endl;
     return -1;
   }
-  auto server = boost::optional<RegistryServletContainer>();
+  auto server = optional<RegistryServletContainer>();
   try {
     server.emplace(Initialize(serviceLocatorClient.Get(),
       Initialize(Initialize(std::filesystem::current_path() / "records"))),

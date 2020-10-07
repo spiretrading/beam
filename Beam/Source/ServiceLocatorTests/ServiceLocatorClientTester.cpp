@@ -126,11 +126,8 @@ TEST_SUITE("ServiceLocatorClient") {
     testAccounts.push_back(DirectoryEntry::MakeAccount(123, "accountA"));
     testAccounts.push_back(DirectoryEntry::MakeAccount(124, "accountB"));
     testAccounts.push_back(DirectoryEntry::MakeAccount(125, "accountC"));
-    auto serverSideClient =
-      static_cast<TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
     MonitorAccountsService::AddSlot(Store(m_protocolServer->GetSlots()),
       [&] (auto& client) {
-        serverSideClient = &client;
         return testAccounts;
       });
     auto accountQueue = std::make_shared<Queue<AccountUpdate>>();
@@ -145,5 +142,44 @@ TEST_SUITE("ServiceLocatorClient") {
       AccountUpdate{testAccounts.back(), AccountUpdate::Type::ADDED});
     m_serviceClient->Close();
     REQUIRE_THROWS_AS(accountQueue->Pop(), PipeBrokenException);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "register_service_reconnect") {
+    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
+      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
+      std::placeholders::_3));
+    auto nextId = 1;
+    auto registeredServices = std::vector<ServiceEntry>();
+    auto recoveryToken = Async<void>();
+    RegisterService::AddSlot(Store(m_protocolServer->GetSlots()),
+      [&] (auto& client, const std::string& name,
+          const JsonObject& properties) {
+        ++nextId;
+        auto service = ServiceEntry(name, properties, nextId,
+          DirectoryEntry::MakeAccount(12, "service"));
+        registeredServices.push_back(service);
+        if(nextId == 5) {
+          recoveryToken.GetEval().SetResult();
+        }
+        return service;
+      });
+    auto p1 = JsonObject();
+    p1.Set("meta1", 12);
+    p1.Set("meta2", "alpha");
+    auto s1 = m_serviceClient->Register("s1", p1);
+    auto p2 = JsonObject();
+    p2.Set("meta3", "beta");
+    p2.Set("meta4", false);
+    auto s2 = m_serviceClient->Register("s2", p2);
+    registeredServices.clear();
+    m_clientChannels.back()->GetConnection().Close();
+    recoveryToken.Get();
+    REQUIRE(registeredServices.size() == 2);
+    REQUIRE(registeredServices[0].GetAccount() == s1.GetAccount());
+    REQUIRE(registeredServices[0].GetName() == s1.GetName());
+    REQUIRE(registeredServices[0].GetProperties() == s1.GetProperties());
+    REQUIRE(registeredServices[1].GetAccount() == s2.GetAccount());
+    REQUIRE(registeredServices[1].GetName() == s2.GetName());
+    REQUIRE(registeredServices[1].GetProperties() == s2.GetProperties());
   }
 }

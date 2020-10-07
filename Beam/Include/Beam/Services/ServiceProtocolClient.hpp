@@ -451,6 +451,10 @@ namespace Details {
       }
     } catch(const PipeBrokenException&) {
       return;
+    } catch(const IO::NotConnectedException&) {
+      return;
+    } catch(const std::exception&) {
+      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
     }
   }
 }

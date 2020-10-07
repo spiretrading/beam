@@ -1,18 +1,16 @@
 #ifndef BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
-#include <optional>
 #include <string>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
-#include <boost/noncopyable.hpp>
 
 namespace Beam::ServiceLocator {
 
@@ -36,10 +34,10 @@ namespace Beam::ServiceLocator {
   };
 
   /** Encapsulates a standard ServiceLocatorClient used in an application. */
-  class ApplicationServiceLocatorClient : private boost::noncopyable {
+  class ApplicationServiceLocatorClient {
     public:
 
-      /** The type of session builder used by the client. */
+      /** The type used to build client sessions. */
       using SessionBuilder = Services::ServiceProtocolClientBuilder<
         Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
         Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
@@ -57,7 +55,7 @@ namespace Beam::ServiceLocator {
        * @param address The IP address to connect to.
        */
       void BuildSession(std::string username, std::string password,
-        const Network::IpAddress& address);
+        Network::IpAddress address);
 
       /** Returns a reference to the Client. */
       Client& operator *();
@@ -78,7 +76,12 @@ namespace Beam::ServiceLocator {
       const Client* Get() const;
 
     private:
-      std::optional<Client> m_client;
+      boost::optional<Client> m_client;
+
+      ApplicationServiceLocatorClient(
+        const ApplicationServiceLocatorClient&) = delete;
+      ApplicationServiceLocatorClient& operator =(
+        const ApplicationServiceLocatorClient&) = delete;
   };
 
   inline ServiceLocatorClientConfig ServiceLocatorClientConfig::Parse(
@@ -91,26 +94,18 @@ namespace Beam::ServiceLocator {
   }
 
   inline void ApplicationServiceLocatorClient::BuildSession(
-      std::string username, std::string password,
-      const Network::IpAddress& address) {
-    if(m_client.has_value()) {
-      m_client->Close();
-      m_client = std::nullopt;
-    }
-    auto isConnected = false;
+      std::string username, std::string password, Network::IpAddress address) {
+    m_client = boost::none;
     auto sessionBuilder = SessionBuilder(
-      [=] () mutable {
-        if(isConnected) {
-          BOOST_THROW_EXCEPTION(IO::NotConnectedException());
-        }
-        isConnected = true;
+      [=] {
         return std::make_unique<Network::TcpSocketChannel>(address);
       },
       [] {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10));
       });
-    m_client.emplace(std::move(username), std::move(password), sessionBuilder);
+    m_client.emplace(std::move(username), std::move(password),
+      std::move(sessionBuilder));
   }
 
   inline ApplicationServiceLocatorClient::Client&

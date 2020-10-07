@@ -267,21 +267,20 @@ namespace Beam::ServiceLocator {
     auto& session = client.GetSession();
     auto registeredServices = session.GetRegisteredServices();
     auto serviceSubscriptions = session.GetServiceSubscriptions();
-    Threading::With(m_serviceEntryListings,
-      [&] (auto& serviceEntryListings) {
-        for(auto& registeredService : registeredServices) {
-          auto& listing = serviceEntryListings[registeredService.GetName()];
-          RemoveAll(listing.m_entries, registeredService);
-          for(auto subscriber : listing.m_subscribers) {
-            Services::SendRecordMessage<ServiceAvailabilityMessage>(*subscriber,
-              registeredService, false);
-          }
+    Threading::With(m_serviceEntryListings, [&] (auto& serviceEntryListings) {
+      for(auto& registeredService : registeredServices) {
+        auto& listing = serviceEntryListings[registeredService.GetName()];
+        RemoveAll(listing.m_entries, registeredService);
+        for(auto subscriber : listing.m_subscribers) {
+          Services::SendRecordMessage<ServiceAvailabilityMessage>(*subscriber,
+            registeredService, false);
         }
-        for(auto& serviceSubscription : serviceSubscriptions) {
-          auto& listing = serviceEntryListings[serviceSubscription];
-          RemoveAll(listing.m_subscribers, &client);
-        }
-      });
+      }
+      for(auto& serviceSubscription : serviceSubscriptions) {
+        auto& listing = serviceEntryListings[serviceSubscription];
+        RemoveAll(listing.m_subscribers, &client);
+      }
+    });
     auto monitors = session.GetMonitors();
     Threading::With(m_directoryEntryMonitorEntries,
       [&] (auto& directoryEntryMonitorEntries) {
@@ -290,10 +289,9 @@ namespace Beam::ServiceLocator {
           RemoveAll(monitor.m_subscribers, &client);
         }
       });
-    Threading::With(m_sessions,
-      [&] (auto& sessions) {
-        sessions.erase(session.GetSessionId());
-      });
+    Threading::With(m_sessions, [&] (auto& sessions) {
+      sessions.erase(session.GetSessionId());
+    });
     m_accountUpdateSubscribers.Remove(&client);
   }
 
@@ -319,14 +317,13 @@ namespace Beam::ServiceLocator {
     }
     auto parents = m_dataStore->LoadParents(entry);
     if(entry.m_type == DirectoryEntry::Type::ACCOUNT) {
-      m_accountUpdateSubscribers.ForEach(
-        [&] (auto& subscriber) {
-          if(HasPermission(*m_dataStore, subscriber->GetSession().GetAccount(),
-              entry, Permission::READ)) {
-            Services::SendRecordMessage<AccountUpdateMessage>(*subscriber,
-              AccountUpdate{entry, AccountUpdate::Type::DELETED});
-          }
-        });
+      m_accountUpdateSubscribers.ForEach([&] (auto& subscriber) {
+        if(HasPermission(*m_dataStore, subscriber->GetSession().GetAccount(),
+            entry, Permission::READ)) {
+          Services::SendRecordMessage<AccountUpdateMessage>(*subscriber,
+            AccountUpdate{entry, AccountUpdate::Type::DELETED});
+        }
+      });
     }
     m_dataStore->Delete(entry);
     Threading::With(m_directoryEntryMonitorEntries,
@@ -356,40 +353,38 @@ namespace Beam::ServiceLocator {
     }
     auto account = DirectoryEntry();
     try {
-      m_dataStore->WithTransaction(
-        [&] {
-          try {
-            account = m_dataStore->LoadAccount(username);
-          } catch(const ServiceLocatorDataStoreException&) {
-            throw Services::ServiceRequestException(
-              "Invalid username or password.");
-          }
-          auto accountPassword = std::string();
-          try {
-            accountPassword = m_dataStore->LoadPassword(account);
-          } catch(const ServiceLocatorDataStoreException&) {
-            throw Services::ServiceRequestException(
-              "Unable to retrieve password, try again later.");
-          }
-          if(!ValidatePassword(account, password, accountPassword)) {
-            throw Services::ServiceRequestException(
-              "Invalid username or password.");
-          }
-          m_dataStore->StoreLastLoginTime(account,
-            boost::posix_time::second_clock::universal_time());
-        });
+      m_dataStore->WithTransaction([&] {
+        try {
+          account = m_dataStore->LoadAccount(username);
+        } catch(const ServiceLocatorDataStoreException&) {
+          throw Services::ServiceRequestException(
+            "Invalid username or password.");
+        }
+        auto accountPassword = std::string();
+        try {
+          accountPassword = m_dataStore->LoadPassword(account);
+        } catch(const ServiceLocatorDataStoreException&) {
+          throw Services::ServiceRequestException(
+            "Unable to retrieve password, try again later.");
+        }
+        if(!ValidatePassword(account, password, accountPassword)) {
+          throw Services::ServiceRequestException(
+            "Invalid username or password.");
+        }
+        m_dataStore->StoreLastLoginTime(account,
+          boost::posix_time::second_clock::universal_time());
+      });
     } catch(const std::exception&) {
       session.ResetLogin();
       throw;
     }
     auto sessionId = std::string();
-    Threading::With(m_sessions,
-      [&] (auto& sessions) {
-        do {
-          sessionId = GenerateSessionId();
-        } while(sessions.find(sessionId) != sessions.end());
-        sessions.insert(std::make_pair(sessionId, &client));
-      });
+    Threading::With(m_sessions, [&] (auto& sessions) {
+      do {
+        sessionId = GenerateSessionId();
+      } while(sessions.find(sessionId) != sessions.end());
+      sessions.insert(std::make_pair(sessionId, &client));
+    });
     session.SetSessionId(account, sessionId);
     return LoginServiceResult(account, sessionId);
   }
@@ -498,12 +493,11 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    Threading::With(m_serviceEntryListings,
-      [&] (auto& serviceEntryListings) {
-        auto& listing = serviceEntryListings[serviceName];
-        RemoveAll(listing.m_subscribers, &client);
-        session.UnsubscribeService(serviceName);
-      });
+    Threading::With(m_serviceEntryListings, [&] (auto& serviceEntryListings) {
+      auto& listing = serviceEntryListings[serviceName];
+      RemoveAll(listing.m_subscribers, &client);
+      session.UnsubscribeService(serviceName);
+    });
   }
 
   template<typename C, typename D>
@@ -515,15 +509,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto parents = std::vector<DirectoryEntry>();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        parents = m_dataStore->LoadParents(validatedEntry);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      parents = m_dataStore->LoadParents(validatedEntry);
+    });
     Threading::With(m_directoryEntryMonitorEntries,
       [&] (auto& directoryEntryMonitorEntries) {
         auto& monitor = directoryEntryMonitorEntries[entry];
@@ -546,14 +539,13 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto entry = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        entry = LoadDirectoryEntry(*m_dataStore, root, path);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-      });
+    m_dataStore->WithTransaction([&] {
+      entry = LoadDirectoryEntry(*m_dataStore, root, path);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+    });
     return entry;
   }
 
@@ -564,21 +556,25 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    return m_accountUpdateSubscribers.With(
-      [&] (auto& accountUpdateSubscribers) {
-        auto i = std::find(accountUpdateSubscribers.begin(),
-          accountUpdateSubscribers.end(), &client);
-        if(i == accountUpdateSubscribers.end()) {
-          accountUpdateSubscribers.push_back(&client);
-        }
-        auto accounts = m_dataStore->LoadAllAccounts();
-        accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
-          [&] (auto& account) {
-            return !HasPermission(*m_dataStore, session.GetAccount(), account,
-              Permission::READ);
-          }), accounts.end());
-        return accounts;
+    auto accounts = std::vector<DirectoryEntry>();
+    m_dataStore->WithTransaction([&] {
+      accounts = m_accountUpdateSubscribers.With(
+        [&] (auto& accountUpdateSubscribers) {
+          auto i = std::find(accountUpdateSubscribers.begin(),
+            accountUpdateSubscribers.end(), &client);
+          if(i == accountUpdateSubscribers.end()) {
+            accountUpdateSubscribers.push_back(&client);
+          }
+          auto accounts = m_dataStore->LoadAllAccounts();
+          accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
+            [&] (auto& account) {
+              return !HasPermission(*m_dataStore, session.GetAccount(), account,
+                Permission::READ);
+            }), accounts.end());
+          return accounts;
+        });
       });
+    return accounts;
   }
 
   template<typename C, typename D>
@@ -599,14 +595,13 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto entry = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        entry = m_dataStore->LoadDirectoryEntry(id);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-      });
+    m_dataStore->WithTransaction([&] {
+      entry = m_dataStore->LoadDirectoryEntry(id);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+    });
     return entry;
   }
 
@@ -618,15 +613,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto parents = std::vector<DirectoryEntry>();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        parents = m_dataStore->LoadParents(validatedEntry);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      parents = m_dataStore->LoadParents(validatedEntry);
+    });
     return parents;
   }
 
@@ -639,15 +633,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto children = std::vector<DirectoryEntry>();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        children = m_dataStore->LoadChildren(validatedEntry);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      children = m_dataStore->LoadChildren(validatedEntry);
+    });
     return children;
   }
 
@@ -659,15 +652,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto accounts = std::vector<DirectoryEntry>();
-    m_dataStore->WithTransaction(
-      [&] {
-        accounts = m_dataStore->LoadAllAccounts();
-        accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
-          [&] (auto& account) {
-            return !HasPermission(*m_dataStore, session.GetAccount(), account,
-              Permission::READ);
-          }), accounts.end());
-      });
+    m_dataStore->WithTransaction([&] {
+      accounts = m_dataStore->LoadAllAccounts();
+      accounts.erase(std::remove_if(accounts.begin(), accounts.end(),
+        [&] (auto& account) {
+          return !HasPermission(*m_dataStore, session.GetAccount(), account,
+            Permission::READ);
+        }), accounts.end());
+    });
     return accounts;
   }
 
@@ -680,12 +672,11 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto account = boost::optional<DirectoryEntry>();
-    m_dataStore->WithTransaction(
-      [&] {
-        try {
-          account = m_dataStore->LoadAccount(name);
-        } catch(const ServiceLocatorDataStoreException&) {}
-      });
+    m_dataStore->WithTransaction([&] {
+      try {
+        account = m_dataStore->LoadAccount(name);
+      } catch(const ServiceLocatorDataStoreException&) {}
+    });
     return account;
   }
 
@@ -702,24 +693,22 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Name is empty.");
     }
     auto newEntry = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedParent = m_dataStore->Validate(parent);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        newEntry = m_dataStore->MakeAccount(validatedName, password,
-          validatedParent, boost::posix_time::second_clock::universal_time());
-      });
-    m_accountUpdateSubscribers.ForEach(
-      [&] (auto& subscriber) {
+    m_dataStore->WithTransaction([&] {
+      auto validatedParent = m_dataStore->Validate(parent);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      newEntry = m_dataStore->MakeAccount(validatedName, password,
+        validatedParent, boost::posix_time::second_clock::universal_time());
+      m_accountUpdateSubscribers.ForEach([&] (auto& subscriber) {
         if(HasPermission(*m_dataStore, subscriber->GetSession().GetAccount(),
             newEntry, Permission::READ)) {
           Services::SendRecordMessage<AccountUpdateMessage>(*subscriber,
             AccountUpdate{newEntry, AccountUpdate::Type::ADDED});
         }
       });
+    });
     return newEntry;
   }
 
@@ -736,15 +725,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Name is empty.");
     }
     auto newEntry = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedParent = m_dataStore->Validate(parent);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        newEntry = m_dataStore->MakeDirectory(validatedName, validatedParent);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedParent = m_dataStore->Validate(parent);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      newEntry = m_dataStore->MakeDirectory(validatedName, validatedParent);
+    });
     return newEntry;
   }
 
@@ -755,15 +743,14 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        Delete(validatedEntry);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      Delete(validatedEntry);
+    });
   }
 
   template<typename C, typename D>
@@ -774,31 +761,30 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        auto validatedParent = m_dataStore->Validate(parent);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
-            Permission::MOVE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        if(!m_dataStore->Associate(validatedEntry, validatedParent)) {
-          return;
-        }
-        Threading::With(m_directoryEntryMonitorEntries,
-          [&] (auto& directoryEntryMonitorEntries) {
-            auto monitorIterator = directoryEntryMonitorEntries.find(
-              validatedEntry);
-            if(monitorIterator == directoryEntryMonitorEntries.end()) {
-              return;
-            }
-            auto& monitor = monitorIterator->second;
-            for(auto subscriber : monitor.m_subscribers) {
-              Services::SendRecordMessage<DirectoryEntryAssociatedMessage>(
-                *subscriber, validatedEntry, validatedParent);
-            }
-          });
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      auto validatedParent = m_dataStore->Validate(parent);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
+          Permission::MOVE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      if(!m_dataStore->Associate(validatedEntry, validatedParent)) {
+        return;
+      }
+      Threading::With(m_directoryEntryMonitorEntries,
+        [&] (auto& directoryEntryMonitorEntries) {
+          auto monitorIterator = directoryEntryMonitorEntries.find(
+            validatedEntry);
+          if(monitorIterator == directoryEntryMonitorEntries.end()) {
+            return;
+          }
+          auto& monitor = monitorIterator->second;
+          for(auto subscriber : monitor.m_subscribers) {
+            Services::SendRecordMessage<DirectoryEntryAssociatedMessage>(
+              *subscriber, validatedEntry, validatedParent);
+          }
+        });
+    });
   }
 
   template<typename C, typename D>
@@ -809,36 +795,35 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        auto validatedParent = m_dataStore->Validate(parent);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
-            Permission::MOVE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        auto parents = m_dataStore->LoadParents(validatedEntry);
-        if(parents.size() == 1) {
-          throw Services::ServiceRequestException(
-            "Entry only has one parent, must be deleted instead of detached.");
-        }
-        if(!m_dataStore->Detach(validatedEntry, validatedParent)) {
-          return;
-        }
-        Threading::With(m_directoryEntryMonitorEntries,
-          [&] (auto& directoryEntryMonitorEntries) {
-            auto monitorIterator = directoryEntryMonitorEntries.find(
-              validatedEntry);
-            if(monitorIterator == directoryEntryMonitorEntries.end()) {
-              return;
-            }
-            auto& monitor = monitorIterator->second;
-            for(auto subscriber : monitor.m_subscribers) {
-              Services::SendRecordMessage<DirectoryEntryDetachedMessage>(
-                *subscriber, validatedEntry, validatedParent);
-            }
-          });
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      auto validatedParent = m_dataStore->Validate(parent);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedParent,
+          Permission::MOVE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      auto parents = m_dataStore->LoadParents(validatedEntry);
+      if(parents.size() == 1) {
+        throw Services::ServiceRequestException(
+          "Entry only has one parent, must be deleted instead of detached.");
+      }
+      if(!m_dataStore->Detach(validatedEntry, validatedParent)) {
+        return;
+      }
+      Threading::With(m_directoryEntryMonitorEntries,
+        [&] (auto& directoryEntryMonitorEntries) {
+          auto monitorIterator = directoryEntryMonitorEntries.find(
+            validatedEntry);
+          if(monitorIterator == directoryEntryMonitorEntries.end()) {
+            return;
+          }
+          auto& monitor = monitorIterator->second;
+          for(auto subscriber : monitor.m_subscribers) {
+            Services::SendRecordMessage<DirectoryEntryDetachedMessage>(
+              *subscriber, validatedEntry, validatedParent);
+          }
+        });
+    });
   }
 
   template<typename C, typename D>
@@ -849,17 +834,16 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedAccount = m_dataStore->Validate(account);
-        if(validatedAccount != session.GetAccount() &&
-            !HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        m_dataStore->SetPassword(validatedAccount,
-          HashPassword(validatedAccount, password));
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedAccount = m_dataStore->Validate(account);
+      if(validatedAccount != session.GetAccount() &&
+          !HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      m_dataStore->SetPassword(validatedAccount,
+        HashPassword(validatedAccount, password));
+    });
   }
 
   template<typename C, typename D>
@@ -871,17 +855,16 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto result = false;
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedAccount = m_dataStore->Validate(account);
-        auto validatedTarget = m_dataStore->Validate(target);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
-            Permission::ADMINISTRATE) || !HasPermission(*m_dataStore,
-            session.GetAccount(), validatedTarget, Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        result = HasPermission(*m_dataStore, account, target, permissions);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedAccount = m_dataStore->Validate(account);
+      auto validatedTarget = m_dataStore->Validate(target);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
+          Permission::ADMINISTRATE) || !HasPermission(*m_dataStore,
+          session.GetAccount(), validatedTarget, Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      result = HasPermission(*m_dataStore, account, target, permissions);
+    });
     return result;
   }
 
@@ -893,18 +876,17 @@ namespace Beam::ServiceLocator {
     if(!session.IsLoggedIn()) {
       throw Services::ServiceRequestException("Not logged in.");
     }
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedSource = m_dataStore->Validate(source);
-        auto validatedTarget = m_dataStore->Validate(target);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedSource,
-            Permission::ADMINISTRATE) ||
-            !HasPermission(*m_dataStore, session.GetAccount(), validatedTarget,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        m_dataStore->SetPermissions(source, validatedTarget, permissions);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedSource = m_dataStore->Validate(source);
+      auto validatedTarget = m_dataStore->Validate(target);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedSource,
+          Permission::ADMINISTRATE) ||
+          !HasPermission(*m_dataStore, session.GetAccount(), validatedTarget,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      m_dataStore->SetPermissions(source, validatedTarget, permissions);
+    });
   }
 
   template<typename C, typename D>
@@ -916,15 +898,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto registrationTime = boost::posix_time::ptime();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedAccount = m_dataStore->Validate(account);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        registrationTime = m_dataStore->LoadRegistrationTime(validatedAccount);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedAccount = m_dataStore->Validate(account);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      registrationTime = m_dataStore->LoadRegistrationTime(validatedAccount);
+    });
     return registrationTime;
   }
 
@@ -937,15 +918,14 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto lastLoginTime = boost::posix_time::ptime();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedAccount = m_dataStore->Validate(account);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
-            Permission::READ)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        lastLoginTime = m_dataStore->LoadLastLoginTime(validatedAccount);
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedAccount = m_dataStore->Validate(account);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedAccount,
+          Permission::READ)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      lastLoginTime = m_dataStore->LoadLastLoginTime(validatedAccount);
+    });
     return lastLoginTime;
   }
 
@@ -958,28 +938,27 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto result = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto validatedEntry = m_dataStore->Validate(entry);
-        if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        auto isExistingAccount = false;
-        try {
-          m_dataStore->LoadAccount(name);
-          isExistingAccount = true;
-        } catch(const ServiceLocatorDataStoreException&) {
-          isExistingAccount = false;
-        }
-        if(isExistingAccount) {
-          throw Services::ServiceRequestException(
-            "An account with the specified name exists.");
-        }
-        m_dataStore->Rename(validatedEntry, name);
-        result = validatedEntry;
-        result.m_name = name;
-      });
+    m_dataStore->WithTransaction([&] {
+      auto validatedEntry = m_dataStore->Validate(entry);
+      if(!HasPermission(*m_dataStore, session.GetAccount(), validatedEntry,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      auto isExistingAccount = false;
+      try {
+        m_dataStore->LoadAccount(name);
+        isExistingAccount = true;
+      } catch(const ServiceLocatorDataStoreException&) {
+        isExistingAccount = false;
+      }
+      if(isExistingAccount) {
+        throw Services::ServiceRequestException(
+          "An account with the specified name exists.");
+      }
+      m_dataStore->Rename(validatedEntry, name);
+      result = validatedEntry;
+      result.m_name = name;
+    });
     return result;
   }
 
@@ -992,31 +971,30 @@ namespace Beam::ServiceLocator {
       throw Services::ServiceRequestException("Not logged in.");
     }
     auto account = DirectoryEntry();
-    m_dataStore->WithTransaction(
-      [&] {
-        auto entry = DirectoryEntry();
-        try {
-          entry = m_dataStore->LoadAccount(username);
-        } catch(const ServiceLocatorDataStoreException&) {
-          return;
-        }
-        if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
-            Permission::ADMINISTRATE)) {
-          throw Services::ServiceRequestException("Insufficient permissions.");
-        }
-        auto accountPassword = std::string();
-        try {
-          accountPassword = m_dataStore->LoadPassword(entry);
-        } catch(const ServiceLocatorDataStoreException&) {
-          return;
-        }
-        if(!ValidatePassword(entry, password, accountPassword)) {
-          return;
-        }
-        m_dataStore->StoreLastLoginTime(entry,
-          boost::posix_time::second_clock::universal_time());
-        account = entry;
-      });
+    m_dataStore->WithTransaction([&] {
+      auto entry = DirectoryEntry();
+      try {
+        entry = m_dataStore->LoadAccount(username);
+      } catch(const ServiceLocatorDataStoreException&) {
+        return;
+      }
+      if(!HasPermission(*m_dataStore, session.GetAccount(), entry,
+          Permission::ADMINISTRATE)) {
+        throw Services::ServiceRequestException("Insufficient permissions.");
+      }
+      auto accountPassword = std::string();
+      try {
+        accountPassword = m_dataStore->LoadPassword(entry);
+      } catch(const ServiceLocatorDataStoreException&) {
+        return;
+      }
+      if(!ValidatePassword(entry, password, accountPassword)) {
+        return;
+      }
+      m_dataStore->StoreLastLoginTime(entry,
+        boost::posix_time::second_clock::universal_time());
+      account = entry;
+    });
     return account;
   }
 
@@ -1030,16 +1008,15 @@ namespace Beam::ServiceLocator {
     }
     auto salt = std::to_string(saltId);
     auto upperCaseSessionId = boost::to_upper_copy(sessionId);
-    return Threading::With(m_sessions,
-      [&] (auto& sessions) {
-        for(auto& session : sessions) {
-          auto encodedSessionId = ComputeSHA(salt + session.first);
-          if(encodedSessionId == upperCaseSessionId) {
-            return session.second->GetSession().GetAccount();
-          }
+    return Threading::With(m_sessions, [&] (auto& sessions) {
+      for(auto& session : sessions) {
+        auto encodedSessionId = ComputeSHA(salt + session.first);
+        if(encodedSessionId == upperCaseSessionId) {
+          return session.second->GetSession().GetAccount();
         }
-        throw Services::ServiceRequestException("Session not found.");
-      });
+      }
+      throw Services::ServiceRequestException("Session not found.");
+    });
   }
 }
 

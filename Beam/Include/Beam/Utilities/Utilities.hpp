@@ -18,8 +18,8 @@ namespace Beam {
   class NotSupportedException;
   struct NullType;
   template<typename T, typename MutexType> class Remote;
-  template<typename T> class ResourcePool;
-  template<typename T> class ScopedResource;
+  template<typename T, typename B> class ResourcePool;
+  template<typename T, typename B> class ScopedResource;
   template<typename T> class Singleton;
   template<typename T> struct StorageType;
   template<typename T> struct Stream;

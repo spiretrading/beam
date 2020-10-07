@@ -62,6 +62,11 @@ namespace {
         "register", Register, name, properties);
     }
 
+    void Unregister(const ServiceEntry& service) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServiceLocatorClient,
+        "unregister", Unregister, service);
+    }
+
     std::vector<DirectoryEntry> LoadAllAccounts() override {
       PYBIND11_OVERLOAD_PURE_NAME(std::vector<DirectoryEntry>,
         VirtualServiceLocatorClient, "load_all_accounts", LoadAllAccounts);
@@ -195,13 +200,8 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
       VirtualServiceLocatorClient>(module, "ApplicationServiceLocatorClient")
     .def(init(
       [] (std::string username, std::string password, IpAddress address) {
-        auto isConnected = false;
         auto sessionBuilder = ApplicationServiceLocatorClient::SessionBuilder(
-          [=] () mutable {
-            if(isConnected) {
-              throw NotConnectedException();
-            }
-            isConnected = true;
+          [=] {
             return std::make_unique<TcpSocketChannel>(address);
           },
           [] {
@@ -209,7 +209,7 @@ void Beam::Python::ExportApplicationServiceLocatorClient(
           });
         return MakeToPythonServiceLocatorClient(
           std::make_unique<PythonApplicationServiceLocatorClient>(
-          std::move(username), std::move(password), sessionBuilder));
+          std::move(username), std::move(password), std::move(sessionBuilder)));
       }), call_guard<GilRelease>());
 }
 
@@ -291,6 +291,7 @@ void Beam::Python::ExportServiceLocatorClient(pybind11::module& module) {
       &VirtualServiceLocatorClient::AuthenticateSession)
     .def("locate", &VirtualServiceLocatorClient::Locate)
     .def("register", &VirtualServiceLocatorClient::Register)
+    .def("unregister", &VirtualServiceLocatorClient::Unregister)
     .def("load_all_accounts", &VirtualServiceLocatorClient::LoadAllAccounts)
     .def("find_account", &VirtualServiceLocatorClient::FindAccount)
     .def("make_account", &VirtualServiceLocatorClient::MakeAccount)

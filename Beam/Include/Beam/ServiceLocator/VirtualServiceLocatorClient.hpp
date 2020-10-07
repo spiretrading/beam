@@ -39,6 +39,8 @@ namespace Beam::ServiceLocator {
       virtual ServiceEntry Register(const std::string& name,
         const JsonObject& properties) = 0;
 
+      virtual void Unregister(const ServiceEntry& service) = 0;
+
       virtual std::vector<DirectoryEntry> LoadAllAccounts() = 0;
 
       virtual boost::optional<DirectoryEntry> FindAccount(
@@ -133,6 +135,8 @@ namespace Beam::ServiceLocator {
 
       ServiceEntry Register(const std::string& name,
         const JsonObject& properties) override;
+
+      void Unregister(const ServiceEntry& service) override;
 
       std::vector<DirectoryEntry> LoadAllAccounts() override;
 
@@ -244,6 +248,11 @@ namespace Beam::ServiceLocator {
   ServiceEntry WrapperServiceLocatorClient<C>::Register(const std::string& name,
       const JsonObject& properties) {
     return m_client->Register(name, properties);
+  }
+
+  template<typename C>
+  void WrapperServiceLocatorClient<C>::Unregister(const ServiceEntry& service) {
+    return m_client->Unregister(service);
   }
 
   template<typename C>

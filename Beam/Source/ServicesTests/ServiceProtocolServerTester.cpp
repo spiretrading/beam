@@ -56,6 +56,15 @@ namespace {
     *callbackTriggered = true;
     request.SetResult();
   }
+
+  void OnIdentityRequest(RequestToken<
+      TestServiceProtocolServer::ServiceProtocolClient, IdentityService>&
+      request, int n) {
+    if(n == 0) {
+      throw ServiceRequestException("Exception.");
+    }
+    request.SetResult(n);
+  }
 }
 
 TEST_SUITE("ServiceProtocolServer") {
@@ -68,5 +77,15 @@ TEST_SUITE("ServiceProtocolServer") {
     // Startup and invoke the service.
     m_clientProtocol.SendRequest<VoidService>(123);
     REQUIRE(callbackTriggered);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "exception") {
+    IdentityService::AddRequestSlot(Store(m_protocolServer.GetSlots()),
+      std::bind(OnIdentityRequest, std::placeholders::_1,
+      std::placeholders::_2));
+    REQUIRE_THROWS_WITH_AS(m_clientProtocol.SendRequest<IdentityService>(0),
+      "Exception.", ServiceRequestException);
+    auto result = m_clientProtocol.SendRequest<IdentityService>(123);
+    REQUIRE(result == 123);
   }
 }

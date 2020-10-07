@@ -3,8 +3,10 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Network/IpAddress.hpp"
@@ -94,6 +96,12 @@ namespace Beam::ServiceLocator {
        */
       ServiceEntry Register(const std::string& name,
         const JsonObject& properties);
+
+      /**
+       * Unregisters a service.
+       * @param service The service to unregister.
+       */
+      void Unregister(const ServiceEntry& service);
 
       /** Loads the list of all accounts this client is allowed to read. */
       std::vector<DirectoryEntry> LoadAllAccounts();
@@ -247,6 +255,7 @@ namespace Beam::ServiceLocator {
       DirectoryEntry m_account;
       std::vector<DirectoryEntry> m_accountUpdateSnapshot;
       QueueWriterPublisher<AccountUpdate> m_accountUpdatePublisher;
+      Beam::SynchronizedVector<ServiceEntry> m_services;
       RoutineTaskQueue m_tasks;
       IO::OpenState m_openState;
 
@@ -333,10 +342,9 @@ namespace Beam::ServiceLocator {
       std::string password, BF&& clientBuilder)
       : m_username(std::move(username)),
         m_password(std::move(password)),
-        m_clientHandler(std::forward<BF>(clientBuilder)) {
-    m_clientHandler.SetReconnectHandler(
-      std::bind(&ServiceLocatorClient::OnReconnect, this,
-      std::placeholders::_1));
+        m_clientHandler(std::forward<BF>(clientBuilder),
+          std::bind(&ServiceLocatorClient::OnReconnect, this,
+          std::placeholders::_1)) {
     RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
     RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
     Services::AddMessageSlot<AccountUpdateMessage>(
@@ -403,7 +411,19 @@ namespace Beam::ServiceLocator {
   ServiceEntry ServiceLocatorClient<B>::Register(const std::string& name,
       const JsonObject& properties) {
     auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<RegisterService>(name, properties);
+    auto service = client->template SendRequest<RegisterService>(name,
+      properties);
+    m_services.PushBack(service);
+    return service;
+  }
+
+  template<typename B>
+  void ServiceLocatorClient<B>::Unregister(const ServiceEntry& service) {
+    auto client = m_clientHandler.GetClient();
+    client->template SendRequest<UnregisterService>(service.GetId());
+    m_services.RemoveIf([&] (const auto& s) {
+      return s.GetId() == service.GetId();
+    });
   }
 
   template<typename B>
@@ -574,28 +594,28 @@ namespace Beam::ServiceLocator {
   template<typename B>
   void ServiceLocatorClient<B>::OnReconnect(
       const std::shared_ptr<ServiceProtocolClient>& client) {
-    try {
-      Login(*client);
-      m_tasks.Push([=] {
-        if(m_accountUpdatePublisher.GetSize() == 0) {
-          return;
+    Login(*client);
+    auto services = std::vector<ServiceEntry>();
+    m_services.Swap(services);
+    m_tasks.Push([=] {
+      for(auto& service : services) {
+        Register(service.GetName(), service.GetProperties());
+      }
+      if(m_accountUpdatePublisher.GetSize() == 0) {
+        return;
+      }
+      auto client = m_clientHandler.GetClient();
+      auto accounts = client->template SendRequest<MonitorAccountsService>();
+      for(auto& account : accounts) {
+        auto i = std::find(m_accountUpdateSnapshot.begin(),
+          m_accountUpdateSnapshot.end(), account);
+        if(i == m_accountUpdateSnapshot.end()) {
+          m_accountUpdateSnapshot.push_back(account);
+          m_accountUpdatePublisher.Push(
+            AccountUpdate{account, AccountUpdate::Type::ADDED});
         }
-        auto client = m_clientHandler.GetClient();
-        auto accounts = client->template SendRequest<MonitorAccountsService>();
-        for(auto& account : accounts) {
-          auto i = std::find(m_accountUpdateSnapshot.begin(),
-            m_accountUpdateSnapshot.end(), account);
-          if(i == m_accountUpdateSnapshot.end()) {
-            m_accountUpdateSnapshot.push_back(account);
-            m_accountUpdatePublisher.Push(
-              AccountUpdate{account, AccountUpdate::Type::ADDED});
-          }
-        }
-      });
-    } catch(const std::exception&) {
-      Close();
-      BOOST_RETHROW;
-    }
+      }
+    });
   }
 
   template<typename B>

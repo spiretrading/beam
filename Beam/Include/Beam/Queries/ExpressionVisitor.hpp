@@ -39,6 +39,11 @@ namespace Beam::Queries {
       /** Visits the base class VirtualExpression. */
       virtual void Visit(const VirtualExpression& expression);
 
+    protected:
+
+      /** Constructs an ExpressionVisitor. */
+      ExpressionVisitor() = default;
+
     private:
       ExpressionVisitor(const ExpressionVisitor&) = delete;
       ExpressionVisitor& operator =(const ExpressionVisitor&) = delete;

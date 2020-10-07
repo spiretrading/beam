@@ -31,8 +31,8 @@ TEST_SUITE("Evaluator") {
   }
 
   TEST_CASE("reduce_expression") {
-    auto sumExpression = MakeAdditionExpression(ParameterExpression(0, IntType()),
-      ParameterExpression(1, IntType()));
+    auto sumExpression = MakeAdditionExpression(
+      ParameterExpression(0, IntType()), ParameterExpression(1, IntType()));
     auto initialValue = IntValue(0);
     auto reduceExpression = ReduceExpression(sumExpression,
       ParameterExpression(0, IntType()), initialValue);
@@ -45,7 +45,8 @@ TEST_SUITE("Evaluator") {
 
   TEST_CASE("out_of_range_parameter_expression") {
     {
-      auto parameter = ParameterExpression(MAX_EVALUATOR_PARAMETERS, BoolType());
+      auto parameter = ParameterExpression(MAX_EVALUATOR_PARAMETERS,
+        BoolType());
       REQUIRE_THROWS_AS(Translate(parameter), ExpressionTranslationException);
     }
     {
@@ -54,15 +55,20 @@ TEST_SUITE("Evaluator") {
     }
   }
 
+  TEST_CASE("type_check") {
+    auto expression = MakeEqualsExpression(ParameterExpression(0, IntType()),
+      ParameterExpression(1, StringType()));
+    REQUIRE_THROWS_AS(Translate(expression), ExpressionTranslationException);
+  }
+
   TEST_CASE("mismatched_type_parameter_expressions") {
-    auto leftExpression = MakeEqualsExpression(ParameterExpression(0, IntType()),
-      ParameterExpression(1, IntType()));
+    auto leftExpression = MakeEqualsExpression(ParameterExpression(0,
+      IntType()), ParameterExpression(1, IntType()));
     auto rightExpression = MakeEqualsExpression(
       ParameterExpression(0, DecimalType()),
       ParameterExpression(1, DecimalType()));
     auto orExpression = OrExpression(leftExpression, rightExpression);
-    REQUIRE_THROWS_AS(Translate(orExpression),
-      ExpressionTranslationException);
+    REQUIRE_THROWS_AS(Translate(orExpression), ExpressionTranslationException);
   }
 
   TEST_CASE("parameter_expression_gap") {

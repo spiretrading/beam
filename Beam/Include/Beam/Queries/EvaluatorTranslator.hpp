@@ -1,6 +1,7 @@
 #ifndef BEAM_EVALUATOR_TRANSLATOR_HPP
 #define BEAM_EVALUATOR_TRANSLATOR_HPP
 #include <array>
+#include <exception>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -32,7 +33,7 @@
 namespace Beam::Queries {
 
   /** The maximum number of supported parameters. */
-  const int MAX_EVALUATOR_PARAMETERS = 2;
+  constexpr auto MAX_EVALUATOR_PARAMETERS = 2;
 
   /**
    * Translates an Expression into an EvaluatorNode.
@@ -65,7 +66,7 @@ namespace Beam::Queries {
 
       /**
        * Creates a new instance of this translator, typically used for
-       *  sub-expressions.
+       * sub-expressions.
        */
       virtual std::unique_ptr<EvaluatorTranslator> NewTranslator() const;
 
@@ -120,8 +121,8 @@ namespace Beam::Queries {
   void EvaluatorTranslator<QueryTypes>::Translate(
       const Expression& expression) {
     expression->Apply(*this);
-    auto parameterChecks =
-      std::array<boost::optional<const std::type_info*>, 2>();
+    auto parameterChecks = std::array<boost::optional<const std::type_info*>,
+      MAX_EVALUATOR_PARAMETERS>();
     auto maxIndex = -1;
     for(auto& parameter : m_parameters) {
       maxIndex = std::max(maxIndex, parameter->GetIndex());
@@ -158,7 +159,7 @@ namespace Beam::Queries {
   template<typename QueryTypes>
   std::unique_ptr<EvaluatorTranslator<QueryTypes>>
       EvaluatorTranslator<QueryTypes>::NewTranslator() const {
-    return std::make_unique<EvaluatorTranslator<QueryTypes>>();
+    return std::make_unique<EvaluatorTranslator>();
   }
 
   template<typename QueryTypes>
@@ -189,10 +190,15 @@ namespace Beam::Queries {
       auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
-      m_evaluator.reset(Instantiate<
-        FunctionEvaluatorNodeTranslator<AdditionExpressionTranslator>>(
-        leftExpression->GetType()->GetNativeType(),
-        rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      try {
+        m_evaluator.reset(Instantiate<
+          FunctionEvaluatorNodeTranslator<AdditionExpressionTranslator>>(
+          leftExpression->GetType()->GetNativeType(),
+          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      } catch(const InstantiationNotSupportedException&) {
+        std::throw_with_nested(
+          ExpressionTranslationException("Type mismatch."));
+      }
     } else if(expression.GetName() == EQUALS_NAME) {
       if(expression.GetParameters().size() != 2) {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
@@ -205,10 +211,15 @@ namespace Beam::Queries {
       auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
-      m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-        EqualsExpressionTranslator<NativeTypes>>>(
-        leftExpression->GetType()->GetNativeType(),
-        rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      try {
+        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
+          EqualsExpressionTranslator<NativeTypes>>>(
+          leftExpression->GetType()->GetNativeType(),
+          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      } catch(const InstantiationNotSupportedException&) {
+        std::throw_with_nested(
+          ExpressionTranslationException("Type mismatch."));
+      }
     } else if(expression.GetName() == MAX_NAME) {
       if(expression.GetParameters().size() != 2) {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
@@ -221,10 +232,15 @@ namespace Beam::Queries {
       auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
-      m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-        MaxExpressionTranslator<NativeTypes>>>(
-        leftExpression->GetType()->GetNativeType(),
-        rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      try {
+        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
+          MaxExpressionTranslator<NativeTypes>>>(
+          leftExpression->GetType()->GetNativeType(),
+          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      } catch(const InstantiationNotSupportedException&) {
+        std::throw_with_nested(
+          ExpressionTranslationException("Type mismatch."));
+      }
     } else if(expression.GetName() == MIN_NAME) {
       if(expression.GetParameters().size() != 2) {
         BOOST_THROW_EXCEPTION(ExpressionTranslationException(
@@ -237,10 +253,15 @@ namespace Beam::Queries {
       auto& rightExpression = expression.GetParameters()[1];
       rightExpression->Apply(*this);
       parameters.push_back(std::move(m_evaluator));
-      m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-        MinExpressionTranslator<NativeTypes>>>(
-        leftExpression->GetType()->GetNativeType(),
-        rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      try {
+        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
+          MinExpressionTranslator<NativeTypes>>>(
+          leftExpression->GetType()->GetNativeType(),
+          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
+      } catch(const InstantiationNotSupportedException&) {
+        std::throw_with_nested(
+          ExpressionTranslationException("Type mismatch."));
+      }
     } else {
       BOOST_THROW_EXCEPTION(ExpressionTranslationException(
         "Function not supported."));

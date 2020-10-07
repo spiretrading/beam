@@ -19,36 +19,32 @@
 namespace Beam::Queries {
 
   /** Translates a query expression into an SQL expression. */
-  class SqlTranslator : public ExpressionVisitor {
+  class SqlTranslator : protected ExpressionVisitor {
     public:
 
-      //! Constructs an SqlTranslator.
-      /*!
-        \param parameter The parameter/table name.
-        \param expression The Expression to translate.
-      */
+      /**
+       * Constructs an SqlTranslator.
+       * @param parameter The parameter/table name.
+       * @param expression The Expression to translate.
+       */
       SqlTranslator(std::string parameter, Expression expression);
 
-      //! Builds the SQL expression.
+      /** Builds the SQL expression. */
       Viper::Expression Build();
-
-      void Visit(const ConstantExpression& expression) override;
-
-      void Visit(const FunctionExpression& expression) override;
-
-      void Visit(const OrExpression& expression) override;
-
-      void Visit(const ParameterExpression& expression) override;
-
-      void Visit(const VirtualExpression& expression) override;
 
     protected:
 
-      //! Returns the parameter.
+      /** Returns the parameter. */
       const Viper::Expression& GetParameter() const;
 
-      //! Returns the current translation.
+      /** Returns the current translation. */
       Viper::Expression& GetTranslation();
+
+      void Visit(const ConstantExpression& expression) override;
+      void Visit(const FunctionExpression& expression) override;
+      void Visit(const OrExpression& expression) override;
+      void Visit(const ParameterExpression& expression) override;
+      void Visit(const VirtualExpression& expression) override;
 
     private:
       Viper::Expression m_parameter;
@@ -56,22 +52,22 @@ namespace Beam::Queries {
       Viper::Expression m_translation;
   };
 
-  //! Translates a query expression into an SQL expression.
-  /*!
-    \param parameter The parameter/table name.
-    \param expression The query expression to translate.
-    \return The SQL expression.
-  */
+  /**
+   * Translates a query expression into an SQL expression.
+   * @param parameter The parameter/table name.
+   * @param expression The query expression to translate.
+   * @return The SQL expression.
+   */
   template<typename Translator = SqlTranslator>
   auto BuildSqlQuery(std::string parameter, Expression expression) {
-    Translator translator(std::move(parameter), std::move(expression));
+    auto translator = Translator(std::move(parameter), std::move(expression));
     return translator.Build();
   }
 
   inline SqlTranslator::SqlTranslator(std::string parameter,
-      Expression expression)
-      : m_parameter(Viper::sym(std::move(parameter))),
-        m_expression(std::move(expression)) {}
+    Expression expression)
+    : m_parameter(Viper::sym(std::move(parameter))),
+      m_expression(std::move(expression)) {}
 
   inline Viper::Expression SqlTranslator::Build() {
     m_expression->Apply(*this);

@@ -78,7 +78,8 @@ namespace Routines {
   inline Routine& GetCurrentRoutine() {
     auto routine = Details::CurrentRoutineGlobal<void>::GetInstance();
     if(routine == nullptr) {
-      routine = new ExternalRoutine();
+      thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
+      routine = externalRoutine.get();
       Details::CurrentRoutineGlobal<void>::GetInstance() = routine;
     }
     return *routine;

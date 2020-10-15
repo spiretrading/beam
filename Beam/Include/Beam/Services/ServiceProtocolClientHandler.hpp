@@ -92,12 +92,13 @@ namespace Beam::Services {
   template<typename B>
   template<typename BF>
   ServiceProtocolClientHandler<B>::ServiceProtocolClientHandler(BF&& builder,
-    ReconnectHandler reconnectHandler)
-    : m_builder(std::forward<BF>(builder)),
-      m_reconnectHandler(std::move(reconnectHandler)),
-      m_client(m_builder->BuildClient(m_slots)),
-      m_messageHandler(Routines::Spawn(
-        std::bind(&ServiceProtocolClientHandler::MessageLoop, this))) {}
+      ReconnectHandler reconnectHandler)
+      : m_builder(std::forward<BF>(builder)),
+        m_reconnectHandler(std::move(reconnectHandler)),
+        m_client(m_builder->BuildClient(m_slots)) {
+    m_messageHandler = Routines::Spawn(std::bind(
+      &ServiceProtocolClientHandler::MessageLoop, this));
+  }
 
   template<typename B>
   ServiceProtocolClientHandler<B>::~ServiceProtocolClientHandler() {

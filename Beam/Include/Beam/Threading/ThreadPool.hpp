@@ -131,15 +131,14 @@ namespace Beam::Threading {
   }
 
   inline ThreadPool::TaskThread::TaskThread(ThreadPool& threadPool)
-BEAM_SUPPRESS_THIS_INITIALIZER()
-    : m_threadPool(&threadPool),
-      m_task(nullptr),
-      m_available(true),
-      m_stopped(false),
-      m_thread([=] {
-        Run();
-      }) {}
-BEAM_UNSUPPRESS_THIS_INITIALIZER()
+      : m_threadPool(&threadPool),
+        m_task(nullptr),
+        m_available(true),
+        m_stopped(false) {
+    m_thread = boost::thread([=] {
+      Run();
+    });
+  }
 
   inline bool ThreadPool::TaskThread::SetTask(BaseTask& task) {
     auto lock = boost::lock_guard(m_mutex);

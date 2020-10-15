@@ -110,14 +110,15 @@ namespace Beam::Services {
   template<typename C, typename S, typename E, typename T, typename I, bool P>
   template<typename CF>
   ServiceProtocolServer<C, S, E, T, I, P>::ServiceProtocolServer(
-    CF&& serverConnection, TimerFactory timerFactory, AcceptSlot acceptSlot,
-    ClientClosedSlot clientClosedSlot)
-    : m_serverConnection(std::forward<CF>(serverConnection)),
-      m_timerFactory(std::move(timerFactory)),
-      m_acceptSlot(std::move(acceptSlot)),
-      m_clientClosedSlot(std::move(clientClosedSlot)),
-      m_acceptRoutine(Routines::Spawn(
-        std::bind(&ServiceProtocolServer::AcceptLoop, this))) {}
+      CF&& serverConnection, TimerFactory timerFactory, AcceptSlot acceptSlot,
+      ClientClosedSlot clientClosedSlot)
+      : m_serverConnection(std::forward<CF>(serverConnection)),
+        m_timerFactory(std::move(timerFactory)),
+        m_acceptSlot(std::move(acceptSlot)),
+        m_clientClosedSlot(std::move(clientClosedSlot)) {
+    m_acceptRoutine = Routines::Spawn(std::bind(
+      &ServiceProtocolServer::AcceptLoop, this));
+  }
 
   template<typename C, typename S, typename E, typename T, typename I, bool P>
   ServiceProtocolServer<C, S, E, T, I, P>::~ServiceProtocolServer() {

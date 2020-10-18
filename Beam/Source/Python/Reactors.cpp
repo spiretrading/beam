@@ -37,8 +37,8 @@ void Beam::Python::ExportAlarmReactor(pybind11::module& module) {
         std::function<std::shared_ptr<VirtualTimer> (time_duration)>
         timerFactory, SharedBox<ptime> expiry) {
       return to_object(AlarmReactor(&timeClient,
-        [] (time_duration duration) {
-          return std::make_unique<LiveTimer>(duration);
+        [=] (time_duration duration) {
+          return timerFactory(duration);
         }, std::move(expiry)));
     });
 }

@@ -1,5 +1,5 @@
-#ifndef BEAM_APPLICATIONINTERRUPTWIN32_HPP
-#define BEAM_APPLICATIONINTERRUPTWIN32_HPP
+#ifndef BEAM_APPLICATION_INTERRUPT_WIN32_HPP
+#define BEAM_APPLICATION_INTERRUPT_WIN32_HPP
 #include <boost/thread.hpp>
 #include <windows.h>
 #include "Beam/Utilities/Utilities.hpp"
@@ -7,12 +7,12 @@
 namespace Beam {
 namespace Details {
   inline bool& IsRunningWrapper() {
-    static bool isRunning = true;
+    static auto isRunning = true;
     return isRunning;
   }
 
   inline boost::mutex& RunningMutexWrapper() {
-    static boost::mutex runningMutex;
+    static auto runningMutex = boost::mutex();
     return runningMutex;
   }
 
@@ -20,7 +20,7 @@ namespace Details {
     switch(ctrl) {
       case CTRL_C_EVENT:
         {
-          boost::lock_guard<boost::mutex> lock(RunningMutexWrapper());
+          auto lock = boost::lock_guard(RunningMutexWrapper());
           IsRunningWrapper() = false;
         }
         return true;
@@ -29,23 +29,23 @@ namespace Details {
   }
 }
 
-  //! Checks if the operating system signaled to shutdown the application.
+  /** Checks if the operating system signaled to shutdown the application. */
   inline bool IsRunning() {
-    static BOOL initializeControlHandler = SetConsoleCtrlHandler(
+    static auto initializeControlHandler = SetConsoleCtrlHandler(
       reinterpret_cast<PHANDLER_ROUTINE>(Details::CtrlHandler), TRUE);
-    boost::lock_guard<boost::mutex> lock(Details::RunningMutexWrapper());
+    auto lock = boost::lock_guard(Details::RunningMutexWrapper());
     return Details::IsRunningWrapper();
   }
 
-  //! Checks if the operating system signaled to shutdown the application.
+  /** Checks if the operating system signaled to shutdown the application. */
   inline bool ReceivedKillEvent() {
     return !IsRunning();
   }
 
-  //! Waits for a shutdown event.
+  /** Waits for a shutdown event. */
   inline void WaitForKillEvent() {
     while(!ReceivedKillEvent()) {
-      boost::this_thread::sleep(boost::posix_time::seconds{1});
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
     }
   }
 }

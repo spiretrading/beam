@@ -1,23 +1,23 @@
-#ifndef BEAM_APPLICATIONINTERRUPTPOSIX_HPP
-#define BEAM_APPLICATIONINTERRUPTPOSIX_HPP
-#include <boost/thread.hpp>
+#ifndef BEAM_APPLICATION_INTERRUPT_POSIX_HPP
+#define BEAM_APPLICATION_INTERRUPT_POSIX_HPP
 #include <signal.h>
+#include <boost/thread.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 namespace Details {
   inline bool& IsRunningWrapper() {
-    static bool isRunning = true;
+    static auto isRunning = true;
     return isRunning;
   }
 
   inline boost::mutex& RunningMutexWrapper() {
-    static boost::mutex runningMutex;
+    static auto runningMutex = boost::mutex();
     return runningMutex;
   }
 
   inline void CtrlHandler(int sig) {
-    boost::lock_guard<boost::mutex> lock(RunningMutexWrapper());
+    auto lock = boost::lock_guard(RunningMutexWrapper());
     IsRunningWrapper() = false;
   }
 
@@ -27,22 +27,22 @@ namespace Details {
   }
 }
 
-  //! Checks if the operating system signaled to shutdown the application.
+  /** Checks if the operating system signaled to shutdown the application. */
   inline bool IsRunning() {
-    static bool initializeControlHandler = Details::InstallHandler();
-    boost::lock_guard<boost::mutex> lock(Details::RunningMutexWrapper());
+    static auto initializeControlHandler = Details::InstallHandler();
+    auto lock = boost::lock_guard(Details::RunningMutexWrapper());
     return Details::IsRunningWrapper();
   }
 
-  //! Checks if the operating system signaled to shutdown the application.
+  /** Checks if the operating system signaled to shutdown the application. */
   inline bool ReceivedKillEvent() {
     return !IsRunning();
   }
 
-  //! Waits for a shutdown event.
+  /** Waits for a shutdown event. */
   inline void WaitForKillEvent() {
     while(!ReceivedKillEvent()) {
-      boost::this_thread::sleep(boost::posix_time::seconds{1});
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
     }
   }
 }

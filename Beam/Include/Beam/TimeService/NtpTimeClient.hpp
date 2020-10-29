@@ -145,10 +145,12 @@ namespace Beam::TimeService {
   /**
    * Builds a LiveNtpTimeClient using a list of NTP server addresses.
    * @param sources The list of NTP server addresses.
+   * @param syncPeriod The amount of time to wait before synchronizing the time.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
   inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
-      const std::vector<Network::IpAddress>& sources) {
+      const std::vector<Network::IpAddress>& sources,
+      boost::posix_time::time_duration syncPeriod) {
     auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
     auto options = Network::UdpSocketOptions();
     options.m_timeout = boost::posix_time::seconds(1);
@@ -158,7 +160,17 @@ namespace Beam::TimeService {
       channels.push_back(std::move(channel));
     }
     return std::make_unique<LiveNtpTimeClient>(std::move(channels),
-      Initialize(boost::posix_time::minutes(30)));
+      Initialize(syncPeriod));
+  }
+
+  /**
+   * Builds a LiveNtpTimeClient using a list of NTP server addresses.
+   * @param sources The list of NTP server addresses.
+   * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
+   */
+  inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
+      const std::vector<Network::IpAddress>& sources) {
+    return MakeLiveNtpTimeClient(sources, boost::posix_time::minutes(30));
   }
 
   template<typename C, typename T>
@@ -251,7 +263,6 @@ namespace Beam::TimeService {
         (serverTransmitTimestamp - clientResponseTimestamp)) / 2;
       averageOffset += offset;
       ++count;
-      source->GetConnection().Close();
     }
     if(count == 0) {
       BOOST_THROW_EXCEPTION(std::runtime_error("Unable to query NTP time."));

@@ -1,6 +1,7 @@
 #include "Beam/Python/Beam.hpp"
 #include <datetime.h>
 #include <pybind11/pybind11.h>
+#include "Beam/Utilities/ApplicationInterrupt.hpp"
 
 using namespace Beam;
 using namespace Beam::Network;
@@ -26,4 +27,7 @@ PYBIND11_MODULE(_beam, module) {
   ExportUidService(module);
   ExportWebServices(module);
   ExportYaml(module);
+  module.def("is_running", &IsRunning);
+  module.def("received_kill_event", &ReceivedKillEvent);
+  module.def("wait_for_kill_event", &WaitForKillEvent);
 }

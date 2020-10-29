@@ -85,7 +85,7 @@ namespace Network {
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
     const IpAddress& interface, const UdpSocketOptions& options)
     : m_identifier(address),
-      m_socket(std::make_shared<UdpSocket>(address, interface)),
+      m_socket(std::make_shared<UdpSocket>(address, interface, options)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}

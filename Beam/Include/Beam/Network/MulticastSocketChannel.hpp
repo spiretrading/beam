@@ -87,7 +87,7 @@ namespace Network {
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
     const IpAddress& interface, const MulticastSocketOptions& options)
     : m_identifier(group),
-      m_socket(std::make_shared<MulticastSocket>(group, interface)),
+      m_socket(std::make_shared<MulticastSocket>(group, interface, options)),
       m_connection(m_socket),
       m_reader(m_socket, group),
       m_writer(m_socket, group) {}

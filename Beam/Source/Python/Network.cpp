@@ -407,7 +407,7 @@ void Beam::Python::ExportUdpSocketOptions(pybind11::module& module) {
     .def_readwrite("ttl", &UdpSocketOptions::m_ttl)
     .def_readwrite("enable_loopback", &UdpSocketOptions::m_enableLoopback)
     .def_readwrite("max_datagram_size", &UdpSocketOptions::m_maxDatagramSize)
-    .def_readwrite("received_buffer_size",
+    .def_readwrite("receive_buffer_size",
       &UdpSocketOptions::m_receiveBufferSize);
 }
 

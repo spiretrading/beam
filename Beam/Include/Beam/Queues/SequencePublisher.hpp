@@ -67,12 +67,12 @@ namespace Beam {
   auto MakeSequencePublisherAdaptor(PF&& publisher) {
     using Publisher = std::remove_reference_t<PF>;
     using Type = typename GetTryDereferenceType<Publisher>::Type;
-    auto holder = std::make_shared<std::tuple<SequencePublisher<Type>,
+    auto holder = std::make_shared<std::pair<SequencePublisher<Type>,
       boost::optional<Publisher>>>();
-    std::get<1>(*holder).emplace(std::forward<PF>(publisher));
+    holder->second.emplace(std::forward<PF>(publisher));
     auto sequencePublisher = std::shared_ptr<SequencePublisher<Type>>(holder,
-      &std::get<0>(*holder));
-    (*std::get<1>(*holder))->Monitor(MakeWeakQueueWriter(
+      &holder->first);
+    (*holder->second)->Monitor(MakeWeakQueueWriter(
       std::static_pointer_cast<QueueWriter<Type>>(sequencePublisher)));
     return sequencePublisher;
   }

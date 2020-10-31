@@ -1,11 +1,11 @@
 #ifndef BEAM_LOCAL_PTR_HPP
 #define BEAM_LOCAL_PTR_HPP
+#include <utility>
 #include <boost/mpl/if.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/Initializer.hpp"
 #include "Beam/Pointers/NativePtr.hpp"
 #include "Beam/Pointers/Pointers.hpp"
-#include "Beam/Utilities/ApplyTuple.hpp"
 
 namespace Beam {
 
@@ -67,8 +67,9 @@ namespace Beam {
 
         Wrapper(Wrapper&& wrapper);
 
-        template<typename Tuple, int... Sequence>
-        Wrapper(IntegerSequence<Sequence...> sequence, Tuple&& args);
+        template<typename Tuple, std::size_t... Sequence>
+        Wrapper(std::integer_sequence<std::size_t, Sequence...> sequence,
+          Tuple&& args);
       };
       mutable Wrapper m_wrapper;
   };
@@ -97,9 +98,9 @@ namespace Beam {
     : m_ptr(std::move(wrapper.m_ptr)) {}
 
   template<typename T>
-  template<typename Tuple, int... Sequence>
-  LocalPtr<T>::Wrapper::Wrapper(IntegerSequence<Sequence...> sequence,
-    Tuple&& args)
+  template<typename Tuple, std::size_t... Sequence>
+  LocalPtr<T>::Wrapper::Wrapper(
+      std::integer_sequence<std::size_t, Sequence...> sequence, Tuple&& args)
     : m_ptr(std::get<Sequence>(std::move(args))...) {}
 
   template<typename T>
@@ -110,7 +111,7 @@ namespace Beam {
   template<typename T>
   template<typename... Args>
   LocalPtr<T>::LocalPtr(Initializer<Args...>&& args)
-    : m_wrapper(typename IntegerSequenceGenerator<sizeof...(Args)>::type(),
+    : m_wrapper(std::make_integer_sequence<std::size_t, sizeof...(Args)>(),
         std::move(args.m_args)) {}
 
   template<typename T>

@@ -1,31 +1,34 @@
-#ifndef BEAM_SHUTTLETUPLE_HPP
-#define BEAM_SHUTTLETUPLE_HPP
+#ifndef BEAM_SHUTTLE_TUPLE_HPP
+#define BEAM_SHUTTLE_TUPLE_HPP
 #include <tuple>
+#include <utility>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
-#include "Beam/Utilities/ApplyTuple.hpp"
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
 namespace Details {
   template<typename Shuttler, typename Tuple>
-  void Send(Shuttler& shuttle, IntegerSequence<>, const Tuple& value) {}
+  void Send(Shuttler& shuttle, std::integer_sequence<std::size_t>,
+    const Tuple& value) {}
 
-  template<typename Shuttler, typename Tuple, int Head, int... Tail>
-  void Send(Shuttler& shuttle, IntegerSequence<Head, Tail...>,
-      const Tuple& value) {
+  template<typename Shuttler, typename Tuple, std::size_t Head,
+    std::size_t... Tail>
+  void Send(Shuttler& shuttle,
+      std::integer_sequence<std::size_t, Head, Tail...>, const Tuple& value) {
     shuttle.Shuttle(std::get<Head>(value));
-    Send(shuttle, IntegerSequence<Tail...>(), value);
+    Send(shuttle, std::integer_sequence<std::size_t, Tail...>(), value);
   }
 
   template<typename Shuttler, typename Tuple>
-  void Receive(Shuttler& shuttle, IntegerSequence<>, Tuple& value) {}
+  void Receive(Shuttler& shuttle, std::integer_sequence<std::size_t>,
+    Tuple& value) {}
 
-  template<typename Shuttler, typename Tuple, int Head, int... Tail>
-  void Receive(Shuttler& shuttle, IntegerSequence<Head, Tail...>,
-      Tuple& value) {
+  template<typename Shuttler, typename Tuple, std::size_t Head,
+    std::size_t... Tail>
+  void Receive(Shuttler& shuttle,
+      std::integer_sequence<std::size_t, Head, Tail...>, Tuple& value) {
     shuttle.Shuttle(std::get<Head>(value));
-    Receive(shuttle, IntegerSequence<Tail...>(), value);
+    Receive(shuttle, std::integer_sequence<std::size_t, Tail...>(), value);
   }
 }
 
@@ -37,7 +40,7 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         const std::tuple<Args...>& value) const {
-      using Sequence = typename IntegerSequenceGenerator<sizeof...(Args)>::type;
+      using Sequence = std::make_integer_sequence<std::size_t, sizeof...(Args)>;
       shuttle.StartSequence(name);
       Details::Send(shuttle, Sequence(), value);
       shuttle.EndSequence();
@@ -49,13 +52,12 @@ namespace Details {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         std::tuple<Args...>& value) const {
-      using Sequence = typename IntegerSequenceGenerator<sizeof...(Args)>::type;
+      using Sequence = std::make_integer_sequence<std::size_t, sizeof...(Args)>;
       shuttle.StartSequence(name);
       Details::Receive(shuttle, Sequence(), value);
       shuttle.EndSequence();
     }
   };
-}
 }
 
 #endif

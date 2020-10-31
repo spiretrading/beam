@@ -74,7 +74,16 @@ namespace Beam {
       &holder->first);
     (*holder->second)->Monitor(MakeWeakQueueWriter(
       std::static_pointer_cast<QueueWriter<Type>>(sequencePublisher)));
-    return sequencePublisher;
+    struct Deleter {
+      std::shared_ptr<SequencePublisher<Type>> m_publisher;
+
+      void operator ()(SequencePublisher<Type>* value) {
+        m_publisher->Break();
+        m_publisher = nullptr;
+      }
+    };
+    return std::unique_ptr<SequencePublisher<Type>, Deleter>(
+      sequencePublisher.get(), Deleter{sequencePublisher});
   }
 
   template<typename T, typename S>

@@ -1,15 +1,26 @@
 #ifndef BEAM_SUSPENDED_ROUTINE_QUEUE_INL
 #define BEAM_SUSPENDED_ROUTINE_QUEUE_INL
+#include <tuple>
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam::Routines {
+  template<typename Head>
+  auto ReverseRelease(Head& head) {
+    return std::tuple(Threading::Release(head));
+  }
+
+  template<typename Head, typename... Tail>
+  auto ReverseRelease(Head& head, Tail&... tail) {
+    return std::tuple_cat(ReverseRelease(tail...), ReverseRelease(head));
+  }
+
   template<typename... Lock>
   void Suspend(Out<SuspendedRoutineQueue> suspendedRoutines, Lock&... lock) {
     auto currentRoutine = SuspendedRoutineNode();
     currentRoutine.m_routine->PendingSuspend();
     suspendedRoutines->push_back(currentRoutine);
-    auto releases = std::make_tuple(Threading::Release(lock)...);
+    auto releases = ReverseRelease(lock...);
     Suspend();
   }
 

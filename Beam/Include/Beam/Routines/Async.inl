@@ -1,16 +1,17 @@
 #ifndef BEAM_ASYNC_INL
 #define BEAM_ASYNC_INL
+#include <cassert>
+#include <utility>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
   template<typename T>
   Async<T>::Async()
-      : m_state{State::PENDING} {}
+    : m_state(State::PENDING) {}
 
   template<typename T>
-  Eval<T> Async<T>::GetEval() {
+  Eval<typename Async<T>::Type> Async<T>::GetEval() {
     Reset();
     return {Ref(*this)};
   }
@@ -23,7 +24,7 @@ namespace Routines {
   template<typename T>
   typename boost::call_traits<typename StorageType<T>::type>::reference
       Async<T>::Get() {
-    boost::unique_lock<boost::mutex> lock{m_mutex};
+    auto lock = boost::unique_lock(m_mutex);
     while(m_state == State::PENDING) {
       Routines::Suspend(Store(m_suspendedRoutines), lock);
     }
@@ -45,12 +46,12 @@ namespace Routines {
     }
     m_exception = nullptr;
     m_state = State::PENDING;
-    m_result = std::nullopt;
+    m_result = boost::none;
   }
 
   template<typename T>
   void Async<T>::SetState(State state) {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
+    auto lock = boost::lock_guard(m_mutex);
     assert(m_state == State::PENDING);
     assert(state != State::PENDING);
     m_state = state;
@@ -64,7 +65,7 @@ namespace Routines {
 
   template<typename T>
   Eval<T>::Eval()
-      : m_async{nullptr} {}
+    : m_async(nullptr) {}
 
   template<typename T>
   Eval<T>::Eval(Eval&& eval) {
@@ -89,11 +90,10 @@ namespace Routines {
   template<typename T>
   template<typename R>
   void Eval<T>::SetResult(R&& result) {
-    if(m_async == nullptr) {
+    if(!m_async) {
       return;
     }
-    auto async = m_async;
-    m_async = nullptr;
+    auto async = std::exchange(m_async, nullptr);
     assert(async->m_state == BaseAsync::State::PENDING);
     async->m_result.emplace(std::forward<R>(result));
     async->SetState(BaseAsync::State::COMPLETE);
@@ -101,32 +101,41 @@ namespace Routines {
 
   template<typename T>
   void Eval<T>::SetResult() {
-    if(m_async == nullptr) {
+    if(!m_async) {
       return;
     }
-    auto async = m_async;
-    m_async = nullptr;
+    auto async = std::exchange(m_async, nullptr);
     assert(async->m_state == BaseAsync::State::PENDING);
     async->m_result.emplace();
     async->SetState(BaseAsync::State::COMPLETE);
   }
 
   template<typename T>
-  void Eval<T>::SetException(const std::exception_ptr& e) {
-    if(m_async == nullptr) {
+  template<typename... R>
+  void Eval<T>::Emplace(R&&... result) {
+    if(!m_async) {
       return;
     }
-    auto async = m_async;
-    m_async = nullptr;
+    auto async = std::exchange(m_async, nullptr);
+    assert(async->m_state == BaseAsync::State::PENDING);
+    async->m_result.emplace(std::forward<R>(result)...);
+    async->SetState(BaseAsync::State::COMPLETE);
+  }
+
+  template<typename T>
+  void Eval<T>::SetException(const std::exception_ptr& e) {
+    if(!m_async) {
+      return;
+    }
+    auto async = std::exchange(m_async, nullptr);
     assert(async->m_state == BaseAsync::State::PENDING);
     async->m_exception = e;
     async->SetState(BaseAsync::State::EXCEPTION);
   }
 
   template<typename T>
-  Eval<T>::Eval(Ref<Async<T>> async)
-      : m_async{async.Get()} {}
-}
+  Eval<T>::Eval(Ref<Async<Type>> async)
+    : m_async(async.Get()) {}
 }
 
 #endif

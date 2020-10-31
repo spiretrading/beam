@@ -1,147 +1,166 @@
 #ifndef BEAM_ASYNC_HPP
 #define BEAM_ASYNC_HPP
-#include <cassert>
-#include <optional>
 #include <type_traits>
 #include <boost/call_traits.hpp>
-#include <boost/noncopyable.hpp>
+#include <boost/optional/optional.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
-#include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/StorageType.hpp"
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
 
-  /*! \class BaseAsync
-      \brief Stores details common to all the Async templates.
-   */
-  class BaseAsync : private boost::noncopyable {
+  /** Stores details common to all the Async templates. */
+  class BaseAsync {
     public:
 
-      /*! \enum State
-          \brief Enumerates the states of an operation.
-       */
+      /** Enumerates the states of an operation. */
       enum class State {
 
-        //! The operation is currently pending.
+        /** The operation is currently pending. */
         PENDING,
 
-        //! The operation succeeded.
+        /** The operation succeeded. */
         COMPLETE,
 
-        //! The operation resulted in an exception.
+        /** The operation resulted in an exception. */
         EXCEPTION
       };
+
+    protected:
+
+      /** Constructs an empty BaseAsync. */
+      BaseAsync() = default;
+
+    private:
+      BaseAsync(const BaseAsync&) = delete;
+      BaseAsync& operator =(const BaseAsync&) = delete;
   };
 
-  /*! \class Async
-      \brief Stores the result of an asynchronous operation.
-      \tparam T The type of the asynchronous result.
+  /**
+   * Stores the result of an asynchronous operation.
+   * @param <T> The type of the asynchronous result.
    */
   template<typename T>
-  class Async : public BaseAsync {
+  class Async final : public BaseAsync {
     public:
 
-      //! Constructs an Async.
+      /** The type of the asynchronous result. */
+      using Type = T;
+
+      /** Constructs an Async. */
       Async();
 
-      //! Returns an object that can be used to evaluate this Async.
-      Eval<T> GetEval();
+      /** Returns an object that can be used to evaluate this Async. */
+      Eval<Type> GetEval();
 
-      //! Returns the result of the operation.
-      typename boost::call_traits<typename StorageType<T>::type>::reference
+      /** Returns the result of the operation. */
+      typename boost::call_traits<typename StorageType<Type>::type>::reference
         Get();
 
-      //! Returns the exception.
+      /** Returns the exception. */
       const std::exception_ptr& GetException() const;
 
-      //! Returns the state of this Async.
+      /** Returns the state of this Async. */
       State GetState() const;
 
-      //! Resets this Async so that it can be reused.
+      /** Resets this Async so that it can be reused. */
       void Reset();
 
     private:
-      friend class Eval<T>;
+      friend class Eval<Type>;
       mutable boost::mutex m_mutex;
       State m_state;
       SuspendedRoutineQueue m_suspendedRoutines;
-      std::optional<typename StorageType<T>::type> m_result;
+      boost::optional<typename StorageType<Type>::type> m_result;
       std::exception_ptr m_exception;
 
       void SetState(State state);
   };
 
-  /*! \class BaseEval
-      \brief Base class for the Eval template.
-   */
-  class BaseEval : private boost::noncopyable {
+  /** Base class for the Eval template. */
+  class BaseEval {
     public:
       virtual ~BaseEval() = default;
 
-      //! Sets an exception to be returned.
-      /*!
-        \param e The exception to set.
-      */
+      /**
+       * Sets an exception to be returned.
+       * @param e The exception to set.
+       */
       template<typename E>
       void SetException(const E& e);
 
-      //! Sets an exception to be returned.
-      /*!
-        \param e The exception to set.
-      */
+      /**
+       * Sets an exception to be returned.
+       * @param e The exception to set.
+       */
       virtual void SetException(const std::exception_ptr& e) = 0;
+
+    protected:
+
+      /** Constructs an empty BaseEval. */
+      BaseEval() = default;
+
+    private:
+      BaseEval(const BaseEval&) = delete;
+      BaseEval& operator =(const BaseEval&) = delete;
   };
 
-  /*! \class Eval
-      \brief Evaluates the result of an asynchronous operation.
+  /**
+   * Evaluates the result of an asynchronous operation.
+   * @param <T> The type of the asynchronous operation.
    */
   template<typename T>
-  class Eval : public BaseEval {
+  class Eval final : public BaseEval {
     public:
 
-      //! Constructs an Eval whose result is discarded.
+      /** The type of the asynchronous result. */
+      using Type = T;
+
+      /** Constructs an Eval whose result is discarded. */
       Eval();
 
-      //! Acquires an Eval.
-      /*!
-        \param eval The Eval to acquire.
-      */
+      /**
+       * Acquires an Eval.
+       * @param eval The Eval to acquire.
+       */
       Eval(Eval&& eval);
 
-      //! Acquires an Eval.
-      /*!
-        \param rhs The Eval to acquire.
-      */
+      /**
+       * Acquires an Eval.
+       * @param rhs The Eval to acquire.
+       */
       Eval& operator =(Eval&& rhs);
 
-      //! Returns <code>true</code> iff no Async is associated with this Eval.
+      /**
+       * Returns <code>true</code> iff no Async is associated with this Eval.
+       */
       bool IsEmpty() const;
 
-      //! Sets the result of this Eval.
-      /*!
-        \param result The result of this Eval.
-      */
+      /**
+       * Sets the result of this Eval.
+       * @param result The result of this Eval.
+       */
       template<typename R>
       void SetResult(R&& result);
 
-      //! Sets the result of this Eval.
+      /** Sets the result of this Eval. */
       void SetResult();
+
+      /** Emplaces the result of this Eval. */
+      template<typename... R>
+      void Emplace(R&&... result);
 
       virtual void SetException(const std::exception_ptr& e);
 
       using BaseEval::SetException;
     private:
-      friend class Async<T>;
-      Async<T>* m_async;
+      friend class Async<Type>;
+      Async<Type>* m_async;
 
-      Eval(Ref<Async<T>> async);
+      Eval(Ref<Async<Type>> async);
   };
-}
 }
 
 #endif

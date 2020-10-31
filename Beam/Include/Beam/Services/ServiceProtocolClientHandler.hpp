@@ -73,7 +73,7 @@ namespace Beam::Services {
       ReconnectHandler m_reconnectHandler;
       std::shared_ptr<Client> m_client;
       Routines::RoutineHandler m_messageHandler;
-      std::unique_ptr<typename ServiceProtocolClientBuilder::Timer>
+      std::shared_ptr<typename ServiceProtocolClientBuilder::Timer>
         m_reconnectTimer;
       IO::OpenState m_openState;
 
@@ -138,10 +138,14 @@ namespace Beam::Services {
         }
         return m_client;
       } catch(const IO::ConnectException&) {
-        m_reconnectTimer = m_builder->BuildTimer();
-        auto release = Threading::Release(lock);
-        m_reconnectTimer->Start();
-        m_reconnectTimer->Wait();
+        auto reconnectTimer = std::shared_ptr(m_builder->BuildTimer());
+        m_reconnectTimer = reconnectTimer;
+        reconnectTimer->Start();
+        {
+          auto release = Threading::Release(lock);
+          reconnectTimer->Wait();
+        }
+        m_reconnectTimer = nullptr;
       } catch(const std::exception&) {
         m_openState.Close();
         BOOST_RETHROW;

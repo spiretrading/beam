@@ -1,18 +1,33 @@
 #ifndef BEAM_SUSPENDED_ROUTINE_QUEUE_INL
 #define BEAM_SUSPENDED_ROUTINE_QUEUE_INL
-#include <tuple>
+#include <type_traits>
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam::Routines {
+  template<typename T1, typename T2>
+  struct Releaser {
+    T1 m_head;
+    T2 m_tail;
+
+    template<typename R1, typename R2>
+    Releaser(R1&& head, R2&& tail)
+      : m_head(std::forward<R1>(head)),
+        m_tail(std::forward<R2>(tail)) {}
+  };
+
+  template<typename R1, typename R2>
+  Releaser(R1&&, R2&&) ->
+    Releaser<std::remove_reference_t<R1>, std::remove_reference_t<R2>>;
+
   template<typename Head>
   auto ReverseRelease(Head& head) {
-    return std::tuple(Threading::Release(head));
+    return Threading::Release(head);
   }
 
   template<typename Head, typename... Tail>
   auto ReverseRelease(Head& head, Tail&... tail) {
-    return std::tuple_cat(ReverseRelease(tail...), ReverseRelease(head));
+    return Releaser(ReverseRelease(tail...), ReverseRelease(head));
   }
 
   template<typename... Lock>

@@ -1,16 +1,22 @@
-#ifndef BEAM_RECORDMESSAGEDETAILS_HPP
-#define BEAM_RECORDMESSAGEDETAILS_HPP
+#ifndef BEAM_RECORD_MESSAGE_DETAILS_HPP
+#define BEAM_RECORD_MESSAGE_DETAILS_HPP
+#include <functional>
 #include <iostream>
+#include <vector>
 #include <boost/call_traits.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/vector.hpp>
+#include <boost/preprocessor/comma_if.hpp>
+#include <boost/preprocessor/empty.hpp>
+#include <boost/preprocessor/enum_params.hpp>
+#include <boost/preprocessor/repeat.hpp>
+#include <boost/preprocessor/iteration/local.hpp>
+#include "Beam/Pointers/Ref.hpp"
 #include "Beam/Services/Message.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam {
-namespace Services {
-namespace Details {
+namespace Beam::Services::Details {
   template<typename ServiceProtocolClientType, typename RecordType>
   struct GetRecordMessageSlotType {};
 
@@ -66,11 +72,10 @@ namespace Details {
       template<typename SlotForward>
       RecordMessageSlot(SlotForward&& slot);
 
-      virtual void Invoke(
-        Ref<typename RecordMessage::ServiceProtocolClient> protocol,
+      void Invoke(Ref<typename RecordMessage::ServiceProtocolClient> protocol,
         const typename RecordMessage::Record& record) const;
 
-      virtual void AddPreHook(const PreHook& hook);
+      void AddPreHook(const PreHook& hook) override;
 
     private:
       std::vector<PreHook> m_preHooks;
@@ -80,21 +85,20 @@ namespace Details {
   template<typename RecordMessageType>
   template<typename SlotForward>
   RecordMessageSlot<RecordMessageType>::RecordMessageSlot(SlotForward&& slot)
-      : m_slot(std::forward<SlotForward>(slot)) {}
+    : m_slot(std::forward<SlotForward>(slot)) {}
 
   template<typename RecordMessageType>
   void RecordMessageSlot<RecordMessageType>::Invoke(
       Ref<typename RecordMessageType::ServiceProtocolClient> protocol,
       const typename RecordMessageType::Record& record) const {
     try {
-      for(const PreHook& preHook : m_preHooks) {
+      for(auto& preHook : m_preHooks) {
         preHook(*protocol.Get());
       }
       InvokeRecordMessageSlot<Slot, RecordMessageType>()(m_slot,
         *protocol.Get(), record);
     } catch(...) {
       std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
-      return;
     }
   }
 
@@ -102,8 +106,6 @@ namespace Details {
   void RecordMessageSlot<RecordMessageType>::AddPreHook(const PreHook& hook) {
     m_preHooks.push_back(hook);
   }
-}
-}
 }
 
 #endif

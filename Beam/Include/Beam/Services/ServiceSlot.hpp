@@ -1,5 +1,6 @@
 #ifndef BEAM_SERVICE_SLOT_HPP
 #define BEAM_SERVICE_SLOT_HPP
+#include <functional>
 #include "Beam/Services/Services.hpp"
 
 namespace Beam::Services {
@@ -24,6 +25,15 @@ namespace Beam::Services {
        * @param hook The hook to call prior to the service handler.
        */
       virtual void AddPreHook(const PreHook& hook) = 0;
+
+    protected:
+
+      /** Constructs a BaseServiceSlot. */
+      BaseServiceSlot() = default;
+
+    private:
+      BaseServiceSlot(const BaseServiceSlot&) = delete;
+      BaseServiceSlot& operator =(const BaseServiceSlot&) = delete;
   };
 
   /**

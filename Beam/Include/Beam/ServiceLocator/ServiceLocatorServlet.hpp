@@ -271,10 +271,8 @@ namespace Beam::ServiceLocator {
       for(auto& registeredService : registeredServices) {
         auto& listing = serviceEntryListings[registeredService.GetName()];
         RemoveAll(listing.m_entries, registeredService);
-        for(auto subscriber : listing.m_subscribers) {
-          Services::SendRecordMessage<ServiceAvailabilityMessage>(*subscriber,
-            registeredService, false);
-        }
+        Services::BroadcastRecordMessage<ServiceAvailabilityMessage>(
+          listing.m_subscribers, registeredService, false);
       }
       for(auto& serviceSubscription : serviceSubscriptions) {
         auto& listing = serviceEntryListings[serviceSubscription];
@@ -334,10 +332,8 @@ namespace Beam::ServiceLocator {
         }
         auto& monitor = monitorIterator->second;
         for(auto& parent : parents) {
-          for(auto subscriber : monitor.m_subscribers) {
-            Services::SendRecordMessage<DirectoryEntryDetachedMessage>(
-              *subscriber, entry, parent);
-          }
+          Services::BroadcastRecordMessage<DirectoryEntryDetachedMessage>(
+            monitor.m_subscribers, entry, parent);
         }
         directoryEntryMonitorEntries.erase(monitorIterator);
       });
@@ -405,10 +401,8 @@ namespace Beam::ServiceLocator {
         listing.m_entries.push_back(entry);
         serviceListings.insert(std::make_pair(id, entry));
         session.RegisterService(entry);
-        for(auto subscriber : listing.m_subscribers) {
-          Services::SendRecordMessage<ServiceAvailabilityMessage>(*subscriber,
-            entry, true);
-        }
+        Services::BroadcastRecordMessage<ServiceAvailabilityMessage>(
+          listing.m_subscribers, entry, true);
       });
     return entry;
   }
@@ -437,10 +431,8 @@ namespace Beam::ServiceLocator {
         auto& listing = serviceEntryListings[entry.GetName()];
         RemoveAll(listing.m_entries, entry);
         session.UnregisterService(serviceId);
-        for(auto subscriber : listing.m_subscribers) {
-          Services::SendRecordMessage<ServiceAvailabilityMessage>(*subscriber,
-            entry, false);
-        }
+        Services::BroadcastRecordMessage<ServiceAvailabilityMessage>(
+          listing.m_subscribers, entry, false);
       });
   }
 
@@ -779,10 +771,8 @@ namespace Beam::ServiceLocator {
             return;
           }
           auto& monitor = monitorIterator->second;
-          for(auto subscriber : monitor.m_subscribers) {
-            Services::SendRecordMessage<DirectoryEntryAssociatedMessage>(
-              *subscriber, validatedEntry, validatedParent);
-          }
+          Services::BroadcastRecordMessage<DirectoryEntryAssociatedMessage>(
+            monitor.m_subscribers, validatedEntry, validatedParent);
         });
     });
   }
@@ -818,10 +808,8 @@ namespace Beam::ServiceLocator {
             return;
           }
           auto& monitor = monitorIterator->second;
-          for(auto subscriber : monitor.m_subscribers) {
-            Services::SendRecordMessage<DirectoryEntryDetachedMessage>(
-              *subscriber, validatedEntry, validatedParent);
-          }
+          Services::BroadcastRecordMessage<DirectoryEntryDetachedMessage>(
+            monitor.m_subscribers, validatedEntry, validatedParent);
         });
     });
   }

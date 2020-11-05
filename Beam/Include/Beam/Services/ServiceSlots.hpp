@@ -50,8 +50,8 @@ namespace Beam::Services {
        * @param <MessageType> The type of Message to associate the slot with.
        * @param slot The slot to associate with the Message.
        */
-      template<typename MessageType>
-      void Add(std::unique_ptr<ServiceSlot<MessageType>>&& slot);
+      template<typename Slot>
+      void Add(std::unique_ptr<Slot> slot);
 
       /**
        * Adds all slots stored in another ServiceSlots instance.
@@ -131,10 +131,10 @@ namespace Beam::Services {
   }
 
   template<typename C>
-  template<typename MessageType>
-  void ServiceSlots<C>::Add(std::unique_ptr<ServiceSlot<MessageType>>&& slot) {
-    auto& entry = m_registry.template GetEntry<MessageType>();
-    m_slots.insert(std::make_pair(entry.GetName(), std::move(slot)));
+  template<typename Slot>
+  void ServiceSlots<C>::Add(std::unique_ptr<Slot> slot) {
+    auto& entry = m_registry.template GetEntry<typename Slot::Message>();
+    m_slots.insert(std::pair(entry.GetName(), std::move(slot)));
   }
 
   template<typename C>
@@ -149,8 +149,7 @@ namespace Beam::Services {
   template<typename C>
   template<typename MessageType, typename SlotForward>
   void ServiceSlots<C>::Add(SlotForward&& slot) {
-    return Add<ServiceSlot<MessageType>>(
-      std::make_unique<typename MessageType::Slot>(
+    return Add(std::make_unique<typename MessageType::Slot>(
       std::forward<SlotForward>(slot)));
   }
 

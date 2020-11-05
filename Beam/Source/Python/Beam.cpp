@@ -1,6 +1,7 @@
 #include "Beam/Python/Beam.hpp"
 #include <datetime.h>
 #include <pybind11/pybind11.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 
 using namespace Beam;
@@ -29,5 +30,6 @@ PYBIND11_MODULE(_beam, module) {
   ExportYaml(module);
   module.def("is_running", &IsRunning);
   module.def("received_kill_event", &ReceivedKillEvent);
-  module.def("wait_for_kill_event", &WaitForKillEvent);
+  module.def("wait_for_kill_event", &WaitForKillEvent,
+    call_guard<GilRelease>());
 }

@@ -105,7 +105,7 @@ namespace Services {
     try {
       client.Send(message);
     } catch(const std::exception&) {
-      client.Close();
+      return;
     }
   }
 
@@ -119,12 +119,11 @@ namespace Services {
       const std::vector<ServiceProtocolClient*>& clients, Args&&... args) {
     if(clients.empty()) {
       return;
-    }
-    auto message = RecordMessage<R, ServiceProtocolClient>(
-      std::forward<Args>(args)...);
-    if(clients.size() == 1) {
-      clients.front()->Send(message);
+    } else if(clients.size() == 1) {
+      SendRecordMessage<R>(*clients.front(), std::forward<Args>(args)...);
     } else {
+      auto message = RecordMessage<R, ServiceProtocolClient>(
+        std::forward<Args>(args)...);
       auto buffer = typename
         ServiceProtocolClient::MessageProtocol::Channel::Writer::Buffer();
       clients.front()->Encode(message, Store(buffer));
@@ -132,7 +131,7 @@ namespace Services {
         try {
           client->Send(buffer);
         } catch(const std::exception&) {
-          client->Close();
+          continue;
         }
       }
     }

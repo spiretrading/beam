@@ -1,9 +1,11 @@
 #ifndef BEAM_ASYNC_WRITER_HPP
 #define BEAM_ASYNC_WRITER_HPP
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 
 namespace Beam {
@@ -61,6 +63,7 @@ namespace IO {
           if(!m_exception) {
             m_exception = std::current_exception();
             m_tasks.Break();
+            BOOST_THROW_EXCEPTION(PipeBrokenException());
           }
         }
       });

@@ -113,7 +113,7 @@ namespace Beam::Queries {
       };
       std::atomic_int m_nextQueryId;
       SynchronizedVector<std::shared_ptr<SubscriptionEntry>> m_subscriptions;
-      std::vector<ServiceProtocolClient*> receivingClients;
+      std::vector<ServiceProtocolClient*> m_receivingClients;
       Beam::SynchronizedUnorderedMap<int, std::shared_ptr<SubscriptionEntry>>
         m_initializingSubscriptions;
 
@@ -217,7 +217,7 @@ namespace Beam::Queries {
       ClientFilter&& clientFilter, Sender&& sender) {
     auto lastClient = static_cast<const ServiceProtocolClient*>(nullptr);
     m_subscriptions.With([&] (const auto& subscriptionEntries) {
-      receivingClients.clear();
+      m_receivingClients.clear();
       for(auto& subscriptionEntry : subscriptionEntries) {
         if(subscriptionEntry->m_client == lastClient) {
           continue;
@@ -239,12 +239,12 @@ namespace Beam::Queries {
               SubscriptionEntry::State::INITIALIZING) {
             subscriptionEntry->m_writeLog.push_back(value);
           } else {
-            receivingClients.push_back(subscriptionEntry->m_client);
+            m_receivingClients.push_back(subscriptionEntry->m_client);
           }
         }
       }
-      if(!receivingClients.empty()) {
-        std::forward<Sender>(sender)(receivingClients);
+      if(!m_receivingClients.empty()) {
+        std::forward<Sender>(sender)(m_receivingClients);
       }
     });
   }

@@ -1,5 +1,5 @@
-#ifndef BEAM_REPORTEXCEPTION_HPP
-#define BEAM_REPORTEXCEPTION_HPP
+#ifndef BEAM_REPORT_EXCEPTION_HPP
+#define BEAM_REPORT_EXCEPTION_HPP
 #include <boost/exception/diagnostic_information.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 

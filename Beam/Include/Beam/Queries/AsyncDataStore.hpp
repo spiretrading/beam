@@ -1,6 +1,7 @@
 #ifndef BEAM_ASYNC_DATA_STORE_HPP
 #define BEAM_ASYNC_DATA_STORE_HPP
 #include <array>
+#include <iostream>
 #include <memory>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -10,6 +11,7 @@
 #include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam::Queries {
 namespace Details {
@@ -225,7 +227,11 @@ namespace Details {
       m_flushedDataStore.swap(m_currentDataStore);
       m_isFlushing = false;
     }
-    m_dataStore->Store(m_flushedDataStore->LoadAll());
+    try {
+      m_dataStore->Store(m_flushedDataStore->LoadAll());
+    } catch(const std::exception&) {
+      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+    }
     auto newDataStore = std::make_shared<ReserveDataStore>();
     {
       auto lock = boost::lock_guard(m_mutex);

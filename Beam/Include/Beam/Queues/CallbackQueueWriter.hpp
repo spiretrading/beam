@@ -1,6 +1,7 @@
 #ifndef BEAM_CALLBACK_QUEUE_WRITER_HPP
 #define BEAM_CALLBACK_QUEUE_WRITER_HPP
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>

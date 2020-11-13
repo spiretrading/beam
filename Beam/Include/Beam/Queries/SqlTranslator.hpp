@@ -82,6 +82,8 @@ namespace Beam::Queries {
       GetTranslation() = Viper::literal(value->GetValue<char>());
     } else if(value->GetType()->GetNativeType() == typeid(int)) {
       GetTranslation() = Viper::literal(value->GetValue<int>());
+    } else if(value->GetType()->GetNativeType() == typeid(std::uint64_t)) {
+      GetTranslation() = Viper::literal(value->GetValue<std::uint64_t>());
     } else if(value->GetType()->GetNativeType() == typeid(double)) {
       GetTranslation() = Viper::literal(value->GetValue<double>());
     } else if(value->GetType()->GetNativeType() == typeid(std::string)) {

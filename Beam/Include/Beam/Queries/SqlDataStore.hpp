@@ -4,6 +4,7 @@
 #include <iterator>
 #include <vector>
 #include <Viper/Viper.hpp>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
@@ -15,6 +16,19 @@
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 
 namespace Beam::Queries {
+
+  /** Specifies whether to create the table on connection. */
+  enum class SqlConnectionOption {
+
+    /** Perform no action if the table doesn't exist. */
+    NONE,
+
+    /** Raise an exception if the table doesn't exist. */
+    ENSURE,
+
+    /** Create the table if it doesn't exist (default option). */
+    CREATE
+  };
 
   /**
    * Loads and stores SequencedValue's in an SQL database.
@@ -67,6 +81,20 @@ namespace Beam::Queries {
         Ref<DatabaseConnectionPool<Connection>> readerPool,
         Ref<DatabaseConnectionPool<Connection>> writerPool);
 
+      /**
+       * Constructs an SqlDataStore.
+       * @param table The name of the SQL table.
+       * @param valueRow The SQL row to store the value.
+       * @param indexRow The SQL row to store the index.
+       * @param readerPool The pool of SQL connections used for reading.
+       * @param writerPool The pool of SQL connections used for writing.
+       * @param connectionOption Specifies the ConnectionOption to use.
+       */
+      SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
+        Ref<DatabaseConnectionPool<Connection>> readerPool,
+        Ref<DatabaseConnectionPool<Connection>> writerPool,
+        SqlConnectionOption connectionOption);
+
       ~SqlDataStore();
 
       /**
@@ -110,7 +138,8 @@ namespace Beam::Queries {
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
       IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
-      Ref<DatabaseConnectionPool<Connection>> writerPool)
+      Ref<DatabaseConnectionPool<Connection>> writerPool,
+      SqlConnectionOption connectionOption)
       : m_table(std::move(table)),
         m_valueRow(std::move(valueRow)),
         m_indexRow(std::move(indexRow)),
@@ -174,9 +203,24 @@ namespace Beam::Queries {
     timestamp_index.push_back("query_sequence");
     timestamp_index.push_back("timestamp");
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
-    auto connection = m_writerPool->Acquire();
-    connection->execute(create_if_not_exists(m_row, m_table));
+    if(connectionOption == SqlConnectionOption::CREATE) {
+      auto connection = m_writerPool->Acquire();
+      connection->execute(create_if_not_exists(m_row, m_table));
+    } else if(connectionOption == SqlConnectionOption::ENSURE) {
+      auto connection = m_writerPool->Acquire();
+      if(!connection->has_table(m_table)) {
+        BOOST_THROW_EXCEPTION(IO::ConnectException(
+          "Table " + m_table + " doesn't exist."));
+      }
+    }
   }
+
+  template<typename C, typename V, typename I, typename T>
+  SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
+    IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
+    Ref<DatabaseConnectionPool<Connection>> writerPool)
+    : SqlDataStore(std::move(table), std::move(valueRow), std::move(indexRow),
+        Ref(readerPool), Ref(writerPool), SqlConnectionOption::CREATE) {}
 
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::~SqlDataStore() {

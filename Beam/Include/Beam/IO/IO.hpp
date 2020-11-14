@@ -12,6 +12,7 @@ namespace Beam::IO {
   struct ChannelIdentifier;
   template<typename ServerConnectionType, typename ChannelType>
     class ChannelAdapterServerConnection;
+  class ConnectException;
   class EndOfFileException;
   class IOException;
   template<typename BufferType> class LocalClientChannel;

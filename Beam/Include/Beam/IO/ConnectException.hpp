@@ -1,23 +1,20 @@
-#ifndef BEAM_CONNECTEXCEPTION_HPP
-#define BEAM_CONNECTEXCEPTION_HPP
+#ifndef BEAM_CONNECT_EXCEPTION_HPP
+#define BEAM_CONNECT_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
 
-  /*! \class ConnectException
-      \brief Signals that a connect operation failed.
-   */
+  /** Signals that a connect operation failed. */
   class ConnectException : public IOException {
     public:
 
-      //! Constructs a ConnectException.
+      /** Constructs a ConnectException. */
       ConnectException();
 
-      //! Constructs a ConnectException.
-      /*!
-        \param message A message describing the error.
-      */
+      /**
+       * Constructs a ConnectException.
+       * @param message A message describing the error.
+       */
       ConnectException(const std::string& message);
   };
 
@@ -26,7 +23,6 @@ namespace IO {
 
   inline ConnectException::ConnectException(const std::string& message)
     : IOException(message) {}
-}
 }
 
 #endif

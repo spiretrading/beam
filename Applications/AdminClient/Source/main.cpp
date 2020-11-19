@@ -54,15 +54,27 @@ namespace {
 }
 
 void sub_main(const YAML::Node& config) {
-  auto serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(config);
-  auto serviceLocatorClient = ApplicationServiceLocatorClient(
-    serviceLocatorClientConfig.m_username,
-    serviceLocatorClientConfig.m_password,
-    serviceLocatorClientConfig.m_address);
-  auto account = serviceLocatorClient->GetAccount();
-  auto currentDirectory = serviceLocatorClient->LoadParents(account).front();
-  auto children = serviceLocatorClient->LoadChildren(currentDirectory);
-  auto parents = serviceLocatorClient->LoadParents(currentDirectory);
+  auto serviceLocatorClientConfig = TryOrNest([&] {
+    return ServiceLocatorClientConfig::Parse(config);
+  }, std::runtime_error("Unable to parse the service locator config."));
+  auto serviceLocatorClient = TryOrNest([&] {
+    return ApplicationServiceLocatorClient(
+      serviceLocatorClientConfig.m_username,
+      serviceLocatorClientConfig.m_password,
+      serviceLocatorClientConfig.m_address);
+  }, std::runtime_error("Unable to connect to the service locator."));
+  auto account = TryOrNest([&] {
+    return serviceLocatorClient->GetAccount();
+  }, std::runtime_error("Unable to load account."));
+  auto currentDirectory = TryOrNest([&] {
+    return serviceLocatorClient->LoadParents(account).front();
+  }, std::runtime_error("Unable to load home directory."));
+  auto children = TryOrNest([&] {
+    return serviceLocatorClient->LoadChildren(currentDirectory);
+  }, std::runtime_error("Unable to load the home directory's children."));
+  auto parents = TryOrNest([&] {
+    return serviceLocatorClient->LoadParents(currentDirectory);
+  }, std::runtime_error("Unable to load the home directory's parents."));
   while(!ReceivedKillEvent()) {
     std::cout << ">>> ";
     auto input = std::string();
@@ -167,7 +179,9 @@ int main(int argc, char** argv) {
   auto config = Require(LoadFile, configFile);
   try {
     sub_main(config);
-  } catch(const std::exception& e) {
-    std::cerr << e.what() << std::endl;
+  } catch(const std::exception&) {
+    ReportCurrentException();
+    return -1;
   }
+  return 0;
 }

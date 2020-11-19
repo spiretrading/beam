@@ -1,72 +1,70 @@
 #ifndef BEAM_EXPECT_HPP
 #define BEAM_EXPECT_HPP
 #include <exception>
+#include <type_traits>
 #include <utility>
 #include <variant>
-#include <boost/variant/get.hpp>
-#include <boost/variant/variant.hpp>
-#include "Beam/Utilities/Functional.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 
-  /*! \class Expect
-      \brief Stores a value that could potentially result in an exception.
-      \tparam T The type of value to store.
+  /**
+   * Stores a value that could potentially result in an exception.
+   * @param <T> The type of value to store.
    */
   template<typename T>
   class Expect {
     public:
 
-      //! The type of value to store.
+      /** The type of value to store. */
       using Type = T;
 
-      //! Constructs an Expect.
+      /** Constructs an Expect. */
       Expect() = default;
 
-      //! Constructs an Expect with a normal value.
-      /*!
-        \param value The value to store.
-      */
+      /**
+       * Constructs an Expect with a normal value.
+       * @param value The value to store.
+       */
       Expect(const T& value);
 
-      //! Constructs an Expect with a normal value.
-      /*!
-        \param value The value to store.
-      */
+      /**
+       * Constructs an Expect with a normal value.
+       * @param value The value to store.
+       */
       Expect(T&& value);
 
-      //! Constructs an Expect with an exception.
-      /*!
-        \param exception The exception to throw.
-      */
+      /**
+       * Constructs an Expect with an exception.
+       * @param exception The exception to throw.
+       */
       Expect(const std::exception_ptr& exception);
 
-      //! Implicitly converts to the underlying value.
+      /** Implicitly converts to the underlying value. */
       operator const T& () const;
 
-      //! Returns <code>true</code> iff a value is stored.
+      /** Returns <code>true</code> iff a value is stored. */
       bool IsValue() const;
 
-      //! Returns <code>true</code> iff an exception is stored.
+      /** Returns <code>true</code> iff an exception is stored. */
       bool IsException() const;
 
-      //! Returns the stored value, or throws an exception.
+      /** Returns the stored value, or throws an exception. */
       const T& Get() const&;
 
-      //! Returns the stored value, or throws an exception.
+      /** Returns the stored value, or throws an exception. */
       T& Get() &;
 
-      //! Returns the stored value, or throws an exception.
+      /** Returns the stored value, or throws an exception. */
       T&& Get() &&;
 
-      //! Returns the exception.
+      /** Returns the exception. */
       std::exception_ptr GetException() const;
 
-      //! Calls a function and stores its value.
-      /*!
-        \param f The function to call.
-      */
+      /**
+       * Calls a function and stores its value.
+       * @param f The function to call.
+       */
       template<typename F>
       void Try(F&& f);
 
@@ -84,42 +82,45 @@ namespace Beam {
 
     private:
       template<typename> friend class Expect;
-      std::variant<T, std::exception_ptr> m_value;
+      std::variant<Type, std::exception_ptr> m_value;
   };
 
-  /*! \class Expect
-      \brief Stores a value that could potentially result in an exception.
-      \tparam T The type of value to store.
+  /**
+   * Stores a value that could potentially result in an exception.
+   * @param <T> The type of value to store.
    */
   template<>
   class Expect<void> {
     public:
 
-      //! The type of value to store.
+      /** The type of value to store. */
       using Type = void;
 
-      //! Constructs an Expect.
+      /** Constructs an Expect. */
       Expect() = default;
 
-      //! Constructs an Expect with an exception.
-      /*!
-        \param exception The exception to throw.
-      */
+      /**
+       * Constructs an Expect with an exception.
+       * @param exception The exception to throw.
+       */
       Expect(const std::exception_ptr& exception);
 
-      //! Returns <code>true</code> iff an exception is stored.
+      /** Returns <code>true</code> iff a value is stored. */
+      bool IsValue() const;
+
+      /** Returns <code>true</code> iff an exception is stored. */
       bool IsException() const;
 
-      //! Returns the stored value, or throws an exception.
+      /** Returns the stored value, or throws an exception. */
       void Get() const;
 
-      //! Returns the exception.
+      /** Returns the exception. */
       std::exception_ptr GetException() const;
 
-      //! Calls a function and stores its value.
-      /*!
-        \param f The function to call.
-      */
+      /**
+       * Calls a function and stores its value.
+       * @param f The function to call.
+       */
       template<typename F>
       void Try(F&& f);
 
@@ -127,16 +128,14 @@ namespace Beam {
       std::exception_ptr m_exception;
   };
 
-  //! Tries calling a function, capturing any thrown exception.
-  /*!
-    \param f The function to call.
-    \return The result of <i>f</i>.
-  */
+  /**
+   * Tries calling a function, capturing any thrown exception.
+   * @param f The function to call.
+   * @return The result of <i>f</i>.
+   */
   template<typename F>
-  Expect<typename std::decay<GetResultOf<typename std::decay<F>::type>>::type>
-      Try(F&& f) {
-    using Result = typename std::decay<
-      GetResultOf<typename std::decay<F>::type>>::type;
+  Expect<std::decay_t<std::result_of_t<F>>> Try(F&& f) noexcept {
+    using Result = std::decay_t<std::result_of_t<F>>;
     try {
       if constexpr(std::is_same_v<Result, void>) {
         f();
@@ -149,14 +148,14 @@ namespace Beam {
     }
   }
 
-  //! Calls a function and calls terminate if the function throws an exception.
-  /*!
-    \param f The function to call.
-    \param args The arguments to pass to f.
-    \return The result of f.
-  */
+  /**
+   * Calls a function and calls terminate if the function throws an exception.
+   * @param f The function to call.
+   * @param args The arguments to pass to f.
+   * @return The result of f.
+   */
   template<typename F, typename... Args>
-  auto Require(F&& f, Args&&... args) noexcept {
+  decltype(auto) Require(F&& f, Args&&... args) noexcept {
     try {
       return f(std::forward<Args>(args)...);
     } catch(const std::exception& e) {
@@ -168,17 +167,34 @@ namespace Beam {
     return f(std::forward<Args>(args)...);
   }
 
+  /**
+   * Calls a function and if it throws an exception, nests the exception within
+   * another.
+   * @param f The function to call.
+   * @param e The outer exception used if <i>f</i> throws.
+   * @return The result of f.
+   */
+  template<typename F, typename E, typename = std::enable_if_t<
+    std::is_base_of_v<std::exception, std::decay_t<E>>>>
+  decltype(auto) TryOrNest(F&& f, E&& e) {
+    try {
+      return f();
+    } catch(...) {
+      std::throw_with_nested(std::forward<E>(e));
+    }
+  }
+
   template<typename T>
   Expect<T>::Expect(const T& value)
-      : m_value(value) {}
+    : m_value(value) {}
 
   template<typename T>
   Expect<T>::Expect(T&& value)
-      : m_value(std::move(value)) {}
+    : m_value(std::move(value)) {}
 
   template<typename T>
   Expect<T>::Expect(const std::exception_ptr& exception)
-      : m_value(exception) {}
+    : m_value(exception) {}
 
   template<typename T>
   Expect<T>::operator const T& () const {
@@ -269,14 +285,18 @@ namespace Beam {
   }
 
   inline Expect<void>::Expect(const std::exception_ptr& exception)
-      : m_exception(exception) {}
+    : m_exception(exception) {}
+
+  inline bool Expect<void>::IsValue() const {
+    return m_exception == nullptr;
+  }
 
   inline bool Expect<void>::IsException() const {
-    return m_exception != std::exception_ptr();
+    return m_exception != nullptr;
   }
 
   inline void Expect<void>::Get() const {
-    if(m_exception != std::exception_ptr()) {
+    if(m_exception) {
       std::rethrow_exception(m_exception);
     }
   }

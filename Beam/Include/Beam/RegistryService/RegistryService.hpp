@@ -3,7 +3,6 @@
 #include <string>
 
 namespace Beam::RegistryService {
-  class ApplicationRegistryClient;
   class FileSystemRegistryDataStore;
   class LocalRegistryDataStore;
   template<typename ServiceProtocolClientBuilderType> class RegistryClient;
@@ -16,7 +15,7 @@ namespace Beam::RegistryService {
   class VirtualRegistryClient;
   template<typename ClientType> class WrapperRegistryClient;
 
-  // Standard name for the registry service.
+  /** Standard name for the registry service. */
   inline const std::string SERVICE_NAME = "registry_service";
 }
 

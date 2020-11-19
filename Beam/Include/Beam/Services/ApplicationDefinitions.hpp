@@ -1,5 +1,10 @@
 #ifndef BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
+#include <string>
+#include <Beam/Codecs/SizeDeclarativeDecoder.hpp>
+#include <Beam/Codecs/SizeDeclarativeEncoder.hpp>
+#include <Beam/Codecs/ZLibDecoder.hpp>
+#include <Beam/Codecs/ZLibEncoder.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
@@ -10,18 +15,35 @@
 #include "Beam/Threading/LiveTimer.hpp"
 
 namespace Beam::Services {
-namespace Details {
-  using DefaultSessionBuilder =
-    Services::AuthenticatedServiceProtocolClientBuilder<
+
+  /**
+   * Wraps a constant string representing a service name.
+   * @param <N> The name of the service to wrap.
+   */
+  template<const std::string& N>
+  struct ServiceName {
+
+    /** The name of the service. */
+    inline static const std::string& name = N;
+  };
+
+  /** The default type of SessionBuilder used. */
+  using DefaultSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     ServiceLocator::VirtualServiceLocatorClient,
     MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::LiveTimer>;
-}
+
+  /** A SessionBuilder that uses Zlib compression. */
+  using ZlibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
+    ServiceLocator::VirtualServiceLocatorClient,
+    MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
+    Serialization::BinarySender<IO::SharedBuffer>,
+    Codecs::SizeDeclarativeEncoder<Codecs::ZLibEncoder>>, Threading::LiveTimer>;
 
   /** Encapsulates a service client used in an application. */
   template<template<typename> class C, typename N,
-    typename B = Details::DefaultSessionBuilder>
+    typename B = DefaultSessionBuilder>
   class ApplicationClient {
     public:
       using SessionBuilder = B;
@@ -35,7 +57,8 @@ namespace Details {
        *        authenticate sessions.
        */
       template<typename ServiceLocatorClient>
-      ApplicationClient(Ref<ServiceLocatorClient> serviceLocatorClient);
+      explicit ApplicationClient(
+        Ref<ServiceLocatorClient> serviceLocatorClient);
 
       /** Returns a reference to the Client. */
       Client& operator *();

@@ -3,7 +3,6 @@
 #include <string>
 
 namespace Beam::UidService {
-  class ApplicationUidClient;
   class LocalUidDataStore;
   template<typename C> class SqlUidDataStore;
   template<typename ServiceProtocolClientBuilderType> class UidClient;
@@ -13,7 +12,7 @@ namespace Beam::UidService {
   class VirtualUidClient;
   template<typename ClientType> class WrapperUidClient;
 
-  // Standard name for the uid service.
+  /** Standard name for the uid service. */
   inline const std::string SERVICE_NAME = "uid_service";
 }
 

@@ -53,6 +53,102 @@ namespace {
   }
 }
 
+void sub_main(const YAML::Node& config) {
+  auto serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(config);
+  auto serviceLocatorClient = ApplicationServiceLocatorClient(
+    serviceLocatorClientConfig.m_username,
+    serviceLocatorClientConfig.m_password,
+    serviceLocatorClientConfig.m_address);
+  auto account = serviceLocatorClient->GetAccount();
+  auto currentDirectory = serviceLocatorClient->LoadParents(account).front();
+  auto children = serviceLocatorClient->LoadChildren(currentDirectory);
+  auto parents = serviceLocatorClient->LoadParents(currentDirectory);
+  while(!ReceivedKillEvent()) {
+    std::cout << ">>> ";
+    auto input = std::string();
+    std::getline(std::cin, input);
+    auto tokens = Tokenize(input);
+    if(tokens[0] == "mkacc") {
+      serviceLocatorClient->MakeAccount(tokens.at(1), tokens.at(2),
+        currentDirectory);
+    } else if(tokens[0] == "password") {
+      auto source = LoadPath(serviceLocatorClient, currentDirectory,
+        tokens.at(1));
+      if(source.m_type != DirectoryEntry::Type::ACCOUNT) {
+        throw std::runtime_error("Not an account.");
+      }
+      serviceLocatorClient->StorePassword(source, tokens.at(2));
+    } else if(tokens[0] == "mkdir") {
+      serviceLocatorClient->MakeDirectory(tokens.at(1), currentDirectory);
+    } else if(tokens[0] == "chmod") {
+      auto source = LoadAccount(serviceLocatorClient, tokens.at(1));
+      auto target = LoadPath(serviceLocatorClient, currentDirectory,
+        tokens.at(2));
+      auto permissions = Permissions::FromRepresentation(
+        lexical_cast<int>(tokens.at(3)));
+      serviceLocatorClient->StorePermissions(source, target, permissions);
+    } else if(tokens[0] == "associate") {
+      auto entry = LoadAccount(serviceLocatorClient, tokens.at(1));
+      serviceLocatorClient->Associate(entry, currentDirectory);
+    } else if(tokens[0] == "detach") {
+      auto child = LoadPath(serviceLocatorClient, currentDirectory,
+        tokens.at(1));
+      serviceLocatorClient->Detach(child, currentDirectory);
+    } else if(tokens[0] == "cd") {
+      auto newDirectory = LoadPath(serviceLocatorClient, currentDirectory,
+        tokens.at(1));
+      if(newDirectory.m_type != DirectoryEntry::Type::DIRECTORY) {
+        throw std::runtime_error("Not a directory.");
+      }
+      currentDirectory = newDirectory;
+      parents = serviceLocatorClient->LoadParents(currentDirectory);
+      children = serviceLocatorClient->LoadChildren(currentDirectory);
+    } else if(tokens[0] == "lch") {
+      children = serviceLocatorClient->LoadChildren(currentDirectory);
+      for(auto& child : children) {
+        auto type = [&] {
+          if(child.m_type == DirectoryEntry::Type::DIRECTORY) {
+            return "<DIR>";
+          } else {
+            return "";
+          }
+        }();
+        std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
+          child.m_name << std::endl;
+      }
+    } else if(tokens[0] == "lpr") {
+      parents = serviceLocatorClient->LoadParents(currentDirectory);
+      for(auto& parent : parents) {
+        auto type = [&] {
+          if(parent.m_type == DirectoryEntry::Type::DIRECTORY) {
+            return "<DIR>";
+          } else {
+            return "";
+          }
+        }();
+        std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
+          parent.m_name << std::endl;
+      }
+    } else if(tokens[0] == "del") {
+      auto path = LoadPath(serviceLocatorClient, currentDirectory,
+        tokens.at(1));
+      serviceLocatorClient->Delete(path);
+    } else if(tokens[0] == "locate") {
+      for(auto& service : serviceLocatorClient->Locate(tokens.at(1))) {
+        std::cout << service.GetName() << " " << service.GetId() << "\n";
+        std::cout << service.GetAccount().m_name << " " <<
+          service.GetAccount().m_id << "\n";
+        service.GetProperties().Save(std::cout);
+        std::cout << std::endl;
+      }
+    } else if(tokens[0] == "exit") {
+      break;
+    } else {
+      std::cout << "Unknown command." << std::endl;
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   auto configFile = std::string();
   try {
@@ -69,124 +165,9 @@ int main(int argc, char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  auto serviceLocatorClientConfig = ServiceLocatorClientConfig();
   try {
-    serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(config);
+    sub_main(config);
   } catch(const std::exception& e) {
     std::cerr << e.what() << std::endl;
-    return -1;
-  }
-  auto serviceLocatorClient = ApplicationServiceLocatorClient();
-  try {
-    std::cout << "Connecting to the service locator: ";
-    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address);
-  } catch(const std::exception& e) {
-    std::cout << e.what() << std::endl;
-    return -1;
-  }
-  std::cout << "Passed." << std::endl;
-  auto account = DirectoryEntry();
-  auto currentDirectory = DirectoryEntry();
-  auto children = std::vector<DirectoryEntry>();
-  auto parents = std::vector<DirectoryEntry>();
-  try {
-    account = serviceLocatorClient->GetAccount();
-    currentDirectory = serviceLocatorClient->LoadParents(account).front();
-    children = serviceLocatorClient->LoadChildren(currentDirectory);
-    parents = serviceLocatorClient->LoadParents(currentDirectory);
-  } catch(const std::exception& e) {
-    std::cout << e.what() << std::endl;
-    return -1;
-  }
-  std::cout << "Passed." << std::endl;
-  while(!ReceivedKillEvent()) {
-    try {
-      std::cout << ">>> ";
-      auto input = std::string();
-      std::getline(std::cin, input);
-      auto tokens = Tokenize(input);
-      if(tokens[0] == "mkacc") {
-        serviceLocatorClient->MakeAccount(tokens.at(1), tokens.at(2),
-          currentDirectory);
-      } else if(tokens[0] == "password") {
-        auto source = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
-        if(source.m_type != DirectoryEntry::Type::ACCOUNT) {
-          throw std::runtime_error("Not an account.");
-        }
-        serviceLocatorClient->StorePassword(source, tokens.at(2));
-      } else if(tokens[0] == "mkdir") {
-        serviceLocatorClient->MakeDirectory(tokens.at(1), currentDirectory);
-      } else if(tokens[0] == "chmod") {
-        auto source = LoadAccount(serviceLocatorClient, tokens.at(1));
-        auto target = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(2));
-        auto permissions = Permissions::FromRepresentation(
-          lexical_cast<int>(tokens.at(3)));
-        serviceLocatorClient->StorePermissions(source, target, permissions);
-      } else if(tokens[0] == "associate") {
-        auto entry = LoadAccount(serviceLocatorClient, tokens.at(1));
-        serviceLocatorClient->Associate(entry, currentDirectory);
-      } else if(tokens[0] == "detach") {
-        auto child = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
-        serviceLocatorClient->Detach(child, currentDirectory);
-      } else if(tokens[0] == "cd") {
-        auto newDirectory = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
-        if(newDirectory.m_type != DirectoryEntry::Type::DIRECTORY) {
-          throw std::runtime_error("Not a directory.");
-        }
-        currentDirectory = newDirectory;
-        parents = serviceLocatorClient->LoadParents(currentDirectory);
-        children = serviceLocatorClient->LoadChildren(currentDirectory);
-      } else if(tokens[0] == "lch") {
-        children = serviceLocatorClient->LoadChildren(currentDirectory);
-        for(auto& child : children) {
-          auto type = [&] {
-            if(child.m_type == DirectoryEntry::Type::DIRECTORY) {
-              return "<DIR>";
-            } else {
-              return "";
-            }
-          }();
-          std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
-            child.m_name << std::endl;
-        }
-      } else if(tokens[0] == "lpr") {
-        parents = serviceLocatorClient->LoadParents(currentDirectory);
-        for(auto& parent : parents) {
-          auto type = [&] {
-            if(parent.m_type == DirectoryEntry::Type::DIRECTORY) {
-              return "<DIR>";
-            } else {
-              return "";
-            }
-          }();
-          std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
-            parent.m_name << std::endl;
-        }
-      } else if(tokens[0] == "del") {
-        auto path = LoadPath(serviceLocatorClient, currentDirectory,
-          tokens.at(1));
-        serviceLocatorClient->Delete(path);
-      } else if(tokens[0] == "locate") {
-        for(auto& service : serviceLocatorClient->Locate(tokens.at(1))) {
-          std::cout << service.GetName() << " " << service.GetId() << "\n";
-          std::cout << service.GetAccount().m_name << " " <<
-            service.GetAccount().m_id << "\n";
-          service.GetProperties().Save(std::cout);
-          std::cout << std::endl;
-        }
-      } else if(tokens[0] == "exit") {
-        break;
-      } else {
-        std::cout << "Unknown command." << std::endl;
-      }
-    } catch(const std::exception& e) {
-      std::cout << e.what() << std::endl;
-    }
   }
 }

@@ -1,12 +1,16 @@
 #ifndef BEAM_VIRTUAL_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_VIRTUAL_SERVICE_LOCATOR_CLIENT_HPP
 #include <memory>
+#include <random>
 #include <string>
+#include "Beam/IO/ConnectException.hpp"
+#include "Beam/Network/IpAddress.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include <boost/date_time/posix_time/ptime.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
@@ -18,7 +22,7 @@
 namespace Beam::ServiceLocator {
 
   /** Provides a pure virtual interface to a ServiceLocatorClient. */
-  class VirtualServiceLocatorClient : private boost::noncopyable {
+  class VirtualServiceLocatorClient {
     public:
       virtual ~VirtualServiceLocatorClient() = default;
 
@@ -97,6 +101,11 @@ namespace Beam::ServiceLocator {
 
       /** Constructs a VirtualServiceLocatorClient. */
       VirtualServiceLocatorClient() = default;
+
+    private:
+      VirtualServiceLocatorClient(const VirtualServiceLocatorClient&) = delete;
+      VirtualServiceLocatorClient& operator =(
+        const VirtualServiceLocatorClient&) = delete;
   };
 
   /**
@@ -116,8 +125,6 @@ namespace Beam::ServiceLocator {
        */
       template<typename CF>
       explicit WrapperServiceLocatorClient(CF&& client);
-
-      ~WrapperServiceLocatorClient() = default;
 
       DirectoryEntry GetAccount() const override;
 
@@ -203,6 +210,75 @@ namespace Beam::ServiceLocator {
       ServiceLocatorClient&& client) {
     return std::make_unique<WrapperServiceLocatorClient<ServiceLocatorClient>>(
       std::forward<ServiceLocatorClient>(client));
+  }
+
+  /**
+   * Loads a directory, or creates it if it doesn't already exist.
+   * @param serviceLocatorClient The ServiceLocatorClient to use.
+   * @param name The name of the directory to load or create.
+   * @param parent The directory's parent.
+   * @return directory The directory that was loaded.
+   */
+  template<typename ServiceLocatorClient>
+  DirectoryEntry LoadOrCreateDirectory(ServiceLocatorClient& client,
+      const std::string& name, const DirectoryEntry& parent) {
+    try {
+      return client.LoadDirectoryEntry(parent, name);
+    } catch(const Services::ServiceRequestException&) {
+      return client.MakeDirectory(name, parent);
+    }
+  }
+
+  /**
+   * Locates the IP addresses of a service.
+   * @param client The ServiceLocatorClient used to locate the addresses.
+   * @param serviceName The name of the service to locate.
+   * @param servicePredicate A function to apply to a ServiceEntry to determine
+   *        if it matches some criteria.
+   * @return The list of IP addresses for the specified service.
+   */
+  template<typename ServiceLocatorClient, typename ServicePredicate>
+  std::vector<Network::IpAddress> LocateServiceAddresses(
+      ServiceLocatorClient& client, const std::string& serviceName,
+      ServicePredicate servicePredicate) {
+    auto services = std::vector<ServiceEntry>();
+    try {
+      services = client.Locate(serviceName);
+    } catch(const std::exception&) {
+      BOOST_THROW_EXCEPTION(IO::ConnectException(
+        "No " + serviceName + " services available."));
+    }
+    services.erase(std::remove_if(services.begin(), services.end(),
+      [&] (auto& entry) {
+        return !servicePredicate(entry);
+      }), services.end());
+    if(services.empty()) {
+      BOOST_THROW_EXCEPTION(IO::ConnectException(
+        "No " + serviceName + " services available."));
+    }
+    auto seed = std::random_device();
+    auto generator = std::mt19937(seed());
+    auto distribution = std::uniform_int_distribution<std::size_t>(
+      0, services.size() - 1);
+    auto& service = services[distribution(generator)];
+    auto addresses = Parsers::Parse<std::vector<Network::IpAddress>>(
+      boost::get<std::string>(service.GetProperties().At("addresses")));
+    return addresses;
+  }
+
+  /**
+   * Locates the IP addresses of a service.
+   * @param client The ServiceLocatorClient used to locate the addresses.
+   * @param serviceName The name of the service to locate.
+   * @return The list of IP addresses for the specified service.
+   */
+  template<typename ServiceLocatorClient>
+  std::vector<Network::IpAddress> LocateServiceAddresses(
+      ServiceLocatorClient& client, const std::string& serviceName) {
+    return LocateServiceAddresses(client, serviceName,
+      [] (auto&&) {
+        return true;
+      });
   }
 
   template<typename C>

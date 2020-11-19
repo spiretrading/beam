@@ -93,9 +93,9 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto serviceLocatorClient = ApplicationServiceLocatorClient();
+  auto serviceLocatorClient = optional<ApplicationServiceLocatorClient>();
   try {
-    serviceLocatorClient.BuildSession(serviceLocatorClientConfig.m_username,
+    serviceLocatorClient.emplace(serviceLocatorClientConfig.m_username,
       serviceLocatorClientConfig.m_password,
       serviceLocatorClientConfig.m_address);
   } catch(const std::exception& e) {
@@ -104,7 +104,7 @@ int main(int argc, const char** argv) {
   }
   auto server = optional<RegistryServletContainer>();
   try {
-    server.emplace(Initialize(serviceLocatorClient.Get(),
+    server.emplace(Initialize(serviceLocatorClient->Get(),
       Initialize(Initialize(std::filesystem::current_path() / "records"))),
       Initialize(serverConnectionInitializer.m_interface),
       std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
@@ -116,7 +116,7 @@ int main(int argc, const char** argv) {
     auto service = JsonObject();
     service["addresses"] = lexical_cast<std::string>(
       Stream(serverConnectionInitializer.m_addresses));
-    serviceLocatorClient->Register(serverConnectionInitializer.m_serviceName,
+    (*serviceLocatorClient)->Register(serverConnectionInitializer.m_serviceName,
       service);
   } catch(const std::exception& e) {
     std::cerr << "Error registering service: " << e.what() << std::endl;

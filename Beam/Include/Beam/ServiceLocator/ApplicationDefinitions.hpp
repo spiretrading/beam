@@ -1,7 +1,6 @@
 #ifndef BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #include <string>
-#include <boost/optional/optional.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
@@ -45,17 +44,14 @@ namespace Beam::ServiceLocator {
       /** Defines the standard ServiceLocatorClient used for applications. */
       using Client = ServiceLocatorClient<SessionBuilder>;
 
-      /** Constructs an ApplicationServiceLocatorClient. */
-      ApplicationServiceLocatorClient() = default;
-
       /**
-       * Builds the session.
+       * Constructs an ApplicationServiceLocatorClient.
        * @param username The session's username.
        * @param password The session's password.
        * @param address The IP address to connect to.
        */
-      void BuildSession(std::string username, std::string password,
-        Network::IpAddress address);
+      ApplicationServiceLocatorClient(std::string username,
+        std::string password, Network::IpAddress address);
 
       /** Returns a reference to the Client. */
       Client& operator *();
@@ -76,7 +72,7 @@ namespace Beam::ServiceLocator {
       const Client* Get() const;
 
     private:
-      boost::optional<Client> m_client;
+      Client m_client;
 
       ApplicationServiceLocatorClient(
         const ApplicationServiceLocatorClient&) = delete;
@@ -93,49 +89,46 @@ namespace Beam::ServiceLocator {
     return config;
   }
 
-  inline void ApplicationServiceLocatorClient::BuildSession(
-      std::string username, std::string password, Network::IpAddress address) {
-    m_client = boost::none;
-    auto sessionBuilder = SessionBuilder(
-      [=] {
-        return std::make_unique<Network::TcpSocketChannel>(address);
-      },
-      [] {
-        return std::make_unique<Threading::LiveTimer>(
-          boost::posix_time::seconds(10));
-      });
-    m_client.emplace(std::move(username), std::move(password),
-      std::move(sessionBuilder));
-  }
+  inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
+    std::string username, std::string password, Network::IpAddress address)
+    : m_client(std::move(username), std::move(password),
+        SessionBuilder(
+          [=] {
+            return std::make_unique<Network::TcpSocketChannel>(address);
+          },
+          [] {
+            return std::make_unique<Threading::LiveTimer>(
+              boost::posix_time::seconds(10));
+          })) {}
 
   inline ApplicationServiceLocatorClient::Client&
       ApplicationServiceLocatorClient::operator *() {
-    return *m_client;
+    return m_client;
   }
 
   inline const ApplicationServiceLocatorClient::Client&
       ApplicationServiceLocatorClient::operator *() const {
-    return *m_client;
+    return m_client;
   }
 
   inline ApplicationServiceLocatorClient::Client*
       ApplicationServiceLocatorClient::operator ->() {
-    return &*m_client;
+    return &m_client;
   }
 
   inline const ApplicationServiceLocatorClient::Client*
       ApplicationServiceLocatorClient::operator ->() const {
-    return &*m_client;
+    return &m_client;
   }
 
   inline ApplicationServiceLocatorClient::Client*
       ApplicationServiceLocatorClient::Get() {
-    return &*m_client;
+    return &m_client;
   }
 
   inline const ApplicationServiceLocatorClient::Client*
       ApplicationServiceLocatorClient::Get() const {
-    return &*m_client;
+    return &m_client;
   }
 }
 

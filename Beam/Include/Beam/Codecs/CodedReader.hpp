@@ -1,7 +1,6 @@
-#ifndef BEAM_CODEDREADER_HPP
-#define BEAM_CODEDREADER_HPP
+#ifndef BEAM_CODED_READER_HPP
+#define BEAM_CODED_READER_HPP
 #include <limits>
-#include <boost/noncopyable.hpp>
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
@@ -11,32 +10,32 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class CodedReader
-      \brief Reads coded data using a Decoder.
-      \tparam BufferType The type of Buffer to read into.
-      \tparam SourceReaderType The type of Reader to read encoded data from.
-      \tparam DecoderType The type of Decoder used.
+  /**
+   * Reads coded data using a Decoder.
+   * @param <B> The type of Buffer to read into.
+   * @param <R> The type of Reader to read encoded data from.
+   * @param <D> The type of Decoder used.
    */
-  template<typename BufferType, typename SourceReaderType, typename DecoderType>
-  class CodedReader : private boost::noncopyable {
+  template<typename B, typename R, typename D>
+  class CodedReader {
     public:
 
-      //! The type of Buffer to read into.
-      using Buffer = BufferType;
+      /** The type of Buffer to read into. */
+      using Buffer = B;
 
-      //! The type of Reader to read from.
-      using SourceReader = GetTryDereferenceType<SourceReaderType>;
+      /** The type of Reader to read from. */
+      using SourceReader = GetTryDereferenceType<R>;
 
-      //! The type of Decoder used.
-      using Decoder = GetTryDereferenceType<DecoderType>;
+      /** The type of Decoder used. */
+      using Decoder = GetTryDereferenceType<D>;
 
-      //! Constructs a CodedReader.
-      /*!
-        \param source Initializes the source to read from.
-        \param decoder Initializes the Decoder to use.
-      */
-      template<typename SourceReaderForward, typename DecoderForward>
-      CodedReader(SourceReaderForward&& source, DecoderForward&& decoder);
+      /**
+       * Constructs a CodedReader.
+       * @param source Initializes the source to read from.
+       * @param decoder Initializes the Decoder to use.
+       */
+      template<typename SF, typename DF>
+      CodedReader(SF&& source, DF&& decoder);
 
       bool IsDataAvailable() const;
 
@@ -47,52 +46,50 @@ namespace Codecs {
       std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
-      GetOptionalLocalPtr<SourceReaderType> m_source;
-      GetOptionalLocalPtr<DecoderType> m_decoder;
+      GetOptionalLocalPtr<R> m_source;
+      GetOptionalLocalPtr<D> m_decoder;
       IO::PipedReader<Buffer> m_reader;
       IO::PipedWriter<Buffer> m_writer;
       Buffer m_sourceBuffer;
       Buffer m_decoderBuffer;
 
+      CodedReader(const CodedReader&) = delete;
+      CodedReader& operator =(const CodedReader&) = delete;
       void ReadSource();
   };
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  template<typename SourceReaderForward, typename DecoderForward>
-  CodedReader<BufferType, SourceReader, DecoderType>::CodedReader(
-      SourceReaderForward&& source, DecoderForward&& decoder)
-      : m_source(std::forward<SourceReaderForward>(source)),
-        m_decoder(std::forward<DecoderForward>(decoder)),
-        m_writer(Ref(m_reader)) {}
+  template<typename B, typename R, typename D>
+  template<typename SF, typename DF>
+  CodedReader<B, R, D>::CodedReader(SF&& source, DF&& decoder)
+    : m_source(std::forward<SF>(source)),
+      m_decoder(std::forward<DF>(decoder)),
+      m_writer(Ref(m_reader)) {}
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  bool CodedReader<BufferType, SourceReader, DecoderType>::
-      IsDataAvailable() const {
+  template<typename B, typename R, typename D>
+  bool CodedReader<B, R, D>::IsDataAvailable() const {
     return m_reader.IsDataAvailable() || m_source->IsDataAvailable();
   }
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  std::size_t CodedReader<BufferType, SourceReader, DecoderType>::Read(
-      Out<Buffer> destination) {
+  template<typename B, typename R, typename D>
+  std::size_t CodedReader<B, R, D>::Read(Out<Buffer> destination) {
     return Read(Store(destination), std::numeric_limits<std::size_t>::max());
   }
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  std::size_t CodedReader<BufferType, SourceReader, DecoderType>::Read(
-      char* destination, std::size_t size) {
+  template<typename B, typename R, typename D>
+  std::size_t CodedReader<B, R, D>::Read(char* destination, std::size_t size) {
     ReadSource();
     return m_reader.Read(destination, size);
   }
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  std::size_t CodedReader<BufferType, SourceReader, DecoderType>::Read(
-      Out<Buffer> destination, std::size_t size) {
+  template<typename B, typename R, typename D>
+  std::size_t CodedReader<B, R, D>::Read(Out<Buffer> destination,
+      std::size_t size) {
     ReadSource();
     return m_reader.Read(Store(destination), size);
   }
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  void CodedReader<BufferType, SourceReader, DecoderType>::ReadSource() {
+  template<typename B, typename R, typename D>
+  void CodedReader<B, R, D>::ReadSource() {
     if(m_reader.IsDataAvailable()) {
       return;
     }
@@ -102,7 +99,7 @@ namespace Codecs {
       m_writer.Break(std::current_exception());
       return;
     }
-    if(InPlaceSupport<DecoderType>::value) {
+    if constexpr(InPlaceSupport<Decoder>::value) {
       try {
         m_decoder->Decode(m_sourceBuffer, Store(m_sourceBuffer));
       } catch(...) {
@@ -125,9 +122,9 @@ namespace Codecs {
   }
 }
 
-  template<typename BufferType, typename SourceReader, typename DecoderType>
-  struct ImplementsConcept<Codecs::CodedReader<BufferType, SourceReader,
-    DecoderType>, IO::Reader<BufferType>> : std::true_type {};
+  template<typename B, typename R, typename D>
+  struct ImplementsConcept<Codecs::CodedReader<B, R, D>, IO::Reader<B>> :
+    std::true_type {};
 }
 
 #endif

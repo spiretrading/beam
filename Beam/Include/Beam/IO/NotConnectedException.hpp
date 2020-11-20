@@ -1,23 +1,20 @@
-#ifndef BEAM_NOTCONNECTEDEXCEPTION_HPP
-#define BEAM_NOTCONNECTEDEXCEPTION_HPP
+#ifndef BEAM_NOT_CONNECTED_EXCEPTION_HPP
+#define BEAM_NOT_CONNECTED_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
 
-  /*! \class NotConnectedException
-      \brief Indicates an operation failed due to not being connected.
-   */
+  /** Indicates an operation failed due to not being connected. */
   class NotConnectedException : public IOException {
     public:
 
-      //! Constructs a NotConnectedException.
+      /** Constructs a NotConnectedException. */
       NotConnectedException();
 
-      //! Constructs a NotConnectedException.
-      /*!
-        \param message A message describing the error.
-      */
+      /**
+       * Constructs a NotConnectedException.
+       * @param message A message describing the error.
+       */
       NotConnectedException(const std::string& message);
   };
 
@@ -25,9 +22,8 @@ namespace IO {
     : IOException("Not connected.") {}
 
   inline NotConnectedException::NotConnectedException(
-      const std::string& message)
-      : IOException(message) {}
-}
+    const std::string& message)
+    : IOException(message) {}
 }
 
 #endif

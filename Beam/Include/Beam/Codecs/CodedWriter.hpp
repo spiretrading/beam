@@ -1,6 +1,5 @@
-#ifndef BEAM_CODEDWRITER_HPP
-#define BEAM_CODEDWRITER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_CODED_WRITER_HPP
+#define BEAM_CODED_WRITER_HPP
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -9,71 +8,68 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class CodedWriter
-      \brief Writes coded data using a Decoder.
-      \tparam DestinationWriterType The type of Writer to write the encoded data
-              to.
-      \tparam EncoderType The type of Encoder to use.
+  /**
+   * Writes coded data using a Decoder.
+   * @param <W> The type of Writer to write the encoded data to.
+   * @param <E> The type of Encoder to use.
    */
-  template<typename DestinationWriterType, typename EncoderType>
-  class CodedWriter : private boost::noncopyable {
+  template<typename W, typename E>
+  class CodedWriter {
     public:
 
-      //! The type of Writer to write the encoded data to.
-      using DestinationWriter = GetTryDereferenceType<DestinationWriterType>;
+      /** The type of Writer to write the encoded data to. */
+      using DestinationWriter = GetTryDereferenceType<W>;
 
-      //! The type of Buffer used for encoding.
+      /** The type of Buffer used for encoding. */
       using Buffer = typename DestinationWriter::Buffer;
 
-      //! The type of Encoder to use.
-      using Encoder = GetTryDereferenceType<EncoderType>;
+      /** The type of Encoder to use. */
+      using Encoder = GetTryDereferenceType<E>;
 
-      //! Constructs a CodedWriter.
-      /*!
-        \param destination The destination to write to.
-        \param encoder The Encoder to use.
-      */
-      template<typename DestinationWriterForward, typename EncoderForward>
-      CodedWriter(DestinationWriterForward&& destination,
-        EncoderForward&& encoder);
+      /**
+       * Constructs a CodedWriter.
+       * @param destination The destination to write to.
+       * @param encoder The Encoder to use.
+       */
+      template<typename WF, typename EF>
+      CodedWriter(WF&& destination, EF&& encoder);
 
       void Write(const void* data, std::size_t size);
 
-      template<typename BufferType>
-      void Write(const BufferType& data);
+      template<typename B>
+      void Write(const B& data);
 
     private:
-      GetOptionalLocalPtr<DestinationWriterType> m_destination;
-      GetOptionalLocalPtr<EncoderType> m_encoder;
+      GetOptionalLocalPtr<W> m_destination;
+      GetOptionalLocalPtr<E> m_encoder;
+
+      CodedWriter(const CodedWriter&) = delete;
+      CodedWriter& operator =(const CodedWriter&) = delete;
   };
 
-  template<typename DestinationWriter, typename EncoderType>
-  template<typename DestinationWriterForward, typename EncoderForward>
-  CodedWriter<DestinationWriter, EncoderType>::CodedWriter(
-      DestinationWriterForward&& destination, EncoderForward&& encoder)
-      : m_destination(std::forward<DestinationWriterForward>(destination)),
-        m_encoder(std::forward<EncoderForward>(encoder)) {}
+  template<typename W, typename E>
+  template<typename WF, typename EF>
+  CodedWriter<W, E>::CodedWriter(WF&& destination, EF&& encoder)
+    : m_destination(std::forward<WF>(destination)),
+      m_encoder(std::forward<EF>(encoder)) {}
 
-  template<typename DestinationWriter, typename EncoderType>
-  void CodedWriter<DestinationWriter, EncoderType>::Write(const void* data,
-      std::size_t size) {
-    Buffer encodedData;
+  template<typename W, typename E>
+  void CodedWriter<W, E>::Write(const void* data, std::size_t size) {
+    auto encodedData = Buffer();
     m_encoder->Encode(data, size, Store(encodedData));
     m_destination->Write(encodedData);
   }
 
-  template<typename DestinationWriter, typename EncoderType>
-  template<typename BufferType>
-  void CodedWriter<DestinationWriter, EncoderType>::Write(
-      const BufferType& data) {
+  template<typename W, typename E>
+  template<typename B>
+  void CodedWriter<W, E>::Write(const B& data) {
     Write(data.GetData(), data.GetSize());
   }
 }
 
-  template<typename DestinationWriter, typename EncoderType>
-  struct ImplementsConcept<Codecs::CodedWriter<DestinationWriter, EncoderType>,
-      IO::Writer<typename Codecs::CodedWriter<
-      DestinationWriter, EncoderType>::Buffer>> : std::true_type {};
+  template<typename D, typename E>
+  struct ImplementsConcept<Codecs::CodedWriter<D, E>,
+    IO::Writer<typename Codecs::CodedWriter<D, E>::Buffer>> : std::true_type {};
 }
 
 #endif

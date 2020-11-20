@@ -2,19 +2,16 @@
 #define BEAM_CODECS_HPP
 
 namespace Beam::Codecs {
-  template<typename BufferType, typename SourceReaderType, typename DecoderType>
-    class CodedReader;
-  template<typename DestinationWriterType, typename EncoderType>
-    class CodedWriter;
-  template<typename DestinationWriter, typename EncoderType> class CodedWriter;
+  template<typename B, typename R, typename D> class CodedReader;
+  template<typename W, typename E> class CodedWriter;
   struct Decoder;
   class DecoderException;
   struct Encoder;
   class EncoderException;
   class NullDecoder;
   class NullEncoder;
-  template<typename DecoderType> class SizeDeclarativeDecoder;
-  template<typename EncoderType> class SizeDeclarativeEncoder;
+  template<typename D> class SizeDeclarativeDecoder;
+  template<typename E> class SizeDeclarativeEncoder;
   class ZLibDecoder;
   class ZLibEncoder;
 }

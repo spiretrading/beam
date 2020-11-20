@@ -1,5 +1,5 @@
-#ifndef BEAM_NULLENCODER_HPP
-#define BEAM_NULLENCODER_HPP
+#ifndef BEAM_NULL_ENCODER_HPP
+#define BEAM_NULL_ENCODER_HPP
 #include <cstring>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Codecs.hpp"
@@ -10,9 +10,7 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class NullEncoder
-      \brief An Encoder that leaves its contents 'as-is'.
-   */
+  /** An Encoder that leaves its contents 'as-is'. */
   class NullEncoder {
     public:
       std::size_t Encode(const void* source, std::size_t sourceSize,

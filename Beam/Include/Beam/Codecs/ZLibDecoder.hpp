@@ -1,5 +1,5 @@
-#ifndef BEAM_ZLIBDECODER_HPP
-#define BEAM_ZLIBDECODER_HPP
+#ifndef BEAM_ZLIB_DECODER_HPP
+#define BEAM_ZLIB_DECODER_HPP
 #include <zlib.h>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Decoder.hpp"
@@ -9,9 +9,7 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class ZLibDecoder
-      \brief Decodes ZLib compressed data.
-   */
+  /** Decodes ZLib compressed data. */
   class ZLibDecoder {
     public:
       std::size_t Decode(const void* source, std::size_t sourceSize,
@@ -37,7 +35,7 @@ namespace Codecs {
 
   inline std::size_t ZLibDecoder::Decode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    z_stream stream;
+    auto stream = z_stream();
     stream.zalloc = Z_NULL;
     stream.zfree = Z_NULL;
     stream.opaque = Z_NULL;
@@ -78,11 +76,11 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t ZLibDecoder::Decode(const void* source, std::size_t sourceSize,
       Out<Buffer> destination) {
-    const auto MAX_FACTOR = 1032;
+    constexpr auto MAX_FACTOR = 1032;
     destination->Reserve(10 * sourceSize);
     while(destination->GetSize() < MAX_FACTOR * sourceSize) {
       auto destinationSize = destination->GetSize();
-      z_stream stream;
+      auto stream = z_stream();
       stream.zalloc = Z_NULL;
       stream.zfree = Z_NULL;
       stream.opaque = Z_NULL;

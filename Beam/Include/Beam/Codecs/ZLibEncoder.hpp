@@ -1,5 +1,5 @@
-#ifndef BEAM_ZLIBENCODER_HPP
-#define BEAM_ZLIBENCODER_HPP
+#ifndef BEAM_ZLIB_ENCODER_HPP
+#define BEAM_ZLIB_ENCODER_HPP
 #include <cassert>
 #include <boost/throw_exception.hpp>
 #include <zlib.h>
@@ -10,9 +10,7 @@
 namespace Beam {
 namespace Codecs {
 
-  /*! \class ZLibEncoder
-      \brief Encodes using ZLib compression.
-   */
+  /** Encodes using ZLib compression. */
   class ZLibEncoder {
     public:
       std::size_t Encode(const void* source, std::size_t sourceSize,
@@ -38,7 +36,7 @@ namespace Codecs {
 
   inline std::size_t ZLibEncoder::Encode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    z_stream stream;
+    auto stream = z_stream();
     stream.zalloc = Z_NULL;
     stream.zfree = Z_NULL;
     stream.opaque = Z_NULL;

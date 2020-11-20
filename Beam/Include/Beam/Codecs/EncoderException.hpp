@@ -1,28 +1,22 @@
-#ifndef BEAM_ENCODEREXCEPTION_HPP
-#define BEAM_ENCODEREXCEPTION_HPP
+#ifndef BEAM_ENCODER_EXCEPTION_HPP
+#define BEAM_ENCODER_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Codecs/Codecs.hpp"
 
-namespace Beam {
-namespace Codecs {
+namespace Beam::Codecs {
 
-  /*! \class EncoderException
-      \brief Signals that an error occurred while encoding.
-   */
+  /** Signals that an error occurred while encoding. */
   class EncoderException : public std::runtime_error, public boost::exception {
     public:
+      using runtime_error::runtime_error;
 
-      //! Constructs an EncoderException.
-      /*!
-        \param message A message describing the error.
-      */
-      EncoderException(const std::string& message);
+      /** Constructs an EncoderException. */
+      EncoderException();
   };
 
-  inline EncoderException::EncoderException(const std::string& message)
-      : std::runtime_error(message) {}
-}
+  inline EncoderException::EncoderException()
+    : EncoderException("Failed to encode.") {}
 }
 
 #endif

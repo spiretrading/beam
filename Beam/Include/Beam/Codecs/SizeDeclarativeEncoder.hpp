@@ -11,22 +11,25 @@
 namespace Beam {
 namespace Codecs {
 
-  /** Encodes a message whose size is stored as a prefix. */
-  template<typename EncoderType>
+  /**
+   * Augments an existing encoder by first prepending the size of the buffer.
+   * @param <E> The type used to encode the remainder of the buffer.
+   */
+  template<typename E>
   class SizeDeclarativeEncoder {
     public:
 
-      //! The underlaying Encoder.
-      using Encoder = EncoderType;
+      /** The type used to encode the remainder of the buffer. */
+      using Encoder = E;
 
-      //! Constructs a SizeDeclarativeEncoder.
+      /** Constructs a SizeDeclarativeEncoder. */
       SizeDeclarativeEncoder() = default;
 
-      //! Constructs a SizeDeclarativeEncoder.
-      /*!
-        \param encoder The underlaying Encoder to use.
-      */
-      SizeDeclarativeEncoder(const Encoder& encoder);
+      /**
+       * Constructs a SizeDeclarativeEncoder.
+       * @param encoder The underlaying Encoder to use.
+       */
+      SizeDeclarativeEncoder(Encoder encoder);
 
       std::size_t Encode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
@@ -47,18 +50,17 @@ namespace Codecs {
       Encoder m_encoder;
   };
 
-  template<typename EncoderType>
-  struct Inverse<SizeDeclarativeEncoder<EncoderType>> {
-    using type = SizeDeclarativeDecoder<GetInverse<EncoderType>>;
+  template<typename E>
+  struct Inverse<SizeDeclarativeEncoder<E>> {
+    using type = SizeDeclarativeDecoder<GetInverse<E>>;
   };
 
-  template<typename EncoderType>
-  SizeDeclarativeEncoder<EncoderType>::SizeDeclarativeEncoder(
-      const Encoder& encoder)
-      : m_encoder(encoder) {}
+  template<typename E>
+  SizeDeclarativeEncoder<E>::SizeDeclarativeEncoder(Encoder encoder)
+    : m_encoder(std::move(encoder)) {}
 
-  template<typename EncoderType>
-  std::size_t SizeDeclarativeEncoder<EncoderType>::Encode(const void* source,
+  template<typename E>
+  std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {
     if(destinationSize < sizeof(std::uint32_t)) {
       BOOST_THROW_EXCEPTION(EncoderException("Destination size is too small."));
@@ -73,17 +75,17 @@ namespace Codecs {
     return encodedSize;
   }
 
-  template<typename EncoderType>
+  template<typename E>
   template<typename Buffer>
-  std::size_t SizeDeclarativeEncoder<EncoderType>::Encode(const Buffer& source,
+  std::size_t SizeDeclarativeEncoder<E>::Encode(const Buffer& source,
       void* destination, std::size_t destinationSize) {
     return Encode(source.GetData(), source.GetSize(), destination,
       destinationSize);
   }
 
-  template<typename EncoderType>
+  template<typename E>
   template<typename Buffer>
-  std::size_t SizeDeclarativeEncoder<EncoderType>::Encode(const void* source,
+  std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
       std::size_t sourceSize, Out<Buffer> destination) {
     destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
     auto destinationView = IO::BufferView<Buffer>(Ref(*destination),
@@ -93,17 +95,17 @@ namespace Codecs {
     return size;
   }
 
-  template<typename EncoderType>
+  template<typename E>
   template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t SizeDeclarativeEncoder<EncoderType>::Encode(
+  std::size_t SizeDeclarativeEncoder<E>::Encode(
       const SourceBuffer& source, Out<DestinationBuffer> destination) {
     return Encode(source.GetData(), source.GetSize(), Store(destination));
   }
 }
 
-  template<typename EncoderType>
-  struct ImplementsConcept<Codecs::SizeDeclarativeEncoder<EncoderType>,
-    Codecs::Encoder> : std::true_type {};
+  template<typename E>
+  struct ImplementsConcept<Codecs::SizeDeclarativeEncoder<E>, Codecs::Encoder> :
+    std::true_type {};
 }
 
 #endif

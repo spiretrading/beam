@@ -29,9 +29,11 @@ namespace {
     boost::posix_time::ptime m_startTime;
     boost::posix_time::time_duration m_timeStep;
     std::vector<std::string> m_names;
+
+    static ProfileConfig Parse(const YAML::Node& config);
   };
 
-  ProfileConfig ParseProfileConfig(const YAML::Node& config) {
+  ProfileConfig ProfileConfig::Parse(const YAML::Node& config) {
     auto profileConfig = ProfileConfig();
     profileConfig.m_indexCount = Extract<int>(config, "index_count");
     profileConfig.m_seedCount = Extract<int>(config, "seed_count");
@@ -153,6 +155,15 @@ namespace {
   }
 }
 
+void sub_main(const YAML::Node& config) {
+  auto profileConfig = ProfileConfig::Parse(config);
+  auto mySqlConfig = TryOrNest([&] {
+    return MySqlConfig::Parse(GetNode(config, "data_store"));
+  }, std::runtime_error("Error parsing section 'data_store'."));
+  ProfileBufferedDataStore(mySqlConfig, profileConfig);
+  ProfileAsyncDataStore(mySqlConfig, profileConfig);
+}
+
 int main(int argc, const char** argv) {
   std::srand(static_cast<unsigned int>(std::time(nullptr)));
   auto configFile = std::string();
@@ -169,23 +180,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto profileConfig = ProfileConfig();
   try {
-    profileConfig = ParseProfileConfig(config);
-  } catch(const  std::exception& e) {
-    std::cerr << "Unable to parse config: " << e.what() << std::endl;
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
     return -1;
   }
-  auto mySqlConfig = MySqlConfig();
-  try {
-    mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'data_store': " << e.what() <<
-      std::endl;
-    return -1;
-  }
-  ProfileBufferedDataStore(mySqlConfig, profileConfig);
-  ProfileAsyncDataStore(mySqlConfig, profileConfig);
   return 0;
 }

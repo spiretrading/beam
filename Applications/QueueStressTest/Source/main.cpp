@@ -5,23 +5,21 @@ using namespace Beam;
 using namespace Beam::Routines;
 
 int main() {
-  RoutineHandlerGroup routines;
+  auto routines = RoutineHandlerGroup();
   auto receiverQueue = std::make_shared<StateQueue<int>>();
   auto senderQueue = std::make_shared<StateQueue<bool>>();
-  routines.Spawn(
-    [=] {
+  routines.Spawn([=] {
+    while(true) {
+      receiverQueue->Push(123);
+      senderQueue->Pop();
+    }
+  });
+  for(auto j = 0; j < 200; ++j) {
+    routines.Spawn([=] {
       while(true) {
-        receiverQueue->Push(123);
-        senderQueue->Pop();
+        receiverQueue->Pop();
+        senderQueue->Push(true);
       }
     });
-  for(auto j = 0; j < 200; ++j) {
-    routines.Spawn(
-      [=] {
-        while(true) {
-          receiverQueue->Pop();
-          senderQueue->Push(true);
-        }
-      });
   }
 }

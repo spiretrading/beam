@@ -21,21 +21,6 @@ using namespace TCLAP;
 namespace {
   using WebSocketEchoServletContainer =
     HttpServletContainer<MetaWebSocketEchoServlet, TcpServerSocket>;
-
-  struct ServerConnectionInitializer {
-    IpAddress m_interface;
-    std::vector<IpAddress> m_addresses;
-
-    void Initialize(const YAML::Node& config);
-  };
-
-  void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
-    m_interface = Extract<IpAddress>(config, "interface");
-    auto addresses = std::vector<IpAddress>();
-    addresses.push_back(m_interface);
-    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
-      addresses);
-  }
 }
 
 int main(int argc, const char** argv) {
@@ -54,21 +39,14 @@ int main(int argc, const char** argv) {
     return -1;
   }
   auto config = Require(LoadFile, configFile);
-  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
-    serverConnectionInitializer.Initialize(GetNode(config, "server"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
+    auto interface = Extract<IpAddress>(config, "interface");
+    auto server = WebSocketEchoServletContainer(Initialize(),
+      Initialize(interface));
+    WaitForKillEvent();
+  } catch(...) {
+    ReportCurrentException();
     return -1;
   }
-  auto server = boost::optional<WebSocketEchoServletContainer>();
-  try {
-    server.emplace(Initialize(), Initialize(
-      serverConnectionInitializer.m_interface));
-  } catch(const std::exception& e) {
-    std::cerr << "Error opening server: " << e.what() << std::endl;
-    return -1;
-  }
-  WaitForKillEvent();
   return 0;
 }

@@ -37,24 +37,24 @@ using namespace Viper;
 namespace {
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
     MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
-    SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>*>>,
+    SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>>>,
     TcpServerSocket, BinarySender<SharedBuffer>, NullEncoder,
     std::shared_ptr<LiveTimer>>;
+}
 
-  struct ServerConnectionInitializer {
-    IpAddress m_interface;
-    std::vector<IpAddress> m_addresses;
-
-    void Initialize(const YAML::Node& config);
-  };
-
-  void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
-    m_interface = Extract<IpAddress>(config, "interface");
-    auto addresses = std::vector<IpAddress>();
-    addresses.push_back(m_interface);
-    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
-      addresses);
-  }
+void sub_main(const YAML::Node& config) {
+  auto interface = Extract<IpAddress>(config, "interface"); 
+  auto mySqlConfig = TryOrNest([&] {
+    return MySqlConfig::Parse(GetNode(config, "data_store"));
+  }, std::runtime_error("Error parsing section 'data_store'."));
+  auto server = TryOrNest([&] {
+    return ServiceLocatorServletContainer(Initialize(Initialize(Initialize(
+      MakeSqlConnection(MySql::Connection(mySqlConfig.m_address.GetHost(),
+      mySqlConfig.m_address.GetPort(), mySqlConfig.m_username,
+      mySqlConfig.m_password, mySqlConfig.m_schema))))), interface,
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
+  }, std::runtime_error("Unable to open server."));
+  WaitForKillEvent();
 }
 
 int main(int argc, const char** argv) {
@@ -72,35 +72,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto mySqlConfig = MySqlConfig();
   try {
-    mySqlConfig = MySqlConfig::Parse(GetNode(config, "data_store"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'data_store': " << e.what() <<
-      std::endl;
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
     return -1;
   }
-  auto serverConnectionInitializer = ServerConnectionInitializer();
-  try {
-    serverConnectionInitializer.Initialize(GetNode(config, "server"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
-    return -1;
-  }
-  auto mySqlConnection = MakeSqlConnection(MySql::Connection(
-    mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-    mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema));
-  auto mysqlDataStore = SqlServiceLocatorDataStore(std::move(mySqlConnection));
-  auto server = optional<ServiceLocatorServletContainer>();
-  try {
-    server.emplace(Initialize(Initialize(&mysqlDataStore)),
-      Initialize(serverConnectionInitializer.m_interface),
-      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-  } catch(const std::exception& e) {
-    std::cerr << "Error opening server: " << e.what() << std::endl;
-    return -1;
-  }
-  WaitForKillEvent();
   return 0;
 }

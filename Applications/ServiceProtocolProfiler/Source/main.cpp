@@ -1,11 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <boost/format.hpp>
-#include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include <tclap/CmdLine.h>
-#include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -59,30 +55,29 @@ namespace {
     auto routines = RoutineHandlerGroup();
     while(true) {
       auto channel = server.Accept();
-      routines.Spawn(
-        [channel = std::move(channel)] () mutable {
-          auto client = ApplicationServerServiceProtocolClient(
-            std::move(channel), Initialize());
-          RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
-          RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
-          EchoService::AddSlot(Store(client.GetSlots()),
-            std::bind(OnEchoRequest, std::placeholders::_1,
-            std::placeholders::_2));
-          try {
-            auto counter = 0;
-            while(true) {
-              auto message = client.ReadMessage();
-              auto timestamp = microsec_clock::universal_time();
-              ++counter;
-              if(counter % 100000 == 0) {
-                std::cout << boost::format("Server: %1% %2%\n") % &client %
-                  timestamp << std::flush;
-              }
+      routines.Spawn([channel = std::move(channel)] () mutable {
+        auto client = ApplicationServerServiceProtocolClient(std::move(channel),
+          Initialize());
+        RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
+        RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
+        EchoService::AddSlot(Store(client.GetSlots()),
+          std::bind(OnEchoRequest, std::placeholders::_1,
+          std::placeholders::_2));
+        try {
+          auto counter = 0;
+          while(true) {
+            auto message = client.ReadMessage();
+            auto timestamp = microsec_clock::universal_time();
+            ++counter;
+            if(counter % 100000 == 0) {
+              std::cout << boost::format("Server: %1% %2%\n") % &client %
+                timestamp << std::flush;
             }
-          } catch(const ServiceRequestException&) {
-          } catch(const NotConnectedException&) {
           }
-        });
+        } catch(const ServiceRequestException&) {
+        } catch(const NotConnectedException&) {
+        }
+      });
     }
   }
 
@@ -108,6 +103,22 @@ namespace {
   }
 }
 
+void sub_main(const YAML::Node& config) {
+  auto clientCount = Extract<int>(config, "clients",
+    static_cast<int>(boost::thread::hardware_concurrency()));
+  auto server = ApplicationServerConnection();
+  auto routines = RoutineHandlerGroup();
+  routines.Spawn([&] {
+    ServerLoop(server);
+  });
+  for(auto i = 0; i < clientCount; ++i) {
+    routines.Spawn([&] {
+      ClientLoop(server);
+    });
+  }
+  routines.Wait();
+}
+
 int main(int argc, const char** argv) {
   auto configFile = std::string();
   try {
@@ -123,23 +134,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto clientCount = Extract<int>(config, "clients", 0);
-  if(clientCount == 0) {
-    clientCount = static_cast<int>(boost::thread::hardware_concurrency());
+  try {
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
+    return -1;
   }
-  auto server = ApplicationServerConnection();
-  auto routines = RoutineHandlerGroup();
-  routines.Spawn(
-    [&] {
-      ServerLoop(server);
-    });
-  for(auto i = 0; i < clientCount; ++i) {
-    routines.Spawn(
-      [&] {
-        ClientLoop(server);
-      });
-  }
-  routines.Wait();
   return 0;
 }

@@ -42,23 +42,54 @@ namespace {
     ApplicationServiceLocatorClient::Client*>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 
-  struct ServerConnectionInitializer {
+  struct Configuration {
     std::string m_serviceName;
     IpAddress m_interface;
     std::vector<IpAddress> m_addresses;
 
-    void Initialize(const YAML::Node& config);
+    static Configuration Parse(const YAML::Node& node);
   };
 
-  void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
-    m_serviceName = Extract<std::string>(config, "service",
+  Configuration Configuration::Parse(const YAML::Node& node) {
+    auto config = Configuration();
+    config.m_serviceName = Extract<std::string>(node, "service",
       RegistryService::SERVICE_NAME);
-    m_interface = Extract<IpAddress>(config, "interface");
+    config.m_interface = Extract<IpAddress>(node, "interface");
     auto addresses = std::vector<IpAddress>();
-    addresses.push_back(m_interface);
-    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
+    addresses.push_back(config.m_interface);
+    config.m_addresses = Extract<std::vector<IpAddress>>(node, "addresses",
       addresses);
+    return config;
   }
+}
+
+void sub_main(const YAML::Node& config) {
+  auto serverConfig = TryOrNest([&] {
+    return Configuration::Parse(GetNode(config, "server"));
+  }, std::runtime_error("Error parsing section 'server'."));
+  auto serviceLocatorClientConfig = TryOrNest([&] {
+    return ServiceLocatorClientConfig::Parse(
+      GetNode(config, "service_locator"));
+  }, std::runtime_error("Error parsing section 'service_locator'."));
+  auto serviceLocatorClient = TryOrNest([&] {
+    return ApplicationServiceLocatorClient(
+      serviceLocatorClientConfig.m_username,
+      serviceLocatorClientConfig.m_password,
+      serviceLocatorClientConfig.m_address);
+  }, std::runtime_error("Error logging in."));
+  auto server = TryOrNest([&] {
+    return RegistryServletContainer(Initialize(serviceLocatorClient.Get(),
+      Initialize(Initialize(std::filesystem::current_path() / "records"))),
+      Initialize(serverConfig.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
+  }, std::runtime_error("Error opening server."));
+  TryOrNest([&] {
+    auto service = JsonObject();
+    service["addresses"] = lexical_cast<std::string>(
+      Stream(serverConfig.m_addresses));
+    serviceLocatorClient->Register(serverConfig.m_serviceName, service);
+  }, std::runtime_error("Error registering service."));
+  WaitForKillEvent();
 }
 
 int main(int argc, const char** argv) {
@@ -76,52 +107,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
-    serverConnectionInitializer.Initialize(GetNode(config, "server"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
     return -1;
   }
-  auto serviceLocatorClientConfig = ServiceLocatorClientConfig();
-  try {
-    serviceLocatorClientConfig = ServiceLocatorClientConfig::Parse(
-      GetNode(config, "service_locator"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'service_locator': " << e.what() <<
-      std::endl;
-    return -1;
-  }
-  auto serviceLocatorClient = optional<ApplicationServiceLocatorClient>();
-  try {
-    serviceLocatorClient.emplace(serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address);
-  } catch(const std::exception& e) {
-    std::cerr << "Error logging in: " << e.what() << std::endl;
-    return -1;
-  }
-  auto server = optional<RegistryServletContainer>();
-  try {
-    server.emplace(Initialize(serviceLocatorClient->Get(),
-      Initialize(Initialize(std::filesystem::current_path() / "records"))),
-      Initialize(serverConnectionInitializer.m_interface),
-      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-  } catch(const std::exception& e) {
-    std::cerr << "Error opening server: " << e.what() << std::endl;
-    return -1;
-  }
-  try {
-    auto service = JsonObject();
-    service["addresses"] = lexical_cast<std::string>(
-      Stream(serverConnectionInitializer.m_addresses));
-    (*serviceLocatorClient)->Register(serverConnectionInitializer.m_serviceName,
-      service);
-  } catch(const std::exception& e) {
-    std::cerr << "Error registering service: " << e.what() << std::endl;
-    return -1;
-  }
-  WaitForKillEvent();
   return 0;
 }

@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
-#include <boost/functional/value_factory.hpp>
 #include <tclap/CmdLine.h>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
@@ -37,23 +36,15 @@ namespace {
     std::shared_ptr<LiveTimer>>;
   using ApplicationServletTemplateServlet = ServletTemplateServlet<
     ServletTemplateServletContainer>;
+}
 
-  struct ServerConnectionInitializer {
-    std::string m_serviceName;
-    IpAddress m_interface;
-    std::vector<IpAddress> m_addresses;
-
-    void Initialize(const YAML::Node& config);
-  };
-
-  void ServerConnectionInitializer::Initialize(const YAML::Node& config) {
-    m_serviceName = Extract<std::string>(config, "service", SERVICE_NAME);
-    m_interface = Extract<IpAddress>(config, "interface");
-    auto addresses = std::vector<IpAddress>();
-    addresses.push_back(m_interface);
-    m_addresses = Extract<std::vector<IpAddress>>(config, "addresses",
-      addresses);
-  }
+void sub_main(const YAML::Node& config) {
+  auto interface = Extract<IpAddress>(config, "interface");
+  auto server = TryOrNest([&] {
+    return ServletTemplateServletContainer(Initialize(), Initialize(interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
+  }, std::runtime_error("Error opening server."));
+  WaitForKillEvent();
 }
 
 int main(int argc, const char** argv) {
@@ -71,23 +62,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto serverConnectionInitializer = ServerConnectionInitializer();
   try {
-    serverConnectionInitializer.Initialize(GetNode(config, "server"));
-  } catch(const std::exception& e) {
-    std::cerr << "Error parsing section 'server': " << e.what() << std::endl;
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
     return -1;
   }
-  auto server = boost::optional<ServletTemplateServletContainer>();
-  try {
-    server.emplace(Initialize(),
-      Initialize(serverConnectionInitializer.m_interface),
-      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-  } catch(const std::exception& e) {
-    std::cerr << "Error opening server: " << e.what() << std::endl;
-    return -1;
-  }
-  WaitForKillEvent();
   return 0;
 }

@@ -28,7 +28,7 @@ namespace Beam::WebSocketEchoServer {
       void Close();
 
     private:
-      Beam::IO::OpenState m_openState;
+      IO::OpenState m_openState;
 
       void OnUpgrade(const Beam::WebServices::HttpRequest& request,
         std::unique_ptr<WebSocketChannel> channel);

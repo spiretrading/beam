@@ -67,6 +67,35 @@ namespace Beam {
       timestamp, std::string, message));
 }
 
+void sub_main(const YAML::Node& config) {
+  auto addresses = ParseAddress(config);
+  auto message = Extract<std::string>(config, "message");
+  auto rate = Extract<int>(config, "rate");
+  auto client = TryOrNest([&] {
+    return ApplicationClient(Initialize(addresses),
+      Initialize(seconds(10)));
+  }, std::runtime_error("Unable to connect to the server."));
+  RegisterServletTemplateServices(Store(client.GetSlots()));
+  RegisterServletTemplateMessages(Store(client.GetSlots()));
+  auto result = client.SendRequest<EchoService>(message, rate);
+  std::cout << result << std::endl;
+  auto counter = 0;
+  while(!ReceivedKillEvent()) {
+    try {
+      if(auto message = std::dynamic_pointer_cast<
+          RecordMessage<EchoMessage, ApplicationClient>>(
+          client.ReadMessage())) {
+        ++counter;
+        if(counter % rate == 0) {
+          std::cout << message->GetRecord().timestamp << std::endl;
+        }
+      }
+    } catch(...) {
+      break;
+    }
+  }
+}
+
 int main(int argc, const char** argv) {
   auto configFile = std::string();
   try {
@@ -82,37 +111,11 @@ int main(int argc, const char** argv) {
       std::endl;
     return -1;
   }
-  auto config = Require(LoadFile, configFile);
-  auto message = std::string();
-  auto client = optional<ApplicationClient>();
-  auto rate = 0;
   try {
-    auto addresses = ParseAddress(config);
-    message = Extract<std::string>(config, "message");
-    rate = Extract<int>(config, "rate");
-    client.emplace(Initialize(addresses), Initialize(seconds(10)));
-  } catch(const std::exception& e) {
-    std::cerr << "Unable to initialize client: " << e.what() << std::endl;
+    sub_main(Require(LoadFile, configFile));
+  } catch(...) {
+    ReportCurrentException();
     return -1;
-  }
-  RegisterServletTemplateServices(Store(client->GetSlots()));
-  RegisterServletTemplateMessages(Store(client->GetSlots()));
-  auto result = client->SendRequest<EchoService>(message, rate);
-  std::cout << result << std::endl;
-  auto counter = 0;
-  while(!ReceivedKillEvent()) {
-    try {
-      auto message = std::dynamic_pointer_cast<
-        RecordMessage<EchoMessage, ApplicationClient>>(client->ReadMessage());
-      if(message != nullptr) {
-        ++counter;
-        if(counter % rate == 0) {
-          std::cout << message->GetRecord().timestamp << std::endl;
-        }
-      }
-    } catch(...) {
-      break;
-    }
   }
   return 0;
 }

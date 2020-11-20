@@ -206,11 +206,9 @@ namespace {
     auto value = SequencedValue(IndexedValue(data, entry.m_index),
       entry.m_sequence);
     m_dataStore.Store(value);
-    m_dataSubscriptions.Publish(value,
-      [&] (const auto& clients) {
-        Beam::Services::BroadcastRecordMessage<DataQueryMessage>(
-          clients, value);
-      });
+    m_dataSubscriptions.Publish(value, [&] (const auto& clients) {
+      Beam::Services::BroadcastRecordMessage<DataQueryMessage>(clients, value);
+    });
     if(m_timerState) {
       entry.m_timer->Start();
     }
@@ -229,54 +227,51 @@ int main() {
     });
   auto routines = RoutineHandlerGroup();
   auto count = std::atomic_int(0);
-  routines.Spawn(
-    [&] {
-      while(!ReceivedKillEvent()) {
-        auto timer = LiveTimer(seconds(10));
-        auto clients = rand() % 200;
-        for(auto i = 0; i < clients; ++i) {
-          routines.Spawn(
+  routines.Spawn([&] {
+    while(!ReceivedKillEvent()) {
+      auto timer = LiveTimer(seconds(10));
+      auto clients = rand() % 200;
+      for(auto i = 0; i < clients; ++i) {
+        routines.Spawn([&] {
+          ++count;
+          std::cout << "Start: " << count << std::endl;
+          auto clientHandler = ApplicationClientHandler(Initialize(
             [&] {
-              ++count;
-              std::cout << "Start: " << count << std::endl;
-              auto clientHandler = ApplicationClientHandler(
-                Initialize(
-                [&] {
-                  return std::make_unique<LocalClientChannel<SharedBuffer>>(
-                    "dummy", server);
-                },
-                [] {
-                  return std::make_unique<TriggerTimer>();
-                }));
-              RegisterQueryTypes(Store(clientHandler.GetSlots().GetRegistry()));
-              RegisterQueryServices(Store(clientHandler.GetSlots()));
-              RegisterQueryMessages(Store(clientHandler.GetSlots()));
-              auto publisher = QueryClientPublisher<Data, DataQuery,
-                EvaluatorTranslator<QueryTypes>,
-                ServiceProtocolClientHandler<ApplicationClientBuilder>,
-                QueryDataService, EndDataQueryMessage>(Ref(clientHandler));
-              publisher.AddMessageHandler<DataQueryMessage>();
-              auto timer = LiveTimer(milliseconds(100));
-              auto duration = 10 * (rand() % 20);
-              for(auto i = 0; i < duration; ++i) {
-                auto query = DataQuery();
-                query.SetIndex(rand() % 200);
-                query.SetRange(Range::Total());
-                query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1000);
-                auto queue = std::make_shared<Queue<Data>>();
-                publisher.SubmitQuery(query, queue);
-                timer.Start();
-                timer.Wait();
-              }
-              --count;
-              std::cout << "Stop: " << count << std::endl;
-              clientHandler.Close();
-            });
-        }
-        timer.Start();
-        timer.Wait();
+              return std::make_unique<LocalClientChannel<SharedBuffer>>("dummy",
+                server);
+            },
+            [] {
+              return std::make_unique<TriggerTimer>();
+            }));
+          RegisterQueryTypes(Store(clientHandler.GetSlots().GetRegistry()));
+          RegisterQueryServices(Store(clientHandler.GetSlots()));
+          RegisterQueryMessages(Store(clientHandler.GetSlots()));
+          auto publisher = QueryClientPublisher<Data, DataQuery,
+            EvaluatorTranslator<QueryTypes>,
+            ServiceProtocolClientHandler<ApplicationClientBuilder>,
+            QueryDataService, EndDataQueryMessage>(Ref(clientHandler));
+          publisher.AddMessageHandler<DataQueryMessage>();
+          auto timer = LiveTimer(milliseconds(100));
+          auto duration = 10 * (rand() % 20);
+          for(auto i = 0; i < duration; ++i) {
+            auto query = DataQuery();
+            query.SetIndex(rand() % 200);
+            query.SetRange(Range::Total());
+            query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1000);
+            auto queue = std::make_shared<Queue<Data>>();
+            publisher.SubmitQuery(query, queue);
+            timer.Start();
+            timer.Wait();
+          }
+          --count;
+          std::cout << "Stop: " << count << std::endl;
+          clientHandler.Close();
+        });
       }
-    });
+      timer.Start();
+      timer.Wait();
+    }
+  });
   routines.Wait();
   servlet.Close();
   routines.Wait();

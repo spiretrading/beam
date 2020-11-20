@@ -1,4 +1,3 @@
 ---
-server:
-  interface: "$local_interface:15050"
+interface: "$local_interface:15050"
 ...

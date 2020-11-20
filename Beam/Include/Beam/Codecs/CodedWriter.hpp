@@ -56,7 +56,11 @@ namespace Codecs {
   template<typename W, typename E>
   void CodedWriter<W, E>::Write(const void* data, std::size_t size) {
     auto encodedData = Buffer();
-    m_encoder->Encode(data, size, Store(encodedData));
+    try {
+      m_encoder->Encode(data, size, Store(encodedData));
+    } catch(...) {
+      std::throw_with_nested(IO::IOException("Encoder failed."));
+    }
     m_destination->Write(encodedData);
   }
 

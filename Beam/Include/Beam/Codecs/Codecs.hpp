@@ -5,8 +5,10 @@ namespace Beam::Codecs {
   template<typename B, typename R, typename D> class CodedReader;
   template<typename W, typename E> class CodedWriter;
   struct Decoder;
+  class DecoderBox;
   class DecoderException;
   struct Encoder;
+  class EncoderBox;
   class EncoderException;
   class NullDecoder;
   class NullEncoder;

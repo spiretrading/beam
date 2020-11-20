@@ -6,6 +6,7 @@
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 namespace Codecs {
@@ -103,7 +104,8 @@ namespace Codecs {
       try {
         m_decoder->Decode(m_sourceBuffer, Store(m_sourceBuffer));
       } catch(...) {
-        m_writer.Break(std::current_exception());
+        m_writer.Break(NestCurrentException(
+          IO::IOException("Decoder failed.")));
         return;
       }
       m_writer.Write(m_sourceBuffer);
@@ -112,7 +114,8 @@ namespace Codecs {
       try {
         m_decoder->Decode(m_sourceBuffer, Store(m_decoderBuffer));
       } catch(...) {
-        m_writer.Break(std::current_exception());
+        m_writer.Break(NestCurrentException(
+          IO::IOException("Decoder failed.")));
         return;
       }
       m_writer.Write(m_decoderBuffer);

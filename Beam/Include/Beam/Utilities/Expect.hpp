@@ -184,6 +184,25 @@ namespace Beam {
     }
   }
 
+  /**
+   * Returns an std::exception_ptr representing an std::nested_exception that
+   * is derived from a specified exception passed as an argument representing
+   * the outer exception and the currently thrown exception representing the
+   * inner/nested exception.
+   * @param e The outer exception.
+   * @return The std::exception_ptr representing an std::nested_exception.
+   */
+  template<typename E, typename = std::enable_if_t<
+    std::is_base_of_v<std::exception, std::decay_t<E>>>>
+  std::exception_ptr NestCurrentException(E&& e) {
+    try {
+      std::throw_with_nested(std::forward<E>(e));
+    } catch(...) {
+      return std::current_exception();
+    }
+    return nullptr;
+  }
+
   template<typename T>
   Expect<T>::Expect(const T& value)
     : m_value(value) {}

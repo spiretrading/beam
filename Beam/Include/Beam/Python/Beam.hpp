@@ -3,6 +3,7 @@
 #include "Beam/Network/Network.hpp"
 #include "Beam/Python/AbstractQueue.hpp"
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Python/Codecs.hpp"
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Decimal.hpp"

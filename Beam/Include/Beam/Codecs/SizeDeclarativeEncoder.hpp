@@ -70,7 +70,7 @@ namespace Codecs {
       sizeof(portableSourceSize));
     auto messageDestination = reinterpret_cast<char*>(destination) +
       sizeof(std::uint32_t);
-    auto encodedSize = m_encoder->Encode(source, sourceSize, messageDestination,
+    auto encodedSize = m_encoder.Encode(source, sourceSize, messageDestination,
       destinationSize - sizeof(std::uint32_t)) + sizeof(std::uint32_t);
     return encodedSize;
   }

@@ -36,7 +36,9 @@ target_link_libraries(Python
   debug ${PYTHON_LIBRARY_DEBUG_PATH}
   optimized ${PYTHON_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
+  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
+  debug ${ZLIB_LIBRARY_DEBUG_PATH}
+  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)
   target_link_libraries(Python
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

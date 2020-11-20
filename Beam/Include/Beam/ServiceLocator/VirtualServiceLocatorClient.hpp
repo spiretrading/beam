@@ -13,6 +13,7 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
+#include "Beam/Services/ServiceRequestException.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"

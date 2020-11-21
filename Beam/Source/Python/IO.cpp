@@ -2,6 +2,8 @@
 #include <boost/lexical_cast.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/IO/BufferBox.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/NotConnectedException.hpp"
@@ -49,7 +51,7 @@ namespace {
         IsDataAvailable);
     }
 
-    std::size_t Read(Out<SharedBuffer> destination) {
+    std::size_t Read(Out<BufferBox> destination) {
       PYBIND11_OVERLOAD_PURE_NAME(std::size_t, VirtualReader, "read", Read,
         Store(destination));
     }
@@ -59,7 +61,7 @@ namespace {
         destination, size);
     }
 
-    std::size_t Read(Out<SharedBuffer> destination, std::size_t size) {
+    std::size_t Read(Out<BufferBox> destination, std::size_t size) {
       PYBIND11_OVERLOAD_PURE_NAME(std::size_t, VirtualReader, "read", Read,
         Store(destination), size);
     }
@@ -70,7 +72,7 @@ namespace {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualWriter, "write", data, size);
     }
 
-    void Write(const Buffer& data) {
+    void Write(const BufferView& data) {
       PYBIND11_OVERLOAD_PURE_NAME(void, VirtualWriter, "write", data);
     }
   };
@@ -78,6 +80,51 @@ namespace {
 
 const object& Beam::Python::GetIOException() {
   return ioException;
+}
+
+void Beam::Python::ExportBufferBox(pybind11::module& module) {
+  class_<BufferBox>(module, "Buffer")
+    .def(init([] {
+      return BufferBox(SharedBuffer());
+    }))
+    .def(init([] (std::size_t size) {
+      return BufferBox(SharedBuffer(size));
+    }))
+    .def("__str__", [] (BufferBox& self) {
+      return std::string(self.GetData(), self.GetSize());
+    })
+    .def("is_empty", &BufferBox::IsEmpty)
+    .def("grow", &BufferBox::Grow)
+    .def("shrink", &BufferBox::Shrink)
+    .def("shrink_front", &BufferBox::ShrinkFront)
+    .def("reserve", &BufferBox::Reserve)
+    .def("write", [] (BufferBox& self, std::size_t index, pybind11::str value) {
+      auto rawString = PyUnicode_AsUTF8(value.ptr());
+      if(rawString != nullptr) {
+        self.Write(index, rawString, len(value));
+      }
+    })
+    .def("append", static_cast<void (BufferBox::*)(const BufferBox&)>(
+      &BufferBox::Append<BufferBox>))
+    .def("append", [] (BufferBox& self, pybind11::str value) {
+      auto rawString = PyUnicode_AsUTF8(value.ptr());
+      if(rawString != nullptr) {
+        self.Append(rawString, len(value));
+      }
+    })
+    .def("reset", &BufferBox::Reset)
+    .def_property_readonly("size", &BufferBox::GetSize);
+  implicitly_convertible<BufferBox, BufferView>();
+}
+
+void Beam::Python::ExportBufferView(pybind11::module& module) {
+  class_<BufferView>(module, "BufferView")
+    .def(init<const BufferBox&>())
+    .def("__str__", [] (BufferView& self) {
+      return std::string(self.GetData(), self.GetSize());
+    })
+    .def("is_empty", &BufferView::IsEmpty)
+    .def_property_readonly("size", &BufferView::GetSize);
 }
 
 void Beam::Python::ExportChannel(pybind11::module& module) {
@@ -104,6 +151,8 @@ void Beam::Python::ExportConnection(pybind11::module& module) {
 
 void Beam::Python::ExportIO(pybind11::module& module) {
   auto submodule = module.def_submodule("io");
+  ExportBufferView(submodule);
+  ExportBufferBox(submodule);
   ExportChannel(submodule);
   ExportChannelIdentifier(submodule);
   ExportConnection(submodule);
@@ -135,10 +184,10 @@ void Beam::Python::ExportOpenState(pybind11::module& module) {
 void Beam::Python::ExportReader(pybind11::module& module) {
   class_<VirtualReader, TrampolineReader>(module, "Reader")
     .def("is_data_available", &VirtualReader::IsDataAvailable)
-    .def("read", static_cast<std::size_t (VirtualReader::*)(Out<SharedBuffer>)>(
+    .def("read", static_cast<std::size_t (VirtualReader::*)(Out<BufferBox>)>(
       &VirtualReader::Read))
     .def("read", static_cast<std::size_t (VirtualReader::*)(
-      Out<SharedBuffer>, std::size_t)>(&VirtualReader::Read));
+      Out<BufferBox>, std::size_t)>(&VirtualReader::Read));
 }
 
 void Beam::Python::ExportServerConnection(pybind11::module& module) {
@@ -148,14 +197,13 @@ void Beam::Python::ExportServerConnection(pybind11::module& module) {
 }
 
 void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
-  class_<SharedBuffer>(module, "Buffer")
+  class_<SharedBuffer>(module, "SharedBuffer")
     .def(init())
     .def(init<std::size_t>())
     .def(init<const SharedBuffer&>())
-    .def("__str__",
-      [] (SharedBuffer& self) {
-        return std::string(self.GetData(), self.GetSize());
-      })
+    .def("__str__", [] (SharedBuffer& self) {
+      return std::string(self.GetData(), self.GetSize());
+    })
     .def("is_empty", &SharedBuffer::IsEmpty)
     .def("grow", &SharedBuffer::Grow)
     .def("shrink", &SharedBuffer::Shrink)
@@ -170,19 +218,20 @@ void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
       })
     .def("append", static_cast<void (SharedBuffer::*)(const SharedBuffer&)>(
       &SharedBuffer::Append))
-    .def("append",
-      [] (SharedBuffer& self, pybind11::str value) {
-        auto rawString = PyUnicode_AsUTF8(value.ptr());
-        if(rawString != nullptr) {
-          self.Append(rawString, len(value));
-        }
-      })
+    .def("append", [] (SharedBuffer& self, pybind11::str value) {
+      auto rawString = PyUnicode_AsUTF8(value.ptr());
+      if(rawString != nullptr) {
+        self.Append(rawString, len(value));
+      }
+    })
     .def("reset", &SharedBuffer::Reset)
     .def_property_readonly("size", &SharedBuffer::GetSize);
+  implicitly_convertible<SharedBuffer, BufferBox>();
+  implicitly_convertible<SharedBuffer, BufferView>();
 }
 
 void Beam::Python::ExportWriter(pybind11::module& module) {
   class_<VirtualWriter, TrampolineWriter>(module, "Writer")
-    .def("write", static_cast<void (VirtualWriter::*)(const SharedBuffer&)>(
+    .def("write", static_cast<void (VirtualWriter::*)(const BufferView&)>(
       &VirtualWriter::Write));
 }

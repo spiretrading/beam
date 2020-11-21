@@ -65,10 +65,11 @@ namespace Beam::Python {
    * @param <Decoder> The type of decoder to export.
    * @param module The module to export the decoder to.
    * @param name The name of the class.
+   * @return The exported decoder.
    */
   template<typename Decoder>
-  void ExportDecoder(pybind11::module& module, const std::string& name) {
-    pybind11::class_<Decoder>(module, name.c_str())
+  auto ExportDecoder(pybind11::module& module, const std::string& name) {
+    auto decoder = pybind11::class_<Decoder>(module, name.c_str())
       .def("decode", static_cast<std::size_t (Decoder::*)(const void*,
         std::size_t, void*, std::size_t)>(&Decoder::Decode))
       .def("decode", static_cast<std::size_t (Decoder::*)(
@@ -79,6 +80,7 @@ namespace Beam::Python {
       .def("decode", static_cast<std::size_t (Decoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
         &Decoder::Decode<IO::BufferView, IO::BufferBox>));
+    return decoder;
   }
 
   /**
@@ -86,10 +88,11 @@ namespace Beam::Python {
    * @param <Encoder> The type of encoder to export.
    * @param module The module to export the encoder to.
    * @param name The name of the class.
+   * @return The exported encoder.
    */
   template<typename Encoder>
-  void ExportEncoder(pybind11::module& module, const std::string& name) {
-    pybind11::class_<Encoder>(module, name.c_str())
+  auto ExportEncoder(pybind11::module& module, const std::string& name) {
+    auto encoder = pybind11::class_<Encoder>(module, name.c_str())
       .def("encode", static_cast<std::size_t (Encoder::*)(const void*,
         std::size_t, void*, std::size_t)>(&Encoder::Encode))
       .def("encode", static_cast<std::size_t (Encoder::*)(
@@ -100,6 +103,7 @@ namespace Beam::Python {
       .def("encode", static_cast<std::size_t (Encoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
         &Encoder::Encode<IO::BufferView, IO::BufferBox>));
+    return encoder;
   }
 }
 

@@ -10,7 +10,7 @@ namespace Beam::IO {
     public:
       template<typename Buffer, typename = std::enable_if_t<
         !std::is_base_of_v<BufferView, std::decay_t<Buffer>>>>
-      explicit BufferView(const Buffer& buffer);
+      BufferView(const Buffer& buffer);
 
       bool IsEmpty() const;
 

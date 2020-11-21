@@ -95,8 +95,7 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t EncoderBox::Encode(const Buffer& source, void* destination,
       std::size_t destinationSize) {
-    return m_encoder->Encode(IO::BufferView(source), destination,
-      destinationSize);
+    return m_encoder->Encode(source, destination, destinationSize);
   }
 
   template<typename Buffer>
@@ -110,7 +109,7 @@ namespace Codecs {
   std::size_t EncoderBox::Encode(const SourceBuffer& source,
       Out<DestinationBuffer> destination) {
     auto box = IO::BufferBox(&*destination);
-    return m_encoder->Encode(IO::BufferView(source), Store(box));
+    return m_encoder->Encode(source, Store(box));
   }
 
   template<typename E>

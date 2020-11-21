@@ -1,7 +1,7 @@
 #ifndef BEAM_TO_PYTHON_READER_HPP
 #define BEAM_TO_PYTHON_READER_HPP
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/IO/VirtualReader.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::IO {
 
@@ -26,12 +26,11 @@ namespace Beam::IO {
 
       bool IsDataAvailable() const override;
 
-      std::size_t Read(Out<SharedBuffer> destination) override;
+      std::size_t Read(Out<BufferBox> destination) override;
 
       std::size_t Read(char* destination, std::size_t size) override;
 
-      std::size_t Read(Out<SharedBuffer> destination,
-        std::size_t size) override;
+      std::size_t Read(Out<BufferBox> destination, std::size_t size) override;
 
     private:
       std::unique_ptr<Reader> m_reader;
@@ -63,7 +62,7 @@ namespace Beam::IO {
   }
 
   template<typename R>
-  std::size_t ToPythonReader<R>::Read(Out<SharedBuffer> destination) {
+  std::size_t ToPythonReader<R>::Read(Out<BufferBox> destination) {
     auto release = Python::GilRelease();
     return m_reader->Read(Store(destination));
   }
@@ -75,7 +74,7 @@ namespace Beam::IO {
   }
 
   template<typename R>
-  std::size_t ToPythonReader<R>::Read(Out<SharedBuffer> destination,
+  std::size_t ToPythonReader<R>::Read(Out<BufferBox> destination,
       std::size_t size) {
     auto release = Python::GilRelease();
     return m_reader->Read(Store(destination), size);

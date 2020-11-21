@@ -94,8 +94,7 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t DecoderBox::Decode(const Buffer& source, void* destination,
       std::size_t destinationSize) {
-    return m_decoder->Decode(IO::BufferView(source), destination,
-      destinationSize);
+    return m_decoder->Decode(source, destination, destinationSize);
   }
 
   template<typename Buffer>
@@ -109,7 +108,7 @@ namespace Codecs {
   inline std::size_t DecoderBox::Decode(const SourceBuffer& source,
       Out<DestinationBuffer> destination) {
     auto box = IO::BufferBox(&*destination);
-    return m_decoder->Decode(IO::BufferView(source), Store(box));
+    return m_decoder->Decode(source, Store(box));
   }
 
   template<typename D>

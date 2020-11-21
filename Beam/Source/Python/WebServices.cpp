@@ -93,7 +93,7 @@ void Beam::Python::ExportHttpRequest(pybind11::module& module) {
     .def(init<HttpMethod, Uri>())
     .def(init<HttpVersion, HttpMethod, Uri>())
     .def(init<HttpVersion, HttpMethod, Uri, std::vector<HttpHeader>,
-      const SpecialHeaders&, std::vector<Cookie>, SharedBuffer>())
+      const SpecialHeaders&, std::vector<Cookie>, BufferBox>())
     .def("__str__", &lexical_cast<std::string, HttpRequest>)
     .def_property_readonly("version", &HttpRequest::GetVersion)
     .def_property_readonly("method", &HttpRequest::GetMethod)
@@ -109,7 +109,7 @@ void Beam::Python::ExportHttpRequest(pybind11::module& module) {
       static_cast<void (HttpRequest::*)(Cookie)>(&HttpRequest::Add))
     .def_property_readonly("body", &HttpRequest::GetBody,
       return_value_policy::reference_internal)
-    .def("encode", &HttpRequest::Encode<SharedBuffer>);
+    .def("encode", &HttpRequest::Encode<BufferBox>);
 }
 
 void Beam::Python::ExportHttpRequestParser(pybind11::module& module) {
@@ -120,7 +120,7 @@ void Beam::Python::ExportHttpRequestParser(pybind11::module& module) {
         self.Feed(PyUnicode_AsUTF8(value.ptr()), len(value));
       })
     .def("feed",
-      [] (HttpRequestParser& self, const SharedBuffer& value) {
+      [] (HttpRequestParser& self, const BufferView& value) {
         self.Feed(value.GetData(), value.GetSize());
       })
     .def("get_next_request", &HttpRequestParser::GetNextRequest);
@@ -142,7 +142,7 @@ void Beam::Python::ExportHttpResponse(pybind11::module& module) {
     .def("get_cookie", &HttpResponse::GetCookie)
     .def("set_cookie", &HttpResponse::SetCookie)
     .def_property("body", &HttpResponse::GetBody, &HttpResponse::SetBody)
-    .def("encode", &HttpResponse::Encode<SharedBuffer>);
+    .def("encode", &HttpResponse::Encode<BufferBox>);
 }
 
 void Beam::Python::ExportHttpResponseParser(pybind11::module& module) {
@@ -153,7 +153,7 @@ void Beam::Python::ExportHttpResponseParser(pybind11::module& module) {
         self.Feed(PyUnicode_AsUTF8(value.ptr()), len(value));
       })
     .def("feed",
-      [] (HttpResponseParser& self, const SharedBuffer& value) {
+      [] (HttpResponseParser& self, const BufferView& value) {
         self.Feed(value.GetData(), value.GetSize());
       })
     .def("get_next_response", &HttpResponseParser::GetNextResponse)

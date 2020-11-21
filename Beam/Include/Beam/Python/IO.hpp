@@ -1,14 +1,24 @@
 #ifndef BEAM_PYTHON_IO_HPP
 #define BEAM_PYTHON_IO_HPP
 #include <pybind11/pybind11.h>
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Python/Out.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Python {
 
   /** Returns the Python object representing an IOException. */
   BEAM_EXPORT_DLL const pybind11::object& GetIOException();
+
+  /**
+   * Exports the BufferBox class.
+   * @param module The module to export to.
+   */
+  void ExportBufferBox(pybind11::module& module);
+
+  /**
+   * Exports the BufferView class.
+   * @param module The module to export to.
+   */
+  void ExportBufferView(pybind11::module& module);
 
   /**
    * Exports the Channel class.

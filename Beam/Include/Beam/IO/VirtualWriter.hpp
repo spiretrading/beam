@@ -1,7 +1,7 @@
 #ifndef BEAM_VIRTUAL_WRITER_HPP
 #define BEAM_VIRTUAL_WRITER_HPP
 #include "Beam/IO/IO.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -18,7 +18,7 @@ namespace IO {
 
       virtual void Write(const void* data, std::size_t size) = 0;
 
-      virtual void Write(const Buffer& data) = 0;
+      virtual void Write(const BufferView& data) = 0;
 
     protected:
 
@@ -51,7 +51,7 @@ namespace IO {
 
       void Write(const void* data, std::size_t size) override;
 
-      void Write(const SharedBuffer& data) override;
+      void Write(const BufferView& data) override;
 
     private:
       GetOptionalLocalPtr<W> m_writer;
@@ -78,7 +78,7 @@ namespace IO {
   }
 
   template<typename W>
-  void WrapperWriter<W>::Write(const SharedBuffer& data) {
+  void WrapperWriter<W>::Write(const BufferView& data) {
     m_writer->Write(data);
   }
 }

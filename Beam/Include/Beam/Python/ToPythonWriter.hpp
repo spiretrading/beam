@@ -1,7 +1,7 @@
 #ifndef BEAM_TO_PYTHON_WRITER_HPP
 #define BEAM_TO_PYTHON_WRITER_HPP
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/IO/VirtualWriter.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::IO {
 
@@ -26,7 +26,7 @@ namespace Beam::IO {
 
       void Write(const void* data, std::size_t size) override;
 
-      void Write(const Buffer& data) override;
+      void Write(const BufferView& data) override;
 
     private:
       std::unique_ptr<Writer> m_writer;
@@ -58,7 +58,7 @@ namespace Beam::IO {
   }
 
   template<typename W>
-  void ToPythonWriter<W>::Write(const Buffer& data) {
+  void ToPythonWriter<W>::Write(const BufferView& data) {
     auto release = Python::GilRelease();
     m_writer->Write(data);
   }

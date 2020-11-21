@@ -21,12 +21,12 @@ using namespace pybind11;
 void Beam::Python::ExportDatagramPacket(pybind11::module& module) {
   class_<DatagramPacket<SharedBuffer>>(module, "DatagramPacket")
     .def(init())
-    .def(init<SharedBuffer, IpAddress>())
+    .def(init<BufferBox, IpAddress>())
     .def_property("data",
       [] (DatagramPacket<SharedBuffer>& self) {
         return self.GetData();
       },
-      [] (DatagramPacket<SharedBuffer>& self, SharedBuffer buffer) {
+      [] (DatagramPacket<SharedBuffer>& self, BufferBox buffer) {
         self.GetData() = std::move(buffer);
       })
     .def_property("address",
@@ -428,12 +428,12 @@ void Beam::Python::ExportUdpSocketReceiver(pybind11::module& module) {
         return self.Receive(Store(packet), size);
       }, call_guard<GilRelease>())
     .def("receive",
-      [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer,
+      [] (UdpSocketReceiver& self, Out<BufferBox> buffer,
           Out<IpAddress> address) {
         return self.Receive(Store(buffer), Store(address));
       }, call_guard<GilRelease>())
     .def("receive",
-      [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer, std::size_t size,
+      [] (UdpSocketReceiver& self, Out<BufferBox> buffer, std::size_t size,
           Out<IpAddress> address) {
         return self.Receive(Store(buffer), size, Store(address));
       }, call_guard<GilRelease>());
@@ -441,8 +441,7 @@ void Beam::Python::ExportUdpSocketReceiver(pybind11::module& module) {
 
 void Beam::Python::ExportUdpSocketSender(pybind11::module& module) {
   class_<UdpSocketSender>(module, "UdpSocketSender")
-    .def("send", &UdpSocketSender::Send<SharedBuffer>,
-      call_guard<GilRelease>());
+    .def("send", &UdpSocketSender::Send<BufferBox>, call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportUdpSocketWriter(pybind11::module& module) {

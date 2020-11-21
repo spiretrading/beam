@@ -11,7 +11,7 @@
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Python/Out.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
 
@@ -40,11 +40,13 @@ void Beam::Python::ExportCodedReader(pybind11::module& module) {}
 void Beam::Python::ExportCodedWriter(pybind11::module& module) {}
 
 void Beam::Python::ExportNullDecoder(module& module) {
-  ExportDecoder<NullDecoder>(module, "NullDecoder");
+  ExportDecoder<NullDecoder>(module, "NullDecoder")
+    .def(init());
 }
 
 void Beam::Python::ExportNullEncoder(module& module) {
-  ExportEncoder<NullEncoder>(module, "NullEncoder");
+  ExportEncoder<NullEncoder>(module, "NullEncoder")
+    .def(init());
 }
 
 void Beam::Python::ExportSizeDeclarativeDecoder(module& module) {
@@ -58,9 +60,11 @@ void Beam::Python::ExportSizeDeclarativeEncoder(module& module) {
 }
 
 void Beam::Python::ExportZLibDecoder(module& module) {
-  ExportDecoder<ZLibDecoder>(module, "ZLibDecoder");
+  ExportDecoder<ZLibDecoder>(module, "ZLibDecoder")
+    .def(init());
 }
 
 void Beam::Python::ExportZLibEncoder(module& module) {
-  ExportEncoder<ZLibEncoder>(module, "ZLibEncoder");
+  ExportEncoder<ZLibEncoder>(module, "ZLibEncoder")
+    .def(init());
 }

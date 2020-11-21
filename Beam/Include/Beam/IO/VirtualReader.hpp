@@ -1,5 +1,6 @@
 #ifndef BEAM_VIRTUAL_READER_HPP
 #define BEAM_VIRTUAL_READER_HPP
+#include "Beam/IO/BufferBox.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -18,11 +19,17 @@ namespace IO {
 
       virtual bool IsDataAvailable() const = 0;
 
-      virtual std::size_t Read(Out<SharedBuffer> destination) = 0;
+      template<typename B>
+      std::size_t Read(Out<B> destination);
+
+      virtual std::size_t Read(Out<BufferBox> destination) = 0;
 
       virtual std::size_t Read(char* destination, std::size_t size) = 0;
 
-      virtual std::size_t Read(Out<SharedBuffer> destination,
+      template<typename B>
+      std::size_t Read(Out<B> destination, std::size_t size);
+
+      virtual std::size_t Read(Out<BufferBox> destination,
         std::size_t size) = 0;
 
     protected:
@@ -57,12 +64,11 @@ namespace IO {
 
       bool IsDataAvailable() const override;
 
-      std::size_t Read(Out<SharedBuffer> destination) override;
+      std::size_t Read(Out<BufferBox> destination) override;
 
       std::size_t Read(char* destination, std::size_t size) override;
 
-      std::size_t Read(Out<SharedBuffer> destination,
-        std::size_t size) override;
+      std::size_t Read(Out<BufferBox> destination, std::size_t size) override;
 
     private:
       GetOptionalLocalPtr<R> m_reader;
@@ -78,6 +84,16 @@ namespace IO {
       std::forward<Reader>(reader));
   }
 
+  template<typename B>
+  std::size_t VirtualReader::Read(Out<B> destination) {
+    return Read(Store(BufferBox(&*destination)));
+  }
+
+  template<typename B>
+  std::size_t VirtualReader::Read(Out<B> destination, std::size_t size) {
+    return Read(Store(BufferBox(&*destination)), size);
+  }
+
   template<typename R>
   template<typename RF>
   WrapperReader<R>::WrapperReader(RF&& reader)
@@ -89,7 +105,7 @@ namespace IO {
   }
 
   template<typename R>
-  std::size_t WrapperReader<R>::Read(Out<SharedBuffer> destination) {
+  std::size_t WrapperReader<R>::Read(Out<BufferBox> destination) {
     return m_reader->Read(Store(destination));
   }
 
@@ -99,14 +115,14 @@ namespace IO {
   }
 
   template<typename R>
-  std::size_t WrapperReader<R>::Read(Out<SharedBuffer> destination,
+  std::size_t WrapperReader<R>::Read(Out<BufferBox> destination,
       std::size_t size) {
     return m_reader->Read(Store(destination), size);
   }
 }
 
   template<>
-  struct ImplementsConcept<IO::VirtualReader, IO::Reader<IO::SharedBuffer>> :
+  struct ImplementsConcept<IO::VirtualReader, IO::Reader<IO::BufferBox>> :
     std::true_type {};
 }
 

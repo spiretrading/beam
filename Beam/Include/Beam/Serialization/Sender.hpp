@@ -108,9 +108,8 @@ namespace Details {
 
   template<typename T>
   struct IsSender<T, typename std::enable_if<
-    Details::SenderHasSinkType<T>::value>::type> : boost::mpl::if_c<
-    ImplementsConcept<T, Sender<typename T::Sink>>::value, std::true_type,
-    std::false_type>::type {};
+    Details::SenderHasSinkType<T>::value>::type> :
+    ImplementsConcept<T, Sender<typename T::Sink>>::type {};
 
   template<typename SinkType>
   template<bool HasMethod, typename Dummy>

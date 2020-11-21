@@ -1,5 +1,5 @@
-#ifndef BEAM_SHAREDBUFFER_HPP
-#define BEAM_SHAREDBUFFER_HPP
+#ifndef BEAM_SHARED_BUFFER_HPP
+#define BEAM_SHARED_BUFFER_HPP
 #include <cstring>
 #include <new>
 #include <boost/shared_array.hpp>
@@ -11,8 +11,8 @@ namespace Beam {
 namespace IO {
 namespace Details {
   inline std::size_t FindNextPowerOfTwo(std::size_t current) {
-    std::size_t nextPowerOfTwo = 1;
-    std::size_t lastPowerOfTwo = nextPowerOfTwo;
+    auto nextPowerOfTwo = std::size_t(1);
+    auto lastPowerOfTwo = nextPowerOfTwo;
     while(nextPowerOfTwo < current) {
       nextPowerOfTwo *= 2;
       if(nextPowerOfTwo < lastPowerOfTwo) {
@@ -24,28 +24,26 @@ namespace Details {
   }
 }
 
-  /*! \class SharedBuffer
-      \brief Implements the Buffer Concept using copy-on-write data.
-   */
+  /** Implements the Buffer Concept using copy-on-write data. */
   class SharedBuffer {
     public:
 
-      //! Constructs a SharedBuffer.
+      /** Constructs a SharedBuffer. */
       SharedBuffer();
 
-      //! Constructs a SharedBuffer with a pre-allocated initial size.
-      /*!
-        \param initialSize The initial size to pre-allocate.
-      */
+      /**
+       * Constructs a SharedBuffer with a pre-allocated initial size.
+       * @param initialSize The initial size to pre-allocate.
+       */
       SharedBuffer(std::size_t initialSize);
 
       SharedBuffer(const void* data, std::size_t size);
 
       SharedBuffer(const SharedBuffer& buffer);
 
-      template<typename BufferType>
-      SharedBuffer(const BufferType& buffer, typename std::enable_if<
-        ImplementsConcept<BufferType, Buffer>::value>::type* = 0);
+      template<typename B, typename =
+        std::enable_if_t<ImplementsConcept<B, Buffer>::value>>
+      SharedBuffer(const B& buffer);
 
       SharedBuffer(SharedBuffer&& buffer);
 
@@ -67,14 +65,14 @@ namespace Details {
       void Append(const SharedBuffer& buffer);
 
       template<typename Buffer>
-      typename std::enable_if<ImplementsConcept<Buffer,
-        IO::Buffer>::value>::type Append(const Buffer& buffer);
+      std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value> Append(
+        const Buffer& buffer);
 
       void Append(const void* data, std::size_t size);
 
       template<typename T>
-      typename std::enable_if<!ImplementsConcept<T, IO::Buffer>::value>::type
-        Append(T value);
+      std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> Append(
+        T value);
 
       void Reset();
 
@@ -107,15 +105,15 @@ namespace Details {
   };
 
   inline SharedBuffer::SharedBuffer()
-      : m_size(0),
-        m_availableSize(0),
-        m_front(nullptr) {}
+    : m_size(0),
+      m_availableSize(0),
+      m_front(nullptr) {}
 
   inline SharedBuffer::SharedBuffer(std::size_t initialSize)
-      : m_size(initialSize),
-        m_availableSize(Details::FindNextPowerOfTwo(initialSize)),
-        m_data(new char[m_availableSize]),
-        m_front(m_data.get()) {}
+    : m_size(initialSize),
+      m_availableSize(Details::FindNextPowerOfTwo(initialSize)),
+      m_data(new char[m_availableSize]),
+      m_front(m_data.get()) {}
 
   inline SharedBuffer::SharedBuffer(const void* data, std::size_t size)
       : m_size(0),
@@ -125,14 +123,13 @@ namespace Details {
   }
 
   inline SharedBuffer::SharedBuffer(const SharedBuffer& buffer)
-      : m_size(buffer.m_size),
-        m_availableSize(buffer.m_availableSize),
-        m_data(buffer.m_data),
-        m_front(buffer.m_front) {}
+    : m_size(buffer.m_size),
+      m_availableSize(buffer.m_availableSize),
+      m_data(buffer.m_data),
+      m_front(buffer.m_front) {}
 
-  template<typename BufferType>
-  SharedBuffer::SharedBuffer(const BufferType& buffer, typename std::enable_if<
-      ImplementsConcept<BufferType, Buffer>::value>::type*)
+  template<typename B, typename>
+  SharedBuffer::SharedBuffer(const B& buffer)
       : m_size(0),
         m_availableSize(0),
         m_front(nullptr) {
@@ -140,10 +137,10 @@ namespace Details {
   }
 
   inline SharedBuffer::SharedBuffer(SharedBuffer&& buffer)
-      : m_size(std::move(buffer.m_size)),
-        m_availableSize(std::move(buffer.m_availableSize)),
-        m_data(std::move(buffer.m_data)),
-        m_front(std::move(buffer.m_front)) {}
+    : m_size(std::move(buffer.m_size)),
+      m_availableSize(std::move(buffer.m_availableSize)),
+      m_data(std::move(buffer.m_data)),
+      m_front(std::move(buffer.m_front)) {}
 
   inline bool SharedBuffer::IsEmpty() const {
     return m_size == 0;
@@ -206,7 +203,7 @@ namespace Details {
   }
 
   template<typename Buffer>
-  typename std::enable_if<ImplementsConcept<Buffer, IO::Buffer>::value>::type
+  std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>
       SharedBuffer::Append(const Buffer& buffer) {
     Append(buffer.GetData(), buffer.GetSize());
   }
@@ -223,7 +220,7 @@ namespace Details {
   }
 
   template<typename T>
-  typename std::enable_if<!ImplementsConcept<T, IO::Buffer>::value>::type
+  std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value>
       SharedBuffer::Append(T value) {
     Append(&value, sizeof(T));
   }
@@ -250,12 +247,12 @@ namespace Details {
 
   template<typename T>
   void SharedBuffer::Extract(std::size_t index, Out<T> value) const {
-    std::memcpy(reinterpret_cast<char*>(&(*value)), m_front + index, sizeof(T));
+    std::memcpy(reinterpret_cast<char*>(&*value), m_front + index, sizeof(T));
   }
 
   template<typename T>
   T SharedBuffer::Extract(std::size_t index) const {
-    T value;
+    auto value = T();
     std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
     return value;
   }

@@ -1,5 +1,5 @@
-#ifndef BEAM_SERVERCONNECTION_HPP
-#define BEAM_SERVERCONNECTION_HPP
+#ifndef BEAM_SERVER_CONNECTION_HPP
+#define BEAM_SERVER_CONNECTION_HPP
 #include <memory>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/Connection.hpp"
@@ -11,41 +11,38 @@ namespace Details {
   BEAM_DEFINE_HAS_TYPEDEF(ServerConnectionHasChannelType, Channel);
 }
 
-  /*! \struct ServerConnection
-      \brief Interface for the server side of a Connection.
-      \tparam ChannelType The type of Channel to accept.
+  /**
+   * Interface for the server side of a Connection.
+   * @param <C> The type of Channel to accept.
    */
-  template<typename ChannelType>
-  struct ServerConnection : Concept<ServerConnection<ChannelType>>,
-      Concept<Connection> {
-    static_assert(ImplementsConcept<ChannelType, IO::Channel<
-      typename ChannelType::Identifier, typename ChannelType::Connection,
-      typename ChannelType::Reader, typename ChannelType::Writer>>::value,
-      "ChannelType must implement the Channel Concept.");
+  template<typename C>
+  struct ServerConnection : Concept<ServerConnection<C>>, Concept<Connection> {
+    static_assert(ImplementsConcept<C, IO::Channel<
+      typename C::Identifier, typename C::Connection,
+      typename C::Reader, typename C::Writer>>::value,
+      "C must implement the Channel Concept.");
 
-    //! Defines the type of Channel accepted by this server.
-    using Channel = ChannelType;
+    /** Defines the type of Channel accepted by this server. */
+    using Channel = C;
 
-    //! Accepts a new Channel.
-    /*!
-      \return The Channel that was accepted.
-    */
+    /**
+     * Accepts a new Channel.
+     * @return The Channel that was accepted.
+     */
     std::unique_ptr<Channel> Accept();
   };
 
-  /*! \struct IsServerConnection
-      \brief Tests whether a type satisfies some particular ServerConnection
-             Concept.
-      \tparam T The type to test.
+  /**
+   * Tests whether a type satisfies some particular ServerConnection Concept.
+   * @param <T> The type to test.
    */
   template<typename T, typename Enabled = void>
   struct IsServerConnection : std::false_type {};
 
   template<typename T>
-  struct IsServerConnection<T, typename std::enable_if<
-    Details::ServerConnectionHasChannelType<T>::value>::type> :
-    boost::mpl::if_c<ImplementsConcept<T, ServerConnection<
-    typename T::Channel>>::value, std::true_type, std::false_type>::type {};
+  struct IsServerConnection<T, std::enable_if_t<
+    Details::ServerConnectionHasChannelType<T>::value>> :
+    ImplementsConcept<T, ServerConnection<typename T::Channel>>::type {};
 }
 }
 

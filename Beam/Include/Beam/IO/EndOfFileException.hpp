@@ -7,22 +7,14 @@ namespace Beam::IO {
   /** Signals a file/resource has reached its end or has been closed. */
   class EndOfFileException : public IOException {
     public:
+      using IOException::IOException;
 
       /** Constructs an EndOfFileException. */
       EndOfFileException();
-
-      /**
-       * Constructs an EndOfFileException.
-       * @param message A message describing the error.
-       */
-      EndOfFileException(const std::string& message);
   };
 
   inline EndOfFileException::EndOfFileException()
     : IOException("End of file.") {}
-
-  inline EndOfFileException::EndOfFileException(const std::string& message)
-    : IOException(message) {}
 }
 
 #endif

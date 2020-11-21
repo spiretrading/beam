@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
-#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam::IO {
@@ -76,7 +76,7 @@ namespace Beam::IO {
 
   inline void OpenState::EnsureOpen() const {
     if(m_state != State::OPEN) {
-      BOOST_THROW_EXCEPTION(NotConnectedException());
+      BOOST_THROW_EXCEPTION(EndOfFileException());
     }
   }
 

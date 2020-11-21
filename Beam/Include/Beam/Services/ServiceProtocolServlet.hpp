@@ -50,9 +50,9 @@ namespace Details {
 
   template<typename T>
   struct IsServiceProtocolServlet<T, typename std::enable_if<
-    Details::HasContainerType<T>::value>::type>
-    : boost::mpl::if_c<ImplementsConcept<T, ServiceProtocolServlet<
-      typename T::Container>>::value, std::true_type, std::false_type>::type {};
+    Details::HasContainerType<T>::value>::type> :
+    ImplementsConcept<T, ServiceProtocolServlet<
+    typename T::Container>>::type {};
 }
 }
 

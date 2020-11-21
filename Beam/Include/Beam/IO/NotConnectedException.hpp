@@ -7,23 +7,14 @@ namespace Beam::IO {
   /** Indicates an operation failed due to not being connected. */
   class NotConnectedException : public IOException {
     public:
+      using IOException::IOException;
 
       /** Constructs a NotConnectedException. */
       NotConnectedException();
-
-      /**
-       * Constructs a NotConnectedException.
-       * @param message A message describing the error.
-       */
-      NotConnectedException(const std::string& message);
   };
 
   inline NotConnectedException::NotConnectedException()
     : IOException("Not connected.") {}
-
-  inline NotConnectedException::NotConnectedException(
-    const std::string& message)
-    : IOException(message) {}
 }
 
 #endif

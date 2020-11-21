@@ -1,7 +1,6 @@
 #ifndef BEAM_DATASHUTTLE_HPP
 #define BEAM_DATASHUTTLE_HPP
 #include <type_traits>
-#include <boost/mpl/if.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/Serialization/Serialization.hpp"
@@ -157,8 +156,7 @@ namespace Serialization {
       \tparam T The type to check.
    */
   template<typename T, typename Enabled = void>
-  struct IsStructure : boost::mpl::if_c<std::is_class<T>::value,
-    std::true_type, std::false_type>::type {};
+  struct IsStructure : std::is_class<T>::type {};
 
   /*! \class IsSequence
       \brief Type trait for whether a type is shuttled as a sequence.

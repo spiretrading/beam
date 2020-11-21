@@ -1,30 +1,15 @@
-#ifndef BEAM_NULLCONNECTION_HPP
-#define BEAM_NULLCONNECTION_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_NULL_CONNECTION_HPP
+#define BEAM_NULL_CONNECTION_HPP
 #include "Beam/IO/Connection.hpp"
 
 namespace Beam {
 namespace IO {
 
-  /*  \class NullConnection
-      \brief A Connection used for testing purposes.
-   */
-  class NullConnection : private boost::noncopyable {
+  /** A Connection used for testing purposes. */
+  class NullConnection {
     public:
-
-      //! Constructs a NullConnection.
-      NullConnection();
-
-      ~NullConnection();
-
       void Close();
   };
-
-  inline NullConnection::NullConnection() {}
-
-  inline NullConnection::~NullConnection() {
-    Close();
-  }
 
   inline void NullConnection::Close() {}
 }

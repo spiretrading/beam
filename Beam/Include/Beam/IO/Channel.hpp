@@ -7,8 +7,7 @@
 #include "Beam/Utilities/Concept.hpp"
 #include "Beam/Utilities/StaticMemberChecks.hpp"
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
 namespace Details {
   BEAM_DEFINE_HAS_TYPEDEF(ChannelHasIdentifierType, Identifier);
   BEAM_DEFINE_HAS_TYPEDEF(ChannelHasConnectionType, Connection);
@@ -16,78 +15,70 @@ namespace Details {
   BEAM_DEFINE_HAS_TYPEDEF(ChannelHasWriterType, Writer);
 }
 
-  /*! \struct ChannelIdentifier
-      \brief Provides a way of identifying a Channel.
-    */
+  /** Provides a way of identifying a Channel. */
   struct ChannelIdentifier : Concept<ChannelIdentifier> {
     protected:
 
-      //! Streams the string representation of this value.
+      /** Streams the string representation of this value. */
       virtual std::ostream& Stream(std::ostream& out) const = 0;
   };
 
-  /*! \struct Channel
-      \brief Composes a Connection, a Reader, and a Writer into an IO channel.
-      \tparam IdentifierType The type of Identifier.
-      \tparam ConnectionType The type of Connection.
-      \tparam ReaderType The type of Reader.
-      \tparam WriterType The type of Writer.
+  /**
+   * Composes a Connection, a Reader, and a Writer into an IO channel.
+   * @param <I> The type of Identifier.
+   * @param <C> The type of Connection.
+   * @param <R> The type of Reader.
+   * @param <W> The type of Writer.
    */
-  template<typename IdentifierType, typename ConnectionType,
-    typename ReaderType, typename WriterType>
-  struct Channel : Concept<Channel<IdentifierType, ConnectionType, ReaderType,
-      WriterType>> {
-    static_assert(ImplementsConcept<IdentifierType, ChannelIdentifier>::value,
-      "IdentifierType must implement the ChannelIdentifier Concept.");
-    static_assert(ImplementsConcept<ConnectionType, IO::Connection>::value,
-      "ConnectionType must implement the Connection Concept.");
-    static_assert(IsReader<ReaderType>::value,
-      "ReaderType must implement the Reader Concept.");
-    static_assert(IsWriter<WriterType>::value,
-      "WriterType must implement the Writer Concept.");
+  template<typename I, typename C, typename R, typename W>
+  struct Channel : Concept<Channel<I, C, R, W>> {
+    static_assert(ImplementsConcept<I, ChannelIdentifier>::value,
+      "I must implement the ChannelIdentifier Concept.");
+    static_assert(ImplementsConcept<C, Connection>::value,
+      "C must implement the Connection Concept.");
+    static_assert(IsReader<R>::value, "R must implement the Reader Concept.");
+    static_assert(IsWriter<W>::value, "W must implement the Writer Concept.");
 
-    //! Defines the type of ChannelIdentifier.
-    using Identifier = IdentifierType;
+    /** Defines the type of ChannelIdentifier. */
+    using Identifier = I;
 
-    //! Defines the type of Connection.
-    using Connection = ConnectionType;
+    /** Defines the type of Connection. */
+    using Connection = C;
 
-    //! Defines the type of Reader.
-    using Reader = ReaderType;
+    /** Defines the type of Reader. */
+    using Reader = R;
 
-    //! Defines the type of Writer.
-    using Writer = WriterType;
+    /** Defines the type of Writer. */
+    using Writer = W;
 
-    //! Returns the Channel's identifier.
+    /** Returns the Channel's identifier. */
     const Identifier& GetIdentifier() const;
 
-    //! Returns the Connection.
+    /** Returns the Connection. */
     Connection& GetConnection();
 
-    //! Returns the Reader.
+    /** Returns the Reader. */
     Reader& GetReader();
 
-    //! Returns the Writer.
+    /** Returns the Writer. */
     Writer& GetWriter();
   };
 
-  /*! \struct IsChannel
-      \brief Tests whether a type satisfies some particular Channel Concept.
-      \tparam T The type to test.
+  /**
+   * Tests whether a type satisfies some particular Channel Concept.
+   * @param <T> The type to test.
    */
   template<typename T, typename Enabled = void>
   struct IsChannel : std::false_type {};
 
   template<typename T>
-  struct IsChannel<T, typename std::enable_if<
+  struct IsChannel<T, std::enable_if_t<
     Details::ChannelHasIdentifierType<T>::value &&
     Details::ChannelHasConnectionType<T>::value &&
     Details::ChannelHasReaderType<T>::value &&
-    Details::ChannelHasWriterType<T>::value>::type> : boost::mpl::if_c<
+    Details::ChannelHasWriterType<T>::value>> :
     ImplementsConcept<T, Channel<typename T::Identifier, typename T::Connection,
-    typename T::Reader, typename T::Writer>>::value, std::true_type,
-    std::false_type>::type {};
-}
+    typename T::Reader, typename T::Writer>>::type {};
 }
 
 #endif

@@ -3,21 +3,17 @@
 #include "Beam/IO/IO.hpp"
 #include "Beam/Utilities/Concept.hpp"
 
-namespace Beam {
-namespace IO {
+namespace Beam::IO {
 
-  /*! \struct Connection
-      \brief Specifies a connection based IO resource.
-   */
+  /** Specifies a connection based IO resource. */
   struct Connection : Concept<Connection> {
 
-    //! Closes the existing Connection.
-    /*!
-      \param result The result of the operation.
-    */
+    /**
+     * Closes the existing Connection.
+     * @param result The result of the operation.
+     */
     void Close();
   };
-}
 }
 
 #endif

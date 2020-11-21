@@ -83,9 +83,8 @@ namespace Details {
 
   template<typename T>
   struct IsReceiver<T, typename std::enable_if<
-    Details::ReceiverHasSourceType<T>::value>::type> : boost::mpl::if_c<
-    ImplementsConcept<T, Receiver<typename T::Source>>::value, std::true_type,
-    std::false_type>::type {};
+    Details::ReceiverHasSourceType<T>::value>::type> :
+    ImplementsConcept<T, Receiver<typename T::Source>>::type {};
 
   template<typename SourceType>
   template<bool HasMethod, typename Dummy>

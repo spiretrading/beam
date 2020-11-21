@@ -9,22 +9,14 @@ namespace Beam::IO {
   /** Signals that an error occurred while performing an IO operation. */
   class IOException : public std::runtime_error, public boost::exception {
     public:
+      using std::runtime_error::runtime_error;
 
       /** Constructs an IOException. */
       IOException();
-
-      /**
-       * Constructs an IOException.
-       * @param message A message describing the error.
-       */
-      IOException(const std::string& message);
   };
 
   inline IOException::IOException()
     : std::runtime_error("IO operation failed.") {}
-
-  inline IOException::IOException(const std::string& message)
-    : std::runtime_error(message) {}
 }
 
 #endif

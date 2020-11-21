@@ -3,7 +3,8 @@
 #include <utility>
 #include "Beam/Codecs/Codecs.hpp"
 #include "Beam/Codecs/Encoder.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/BufferBox.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
@@ -31,26 +32,29 @@ namespace Codecs {
       std::size_t Encode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
-      std::size_t Encode(const IO::SharedBuffer& source, void* destination,
+      template<typename Buffer>
+      std::size_t Encode(const Buffer& source, void* destination,
         std::size_t destinationSize);
 
+      template<typename Buffer>
       std::size_t Encode(const void* source, std::size_t sourceSize,
-        Out<IO::SharedBuffer> destination);
+        Out<Buffer> destination);
 
-      std::size_t Encode(const IO::SharedBuffer& source,
-        Out<IO::SharedBuffer> destination);
+      template<typename SourceBuffer, typename DestinationBuffer>
+      std::size_t Encode(const SourceBuffer& source,
+        Out<DestinationBuffer> destination);
 
     private:
       struct VirtualEncoder {
         virtual ~VirtualEncoder() = default;
         virtual std::size_t Encode(const void* source, std::size_t sourceSize,
           void* destination, std::size_t destinationSize) = 0;
-        virtual std::size_t Encode(const IO::SharedBuffer& source,
+        virtual std::size_t Encode(const IO::BufferView& source,
           void* destination, std::size_t destinationSize) = 0;
         virtual std::size_t Encode(const void* source, std::size_t sourceSize,
-          Out<IO::SharedBuffer> destination) = 0;
-        virtual std::size_t Encode(const IO::SharedBuffer& source,
-          Out<IO::SharedBuffer> destination) = 0;
+          Out<IO::BufferBox> destination) = 0;
+        virtual std::size_t Encode(const IO::BufferView& source,
+          Out<IO::BufferBox> destination) = 0;
       };
       template<typename E>
       struct WrappedEncoder final : VirtualEncoder {
@@ -61,12 +65,12 @@ namespace Codecs {
         WrappedEncoder(Args&&... args);
         std::size_t Encode(const void* source, std::size_t sourceSize,
           void* destination, std::size_t destinationSize) override;
-        std::size_t Encode(const IO::SharedBuffer& source, void* destination,
+        std::size_t Encode(const IO::BufferView& source, void* destination,
           std::size_t destinationSize) override;
         std::size_t Encode(const void* source, std::size_t sourceSize,
-          Out<IO::SharedBuffer> destination) override;
-        std::size_t Encode(const IO::SharedBuffer& source,
-          Out<IO::SharedBuffer> destination) override;
+          Out<IO::BufferBox> destination) override;
+        std::size_t Encode(const IO::BufferView& source,
+          Out<IO::BufferBox> destination) override;
       };
       std::unique_ptr<VirtualEncoder> m_encoder;
 
@@ -88,19 +92,25 @@ namespace Codecs {
     return m_encoder->Encode(source, sourceSize, destination, destinationSize);
   }
 
-  inline std::size_t EncoderBox::Encode(const IO::SharedBuffer& source,
-      void* destination, std::size_t destinationSize) {
-    return m_encoder->Encode(source, destination, destinationSize);
+  template<typename Buffer>
+  std::size_t EncoderBox::Encode(const Buffer& source, void* destination,
+      std::size_t destinationSize) {
+    return m_encoder->Encode(IO::BufferView(source), destination,
+      destinationSize);
   }
 
-  inline std::size_t EncoderBox::Encode(const void* source,
-      std::size_t sourceSize, Out<IO::SharedBuffer> destination) {
-    return m_encoder->Encode(source, sourceSize, Store(destination));
+  template<typename Buffer>
+  std::size_t EncoderBox::Encode(const void* source, std::size_t sourceSize,
+      Out<Buffer> destination) {
+    auto box = IO::BufferBox(&*destination);
+    return m_encoder->Encode(source, sourceSize, Store(box));
   }
 
-  inline std::size_t EncoderBox::Encode(const IO::SharedBuffer& source,
-      Out<IO::SharedBuffer> destination) {
-    return m_encoder->Encode(source, Store(destination));
+  template<typename SourceBuffer, typename DestinationBuffer>
+  std::size_t EncoderBox::Encode(const SourceBuffer& source,
+      Out<DestinationBuffer> destination) {
+    auto box = IO::BufferBox(&*destination);
+    return m_encoder->Encode(IO::BufferView(source), Store(box));
   }
 
   template<typename E>
@@ -116,20 +126,20 @@ namespace Codecs {
 
   template<typename E>
   std::size_t EncoderBox::WrappedEncoder<E>::Encode(
-      const IO::SharedBuffer& source, void* destination,
+      const IO::BufferView& source, void* destination,
       std::size_t destinationSize) {
     return m_encoder->Encode(source, destination, destinationSize);
   }
 
   template<typename E>
   std::size_t EncoderBox::WrappedEncoder<E>::Encode(const void* source,
-      std::size_t sourceSize, Out<IO::SharedBuffer> destination) {
+      std::size_t sourceSize, Out<IO::BufferBox> destination) {
     return m_encoder->Encode(source, sourceSize, Store(destination));
   }
 
   template<typename E>
   std::size_t EncoderBox::WrappedEncoder<E>::Encode(
-      const IO::SharedBuffer& source, Out<IO::SharedBuffer> destination) {
+      const IO::BufferView& source, Out<IO::BufferBox> destination) {
     return m_encoder->Encode(source, Store(destination));
   }
 }

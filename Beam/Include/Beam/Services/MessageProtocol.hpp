@@ -8,8 +8,7 @@
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/AsyncWriter.hpp"
-#include "Beam/IO/Buffer.hpp"
-#include "Beam/IO/BufferView.hpp"
+#include "Beam/IO/BufferSlice.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -148,7 +147,7 @@ namespace Beam::Services {
       m_sender->SetSink(Ref(serializationBuffer));
       m_sender->Send(message);
     }
-    auto encoderViewBuffer = IO::BufferView(Ref(*buffer),
+    auto encoderViewBuffer = IO::BufferSlice(Ref(*buffer),
       sizeof(std::uint32_t));
     auto size = m_encoder->Encode(serializationBuffer,
       Store(encoderViewBuffer));
@@ -173,13 +172,13 @@ namespace Beam::Services {
       m_sender->Send(message);
     }
     if(Codecs::InPlaceSupport<Encoder>::value) {
-      auto senderViewBuffer = IO::BufferView(Ref(senderBuffer),
+      auto senderViewBuffer = IO::BufferSlice(Ref(senderBuffer),
         sizeof(std::uint32_t));
       auto size = m_encoder->Encode(senderViewBuffer, Store(senderViewBuffer));
       senderBuffer.Write(0, ToLittleEndian<std::uint32_t>(size));
       m_writer.Write(senderBuffer);
     } else {
-      auto encoderViewBuffer = IO::BufferView(Ref(encoderBuffer),
+      auto encoderViewBuffer = IO::BufferSlice(Ref(encoderBuffer),
         sizeof(std::uint32_t));
       auto size = m_encoder->Encode(senderBuffer, Store(encoderViewBuffer));
       encoderBuffer.Write(0, ToLittleEndian<std::uint32_t>(size));

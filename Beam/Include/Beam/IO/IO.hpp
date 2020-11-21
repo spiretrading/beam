@@ -2,9 +2,11 @@
 #define BEAM_IO_HPP
 
 namespace Beam::IO {
-  template<typename DestinationWriterType> class AsyncWriter;
+  template<typename W> class AsyncWriter;
   struct Buffer;
-  template<typename BufferType> class BufferView;
+  class BufferBox;
+  template<typename B> class BufferSlice;
+  class BufferView;
   template<typename IStreamType> class BasicIStreamReader;
   template<typename OStreamType> class BasicOStreamWriter;
   template<typename IdentifierType, typename ConnectionType,
@@ -15,11 +17,11 @@ namespace Beam::IO {
   class ConnectException;
   class EndOfFileException;
   class IOException;
-  template<typename BufferType> class LocalClientChannel;
-  template<typename BufferType> class LocalConnection;
-  template<typename BufferType> class LocalServerChannel;
-  template<typename BufferType> class LocalServerChannelConnection;
-  template<typename BufferType> class LocalServerConnection;
+  template<typename B> class LocalClientChannel;
+  template<typename B> class LocalConnection;
+  template<typename B> class LocalServerChannel;
+  template<typename B> class LocalServerChannelConnection;
+  template<typename B> class LocalServerConnection;
   class NamedChannelIdentifier;
   class NullChannel;
   class NullConnection;
@@ -33,7 +35,7 @@ namespace Beam::IO {
   class SharedBuffer;
   template<typename SourceReaderType> class SizeDeclarativeReader;
   template<typename DestinationWriterType> class SizeDeclarativeWriter;
-  template<std::size_t> class StaticBuffer;
+  template<std::size_t N> class StaticBuffer;
   class VirtualChannel;
   class VirtualChannelIdentifier;
   class VirtualConnection;

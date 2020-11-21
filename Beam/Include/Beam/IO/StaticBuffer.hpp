@@ -40,11 +40,6 @@ namespace IO {
       template<typename Buffer>
       StaticBuffer(const Buffer& buffer);
 
-      StaticBuffer& operator =(const StaticBuffer& rhs);
-
-      template<typename Buffer>
-      StaticBuffer& operator =(const Buffer& rhs);
-
       bool IsEmpty() const;
 
       void Grow(std::size_t size);
@@ -84,6 +79,11 @@ namespace IO {
       template<typename T>
       T Extract(std::size_t index) const;
 
+      StaticBuffer& operator =(const StaticBuffer& rhs);
+
+      template<typename Buffer>
+      StaticBuffer& operator =(const Buffer& rhs);
+
     private:
       std::size_t m_size;
       std::array<char, N> m_data;
@@ -115,24 +115,6 @@ namespace IO {
       : m_size(0),
         m_front(&m_data[0]) {
     Append(buffer);
-  }
-
-  template<std::size_t N>
-  StaticBuffer<N>& StaticBuffer<N>::operator =(const StaticBuffer& rhs) {
-    if(this == &rhs) {
-      return *this;
-    }
-    Reset();
-    Append(rhs);
-    return *this;
-  }
-
-  template<std::size_t N>
-  template<typename Buffer>
-  StaticBuffer<N>& StaticBuffer<N>::operator =(const Buffer& rhs) {
-    Reset();
-    Append(rhs);
-    return *this;
   }
 
   template<std::size_t N>
@@ -241,6 +223,24 @@ namespace IO {
     T value;
     std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
     return value;
+  }
+
+  template<std::size_t N>
+  StaticBuffer<N>& StaticBuffer<N>::operator =(const StaticBuffer& rhs) {
+    if(this == &rhs) {
+      return *this;
+    }
+    Reset();
+    Append(rhs);
+    return *this;
+  }
+
+  template<std::size_t N>
+  template<typename Buffer>
+  StaticBuffer<N>& StaticBuffer<N>::operator =(const Buffer& rhs) {
+    Reset();
+    Append(rhs);
+    return *this;
   }
 }
 

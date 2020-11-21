@@ -3,7 +3,8 @@
 #include <utility>
 #include "Beam/Codecs/Codecs.hpp"
 #include "Beam/Codecs/Decoder.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/BufferBox.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
@@ -19,38 +20,40 @@ namespace Codecs {
        * @param args The arguments to pass to the emplaced decoder.
        */
       template<typename T, typename... Args>
-      DecoderBox(std::in_place_type_t<T>, Args&&... args);
+      explicit DecoderBox(std::in_place_type_t<T>, Args&&... args);
 
       /**
        * Constructs a DecoderBox by copying an existing Decoder.
        * @param decoder The decoder to copy.
        */
       template<typename Decoder>
-      DecoderBox(Decoder decoder);
+      explicit DecoderBox(Decoder decoder);
 
       std::size_t Decode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
-      std::size_t Decode(const IO::SharedBuffer& source, void* destination,
+      template<typename Buffer>
+      std::size_t Decode(const Buffer& source, void* destination,
         std::size_t destinationSize);
 
+      template<typename Buffer>
       std::size_t Decode(const void* source, std::size_t sourceSize,
-        Out<IO::SharedBuffer> destination);
+        Out<Buffer> destination);
 
-      std::size_t Decode(const IO::SharedBuffer& source,
-        Out<IO::SharedBuffer> destination);
+      template<typename SourceBuffer, typename Buffer>
+      std::size_t Decode(const SourceBuffer& source, Out<Buffer> destination);
 
     private:
       struct VirtualDecoder {
         virtual ~VirtualDecoder() = default;
         virtual std::size_t Decode(const void* source, std::size_t sourceSize,
           void* destination, std::size_t destinationSize) = 0;
-        virtual std::size_t Decode(const IO::SharedBuffer& source,
+        virtual std::size_t Decode(const IO::BufferView& source,
           void* destination, std::size_t destinationSize) = 0;
         virtual std::size_t Decode(const void* source, std::size_t sourceSize,
-          Out<IO::SharedBuffer> destination) = 0;
-        virtual std::size_t Decode(const IO::SharedBuffer& source,
-          Out<IO::SharedBuffer> destination) = 0;
+          Out<IO::BufferBox> destination) = 0;
+        virtual std::size_t Decode(const IO::BufferView& source,
+          Out<IO::BufferBox> destination) = 0;
       };
       template<typename D>
       struct WrappedDecoder final : VirtualDecoder {
@@ -61,12 +64,12 @@ namespace Codecs {
         WrappedDecoder(Args&&... args);
         std::size_t Decode(const void* source, std::size_t sourceSize,
           void* destination, std::size_t destinationSize) override;
-        std::size_t Decode(const IO::SharedBuffer& source, void* destination,
+        std::size_t Decode(const IO::BufferView& source, void* destination,
           std::size_t destinationSize) override;
         std::size_t Decode(const void* source, std::size_t sourceSize,
-          Out<IO::SharedBuffer> destination) override;
-        std::size_t Decode(const IO::SharedBuffer& source,
-          Out<IO::SharedBuffer> destination) override;
+          Out<IO::BufferBox> destination) override;
+        std::size_t Decode(const IO::BufferView& source,
+          Out<IO::BufferBox> destination) override;
       };
       std::unique_ptr<VirtualDecoder> m_decoder;
 
@@ -88,19 +91,25 @@ namespace Codecs {
     return m_decoder->Decode(source, sourceSize, destination, destinationSize);
   }
 
-  inline std::size_t DecoderBox::Decode(const IO::SharedBuffer& source,
-      void* destination, std::size_t destinationSize) {
-    return m_decoder->Decode(source, destination, destinationSize);
+  template<typename Buffer>
+  std::size_t DecoderBox::Decode(const Buffer& source, void* destination,
+      std::size_t destinationSize) {
+    return m_decoder->Decode(IO::BufferView(source), destination,
+      destinationSize);
   }
 
-  inline std::size_t DecoderBox::Decode(const void* source,
-      std::size_t sourceSize, Out<IO::SharedBuffer> destination) {
-    return m_decoder->Decode(source, sourceSize, Store(destination));
+  template<typename Buffer>
+  std::size_t DecoderBox::Decode(const void* source, std::size_t sourceSize,
+      Out<Buffer> destination) {
+    auto box = IO::BufferBox(&*destination);
+    return m_decoder->Decode(source, sourceSize, Store(box));
   }
 
-  inline std::size_t DecoderBox::Decode(const IO::SharedBuffer& source,
-      Out<IO::SharedBuffer> destination) {
-    return m_decoder->Decode(source, Store(destination));
+  template<typename SourceBuffer, typename DestinationBuffer>
+  inline std::size_t DecoderBox::Decode(const SourceBuffer& source,
+      Out<DestinationBuffer> destination) {
+    auto box = IO::BufferBox(&*destination);
+    return m_decoder->Decode(IO::BufferView(source), Store(box));
   }
 
   template<typename D>
@@ -116,20 +125,20 @@ namespace Codecs {
 
   template<typename D>
   std::size_t DecoderBox::WrappedDecoder<D>::Decode(
-      const IO::SharedBuffer& source, void* destination,
+      const IO::BufferView& source, void* destination,
       std::size_t destinationSize) {
     return m_decoder->Decode(source, destination, destinationSize);
   }
 
   template<typename D>
   std::size_t DecoderBox::WrappedDecoder<D>::Decode(const void* source,
-      std::size_t sourceSize, Out<IO::SharedBuffer> destination) {
+      std::size_t sourceSize, Out<IO::BufferBox> destination) {
     return m_decoder->Decode(source, sourceSize, Store(destination));
   }
 
   template<typename D>
   std::size_t DecoderBox::WrappedDecoder<D>::Decode(
-      const IO::SharedBuffer& source, Out<IO::SharedBuffer> destination) {
+      const IO::BufferView& source, Out<IO::BufferBox> destination) {
     return m_decoder->Decode(source, Store(destination));
   }
 }

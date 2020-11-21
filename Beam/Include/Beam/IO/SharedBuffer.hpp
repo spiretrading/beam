@@ -49,13 +49,6 @@ namespace Details {
 
       SharedBuffer(SharedBuffer&& buffer);
 
-      SharedBuffer& operator =(const SharedBuffer& rhs);
-
-      template<typename Buffer>
-      SharedBuffer& operator =(const Buffer& rhs);
-
-      SharedBuffer& operator =(SharedBuffer&& rhs);
-
       bool IsEmpty() const;
 
       void Grow(std::size_t size);
@@ -96,6 +89,13 @@ namespace Details {
 
       template<typename T>
       T Extract(std::size_t index) const;
+
+      SharedBuffer& operator =(const SharedBuffer& rhs);
+
+      template<typename Buffer>
+      SharedBuffer& operator =(const Buffer& rhs);
+
+      SharedBuffer& operator =(SharedBuffer&& rhs);
 
     private:
       std::size_t m_size;
@@ -144,29 +144,6 @@ namespace Details {
         m_availableSize(std::move(buffer.m_availableSize)),
         m_data(std::move(buffer.m_data)),
         m_front(std::move(buffer.m_front)) {}
-
-  inline SharedBuffer& SharedBuffer::operator =(const SharedBuffer& rhs) {
-    m_size = rhs.m_size;
-    m_availableSize = rhs.m_availableSize;
-    m_data = rhs.m_data;
-    m_front = rhs.m_front;
-    return *this;
-  }
-
-  template<typename Buffer>
-  SharedBuffer& SharedBuffer::operator =(const Buffer& rhs) {
-    Reset();
-    Append(rhs);
-    return *this;
-  }
-
-  inline SharedBuffer& SharedBuffer::operator =(SharedBuffer&& rhs) {
-    m_size = std::move(rhs.m_size);
-    m_availableSize = std::move(rhs.m_availableSize);
-    m_data = std::move(rhs.m_data);
-    m_front = std::move(rhs.m_front);
-    return *this;
-  }
 
   inline bool SharedBuffer::IsEmpty() const {
     return m_size == 0;
@@ -281,6 +258,29 @@ namespace Details {
     T value;
     std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
     return value;
+  }
+
+  inline SharedBuffer& SharedBuffer::operator =(const SharedBuffer& rhs) {
+    m_size = rhs.m_size;
+    m_availableSize = rhs.m_availableSize;
+    m_data = rhs.m_data;
+    m_front = rhs.m_front;
+    return *this;
+  }
+
+  template<typename Buffer>
+  SharedBuffer& SharedBuffer::operator =(const Buffer& rhs) {
+    Reset();
+    Append(rhs);
+    return *this;
+  }
+
+  inline SharedBuffer& SharedBuffer::operator =(SharedBuffer&& rhs) {
+    m_size = std::move(rhs.m_size);
+    m_availableSize = std::move(rhs.m_availableSize);
+    m_data = std::move(rhs.m_data);
+    m_front = std::move(rhs.m_front);
+    return *this;
   }
 
   inline void SharedBuffer::Reallocate() {

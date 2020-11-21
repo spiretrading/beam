@@ -1,4 +1,6 @@
 #include "Beam/Python/Codecs.hpp"
+#include "Beam/Codecs/CodedReader.hpp"
+#include "Beam/Codecs/CodedWriter.hpp"
 #include "Beam/Codecs/DecoderBox.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
 #include "Beam/Codecs/EncoderBox.hpp"
@@ -10,6 +12,8 @@
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Python/ToPythonReader.hpp"
+#include "Beam/Python/ToPythonWriter.hpp"
 
 using namespace Beam;
 using namespace Beam::IO;
@@ -30,6 +34,10 @@ void Beam::Python::ExportCodecs(module& module) {
   register_exception<DecoderException>(submodule, "DecoderException");
   register_exception<EncoderException>(submodule, "EncoderException");
 }
+
+void Beam::Python::ExportCodedReader(pybind11::module& module) {}
+
+void Beam::Python::ExportCodedWriter(pybind11::module& module) {}
 
 void Beam::Python::ExportNullDecoder(module& module) {
   ExportDecoder<NullDecoder>(module, "NullDecoder");

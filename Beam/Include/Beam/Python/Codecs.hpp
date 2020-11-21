@@ -1,7 +1,8 @@
 #ifndef BEAM_PYTHON_CODECS_HPP
 #define BEAM_PYTHON_CODECS_HPP
 #include <pybind11/pybind11.h>
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/BufferBox.hpp"
+#include "Beam/IO/BufferView.hpp"
 
 namespace Beam::Python {
 
@@ -71,14 +72,13 @@ namespace Beam::Python {
       .def("decode", static_cast<std::size_t (Decoder::*)(const void*,
         std::size_t, void*, std::size_t)>(&Decoder::Decode))
       .def("decode", static_cast<std::size_t (Decoder::*)(
-        const IO::SharedBuffer&, void*, std::size_t)>(
-        &Decoder::Decode<IO::SharedBuffer>))
+        const IO::BufferView&, void*, std::size_t)>(
+        &Decoder::Decode<IO::BufferView>))
       .def("decode", static_cast<std::size_t (Decoder::*)(const void*,
-        std::size_t, Out<IO::SharedBuffer>)>(
-        &Decoder::Decode<IO::SharedBuffer>))
+        std::size_t, Out<IO::BufferBox>)>(&Decoder::Decode<IO::BufferBox>))
       .def("decode", static_cast<std::size_t (Decoder::*)(
-        const IO::SharedBuffer&, Out<IO::SharedBuffer>)>(
-        &Decoder::Decode<IO::SharedBuffer, IO::SharedBuffer>));
+        const IO::BufferView&, Out<IO::BufferBox>)>(
+        &Decoder::Decode<IO::BufferView, IO::BufferBox>));
   }
 
   /**
@@ -93,14 +93,13 @@ namespace Beam::Python {
       .def("encode", static_cast<std::size_t (Encoder::*)(const void*,
         std::size_t, void*, std::size_t)>(&Encoder::Encode))
       .def("encode", static_cast<std::size_t (Encoder::*)(
-        const IO::SharedBuffer&, void*, std::size_t)>(
-        &Encoder::Encode<IO::SharedBuffer>))
+        const IO::BufferView&, void*, std::size_t)>(
+        &Encoder::Encode<IO::BufferView>))
       .def("encode", static_cast<std::size_t (Encoder::*)(const void*,
-        std::size_t, Out<IO::SharedBuffer>)>(
-        &Encoder::Encode<IO::SharedBuffer>))
+        std::size_t, Out<IO::BufferBox>)>(&Encoder::Encode<IO::BufferBox>))
       .def("encode", static_cast<std::size_t (Encoder::*)(
-        const IO::SharedBuffer&, Out<IO::SharedBuffer>)>(
-        &Encoder::Encode<IO::SharedBuffer, IO::SharedBuffer>));
+        const IO::BufferView&, Out<IO::BufferBox>)>(
+        &Encoder::Encode<IO::BufferView, IO::BufferBox>));
   }
 }
 

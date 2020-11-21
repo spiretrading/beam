@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Codecs/EncoderBox.hpp"
 #include "Beam/CodecsTests/ReverseEncoder.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
 using namespace Beam::Codecs;

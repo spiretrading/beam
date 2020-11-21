@@ -4,8 +4,7 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Codecs/EncoderException.hpp"
-#include "Beam/IO/Buffer.hpp"
-#include "Beam/IO/BufferView.hpp"
+#include "Beam/IO/BufferSlice.hpp"
 #include "Beam/Utilities/Endian.hpp"
 
 namespace Beam {
@@ -88,7 +87,7 @@ namespace Codecs {
   std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
       std::size_t sourceSize, Out<Buffer> destination) {
     destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
-    auto destinationView = IO::BufferView<Buffer>(Ref(*destination),
+    auto destinationView = IO::BufferSlice(Ref(*destination),
       sizeof(std::uint32_t));
     auto size = m_encoder.Encode(source, sourceSize, Store(destinationView)) +
       sizeof(std::uint32_t);

@@ -29,6 +29,12 @@ namespace Codecs {
       template<typename Decoder>
       explicit DecoderBox(Decoder decoder);
 
+      explicit DecoderBox(DecoderBox* decoder);
+
+      explicit DecoderBox(const std::shared_ptr<DecoderBox>& decoder);
+
+      explicit DecoderBox(const std::unique_ptr<DecoderBox>& decoder);
+
       DecoderBox(const DecoderBox&) = default;
 
       std::size_t Decode(const void* source, std::size_t sourceSize,
@@ -86,6 +92,15 @@ namespace Codecs {
   template<typename Decoder>
   DecoderBox::DecoderBox(Decoder decoder)
     : DecoderBox(std::in_place_type<Decoder>, std::move(decoder)) {}
+
+  inline DecoderBox::DecoderBox(DecoderBox* decoder)
+    : m_decoder(decoder->m_decoder) {}
+
+  inline DecoderBox::DecoderBox(const std::shared_ptr<DecoderBox>& decoder)
+    : DecoderBox(decoder.get()) {}
+
+  inline DecoderBox::DecoderBox(const std::unique_ptr<DecoderBox>& decoder)
+    : DecoderBox(decoder.get()) {}
 
   inline std::size_t DecoderBox::Decode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {

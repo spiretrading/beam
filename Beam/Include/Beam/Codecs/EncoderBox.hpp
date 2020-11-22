@@ -29,6 +29,12 @@ namespace Codecs {
       template<typename Encoder>
       EncoderBox(Encoder encoder);
 
+      explicit EncoderBox(EncoderBox* encoder);
+
+      explicit EncoderBox(const std::shared_ptr<EncoderBox>& encoder);
+
+      explicit EncoderBox(const std::unique_ptr<EncoderBox>& encoder);
+
       EncoderBox(const EncoderBox&) = default;
 
       std::size_t Encode(const void* source, std::size_t sourceSize,
@@ -87,6 +93,15 @@ namespace Codecs {
   template<typename Encoder>
   EncoderBox::EncoderBox(Encoder encoder)
     : EncoderBox(std::in_place_type<Encoder>, std::move(encoder)) {}
+
+  inline EncoderBox::EncoderBox(EncoderBox* encoder)
+    : m_encoder(encoder->m_encoder) {}
+
+  inline EncoderBox::EncoderBox(const std::shared_ptr<EncoderBox>& encoder)
+    : EncoderBox(encoder.get()) {}
+
+  inline EncoderBox::EncoderBox(const std::unique_ptr<EncoderBox>& encoder)
+    : EncoderBox(encoder.get()) {}
 
   inline std::size_t EncoderBox::Encode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {

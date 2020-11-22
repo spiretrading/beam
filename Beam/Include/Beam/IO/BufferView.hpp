@@ -12,6 +12,12 @@ namespace Beam::IO {
         !std::is_base_of_v<BufferView, std::decay_t<Buffer>>>>
       BufferView(const Buffer& buffer);
 
+      explicit BufferView(BufferView* buffer);
+
+      explicit BufferView(const std::shared_ptr<BufferView>& buffer);
+
+      explicit BufferView(const std::unique_ptr<BufferView>& buffer);
+
       bool IsEmpty() const;
 
       const char* GetData() const;
@@ -47,6 +53,15 @@ namespace Beam::IO {
   template<typename Buffer, typename>
   BufferView::BufferView(const Buffer& buffer)
     : m_buffer(std::make_unique<WrappedBuffer<std::decay_t<Buffer>>>(buffer)) {}
+
+  inline BufferView::BufferView(BufferView* buffer)
+    : m_buffer(buffer->m_buffer) {}
+
+  inline BufferView::BufferView(const std::shared_ptr<BufferView>& buffer)
+    : BufferView(buffer.get()) {}
+
+  inline BufferView::BufferView(const std::unique_ptr<BufferView>& buffer)
+    : BufferView(buffer.get()) {}
 
   inline bool BufferView::IsEmpty() const {
     return m_buffer->IsEmpty();

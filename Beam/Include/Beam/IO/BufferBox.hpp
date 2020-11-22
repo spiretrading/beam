@@ -14,6 +14,12 @@ namespace IO {
         !std::is_base_of_v<BufferBox, std::decay_t<Buffer>>>>
       explicit BufferBox(Buffer&& buffer);
 
+      explicit BufferBox(BufferBox* buffer);
+
+      explicit BufferBox(const std::shared_ptr<BufferBox>& buffer);
+
+      explicit BufferBox(const std::unique_ptr<BufferBox>& buffer);
+
       bool IsEmpty() const;
 
       void Grow(std::size_t size);
@@ -96,6 +102,15 @@ namespace IO {
   BufferBox::BufferBox(Buffer&& buffer)
     : m_buffer(std::make_unique<WrappedBuffer<std::decay_t<Buffer>>>(
         std::forward<Buffer>(buffer))) {}
+
+  inline BufferBox::BufferBox(BufferBox* buffer)
+    : m_buffer(buffer->m_buffer) {}
+
+  inline BufferBox::BufferBox(const std::shared_ptr<BufferBox>& buffer)
+    : BufferBox(buffer.get()) {}
+
+  inline BufferBox::BufferBox(const std::unique_ptr<BufferBox>& buffer)
+    : BufferBox(buffer.get()) {}
 
   inline bool BufferBox::IsEmpty() const {
     return m_buffer->IsEmpty();

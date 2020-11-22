@@ -21,10 +21,27 @@ using namespace Beam::Python;
 using namespace Beam::Codecs;
 using namespace pybind11;
 
+namespace {
+  auto encoderBox = std::unique_ptr<class_<EncoderBox>>();
+  auto decoderBox = std::unique_ptr<class_<DecoderBox>>();
+}
+
+BEAM_EXPORT_DLL class_<EncoderBox>& Beam::Python::GetExportedEncoderBox() {
+  return *encoderBox;
+}
+
+BEAM_EXPORT_DLL class_<DecoderBox>& Beam::Python::GetExportedDecoderBox() {
+  return *decoderBox;
+}
+
 void Beam::Python::ExportCodecs(module& module) {
   auto submodule = module.def_submodule("codecs");
   ExportCodedReader(submodule);
   ExportCodedWriter(submodule);
+  decoderBox = std::make_unique<class_<DecoderBox>>(
+    ExportDecoder<DecoderBox>(module, "Decoder"));
+  encoderBox = std::make_unique<class_<EncoderBox>>(
+    ExportEncoder<EncoderBox>(module, "Encoder"));
   ExportNullDecoder(submodule);
   ExportNullEncoder(submodule);
   ExportSizeDeclarativeDecoder(submodule);
@@ -51,12 +68,14 @@ void Beam::Python::ExportNullEncoder(module& module) {
 
 void Beam::Python::ExportSizeDeclarativeDecoder(module& module) {
   ExportDecoder<SizeDeclarativeDecoder<DecoderBox>>(module,
-    "SizeDeclarativeDecoder");
+    "SizeDeclarativeDecoder")
+    .def(init<DecoderBox>());
 }
 
 void Beam::Python::ExportSizeDeclarativeEncoder(module& module) {
   ExportEncoder<SizeDeclarativeEncoder<EncoderBox>>(module,
-    "SizeDeclarativeEncoder");
+    "SizeDeclarativeEncoder")
+    .def(init<EncoderBox>());
 }
 
 void Beam::Python::ExportZLibDecoder(module& module) {

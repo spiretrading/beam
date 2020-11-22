@@ -29,6 +29,8 @@ namespace Codecs {
       template<typename Encoder>
       EncoderBox(Encoder encoder);
 
+      EncoderBox(const EncoderBox&) = default;
+
       std::size_t Encode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
@@ -43,6 +45,8 @@ namespace Codecs {
       template<typename SourceBuffer, typename DestinationBuffer>
       std::size_t Encode(const SourceBuffer& source,
         Out<DestinationBuffer> destination);
+
+      EncoderBox& operator =(const EncoderBox&) = default;
 
     private:
       struct VirtualEncoder {
@@ -72,15 +76,12 @@ namespace Codecs {
         std::size_t Encode(const IO::BufferView& source,
           Out<IO::BufferBox> destination) override;
       };
-      std::unique_ptr<VirtualEncoder> m_encoder;
-
-      EncoderBox(const EncoderBox&) = delete;
-      EncoderBox& operator =(const EncoderBox&) = delete;
+      std::shared_ptr<VirtualEncoder> m_encoder;
   };
 
   template<typename T, typename... Args>
   EncoderBox::EncoderBox(std::in_place_type_t<T>, Args&&... args)
-    : m_encoder(std::make_unique<WrappedEncoder<T>>(
+    : m_encoder(std::make_shared<WrappedEncoder<T>>(
         std::forward<Args>(args)...)) {}
 
   template<typename Encoder>

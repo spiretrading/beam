@@ -29,6 +29,8 @@ namespace Codecs {
       template<typename Decoder>
       explicit DecoderBox(Decoder decoder);
 
+      DecoderBox(const DecoderBox&) = default;
+
       std::size_t Decode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
@@ -42,6 +44,8 @@ namespace Codecs {
 
       template<typename SourceBuffer, typename Buffer>
       std::size_t Decode(const SourceBuffer& source, Out<Buffer> destination);
+
+      DecoderBox& operator =(const DecoderBox&) = default;
 
     private:
       struct VirtualDecoder {
@@ -71,15 +75,12 @@ namespace Codecs {
         std::size_t Decode(const IO::BufferView& source,
           Out<IO::BufferBox> destination) override;
       };
-      std::unique_ptr<VirtualDecoder> m_decoder;
-
-      DecoderBox(const DecoderBox&) = delete;
-      DecoderBox& operator =(const DecoderBox&) = delete;
+      std::shared_ptr<VirtualDecoder> m_decoder;
   };
 
   template<typename T, typename... Args>
   DecoderBox::DecoderBox(std::in_place_type_t<T>, Args&&... args)
-    : m_decoder(std::make_unique<WrappedDecoder<T>>(
+    : m_decoder(std::make_shared<WrappedDecoder<T>>(
         std::forward<Args>(args)...)) {}
 
   template<typename Decoder>

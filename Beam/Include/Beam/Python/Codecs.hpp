@@ -1,10 +1,19 @@
 #ifndef BEAM_PYTHON_CODECS_HPP
 #define BEAM_PYTHON_CODECS_HPP
 #include <pybind11/pybind11.h>
+#include "Beam/Codecs/DecoderBox.hpp"
+#include "Beam/Codecs/EncoderBox.hpp"
 #include "Beam/IO/BufferBox.hpp"
 #include "Beam/IO/BufferView.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Python {
+
+  /** Returns the exported EncoderBox. */
+  BEAM_EXPORT_DLL pybind11::class_<Codecs::EncoderBox>& GetExportedEncoderBox();
+
+  /** Returns the exported DecoderBox. */
+  BEAM_EXPORT_DLL pybind11::class_<Codecs::DecoderBox>& GetExportedDecoderBox();
 
   /**
    * Exports the Codecs namespace.
@@ -80,6 +89,10 @@ namespace Beam::Python {
       .def("decode", static_cast<std::size_t (Decoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
         &Decoder::Decode<IO::BufferView, IO::BufferBox>));
+    if constexpr(!std::is_same_v<Decoder, Codecs::DecoderBox>) {
+      pybind11::implicitly_convertible<Decoder, Codecs::DecoderBox>();
+      GetExportedDecoderBox().def(pybind11::init<Decoder>());
+    }
     return decoder;
   }
 
@@ -103,6 +116,10 @@ namespace Beam::Python {
       .def("encode", static_cast<std::size_t (Encoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
         &Encoder::Encode<IO::BufferView, IO::BufferBox>));
+    if constexpr(!std::is_same_v<Encoder, Codecs::EncoderBox>) {
+      pybind11::implicitly_convertible<Encoder, Codecs::EncoderBox>();
+      GetExportedEncoderBox().def(pybind11::init<Encoder>());
+    }
     return encoder;
   }
 }

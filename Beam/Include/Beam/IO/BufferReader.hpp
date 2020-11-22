@@ -1,5 +1,5 @@
-#ifndef BEAM_BUFFERREADER_HPP
-#define BEAM_BUFFERREADER_HPP
+#ifndef BEAM_BUFFER_READER_HPP
+#define BEAM_BUFFER_READER_HPP
 #include <cstring>
 #include <type_traits>
 #include <boost/throw_exception.hpp>

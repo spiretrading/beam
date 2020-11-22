@@ -153,7 +153,7 @@ namespace Details {
   };
 
   template<typename DS>
-  AsyncDataStore(DS&& dataStore) -> AsyncDataStore<std::remove_reference_t<DS>>;
+  AsyncDataStore(DS&& dataStore) -> AsyncDataStore<std::decay_t<DS>>;
 
   template<typename D, typename E>
   template<typename DS>

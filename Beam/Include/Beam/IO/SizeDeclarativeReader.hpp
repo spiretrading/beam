@@ -2,6 +2,7 @@
 #define BEAM_SIZE_DECLARATIVE_READER_HPP
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -49,6 +50,9 @@ namespace IO {
       SizeDeclarativeReader& operator =(const SizeDeclarativeReader&) = delete;
       void ReadSize();
   };
+
+  template<typename R>
+  SizeDeclarativeReader(R&&) -> SizeDeclarativeReader<std::decay_t<R>>;
 
   template<typename R>
   template<typename RF>

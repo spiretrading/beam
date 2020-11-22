@@ -1,6 +1,7 @@
 #ifndef BEAM_QUEUED_READER_HPP
 #define BEAM_QUEUED_READER_HPP
 #include <atomic>
+#include <type_traits>
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
@@ -49,6 +50,9 @@ namespace IO {
       void LaunchReadLoop();
       void ReadLoop();
   };
+
+  template<typename R>
+  QueuedReader(R&&) -> QueuedReader<std::decay_t<R>>;
 
   template<typename B, typename R>
   template<typename RF>

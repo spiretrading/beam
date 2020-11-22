@@ -1,5 +1,6 @@
 #ifndef BEAM_SIZE_DECLARATIVE_WRITER_HPP
 #define BEAM_SIZE_DECLARATIVE_WRITER_HPP
+#include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -38,6 +39,9 @@ namespace IO {
       SizeDeclarativeWriter(const SizeDeclarativeWriter&) = delete;
       SizeDeclarativeWriter& operator =(const SizeDeclarativeWriter&) = delete;
   };
+
+  template<typename W>
+  SizeDeclarativeWriter(W&&) -> SizeDeclarativeWriter<std::decay_t<W>>;
 
   template<typename W>
   template<typename WF>

@@ -1,5 +1,6 @@
 #ifndef BEAM_BASIC_CHANNEL_HPP
 #define BEAM_BASIC_CHANNEL_HPP
+#include <type_traits>
 #include <utility>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -58,6 +59,10 @@ namespace IO {
       BasicChannel(const BasicChannel&) = delete;
       BasicChannel& operator =(const BasicChannel&) = delete;
   };
+
+  template<typename I, typename C, typename R, typename W>
+  BasicChannel(I&&, C&&, R&&, W&&) -> BasicChannel<std::decay_t<I>,
+    std::decay_t<C>, std::decay_t<R>, std::decay_t<W>>;
 
   template<typename I, typename C, typename R, typename W>
   template<typename IF, typename CF, typename RF, typename WF>

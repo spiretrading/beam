@@ -1,6 +1,7 @@
 #ifndef BEAM_BASIC_OSTREAM_WRITER_HPP
 #define BEAM_BASIC_OSTREAM_WRITER_HPP
 #include <ostream>
+#include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -39,6 +40,9 @@ namespace IO {
       BasicOStreamWriter(const BasicOStreamWriter&) = delete;
       BasicOStreamWriter& operator =(const BasicOStreamWriter&) = delete;
   };
+
+  template<typename S>
+  BasicOStreamWriter(S&&) -> BasicOStreamWriter<std::remove_reference_t<S>>;
 
   template<typename S>
   template<typename SF>

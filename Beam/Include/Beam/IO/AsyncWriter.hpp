@@ -1,5 +1,6 @@
 #ifndef BEAM_ASYNC_WRITER_HPP
 #define BEAM_ASYNC_WRITER_HPP
+#include <type_traits>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
@@ -42,6 +43,9 @@ namespace IO {
       std::exception_ptr m_exception;
       RoutineTaskQueue m_tasks;
   };
+
+  template<typename W>
+  AsyncWriter(W&&) -> AsyncWriter<std::decay_t<W>>;
 
   template<typename W>
   template<typename WF>

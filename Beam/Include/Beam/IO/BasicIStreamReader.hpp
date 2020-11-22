@@ -2,6 +2,7 @@
 #define BEAM_BASIC_ISTREAM_READER_HPP
 #include <algorithm>
 #include <istream>
+#include <type_traits>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -50,6 +51,9 @@ namespace IO {
       BasicIStreamReader(const BasicIStreamReader&) = delete;
       BasicIStreamReader& operator =(const BasicIStreamReader&) = delete;
   };
+
+  template<typename S>
+  BasicIStreamReader(S&&) -> BasicIStreamReader<std::decay_t<S>>;
 
   template<typename S>
   template<typename SF>

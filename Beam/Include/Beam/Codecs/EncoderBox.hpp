@@ -35,8 +35,6 @@ namespace Codecs {
 
       explicit EncoderBox(const std::unique_ptr<EncoderBox>& encoder);
 
-      EncoderBox(const EncoderBox&) = default;
-
       std::size_t Encode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
@@ -51,8 +49,6 @@ namespace Codecs {
       template<typename SourceBuffer, typename DestinationBuffer>
       std::size_t Encode(const SourceBuffer& source,
         Out<DestinationBuffer> destination);
-
-      EncoderBox& operator =(const EncoderBox&) = default;
 
     private:
       struct VirtualEncoder {

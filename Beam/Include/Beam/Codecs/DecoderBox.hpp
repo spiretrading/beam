@@ -35,8 +35,6 @@ namespace Codecs {
 
       explicit DecoderBox(const std::unique_ptr<DecoderBox>& decoder);
 
-      DecoderBox(const DecoderBox&) = default;
-
       std::size_t Decode(const void* source, std::size_t sourceSize,
         void* destination, std::size_t destinationSize);
 
@@ -50,8 +48,6 @@ namespace Codecs {
 
       template<typename SourceBuffer, typename Buffer>
       std::size_t Decode(const SourceBuffer& source, Out<Buffer> destination);
-
-      DecoderBox& operator =(const DecoderBox&) = default;
 
     private:
       struct VirtualDecoder {

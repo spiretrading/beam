@@ -13,9 +13,13 @@ namespace Beam::IO {
   template<typename B> class BufferSlice;
   class BufferView;
   template<typename I, typename C, typename R, typename W> struct Channel;
+  class ChannelBox;
   struct ChannelIdentifier;
+  class ChannelIdentifierBox;
   template<typename S, typename C> class ChannelAdapterServerConnection;
   class ConnectException;
+  struct Connection;
+  class ConnectionBox;
   class EndOfFileException;
   class IOException;
   template<typename B> class LocalClientChannel;
@@ -34,7 +38,9 @@ namespace Beam::IO {
   template<typename B> class PipedWriter;
   template<typename B, typename R> class QueuedReader;
   template<typename B> struct Reader;
+  class ReaderBox;
   template<typename C> struct ServerConnection;
+  class ServerConnectionBox;
   class SharedBuffer;
   template<typename R> class SizeDeclarativeReader;
   template<typename W> class SizeDeclarativeWriter;
@@ -54,6 +60,7 @@ namespace Beam::IO {
   template<typename C> class WrapperServerConnection;
   template<typename W> class WrapperWriter;
   template<typename B> struct Writer;
+  class WriterBox;
 }
 
 #endif

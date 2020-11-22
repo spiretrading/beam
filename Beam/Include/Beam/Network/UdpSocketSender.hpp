@@ -68,10 +68,6 @@ namespace Beam::Network {
       m_socket->m_socket.async_send_to(boost::asio::buffer(data, size),
           destinationEndpoint, [&] (const auto& error, auto writeSize) {
         if(error) {
-          if(Details::IsEndOfFile(error)) {
-            writeResult.GetEval().SetException(IO::EndOfFileException());
-            return;
-          }
           writeResult.GetEval().SetException(SocketException(error.value(),
             error.message()));
           return;
@@ -84,7 +80,7 @@ namespace Beam::Network {
       m_socket->EndWriteOperation();
     } catch(const std::exception&) {
       m_socket->EndWriteOperation();
-      BOOST_RETHROW;
+      std::throw_with_nested(IO::EndOfFileException());
     }
   }
 }

@@ -45,12 +45,8 @@ namespace Network {
           boost::asio::buffer(data, size),
           [&] (const auto& error, auto writeSize) {
             if(error) {
-              if(Details::IsEndOfFile(error)) {
-                writeResult.GetEval().SetException(IO::EndOfFileException());
-              } else {
-                writeResult.GetEval().SetException(
-                  SocketException{error.value(), error.message()});
-              }
+              writeResult.GetEval().SetException(SocketException(
+                error.value(), error.message()));
             } else {
               writeResult.GetEval().SetResult();
             }
@@ -61,7 +57,7 @@ namespace Network {
       m_socket->EndWriteOperation();
     } catch(const std::exception&) {
       m_socket->EndWriteOperation();
-      BOOST_RETHROW;
+      std::throw_with_nested(IO::EndOfFileException());
     }
   }
 

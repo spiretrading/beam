@@ -74,8 +74,7 @@ namespace Beam::Network {
   /** Parses an IpAddress. */
   inline auto IpAddressParser() {
     return Parsers::Convert(Parsers::PlusParser(Parsers::Not(':')) >> ':' >>
-      Parsers::int_p,
-      [] (const auto& source) {
+      Parsers::int_p, [] (const auto& source) {
         return IpAddress(std::get<0>(source),
           static_cast<unsigned short>(std::get<1>(source)));
       });

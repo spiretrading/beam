@@ -4,6 +4,7 @@
 #include <boost/asio/ip/multicast.hpp>
 #include <boost/asio/ip/unicast.hpp>
 #include <boost/optional/optional.hpp>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/MulticastSocketOptions.hpp"
@@ -181,9 +182,12 @@ namespace Beam::Network {
       }
       m_receiver.emplace(options, m_socket);
       m_sender.emplace(options, m_socket);
-    } catch(const std::exception&) {
+    } catch(const IO::ConnectException&) {
       Close();
       BOOST_RETHROW;
+    } catch(const std::exception&) {
+      Close();
+      std::throw_with_nested(IO::ConnectException("Unable to open socket."));
     }
     m_socket->m_isOpen = true;
   }

@@ -138,10 +138,6 @@ namespace Beam::Network {
           boost::asio::buffer(destination, size), senderEndpoint,
         [&] (const auto& error, auto readSize) {
           if(error) {
-            if(Details::IsEndOfFile(error)) {
-              readResult.GetEval().SetException(IO::EndOfFileException());
-              return;
-            }
             readResult.GetEval().SetException(SocketException(error.value(),
               error.message()));
             return;
@@ -169,7 +165,7 @@ namespace Beam::Network {
       return result;
     } catch(const std::exception&) {
       m_socket->EndReadOperation();
-      BOOST_RETHROW;
+      std::throw_with_nested(IO::EndOfFileException());
     }
   }
 

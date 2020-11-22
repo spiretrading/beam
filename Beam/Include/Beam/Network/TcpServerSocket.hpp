@@ -2,6 +2,7 @@
 #define BEAM_TCP_SERVER_SOCKET_HPP
 #include <string>
 #include <boost/optional/optional.hpp>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/ServerConnection.hpp"
@@ -81,16 +82,16 @@ namespace Network {
         BOOST_THROW_EXCEPTION(SocketException(error.value(), error.message()));
       }
       m_acceptor.emplace(*m_ioService, *endpointIterator);
-    } catch(const SocketException&) {
-      Close();
-      BOOST_RETHROW;
     } catch(const boost::system::system_error& e) {
       Close();
-      BOOST_THROW_EXCEPTION(
-        SocketException(e.code().value(), e.code().message()));
-    } catch(const std::exception& e) {
+      try {
+        throw SocketException(e.code().value(), e.code().message());
+      } catch(const std::exception&) {
+        std::throw_with_nested(IO::ConnectException("Unable to open server."));
+      }
+    } catch(const std::exception&) {
       Close();
-      BOOST_THROW_EXCEPTION(IO::ConnectException(e.what()));
+      std::throw_with_nested(IO::ConnectException("Unable to open server."));
     }
   }
 
@@ -106,12 +107,8 @@ namespace Network {
     m_acceptor->async_accept(channel->m_socket->m_socket,
       [&] (const auto& error) {
         if(error) {
-          if(Details::IsEndOfFile(error)) {
-            acceptEval.SetException(IO::EndOfFileException(error.message()));
-          } else {
-            acceptEval.SetException(SocketException(error.value(),
-              error.message()));
-          }
+          acceptEval.SetException(SocketException(error.value(),
+            error.message()));
           return;
         }
         try {
@@ -125,7 +122,11 @@ namespace Network {
           acceptEval.SetException(std::current_exception());
         }
       });
-    acceptAsync.Get();
+    try {
+      acceptAsync.Get();
+    } catch(const std::exception&) {
+      std::throw_with_nested(IO::EndOfFileException("Failed to accept."));
+    }
     return channel;
   }
 

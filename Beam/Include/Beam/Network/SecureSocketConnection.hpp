@@ -107,7 +107,8 @@ namespace Network {
         auto end = boost::asio::ip::tcp::resolver::iterator();
         auto endpointIterator = resolver.resolve(query, errorCode);
         if(errorCode) {
-          BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+          BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+            errorCode.message()));
         }
         errorCode = boost::asio::error::host_not_found;
         while(errorCode && endpointIterator != end) {
@@ -118,16 +119,19 @@ namespace Network {
               boost::asio::ip::address::from_string(interface->GetHost(),
               errorCode), interface->GetPort());
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+                errorCode.message()));
             }
             m_socket->m_socket.lowest_layer().open(boost::asio::ip::tcp::v4(),
               errorCode);
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+                errorCode.message()));
             }
             m_socket->m_socket.lowest_layer().bind(localEndpoint, errorCode);
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+                errorCode.message()));
             }
           }
           m_socket->m_socket.lowest_layer().connect(*endpointIterator,
@@ -139,27 +143,34 @@ namespace Network {
         }
       }
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+          errorCode.message()));
       }
       auto bufferSize = boost::asio::socket_base::send_buffer_size(
         options.m_writeBufferSize);
       m_socket->m_socket.lowest_layer().set_option(bufferSize, errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+          errorCode.message()));
       }
       auto noDelay = boost::asio::ip::tcp::no_delay(options.m_noDelayEnabled);
       m_socket->m_socket.lowest_layer().set_option(noDelay, errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+          errorCode.message()));
       }
       m_socket->m_socket.handshake(boost::asio::ssl::stream_base::client,
         errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(errorCode.message()));
+        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
+          errorCode.message()));
       }
-    } catch(const std::exception&) {
+    } catch(const IO::ConnectException&) {
       Close();
       BOOST_RETHROW;
+    } catch(const std::exception&) {
+      Close();
+      std::throw_with_nested(IO::ConnectException("Unable to open socket."));
     }
     m_socket->m_isOpen = true;
   }

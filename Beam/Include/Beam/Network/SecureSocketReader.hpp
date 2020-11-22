@@ -63,13 +63,8 @@ namespace Network {
       m_socket->m_socket.async_read_some(boost::asio::buffer(destination, size),
         [&] (const auto& error, auto readSize) {
           if(error) {
-            if(Details::IsEndOfFile(error)) {
-              readResult.GetEval().SetException(
-                IO::EndOfFileException(error.message()));
-            } else {
-              readResult.GetEval().SetException(SocketException(error.value(),
-                error.message()));
-            }
+            readResult.GetEval().SetException(SocketException(error.value(),
+              error.message()));
           } else {
             readResult.GetEval().SetResult(readSize);
           }
@@ -81,7 +76,7 @@ namespace Network {
       return result;
     } catch(const std::exception&) {
       m_socket->EndReadOperation();
-      BOOST_RETHROW;
+      std::throw_with_nested(IO::EndOfFileException());
     }
   }
 
@@ -101,9 +96,9 @@ namespace Network {
     : m_socket(std::move(socket)) {}
 }
 
-  template<typename BufferType>
-  struct ImplementsConcept<Network::SecureSocketReader,
-    IO::Reader<BufferType>> : std::true_type {};
+  template<typename B>
+  struct ImplementsConcept<Network::SecureSocketReader, IO::Reader<B>> :
+    std::true_type {};
 }
 
 #endif

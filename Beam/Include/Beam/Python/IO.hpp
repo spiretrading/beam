@@ -142,10 +142,12 @@ namespace Beam::Python {
   auto ExportReader(pybind11::module& module, const std::string& name) {
     auto reader = pybind11::class_<Reader>(module, name.c_str())
       .def("is_data_available", &Reader::IsDataAvailable)
-      .def("read", static_cast<std::size_t (Reader::*)(Out<IO::BufferBox>)>(
-        &Reader::Read))
-      .def("read", static_cast<std::size_t (Reader::*)(
-        Out<IO::BufferBox>, std::size_t)>(&Reader::Read));
+      .def("read", [] (Reader& self, IO::BufferBox& buffer) {
+        return self.Read(Store(buffer));
+      })
+      .def("read", [] (Reader& self, IO::BufferBox& buffer, std::size_t size) {
+        return self.Read(Store(buffer), size);
+      });
     if constexpr(!std::is_same_v<Reader, IO::ReaderBox>) {
       pybind11::implicitly_convertible<Reader, IO::ReaderBox>();
 //      GetExportedReaderBox().def(pybind11::init<Reader>());

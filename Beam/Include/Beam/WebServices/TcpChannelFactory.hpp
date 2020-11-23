@@ -2,7 +2,7 @@
 #define BEAM_WEB_SERVICES_TCP_CHANNEL_FACTORY_HPP
 #include <boost/optional/optional.hpp>
 #include <memory>
-#include "Beam/IO/VirtualChannel.hpp"
+#include "Beam/IO/ChannelBox.hpp"
 #include "Beam/Network/SecureSocketChannel.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
@@ -31,7 +31,7 @@ namespace Beam::WebServices {
        * Returns a new Channel.
        * @param uri The URI that the Channel should connect to.
        */
-      std::unique_ptr<IO::VirtualChannel> operator ()(const Uri& uri) const;
+      std::unique_ptr<IO::ChannelBox> operator ()(const Uri& uri) const;
 
     private:
       boost::optional<Network::IpAddress> m_interface;
@@ -41,8 +41,8 @@ namespace Beam::WebServices {
     Network::IpAddress interface)
     : m_interface(std::move(interface)) {}
 
-  inline std::unique_ptr<IO::VirtualChannel>
-      TcpSocketChannelFactory::operator ()(const Uri& url) const {
+  inline std::unique_ptr<IO::ChannelBox> TcpSocketChannelFactory::operator ()(
+      const Uri& url) const {
     auto address = Network::IpAddress(url.GetHostname(), url.GetPort());
     if(url.GetScheme() == "https" || url.GetScheme() == "wss") {
       auto baseSocket = [&] {
@@ -53,7 +53,7 @@ namespace Beam::WebServices {
         return std::make_unique<Network::SecureSocketChannel>(
           std::move(address));
       }();
-      return IO::MakeVirtualChannel(std::move(baseSocket));
+      return std::make_unique<IO::ChannelBox>(std::move(baseSocket));
     } else {
       auto baseSocket = [&] {
         if(m_interface) {
@@ -62,7 +62,7 @@ namespace Beam::WebServices {
         }
         return std::make_unique<Network::TcpSocketChannel>(std::move(address));
       }();
-      return IO::MakeVirtualChannel(std::move(baseSocket));
+      return std::make_unique<IO::ChannelBox>(std::move(baseSocket));
     }
   }
 }

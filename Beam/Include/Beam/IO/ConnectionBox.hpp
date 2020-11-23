@@ -70,8 +70,7 @@ namespace IO {
 
   template<typename Connection>
   ConnectionBox::ConnectionBox(Connection connection)
-    : ConnectionBox(std::in_place_type<Connection>,
-        std::move<Connection>(connection)) {}
+    : ConnectionBox(std::in_place_type<Connection>, std::move(connection)) {}
 
   inline ConnectionBox::ConnectionBox(ConnectionBox* connection)
     : ConnectionBox(*connection) {}

@@ -2,9 +2,6 @@
 #include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
-#include "Beam/IO/VirtualChannel.hpp"
-#include "Beam/IO/VirtualServerConnection.hpp"
-#include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/Network/MulticastSocketChannel.hpp"
 #include "Beam/Network/SecureSocketChannel.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
@@ -72,8 +69,8 @@ void Beam::Python::ExportMulticastSocket(pybind11::module& module) {
 }
 
 void Beam::Python::ExportMulticastSocketChannel(pybind11::module& module) {
-  class_<ToPythonChannel<MulticastSocketChannel>, VirtualChannel>(module,
-      "MulticastSocketChannel")
+  ExportChannel<ToPythonChannel<MulticastSocketChannel>>(module,
+    "MulticastSocketChannel")
     .def(init(
       [] (const IpAddress& group) {
         auto channel = std::make_unique<MulticastSocketChannel>(group);
@@ -100,8 +97,8 @@ void Beam::Python::ExportMulticastSocketChannel(pybind11::module& module) {
 }
 
 void Beam::Python::ExportMulticastSocketConnection(pybind11::module& module) {
-  class_<ToPythonConnection<MulticastSocketConnection>, VirtualConnection>(
-    module, "MulticastSocketConnection");
+  ExportConnection<ToPythonConnection<MulticastSocketConnection>>(module,
+    "MulticastSocketConnection");
 }
 
 void Beam::Python::ExportMulticastSocketOptions(pybind11::module& module) {
@@ -112,12 +109,12 @@ void Beam::Python::ExportMulticastSocketOptions(pybind11::module& module) {
 }
 
 void Beam::Python::ExportMulticastSocketReader(pybind11::module& module) {
-  class_<ToPythonReader<MulticastSocketReader>, VirtualReader>(module,
+  ExportReader<ToPythonReader<MulticastSocketReader>>(module,
     "MulticastSocketReader");
 }
 
 void Beam::Python::ExportMulticastSocketWriter(pybind11::module& module) {
-  class_<ToPythonWriter<MulticastSocketWriter>, VirtualWriter>(module,
+  ExportWriter<ToPythonWriter<MulticastSocketWriter>>(module,
     "MulticastSocketWriter");
 }
 
@@ -156,8 +153,8 @@ void Beam::Python::ExportNetwork(pybind11::module& module) {
 }
 
 void Beam::Python::ExportSecureSocketChannel(pybind11::module& module) {
-  class_<ToPythonChannel<SecureSocketChannel>, VirtualChannel>(module,
-      "SecureSocketChannel")
+  ExportChannel<ToPythonChannel<SecureSocketChannel>>(module,
+    "SecureSocketChannel")
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<SecureSocketChannel>(address);
@@ -209,7 +206,7 @@ void Beam::Python::ExportSecureSocketChannel(pybind11::module& module) {
 }
 
 void Beam::Python::ExportSecureSocketConnection(pybind11::module& module) {
-  class_<ToPythonConnection<SecureSocketConnection>, VirtualConnection>(module,
+  ExportConnection<ToPythonConnection<SecureSocketConnection>>(module,
     "SecureSocketConnection");
 }
 
@@ -220,37 +217,25 @@ void Beam::Python::ExportSecureSocketOptions(pybind11::module& module) {
 }
 
 void Beam::Python::ExportSecureSocketReader(pybind11::module& module) {
-  class_<ToPythonReader<SecureSocketReader>, VirtualReader>(module,
+  ExportReader<ToPythonReader<SecureSocketReader>>(module,
     "SecureSocketReader");
 }
 
 void Beam::Python::ExportSecureSocketWriter(pybind11::module& module) {
-  class_<ToPythonWriter<SecureSocketWriter>, VirtualWriter>(module,
+  ExportWriter<ToPythonWriter<SecureSocketWriter>>(module,
     "SecureSocketWriter");
 }
 
 void Beam::Python::ExportSocketIdentifier(pybind11::module& module) {
-  class_<WrapperChannelIdentifier<SocketIdentifier>, VirtualChannelIdentifier>(
-      module, "SocketIdentifier")
-    .def(init(
-      [] {
-        return new WrapperChannelIdentifier<SocketIdentifier>(
-          SocketIdentifier());
-      }))
-    .def(init(
-      [] (const IpAddress& address) {
-        return new WrapperChannelIdentifier<SocketIdentifier>(
-          SocketIdentifier(address));
-      }))
-    .def_property_readonly("address",
-      [] (WrapperChannelIdentifier<SocketIdentifier>& self) {
-        return self.GetBase().GetAddress();
-      });
+  ExportChannelIdentifier<SocketIdentifier>(module, "SocketIdentifier")
+    .def(init<>())
+    .def(init<const IpAddress&>())
+    .def_property_readonly("address", &SocketIdentifier::GetAddress);
 }
 
 void Beam::Python::ExportTcpServerSocket(pybind11::module& module) {
-  class_<ToPythonServerConnection<TcpServerSocket>, VirtualServerConnection>(
-      module, "TcpServerSocket")
+  ExportServerConnection<ToPythonServerConnection<TcpServerSocket>>(module,
+    "TcpServerSocket")
     .def(init(
       [] {
         return MakeToPythonServerConnection(
@@ -274,8 +259,7 @@ void Beam::Python::ExportTcpServerSocket(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
-  class_<ToPythonChannel<TcpSocketChannel>, VirtualChannel>(module,
-      "TcpSocketChannel")
+  ExportChannel<ToPythonChannel<TcpSocketChannel>>(module, "TcpSocketChannel")
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<TcpSocketChannel>(address);
@@ -324,7 +308,7 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTcpSocketConnection(pybind11::module& module) {
-  class_<ToPythonConnection<TcpSocketConnection>, VirtualConnection>(module,
+  ExportConnection<ToPythonConnection<TcpSocketConnection>>(module,
     "TcpSocketConnection");
 }
 
@@ -337,13 +321,11 @@ void Beam::Python::ExportTcpSocketOptions(pybind11::module& module) {
 }
 
 void Beam::Python::ExportTcpSocketReader(pybind11::module& module) {
-  class_<ToPythonReader<TcpSocketReader>, VirtualReader>(module,
-    "TcpSocketReader");
+  ExportReader<ToPythonReader<TcpSocketReader>>(module, "TcpSocketReader");
 }
 
 void Beam::Python::ExportTcpSocketWriter(pybind11::module& module) {
-  class_<ToPythonWriter<TcpSocketWriter>, VirtualWriter>(module,
-    "TcpSocketWriter");
+  ExportWriter<ToPythonWriter<TcpSocketWriter>>(module, "TcpSocketWriter");
 }
 
 void Beam::Python::ExportUdpSocket(pybind11::module& module) {
@@ -367,8 +349,7 @@ void Beam::Python::ExportUdpSocket(pybind11::module& module) {
 }
 
 void Beam::Python::ExportUdpSocketChannel(pybind11::module& module) {
-  class_<ToPythonChannel<UdpSocketChannel>, VirtualChannel>(module,
-      "UdpSocketChannel")
+  ExportChannel<ToPythonChannel<UdpSocketChannel>>(module, "UdpSocketChannel")
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<UdpSocketChannel>(address);
@@ -394,7 +375,7 @@ void Beam::Python::ExportUdpSocketChannel(pybind11::module& module) {
 }
 
 void Beam::Python::ExportUdpSocketConnection(pybind11::module& module) {
-  class_<ToPythonConnection<UdpSocketConnection>, VirtualConnection>(module,
+  ExportConnection<ToPythonConnection<UdpSocketConnection>>(module,
     "UdpSocketConnection");
 }
 
@@ -412,8 +393,7 @@ void Beam::Python::ExportUdpSocketOptions(pybind11::module& module) {
 }
 
 void Beam::Python::ExportUdpSocketReader(pybind11::module& module) {
-  class_<ToPythonReader<UdpSocketReader>, VirtualReader>(module,
-    "UdpSocketReader");
+  ExportReader<ToPythonReader<UdpSocketReader>>(module, "UdpSocketReader");
 }
 
 void Beam::Python::ExportUdpSocketReceiver(pybind11::module& module) {
@@ -445,6 +425,5 @@ void Beam::Python::ExportUdpSocketSender(pybind11::module& module) {
 }
 
 void Beam::Python::ExportUdpSocketWriter(pybind11::module& module) {
-  class_<ToPythonWriter<UdpSocketWriter>, VirtualWriter>(module,
-    "UdpSocketWriter");
+  ExportWriter<ToPythonWriter<UdpSocketWriter>>(module, "UdpSocketWriter");
 }

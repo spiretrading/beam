@@ -8,6 +8,7 @@
 #include "Beam/IO/ConnectionBox.hpp"
 #include "Beam/IO/ReaderBox.hpp"
 #include "Beam/IO/WriterBox.hpp"
+#include "Beam/Pointers/Dereference.hpp"
 
 namespace Beam {
 namespace IO {
@@ -60,10 +61,14 @@ namespace IO {
   template<typename T, typename... Args>
   ChannelBox::ChannelBox(std::in_place_type_t<T>, Args&&... args)
     : m_channel(std::make_shared<T>(std::forward<Args>(args)...)),
-      m_identifier(&std::static_pointer_cast<T>(m_channel)->GetIdentifier()),
-      m_connection(&std::static_pointer_cast<T>(m_channel)->GetConnection()),
-      m_reader(&std::static_pointer_cast<T>(m_channel)->GetReader()),
-      m_writer(&std::static_pointer_cast<T>(m_channel)->GetWriter()) {}
+      m_identifier(&FullyDereference(std::static_pointer_cast<T>(
+        m_channel)).GetIdentifier()),
+      m_connection(&FullyDereference(std::static_pointer_cast<T>(
+        m_channel)).GetConnection()),
+      m_reader(&FullyDereference(std::static_pointer_cast<T>(
+        m_channel)).GetReader()),
+      m_writer(&FullyDereference(std::static_pointer_cast<T>(
+        m_channel)).GetWriter()) {}
 
   template<typename Channel>
   ChannelBox::ChannelBox(Channel channel)

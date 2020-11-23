@@ -1,6 +1,6 @@
 #ifndef BEAM_TO_PYTHON_WRITER_HPP
 #define BEAM_TO_PYTHON_WRITER_HPP
-#include "Beam/IO/VirtualWriter.hpp"
+#include "Beam/IO/Writer.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::IO {
@@ -10,7 +10,7 @@ namespace Beam::IO {
    * @param <W> The type of Writer to wrap.
    */
   template<typename W>
-  class ToPythonWriter final : public VirtualWriter {
+  class ToPythonWriter {
     public:
 
       /** The type of Writer to wrap. */
@@ -22,11 +22,11 @@ namespace Beam::IO {
        */
       ToPythonWriter(std::unique_ptr<Writer> writer);
 
-      ~ToPythonWriter() override;
+      ~ToPythonWriter();
 
-      void Write(const void* data, std::size_t size) override;
+      void Write(const void* data, std::size_t size);
 
-      void Write(const BufferView& data) override;
+      void Write(const BufferView& data);
 
     private:
       std::unique_ptr<Writer> m_writer;

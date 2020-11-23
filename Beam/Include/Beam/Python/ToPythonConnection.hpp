@@ -1,7 +1,7 @@
 #ifndef BEAM_TO_PYTHON_CONNECTION_HPP
 #define BEAM_TO_PYTHON_CONNECTION_HPP
+#include "Beam/IO/Connection.hpp"
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/IO/VirtualConnection.hpp"
 
 namespace Beam::IO {
 
@@ -10,7 +10,7 @@ namespace Beam::IO {
    * @param <C> The type of Connection to wrap.
    */
   template<typename C>
-  class ToPythonConnection : public VirtualConnection {
+  class ToPythonConnection {
     public:
 
       /** The type of Connection to wrap. */
@@ -22,9 +22,9 @@ namespace Beam::IO {
        */
       ToPythonConnection(std::unique_ptr<Connection> connection);
 
-      ~ToPythonConnection() override;
+      ~ToPythonConnection();
 
-      void Close() override;
+      void Close();
 
     private:
       std::unique_ptr<Connection> m_connection;

@@ -1,7 +1,7 @@
 #ifndef BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
 #define BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
+#include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/IO/VirtualServerConnection.hpp"
 
 namespace Beam::IO {
 
@@ -10,11 +10,12 @@ namespace Beam::IO {
    * @param <C> The type of ServerConnection to wrap.
    */
   template<typename C>
-  class ToPythonServerConnection final : public VirtualServerConnection {
+  class ToPythonServerConnection {
     public:
 
       /** The type of ServerConnection to wrap. */
       using ServerConnection = C;
+      using Channel = ChannelBox;
 
       /**
        * Constructs a ToPythonServerConnection.
@@ -22,11 +23,11 @@ namespace Beam::IO {
        */
       ToPythonServerConnection(std::unique_ptr<ServerConnection> connection);
 
-      ~ToPythonServerConnection() override;
+      ~ToPythonServerConnection();
 
-      std::unique_ptr<Channel> Accept() override;
+      std::unique_ptr<Channel> Accept();
 
-      void Close() override;
+      void Close();
 
     private:
       std::unique_ptr<ServerConnection> m_connection;
@@ -59,7 +60,7 @@ namespace Beam::IO {
   std::unique_ptr<typename ToPythonServerConnection<C>::Channel>
       ToPythonServerConnection<C>::Accept() {
     auto release = Python::GilRelease();
-    return MakeVirtualChannel(m_connection->Accept());
+    return std::make_unique<Channel>(m_connection->Accept());
   }
 
   template<typename C>

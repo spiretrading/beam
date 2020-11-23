@@ -78,7 +78,7 @@ namespace IO {
 
   template<typename Reader>
   ReaderBox::ReaderBox(Reader reader)
-    : ReaderBox(std::in_place_type<Reader>, std::move<Reader>(reader)) {}
+    : ReaderBox(std::in_place_type<Reader>, std::move(reader)) {}
 
   inline ReaderBox::ReaderBox(ReaderBox* reader)
     : ReaderBox(*reader) {}

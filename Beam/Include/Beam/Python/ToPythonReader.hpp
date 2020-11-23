@@ -1,6 +1,6 @@
 #ifndef BEAM_TO_PYTHON_READER_HPP
 #define BEAM_TO_PYTHON_READER_HPP
-#include "Beam/IO/VirtualReader.hpp"
+#include "Beam/IO/Reader.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::IO {
@@ -10,7 +10,7 @@ namespace Beam::IO {
    * @param <R> The type of Reader to wrap.
    */
   template<typename R>
-  class ToPythonReader final : public VirtualReader {
+  class ToPythonReader {
     public:
 
       /** The type of Reader to wrap. */
@@ -22,15 +22,15 @@ namespace Beam::IO {
        */
       ToPythonReader(std::unique_ptr<Reader> reader);
 
-      ~ToPythonReader() override;
+      ~ToPythonReader();
 
-      bool IsDataAvailable() const override;
+      bool IsDataAvailable() const;
 
-      std::size_t Read(Out<BufferBox> destination) override;
+      std::size_t Read(Out<BufferBox> destination);
 
-      std::size_t Read(char* destination, std::size_t size) override;
+      std::size_t Read(char* destination, std::size_t size);
 
-      std::size_t Read(Out<BufferBox> destination, std::size_t size) override;
+      std::size_t Read(Out<BufferBox> destination, std::size_t size);
 
     private:
       std::unique_ptr<Reader> m_reader;

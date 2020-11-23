@@ -68,7 +68,7 @@ namespace IO {
 
   template<typename Writer>
   WriterBox::WriterBox(Writer writer)
-    : WriterBox(std::in_place_type<Writer>, std::move<Writer>(writer)) {}
+    : WriterBox(std::in_place_type<Writer>, std::move(writer)) {}
 
   inline WriterBox::WriterBox(WriterBox* writer)
     : WriterBox(*writer) {}

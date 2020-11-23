@@ -1,7 +1,8 @@
 #ifndef BEAM_TO_PYTHON_CHANNEL_HPP
 #define BEAM_TO_PYTHON_CHANNEL_HPP
+#include <boost/optional/optional.hpp>
+#include "Beam/IO/Channel.hpp"
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/IO/VirtualChannel.hpp"
 
 namespace Beam::IO {
 
@@ -10,11 +11,15 @@ namespace Beam::IO {
    * @param <C> The type of Channel to wrap.
    */
   template<typename C>
-  class ToPythonChannel : public VirtualChannel {
+  class ToPythonChannel {
     public:
 
       /** The type of Channel to wrap. */
       using Channel = C;
+      using Identifier = ChannelIdentifierBox;
+      using Connection = ConnectionBox;
+      using Reader = ReaderBox;
+      using Writer = WriterBox;
 
       /**
        * Constructs a ToPythonChannel instance.
@@ -22,22 +27,22 @@ namespace Beam::IO {
        */
       ToPythonChannel(std::unique_ptr<Channel> channel);
 
-      ~ToPythonChannel() override;
+      ~ToPythonChannel();
 
-      const Identifier& GetIdentifier() const override;
+      const Identifier& GetIdentifier() const;
 
-      Connection& GetConnection() override;
+      Connection& GetConnection();
 
-      Reader& GetReader() override;
+      Reader& GetReader();
 
-      Writer& GetWriter() override;
+      Writer& GetWriter();
 
     private:
       std::unique_ptr<Channel> m_channel;
-      std::unique_ptr<Identifier> m_identifier;
-      std::unique_ptr<Connection> m_connection;
-      std::unique_ptr<Reader> m_reader;
-      std::unique_ptr<Writer> m_writer;
+      boost::optional<Identifier> m_identifier;
+      boost::optional<Connection> m_connection;
+      boost::optional<Reader> m_reader;
+      boost::optional<Writer> m_writer;
   };
 
   /**
@@ -52,12 +57,13 @@ namespace Beam::IO {
   template<typename C>
   ToPythonChannel<C>::ToPythonChannel(std::unique_ptr<Channel> channel)
     : m_channel(std::move(channel)),
-      m_identifier(MakeVirtualChannelIdentifier(&m_channel->GetIdentifier())),
-      m_connection(MakeToPythonConnection(MakeVirtualConnection(
+      m_identifier(&m_channel->GetIdentifier()),
+      m_connection(MakeToPythonConnection(std::make_unique<ConnectionBox>(
         &m_channel->GetConnection()))),
-      m_reader(MakeToPythonReader(MakeVirtualReader(&m_channel->GetReader()))),
-      m_writer(MakeToPythonWriter(
-        MakeVirtualWriter(&m_channel->GetWriter()))) {}
+      m_reader(MakeToPythonReader(std::make_unique<ReaderBox>(
+        &m_channel->GetReader()))),
+      m_writer(MakeToPythonWriter(std::make_unique<WriterBox>(
+        &m_channel->GetWriter()))) {}
 
   template<typename C>
   ToPythonChannel<C>::~ToPythonChannel() {

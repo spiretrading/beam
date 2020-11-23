@@ -5,7 +5,6 @@
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Optional.hpp"
-#include "Beam/IO/VirtualChannel.hpp"
 #include "Beam/WebServices/HttpClient.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpMethod.hpp"
@@ -43,7 +42,7 @@ void Beam::Python::ExportCookie(pybind11::module& module) {
 }
 
 void Beam::Python::ExportHttpClient(pybind11::module& module) {
-  using HttpClient = WebServices::HttpClient<std::unique_ptr<VirtualChannel>>;
+  using HttpClient = WebServices::HttpClient<std::unique_ptr<ChannelBox>>;
   class_<HttpClient>(module, "HttpClient")
     .def(init(
       [] {

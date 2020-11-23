@@ -81,13 +81,13 @@ namespace IO {
     : ReaderBox(std::in_place_type<Reader>, std::move<Reader>(reader)) {}
 
   inline ReaderBox::ReaderBox(ReaderBox* reader)
-    : m_reader(reader->m_reader) {}
+    : ReaderBox(*reader) {}
 
   inline ReaderBox::ReaderBox(const std::shared_ptr<ReaderBox>& reader)
-    : ReaderBox(reader.get()) {}
+    : ReaderBox(*reader) {}
 
   inline ReaderBox::ReaderBox(const std::unique_ptr<ReaderBox>& reader)
-    : ReaderBox(reader.get()) {}
+    : ReaderBox(*reader) {}
 
   inline bool ReaderBox::IsDataAvailable() const {
     return m_reader->IsDataAvailable();

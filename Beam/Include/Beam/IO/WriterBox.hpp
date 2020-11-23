@@ -71,13 +71,13 @@ namespace IO {
     : WriterBox(std::in_place_type<Writer>, std::move<Writer>(writer)) {}
 
   inline WriterBox::WriterBox(WriterBox* writer)
-    : m_writer(writer->m_writer) {}
+    : WriterBox(*writer) {}
 
   inline WriterBox::WriterBox(const std::shared_ptr<WriterBox>& writer)
-    : WriterBox(writer.get()) {}
+    : WriterBox(*writer) {}
 
   inline WriterBox::WriterBox(const std::unique_ptr<WriterBox>& writer)
-    : WriterBox(writer.get()) {}
+    : WriterBox(*writer) {}
 
   inline void WriterBox::Write(const void* data, std::size_t size) {
     m_writer->Write(data, size);

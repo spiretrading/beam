@@ -35,11 +35,22 @@ namespace IO {
 
       void Close();
 
-    private:
-      struct VirtualConnection {
-        virtual ~VirtualConnection() = default;
-        virtual void Close() = 0;
+    protected:
+
+      /** Specifies a pure virtual interface over a Connection. */
+      class VirtualConnection {
+        public:
+          virtual ~VirtualConnection() = default;
+          virtual void Close() = 0;
       };
+
+      /**
+       * Constructs a ConnectionBox using an existing VirtualConnection.
+       * @param connection The existing connection to box.
+       */
+      ConnectionBox(std::shared_ptr<VirtualConnection> connection);
+
+    private:
       template<typename C>
       struct WrappedConnection final : VirtualConnection {
         using Connection = C;
@@ -63,19 +74,23 @@ namespace IO {
         std::move<Connection>(connection)) {}
 
   inline ConnectionBox::ConnectionBox(ConnectionBox* connection)
-    : m_connection(connection->m_connection) {}
+    : ConnectionBox(*connection) {}
 
   inline ConnectionBox::ConnectionBox(
     const std::shared_ptr<ConnectionBox>& connection)
-    : ConnectionBox(connection.get()) {}
+    : ConnectionBox(*connection) {}
 
   inline ConnectionBox::ConnectionBox(
     const std::unique_ptr<ConnectionBox>& connection)
-    : ConnectionBox(connection.get()) {}
+    : ConnectionBox(*connection) {}
 
   inline void ConnectionBox::Close() {
     m_connection->Close();
   }
+
+  inline ConnectionBox::ConnectionBox(
+    std::shared_ptr<VirtualConnection> connection)
+    : m_connection(std::move(connection)) {}
 
   template<typename C>
   template<typename... Args>

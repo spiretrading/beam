@@ -104,13 +104,13 @@ namespace IO {
         std::forward<Buffer>(buffer))) {}
 
   inline BufferBox::BufferBox(BufferBox* buffer)
-    : m_buffer(buffer->m_buffer) {}
+    : BufferBox(*buffer) {}
 
   inline BufferBox::BufferBox(const std::shared_ptr<BufferBox>& buffer)
-    : BufferBox(buffer.get()) {}
+    : BufferBox(*buffer) {}
 
   inline BufferBox::BufferBox(const std::unique_ptr<BufferBox>& buffer)
-    : BufferBox(buffer.get()) {}
+    : BufferBox(*buffer) {}
 
   inline bool BufferBox::IsEmpty() const {
     return m_buffer->IsEmpty();

@@ -55,13 +55,13 @@ namespace Beam::IO {
     : m_buffer(std::make_unique<WrappedBuffer<std::decay_t<Buffer>>>(buffer)) {}
 
   inline BufferView::BufferView(BufferView* buffer)
-    : m_buffer(buffer->m_buffer) {}
+    : BufferView(*buffer) {}
 
   inline BufferView::BufferView(const std::shared_ptr<BufferView>& buffer)
-    : BufferView(buffer.get()) {}
+    : BufferView(*buffer) {}
 
   inline BufferView::BufferView(const std::unique_ptr<BufferView>& buffer)
-    : BufferView(buffer.get()) {}
+    : BufferView(*buffer) {}
 
   inline bool BufferView::IsEmpty() const {
     return m_buffer->IsEmpty();

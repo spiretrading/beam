@@ -90,13 +90,13 @@ namespace Codecs {
     : DecoderBox(std::in_place_type<Decoder>, std::move(decoder)) {}
 
   inline DecoderBox::DecoderBox(DecoderBox* decoder)
-    : m_decoder(decoder->m_decoder) {}
+    : DecoderBox(*decoder) {}
 
   inline DecoderBox::DecoderBox(const std::shared_ptr<DecoderBox>& decoder)
-    : DecoderBox(decoder.get()) {}
+    : DecoderBox(*decoder) {}
 
   inline DecoderBox::DecoderBox(const std::unique_ptr<DecoderBox>& decoder)
-    : DecoderBox(decoder.get()) {}
+    : DecoderBox(*decoder) {}
 
   inline std::size_t DecoderBox::Decode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {

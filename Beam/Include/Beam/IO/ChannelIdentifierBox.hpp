@@ -58,8 +58,41 @@ namespace IO {
       std::shared_ptr<VirtualChannelIdentifier> m_identifier;
   };
 
+  template<typename T, typename... Args>
+  ChannelIdentifierBox(std::in_place_type_t<T>, Args&&... args)
+    : m_identifier(std::make_shared<WrapperChannelIdentifier<T>(
+        std::forward<Args>(args)...)) {}
+
+  template<typename ChannelIdentifier>
+  ChannelIdentifierBox(ChannelIdentifier identifier)
+    : ChannelIdentifierBox(std::in_place_type<T>, std::move(identifier)) {}
+
+  inline ChannelIdentifierBox::ChannelIdentifierBox(
+    ChannelIdentifierBox* identifier)
+    : ChannelIdentifierBox(*identifier) {}
+
+  inline ChannelIdentifierBox::ChannelIdentifierBox(
+    const std::shared_ptr<ChannelIdentifierBox>& identifier)
+    : ChannelIdentifierBox(*identifier)) {}
+
+  inline ChannelIdentifierBox::ChannelIdentifierBox(
+    const std::unique_ptr<ChannelIdentifierBox>& identifier)
+    : ChannelIdentifierBox(*identifier) {}
+
   inline std::ostream& ChannelIdentifierBox::ToStream(std::ostream& out) const {
     return m_identifier->ToStream(out);
+  }
+
+  template<typename I>
+  template<typename... Args>
+  ChannelIdentifierBox::WrappedChannelIdentifier<I>::WrappedChannelIdentifier(
+    Args&&... args)
+    : m_identifier(std::forward<Args>(args)...) {}
+
+  template<typename I>
+  std::ostream& ChannelIdentifierBox::WrappedChannelIdentifier<I>::ToStream(
+      std::ostream& out) {
+    return out << *m_identifier;
   }
 }
 

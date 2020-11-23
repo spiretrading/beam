@@ -91,13 +91,13 @@ namespace Codecs {
     : EncoderBox(std::in_place_type<Encoder>, std::move(encoder)) {}
 
   inline EncoderBox::EncoderBox(EncoderBox* encoder)
-    : m_encoder(encoder->m_encoder) {}
+    : EncoderBox(*encoder) {}
 
   inline EncoderBox::EncoderBox(const std::shared_ptr<EncoderBox>& encoder)
-    : EncoderBox(encoder.get()) {}
+    : EncoderBox(*encoder) {}
 
   inline EncoderBox::EncoderBox(const std::unique_ptr<EncoderBox>& encoder)
-    : EncoderBox(encoder.get()) {}
+    : EncoderBox(*encoder) {}
 
   inline std::size_t EncoderBox::Encode(const void* source,
       std::size_t sourceSize, void* destination, std::size_t destinationSize) {

@@ -45,20 +45,6 @@ namespace Beam::IO {
   template<typename R> class SizeDeclarativeReader;
   template<typename W> class SizeDeclarativeWriter;
   template<std::size_t N> class StaticBuffer;
-  class VirtualChannel;
-  class VirtualChannelIdentifier;
-  class VirtualConnection;
-  class VirtualReader;
-  class VirtualServerConnection;
-  class VirtualWriter;
-  template<typename C> class WrapperVirtualChannel;
-  template<typename C, typename CT1, typename CT2, typename CT3>
-    class WrapperChannel;
-  template<typename I> class WrapperChannelIdentifier;
-  template<typename C> class WrapperConnection;
-  template<typename R> class WrapperReader;
-  template<typename C> class WrapperServerConnection;
-  template<typename W> class WrapperWriter;
   template<typename B> struct Writer;
   class WriterBox;
 }

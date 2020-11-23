@@ -2,16 +2,11 @@
 #include <boost/lexical_cast.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
-#include "Beam/IO/BufferBox.hpp"
-#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/NotConnectedException.hpp"
-#include "Beam/IO/VirtualChannel.hpp"
-#include "Beam/IO/VirtualChannelIdentifier.hpp"
-#include "Beam/IO/VirtualConnection.hpp"
-#include "Beam/IO/VirtualServerConnection.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
 using namespace Beam;
@@ -21,61 +16,37 @@ using namespace boost;
 using namespace pybind11;
 
 namespace {
-  object ioException;
+  auto channelBox = std::unique_ptr<class_<ChannelBox>>();
+  auto channelIdentifierBox = std::unique_ptr<class_<ChannelIdentifierBox>>();
+  auto connectionBox = std::unique_ptr<class_<ConnectionBox>>();
+  auto readerBox = std::unique_ptr<class_<ReaderBox>>();
+  auto serverConnectionBox = std::unique_ptr<class_<ServerConnectionBox>>();
+  auto writerBox = std::unique_ptr<class_<WriterBox>>();
+  auto ioException = object();
+}
 
-  struct TrampolineConnection final : VirtualConnection {
-    void Close() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualConnection, "close", Close);
-    }
-  };
+class_<ChannelBox>& Beam::Python::GetExportedChannelBox() {
+  return *channelBox;
+}
 
-  struct TrampolineServerConnection final : VirtualServerConnection {
-    std::unique_ptr<VirtualChannel> Accept() override {
-      return MakeVirtualChannel(PythonAccept());
-    }
+class_<ChannelIdentifierBox>& Beam::Python::GetExportedChannelIdentifierBox() {
+  return *channelIdentifierBox;
+}
 
-    std::shared_ptr<VirtualChannel> PythonAccept() {
-      PYBIND11_OVERLOAD_PURE_NAME(std::shared_ptr<VirtualChannel>,
-        VirtualServerConnection, "accept", PythonAccept);
-    }
+class_<ConnectionBox>& Beam::Python::GetExportedConnectionBox() {
+  return *connectionBox;
+}
 
-    void Close() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualServerConnection, "close",
-        Close);
-    }
-  };
+class_<ReaderBox>& Beam::Python::GetExportedReaderBox() {
+  return *readerBox;
+}
 
-  struct TrampolineReader final : VirtualReader {
-    bool IsDataAvailable() const {
-      PYBIND11_OVERLOAD_PURE_NAME(bool, VirtualReader, "is_data_available",
-        IsDataAvailable);
-    }
+class_<ServerConnectionBox>& Beam::Python::GetExportedServerConnectionBox() {
+  return *serverConnectionBox;
+}
 
-    std::size_t Read(Out<BufferBox> destination) {
-      PYBIND11_OVERLOAD_PURE_NAME(std::size_t, VirtualReader, "read", Read,
-        Store(destination));
-    }
-
-    std::size_t Read(char* destination, std::size_t size) {
-      PYBIND11_OVERLOAD_PURE_NAME(std::size_t, VirtualReader, "read", Read,
-        destination, size);
-    }
-
-    std::size_t Read(Out<BufferBox> destination, std::size_t size) {
-      PYBIND11_OVERLOAD_PURE_NAME(std::size_t, VirtualReader, "read", Read,
-        Store(destination), size);
-    }
-  };
-
-  struct TrampolineWriter final : VirtualWriter {
-    void Write(const void* data, std::size_t size) {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualWriter, "write", data, size);
-    }
-
-    void Write(const BufferView& data) {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualWriter, "write", data);
-    }
-  };
+class_<WriterBox>& Beam::Python::GetExportedWriterBox() {
+  return *writerBox;
 }
 
 const object& Beam::Python::GetIOException() {
@@ -127,40 +98,24 @@ void Beam::Python::ExportBufferView(pybind11::module& module) {
     .def_property_readonly("size", &BufferView::GetSize);
 }
 
-void Beam::Python::ExportChannel(pybind11::module& module) {
-  class_<VirtualChannel>(module, "Channel")
-    .def_property_readonly("identifier", &VirtualChannel::GetIdentifier,
-      return_value_policy::reference_internal)
-    .def_property_readonly("connection", &VirtualChannel::GetConnection,
-      return_value_policy::reference_internal)
-    .def_property_readonly("reader", &VirtualChannel::GetReader,
-      return_value_policy::reference_internal)
-    .def_property_readonly("writer", &VirtualChannel::GetWriter,
-      return_value_policy::reference_internal);
-}
-
-void Beam::Python::ExportChannelIdentifier(pybind11::module& module) {
-  class_<VirtualChannelIdentifier>(module, "ChannelIdentifier")
-    .def("__str__", &lexical_cast<std::string, VirtualChannelIdentifier>);
-}
-
-void Beam::Python::ExportConnection(pybind11::module& module) {
-  class_<VirtualConnection, TrampolineConnection>(module, "Connection")
-    .def("close", &VirtualConnection::Close);
-}
-
 void Beam::Python::ExportIO(pybind11::module& module) {
   auto submodule = module.def_submodule("io");
   ExportBufferView(submodule);
   ExportBufferBox(submodule);
-  ExportChannel(submodule);
-  ExportChannelIdentifier(submodule);
-  ExportConnection(submodule);
+  channelBox = std::make_unique<class_<ChannelBox>>(ExportChannel<ChannelBox>(
+    module, "Channel"));
+  channelIdentifierBox = std::make_unique<class_<ChannelIdentifierBox>>(
+    ExportChannelIdentifier<ChannelIdentifierBox>(module, "ChannelIdentifier"));
+  connectionBox = std::make_unique<class_<ConnectionBox>>(
+    ExportConnection<ConnectionBox>(module, "Connection"));
+  readerBox = std::make_unique<class_<ReaderBox>>(ExportReader<ReaderBox>(
+    module, "Reader"));
+  serverConnectionBox = std::make_unique<class_<ServerConnectionBox>>(
+    ExportServerConnection<ServerConnectionBox>(module, "ServerConnection"));
+  writerBox = std::make_unique<class_<WriterBox>>(ExportWriter<WriterBox>(
+    module, "Writer"));
   ExportOpenState(submodule);
-  ExportReader(submodule);
-  ExportServerConnection(submodule);
   ExportSharedBuffer(submodule);
-  ExportWriter(submodule);
   ioException = register_exception<IOException>(submodule, "IOException");
   register_exception<ConnectException>(submodule, "ConnectException",
     ioException.ptr());
@@ -179,21 +134,6 @@ void Beam::Python::ExportOpenState(pybind11::module& module) {
     .def("ensure_open", &OpenState::EnsureOpen)
     .def("set_closing", &OpenState::SetClosing, call_guard<GilRelease>())
     .def("close", &OpenState::Close, call_guard<GilRelease>());
-}
-
-void Beam::Python::ExportReader(pybind11::module& module) {
-  class_<VirtualReader, TrampolineReader>(module, "Reader")
-    .def("is_data_available", &VirtualReader::IsDataAvailable)
-    .def("read", static_cast<std::size_t (VirtualReader::*)(Out<BufferBox>)>(
-      &VirtualReader::Read))
-    .def("read", static_cast<std::size_t (VirtualReader::*)(
-      Out<BufferBox>, std::size_t)>(&VirtualReader::Read));
-}
-
-void Beam::Python::ExportServerConnection(pybind11::module& module) {
-  class_<VirtualServerConnection, VirtualConnection,
-      TrampolineServerConnection>(module, "ServerConnection")
-    .def("accept", &VirtualServerConnection::Accept);
 }
 
 void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
@@ -228,10 +168,4 @@ void Beam::Python::ExportSharedBuffer(pybind11::module& module) {
     .def_property_readonly("size", &SharedBuffer::GetSize);
   implicitly_convertible<SharedBuffer, BufferBox>();
   implicitly_convertible<SharedBuffer, BufferView>();
-}
-
-void Beam::Python::ExportWriter(pybind11::module& module) {
-  class_<VirtualWriter, TrampolineWriter>(module, "Writer")
-    .def("write", static_cast<void (VirtualWriter::*)(const BufferView&)>(
-      &VirtualWriter::Write));
 }

@@ -59,12 +59,13 @@ namespace IO {
   };
 
   template<typename T, typename... Args>
-  ChannelIdentifierBox(std::in_place_type_t<T>, Args&&... args)
+  ChannelIdentifierBox::ChannelIdentifierBox(std::in_place_type_t<T>,
+    Args&&... args)
     : m_identifier(std::make_shared<WrapperChannelIdentifier<T>(
         std::forward<Args>(args)...)) {}
 
   template<typename ChannelIdentifier>
-  ChannelIdentifierBox(ChannelIdentifier identifier)
+  ChannelIdentifierBox::ChannelIdentifierBox(ChannelIdentifier identifier)
     : ChannelIdentifierBox(std::in_place_type<T>, std::move(identifier)) {}
 
   inline ChannelIdentifierBox::ChannelIdentifierBox(
@@ -73,7 +74,7 @@ namespace IO {
 
   inline ChannelIdentifierBox::ChannelIdentifierBox(
     const std::shared_ptr<ChannelIdentifierBox>& identifier)
-    : ChannelIdentifierBox(*identifier)) {}
+    : ChannelIdentifierBox(*identifier) {}
 
   inline ChannelIdentifierBox::ChannelIdentifierBox(
     const std::unique_ptr<ChannelIdentifierBox>& identifier)

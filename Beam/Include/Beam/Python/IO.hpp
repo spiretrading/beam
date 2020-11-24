@@ -13,6 +13,12 @@
 
 namespace Beam::Python {
 
+  /** Returns the exported BufferBox. */
+  BEAM_EXPORT_DLL pybind11::class_<IO::BufferBox>& GetExportedBufferBox();
+
+  /** Returns the exported BufferView. */
+  BEAM_EXPORT_DLL pybind11::class_<IO::BufferView>& GetExportedBufferView();
+
   /** Returns the exported ChannelBox. */
   BEAM_EXPORT_DLL pybind11::class_<IO::ChannelBox>& GetExportedChannelBox();
 
@@ -38,10 +44,28 @@ namespace Beam::Python {
   BEAM_EXPORT_DLL const pybind11::object& GetIOException();
 
   /**
+   * Exports the AsyncWriter class.
+   * @param module The module to export to.
+   */
+  void ExportAsyncWriter(pybind11::module& module);
+
+  /**
    * Exports the BufferBox class.
    * @param module The module to export to.
    */
   void ExportBufferBox(pybind11::module& module);
+
+  /**
+   * Exports the BufferReader class.
+   * @param module The module to export to.
+   */
+  void ExportBufferReader(pybind11::module& module);
+
+  /**
+   * Exports the BufferSlice class.
+   * @param module The module to export to.
+   */
+  void ExportBufferSlice(pybind11::module& module);
 
   /**
    * Exports the BufferView class.
@@ -56,16 +80,157 @@ namespace Beam::Python {
   void ExportIO(pybind11::module& module);
 
   /**
+   * Exports the LocalClientChannel class.
+   * @param module The module to export to.
+   */
+  void ExportLocalClientChannel(pybind11::module& module);
+
+  /**
+   * Exports the LocalConnection class.
+   * @param module The module to export to.
+   */
+  void ExportLocalConnection(pybind11::module& module);
+
+  /**
+   * Exports the LocalServerChannel class.
+   * @param module The module to export to.
+   */
+  void ExportLocalServerChannel(pybind11::module& module);
+
+  /**
+   * Exports the LocalServerConnection class.
+   * @param module The module to export to.
+   */
+  void ExportLocalServerConnection(pybind11::module& module);
+
+  /**
+   * Exports the NamedChannelIdentifier class.
+   * @param module The module to export to.
+   */
+  void ExportNamedChannelIdentifier(pybind11::module& module);
+
+  /**
+   * Exports the NullChannel class.
+   * @param module The module to export to.
+   */
+  void ExportNullChannel(pybind11::module& module);
+
+  /**
+   * Exports the NullConnection class.
+   * @param module The module to export to.
+   */
+  void ExportNullConnection(pybind11::module& module);
+
+  /**
+   * Exports the NullReader class.
+   * @param module The module to export to.
+   */
+  void ExportNullReader(pybind11::module& module);
+
+  /**
+   * Exports the NullWriter class.
+   * @param module The module to export to.
+   */
+  void ExportNullWriter(pybind11::module& module);
+
+  /**
    * Exports the OpenState class.
    * @param module The module to export to.
    */
   void ExportOpenState(pybind11::module& module);
 
   /**
+   * Exports the PipedReader class.
+   * @param module The module to export to.
+   */
+  void ExportPipedReader(pybind11::module& module);
+
+  /**
+   * Exports the PipedWriter class.
+   * @param module The module to export to.
+   */
+  void ExportPipedWriter(pybind11::module& module);
+
+  /**
+   * Exports the QueuedReader class.
+   * @param module The module to export to.
+   */
+  void ExportQueuedReader(pybind11::module& module);
+
+  /**
    * Exports the SharedBuffer class.
    * @param module The module to export to.
    */
   void ExportSharedBuffer(pybind11::module& module);
+
+  /**
+   * Exports the SizeDeclarativeReader class.
+   * @param module The module to export to.
+   */
+  void ExportSizeDeclarativeReader(pybind11::module& module);
+
+  /**
+   * Exports the SizeDeclarativeWriter class.
+   * @param module The module to export to.
+   */
+  void ExportSizeDeclarativeWriter(pybind11::module& module);
+
+  /**
+   * Exports the BasicIStreamReader<std::istream*> class.
+   * @param module The module to export to.
+   */
+  void ExportStdinReader(pybind11::module& module);
+
+  /**
+   * Exports the BasicOStreamWriter<std::ostream*> class.
+   * @param module The module to export to.
+   */
+  void ExportStdoutWriter(pybind11::module& module);
+
+  /**
+   * Exports a Buffer class.
+   * @param module The module to export to.
+   */
+  template<typename Buffer>
+  auto ExportBuffer(pybind11::module& module, const std::string& name) {
+    auto buffer = pybind11::class_<Buffer, std::shared_ptr<Buffer>>(module,
+      name.c_str())
+      .def("__str__", [] (const Buffer& self) {
+        return std::string(self.GetData(), self.GetSize());
+      })
+      .def("is_empty", &Buffer::IsEmpty)
+      .def("grow", &Buffer::Grow)
+      .def("shrink", &Buffer::Shrink)
+      .def("shrink_front", &Buffer::ShrinkFront)
+      .def("reserve", &Buffer::Reserve)
+      .def("write", [] (Buffer& self, std::size_t index,
+          const pybind11::str& value) {
+        if(auto rawString = PyUnicode_AsUTF8(value.ptr())) {
+          self.Write(index, rawString, pybind11::len(value));
+        }
+      })
+      .def("append", static_cast<void (Buffer::*)(const IO::BufferView&)>(
+        &Buffer::Append<IO::BufferView>))
+      .def("append", [] (Buffer& self, const pybind11::str& value) {
+        if(auto rawString = PyUnicode_AsUTF8(value.ptr())) {
+          self.Append(rawString, pybind11::len(value));
+        }
+      })
+      .def("reset", &Buffer::Reset)
+      .def_property_readonly("size", &Buffer::GetSize);
+    if constexpr(!std::is_same_v<Buffer, IO::BufferBox>) {
+      pybind11::implicitly_convertible<Buffer, IO::BufferBox>();
+      GetExportedBufferBox().def(pybind11::init<std::shared_ptr<Buffer>>());
+    }
+    if constexpr(!std::is_same_v<Buffer, IO::BufferView>) {
+      pybind11::implicitly_convertible<Buffer, IO::BufferView>();
+      GetExportedBufferView().def(pybind11::init(
+        [] (const std::shared_ptr<Buffer>& buffer) {
+          return BufferView(*buffer);
+        }));
+    }
+    return buffer;
+  }
 
   /**
    * Exports a Channel class.

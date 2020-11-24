@@ -40,11 +40,13 @@ namespace Codecs {
 
       bool IsDataAvailable() const;
 
-      std::size_t Read(Out<Buffer> destination);
+      template<typename T>
+      std::size_t Read(Out<T> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      std::size_t Read(Out<Buffer> destination, std::size_t size);
+      template<typename T>
+      std::size_t Read(Out<T> destination, std::size_t size);
 
     private:
       GetOptionalLocalPtr<R> m_source;
@@ -72,7 +74,8 @@ namespace Codecs {
   }
 
   template<typename B, typename R, typename D>
-  std::size_t CodedReader<B, R, D>::Read(Out<Buffer> destination) {
+  template<typename T>
+  std::size_t CodedReader<B, R, D>::Read(Out<T> destination) {
     return Read(Store(destination), std::numeric_limits<std::size_t>::max());
   }
 
@@ -83,8 +86,8 @@ namespace Codecs {
   }
 
   template<typename B, typename R, typename D>
-  std::size_t CodedReader<B, R, D>::Read(Out<Buffer> destination,
-      std::size_t size) {
+  template<typename T>
+  std::size_t CodedReader<B, R, D>::Read(Out<T> destination, std::size_t size) {
     ReadSource();
     return m_reader.Read(Store(destination), size);
   }
@@ -126,7 +129,7 @@ namespace Codecs {
 }
 
   template<typename B, typename R, typename D>
-  struct ImplementsConcept<Codecs::CodedReader<B, R, D>, IO::Reader<B>> :
+  struct ImplementsConcept<Codecs::CodedReader<B, R, D>, IO::Reader> :
     std::true_type {};
 }
 

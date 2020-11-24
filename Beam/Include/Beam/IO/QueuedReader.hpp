@@ -5,6 +5,7 @@
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
@@ -34,11 +35,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      std::size_t Read(Out<Buffer> destination);
+      template<typename T>
+      std::size_t Read(Out<T> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      std::size_t Read(Out<Buffer> destination, std::size_t size);
+      template<typename T>
+      std::size_t Read(Out<T> destination, std::size_t size);
 
     private:
       GetOptionalLocalPtr<R> m_sourceReader;
@@ -52,7 +55,7 @@ namespace IO {
   };
 
   template<typename R>
-  QueuedReader(R&&) -> QueuedReader<std::decay_t<R>>;
+  QueuedReader(R&&) -> QueuedReader<SharedBuffer, std::decay_t<R>>;
 
   template<typename B, typename R>
   template<typename RF>
@@ -63,12 +66,13 @@ namespace IO {
 
   template<typename B, typename R>
   bool QueuedReader<B, R>::IsDataAvailable() const {
-    LaunchReadLoop();
+    const_cast<QueuedReader*>(this)->LaunchReadLoop();
     return m_queuedReader.IsDataAvailable();
   }
 
   template<typename B, typename R>
-  std::size_t QueuedReader<B, R>::Read(Out<B> destination) {
+  template<typename T>
+  std::size_t QueuedReader<B, R>::Read(Out<T> destination) {
     LaunchReadLoop();
     return m_queuedReader.Read(Store(destination));
   }
@@ -80,7 +84,8 @@ namespace IO {
   }
 
   template<typename B, typename R>
-  std::size_t QueuedReader<B, R>::Read(Out<B> destination, std::size_t size) {
+  template<typename T>
+  std::size_t QueuedReader<B, R>::Read(Out<T> destination, std::size_t size) {
     LaunchReadLoop();
     return m_queuedReader.Read(Store(destination), size);
   }
@@ -95,7 +100,7 @@ namespace IO {
 
   template<typename B, typename R>
   void QueuedReader<B, R>::ReadLoop() {
-    auto buffer = typename SourceReader::Buffer();
+    auto buffer = Buffer();
     try {
       while(true) {
         m_sourceReader->Read(Store(buffer));
@@ -109,8 +114,8 @@ namespace IO {
 }
 
   template<typename B, typename R>
-  struct ImplementsConcept<IO::QueuedReader<B, R>,
-    IO::Reader<typename IO::QueuedReader<B, R>::Buffer>> : std::true_type {};
+  struct ImplementsConcept<IO::QueuedReader<B, R>, IO::Reader> :
+    std::true_type {};
 }
 
 #endif

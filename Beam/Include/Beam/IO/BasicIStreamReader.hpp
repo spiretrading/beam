@@ -26,8 +26,6 @@ namespace IO {
       /** The type of istream to read from. */
       using IStream = GetTryDereferenceType<S>;
 
-      using Buffer = SharedBuffer;
-
       /**
        * Constructs a BasicIStreamReader.
        * @param source Initializes the IStream to read from.
@@ -37,13 +35,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      template<typename B>
-      std::size_t Read(Out<B> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename B>
-      std::size_t Read(Out<B> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
       GetOptionalLocalPtr<S> m_source;
@@ -66,8 +64,8 @@ namespace IO {
   }
 
   template<typename S>
-  template<typename B>
-  std::size_t BasicIStreamReader<S>::Read(Out<B> destination) {
+  template<typename Buffer>
+  std::size_t BasicIStreamReader<S>::Read(Out<Buffer> destination) {
     auto keepReading = true;
     auto result = std::size_t(0);
     auto previousSize = destination->GetSize();
@@ -96,8 +94,8 @@ namespace IO {
   }
 
   template<typename S>
-  template<typename B>
-  std::size_t BasicIStreamReader<S>::Read(Out<B> destination,
+  template<typename Buffer>
+  std::size_t BasicIStreamReader<S>::Read(Out<Buffer> destination,
       std::size_t size) {
     auto readSize = std::min(DEFAULT_READ_SIZE, size);
     auto previousSize = destination->GetSize();
@@ -114,8 +112,8 @@ namespace IO {
   }
 }
 
-  template<typename BufferType, typename S>
-  struct ImplementsConcept<IO::BasicIStreamReader<S>, IO::Reader<BufferType>> :
+  template<typename S>
+  struct ImplementsConcept<IO::BasicIStreamReader<S>, IO::Reader> :
     std::true_type {};
 }
 

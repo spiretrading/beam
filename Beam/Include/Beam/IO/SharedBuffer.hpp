@@ -4,7 +4,7 @@
 #include <new>
 #include <boost/shared_array.hpp>
 #include <boost/throw_exception.hpp>
-#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
@@ -41,8 +41,7 @@ namespace Details {
 
       SharedBuffer(const SharedBuffer& buffer);
 
-      template<typename B, typename =
-        std::enable_if_t<ImplementsConcept<B, Buffer>::value>>
+      template<typename B, typename = std::enable_if_t<IsBufferView<B>>>
       SharedBuffer(const B& buffer);
 
       SharedBuffer(SharedBuffer&& buffer);
@@ -65,14 +64,12 @@ namespace Details {
       void Append(const SharedBuffer& buffer);
 
       template<typename Buffer>
-      std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value> Append(
-        const Buffer& buffer);
+      std::enable_if_t<IsBufferView<Buffer>> Append(const Buffer& buffer);
 
       void Append(const void* data, std::size_t size);
 
       template<typename T>
-      std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> Append(
-        T value);
+      std::enable_if_t<!IsBufferView<T>> Append(T value);
 
       void Reset();
 
@@ -203,8 +200,8 @@ namespace Details {
   }
 
   template<typename Buffer>
-  std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>
-      SharedBuffer::Append(const Buffer& buffer) {
+  std::enable_if_t<IsBufferView<Buffer>> SharedBuffer::Append(
+      const Buffer& buffer) {
     Append(buffer.GetData(), buffer.GetSize());
   }
 
@@ -220,8 +217,7 @@ namespace Details {
   }
 
   template<typename T>
-  std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value>
-      SharedBuffer::Append(T value) {
+  std::enable_if_t<!IsBufferView<T>> SharedBuffer::Append(T value) {
     Append(&value, sizeof(T));
   }
 

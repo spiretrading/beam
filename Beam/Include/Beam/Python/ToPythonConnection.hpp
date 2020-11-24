@@ -22,6 +22,13 @@ namespace Beam::IO {
        */
       ToPythonConnection(std::unique_ptr<Connection> connection);
 
+      /**
+       * Constructs a ToPythonConnection in-place.
+       * @param args The arguments to forward to the constructor.
+       */
+      template<typename... Args>
+      ToPythonConnection(Args&&... args);
+
       ~ToPythonConnection();
 
       void Close();
@@ -44,6 +51,12 @@ namespace Beam::IO {
   ToPythonConnection<C>::ToPythonConnection(
     std::unique_ptr<Connection> connection)
     : m_connection(std::move(connection)) {}
+
+  template<typename C>
+  template<typename... Args>
+  ToPythonConnection<C>::ToPythonConnection(Args&&... args)
+    : ToPythonConnection(std::make_unique<Connection>(
+        std::forward<Args>(args)...)) {}
 
   template<typename C>
   ToPythonConnection<C>::~ToPythonConnection() {

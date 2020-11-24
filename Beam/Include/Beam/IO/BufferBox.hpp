@@ -1,7 +1,7 @@
 #ifndef BEAM_BUFFER_BOX_HPP
 #define BEAM_BUFFER_BOX_HPP
 #include <type_traits>
-#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
@@ -36,14 +36,12 @@ namespace IO {
       void Write(std::size_t index, T value);
 
       template<typename Buffer>
-      std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value> Append(
-        const Buffer& buffer);
+      std::enable_if_t<IsBufferView<Buffer>> Append(const Buffer& buffer);
 
       void Append(const void* data, std::size_t size);
 
       template<typename T>
-      std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> Append(
-        T value);
+      std::enable_if_t<!IsBufferView<T>> Append(T value);
 
       void Reset();
 
@@ -143,8 +141,8 @@ namespace IO {
   }
 
   template<typename Buffer>
-  std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>
-      BufferBox::Append(const Buffer& buffer) {
+  std::enable_if_t<IsBufferView<Buffer>> BufferBox::Append(
+      const Buffer& buffer) {
     Append(buffer.GetData(), buffer.GetSize());
   }
 
@@ -153,8 +151,7 @@ namespace IO {
   }
 
   template<typename T>
-  std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> BufferBox::Append(
-      T value) {
+  std::enable_if_t<!IsBufferView<T>> BufferBox::Append(T value) {
     Append(&value, sizeof(T));
   }
 

@@ -19,7 +19,6 @@ namespace IO {
   template<typename R>
   class SizeDeclarativeReader {
     public:
-      using Buffer = SharedBuffer;
 
       /** The source to read from. */
       using SourceReader = GetTryDereferenceType<R>;
@@ -33,13 +32,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      template<typename B>
-      std::size_t Read(Out<B> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename B>
-      std::size_t Read(Out<B> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
       GetOptionalLocalPtr<R> m_source;
@@ -69,8 +68,8 @@ namespace IO {
   }
 
   template<typename R>
-  template<typename B>
-  std::size_t SizeDeclarativeReader<R>::Read(Out<B> destination) {
+  template<typename Buffer>
+  std::size_t SizeDeclarativeReader<R>::Read(Out<Buffer> destination) {
     return Read(Store(destination), std::numeric_limits<std::size_t>::max());
   }
 
@@ -100,9 +99,9 @@ namespace IO {
   }
 
   template<typename R>
-  template<typename B>
+  template<typename Buffer>
   std::size_t SizeDeclarativeReader<R>::Read(
-      Out<B> destination, std::size_t size) {
+      Out<Buffer> destination, std::size_t size) {
     if(m_sizeRead == m_totalSize) {
       ReadSize();
     }
@@ -133,8 +132,8 @@ namespace IO {
   }
 }
 
-  template<typename B, typename R>
-  struct ImplementsConcept<IO::SizeDeclarativeReader<R>, IO::Reader<B>> :
+  template<typename R>
+  struct ImplementsConcept<IO::SizeDeclarativeReader<R>, IO::Reader> :
     std::true_type {};
 }
 

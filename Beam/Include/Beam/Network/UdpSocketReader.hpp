@@ -1,7 +1,6 @@
 #ifndef BEAM_UDP_SOCKET_READER_HPP
 #define BEAM_UDP_SOCKET_READER_HPP
 #include "Beam/IO/Reader.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/UdpSocket.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
 
@@ -11,17 +10,15 @@ namespace Network {
   /** Implements the Reader interface for a UdpReceiver. */
   class UdpSocketReader {
     public:
-      using Buffer = IO::SharedBuffer;
-
       bool IsDataAvailable() const;
 
-      template<typename BufferType>
-      std::size_t Read(Out<BufferType> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename BufferType>
-      std::size_t Read(Out<BufferType> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
       friend class UdpSocketChannel;
@@ -41,11 +38,10 @@ namespace Network {
     return command.get() > 0;
   }
 
-  template<typename BufferType>
-  std::size_t UdpSocketReader::Read(Out<BufferType> destination) {
+  template<typename Buffer>
+  std::size_t UdpSocketReader::Read(Out<Buffer> destination) {
     auto address = m_socket->GetAddress();
-    return m_socket->GetReceiver().Receive(Store(destination),
-      Store(address));
+    return m_socket->GetReceiver().Receive(Store(destination), Store(address));
   }
 
   inline std::size_t UdpSocketReader::Read(char* destination,
@@ -55,9 +51,8 @@ namespace Network {
       Store(address));
   }
 
-  template<typename BufferType>
-  std::size_t UdpSocketReader::Read(Out<BufferType> destination,
-      std::size_t size) {
+  template<typename Buffer>
+  std::size_t UdpSocketReader::Read(Out<Buffer> destination, std::size_t size) {
     auto address = m_socket->GetAddress();
     return m_socket->GetReceiver().Receive(Store(destination), size,
       Store(address));
@@ -67,8 +62,8 @@ namespace Network {
     : m_socket(std::move(socket)) {}
 }
 
-  template<typename BufferType>
-  struct ImplementsConcept<Network::UdpSocketReader, IO::Reader<BufferType>> :
+  template<>
+  struct ImplementsConcept<Network::UdpSocketReader, IO::Reader> :
     std::true_type {};
 }
 

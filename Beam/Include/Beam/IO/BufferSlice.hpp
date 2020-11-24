@@ -1,7 +1,7 @@
 #ifndef BEAM_BUFFER_SLICE_HPP
 #define BEAM_BUFFER_SLICE_HPP
 #include <algorithm>
-#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
@@ -38,14 +38,14 @@ namespace IO {
       void Write(std::size_t index, T value);
 
       template<typename T>
-      std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> Append(
-        const T& buffer);
+      std::enable_if_t<IsBufferView<T>> Append(const T& buffer);
 
       void Append(const void* data, std::size_t size);
 
       template<typename T>
-      std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> Append(
-        T value);
+      std::enable_if_t<!IsBufferView<T>> Append(T value) {
+        m_buffer->Append(buffer);
+      }
 
       void Reset();
 
@@ -110,21 +110,13 @@ namespace IO {
 
   template<typename B>
   template<typename T>
-  std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value>
-      BufferSlice<B>::Append(const T& buffer) {
+  std::enable_if_t<IsBufferView<T>> BufferSlice<B>::Append(const T& buffer) {
     m_buffer->Append(buffer);
   }
 
   template<typename B>
   void BufferSlice<B>::Append(const void* data, std::size_t size) {
     m_buffer->Append(data, size);
-  }
-
-  template<typename B>
-  template<typename T>
-  std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value>
-      BufferSlice<B>::Append(T value) {
-    m_buffer->Append(value);
   }
 
   template<typename B>

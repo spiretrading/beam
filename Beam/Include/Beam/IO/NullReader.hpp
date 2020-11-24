@@ -10,25 +10,23 @@ namespace IO {
   /** A Reader that contains no data. */
   class NullReader {
     public:
-      using Buffer = SharedBuffer;
-
       bool IsDataAvailable() const;
 
-      template<typename B>
-      std::size_t Read(Out<B> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename B>
-      std::size_t Read(Out<B> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
   };
 
   inline bool NullReader::IsDataAvailable() const {
     return false;
   }
 
-  template<typename B>
-  std::size_t NullReader::Read(Out<B> destination) {
+  template<typename Buffer>
+  std::size_t NullReader::Read(Out<Buffer> destination) {
     destination->Reset();
     return 0;
   }
@@ -37,16 +35,15 @@ namespace IO {
     return 0;
   }
 
-  template<typename B>
-  std::size_t NullReader::Read(Out<B> destination, std::size_t size) {
+  template<typename Buffer>
+  std::size_t NullReader::Read(Out<Buffer> destination, std::size_t size) {
     destination->Reset();
     return 0;
   }
 }
 
-  template<typename Buffer>
-  struct ImplementsConcept<IO::NullReader, IO::Reader<Buffer>> :
-    std::true_type {};
+  template<>
+  struct ImplementsConcept<IO::NullReader, IO::Reader> : std::true_type {};
 }
 
 #endif

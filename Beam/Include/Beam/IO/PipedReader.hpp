@@ -30,11 +30,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      std::size_t Read(Out<Buffer> destination);
+      template<typename R>
+      std::size_t Read(Out<R> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      std::size_t Read(Out<Buffer> destination, std::size_t size);
+      template<typename R>
+      std::size_t Read(Out<R> destination, std::size_t size);
 
     private:
       friend class IO::PipedWriter<Buffer>;
@@ -71,7 +73,8 @@ namespace IO {
   }
 
   template<typename B>
-  std::size_t PipedReader<B>::Read(Out<Buffer> destination) {
+  template<typename R>
+  std::size_t PipedReader<B>::Read(Out<R> destination) {
     return Read(Store(destination), std::numeric_limits<std::size_t>::max());
   }
 
@@ -87,7 +90,8 @@ namespace IO {
   }
 
   template<typename B>
-  std::size_t PipedReader<B>::Read(Out<Buffer> destination, std::size_t size) {
+  template<typename R>
+  std::size_t PipedReader<B>::Read(Out<R> destination, std::size_t size) {
     while(true) {
       try {
         return m_reader.Read(Store(destination), size);
@@ -99,8 +103,7 @@ namespace IO {
 }
 
   template<typename B>
-  struct ImplementsConcept<IO::PipedReader<B>, IO::Reader<B>> :
-    std::true_type {};
+  struct ImplementsConcept<IO::PipedReader<B>, IO::Reader> : std::true_type {};
 }
 
 #endif

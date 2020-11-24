@@ -1,7 +1,6 @@
 #ifndef BEAM_MULTICAST_SOCKET_READER_HPP
 #define BEAM_MULTICAST_SOCKET_READER_HPP
 #include "Beam/IO/Reader.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/MulticastSocket.hpp"
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
@@ -12,17 +11,15 @@ namespace Network {
   /** Implements the Reader interface for a MulticastSocketReceiver. */
   class MulticastSocketReader {
     public:
-      using Buffer = IO::SharedBuffer;
-
       bool IsDataAvailable() const;
 
-      template<typename BufferType>
-      std::size_t Read(Out<BufferType> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename BufferType>
-      std::size_t Read(Out<BufferType> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
       friend class MulticastSocketChannel;
@@ -44,8 +41,8 @@ namespace Network {
     return command.get() > 0;
   }
 
-  template<typename BufferType>
-  std::size_t MulticastSocketReader::Read(Out<BufferType> destination) {
+  template<typename Buffer>
+  std::size_t MulticastSocketReader::Read(Out<Buffer> destination) {
     return m_socket->GetReceiver().Receive(Store(destination),
       Store(m_destination));
   }
@@ -56,8 +53,8 @@ namespace Network {
       Store(m_destination));
   }
 
-  template<typename BufferType>
-  std::size_t MulticastSocketReader::Read(Out<BufferType> destination,
+  template<typename Buffer>
+  std::size_t MulticastSocketReader::Read(Out<Buffer> destination,
       std::size_t size) {
     return m_socket->GetReceiver().Receive(Store(destination), size,
       Store(m_destination));
@@ -69,9 +66,9 @@ namespace Network {
       m_destination(std::move(destination)) {}
 }
 
-  template<typename BufferType>
-  struct ImplementsConcept<Network::MulticastSocketReader,
-    IO::Reader<BufferType>> : std::true_type {};
+  template<>
+  struct ImplementsConcept<Network::MulticastSocketReader, IO::Reader> :
+    std::true_type {};
 }
 
 #endif

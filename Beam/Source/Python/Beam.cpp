@@ -14,8 +14,8 @@ template struct Beam::Routines::Details::CurrentRoutineGlobal<void>;
 template struct Beam::Routines::Details::NextId<void>;
 
 PYBIND11_MODULE(_beam, module) {
-  ExportCodecs(module);
   ExportIO(module);
+  ExportCodecs(module);
   ExportKeyValuePair(module);
   ExportNetwork(module);
   ExportQueries(module);

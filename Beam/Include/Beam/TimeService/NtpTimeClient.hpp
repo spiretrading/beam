@@ -227,7 +227,7 @@ namespace Beam::TimeService {
       auto requestPacket = NtpPacket();
       requestPacket.fill(0);
       requestPacket[0] = 0x1B;
-      auto readBuffer = typename Channel::Reader::Buffer();
+      auto readBuffer = IO::SharedBuffer();
       auto clientTransmissionTimestamp =
         boost::posix_time::microsec_clock::universal_time();
       auto encodedClientTransmissionTimestamp = NtpTimeFromPosixTime(

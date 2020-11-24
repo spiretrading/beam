@@ -41,11 +41,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      std::size_t Read(Out<Buffer> destination);
+      template<typename R>
+      std::size_t Read(Out<R> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      std::size_t Read(Out<Buffer> destination, std::size_t size);
+      template<typename R>
+      std::size_t Read(Out<R> destination, std::size_t size);
 
       BufferReader& operator =(const BufferReader& reader);
 
@@ -90,7 +92,8 @@ namespace IO {
   }
 
   template<typename B>
-  std::size_t BufferReader<B>::Read(Out<Buffer> destination) {
+  template<typename R>
+  std::size_t BufferReader<B>::Read(Out<R> destination) {
     if(m_readRemaining == 0) {
       BOOST_THROW_EXCEPTION(EndOfFileException());
     }
@@ -113,7 +116,8 @@ namespace IO {
   }
 
   template<typename B>
-  std::size_t BufferReader<B>::Read(Out<Buffer> destination, std::size_t size) {
+  template<typename R>
+  std::size_t BufferReader<B>::Read(Out<R> destination, std::size_t size) {
     if(m_readRemaining == 0) {
       BOOST_THROW_EXCEPTION(EndOfFileException());
     }
@@ -152,8 +156,7 @@ namespace IO {
 }
 
   template<typename B>
-  struct ImplementsConcept<IO::BufferReader<B>, IO::Reader<B>> :
-    std::true_type {};
+  struct ImplementsConcept<IO::BufferReader<B>, IO::Reader> : std::true_type {};
 }
 
 #endif

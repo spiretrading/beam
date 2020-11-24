@@ -10,6 +10,7 @@
 #include "Beam/IO/AsyncWriter.hpp"
 #include "Beam/IO/BufferSlice.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -109,8 +110,8 @@ namespace Beam::Services {
       LocalPtr<Receiver> m_receiver;
       LocalPtr<Encoder> m_encoder;
       LocalPtr<Decoder> m_decoder;
-      typename Channel::Reader::Buffer m_receiveBuffer;
-      typename Channel::Reader::Buffer m_decoderBuffer;
+      IO::SharedBuffer m_receiveBuffer;
+      IO::SharedBuffer m_decoderBuffer;
   };
 
   template<typename C, typename S, typename E>

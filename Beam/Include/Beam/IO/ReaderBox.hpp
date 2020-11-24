@@ -5,7 +5,6 @@
 #include "Beam/IO/BufferBox.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Reader.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
@@ -14,7 +13,6 @@ namespace IO {
   /** Provides a generic interface over an arbitrary Reader. */
   class ReaderBox {
     public:
-      using Buffer = SharedBuffer;
 
       /**
        * Constructs a ReaderBox of a specified type using emplacement.
@@ -39,13 +37,13 @@ namespace IO {
 
       bool IsDataAvailable() const;
 
-      template<typename B>
-      std::size_t Read(Out<B> destination);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
-      template<typename B>
-      std::size_t Read(Out<B> destination, std::size_t size);
+      template<typename Buffer>
+      std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
       struct VirtualReader {
@@ -93,8 +91,8 @@ namespace IO {
     return m_reader->IsDataAvailable();
   }
 
-  template<typename B>
-  std::size_t ReaderBox::Read(Out<B> destination) {
+  template<typename Buffer>
+  std::size_t ReaderBox::Read(Out<Buffer> destination) {
     auto box = BufferBox(&*destination);
     return m_reader->Read(Store(box));
   }
@@ -103,8 +101,8 @@ namespace IO {
     return m_reader->Read(destination, size);
   }
 
-  template<typename B>
-  std::size_t ReaderBox::Read(Out<B> destination, std::size_t size) {
+  template<typename Buffer>
+  std::size_t ReaderBox::Read(Out<Buffer> destination, std::size_t size) {
     auto box = BufferBox(&*destination);
     return m_reader->Read(Store(box), size);
   }
@@ -137,9 +135,8 @@ namespace IO {
   }
 }
 
-  template<typename Buffer>
-  struct ImplementsConcept<IO::ReaderBox, IO::Reader<Buffer>> :
-    std::true_type {};
+  template<>
+  struct ImplementsConcept<IO::ReaderBox, IO::Reader> : std::true_type {};
 }
 
 #endif

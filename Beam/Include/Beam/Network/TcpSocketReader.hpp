@@ -3,7 +3,6 @@
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
 #include "Beam/IO/Reader.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
@@ -15,8 +14,6 @@ namespace Network {
   /** Reads from a TCP socket. */
   class TcpSocketReader {
     public:
-      using Buffer = IO::SharedBuffer;
-
       bool IsDataAvailable() const;
 
       template<typename BufferType>
@@ -46,8 +43,8 @@ namespace Network {
     return command.get() > 0;
   }
 
-  template<typename BufferType>
-  std::size_t TcpSocketReader::Read(Out<BufferType> destination) {
+  template<typename Buffer>
+  std::size_t TcpSocketReader::Read(Out<Buffer> destination) {
     return Read(Store(destination), DEFAULT_READ_SIZE);
   }
 
@@ -80,9 +77,8 @@ namespace Network {
     }
   }
 
-  template<typename BufferType>
-  std::size_t TcpSocketReader::Read(Out<BufferType> destination,
-      std::size_t size) {
+  template<typename Buffer>
+  std::size_t TcpSocketReader::Read(Out<Buffer> destination, std::size_t size) {
     auto initialSize = destination->GetSize();
     auto readSize = std::min(DEFAULT_READ_SIZE, size);
     destination->Grow(readSize);
@@ -96,8 +92,8 @@ namespace Network {
     : m_socket(std::move(socket)) {}
 }
 
-  template<typename BufferType>
-  struct ImplementsConcept<Network::TcpSocketReader, IO::Reader<BufferType>> :
+  template<>
+  struct ImplementsConcept<Network::TcpSocketReader, IO::Reader> :
     std::true_type {};
 }
 

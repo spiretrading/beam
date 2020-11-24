@@ -2,26 +2,17 @@
 #define BEAM_READER_HPP
 #include <type_traits>
 #include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/IO.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Utilities/Concept.hpp"
-#include "Beam/Utilities/StaticMemberChecks.hpp"
 
 namespace Beam::IO {
-namespace Details {
-  BEAM_DEFINE_HAS_TYPEDEF(ReaderHasBufferType, Buffer);
-}
 
   /**
    * Concept for reading data from a resource.
    * @param <B> Specifies the type of Buffer to read into.
    */
-  template<typename B>
-  struct Reader : Concept<Reader<B>> {
-    static_assert(ImplementsConcept<B, IO::Buffer>::value,
-      "B must implement the Buffer Concept.");
-
-    /** Specifies a type of Buffer to read into. */
-    using Buffer = B;
+  struct Reader : Concept<Reader> {
 
     /**
      * Returns <code>true</code> iff data is available to read without
@@ -34,6 +25,7 @@ namespace Details {
      * @param destination The Buffer to read to.
      * @return The number of bytes read.
      */
+    template<typename Buffer>
     std::size_t Read(Out<Buffer> destination);
 
     /**
@@ -50,19 +42,9 @@ namespace Details {
      * @param size The maximum number of bytes to read.
      * @return The number of bytes read.
      */
+    template<typename Buffer>
     std::size_t Read(Out<Buffer> destination, std::size_t size);
   };
-
-  /**
-   * Tests whether a type satisfies some particular Reader Concept.
-   * @param <T> The type to test.
-   */
-  template<typename T, typename Enabled = void>
-  struct IsReader : std::false_type {};
-
-  template<typename T>
-  struct IsReader<T, std::enable_if_t<Details::ReaderHasBufferType<T>::value>> :
-    ImplementsConcept<T, Reader<typename T::Buffer>>::type {};
 
   /**
    * Reads an exact amount of data from a Reader.

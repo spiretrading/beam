@@ -2,6 +2,7 @@
 #define BEAM_BUFFER_VIEW_HPP
 #include <type_traits>
 #include "Beam/IO/Buffer.hpp"
+#include "Beam/Utilities/Concept.hpp"
 
 namespace Beam::IO {
 
@@ -49,6 +50,17 @@ namespace Beam::IO {
       };
       std::shared_ptr<VirtualBuffer> m_buffer;
   };
+
+  /**
+   * Type trait to determine if a type is compatible with a BufferView.
+   * @param <B> The type to test.
+   */
+  template<typename B>
+  struct CheckIsBufferView : std::disjunction<
+    ImplementsConcept<B, Buffer>, std::is_same<B, BufferView>>::type {};
+
+  template<typename B>
+  constexpr auto IsBufferView = CheckIsBufferView<B>::value;
 
   template<typename Buffer, typename>
   BufferView::BufferView(const Buffer& buffer)

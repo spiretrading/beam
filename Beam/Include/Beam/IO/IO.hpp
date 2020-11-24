@@ -37,7 +37,7 @@ namespace Beam::IO {
   template<typename B> class PipedReader;
   template<typename B> class PipedWriter;
   template<typename B, typename R> class QueuedReader;
-  template<typename B> struct Reader;
+  struct Reader;
   class ReaderBox;
   template<typename C> struct ServerConnection;
   class ServerConnectionBox;

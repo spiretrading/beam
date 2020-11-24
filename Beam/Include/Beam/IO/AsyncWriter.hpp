@@ -33,10 +33,8 @@ namespace IO {
 
       void Write(const void* data, std::size_t size);
 
-      void Write(const SharedBuffer& data);
-
-      template<typename BufferType>
-      void Write(const BufferType& data);
+      template<typename B>
+      void Write(const B& data);
 
     private:
       GetOptionalLocalPtr<W> m_destination;
@@ -58,7 +56,8 @@ namespace IO {
   }
 
   template<typename W>
-  void AsyncWriter<W>::Write(const SharedBuffer& data) {
+  template<typename B>
+  void AsyncWriter<W>::Write(const B& data) {
     try {
       m_tasks.Push([=] {
         try {
@@ -74,12 +73,6 @@ namespace IO {
     } catch(const PipeBrokenException&) {
       std::rethrow_exception(m_exception);
     }
-  }
-
-  template<typename W>
-  template<typename BufferType>
-  void AsyncWriter<W>::Write(const BufferType& data) {
-    Write(data);
   }
 }
 

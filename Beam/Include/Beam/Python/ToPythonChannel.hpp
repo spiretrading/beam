@@ -27,6 +27,13 @@ namespace Beam::IO {
        */
       ToPythonChannel(std::unique_ptr<Channel> channel);
 
+      /**
+       * Constructs a ToPythonChannel in-place.
+       * @param args The arguments to forward to the constructor.
+       */
+      template<typename... Args>
+      ToPythonChannel(Args&&... args);
+
       ~ToPythonChannel();
 
       const Identifier& GetIdentifier() const;
@@ -64,6 +71,11 @@ namespace Beam::IO {
         &m_channel->GetReader()))),
       m_writer(MakeToPythonWriter(std::make_unique<WriterBox>(
         &m_channel->GetWriter()))) {}
+
+  template<typename C>
+  template<typename... Args>
+  ToPythonChannel<C>::ToPythonChannel(Args&&... args)
+    : ToPythonChannel(std::make_unique<Channel>(std::forward<Args>(args)...)) {}
 
   template<typename C>
   ToPythonChannel<C>::~ToPythonChannel() {

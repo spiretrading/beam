@@ -23,7 +23,20 @@ namespace Beam::IO {
        */
       ToPythonServerConnection(std::unique_ptr<ServerConnection> connection);
 
+      /**
+       * Constructs a ToPythonServerConnection in-place.
+       * @param args The arguments to forward to the constructor.
+       */
+      template<typename... Args>
+      ToPythonServerConnection(Args&&... args);
+
       ~ToPythonServerConnection();
+
+      /** Returns the wrapped ServerConnection. */
+      const ServerConnection& GetConnection() const;
+
+      /** Returns the wrapped ServerConnection. */
+      ServerConnection& GetConnection();
 
       std::unique_ptr<Channel> Accept();
 
@@ -50,10 +63,28 @@ namespace Beam::IO {
     : m_connection(std::move(connection)) {}
 
   template<typename C>
+  template<typename... Args>
+  ToPythonServerConnection<C>::ToPythonServerConnection(Args&&... args)
+    : ToPythonServerConnection(std::make_unique<ServerConnection>(
+        std::forward<Args>(args)...)) {}
+
+  template<typename C>
   ToPythonServerConnection<C>::~ToPythonServerConnection() {
     Close();
     auto release = Python::GilRelease();
     m_connection.reset();
+  }
+
+  template<typename C>
+  const typename ToPythonServerConnection<C>::ServerConnection&
+      ToPythonServerConnection<C>::GetConnection() const {
+    return *m_connection;
+  }
+
+  template<typename C>
+  typename ToPythonServerConnection<C>::ServerConnection&
+      ToPythonServerConnection<C>::GetConnection() {
+    return *m_connection;
   }
 
   template<typename C>

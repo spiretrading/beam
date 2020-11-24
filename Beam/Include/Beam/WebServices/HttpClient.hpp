@@ -106,7 +106,7 @@ namespace WebServices {
     HttpResponseParser parser;
     auto response = parser.GetNextResponse();
     while(!response.is_initialized()) {
-      typename Channel::Reader::Buffer readBuffer;
+      auto readBuffer = IO::SharedBuffer();
       try {
         m_channel->m_channel->GetReader().Read(Store(readBuffer));
       } catch(const std::exception&) {

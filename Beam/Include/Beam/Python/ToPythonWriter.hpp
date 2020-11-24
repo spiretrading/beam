@@ -22,6 +22,13 @@ namespace Beam::IO {
        */
       ToPythonWriter(std::unique_ptr<Writer> writer);
 
+      /**
+       * Constructs a ToPythonWriter in-place.
+       * @param args The arguments to forward to the constructor.
+       */
+      template<typename... Args>
+      ToPythonWriter(Args&&... args);
+
       ~ToPythonWriter();
 
       void Write(const void* data, std::size_t size);
@@ -44,6 +51,11 @@ namespace Beam::IO {
   template<typename W>
   ToPythonWriter<W>::ToPythonWriter(std::unique_ptr<Writer> writer)
     : m_writer(std::move(writer)) {}
+
+  template<typename W>
+  template<typename... Args>
+  ToPythonWriter<W>::ToPythonWriter(Args&&... args)
+    : ToPythonWriter(std::make_unique<Writer>(std::forward<Args>(args)...)) {}
 
   template<typename W>
   ToPythonWriter<W>::~ToPythonWriter() {

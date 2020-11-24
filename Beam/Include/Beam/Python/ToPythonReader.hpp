@@ -22,7 +22,20 @@ namespace Beam::IO {
        */
       ToPythonReader(std::unique_ptr<Reader> reader);
 
+      /**
+       * Constructs a ToPythonReader in-place.
+       * @param args The arguments to forward to the constructor.
+       */
+      template<typename... Args>
+      ToPythonReader(Args&&... args);
+
       ~ToPythonReader();
+
+      /** Returns the wrapped Reader. */
+      const Reader& GetReader() const;
+
+      /** Returns the wrapped Reader. */
+      Reader& GetReader();
 
       bool IsDataAvailable() const;
 
@@ -50,9 +63,25 @@ namespace Beam::IO {
     : m_reader(std::move(reader)) {}
 
   template<typename R>
+  template<typename... Args>
+  ToPythonReader<R>::ToPythonReader(Args&&... args)
+    : ToPythonReader(std::make_unique<Reader>(std::forward<Args>(args)...)) {}
+
+  template<typename R>
   ToPythonReader<R>::~ToPythonReader() {
     auto release = Python::GilRelease();
     m_reader.reset();
+  }
+
+  template<typename R>
+  const typename ToPythonReader<R>::Reader&
+      ToPythonReader<R>::GetReader() const {
+    return *m_reader;
+  }
+
+  template<typename R>
+  typename ToPythonReader<R>::Reader& ToPythonReader<R>::GetReader() {
+    return *m_reader;
   }
 
   template<typename R>

@@ -11,6 +11,7 @@
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
+#include "Beam/Python/IO.hpp"
 #include "Beam/Python/Out.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
@@ -52,9 +53,18 @@ void Beam::Python::ExportCodecs(module& module) {
   register_exception<EncoderException>(submodule, "EncoderException");
 }
 
-void Beam::Python::ExportCodedReader(pybind11::module& module) {}
+void Beam::Python::ExportCodedReader(pybind11::module& module) {
+  ExportReader<
+    ToPythonReader<CodedReader<SharedBuffer, ReaderBox, DecoderBox>>>(module,
+    "CodedReader")
+    .def(init<ReaderBox, DecoderBox>());
+}
 
-void Beam::Python::ExportCodedWriter(pybind11::module& module) {}
+void Beam::Python::ExportCodedWriter(pybind11::module& module) {
+  ExportWriter<
+    ToPythonWriter<CodedWriter<WriterBox, EncoderBox>>>(module, "CodedWriter")
+    .def(init<WriterBox, EncoderBox>());
+}
 
 void Beam::Python::ExportNullDecoder(module& module) {
   ExportDecoder<NullDecoder>(module, "NullDecoder")

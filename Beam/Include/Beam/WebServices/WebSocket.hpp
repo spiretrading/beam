@@ -136,7 +136,7 @@ namespace Details {
       HttpResponseParser m_parser;
       GetOptionalLocalPtr<C> m_channel;
       std::mt19937 m_randomEngine;
-      typename Channel::Reader::Buffer m_frameBuffer;
+      IO::SharedBuffer m_frameBuffer;
       IO::OpenState m_openState;
 
       void Open();
@@ -259,16 +259,15 @@ namespace Details {
     auto frame = typename Channel::Writer::Buffer();
     auto code = std::uint8_t((1 << 7) | 1);
     frame.Append(&code, sizeof(code));
-    auto payloadLength =
-      [&] {
-        if(size <= MAX_PAYLOAD_LENGTH) {
-          return static_cast<std::uint8_t>(size);
-        } else if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
-          return std::uint8_t{126};
-        } else {
-          return std::uint8_t{127};
-        }
-      }();
+    auto payloadLength = [&] {
+      if(size <= MAX_PAYLOAD_LENGTH) {
+        return static_cast<std::uint8_t>(size);
+      } else if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
+        return std::uint8_t{126};
+      } else {
+        return std::uint8_t{127};
+      }
+    }();
     if(!m_isServerMode) {
       payloadLength |= (1 << 7);
     }

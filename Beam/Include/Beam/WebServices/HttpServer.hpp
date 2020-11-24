@@ -140,8 +140,8 @@ namespace Beam::WebServices {
       clients.Insert(channel);
       clientRoutines.Spawn([=, &clients] {
         auto parser = HttpRequestParser();
-        auto requestBuffer = typename Channel::Reader::Buffer();
-        auto responseBuffer = typename Channel::Writer::Buffer();
+        auto requestBuffer = IO::SharedBuffer();
+        auto responseBuffer = IO::SharedBuffer();
         try {
           while(true) {
             channel->GetReader().Read(Store(requestBuffer));

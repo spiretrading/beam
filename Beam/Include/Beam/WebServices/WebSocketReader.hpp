@@ -1,6 +1,5 @@
-#ifndef BEAM_WEBSOCKETREADER_HPP
-#define BEAM_WEBSOCKETREADER_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_WEB_SOCKET_READER_HPP
+#define BEAM_WEB_SOCKET_READER_HPP
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -10,23 +9,22 @@
 namespace Beam {
 namespace WebServices {
 
-  /*! \class WebSocketReader
-      \brief Implements the Reader interface for a WebSocket.
-   */
-  template<typename WebSocketType>
-  class WebSocketReader : private boost::noncopyable {
+  /** Implements the Reader interface for a WebSocket. */
+  template<typename S>
+  class WebSocketReader {
     public:
 
-      //! The type of WebSocket to read from.
-      using WebSocket = WebSocketType;
-      using Buffer = IO::SharedBuffer;
+      /** The type of WebSocket to read from. */
+      using WebSocket = S;
 
       bool IsDataAvailable() const;
 
+      template<typename Buffer>
       std::size_t Read(Out<Buffer> destination);
 
       std::size_t Read(char* destination, std::size_t size);
 
+      template<typename Buffer>
       std::size_t Read(Out<Buffer> destination, std::size_t size);
 
     private:
@@ -34,18 +32,19 @@ namespace WebServices {
       std::shared_ptr<WebSocket> m_socket;
       boost::optional<IO::BufferReader<IO::SharedBuffer>> m_reader;
 
-      WebSocketReader(const std::shared_ptr<WebSocket>& socket);
+      WebSocketReader(std::shared_ptr<WebSocket> socket);
       void ReadFromWebSocket();
   };
 
-  template<typename WebSocketType>
-  bool WebSocketReader<WebSocketType>::IsDataAvailable() const {
-    return m_reader.is_initialized() && m_reader->IsDataAvailable();
+  template<typename S>
+  bool WebSocketReader<S>::IsDataAvailable() const {
+    return m_reader && m_reader->IsDataAvailable();
   }
 
-  template<typename WebSocketType>
-  std::size_t WebSocketReader<WebSocketType>::Read(Out<Buffer> destination) {
-    if(!m_reader.is_initialized()) {
+  template<typename S>
+  template<typename Buffer>
+  std::size_t WebSocketReader<S>::Read(Out<Buffer> destination) {
+    if(!m_reader) {
       ReadFromWebSocket();
     }
     try {
@@ -56,10 +55,9 @@ namespace WebServices {
     }
   }
 
-  template<typename WebSocketType>
-  std::size_t WebSocketReader<WebSocketType>::Read(char* destination,
-      std::size_t size) {
-    if(!m_reader.is_initialized()) {
+  template<typename S>
+  std::size_t WebSocketReader<S>::Read(char* destination, std::size_t size) {
+    if(!m_reader) {
       ReadFromWebSocket();
     }
     try {
@@ -70,10 +68,11 @@ namespace WebServices {
     }
   }
 
-  template<typename WebSocketType>
-  std::size_t WebSocketReader<WebSocketType>::Read(Out<Buffer> destination,
+  template<typename S>
+  template<typename Buffer>
+  std::size_t WebSocketReader<S>::Read(Out<Buffer> destination,
       std::size_t size) {
-    if(!m_reader.is_initialized()) {
+    if(!m_reader) {
       ReadFromWebSocket();
     }
     try {
@@ -84,21 +83,19 @@ namespace WebServices {
     }
   }
 
-  template<typename WebSocketType>
-  WebSocketReader<WebSocketType>::WebSocketReader(
-      const std::shared_ptr<WebSocket>& socket)
-      : m_socket{socket} {}
+  template<typename S>
+  WebSocketReader<S>::WebSocketReader(std::shared_ptr<WebSocket> socket)
+    : m_socket(socket) {}
 
-  template<typename WebSocketType>
-  void WebSocketReader<WebSocketType>::ReadFromWebSocket() {
+  template<typename S>
+  void WebSocketReader<S>::ReadFromWebSocket() {
     m_reader.emplace(m_socket->Read());
   }
 }
 
-  template<typename WebSocketType>
-  struct ImplementsConcept<WebServices::WebSocketReader<WebSocketType>,
-      IO::Reader<typename WebServices::WebSocketReader<WebSocketType>::Buffer>>
-      : std::true_type {};
+  template<typename S>
+  struct ImplementsConcept<WebServices::WebSocketReader<S>, IO::Reader> :
+    std::true_type {};
 }
 
 #endif

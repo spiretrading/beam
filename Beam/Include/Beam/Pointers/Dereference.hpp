@@ -78,7 +78,7 @@ namespace Beam {
   using GetTryDereferenceType = typename TryDereferenceType<T>::type;
 
   template<typename T>
-  decltype(auto) FullyDereference(T& value) {
+  decltype(auto) FullyDereference(T&& value) {
     if constexpr(IsDereferenceable<std::decay_t<T>>::value) {
       return FullyDereference(*value);
     } else {

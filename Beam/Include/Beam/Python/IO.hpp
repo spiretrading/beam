@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHON_IO_HPP
 #define BEAM_PYTHON_IO_HPP
+#include <boost/lexical_cast.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/IO/BufferBox.hpp"
 #include "Beam/IO/BufferView.hpp"
@@ -210,7 +211,7 @@ namespace Beam::Python {
         }
       })
       .def("append", static_cast<void (Buffer::*)(const IO::BufferView&)>(
-        &Buffer::Append<IO::BufferView>))
+        &Buffer::template Append<IO::BufferView>))
       .def("append", [] (Buffer& self, const pybind11::str& value) {
         if(auto rawString = PyUnicode_AsUTF8(value.ptr())) {
           self.Append(rawString, pybind11::len(value));
@@ -226,7 +227,7 @@ namespace Beam::Python {
       pybind11::implicitly_convertible<Buffer, IO::BufferView>();
       GetExportedBufferView().def(pybind11::init(
         [] (const std::shared_ptr<Buffer>& buffer) {
-          return BufferView(*buffer);
+          return IO::BufferView(*buffer);
         }));
     }
     return buffer;

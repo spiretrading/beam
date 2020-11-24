@@ -44,7 +44,7 @@ namespace IO {
 
       template<typename T>
       std::enable_if_t<!IsBufferView<T>> Append(T value) {
-        m_buffer->Append(buffer);
+        m_buffer->Append(value);
       }
 
       void Reset();

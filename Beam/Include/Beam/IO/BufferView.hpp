@@ -1,5 +1,6 @@
 #ifndef BEAM_BUFFER_VIEW_HPP
 #define BEAM_BUFFER_VIEW_HPP
+#include <memory>
 #include <type_traits>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Utilities/Concept.hpp"

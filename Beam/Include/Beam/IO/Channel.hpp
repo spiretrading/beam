@@ -32,11 +32,12 @@ namespace Details {
    */
   template<typename I, typename C, typename R, typename W>
   struct Channel : Concept<Channel<I, C, R, W>> {
-    static_assert(ImplementsConcept<I, ChannelIdentifier>::value,
+    static_assert(ImplementsConcept<I, IO::ChannelIdentifier>::value,
       "I must implement the ChannelIdentifier Concept.");
-    static_assert(ImplementsConcept<C, Connection>::value,
+    static_assert(ImplementsConcept<C, IO::Connection>::value,
       "C must implement the Connection Concept.");
-    static_assert(IsReader<R>::value, "R must implement the Reader Concept.");
+    static_assert(ImplementsConcept<R, IO::Reader>::value,
+      "R must implement the Reader Concept.");
     static_assert(IsWriter<W>::value, "W must implement the Writer Concept.");
 
     /** Defines the type of ChannelIdentifier. */

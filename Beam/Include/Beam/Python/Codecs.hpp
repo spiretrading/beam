@@ -83,12 +83,13 @@ namespace Beam::Python {
         std::size_t, void*, std::size_t)>(&Decoder::Decode))
       .def("decode", static_cast<std::size_t (Decoder::*)(
         const IO::BufferView&, void*, std::size_t)>(
-        &Decoder::Decode<IO::BufferView>))
+          &Decoder::template Decode<IO::BufferView>))
       .def("decode", static_cast<std::size_t (Decoder::*)(const void*,
-        std::size_t, Out<IO::BufferBox>)>(&Decoder::Decode<IO::BufferBox>))
+        std::size_t, Out<IO::BufferBox>)>(
+          &Decoder::template Decode<IO::BufferBox>))
       .def("decode", static_cast<std::size_t (Decoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
-        &Decoder::Decode<IO::BufferView, IO::BufferBox>));
+          &Decoder::template Decode<IO::BufferView, IO::BufferBox>));
     if constexpr(!std::is_same_v<Decoder, Codecs::DecoderBox>) {
       pybind11::implicitly_convertible<Decoder, Codecs::DecoderBox>();
       GetExportedDecoderBox().def(pybind11::init<Decoder>());
@@ -110,12 +111,13 @@ namespace Beam::Python {
         std::size_t, void*, std::size_t)>(&Encoder::Encode))
       .def("encode", static_cast<std::size_t (Encoder::*)(
         const IO::BufferView&, void*, std::size_t)>(
-        &Encoder::Encode<IO::BufferView>))
+          &Encoder::template Encode<IO::BufferView>))
       .def("encode", static_cast<std::size_t (Encoder::*)(const void*,
-        std::size_t, Out<IO::BufferBox>)>(&Encoder::Encode<IO::BufferBox>))
+        std::size_t, Out<IO::BufferBox>)>(
+          &Encoder::template Encode<IO::BufferBox>))
       .def("encode", static_cast<std::size_t (Encoder::*)(
         const IO::BufferView&, Out<IO::BufferBox>)>(
-        &Encoder::Encode<IO::BufferView, IO::BufferBox>));
+          &Encoder::template Encode<IO::BufferView, IO::BufferBox>));
     if constexpr(!std::is_same_v<Encoder, Codecs::EncoderBox>) {
       pybind11::implicitly_convertible<Encoder, Codecs::EncoderBox>();
       GetExportedEncoderBox().def(pybind11::init<Encoder>());

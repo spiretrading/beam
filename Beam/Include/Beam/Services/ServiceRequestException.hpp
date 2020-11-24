@@ -1,34 +1,29 @@
-#ifndef BEAM_SERVICEREQUESTEXCEPTION_HPP
-#define BEAM_SERVICEREQUESTEXCEPTION_HPP
+#ifndef BEAM_SERVICE_REQUEST_EXCEPTION_HPP
+#define BEAM_SERVICE_REQUEST_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Serialization/Serialization.hpp"
 #include "Beam/Services/Services.hpp"
 
-namespace Beam {
-namespace Services {
+namespace Beam::Services {
 
-  /*! \class ServiceRequestException
-      \brief Indicates a general failure to service a request.
-   */
+  /** Indicates a general failure to service a request. */
   class ServiceRequestException : public std::runtime_error,
       public boost::exception {
     public:
 
-      //! Constructs a ServiceRequestException.
+      /** Constructs a ServiceRequestException. */
       ServiceRequestException();
 
-      //! Constructs a ServiceRequestException.
-      /*!
-        \param message A message describing the error.
-      */
+      /**
+       * Constructs a ServiceRequestException.
+       * @param message The reason for the exception.
+       */
       ServiceRequestException(const std::string& message);
-
-      virtual ~ServiceRequestException() throw();
 
       virtual void Throw() const;
 
-      virtual const char* what() const throw();
+      const char* what() const noexcept override;
 
     protected:
       friend struct Serialization::DataShuttle;
@@ -41,20 +36,18 @@ namespace Services {
   };
 
   inline ServiceRequestException::ServiceRequestException()
-      : std::runtime_error("") {}
+    : std::runtime_error("Service request failed.") {}
 
   inline ServiceRequestException::ServiceRequestException(
-      const std::string& message)
-      : std::runtime_error(""),
-        m_message(message) {}
-
-  inline ServiceRequestException::~ServiceRequestException() throw() {}
+    const std::string& message)
+    : std::runtime_error(message),
+      m_message(message) {}
 
   inline void ServiceRequestException::Throw() const {
     throw *this;
   }
 
-  inline const char* ServiceRequestException::what() const throw() {
+  inline const char* ServiceRequestException::what() const noexcept {
     return m_message.c_str();
   }
 
@@ -65,7 +58,6 @@ namespace Services {
       shuttle.Shuttle("message", m_message);
     }
   }
-}
 }
 
 #endif

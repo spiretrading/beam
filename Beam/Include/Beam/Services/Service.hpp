@@ -18,29 +18,28 @@
 #include "Beam/Services/ServiceSlot.hpp"
 #include "Beam/Utilities/Preprocessor.hpp"
 
-#define BEAM_DEFINE_SERVICE(Name, Uid, ReturnType, ...)                        \
+#define BEAM_DEFINE_SERVICE(Name, Uid, R, ...)                                 \
   namespace Details {                                                          \
     BEAM_DEFINE_RECORD(Name##Parameters, __VA_ARGS__)                          \
   }                                                                            \
                                                                                \
-  using Name = ::Beam::Services::Service<ReturnType, Details::Name##Parameters>;
+  using Name = ::Beam::Services::Service<R, Details::Name##Parameters>;
 
 #define BEAM_APPLY_SERVICE(z, n, q) BEAM_DEFINE_SERVICE q
 #define BEAM_GET_SERVICE_NAME(Name, ...) Name
 #define BEAM_GET_SERVICE_UID(Name, Uid, ...) Uid
 
 #define BEAM_REGISTER_SERVICE(z, n, q)                                         \
-  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q ::Request<    \
-    ServiceProtocolClientType>>(BEAM_GET_SERVICE_UID q ".Request");            \
-  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q ::Response<   \
-    ServiceProtocolClientType>>(BEAM_GET_SERVICE_UID q ".Response");
+  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q ::Request<C>>(\
+    BEAM_GET_SERVICE_UID q ".Request");                                        \
+  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q               \
+    ::Response<C>>(BEAM_GET_SERVICE_UID q ".Response");
 
 #define BEAM_DEFINE_SERVICES_(Name, ServiceList)                               \
   BOOST_PP_LIST_FOR_EACH(BEAM_APPLY_SERVICE, BOOST_PP_EMPTY, ServiceList)      \
                                                                                \
-  template<typename ServiceProtocolClientType>                                 \
-  void Register##Name(::Beam::Out< ::Beam::Services::ServiceSlots<             \
-      ServiceProtocolClientType>> slots) {                                     \
+  template<typename C>                                                         \
+  void Register##Name(::Beam::Out< ::Beam::Services::ServiceSlots<C>> slots) { \
     BOOST_PP_LIST_FOR_EACH(BEAM_REGISTER_SERVICE, BOOST_PP_EMPTY, ServiceList) \
   }
 
@@ -48,25 +47,23 @@
   BEAM_DEFINE_SERVICES_(Name, BOOST_PP_TUPLE_TO_LIST(PP_NARG(__VA_ARGS__),     \
     (__VA_ARGS__)))
 
-namespace Beam {
-namespace Services {
+namespace Beam::Services {
 namespace Details {
-  template<typename RequestTokenType, typename TypeList =
-    typename RequestTokenType::Service::Parameters::TypeList>
+  template<typename T, typename TypeList =
+    typename T::Service::Parameters::TypeList>
   struct GetSlotType {};
 
-  template<typename RequestTokenType, typename TypeList =
-    typename RequestTokenType::Service::Parameters::TypeList>
+  template<typename T, typename TypeList =
+    typename T::Service::Parameters::TypeList>
   struct GetSlotWrapperType {};
 
-  template<typename RequestTokenType, typename TypeList =
-    typename RequestTokenType::Service::Parameters::TypeList>
+  template<typename T, typename TypeList =
+    typename T::Service::Parameters::TypeList>
   struct InvokeSlot {};
 
-  template<typename RequestTokenType, typename SlotType,
-    typename ReturnType = typename RequestTokenType::Service::Return,
-    typename TypeList =
-    typename RequestTokenType::Service::Parameters::TypeList>
+  template<typename T, typename S,
+    typename R = typename T::Service::Return,
+    typename TypeList = typename T::Service::Parameters::TypeList>
   struct SlotWrapper {};
 
   #define PASS_PARAMETER(z, n, q)                                              \
@@ -76,46 +73,39 @@ namespace Details {
     BOOST_PP_COMMA_IF(n) parameters.template Get<n>()
 
   #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<typename RequestTokenType BOOST_PP_COMMA_IF(n)                      \
-    BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
-  struct GetSlotType<RequestTokenType,                                         \
-      boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    using type = std::function<void (RequestTokenType& BOOST_PP_COMMA_IF(n)    \
+  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
+  struct GetSlotType<T, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {      \
+    using type = std::function<void (T& BOOST_PP_COMMA_IF(n)                   \
       BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
   };                                                                           \
                                                                                \
-  template<typename RequestTokenType BOOST_PP_COMMA_IF(n)                      \
-    BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
-  struct GetSlotWrapperType<RequestTokenType,                                  \
+  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
+  struct GetSlotWrapperType<T,                                                 \
       boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    using type = std::function<typename RequestTokenType::Service::Return (    \
-      typename RequestTokenType::ServiceProtocolClient& BOOST_PP_COMMA_IF(n)   \
+    using type = std::function<typename T::Service::Return (                   \
+      typename T::ServiceProtocolClient& BOOST_PP_COMMA_IF(n)                  \
       BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
   };                                                                           \
                                                                                \
-  template<typename RequestTokenType BOOST_PP_COMMA_IF(n)                      \
-    BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
-  struct InvokeSlot<RequestTokenType, boost::mpl::vector<                      \
-      BOOST_PP_ENUM_PARAMS(n, A)>> {                                           \
-    void operator ()(const typename GetSlotType<RequestTokenType>::type& slot, \
-        RequestTokenType& token,                                               \
-        const typename RequestTokenType::Service::Parameters& parameters)      \
-        const {                                                                \
+  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
+  struct InvokeSlot<T, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {       \
+    void operator ()(const typename GetSlotType<T>::type& slot, T& token,      \
+        const typename T::Service::Parameters& parameters) const {             \
       slot(token BOOST_PP_COMMA_IF(n) BOOST_PP_REPEAT(n, GET_PARAMETER,        \
         BOOST_PP_EMPTY));                                                      \
     }                                                                          \
   };                                                                           \
                                                                                \
-  template<typename RequestTokenType, typename SlotType                        \
+  template<typename T, typename S                                              \
     BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>                  \
-  struct SlotWrapper<RequestTokenType, SlotType, void,                         \
+  struct SlotWrapper<T, S, void,                                               \
       boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    typename GetSlotWrapperType<RequestTokenType>::type m_slot;                \
+    typename GetSlotWrapperType<T>::type m_slot;                               \
                                                                                \
-    SlotWrapper(typename GetSlotWrapperType<RequestTokenType>::type slot)      \
-        : m_slot(slot) {}                                                      \
+    SlotWrapper(typename GetSlotWrapperType<T>::type slot)                     \
+      : m_slot(slot) {}                                                        \
                                                                                \
-    void operator ()(RequestTokenType& request BOOST_PP_COMMA_IF(n)            \
+    void operator ()(T& request BOOST_PP_COMMA_IF(n)                           \
         BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY)) const {            \
       try {                                                                    \
         m_slot(request.GetClient() BOOST_PP_COMMA_IF(n)                        \
@@ -129,16 +119,15 @@ namespace Details {
     }                                                                          \
   };                                                                           \
                                                                                \
-  template<typename RequestTokenType, typename SlotType, typename ReturnType   \
+  template<typename T, typename S, typename R                                  \
     BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>                  \
-  struct SlotWrapper<RequestTokenType, SlotType, ReturnType,                   \
-      boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    typename GetSlotWrapperType<RequestTokenType>::type m_slot;                \
+  struct SlotWrapper<T, S, R, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {\
+    typename GetSlotWrapperType<T>::type m_slot;                               \
                                                                                \
-    SlotWrapper(typename GetSlotWrapperType<RequestTokenType>::type slot)      \
-        : m_slot(slot) {}                                                      \
+    SlotWrapper(typename GetSlotWrapperType<T>::type slot)                     \
+      : m_slot(slot) {}                                                        \
                                                                                \
-    void operator ()(RequestTokenType& request BOOST_PP_COMMA_IF(n)            \
+    void operator ()(T& request BOOST_PP_COMMA_IF(n)                           \
         BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY)) const {            \
       try {                                                                    \
         request.SetResult(m_slot(request.GetClient() BOOST_PP_COMMA_IF(n)      \
@@ -156,64 +145,61 @@ namespace Details {
   #undef GET_PARAMETER
   #undef PASS_PARAMETER
 
-  template<typename RequestType>
-  class ServiceRequestSlot : public ServiceSlot<RequestType> {
+  template<typename R>
+  class ServiceRequestSlot : public ServiceSlot<R> {
     public:
-      using Request = RequestType;
-      using PreHook = typename ServiceSlot<RequestType>::PreHook;
+      using Request = R;
+      using PreHook = typename ServiceSlot<Request>::PreHook;
 
       virtual void Invoke(int requestId,
         Ref<typename Request::ServiceProtocolClient> protocol,
         const typename Request::Parameters& parameters) const = 0;
   };
 
-  template<typename ServiceType, typename ServiceProtocolClientType>
-  class ServiceRequestSlotImplementation : public ServiceRequestSlot<
-      typename ServiceType::template Request<ServiceProtocolClientType> > {
+  template<typename S, typename C>
+  class ServiceRequestSlotImplementation final :
+      public ServiceRequestSlot<typename S::template Request<C>> {
     public:
-      using Service = ServiceType;
-      using ServiceProtocolClient = ServiceProtocolClientType;
+      using Service = S;
+      using ServiceProtocolClient = C;
       using Request = typename Service::template Request<ServiceProtocolClient>;
       using Response =
         typename Service::template Response<ServiceProtocolClient>;
-      using Slot = typename GetSlotType<RequestToken<ServiceProtocolClientType,
-        Service>>::type;
+      using Slot = typename GetSlotType<RequestToken<C, Service>>::type;
       using PreHook = typename ServiceRequestSlot<
-        typename ServiceType::template Request<
-        ServiceProtocolClientType>>::PreHook;
+        typename S::template Request<C>>::PreHook;
 
-      template<typename SlotForward>
-      ServiceRequestSlotImplementation(SlotForward&& slot);
+      template<typename L>
+      ServiceRequestSlotImplementation(L&& slot);
 
-      virtual void Invoke(int requestId, Ref<ServiceProtocolClient> protocol,
-        const typename Request::Parameters& parameters) const;
+      void Invoke(int requestId, Ref<ServiceProtocolClient> protocol,
+        const typename Request::Parameters& parameters) const override;
 
-      virtual void AddPreHook(const PreHook& hook);
+      void AddPreHook(const PreHook& hook) override;
 
     private:
       std::vector<PreHook> m_preHooks;
       Slot m_slot;
   };
 
-  template<typename ServiceType, typename ServiceProtocolClientType>
-  template<typename SlotForward>
-  ServiceRequestSlotImplementation<ServiceType, ServiceProtocolClientType>::
-      ServiceRequestSlotImplementation(SlotForward&& slot)
-      : m_slot(std::forward<SlotForward>(slot)) {}
+  template<typename S, typename C>
+  template<typename L>
+  ServiceRequestSlotImplementation<S, C>::ServiceRequestSlotImplementation(
+    L&& slot)
+    : m_slot(std::forward<L>(slot)) {}
 
-  template<typename ServiceType, typename ServiceProtocolClientType>
-  void ServiceRequestSlotImplementation<ServiceType,
-      ServiceProtocolClientType>::Invoke(int requestId,
+  template<typename S, typename C>
+  void ServiceRequestSlotImplementation<S, C>::Invoke(int requestId,
       Ref<ServiceProtocolClient> protocol,
       const typename Request::Parameters& parameters) const {
     try {
       for(auto& preHook : m_preHooks) {
         preHook(*protocol.Get());
       }
-      auto token = RequestToken<ServiceProtocolClientType, Service>(
-        Ref(protocol), requestId);
-      InvokeSlot<RequestToken<ServiceProtocolClientType, Service>>()(m_slot,
-        token, parameters);
+      auto token = RequestToken<ServiceProtocolClient, Service>(Ref(protocol),
+        requestId);
+      InvokeSlot<RequestToken<ServiceProtocolClient, Service>>()(m_slot, token,
+        parameters);
     } catch(const ServiceRequestException& e) {
       protocol->Send(Response(requestId, protocol->CloneException(e)));
     } catch(const std::exception& e) {
@@ -222,167 +208,159 @@ namespace Details {
     }
   }
 
-  template<typename ServiceType, typename ServiceProtocolClientType>
-  void ServiceRequestSlotImplementation<ServiceType,
-      ServiceProtocolClientType>::AddPreHook(const PreHook& hook) {
+  template<typename S, typename C>
+  void ServiceRequestSlotImplementation<S, C>::AddPreHook(const PreHook& hook) {
     m_preHooks.push_back(hook);
   }
 }
 
-  /*! \class ServiceMessage
-      \brief Base class for a Request or Response Message.
-   */
-  template<typename ServiceProtocolClientType>
-  class ServiceMessage : public Message<ServiceProtocolClientType> {
+  /** Base class for a Request or Response Message. */
+  template<typename C>
+  class ServiceMessage : public Message<C> {
     public:
 
-      //! Returns this Message's request id.
+      /** Returns this Message's request id. */
       virtual int GetRequestId() const = 0;
 
-      //! Returns <code>true</code> iff this is a Response Message.
+      /** Returns <code>true</code> iff this is a Response Message. */
       virtual bool IsResponseMessage() const = 0;
 
-      //! Sets the result of this Request/Response.
-      /*!
-        \param eval The Eval to receive the result of this Request/Response.
-      */
+      /**
+       * Sets the result of this Request/Response.
+       * @param eval The Eval to receive the result of this Request/Response.
+       */
       virtual void SetEval(Routines::BaseEval& eval) const;
   };
 
-  /*! \class Service
-      \brief Represents a request and response message.
-      \tparam ReturnType The type of value returned by the response.
-      \tparam ParametersType The Record representing the request's parameters.
+  /**
+   * Represents a request and response message.
+   * @param <R> The type of value returned by the response.
+   * @param <P> The Record representing the request's parameters.
    */
-  template<typename ReturnType, typename ParametersType>
+  template<typename R, typename P>
   class Service {
     public:
 
-      //! The type returned by the Response.
-      using Return = ReturnType;
+      /** The type returned by the Response. */
+      using Return = R;
 
-      //! The Record representing the request's parameters.
-      using Parameters = ParametersType;
+      /** The Record representing the request's parameters. */
+      using Parameters = P;
 
-      //! Adds a slot to be associated with a Service Request.
-      /*!
-        \tparam ServiceProtocolClientType The type of ServiceProtocolClient
-                receiving the Request.
-        \param slot The slot handling the Request.
-      */
-      template<typename ServiceProtocolClientType>
-      static void AddRequestSlot(Out<ServiceSlots<ServiceProtocolClientType>>
-        serviceSlots, const typename Details::GetSlotType<
-        RequestToken<ServiceProtocolClientType, Service>>::type& slot);
-
-      //! Adds a slot to be associated with a Service Request.
-      /*!
-        \tparam ServiceProtocolClientType The type of ServiceProtocolClient
-                receiving the Request.
-        \param slot The slot handling the Request.
-      */
-      template<typename ServiceProtocolClientType>
-      static void AddSlot(Out<ServiceSlots<ServiceProtocolClientType>>
-        serviceSlots, const typename Details::GetSlotWrapperType<
-        RequestToken<ServiceProtocolClientType, Service>>::type& slot);
-
-      /*! \class Request
-          \brief Represents a request for a Service.
-          \tparam ServiceProtocolClientType The type of ServiceProtocolClient
-                  this Request is used with.
+      /**
+       * Adds a slot to be associated with a Service Request.
+       * @param <C> The type of ServiceProtocolClient receiving the Request.
+       * @param slot The slot handling the Request.
        */
-      template<typename ServiceProtocolClientType>
-      class Request : public ServiceMessage<ServiceProtocolClientType> {
+      template<typename C>
+      static void AddRequestSlot(Out<ServiceSlots<C>> serviceSlots,
+        const typename Details::GetSlotType<RequestToken<C, Service>>::type&
+        slot);
+
+      /**
+       * Adds a slot to be associated with a Service Request.
+       * @param <C> The type of ServiceProtocolClient receiving the Request.
+       * @param slot The slot handling the Request.
+       */
+      template<typename C>
+      static void AddSlot(Out<ServiceSlots<C>> serviceSlots,
+        const typename Details::GetSlotWrapperType<
+        RequestToken<C, Service>>::type& slot);
+
+      /**
+       * Represents a request for a Service.
+       * @param <C> The type of ServiceProtocolClient this Request is used with.
+       */
+      template<typename C>
+      class Request : public ServiceMessage<C> {
         public:
 
-          //! The type of ServiceProtocolClient this Request is used with.
-          using ServiceProtocolClient = ServiceProtocolClientType;
+          /** The type of ServiceProtocolClient this Request is used with. */
+          using ServiceProtocolClient = C;
 
-          //! The type of slot called when a request is received.
+          /** The type of slot called when a request is received. */
           using Slot = Details::ServiceRequestSlot<Request>;
 
-          //! The type returned by the Response.
-          using Return = ReturnType;
+          /** The type returned by the Response. */
+          using Return = R;
 
-          //! The Record representing the request's parameters.
-          using Parameters = ParametersType;
+          /** The Record representing the request's parameters. */
+          using Parameters = P;
 
-          //! Constructs a Request.
-          /*!
-            \param requestId The id identifying this Request.
-            \param parameters The Record containing the Parameters to send.
-          */
+          /**
+           * Constructs a Request.
+           * @param requestId The id identifying this Request.
+           * @param parameters The Record containing the Parameters to send.
+           */
           Request(int requestId, const Parameters& parameters);
 
-          virtual int GetRequestId() const;
+          int GetRequestId() const override;
 
-          virtual bool IsResponseMessage() const;
+          bool IsResponseMessage() const override;
 
-          virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-            Ref<ServiceProtocolClient> protocol) const;
+          void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
+            Ref<ServiceProtocolClient> protocol) const override;
 
         private:
           friend struct Serialization::DataShuttle;
           int m_requestId;
           Parameters m_parameters;
 
-          Request();
+          Request() = default;
           template<typename Shuttler>
           void Shuttle(Shuttler& shuttle, unsigned int version);
       };
 
-      /*! \class Response
-          \brief Represents the response to a Service Request.
-          \tparam ServiceProtocolClientType The type of ServiceProtocolClient
-                  this Request is used with.
+      /**
+       * Represents the response to a Service Request.
+       * @param <C> The type of ServiceProtocolClient this Request is used with.
        */
-      template<typename ServiceProtocolClientType>
-      class Response : public ServiceMessage<ServiceProtocolClientType> {
+      template<typename C>
+      class Response : public ServiceMessage<C> {
         public:
 
-          //! The type of ServiceProtocolClient this Request is used with.
-          using ServiceProtocolClient = ServiceProtocolClientType;
+          /** The type of ServiceProtocolClient this Request is used with. */
+          using ServiceProtocolClient = C;
 
-          //! Constructs a Response.
-          /*!
-            \param requestId The id of the request being responded to.
-            \param result The result of the Service Request.
-          */
+          /**
+           * Constructs a Response.
+           * @param requestId The id of the request being responded to.
+           * @param result The result of the Service Request.
+           */
           template<typename Q>
-          Response(int requestId, Q&& result, typename std::enable_if<
-            !std::is_same<Q, ReturnType>::value ||
-            !std::is_same<ReturnType, void>::value>::type* = 0);
+          Response(int requestId, Q&& result, std::enable_if_t<
+            !std::is_same<Q, R>::value || !std::is_same<R, void>::value>* = 0);
 
-          //! Constructs a Response to a void Service.
-          /*!
-            \param requestId The id of the request being responded to.
-          */
+          /**
+           * Constructs a Response to a void Service.
+           * @param requestId The id of the request being responded to.
+           */
           Response(int requestId);
 
-          //! Constructs a Response that failed with an exception.
-          /*!
-            \param requestId The id of the request being responded to.
-            \param e The ServiceRequestException that caused the Request to
-                     fail.
-          */
+          /**
+           * Constructs a Response that failed with an exception.
+           * @param requestId The id of the request being responded to.
+           * @param e The ServiceRequestException that caused the Request to
+           *          fail.
+           */
           Response(int requestId, std::unique_ptr<ServiceRequestException> e);
 
-          virtual int GetRequestId() const;
+          int GetRequestId() const override;
 
-          virtual bool IsResponseMessage() const;
+          bool IsResponseMessage() const override;
 
-          virtual void SetEval(Routines::BaseEval& eval) const;
+          void SetEval(Routines::BaseEval& eval) const override;
 
-          virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-            Ref<ServiceProtocolClient> protocol) const;
+          void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
+            Ref<ServiceProtocolClient> protocol) const override;
 
         private:
           friend struct Serialization::DataShuttle;
           int m_requestId;
-          typename StorageType<ReturnType>::type m_result;
+          typename StorageType<R>::type m_result;
           std::unique_ptr<ServiceRequestException> m_exception;
 
-          Response();
+          Response() = default;
           template<typename Shuttler>
           void Send(Shuttler& shuttle, unsigned int version) const;
           template<typename Shuttler>
@@ -390,157 +368,130 @@ namespace Details {
       };
   };
 
-  template<typename ServiceProtocolClientType>
-  void ServiceMessage<ServiceProtocolClientType>::SetEval(
-    Routines::BaseEval& eval) const {}
+  template<typename C>
+  void ServiceMessage<C>::SetEval(Routines::BaseEval& eval) const {}
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  void Service<ReturnType, ParametersType>::AddRequestSlot(
-      Out<ServiceSlots<ServiceProtocolClientType>> serviceSlots,
+  template<typename R, typename P>
+  template<typename C>
+  void Service<R, P>::AddRequestSlot(Out<ServiceSlots<C>> serviceSlots,
       const typename Details::GetSlotType<
-      RequestToken<ServiceProtocolClientType, Service>>::type& slot) {
-    auto serviceSlot = std::unique_ptr<
-      ServiceSlot<Request<ServiceProtocolClientType>>>(std::make_unique<
-      Details::ServiceRequestSlotImplementation<Service,
-      ServiceProtocolClientType>>(slot));
+      RequestToken<C, Service>>::type& slot) {
+    auto serviceSlot = std::unique_ptr<ServiceSlot<Request<C>>>(
+      std::make_unique<Details::ServiceRequestSlotImplementation<Service, C>>(
+      slot));
     serviceSlots->Add(std::move(serviceSlot));
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  void Service<ReturnType, ParametersType>::AddSlot(
-      Out<ServiceSlots<ServiceProtocolClientType>> serviceSlots,
+  template<typename R, typename P>
+  template<typename C>
+  void Service<R, P>::AddSlot(Out<ServiceSlots<C>> serviceSlots,
       const typename Details::GetSlotWrapperType<
-      RequestToken<ServiceProtocolClientType, Service>>::type& slot) {
-    auto slotWrapper = Details::SlotWrapper<
-      RequestToken<ServiceProtocolClientType, Service>,
-      typename Details::GetSlotWrapperType<
-      RequestToken<ServiceProtocolClientType, Service>>::type>(slot);
-    auto serviceSlot = std::unique_ptr<
-      ServiceSlot<Request<ServiceProtocolClientType>>>(std::make_unique<
-      Details::ServiceRequestSlotImplementation<Service,
-      ServiceProtocolClientType>>(std::move(slotWrapper)));
+      RequestToken<C, Service>>::type& slot) {
+    auto slotWrapper = Details::SlotWrapper<RequestToken<C, Service>,
+      typename Details::GetSlotWrapperType<RequestToken<C, Service>>::type>(
+      slot);
+    auto serviceSlot = std::unique_ptr<ServiceSlot<Request<C>>>(
+      std::make_unique<Details::ServiceRequestSlotImplementation<Service, C>>(
+      std::move(slotWrapper)));
     serviceSlots->Add(std::move(serviceSlot));
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-      Request(int requestId, const ParametersType& parameters)
+  template<typename R, typename P>
+  template<typename C>
+  Service<R, P>::Request<C>::Request(int requestId, const P& parameters)
     : m_requestId(requestId),
       m_parameters(parameters) {}
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  int Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-      GetRequestId() const {
+  template<typename R, typename P>
+  template<typename C>
+  int Service<R, P>::Request<C>::GetRequestId() const {
     return m_requestId;
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  bool Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-      IsResponseMessage() const {
+  template<typename R, typename P>
+  template<typename C>
+  bool Service<R, P>::Request<C>::IsResponseMessage() const {
     return false;
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  void Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-      EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
+  template<typename R, typename P>
+  template<typename C>
+  void Service<R, P>::Request<C>::EmitSignal(
+      BaseServiceSlot<ServiceProtocolClient>* slot,
       Ref<ServiceProtocolClient> protocol) const {
     static_cast<Slot*>(slot)->Invoke(m_requestId, Ref(protocol), m_parameters);
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-    Request() {}
-
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
+  template<typename R, typename P>
+  template<typename C>
   template<typename Shuttler>
-  void Service<ReturnType, ParametersType>::Request<ServiceProtocolClientType>::
-      Shuttle(Shuttler& shuttle, unsigned int version) {
+  void Service<R, P>::Request<C>::Shuttle(Shuttler& shuttle,
+      unsigned int version) {
     shuttle.Shuttle("request_id", m_requestId);
     if(boost::mpl::size<typename Parameters::TypeList>::value != 0) {
       shuttle.Shuttle("parameters", m_parameters);
     }
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
+  template<typename R, typename P>
+  template<typename C>
   template<typename Q>
-  Service<ReturnType, ParametersType>::Response<ServiceProtocolClientType>::
-      Response(int requestId, Q&& result,
-      typename std::enable_if<!std::is_same<Q, ReturnType>::value ||
-      !std::is_same<ReturnType, void>::value>::type*)
-      : m_requestId(requestId),
-        m_result(std::forward<Q>(result)) {}
+  Service<R, P>::Response<C>::Response(int requestId, Q&& result,
+    std::enable_if_t<!std::is_same<Q, R>::value ||
+      !std::is_same<R, void>::value>*)
+    : m_requestId(requestId),
+      m_result(std::forward<Q>(result)) {}
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  Service<ReturnType, ParametersType>::Response<ServiceProtocolClientType>::
-      Response(int requestId)
+  template<typename R, typename P>
+  template<typename C>
+  Service<R, P>::Response<C>::Response(int requestId)
       : m_requestId(requestId) {
-    static_assert(std::is_same<ReturnType, void>::value,
+    static_assert(std::is_same<R, void>::value,
       "Constructor only valid for void return type.");
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  Service<ReturnType, ParametersType>::Response<ServiceProtocolClientType>::
-      Response(int requestId, std::unique_ptr<ServiceRequestException> e)
-      : m_requestId(requestId),
-        m_exception(std::move(e)) {}
+  template<typename R, typename P>
+  template<typename C>
+  Service<R, P>::Response<C>::Response(int requestId,
+    std::unique_ptr<ServiceRequestException> e)
+    : m_requestId(requestId),
+      m_exception(std::move(e)) {}
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  int Service<ReturnType, ParametersType>::Response<ServiceProtocolClientType>::
-      GetRequestId() const {
+  template<typename R, typename P>
+  template<typename C>
+  int Service<R, P>::Response<C>::GetRequestId() const {
     return m_requestId;
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  bool Service<ReturnType, ParametersType>::Response<
-      ServiceProtocolClientType>::IsResponseMessage() const {
+  template<typename R, typename P>
+  template<typename C>
+  bool Service<R, P>::Response<C>::IsResponseMessage() const {
     return true;
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  void Service<ReturnType, ParametersType>::Response<
-      ServiceProtocolClientType>::SetEval(Routines::BaseEval& eval) const {
+  template<typename R, typename P>
+  template<typename C>
+  void Service<R, P>::Response<C>::SetEval(Routines::BaseEval& eval) const {
     if(m_exception != nullptr) {
-      static_cast<Routines::Eval<ReturnType>&>(eval).SetException(
+      static_cast<Routines::Eval<R>&>(eval).SetException(
         std::make_exception_ptr(*m_exception));
     } else {
-      static_cast<Routines::Eval<ReturnType>&>(eval).SetResult(
-        std::move(m_result));
+      static_cast<Routines::Eval<R>&>(eval).SetResult(std::move(m_result));
     }
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  void Service<ReturnType, ParametersType>::Response<
-      ServiceProtocolClientType>::EmitSignal(
+  template<typename R, typename P>
+  template<typename C>
+  void Service<R, P>::Response<C>::EmitSignal(
       BaseServiceSlot<ServiceProtocolClient>* slot,
       Ref<ServiceProtocolClient> protocol) const {
     assert(false);
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
-  Service<ReturnType, ParametersType>::Response<ServiceProtocolClientType>::
-    Response() {}
-
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
+  template<typename R, typename P>
+  template<typename C>
   template<typename Shuttler>
-  void Service<ReturnType, ParametersType>::Response<
-      ServiceProtocolClientType>::Send(Shuttler& shuttle,
+  void Service<R, P>::Response<C>::Send(Shuttler& shuttle,
       unsigned int version) const {
     shuttle.Shuttle("request_id", m_requestId);
     auto isException = (m_exception != nullptr);
@@ -552,11 +503,10 @@ namespace Details {
     }
   }
 
-  template<typename ReturnType, typename ParametersType>
-  template<typename ServiceProtocolClientType>
+  template<typename R, typename P>
+  template<typename C>
   template<typename Shuttler>
-  void Service<ReturnType, ParametersType>::Response<
-      ServiceProtocolClientType>::Receive(Shuttler& shuttle,
+  void Service<R, P>::Response<C>::Receive(Shuttler& shuttle,
       unsigned int version) {
     shuttle.Shuttle("request_id", m_requestId);
     auto isException = bool();
@@ -567,7 +517,6 @@ namespace Details {
       shuttle.Shuttle("result", m_result);
     }
   }
-}
 }
 
 #endif

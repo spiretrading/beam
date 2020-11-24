@@ -1,9 +1,8 @@
-#ifndef BEAM_SERVICEPROTOCOLSERVLETCONTAINERDETAILS_HPP
-#define BEAM_SERVICEPROTOCOLSERVLETCONTAINERDETAILS_HPP
+#ifndef BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_DETAILS_HPP
+#define BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_DETAILS_HPP
+#include <type_traits>
 
-namespace Beam {
-namespace Services {
-namespace Details {
+namespace Beam::Services::Details {
   template<bool HasMethod>
   struct InvokeClientAccepted {
     template<typename ServletType, typename ClientType>
@@ -26,13 +25,13 @@ namespace Details {
     };
 
     template<typename C>
-    static YesType Test(decltype(boost::declval<C>().HandleClientAccepted(
-      boost::declval<ClientType&>()))*);
+    static YesType Test(decltype(std::declval<C>().HandleClientAccepted(
+      std::declval<ClientType&>()))*);
 
     template<typename C>
     static NoType Test(...);
 
-    static const bool value = sizeof(Test<ServletType>(nullptr)) ==
+    static constexpr auto value = sizeof(Test<ServletType>(nullptr)) ==
       sizeof(YesType);
   };
 
@@ -57,8 +56,8 @@ namespace Details {
     using NoType = struct { char a[2]; };
 
     template<typename C>
-    static YesType Test(decltype(boost::declval<C>().HandleClientClosed(
-      boost::declval<ClientType&>()))*);
+    static YesType Test(decltype(std::declval<C>().HandleClientClosed(
+      std::declval<ClientType&>()))*);
 
     template<typename C>
     static NoType Test(...);
@@ -66,8 +65,6 @@ namespace Details {
     static const bool value = sizeof(Test<ServletType>(nullptr)) ==
       sizeof(YesType);
   };
-}
-}
 }
 
 #endif

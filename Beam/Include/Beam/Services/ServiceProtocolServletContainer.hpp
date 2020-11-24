@@ -1,5 +1,5 @@
-#ifndef BEAM_SERVICEPROTOCOLSERVLETCONTAINER_HPP
-#define BEAM_SERVICEPROTOCOLSERVLETCONTAINER_HPP
+#ifndef BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_HPP
+#define BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_HPP
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPointerPolicy.hpp"
@@ -13,51 +13,50 @@
 
 namespace Beam::Services {
 
-  /*! \class ServiceProtocolServletContainer
-      \brief Executes and manages a ServiceProtocolServlet.
-      \tparam M The type of ServiceProtocolServlet to host.
-      \tparam C The type of ServerConnection accepting Channels.
-      \tparam S The type of Sender used for serialization.
-      \tparam E The type of Encoder used for messages.
-      \tparam T The type of Timer used for heartbeats.
-      \tparam P The type of pointer to use with the Servlet.
+  /**
+   * Executes and manages a ServiceProtocolServlet.
+   * @param <M> The type of ServiceProtocolServlet to host.
+   * @param <C> The type of ServerConnection accepting Channels.
+   * @param <S> The type of Sender used for serialization.
+   * @param <E> The type of Encoder used for messages.
+   * @param <T> The type of Timer used for heartbeats.
+   * @param <P> The type of pointer to use with the Servlet.
    */
   template<typename M, typename C, typename S, typename E, typename T,
     typename P = LocalPointerPolicy>
   class ServiceProtocolServletContainer {
     public:
 
-      //! The type of ServiceProtocolServlet to host.
+      /** The type of ServiceProtocolServlet to host. */
       using Servlet = typename M::template apply<
         ServiceProtocolServletContainer>::type;
 
-      //! The type of ServerConnection accepting Channels.
+      /** The type of ServerConnection accepting Channels. */
       using ServerConnection = GetTryDereferenceType<C>;
 
-      //! The type of Sender used for serialization.
+      /** The type of Sender used for serialization. */
       using Sender = S;
 
-      //! The type of Encoder used for messages.
+      /** The type of Encoder used for messages. */
       using Encoder = E;
 
-      //! The type of Timer used for heartbeats.
+      /** The type of Timer used for heartbeats. */
       using Timer = GetTryDereferenceType<T>;
 
-      //! The type of ServiceProtocolServer.
-      using ServiceProtocolServer = Services::ServiceProtocolServer<
-        C, Sender, Encoder, T, typename M::Session,
-        SupportsParallelism<M>::value>;
+      /** The type of ServiceProtocolServer. */
+      using ServiceProtocolServer = Services::ServiceProtocolServer<C, Sender,
+        Encoder, T, typename M::Session, SupportsParallelism<M>::value>;
 
-      //! The type of ServiceProtocolClient.
+      /** The type of ServiceProtocolClient. */
       using ServiceProtocolClient =
         typename ServiceProtocolServer::ServiceProtocolClient;
 
-      //! Constructs the ServiceProtocolServletContainer.
-      /*!
-        \param servlet Initializes the Servlet.
-        \param serverConnection Accepts connections to the servlet.
-        \param timerFactory The type of Timer used for heartbeats.
-      */
+      /**
+       * Constructs the ServiceProtocolServletContainer.
+       * @param servlet Initializes the Servlet.
+       * @param serverConnection Accepts connections to the servlet.
+       * @param timerFactory The type of Timer used for heartbeats.
+       */
       template<typename SF, typename CF>
       ServiceProtocolServletContainer(SF&& servlet, CF&& serverConnection,
         typename ServiceProtocolServer::TimerFactory timerFactory);

@@ -112,6 +112,9 @@ namespace Beam::Services {
       LocalPtr<Decoder> m_decoder;
       IO::SharedBuffer m_receiveBuffer;
       IO::SharedBuffer m_decoderBuffer;
+
+      MessageProtocol(const MessageProtocol&) = delete;
+      MessageProtocol& operator =(const MessageProtocol&) = delete;
   };
 
   template<typename C, typename S, typename E>
@@ -159,7 +162,6 @@ namespace Beam::Services {
   template<typename Message>
   std::enable_if_t<!ImplementsConcept<Message, IO::Buffer>::value>
       MessageProtocol<C, S, E>::Send(const Message& message) {
-    m_openState.EnsureOpen();
     auto senderBuffer = typename Channel::Writer::Buffer();
     auto encoderBuffer = typename Channel::Writer::Buffer();
     if(Codecs::InPlaceSupport<Encoder>::value) {
@@ -191,7 +193,6 @@ namespace Beam::Services {
   template<typename Buffer>
   std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>
       MessageProtocol<C, S, E>::Send(const Buffer& buffer) {
-    m_openState.EnsureOpen();
     m_writer.Write(buffer);
   }
 

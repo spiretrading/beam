@@ -14,6 +14,7 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
+#include "Beam/Python/Json.hpp"
 #include "Beam/Python/KeyValuePair.hpp"
 #include "Beam/Python/Network.hpp"
 #include "Beam/Python/Optional.hpp"

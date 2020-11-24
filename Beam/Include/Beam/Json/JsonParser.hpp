@@ -1,5 +1,5 @@
-#ifndef BEAM_JSONPARSER_HPP
-#define BEAM_JSONPARSER_HPP
+#ifndef BEAM_JSON_PARSER_HPP
+#define BEAM_JSON_PARSER_HPP
 #include <sstream>
 #include <boost/throw_exception.hpp>
 #include <boost/variant/get.hpp>
@@ -28,15 +28,14 @@ namespace Beam {
       auto keyParser = Parsers::string_p;
       auto valueParser = Parsers::Convert(Parsers::string_p | nullParser |
         Parsers::bool_p | Parsers::double_p | objectParser | arrayParser,
-        [] (const Details::JsonVariant& value) {
+        [] (const auto& value) {
           return JsonValue(value);
         });
       auto keyValueParser = Parsers::tokenize >> keyParser >> ':' >>
         valueParser;
       objectParser.SetRule(Parsers::tokenize >> '{' >>
         Parsers::ForList(JsonObject(), keyValueParser, ',',
-          [] (JsonObject& object,
-              const std::tuple<std::string, JsonValue>& value) {
+          [] (auto& object, const auto& value) {
             object.Set(std::get<0>(value), std::get<1>(value));
           }) >> '}');
       arrayParser.SetRule(Parsers::tokenize >> '[' >>

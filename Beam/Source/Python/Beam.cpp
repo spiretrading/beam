@@ -16,6 +16,7 @@ template struct Beam::Routines::Details::NextId<void>;
 PYBIND11_MODULE(_beam, module) {
   ExportIO(module);
   ExportCodecs(module);
+  ExportJson(module);
   ExportKeyValuePair(module);
   ExportNetwork(module);
   ExportQueries(module);

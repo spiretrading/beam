@@ -1,5 +1,5 @@
-#ifndef BEAM_JSONVALUE_HPP
-#define BEAM_JSONVALUE_HPP
+#ifndef BEAM_JSON_VALUE_HPP
+#define BEAM_JSON_VALUE_HPP
 #include <cmath>
 #include <cstdint>
 #include <string>
@@ -12,15 +12,10 @@
 
 namespace Beam {
 
-  /*! \struct JsonNull
-      \brief Dummy class used to represent a null value.
-   */
+  /** Dummy class used to represent a null value. */
   struct JsonNull {
 
-    //! Constructs a JsonNull value.
-    JsonNull();
-
-    //! Always returns <code>true</code>.
+    /** Always returns <code>true</code>. */
     bool operator ==(JsonNull rhs) const;
   };
 
@@ -29,171 +24,169 @@ namespace Details {
     JsonObject, std::vector<JsonValue>>;
 }
 
-  /*! \class JsonValue
-      \brief Wraps a boost::variant over all JSON types.
-   */
+  /** Wraps a boost::variant over all JSON types. */
   class JsonValue : public Details::JsonVariant {
     public:
 
-      //! Constructs a null value.
+      /** Constructs a null value. */
       JsonValue();
 
-      //! Constructs a JsonValue from a variant type.
-      /*!
-        \param value The value to copy.
-      */
+      /**
+       * Constructs a JsonValue from a variant type.
+       * @param value The value to copy.
+       */
       JsonValue(const Details::JsonVariant& variant);
 
-      //! Copies a JsonValue.
-      /*!
-        \param value The value to copy.
-      */
+      /**
+       * Copies a JsonValue.
+       * @param value The value to copy.
+       */
       JsonValue(const JsonValue& value);
 
-      //! Constructs a null value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs a null value.
+       * @param value The value to represent.
+       */
       JsonValue(JsonNull value);
 
-      //! Constructs a bool value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs a bool value.
+       * @param value The value to represent.
+       */
       JsonValue(bool value);
 
-      //! Constructs an integer value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an integer value.
+       * @param value The value to represent.
+       */
       JsonValue(int value);
 
-      //! Constructs an integer value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an integer value.
+       * @param value The value to represent.
+       */
       JsonValue(std::int64_t value);
 
-      //! Constructs a number value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs a number value.
+       * @param value The value to represent.
+       */
       JsonValue(double value);
 
-      //! Constructs a string value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs a string value.
+       * @param value The value to represent.
+       */
       JsonValue(const std::string& value);
 
-      //! Constructs a string value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs a string value.
+       * @param value The value to represent.
+       */
       JsonValue(const char* value);
 
-      //! Constructs an object value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an object value.
+       * @param value The value to represent.
+       */
       JsonValue(const JsonObject& value);
 
-      //! Constructs an array value.
-      /*!
-        \param value The value to represent.
-      */
+      /**
+       * Constructs an array value.
+       * @param value The value to represent.
+       */
       JsonValue(const std::vector<JsonValue>& value);
 
-      //! Tests if two JSON values are equal.
-      /*!
-        \param value The value to test for equality.
-        \return <code>true</code> iff both values have the same type and value;
-      */
+      /**
+       * Tests if two JSON values are equal.
+       * @param value The value to test for equality.
+       * @return <code>true</code> iff both values have the same type and value;
+       */
       bool operator ==(const JsonValue& value) const;
 
-      //! Tests if two JSON values are not equal.
-      /*!
-        \param value The value to test for inequality.
-        \return <code>!(*this == value)</code>
-      */
+      /**
+       * Tests if two JSON values are not equal.
+       * @param value The value to test for inequality.
+       * @return <code>!(*this == value)</code>
+       */
       bool operator !=(const JsonValue& value) const;
 
-      //! Assigns a generic JSON value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns a generic JSON value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(const JsonValue& value);
 
-      //! Assigns a null value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns a null value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(JsonNull value);
 
-      //! Assigns a bool value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns a bool value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(bool value);
 
-      //! Assigns an integer value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns an integer value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(int value);
 
-      //! Assigns an integer value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns an integer value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(std::int64_t value);
 
-      //! Assigns a number value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns a number value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(double value);
 
-      //! Assigns a string value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns a string value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(const std::string& value);
 
-      //! Assigns an object value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns an object value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(const JsonObject& value);
 
-      //! Assigns an array value.
-      /*!
-        \param value The value to represent.
-        \return <code>*this</code>
-      */
+      /**
+       * Assigns an array value.
+       * @param value The value to represent.
+       * @return <code>*this</code>
+       */
       JsonValue& operator =(const std::vector<JsonValue>& value);
 
-      //! Saves <code>this</code> object to an output stream.
-      /*!
-        \param sink The stream to save <code>this</code> object to.
-      */
+      /**
+       * Saves <code>this</code> object to an output stream.
+       * @param sink The stream to save <code>this</code> object to.
+       */
       void Save(std::ostream& sink) const;
   };
 
-  //! Saves a JSON value to an output stream.
-  /*!
-    \param sink The stream to save the object to.
-    \param value The JSON value to save.
-    \return <code>sink</code>
-  */
+  /**
+   * Saves a JSON value to an output stream.
+   * @param sink The stream to save the object to.
+   * @param value The JSON value to save.
+   * @return <code>sink</code>
+   */
   inline std::ostream& operator <<(std::ostream& sink, const JsonValue& value) {
     value.Save(sink);
     return sink;
@@ -204,7 +197,7 @@ namespace Details {
     JsonValue* m_self;
 
     JsonAssignmentVisitor(JsonValue* self)
-        : m_self(self) {}
+      : m_self(self) {}
 
     template <typename T>
     void operator()(const T& value) const {
@@ -213,48 +206,46 @@ namespace Details {
   };
 }
 
-  inline JsonNull::JsonNull() {}
-
   inline bool JsonNull::operator ==(JsonNull rhs) const {
     return true;
   }
 
   inline JsonValue::JsonValue()
-      : Details::JsonVariant(JsonNull()) {}
+    : Details::JsonVariant(JsonNull()) {}
 
   inline JsonValue::JsonValue(const Details::JsonVariant& variant)
-      : Details::JsonVariant(variant) {}
+    : Details::JsonVariant(variant) {}
 
   inline JsonValue::JsonValue(const JsonValue& value) {
     *this = value;
   }
 
   inline JsonValue::JsonValue(JsonNull value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(bool value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(int value)
-      : Details::JsonVariant(static_cast<double>(value)) {}
+    : Details::JsonVariant(static_cast<double>(value)) {}
 
   inline JsonValue::JsonValue(std::int64_t value)
-      : Details::JsonVariant(static_cast<double>(value)) {}
+    : Details::JsonVariant(static_cast<double>(value)) {}
 
   inline JsonValue::JsonValue(double value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(const std::string& value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(const char* value)
-      : JsonValue{std::string{value}} {}
+    : JsonValue(std::string(value)) {}
 
   inline JsonValue::JsonValue(const JsonObject& value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(const std::vector<JsonValue>& value)
-      : Details::JsonVariant(value) {}
+    : Details::JsonVariant(value) {}
 
   inline bool JsonValue::operator ==(const JsonValue& value) const {
     return Details::JsonVariant::operator ==(
@@ -327,7 +318,7 @@ namespace Details {
         }
       },
       [&] (double value) {
-        double temp;
+        auto temp = double();
         if(std::modf(value, &temp) != 0) {
           sink << std::to_string(value);
         } else {

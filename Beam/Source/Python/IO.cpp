@@ -101,7 +101,7 @@ void Beam::Python::ExportBufferReader(module& module) {
   ExportReader<ToPythonReader<BufferReader<BufferBox>>>(module, "BufferReader")
     .def(init<BufferBox>())
     .def(init([] (const ToPythonReader<BufferReader<BufferBox>>& reader) {
-      return std::make_unique<ToPythonReader<BufferReader<BufferBox>>>(
+      return std::make_shared<ToPythonReader<BufferReader<BufferBox>>>(
         reader.GetReader());
     }));
 }
@@ -175,7 +175,7 @@ void Beam::Python::ExportLocalClientChannel(module& module) {
     .def(init([] (const std::string& name,
         ToPythonServerConnection<LocalServerConnection<SharedBuffer>>&
         connection) {
-      return std::make_unique<
+      return std::make_shared<
         ToPythonChannel<LocalClientChannel<SharedBuffer>>>(name,
         connection.GetConnection());
     }));
@@ -245,7 +245,7 @@ void Beam::Python::ExportPipedReader(module& module) {
 void Beam::Python::ExportPipedWriter(module& module) {
   ExportWriter<ToPythonWriter<PipedWriter<SharedBuffer>>>(module, "PipedWriter")
     .def(init([] (ToPythonReader<PipedReader<SharedBuffer>>& reader) {
-      return std::make_unique<ToPythonWriter<PipedWriter<SharedBuffer>>>(
+      return std::make_shared<ToPythonWriter<PipedWriter<SharedBuffer>>>(
         Ref(reader.GetReader()));
     }));
 }
@@ -279,7 +279,7 @@ void Beam::Python::ExportStdinReader(module& module) {
   ExportReader<ToPythonReader<BasicIStreamReader<std::istream*>>>(module,
     "StdinReader")
     .def(init([] {
-      return std::make_unique<
+      return std::make_shared<
         ToPythonReader<BasicIStreamReader<std::istream*>>>(&std::cin);
     }));
 }
@@ -288,7 +288,7 @@ void Beam::Python::ExportStdoutWriter(module& module) {
   ExportWriter<ToPythonWriter<BasicOStreamWriter<std::ostream*>>>(module,
     "StdoutWriter")
     .def(init([] {
-      return std::make_unique<
+      return std::make_shared<
         ToPythonWriter<BasicOStreamWriter<std::ostream*>>>(&std::cout);
     }));
 }

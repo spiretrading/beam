@@ -74,25 +74,25 @@ void Beam::Python::ExportMulticastSocketChannel(pybind11::module& module) {
     .def(init(
       [] (const IpAddress& group) {
         auto channel = std::make_unique<MulticastSocketChannel>(group);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& group, const MulticastSocketOptions& options) {
         auto channel = std::make_unique<MulticastSocketChannel>(group, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& group, const IpAddress& interface) {
         auto channel = std::make_unique<MulticastSocketChannel>(group,
           interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& group, const IpAddress& interface,
           const MulticastSocketOptions& options) {
         auto channel = std::make_unique<MulticastSocketChannel>(group,
           interface, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>());
 }
 
@@ -158,50 +158,50 @@ void Beam::Python::ExportSecureSocketChannel(pybind11::module& module) {
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<SecureSocketChannel>(address);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const SecureSocketOptions& options) {
         auto channel = std::make_unique<SecureSocketChannel>(address, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface) {
         auto channel = std::make_unique<SecureSocketChannel>(address,
           interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface,
           const SecureSocketOptions& options) {
         auto channel = std::make_unique<SecureSocketChannel>(address, interface,
           options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses) {
         auto channel = std::make_unique<SecureSocketChannel>(addresses);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses,
           const SecureSocketOptions& options) {
         auto channel = std::make_unique<SecureSocketChannel>(addresses,
           options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface) {
         auto channel = std::make_unique<SecureSocketChannel>(addresses,
           interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface,
           const SecureSocketOptions& options) {
         auto channel = std::make_unique<SecureSocketChannel>(addresses,
           interface, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>());
 }
 
@@ -238,23 +238,23 @@ void Beam::Python::ExportTcpServerSocket(pybind11::module& module) {
     "TcpServerSocket")
     .def(init(
       [] {
-        return MakeToPythonServerConnection(
-          std::make_unique<TcpServerSocket>());
+        return std::shared_ptr(MakeToPythonServerConnection(
+          std::make_unique<TcpServerSocket>()));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const TcpSocketOptions& options) {
-        return MakeToPythonServerConnection(std::make_unique<TcpServerSocket>(
-          options));
+        return std::shared_ptr(MakeToPythonServerConnection(
+          std::make_unique<TcpServerSocket>(options)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& interface) {
-        return MakeToPythonServerConnection(std::make_unique<TcpServerSocket>(
-          interface));
+        return std::shared_ptr(MakeToPythonServerConnection(
+          std::make_unique<TcpServerSocket>(interface)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& interface, const TcpSocketOptions& options) {
-        return MakeToPythonServerConnection(std::make_unique<TcpServerSocket>(
-          interface, options));
+        return std::shared_ptr(MakeToPythonServerConnection(
+          std::make_unique<TcpServerSocket>(interface, options)));
       }), call_guard<GilRelease>());
 }
 
@@ -263,47 +263,47 @@ void Beam::Python::ExportTcpSocketChannel(pybind11::module& module) {
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<TcpSocketChannel>(address);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const TcpSocketOptions& options) {
         auto channel = std::make_unique<TcpSocketChannel>(address, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(address, interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface,
           const TcpSocketOptions& options) {
         auto channel = std::make_unique<TcpSocketChannel>(address, interface,
           options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses,
           const TcpSocketOptions& options) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses, interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const std::vector<IpAddress>& addresses, const IpAddress& interface,
           const TcpSocketOptions& options) {
         auto channel = std::make_unique<TcpSocketChannel>(addresses, interface,
           options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>());
 }
 
@@ -353,24 +353,24 @@ void Beam::Python::ExportUdpSocketChannel(pybind11::module& module) {
     .def(init(
       [] (const IpAddress& address) {
         auto channel = std::make_unique<UdpSocketChannel>(address);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const UdpSocketOptions& options) {
         auto channel = std::make_unique<UdpSocketChannel>(address, options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface) {
         auto channel = std::make_unique<UdpSocketChannel>(address, interface);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>())
     .def(init(
       [] (const IpAddress& address, const IpAddress& interface,
           const UdpSocketOptions& options) {
         auto channel = std::make_unique<UdpSocketChannel>(address, interface,
           options);
-        return MakeToPythonChannel(std::move(channel));
+        return std::shared_ptr(MakeToPythonChannel(std::move(channel)));
       }), call_guard<GilRelease>());
 }
 

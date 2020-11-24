@@ -50,6 +50,9 @@ namespace IO {
        */
       ConnectionBox(std::shared_ptr<VirtualConnection> connection);
 
+      /** Returns the virtual interface over the wrapped Connection. */
+      VirtualConnection& GetConnection();
+
     private:
       template<typename C>
       struct WrappedConnection final : VirtualConnection {
@@ -90,6 +93,10 @@ namespace IO {
   inline ConnectionBox::ConnectionBox(
     std::shared_ptr<VirtualConnection> connection)
     : m_connection(std::move(connection)) {}
+
+  inline ConnectionBox::VirtualConnection& ConnectionBox::GetConnection() {
+    return *m_connection;
+  }
 
   template<typename C>
   template<typename... Args>

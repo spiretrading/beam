@@ -56,13 +56,14 @@ namespace IO {
         std::unique_ptr<Channel> Accept() override;
         void Close() override;
       };
-      std::shared_ptr<VirtualServerConnection> m_connection;
+
+      VirtualServerConnection& GetConnection();
   };
 
   template<typename T, typename... Args>
   ServerConnectionBox::ServerConnectionBox(std::in_place_type_t<T>,
     Args&&... args)
-    : m_connection(std::make_shared<WrappedServerConnection<T>>(
+    : ConnectionBox(std::make_shared<WrappedServerConnection<T>>(
         std::forward<Args>(args)...)) {}
 
   template<typename ServerConnection>
@@ -84,11 +85,17 @@ namespace IO {
 
   inline std::unique_ptr<ServerConnectionBox::Channel>
       ServerConnectionBox::Accept() {
-    return m_connection->Accept();
+    return GetConnection().Accept();
   }
 
   inline void ServerConnectionBox::Close() {
-    m_connection->Close();
+    GetConnection().Close();
+  }
+
+  inline ServerConnectionBox::VirtualServerConnection&
+      ServerConnectionBox::GetConnection() {
+    return static_cast<VirtualServerConnection&>(
+      ConnectionBox::GetConnection());
   }
 
   template<typename C>

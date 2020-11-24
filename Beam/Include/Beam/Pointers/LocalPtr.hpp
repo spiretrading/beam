@@ -1,7 +1,7 @@
 #ifndef BEAM_LOCAL_PTR_HPP
 #define BEAM_LOCAL_PTR_HPP
+#include <type_traits>
 #include <utility>
-#include <boost/mpl/if.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/Initializer.hpp"
 #include "Beam/Pointers/NativePtr.hpp"
@@ -81,8 +81,8 @@ namespace Beam {
    */
   template<typename T>
   struct OptionalLocalPtr {
-    using type = typename boost::mpl::if_c<IsDereferenceable<T>::value,
-      GetOptionalNativePtr<T>, LocalPtr<T>>::type;
+    using type = std::conditional_t<IsDereferenceable<T>::value,
+      GetOptionalNativePtr<T>, LocalPtr<T>>;
   };
 
   template<typename T>

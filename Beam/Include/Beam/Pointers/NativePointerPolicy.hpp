@@ -1,12 +1,10 @@
-#ifndef BEAM_NATIVEPOINTERPOLICY_HPP
-#define BEAM_NATIVEPOINTERPOLICY_HPP
+#ifndef BEAM_NATIVE_POINTER_POLICY_HPP
+#define BEAM_NATIVE_POINTER_POLICY_HPP
 #include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 
-  /*! \class NativePointerPolicy
-      \brief Stores a pointer using a native pointer type.
-   */
+  /** Stores a pointer using a native pointer type. */
   struct NativePointerPolicy {
     template <typename T>
     struct apply {

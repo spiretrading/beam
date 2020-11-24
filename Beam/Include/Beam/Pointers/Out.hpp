@@ -4,81 +4,79 @@
 
 namespace Beam {
 
-  /*! \class Out
-      \brief Used to identify a parameter as an output.
-   */
+  /** Used to identify a parameter as an output. */
   template<typename T>
   class Out {
     public:
       using Type = T;
 
-      //! Allows for polymorphic Out params.
+      /** Allows for polymorphic Out params. */
       template<typename U>
       Out(const Out<U>& out);
 
-      //! Copies an Out.
-      /*!
-        \param out The Out to copy.
-      */
+      /**
+       * Copies an Out.
+       * @param out The Out to copy.
+       */
       Out(const Out& out);
 
-      //! Acquires an Out.
-      /*!
-        \param out The Out to acquire.
-      */
+      /**
+       * Acquires an Out.
+       * @param out The Out to acquire.
+       */
       Out(Out&& out);
 
-      //! Acquires an Out.
-      /*!
-        \param out The Out to acquire.
-      */
+      /**
+       * Acquires an Out.
+       * @param out The Out to acquire.
+       */
       Out& operator =(Out&& out);
 
-      //! Returns <code>true</code> iff the result is ignored.
+      /** Returns <code>true</code> iff the result is ignored. */
       bool IsIgnored() const;
 
-      //! Returns a reference to the result.
-      T& operator *();
+      /** Returns a reference to the result. */
+      Type& operator *();
 
-      //! Returns a reference to the result.
-      const T& operator *() const;
+      /** Returns a reference to the result. */
+      const Type& operator *() const;
 
-      //! Returns a pointer to the result.
-      T* operator ->();
+      /** Returns a pointer to the result. */
+      Type* operator ->();
 
-      //! Returns a pointer to the result.
-      const T* operator ->() const;
+      /** Returns a pointer to the result. */
+      const Type* operator ->() const;
 
-      //! Returns a pointer to the result.
-      T* Get();
+      /** Returns a pointer to the result. */
+      Type* Get();
 
-      //! Returns a pointer to the result.
-      const T* Get() const;
+      /** Returns a pointer to the result. */
+      const Type* Get() const;
 
     private:
       template<typename> friend class Out;
       template<typename U> friend Out<U> Store(U& result);
       template<typename U> friend Out<U> Store(Out<U>& result);
-      T* m_result;
+      Type* m_result;
 
-      Out(T* result);
+      Out(Type* result);
   };
 
-  //! Indicates that a parameter is being used as the result of a function.
-  /*!
-    \param result Where the result of the function is stored.
-    \return An Out to the <i>result</i>.
-  */
+  /**
+   * Indicates that a parameter is being used as the result of a function.
+   * @param result Where the result of the function is stored.
+   * @return An Out to the <i>result</i>.
+   */
   template<typename T>
   Out<T> Store(T& result) {
     return Out<T>(&result);
   }
 
-  //! Indicates that a parameter is being used as the result of a function.
-  /*!
-    \param result Where the result of the function is stored.
-    \return An Out to the <i>result</i>.
-  */
+  /**
+   * Indicates that a parameter is being used as the result of a function.
+   * @param result Where the result of the function is stored.
+   * @return An Out to the <i>result</i>.
+   */
   template<typename T>
   Out<T> Store(Out<T>& result) {
     return Out<T>(result.Get());
@@ -87,11 +85,11 @@ namespace Beam {
   template<typename T>
   template<typename U>
   Out<T>::Out(const Out<U>& out)
-      : m_result(out.m_result) {}
+    : m_result(out.m_result) {}
 
   template<typename T>
   Out<T>::Out(const Out& out)
-      : m_result(out.m_result) {}
+    : m_result(out.m_result) {}
 
   template<typename T>
   Out<T>::Out(Out&& out)
@@ -115,38 +113,38 @@ namespace Beam {
   }
 
   template<typename T>
-  T& Out<T>::operator *() {
+  typename Out<T>::Type& Out<T>::operator *() {
     return *m_result;
   }
 
   template<typename T>
-  const T& Out<T>::operator *() const {
+  const typename Out<T>::Type& Out<T>::operator *() const {
     return *m_result;
   }
 
   template<typename T>
-  T* Out<T>::operator ->() {
+  typename Out<T>::Type* Out<T>::operator ->() {
     return m_result;
   }
 
   template<typename T>
-  const T* Out<T>::operator ->() const {
+  const typename Out<T>::Type* Out<T>::operator ->() const {
     return m_result;
   }
 
   template<typename T>
-  T* Out<T>::Get() {
+  typename Out<T>::Type* Out<T>::Get() {
     return m_result;
   }
 
   template<typename T>
-  const T* Out<T>::Get() const {
+  const typename Out<T>::Type* Out<T>::Get() const {
     return m_result;
   }
 
   template<typename T>
   Out<T>::Out(T* result)
-      : m_result(result) {}
+    : m_result(result) {}
 }
 
 #endif

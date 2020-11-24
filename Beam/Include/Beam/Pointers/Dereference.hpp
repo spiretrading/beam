@@ -6,9 +6,7 @@
 
 namespace Beam {
 
-  /*! \struct IsDereferenceable
-      \brief Returns <code>true</code> iff a type can be dereferenced.
-   */
+  /** Returns <code>true</code> iff a type can be dereferenced. */
   template<typename T>
   struct IsDereferenceable {
     private:
@@ -25,32 +23,27 @@ namespace Beam {
       static NoType Test(...);
 
     public:
-      static constexpr bool value =
+      static constexpr auto value =
         sizeof(Test<T>(nullptr)) == sizeof(YesType);
   };
 
-  /*! \struct IsManagedPointer
-      \brief Returns <code>true</code> iff a type represents a 'managed'
-             pointer.
-  */
+  /** Returns <code>true</code> iff a type represents a 'managed' pointer. */
   template<typename T>
   struct IsManagedPointer {
-    static constexpr bool value = false;
+    static constexpr auto value = false;
   };
 
   template<typename T, typename D>
   struct IsManagedPointer<std::unique_ptr<T, D>> {
-    static constexpr bool value = true;
+    static constexpr auto value = true;
   };
 
   template<typename T>
   struct IsManagedPointer<std::shared_ptr<T>> {
-    static constexpr bool value = true;
+    static constexpr auto value = true;
   };
 
-  /*! \struct DereferenceType
-      \brief Returns the type resulting from a dereference operation.
-   */
+  /** Returns the type resulting from a dereference operation. */
   template<typename T>
   struct DereferenceType {
     using type = std::decay_t<decltype(*std::declval<T>())>;
@@ -59,9 +52,9 @@ namespace Beam {
   template<typename T>
   using GetDereferenceType = typename DereferenceType<T>::type;
 
-  /*! \struct TryDereferenceType
-      \brief Returns the type resulting from a dereference operation or the type
-             itself if it can't be dereferenced.
+  /**
+   * Returns the type resulting from a dereference operation or the type itself
+   * if it can't be dereferenced.
    */
   template<typename T>
   struct TryDereferenceType {

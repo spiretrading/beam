@@ -9,41 +9,41 @@ namespace Beam {
   class Ref {
     public:
 
-      //! The type being referenced.
+      /** The type being referenced. */
       using Type = T;
 
-      //! Constructs a Ref.
-      /*!
-        \param reference The reference to wrap.
-      */
+      /**
+       * Constructs a Ref.
+       * @param reference The reference to wrap.
+       */
       explicit Ref(Type& reference);
 
-      //! Allows for polymorphic Refs.
+      /** Allows for polymorphic Refs. */
       template<typename U>
       Ref(const Ref<U>& reference);
 
-      //! Copies a Ref.
+      /** Copies a Ref. */
       Ref(const Ref& ref) = default;
 
-      //! Acquires a Ref.
-      /*!
-        \param ref The Ref to acquire.
-      */
+      /**
+       * Acquires a Ref.
+       * @param ref The Ref to acquire.
+       */
       Ref(Ref&& ref);
 
-      //! Acquires a Ref.
-      /*!
-        \param ref The Ref to acquire.
-      */
+      /**
+       * Acquires a Ref.
+       * @param ref The Ref to acquire.
+       */
       Ref& operator =(Ref&& ref);
 
-      //! Returns a reference to the result.
+      /** Returns a reference to the result. */
       Type& operator *() const;
 
-      //! Returns a pointer to the result.
+      /** Returns a pointer to the result. */
       Type* operator ->() const;
 
-      //! Returns a pointer to the result.
+      /** Returns a pointer to the result. */
       Type* Get() const;
 
     private:
@@ -52,12 +52,12 @@ namespace Beam {
 
   template<typename T>
   Ref<T>::Ref(Type& reference)
-      : m_reference(&reference) {}
+    : m_reference(&reference) {}
 
   template<typename T>
   template<typename U>
   Ref<T>::Ref(const Ref<U>& reference)
-      : m_reference(reference.Get()) {}
+    : m_reference(reference.Get()) {}
 
   template<typename T>
   Ref<T>::Ref(Ref&& ref)
@@ -76,17 +76,17 @@ namespace Beam {
   }
 
   template<typename T>
-  T& Ref<T>::operator *() const {
+  typename Ref<T>::Type& Ref<T>::operator *() const {
     return *m_reference;
   }
 
   template<typename T>
-  T* Ref<T>::operator ->() const {
+  typename Ref<T>::Type* Ref<T>::operator ->() const {
     return m_reference;
   }
 
   template<typename T>
-  T* Ref<T>::Get() const {
+  typename Ref<T>::Type* Ref<T>::Get() const {
     return m_reference;
   }
 }

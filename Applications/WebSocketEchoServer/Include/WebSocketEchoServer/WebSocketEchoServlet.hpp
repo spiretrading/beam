@@ -68,7 +68,7 @@ namespace Beam::WebSocketEchoServer {
       std::unique_ptr<WebSocketChannel> channel) {
     Beam::Routines::Spawn([=, channel = std::move(channel)] {
       while(true) {
-        auto buffer = typename WebSocketChannel::Reader::Buffer();
+        auto buffer = IO::SharedBuffer();
         channel->GetReader().Read(Beam::Store(buffer));
         std::cout << buffer << std::endl;
         channel->GetWriter().Write(buffer);

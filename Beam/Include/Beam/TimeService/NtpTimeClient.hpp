@@ -153,14 +153,17 @@ namespace Beam::TimeService {
   inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
       const std::vector<Network::IpAddress>& sources,
       boost::posix_time::time_duration syncPeriod) {
-    auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
-    auto options = Network::UdpSocketOptions();
-    options.m_timeout = boost::posix_time::seconds(1);
-    for(auto& source : sources) {
-      auto channel = std::make_unique<Network::UdpSocketChannel>(source,
-        options);
-      channels.push_back(std::move(channel));
-    }
+    auto channels = TryOrNest([&] {
+      auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
+      auto options = Network::UdpSocketOptions();
+      options.m_timeout = boost::posix_time::seconds(1);
+      for(auto& source : sources) {
+        auto channel = std::make_unique<Network::UdpSocketChannel>(source,
+          options);
+        channels.push_back(std::move(channel));
+      }
+      return channels;
+    }, IO::ConnectException("Unable to connect to NTP service."));
     return std::make_unique<LiveNtpTimeClient>(std::move(channels),
       Initialize(syncPeriod));
   }
@@ -185,13 +188,15 @@ namespace Beam::TimeService {
   template<typename ServiceLocatorClient>
   std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClientFromServiceLocator(
       ServiceLocatorClient& serviceLocatorClient) {
-    auto timeServices = serviceLocatorClient.Locate(SERVICE_NAME);
-    if(timeServices.empty()) {
-      throw std::runtime_error("No time services available.");
-    }
-    auto& timeService = timeServices.front();
-    auto ntpPool = Parsers::Parse<std::vector<Network::IpAddress>>(
-      boost::get<std::string>(timeService.GetProperties().At("addresses")));
+    auto ntpPool = TryOrNest([&] {
+      auto timeServices = serviceLocatorClient.Locate(SERVICE_NAME);
+      if(timeServices.empty()) {
+        throw std::runtime_error("No time services available.");
+      }
+      auto& timeService = timeServices.front();
+      return Parsers::Parse<std::vector<Network::IpAddress>>(
+        boost::get<std::string>(timeService.GetProperties().At("addresses")));
+    }, IO::ConnectException("Unable to connect to NTP service."));
     return MakeLiveNtpTimeClient(ntpPool);
   }
 
@@ -199,8 +204,8 @@ namespace Beam::TimeService {
   template<typename TF>
   NtpTimeClient<C, T>::NtpTimeClient(
       std::vector<std::unique_ptr<Channel>> sources, TF&& timer)
-      : m_sources(std::move(sources)),
-        m_timer(std::forward<TF>(timer)) {
+      try : m_sources(std::move(sources)),
+            m_timer(std::forward<TF>(timer)) {
     try {
       Synchronize();
       m_timer->GetPublisher().Monitor(m_tasks.GetSlot<Threading::Timer::Result>(
@@ -211,6 +216,8 @@ namespace Beam::TimeService {
       Close();
       BOOST_RETHROW;
     }
+  } catch(const std::exception&) {
+    std::throw_with_nested(IO::ConnectException("Unable to open NTP service."));
   }
 
   template<typename C, typename T>

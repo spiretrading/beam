@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <type_traits>
 #include <vector>
@@ -12,6 +13,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/rational.hpp>
 #include <boost/throw_exception.hpp>
+#include <tclap/CmdLine.h>
 #include <yaml-cpp/yaml.h>
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Parsers/DateTimeParser.hpp"
@@ -21,6 +23,7 @@
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -66,6 +69,28 @@ namespace Beam {
         (e.mark.line + 1) << ", " << "column " << (e.mark.column + 1) << ": " <<
         e.msg << "\n";
       BOOST_THROW_EXCEPTION(std::runtime_error(message.str()));
+    }
+  }
+
+  /**
+   * Parses a YAML node based on command line arguments.
+   * @param argc The number of command line arguments.
+   * @param argv The array of command line arguments.
+   * @param versionTag The version tag to display.
+   * @return The YAML node parsed based on the command line arguments.
+   */
+  inline YAML::Node ParseCommandLine(int argc, const char** argv,
+      std::string_view versionTag) {
+    try {
+      auto cmd = TCLAP::CmdLine("", ' ', versionTag.data());
+      auto configArg = TCLAP::ValueArg<std::string>("c", "config",
+        "Configuration file", false, "config.yml", "path");
+      cmd.add(configArg);
+      cmd.parse(argc, argv);
+      return Require(LoadFile, configArg.getValue());
+    } catch(const TCLAP::ArgException& e) {
+      throw std::runtime_error("Error parsing command line: " + e.error() +
+        " for argument " + e.argId());
     }
   }
 

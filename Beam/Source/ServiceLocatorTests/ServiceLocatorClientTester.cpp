@@ -5,6 +5,7 @@
 #include "Beam/SignalHandling/NullSlot.hpp"
 
 using namespace Beam;
+using namespace Beam::IO;
 using namespace Beam::Routines;
 using namespace Beam::ServiceLocator;
 using namespace Beam::Services;
@@ -67,7 +68,7 @@ TEST_SUITE("ServiceLocatorClient") {
           "test", *m_serverConnection);
       }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());
     REQUIRE_THROWS_AS(TestServiceLocatorClient("account", "bad_password",
-      builder), ServiceRequestException);
+      builder), ConnectException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "monitor_accounts") {

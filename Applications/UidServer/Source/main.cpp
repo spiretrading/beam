@@ -52,14 +52,12 @@ int main(int argc, const char** argv) {
     }, std::runtime_error("Error parsing section 'server'."));
     auto serviceLocatorClient = MakeApplicationServiceLocatorClient(
       GetNode(config, "service_locator"));
-    auto server = TryOrNest([&] {
-      return UidServletContainer(Initialize(serviceLocatorClient.Get(),
-        Initialize(MakeSqlConnection(MySql::Connection(
-        mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-        mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema)))),
-        Initialize(serviceConfig.m_interface),
-        std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-    }, std::runtime_error("Error opening server."));
+    auto server = UidServletContainer(Initialize(serviceLocatorClient.Get(),
+      Initialize(MakeSqlConnection(MySql::Connection(
+      mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
+      mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema)))),
+      Initialize(serviceConfig.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
     Register(*serviceLocatorClient, serviceConfig);
     WaitForKillEvent();
   } catch(...) {

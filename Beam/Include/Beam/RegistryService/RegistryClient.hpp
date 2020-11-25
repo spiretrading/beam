@@ -1,6 +1,8 @@
 #ifndef BEAM_REGISTRY_CLIENT_HPP
 #define BEAM_REGISTRY_CLIENT_HPP
+#include <boost/lexical_cast.hpp>
 #include "Beam/IO/Connection.hpp"
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
@@ -159,8 +161,11 @@ namespace Beam::RegistryService {
   template<typename B>
   template<typename BF>
   RegistryClient<B>::RegistryClient(BF&& clientBuilder)
-      : m_clientHandler(std::forward<BF>(clientBuilder)) {
+      try : m_clientHandler(std::forward<BF>(clientBuilder)) {
     RegisterRegistryServices(Beam::Store(m_clientHandler.GetSlots()));
+  } catch(const std::exception&) {
+    BOOST_THROW_EXCEPTION(
+      IO::ConnectException("Failed to connect to the registry server."));
   }
 
   template<typename B>
@@ -171,102 +176,132 @@ namespace Beam::RegistryService {
   template<typename B>
   RegistryEntry RegistryClient<B>::LoadPath(const RegistryEntry& root,
       const std::string& path) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadPathService>(root, path);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadPathService>(root, path);
+    }, "Failed to load path: " + boost::lexical_cast<std::string>(root) + ", " +
+      path);
   }
 
   template<typename B>
   RegistryEntry RegistryClient<B>::LoadParent(
-      const RegistryEntry& registryEntry) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadParentService>(registryEntry);
+      const RegistryEntry& entry) {
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadParentService>(entry);
+    }, "Failed to load parent: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   std::vector<RegistryEntry> RegistryClient<B>::LoadChildren(
-      const RegistryEntry& registryEntry) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadChildrenService>(registryEntry);
+      const RegistryEntry& entry) {
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadChildrenService>(entry);
+    }, "Failed to load children: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   RegistryEntry RegistryClient<B>::MakeDirectory(const std::string& name,
       const RegistryEntry& parent) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<MakeDirectoryService>(name, parent);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<MakeDirectoryService>(name, parent);
+    }, "Failed to make directory: " + name + ", " +
+      boost::lexical_cast<std::string>(parent));
   }
 
   template<typename B>
-  RegistryEntry RegistryClient<B>::Copy(const RegistryEntry& registryEntry,
+  RegistryEntry RegistryClient<B>::Copy(const RegistryEntry& entry,
       const RegistryEntry& destination) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<CopyService>(registryEntry,
-      destination);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<CopyService>(entry, destination);
+    }, "Failed to copy: " + boost::lexical_cast<std::string>(entry) + ", " +
+      boost::lexical_cast<std::string>(destination));
   }
 
   template<typename B>
-  void RegistryClient<B>::Move(const RegistryEntry& registryEntry,
+  void RegistryClient<B>::Move(const RegistryEntry& entry,
       const RegistryEntry& destination) {
-    auto client = m_clientHandler.GetClient();
-    client->template SendRequest<MoveService>(registryEntry, destination);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      client->template SendRequest<MoveService>(entry, destination);
+    }, "Failed to move: " + boost::lexical_cast<std::string>(entry) + ", " +
+      boost::lexical_cast<std::string>(destination));
   }
 
   template<typename B>
-  IO::SharedBuffer RegistryClient<B>::Load(const RegistryEntry& registryEntry) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadValueService>(registryEntry);
+  IO::SharedBuffer RegistryClient<B>::Load(const RegistryEntry& entry) {
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadValueService>(entry);
+    }, "Failed to load: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   template<typename T>
-  void RegistryClient<B>::Load(const RegistryEntry& registryEntry,
-      Out<T> value) {
-    auto buffer = Load(registryEntry);
-    auto receiver = Serialization::BinaryReceiver<IO::SharedBuffer>();
-    receiver.SetSource(Ref(buffer));
-    receiver.Shuttle(*value);
+  void RegistryClient<B>::Load(const RegistryEntry& entry, Out<T> value) {
+    return Services::ServiceOrThrowWithNested([&] {
+      auto buffer = Load(entry);
+      auto receiver = Serialization::BinaryReceiver<IO::SharedBuffer>();
+      receiver.SetSource(Ref(buffer));
+      receiver.Shuttle(*value);
+    }, "Failed to load: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   RegistryEntry RegistryClient<B>::MakeValue(const std::string& name,
       const IO::SharedBuffer& value, const RegistryEntry& parent) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<MakeValueService>(name, value, parent);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<MakeValueService>(name, value,
+        parent);
+    }, "Failed to make value: " + boost::lexical_cast<std::string>(name));
   }
 
   template<typename B>
   template<typename T>
   RegistryEntry RegistryClient<B>::MakeValue(const std::string& name,
       const T& value, const RegistryEntry& parent) {
-    auto buffer = IO::SharedBuffer();
-    auto sender = Serialization::BinarySender<IO::SharedBuffer>();
-    sender.SetSink(Ref(buffer));
-    sender.Shuttle(value);
-    return MakeValue(name, buffer, parent);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto buffer = IO::SharedBuffer();
+      auto sender = Serialization::BinarySender<IO::SharedBuffer>();
+      sender.SetSink(Ref(buffer));
+      sender.Shuttle(value);
+      return MakeValue(name, buffer, parent);
+    }, "Failed to make value: " + boost::lexical_cast<std::string>(name));
   }
 
   template<typename B>
   RegistryEntry RegistryClient<B>::Store(const std::string& name,
       const IO::SharedBuffer& value, const RegistryEntry& parent) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<StoreValueService>(name, value, parent);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<StoreValueService>(name, value,
+        parent);
+    }, "Failed to store: " + name);
   }
 
   template<typename B>
   template<typename T>
   RegistryEntry RegistryClient<B>::Store(const std::string& name,
       const T& value, const RegistryEntry& parent) {
-    auto buffer = IO::SharedBuffer();
-    auto sender = Serialization::BinarySender<IO::SharedBuffer>();
-    sender.SetSink(Ref(buffer));
-    sender.Shuttle(value);
-    return Store(name, buffer, parent);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto buffer = IO::SharedBuffer();
+      auto sender = Serialization::BinarySender<IO::SharedBuffer>();
+      sender.SetSink(Ref(buffer));
+      sender.Shuttle(value);
+      return Store(name, buffer, parent);
+    }, "Failed to store: " + name);
   }
 
   template<typename B>
-  void RegistryClient<B>::Delete(const RegistryEntry& registryEntry) {
-    auto client = m_clientHandler.GetClient();
-    client->template SendRequest<DeleteService>(registryEntry);
+  void RegistryClient<B>::Delete(const RegistryEntry& entry) {
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      client->template SendRequest<DeleteService>(entry);
+    }, "Failed to delete: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>

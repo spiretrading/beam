@@ -1,7 +1,4 @@
-#include <fstream>
-#include <iostream>
 #include <boost/functional/factory.hpp>
-#include <tclap/CmdLine.h>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -27,7 +24,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace TCLAP;
 
 namespace {
   using ServletTemplateServletContainer =
@@ -38,32 +34,15 @@ namespace {
     ServletTemplateServletContainer>;
 }
 
-void sub_main(const YAML::Node& config) {
-  auto interface = Extract<IpAddress>(config, "interface");
-  auto server = TryOrNest([&] {
-    return ServletTemplateServletContainer(Initialize(), Initialize(interface),
-      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-  }, std::runtime_error("Error opening server."));
-  WaitForKillEvent();
-}
-
 int main(int argc, const char** argv) {
-  auto configFile = std::string();
   try {
-    auto cmd = CmdLine("", ' ', "1.0-r" SERVLET_TEMPLATE_VERSION
+    auto config = ParseCommandLine(argc, argv, "1.0-r" SERVLET_TEMPLATE_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
-      false, "config.yml", "path");
-    cmd.add(configArg);
-    cmd.parse(argc, argv);
-    configFile = configArg.getValue();
-  } catch(const ArgException& e) {
-    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
-      std::endl;
-    return -1;
-  }
-  try {
-    sub_main(Require(LoadFile, configFile));
+    auto interface = Extract<IpAddress>(config, "interface");
+    auto server = ServletTemplateServletContainer(Initialize(),
+      Initialize(interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
+    WaitForKillEvent();
   } catch(...) {
     ReportCurrentException();
     return -1;

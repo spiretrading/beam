@@ -2,6 +2,7 @@
 #define BEAM_UID_CLIENT_HPP
 #include <boost/thread/mutex.hpp>
 #include <cstdint>
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -52,11 +53,14 @@ namespace Beam::UidService {
   template<typename B>
   template<typename BF>
   UidClient<B>::UidClient(BF&& clientBuilder)
-      : m_nextUid(1),
-        m_lastUid(0),
-        m_blockSize(10),
-        m_clientHandler(std::forward<BF>(clientBuilder)) {
+      try : m_nextUid(1),
+            m_lastUid(0),
+            m_blockSize(10),
+            m_clientHandler(std::forward<BF>(clientBuilder)) {
     RegisterUidServices(Store(m_clientHandler.GetSlots()));
+  } catch(const std::exception&) {
+    BOOST_THROW_EXCEPTION(
+      IO::ConnectException("Failed to connect to the UID server."));
   }
 
   template<typename B>
@@ -73,9 +77,11 @@ namespace Beam::UidService {
         auto reserveResult = [&] {
           try {
             auto release = Threading::Release(lock);
-            auto client = m_clientHandler.GetClient();
-            return client->template SendRequest<ReserveUidsService>(
-              m_blockSize);
+            return Services::ServiceOrThrowWithNested([&] {
+              auto client = m_clientHandler.GetClient();
+              return client->template SendRequest<ReserveUidsService>(
+                m_blockSize);
+            }, "Failed to load UIDs.");
           } catch(const std::exception&) {
             --m_nextUid;
             m_uidsAvailableCondition.notify_one();

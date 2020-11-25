@@ -85,16 +85,18 @@ namespace Beam::Services {
       ServiceProtocolServletContainer(SF&& servlet, CF&& serverConnection,
       typename ServiceProtocolServer::TimerFactory timerFactory)
 BEAM_SUPPRESS_THIS_INITIALIZER()
-      : m_servlet(std::forward<SF>(servlet)),
-        m_protocolServer(std::forward<CF>(serverConnection),
-          std::move(timerFactory),
-          std::bind(&ServiceProtocolServletContainer::OnClientAccepted, this,
-          std::placeholders::_1), std::bind(
-          &ServiceProtocolServletContainer::OnClientClosed, this,
-          std::placeholders::_1)) {
+      try : m_servlet(std::forward<SF>(servlet)),
+            m_protocolServer(std::forward<CF>(serverConnection),
+              std::move(timerFactory), std::bind(
+                &ServiceProtocolServletContainer::OnClientAccepted, this,
+                std::placeholders::_1),
+              std::bind(&ServiceProtocolServletContainer::OnClientClosed, this,
+                std::placeholders::_1)) {
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->RegisterServices(Store(m_protocolServer.GetSlots()));
     m_isOpen.GetEval().SetResult();
+  } catch(const std::exception&) {
+    std::throw_with_nested(IO::ConnectException("Failed to open server."));
   }
 
   template<typename M, typename C, typename S, typename E, typename T,

@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
-#include <tclap/CmdLine.h>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -28,7 +27,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace TCLAP;
 
 namespace {
   using ApplicationClient = ServiceProtocolClient<
@@ -67,52 +65,34 @@ namespace Beam {
       timestamp, std::string, message));
 }
 
-void sub_main(const YAML::Node& config) {
-  auto addresses = ParseAddress(config);
-  auto message = Extract<std::string>(config, "message");
-  auto rate = Extract<int>(config, "rate");
-  auto client = TryOrNest([&] {
-    return ApplicationClient(Initialize(addresses),
-      Initialize(seconds(10)));
-  }, std::runtime_error("Unable to connect to the server."));
-  RegisterServletTemplateServices(Store(client.GetSlots()));
-  RegisterServletTemplateMessages(Store(client.GetSlots()));
-  auto result = client.SendRequest<EchoService>(message, rate);
-  std::cout << result << std::endl;
-  auto counter = 0;
-  while(!ReceivedKillEvent()) {
-    try {
-      if(auto message = std::dynamic_pointer_cast<
-          RecordMessage<EchoMessage, ApplicationClient>>(
-          client.ReadMessage())) {
-        ++counter;
-        if(counter % rate == 0) {
-          std::cout << message->GetRecord().timestamp << std::endl;
-        }
-      }
-    } catch(...) {
-      break;
-    }
-  }
-}
-
 int main(int argc, const char** argv) {
-  auto configFile = std::string();
   try {
-    auto cmd = CmdLine("", ' ', "1.0-r" CLIENT_TEMPLATE_VERSION
+    auto config = ParseCommandLine(argc, argv, "1.0-r" CLIENT_TEMPLATE_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
-      false, "config.yml", "path");
-    cmd.add(configArg);
-    cmd.parse(argc, argv);
-    configFile = configArg.getValue();
-  } catch(const ArgException& e) {
-    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
-      std::endl;
-    return -1;
-  }
-  try {
-    sub_main(Require(LoadFile, configFile));
+    auto addresses = ParseAddress(config);
+    auto message = Extract<std::string>(config, "message");
+    auto rate = Extract<int>(config, "rate");
+    auto client = ApplicationClient(Initialize(addresses),
+      Initialize(seconds(10)));
+    RegisterServletTemplateServices(Store(client.GetSlots()));
+    RegisterServletTemplateMessages(Store(client.GetSlots()));
+    auto result = client.SendRequest<EchoService>(message, rate);
+    std::cout << result << std::endl;
+    auto counter = 0;
+    while(!ReceivedKillEvent()) {
+      try {
+        if(auto message = std::dynamic_pointer_cast<
+            RecordMessage<EchoMessage, ApplicationClient>>(
+            client.ReadMessage())) {
+          ++counter;
+          if(counter % rate == 0) {
+            std::cout << message->GetRecord().timestamp << std::endl;
+          }
+        }
+      } catch(...) {
+        break;
+      }
+    }
   } catch(...) {
     ReportCurrentException();
     return -1;

@@ -1,6 +1,7 @@
 #ifndef BEAM_CODED_WRITER_HPP
 #define BEAM_CODED_WRITER_HPP
 #include "Beam/Codecs/Encoder.hpp"
+#include "Beam/IO/IOException.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"

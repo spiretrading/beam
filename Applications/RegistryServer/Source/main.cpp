@@ -46,12 +46,11 @@ int main(int argc, const char** argv) {
     }, std::runtime_error("Error parsing section 'server'."));
     auto serviceLocatorClient = MakeApplicationServiceLocatorClient(
       GetNode(config, "service_locator"));
-    auto server = TryOrNest([&] {
-      return RegistryServletContainer(Initialize(serviceLocatorClient.Get(),
-        Initialize(Initialize(std::filesystem::current_path() / "records"))),
-        Initialize(serviceConfig.m_interface),
-        std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-    }, std::runtime_error("Error opening server."));
+    auto server = RegistryServletContainer(
+      Initialize(serviceLocatorClient.Get(),
+      Initialize(Initialize(std::filesystem::current_path() / "records"))),
+      Initialize(serviceConfig.m_interface),
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
     Register(*serviceLocatorClient, serviceConfig);
     WaitForKillEvent();
   } catch(...) {

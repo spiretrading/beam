@@ -2,6 +2,7 @@
 #define BEAM_CODED_READER_HPP
 #include <limits>
 #include "Beam/Codecs/Decoder.hpp"
+#include "Beam/IO/IOException.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/Pointers/Dereference.hpp"

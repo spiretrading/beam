@@ -1,7 +1,5 @@
 #include <cmath>
-#include <fstream>
 #include <iostream>
-#include <tclap/CmdLine.h>
 #include <boost/optional/optional.hpp>
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -17,7 +15,6 @@ using namespace Beam::Queries;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace TCLAP;
 
 namespace {
   struct ProfileConfig {
@@ -155,33 +152,18 @@ namespace {
   }
 }
 
-void sub_main(const YAML::Node& config) {
-  auto profileConfig = ProfileConfig::Parse(config);
-  auto mySqlConfig = TryOrNest([&] {
-    return MySqlConfig::Parse(GetNode(config, "data_store"));
-  }, std::runtime_error("Error parsing section 'data_store'."));
-  ProfileBufferedDataStore(mySqlConfig, profileConfig);
-  ProfileAsyncDataStore(mySqlConfig, profileConfig);
-}
-
 int main(int argc, const char** argv) {
   std::srand(static_cast<unsigned int>(std::time(nullptr)));
-  auto configFile = std::string();
   try {
-    auto cmd = CmdLine("", ' ', "1.0-r" DATA_STORE_PROFILER_VERSION
+    auto config = ParseCommandLine(argc, argv,
+      "1.0-r" DATA_STORE_PROFILER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
-      false, "config.yml", "path");
-    cmd.add(configArg);
-    cmd.parse(argc, argv);
-    configFile = configArg.getValue();
-  } catch(const ArgException& e) {
-    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
-      std::endl;
-    return -1;
-  }
-  try {
-    sub_main(Require(LoadFile, configFile));
+    auto profileConfig = ProfileConfig::Parse(config);
+    auto mySqlConfig = TryOrNest([&] {
+      return MySqlConfig::Parse(GetNode(config, "data_store"));
+    }, std::runtime_error("Error parsing section 'data_store'."));
+    ProfileBufferedDataStore(mySqlConfig, profileConfig);
+    ProfileAsyncDataStore(mySqlConfig, profileConfig);
   } catch(...) {
     ReportCurrentException();
     return -1;

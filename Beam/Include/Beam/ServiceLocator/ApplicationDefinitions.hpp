@@ -130,10 +130,8 @@ namespace Beam::ServiceLocator {
     auto config = TryOrNest([&] {
       return ServiceLocatorClientConfig::Parse(node);
     }, std::runtime_error("Error parsing service locator config."));
-    return TryOrNest([&] {
-      return ApplicationServiceLocatorClient(config.m_username,
-        config.m_password, config.m_address);
-    }, std::runtime_error("Error logging in."));
+    return ApplicationServiceLocatorClient(config.m_username,
+      config.m_password, config.m_address);
   }
 
   inline ServiceLocatorClientConfig ServiceLocatorClientConfig::Parse(

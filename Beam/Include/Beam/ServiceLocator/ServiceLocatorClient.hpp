@@ -7,6 +7,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Collections/SynchronizedList.hpp"
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/IOException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -270,11 +271,11 @@ namespace Beam::ServiceLocator {
   template<typename BF>
   ServiceLocatorClient<B>::ServiceLocatorClient(std::string username,
       std::string password, BF&& clientBuilder)
-      : m_username(std::move(username)),
-        m_password(std::move(password)),
-        m_clientHandler(std::forward<BF>(clientBuilder),
-          std::bind(&ServiceLocatorClient::OnReconnect, this,
-          std::placeholders::_1)) {
+      try : m_username(std::move(username)),
+            m_password(std::move(password)),
+            m_clientHandler(std::forward<BF>(clientBuilder),
+              std::bind(&ServiceLocatorClient::OnReconnect, this,
+              std::placeholders::_1)) {
     RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
     RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
     Services::AddMessageSlot<AccountUpdateMessage>(
@@ -286,8 +287,11 @@ namespace Beam::ServiceLocator {
       Login(*client);
     } catch(const std::exception&) {
       Close();
-      BOOST_RETHROW;
+      throw;
     }
+  } catch(const std::exception&) {
+    BOOST_THROW_EXCEPTION(
+      IO::ConnectException("Failed to login to service locator."));
   }
 
   template<typename B>
@@ -317,100 +321,100 @@ namespace Beam::ServiceLocator {
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::AuthenticateAccount(
       const std::string& username, const std::string& password) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<AuthenticateAccountService>(username,
         password);
-    }, IO::IOException("Error authenticating account: " + username));
+    }, "Error authenticating account: " + username);
   }
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::
       AuthenticateSession(const std::string& sessionId, unsigned int key) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<SessionAuthenticationService>(
         sessionId, key);
-    }, IO::IOException("Error authenticating session: (" + sessionId + ", " +
-      std::to_string(key) + ")"));
+    }, "Error authenticating session: (" + sessionId + ", " +
+      std::to_string(key) + ")");
   }
 
   template<typename B>
   std::vector<ServiceEntry> ServiceLocatorClient<B>::Locate(
       const std::string& name) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LocateService>(name);
-    }, IO::IOException("Error locating service: " + name));
+    }, "Error locating service: " + name);
   }
 
   template<typename B>
   ServiceEntry ServiceLocatorClient<B>::Register(const std::string& name,
       const JsonObject& properties) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       auto service = client->template SendRequest<RegisterService>(name,
         properties);
       m_services.PushBack(service);
       return service;
-    }, IO::IOException("Error registering service: " + name));
+    }, "Error registering service: " + name);
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::Unregister(const ServiceEntry& service) {
-    TryOrNest([&] {
+    Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       client->template SendRequest<UnregisterService>(service.GetId());
       m_services.RemoveIf([&] (const auto& s) {
         return s.GetId() == service.GetId();
       });
-    }, IO::IOException("Error unregistering service: " + service.GetName()));
+    }, "Error unregistering service: " + service.GetName());
   }
 
   template<typename B>
   std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadAllAccounts() {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LoadAllAccountsService>();
-    }, IO::IOException("Error loading all accounts."));
+    }, "Error loading all accounts.");
   }
 
   template<typename B>
   boost::optional<DirectoryEntry> ServiceLocatorClient<B>::FindAccount(
       const std::string& name) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<FindAccountService>(name);
-    }, IO::IOException("Error finding account: " + name));
+    }, "Error finding account: " + name);
   }
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::MakeAccount(const std::string& name,
       const std::string& password, const DirectoryEntry& parent) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<MakeAccountService>(name, password,
         parent);
-    }, IO::IOException("Error making account: " + name));
+    }, "Error making account: " + name);
   }
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::MakeDirectory(const std::string& name,
       const DirectoryEntry& parent) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<MakeDirectoryService>(name, parent);
-    }, IO::IOException("Error making directory: " + name));
+    }, "Error making directory: " + name);
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::StorePassword(const DirectoryEntry& account,
       const std::string& password) {
-    TryOrNest([&] {
+    Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       client->template SendRequest<StorePasswordService>(account, password);
-    }, IO::IOException("Error storing password for account: " +
-      boost::lexical_cast<std::string>(account)));
+    }, "Error storing password for account: " +
+      boost::lexical_cast<std::string>(account));
   }
 
   template<typename B>
@@ -432,8 +436,8 @@ namespace Beam::ServiceLocator {
         m_accountUpdateSnapshot =
           client->template SendRequest<MonitorAccountsService>();
       } catch(const std::exception&) {
-        queue->Break(NestCurrentException(
-          IO::IOException("Monitor accounts failed.")));
+        queue->Break(Services::MakeNestedServiceException(
+          "Monitor accounts failed."));
         return;
       }
       m_accountUpdatePublisher.Monitor(std::move(*queue));
@@ -447,105 +451,119 @@ namespace Beam::ServiceLocator {
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::LoadDirectoryEntry(
       const DirectoryEntry& root, const std::string& path) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LoadPathService>(root, path);
-    }, IO::IOException("Error loading directory entry path: " +
-      boost::lexical_cast<std::string>(root) + ", " + path));
+    }, "Error loading directory entry path: " +
+      boost::lexical_cast<std::string>(root) + ", " + path);
   }
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::LoadDirectoryEntry(unsigned int id) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LoadDirectoryEntryService>(id);
-    }, IO::IOException("Error loading directory entry: " + std::to_string(id)));
+    }, "Error loading directory entry: " + std::to_string(id));
   }
 
   template<typename B>
   std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadParents(
       const DirectoryEntry& entry) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LoadParentsService>(entry);
-    }, IO::IOException("Error loading parents: " +
-      boost::lexical_cast<std::string>(entry)));
+    }, "Error loading parents: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadChildren(
       const DirectoryEntry& entry) {
-    return TryOrNest([&] {
+    return Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       return client->template SendRequest<LoadChildrenService>(entry);
-    }, IO::IOException("Error loading children: " +
-      boost::lexical_cast<std::string>(entry)));
+    }, "Error loading children: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::Delete(const DirectoryEntry& entry) {
-    TryOrNest([&] {
+    Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       client->template SendRequest<DeleteDirectoryEntryService>(entry);
-    }, IO::IOException("Error deleting: " +
-      boost::lexical_cast<std::string>(entry)));
+    }, "Error deleting: " + boost::lexical_cast<std::string>(entry));
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::Associate(const DirectoryEntry& entry,
       const DirectoryEntry& parent) {
-    TryOrNest([&] {
+    Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       client->template SendRequest<AssociateService>(entry, parent);
-    }, IO::IOException("Error associating: " + boost::lexical_cast<std::string>(
-      entry) + ", " + boost::lexical_cast<std::string>(parent)));
+    }, "Error associating: " + boost::lexical_cast<std::string>(entry) + ", " +
+      boost::lexical_cast<std::string>(parent));
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::Detach(const DirectoryEntry& entry,
       const DirectoryEntry& parent) {
-    TryOrNest([&] {
+    Services::ServiceOrThrowWithNested([&] {
       auto client = m_clientHandler.GetClient();
       client->template SendRequest<DetachService>(entry, parent);
-    }, IO::IOException("Error detaching: " + boost::lexical_cast<std::string>(
-      entry) + ", " + boost::lexical_cast<std::string>(parent)));
+    }, "Error detaching: " + boost::lexical_cast<std::string>(entry) + ", " +
+      boost::lexical_cast<std::string>(parent));
   }
 
   template<typename B>
   bool ServiceLocatorClient<B>::HasPermissions(const DirectoryEntry& account,
       const DirectoryEntry& target, Permissions permissions) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<HasPermissionsService>(account,
-      target, permissions);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<HasPermissionsService>(account,
+        target, permissions);
+    }, "Error checking permissions: " +
+      boost::lexical_cast<std::string>(account) + ", " +
+      boost::lexical_cast<std::string>(target));
   }
 
   template<typename B>
   void ServiceLocatorClient<B>::StorePermissions(const DirectoryEntry& source,
       const DirectoryEntry& target, Permissions permissions) {
-    auto client = m_clientHandler.GetClient();
-    client->template SendRequest<StorePermissionsService>(source, target,
-      permissions);
+    Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      client->template SendRequest<StorePermissionsService>(source, target,
+        permissions);
+    }, "Error storing permissions: " +
+      boost::lexical_cast<std::string>(source) + ", " +
+      boost::lexical_cast<std::string>(target));
   }
 
   template<typename B>
   boost::posix_time::ptime ServiceLocatorClient<B>::LoadRegistrationTime(
       const DirectoryEntry& account) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadRegistrationTimeService>(account);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadRegistrationTimeService>(account);
+    }, "Error loading registration time: " +
+      boost::lexical_cast<std::string>(account));
   }
 
   template<typename B>
   boost::posix_time::ptime ServiceLocatorClient<B>::LoadLastLoginTime(
       const DirectoryEntry& account) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<LoadLastLoginTimeService>(account);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<LoadLastLoginTimeService>(account);
+    }, "Error loading last login time: " +
+      boost::lexical_cast<std::string>(account));
   }
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::Rename(const DirectoryEntry& entry,
       const std::string& name) {
-    auto client = m_clientHandler.GetClient();
-    return client->template SendRequest<RenameService>(entry, name);
+    return Services::ServiceOrThrowWithNested([&] {
+      auto client = m_clientHandler.GetClient();
+      return client->template SendRequest<RenameService>(entry, name);
+    }, "Error renaming: " + boost::lexical_cast<std::string>(entry) + ", " +
+      name);
   }
 
   template<typename B>

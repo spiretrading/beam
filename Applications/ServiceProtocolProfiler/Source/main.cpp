@@ -1,7 +1,5 @@
-#include <fstream>
 #include <iostream>
 #include <boost/format.hpp>
-#include <tclap/CmdLine.h>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -32,7 +30,6 @@ using namespace Beam::Services;
 using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
-using namespace TCLAP;
 
 namespace {
   using ServiceEncoder = SizeDeclarativeEncoder<ZLibEncoder>;
@@ -103,39 +100,24 @@ namespace {
   }
 }
 
-void sub_main(const YAML::Node& config) {
-  auto clientCount = Extract<int>(config, "clients",
-    static_cast<int>(boost::thread::hardware_concurrency()));
-  auto server = ApplicationServerConnection();
-  auto routines = RoutineHandlerGroup();
-  routines.Spawn([&] {
-    ServerLoop(server);
-  });
-  for(auto i = 0; i < clientCount; ++i) {
-    routines.Spawn([&] {
-      ClientLoop(server);
-    });
-  }
-  routines.Wait();
-}
-
 int main(int argc, const char** argv) {
-  auto configFile = std::string();
   try {
-    auto cmd = CmdLine("", ' ', "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
+    auto config = ParseCommandLine(argc, argv,
+      "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto configArg = ValueArg<std::string>("c", "config", "Configuration file",
-      false, "config.yml", "path");
-    cmd.add(configArg);
-    cmd.parse(argc, argv);
-    configFile = configArg.getValue();
-  } catch(const ArgException& e) {
-    std::cerr << "error: " << e.error() << " for arg " << e.argId() <<
-      std::endl;
-    return -1;
-  }
-  try {
-    sub_main(Require(LoadFile, configFile));
+    auto clientCount = Extract<int>(config, "clients",
+      static_cast<int>(boost::thread::hardware_concurrency()));
+    auto server = ApplicationServerConnection();
+    auto routines = RoutineHandlerGroup();
+    routines.Spawn([&] {
+      ServerLoop(server);
+    });
+    for(auto i = 0; i < clientCount; ++i) {
+      routines.Spawn([&] {
+        ClientLoop(server);
+      });
+    }
+    routines.Wait();
   } catch(...) {
     ReportCurrentException();
     return -1;

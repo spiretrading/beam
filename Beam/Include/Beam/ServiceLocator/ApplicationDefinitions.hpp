@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #include <string>
+#include <boost/lexical_cast.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
@@ -9,6 +10,8 @@
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/Utilities/Expect.hpp"
+#include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
 namespace Beam::ServiceLocator {
@@ -80,12 +83,79 @@ namespace Beam::ServiceLocator {
         const ApplicationServiceLocatorClient&) = delete;
   };
 
+  /** Stores the configuration for a service. */
+  struct ServiceConfiguration {
+
+    /** The name of the service. */
+    std::string m_name;
+
+    /** The network interface to bind the service to. */
+    Network::IpAddress m_interface;
+
+    /** The ServiceEntry properties to register. */
+    JsonObject m_properties;
+
+    /**
+     * Parses a ServiceConfiguration from a YAML node.
+     * @param node The YAML node containing the service configuration.
+     * @param defaultName The service's default name used if the <i>node</i>
+     *        doesn't explicitly provide one.
+     */
+    static ServiceConfiguration Parse(const YAML::Node& node,
+      const std::string& defaultName);
+  };
+
+  /**
+   * Registers a service with the ServiceLocator.
+   * @param client The ServiceLocatorClient used to register the service.
+   * @param config The ServiceConfiguration to register.
+   */
+  template<typename ServiceLocatorClient>
+  ServiceEntry Register(ServiceLocatorClient& client,
+      const ServiceConfiguration& config) {
+    return TryOrNest([&] {
+      return client.Register(config.m_name, config.m_properties);
+    }, std::runtime_error("Error registering service."));
+  }
+
+  /**
+   * Builds an ApplicationServiceLocatorClient whose connection details are
+   * parsed from a YAML node.
+   * @param node The YAML node to parse.
+   * @return An ApplicationServiceLocatorClient connected to the service locator
+   *         specified by the <i>node</i>.
+   */
+  inline ApplicationServiceLocatorClient MakeApplicationServiceLocatorClient(
+      const YAML::Node& node) {
+    auto config = TryOrNest([&] {
+      return ServiceLocatorClientConfig::Parse(node);
+    }, std::runtime_error("Error parsing service locator config."));
+    return TryOrNest([&] {
+      return ApplicationServiceLocatorClient(config.m_username,
+        config.m_password, config.m_address);
+    }, std::runtime_error("Error logging in."));
+  }
+
   inline ServiceLocatorClientConfig ServiceLocatorClientConfig::Parse(
       const YAML::Node& node) {
     auto config = ServiceLocatorClientConfig();
     config.m_address = Extract<Network::IpAddress>(node, "address");
     config.m_username = Extract<std::string>(node, "username");
     config.m_password = Extract<std::string>(node, "password");
+    return config;
+  }
+
+  inline ServiceConfiguration ServiceConfiguration::Parse(
+      const YAML::Node& node, const std::string& defaultName) {
+    auto config = ServiceConfiguration();
+    config.m_name = Extract<std::string>(node, "service", defaultName);
+    config.m_interface = Extract<Network::IpAddress>(node, "interface");
+    auto addresses = std::vector<Network::IpAddress>();
+    addresses.push_back(config.m_interface);
+    addresses = Extract<std::vector<Network::IpAddress>>(node, "addresses",
+      addresses);
+    config.m_properties["addresses"] = boost::lexical_cast<std::string>(
+      Stream(addresses));
     return config;
   }
 

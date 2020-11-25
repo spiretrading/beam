@@ -54,15 +54,7 @@ namespace {
 }
 
 void sub_main(const YAML::Node& config) {
-  auto serviceLocatorClientConfig = TryOrNest([&] {
-    return ServiceLocatorClientConfig::Parse(config);
-  }, std::runtime_error("Unable to parse the service locator config."));
-  auto serviceLocatorClient = TryOrNest([&] {
-    return ApplicationServiceLocatorClient(
-      serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address);
-  }, std::runtime_error("Unable to connect to the service locator."));
+  auto serviceLocatorClient = MakeApplicationServiceLocatorClient(config);
   auto account = TryOrNest([&] {
     return serviceLocatorClient->GetAccount();
   }, std::runtime_error("Unable to load account."));

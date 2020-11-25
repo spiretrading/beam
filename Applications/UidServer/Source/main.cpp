@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
-#include <boost/lexical_cast.hpp>
 #include <tclap/CmdLine.h>
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
@@ -19,8 +18,6 @@
 #include "Beam/UidService/SqlUidDataStore.hpp"
 #include "Beam/UidService/UidServlet.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
-#include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
@@ -44,59 +41,27 @@ namespace {
     MetaUidServlet<SqlUidDataStore<SqlConnection<MySql::Connection>>>,
     ApplicationServiceLocatorClient::Client*>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
-
-  struct Configuration {
-    std::string m_serviceName;
-    IpAddress m_interface;
-    std::vector<IpAddress> m_addresses;
-
-    static Configuration Parse(const YAML::Node& node);
-  };
-
-  Configuration Configuration::Parse(const YAML::Node& node) {
-    auto config = Configuration();
-    config.m_serviceName = Extract<std::string>(node, "service",
-      UidService::SERVICE_NAME);
-    config.m_interface = Extract<IpAddress>(node, "interface");
-    auto addresses = std::vector<IpAddress>();
-    addresses.push_back(config.m_interface);
-    config.m_addresses = Extract<std::vector<IpAddress>>(node, "addresses",
-      addresses);
-    return config;
-  }
 }
 
 void sub_main(const YAML::Node& config) {
   auto mySqlConfig = TryOrNest([&] {
     return MySqlConfig::Parse(GetNode(config, "data_store"));
   }, std::runtime_error("Error parsing section 'data_store'."));
-  auto serverConfig = TryOrNest([&] {
-    return Configuration::Parse(GetNode(config, "server"));
+  auto serviceConfig = TryOrNest([&] {
+    return ServiceConfiguration::Parse(GetNode(config, "server"),
+      UidService::SERVICE_NAME);
   }, std::runtime_error("Error parsing section 'server'."));
-  auto serviceLocatorClientConfig = TryOrNest([&] {
-    return ServiceLocatorClientConfig::Parse(
-      GetNode(config, "service_locator"));
-  }, std::runtime_error("Error parsing section 'service_locator'."));
-  auto serviceLocatorClient = TryOrNest([&] {
-    return ApplicationServiceLocatorClient(
-      serviceLocatorClientConfig.m_username,
-      serviceLocatorClientConfig.m_password,
-      serviceLocatorClientConfig.m_address);
-  }, std::runtime_error("Error logging in."));
+  auto serviceLocatorClient = MakeApplicationServiceLocatorClient(
+    GetNode(config, "service_locator"));
   auto server = TryOrNest([&] {
     return UidServletContainer(Initialize(serviceLocatorClient.Get(),
       Initialize(MakeSqlConnection(MySql::Connection(
       mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
       mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema)))),
-      Initialize(serverConfig.m_interface),
+      Initialize(serviceConfig.m_interface),
       std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-    }, std::runtime_error("Error opening server."));
-  TryOrNest([&] {
-    auto service = JsonObject();
-    service["addresses"] = lexical_cast<std::string>(
-      Stream(serverConfig.m_addresses));
-    serviceLocatorClient->Register(serverConfig.m_serviceName, service);
-  }, std::runtime_error("Error registering service."));
+  }, std::runtime_error("Error opening server."));
+  Register(*serviceLocatorClient, serviceConfig);
   WaitForKillEvent();
 }
 

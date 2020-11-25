@@ -106,8 +106,12 @@ namespace IO {
       ReadSize();
     }
     auto initialSize = destination->GetSize();
-    destination->Grow(std::min(size,
-      static_cast<std::size_t>(m_totalSize - m_sizeRead)));
+    try {
+      destination->Grow(std::min(size,
+        static_cast<std::size_t>(m_totalSize - m_sizeRead)));
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
     return Read(destination->GetMutableData() + initialSize, size);
   }
 

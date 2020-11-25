@@ -70,7 +70,11 @@ namespace IO {
     auto result = std::size_t(0);
     auto previousSize = destination->GetSize();
     while(keepReading) {
-      destination->Reserve(result + DEFAULT_READ_SIZE);
+      try {
+        destination->Reserve(result + DEFAULT_READ_SIZE);
+      } catch(const std::exception&) {
+        std::throw_with_nested(IOException());
+      }
       m_source->read(destination->GetMutableData() + result, DEFAULT_READ_SIZE);
       auto count = m_source->gcount();
       if(count <= 0 && result == 0) {
@@ -99,7 +103,11 @@ namespace IO {
       std::size_t size) {
     auto readSize = std::min(DEFAULT_READ_SIZE, size);
     auto previousSize = destination->GetSize();
-    destination->Reserve(readSize);
+    try {
+      destination->Reserve(readSize);
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
     m_source->read(destination->GetMutableData(), readSize);
     auto count = m_source->gcount();
     if(count <= 0) {

@@ -52,22 +52,20 @@ namespace IO {
   void SizeDeclarativeWriter<W>::Write(const void* data, std::size_t size) {
     auto portableInt = ToLittleEndian(static_cast<std::uint32_t>(size));
     auto buffer = typename DestinationWriter::Buffer();
-    buffer.Append(reinterpret_cast<const char*>(&portableInt),
-      sizeof(std::uint32_t));
-    buffer.Append(data, size);
-    m_destination->Write(buffer);
+    try {
+      buffer.Append(reinterpret_cast<const char*>(&portableInt),
+        sizeof(std::uint32_t));
+      buffer.Append(data, size);
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
+    m_destination->Write(std::move(buffer));
   }
 
   template<typename W>
   template<typename B>
   void SizeDeclarativeWriter<W>::Write(const B& data) {
-    auto portableInt = ToLittleEndian(
-      static_cast<std::uint32_t>(data.GetSize()));
-    auto buffer = typename DestinationWriter::Buffer();
-    buffer.Append(reinterpret_cast<const char*>(&portableInt),
-      sizeof(std::uint32_t));
-    buffer.Append(data);
-    m_destination->Write(std::move(buffer));
+    return Write(data.GetData(), data.GetSize());
   }
 }
 

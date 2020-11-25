@@ -76,7 +76,11 @@ namespace IO {
   template<typename S, typename C>
   std::unique_ptr<typename ChannelAdapterServerConnection<S, C>::Channel>
       ChannelAdapterServerConnection<S, C>::Accept() {
-    return m_adapter(m_connection->Accept());
+    try {
+      return m_adapter(m_connection->Accept());
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
   }
 
   template<typename S, typename C>

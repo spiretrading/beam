@@ -97,7 +97,11 @@ namespace IO {
     if(m_readRemaining == 0) {
       BOOST_THROW_EXCEPTION(EndOfFileException());
     }
-    destination->Append(m_readIterator, m_readRemaining);
+    try {
+      destination->Append(m_readIterator, m_readRemaining);
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
     auto result = m_readRemaining;
     m_readRemaining = 0;
     return result;
@@ -122,7 +126,11 @@ namespace IO {
       BOOST_THROW_EXCEPTION(EndOfFileException());
     }
     auto result = std::min(m_readRemaining, size);
-    destination->Append(m_readIterator, result);
+    try {
+      destination->Append(m_readIterator, result);
+    } catch(const std::exception&) {
+      std::throw_with_nested(IOException());
+    }
     m_readIterator += result;
     m_readRemaining -= result;
     return result;

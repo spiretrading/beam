@@ -4,6 +4,7 @@
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Stomp/Stomp.hpp"
@@ -48,8 +49,8 @@ namespace Beam::Stomp {
       mutable Threading::Mutex m_mutex;
       GetOptionalLocalPtr<C> m_channel;
       StompFrameParser m_parser;
-      typename Channel::Reader::Buffer m_readBuffer;
-      typename Channel::Writer::Buffer m_writeBuffer;
+      IO::SharedBuffer m_readBuffer;
+      IO::SharedBuffer m_writeBuffer;
       IO::OpenState m_openState;
 
       StompServer(const StompServer&) = delete;

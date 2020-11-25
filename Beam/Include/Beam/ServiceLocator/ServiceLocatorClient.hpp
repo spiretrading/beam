@@ -432,7 +432,8 @@ namespace Beam::ServiceLocator {
         m_accountUpdateSnapshot =
           client->template SendRequest<MonitorAccountsService>();
       } catch(const std::exception&) {
-        queue->Break(std::current_exception());
+        queue->Break(NestCurrentException(
+          IO::IOException("Monitor accounts failed.")));
         return;
       }
       m_accountUpdatePublisher.Monitor(std::move(*queue));

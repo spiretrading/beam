@@ -69,9 +69,8 @@ namespace Codecs {
       sizeof(portableSourceSize));
     auto messageDestination = reinterpret_cast<char*>(destination) +
       sizeof(std::uint32_t);
-    auto encodedSize = m_encoder.Encode(source, sourceSize, messageDestination,
+    return m_encoder.Encode(source, sourceSize, messageDestination,
       destinationSize - sizeof(std::uint32_t)) + sizeof(std::uint32_t);
-    return encodedSize;
   }
 
   template<typename E>
@@ -86,12 +85,15 @@ namespace Codecs {
   template<typename Buffer>
   std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
       std::size_t sourceSize, Out<Buffer> destination) {
-    destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
+    try {
+      destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
+    } catch(const std::exception&) {
+      std::throw_with_nested(EncoderException());
+    }
     auto destinationView = IO::BufferSlice(Ref(*destination),
       sizeof(std::uint32_t));
-    auto size = m_encoder.Encode(source, sourceSize, Store(destinationView)) +
+    return m_encoder.Encode(source, sourceSize, Store(destinationView)) +
       sizeof(std::uint32_t);
-    return size;
   }
 
   template<typename E>

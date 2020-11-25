@@ -96,7 +96,11 @@ namespace Codecs {
     std::memcpy(reinterpret_cast<char*>(&nativeOriginalSize), source,
       sizeof(nativeOriginalSize));
     auto originalSize = FromBigEndian(nativeOriginalSize);
-    destination->Reserve(originalSize);
+    try {
+      destination->Reserve(originalSize);
+    } catch(const std::exception&) {
+      std::throw_with_nested(DecoderException());
+    }
     return m_decoder.Decode(reinterpret_cast<const char*>(source) +
       sizeof(std::uint32_t), sourceSize - sizeof(std::uint32_t),
       Store(destination));

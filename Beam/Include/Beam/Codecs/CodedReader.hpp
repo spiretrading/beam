@@ -99,14 +99,14 @@ namespace Codecs {
     }
     try {
       m_source->Read(Store(m_sourceBuffer));
-    } catch(...) {
+    } catch(const std::exception&) {
       m_writer.Break(std::current_exception());
       return;
     }
     if constexpr(InPlaceSupport<Decoder>::value) {
       try {
         m_decoder->Decode(m_sourceBuffer, Store(m_sourceBuffer));
-      } catch(...) {
+      } catch(const std::exception&) {
         m_writer.Break(NestCurrentException(
           IO::IOException("Decoder failed.")));
         return;
@@ -116,7 +116,7 @@ namespace Codecs {
     } else {
       try {
         m_decoder->Decode(m_sourceBuffer, Store(m_decoderBuffer));
-      } catch(...) {
+      } catch(const std::exception&) {
         m_writer.Break(NestCurrentException(
           IO::IOException("Decoder failed.")));
         return;

@@ -58,7 +58,7 @@ namespace Codecs {
     auto encodedData = Buffer();
     try {
       m_encoder->Encode(data, size, Store(encodedData));
-    } catch(...) {
+    } catch(const std::exception&) {
       std::throw_with_nested(IO::IOException("Encoder failed."));
     }
     m_destination->Write(encodedData);

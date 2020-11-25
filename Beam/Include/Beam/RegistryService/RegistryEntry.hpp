@@ -1,7 +1,8 @@
-#ifndef BEAM_REGISTRYENTRY_HPP
-#define BEAM_REGISTRYENTRY_HPP
+#ifndef BEAM_REGISTRY_ENTRY_HPP
+#define BEAM_REGISTRY_ENTRY_HPP
 #include <cstdint>
 #include <functional>
+#include <ostream>
 #include <string>
 #include <utility>
 #include "Beam/Collections/Enum.hpp"
@@ -79,6 +80,30 @@ namespace Details {
      */
     bool operator !=(const RegistryEntry& rhs) const;
   };
+
+  inline std::ostream& operator <<(std::ostream& out,
+      RegistryEntry::Type type) {
+    if(type == RegistryEntry::Type::DIRECTORY) {
+      return out << "DIRECTORY";
+    } else if(type == RegistryEntry::Type::VALUE) {
+      return out << "VALUE";
+    } else {
+      return out << "NONE";
+    }
+  }
+
+  inline std::ostream& operator <<(std::ostream& out,
+      const RegistryEntry& entry) {
+    if(entry.m_type == RegistryEntry::Type::NONE || entry.m_id == -1) {
+      return out << "NONE";
+    }
+    out << "(" << entry.m_type << " " << entry.m_id;
+    if(!entry.m_name.empty()) {
+      out << " " << entry.m_name;
+    }
+    out << " " << entry.m_version;
+    return out << ")";
+  }
 
   inline std::size_t hash_value(const RegistryEntry& value) {
     return static_cast<std::size_t>(value.m_id);

@@ -183,14 +183,14 @@ namespace Beam::TimeService {
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
   template<typename ServiceLocatorClient>
-  inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
+  std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClientFromServiceLocator(
       ServiceLocatorClient& serviceLocatorClient) {
     auto timeServices = serviceLocatorClient.Locate(SERVICE_NAME);
     if(timeServices.empty()) {
       throw std::runtime_error("No time services available.");
     }
     auto& timeService = timeServices.front();
-    auto ntpPool = Parse<std::vector<Network::IpAddress>>(
+    auto ntpPool = Parsers::Parse<std::vector<Network::IpAddress>>(
       boost::get<std::string>(timeService.GetProperties().At("addresses")));
     return MakeLiveNtpTimeClient(ntpPool);
   }

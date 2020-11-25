@@ -10,7 +10,9 @@
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/IOException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/UdpSocketChannel.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
@@ -171,6 +173,26 @@ namespace Beam::TimeService {
   inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
       const std::vector<Network::IpAddress>& sources) {
     return MakeLiveNtpTimeClient(sources, boost::posix_time::minutes(30));
+  }
+
+  /**
+   * Builds a LiveNtpTimeClient by checking the ServiceLocatorClient for a list
+   * of NTP servers.
+   * @param serviceLocatorClient The ServiceLocatorClient used to locate NTP
+   *        servers.
+   * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
+   */
+  template<typename ServiceLocatorClient>
+  inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
+      ServiceLocatorClient& serviceLocatorClient) {
+    auto timeServices = serviceLocatorClient.Locate(SERVICE_NAME);
+    if(timeServices.empty()) {
+      throw std::runtime_error("No time services available.");
+    }
+    auto& timeService = timeServices.front();
+    auto ntpPool = Parse<std::vector<Network::IpAddress>>(
+      boost::get<std::string>(timeService.GetProperties().At("addresses")));
+    return MakeLiveNtpTimeClient(ntpPool);
   }
 
   template<typename C, typename T>

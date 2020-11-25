@@ -1,6 +1,7 @@
 #ifndef BEAM_EXPECT_HPP
 #define BEAM_EXPECT_HPP
 #include <exception>
+#include <iostream>
 #include <type_traits>
 #include <utility>
 #include <variant>

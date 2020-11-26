@@ -140,7 +140,7 @@ namespace Beam::Queries {
         try {
           publisher->BeginSnapshot();
           publisherList.PushBack(publisher);
-          auto sendRequest = m_breakException.With([&] (auto& breakException)) {
+          auto sendRequest = m_breakException.With([&] (auto& breakException) {
             if(breakException) {
               publisher->Break(breakException);
               return false;
@@ -268,8 +268,10 @@ namespace Beam::Queries {
       return;
     }
     m_publishers.With([&] (auto& publishers) {
-      for(auto& publisher : publishers) {
-        publisher->Break(breakException);
+      for(auto& publisher : publishers | boost::adaptors::map_values) {
+        publisher.ForEach([&] (auto& entry) {
+          entry->Break(breakException);
+        });
       }
     });
   }

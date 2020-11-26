@@ -101,6 +101,11 @@ namespace Beam {
   };
 
   template<typename T>
+  std::ostream& operator <<(std::ostream& out, const EnumSet<T>& set) {
+    return out << set.GetBitset();
+  }
+
+  template<typename T>
   EnumSet<T> operator &(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
     return EnumSet<T>(lhs.GetBitset() & rhs.GetBitset());
   }

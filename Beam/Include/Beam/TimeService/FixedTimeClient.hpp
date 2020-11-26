@@ -18,12 +18,12 @@ namespace Beam::TimeService {
        * Constructs a FixedTimeClient.
        * @param time The time to use.
        */
-      FixedTimeClient(const boost::posix_time::ptime& time);
+      explicit FixedTimeClient(boost::posix_time::ptime time);
 
       ~FixedTimeClient();
 
       /** Sets the time to use. */
-      void SetTime(const boost::posix_time::ptime& time);
+      void SetTime(boost::posix_time::ptime time);
 
       boost::posix_time::ptime GetTime();
 
@@ -37,14 +37,14 @@ namespace Beam::TimeService {
       FixedTimeClient& operator =(const FixedTimeClient&) = delete;
   };
 
-  inline FixedTimeClient::FixedTimeClient(const boost::posix_time::ptime& time)
+  inline FixedTimeClient::FixedTimeClient(boost::posix_time::ptime time)
     : m_time(time) {}
 
   inline FixedTimeClient::~FixedTimeClient() {
     Close();
   }
 
-  inline void FixedTimeClient::SetTime(const boost::posix_time::ptime& time) {
+  inline void FixedTimeClient::SetTime(boost::posix_time::ptime time) {
     m_time = time;
   }
 

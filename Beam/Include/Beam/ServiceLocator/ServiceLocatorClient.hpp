@@ -290,7 +290,7 @@ namespace Beam::ServiceLocator {
       throw;
     }
   } catch(const std::exception&) {
-    BOOST_THROW_EXCEPTION(
+    std::throw_with_nested(
       IO::ConnectException("Failed to login to service locator."));
   }
 

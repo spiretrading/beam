@@ -59,7 +59,7 @@ namespace Beam::UidService {
             m_clientHandler(std::forward<BF>(clientBuilder)) {
     RegisterUidServices(Store(m_clientHandler.GetSlots()));
   } catch(const std::exception&) {
-    BOOST_THROW_EXCEPTION(
+    std::throw_with_nested(
       IO::ConnectException("Failed to connect to the UID server."));
   }
 

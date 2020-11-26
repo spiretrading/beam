@@ -40,7 +40,7 @@ namespace Beam::Parsers {
 
     private:
       GetOptionalLocalPtr<R> m_source;
-      typename Reader::Buffer m_buffer;
+      IO::SharedBuffer m_buffer;
       const char* m_position;
       std::size_t m_sizeRemaining;
   };
@@ -69,7 +69,7 @@ namespace Beam::Parsers {
   bool ReaderParserStream<R>::Read() {
     constexpr auto READ_SIZE = std::size_t(1024);
     if(m_sizeRemaining == 0) {
-      auto buffer = typename Reader::Buffer();
+      auto buffer = IO::SharedBuffer();
       auto position = m_position - m_buffer.GetData();
       try {
         m_sizeRemaining = m_source->Read(Store(buffer), READ_SIZE) - 1;

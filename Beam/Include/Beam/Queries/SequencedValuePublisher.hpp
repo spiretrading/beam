@@ -91,7 +91,7 @@ namespace Beam::Queries {
        * @param e The exception used to break the queue.
        */
       template<typename E>
-      void Break(E&& e);
+      void Break(const E& e);
 
       /**
        * Breaks the queue receiving the published data.
@@ -218,8 +218,8 @@ namespace Beam::Queries {
 
   template<typename Q, typename V>
   template<typename E>
-  void SequencedValuePublisher<Q, V>::Break(E&& e) {
-    Break(std::make_exception_ptr(std::forward<E>(e)));
+  void SequencedValuePublisher<Q, V>::Break(const E& e) {
+    Break(std::make_exception_ptr(e));
   }
 
   template<typename Q, typename V>

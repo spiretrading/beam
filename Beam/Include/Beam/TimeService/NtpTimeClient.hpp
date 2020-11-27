@@ -20,6 +20,7 @@
 #include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/Timer.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam::TimeService {
@@ -294,7 +295,7 @@ namespace Beam::TimeService {
       ++count;
     }
     if(count == 0) {
-      BOOST_THROW_EXCEPTION(std::runtime_error("Unable to query NTP time."));
+      BOOST_THROW_EXCEPTION(IO::IOException("Unable to query NTP time."));
     }
     averageOffset = averageOffset / count;
     Threading::With(m_origin, [&] (auto& origin) {

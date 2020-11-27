@@ -7,7 +7,6 @@
 #include <boost/thread/mutex.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Pointers/LocalPointerPolicy.hpp"
@@ -451,8 +450,6 @@ namespace Details {
         m_timer->Start();
       }
     } catch(const PipeBrokenException&) {
-      return;
-    } catch(const IO::NotConnectedException&) {
       return;
     } catch(const IO::EndOfFileException&) {
       return;

@@ -1,7 +1,6 @@
 #ifndef BEAM_WRAPPER_CHANNEL_HPP
 #define BEAM_WRAPPER_CHANNEL_HPP
 #include <type_traits>
-#include <boost/mpl/if.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -43,19 +42,18 @@ namespace Details {
       using Channel = GetTryDereferenceType<C>;
 
       /** The type of Connection. */
-      using Connection = typename boost::mpl::if_c<ImplementsConcept<
-        Component1, IO::Connection>::value, Component1,
-        typename boost::mpl::if_c<ImplementsConcept<
-        Component2, IO::Connection>::value, Component2,
-        typename boost::mpl::if_c<ImplementsConcept<
-        Component3, IO::Connection>::value, Component3,
-        typename Channel::Connection>::type>::type>::type;
+      using Connection = std::conditional_t<
+        ImplementsConcept<Component1, IO::Connection>::value, Component1,
+        std::conditional_t<ImplementsConcept<Component2, IO::Connection>::value,
+        Component2, std::conditional_t<ImplementsConcept<Component3,
+        IO::Connection>::value, Component3, typename Channel::Connection>>>;
 
       /** The type of Reader. */
-      using Reader = typename boost::mpl::if_c<IsReader<Component1>::value,
-        Component1, typename boost::mpl::if_c<IsReader<Component2>::value,
-        Component2, typename boost::mpl::if_c<IsReader<Component3>::value,
-        Component3, typename Channel::Reader>::type>::type>::type;
+      using Reader = std::conditional_t<
+        ImplementsConcept<Component1, IO::Reader>::value, Component1,
+        std::conditional_t<ImplementsConcept<Component2, IO::Reader>::value,
+        Component2, std::conditional_t<ImplementsConcept<Component3,
+        IO::Reader>::value, Component3, typename Channel::Reader>>>;
 
       /** The type of Writer, determined based on Component3. */
       using Writer = typename boost::mpl::if_c<IsWriter<Component1>::value,
@@ -71,7 +69,7 @@ namespace Details {
        * @param channel The channel to wrap.
        */
       template<typename CF>
-      WrapperChannel(CF&& channel);
+      explicit WrapperChannel(CF&& channel);
 
       /**
        * Constructs a WrapperChannel wrapping a single component.

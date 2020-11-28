@@ -4,7 +4,7 @@
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonTimeClient.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
-#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
 #include "Beam/TimeService/IncrementalTimeClient.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
@@ -98,23 +98,9 @@ void Beam::Python::ExportNtpTimeClient(pybind11::module& module) {
       return MakeToPythonTimeClient(
         MakeLiveNtpTimeClient(ntpPool, syncPeriod)).release();
     }), call_guard<GilRelease>())
-    .def(init([] (VirtualServiceLocatorClient* serviceLocatorClient) {
-      auto timeClient = [&] {
-        try {
-          auto timeServices = serviceLocatorClient->Locate(
-            TimeService::SERVICE_NAME);
-          if(timeServices.empty()) {
-            throw ConnectException("No time services available.");
-          }
-          auto& timeService = timeServices.front();
-          auto ntpPool = Parse<std::vector<IpAddress>>(
-            get<std::string>(timeService.GetProperties().At("addresses")));
-          return MakeLiveNtpTimeClient(ntpPool);
-        } catch(const std::exception&) {
-          throw ConnectException("Unable to initialize NTP time client.");
-        }
-      }();
-      return MakeToPythonTimeClient(std::move(timeClient)).release();
+    .def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
+      return MakeToPythonTimeClient(MakeLiveNtpTimeClientFromServiceLocator(
+        serviceLocatorClient)).release();
     }), call_guard<GilRelease>());
 }
 

@@ -23,14 +23,13 @@ class_<RegistryClientBox>& Beam::Python::GetExportedRegistryClientBox() {
 }
 
 void Beam::Python::ExportApplicationRegistryClient(module& module) {
-  ExportRegistryClient<ToPythonRegistryClient<
-    RegistryClient<DefaultSessionBuilder>>>(module, "ApplicationRegistryClient")
-    .def(init(
-      [] (VirtualServiceLocatorClient& serviceLocatorClient) {
-        return std::make_shared<ToPythonRegistryClient<RegistryClient<
-          DefaultSessionBuilder>>>(MakeDefaultSessionBuilder(
-            Ref(serviceLocatorClient), RegistryService::SERVICE_NAME));
-      }), call_guard<GilRelease>());
+  ExportRegistryClient<ToPythonRegistryClient<RegistryClient<
+    DefaultSessionBuilder>>>(module, "ApplicationRegistryClient").
+    def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
+      return std::make_shared<ToPythonRegistryClient<RegistryClient<
+        DefaultSessionBuilder>>>(MakeDefaultSessionBuilder(
+          std::move(serviceLocatorClient), RegistryService::SERVICE_NAME));
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportRegistryEntry(module& module) {
@@ -49,10 +48,10 @@ void Beam::Python::ExportRegistryEntry(module& module) {
     def(self == self).
     def(self != self).
     def("__str__", &lexical_cast<std::string, RegistryEntry>);
-  enum_<RegistryEntry::Type::Type>(outer, "Type")
-    .value("NONE", RegistryEntry::Type::NONE)
-    .value("DIRECTORY", RegistryEntry::Type::DIRECTORY)
-    .value("VALUE", RegistryEntry::Type::VALUE);
+  enum_<RegistryEntry::Type::Type>(outer, "Type").
+    value("NONE", RegistryEntry::Type::NONE).
+    value("DIRECTORY", RegistryEntry::Type::DIRECTORY).
+    value("VALUE", RegistryEntry::Type::VALUE);
 }
 
 void Beam::Python::ExportRegistryService(module& module) {
@@ -67,17 +66,16 @@ void Beam::Python::ExportRegistryService(module& module) {
 
 void Beam::Python::ExportRegistryServiceTestEnvironment(module& module) {
   class_<RegistryServiceTestEnvironment>(module,
-    "RegistryServiceTestEnvironment")
-    .def(init<std::shared_ptr<VirtualServiceLocatorClient>>(),
-      call_guard<GilRelease>())
-    .def("__del__", [] (RegistryServiceTestEnvironment& self) {
+    "RegistryServiceTestEnvironment").
+    def(init<ServiceLocatorClientBox>(), call_guard<GilRelease>()).
+    def("__del__", [] (RegistryServiceTestEnvironment& self) {
       self.Close();
-    }, call_guard<GilRelease>())
-    .def("close", &RegistryServiceTestEnvironment::Close,
-      call_guard<GilRelease>())
-    .def("make_client", [] (RegistryServiceTestEnvironment& self,
-        Ref<VirtualServiceLocatorClient> serviceLocatorClient) {
+    }, call_guard<GilRelease>()).
+    def("close", &RegistryServiceTestEnvironment::Close,
+      call_guard<GilRelease>()).
+    def("make_client", [] (RegistryServiceTestEnvironment& self,
+        ServiceLocatorClientBox serviceLocatorClient) {
       return ToPythonRegistryClient(self.MakeClient(
-        Ref(serviceLocatorClient)));
+        std::move(serviceLocatorClient)));
     }, call_guard<GilRelease>());
 }

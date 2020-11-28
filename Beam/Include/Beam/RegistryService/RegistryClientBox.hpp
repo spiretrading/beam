@@ -35,10 +35,10 @@ namespace Beam::RegistryService {
       explicit RegistryClientBox(RegistryClientBox* client);
 
       explicit RegistryClientBox(
-        const std::shared_ptr<RegistryClientBox>& decoder);
+        const std::shared_ptr<RegistryClientBox>& client);
 
       explicit RegistryClientBox(
-        const std::unique_ptr<RegistryClientBox>& decoder);
+        const std::unique_ptr<RegistryClientBox>& client);
 
       RegistryEntry LoadPath(const RegistryEntry& root,
         const std::string& path);

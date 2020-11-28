@@ -1,8 +1,12 @@
 #ifndef BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
 
 namespace Beam::ServiceLocator {
 
@@ -11,8 +15,7 @@ namespace Beam::ServiceLocator {
    * param <C> The type of ServiceLocatorClient to wrap.
    */
   template<typename C>
-  class ToPythonServiceLocatorClient final :
-      public VirtualServiceLocatorClient {
+  class ToPythonServiceLocatorClient {
     public:
 
       /** The type of ServiceLocatorClient to wrap. */
@@ -20,106 +23,99 @@ namespace Beam::ServiceLocator {
 
       /**
        * Constructs a ToPythonServiceLocatorClient.
-       * @param client The ServiceLocatorClient to wrap.
+       * @param args The arguments to forward to the Client's constructor.
        */
-      explicit ToPythonServiceLocatorClient(std::unique_ptr<Client> client);
+      template<typename... Args>
+      ToPythonServiceLocatorClient(Args&&... args);
 
-      ~ToPythonServiceLocatorClient() override;
+      ~ToPythonServiceLocatorClient();
 
-      DirectoryEntry GetAccount() const override;
+      /** Returns the wrapped client. */
+      const Client& GetClient() const;
 
-      std::string GetSessionId() const override;
+      /** Returns the wrapped client. */
+      Client& GetClient();
 
-      std::string GetEncryptedSessionId(unsigned int key) const override;
+      DirectoryEntry GetAccount() const;
+
+      std::string GetSessionId() const;
+
+      std::string GetEncryptedSessionId(unsigned int key) const;
 
       DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password) override;
+        const std::string& password);
 
       DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key) override;
+        unsigned int key);
 
-      std::vector<ServiceEntry> Locate(const std::string& name) override;
+      std::vector<ServiceEntry> Locate(const std::string& name);
 
       ServiceEntry Register(const std::string& name,
-        const JsonObject& properties) override;
+        const JsonObject& properties);
 
-      void Unregister(const ServiceEntry& service) override;
+      void Unregister(const ServiceEntry& service);
 
-      std::vector<DirectoryEntry> LoadAllAccounts() override;
+      std::vector<DirectoryEntry> LoadAllAccounts();
 
-      boost::optional<DirectoryEntry> FindAccount(
-        const std::string& name) override;
+      boost::optional<DirectoryEntry> FindAccount(const std::string& name);
 
       DirectoryEntry MakeAccount(const std::string& name,
-        const std::string& password,
-        const DirectoryEntry& parent) override;
+        const std::string& password, const DirectoryEntry& parent);
 
       DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent) override;
+        const DirectoryEntry& parent);
 
       void StorePassword(const DirectoryEntry& account,
-        const std::string& password) override;
+        const std::string& password);
 
-      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue) override;
+      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue);
 
       DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path) override;
+        const std::string& path);
 
-      DirectoryEntry LoadDirectoryEntry(unsigned int id) override;
+      DirectoryEntry LoadDirectoryEntry(unsigned int id);
 
-      std::vector<DirectoryEntry> LoadParents(
-        const DirectoryEntry& entry) override;
+      std::vector<DirectoryEntry> LoadParents(const DirectoryEntry& entry);
 
-      std::vector<DirectoryEntry> LoadChildren(
-        const DirectoryEntry& entry) override;
+      std::vector<DirectoryEntry> LoadChildren(const DirectoryEntry& entry);
 
-      void Delete(const DirectoryEntry& entry) override;
+      void Delete(const DirectoryEntry& entry);
 
-      void Associate(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override;
+      void Associate(const DirectoryEntry& entry, const DirectoryEntry& parent);
 
-      void Detach(const DirectoryEntry& entry,
-        const DirectoryEntry& parent) override;
+      void Detach(const DirectoryEntry& entry, const DirectoryEntry& parent);
 
       bool HasPermissions(const DirectoryEntry& account,
-        const DirectoryEntry& target, Permissions permissions) override;
+        const DirectoryEntry& target, Permissions permissions);
 
       void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions) override;
+        const DirectoryEntry& target, Permissions permissions);
 
       boost::posix_time::ptime LoadRegistrationTime(
-        const DirectoryEntry& account) override;
+        const DirectoryEntry& account);
 
-      boost::posix_time::ptime LoadLastLoginTime(
-        const DirectoryEntry& account) override;
+      boost::posix_time::ptime LoadLastLoginTime(const DirectoryEntry& account);
 
       DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name) override;
+        const std::string& name);
 
-      void Close() override;
+      void Close();
 
     private:
-      std::unique_ptr<Client> m_client;
+      boost::optional<Client> m_client;
   };
 
-  /**
-   * Makes a ToPythonServiceLocatorClient.
-   * @param client The ServiceLocatorClient to wrap.
-   */
   template<typename Client>
-  auto MakeToPythonServiceLocatorClient(std::unique_ptr<Client> client) {
-    return std::make_unique<ToPythonServiceLocatorClient<Client>>(
-      std::move(client));
-  }
+  ToPythonServiceLocatorClient(Client&&) ->
+    ToPythonServiceLocatorClient<std::decay_t<Client>>;
 
   template<typename C>
-  ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(
-    std::unique_ptr<Client> client)
-    : m_client(std::move(client)) {}
+  template<typename... Args>
+  ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
+    : m_client(std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
-    Close();
     auto release = Python::GilRelease();
     m_client.reset();
   }

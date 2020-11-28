@@ -15,8 +15,7 @@ namespace {
 
 void Beam::Python::ExportYaml(pybind11::module& module) {
   class_<YAML::Node>(module, "YamlNode");
-  module.def("load_yaml",
-    [] (const std::string& path) {
-      return new YAML::Node(LoadFile(path));
-    }, return_value_policy::take_ownership);
+  module.def("load_yaml", [] (const std::string& path) {
+    return new YAML::Node(LoadFile(path));
+  }, return_value_policy::take_ownership);
 }

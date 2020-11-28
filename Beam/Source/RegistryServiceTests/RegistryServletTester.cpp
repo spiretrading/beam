@@ -26,7 +26,7 @@ namespace {
     optional<TestServiceProtocolClient> m_clientProtocol;
 
     Fixture() {
-      auto registryServiceLocatorClient = m_environment.BuildClient();
+      auto registryServiceLocatorClient = m_environment.MakeClient();
       auto serverConnection = std::make_shared<TestServerConnection>();
       m_container.emplace(Initialize(std::move(registryServiceLocatorClient),
         Initialize(&m_dataStore)), serverConnection,
@@ -42,9 +42,8 @@ namespace {
 
 TEST_SUITE("RegistryServlet") {
   TEST_CASE_FIXTURE(Fixture, "make_directory") {
-    auto serviceLocatorClient = m_environment.BuildClient();
-    Authenticate(SessionAuthenticator(Ref(*serviceLocatorClient)),
-      *m_clientProtocol);
+    auto serviceLocatorClient = m_environment.MakeClient();
+    Authenticate(SessionAuthenticator(serviceLocatorClient), *m_clientProtocol);
     auto directoryName = std::string("directory");
     auto directory = m_clientProtocol->SendRequest<
       RegistryService::MakeDirectoryService>(directoryName,
@@ -52,9 +51,8 @@ TEST_SUITE("RegistryServlet") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "make_value") {
-    auto serviceLocatorClient = m_environment.BuildClient();
-    Authenticate(SessionAuthenticator(Ref(*serviceLocatorClient)),
-      *m_clientProtocol);
+    auto serviceLocatorClient = m_environment.MakeClient();
+    Authenticate(SessionAuthenticator(serviceLocatorClient), *m_clientProtocol);
     auto key = std::string("key");
     auto value = BufferFromString<SharedBuffer>("value");
     auto entry = m_clientProtocol->SendRequest<MakeValueService>(key, value,
@@ -62,9 +60,8 @@ TEST_SUITE("RegistryServlet") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "load_path") {
-    auto serviceLocatorClient = m_environment.BuildClient();
-    Authenticate(SessionAuthenticator(Ref(*serviceLocatorClient)),
-      *m_clientProtocol);
+    auto serviceLocatorClient = m_environment.MakeClient();
+    Authenticate(SessionAuthenticator(serviceLocatorClient), *m_clientProtocol);
     auto directory = RegistryEntry(RegistryEntry::Type::DIRECTORY, 0,
       "directory", 0);
     directory = m_dataStore.Copy(directory, RegistryEntry::GetRoot());
@@ -74,9 +71,8 @@ TEST_SUITE("RegistryServlet") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "load_value") {
-    auto serviceLocatorClient = m_environment.BuildClient();
-    Authenticate(SessionAuthenticator(Ref(*serviceLocatorClient)),
-      *m_clientProtocol);
+    auto serviceLocatorClient = m_environment.MakeClient();
+    Authenticate(SessionAuthenticator(serviceLocatorClient), *m_clientProtocol);
     auto valueEntry = RegistryEntry(RegistryEntry::Type::VALUE, 0, "value", 0);
     valueEntry = m_dataStore.Copy(valueEntry, RegistryEntry::GetRoot());
     auto value = BufferFromString<SharedBuffer>("value");

@@ -56,44 +56,44 @@ void Beam::Python::ExportCodecs(module& module) {
 void Beam::Python::ExportCodedReader(pybind11::module& module) {
   ExportReader<
     ToPythonReader<CodedReader<SharedBuffer, ReaderBox, DecoderBox>>>(module,
-    "CodedReader")
-    .def(init<ReaderBox, DecoderBox>());
+    "CodedReader").
+    def(init<ReaderBox, DecoderBox>());
 }
 
 void Beam::Python::ExportCodedWriter(pybind11::module& module) {
   ExportWriter<
-    ToPythonWriter<CodedWriter<WriterBox, EncoderBox>>>(module, "CodedWriter")
-    .def(init<WriterBox, EncoderBox>());
+    ToPythonWriter<CodedWriter<WriterBox, EncoderBox>>>(module, "CodedWriter").
+    def(init<WriterBox, EncoderBox>());
 }
 
 void Beam::Python::ExportNullDecoder(module& module) {
-  ExportDecoder<NullDecoder>(module, "NullDecoder")
-    .def(init());
+  ExportDecoder<NullDecoder>(module, "NullDecoder").
+    def(init());
 }
 
 void Beam::Python::ExportNullEncoder(module& module) {
-  ExportEncoder<NullEncoder>(module, "NullEncoder")
-    .def(init());
+  ExportEncoder<NullEncoder>(module, "NullEncoder").
+    def(init());
 }
 
 void Beam::Python::ExportSizeDeclarativeDecoder(module& module) {
   ExportDecoder<SizeDeclarativeDecoder<DecoderBox>>(module,
-    "SizeDeclarativeDecoder")
-    .def(init<DecoderBox>());
+    "SizeDeclarativeDecoder").
+    def(init<DecoderBox>());
 }
 
 void Beam::Python::ExportSizeDeclarativeEncoder(module& module) {
   ExportEncoder<SizeDeclarativeEncoder<EncoderBox>>(module,
-    "SizeDeclarativeEncoder")
-    .def(init<EncoderBox>());
+    "SizeDeclarativeEncoder").
+    def(init<EncoderBox>());
 }
 
 void Beam::Python::ExportZLibDecoder(module& module) {
-  ExportDecoder<ZLibDecoder>(module, "ZLibDecoder")
-    .def(init());
+  ExportDecoder<ZLibDecoder>(module, "ZLibDecoder").
+    def(init());
 }
 
 void Beam::Python::ExportZLibEncoder(module& module) {
-  ExportEncoder<ZLibEncoder>(module, "ZLibEncoder")
-    .def(init());
+  ExportEncoder<ZLibEncoder>(module, "ZLibEncoder").
+    def(init());
 }

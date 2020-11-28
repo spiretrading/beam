@@ -10,8 +10,8 @@
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
 #include "Beam/Threading/LiveTimer.hpp"
 
 namespace Beam::Services {
@@ -29,14 +29,14 @@ namespace Beam::Services {
 
   /** The default type of SessionBuilder used. */
   using DefaultSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::VirtualServiceLocatorClient,
+    ServiceLocator::ServiceLocatorClientBox,
     MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::LiveTimer>;
 
   /** A SessionBuilder that uses Zlib compression. */
   using ZlibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::VirtualServiceLocatorClient,
+    ServiceLocator::ServiceLocatorClientBox,
     MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
     Serialization::BinarySender<IO::SharedBuffer>,
     Codecs::SizeDeclarativeEncoder<Codecs::ZLibEncoder>>, Threading::LiveTimer>;
@@ -56,9 +56,8 @@ namespace Beam::Services {
        * @param serviceLocatorClient The ServiceLocatorClient used to
        *        authenticate sessions.
        */
-      template<typename ServiceLocatorClient>
       explicit ApplicationClient(
-        Ref<ServiceLocatorClient> serviceLocatorClient);
+        ServiceLocator::ServiceLocatorClientBox serviceLocatorClient);
 
       /** Returns a reference to the Client. */
       Client& operator *();
@@ -79,8 +78,6 @@ namespace Beam::Services {
       const Client* Get() const;
 
     private:
-      std::unique_ptr<ServiceLocator::VirtualServiceLocatorClient>
-        m_serviceLocatorClient;
       Client m_client;
 
       ApplicationClient(const ApplicationClient&) = delete;
@@ -93,12 +90,12 @@ namespace Beam::Services {
    *        sessions.
    */
   inline DefaultSessionBuilder MakeDefaultSessionBuilder(
-      Ref<ServiceLocator::VirtualServiceLocatorClient> serviceLocatorClient,
+      ServiceLocator::ServiceLocatorClientBox serviceLocatorClient,
       const std::string& service) {
-    return DefaultSessionBuilder(Ref(serviceLocatorClient),
-      [=] {
+    return DefaultSessionBuilder(serviceLocatorClient,
+      [=] () mutable {
         return std::make_unique<Network::TcpSocketChannel>(
-          ServiceLocator::LocateServiceAddresses(*serviceLocatorClient,
+          ServiceLocator::LocateServiceAddresses(serviceLocatorClient,
           service));
       },
       [] {
@@ -108,15 +105,12 @@ namespace Beam::Services {
   }
 
   template<template<typename> class C, typename N, typename B>
-  template<typename ServiceLocatorClient>
   ApplicationClient<C, N, B>::ApplicationClient(
-    Ref<ServiceLocatorClient> serviceLocatorClient)
-    : m_serviceLocatorClient(ServiceLocator::MakeVirtualServiceLocatorClient(
-        serviceLocatorClient.Get())),
-      m_client(SessionBuilder(Ref(*m_serviceLocatorClient),
-        [=] {
+    ServiceLocator::ServiceLocatorClientBox serviceLocatorClient)
+    : m_client(SessionBuilder(serviceLocatorClient,
+        [=] () mutable {
           return std::make_unique<Network::TcpSocketChannel>(
-            ServiceLocator::LocateServiceAddresses(*m_serviceLocatorClient,
+            ServiceLocator::LocateServiceAddresses(serviceLocatorClient,
             N::name));
         },
         [] {

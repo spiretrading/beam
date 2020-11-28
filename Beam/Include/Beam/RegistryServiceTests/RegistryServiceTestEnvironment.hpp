@@ -4,6 +4,7 @@
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Pointers/Ref.hpp"
 #include "Beam/RegistryService/RegistryClient.hpp"
 #include "Beam/RegistryService/RegistryClientBox.hpp"
 #include "Beam/RegistryService/RegistryServlet.hpp"
@@ -12,6 +13,7 @@
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
 #include "Beam/ServiceLocatorTests/ServiceLocatorTestEnvironment.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -29,11 +31,10 @@ namespace Beam::RegistryService::Tests {
 
       /**
        * Constructs a RegistryServiceTestEnvironment.
-       * @param serviceLocatorClient The ServiceLocatorClient to use.
+       * @param serviceLocatorClient The ServiceLocatorClientBox to use.
        */
       RegistryServiceTestEnvironment(
-        std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>
-        serviceLocatorClient);
+        ServiceLocator::ServiceLocatorClientBox serviceLocatorClient);
 
       ~RegistryServiceTestEnvironment();
 
@@ -43,24 +44,22 @@ namespace Beam::RegistryService::Tests {
        *        authenticate the RegistryClient.
        */
       RegistryClientBox MakeClient(
-        Ref<Beam::ServiceLocator::VirtualServiceLocatorClient>
-        serviceLocatorClient);
+        ServiceLocator::ServiceLocatorClientBox serviceLocatorClient);
 
       void Close();
 
     private:
       using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
       using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
-      using ServiceLocatorClient = ServiceLocator::VirtualServiceLocatorClient;
       using ServiceProtocolServletContainer =
         Services::ServiceProtocolServletContainer<
         ServiceLocator::MetaAuthenticationServletAdapter<MetaRegistryServlet<
-        LocalRegistryDataStore*>, std::shared_ptr<ServiceLocatorClient>>,
+        LocalRegistryDataStore*>, ServiceLocator::ServiceLocatorClientBox>,
         ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
         Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
       using ServiceProtocolClientBuilder =
         Services::AuthenticatedServiceProtocolClientBuilder<
-        ServiceLocatorClient, Services::MessageProtocol<
+        ServiceLocator::ServiceLocatorClientBox, Services::MessageProtocol<
         std::unique_ptr<ClientChannel>,
         Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
         Threading::TriggerTimer>;
@@ -75,10 +74,9 @@ namespace Beam::RegistryService::Tests {
   };
 
   inline RegistryServiceTestEnvironment::RegistryServiceTestEnvironment(
-    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>
-    serviceLocatorClient)
-    : m_container(Initialize(serviceLocatorClient, Initialize(&m_dataStore)),
-        &m_serverConnection,
+    ServiceLocator::ServiceLocatorClientBox serviceLocatorClient)
+    : m_container(Initialize(std::move(serviceLocatorClient),
+        Initialize(&m_dataStore)), &m_serverConnection,
         boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {}
 
   inline RegistryServiceTestEnvironment::~RegistryServiceTestEnvironment() {
@@ -86,18 +84,17 @@ namespace Beam::RegistryService::Tests {
   }
 
   inline RegistryClientBox RegistryServiceTestEnvironment::MakeClient(
-      Ref<ServiceLocator::VirtualServiceLocatorClient> serviceLocatorClient) {
-    auto builder = ServiceProtocolClientBuilder(Ref(serviceLocatorClient),
-      [=] {
-        return std::make_unique<ServiceProtocolClientBuilder::Channel>(
-          "test_registry_client", m_serverConnection);
-      },
-      [] {
-        return std::make_unique<ServiceProtocolClientBuilder::Timer>();
-      });
+      ServiceLocator::ServiceLocatorClientBox serviceLocatorClient) {
     return RegistryClientBox(
       std::in_place_type<RegistryClient<ServiceProtocolClientBuilder>>,
-      builder);
+      ServiceProtocolClientBuilder(std::move(serviceLocatorClient),
+        [=] {
+          return std::make_unique<ServiceProtocolClientBuilder::Channel>(
+            "test_registry_client", m_serverConnection);
+        },
+        [] {
+          return std::make_unique<ServiceProtocolClientBuilder::Timer>();
+        }));
   }
 
   inline void RegistryServiceTestEnvironment::Close() {

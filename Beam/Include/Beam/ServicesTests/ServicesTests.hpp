@@ -9,7 +9,7 @@
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
-#include "Beam/ServiceLocator/VirtualServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
@@ -58,8 +58,7 @@ namespace Beam::Services::Tests {
   using TestAuthenticatedServiceProtocolServletContainer =
     TestServiceProtocolServletContainer<
     ServiceLocator::MetaAuthenticationServletAdapter<MetaServlet,
-    std::shared_ptr<ServiceLocator::VirtualServiceLocatorClient>,
-    ServletPointerPolicy>>;
+    ServiceLocator::ServiceLocatorClientBox, ServletPointerPolicy>>;
 
   //! Instantiates ServiceProtocolClients used for testing.
   using TestServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
@@ -70,7 +69,7 @@ namespace Beam::Services::Tests {
   //! clients.
   using TestAuthenticatedServiceProtocolClientBuilder =
     AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocator::VirtualServiceLocatorClient, MessageProtocol<
+    ServiceLocator::ServiceLocatorClientBox, MessageProtocol<
     std::unique_ptr<TestClientChannel>,
     Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::TriggerTimer>;

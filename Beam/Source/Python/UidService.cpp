@@ -35,27 +35,26 @@ namespace {
 
 void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
   using SessionBuilder = 
-    AuthenticatedServiceProtocolClientBuilder<VirtualServiceLocatorClient,
+    AuthenticatedServiceProtocolClientBuilder<ServiceLocatorClientBox,
     MessageProtocol<std::unique_ptr<TcpSocketChannel>,
     BinarySender<SharedBuffer>, NullEncoder>, LiveTimer>;
   using PythonApplicationUidClient = UidClient<SessionBuilder>;
   class_<ToPythonUidClient<PythonApplicationUidClient>, VirtualUidClient>(
     module, "ApplicationUidClient")
-    .def(init(
-      [] (VirtualServiceLocatorClient& serviceLocatorClient) {
-        auto addresses = LocateServiceAddresses(serviceLocatorClient,
-          UidService::SERVICE_NAME);
-        auto sessionBuilder = SessionBuilder(Ref(serviceLocatorClient),
-          [=] {
-            return std::make_unique<TcpSocketChannel>(addresses);
-          },
-          [] {
-            return std::make_unique<LiveTimer>(seconds(10));
-          });
-        return MakeToPythonUidClient(
-          std::make_unique<PythonApplicationUidClient>(
-          std::move(sessionBuilder)));
-      }), call_guard<GilRelease>());
+    .def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
+      auto addresses = LocateServiceAddresses(serviceLocatorClient,
+        UidService::SERVICE_NAME);
+      auto sessionBuilder = SessionBuilder(std::move(serviceLocatorClient),
+        [=] {
+          return std::make_unique<TcpSocketChannel>(addresses);
+        },
+        [] {
+          return std::make_unique<LiveTimer>(seconds(10));
+        });
+      return MakeToPythonUidClient(
+        std::make_unique<PythonApplicationUidClient>(
+        std::move(sessionBuilder)));
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportUidClient(pybind11::module& module) {

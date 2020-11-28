@@ -15,14 +15,13 @@ namespace Beam::ServiceLocator {
   class NullAuthenticator;
   class ServiceEntry;
   template<typename B> class ServiceLocatorClient;
+  class ServiceLocatorClientBox;
   struct ServiceLocatorClientConfig;
   class ServiceLocatorDataStore;
   class ServiceLocatorDataStoreException;
   template<typename C, typename D> class ServiceLocatorServlet;
   template<typename C> class SessionAuthenticator;
   template<typename C> class SqlServiceLocatorDataStore;
-  class VirtualServiceLocatorClient;
-  template<typename C> class WrapperServiceLocatorClient;
 }
 
 #endif

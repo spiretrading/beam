@@ -10,14 +10,12 @@ namespace Beam {
   template<typename T> struct Concept;
   template<typename T> class Expect;
   template<std::size_t N> class FixedString;
-  template<typename InstanceType, typename ConceptType>
-    struct ImplementsConcept;
-  template<typename KeyType, typename ValueType, typename MutexType>
-    class KeyValueCache;
+  template<typename I, typename C> struct ImplementsConcept;
+  template<typename K, typename V, typename M> class KeyValueCache;
   class NotImplementedException;
   class NotSupportedException;
   struct NullType;
-  template<typename T, typename MutexType> class Remote;
+  template<typename T, typename M> class Remote;
   template<typename T, typename B> class ResourcePool;
   template<typename T, typename B> class ScopedResource;
   template<typename T> class Singleton;

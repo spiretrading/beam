@@ -1,6 +1,6 @@
 #ifndef BEAM_LOCAL_CLIENT_CHANNEL_HPP
 #define BEAM_LOCAL_CLIENT_CHANNEL_HPP
-#include <optional>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/LocalConnection.hpp"
@@ -56,7 +56,7 @@ namespace Details {
       Identifier m_identifier;
       std::unique_ptr<Reader> m_reader;
       std::shared_ptr<Writer> m_writer;
-      std::optional<Connection> m_connection;
+      boost::optional<Connection> m_connection;
 
       LocalClientChannel(const LocalClientChannel&) = delete;
       LocalClientChannel& operator =(const LocalClientChannel&) = delete;

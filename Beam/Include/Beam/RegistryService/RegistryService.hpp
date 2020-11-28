@@ -5,18 +5,16 @@
 namespace Beam::RegistryService {
   class FileSystemRegistryDataStore;
   class LocalRegistryDataStore;
-  template<typename ServiceProtocolClientBuilderType> class RegistryClient;
+  template<typename B> class RegistryClient;
+  class RegistryClientBox;
   class RegistryDataStore;
   class RegistryDataStoreException;
   struct RegistryEntry;
-  template<typename ContainerType, typename RegistryDataStoreType>
-    class RegistryServlet;
+  template<typename C, typename D> class RegistryServlet;
   class RegistrySession;
-  class VirtualRegistryClient;
-  template<typename ClientType> class WrapperRegistryClient;
 
   /** Standard name for the registry service. */
-  inline const std::string SERVICE_NAME = "registry_service";
+  inline const auto SERVICE_NAME = std::string("registry_service");
 }
 
 #endif

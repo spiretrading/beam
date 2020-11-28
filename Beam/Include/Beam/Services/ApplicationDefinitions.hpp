@@ -48,7 +48,7 @@ namespace Beam::Services {
     public:
       using SessionBuilder = B;
 
-      /** Defines the standard AccountsClient used for applications. */
+      /** Defines the standard client used for applications. */
       using Client = C<SessionBuilder>;
 
       /**
@@ -86,6 +86,26 @@ namespace Beam::Services {
       ApplicationClient(const ApplicationClient&) = delete;
       ApplicationClient& operator =(const ApplicationClient&) = delete;
   };
+
+  /**
+   * Returns a DefaultSessionBuilder.
+   * @param serviceLocatorClient The ServiceLocatorClient used to authenticate
+   *        sessions.
+   */
+  inline DefaultSessionBuilder MakeDefaultSessionBuilder(
+      Ref<ServiceLocator::VirtualServiceLocatorClient> serviceLocatorClient,
+      const std::string& service) {
+    return DefaultSessionBuilder(Ref(serviceLocatorClient),
+      [=] {
+        return std::make_unique<Network::TcpSocketChannel>(
+          ServiceLocator::LocateServiceAddresses(*serviceLocatorClient,
+          service));
+      },
+      [] {
+        return std::make_unique<Threading::LiveTimer>(
+          boost::posix_time::seconds(10));
+      });
+  }
 
   template<template<typename> class C, typename N, typename B>
   template<typename ServiceLocatorClient>

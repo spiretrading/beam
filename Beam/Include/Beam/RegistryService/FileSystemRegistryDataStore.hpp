@@ -25,7 +25,7 @@ namespace Beam::RegistryService {
        * Constructs a FileSystemRegistryDataStore.
        * @param root The directory storing the files.
        */
-      FileSystemRegistryDataStore(const std::filesystem::path& root);
+      explicit FileSystemRegistryDataStore(const std::filesystem::path& root);
 
       ~FileSystemRegistryDataStore() override;
 

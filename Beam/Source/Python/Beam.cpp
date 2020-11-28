@@ -22,6 +22,7 @@ PYBIND11_MODULE(_beam, module) {
   ExportQueries(module);
   ExportQueues(module);
   ExportReactors(module);
+  ExportRegistryService(module);
   ExportRoutines(module);
   ExportServiceLocator(module);
   ExportSql(module);

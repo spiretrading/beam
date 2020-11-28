@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHON_IO_HPP
 #define BEAM_PYTHON_IO_HPP
+#include <type_traits>
 #include <boost/lexical_cast.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/IO/BufferBox.hpp"

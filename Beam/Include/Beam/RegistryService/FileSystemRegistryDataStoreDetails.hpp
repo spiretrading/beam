@@ -1,13 +1,11 @@
-#ifndef BEAM_FILESYSTEMREGISTRYDATASTOREDETAILS_HPP
-#define BEAM_FILESYSTEMREGISTRYDATASTOREDETAILS_HPP
+#ifndef BEAM_FILE_SYSTEM_REGISTRY_DATA_STORE_DETAILS_HPP
+#define BEAM_FILE_SYSTEM_REGISTRY_DATA_STORE_DETAILS_HPP
 #include <vector>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace RegistryService {
-namespace Details {
+namespace Beam::RegistryService::Details {
   struct RegistryEntryRecord {
     RegistryEntry m_registryEntry;
     std::uint64_t m_parent;
@@ -15,11 +13,8 @@ namespace Details {
     IO::SharedBuffer m_value;
   };
 }
-}
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<RegistryService::Details::RegistryEntryRecord> {
     template<typename Shuttler>
@@ -32,7 +27,6 @@ namespace Serialization {
       shuttle.Shuttle("value", value.m_value);
     }
   };
-}
 }
 
 #endif

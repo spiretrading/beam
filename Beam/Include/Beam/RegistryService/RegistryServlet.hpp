@@ -27,7 +27,7 @@ namespace Beam::RegistryService {
        * @param dataStore The data store to use.
        */
       template<typename DF>
-      RegistryServlet(DF&& dataStore);
+      explicit RegistryServlet(DF&& dataStore);
 
       void RegisterServices(Out<Services::ServiceSlots<ServiceProtocolClient>>
         slots);

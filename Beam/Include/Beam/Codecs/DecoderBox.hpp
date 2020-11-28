@@ -1,5 +1,6 @@
 #ifndef BEAM_DECODER_BOX_HPP
 #define BEAM_DECODER_BOX_HPP
+#include <type_traits>
 #include <utility>
 #include "Beam/Codecs/Codecs.hpp"
 #include "Beam/Codecs/Decoder.hpp"
@@ -10,7 +11,7 @@
 namespace Beam {
 namespace Codecs {
 
-  /** Provides a generic interface to an arbitrary Decoder */
+  /** Provides a generic interface to an arbitrary Decoder. */
   class DecoderBox {
     public:
 

@@ -1,23 +1,20 @@
 #ifndef BEAM_CONCEPT_HPP
 #define BEAM_CONCEPT_HPP
 #include <type_traits>
-#include <boost/noncopyable.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 
-  /*! \struct Concept
-      \brief Contains requirements and properties about a template substitution.
-   */
+  /** Contains requirements and properties about a template substitution. */
   template<typename T>
-  struct Concept : private boost::noncopyable {};
+  struct Concept {};
 
-  /*! \struct ImplementsConcept
-      \brief Specifies whether a type implements a Concept.
-      \tparam InstanceType The type declaring its implementation.
-      \tparam ConceptType The type of Concept implemented.
+  /**
+   * Specifies whether a type implements a Concept.
+   * @param <I> The type declaring its implementation.
+   * @param <C> The type of Concept implemented.
    */
-  template<typename InstanceType, typename ConceptType>
+  template<typename I, typename C>
   struct ImplementsConcept : std::false_type {};
 }
 

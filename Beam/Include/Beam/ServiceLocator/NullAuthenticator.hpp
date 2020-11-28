@@ -11,13 +11,12 @@ namespace Beam::ServiceLocator {
    */
   class NullAuthenticator {
     public:
-      template<typename ServiceProtocolClientType>
-      void operator ()(ServiceProtocolClientType& client) const;
+      template<typename ServiceProtocolClient>
+      void operator ()(ServiceProtocolClient& client) const;
   };
 
-  template<typename ServiceProtocolClientType>
-  void NullAuthenticator::operator ()(
-    ServiceProtocolClientType& client) const {}
+  template<typename ServiceProtocolClient>
+  void NullAuthenticator::operator ()(ServiceProtocolClient& client) const {}
 }
 
 #endif

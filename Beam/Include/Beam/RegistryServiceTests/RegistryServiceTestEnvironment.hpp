@@ -53,16 +53,16 @@ namespace Beam::RegistryService::Tests {
       using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
       using ServiceProtocolServletContainer =
         Services::ServiceProtocolServletContainer<
-        ServiceLocator::MetaAuthenticationServletAdapter<MetaRegistryServlet<
-        LocalRegistryDataStore*>, ServiceLocator::ServiceLocatorClientBox>,
-        ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
+          ServiceLocator::MetaAuthenticationServletAdapter<MetaRegistryServlet<
+            LocalRegistryDataStore*>, ServiceLocator::ServiceLocatorClientBox>,
+          ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
+          Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
       using ServiceProtocolClientBuilder =
         Services::AuthenticatedServiceProtocolClientBuilder<
-        ServiceLocator::ServiceLocatorClientBox, Services::MessageProtocol<
-        std::unique_ptr<ClientChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-        Threading::TriggerTimer>;
+          ServiceLocator::ServiceLocatorClientBox, Services::MessageProtocol<
+            std::unique_ptr<ClientChannel>,
+            Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
+          Threading::TriggerTimer>;
       LocalRegistryDataStore m_dataStore;
       ServerConnection m_serverConnection;
       ServiceProtocolServletContainer m_container;
@@ -88,13 +88,11 @@ namespace Beam::RegistryService::Tests {
     return RegistryClientBox(
       std::in_place_type<RegistryClient<ServiceProtocolClientBuilder>>,
       ServiceProtocolClientBuilder(std::move(serviceLocatorClient),
-        [=] {
-          return std::make_unique<ServiceProtocolClientBuilder::Channel>(
-            "test_registry_client", m_serverConnection);
-        },
-        [] {
-          return std::make_unique<ServiceProtocolClientBuilder::Timer>();
-        }));
+        std::bind(boost::factory<std::unique_ptr<
+          ServiceProtocolClientBuilder::Channel>>(), "test_registry_client",
+          std::ref(m_serverConnection)),
+        boost::factory<
+          std::unique_ptr<ServiceProtocolClientBuilder::Timer>>()));
   }
 
   inline void RegistryServiceTestEnvironment::Close() {

@@ -8,23 +8,14 @@ namespace Beam::ServiceLocator {
   /** Signals an authentication error during a connect operation. */
   class AuthenticationException : public IO::ConnectException {
     public:
+      using IO::ConnectException::ConnectException;
 
       /** Constructs an AuthenticationException. */
       AuthenticationException();
-
-      /**
-       * Constructs an AuthenticationException.
-       * @param message A message describing the error.
-       */
-      explicit AuthenticationException(const std::string& message);
   };
 
   inline AuthenticationException::AuthenticationException()
-    : ConnectException("Unable to authenticate connection.") {}
-
-  inline AuthenticationException::AuthenticationException(
-    const std::string& message)
-    : ConnectException(message) {}
+    : IO::ConnectException("Unable to authenticate connection.") {}
 }
 
 #endif

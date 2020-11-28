@@ -1,7 +1,8 @@
 #include "Beam/Python/ServiceLocator.hpp"
+#include <boost/functional/factory.hpp>
+#include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
-#include <boost/lexical_cast.hpp>
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/EnumSet.hpp"
@@ -21,6 +22,16 @@ using namespace boost;
 using namespace boost::posix_time;
 using namespace pybind11;
 
+namespace {
+  auto serviceLocatorClientBox =
+    std::unique_ptr<class_<ServiceLocatorClientBox>>();
+}
+
+class_<ServiceLocatorClientBox>&
+    Beam::Python::GetExportedServiceLocatorClientBox() {
+  return *serviceLocatorClientBox;
+}
+
 void Beam::Python::ExportAccountUpdate(module& module) {
   auto outer = class_<AccountUpdate>(module, "AccountUpdate").
     def(init()).
@@ -36,27 +47,19 @@ void Beam::Python::ExportAccountUpdate(module& module) {
     value("DELETED", AccountUpdate::Type::DELETED);
 }
 
-void Beam::Python::ExportApplicationServiceLocatorClient(
-    module& module) {
-#if 0
-  using PythonApplicationServiceLocatorClient =
-    ServiceLocatorClient<ApplicationServiceLocatorClient::SessionBuilder>;
-  class_<ToPythonServiceLocatorClient<PythonApplicationServiceLocatorClient>,
-      VirtualServiceLocatorClient>(module, "ApplicationServiceLocatorClient")
-    .def(init(
-      [] (std::string username, std::string password, IpAddress address) {
-        auto sessionBuilder = ApplicationServiceLocatorClient::SessionBuilder(
-          [=] {
-            return std::make_unique<TcpSocketChannel>(address);
-          },
-          [] {
-            return std::make_unique<LiveTimer>(seconds(10));
-          });
-        return MakeToPythonServiceLocatorClient(
-          std::make_unique<PythonApplicationServiceLocatorClient>(
-          std::move(username), std::move(password), std::move(sessionBuilder)));
-      }), call_guard<GilRelease>());
-#endif
+void Beam::Python::ExportApplicationServiceLocatorClient(module& module) {
+  using PythonApplicationServiceLocatorClient = ToPythonServiceLocatorClient<
+    ServiceLocatorClient<ApplicationServiceLocatorClient::SessionBuilder>>;
+  ExportServiceLocatorClient<PythonApplicationServiceLocatorClient>(module,
+    "ApplicationServiceLocatorClient").
+    def(init([] (std::string username, std::string password,
+        IpAddress address) {
+      return std::make_shared<PythonApplicationServiceLocatorClient>(
+        std::move(username), std::move(password),
+        ApplicationServiceLocatorClient::SessionBuilder(
+          std::bind(factory<std::unique_ptr<TcpSocketChannel>>(), address),
+          std::bind(factory<std::unique_ptr<LiveTimer>>(), seconds(10))));
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::ExportDirectoryEntry(module& module) {
@@ -115,58 +118,19 @@ void Beam::Python::ExportServiceEntry(module& module) {
 void Beam::Python::ExportServiceLocator(module& module) {
   auto submodule = module.def_submodule("service_locator");
   ExportAccountUpdate(submodule);
-  ExportServiceLocatorClient(submodule);
+  serviceLocatorClientBox = std::make_unique<class_<ServiceLocatorClientBox>>(
+    ExportServiceLocatorClient<ServiceLocatorClientBox>(submodule,
+    "ServiceLocatorClient"));
+  ExportServiceLocatorClient<
+    ToPythonServiceLocatorClient<ServiceLocatorClientBox>>(submodule,
+    "ServiceLocatorClientBox");
   ExportApplicationServiceLocatorClient(submodule);
   ExportDirectoryEntry(submodule);
   ExportPermissions(submodule);
   ExportServiceEntry(submodule);
+  ExportQueueSuite<AccountUpdate>(submodule, "AccountUpdate");
   auto test_module = submodule.def_submodule("tests");
   ExportServiceLocatorTestEnvironment(test_module);
-}
-
-void Beam::Python::ExportServiceLocatorClient(module& module) {
-#if 0
-  class_<VirtualServiceLocatorClient, TrampolineServiceLocatorClient>(module,
-      "ServiceLocatorClient")
-    .def("get_account", &VirtualServiceLocatorClient::GetAccount)
-    .def("get_session_id", &VirtualServiceLocatorClient::GetSessionId)
-    .def("get_encrypted_session_id",
-      &VirtualServiceLocatorClient::GetEncryptedSessionId)
-    .def("authenticate_account",
-      &VirtualServiceLocatorClient::AuthenticateAccount)
-    .def("authenticate_session",
-      &VirtualServiceLocatorClient::AuthenticateSession)
-    .def("locate", &VirtualServiceLocatorClient::Locate)
-    .def("register", &VirtualServiceLocatorClient::Register)
-    .def("unregister", &VirtualServiceLocatorClient::Unregister)
-    .def("load_all_accounts", &VirtualServiceLocatorClient::LoadAllAccounts)
-    .def("find_account", &VirtualServiceLocatorClient::FindAccount)
-    .def("make_account", &VirtualServiceLocatorClient::MakeAccount)
-    .def("make_directory", &VirtualServiceLocatorClient::MakeDirectory)
-    .def("store_password", &VirtualServiceLocatorClient::StorePassword)
-    .def("monitor_accounts", &VirtualServiceLocatorClient::MonitorAccounts)
-    .def("load_directory_entry",
-      static_cast<DirectoryEntry (VirtualServiceLocatorClient::*)(
-      const DirectoryEntry&, const std::string&)>(
-      &VirtualServiceLocatorClient::LoadDirectoryEntry))
-    .def("load_directory_entry", static_cast<
-      DirectoryEntry (VirtualServiceLocatorClient::*)(unsigned int)>(
-      &VirtualServiceLocatorClient::LoadDirectoryEntry))
-    .def("load_parents", &VirtualServiceLocatorClient::LoadParents)
-    .def("load_children", &VirtualServiceLocatorClient::LoadChildren)
-    .def("delete", &VirtualServiceLocatorClient::Delete)
-    .def("associate", &VirtualServiceLocatorClient::Associate)
-    .def("detach", &VirtualServiceLocatorClient::Detach)
-    .def("has_permissions", &VirtualServiceLocatorClient::HasPermissions)
-    .def("store_permissions", &VirtualServiceLocatorClient::StorePermissions)
-    .def("load_registration_time",
-      &VirtualServiceLocatorClient::LoadRegistrationTime)
-    .def("load_last_login_time",
-      &VirtualServiceLocatorClient::LoadLastLoginTime)
-    .def("rename", &VirtualServiceLocatorClient::Rename)
-    .def("close", &VirtualServiceLocatorClient::Close);
-#endif
-  ExportQueueSuite<AccountUpdate>(module, "AccountUpdate");
 }
 
 void Beam::Python::ExportServiceLocatorTestEnvironment(module& module) {
@@ -180,13 +144,13 @@ void Beam::Python::ExportServiceLocatorTestEnvironment(module& module) {
       call_guard<GilRelease>()).
     def("get_root", &ServiceLocatorTestEnvironment::GetRoot,
       return_value_policy::reference_internal).
-    def("build_client",
+    def("make_client",
       [] (ServiceLocatorTestEnvironment& self, std::string username,
           std::string password) {
-        return ToPythonServiceLocatorClient(self.MakeClient(std::move(username),
-          std::move(password)));
+        return ToPythonServiceLocatorClient(
+          self.MakeClient(std::move(username), std::move(password)));
       }, call_guard<GilRelease>()).
-    def("build_client",
+    def("make_client",
       [] (ServiceLocatorTestEnvironment& self) {
         return ToPythonServiceLocatorClient(self.MakeClient());
       }, call_guard<GilRelease>());

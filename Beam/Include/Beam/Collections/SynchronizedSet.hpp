@@ -2,7 +2,6 @@
 #define BEAM_SYNCHRONIZED_SET_HPP
 #include <unordered_set>
 #include <utility>
-#include <boost/noncopyable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Collections/Collections.hpp"
@@ -15,7 +14,7 @@ namespace Beam {
    * @param <M> The type of mutex used for synchronization.
    */
   template<typename T, typename M = boost::mutex>
-  class SynchronizedSet : public boost::noncopyable {
+  class SynchronizedSet {
     public:
 
       /** The type of set being wrapped. */
@@ -99,6 +98,9 @@ namespace Beam {
     private:
       mutable Mutex m_mutex;
       Set m_set;
+
+      SynchronizedSet(const SynchronizedSet&) = delete;
+      SynchronizedSet& operator =(const SynchronizedSet&) = delete;
   };
 
   /**

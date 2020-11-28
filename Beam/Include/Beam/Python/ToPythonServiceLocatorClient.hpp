@@ -28,6 +28,8 @@ namespace Beam::ServiceLocator {
       template<typename... Args>
       ToPythonServiceLocatorClient(Args&&... args);
 
+      ToPythonServiceLocatorClient(ToPythonServiceLocatorClient&&) = default;
+
       ~ToPythonServiceLocatorClient();
 
       /** Returns the wrapped client. */
@@ -101,8 +103,16 @@ namespace Beam::ServiceLocator {
 
       void Close();
 
+      ToPythonServiceLocatorClient& operator =(
+        ToPythonServiceLocatorClient&&) = default;
+
     private:
       boost::optional<Client> m_client;
+
+      ToPythonServiceLocatorClient(
+        const ToPythonServiceLocatorClient&) = delete;
+      ToPythonServiceLocatorClient& operator =(
+        const ToPythonServiceLocatorClient&) = delete;
   };
 
   template<typename Client>
@@ -112,12 +122,24 @@ namespace Beam::ServiceLocator {
   template<typename C>
   template<typename... Args>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
-    : m_client(std::forward<Args>(args)...) {}
+    : m_client(boost::in_place_init, std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
     auto release = Python::GilRelease();
     m_client.reset();
+  }
+
+  template<typename C>
+  const typename ToPythonServiceLocatorClient<C>::Client&
+      ToPythonServiceLocatorClient<C>::GetClient() const {
+    return *m_client;
+  }
+
+  template<typename C>
+  typename ToPythonServiceLocatorClient<C>::Client&
+      ToPythonServiceLocatorClient<C>::GetClient() {
+    return *m_client;
   }
 
   template<typename C>

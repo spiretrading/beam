@@ -3,7 +3,6 @@
 #include <tuple>
 #include <unordered_map>
 #include <utility>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
@@ -17,7 +16,7 @@ namespace Beam {
    * @param <M> The type of mutex used to synchronized this container.
    */
   template<typename T, typename M = boost::mutex>
-  class SynchronizedMap : public boost::noncopyable {
+  class SynchronizedMap {
     public:
 
       /** The type of map being wrapped. */
@@ -138,6 +137,9 @@ namespace Beam {
     private:
       mutable Mutex m_mutex;
       Map m_map;
+
+      SynchronizedMap(const SynchronizedMap&) = delete;
+      SynchronizedMap& operator =(const SynchronizedMap&) = delete;
   };
 
   /**
@@ -216,7 +218,7 @@ namespace Beam {
     auto lock = boost::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
-      return boost::optional<Value&>();
+      return boost::none;
     }
     return valueIterator->second;
   }

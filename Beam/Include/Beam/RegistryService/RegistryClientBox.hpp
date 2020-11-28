@@ -170,7 +170,7 @@ namespace Beam::RegistryService {
 
   template<typename RegistryClient>
   RegistryClientBox::RegistryClientBox(RegistryClient client)
-    : RegistryClientBox(std::in_place_type<RegistryClientBox>,
+    : RegistryClientBox(std::in_place_type<RegistryClient>,
         std::move(client)) {}
 
   inline RegistryClientBox::RegistryClientBox(RegistryClientBox* client)

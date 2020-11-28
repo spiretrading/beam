@@ -201,7 +201,7 @@ public:
                 mCheckKeyRight(oth.mCheckKeyRight),
                 mEndReached(oth.mEndReached) {
             if (!mKeyStack.empty()) {
-                mKeyValuePair = std::make_pair(&mKeyStack[0], oth.mKeyValuePair.second);
+                mKeyValuePair = std::pair(&mKeyStack[0], oth.mKeyValuePair.second);
             }
         }
 
@@ -212,7 +212,7 @@ public:
                 mCurrentPos = oth.mCurrentPos;
                 mKeyStack = oth.mKeyStack;
                 if (!mKeyStack.empty()) {
-                    mKeyValuePair = std::make_pair(&mKeyStack[0], oth.mKeyValuePair.second);
+                    mKeyValuePair = std::pair(&mKeyStack[0], oth.mKeyValuePair.second);
                 }
                 mCheckKeyLeft = oth.mCheckKeyLeft;
                 mCheckKeyRight = oth.mCheckKeyRight;

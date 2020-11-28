@@ -90,17 +90,14 @@ namespace Beam::ServiceLocator::Tests {
 
   inline ServiceLocatorClientBox ServiceLocatorTestEnvironment::MakeClient(
       std::string username, std::string password) {
-    auto builder = ServiceProtocolClientBuilder(
-      [=] {
-        return std::make_unique<ServiceProtocolClientBuilder::Channel>(
-          "test_service_locator_client", m_serverConnection);
-      },
-      [] {
-        return std::make_unique<ServiceProtocolClientBuilder::Timer>();
-      });
     return ServiceLocatorClientBox(
       std::in_place_type<ServiceLocatorClient<ServiceProtocolClientBuilder>>,
-      std::move(username), std::move(password), std::move(builder));
+      std::move(username), std::move(password), ServiceProtocolClientBuilder(
+        std::bind(boost::factory<
+          std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
+          "test_service_locator_client", std::ref(m_serverConnection)),
+        boost::factory<
+          std::unique_ptr<ServiceProtocolClientBuilder::Timer>>()));
   }
 
   inline ServiceLocatorClientBox ServiceLocatorTestEnvironment::MakeClient() {

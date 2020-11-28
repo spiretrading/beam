@@ -7,7 +7,6 @@
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Parsers/Parse.hpp"
-#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/optional/optional.hpp>
@@ -297,7 +296,7 @@ namespace Beam::ServiceLocator {
 
   template<typename ServiceLocatorClient>
   ServiceLocatorClientBox::ServiceLocatorClientBox(ServiceLocatorClient client)
-    : ServiceLocatorClientBox(std::in_place_type<ServiceLocatorClientBox>,
+    : ServiceLocatorClientBox(std::in_place_type<ServiceLocatorClient>,
         std::move(client)) {}
 
   inline ServiceLocatorClientBox::ServiceLocatorClientBox(

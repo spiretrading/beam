@@ -27,6 +27,8 @@ namespace Beam::RegistryService {
       template<typename... Args>
       ToPythonRegistryClient(Args&&... args);
 
+      ToPythonRegistryClient(ToPythonRegistryClient&&) = default;
+
       ~ToPythonRegistryClient();
 
       /** Returns the wrapped client. */
@@ -73,8 +75,13 @@ namespace Beam::RegistryService {
 
       void Close();
 
+      ToPythonRegistryClient& operator =(ToPythonRegistryClient&&) = default;
+
     private:
       boost::optional<Client> m_client;
+      ToPythonRegistryClient(const ToPythonRegistryClient&) = delete;
+      ToPythonRegistryClient& operator =(
+        const ToPythonRegistryClient&) = delete;
   };
 
   template<typename Client>
@@ -84,7 +91,7 @@ namespace Beam::RegistryService {
   template<typename C>
   template<typename... Args>
   ToPythonRegistryClient<C>::ToPythonRegistryClient(Args&&... args)
-    : m_client(std::forward<Args>(args)...) {}
+    : m_client(boost::in_place_init, std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonRegistryClient<C>::~ToPythonRegistryClient() {

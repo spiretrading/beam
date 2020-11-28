@@ -3,8 +3,8 @@
 #include <pybind11/operators.h>
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonRegistryClient.hpp"
+#include "Beam/RegistryService/ApplicationDefinitions.hpp"
 #include "Beam/RegistryServiceTests/RegistryServiceTestEnvironment.hpp"
-#include "Beam/Services/ApplicationDefinitions.hpp"
 
 using namespace Beam;
 using namespace Beam::RegistryService;
@@ -23,12 +23,14 @@ class_<RegistryClientBox>& Beam::Python::GetExportedRegistryClientBox() {
 }
 
 void Beam::Python::ExportApplicationRegistryClient(module& module) {
-  ExportRegistryClient<ToPythonRegistryClient<RegistryClient<
-    DefaultSessionBuilder>>>(module, "ApplicationRegistryClient").
+  using PythonApplicationRegistryClient = ToPythonRegistryClient<RegistryClient<
+    ApplicationRegistryClient::SessionBuilder>>;
+  ExportRegistryClient<PythonApplicationRegistryClient>(module,
+    "ApplicationRegistryClient").
     def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
-      return std::make_shared<ToPythonRegistryClient<RegistryClient<
-        DefaultSessionBuilder>>>(MakeDefaultSessionBuilder(
-          std::move(serviceLocatorClient), RegistryService::SERVICE_NAME));
+      return std::make_shared<PythonApplicationRegistryClient>(
+        MakeDefaultSessionBuilder(std::move(serviceLocatorClient),
+        RegistryService::SERVICE_NAME));
     }), call_guard<GilRelease>());
 }
 
@@ -58,6 +60,8 @@ void Beam::Python::ExportRegistryService(module& module) {
   auto submodule = module.def_submodule("registry_service");
   registryClientBox = std::make_unique<class_<RegistryClientBox>>(
     ExportRegistryClient<RegistryClientBox>(submodule, "RegistryClient"));
+  ExportRegistryClient<ToPythonRegistryClient<RegistryClientBox>>(submodule,
+    "RegistryClientBox");
   ExportApplicationRegistryClient(submodule);
   ExportRegistryEntry(submodule);
   auto test_module = submodule.def_submodule("tests");

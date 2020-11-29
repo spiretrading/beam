@@ -1,54 +1,79 @@
 #ifndef BEAM_TO_PYTHON_UID_CLIENT_HPP
 #define BEAM_TO_PYTHON_UID_CLIENT_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/UidService/VirtualUidClient.hpp"
+#include "Beam/UidService/UidClientBox.hpp"
 
 namespace Beam::UidService {
 
-  /** Wraps a UidClient for use with Python.
+  /**
+   * Wraps a UidClient for use with Python.
    * @param C The type of UidClient to wrap.
    */
   template<typename C>
-  class ToPythonUidClient final : public VirtualUidClient {
+  class ToPythonUidClient {
     public:
 
       /** The type of UidClient to wrap. */
       using Client = C;
 
       /**
-       * Constructs a ToPythonUidClient.
-       * @param client The UidClient to wrap.
+       * Constructs a ToPythonUidClient in-place.
+       * @param args The arguments to forward to the constructor.
        */
-      ToPythonUidClient(std::unique_ptr<Client> client);
+      template<typename... Args>
+      ToPythonUidClient(Args&&... args);
 
-      ~ToPythonUidClient() override;
+      ToPythonUidClient(ToPythonUidClient&&) = default;
 
-      std::uint64_t LoadNextUid() override;
+      ~ToPythonUidClient();
 
-      void Close() override;
+      /** Returns the wrapped UidClient. */
+      const Client& GetClient() const;
+
+      /** Returns the wrapped UidClient. */
+      Client& GetClient();
+
+      std::uint64_t LoadNextUid();
+
+      void Close();
+
+      ToPythonUidClient& operator =(ToPythonUidClient&&) = default;
 
     private:
-      std::unique_ptr<Client> m_client;
+      boost::optional<Client> m_client;
+
+      ToPythonUidClient(const ToPythonUidClient&) = delete;
+      ToPythonUidClient& operator =(const ToPythonUidClient&) = delete;
   };
 
-  /**
-   * Makes a ToPythonUidClient.
-   * @param client The UidClient to wrap.
-   */
-  template<typename Client>
-  auto MakeToPythonUidClient(std::unique_ptr<Client> client) {
-    return std::make_unique<ToPythonUidClient<Client>>(std::move(client));
-  }
+  template<typename UidClient>
+  ToPythonUidClient(UidClient&&) -> ToPythonUidClient<std::decay_t<UidClient>>;
 
   template<typename C>
-  ToPythonUidClient<C>::ToPythonUidClient(std::unique_ptr<Client> client)
-    : m_client(std::move(client)) {}
+  template<typename... Args>
+  ToPythonUidClient<C>::ToPythonUidClient(Args&&... args)
+    : m_client((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonUidClient<C>::~ToPythonUidClient() {
-    Close();
     auto release = Python::GilRelease();
     m_client.reset();
+  }
+
+  template<typename C>
+  const typename ToPythonUidClient<C>::Client&
+      ToPythonUidClient<C>::GetClient() const {
+    return *m_client;
+  }
+
+  template<typename C>
+  typename ToPythonUidClient<C>::Client& ToPythonUidClient<C>::GetClient() {
+    return *m_client;
   }
 
   template<typename C>

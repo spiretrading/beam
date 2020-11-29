@@ -5,15 +5,13 @@
 namespace Beam::UidService {
   class LocalUidDataStore;
   template<typename C> class SqlUidDataStore;
-  template<typename ServiceProtocolClientBuilderType> class UidClient;
+  template<typename B> class UidClient;
+  class UidClientBox;
   class UidDataStore;
-  class UidServiceException;
-  template<typename ContainerType, typename UidDataStoreType> class UidServlet;
-  class VirtualUidClient;
-  template<typename ClientType> class WrapperUidClient;
+  template<typename C, typename D> class UidServlet;
 
   /** Standard name for the uid service. */
-  inline const std::string SERVICE_NAME = "uid_service";
+  inline const auto SERVICE_NAME = std::string("uid_service");
 }
 
 #endif

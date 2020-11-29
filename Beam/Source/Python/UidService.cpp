@@ -2,70 +2,40 @@
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonUidClient.hpp"
 #include "Beam/UidService/ApplicationDefinitions.hpp"
-#include "Beam/UidService/VirtualUidClient.hpp"
 #include "Beam/UidServiceTests/UidServiceTestEnvironment.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::IO;
-using namespace Beam::Network;
 using namespace Beam::Python;
-using namespace Beam::Serialization;
 using namespace Beam::ServiceLocator;
 using namespace Beam::Services;
-using namespace Beam::Threading;
 using namespace Beam::UidService;
 using namespace Beam::UidService::Tests;
-using namespace boost;
-using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  struct TrampolineUidClient final : VirtualUidClient {
-    std::uint64_t LoadNextUid() override {
-      PYBIND11_OVERLOAD_PURE_NAME(std::uint64_t, VirtualUidClient,
-        "load_next_uid", LoadNextUid);
-    }
+  auto uidClientBox = std::unique_ptr<class_<UidClientBox>>();
+}
 
-    void Close() override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, VirtualUidClient, "close", Close);
-    }
-  };
+class_<UidClientBox>& Beam::Python::GetExportedUidClientBox() {
+  return *uidClientBox;
 }
 
 void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
-  using SessionBuilder = 
-    AuthenticatedServiceProtocolClientBuilder<ServiceLocatorClientBox,
-    MessageProtocol<std::unique_ptr<TcpSocketChannel>,
-    BinarySender<SharedBuffer>, NullEncoder>, LiveTimer>;
-  using PythonApplicationUidClient = UidClient<SessionBuilder>;
-  class_<ToPythonUidClient<PythonApplicationUidClient>, VirtualUidClient>(
-    module, "ApplicationUidClient")
-    .def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
-      auto addresses = LocateServiceAddresses(serviceLocatorClient,
-        UidService::SERVICE_NAME);
-      auto sessionBuilder = SessionBuilder(std::move(serviceLocatorClient),
-        [=] {
-          return std::make_unique<TcpSocketChannel>(addresses);
-        },
-        [] {
-          return std::make_unique<LiveTimer>(seconds(10));
-        });
-      return MakeToPythonUidClient(
-        std::make_unique<PythonApplicationUidClient>(
-        std::move(sessionBuilder)));
+  using PythonApplicationUidClient = ToPythonUidClient<UidClient<
+    ApplicationUidClient::SessionBuilder>>;
+  ExportUidClient<PythonApplicationUidClient>(module, "ApplicationUidClient").
+    def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
+      return std::make_shared<PythonApplicationUidClient>(
+        MakeDefaultSessionBuilder(std::move(serviceLocatorClient),
+          UidService::SERVICE_NAME));
     }), call_guard<GilRelease>());
-}
-
-void Beam::Python::ExportUidClient(pybind11::module& module) {
-  class_<VirtualUidClient, TrampolineUidClient>(module, "UidClient")
-    .def("load_next_uid", &VirtualUidClient::LoadNextUid)
-    .def("close", &VirtualUidClient::Close);
 }
 
 void Beam::Python::ExportUidService(pybind11::module& module) {
   auto submodule = module.def_submodule("uid_service");
-  ExportUidClient(submodule);
+  uidClientBox = std::make_unique<class_<UidClientBox>>(
+    ExportUidClient<UidClientBox>(submodule, "UidClient"));
+  ExportUidClient<ToPythonUidClient<UidClientBox>>(submodule, "UidClientBox");
   ExportApplicationUidClient(submodule);
   auto test_module = submodule.def_submodule("tests");
   ExportUidServiceTestEnvironment(test_module);
@@ -79,8 +49,8 @@ void Beam::Python::ExportUidServiceTestEnvironment(pybind11::module& module) {
         self.Close();
       }, call_guard<GilRelease>())
     .def("close", &UidServiceTestEnvironment::Close, call_guard<GilRelease>())
-    .def("build_client",
+    .def("make_client",
       [] (UidServiceTestEnvironment& self) {
-        return MakeToPythonUidClient(self.BuildClient());
+        return ToPythonUidClient(self.MakeClient());
       }, call_guard<GilRelease>());
 }

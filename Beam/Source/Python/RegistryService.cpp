@@ -30,7 +30,7 @@ void Beam::Python::ExportApplicationRegistryClient(module& module) {
     def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
       return std::make_shared<PythonApplicationRegistryClient>(
         MakeDefaultSessionBuilder(std::move(serviceLocatorClient),
-        RegistryService::SERVICE_NAME));
+          RegistryService::SERVICE_NAME));
     }), call_guard<GilRelease>());
 }
 

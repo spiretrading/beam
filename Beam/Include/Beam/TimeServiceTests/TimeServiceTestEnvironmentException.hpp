@@ -10,24 +10,15 @@ namespace Beam::TimeService::Tests {
   class TimeServiceTestEnvironmentException : public std::runtime_error,
       public boost::exception {
     public:
+      using std::runtime_error::runtime_error;
 
       /** Constructs a TimeServiceTestEnvironmentException. */
       TimeServiceTestEnvironmentException();
-
-      /**
-       * Constructs a TimeServiceTestEnvironmentException.
-       * @param message A message describing the error.
-       */
-      TimeServiceTestEnvironmentException(const std::string& message);
   };
 
   inline TimeServiceTestEnvironmentException::
     TimeServiceTestEnvironmentException()
     : TimeServiceTestEnvironmentException("Invalid operation performed.") {}
-
-  inline TimeServiceTestEnvironmentException::
-    TimeServiceTestEnvironmentException(const std::string& message)
-    : std::runtime_error(message) {}
 }
 
 #endif

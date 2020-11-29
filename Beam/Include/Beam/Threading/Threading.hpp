@@ -17,9 +17,8 @@ namespace Beam::Threading {
   class TimedConditionVariable;
   class TimeoutException;
   struct Timer;
+  class TimerBox;
   class TriggerTimer;
-  class VirtualTimer;
-  template<typename T> class WrapperTimer;
 }
 
 #endif

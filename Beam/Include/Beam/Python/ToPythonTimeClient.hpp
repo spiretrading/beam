@@ -1,7 +1,11 @@
 #ifndef BEAM_TO_PYTHON_TIME_CLIENT_HPP
 #define BEAM_TO_PYTHON_TIME_CLIENT_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/TimeService/VirtualTimeClient.hpp"
+#include "Beam/TimeService/TimeClient.hpp"
 
 namespace Beam::TimeService {
 
@@ -10,50 +14,54 @@ namespace Beam::TimeService {
    * @param <C> The type of TimeClient to wrap.
    */
   template<typename C>
-  class ToPythonTimeClient final : public VirtualTimeClient {
+  class ToPythonTimeClient {
     public:
 
       /** The type of TimeClient to wrap. */
       using Client = C;
 
       /**
-       * Constructs a ToPythonTimeClient.
-       * @param client The TimeClient to wrap.
+       * Constructs a ToPythonTimeClient in-place.
+       * @param args The arguments to forward to the constructor.
        */
-      ToPythonTimeClient(std::unique_ptr<Client> client);
+      template<typename... Args>
+      ToPythonTimeClient(Args&&... args);
 
-      ~ToPythonTimeClient() override;
+      ToPythonTimeClient(ToPythonTimeClient&&) = default;
 
-      /** Returns the TimeClient being wrapped. */
+      ~ToPythonTimeClient();
+
+      /** Returns the wrapped TimeClient. */
       const Client& GetClient() const;
 
-      /** Returns the TimeClient being wrapped. */
+      /** Returns the wrapped TimeClient. */
       Client& GetClient();
 
-      boost::posix_time::ptime GetTime() override;
+      boost::posix_time::ptime GetTime();
 
-      void Close() override;
+      void Close();
+
+      ToPythonTimeClient& operator =(ToPythonTimeClient&&) = default;
 
     private:
-      std::unique_ptr<Client> m_client;
+      boost::optional<Client> m_client;
+
+      ToPythonTimeClient(const ToPythonTimeClient&) = delete;
+      ToPythonTimeClient& operator =(const ToPythonTimeClient&) = delete;
   };
 
-  /**
-   * Makes a ToPythonTimeClient.
-   * @param client The TimeClient to wrap.
-   */
-  template<typename Client>
-  auto MakeToPythonTimeClient(std::unique_ptr<Client> client) {
-    return std::make_unique<ToPythonTimeClient<Client>>(std::move(client));
-  }
+  template<typename TimeClient>
+  ToPythonTimeClient(TimeClient&&) ->
+    ToPythonTimeClient<std::decay_t<TimeClient>>;
 
   template<typename C>
-  ToPythonTimeClient<C>::ToPythonTimeClient(std::unique_ptr<Client> client)
-    : m_client(std::move(client)) {}
+  template<typename... Args>
+  ToPythonTimeClient<C>::ToPythonTimeClient(Args&&... args)
+    : m_client((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
-    Close();
     auto release = Python::GilRelease();
     m_client.reset();
   }

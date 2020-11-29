@@ -1,8 +1,11 @@
 #ifndef BEAM_TO_PYTHON_TIMER_HPP
 #define BEAM_TO_PYTHON_TIMER_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/Queues/Publisher.hpp"
-#include "Beam/Threading/VirtualTimer.hpp"
+#include "Beam/Threading/Timer.hpp"
 
 namespace Beam::Threading {
 
@@ -11,19 +14,22 @@ namespace Beam::Threading {
    * @param <T> The type of Timer to wrap.
    */
   template<typename T>
-  class ToPythonTimer final : public VirtualTimer {
+  class ToPythonTimer {
     public:
 
       /** The type of Timer to wrap. */
       using Timer = T;
 
       /**
-       * Constructs a ToPythonTimer.
-       * @param timer The Timer to wrap.
+       * Constructs a ToPythonTimer in-place.
+       * @param args The arguments to forward to the constructor.
        */
-      ToPythonTimer(std::unique_ptr<Timer> timer);
+      template<typename... Args>
+      ToPythonTimer(Args&&... args);
 
-      ~ToPythonTimer() override;
+      ToPythonTimer(ToPythonTimer&&) = default;
+
+      ~ToPythonTimer();
 
       /** Returns the wrapped Timer. */
       const Timer& GetTimer() const;
@@ -31,47 +37,45 @@ namespace Beam::Threading {
       /** Returns the wrapped Timer. */
       Timer& GetTimer();
 
-      void Start() override;
+      void Start();
 
-      void Cancel() override;
+      void Cancel();
 
-      void Wait() override;
+      void Wait();
 
-      const Publisher<Threading::Timer::Result>& GetPublisher() const override;
+      const Publisher<Threading::Timer::Result>& GetPublisher() const;
+
+      ToPythonTimer& operator =(ToPythonTimer&&) = default;
 
     private:
-      std::unique_ptr<Timer> m_timer;
+      boost::optional<Timer> m_timer;
+
+      ToPythonTimer(const ToPythonTimer&) = delete;
+      ToPythonTimer& operator =(const ToPythonTimer&) = delete;
   };
 
-  /**
-   * Makes a ToPythonTimer.
-   * @param timer The Timer to wrap.
-   */
   template<typename Timer>
-  auto MakeToPythonTimer(std::unique_ptr<Timer> timer) {
-    return std::make_unique<ToPythonTimer<Timer>>(std::move(timer));
-  }
+  ToPythonTimer(Timer&&) -> ToPythonTimer<std::decay_t<Timer>>;
 
   template<typename T>
-  ToPythonTimer<T>::ToPythonTimer(std::unique_ptr<Timer> timer)
-    : m_timer(std::move(timer)) {}
+  template<typename... Args>
+  ToPythonTimer<T>::ToPythonTimer(Args&&... args)
+    : m_timer((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
-  template<typename T>
-  ToPythonTimer<T>::~ToPythonTimer() {
-    m_timer->Cancel();
+  template<typename C>
+  ToPythonTimer<C>::~ToPythonTimer() {
     auto release = Python::GilRelease();
     m_timer.reset();
   }
 
   template<typename T>
-  const typename ToPythonTimer<T>::Timer&
-      ToPythonTimer<T>::GetTimer() const {
+  const typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::GetTimer() const {
     return *m_timer;
   }
 
   template<typename T>
-  typename ToPythonTimer<T>::Timer&
-      ToPythonTimer<T>::GetTimer() {
+  typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::GetTimer() {
     return *m_timer;
   }
 

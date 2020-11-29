@@ -27,9 +27,9 @@ namespace Beam::IO {
       template<typename... Args>
       ToPythonReader(Args&&... args);
 
-      ~ToPythonReader();
-
       ToPythonReader(ToPythonReader&&) = default;
+
+      ~ToPythonReader();
 
       /** Returns the wrapped Reader. */
       const Reader& GetReader() const;

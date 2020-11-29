@@ -8,11 +8,10 @@ namespace Beam::TimeService {
   class LocalTimeClient;
   template<typename ChannelType, typename TimerType> class NtpTimeClient;
   struct TimeClient;
-  class VirtualTimeClient;
-  template<typename ClientType> class WrapperTimeClient;
+  class TimeClientBox;
 
-  // Standard name for the time service.
-  inline const std::string SERVICE_NAME = "time_service";
+  /** Standard name for the time service. */
+  inline const auto SERVICE_NAME = std::string("time_service");
 }
 
 #endif

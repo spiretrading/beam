@@ -28,9 +28,9 @@ namespace Beam::IO {
       template<typename... Args>
       ToPythonServerConnection(Args&&... args);
 
-      ~ToPythonServerConnection();
-
       ToPythonServerConnection(ToPythonServerConnection&&) = default;
+
+      ~ToPythonServerConnection();
 
       /** Returns the wrapped ServerConnection. */
       const ServerConnection& GetConnection() const;

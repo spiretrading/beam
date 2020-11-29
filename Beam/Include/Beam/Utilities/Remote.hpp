@@ -52,10 +52,10 @@ namespace Beam {
       bool IsAvailable() const;
 
       /** Returns the Remote value, initializing it if needed. */
-      explicit Type& operator *() const;
+      Type& operator *() const;
 
       /** Returns the Remote value, initializing it if needed. */
-      explicit Type* operator ->() const;
+      Type* operator ->() const;
 
     private:
       mutable Mutex m_mutex;

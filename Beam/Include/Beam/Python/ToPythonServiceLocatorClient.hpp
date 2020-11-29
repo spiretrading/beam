@@ -122,7 +122,8 @@ namespace Beam::ServiceLocator {
   template<typename C>
   template<typename... Args>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
-    : m_client(boost::in_place_init, std::forward<Args>(args)...) {}
+    : m_client((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {

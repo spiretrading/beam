@@ -196,30 +196,30 @@ namespace Beam::Python {
   template<typename Buffer>
   auto ExportBuffer(pybind11::module& module, const std::string& name) {
     auto buffer = pybind11::class_<Buffer, std::shared_ptr<Buffer>>(module,
-      name.c_str())
-      .def("__str__", [] (const Buffer& self) {
+      name.c_str()).
+      def("__str__", [] (const Buffer& self) {
         return std::string(self.GetData(), self.GetSize());
-      })
-      .def("is_empty", &Buffer::IsEmpty)
-      .def("grow", &Buffer::Grow)
-      .def("shrink", &Buffer::Shrink)
-      .def("shrink_front", &Buffer::ShrinkFront)
-      .def("reserve", &Buffer::Reserve)
-      .def("write", [] (Buffer& self, std::size_t index,
+      }).
+      def("is_empty", &Buffer::IsEmpty).
+      def("grow", &Buffer::Grow).
+      def("shrink", &Buffer::Shrink).
+      def("shrink_front", &Buffer::ShrinkFront).
+      def("reserve", &Buffer::Reserve).
+      def("write", [] (Buffer& self, std::size_t index,
           const pybind11::str& value) {
         if(auto rawString = PyUnicode_AsUTF8(value.ptr())) {
           self.Write(index, rawString, pybind11::len(value));
         }
-      })
-      .def("append", static_cast<void (Buffer::*)(const IO::BufferView&)>(
-        &Buffer::template Append<IO::BufferView>))
-      .def("append", [] (Buffer& self, const pybind11::str& value) {
+      }).
+      def("append", static_cast<void (Buffer::*)(const IO::BufferView&)>(
+        &Buffer::template Append<IO::BufferView>)).
+      def("append", [] (Buffer& self, const pybind11::str& value) {
         if(auto rawString = PyUnicode_AsUTF8(value.ptr())) {
           self.Append(rawString, pybind11::len(value));
         }
-      })
-      .def("reset", &Buffer::Reset)
-      .def_property_readonly("size", &Buffer::GetSize);
+      }).
+      def("reset", &Buffer::Reset).
+      def_property_readonly("size", &Buffer::GetSize);
     if constexpr(!std::is_same_v<Buffer, IO::BufferBox>) {
       pybind11::implicitly_convertible<Buffer, IO::BufferBox>();
       GetExportedBufferBox().def(pybind11::init<std::shared_ptr<Buffer>>());
@@ -244,14 +244,14 @@ namespace Beam::Python {
   template<typename Channel>
   auto ExportChannel(pybind11::module& module, const std::string& name) {
     auto channel = pybind11::class_<Channel, std::shared_ptr<Channel>>(module,
-      name.c_str())
-      .def_property_readonly("identifier", &Channel::GetIdentifier,
-        pybind11::return_value_policy::reference_internal)
-      .def_property_readonly("connection", &Channel::GetConnection,
-        pybind11::return_value_policy::reference_internal)
-      .def_property_readonly("reader", &Channel::GetReader,
-        pybind11::return_value_policy::reference_internal)
-      .def_property_readonly("writer", &Channel::GetWriter,
+      name.c_str()).
+      def_property_readonly("identifier", &Channel::GetIdentifier,
+        pybind11::return_value_policy::reference_internal).
+      def_property_readonly("connection", &Channel::GetConnection,
+        pybind11::return_value_policy::reference_internal).
+      def_property_readonly("reader", &Channel::GetReader,
+        pybind11::return_value_policy::reference_internal).
+      def_property_readonly("writer", &Channel::GetWriter,
         pybind11::return_value_policy::reference_internal);
     if constexpr(!std::is_same_v<Channel, IO::ChannelBox>) {
       pybind11::implicitly_convertible<Channel, IO::ChannelBox>();
@@ -270,8 +270,8 @@ namespace Beam::Python {
   template<typename ChannelIdentifier>
   auto ExportChannelIdentifier(pybind11::module& module,
       const std::string& name) {
-    auto identifier = pybind11::class_<ChannelIdentifier>(module, name.c_str())
-      .def("__str__", &boost::lexical_cast<std::string, ChannelIdentifier>);
+    auto identifier = pybind11::class_<ChannelIdentifier>(module, name.c_str()).
+      def("__str__", &boost::lexical_cast<std::string, ChannelIdentifier>);
     if constexpr(!std::is_same_v<ChannelIdentifier, IO::ChannelIdentifierBox>) {
       pybind11::implicitly_convertible<ChannelIdentifier,
         IO::ChannelIdentifierBox>();
@@ -291,8 +291,8 @@ namespace Beam::Python {
   template<typename Connection>
   auto ExportConnection(pybind11::module& module, const std::string& name) {
     auto connection = pybind11::class_<Connection, std::shared_ptr<Connection>>(
-      module, name.c_str())
-      .def("close", &Connection::Close);
+      module, name.c_str()).
+      def("close", &Connection::Close);
     if constexpr(!std::is_same_v<Connection, IO::ConnectionBox>) {
       pybind11::implicitly_convertible<Connection, IO::ConnectionBox>();
       GetExportedConnectionBox().def(
@@ -311,12 +311,12 @@ namespace Beam::Python {
   template<typename Reader>
   auto ExportReader(pybind11::module& module, const std::string& name) {
     auto reader = pybind11::class_<Reader, std::shared_ptr<Reader>>(module,
-      name.c_str())
-      .def("is_data_available", &Reader::IsDataAvailable)
-      .def("read", [] (Reader& self, IO::BufferBox& buffer) {
+      name.c_str()).
+      def("is_data_available", &Reader::IsDataAvailable).
+      def("read", [] (Reader& self, IO::BufferBox& buffer) {
         return self.Read(Store(buffer));
-      })
-      .def("read", [] (Reader& self, IO::BufferBox& buffer, std::size_t size) {
+      }).
+      def("read", [] (Reader& self, IO::BufferBox& buffer, std::size_t size) {
         return self.Read(Store(buffer), size);
       });
     if constexpr(!std::is_same_v<Reader, IO::ReaderBox>) {
@@ -337,9 +337,9 @@ namespace Beam::Python {
   auto ExportServerConnection(pybind11::module& module,
       const std::string& name) {
     auto connection = pybind11::class_<ServerConnection,
-      std::shared_ptr<ServerConnection>>(module, name.c_str())
-      .def("accept", &ServerConnection::Accept)
-      .def("close", &ServerConnection::Close);
+      std::shared_ptr<ServerConnection>>(module, name.c_str()).
+      def("accept", &ServerConnection::Accept).
+      def("close", &ServerConnection::Close);
     if constexpr(!std::is_same_v<ServerConnection, IO::ServerConnectionBox>) {
       pybind11::implicitly_convertible<ServerConnection,
         IO::ServerConnectionBox>();
@@ -362,8 +362,8 @@ namespace Beam::Python {
   template<typename Writer>
   auto ExportWriter(pybind11::module& module, const std::string& name) {
     auto writer = pybind11::class_<Writer, std::shared_ptr<Writer>>(module,
-      name.c_str())
-      .def("write", static_cast<void (Writer::*)(const IO::BufferView&)>(
+      name.c_str()).
+      def("write", static_cast<void (Writer::*)(const IO::BufferView&)>(
         &Writer::Write));
     if constexpr(!std::is_same_v<Writer, IO::WriterBox>) {
       pybind11::implicitly_convertible<Writer, IO::WriterBox>();

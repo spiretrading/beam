@@ -79,6 +79,7 @@ namespace Beam::RegistryService {
 
     private:
       boost::optional<Client> m_client;
+
       ToPythonRegistryClient(const ToPythonRegistryClient&) = delete;
       ToPythonRegistryClient& operator =(
         const ToPythonRegistryClient&) = delete;
@@ -91,7 +92,8 @@ namespace Beam::RegistryService {
   template<typename C>
   template<typename... Args>
   ToPythonRegistryClient<C>::ToPythonRegistryClient(Args&&... args)
-    : m_client(boost::in_place_init, std::forward<Args>(args)...) {}
+    : m_client((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonRegistryClient<C>::~ToPythonRegistryClient() {

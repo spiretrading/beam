@@ -1,5 +1,9 @@
 #ifndef BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
 #define BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
@@ -18,12 +22,6 @@ namespace Beam::IO {
       using Channel = ChannelBox;
 
       /**
-       * Constructs a ToPythonServerConnection.
-       * @param connection The ServerConnection to wrap.
-       */
-      ToPythonServerConnection(std::unique_ptr<ServerConnection> connection);
-
-      /**
        * Constructs a ToPythonServerConnection in-place.
        * @param args The arguments to forward to the constructor.
        */
@@ -31,6 +29,8 @@ namespace Beam::IO {
       ToPythonServerConnection(Args&&... args);
 
       ~ToPythonServerConnection();
+
+      ToPythonServerConnection(ToPythonServerConnection&&) = default;
 
       /** Returns the wrapped ServerConnection. */
       const ServerConnection& GetConnection() const;
@@ -42,35 +42,29 @@ namespace Beam::IO {
 
       void Close();
 
+      ToPythonServerConnection& operator =(
+        ToPythonServerConnection&&) = default;
+
     private:
-      std::unique_ptr<ServerConnection> m_connection;
+      boost::optional<ServerConnection> m_connection;
+
+      ToPythonServerConnection(const ToPythonServerConnection&) = delete;
+      ToPythonServerConnection& operator =(
+        const ToPythonServerConnection&) = delete;
   };
 
-  /**
-   * Makes a ToPythonServerConnection.
-   * @param connection The ServerConnection to wrap.
-   */
   template<typename ServerConnection>
-  auto MakeToPythonServerConnection(
-      std::unique_ptr<ServerConnection> connection) {
-    return std::make_unique<ToPythonServerConnection<ServerConnection>>(
-      std::move(connection));
-  }
-
-  template<typename C>
-  ToPythonServerConnection<C>::ToPythonServerConnection(
-    std::unique_ptr<ServerConnection> connection)
-    : m_connection(std::move(connection)) {}
+  ToPythonServerConnection(ServerConnection&&) ->
+    ToPythonServerConnection<std::decay_t<ServerConnection>>;
 
   template<typename C>
   template<typename... Args>
   ToPythonServerConnection<C>::ToPythonServerConnection(Args&&... args)
-    : ToPythonServerConnection(std::make_unique<ServerConnection>(
-        std::forward<Args>(args)...)) {}
+    : m_connection((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonServerConnection<C>::~ToPythonServerConnection() {
-    Close();
     auto release = Python::GilRelease();
     m_connection.reset();
   }

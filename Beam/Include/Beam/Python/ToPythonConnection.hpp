@@ -1,5 +1,9 @@
 #ifndef BEAM_TO_PYTHON_CONNECTION_HPP
 #define BEAM_TO_PYTHON_CONNECTION_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
@@ -17,50 +21,39 @@ namespace Beam::IO {
       using Connection = C;
 
       /**
-       * Constructs a ToPythonConnection.
-       * @param connection The Connection to wrap.
-       */
-      ToPythonConnection(std::unique_ptr<Connection> connection);
-
-      /**
        * Constructs a ToPythonConnection in-place.
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
       ToPythonConnection(Args&&... args);
 
+      ToPythonConnection(ToPythonConnection&&) = default;
+
       ~ToPythonConnection();
 
       void Close();
 
+      ToPythonConnection& operator =(ToPythonConnection&&) = default;
+
     private:
-      std::unique_ptr<Connection> m_connection;
+      boost::optional<Connection> m_connection;
+
+      ToPythonConnection(const ToPythonConnection&) = delete;
+      ToPythonConnection& operator =(const ToPythonConnection&) = delete;
   };
 
-  /**
-   * Makes a ToPythonConnection.
-   * @param connection The Connection to wrap.
-   */
   template<typename Connection>
-  auto MakeToPythonConnection(std::unique_ptr<Connection> connection) {
-    return std::make_unique<ToPythonConnection<Connection>>(
-      std::move(connection));
-  }
-
-  template<typename C>
-  ToPythonConnection<C>::ToPythonConnection(
-    std::unique_ptr<Connection> connection)
-    : m_connection(std::move(connection)) {}
+  ToPythonConnection(Connection&&) ->
+    ToPythonConnection<std::decay_t<Connection>>;
 
   template<typename C>
   template<typename... Args>
   ToPythonConnection<C>::ToPythonConnection(Args&&... args)
-    : ToPythonConnection(std::make_unique<Connection>(
-        std::forward<Args>(args)...)) {}
+    : m_connection((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename C>
   ToPythonConnection<C>::~ToPythonConnection() {
-    Close();
     auto release = Python::GilRelease();
     m_connection.reset();
   }

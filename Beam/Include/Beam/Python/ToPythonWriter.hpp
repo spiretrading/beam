@@ -1,5 +1,9 @@
 #ifndef BEAM_TO_PYTHON_WRITER_HPP
 #define BEAM_TO_PYTHON_WRITER_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
@@ -17,12 +21,6 @@ namespace Beam::IO {
       using Writer = W;
 
       /**
-       * Constructs a ToPythonWriter.
-       * @param writer The Writer to wrap.
-       */
-      ToPythonWriter(std::unique_ptr<Writer> writer);
-
-      /**
        * Constructs a ToPythonWriter in-place.
        * @param args The arguments to forward to the constructor.
        */
@@ -31,31 +29,29 @@ namespace Beam::IO {
 
       ~ToPythonWriter();
 
+      ToPythonWriter(ToPythonWriter&&) = default;
+
       void Write(const void* data, std::size_t size);
 
       void Write(const BufferView& data);
 
+      ToPythonWriter& operator =(ToPythonWriter&&) = default;
+
     private:
-      std::unique_ptr<Writer> m_writer;
+      boost::optional<Writer> m_writer;
+
+      ToPythonWriter(const ToPythonWriter&) = delete;
+      ToPythonWriter& operator =(const ToPythonWriter&) = delete;
   };
 
-  /**
-   * Makes a ToPythonWriter.
-   * @param writer The Writer to wrap.
-   */
   template<typename Writer>
-  auto MakeToPythonWriter(std::unique_ptr<Writer> writer) {
-    return std::make_unique<ToPythonWriter<Writer>>(std::move(writer));
-  }
+  ToPythonWriter(Writer&&) -> ToPythonWriter<std::decay_t<Writer>>;
 
-  template<typename W>
-  ToPythonWriter<W>::ToPythonWriter(std::unique_ptr<Writer> writer)
-    : m_writer(std::move(writer)) {}
-
-  template<typename W>
+  template<typename R>
   template<typename... Args>
-  ToPythonWriter<W>::ToPythonWriter(Args&&... args)
-    : ToPythonWriter(std::make_unique<Writer>(std::forward<Args>(args)...)) {}
+  ToPythonWriter<R>::ToPythonWriter(Args&&... args)
+    : m_writer((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename W>
   ToPythonWriter<W>::~ToPythonWriter() {

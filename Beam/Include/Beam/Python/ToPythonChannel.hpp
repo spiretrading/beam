@@ -1,8 +1,14 @@
 #ifndef BEAM_TO_PYTHON_CHANNEL_HPP
 #define BEAM_TO_PYTHON_CHANNEL_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/ToPythonConnection.hpp"
+#include "Beam/Python/ToPythonReader.hpp"
+#include "Beam/Python/ToPythonWriter.hpp"
 
 namespace Beam::IO {
 
@@ -22,17 +28,13 @@ namespace Beam::IO {
       using Writer = WriterBox;
 
       /**
-       * Constructs a ToPythonChannel instance.
-       * @param channel The Channel to wrap.
-       */
-      ToPythonChannel(std::unique_ptr<Channel> channel);
-
-      /**
        * Constructs a ToPythonChannel in-place.
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
       ToPythonChannel(Args&&... args);
+
+      ToPythonChannel(ToPythonChannel&&) = default;
 
       ~ToPythonChannel();
 
@@ -44,38 +46,32 @@ namespace Beam::IO {
 
       Writer& GetWriter();
 
+      ToPythonChannel& operator =(ToPythonChannel&&) = default;
+
     private:
-      std::unique_ptr<Channel> m_channel;
+      boost::optional<Channel> m_channel;
       boost::optional<Identifier> m_identifier;
       boost::optional<Connection> m_connection;
       boost::optional<Reader> m_reader;
       boost::optional<Writer> m_writer;
+
+      ToPythonChannel(const ToPythonChannel&) = delete;
+      ToPythonChannel& operator =(const ToPythonChannel&) = delete;
   };
 
-  /**
-   * Builds a ToPythonChannel instance.
-   * @param channel The Channel to wrap.
-   */
   template<typename Channel>
-  auto MakeToPythonChannel(std::unique_ptr<Channel> channel) {
-    return std::make_unique<ToPythonChannel<Channel>>(std::move(channel));
-  }
-
-  template<typename C>
-  ToPythonChannel<C>::ToPythonChannel(std::unique_ptr<Channel> channel)
-    : m_channel(std::move(channel)),
-      m_identifier(&m_channel->GetIdentifier()),
-      m_connection(MakeToPythonConnection(std::make_unique<ConnectionBox>(
-        &m_channel->GetConnection()))),
-      m_reader(MakeToPythonReader(std::make_unique<ReaderBox>(
-        &m_channel->GetReader()))),
-      m_writer(MakeToPythonWriter(std::make_unique<WriterBox>(
-        &m_channel->GetWriter()))) {}
+  ToPythonChannel(Channel&&) -> ToPythonChannel<std::decay_t<Channel>>;
 
   template<typename C>
   template<typename... Args>
   ToPythonChannel<C>::ToPythonChannel(Args&&... args)
-    : ToPythonChannel(std::make_unique<Channel>(std::forward<Args>(args)...)) {}
+    : m_channel((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...),
+      m_identifier(&m_channel->GetIdentifier()),
+      m_connection(ToPythonConnection<ConnectionBox>(
+        &m_channel->GetConnection())),
+      m_reader(ToPythonReader<ReaderBox>(&m_channel->GetReader())),
+      m_writer(ToPythonWriter<WriterBox>(&m_channel->GetWriter())) {}
 
   template<typename C>
   ToPythonChannel<C>::~ToPythonChannel() {

@@ -1,5 +1,9 @@
 #ifndef BEAM_TO_PYTHON_READER_HPP
 #define BEAM_TO_PYTHON_READER_HPP
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <boost/optional/optional.hpp>
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
@@ -17,12 +21,6 @@ namespace Beam::IO {
       using Reader = R;
 
       /**
-       * Constructs a ToPythonReader.
-       * @param reader The Reader to wrap.
-       */
-      ToPythonReader(std::unique_ptr<Reader> reader);
-
-      /**
        * Constructs a ToPythonReader in-place.
        * @param args The arguments to forward to the constructor.
        */
@@ -30,6 +28,8 @@ namespace Beam::IO {
       ToPythonReader(Args&&... args);
 
       ~ToPythonReader();
+
+      ToPythonReader(ToPythonReader&&) = default;
 
       /** Returns the wrapped Reader. */
       const Reader& GetReader() const;
@@ -45,27 +45,23 @@ namespace Beam::IO {
 
       std::size_t Read(Out<BufferBox> destination, std::size_t size);
 
+      ToPythonReader& operator =(ToPythonReader&&) = default;
+
     private:
-      std::unique_ptr<Reader> m_reader;
+      boost::optional<Reader> m_reader;
+
+      ToPythonReader(const ToPythonReader&) = delete;
+      ToPythonReader& operator =(const ToPythonReader&) = delete;
   };
 
-  /**
-   * Makes a ToPythonReader.
-   * @param reader The Reader to wrap.
-   */
   template<typename Reader>
-  auto MakeToPythonReader(std::unique_ptr<Reader> reader) {
-    return std::make_unique<ToPythonReader<Reader>>(std::move(reader));
-  }
-
-  template<typename R>
-  ToPythonReader<R>::ToPythonReader(std::unique_ptr<Reader> reader)
-    : m_reader(std::move(reader)) {}
+  ToPythonReader(Reader&&) -> ToPythonReader<std::decay_t<Reader>>;
 
   template<typename R>
   template<typename... Args>
   ToPythonReader<R>::ToPythonReader(Args&&... args)
-    : ToPythonReader(std::make_unique<Reader>(std::forward<Args>(args)...)) {}
+    : m_reader((Python::GilRelease(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<typename R>
   ToPythonReader<R>::~ToPythonReader() {

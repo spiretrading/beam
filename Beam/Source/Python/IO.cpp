@@ -177,7 +177,7 @@ void Beam::Python::ExportLocalClientChannel(module& module) {
         connection) {
       return std::make_shared<
         ToPythonChannel<LocalClientChannel<SharedBuffer>>>(name,
-        connection.GetConnection());
+          connection.GetConnection());
     }));
 }
 

@@ -22,7 +22,7 @@ class_<UidClientBox>& Beam::Python::GetExportedUidClientBox() {
 
 void Beam::Python::ExportApplicationUidClient(pybind11::module& module) {
   using PythonApplicationUidClient = ToPythonUidClient<UidClient<
-    ApplicationUidClient::SessionBuilder>>;
+    DefaultSessionBuilder<ServiceLocatorClientBox>>>;
   ExportUidClient<PythonApplicationUidClient>(module, "ApplicationUidClient").
     def(init([] (ServiceLocatorClientBox serviceLocatorClient) {
       return std::make_shared<PythonApplicationUidClient>(

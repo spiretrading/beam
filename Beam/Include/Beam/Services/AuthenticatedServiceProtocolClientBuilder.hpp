@@ -20,7 +20,7 @@ namespace Beam::Services {
     public:
 
       /** The type of ServiceLocatorClient used to authenticate the session. */
-      using ServiceLocatorClient = GetTryDereferenceType<C>;
+      using ServiceLocatorClient = C;
 
       /** The type of MessageProtocol used to send and receive messages. */
       using MessageProtocol =

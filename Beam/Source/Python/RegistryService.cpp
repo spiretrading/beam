@@ -24,7 +24,7 @@ class_<RegistryClientBox>& Beam::Python::GetExportedRegistryClientBox() {
 
 void Beam::Python::ExportApplicationRegistryClient(module& module) {
   using PythonApplicationRegistryClient = ToPythonRegistryClient<RegistryClient<
-    ApplicationRegistryClient::SessionBuilder>>;
+    DefaultSessionBuilder<ServiceLocatorClientBox>>>;
   ExportRegistryClient<PythonApplicationRegistryClient>(module,
     "ApplicationRegistryClient").
     def(init([] (ServiceLocatorClientBox serviceLocatorClient) {

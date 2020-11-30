@@ -42,7 +42,7 @@ namespace Beam::ServiceLocator {
       /** The type used to build client sessions. */
       using SessionBuilder = Services::ServiceProtocolClientBuilder<
         Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
+          Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
 
       /** Defines the standard ServiceLocatorClient used for applications. */
       using Client = ServiceLocatorClient<SessionBuilder>;

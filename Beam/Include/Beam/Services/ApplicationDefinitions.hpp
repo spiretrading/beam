@@ -29,7 +29,8 @@ namespace Beam::Services {
   };
 
   /** The default type of SessionBuilder used. */
-  template<typename ServiceLocatorClient>
+  template<typename ServiceLocatorClient =
+    Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>
   using DefaultSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     ServiceLocatorClient, MessageProtocol<
       std::unique_ptr<Network::TcpSocketChannel>,
@@ -37,7 +38,8 @@ namespace Beam::Services {
     Threading::LiveTimer>;
 
   /** A SessionBuilder that uses Zlib compression. */
-  template<typename ServiceLocatorClient>
+  template<typename ServiceLocatorClient =
+    Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>
   using ZlibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     ServiceLocatorClient, MessageProtocol<
       std::unique_ptr<Network::TcpSocketChannel>,
@@ -47,8 +49,7 @@ namespace Beam::Services {
 
   /** Encapsulates a service client used in an application. */
   template<template<typename> class C, typename N,
-    typename B = DefaultSessionBuilder<
-      Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>>
+    typename B = DefaultSessionBuilder<>>
   class ApplicationClient {
     public:
       using SessionBuilder = B;

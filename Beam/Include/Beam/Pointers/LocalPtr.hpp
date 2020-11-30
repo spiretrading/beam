@@ -1,6 +1,5 @@
 #ifndef BEAM_LOCAL_PTR_HPP
 #define BEAM_LOCAL_PTR_HPP
-#include <tuple>
 #include <type_traits>
 #include <utility>
 #include "Beam/Pointers/Dereference.hpp"

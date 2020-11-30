@@ -10,10 +10,16 @@
 
 namespace Beam {
 
-  /** Wraps a local value as if it were a pointer. */
+  /**
+   * Wraps a local value as if it were a pointer.
+   * @param <T> The type to wrap.
+   */
   template<typename T>
   class LocalPtr {
     public:
+
+      /** The type being wrapped. */
+      using Type = T;
 
       /**
        * Constructs a LocalPtr.
@@ -34,27 +40,20 @@ namespace Beam {
       explicit operator bool() const;
 
       /** Returns a reference to the value. */
-      T& operator *() const;
+      Type& operator *() const;
 
       /** Returns a pointer to the value. */
-      T* operator ->() const;
+      Type* operator ->() const;
 
       /** Returns the value. */
-      T& Get() const;
+      Type& Get() const;
 
     private:
-      struct Wrapper {
-        T m_ptr;
+      mutable Type m_value;
 
-        template<typename... Args, typename =
-          disable_copy_constructor_t<Wrapper, Args...>>
-        Wrapper(Args&&... args);
-
-        template<typename Tuple, std::size_t... Sequence>
-        Wrapper(std::integer_sequence<std::size_t, Sequence...> sequence,
-          Tuple&& args);
-      };
-      mutable Wrapper m_wrapper;
+      template<typename Tuple, std::size_t... Sequence>
+      LocalPtr(std::integer_sequence<std::size_t, Sequence...> sequence,
+        Tuple&& args);
   };
 
   /**
@@ -73,24 +72,13 @@ namespace Beam {
 
   template<typename T>
   template<typename... Args, typename>
-  LocalPtr<T>::Wrapper::Wrapper(Args&&... args)
-    : m_ptr(std::forward<Args>(args)...) {}
-
-  template<typename T>
-  template<typename Tuple, std::size_t... Sequence>
-  LocalPtr<T>::Wrapper::Wrapper(
-      std::integer_sequence<std::size_t, Sequence...> sequence, Tuple&& args)
-    : m_ptr(std::get<Sequence>(std::move(args))...) {}
-
-  template<typename T>
-  template<typename... Args, typename>
   LocalPtr<T>::LocalPtr(Args&&... args)
-    : m_wrapper(std::forward<Args>(args)...) {}
+    : m_value(std::forward<Args>(args)...) {}
 
   template<typename T>
   template<typename... Args>
   LocalPtr<T>::LocalPtr(Initializer<Args...>&& args)
-    : m_wrapper(std::make_integer_sequence<std::size_t, sizeof...(Args)>(),
+    : LocalPtr(std::make_integer_sequence<std::size_t, sizeof...(Args)>(),
         std::move(args.m_args)) {}
 
   template<typename T>
@@ -100,18 +88,24 @@ namespace Beam {
 
   template<typename T>
   T& LocalPtr<T>::operator *() const {
-    return m_wrapper.m_ptr;
+    return m_value;
   }
 
   template<typename T>
   T* LocalPtr<T>::operator ->() const {
-    return &m_wrapper.m_ptr;
+    return &m_value;
   }
 
   template<typename T>
   T& LocalPtr<T>::Get() const {
-    return m_wrapper.m_ptr;
+    return m_value;
   }
+
+  template<typename T>
+  template<typename Tuple, std::size_t... Sequence>
+  LocalPtr<T>::LocalPtr(
+    std::integer_sequence<std::size_t, Sequence...> sequence, Tuple&& args)
+    : m_value(std::get<Sequence>(std::forward<Tuple>(args))...) {}
 }
 
 #endif

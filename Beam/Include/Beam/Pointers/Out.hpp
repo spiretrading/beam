@@ -4,10 +4,15 @@
 
 namespace Beam {
 
-  /** Used to identify a parameter as an output. */
+  /**
+   * Used to identify a parameter as an output.
+   * @param <T> The type of the parameter.
+   */
   template<typename T>
   class Out {
     public:
+
+      /** The type of the parameter. */
       using Type = T;
 
       /** Allows for polymorphic Out params. */

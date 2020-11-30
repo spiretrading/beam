@@ -4,7 +4,10 @@
 
 namespace Beam {
 
-  /** Used to explicitly pass a reference. */
+  /**
+   * Used to explicitly pass a reference.
+   * @param <T> The type being referenced.
+   */
   template<typename T>
   class Ref {
     public:

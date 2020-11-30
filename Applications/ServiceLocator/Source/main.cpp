@@ -33,7 +33,7 @@ using namespace Viper;
 namespace {
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
     MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
-    SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>>>,
+      SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>>>,
     TcpServerSocket, BinarySender<SharedBuffer>, NullEncoder,
     std::shared_ptr<LiveTimer>>;
 }
@@ -48,9 +48,10 @@ int main(int argc, const char** argv) {
     }, std::runtime_error("Error parsing section 'data_store'."));
     auto server = ServiceLocatorServletContainer(Initialize(Initialize(
       Initialize(MakeSqlConnection(MySql::Connection(
-      mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-      mySqlConfig.m_username, mySqlConfig.m_password, mySqlConfig.m_schema))))),
-      interface, std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
+        mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
+          mySqlConfig.m_username, mySqlConfig.m_password,
+          mySqlConfig.m_schema))))), interface,
+      std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
     WaitForKillEvent();
   } catch(...) {
     ReportCurrentException();

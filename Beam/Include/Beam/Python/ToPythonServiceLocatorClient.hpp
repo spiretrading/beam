@@ -7,6 +7,7 @@
 #include <pybind11/pybind11.h>
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
+#include "Beam/Utilities/TypeList.hpp"
 
 namespace Beam::ServiceLocator {
 
@@ -25,10 +26,9 @@ namespace Beam::ServiceLocator {
        * Constructs a ToPythonServiceLocatorClient.
        * @param args The arguments to forward to the Client's constructor.
        */
-      template<typename... Args>
+      template<typename... Args, typename =
+        disable_copy_constructor_t<ToPythonServiceLocatorClient, Args...>>
       ToPythonServiceLocatorClient(Args&&... args);
-
-      ToPythonServiceLocatorClient(ToPythonServiceLocatorClient&&) = default;
 
       ~ToPythonServiceLocatorClient();
 
@@ -103,9 +103,6 @@ namespace Beam::ServiceLocator {
 
       void Close();
 
-      ToPythonServiceLocatorClient& operator =(
-        ToPythonServiceLocatorClient&&) = default;
-
     private:
       boost::optional<Client> m_client;
 
@@ -120,7 +117,7 @@ namespace Beam::ServiceLocator {
     ToPythonServiceLocatorClient<std::decay_t<Client>>;
 
   template<typename C>
-  template<typename... Args>
+  template<typename... Args, typename>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
     : m_client((Python::GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}

@@ -6,6 +6,7 @@
 #include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/RegistryService/RegistryClientBox.hpp"
+#include "Beam/Utilities/TypeList.hpp"
 
 namespace Beam::RegistryService {
 
@@ -24,10 +25,9 @@ namespace Beam::RegistryService {
        * Constructs a ToPythonRegistryClient.
        * @param args The arguments to forward to the Client's constructor.
        */
-      template<typename... Args>
+      template<typename... Args,
+        typename = disable_copy_constructor_t<ToPythonRegistryClient, Args...>>
       ToPythonRegistryClient(Args&&... args);
-
-      ToPythonRegistryClient(ToPythonRegistryClient&&) = default;
 
       ~ToPythonRegistryClient();
 
@@ -75,8 +75,6 @@ namespace Beam::RegistryService {
 
       void Close();
 
-      ToPythonRegistryClient& operator =(ToPythonRegistryClient&&) = default;
-
     private:
       boost::optional<Client> m_client;
 
@@ -90,7 +88,7 @@ namespace Beam::RegistryService {
     ToPythonRegistryClient<std::decay_t<Client>>;
 
   template<typename C>
-  template<typename... Args>
+  template<typename... Args, typename>
   ToPythonRegistryClient<C>::ToPythonRegistryClient(Args&&... args)
     : m_client((Python::GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}

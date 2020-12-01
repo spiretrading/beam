@@ -37,10 +37,10 @@ namespace Beam::Services {
       Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
     Threading::LiveTimer>;
 
-  /** A SessionBuilder that uses Zlib compression. */
+  /** A SessionBuilder that uses ZLib compression. */
   template<typename ServiceLocatorClient =
     Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>
-  using ZlibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
+  using ZLibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     ServiceLocatorClient, MessageProtocol<
       std::unique_ptr<Network::TcpSocketChannel>,
       Serialization::BinarySender<IO::SharedBuffer>,
@@ -95,12 +95,12 @@ namespace Beam::Services {
    * @param serviceLocatorClient The ServiceLocatorClient used to authenticate
    *        sessions.
    */
-  template<typename ServiceLocatorClient>
-  auto MakeDefaultSessionBuilder(ServiceLocatorClient&& serviceLocatorClient,
+  template<typename SessionBuilder, typename ServiceLocatorClient>
+  auto MakeSessionBuilder(ServiceLocatorClient&& serviceLocatorClient,
       const std::string& service) {
     auto clientBox = ServiceLocator::ServiceLocatorClientBox(&FullyDereference(
       serviceLocatorClient));
-    return DefaultSessionBuilder<std::decay_t<ServiceLocatorClient>>(
+    return SessionBuilder(
       std::forward<ServiceLocatorClient>(serviceLocatorClient),
       [=] () mutable {
         return std::make_unique<Network::TcpSocketChannel>(
@@ -110,6 +110,19 @@ namespace Beam::Services {
         return std::make_unique<Threading::LiveTimer>(
           boost::posix_time::seconds(10));
       });
+  }
+
+  /**
+   * Returns a DefaultSessionBuilder.
+   * @param serviceLocatorClient The ServiceLocatorClient used to authenticate
+   *        sessions.
+   */
+  template<typename ServiceLocatorClient>
+  auto MakeDefaultSessionBuilder(ServiceLocatorClient&& serviceLocatorClient,
+      const std::string& service) {
+    return MakeSessionBuilder<DefaultSessionBuilder<
+      std::decay_t<ServiceLocatorClient>>>(std::forward<ServiceLocatorClient>(
+        serviceLocatorClient), service);
   }
 
   template<template<typename> class C, typename N, typename B>

@@ -71,6 +71,18 @@ namespace Beam {
   using GetOptionalLocalPtr = typename OptionalLocalPtr<T>::type;
 
   template<typename T>
+  auto CapturePtr(std::remove_reference_t<T>& value) {
+    return GetOptionalLocalPtr<std::remove_reference_t<T>>(
+      static_cast<T&&>(value));
+  }
+
+  template<typename T>
+  auto CapturePtr(std::remove_reference_t<T>&& value) {
+    return GetOptionalLocalPtr<std::remove_reference_t<T>>(
+      static_cast<T&&>(value));
+  }
+
+  template<typename T>
   template<typename... Args, typename>
   LocalPtr<T>::LocalPtr(Args&&... args)
     : m_value(std::forward<Args>(args)...) {}

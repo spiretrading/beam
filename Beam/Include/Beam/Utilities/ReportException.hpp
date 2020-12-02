@@ -13,7 +13,7 @@
 namespace Beam {
 namespace Details {
   inline void ReportCurrentException(const std::exception& e, int level) {
-    std::cerr << std::string(level, ' ') << e.what() << std::endl;
+    std::cerr << std::string(2 * level, ' ') << e.what() << std::endl;
     try {
       std::rethrow_if_nested(e);
     } catch(const std::exception& e) {

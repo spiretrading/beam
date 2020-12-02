@@ -2,6 +2,7 @@
 #define BEAM_PYTHON_QUERIES_HPP
 #include <string>
 #include <type_traits>
+#include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
@@ -15,10 +16,20 @@
 namespace Beam::Python {
 
   /**
-   * Exports the BasicQuery class.
+   * Exports a generic BasicQuery class.
    * @param module The module to export to.
+   * @param name The name of the BasicQuery class.
    */
-  void ExportBasicQuery(pybind11::module& module);
+  template<typename T>
+  void ExportBasicQuery(pybind11::module& module, const std::string& name) {
+    pybind11::class_<Queries::BasicQuery<T>, Queries::IndexedQuery<T>,
+      Queries::RangedQuery, Queries::SnapshotLimitedQuery,
+      Queries::InterruptableQuery, Queries::FilteredQuery>(module,
+        name.c_str()).
+      def(pybind11::init()).
+      def(pybind11::init<const Queries::BasicQuery<T>&>()).
+      def("__str__", &boost::lexical_cast<std::string, Queries::BasicQuery<T>>);
+  }
 
   /**
    * Exports the ConstantExpression class.
@@ -37,6 +48,12 @@ namespace Beam::Python {
    * @param module The module to export to.
    */
   void ExportExpression(pybind11::module& module);
+
+  /**
+   * Exports the ExpressionQuery class.
+   * @param module The module to export to.
+   */
+  void ExportExpressionQuery(pybind11::module& module);
 
   /**
    * Exports the FilteredQuery class.
@@ -59,8 +76,19 @@ namespace Beam::Python {
   /**
    * Exports the IndexedQuery class.
    * @param module The module to export to.
+   * @param name The name of the BasicQuery class.
    */
-  void ExportIndexedQuery(pybind11::module& module);
+  template<typename T>
+  void ExportIndexedQuery(pybind11::module& module, const std::string& name) {
+    pybind11::class_<Queries::IndexedQuery<T>>(module, name.c_str()).
+      def(pybind11::init()).
+      def(pybind11::init<T>()).
+      def(pybind11::init<const Queries::IndexedQuery<T>&>()).
+      def_property("index", &Queries::IndexedQuery<T>::GetIndex,
+        &Queries::IndexedQuery<T>::SetIndex).
+      def("__str__",
+        &boost::lexical_cast<std::string, Queries::IndexedQuery<T>>);
+  }
 
   /**
    * Exports the IndexedValue class.
@@ -147,8 +175,8 @@ namespace Beam::Python {
    */
   template<typename T>
   void ExportNativeDataType(pybind11::module& module, const std::string& name) {
-    pybind11::class_<T, Queries::VirtualDataType>(module, name.c_str())
-      .def(pybind11::init());
+    pybind11::class_<T, Queries::VirtualDataType>(module, name.c_str()).
+      def(pybind11::init());
     pybind11::implicitly_convertible<T, Queries::DataType>();
   }
 
@@ -159,11 +187,11 @@ namespace Beam::Python {
    */
   template<typename T>
   void ExportNativeValue(pybind11::module& module, const std::string& name) {
-    pybind11::class_<T, Queries::VirtualValue>(module, name.c_str())
-      .def(pybind11::init())
-      .def(pybind11::init<typename T::Type::Type>())
-      .def(pybind11::self == pybind11::self)
-      .def(pybind11::self != pybind11::self);
+    pybind11::class_<T, Queries::VirtualValue>(module, name.c_str()).
+      def(pybind11::init()).
+      def(pybind11::init<typename T::Type::Type>()).
+      def(pybind11::self == pybind11::self).
+      def(pybind11::self != pybind11::self);
     pybind11::implicitly_convertible<T, Queries::Value>();
     module.def("make_value",
       [] (const typename T::Type::Type& value) {
@@ -395,8 +423,8 @@ namespace pybind11::detail {
   template<typename V, typename I>
   struct type_caster<Beam::Queries::IndexedValue<V, I>,
     std::enable_if_t<!std::is_same_v<V, object> &&
-    !std::is_same_v<I, object>>> : Beam::Python::IndexedValueTypeCaster<
-    Beam::Queries::IndexedValue<V, I>> {};
+      !std::is_same_v<I, object>>> : Beam::Python::IndexedValueTypeCaster<
+        Beam::Queries::IndexedValue<V, I>> {};
 
   template<typename T>
   struct type_caster<Beam::Queries::SequencedValue<T>,

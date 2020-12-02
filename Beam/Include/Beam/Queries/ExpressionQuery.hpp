@@ -1,54 +1,49 @@
-#ifndef BEAM_EXPRESSIONQUERY_HPP
-#define BEAM_EXPRESSIONQUERY_HPP
+#ifndef BEAM_EXPRESSION_QUERY_HPP
+#define BEAM_EXPRESSION_QUERY_HPP
 #include <ostream>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ExpressionQuery
-      \brief Represents a query that applies an Expression to retrieved values.
-   */
+  /** Represents a query that applies an Expression to retrieved values. */
   class ExpressionQuery {
     public:
 
-      /*! \enum UpdatePolicy
-          \brief Indicates when updated values should be sent.
-       */
+      /** Indicates when updated values should be sent. */
       enum class UpdatePolicy {
 
-        //! Update on every value.
+        /** Update on every value. */
         ALL,
 
         //! Update when a change in value is produced.
         CHANGE
       };
 
-      //! Constructs an ExpressionQuery returning the value unmodified.
+      /** Constructs an ExpressionQuery returning the value unmodified. */
       ExpressionQuery();
 
-      //! Constructs an ExpressionQuery with a specified Expression.
-      /*!
-        \param expression The Expression to apply.
-      */
+      /**
+       * Constructs an ExpressionQuery with a specified Expression.
+       * @param expression The Expression to apply.
+       */
       ExpressionQuery(const Expression& expression);
 
-      //! Returns the UpdatePolicy.
+      /** Returns the UpdatePolicy. */
       UpdatePolicy GetUpdatePolicy() const;
 
-      //! Sets the UpdatePolicy.
+      /** Sets the UpdatePolicy. */
       void SetUpdatePolicy(UpdatePolicy policy);
 
-      //! Returns the Expression.
+      /** Returns the Expression. */
       const Expression& GetExpression() const;
 
-      //! Sets the Expression to apply.
-      /*!
-        \param expression The Expression to apply.
-      */
+      /**
+       * Sets the Expression to apply.
+       * @param expression The Expression to apply.
+       */
       void SetExpression(const Expression& expression);
 
     private:
@@ -78,8 +73,8 @@ namespace Queries {
       m_expression(ConstantExpression(true)) {}
 
   inline ExpressionQuery::ExpressionQuery(const Expression& expression)
-      : m_updatePolicy{UpdatePolicy::ALL},
-        m_expression{expression} {}
+    : m_updatePolicy(UpdatePolicy::ALL),
+      m_expression(expression) {}
 
   inline ExpressionQuery::UpdatePolicy ExpressionQuery::
       GetUpdatePolicy() const {
@@ -98,10 +93,8 @@ namespace Queries {
     m_expression = expression;
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<Queries::ExpressionQuery> {
     template<typename Shuttler>
@@ -111,7 +104,6 @@ namespace Serialization {
       shuttle.Shuttle("expression", value.m_expression);
     }
   };
-}
 }
 
 #endif

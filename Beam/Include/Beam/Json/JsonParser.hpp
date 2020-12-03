@@ -68,9 +68,8 @@ namespace Beam::Serialization {
         JsonObject& value) const {
       auto data = std::string();
       shuttle.Shuttle(name, data);
-      auto stream = Parsers::ReaderParserStream<
-        IO::BufferReader<IO::SharedBuffer>>(
-        IO::BufferFromString<IO::SharedBuffer>(data));
+      auto stream = Parsers::ReaderParserStream(IO::BufferReader(
+        IO::BufferFromString<IO::SharedBuffer>(data)));
       auto jsonValue = JsonValue();
       if(!JsonParser().Read(stream, jsonValue) ||
           boost::get<JsonObject>(&jsonValue) == nullptr) {

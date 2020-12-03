@@ -22,9 +22,11 @@ namespace Beam::Parsers {
   template<typename P> class NotParser;
   template<typename L, typename R, typename E = void> class OrParser;
   template<typename R> struct Parser;
+  template<typename R> class ParserBox;
   class ParserException;
   template<typename R, typename P> class ParserPublisher;
   struct ParserStream;
+  class ParserStreamBox;
   template<typename P, typename E = void> class PlusParser;
   template<typename I> class RationalParser;
   template<typename R> class ReaderParserStream;
@@ -37,10 +39,6 @@ namespace Beam::Parsers {
   template<typename P> class SubParserStream;
   class TerminalParser;
   template<typename P> class TokenParser;
-  template<typename R> class VirtualParser;
-  template<typename P, typename E = void> class WrapperParser;
-  class VirtualParserStream;
-  template<typename P> class WrapperParserStream;
 }
 
 #endif

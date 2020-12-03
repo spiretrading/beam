@@ -13,11 +13,11 @@
 
 namespace Beam::Parsers {
 
-  //! Parses a value from a string.
-  /*!
-    \param source The string to parse.
-    \return The parsed value.
-  */
+  /**
+   * Parses a value from a string.
+   * @param source The string to parse.
+   * @return The parsed value.
+   */
   template<typename Parser>
   auto ParseFrom(const Parser& parser, const std::string& source) {
     auto value = parser_result_t<Parser>();
@@ -28,11 +28,11 @@ namespace Beam::Parsers {
     return value;
   }
 
-  //! Parses a value from a buffer.
-  /*!
-    \param source The string to parse.
-    \return The parsed value.
-  */
+  /**
+   * Parses a value from a buffer.
+   * @param source The string to parse.
+   * @return The parsed value.
+   */
   template<typename Parser, typename Buffer>
   auto ParseFrom(const Parser& parser, const Buffer& source) {
     auto value = parser_result_t<Parser>();

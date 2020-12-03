@@ -1,14 +1,12 @@
-#ifndef BEAM_SKIPSPACEPARSER_HPP
-#define BEAM_SKIPSPACEPARSER_HPP
+#ifndef BEAM_SKIP_SPACE_PARSER_HPP
+#define BEAM_SKIP_SPACE_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class SkipSpaceParser
-      \brief Parser used to skip spaces.
-   */
+  /** Parser used to skip spaces. */
   class SkipSpaceParser {
     public:
       using Result = NullType;

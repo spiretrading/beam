@@ -1,13 +1,11 @@
-#ifndef BEAM_DIGITPARSER_HPP
-#define BEAM_DIGITPARSER_HPP
+#ifndef BEAM_DIGIT_PARSER_HPP
+#define BEAM_DIGIT_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class DigitParser
-      \brief Matches a digit character.
-   */
+  /** Matches a digit character. */
   class DigitParser {
     public:
       using Result = char;

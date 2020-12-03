@@ -1,5 +1,5 @@
-#ifndef BEAM_DATEPARSER_HPP
-#define BEAM_DATEPARSER_HPP
+#ifndef BEAM_DATE_PARSER_HPP
+#define BEAM_DATE_PARSER_HPP
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Parsers/ConversionParser.hpp"
 #include "Beam/Parsers/IntegralParser.hpp"

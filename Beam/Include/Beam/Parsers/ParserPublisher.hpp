@@ -1,5 +1,5 @@
-#ifndef BEAM_PARSERPUBLISHER_HPP
-#define BEAM_PARSERPUBLISHER_HPP
+#ifndef BEAM_PARSER_PUBLISHER_HPP
+#define BEAM_PARSER_PUBLISHER_HPP
 #include <atomic>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -14,42 +14,40 @@
 
 namespace Beam::Parsers {
 
-  /*! \enum ParserErrorPolicy
-      \brief Specifies how a Parser Reactor should handle an error.
-   */
+  /** Specifies how a Parser Reactor should handle an error. */
   BEAM_ENUM(ParserErrorPolicy,
 
-    //! Report the error as an exception.
+    /** Report the error as an exception. */
     REPORT = 0,
 
-    //! Skip the entry that produced the error.
+    /** Skip the entry that produced the error. */
     SKIP,
 
-    //! Stop reading any further.
+    /** Stop reading any further. */
     STOP);
 
-  /*! \class ParserPublisher
-      \brief Publishes values parsed from a Reader.
-      \tparam R The type of Reader to parse from.
-      \tparam P The type of Parser to use.
+  /**
+   * Publishes values parsed from a Reader.
+   * @param <R> The type of Reader to parse from.
+   * @param <P> The type of Parser to use.
    */
   template<typename R, typename P>
   class ParserPublisher final : public Publisher<parser_result_t<P>> {
     public:
 
-      //! The type of Reader to parse from.
+      /** The type of Reader to parse from. */
       using Reader = R;
 
-      //! The type of Parser to use.
+      /** The type of Parser to use. */
       using Parser = P;
       using Source = parser_result_t<Parser>;
 
-      //! Constructs a ParserPublisher.
-      /*!
-        \param reader Initializes the Reader to use.
-        \param parser Initializes the Parser.
-        \param errorPolicy The policy used to handle an error.
-      */
+      /**
+       * Constructs a ParserPublisher.
+       * @param reader Initializes the Reader to use.
+       * @param parser Initializes the Parser.
+       * @param errorPolicy The policy used to handle an error.
+       */
       template<typename RF>
       ParserPublisher(RF&& reader, Parser parser,
         ParserErrorPolicy errorPolicy);

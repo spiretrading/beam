@@ -1,5 +1,5 @@
-#ifndef BEAM_SEQUENCEPARSER_HPP
-#define BEAM_SEQUENCEPARSER_HPP
+#ifndef BEAM_SEQUENCE_PARSER_HPP
+#define BEAM_SEQUENCE_PARSER_HPP
 #include <vector>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
@@ -8,25 +8,25 @@
 
 namespace Beam::Parsers {
 
-  /*! \class SequenceParser
-      \brief Matches a sequence of Parsers seperated by a delimiter.
-      \tparam Parser The Parser used for each value in the list.
+  /**
+   * Matches a sequence of Parsers seperated by a delimiter.
+   * @param <P> The Parser used for each value in the list.
    */
   template<typename P>
   class SequenceParser {
     public:
 
-      //! The Parser used for each value in the list.
+      /** The Parser used for each value in the list. */
       using Parser = P;
 
       using Result = std::conditional_t<std::is_same_v<parser_result_t<Parser>,
         NullType>, NullType, std::vector<parser_result_t<Parser>>>;
 
-      //! Constructs a SequenceParser.
-      /*!
-        \param parsers The sequence of Parsers to match.
-        \param delimiter The delimiter used to separate list items.
-      */
+      /**
+       * Constructs a SequenceParser.
+       * @param parsers The sequence of Parsers to match.
+       * @param delimiter The delimiter used to separate list items.
+       */
       SequenceParser(std::vector<Parser> parsers, char delimiter);
 
       template<typename Stream>
@@ -44,11 +44,11 @@ namespace Beam::Parsers {
   SequenceParser(std::vector<Parser>, char) ->
     SequenceParser<to_parser_t<Parser>>;
 
-  //! Builds a SequenceParser based on the list of Parsers passed to it.
-  /*!
-    \param parsers The sequence of Parsers to match.
-    \param delimiter The delimiter used to separate list items.
-  */
+  /**
+   * Builds a SequenceParser based on the list of Parsers passed to it.
+   * @param parsers The sequence of Parsers to match.
+   * @param delimiter The delimiter used to separate list items.
+   */
   template<typename Parser>
   auto Sequence(std::vector<Parser> parsers, char delimiter) {
     return SequenceParser(std::move(parsers), delimiter);

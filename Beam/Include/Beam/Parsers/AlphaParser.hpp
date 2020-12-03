@@ -1,13 +1,11 @@
-#ifndef BEAM_ALPHAPARSER_HPP
-#define BEAM_ALPHAPARSER_HPP
+#ifndef BEAM_ALPHA_PARSER_HPP
+#define BEAM_ALPHA_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class AlphaParser
-      \brief Matches an alphabet character.
-   */
+  /** Matches an alphabet character. */
   class AlphaParser {
     public:
       using Result = char;

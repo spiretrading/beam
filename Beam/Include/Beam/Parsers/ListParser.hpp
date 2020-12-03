@@ -1,5 +1,5 @@
-#ifndef BEAM_LISTPARSER_HPP
-#define BEAM_LISTPARSER_HPP
+#ifndef BEAM_LIST_PARSER_HPP
+#define BEAM_LIST_PARSER_HPP
 #include <cassert>
 #include <type_traits>
 #include <vector>
@@ -10,24 +10,24 @@
 
 namespace Beam::Parsers {
 
-  /*! \class ListParser
-      \brief Matches a list of values seperated by a delimiter.
-      \tparam P The Parser used for each value in the list.
+  /**
+   * Matches a list of values seperated by a delimiter.
+   * @param <P> The Parser used for each value in the list.
    */
   template<typename P>
   class ListParser {
     public:
 
-      //! The Parser used for each value in the list.
+      /** The Parser used for each value in the list. */
       using Parser = P;
       using Result = std::conditional_t<std::is_same_v<parser_result_t<Parser>,
         NullType>, NullType, std::vector<parser_result_t<Parser>>>;
 
-      //! Constructs a ListParser.
-      /*!
-        \param parser The Parser to match.
-        \param delimiter The delimiter used to separate list items.
-      */
+      /**
+       * Constructs a ListParser.
+       * @param parser The Parser to match.
+       * @param delimiter The delimiter used to separate list items.
+       */
       ListParser(Parser parser, char delimiter);
 
       template<typename Stream>
@@ -44,11 +44,11 @@ namespace Beam::Parsers {
   template<typename P>
   ListParser(P, char) -> ListParser<to_parser_t<P>>;
 
-  //! Builds a ListParser based on its value Parser.
-  /*!
-    \param parser The Parser used for the values in the list.
-    \param delimiter The list's delimiter.
-  */
+  /**
+   * Builds a ListParser based on its value Parser.
+   * @param parser The Parser used for the values in the list.
+   * @param delimiter The list's delimiter.
+   */
   template<typename Parser>
   auto List(Parser parser, char delimiter) {
     return ListParser(std::move(parser), delimiter);

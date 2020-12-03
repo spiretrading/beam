@@ -1,5 +1,5 @@
-#ifndef BEAM_CONCATENATEPARSER_HPP
-#define BEAM_CONCATENATEPARSER_HPP
+#ifndef BEAM_CONCATENATE_PARSER_HPP
+#define BEAM_CONCATENATE_PARSER_HPP
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -62,24 +62,24 @@ namespace Details {
   }
 }
 
-  /*! \class ConcatenateParser
-      \brief Concatenates two parsers so that they must both match in order.
-             The result of the parsing is one of:
-             a) NullType if both L and R are NullType Parsers.
-             b) L if only R is a NullType Parser.
-             c) R if only L is a NullType Parser.
-             d) An std::tuple of both L's Result and R's Result.
-      \tparam L The parser that must match to the left.
-      \tparam R The parser that must match to the right.
+  /**
+   * Concatenates two parsers so that they must both match in order.
+   * The result of the parsing is one of:
+   *   a) NullType if both L and R are NullType Parsers.
+   *   b) L if only R is a NullType Parser.
+   *   c) R if only L is a NullType Parser.
+   *   d) An std::tuple of both L's Result and R's Result.
+   * @param <L> The parser that must match to the left.
+   * @param <R> The parser that must match to the right.
    */
   template<typename L, typename R, typename E>
   class ConcatenateParser {
     public:
 
-      //! The parser that must match to the left.
+      /** The parser that must match to the left. */
       using LeftParser = L;
 
-      //! The parser that must match to the right.
+      /** The parser that must match to the right. */
       using RightParser = R;
   };
 
@@ -89,7 +89,7 @@ namespace Details {
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_same_v<parser_result_t<L>, NullType> &&
       std::is_same_v<parser_result_t<R>, NullType>>> :
-      public BaseConcatenateParser {
+        public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
@@ -118,7 +118,7 @@ namespace Details {
   class ConcatenateParser<L, R, std::enable_if_t<
       std::is_same_v<parser_result_t<L>, NullType> &&
       !std::is_same_v<parser_result_t<R>, NullType>>> :
-      public BaseConcatenateParser {
+        public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
@@ -157,7 +157,7 @@ namespace Details {
   class ConcatenateParser<L, R, std::enable_if_t<
       !std::is_same_v<parser_result_t<L>, NullType> &&
       std::is_same_v<parser_result_t<R>, NullType>>> :
-      public BaseConcatenateParser {
+        public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
@@ -197,7 +197,7 @@ namespace Details {
       !std::is_base_of_v<BaseConcatenateParser, L> &&
       !std::is_same_v<parser_result_t<L>, NullType> &&
       !std::is_same_v<parser_result_t<R>, NullType>>> :
-      public BaseConcatenateParser {
+        public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;
@@ -244,7 +244,7 @@ namespace Details {
       std::is_base_of_v<BaseConcatenateParser, L> &&
       !std::is_same_v<parser_result_t<L>, NullType> &&
       !std::is_same_v<parser_result_t<R>, NullType>>> :
-      public BaseConcatenateParser {
+        public BaseConcatenateParser {
     public:
       using LeftParser = L;
       using RightParser = R;

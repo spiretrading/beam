@@ -1,12 +1,11 @@
-#ifndef BEAM_EPSILONPARSER_HPP
-#define BEAM_EPSILONPARSER_HPP
+#ifndef BEAM_EPSILON_PARSER_HPP
+#define BEAM_EPSILON_PARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class EpsilonParser
-      \brief Does not perform any read operations and always returns
-             <code>true</code>.
+  /**
+   * Does not perform any read operations and always returns <code>true</code>.
    */
   class EpsilonParser {
     public:

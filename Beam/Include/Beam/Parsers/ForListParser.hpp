@@ -1,5 +1,5 @@
-#ifndef BEAM_FORLISTPARSER_HPP
-#define BEAM_FORLISTPARSER_HPP
+#ifndef BEAM_FOR_LIST_PARSER_HPP
+#define BEAM_FOR_LIST_PARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
@@ -7,17 +7,17 @@
 
 namespace Beam::Parsers {
 
-  /*! \class ForListParser
-      \brief Performs an operation on each value parsed in a list.
-      \tparam P The Parser used for each value in the list.
-      \tparam R The type of value to iteratively update.
-      \tparam M The type of function used to perform updates.
+  /**
+   * Performs an operation on each value parsed in a list.
+   * @param <P> The Parser used for each value in the list.
+   * @param <R> The type of value to iteratively update.
+   * @param <M> The type of function used to perform updates.
    */
   template<typename P, typename R, typename M, typename E>
   class ForListParser {
     public:
 
-      //! The Parser used for each value in the list.
+      /** The Parser used for each value in the list. */
       using Parser = P;
   };
 
@@ -139,13 +139,13 @@ namespace Beam::Parsers {
   ForListParser(P, R, char, M) -> ForListParser<to_parser_t<P>, std::decay_t<R>,
     std::decay_t<M>>;
 
-  //! Builds a ForListParser.
-  /*!
-    \param initialValue The Parser's initial value.
-    \param parser The Parser used to match each value in the list.
-    \param delimiter The delimiter used in the list.
-    \param modifier The function used to perform updates.
-  */
+  /**
+   * Builds a ForListParser.
+   * @param initialValue The Parser's initial value.
+   * @param parser The Parser used to match each value in the list.
+   * @param delimiter The delimiter used in the list.
+   * @param modifier The function used to perform updates.
+   */
   template<typename Parser, typename Result, typename Modifier>
   auto ForList(Result initialValue, Parser parser, char delimiter,
       Modifier modifier) {

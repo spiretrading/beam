@@ -1,5 +1,5 @@
-#ifndef BEAM_CONVERSIONPARSER_HPP
-#define BEAM_CONVERSIONPARSER_HPP
+#ifndef BEAM_CONVERSION_PARSER_HPP
+#define BEAM_CONVERSION_PARSER_HPP
 #include <type_traits>
 #include <utility>
 #include "Beam/Parsers/Parsers.hpp"

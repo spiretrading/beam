@@ -1,14 +1,14 @@
-#ifndef BEAM_INTEGRALPARSER_HPP
-#define BEAM_INTEGRALPARSER_HPP
+#ifndef BEAM_INTEGRAL_PARSER_HPP
+#define BEAM_INTEGRAL_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class IntegralParser
-      \brief Matches an integral value.
-      \tparam I The type of integral value to parse.
+  /**
+   * Matches an integral value.
+   * @param <I> The type of integral value to parse.
    */
   template<typename I>
   class IntegralParser {

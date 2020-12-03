@@ -1,13 +1,13 @@
-#ifndef BEAM_DISCARDPARSER_HPP
-#define BEAM_DISCARDPARSER_HPP
+#ifndef BEAM_DISCARD_PARSER_HPP
+#define BEAM_DISCARD_PARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class DiscardParser
-      \brief A NullType Parser that discards any parsed value.
-      \tparam P The parser to match and then discard.
+  /**
+   * A NullType Parser that discards any parsed value.
+   * @param <P> The parser to match and then discard.
    */
   template<typename P>
   class DiscardParser {
@@ -27,10 +27,10 @@ namespace Beam::Parsers {
   template<typename P>
   DiscardParser(P) -> DiscardParser<to_parser_t<P>>;
 
-  //! Builds a DiscardParser.
-  /*!
-    \param subParser The SubParser to discard.
-  */
+  /**
+   * Builds a DiscardParser.
+   * @param subParser The SubParser to discard.
+   */
   template<typename SubParser>
   auto Discard(SubParser subParser) {
     return DiscardParser(std::move(subParser));

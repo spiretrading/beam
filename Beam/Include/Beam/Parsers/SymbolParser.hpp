@@ -1,5 +1,5 @@
-#ifndef BEAM_SYMBOLPARSER_HPP
-#define BEAM_SYMBOLPARSER_HPP
+#ifndef BEAM_SYMBOL_PARSER_HPP
+#define BEAM_SYMBOL_PARSER_HPP
 #include <string>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
@@ -19,23 +19,21 @@ namespace Details {
   };
 }
 
-  /*! \class Symbol
-      \brief Matches a symbol.
-   */
+  /** Matches a symbol. */
   class SymbolParser {
     public:
       using Result = NullType;
 
-      //! Constructs a SymbolParser.
-      /*!
-        \param symbol The symbol to match.
-      */
+      /**
+       * Constructs a SymbolParser.
+       * @param symbol The symbol to match.
+       */
       SymbolParser(std::string symbol);
 
-      //! Constructs a SymbolParser.
-      /*!
-        \param symbol The symbol to match.
-      */
+      /**
+       * Constructs a SymbolParser.
+       * @param symbol The symbol to match.
+       */
       SymbolParser(const char* symbol);
 
       template<typename Stream>
@@ -45,19 +43,19 @@ namespace Details {
       std::string m_symbol;
   };
 
-  //! Builds a SymbolParser.
-  /*!
-    \param symbol The symbol to match.
-  */
+  /**
+   * Builds a SymbolParser.
+   * @param symbol The symbol to match.
+   */
   inline auto Symbol(std::string symbol) {
     return SymbolParser(std::move(symbol));
   }
 
-  //! Builds a Parser that matches a symbol and returns a value.
-  /*!
-    \param symbol The symbol to match.
-    \param value The value to return when the <i>symbol</i> is matched.
-  */
+  /**
+   * Builds a Parser that matches a symbol and returns a value.
+   * @param symbol The symbol to match.
+   * @param value The value to return when the <i>symbol</i> is matched.
+   */
   template<typename T>
   auto Symbol(std::string symbol, T value) {
     return Convert(SymbolParser(std::move(symbol)),

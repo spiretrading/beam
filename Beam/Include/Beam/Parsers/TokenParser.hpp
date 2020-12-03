@@ -1,5 +1,5 @@
-#ifndef BEAM_TOKENPARSER_HPP
-#define BEAM_TOKENPARSER_HPP
+#ifndef BEAM_TOKEN_PARSER_HPP
+#define BEAM_TOKEN_PARSER_HPP
 #include <type_traits>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SkipSpaceParser.hpp"
@@ -8,15 +8,15 @@
 
 namespace Beam::Parsers {
 
-  /*! \class TokenParser
-      \brief Parses from a sub Parser that may have leading spaces.
-      \tparam P The parser to match with optional leading spaces.
+  /**
+   * Parses from a sub Parser that may have leading spaces.
+   * @param <P> The parser to match with optional leading spaces.
    */
   template<typename P>
   class TokenParser {
     public:
 
-      //! The parser to match with optional leading spaces.
+      /** The parser to match with optional leading spaces. */
       using SubParser = P;
       using Result = parser_result_t<SubParser>;
 
@@ -52,31 +52,31 @@ namespace Beam::Parsers {
   template<typename P>
   TokenParser(P) -> TokenParser<to_parser_t<P>>;
 
-  //! Builds a TokenParser.
-  /*!
-    \param subParser The Parser to match.
-  */
+  /**
+   * Builds a TokenParser.
+   * @param subParser The Parser to match.
+   */
   template<typename SubParser>
   auto Token(SubParser subParser) {
     return TokenParser(std::move(subParser));
   }
 
-  /*! \class ChainTokenParser
-      \brief Chains multiple parsers together to form a chained TokenParser.
-      \tparam P The parser to match with optional leading spaces.
+  /**
+   * Chains multiple parsers together to form a chained TokenParser.
+   * @param <P> The parser to match with optional leading spaces.
    */
   template<typename P>
   class ChainTokenParser {
     public:
 
-      //! The parser to match with optional leading spaces.
+      /** The parser to match with optional leading spaces. */
       using SubParser = P;
       using Result = parser_result_t<SubParser>;
 
-      //! Constructs a ChainTokenParser.
-      /*!
-        \param subParser The sub Parser to match.
-      */
+      /**
+       * Constructs a ChainTokenParser.
+       * @param subParser The sub Parser to match.
+       */
       ChainTokenParser(SubParser subParser);
 
       template<typename Stream>

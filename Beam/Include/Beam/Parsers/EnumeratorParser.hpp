@@ -1,5 +1,5 @@
-#ifndef BEAM_ENUMERATORPARSER_HPP
-#define BEAM_ENUMERATORPARSER_HPP
+#ifndef BEAM_ENUMERATOR_PARSER_HPP
+#define BEAM_ENUMERATOR_PARSER_HPP
 #include <iterator>
 #include <vector>
 #include <boost/lexical_cast.hpp>
@@ -11,29 +11,30 @@
 
 namespace Beam::Parsers {
 
-  /*! \class EnumeratorParser
-      \brief Used to parse an Enumerator.
-      \tparam E The type of Enumerator to parse.
+  /**
+   * Used to parse an Enumerator.
+   * @param <E> The type of Enumerator to parse.
    */
   template<typename E>
   class EnumeratorParser {
     public:
       using Result = E;
 
-      //! Constructs an EnumeratorParser.
-      /*!
-        \param first An iterator to the first enumerated value.
-        \param last An iterator to one past the last enumerated value.
-        \param toString The function used to convert the Enumerator to a string.
-      */
+      /**
+       * Constructs an EnumeratorParser.
+       * @param first An iterator to the first enumerated value.
+       * @param last An iterator to one past the last enumerated value.
+       * @param toString The function used to convert the Enumerator to a
+       *        string.
+       */
       template<typename I1, typename I2, typename F>
       EnumeratorParser(I1 first, I2 last, F toString);
 
-      //! Constructs an EnumeratorParser.
-      /*!
-        \param first An iterator to the first enumerated value.
-        \param last An iterator to one past the last enumerated value.
-      */
+      /**
+       * Constructs an EnumeratorParser.
+       * @param first An iterator to the first enumerated value.
+       * @param last An iterator to one past the last enumerated value.
+       */
       template<typename I1, typename I2>
       EnumeratorParser(I1 first, I2 last);
 
@@ -48,7 +49,6 @@ namespace Beam::Parsers {
         Result m_value;
 
         EnumConverter(Result value);
-
         Result operator ()() const;
       };
       std::vector<ConversionParser<SymbolParser, EnumConverter>> m_parsers;

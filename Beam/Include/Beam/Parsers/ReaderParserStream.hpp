@@ -1,5 +1,5 @@
-#ifndef BEAM_READERPARSERSTREAM_HPP
-#define BEAM_READERPARSERSTREAM_HPP
+#ifndef BEAM_READER_PARSER_STREAM_HPP
+#define BEAM_READER_PARSER_STREAM_HPP
 #include <utility>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -10,21 +10,21 @@
 
 namespace Beam::Parsers {
 
-  /*! \class ReaderParserStream
-      \brief Implements the ParserStream using a Reader as the data source.
-      \tparam R The Reader to use as the data source.
+  /**
+   * Implements the ParserStream using a Reader as the data source.
+   * @param <R> The Reader to use as the data source.
   */
   template<typename R>
   class ReaderParserStream {
     public:
 
-      //! The Reader to use as the data source.
+      /** The Reader to use as the data source. */
       using Reader = GetTryDereferenceType<R>;
 
-      //! Constructs a ReaderParserStream.
-      /*!
-        \param source Initializes the Reader used as the data source.
-      */
+      /**
+       * Constructs a ReaderParserStream.
+       * @param source Initializes the Reader used as the data source.
+       */
       template<typename RF>
       ReaderParserStream(RF&& source);
 

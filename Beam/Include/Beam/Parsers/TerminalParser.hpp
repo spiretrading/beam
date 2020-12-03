@@ -1,21 +1,19 @@
-#ifndef BEAM_TERMINALPARSER_HPP
-#define BEAM_TERMINALPARSER_HPP
+#ifndef BEAM_TERMINAL_PARSER_HPP
+#define BEAM_TERMINAL_PARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Utilities/NullType.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class TerminalParser
-      \brief Matches a single character.
-   */
+  /** Matches a single character. */
   class TerminalParser {
     public:
       using Result = NullType;
 
-      //! Constructs a TerminalParser.
-      /*!
-        \param value The value to match.
-      */
+      /**
+       * Constructs a TerminalParser.
+       * @param value The value to match.
+       */
       TerminalParser(char value);
 
       template<typename Stream>

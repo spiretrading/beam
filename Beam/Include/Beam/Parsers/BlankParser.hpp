@@ -1,13 +1,11 @@
-#ifndef BEAM_BLANKPARSER_HPP
-#define BEAM_BLANKPARSER_HPP
+#ifndef BEAM_BLANK_PARSER_HPP
+#define BEAM_BLANK_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class BlankParser
-      \brief Matches a blank character.
-   */
+  /** Matches a blank character. */
   class BlankParser {
     public:
       using Result = char;
@@ -32,8 +30,8 @@ namespace Beam::Parsers {
     return false;
   }
 
-  template<typename ParserStreamType>
-  bool BlankParser::Read(ParserStreamType& source) const {
+  template<typename Stream>
+  bool BlankParser::Read(Stream& source) const {
     if(!source.Read()) {
       return false;
     }

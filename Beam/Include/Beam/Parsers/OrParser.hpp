@@ -23,27 +23,27 @@ namespace Details {
   };
 }
 
-  /*! \class OrParser
-      \brief Parses a match if either of its two sub-parsers match.
-             The result of the parsing is one of:
-             a) NullType if both L and R are NullType Parsers.
-             b) A boost::variant of NullType and L's Result if only R is a
-                NullType Parser.
-             c) A boost::variant of R's Result and NullType if only L is a
-                NullType Parser.
-             d) An boost::variant if both L's Result and R's Result if both
-                parsers are not NullType.
-      \tparam L The parser that must match to the left.
-      \tparam R The parser that must match to the right.
+  /**
+   * Parses a match if either of its two sub-parsers match.
+   * The result of the parsing is one of:
+   *   a) NullType if both L and R are NullType Parsers.
+   *   b) A boost::variant of NullType and L's Result if only R is a
+   *      NullType Parser.
+   *   c) A boost::variant of R's Result and NullType if only L is a
+   *      NullType Parser.
+   *   d) An boost::variant if both L's Result and R's Result if both
+   *      parsers are not NullType.
+   *   @param <L> The parser that must match to the left.
+   *   @param <R> The parser that must match to the right.
    */
   template<typename L, typename R, typename Enabled>
   class OrParser {
     public:
 
-      //! The parser that must match to the left.
+      /** The parser that must match to the left. */
       using LeftParser = L;
 
-      //! The parser that must match to the right.
+      /** The parser that must match to the right. */
       using RightParser = R;
   };
 

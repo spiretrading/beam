@@ -1,5 +1,5 @@
-#ifndef BEAM_STARPARSER_HPP
-#define BEAM_STARPARSER_HPP
+#ifndef BEAM_STAR_PARSER_HPP
+#define BEAM_STAR_PARSER_HPP
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -9,19 +9,19 @@
 
 namespace Beam::Parsers {
 
-  /*! \class StarParser
-      \brief Parses a sub-expression zero or more times.
-             The result of the parsing is one of:
-             a) NullType if the sub-expression is a NullType Parser.
-             b) An std::string if the sub-expression returns a char.
-             c) An std::vector of the sub-expression's Result.
-      \tparam P The parser to match zero or more times.
+  /**
+   * Parses a sub-expression zero or more times.
+   * The result of the parsing is one of:
+   *   a) NullType if the sub-expression is a NullType Parser.
+   *   b) An std::string if the sub-expression returns a char.
+   *   c) An std::vector of the sub-expression's Result.
+   * @param <P> The parser to match zero or more times.
    */
   template<typename P, typename E>
   class StarParser {
     public:
 
-      //! The parser that must match zero or more times.
+      /** The parser that must match zero or more times. */
       using SubParser = P;
   };
 
@@ -88,10 +88,10 @@ namespace Beam::Parsers {
   template<typename SubParser>
   StarParser(SubParser) -> StarParser<to_parser_t<SubParser>>;
 
-  //! Builds a StarParser.
-  /*!
-    \param subParser The SubParser to repeat.
-  */
+  /**
+   * Builds a StarParser.
+   * @param subParser The SubParser to repeat.
+   */
   template<typename SubParser>
   auto Star(SubParser subParser) {
     return StarParser(std::move(subParser));

@@ -1,13 +1,11 @@
-#ifndef BEAM_SPACEPARSER_HPP
-#define BEAM_SPACEPARSER_HPP
+#ifndef BEAM_SPACE_PARSER_HPP
+#define BEAM_SPACE_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class SpaceParser
-      \brief Matches a blank character.
-   */
+  /** Matches a blank character. */
   class SpaceParser {
     public:
       using Result = char;

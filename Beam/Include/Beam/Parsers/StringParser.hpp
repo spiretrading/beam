@@ -1,14 +1,12 @@
-#ifndef BEAM_STRINGPARSER_HPP
-#define BEAM_STRINGPARSER_HPP
+#ifndef BEAM_STRING_PARSER_HPP
+#define BEAM_STRING_PARSER_HPP
 #include <cctype>
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class StringParser
-      \brief Matches a quoted string.
-   */
+  /** Matches a quoted string. */
   class StringParser {
     public:
       using Result = std::string;

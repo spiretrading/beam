@@ -1,5 +1,5 @@
-#ifndef BEAM_DECIMALPARSER_HPP
-#define BEAM_DECIMALPARSER_HPP
+#ifndef BEAM_DECIMAL_PARSER_HPP
+#define BEAM_DECIMAL_PARSER_HPP
 #include <array>
 #include <cctype>
 #include <cstdlib>
@@ -8,9 +8,9 @@
 
 namespace Beam::Parsers {
 
-  /*! \class DecimalParser
-      \brief Matches a decimal value.
-      \tparam F The floating point data type to store the value in.
+  /**
+   * Matches a decimal value.
+   * @param <F> The floating point data type to store the value in.
    */
   template<typename F>
   class DecimalParser {

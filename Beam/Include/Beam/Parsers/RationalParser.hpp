@@ -1,5 +1,5 @@
-#ifndef BEAM_RATIONALPARSER_HPP
-#define BEAM_RATIONALPARSER_HPP
+#ifndef BEAM_RATIONAL_PARSER_HPP
+#define BEAM_RATIONAL_PARSER_HPP
 #include <cctype>
 #include <boost/rational.hpp>
 #include "Beam/Parsers/Parsers.hpp"
@@ -7,9 +7,9 @@
 
 namespace Beam::Parsers {
 
-  /*! \class RationalParser
-      \brief Matches a rational value.
-      \tparam I The integral type used for the numerator/denominator.
+  /**
+   * Matches a rational value.
+   * @param <I> The integral type used for the numerator/denominator.
    */
   template<typename I>
   class RationalParser {

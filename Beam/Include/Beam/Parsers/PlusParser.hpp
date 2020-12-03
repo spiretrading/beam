@@ -1,5 +1,5 @@
-#ifndef BEAM_PLUSPARSER_HPP
-#define BEAM_PLUSPARSER_HPP
+#ifndef BEAM_PLUS_PARSER_HPP
+#define BEAM_PLUS_PARSER_HPP
 #include <string>
 #include <type_traits>
 #include <vector>

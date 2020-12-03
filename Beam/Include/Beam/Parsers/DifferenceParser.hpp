@@ -1,25 +1,24 @@
-#ifndef BEAM_DIFFERENCEPARSER_HPP
-#define BEAM_DIFFERENCEPARSER_HPP
+#ifndef BEAM_DIFFERENCE_PARSER_HPP
+#define BEAM_DIFFERENCE_PARSER_HPP
 #include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 #include "Beam/Parsers/Traits.hpp"
 
 namespace Beam::Parsers {
 
-  /*! \class DifferenceParser
-      \brief Matches if the left hand parser matches but not the right hand
-             parser.
-      \tparam L The parser that must match to the left.
-      \tparam R The parser that must not match to the right.
+  /**
+   * Matches if the left hand parser matches but not the right hand parser.
+   * @param <L> The parser that must match to the left.
+   * @param <R> The parser that must not match to the right.
    */
   template<typename L, typename R>
   class DifferenceParser {
     public:
 
-      //! The parser that must match to the left.
+      /** The parser that must match to the left. */
       using LeftParser = L;
 
-      //! The parser that must match to the right.
+      /** The parser that must match to the right. */
       using RightParser = R;
 
       using Result = parser_result_t<LeftParser>;

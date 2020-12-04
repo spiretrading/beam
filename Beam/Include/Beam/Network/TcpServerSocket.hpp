@@ -101,32 +101,36 @@ namespace Network {
 
   inline std::unique_ptr<typename TcpServerSocket::Channel>
       TcpServerSocket::Accept() {
+    m_openState.EnsureOpen();
     auto acceptAsync = Routines::Async<void>();
     auto acceptEval = acceptAsync.GetEval();
     auto channel = std::unique_ptr<Channel>(new TcpSocketChannel());
-    m_acceptor->async_accept(channel->m_socket->m_socket,
-      [&] (const auto& error) {
-        if(error) {
+    auto acceptCallback = std::function<
+      void (const boost::system::error_code&)>();
+    acceptCallback = [&] (const auto& error) {
+      if(error) {
+        if(error.value() == boost::system::errc::operation_canceled) {
+          acceptEval.SetException(IO::EndOfFileException());
+        } else {
           acceptEval.SetException(SocketException(error.value(),
             error.message()));
-          return;
         }
-        try {
-          auto address = IpAddress(
-            channel->m_socket->m_socket.remote_endpoint().address().to_string(),
-            channel->m_socket->m_socket.remote_endpoint().port());
-          channel->SetAddress(address);
-          channel->GetConnection().Open(m_options, {}, boost::none);
-          acceptEval.SetResult();
-        } catch(const std::exception&) {
-          acceptEval.SetException(std::current_exception());
-        }
-      });
-    try {
-      acceptAsync.Get();
-    } catch(const std::exception&) {
-      std::throw_with_nested(IO::EndOfFileException("Failed to accept."));
-    }
+        return;
+      }
+      try {
+        auto address = IpAddress(
+          channel->m_socket->m_socket.remote_endpoint().address().to_string(),
+          channel->m_socket->m_socket.remote_endpoint().port());
+        channel->SetAddress(address);
+        channel->GetConnection().Open(m_options, {}, boost::none);
+        acceptEval.SetResult();
+      } catch(const std::exception&) {
+        channel.reset(new TcpSocketChannel());
+        m_acceptor->async_accept(channel->m_socket->m_socket, acceptCallback);
+      }
+    };
+    m_acceptor->async_accept(channel->m_socket->m_socket, acceptCallback);
+    acceptAsync.Get();
     return channel;
   }
 

@@ -112,6 +112,12 @@ namespace Network {
         if(error.value() == boost::system::errc::operation_canceled) {
           acceptEval.SetException(IO::EndOfFileException());
         } else {
+#ifdef _WIN32
+          if(error.value() == 995) {
+            acceptEval.SetException(IO::EndOfFileException());
+            return;
+          }
+#endif
           acceptEval.SetException(SocketException(error.value(),
             error.message()));
         }

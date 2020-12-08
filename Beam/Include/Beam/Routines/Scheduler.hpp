@@ -255,13 +255,20 @@ namespace Details {
   template<typename F>
   Routine::Id Spawn(F&& f, std::size_t stackSize, std::size_t contextId,
       Eval<std::remove_reference_t<decltype(f())>> result) {
-    return Spawn([f = std::forward<F>(f), result = std::move(result)] {
-      try {
-        result.SetResult(f());
-      } catch(...) {
-        result.SetException(std::current_exception());
-      }
-    }, stackSize, contextId);
+    return Spawn(
+      [f = std::forward<F>(f), result = std::move(result)] () mutable {
+        using Result = std::remove_reference_t<decltype(f())>;
+        try {
+          if constexpr(std::is_same_v<Result, void>) {
+            f();
+            result.SetResult();
+          } else {
+            result.SetResult(f());
+          }
+        } catch(...) {
+          result.SetException(std::current_exception());
+        }
+      }, stackSize, contextId);
   }
 
   template<typename F>

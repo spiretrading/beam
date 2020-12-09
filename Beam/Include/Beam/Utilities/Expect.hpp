@@ -135,8 +135,8 @@ namespace Beam {
    * @return The result of <i>f</i>.
    */
   template<typename F>
-  Expect<std::decay_t<std::result_of_t<F>>> Try(F&& f) noexcept {
-    using Result = std::decay_t<std::result_of_t<F>>;
+  Expect<std::decay_t<std::invoke_result_t<F>>> Try(F&& f) noexcept {
+    using Result = std::decay_t<std::invoke_result_t<F>>;
     try {
       if constexpr(std::is_same_v<Result, void>) {
         f();

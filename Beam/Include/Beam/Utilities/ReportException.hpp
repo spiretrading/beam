@@ -102,6 +102,6 @@ namespace Details {
 }
 
 #define BEAM_REPORT_CURRENT_EXCEPTION()                                        \
-  __FILE__ << ":" << __LINE__ << " - " << Beam::MakeExceptionReport();
+  __FILE__ << ":" << __LINE__ << " - " << Beam::MakeExceptionReport()
 
 #endif

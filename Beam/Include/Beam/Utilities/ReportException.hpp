@@ -6,14 +6,58 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
-#define BEAM_REPORT_CURRENT_EXCEPTION()                                        \
-  __FILE__ << ":" << __LINE__ << " - " <<                                      \
-  boost::current_exception_diagnostic_information()
-
 namespace Beam {
 namespace Details {
+  inline std::string Indent(const std::string& value, int level) {
+    auto output = std::string();
+    auto last = '\0';
+    for(auto c : value) {
+      if(last == '\n') {
+        output += std::string(2 * level, ' ');
+      }
+      last = c;
+      output += c;
+    }
+    return output;
+  }
+
+  inline std::string MakeExceptionReport(const std::exception_ptr& e,
+      int level) {
+    auto report = [&] {
+      try {
+        std::rethrow_exception(e);
+      } catch(const boost::exception& e) {
+        return std::string(2 * level, ' ') +
+          Indent(boost::diagnostic_information(e), level);
+      } catch(const std::exception& e) {
+        try {
+          std::rethrow_if_nested(e);
+          return std::string(2 * level, ' ') +
+            Indent(boost::diagnostic_information(e), level);
+        } catch(const std::exception&) {
+          return MakeExceptionReport(std::current_exception(), level);
+        }
+      }
+      return std::string();
+    }();
+    try {
+      std::rethrow_exception(e);
+    } catch(const std::exception& e) {
+      try {
+        std::rethrow_if_nested(e);
+        return report;
+      } catch(...) {
+        return report + MakeExceptionReport(std::current_exception(),
+          level + 1);
+      }
+    } catch(...) {
+      return report + MakeExceptionReport(std::current_exception(), level + 1);
+    }
+  }
+
   inline void ReportCurrentException(const std::exception& e, int level) {
-    std::cerr << std::string(2 * level, ' ') << e.what() << std::endl;
+    std::cerr << std::string(2 * level, ' ') <<
+      boost::diagnostic_information(e) << std::endl;
     try {
       std::rethrow_if_nested(e);
     } catch(const std::exception& e) {
@@ -39,6 +83,25 @@ namespace Details {
       }
     }
   }
+
+  /**
+   * Returns a string containing an exception report,
+   * including nested exceptions.
+   */
+  inline std::string MakeExceptionReport(const std::exception_ptr& e) {
+    return Details::MakeExceptionReport(e, 0);
+  }
+
+  /**
+   * Returns a string containing an exception report for the current exception,
+   * including nested exceptions.
+   */
+  inline std::string MakeExceptionReport() {
+    return MakeExceptionReport(std::current_exception());
+  }
 }
+
+#define BEAM_REPORT_CURRENT_EXCEPTION()                                        \
+  __FILE__ << ":" << __LINE__ << " - " << Beam::MakeExceptionReport();
 
 #endif

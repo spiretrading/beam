@@ -1,5 +1,5 @@
-#ifndef BEAM_BINARYSENDER_HPP
-#define BEAM_BINARYSENDER_HPP
+#ifndef BEAM_BINARY_SENDER_HPP
+#define BEAM_BINARY_SENDER_HPP
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
@@ -11,35 +11,27 @@
 namespace Beam {
 namespace Serialization {
 
-  /*! \class BinarySender
-      \brief Implements a Sender using a binary format.
-      \tparam SinkType The type of Buffer to send the data to.
+  /**
+   * Implements a Sender using a binary format.
+   * @param <S> The type of Buffer to send the data to.
    */
-  template<typename SinkType>
-  class BinarySender : public SenderMixin<BinarySender<SinkType>> {
+  template<typename S>
+  class BinarySender : public SenderMixin<BinarySender<S>> {
     public:
-      static_assert(ImplementsConcept<SinkType, IO::Buffer>::value,
-        "SinkType must implement the Buffer Concept.");
-      using Sink = SinkType;
-
-      //! Constructs a BinarySender.
-      BinarySender() = default;
-
-      //! Constructs a BinarySender.
-      /*!
-        \param registry The TypeRegistry used for sending polymorphic types.
-      */
-      BinarySender(Ref<TypeRegistry<BinarySender>> registry);
+      static_assert(ImplementsConcept<S, IO::Buffer>::value,
+        "Sink must implement the Buffer Concept.");
+      using Sink = S;
+      using SenderMixin<BinarySender>::SenderMixin;
 
       void SetSink(Ref<Sink> sink);
 
       template<typename T>
-      typename std::enable_if<std::is_fundamental<T>::value>::type Send(
+      std::enable_if_t<std::is_fundamental_v<T>> Send(
         const char* name, const T& value);
 
       template<typename T>
-      typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
-        Send(const char* name, const T& value);
+      std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> Send(
+        const char* name, const T& value);
 
       void Send(const char* name, const std::string& value,
         unsigned int version);
@@ -58,39 +50,34 @@ namespace Serialization {
 
       void EndSequence();
 
-      using SenderMixin<BinarySender<SinkType>>::Send;
-      using SenderMixin<BinarySender<SinkType>>::Shuttle;
+      using SenderMixin<BinarySender>::Send;
+      using SenderMixin<BinarySender>::Shuttle;
 
     private:
       Sink* m_sink;
       std::size_t m_size;
   };
 
-  template<typename SinkType>
-  BinarySender<SinkType>::BinarySender(
-      Ref<TypeRegistry<BinarySender>> registry)
-      : SenderMixin<BinarySender<SinkType>>(Ref(registry)) {}
-
-  template<typename SinkType>
-  void BinarySender<SinkType>::SetSink(Ref<Sink> sink) {
+  template<typename S>
+  void BinarySender<S>::SetSink(Ref<Sink> sink) {
     m_sink = sink.Get();
     m_size = m_sink->GetSize();
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<typename T>
-  typename std::enable_if<std::is_fundamental<T>::value>::type
-      BinarySender<SinkType>::Send(const char* name, const T& value) {
+  std::enable_if_t<std::is_fundamental_v<T>> BinarySender<S>::Send(
+      const char* name, const T& value) {
     m_sink->Grow(sizeof(T));
     std::memcpy(m_sink->GetMutableData() + m_size,
       reinterpret_cast<const char*>(&value), sizeof(T));
     m_size += sizeof(T);
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<typename T>
-  typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
-      BinarySender<SinkType>::Send(const char* name, const T& value) {
+  std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value>
+      BinarySender<S>::Send(const char* name, const T& value) {
     auto size = static_cast<std::uint32_t>(value.GetSize());
     Shuttle(size);
     m_sink->Grow(size);
@@ -98,8 +85,8 @@ namespace Serialization {
     m_size += size;
   }
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::Send(const char* name, const std::string& value,
+  template<typename S>
+  void BinarySender<S>::Send(const char* name, const std::string& value,
       unsigned int version) {
     auto size = static_cast<std::uint32_t>(value.size());
     Shuttle(size);
@@ -108,42 +95,41 @@ namespace Serialization {
     m_size += size;
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<std::size_t N>
-  void BinarySender<SinkType>::Send(const char* name,
-      const FixedString<N>& value, unsigned int version) {
+  void BinarySender<S>::Send(const char* name, const FixedString<N>& value,
+      unsigned int version) {
     m_sink->Grow(N);
     std::memcpy(m_sink->GetMutableData() + m_size, value.GetData(), N);
     m_size += N;
   }
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::StartStructure(const char* name) {}
+  template<typename S>
+  void BinarySender<S>::StartStructure(const char* name) {}
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::EndStructure() {}
+  template<typename S>
+  void BinarySender<S>::EndStructure() {}
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::StartSequence(const char* name,
-      const int& size) {
+  template<typename S>
+  void BinarySender<S>::StartSequence(const char* name, const int& size) {
     Shuttle(size);
   }
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::StartSequence(const char* name) {}
+  template<typename S>
+  void BinarySender<S>::StartSequence(const char* name) {}
 
-  template<typename SinkType>
-  void BinarySender<SinkType>::EndSequence() {}
+  template<typename S>
+  void BinarySender<S>::EndSequence() {}
 
-  template<typename SinkType>
-  struct Inverse<BinarySender<SinkType>> {
-    using type = BinaryReceiver<SinkType>;
+  template<typename S>
+  struct Inverse<BinarySender<S>> {
+    using type = BinaryReceiver<S>;
   };
 }
 
-  template<typename SinkType>
-  struct ImplementsConcept<Serialization::BinarySender<SinkType>,
-    Serialization::Sender<SinkType>> : std::true_type {};
+  template<typename S>
+  struct ImplementsConcept<Serialization::BinarySender<S>,
+    Serialization::Sender<S>> : std::true_type {};
 }
 
 #endif

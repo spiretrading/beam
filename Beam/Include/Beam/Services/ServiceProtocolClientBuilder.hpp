@@ -1,6 +1,7 @@
 #ifndef BEAM_SERVICE_PROTOCOL_CLIENT_BUILDER_HPP
 #define BEAM_SERVICE_PROTOCOL_CLIENT_BUILDER_HPP
 #include <functional>
+#include "Beam/Pointers/ConstPointerPolicy.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -26,7 +27,7 @@ namespace Beam::Services {
 
       /** The type of ServiceProtocol used. */
       using Client = ServiceProtocolClient<MessageProtocol,
-        std::unique_ptr<Timer>, NativePointerPolicy>;
+        std::unique_ptr<Timer>, ConstPointerPolicy<NativePointerPolicy>>;
 
       /** The type of Channel used by the MessageProtocol. */
       using Channel = typename MessageProtocol::Channel;
@@ -45,7 +46,7 @@ namespace Beam::Services {
       ServiceProtocolClientBuilder(ChannelBuilder channelBuilder,
         TimerBuilder timerBuilder);
 
-      std::unique_ptr<Client> BuildClient(ServiceSlots<Client>& slots);
+      std::unique_ptr<Client> BuildClient(const ServiceSlots<Client>& slots);
 
       std::unique_ptr<Timer> BuildTimer();
 
@@ -63,7 +64,7 @@ namespace Beam::Services {
   template<typename P, typename T>
   std::unique_ptr<typename ServiceProtocolClientBuilder<P, T>::Client>
       ServiceProtocolClientBuilder<P, T>::BuildClient(
-      ServiceSlots<Client>& slots) {
+        const ServiceSlots<Client>& slots) {
     return std::make_unique<Client>(m_channelBuilder(), &slots, BuildTimer());
   }
 

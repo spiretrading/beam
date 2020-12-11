@@ -261,7 +261,7 @@ namespace Details {
   template<typename M, typename T, typename P, typename S, bool V>
   typename ServiceProtocolClient<M, T, P, S, V>::ServiceSlots&
       ServiceProtocolClient<M, T, P, S, V>::GetSlots() {
-    return *m_slots;
+    return const_cast<ServiceSlots&>(*m_slots);
   }
 
   template<typename M, typename T, typename P, typename S, bool V>

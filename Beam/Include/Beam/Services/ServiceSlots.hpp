@@ -34,7 +34,7 @@ namespace Beam::Services {
       /** Returns the TypeRegistry containing all service types. */
       const Serialization::TypeRegistry<
         typename ServiceProtocolClient::MessageProtocol::Sender>&
-        GetRegistry() const;
+          GetRegistry() const;
 
       /**
        * Returns the slot associated with a Message.

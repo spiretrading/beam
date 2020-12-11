@@ -12,32 +12,30 @@ namespace Details {
   BEAM_DEFINE_HAS_TYPEDEF(ReceiverHasSourceType, Source);
 }
 
-  /*! \class Receiver
-      \brief Specifies a DataShuttle that's responsible for receiving data.
-      \tparam SourceType A type of Buffer used to store the data.
+  /**
+   * Specifies a DataShuttle that's responsible for receiving data.
+   * @param <S> A type of Buffer used to store the data.
    */
-  template<typename SourceType>
-  struct Receiver : Concept<DataShuttle>, Concept<Receiver<SourceType>> {
+  template<typename S>
+  struct Receiver : Concept<DataShuttle>, Concept<Receiver<S>> {
 
-    //! The type of Buffer used to store the data.
-    using Source = SourceType;
+    /** The type of Buffer used to store the data. */
+    using Source = S;
 
-    //! Specifies where the received data is stored.
-    /*!
-      \param source Where the received data is stored.
-    */
+    /**
+     * Specifies where the received data is stored.
+     * @param source Where the received data is stored.
+     */
     void SetSource(Ref<Source> source);
 
     private:
       template<typename T, typename Enabled> friend struct Receive;
-
       template<bool HasMethod, typename Dummy>
       struct ResolveDirectMethods {
         template<typename Shuttler, typename T>
         void operator ()(Shuttler& shuttle, T& value,
           unsigned int version) const;
       };
-
       template<typename Dummy>
       struct ResolveDirectMethods<false, Dummy> {
         template<typename Shuttler, typename T>
@@ -46,58 +44,58 @@ namespace Details {
       };
   };
 
-  /*! \class IsReceiver
-      \brief Checks if a specified type is a Receiver.
-      \tparam T The type to check.
+  /**
+   * Checks if a specified type is a Receiver.
+   * @param <T> The type to check.
    */
   template<typename T, typename Enabled>
   struct IsReceiver : std::false_type {};
 
-  /*! \class Receive
-      \brief Contains operations for receive a type.
-      \tparam T The type being specialized.
+  /**
+   * Contains operations for receive a type.
+   * @param <T> The type being specialized.
    */
   template<typename T, typename Enabled = void>
   struct Receive {
 
-    //! Receives a value.
-    /*!
-      \tparam Shuttler The type of Sender to use.
-      \param shuttle The Receiver to use.
-      \param value The value to receive.
-      \param version The class version being serialized.
-    */
+    /**
+     * Receives a value.
+     * @param <Shuttler> The type of Sender to use.
+     * @param shuttle The Receiver to use.
+     * @param value The value to receive.
+     * @param version The class version being serialized.
+     */
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, T& value, unsigned int version) const;
 
-    //! Receives a value.
-    /*!
-      \tparam Shuttler The type of Sender to use.
-      \param shuttle The Receiver to use.
-      \param name The name of the value to receive.
-      \param value The value to receive.
-    */
+    /**
+     * Receives a value.
+     * @param <Shuttler> The type of Sender to use.
+     * @param shuttle The Receiver to use.
+     * @param name The name of the value to receive.
+     * @param value The value to receive.
+     */
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name, T& value) const;
   };
 
   template<typename T>
-  struct IsReceiver<T, typename std::enable_if<
-    Details::ReceiverHasSourceType<T>::value>::type> :
-    ImplementsConcept<T, Receiver<typename T::Source>>::type {};
+  struct IsReceiver<T,
+    std::enable_if_t<Details::ReceiverHasSourceType<T>::value>> :
+      ImplementsConcept<T, Receiver<typename T::Source>>::type {};
 
-  template<typename SourceType>
+  template<typename S>
   template<bool HasMethod, typename Dummy>
   template<typename Shuttler, typename T>
-  void Receiver<SourceType>::ResolveDirectMethods<HasMethod, Dummy>::
-      operator ()(Shuttler& shuttle, T& value, unsigned int version) const {
+  void Receiver<S>::ResolveDirectMethods<HasMethod, Dummy>::operator ()(
+      Shuttler& shuttle, T& value, unsigned int version) const {
     DataShuttle::Receive(shuttle, value, version);
   }
 
-  template<typename SourceType>
+  template<typename S>
   template<typename Dummy>
   template<typename Shuttler, typename T>
-  void Receiver<SourceType>::ResolveDirectMethods<false, Dummy>::operator ()(
+  void Receiver<S>::ResolveDirectMethods<false, Dummy>::operator ()(
       Shuttler& shuttle, T& value, unsigned int version) const {
     Shuttle<T>()(shuttle, value, version);
   }
@@ -120,9 +118,9 @@ namespace Details {
 }
 
   template<typename T>
-  struct ImplementsConcept<T, typename std::enable_if<
-    Serialization::IsReceiver<T>::value, Serialization::DataShuttle>::type>
-    : std::true_type {};
+  struct ImplementsConcept<T, std::enable_if_t<
+    Serialization::IsReceiver<T>::value, Serialization::DataShuttle>> :
+      std::true_type {};
 }
 
 #endif

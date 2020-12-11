@@ -41,7 +41,7 @@ namespace Beam::Services {
        * @param builder Initializes the builder used for ServiceProtocolClients.
        */
       template<typename BF>
-      ServiceProtocolClientHandler(BF&& builder);
+      explicit ServiceProtocolClientHandler(BF&& builder);
 
       /**
        * Constructs a ServiceProtocolClientHandler.
@@ -123,12 +123,19 @@ namespace Beam::Services {
       ServiceProtocolClientHandler<B>::GetClient() {
     while(true) {
       auto lock = boost::unique_lock(m_mutex);
-      if(m_client != nullptr) {
+      if(m_client) {
         return m_client;
       }
       m_openState.EnsureOpen();
       try {
-        m_client = m_builder->BuildClient(m_slots);
+        auto client = [&] {
+          auto release = Threading::Release(lock);
+          return m_builder->BuildClient(m_slots);
+        }();
+        if(m_client) {
+          return m_client;
+        }
+        m_client = std::move(client);
         try {
           m_reconnectHandler(m_client);
         } catch(const std::exception&) {

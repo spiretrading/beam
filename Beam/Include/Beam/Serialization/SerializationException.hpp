@@ -1,29 +1,17 @@
-#ifndef BEAM_SERIALIZATIONEXCEPTION_HPP
-#define BEAM_SERIALIZATIONEXCEPTION_HPP
+#ifndef BEAM_SERIALIZATION_EXCEPTION_HPP
+#define BEAM_SERIALIZATION_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Serialization/Serialization.hpp"
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
 
-  /*! \class SerializationException
-      \brief Indicates that a serialization operation failed.
-   */
+  /** Indicates that a serialization operation failed. */
   class SerializationException : public std::runtime_error,
       public boost::exception {
     public:
-
-      //! Constructs a SerializationException.
-      /*!
-        \param what The error message.
-      */
-      SerializationException(const std::string& what);
+      using std::runtime_error::runtime_error;
   };
-
-  inline SerializationException::SerializationException(const std::string& what)
-    : std::runtime_error(what) {}
-}
 }
 
 #endif

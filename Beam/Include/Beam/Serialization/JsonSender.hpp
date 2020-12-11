@@ -1,5 +1,5 @@
-#ifndef BEAM_JSONSENDER_HPP
-#define BEAM_JSONSENDER_HPP
+#ifndef BEAM_JSON_SENDER_HPP
+#define BEAM_JSON_SENDER_HPP
 #include <cstring>
 #include <string>
 #include <type_traits>
@@ -11,7 +11,7 @@ namespace Beam {
 namespace Serialization {
 namespace Details {
   inline std::string JsonEscape(const std::string& source) {
-    std::string result;
+    auto result = std::string();
     for(auto c : source) {
       if(c == '\\') {
         result += "\\\\";
@@ -35,25 +35,25 @@ namespace Details {
   }
 }
 
-  /*! \class JsonSender
-      \brief Implements a Sender using JSON.
-      \tparam SinkType The type of Buffer to send the data to.
+  /**
+   * Implements a Sender using JSON.
+   * @param <S> The type of Buffer to send the data to.
    */
-  template<typename SinkType>
-  class JsonSender : public SenderMixin<JsonSender<SinkType>> {
+  template<typename S>
+  class JsonSender : public SenderMixin<JsonSender<S>> {
     public:
-      static_assert(ImplementsConcept<SinkType, IO::Buffer>::value,
-        "SinkType must implement the Buffer Concept.");
-      using Sink = SinkType;
+      static_assert(ImplementsConcept<S, IO::Buffer>::value,
+        "Sink must implement the Buffer Concept.");
+      using Sink = S;
 
-      //! Constructs a JsonSender.
+      /** Constructs a JsonSender. */
       JsonSender();
 
-      //! Constructs a JsonSender.
-      /*!
-        \param registry The TypeRegistry used for sending polymorphic types.
-      */
-      JsonSender(Ref<TypeRegistry<JsonSender>> registry);
+      /**
+       * Constructs a JsonSender.
+       * @param registry The TypeRegistry used for sending polymorphic types.
+       */
+      JsonSender(Ref<const TypeRegistry<JsonSender>> registry);
 
       void SetSink(Ref<Sink> sink);
 
@@ -66,12 +66,12 @@ namespace Details {
       void Send(const char* name, const bool& value);
 
       template<typename T>
-      typename std::enable_if<std::is_fundamental<T>::value>::type Send(
+      std::enable_if_t<std::is_fundamental_v<T>> Send(
         const char* name, const T& value);
 
       template<typename T>
-      typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
-        Send(const char* name, const T& value);
+      std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> Send(
+        const char* name, const T& value);
 
       void Send(const char* name, const std::string& value,
         unsigned int version);
@@ -90,9 +90,8 @@ namespace Details {
 
       void EndSequence();
 
-      using SenderMixin<JsonSender<SinkType>>::Send;
-      using SenderMixin<JsonSender<SinkType>>::Shuttle;
-
+      using SenderMixin<JsonSender>::Send;
+      using SenderMixin<JsonSender>::Shuttle;
     private:
       Sink* m_sink;
       bool m_appendComma;
@@ -108,34 +107,33 @@ namespace Details {
     return std::string(buffer.GetData(), buffer.GetSize());
   }
 
-  template<typename SinkType>
-  JsonSender<SinkType>::JsonSender()
-      : m_appendComma{false} {}
+  template<typename S>
+  JsonSender<S>::JsonSender()
+    : m_appendComma(false) {}
 
-  template<typename SinkType>
-  JsonSender<SinkType>::JsonSender(Ref<TypeRegistry<JsonSender>> registry)
-      : SenderMixin<JsonSender<SinkType>>(Ref(registry)),
-        m_appendComma{false} {}
+  template<typename S>
+  JsonSender<S>::JsonSender(Ref<const TypeRegistry<JsonSender>> registry)
+    : SenderMixin<JsonSender>(Ref(registry)),
+      m_appendComma(false) {}
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::SetSink(Ref<Sink> sink) {
+  template<typename S>
+  void JsonSender<S>::SetSink(Ref<Sink> sink) {
     m_appendComma = false;
     m_sink = sink.Get();
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::Send(const char* name,
-      const unsigned char& value) {
+  template<typename S>
+  void JsonSender<S>::Send(const char* name, const unsigned char& value) {
     Send(name, static_cast<int>(value));
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::Send(const char* name, const signed char& value) {
+  template<typename S>
+  void JsonSender<S>::Send(const char* name, const signed char& value) {
     Send(name, static_cast<int>(value));
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::Send(const char* name, const char& value) {
+  template<typename S>
+  void JsonSender<S>::Send(const char* name, const char& value) {
     if(value == '\0') {
       Send(name, static_cast<int>(value));
       return;
@@ -143,7 +141,7 @@ namespace Details {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -155,12 +153,12 @@ namespace Details {
     m_appendComma = true;
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::Send(const char* name, const bool& value) {
+  template<typename S>
+  void JsonSender<S>::Send(const char* name, const bool& value) {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -174,14 +172,14 @@ namespace Details {
     m_appendComma = true;
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<typename T>
-  typename std::enable_if<std::is_fundamental<T>::value>::type
-      JsonSender<SinkType>::Send(const char* name, const T& value) {
+  std::enable_if_t<std::is_fundamental_v<T>> JsonSender<S>::Send(
+      const char* name, const T& value) {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -192,21 +190,21 @@ namespace Details {
     m_appendComma = true;
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<typename T>
-  typename std::enable_if<ImplementsConcept<T, IO::Buffer>::value>::type
-      JsonSender<SinkType>::Send(const char* name, const T& value) {
+  std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> JsonSender<S>::Send(
+      const char* name, const T& value) {
     auto base64String = IO::Base64Encode(value);
     Send(name, base64String);
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::Send(const char* name, const std::string& value,
+  template<typename S>
+  void JsonSender<S>::Send(const char* name, const std::string& value,
       unsigned int version) {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -219,19 +217,19 @@ namespace Details {
     m_appendComma = true;
   }
 
-  template<typename SinkType>
+  template<typename S>
   template<std::size_t N>
-  void JsonSender<SinkType>::Send(const char* name, const FixedString<N>& value,
+  void JsonSender<S>::Send(const char* name, const FixedString<N>& value,
       unsigned int version) {
-    Send(name, std::string{value.GetData()});
+    Send(name, std::string(value.GetData()));
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::StartStructure(const char* name) {
+  template<typename S>
+  void JsonSender<S>::StartStructure(const char* name) {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -241,23 +239,23 @@ namespace Details {
     m_appendComma = false;
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::EndStructure() {
+  template<typename S>
+  void JsonSender<S>::EndStructure() {
     m_sink->Append('}');
     m_appendComma = true;
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::StartSequence(const char* name, const int& size) {
+  template<typename S>
+  void JsonSender<S>::StartSequence(const char* name, const int& size) {
     StartSequence(name);
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::StartSequence(const char* name) {
+  template<typename S>
+  void JsonSender<S>::StartSequence(const char* name) {
     if(m_appendComma) {
       m_sink->Append(',');
     }
-    if(name != nullptr) {
+    if(name) {
       m_sink->Append('\"');
       m_sink->Append(name, std::strlen(name));
       m_sink->Append('\"');
@@ -267,21 +265,21 @@ namespace Details {
     m_appendComma = false;
   }
 
-  template<typename SinkType>
-  void JsonSender<SinkType>::EndSequence() {
+  template<typename S>
+  void JsonSender<S>::EndSequence() {
     m_sink->Append(']');
     m_appendComma = true;
   }
 
-  template<typename SinkType>
-  struct Inverse<JsonSender<SinkType>> {
-    using type = JsonReceiver<SinkType>;
+  template<typename S>
+  struct Inverse<JsonSender<S>> {
+    using type = JsonReceiver<S>;
   };
 }
 
-  template<typename SinkType>
-  struct ImplementsConcept<Serialization::JsonSender<SinkType>,
-    Serialization::Sender<SinkType>> : std::true_type {};
+  template<typename S>
+  struct ImplementsConcept<Serialization::JsonSender<S>,
+    Serialization::Sender<S>> : std::true_type {};
 }
 
 #endif

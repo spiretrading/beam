@@ -1,36 +1,35 @@
-#ifndef BEAM_INDEXEDQUERY_HPP
-#define BEAM_INDEXEDQUERY_HPP
+#ifndef BEAM_INDEXED_QUERY_HPP
+#define BEAM_INDEXED_QUERY_HPP
 #include <ostream>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class IndexedQuery
-      \brief Queries over a value used as an index.
-      \tparam T The type used as the index.
+  /**
+   * Queries over a value used as an index.
+   * @param <T> The type used as the index.
    */
   template<typename T>
   class IndexedQuery {
     public:
 
-      //! The type used as the index.
+      /** The type used as the index. */
       using Index = T;
 
-      //! Constructs an IndexedQuery with a default index.
+      /** Constructs an IndexedQuery with a default index. */
       IndexedQuery();
 
-      //! Constructs an IndexedQuery with a specified index.
-      /*!
-        \param index The index to use.
-      */
-      IndexedQuery(const Index& index);
+      /**
+       * Constructs an IndexedQuery with a specified index.
+       * @param index The index to use.
+       */
+      IndexedQuery(Index index);
 
-      //! Returns the index.
+      /** Returns the index. */
       const Index& GetIndex() const;
 
-      //! Sets the index.
+      /** Sets the index. */
       void SetIndex(const Index& index);
 
     private:
@@ -45,11 +44,11 @@ namespace Queries {
 
   template<typename T>
   IndexedQuery<T>::IndexedQuery()
-      : m_index() {}
+    : m_index() {}
 
   template<typename T>
-  IndexedQuery<T>::IndexedQuery(const Index& index)
-      : m_index(index) {}
+  IndexedQuery<T>::IndexedQuery(Index index)
+    : m_index(std::move(index)) {}
 
   template<typename T>
   const typename IndexedQuery<T>::Index& IndexedQuery<T>::GetIndex() const {
@@ -61,10 +60,8 @@ namespace Queries {
     m_index = index;
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<typename T>
   struct Shuttle<Queries::IndexedQuery<T>> {
     template<typename Shuttler>
@@ -73,7 +70,6 @@ namespace Serialization {
       shuttle.Shuttle("index", value.m_index);
     }
   };
-}
 }
 
 #endif

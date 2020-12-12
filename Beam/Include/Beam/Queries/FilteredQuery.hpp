@@ -1,5 +1,5 @@
-#ifndef BEAM_FILTEREDQUERY_HPP
-#define BEAM_FILTEREDQUERY_HPP
+#ifndef BEAM_FILTERED_QUERY_HPP
+#define BEAM_FILTERED_QUERY_HPP
 #include <ostream>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
@@ -11,28 +11,25 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class FilteredQuery
-      \brief Filters what values should be returned in a Query.
-   */
+  /** Filters what values should be returned in a Query. */
   class FilteredQuery {
     public:
 
-      //! Constructs a FilteredQuery that returns all values.
+      /** Constructs a FilteredQuery that returns all values. */
       FilteredQuery();
 
-      //! Constructs a FilteredQuery with a specified filter.
-      /*!
-        \param filter The Expression used as the filter.
-      */
-      FilteredQuery(const Expression& filter);
+      /**
+       * Constructs a FilteredQuery with a specified filter.
+       * @param filter The Expression used as the filter.
+       */
+      FilteredQuery(Expression filter);
 
-      //! Returns the filter.
+      /** Returns the filter. */
       const Expression& GetFilter() const;
 
-      //! Sets the filter.
+      /** Sets the filter. */
       void SetFilter(const Expression& filter);
 
     private:
@@ -40,12 +37,12 @@ namespace Queries {
       Expression m_filter;
   };
 
-  //! Uses an Evaluator to test whether a value passes a filter.
-  /*!
-    \param evaluator The Evaluator used as the filter.
-    \param value The value to filter.
-    \return <code>true</code> iff the <i>value</i> passes the filter.
-  */
+  /**
+   * Uses an Evaluator to test whether a value passes a filter.
+   * @param evaluator The Evaluator used as the filter.
+   * @param value The value to filter.
+   * @return <code>true</code> iff the <i>value</i> passes the filter.
+   */
   template<typename T>
   bool TestFilter(Evaluator& evaluator, const T& value) {
     try {
@@ -61,13 +58,13 @@ namespace Queries {
   }
 
   inline FilteredQuery::FilteredQuery()
-    : m_filter(ConstantExpression(true)) {}
+    : FilteredQuery(ConstantExpression(true)) {}
 
-  inline FilteredQuery::FilteredQuery(const Expression& filter)
-      : m_filter{filter} {
+  inline FilteredQuery::FilteredQuery(Expression filter)
+      : m_filter(std::move(filter)) {
     if(m_filter->GetType()->GetNativeType() != typeid(bool)) {
       BOOST_THROW_EXCEPTION(
-        TypeCompatibilityException{"Filter is not boolean."});
+        TypeCompatibilityException("Filter is not boolean."));
     }
   }
 
@@ -78,15 +75,13 @@ namespace Queries {
   inline void FilteredQuery::SetFilter(const Expression& filter) {
     if(filter->GetType()->GetNativeType() != typeid(bool)) {
       BOOST_THROW_EXCEPTION(
-        TypeCompatibilityException{"Filter is not boolean."});
+        TypeCompatibilityException("Filter is not boolean."));
     }
     m_filter = filter;
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<Queries::FilteredQuery> {
     template<typename Shuttler>
@@ -102,7 +97,6 @@ namespace Serialization {
       }
     }
   };
-}
 }
 
 #endif

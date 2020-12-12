@@ -45,6 +45,7 @@ namespace Beam::Queries {
   template<typename T> class NativeValue;
   class OrExpression;
   class OrEvaluatorNode;
+  template<typename I, typename A> class PagedQuery;
   template<typename ResultType> class ParameterEvaluatorNode;
   class ParameterExpression;
   template<typename ValueType, typename QueryType,

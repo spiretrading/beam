@@ -197,6 +197,7 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   ExportValue(submodule);
   ExportIndexListQuery(submodule);
   ExportBasicQuery<object>(submodule, "Query");
+  ExportPagedQuery<object, object>(submodule, "PagedQuery");
   submodule.def("build_current_query", &BuildCurrentQuery<object>);
   submodule.def("build_latest_query", &BuildRealTimeQuery<object>);
   submodule.def("build_real_time_query", &BuildRealTimeQuery<object>);

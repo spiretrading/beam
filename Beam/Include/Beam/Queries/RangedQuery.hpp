@@ -1,42 +1,39 @@
-#ifndef BEAM_RANGEDQUERY_HPP
-#define BEAM_RANGEDQUERY_HPP
+#ifndef BEAM_RANGED_QUERY_HPP
+#define BEAM_RANGED_QUERY_HPP
 #include <ostream>
 #include <utility>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class RangedQuery
-      \brief Queries for data over a specified Range.
-   */
+  /** Queries for data over a specified Range. */
   class RangedQuery {
     public:
 
-      //! Constructs a RangedQuery over an empty Range.
+      /** Constructs a RangedQuery over an empty Range. */
       RangedQuery() = default;
 
-      //! Constructs a RangedQuery over a specified Range.
-      /*!
-        \param range The Range to Query over.
-      */
-      RangedQuery(const Range& range);
+      /**
+       * Constructs a RangedQuery over a specified Range.
+       * @param range The Range to Query over.
+       */
+      RangedQuery(Range range);
 
-      //! Returns the Range to Query.
+      /** Returns the Range to Query. */
       const Range& GetRange() const;
 
-      //! Sets the Range to Query.
+      /** Sets the Range to Query. */
       void SetRange(const Range& range);
 
-      //! Sets the Range to Query.
-      /*!
-        \param start The start point.
-        \param end The end point.
-      */
-      template<typename StartType, typename EndType>
-      void SetRange(StartType&& start, EndType&& end);
+      /**
+       * Sets the Range to Query.
+       * @param start The start point.
+       * @param end The end point.
+       */
+      template<typename Start, typename End>
+      void SetRange(Start&& start, End&& end);
 
     private:
       friend struct Serialization::Shuttle<RangedQuery>;
@@ -48,8 +45,8 @@ namespace Queries {
     return out << query.GetRange();
   }
 
-  inline RangedQuery::RangedQuery(const Range& range)
-      : m_range{range} {}
+  inline RangedQuery::RangedQuery(Range range)
+    : m_range(std::move(range)) {}
 
   inline const Range& RangedQuery::GetRange() const {
     return m_range;
@@ -59,15 +56,13 @@ namespace Queries {
     m_range = range;
   }
 
-  template<typename StartType, typename EndType>
-  inline void RangedQuery::SetRange(StartType&& start, EndType&& end) {
-    m_range = Range{std::forward<StartType>(start), std::forward<EndType>(end)};
+  template<typename Start, typename End>
+  inline void RangedQuery::SetRange(Start&& start, End&& end) {
+    m_range = Range(std::forward<Start>(start), std::forward<End>(end));
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct Shuttle<Queries::RangedQuery> {
     template<typename Shuttler>
@@ -76,7 +71,6 @@ namespace Serialization {
       shuttle.Shuttle("range", value.m_range);
     }
   };
-}
 }
 
 #endif

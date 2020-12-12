@@ -440,7 +440,7 @@ namespace Beam::Python {
     query.SetSnapshotLimit(std::forward<V>(value).GetSnapshotLimit());
     query.SetFilter(std::forward<V>(value).GetFilter());
     return pybind11::detail::make_caster<
-      Queries::AnchorQuery<pybind11::object, pybind11::object>>::cast(
+      Queries::PagedQuery<pybind11::object, pybind11::object>>::cast(
         std::move(query), policy, parent);
   }
 

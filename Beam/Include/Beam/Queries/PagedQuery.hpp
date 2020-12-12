@@ -81,7 +81,7 @@ namespace Beam::Queries {
     Beam::Serialization::Shuttle<SnapshotLimitedQuery>()(shuttle, *this,
       version);
     Beam::Serialization::Shuttle<FilteredQuery>()(shuttle, *this, version);
-    shuttle.Shuttle("anchor", value.m_anchor);
+    shuttle.Shuttle("anchor", m_anchor);
   }
 }
 

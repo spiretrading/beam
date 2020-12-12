@@ -178,8 +178,8 @@ namespace Beam::Python {
   template<typename I, typename A>
   void ExportPagedQuery(pybind11::module& module, const std::string& name) {
     pybind11::class_<Queries::PagedQuery<I, A>, Queries::IndexedQuery<I>,
-      Queries::RangedQuery, Queries::SnapshotLimitedQuery,
-      Queries::FilteredQuery>(module, name.c_str()).
+      Queries::SnapshotLimitedQuery, Queries::FilteredQuery>(module,
+        name.c_str()).
       def(pybind11::init()).
       def(pybind11::init<const Queries::PagedQuery<I, A>&>()).
       def_property("anchor", &Queries::PagedQuery<I, A>::GetAnchor,
@@ -436,7 +436,6 @@ namespace Beam::Python {
     if(!anchor.is_none()) {
       query.SetAnchor(std::move(anchor));
     }
-    query.SetRange(std::forward<V>(value).GetRange());
     query.SetSnapshotLimit(std::forward<V>(value).GetSnapshotLimit());
     query.SetFilter(std::forward<V>(value).GetFilter());
     return pybind11::detail::make_caster<
@@ -462,7 +461,6 @@ namespace Beam::Python {
         std::move(indexCaster)));
       m_value->SetAnchor(pybind11::detail::cast_op<typename Type::Anchor&&>(
         std::move(anchorCaster)));
-      m_value->SetRange(query.GetRange());
       m_value->SetSnapshotLimit(query.GetSnapshotLimit());
       m_value->SetFilter(query.GetFilter());
     } catch(const pybind11::cast_error&) {

@@ -5,7 +5,6 @@
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/Queries.hpp"
-#include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleOptional.hpp"
@@ -22,8 +21,8 @@ namespace Beam::Queries {
    * @param <A> The type of anchor to use.
    */
   template<typename I, typename A>
-  class PagedQuery : public IndexedQuery<I>, public RangedQuery,
-      public SnapshotLimitedQuery, public FilteredQuery {
+  class PagedQuery : public IndexedQuery<I>, public SnapshotLimitedQuery,
+      public FilteredQuery {
     public:
 
       /** The type of anchor to use. */
@@ -49,8 +48,7 @@ namespace Beam::Queries {
 
   template<typename I, typename A>
   std::ostream& operator <<(std::ostream& out, const PagedQuery<I, A>& query) {
-    out << '(' << query.GetIndex() << ' ' << query.GetRange() << ' ' <<
-      query.GetSnapshotLimit() << ' ';
+    out << '(' << query.GetIndex() << ' ' << query.GetSnapshotLimit() << ' ';
     if(query.GetAnchor()) {
       out << *query.GetAnchor() << ' ';
     }
@@ -77,7 +75,6 @@ namespace Beam::Queries {
   template<typename Shuttler>
   void PagedQuery<I, A>::Shuttle(Shuttler& shuttle, unsigned int version) {
     Beam::Serialization::Shuttle<IndexedQuery<I>>()(shuttle, *this, version);
-    Beam::Serialization::Shuttle<RangedQuery>()(shuttle, *this, version);
     Beam::Serialization::Shuttle<SnapshotLimitedQuery>()(shuttle, *this,
       version);
     Beam::Serialization::Shuttle<FilteredQuery>()(shuttle, *this, version);

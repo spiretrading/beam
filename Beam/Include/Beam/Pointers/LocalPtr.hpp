@@ -70,16 +70,23 @@ namespace Beam {
   template<typename T>
   using GetOptionalLocalPtr = typename OptionalLocalPtr<T>::type;
 
+  /**
+   * Helper function for capturing references inside lambda expressions.
+   * Captures an lvalue reference as pointer and captures an rvalue reference by
+   * taking ownership and wrapping it in a local pointer. In both cases pointer
+   * semantics are used for the captured value.
+   * @param value The value to capture.
+   * @return A raw pointer if <i>value</i> is an lvalue reference, and a
+   *         LocalPtr if <i>value</i> is an rvalue reference.
+   */
   template<typename T>
   auto CapturePtr(std::remove_reference_t<T>& value) {
-    return GetOptionalLocalPtr<std::remove_reference_t<T>>(
-      static_cast<T&&>(value));
+    return &value;
   }
 
   template<typename T>
   auto CapturePtr(std::remove_reference_t<T>&& value) {
-    return GetOptionalLocalPtr<std::remove_reference_t<T>>(
-      static_cast<T&&>(value));
+    return LocalPtr<std::remove_reference_t<T>>(static_cast<T&&>(value));
   }
 
   template<typename T>

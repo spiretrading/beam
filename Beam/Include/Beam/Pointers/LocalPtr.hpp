@@ -81,11 +81,17 @@ namespace Beam {
    */
   template<typename T>
   auto CapturePtr(std::remove_reference_t<T>& value) {
-    return &value;
+    if constexpr(std::is_lvalue_reference_v<T>) {
+      return &value;
+    } else {
+      return LocalPtr<std::remove_reference_t<T>>(static_cast<T&&>(value));
+    }
   }
 
   template<typename T>
   auto CapturePtr(std::remove_reference_t<T>&& value) {
+    static_assert(!std::is_lvalue_reference_v<T>,
+      "Can not forward an rvalue as an lvalue.");
     return LocalPtr<std::remove_reference_t<T>>(static_cast<T&&>(value));
   }
 

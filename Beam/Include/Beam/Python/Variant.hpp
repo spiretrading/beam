@@ -31,14 +31,13 @@ namespace pybind11::detail {
     boost::mpl::for_each<typename boost::variant<T...>::types>(
       [&] (auto&& unused) {
         using U = std::decay_t<decltype(unused)>;
-        if(index != value.which()) {
-          ++index;
-        } else {
+        if(index == value.which()) {
           policy = pybind11::detail::return_value_policy_override<U>::policy(
             policy);
           result = pybind11::detail::make_caster<U>::cast(
             boost::get<U>(std::forward<V>(value)), policy, parent);
         }
+        ++index;
       });
     return result;
   }

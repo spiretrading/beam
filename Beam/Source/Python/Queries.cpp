@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Enum.hpp"
+#include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Variant.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
@@ -198,6 +199,15 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   ExportIndexListQuery(submodule);
   ExportBasicQuery<object>(submodule, "Query");
   ExportPagedQuery<object, object>(submodule, "PagedQuery");
+  ExportQueueSuite<QueryVariant>(submodule, "QueryVariant");
+  ExportQueueSuite<bool>(submodule, "Bool");
+  ExportQueueSuite<char>(submodule, "Char");
+  ExportQueueSuite<int>(submodule, "Int");
+  ExportQueueSuite<double>(submodule, "Double");
+  ExportQueueSuite<std::uint64_t>(submodule, "UInt64");
+  ExportQueueSuite<std::string>(submodule, "String");
+  ExportQueueSuite<ptime>(submodule, "DateTime");
+  ExportQueueSuite<time_duration>(submodule, "TimeDuration");
   submodule.def("build_current_query", &BuildCurrentQuery<object>);
   submodule.def("build_latest_query", &BuildRealTimeQuery<object>);
   submodule.def("build_real_time_query", &BuildRealTimeQuery<object>);

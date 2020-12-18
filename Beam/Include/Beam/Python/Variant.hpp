@@ -26,6 +26,16 @@ namespace pybind11::detail {
   template<typename V>
   pybind11::handle type_caster<boost::variant<T...>>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
+#ifdef _MSC_VER
+    return boost::apply_visitor(
+      [&] (auto&& value) {
+        using U = std::decay_t<decltype(value)>;
+        policy = pybind11::detail::return_value_policy_override<U>::policy(
+          policy);
+        return pybind11::detail::make_caster<U>::cast(
+          std::forward<decltype(value)>(value), policy, parent);
+      })(std::forward<V>(value));
+#else
     return boost::apply_visitor(
       [&] (auto&& value) {
         using U = std::decay_t<decltype(value)>;
@@ -34,6 +44,7 @@ namespace pybind11::detail {
         return pybind11::detail::make_caster<U>::cast(
           std::forward<decltype(value)>(value), policy, parent);
       }, std::forward<V>(value));
+#endif
   }
 
   template<typename... T>

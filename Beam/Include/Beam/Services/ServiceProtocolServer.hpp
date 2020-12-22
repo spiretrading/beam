@@ -57,7 +57,7 @@ namespace Beam::Services {
       using ServiceProtocolClient = Services::ServiceProtocolClient<
         MessageProtocol, T, NativePointerPolicy, Session, SupportsParallelism>;
 
-      /** Builds Timers used for heartbeats. */
+      /** Constructs Timers used for heartbeats. */
       using TimerFactory = std::function<T ()>;
 
       /**
@@ -76,7 +76,7 @@ namespace Beam::Services {
       /**
        * Constructs a ServiceProtocolServer.
        * @param serverConnection Initializes the ServerConnection.
-       * @param timerFactory Builds Timers for the ServiceProtocolClients.
+       * @param timerFactory Constructs Timers for the ServiceProtocolClients.
        * @param acceptSlot The slot to call when a ServiceProtocolClient is
        *        accepted.
        * @param clientClosedSlot The slot to call when a ServiceProtocolClient

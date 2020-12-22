@@ -28,7 +28,7 @@ namespace Beam::Parsers {
   DiscardParser(P) -> DiscardParser<to_parser_t<P>>;
 
   /**
-   * Builds a DiscardParser.
+   * Returns a DiscardParser.
    * @param subParser The SubParser to discard.
    */
   template<typename SubParser>

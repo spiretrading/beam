@@ -280,7 +280,7 @@ namespace Beam::ServiceLocator {
   }
 
   /**
-   * Builds a hashed password from a DirectoryEntry and a plain-text password.
+   * Returns a hashed password from a DirectoryEntry and a plain-text password.
    * @param account The account to make the password for.
    * @param password The plain-text password to hash.
    * @return A hashed password for the <i>account</i>.

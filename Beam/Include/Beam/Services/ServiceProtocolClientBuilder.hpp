@@ -46,9 +46,9 @@ namespace Beam::Services {
       ServiceProtocolClientBuilder(ChannelBuilder channelBuilder,
         TimerBuilder timerBuilder);
 
-      std::unique_ptr<Client> BuildClient(const ServiceSlots<Client>& slots);
+      std::unique_ptr<Client> MakeClient(const ServiceSlots<Client>& slots);
 
-      std::unique_ptr<Timer> BuildTimer();
+      std::unique_ptr<Timer> MakeTimer();
 
     private:
       ChannelBuilder m_channelBuilder;
@@ -63,14 +63,14 @@ namespace Beam::Services {
 
   template<typename P, typename T>
   std::unique_ptr<typename ServiceProtocolClientBuilder<P, T>::Client>
-      ServiceProtocolClientBuilder<P, T>::BuildClient(
+      ServiceProtocolClientBuilder<P, T>::MakeClient(
         const ServiceSlots<Client>& slots) {
-    return std::make_unique<Client>(m_channelBuilder(), &slots, BuildTimer());
+    return std::make_unique<Client>(m_channelBuilder(), &slots, MakeTimer());
   }
 
   template<typename P, typename T>
   std::unique_ptr<typename ServiceProtocolClientBuilder<P, T>::Timer>
-      ServiceProtocolClientBuilder<P, T>::BuildTimer() {
+      ServiceProtocolClientBuilder<P, T>::MakeTimer() {
     return m_timerBuilder();
   }
 }

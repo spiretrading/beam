@@ -8,7 +8,7 @@
 
 namespace Beam::Reactors {
 
-  //! Builds a Reactor that submits a query and evaluates to the result.
+  //! Returns a Reactor that submits a query and evaluates to the result.
   /*!
     \param submissionFunction The function used to submit the query.
     \param query The query to submit.
@@ -24,26 +24,26 @@ namespace Beam::Reactors {
       }, std::forward<Query>(query)));
   }
 
-  //! Builds a Query Reactor for the current value of a specified index.
+  //! Returns a Query Reactor for the current value of a specified index.
   /*!
     \param submissionFunction The function used to submit the query.
     \param index The index to query.
   */
   template<typename T, typename F, typename Index>
   auto CurrentQueryReactor(F&& submissionFunction, Index index) {
-    auto query = Queries::BuildCurrentQuery(std::move(index));
+    auto query = Queries::MakeCurrentQuery(std::move(index));
     return QueryReactor<T>(std::forward<F>(submissionFunction),
       std::move(query));
   }
 
-  //! Builds a Query Reactor for real time values of a specified index.
+  //! Returns a Query Reactor for real time values of a specified index.
   /*!
     \param submissionFunction The function used to submit the query.
     \param index The index to query.
   */
   template<typename T, typename F, typename Index>
   auto RealTimeQueryReactor(F&& submissionFunction, Index index) {
-    auto query = Queries::BuildRealTimeQuery(std::move(index));
+    auto query = Queries::MakeRealTimeQuery(std::move(index));
     return QueryReactor<T>(std::forward<F>(submissionFunction),
       std::move(query));
   }

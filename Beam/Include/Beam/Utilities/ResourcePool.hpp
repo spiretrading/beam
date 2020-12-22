@@ -27,14 +27,14 @@ namespace Beam {
       using Type = T;
 
       /** The type of builder used to construct the object. */
-      using Builder = B;
+      using Make = B;
 
       /**
        * Constructs a ScopedResource.
        * @param pool The ResourcePool the object belongs to.
        * @parma object The pooled object to manage.
        */
-      ScopedResource(Ref<ResourcePool<Type, Builder>> pool,
+      ScopedResource(Ref<ResourcePool<Type, Make>> pool,
         std::unique_ptr<Type> object);
 
       /**
@@ -52,7 +52,7 @@ namespace Beam {
       Type* operator ->() const;
 
     private:
-      ResourcePool<Type, Builder>* m_pool;
+      ResourcePool<Type, Make>* m_pool;
       std::unique_ptr<Type> m_object;
 
       ScopedResource(const ScopedResource&) = delete;
@@ -72,7 +72,7 @@ namespace Beam {
       using Type = T;
 
       /** The type of function used to build objects. */
-      using Builder = B;
+      using Make = B;
 
       /**
        * Constructs a ResourcePool.
@@ -94,16 +94,16 @@ namespace Beam {
       void Reset();
 
       /** Acquires the next resource. */
-      ScopedResource<Type, Builder> Acquire();
+      ScopedResource<Type, Make> Acquire();
 
       /** Returns a resource if one is available without blocking. */
-      boost::optional<ScopedResource<Type, Builder>> TryAcquire();
+      boost::optional<ScopedResource<Type, Make>> TryAcquire();
 
     private:
       template<typename, typename> friend class ScopedResource;
       Threading::Mutex m_mutex;
       boost::posix_time::time_duration m_timeout;
-      Builder m_builder;
+      Make m_builder;
       std::size_t m_minObjectCount;
       std::size_t m_maxObjectCount;
       std::size_t m_currentObjectCount;
@@ -144,7 +144,7 @@ namespace Beam {
 
   template<typename T, typename B>
   ScopedResource<typename ResourcePool<T, B>::Type,
-      typename ResourcePool<T, B>::Builder> ResourcePool<T, B>::Acquire() {
+      typename ResourcePool<T, B>::Make> ResourcePool<T, B>::Acquire() {
     auto lock = boost::unique_lock(m_mutex);
     auto unconditionalWait = false;
     while(m_objects.empty()) {
@@ -173,7 +173,7 @@ namespace Beam {
 
   template<typename T, typename B>
   boost::optional<ScopedResource<typename ResourcePool<T, B>::Type,
-      typename ResourcePool<T, B>::Builder>> ResourcePool<T, B>::TryAcquire() {
+      typename ResourcePool<T, B>::Make>> ResourcePool<T, B>::TryAcquire() {
     auto lock = boost::unique_lock(m_mutex);
     if(m_objects.empty()) {
       return boost::none;
@@ -191,7 +191,7 @@ namespace Beam {
   }
 
   template<typename T, typename B>
-  ScopedResource<T, B>::ScopedResource(Ref<ResourcePool<Type, Builder>> pool,
+  ScopedResource<T, B>::ScopedResource(Ref<ResourcePool<Type, Make>> pool,
     std::unique_ptr<Type> object)
     : m_pool(pool.Get()),
       m_object(std::move(object)) {}

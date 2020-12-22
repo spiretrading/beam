@@ -6,7 +6,7 @@
 
 namespace Beam {
 
-  //! Builds a PropertyComparatorType.
+  //! Returns a PropertyComparatorType.
   /*!
     \param property The method used to access the object's property.
   */

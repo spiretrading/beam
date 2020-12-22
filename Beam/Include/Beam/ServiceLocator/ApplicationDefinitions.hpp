@@ -119,7 +119,7 @@ namespace Beam::ServiceLocator {
   }
 
   /**
-   * Builds an ApplicationServiceLocatorClient whose connection details are
+   * Returns an ApplicationServiceLocatorClient whose connection details are
    * parsed from a YAML node.
    * @param node The YAML node to parse.
    * @return An ApplicationServiceLocatorClient connected to the service locator

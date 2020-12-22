@@ -72,7 +72,7 @@ namespace Details {
    * Makes a Reactor that evaluates to <code>true</code> after a specified
    * time.
    * @param timeClient Used to get the current time.
-   * @param timerFactory Builds Timers used to measure time.
+   * @param timerFactory Constructs Timers used to measure time.
    * @param expiry The time after which the Reactor will evaluate to
    *        <code>true</code>.
    */

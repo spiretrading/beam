@@ -56,7 +56,7 @@ namespace Beam {
     typename GetTryDereferenceType<QueueReader>::Source, std::decay_t<C>>;
 
   /**
-   * Builds a ConverterReaderQueue.
+   * Returns a ConverterReaderQueue.
    * @param source The QueueReader to convert.
    * @param converter The conversion function to use.
    */

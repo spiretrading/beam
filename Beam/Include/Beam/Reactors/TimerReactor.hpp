@@ -62,7 +62,7 @@ namespace Details {
 
   /**
    * Makes a Reactor that increments a counter periodically.
-   * @param timerFactory Builds Timers used to measure time.
+   * @param timerFactory Constructs Timers used to measure time.
    * @param period The period to increment the counter.
    */
   template<typename Tick, typename TimerFactory, typename PeriodReactor>

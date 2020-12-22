@@ -89,7 +89,8 @@ namespace Details {
       /**
        * Constructs a WebSocket.
        * @param config The config used to initialize this socket.
-       * @param channelBuilder Builds the Channel used to connect to the server.
+       * @param channelBuilder Constructs the Channel used to connect to the
+       *        server.
        */
       WebSocket(WebSocketConfig config, ChannelBuilder channelBuilder);
 

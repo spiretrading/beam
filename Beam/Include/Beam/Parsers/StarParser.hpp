@@ -89,7 +89,7 @@ namespace Beam::Parsers {
   StarParser(SubParser) -> StarParser<to_parser_t<SubParser>>;
 
   /**
-   * Builds a StarParser.
+   * Returns a StarParser.
    * @param subParser The SubParser to repeat.
    */
   template<typename SubParser>

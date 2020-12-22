@@ -146,7 +146,7 @@ namespace Details {
   template<typename S>
   template<typename T>
   void TypeRegistry<S>::Register(const std::string& name) {
-    auto builder = static_cast<T* (*)()>(&DataShuttle::Builder<T>);
+    auto builder = static_cast<T* (*)()>(&DataShuttle::Make<T>);
     auto sender = &Send<T>;
     auto receiver = &Receive<T>;
     auto type = std::type_index(typeid(T));

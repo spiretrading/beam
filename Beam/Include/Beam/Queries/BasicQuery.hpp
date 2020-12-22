@@ -29,11 +29,11 @@ namespace Beam::Queries {
   };
 
   /**
-   * Builds a BasicQuery that streams the most recent value produced.
+   * Returns a BasicQuery that streams the most recent value produced.
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> BuildCurrentQuery(Index index) {
+  BasicQuery<Index> MakeCurrentQuery(Index index) {
     auto query = BasicQuery<Index>();
     query.SetIndex(std::move(index));
     query.SetRange(Range::Total());
@@ -43,11 +43,11 @@ namespace Beam::Queries {
   }
 
   /**
-   * Builds a BasicQuery that retrives only the latest value and then breaks.
+   * Returns a BasicQuery that retrives only the latest value and then breaks.
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> BuildLatestQuery(Index index) {
+  BasicQuery<Index> MakeLatestQuery(Index index) {
     auto query = BasicQuery<Index>();
     query.SetIndex(std::move(index));
     query.SetRange(Range::Historical());
@@ -56,11 +56,11 @@ namespace Beam::Queries {
   }
 
   /**
-   * Builds a BasicQuery that streams real time values.
+   * Returns a BasicQuery that streams real time values.
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> BuildRealTimeQuery(Index index) {
+  BasicQuery<Index> MakeRealTimeQuery(Index index) {
     auto query = BasicQuery<Index>();
     query.SetIndex(std::move(index));
     query.SetRange(Range::RealTime());

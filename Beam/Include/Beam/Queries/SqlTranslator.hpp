@@ -29,8 +29,8 @@ namespace Beam::Queries {
        */
       SqlTranslator(std::string parameter, Expression expression);
 
-      /** Builds the SQL expression. */
-      Viper::Expression Build();
+      /** Returns the SQL expression. */
+      Viper::Expression Make();
 
     protected:
 
@@ -59,9 +59,9 @@ namespace Beam::Queries {
    * @return The SQL expression.
    */
   template<typename Translator = SqlTranslator>
-  auto BuildSqlQuery(std::string parameter, Expression expression) {
+  auto MakeSqlQuery(std::string parameter, Expression expression) {
     auto translator = Translator(std::move(parameter), std::move(expression));
-    return translator.Build();
+    return translator.Make();
   }
 
   inline SqlTranslator::SqlTranslator(std::string parameter,
@@ -69,7 +69,7 @@ namespace Beam::Queries {
     : m_parameter(Viper::sym(std::move(parameter))),
       m_expression(std::move(expression)) {}
 
-  inline Viper::Expression SqlTranslator::Build() {
+  inline Viper::Expression SqlTranslator::Make() {
     m_expression->Apply(*this);
     return std::move(GetTranslation());
   }

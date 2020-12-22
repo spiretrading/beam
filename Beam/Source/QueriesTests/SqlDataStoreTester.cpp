@@ -19,11 +19,11 @@ namespace {
 
   const auto PATH = "file:memdb?mode=memory&cache=shared";
 
-  auto BuildValueRow() {
+  auto MakeValueRow() {
     return Row<TestEntry>().add_column("value", &TestEntry::m_value);
   }
 
-  auto BuildIndexRow() {
+  auto MakeIndexRow() {
     return Row<std::string>().add_column("name");
   }
 }
@@ -42,7 +42,7 @@ TEST_SUITE("SqlDataStore") {
         connection->open();
         return connection;
       });
-    auto dataStore = DataStore("test", BuildValueRow(), BuildIndexRow(),
+    auto dataStore = DataStore("test", MakeValueRow(), MakeIndexRow(),
       Ref(readerPool), Ref(writerPool));
     auto timeClient = IncrementalTimeClient();
     auto sequence = Queries::Sequence(5);
@@ -53,7 +53,7 @@ TEST_SUITE("SqlDataStore") {
   }
 
   TEST_CASE("embedded_index") {
-    auto BuildEmbeddedIndexRow = [] {
+    auto MakeEmbeddedIndexRow = [] {
       return Row<int>().add_column("value");
     };
     using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection, Row<TestEntry>,
@@ -70,7 +70,7 @@ TEST_SUITE("SqlDataStore") {
         connection->open();
         return connection;
       });
-    auto dataStore = EmbeddedDataStore("test", BuildValueRow(),
-      BuildEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool));
+    auto dataStore = EmbeddedDataStore("test", MakeValueRow(),
+      MakeEmbeddedIndexRow(), Ref(readerPool), Ref(writerPool));
   }
 }

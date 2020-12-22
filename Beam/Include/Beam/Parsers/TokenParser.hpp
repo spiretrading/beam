@@ -53,7 +53,7 @@ namespace Beam::Parsers {
   TokenParser(P) -> TokenParser<to_parser_t<P>>;
 
   /**
-   * Builds a TokenParser.
+   * Returns a TokenParser.
    * @param subParser The Parser to match.
    */
   template<typename SubParser>

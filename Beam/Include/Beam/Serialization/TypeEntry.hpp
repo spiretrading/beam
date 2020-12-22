@@ -39,7 +39,7 @@ namespace Serialization {
         \return A newly built instance of <i>T</i>.
       */
       template<typename T>
-      T* Build() const;
+      T* Make() const;
 
       //! Sends an instance of this type.
       /*!
@@ -67,10 +67,10 @@ namespace Serialization {
         std::function<void(Sender&, void* const, unsigned int)>;
       using ReceiveFunction =
         std::function<void(Receiver&, void*, unsigned int)>;
-      using BuildFunction = std::function<void*()>;
+      using Factory = std::function<void*()>;
       std::type_index m_type;
       std::string m_name;
-      BuildFunction m_builder;
+      Factory m_builder;
       SendFunction m_sender;
       ReceiveFunction m_receiver;
 
@@ -93,7 +93,7 @@ namespace Serialization {
 
   template<typename SenderType>
   template<typename T>
-  T* TypeEntry<SenderType>::Build() const {
+  T* TypeEntry<SenderType>::Make() const {
     return static_cast<T*>(m_builder());
   }
 

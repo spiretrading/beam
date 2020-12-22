@@ -22,7 +22,7 @@ namespace Beam {
       using Type = T;
 
       /**
-       * Builds an EnumSet from its underlying representation.
+       * Returns an EnumSet from its underlying representation.
        * @param value The value to build the EnumSet from.
        */
       static EnumSet FromRepresentation(std::uint32_t value);

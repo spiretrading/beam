@@ -44,7 +44,7 @@ namespace Beam::Threading {
   };
 
   /**
-   * Builds a LockRelease from a lock.
+   * Returns a LockRelease from a lock.
    * @param lock The lock to release.
    * @return An instance that releases the lock.
    */

@@ -146,7 +146,7 @@ namespace Beam::TimeService {
   }
 
   /**
-   * Builds a LiveNtpTimeClient using a list of NTP server addresses.
+   * Returns a LiveNtpTimeClient using a list of NTP server addresses.
    * @param sources The list of NTP server addresses.
    * @param syncPeriod The amount of time to wait before synchronizing the time.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
@@ -170,7 +170,7 @@ namespace Beam::TimeService {
   }
 
   /**
-   * Builds a LiveNtpTimeClient using a list of NTP server addresses.
+   * Returns a LiveNtpTimeClient using a list of NTP server addresses.
    * @param sources The list of NTP server addresses.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
@@ -180,7 +180,7 @@ namespace Beam::TimeService {
   }
 
   /**
-   * Builds a LiveNtpTimeClient by checking the ServiceLocatorClient for a list
+   * Returns a LiveNtpTimeClient by checking the ServiceLocatorClient for a list
    * of NTP servers.
    * @param serviceLocatorClient The ServiceLocatorClient used to locate NTP
    *        servers.

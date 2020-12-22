@@ -86,13 +86,13 @@ namespace Serialization {
       template<typename T, typename Enabled> friend struct Shuttle;
       template<typename T, typename Enabled> friend struct Receive;
       template<typename T, typename Enabled = void>
-      struct BuilderHelper {
+      struct FactoryHelper {
         T* operator ()() const {
           return new T();
         }
       };
       template<typename T>
-      struct BuilderHelper<T, typename std::enable_if<
+      struct FactoryHelper<T, typename std::enable_if<
           !IsDefaultConstructable<T>::value>::type> {
         T* operator ()() const {
           return new T(ReceiveBuilder{});
@@ -117,9 +117,9 @@ namespace Serialization {
       };
 
       template<typename T>
-      static T* Builder();
+      static T* Make();
       template<typename T>
-      static void Builder(SerializedValue<T>& ptr);
+      static void Make(SerializedValue<T>& ptr);
       template<typename Shuttler, typename T>
       static void Send(Shuttler& shuttle, const T& value, unsigned int version);
       template<typename Shuttler, typename T>
@@ -203,12 +203,12 @@ namespace Serialization {
   }
 
   template<typename T>
-  T* DataShuttle::Builder() {
-    return BuilderHelper<T>()();
+  T* DataShuttle::Make() {
+    return FactoryHelper<T>()();
   }
 
   template<typename T>
-  void DataShuttle::Builder(SerializedValue<T>& value) {
+  void DataShuttle::Make(SerializedValue<T>& value) {
     return SerializedValueBuilder<T>()(value);
   }
 
@@ -254,7 +254,7 @@ namespace Serialization {
   template<typename T>
   void SerializedValue<T>::Initialize() {
     Reset();
-    DataShuttle::Builder(*this);
+    DataShuttle::Make(*this);
   }
 }
 }

@@ -16,11 +16,11 @@
 namespace Beam::Queries {
 
   /**
-   * Builds an SQL expression to test a Range.
+   * Returns an SQL expression to test a Range.
    * @param range The Range to query.
    * @return The SQL expression testing within the <i>range</i>.
    */
-  inline auto BuildRangeExpression(const Range& range) {
+  inline auto MakeRangeExpression(const Range& range) {
     auto start = boost::get<Sequence>(range.GetStart()).GetOrdinal();
     auto end = boost::get<Sequence>(range.GetEnd()).GetOrdinal();
     return Viper::sym("query_sequence") >= start &&
@@ -124,8 +124,8 @@ namespace Beam::Queries {
         auto subsetQuery = query;
         subsetQuery.SetRange(startPoint, endPoint);
         subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, remainingLimit);
-        auto filter = BuildSqlQuery<Translator>(table, subsetQuery.GetFilter());
-        auto range = BuildRangeExpression(subsetQuery.GetRange());
+        auto filter = MakeSqlQuery<Translator>(table, subsetQuery.GetFilter());
+        auto range = MakeRangeExpression(subsetQuery.GetRange());
         auto limit = std::min(MAX_READS_PER_QUERY,
           subsetQuery.GetSnapshotLimit().GetSize());
         auto connection = connectionPool.Acquire();
@@ -156,8 +156,8 @@ namespace Beam::Queries {
           subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD,
             remainingLimit);
         }
-        auto filter = BuildSqlQuery<Translator>(table, subsetQuery.GetFilter());
-        auto range = BuildRangeExpression(subsetQuery.GetRange());
+        auto filter = MakeSqlQuery<Translator>(table, subsetQuery.GetFilter());
+        auto range = MakeRangeExpression(subsetQuery.GetRange());
         auto limit = std::min(MAX_READS_PER_QUERY,
           subsetQuery.GetSnapshotLimit().GetSize());
         auto connection = connectionPool.Acquire();

@@ -45,7 +45,7 @@ namespace Beam::Parsers {
   ListParser(P, char) -> ListParser<to_parser_t<P>>;
 
   /**
-   * Builds a ListParser based on its value Parser.
+   * Returns a ListParser based on its value Parser.
    * @param parser The Parser used for the values in the list.
    * @param delimiter The list's delimiter.
    */

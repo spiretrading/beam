@@ -96,7 +96,7 @@ namespace Beam::Services {
       ReconnectHandler reconnectHandler)
       : m_builder(std::forward<BF>(builder)),
         m_reconnectHandler(std::move(reconnectHandler)),
-        m_client(m_builder->BuildClient(m_slots)) {
+        m_client(m_builder->MakeClient(m_slots)) {
     m_messageHandler = Routines::Spawn(std::bind(
       &ServiceProtocolClientHandler::MessageLoop, this));
   }
@@ -130,7 +130,7 @@ namespace Beam::Services {
       try {
         auto client = [&] {
           auto release = Threading::Release(lock);
-          return m_builder->BuildClient(m_slots);
+          return m_builder->MakeClient(m_slots);
         }();
         if(m_client) {
           return m_client;
@@ -145,7 +145,7 @@ namespace Beam::Services {
         }
         return m_client;
       } catch(const IO::ConnectException&) {
-        auto reconnectTimer = std::shared_ptr(m_builder->BuildTimer());
+        auto reconnectTimer = std::shared_ptr(m_builder->MakeTimer());
         m_reconnectTimer = reconnectTimer;
         reconnectTimer->Start();
         {

@@ -25,7 +25,7 @@ TEST_SUITE("SizeDeclarativeReader") {
     auto reader = SizeDeclarativeReader<PipedReader<SharedBuffer>*>(
       &pipedReader);
 
-    // Build the message.
+    // Make the message.
     auto message = std::string("hello world");
     auto size = ToLittleEndian(static_cast<std::uint32_t>(message.size()));
     pipedWriter.Write(&size, 4);

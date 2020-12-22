@@ -37,21 +37,21 @@ namespace Details {
   class StompFrame {
     public:
 
-      //! Builds a StompFrame indicating an unknown destination.
+      //! Returns a StompFrame indicating an unknown destination.
       /*!
         \param frame The frame that caused the error.
         \return A StompFrame indicating the error.
       */
       static StompFrame MakeDestinationNotFoundFrame(const StompFrame& frame);
 
-      //! Builds a StompFrame indicating an invalid request.
+      //! Returns a StompFrame indicating an invalid request.
       /*!
         \param frame The frame that caused the error.
         \return A StompFrame indicating the error.
       */
       static StompFrame MakeBadRequestFrame(const StompFrame& frame);
 
-      //! Builds a StompFrame indicating an invalid request.
+      //! Returns a StompFrame indicating an invalid request.
       /*!
         \param frame The frame that caused the error.
         \param reason The reason for the error.

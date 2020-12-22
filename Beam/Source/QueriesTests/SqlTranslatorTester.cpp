@@ -13,6 +13,6 @@ TEST_SUITE("SqlTranslator") {
     auto expression = MakeOrExpression(
       subExpressions.begin(), subExpressions.end());
     auto translator = SqlTranslator("test_table", expression);
-    auto query = translator.Build();
+    auto query = translator.Make();
   }
 }

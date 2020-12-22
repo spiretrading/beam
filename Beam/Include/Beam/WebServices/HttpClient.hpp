@@ -33,7 +33,8 @@ namespace WebServices {
 
       //! Constructs an HttpClient.
       /*!
-        \param channelBuilder Builds the Channel used to connect to the server.
+        \param channelBuilder Constructs the Channel used to connect to the
+               server.
       */
       HttpClient(ChannelBuilder channelBuilder);
 

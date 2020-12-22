@@ -51,7 +51,7 @@ namespace Beam {
   };
 
   /**
-   * Builds a ConverterQueueWriter.
+   * Returns a ConverterQueueWriter.
    * @param target The target to push the converted data onto.
    * @param converter The function performing the conversion.
    */
@@ -64,7 +64,7 @@ namespace Beam {
   }
 
   /**
-   * Builds a ConverterQueueWriter used to push tasks.
+   * Returns a ConverterQueueWriter used to push tasks.
    * @param target The target to push the converted data onto.
    * @param task The task to perform when a value is pushed onto the
    *        QueueWriter.

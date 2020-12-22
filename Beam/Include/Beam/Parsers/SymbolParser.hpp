@@ -44,7 +44,7 @@ namespace Details {
   };
 
   /**
-   * Builds a SymbolParser.
+   * Returns a SymbolParser.
    * @param symbol The symbol to match.
    */
   inline auto Symbol(std::string symbol) {
@@ -52,7 +52,7 @@ namespace Details {
   }
 
   /**
-   * Builds a Parser that matches a symbol and returns a value.
+   * Returns a Parser that matches a symbol and returns a value.
    * @param symbol The symbol to match.
    * @param value The value to return when the <i>symbol</i> is matched.
    */

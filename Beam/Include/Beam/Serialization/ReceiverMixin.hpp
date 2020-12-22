@@ -128,7 +128,7 @@ namespace Beam::Serialization {
       unsigned int version;
       static_cast<Receiver*>(this)->Shuttle("__version", version);
       auto& entry = m_typeRegistry->GetEntry(typeName);
-      value = entry.template Build<T>();
+      value = entry.template Make<T>();
       entry.Receive(*static_cast<Receiver*>(this), value, version);
     }
     static_cast<Receiver*>(this)->EndStructure();

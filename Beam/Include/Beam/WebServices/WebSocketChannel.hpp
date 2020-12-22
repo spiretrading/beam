@@ -26,7 +26,8 @@ namespace WebServices {
       //! Constructs a WebSocketChannel.
       /*!
         \param config The config used to initialize the WebSocket.
-        \param channelBuilder Builds the Channel used to connect to the server.
+        \param channelBuilder Constructs the Channel used to connect to the
+               server.
       */
       WebSocketChannel(WebSocketConfig config,
         typename WebSocket::ChannelBuilder channelBuilder);

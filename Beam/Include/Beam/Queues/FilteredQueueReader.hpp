@@ -51,7 +51,7 @@ namespace Beam {
     typename GetTryDereferenceType<QueueReader>::Source, std::decay_t<F>>;
 
   /**
-   * Builds a FilteredReaderQueue.
+   * Returns a FilteredReaderQueue.
    * @param source The QueueReader to convert.
    * @param filter The function used to filter values.
    */

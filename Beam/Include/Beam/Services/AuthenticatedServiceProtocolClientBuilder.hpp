@@ -58,9 +58,9 @@ namespace Beam::Services {
       AuthenticatedServiceProtocolClientBuilder(CF&& serviceLocatorClient,
         ChannelBuilder channelBuilder, TimerBuilder timerBuilder);
 
-      std::unique_ptr<Client> BuildClient(ServiceSlots<Client>& slots);
+      std::unique_ptr<Client> MakeClient(ServiceSlots<Client>& slots);
 
-      std::unique_ptr<Timer> BuildTimer();
+      std::unique_ptr<Timer> MakeTimer();
 
     private:
       GetOptionalLocalPtr<C> m_serviceLocatorClient;
@@ -78,9 +78,9 @@ namespace Beam::Services {
   template<typename C, typename P, typename T>
   std::unique_ptr<
       typename AuthenticatedServiceProtocolClientBuilder<C, P, T>::Client>
-      AuthenticatedServiceProtocolClientBuilder<C, P, T>::BuildClient(
+      AuthenticatedServiceProtocolClientBuilder<C, P, T>::MakeClient(
       ServiceSlots<Client>& slots) {
-    auto client = m_clientBuilder.BuildClient(slots);
+    auto client = m_clientBuilder.MakeClient(slots);
     ServiceLocator::Authenticate(ServiceLocator::SessionAuthenticator(
       Ref(*m_serviceLocatorClient)), *client);
     return client;
@@ -89,8 +89,8 @@ namespace Beam::Services {
   template<typename C, typename P, typename T>
   std::unique_ptr<
       typename AuthenticatedServiceProtocolClientBuilder<C, P, T>::Timer>
-      AuthenticatedServiceProtocolClientBuilder<C, P, T>::BuildTimer() {
-    return m_clientBuilder.BuildTimer();
+      AuthenticatedServiceProtocolClientBuilder<C, P, T>::MakeTimer() {
+    return m_clientBuilder.MakeTimer();
   }
 }
 

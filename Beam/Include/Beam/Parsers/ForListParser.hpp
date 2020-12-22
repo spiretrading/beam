@@ -140,7 +140,7 @@ namespace Beam::Parsers {
     std::decay_t<M>>;
 
   /**
-   * Builds a ForListParser.
+   * Returns a ForListParser.
    * @param initialValue The Parser's initial value.
    * @param parser The Parser used to match each value in the list.
    * @param delimiter The delimiter used in the list.

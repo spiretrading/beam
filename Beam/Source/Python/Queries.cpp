@@ -208,9 +208,9 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   ExportQueueSuite<std::string>(submodule, "String");
   ExportQueueSuite<ptime>(submodule, "DateTime");
   ExportQueueSuite<time_duration>(submodule, "TimeDuration");
-  submodule.def("build_current_query", &MakeCurrentQuery<object>);
-  submodule.def("build_latest_query", &MakeRealTimeQuery<object>);
-  submodule.def("build_real_time_query", &MakeRealTimeQuery<object>);
+  submodule.def("make_current_query", &MakeCurrentQuery<object>);
+  submodule.def("make_latest_query", &MakeRealTimeQuery<object>);
+  submodule.def("make_real_time_query", &MakeRealTimeQuery<object>);
   register_exception<ExpressionTranslationException>(submodule,
     "ExpressionTranslationException");
   register_exception<QueryInterruptedException>(submodule,

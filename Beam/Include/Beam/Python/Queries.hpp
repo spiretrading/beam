@@ -473,8 +473,14 @@ namespace Beam::Python {
   template<typename V>
   pybind11::handle SequencedValueTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    auto valuePolicy = pybind11::detail::return_value_policy_override<
-      typename Type::Value>::policy(policy);
+    auto valuePolicy = [&] {
+      if constexpr(std::is_pointer_v<typename Type::Value>) {
+        return pybind11::return_value_policy::reference;
+      } else {
+        return pybind11::detail::return_value_policy_override<
+          typename Type::Value>::policy(policy);
+      }
+    }();
     auto object = pybind11::reinterpret_steal<pybind11::object>(
       ValueConverter::cast(std::forward<V>(value).GetValue(), valuePolicy,
       parent));

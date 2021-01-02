@@ -2,6 +2,7 @@
 #define BEAM_SYNCHRONIZED_SET_HPP
 #include <unordered_set>
 #include <utility>
+#include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Collections/Collections.hpp"

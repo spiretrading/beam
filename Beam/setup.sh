@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="0b3804f9738d254572b3818963af027f623963db"
+aspen_commit="e5732b5bb1644113b1618e458830fd5fa6c334e5"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -54,34 +54,25 @@ if [ -d "aspen" ]; then
   fi
   popd
 fi
-if [ ! -d "cryptopp820" ]; then
-  wget https://www.cryptopp.com/cryptopp820.zip -O cryptopp820.zip --no-check-certificate
+if [ ! -d "cryptopp840" ]; then
+  wget https://www.cryptopp.com/cryptopp840.zip -O cryptopp840.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    mkdir cryptopp820
-    pushd cryptopp820
-    unzip ../cryptopp820.zip
+    mkdir cryptopp840
+    pushd cryptopp840
+    unzip ../cryptopp840.zip
     make -j $cores
-    make install PREFIX="$root/cryptopp820"
+    make install PREFIX="$root/cryptopp840"
     popd
   else
     exit_status=1
   fi
-  rm -f cryptopp820.zip
+  rm -f cryptopp840.zip
 fi
-if [ ! -d "doctest-2.3.6" ]; then
-  wget https://github.com/onqtam/doctest/archive/2.3.6.zip --no-check-certificate
+if [ ! -d "mariadb-connector-c-3.1.11" ]; then
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.11.zip -O mariadb-connector-c-3.1.11.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip 2.3.6.zip
-  else
-    exit_status=1
-  fi
-  rm -f 2.3.6.zip
-fi
-if [ ! -d "mariadb-connector-c-3.1.7" ]; then
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.7.zip -O mariadb-connector-c-3.1.7.zip --no-check-certificate
-  if [ "$?" == "0" ]; then
-    unzip mariadb-connector-c-3.1.7.zip
-    pushd mariadb-connector-c-3.1.7
+    unzip mariadb-connector-c-3.1.11.zip
+    pushd mariadb-connector-c-3.1.11
     cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     make -j $cores
     make install
@@ -89,15 +80,15 @@ if [ ! -d "mariadb-connector-c-3.1.7" ]; then
   else
     exit_status=1
   fi
-  rm -f mariadb-connector-c-3.1.7.zip
+  rm -f mariadb-connector-c-3.1.11.zip
 fi
-if [ ! -d "openssl-1.1.1c" ]; then
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate
+if [ ! -d "openssl-1.1.1h" ]; then
+  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
-    gzip -d -c openssl-1.1.1c.tar.gz | tar -x
-    pushd openssl-1.1.1c
+    gzip -d -c openssl-1.1.1h.tar.gz | tar -x
+    pushd openssl-1.1.1h
     export LDFLAGS=-ldl
-    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.1.1c"
+    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.1.1h"
     make -j $cores
     make test
     make install
@@ -106,19 +97,19 @@ if [ ! -d "openssl-1.1.1c" ]; then
   else
     exit_status=1
   fi
-  rm -f openssl-1.1.1c.tar.gz
+  rm -f openssl-1.1.1h.tar.gz
 fi
-if [ ! -d "sqlite-amalgamation-3300100" ]; then
-  wget https://www.sqlite.org/2019/sqlite-amalgamation-3300100.zip -O sqlite-amalgamation-3300100.zip --no-check-certificate
+if [ ! -d "sqlite-amalgamation-3340000" ]; then
+  wget https://www.sqlite.org/2020/sqlite-amalgamation-3340000.zip -O sqlite-amalgamation-3340000.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip sqlite-amalgamation-3300100.zip
-    pushd sqlite-amalgamation-3300100
+    unzip sqlite-amalgamation-3340000.zip
+    pushd sqlite-amalgamation-3340000
     gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
     popd
   else
     exit_status=1
   fi
-  rm -f sqlite-amalgamation-3300100.zip
+  rm -f sqlite-amalgamation-3340000.zip
 fi
 if [ ! -d "tclap-1.2.2" ]; then
   wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate

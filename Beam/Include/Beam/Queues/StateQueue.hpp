@@ -93,7 +93,7 @@ namespace Beam {
       *m_value = value;
     } else {
       m_value.emplace(value);
-      m_isAvailableCondition.notify_one();
+      m_isAvailableCondition.notify_all();
     }
   }
 
@@ -107,7 +107,7 @@ namespace Beam {
       *m_value = std::move(value);
     } else {
       m_value.emplace(std::move(value));
-      m_isAvailableCondition.notify_one();
+      m_isAvailableCondition.notify_all();
     }
   }
 

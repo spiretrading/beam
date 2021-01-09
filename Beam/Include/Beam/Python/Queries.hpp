@@ -284,7 +284,7 @@ namespace Beam::Python {
     using AnchorConverter = pybind11::detail::make_caster<
       typename Type::Anchor>;
     static constexpr auto name = pybind11::detail::_("PagedQuery[") +
-      IndexConverter::name + "," + AnchorConverter::name +
+      IndexConverter::name + pybind11::detail::_(",") + AnchorConverter::name +
       pybind11::detail::_("]");
     template<typename V>
     static pybind11::handle cast(V&& value,
@@ -453,14 +453,18 @@ namespace Beam::Python {
         return false;
       }
       auto anchorCaster = AnchorConverter();
-      if(!anchorCaster.load(query.GetAnchor(), convert)) {
-        return false;
+      if(query.GetAnchor()) {
+        if(!anchorCaster.load(*query.GetAnchor(), convert)) {
+          return false;
+        }
       }
       m_value.emplace();
       m_value->SetIndex(pybind11::detail::cast_op<typename Type::Index&&>(
         std::move(indexCaster)));
-      m_value->SetAnchor(pybind11::detail::cast_op<typename Type::Anchor&&>(
-        std::move(anchorCaster)));
+      if(query.GetAnchor()) {
+        m_value->SetAnchor(pybind11::detail::cast_op<typename Type::Anchor&&>(
+          std::move(anchorCaster)));
+      }
       m_value->SetSnapshotLimit(query.GetSnapshotLimit());
       m_value->SetFilter(query.GetFilter());
     } catch(const pybind11::cast_error&) {
@@ -523,6 +527,12 @@ namespace pybind11::detail {
     std::enable_if_t<!std::is_same_v<V, object> &&
       !std::is_same_v<I, object>>> : Beam::Python::IndexedValueTypeCaster<
         Beam::Queries::IndexedValue<V, I>> {};
+
+  template<typename T, typename U>
+  struct type_caster<Beam::Queries::PagedQuery<T, U>,
+    std::enable_if_t<
+      !std::is_same_v<T, object> && !std::is_same_v<U, object>>> :
+    Beam::Python::PagedQueryTypeCaster<Beam::Queries::PagedQuery<T, U>> {};
 
   template<typename T>
   struct type_caster<Beam::Queries::SequencedValue<T>,

@@ -15,7 +15,7 @@ export async function post(url: string, parameters?: any): Promise<any> {
     xhr.onload = function() {
       if(xhr.status === 200) {
         if(xhr.responseText.length === 0) {
-          resolve();
+          resolve(undefined);
         } else {
           resolve(JSON.parse(xhr.responseText));
         }

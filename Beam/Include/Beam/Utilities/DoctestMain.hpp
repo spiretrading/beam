@@ -28,4 +28,4 @@
     return 0;                                                                  \
   }
 
-#define DOCTEST_MAIN() DOCTEST_MAIN_TIMEOUT(10)
+#define DOCTEST_MAIN() DOCTEST_MAIN_TIMEOUT(60)

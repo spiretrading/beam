@@ -24,33 +24,33 @@ set(BOOST_THREAD_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_thread.a")
 set(BOOST_THREAD_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_thread.a")
 set(CRYPTOPP_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp840/include")
 set(CRYPTOPP_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/lib/libcryptopp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp840/lib/libcryptopp.a")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp820/lib/libcryptopp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp840/lib/libcryptopp.a")
 set(MYSQL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.7/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.11/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.7/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.11/libmariadb/libmariadbclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.7/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.1.11/libmariadb/libmariadbclient.a")
 set(OPEN_SSL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1h/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1h/libcrypto.a")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1h/libcrypto.a")
 set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1h/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1c/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1h/libssl.a")
 set(SQLITE_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3340000")
 set(SQLITE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3340000/sqlite3.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3300100/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3340000/sqlite3.lib")
 set(YAML_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/include")
 set(YAML_LIBRARY_DEBUG_PATH

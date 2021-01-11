@@ -20,20 +20,20 @@ FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property insta
   )
 )
 IF NOT EXIST Strawberry (
-  wget http://strawberryperl.com/download/5.30.1.1/strawberry-perl-5.30.1.1-64bit-portable.zip -O strawberry-perl-5.30.1.1-64bit-portable.zip --no-check-certificate
+  wget http://strawberryperl.com/download/5.32.0.1/strawberry-perl-5.32.0.1-64bit-portable.zip -O strawberry-perl-5.32.0.1-64bit-portable.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
     MD Strawberry
     PUSHD Strawberry
-    unzip ..\strawberry-perl-5.30.1.1-64bit-portable.zip
+    unzip ..\strawberry-perl-5.32.0.1-64bit-portable.zip
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q strawberry-perl-5.30.1.1-64bit-portable.zip
+  DEL /F /Q strawberry-perl-5.32.0.1-64bit-portable.zip
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="0b3804f9738d254572b3818963af027f623963db"
+SET ASPEN_COMMIT="e5732b5bb1644113b1618e458830fd5fa6c334e5"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -66,12 +66,12 @@ IF EXIST aspen (
   )
   POPD
 )
-IF NOT EXIST cryptopp820 (
-  wget https://www.cryptopp.com/cryptopp820.zip -O cryptopp820.zip --no-check-certificate
+IF NOT EXIST cryptopp840 (
+  wget https://www.cryptopp.com/cryptopp840.zip -O cryptopp840.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    MD cryptopp820
-    PUSHD cryptopp820
-    unzip ..\cryptopp820.zip
+    MD cryptopp840
+    PUSHD cryptopp840
+    unzip ..\cryptopp840.zip
     TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
@@ -87,22 +87,13 @@ IF NOT EXIST cryptopp820 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q cryptopp820.zip
+  DEL /F /Q cryptopp840.zip
 )
-IF NOT EXIST doctest-2.3.6 (
-  wget https://github.com/onqtam/doctest/archive/2.3.6.zip --no-check-certificate
+IF NOT EXIST mariadb-connector-c-3.1.11 (
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.11.zip -O mariadb-connector-c-3.1.11.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip 2.3.6.zip
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q 2.3.6.zip
-)
-IF NOT EXIST mariadb-connector-c-3.1.7 (
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.7.zip -O mariadb-connector-c-3.1.7.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    unzip mariadb-connector-c-3.1.7.zip
-    PUSHD mariadb-connector-c-3.1.7
+    unzip mariadb-connector-c-3.1.11.zip
+    PUSHD mariadb-connector-c-3.1.11
     cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
@@ -114,30 +105,30 @@ IF NOT EXIST mariadb-connector-c-3.1.7 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q mariadb-connector-c-3.1.7.zip
+  DEL /F /Q mariadb-connector-c-3.1.11.zip
 )
-IF NOT EXIST openssl-1.1.1c (
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1c.tar.gz -O openssl-1.1.1c.tar.gz --no-check-certificate
+IF NOT EXIST openssl-1.1.1h (
+  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    gzip -d -c openssl-1.1.1c.tar.gz | tar -xf -
-    MOVE openssl-1.1.1c openssl-1.1.1c-build
-    PUSHD openssl-1.1.1c-build
-    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1c" --openssldir="!ROOT!\openssl-1.1.1c"
+    gzip -d -c openssl-1.1.1h.tar.gz | tar -xf -
+    MOVE openssl-1.1.1h openssl-1.1.1h-build
+    PUSHD openssl-1.1.1h-build
+    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1h" --openssldir="!ROOT!\openssl-1.1.1h"
     SET CL=/MP
     nmake
     nmake install
     POPD
-    RD /S /Q openssl-1.1.1c-build
+    RD /S /Q openssl-1.1.1h-build
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q openssl-1.1.1c.tar.gz
+  DEL /F /Q openssl-1.1.1h.tar.gz
 )
-IF NOT EXIST sqlite-amalgamation-3300100 (
-  wget https://www.sqlite.org/2019/sqlite-amalgamation-3300100.zip -O sqlite-amalgamation-3300100.zip --no-check-certificate
+IF NOT EXIST sqlite-amalgamation-3340000 (
+  wget https://www.sqlite.org/2020/sqlite-amalgamation-3340000.zip -O sqlite-amalgamation-3340000.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip sqlite-amalgamation-3300100.zip
-    PUSHD sqlite-amalgamation-3300100
+    unzip sqlite-amalgamation-3340000.zip
+    PUSHD sqlite-amalgamation-3340000
     cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     COPY sqlite3.lib sqlite3d.lib
@@ -148,7 +139,7 @@ IF NOT EXIST sqlite-amalgamation-3300100 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q sqlite-amalgamation-3300100.zip
+  DEL /F /Q sqlite-amalgamation-3340000.zip
 )
 IF NOT EXIST tclap-1.2.2 (
   wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate

@@ -1,36 +1,35 @@
-#ifndef BEAM_WRITEEVALUATORNODE_HPP
-#define BEAM_WRITEEVALUATORNODE_HPP
+#ifndef BEAM_WRITE_EVALUATOR_NODE_HPP
+#define BEAM_WRITE_EVALUATOR_NODE_HPP
 #include <memory>
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Utilities/Casts.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class WriteEvaluatorNode
-      \brief Writes a value to a pointer.
-      \tparam T The type of data to write.
+  /**
+   * Writes a value to a pointer.
+   * @param <T> The type of data to write.
    */
   template<typename T>
   class WriteEvaluatorNode : public EvaluatorNode<T> {
     public:
       using Result = T;
 
-      //! Constructs a WriteEvaluatorNode.
-      /*!
-        \param destination The destination to write to.
-        \param value The value to write.
-      */
-      WriteEvaluatorNode(T* destination,
-        std::unique_ptr<EvaluatorNode<T>> value);
+      /**
+       * Constructs a WriteEvaluatorNode.
+       * @param destination The destination to write to.
+       * @param value The value to write.
+       */
+      WriteEvaluatorNode(
+        Result* destination, std::unique_ptr<EvaluatorNode<Result>> value);
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
-      T* m_destination;
-      std::unique_ptr<EvaluatorNode<T>> m_value;
+      Result* m_destination;
+      std::unique_ptr<EvaluatorNode<Result>> m_value;
   };
 
   template<typename TypeList>
@@ -47,16 +46,15 @@ namespace Queries {
   };
 
   template<typename T>
-  WriteEvaluatorNode<T>::WriteEvaluatorNode(T* destination,
-      std::unique_ptr<EvaluatorNode<T>> value)
-      : m_destination(destination),
-        m_value(std::move(value)) {}
+  WriteEvaluatorNode<T>::WriteEvaluatorNode(Result* destination,
+    std::unique_ptr<EvaluatorNode<Result>> value)
+    : m_destination(destination),
+      m_value(std::move(value)) {}
 
   template<typename T>
   typename WriteEvaluatorNode<T>::Result WriteEvaluatorNode<T>::Eval() {
     return *m_destination = m_value->Eval();
   }
-}
 }
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERIESGLOBALVARIABLEDECLARATIONEXPRESSION_HPP
-#define BEAM_QUERIESGLOBALVARIABLEDECLARATIONEXPRESSION_HPP
+#ifndef BEAM_QUERIES_GLOBAL_VARIABLE_DECLARATION_EXPRESSION_HPP
+#define BEAM_QUERIES_GLOBAL_VARIABLE_DECLARATION_EXPRESSION_HPP
 #include <string>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/DataType.hpp"
@@ -8,47 +8,44 @@
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class GlobalVariableDeclarationExpression
-      \brief Declares a global variable and evaluates an expression.
-   */
+  /** Declares a global variable and evaluates an expression. */
   class GlobalVariableDeclarationExpression : public VirtualExpression,
       public CloneableMixin<GlobalVariableDeclarationExpression> {
     public:
 
-      //! Constructs a GlobalVariableDeclarationExpression.
-      /*!
-        \param name The name of the variable.
-        \param initialValue The variable's initial value.
-        \param body The body to evaluate.
-      */
-      GlobalVariableDeclarationExpression(const std::string& name,
-        const Expression& initialValue, const Expression& body);
+      /**
+       * Constructs a GlobalVariableDeclarationExpression.
+       * @param name The name of the variable.
+       * @param initialValue The variable's initial value.
+       * @param body The body to evaluate.
+       */
+      GlobalVariableDeclarationExpression(std::string name,
+        Expression initialValue, Expression body);
 
-      //! Copies a GlobalVariableDeclarationExpression.
-      /*!
-        \param expression The GlobalVariableDeclarationExpression to copy.
-      */
+      /**
+       * Copies a GlobalVariableDeclarationExpression.
+       * @param expression The GlobalVariableDeclarationExpression to copy.
+       */
       GlobalVariableDeclarationExpression(
         const GlobalVariableDeclarationExpression& expression) = default;
 
-      //! Returns the name of the variable.
+      /** Returns the name of the variable. */
       const std::string& GetName() const;
 
-      //! Returns the variable's initial value.
+      /** Returns the variable's initial value. */
       const Expression& GetInitialValue() const;
 
-      //! Returns the body to evaluate.
+      /** Returns the body to evaluate. */
       const Expression& GetBody() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -62,24 +59,24 @@ namespace Queries {
   };
 
   inline GlobalVariableDeclarationExpression::
-      GlobalVariableDeclarationExpression(const std::string& name,
-      const Expression& initialValue, const Expression& body)
-      : m_name{name},
-        m_initialValue{initialValue},
-        m_body{body} {}
+    GlobalVariableDeclarationExpression(std::string name,
+      Expression initialValue, Expression body)
+    : m_name(std::move(name)),
+      m_initialValue(std::move(initialValue)),
+      m_body(std::move(body)) {}
 
-  inline const std::string& GlobalVariableDeclarationExpression::
-      GetName() const {
+  inline const std::string&
+      GlobalVariableDeclarationExpression::GetName() const {
     return m_name;
   }
 
-  inline const Expression& GlobalVariableDeclarationExpression::
-      GetInitialValue() const {
+  inline const Expression&
+      GlobalVariableDeclarationExpression::GetInitialValue() const {
     return m_initialValue;
   }
 
-  inline const Expression& GlobalVariableDeclarationExpression::
-      GetBody() const {
+  inline const Expression&
+      GlobalVariableDeclarationExpression::GetBody() const {
     return m_body;
   }
 
@@ -100,8 +97,8 @@ namespace Queries {
 
   inline GlobalVariableDeclarationExpression::
     GlobalVariableDeclarationExpression()
-    : m_initialValue(ConstantExpression(false)),
-      m_body(ConstantExpression(false)) {}
+    : GlobalVariableDeclarationExpression(
+        "", ConstantExpression(false), ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void GlobalVariableDeclarationExpression::Shuttle(Shuttler& shuttle,
@@ -116,7 +113,6 @@ namespace Queries {
       const GlobalVariableDeclarationExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

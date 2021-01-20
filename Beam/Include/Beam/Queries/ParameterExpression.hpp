@@ -1,36 +1,33 @@
-#ifndef BEAM_PARAMETEREXPRESSION_HPP
-#define BEAM_PARAMETEREXPRESSION_HPP
+#ifndef BEAM_PARAMETER_EXPRESSION_HPP
+#define BEAM_PARAMETER_EXPRESSION_HPP
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/StandardDataTypes.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ParameterExpression
-      \brief Represents a variable/parameter used in an Expression.
-   */
-  class ParameterExpression : public VirtualExpression,
-      public CloneableMixin<ParameterExpression> {
+  /** Represents a variable/parameter used in an Expression. */
+  class ParameterExpression :
+      public VirtualExpression, public CloneableMixin<ParameterExpression> {
     public:
 
-      //! Constructs a ParameterExpression.
-      /*!
-        \param index The parameter's index.
-        \param type The parameter's type.
-      */
-      ParameterExpression(int index, const DataType& type);
+      /**
+       * Constructs a ParameterExpression.
+       * @param index The parameter's index.
+       * @param type The parameter's type.
+       */
+      ParameterExpression(int index, DataType type);
 
-      //! Returns the parameter's index.
+      /** Returns the parameter's index. */
       int GetIndex() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Beam::Serialization::DataShuttle;
@@ -42,10 +39,9 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  inline ParameterExpression::ParameterExpression(int index,
-      const DataType& type)
-      : m_index{index},
-        m_type{type} {}
+  inline ParameterExpression::ParameterExpression(int index, DataType type)
+    : m_index(index),
+      m_type(std::move(type)) {}
 
   inline int ParameterExpression::GetIndex() const {
     return m_index;
@@ -64,7 +60,7 @@ namespace Queries {
   }
 
   inline ParameterExpression::ParameterExpression()
-      : m_type{BoolType()} {}
+    : ParameterExpression(0, BoolType()) {}
 
   template<typename Shuttler>
   void ParameterExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
@@ -76,7 +72,6 @@ namespace Queries {
   inline void ExpressionVisitor::Visit(const ParameterExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

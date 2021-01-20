@@ -67,7 +67,8 @@ namespace Beam::Queries {
        * @param clientHandler The ServiceProtocolClientHandler providing
        *        ServiceProtocolClients to submit queries to.
        */
-      QueryClientPublisher(Ref<ServiceProtocolClientHandler> clientHandler);
+      explicit QueryClientPublisher(
+        Ref<ServiceProtocolClientHandler> clientHandler);
 
       /**
        * Submits a query.

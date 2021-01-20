@@ -1,43 +1,40 @@
-#ifndef BEAM_CONSTANTEVALUATORNODE_HPP
-#define BEAM_CONSTANTEVALUATORNODE_HPP
+#ifndef BEAM_CONSTANT_EVALUATOR_NODE_HPP
+#define BEAM_CONSTANT_EVALUATOR_NODE_HPP
 #include <type_traits>
 #include <utility>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ConstantEvaluatorNode
-      \brief Evaluates to a constant.
-      \tparam ResultType The type of constant to return.
+  /**
+   * Evaluates to a constant.
+   * @param <T> The type of constant to return.
    */
-  template<typename ResultType>
-  class ConstantEvaluatorNode : public EvaluatorNode<ResultType> {
+  template<typename T>
+  class ConstantEvaluatorNode : public EvaluatorNode<T> {
     public:
-      using Result = ResultType;
+      using Result = T;
 
-      //! Constructs a ConstantEvaluatorNode.
-      /*!
-        \param constant The constant to evaluate to.
-      */
-      ConstantEvaluatorNode(const Result& constant);
+      /**
+       * Constructs a ConstantEvaluatorNode.
+       * @param constant The constant to evaluate to.
+       */
+      explicit ConstantEvaluatorNode(Result constant);
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
       Result m_constant;
   };
 
-  template<typename ResultType>
-  ConstantEvaluatorNode<ResultType>::ConstantEvaluatorNode(
-    const Result& constant)
-    : m_constant(constant) {}
+  template<typename T>
+  ConstantEvaluatorNode<T>::ConstantEvaluatorNode(Result constant)
+    : m_constant(std::move(constant)) {}
 
-  template<typename ResultType>
-  typename ConstantEvaluatorNode<ResultType>::Result
-      ConstantEvaluatorNode<ResultType>::Eval() {
+  template<typename T>
+  typename ConstantEvaluatorNode<T>::Result ConstantEvaluatorNode<T>::Eval() {
     return m_constant;
   }
 
@@ -50,7 +47,6 @@ namespace Queries {
 
     using SupportedTypes = TypeList;
   };
-}
 }
 
 #endif

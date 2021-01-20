@@ -1,5 +1,5 @@
-#ifndef BEAM_INTERRUPTIONPOLICY_HPP
-#define BEAM_INTERRUPTIONPOLICY_HPP
+#ifndef BEAM_INTERRUPTION_POLICY_HPP
+#define BEAM_INTERRUPTION_POLICY_HPP
 #include <ostream>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/Queries.hpp"
@@ -7,26 +7,23 @@
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \enum InterruptionPolicy
-      \brief Enumerates the ways to recover from a Query being interrupted.
-   */
+  /** Enumerates the ways to recover from a Query being interrupted. */
   enum class InterruptionPolicy {
 
-    //! Breaks the Query.
+    /** Breaks the Query. */
     BREAK_QUERY,
 
-    //! Recovers all lost data.
+    /** Recovers all lost data. */
     RECOVER_DATA,
 
-    //! Ignores all lost data.
+    /** Ignores all lost data. */
     IGNORE_CONTINUE,
   };
 
-  inline std::ostream& operator <<(std::ostream& out,
-      InterruptionPolicy policy) {
+  inline std::ostream& operator <<(
+      std::ostream& out, InterruptionPolicy policy) {
     if(policy == InterruptionPolicy::BREAK_QUERY) {
       return out << "BREAK_QUERY";
     } else if(policy == InterruptionPolicy::RECOVER_DATA) {
@@ -38,10 +35,8 @@ namespace Queries {
     }
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<>
   struct IsStructure<Queries::InterruptionPolicy> : std::false_type {};
 
@@ -67,7 +62,6 @@ namespace Serialization {
       }
     }
   };
-}
 }
 
 #endif

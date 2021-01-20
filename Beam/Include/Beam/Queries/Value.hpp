@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERYVALUE_HPP
-#define BEAM_QUERYVALUE_HPP
+#ifndef BEAM_QUERIES_VALUE_HPP
+#define BEAM_QUERIES_VALUE_HPP
 #include <ostream>
 #include "Beam/Pointers/ClonePtr.hpp"
 #include "Beam/Queries/DataType.hpp"
@@ -7,35 +7,32 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Utilities/Streamable.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class VirtualValue
-      \brief Base class used to encapsulate a value used in a Query.
-   */
+  /** Base class used to encapsulate a value used in a Query. */
   class VirtualValue : public Streamable, public virtual Cloneable {
     public:
       virtual ~VirtualValue() = default;
 
-      //! Returns the VirtualValue's data type.
+      /** Returns the VirtualValue's data type. */
       virtual const DataType& GetType() const = 0;
 
-      //! Returns the value stored.
+      /** Returns the value stored. */
       template<typename T>
       const T& GetValue() const;
 
     protected:
 
-      //! Constructs a VirtualValue.
+      /** Constructs a VirtualValue. */
       VirtualValue() = default;
 
-      //! Copies a VirtualValue.
-      /*!
-        \param value The value to copy.
-      */
+      /**
+       * Copies a VirtualValue.
+       * @param value The value to copy.
+       */
       VirtualValue(const VirtualValue& type) = default;
 
-      //! Returns a raw pointer to the stored value.
+      /** Returns a raw pointer to the stored value. */
       virtual const void* GetValuePtr() const = 0;
 
       template<typename Shuttler>
@@ -52,7 +49,6 @@ namespace Queries {
 
   template<typename Shuttler>
   void VirtualValue::Shuttle(Shuttler& shuttle, unsigned int version) {}
-}
 }
 
 #endif

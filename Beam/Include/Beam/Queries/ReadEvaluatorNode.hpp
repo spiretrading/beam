@@ -1,31 +1,30 @@
-#ifndef BEAM_READEVALUATORNODE_HPP
-#define BEAM_READEVALUATORNODE_HPP
+#ifndef BEAM_READ_EVALUATOR_NODE_HPP
+#define BEAM_READ_EVALUATOR_NODE_HPP
 #include <memory>
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ReadEvaluatorNode
-      \brief Reads a value from a pointer.
-      \tparam T The type of data to read.
+  /**
+   * Reads a value from a pointer.
+   * @param <T> The type of data to read.
    */
   template<typename T>
   class ReadEvaluatorNode : public EvaluatorNode<T> {
     public:
       using Result = T;
 
-      //! Constructs a ReadEvaluatorNode.
-      /*!
-        \param value The value to read.
-      */
-      ReadEvaluatorNode(T* value);
+      /**
+       * Constructs a ReadEvaluatorNode.
+       * @param value The value to read.
+       */
+      explicit ReadEvaluatorNode(Result* value);
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
-      T* m_value;
+      Result* m_value;
   };
 
   template<typename TypeList>
@@ -39,14 +38,13 @@ namespace Queries {
   };
 
   template<typename T>
-  ReadEvaluatorNode<T>::ReadEvaluatorNode(T* value)
-      : m_value(value) {}
+  ReadEvaluatorNode<T>::ReadEvaluatorNode(Result* value)
+    : m_value(value) {}
 
   template<typename T>
   typename ReadEvaluatorNode<T>::Result ReadEvaluatorNode<T>::Eval() {
     return *m_value;
   }
-}
 }
 
 #endif

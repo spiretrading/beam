@@ -1,40 +1,36 @@
-#ifndef BEAM_NATIVEDATATYPE_HPP
-#define BEAM_NATIVEDATATYPE_HPP
+#ifndef BEAM_NATIVE_DATA_TYPE_HPP
+#define BEAM_NATIVE_DATA_TYPE_HPP
 #include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class NativeDataType
-      \brief A DataType that wraps a native data type.
-      \tparam T The native type represented.
+  /**
+   * A DataType that wraps a native data type.
+   * @param <T> The native type represented.
    */
   template<typename T>
   class NativeDataType : public VirtualDataType,
       public CloneableMixin<NativeDataType<T>> {
     public:
 
-      //! The native type represented.
+      /** The native type represented. */
       using Type = T;
 
-      //! Returns an instance of this type.
+      /** Returns an instance of this type. */
       static const NativeDataType& GetInstance();
 
-      //! Constructs a NativeDataType.
+      /** Constructs a NativeDataType. */
       NativeDataType() = default;
 
-      //! Copies a NativeDataType.
+      /** Copies a NativeDataType. */
       NativeDataType(const NativeDataType& type) = default;
 
-      virtual ~NativeDataType() override = default;
-
-      virtual const std::type_info& GetNativeType() const override;
+      const std::type_info& GetNativeType() const override;
 
     protected:
-      virtual bool IsEqual(const VirtualDataType& dataType) const override;
-
+      bool IsEqual(const VirtualDataType& dataType) const override;
       template<typename Shuttler>
       void Shuttle(Shuttler& shuttle, unsigned int version);
 
@@ -44,7 +40,7 @@ namespace Queries {
 
   template<typename T>
   const NativeDataType<T>& NativeDataType<T>::GetInstance() {
-    static NativeDataType<T> instance;
+    static auto instance = NativeDataType();
     return instance;
   }
 
@@ -63,7 +59,6 @@ namespace Queries {
   void NativeDataType<T>::Shuttle(Shuttler& shuttle, unsigned int version) {
     VirtualDataType::Shuttle(shuttle, version);
   }
-}
 }
 
 #endif

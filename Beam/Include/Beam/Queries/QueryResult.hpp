@@ -1,53 +1,50 @@
-#ifndef BEAM_QUERYRESULT_HPP
-#define BEAM_QUERYRESULT_HPP
+#ifndef BEAM_QUERY_RESULT_HPP
+#define BEAM_QUERY_RESULT_HPP
 #include <vector>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleVector.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \struct QueryResult
-      \brief Stores the result of a query.
-      \tparam T The type of data returned by the query.
+  /**
+   * Stores the result of a query.
+   * @param <T> The type of data returned by the query.
    */
   template<typename T>
   struct QueryResult {
 
-    //! The type of data returned by the query.
+    /** The type of data returned by the query. */
     using Type = T;
 
-    //! The query's unique id.
+    /** The query's unique id. */
     int m_queryId;
 
-    //! A snapshot of available data from the query.
+    /** A snapshot of available data from the query. */
     std::vector<Type> m_snapshot;
 
-    //! Constructs a default QueryResult.
+    /** Constructs a default QueryResult. */
     QueryResult();
 
-    //! Constructs a QueryResult.
-    /*!
-      \param queryId The query's unique id.
-      \param snapshot The snapshot of available data from the query.
-    */
+    /**
+     * Constructs a QueryResult.
+     * @param queryId The query's unique id.
+     * @param snapshot The snapshot of available data from the query.
+     */
     QueryResult(int queryId, std::vector<Type> snapshot);
   };
 
   template<typename T>
   QueryResult<T>::QueryResult()
-      : m_queryId{-1} {}
+    : m_queryId(-1) {}
 
   template<typename T>
   QueryResult<T>::QueryResult(int queryId, std::vector<Type> snapshot)
-      : m_queryId{queryId},
-        m_snapshot(std::move(snapshot)) {}
-}
+    : m_queryId(queryId),
+      m_snapshot(std::move(snapshot)) {}
 }
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<typename T>
   struct Shuttle<Queries::QueryResult<T>> {
     template<typename Shuttler>
@@ -57,7 +54,6 @@ namespace Serialization {
       shuttle.Shuttle("snapshot", value.m_snapshot);
     }
   };
-}
 }
 
 #endif

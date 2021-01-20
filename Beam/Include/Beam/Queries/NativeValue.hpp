@@ -1,68 +1,63 @@
-#ifndef BEAM_QUERYNATIVEVALUE_HPP
-#define BEAM_QUERYNATIVEVALUE_HPP
+#ifndef BEAM_QUERIES_NATIVE_VALUE_HPP
+#define BEAM_QUERIES_NATIVE_VALUE_HPP
 #include <type_traits>
 #include <utility>
 #include "Beam/Queries/NativeDataType.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Value.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class NativeValue
-      \brief Stores a Value using a native type.
-      \tparam T The DataType represented.
+  /**
+   * Stores a Value using a native type.
+   * @param <T> The DataType represented.
    */
   template<typename T>
-  class NativeValue : public VirtualValue,
-      public CloneableMixin<NativeValue<T>> {
+  class NativeValue :
+      public VirtualValue, public CloneableMixin<NativeValue<T>> {
     public:
 
-      //! The DataType represented.
+      /** The DataType represented. */
       using Type = T;
 
-      //! Constructs a NativeValue.
+      /** Constructs a NativeValue. */
       NativeValue();
 
-      //! Copies a NativeValue.
-      /*!
-        \param value The value to copy.
-      */
+      /**
+       * Copies a NativeValue.
+       * @param value The value to copy.
+       */
       NativeValue(const NativeValue& value) = default;
 
-      //! Constructs a NativeValue.
-      /*!
-        \param value Initializes the value.
-      */
+      /**
+       * Constructs a NativeValue.
+       * @param value Initializes the value.
+       */
       template<typename V, typename = std::enable_if_t<
         !std::is_base_of_v<NativeValue, std::decay_t<V>>>>
       explicit NativeValue(V&& value);
 
-      virtual ~NativeValue() = default;
+      const DataType& GetType() const override;
 
-      virtual const DataType& GetType() const;
-
-      //! Compares two NativeValues for equality.
-      /*!
-        \param value The value to compare to.
-        \return <code>true</code> iff the value wrapped by <i>this</i> is equal
-                to the value wrapped by <i>value</i>.
-      */
+      /**
+       * Compares two NativeValues for equality.
+       * @param value The value to compare to.
+       * @return <code>true</code> iff the value wrapped by <i>this</i> is equal
+       *         to the value wrapped by <i>value</i>.
+       */
       bool operator ==(const NativeValue& value) const;
 
-      //! Compares two NativeValues for inequality.
-      /*!
-        \param value The value to compare to.
-        \return <code>true</code> iff the value wrapped by <i>this</i> is
-                not equal to the value wrapped by <i>value</i>.
-      */
+      /**
+       * Compares two NativeValues for inequality.
+       * @param value The value to compare to.
+       * @return <code>true</code> iff the value wrapped by <i>this</i> is
+       *         not equal to the value wrapped by <i>value</i>.
+       */
       bool operator !=(const NativeValue& value) const;
 
     protected:
-      virtual const void* GetValuePtr() const;
-
-      virtual std::ostream& ToStream(std::ostream& out) const;
-
+      const void* GetValuePtr() const override;
+      std::ostream& ToStream(std::ostream& out) const override;
       template<typename Shuttler>
       void Shuttle(Shuttler& shuttle, unsigned int version);
 
@@ -117,7 +112,6 @@ namespace Queries {
     VirtualValue::Shuttle(shuttle, version);
     shuttle.Shuttle("value", m_value);
   }
-}
 }
 
 #endif

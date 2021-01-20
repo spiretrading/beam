@@ -1,5 +1,5 @@
-#ifndef BEAM_MEMBERACCESSEXPRESSION_HPP
-#define BEAM_MEMBERACCESSEXPRESSION_HPP
+#ifndef BEAM_MEMBER_ACCESS_EXPRESSION_HPP
+#define BEAM_MEMBER_ACCESS_EXPRESSION_HPP
 #include <string>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/DataType.hpp"
@@ -9,37 +9,34 @@
 #include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class MemberAccessExpression
-      \brief An Expression used to access an object's data member.
-   */
+  /** An Expression used to access an object's data member. */
   class MemberAccessExpression : public VirtualExpression,
       public CloneableMixin<MemberAccessExpression> {
     public:
 
-      //! Constructs a MemberAccessExpression.
-      /*!
-        \param name The name of the member to access.
-        \param type The member's DataType.
-        \param expression The Expression to access.
-      */
-      MemberAccessExpression(std::string name, const DataType& type,
-        const Expression& expression);
+      /**
+       * Constructs a MemberAccessExpression.
+       * @param name The name of the member to access.
+       * @param type The member's DataType.
+       * @param expression The Expression to access.
+       */
+      MemberAccessExpression(std::string name, DataType type,
+        Expression expression);
 
-      //! Returns name of the member to access.
+      /** Returns name of the member to access. */
       const std::string& GetName() const;
 
-      //! Returns the Expression to access.
+      /** Returns the Expression to access. */
       const Expression& GetExpression() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -53,10 +50,10 @@ namespace Queries {
   };
 
   inline MemberAccessExpression::MemberAccessExpression(std::string name,
-      const DataType& type, const Expression& expression)
-      : m_name(std::move(name)),
-        m_type(type),
-        m_expression(expression) {}
+    DataType type, Expression expression)
+    : m_name(std::move(name)),
+      m_type(std::move(type)),
+      m_expression(std::move(expression)) {}
 
   inline const std::string& MemberAccessExpression::GetName() const {
     return m_name;
@@ -80,8 +77,7 @@ namespace Queries {
   }
 
   inline MemberAccessExpression::MemberAccessExpression()
-      : m_type(BoolType()),
-        m_expression(ConstantExpression(false)) {}
+    : MemberAccessExpression("", BoolType(), ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void MemberAccessExpression::Shuttle(Shuttler& shuttle,
@@ -96,7 +92,6 @@ namespace Queries {
       const MemberAccessExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

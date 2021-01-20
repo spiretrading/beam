@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERYCONSTANTEXPRESSION_HPP
-#define BEAM_QUERYCONSTANTEXPRESSION_HPP
+#ifndef BEAM_QUERIES_CONSTANT_EXPRESSION_HPP
+#define BEAM_QUERIES_CONSTANT_EXPRESSION_HPP
 #include <utility>
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
@@ -8,45 +8,42 @@
 #include "Beam/Queries/Value.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ConstantExpression
-      \brief An Expression that evaluates to a constant.
-   */
+  /** An Expression that evaluates to a constant. */
   class ConstantExpression : public VirtualExpression,
       public CloneableMixin<ConstantExpression> {
     public:
 
-      //! Constructs a ConstantExpression.
-      /*!
-        \param value The value to evaluate to.
-      */
-      ConstantExpression(const Value& value);
+      /**
+       * Constructs a ConstantExpression.
+       * @param value The value to evaluate to.
+       */
+      explicit ConstantExpression(Value value);
 
-      //! Constructs a ConstantExpression representing a native value.
-      /*!
-        \param value The native value to evaluate to.
-      */
+      /**
+       * Constructs a ConstantExpression representing a native value.
+       * @param value The native value to evaluate to.
+       */
       template<typename T,
         typename = std::enable_if_t<!std::is_constructible_v<Value, T>>>
-      ConstantExpression(const T& value);
+      explicit ConstantExpression(T value);
 
-      //! Copies a ConstantExpression.
-      /*!
-        \param expression The ConstantExpression to copy.
-      */
+      /**
+       * Copies a ConstantExpression.
+       * @param expression The ConstantExpression to copy.
+       */
       ConstantExpression(const ConstantExpression& expression) = default;
 
-      //! Returns the Value to evaluate to.
+      /** Returns the Value to evaluate to. */
       const Value& GetValue() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -57,12 +54,12 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  inline ConstantExpression::ConstantExpression(const Value& value)
-    : m_value(value) {}
+  inline ConstantExpression::ConstantExpression(Value value)
+    : m_value(std::move(value)) {}
 
   template<typename T, typename>
-  ConstantExpression::ConstantExpression(const T& value)
-    : ConstantExpression(NativeValue(value)) {}
+  ConstantExpression::ConstantExpression(T value)
+    : ConstantExpression(NativeValue(std::move(value))) {}
 
   inline const Value& ConstantExpression::GetValue() const {
     return m_value;
@@ -92,7 +89,6 @@ namespace Queries {
   inline void ExpressionVisitor::Visit(const ConstantExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

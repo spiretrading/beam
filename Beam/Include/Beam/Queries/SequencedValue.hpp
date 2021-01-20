@@ -1,85 +1,84 @@
-#ifndef BEAM_SEQUENCEDVALUE_HPP
-#define BEAM_SEQUENCEDVALUE_HPP
+#ifndef BEAM_SEQUENCED_VALUE_HPP
+#define BEAM_SEQUENCED_VALUE_HPP
 #include <type_traits>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \struct SequencedValue
-      \brief Stores a value that is part of a Sequence.
-      \tparam T The value's data type.
+  /**
+   * Stores a value that is part of a Sequence.
+   * @param <T> The value's data type.
    */
   template<typename T>
   class SequencedValue {
     public:
 
-      //! The value's data type.
+      /** The value's data type. */
       using Value = T;
 
-      //! Constructs a SequenceValue.
+      /** Constructs a SequenceValue. */
       SequencedValue();
 
-      //! Converts from one type of SequencedValue to another.
-      /*!
-        \param value The value to convert.
-      */
+      /**
+       * Converts from one type of SequencedValue to another.
+       * @param value The value to convert.
+       */
       template<typename U>
       SequencedValue(const SequencedValue<U>& value);
 
-      //! Constructs a SequencedValue.
-      /*!
-        \param value The value to store.
-        \param sequence The value's Sequence.
-      */
-      template<typename ValueForward>
-      SequencedValue(ValueForward&& value, const Sequence& sequence);
+      /**
+       * Constructs a SequencedValue.
+       * @param value The value to store.
+       * @param sequence The value's Sequence.
+       */
+      template<typename VF>
+      SequencedValue(VF&& value, Sequence sequence);
 
-      //! Returns the Value.
+      /** Returns the Value. */
       const Value& GetValue() const;
 
-      //! Returns the Value.
+      /** Returns the Value. */
       Value& GetValue();
 
-      //! Returns the Sequence.
+      /** Returns the Sequence. */
       Sequence GetSequence() const;
 
-      //! Returns the Sequence.
+      /** Returns the Sequence. */
       Sequence& GetSequence();
 
-      //! Implicitly converts this to the value it represents.
+      /** Implicitly converts this to the value it represents. */
       operator const Value& () const;
 
-      //! Implicitly converts this to the value it represents.
+      /** Implicitly converts this to the value it represents. */
       operator Value& ();
 
-      //! Returns a reference to the Value.
+      /** Returns a reference to the Value. */
       const Value& operator *() const;
 
-      //! Returns a pointer to the Value.
+      /** Returns a pointer to the Value. */
       const Value* operator ->() const;
 
-      //! Returns a reference to the Value.
+      /** Returns a reference to the Value. */
       Value& operator *();
 
-      //! Returns a pointer to the Value.
+      /** Returns a pointer to the Value. */
       Value* operator ->();
 
-      //! Compares this value for equality.
-      /*!
-        \param value The value to compare to for equality.
-        \return <code>true</code> iff the two values are equal.
-      */
+      /**
+       * Compares this value for equality.
+       * @param value The value to compare to for equality.
+       * @return <code>true</code> iff the two values are equal.
+       */
       bool operator ==(const SequencedValue& rhs) const;
 
-      //! Compares this value for inequality.
-      /*!
-        \param value The value to compare to for inequality.
-        \return <code>true</code> iff the two values are not equal.
-      */
+      /**
+       * Compares this value for inequality.
+       * @param value The value to compare to for inequality.
+       * @return <code>true</code> iff the two values are not equal.
+       */
       bool operator !=(const SequencedValue& rhs) const;
 
     private:
@@ -92,9 +91,7 @@ namespace Queries {
   SequencedValue(V&& value, const Sequence& sequence) ->
     SequencedValue<std::decay_t<V>>;
 
-  /*! \struct SequenceComparator
-      \brief Defines a comparator for any two SequencedValues.
-   */
+  /** Defines a comparator for any two SequencedValues. */
   struct SequenceComparator {
     template<typename T, typename Q>
     bool operator()(const SequencedValue<T>& lhs,
@@ -125,10 +122,9 @@ namespace Queries {
       m_sequence(value.GetSequence()) {}
 
   template<typename T>
-  template<typename ValueForward>
-  SequencedValue<T>::SequencedValue(ValueForward&& value,
-      const Sequence& sequence)
-    : m_value(std::forward<ValueForward>(value)),
+  template<typename VF>
+  SequencedValue<T>::SequencedValue(VF&& value, Sequence sequence)
+    : m_value(std::forward<VF>(value)),
       m_sequence(sequence) {}
 
   template<typename T>
@@ -163,8 +159,8 @@ namespace Queries {
   }
 
   template<typename T>
-  const typename SequencedValue<T>::Value& SequencedValue<T>::
-      operator *() const {
+  const typename SequencedValue<T>::Value&
+      SequencedValue<T>::operator *() const {
     return m_value;
   }
 
@@ -200,10 +196,8 @@ namespace Queries {
     return lhs.GetSequence() < rhs.GetSequence();
   }
 }
-}
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
   template<typename T>
   struct Shuttle<Beam::Queries::SequencedValue<T>> {
     template<typename Shuttler>
@@ -213,7 +207,6 @@ namespace Serialization {
       shuttle.Shuttle("sequence", value.m_sequence);
     }
   };
-}
 }
 
 #endif

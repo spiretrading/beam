@@ -1,5 +1,5 @@
-#ifndef BEAM_GLOBALVARIABLEDECLARATIONEVALUATORNODE_HPP
-#define BEAM_GLOBALVARIABLEDECLARATIONEVALUATORNODE_HPP
+#ifndef BEAM_GLOBAL_VARIABLE_DECLARATION_EVALUATOR_NODE_HPP
+#define BEAM_GLOBAL_VARIABLE_DECLARATION_EVALUATOR_NODE_HPP
 #include <memory>
 #include <utility>
 #include <boost/mpl/transform.hpp>
@@ -10,43 +10,41 @@
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/Casts.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class GlobalVariableDeclarationEvaluatorNode
-      \brief Declares a global variable.
-      \tparam VariableType The type of variable to declare.
-      \tparam BodyType The type of body to evaluate.
+  /**
+   * Declares a global variable.
+   * @param <V> The type of variable to declare.
+   * @param <B> The type of body to evaluate.
    */
-  template<typename VariableType, typename BodyType>
-  class GlobalVariableDeclarationEvaluatorNode :
-      public EvaluatorNode<BodyType> {
+  template<typename V, typename B>
+  class GlobalVariableDeclarationEvaluatorNode : public EvaluatorNode<B> {
     public:
-      using Result = BodyType;
+      using Result = B;
 
-      //! The type of variable to declare.
-      using Variable = VariableType;
+      /** The type of variable to declare. */
+      using Variable = V;
 
-      //! The type of body to evaluate.
-      using Body = BodyType;
+      /** The type of body to evaluate. */
+      using Body = B;
 
-      //! Constructs a GlobalVariableDeclarationEvaluatorNode.
-      /*!
-        \param initialValue The variable's initial value.
-      */
+      /**
+       * Constructs a GlobalVariableDeclarationEvaluatorNode.
+       * @param initialValue The variable's initial value.
+       */
       GlobalVariableDeclarationEvaluatorNode(
         std::unique_ptr<EvaluatorNode<Variable>> initialValue);
 
-      //! Returns the variable.
+      /** Returns the variable. */
       const Variable& GetVariable() const;
 
-      //! Returns the variable.
+      /** Returns the variable. */
       Variable& GetVariable();
 
-      //! Sets the body of the declaration.
+      /** Sets the body of the declaration. */
       void SetBody(std::unique_ptr<EvaluatorNode<Body>> body);
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
       bool m_isInitialized;
@@ -63,7 +61,7 @@ namespace Queries {
         Out<void*> address) {
       auto evaluator = std::make_unique<GlobalVariableDeclarationEvaluatorNode<
         Variable, Body>>(StaticCast<std::unique_ptr<EvaluatorNode<Variable>>>(
-        std::move(initialValue)));
+          std::move(initialValue)));
       *address = &evaluator->GetVariable();
       return std::move(evaluator);
     }
@@ -98,39 +96,35 @@ namespace Queries {
         TypeList>::SupportedTypes;
   };
 
-  template<typename VariableType, typename BodyType>
-  GlobalVariableDeclarationEvaluatorNode<VariableType, BodyType>::
-      GlobalVariableDeclarationEvaluatorNode(
-        std::unique_ptr<EvaluatorNode<Variable>> initialValue)
-      : m_isInitialized(false),
-        m_initialValue(std::move(initialValue)) {}
+  template<typename V, typename B>
+  GlobalVariableDeclarationEvaluatorNode<V, B>::
+    GlobalVariableDeclarationEvaluatorNode(
+      std::unique_ptr<EvaluatorNode<Variable>> initialValue)
+    : m_isInitialized(false),
+      m_initialValue(std::move(initialValue)) {}
 
-  template<typename VariableType, typename BodyType>
-  const typename GlobalVariableDeclarationEvaluatorNode<
-      VariableType, BodyType>::Variable& GlobalVariableDeclarationEvaluatorNode<
-      VariableType, BodyType>::GetVariable() const {
+  template<typename V, typename B>
+  const typename GlobalVariableDeclarationEvaluatorNode<V, B>::Variable&
+      GlobalVariableDeclarationEvaluatorNode<V, B>::GetVariable() const {
     return m_variable;
   }
 
-  template<typename VariableType, typename BodyType>
-  typename GlobalVariableDeclarationEvaluatorNode<
-      VariableType, BodyType>::Variable&
-      GlobalVariableDeclarationEvaluatorNode<VariableType, BodyType>::
-      GetVariable() {
+  template<typename V, typename B>
+  typename GlobalVariableDeclarationEvaluatorNode<V, B>::Variable&
+      GlobalVariableDeclarationEvaluatorNode<V, B>::GetVariable() {
     return m_variable;
   }
 
-  template<typename VariableType, typename BodyType>
-  void GlobalVariableDeclarationEvaluatorNode<VariableType, BodyType>::SetBody(
+  template<typename V, typename B>
+  void GlobalVariableDeclarationEvaluatorNode<V, B>::SetBody(
       std::unique_ptr<EvaluatorNode<Body>> body) {
     m_body = std::move(body);
   }
 
   BEAM_SUPPRESS_RECURSIVE_OVERFLOW()
-  template<typename VariableType, typename BodyType>
-  typename GlobalVariableDeclarationEvaluatorNode<
-      VariableType, BodyType>::Result
-      GlobalVariableDeclarationEvaluatorNode<VariableType, BodyType>::Eval() {
+  template<typename V, typename B>
+  typename GlobalVariableDeclarationEvaluatorNode<V, B>::Result
+      GlobalVariableDeclarationEvaluatorNode<V, B>::Eval() {
     if(!m_isInitialized) {
       m_isInitialized = true;
       m_variable = m_initialValue->Eval();
@@ -138,7 +132,6 @@ namespace Queries {
     return m_body->Eval();
   }
   BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW()
-}
 }
 
 #endif

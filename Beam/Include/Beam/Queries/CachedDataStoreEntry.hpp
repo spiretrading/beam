@@ -1,5 +1,5 @@
-#ifndef BEAM_CACHEDDATASTOREENTRY_HPP
-#define BEAM_CACHEDDATASTOREENTRY_HPP
+#ifndef BEAM_CACHED_DATA_STORE_ENTRY_HPP
+#define BEAM_CACHED_DATA_STORE_ENTRY_HPP
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -9,58 +9,55 @@
 #include "Beam/Threading/CallOnce.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class CachedDataStoreEntry
-      \brief Stores cached data for a single index.
-      \tparam DataStoreType The type of data store to buffer writes to.
-      \tparam EvaluatorTranslatorFilterType The type of EvaluatorTranslator
-              used for filtering values.
+  /**
+   * Stores cached data for a single index.
+   * @param <D> The type of data store to buffer writes to.
+   * @param <T> The type of EvaluatorTranslator used for filtering values.
    */
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType =
-    typename GetTryDereferenceType<DataStoreType>::EvaluatorTranslatorFilter>
+  template<typename D, typename T =
+    typename GetTryDereferenceType<D>::EvaluatorTranslatorFilter>
   class CachedDataStoreEntry {
     public:
 
-      //! The type of data store to buffer writes to.
-      using DataStore = GetTryDereferenceType<DataStoreType>;
+      /** The type of data store to buffer writes to. */
+      using DataStore = GetTryDereferenceType<D>;
 
-      //! The type of query used to load values.
+      /** The type of query used to load values. */
       using Query = typename DataStore::Query;
 
-      //! The type of index used.
+      /** The type of index used. */
       using Index = typename DataStore::Index;
 
-      //! The type of value to store.
+      /** The type of value to store. */
       using Value = typename DataStore::Value;
 
-      //! The SequencedValue to store.
+      /** The SequencedValue to store. */
       using SequencedValue = typename DataStore::SequencedValue;
 
-      //! The IndexedValue to store.
+      /** The IndexedValue to store. */
       using IndexedValue = typename DataStore::IndexedValue;
 
-      //! The type of EvaluatorTranslator used for filtering values.
-      using EvaluatorTranslatorFilter = EvaluatorTranslatorFilterType;
+      /** The type of EvaluatorTranslator used for filtering values. */
+      using EvaluatorTranslatorFilter = T;
 
-      //! Constructs a CachedDataStoreEntry.
-      /*!
-        \param dataStore Initializes the data store to cache.
-        \param index The Index to cache.
-        \param blockSize The size of a single cache block.
-      */
-      template<typename DataStoreForward>
-      CachedDataStoreEntry(DataStoreForward&& dataStore, const Index& index,
-        int blockSize);
+      /**
+       * Constructs a CachedDataStoreEntry.
+       * @param dataStore Initializes the data store to cache.
+       * @param index The Index to cache.
+       * @param blockSize The size of a single cache block.
+       */
+      template<typename DF>
+      CachedDataStoreEntry(DF&& dataStore, const Index& index, int blockSize);
 
       std::vector<SequencedValue> Load(const Query& query);
 
       void Store(const IndexedValue& value);
 
     private:
-      using LocalDataStoreEntry = ::Beam::Queries::LocalDataStoreEntry<Query,
-        Value, EvaluatorTranslatorFilterType>;
+      using LocalDataStoreEntry =
+        ::Beam::Queries::LocalDataStoreEntry<Query, Value, T>;
       struct DataStoreEntry {
         Sequence m_sequence;
         LocalDataStoreEntry m_dataStore;
@@ -68,7 +65,7 @@ namespace Queries {
 
         DataStoreEntry(Sequence sequence);
       };
-      GetOptionalLocalPtr<DataStoreType> m_dataStore;
+      GetOptionalLocalPtr<D> m_dataStore;
       Index m_index;
       int m_blockSize;
       SynchronizedVector<std::unique_ptr<DataStoreEntry>> m_dataStores;
@@ -83,31 +80,27 @@ namespace Queries {
         Sequence end);
   };
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      DataStoreEntry::DataStoreEntry(Sequence sequence)
-      : m_sequence(sequence) {}
+  template<typename D, typename T>
+  CachedDataStoreEntry<D, T>::DataStoreEntry::DataStoreEntry(Sequence sequence)
+    : m_sequence(sequence) {}
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  template<typename DataStoreForward>
-  CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      CachedDataStoreEntry(DataStoreForward&& dataStore, const Index& index,
-      int blockSize)
-      : m_dataStore(std::forward<DataStoreForward>(dataStore)),
-        m_index(index),
-        m_blockSize(blockSize) {}
+  template<typename D, typename T>
+  template<typename DF>
+  CachedDataStoreEntry<D, T>::CachedDataStoreEntry(
+    DF&& dataStore, const Index& index, int blockSize)
+    : m_dataStore(std::forward<DF>(dataStore)),
+      m_index(index),
+      m_blockSize(blockSize) {}
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  std::vector<typename CachedDataStoreEntry<DataStoreType,
-      EvaluatorTranslatorFilterType>::SequencedValue>
-      CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::Load(
-      const Query& query) {
+  template<typename D, typename T>
+  std::vector<typename CachedDataStoreEntry<D, T>::SequencedValue>
+      CachedDataStoreEntry<D, T>::Load(const Query& query) {
     auto sequencedQuery = query;
     sequencedQuery.SetRange(ToSequence(query.GetIndex(), query.GetRange()));
-    auto start = Normalize(boost::get<Sequence>(
-      sequencedQuery.GetRange().GetStart()));
-    auto end = Normalize(boost::get<Sequence>(
-      sequencedQuery.GetRange().GetEnd()));
+    auto start =
+      Normalize(boost::get<Sequence>(sequencedQuery.GetRange().GetStart()));
+    auto end =
+      Normalize(boost::get<Sequence>(sequencedQuery.GetRange().GetEnd()));
     if(sequencedQuery.GetSnapshotLimit().GetType() ==
         SnapshotLimit::Type::HEAD) {
       return LoadHead(sequencedQuery, start, end);
@@ -116,68 +109,61 @@ namespace Queries {
     }
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  void CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      Store(const IndexedValue& value) {
+  template<typename D, typename T>
+  void CachedDataStoreEntry<D, T>::Store(const IndexedValue& value) {
     auto& cachedDataStore = LoadDataStore(Normalize(value.GetSequence()));
     cachedDataStore.Store(value);
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  Sequence CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      Normalize(Sequence sequence) const {
-    return Sequence(
-      sequence.GetOrdinal() - (sequence.GetOrdinal() % m_blockSize));
+  template<typename D, typename T>
+  Sequence CachedDataStoreEntry<D, T>::Normalize(Sequence sequence) const {
+    return
+      Sequence(sequence.GetOrdinal() - (sequence.GetOrdinal() % m_blockSize));
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  Range CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      ToSequence(const Index& index, const Range& range) {
-    Sequence start;
-    if(auto rangeStart =
-        boost::get<boost::posix_time::ptime>(&range.GetStart())) {
-      Query startRangeQuery;
-      startRangeQuery.SetIndex(index);
-      startRangeQuery.SetRange(Range(*rangeStart, Sequence::Last()));
-      startRangeQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD, 1);
-      auto matches = m_dataStore->Load(startRangeQuery);
-      if(matches.empty()) {
-        start = Sequence::Last();
-      } else {
-        start = matches.front().GetSequence();
+  template<typename D, typename T>
+  Range CachedDataStoreEntry<D, T>::ToSequence(
+      const Index& index, const Range& range) {
+    auto start = [&] {
+      if(auto rangeStart =
+          boost::get<boost::posix_time::ptime>(&range.GetStart())) {
+        auto startRangeQuery = Query();
+        startRangeQuery.SetIndex(index);
+        startRangeQuery.SetRange(Range(*rangeStart, Sequence::Last()));
+        startRangeQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD, 1);
+        auto matches = m_dataStore->Load(startRangeQuery);
+        if(matches.empty()) {
+          return Sequence::Last();
+        }
+        return matches.front().GetSequence();
       }
-    } else {
-      start = boost::get<Sequence>(range.GetStart());
-    }
-    Sequence end;
-    if(auto rangeEnd = boost::get<boost::posix_time::ptime>(&range.GetEnd())) {
-      Query endRangeQuery;
-      endRangeQuery.SetIndex(index);
-      endRangeQuery.SetRange(Range(Sequence::First(), *rangeEnd));
-      endRangeQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
-      auto matches = m_dataStore->Load(endRangeQuery);
-      if(matches.empty()) {
-        end = Sequence::First();
-      } else {
-        end = matches.front().GetSequence();
+      return boost::get<Sequence>(range.GetStart());
+    }();
+    auto end = [&] {
+      if(auto rangeEnd =
+          boost::get<boost::posix_time::ptime>(&range.GetEnd())) {
+        auto endRangeQuery = Query();
+        endRangeQuery.SetIndex(index);
+        endRangeQuery.SetRange(Range(Sequence::First(), *rangeEnd));
+        endRangeQuery.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
+        auto matches = m_dataStore->Load(endRangeQuery);
+        if(matches.empty()) {
+          return Sequence::First();
+        }
+        return matches.front().GetSequence();
       }
-    } else {
-      end = boost::get<Sequence>(range.GetEnd());
-    }
+      return boost::get<Sequence>(range.GetEnd());
+    }();
     return Range(start, end);
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  boost::optional<typename CachedDataStoreEntry<
-      DataStoreType, EvaluatorTranslatorFilterType>::LocalDataStoreEntry&>
-      CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      FindDataStore(Sequence sequence) {
+  template<typename D, typename T>
+  boost::optional<typename CachedDataStoreEntry<D, T>::LocalDataStoreEntry&>
+      CachedDataStoreEntry<D, T>::FindDataStore(Sequence sequence) {
     auto dataStore = m_dataStores.With(
-      [&] (std::vector<std::unique_ptr<DataStoreEntry>>& dataStores) ->
-          DataStoreEntry* {
+      [&] (auto& dataStores) -> DataStoreEntry* {
         auto dataStoreIterator = std::lower_bound(dataStores.begin(),
-          dataStores.end(), sequence,
-          [] (const std::unique_ptr<DataStoreEntry>& lhs, Sequence rhs) {
+          dataStores.end(), sequence, [] (const auto& lhs, auto rhs) {
             return lhs->m_sequence < rhs;
           });
         if(dataStoreIterator == dataStores.end() ||
@@ -186,22 +172,19 @@ namespace Queries {
         }
         return dataStoreIterator->get();
       });
-    if(dataStore == nullptr) {
-      return boost::none;
+    if(dataStore) {
+      return dataStore->m_dataStore;
     }
-    return dataStore->m_dataStore;
+    return boost::none;
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  typename CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      LocalDataStoreEntry& CachedDataStoreEntry<DataStoreType,
-      EvaluatorTranslatorFilterType>::LoadDataStore(Sequence sequence) {
+  template<typename D, typename T>
+  typename CachedDataStoreEntry<D, T>::LocalDataStoreEntry&
+      CachedDataStoreEntry<D, T>::LoadDataStore(Sequence sequence) {
     auto dataStore = m_dataStores.With(
-      [&] (std::vector<std::unique_ptr<DataStoreEntry>>& dataStores) ->
-          DataStoreEntry* {
+      [&] (auto& dataStores) -> DataStoreEntry* {
         auto dataStoreIterator = std::lower_bound(dataStores.begin(),
-          dataStores.end(), sequence,
-          [] (const std::unique_ptr<DataStoreEntry>& lhs, Sequence rhs) {
+          dataStores.end(), sequence, [] (const auto& lhs, auto rhs) {
             return lhs->m_sequence < rhs;
           });
         if(dataStoreIterator == dataStores.end() ||
@@ -212,37 +195,33 @@ namespace Queries {
         }
         return dataStoreIterator->get();
       });
-    dataStore->m_initializer.Call(
-      [&] {
-        Query query;
-        query.SetIndex(m_index);
-        query.SetRange(sequence,
-          Sequence(sequence.GetOrdinal() + m_blockSize - 1));
-        query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-        auto matches = m_dataStore->Load(query);
-        dataStore->m_dataStore.Store(std::move(matches));
-      });
+    dataStore->m_initializer.Call([&] {
+      auto query = Query();
+      query.SetIndex(m_index);
+      query.SetRange(sequence,
+        Sequence(sequence.GetOrdinal() + m_blockSize - 1));
+      query.SetSnapshotLimit(SnapshotLimit::Unlimited());
+      auto matches = m_dataStore->Load(query);
+      dataStore->m_dataStore.Store(std::move(matches));
+    });
     return dataStore->m_dataStore;
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  std::vector<typename CachedDataStoreEntry<DataStoreType,
-      EvaluatorTranslatorFilterType>::SequencedValue>
-      CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      LoadHead(const Query& query, Sequence start, Sequence end) {
-    std::vector<SequencedValue> matches;
+  template<typename D, typename T>
+  std::vector<typename CachedDataStoreEntry<D, T>::SequencedValue>
+      CachedDataStoreEntry<D, T>::LoadHead(
+        const Query& query, Sequence start, Sequence end) {
+    auto matches = std::vector<SequencedValue>();
     auto subsetQuery = query;
     auto subsetStart = boost::get<Sequence>(query.GetRange().GetStart());
     auto remainingLimit = subsetQuery.GetSnapshotLimit().GetSize();
     for(auto ordinal = start.GetOrdinal(); ordinal <= end.GetOrdinal();
         ordinal += m_blockSize) {
       if(query.GetSnapshotLimit() != SnapshotLimit::Unlimited()) {
-        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD,
-          remainingLimit);
+        subsetQuery.SetSnapshotLimit(SnapshotLimit::Type::HEAD, remainingLimit);
       }
       subsetQuery.SetRange(subsetStart, query.GetRange().GetEnd());
-      auto blockDataStore = FindDataStore(Sequence(ordinal));
-      if(blockDataStore.is_initialized()) {
+      if(auto blockDataStore = FindDataStore(Sequence(ordinal))) {
         auto subsetMatches = blockDataStore->Load(subsetQuery);
         remainingLimit -= static_cast<int>(subsetMatches.size());
         if(matches.empty()) {
@@ -272,12 +251,11 @@ namespace Queries {
     return matches;
   }
 
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-  std::vector<typename CachedDataStoreEntry<DataStoreType,
-      EvaluatorTranslatorFilterType>::SequencedValue>
-      CachedDataStoreEntry<DataStoreType, EvaluatorTranslatorFilterType>::
-      LoadTail(const Query& query, Sequence start, Sequence end) {
-    std::vector<std::vector<SequencedValue>> partitions;
+  template<typename D, typename T>
+  std::vector<typename CachedDataStoreEntry<D, T>::SequencedValue>
+      CachedDataStoreEntry<D, T>::LoadTail(
+        const Query& query, Sequence start, Sequence end) {
+    auto partitions = std::vector<std::vector<SequencedValue>>();
     auto subsetQuery = query;
     auto subsetEnd = boost::get<Sequence>(query.GetRange().GetEnd());
     auto remainingLimit = subsetQuery.GetSnapshotLimit().GetSize();
@@ -307,7 +285,7 @@ namespace Queries {
     } else if(partitions.size() == 1) {
       return std::move(partitions.front());
     }
-    std::vector<SequencedValue> matches;
+    auto matches = std::vector<SequencedValue>();
     for(auto& partition : boost::adaptors::reverse(partitions)) {
       for(auto& match : partition) {
         matches.push_back(std::move(match));
@@ -315,7 +293,6 @@ namespace Queries {
     }
     return matches;
   }
-}
 }
 
 #endif

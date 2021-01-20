@@ -1,57 +1,54 @@
-#ifndef BEAM_QUERYDATATYPE_HPP
-#define BEAM_QUERYDATATYPE_HPP
+#ifndef BEAM_QUERIES_DATA_TYPE_HPP
+#define BEAM_QUERIES_DATA_TYPE_HPP
 #include <typeinfo>
 #include "Beam/Pointers/ClonePtr.hpp"
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Utilities/Streamable.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class VirtualDataType
-      \brief Base class representing the data type an Expression evaluates to.
-   */
+  /** Base class representing the data type an Expression evaluates to. */
   class VirtualDataType : public virtual Cloneable, public Streamable {
     public:
       virtual ~VirtualDataType() = default;
 
-      //! Returns the native type represented.
+      /** Returns the native type represented. */
       virtual const std::type_info& GetNativeType() const = 0;
 
-      //! Checks if two VirtualDataTypes represent the same type.
-      /*!
-        \param dataType The VirtualDataType to compare to.
-        \return <code>true</code> iff <code>this</code> has the same runtime
-                type as <i>dataType</i> and they are both equal.
-      */
+      /**
+       * Checks if two VirtualDataTypes represent the same type.
+       * @param dataType The VirtualDataType to compare to.
+       * @return <code>true</code> iff <code>this</code> has the same runtime
+       *         type as <i>dataType</i> and they are both equal.
+       */
       bool operator ==(const VirtualDataType& dataType) const;
 
-      //! Checks if two VirtualDataTypes represent different types.
-      /*!
-        \param dataType The VirtualDataType to compare to.
-        \return <code>true</code> iff <code>this</code> has a different runtime
-                type as <i>dataType</i> or they they are both equal.
-      */
+      /**
+       * Checks if two VirtualDataTypes represent different types.
+       * @param dataType The VirtualDataType to compare to.
+       * @return <code>true</code> iff <code>this</code> has a different runtime
+       *         type as <i>dataType</i> or they they are both equal.
+       */
       bool operator !=(const VirtualDataType& dataType) const;
 
     protected:
 
-      //! Constructs a DataType.
+      /** Constructs a DataType. */
       VirtualDataType() = default;
 
-      //! Copies a DataType.
-      /*!
-        \param type The type to copy.
-      */
+      /**
+       * Copies a DataType.
+       * @param type The type to copy.
+       */
       VirtualDataType(const VirtualDataType& type) = default;
 
-      //! Checks if two VirtualDataTypes represent the same type.
-      /*!
-        \param dataType The VirtualDataType to compare to.
-        \return <code>true</code> iff <code>this</code> has the same runtime
-                type as <i>dataType</i> and they are both equal.
-      */
+      /**
+       * Checks if two VirtualDataTypes represent the same type.
+       * @param dataType The VirtualDataType to compare to.
+       * @return <code>true</code> iff <code>this</code> has the same runtime
+       *         type as <i>dataType</i> and they are both equal.
+       */
       virtual bool IsEqual(const VirtualDataType& dataType) const = 0;
 
       template<typename Shuttler>
@@ -73,7 +70,6 @@ namespace Queries {
 
   template<typename Shuttler>
   void VirtualDataType::Shuttle(Shuttler& shuttle, unsigned int version) {}
-}
 }
 
 #endif

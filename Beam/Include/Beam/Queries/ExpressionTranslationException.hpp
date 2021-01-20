@@ -1,30 +1,17 @@
-#ifndef BEAM_EXPRESSIONTRANSLATIONEXCEPTION_HPP
-#define BEAM_EXPRESSIONTRANSLATIONEXCEPTION_HPP
+#ifndef BEAM_EXPRESSION_TRANSLATION_EXCEPTION_HPP
+#define BEAM_EXPRESSION_TRANSLATION_EXCEPTION_HPP
 #include <stdexcept>
 #include <boost/exception/exception.hpp>
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class ExpressionTranslationException
-      \brief Signals that an error occurred while translating an Expression.
-   */
+  /** Signals that an error occurred while translating an Expression. */
   class ExpressionTranslationException : public std::runtime_error,
       public boost::exception {
     public:
-
-      //! Constructs a ExpressionTranslationException.
-      /*!
-        \param message A message describing the error.
-      */
-      ExpressionTranslationException(const std::string& message);
+      using std::runtime_error::runtime_error;
   };
-
-  inline ExpressionTranslationException::ExpressionTranslationException(
-      const std::string& message)
-      : std::runtime_error(message) {}
-}
 }
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef BEAM_SHUTTLEQUERYTYPES_HPP
-#define BEAM_SHUTTLEQUERYTYPES_HPP
+#ifndef BEAM_SHUTTLE_QUERY_TYPES_HPP
+#define BEAM_SHUTTLE_QUERY_TYPES_HPP
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
@@ -13,8 +13,7 @@
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
   BEAM_REGISTER_TYPES(RegisterDataTypes,
     (BoolType, "Beam.Queries.BoolType"),
     (CharType, "Beam.Queries.CharType"),
@@ -46,13 +45,12 @@ namespace Queries {
     (VariableExpression, "Beam.Queries.VariableExpression"));
 
   template<typename SenderType>
-  void RegisterQueryTypes(Out<
-      Serialization::TypeRegistry<SenderType>> registry) {
+  void RegisterQueryTypes(
+      Out<Serialization::TypeRegistry<SenderType>> registry) {
     RegisterDataTypes(Store(registry));
     RegisterValueTypes(Store(registry));
     RegisterExpressionTypes(Store(registry));
   }
-}
 }
 
 #endif

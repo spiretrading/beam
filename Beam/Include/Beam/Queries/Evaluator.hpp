@@ -133,13 +133,13 @@ namespace Beam::Queries {
   void EvaluatorTranslator<QueryTypes>::Visit(
       const ReduceExpression& expression) {
     auto translator = NewTranslator();
-    auto evaluator = Queries::Translate(expression.GetReduceExpression(),
-      *translator);
+    auto evaluator =
+      Queries::Translate(expression.GetReduceExpression(), *translator);
     expression.GetSeriesExpression()->Apply(*this);
     m_evaluator.reset(Instantiate<ReduceEvaluatorNodeTranslator<NativeTypes>>(
       expression.GetReduceExpression()->GetType()->GetNativeType())(
-      std::move(evaluator), std::move(std::move(m_evaluator)),
-      expression.GetInitialValue()));
+        std::move(evaluator), std::move(std::move(m_evaluator)),
+        expression.GetInitialValue()));
   }
 }
 

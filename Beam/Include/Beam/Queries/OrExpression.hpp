@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERYOREXPRESSION_HPP
-#define BEAM_QUERYOREXPRESSION_HPP
+#ifndef BEAM_QUERIES_OR_EXPRESSION_HPP
+#define BEAM_QUERIES_OR_EXPRESSION_HPP
 #include <utility>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
@@ -10,41 +10,38 @@
 #include "Beam/Queries/TypeCompatibilityException.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class OrExpression
-      \brief Represents a logical or expression.
-   */
-  class OrExpression : public VirtualExpression,
-      public CloneableMixin<OrExpression> {
+  /** Represents a logical or expression. */
+  class OrExpression :
+      public VirtualExpression, public CloneableMixin<OrExpression> {
     public:
 
-      //! Constructs an OrExpression.
-      /*!
-        \param lhs The left hand side of the Expression.
-        \param rhs The right hand side of the Expression.
-      */
-      OrExpression(const Expression& lhs, const Expression& rhs);
+      /**
+       * Constructs an OrExpression.
+       * @param lhs The left hand side of the Expression.
+       * @param rhs The right hand side of the Expression.
+       */
+      OrExpression(Expression lhs, Expression rhs);
 
-      //! Copies an OrExpression.
-      /*!
-        \param expression The OrExpression to copy.
-      */
+      /**
+       * Copies an OrExpression.
+       * @param expression The OrExpression to copy.
+       */
       OrExpression(const OrExpression& expression) = default;
 
-      //! Returns the left hand side of the Expression.
+      /** Returns the left hand side of the Expression. */
       const Expression& GetLeftExpression() const;
 
-      //! Returns the right hand side of the Expression.
+      /** Returns the right hand side of the Expression. */
       const Expression& GetRightExpression() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -56,44 +53,42 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  //! Makes an Expression that represents the logical or over a sequence of
-  //! sub-Expressions.
-  /*!
-    \param first An iterator to the first Expression.
-    \param last An iterator to one past the last Expression.
-    \return An Expression that represents the logical or over the sequence of
-            sub-Expressions.
-  */
+  /**
+   * Makes an Expression that represents the logical or over a sequence of
+   * sub-Expressions.
+   * @param first An iterator to the first Expression.
+   * @param last An iterator to one past the last Expression.
+   * @return An Expression that represents the logical or over the sequence of
+   *         sub-Expressions.
+   */
   template<typename ForwardIterator>
-  inline Expression MakeOrExpression(ForwardIterator first,
-      ForwardIterator last) {
+  inline Expression MakeOrExpression(
+      ForwardIterator first, ForwardIterator last) {
     if(first == last) {
       return ConstantExpression(false);
     }
     if((*first)->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException(
-        "Expression must be bool."));
+      BOOST_THROW_EXCEPTION(
+        TypeCompatibilityException("Expression must be bool."));
     }
     if(first + 1 == last) {
       return *first;
     } else {
       auto right = MakeOrExpression(first + 1, last);
-      OrExpression expression(*first, right);
-      return expression;
+      return OrExpression(*first, right);
     }
   }
 
-  inline OrExpression::OrExpression(const Expression& lhs,
-      const Expression& rhs)
-      : m_left{lhs},
-        m_right{rhs} {
+  inline OrExpression::OrExpression(Expression lhs, Expression rhs)
+      : m_left(std::move(lhs)),
+        m_right(std::move(rhs)) {
     if(m_left->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException{
-        "Expression must be bool."});
+      BOOST_THROW_EXCEPTION(
+        TypeCompatibilityException("Expression must be bool."));
     }
     if(m_right->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException{
-        "Expression must be bool."});
+      BOOST_THROW_EXCEPTION(
+        TypeCompatibilityException("Expression must be bool."));
     }
   }
 
@@ -106,7 +101,7 @@ namespace Queries {
   }
 
   inline const DataType& OrExpression::GetType() const {
-    static DataType value = BoolType::GetInstance();
+    static auto value = DataType(BoolType::GetInstance());
     return value;
   }
 
@@ -120,8 +115,8 @@ namespace Queries {
   }
 
   inline OrExpression::OrExpression()
-      : m_left{ConstantExpression(false)},
-        m_right{ConstantExpression(false)} {}
+    : m_left(ConstantExpression(false)),
+      m_right(ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void OrExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
@@ -130,12 +125,12 @@ namespace Queries {
     shuttle.Shuttle("right", m_right);
     if(Serialization::IsReceiver<Shuttler>::value) {
       if(m_left->GetType()->GetNativeType() != typeid(bool)) {
-        BOOST_THROW_EXCEPTION(Serialization::SerializationException(
-          "Incompatible types."));
+        BOOST_THROW_EXCEPTION(
+          Serialization::SerializationException("Incompatible types."));
       }
       if(m_right->GetType()->GetNativeType() != typeid(bool)) {
-        BOOST_THROW_EXCEPTION(Serialization::SerializationException(
-          "Incompatible types."));
+        BOOST_THROW_EXCEPTION(
+          Serialization::SerializationException("Incompatible types."));
       }
     }
   }
@@ -143,7 +138,6 @@ namespace Queries {
   inline void ExpressionVisitor::Visit(const OrExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

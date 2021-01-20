@@ -6,8 +6,7 @@
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
   /** Represents a query for a list of available indexes. */
   class IndexListQuery : public SnapshotLimitedQuery, public FilteredQuery {
@@ -31,7 +30,6 @@ namespace Queries {
       version);
     Beam::Serialization::Shuttle<FilteredQuery>()(shuttle, *this, version);
   }
-}
 }
 
 #endif

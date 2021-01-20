@@ -18,7 +18,7 @@ namespace Beam::Queries {
        * Constructs a SnapshotLimitedQuery with a specified SnapshotLimit.
        * @param limit The SnapshotLimit.
        */
-      SnapshotLimitedQuery(const SnapshotLimit& limit);
+      explicit SnapshotLimitedQuery(SnapshotLimit limit);
 
       /** Returns the SnapshotLimit. */
       const SnapshotLimit& GetSnapshotLimit() const;
@@ -43,7 +43,7 @@ namespace Beam::Queries {
     return out << query.GetSnapshotLimit();
   }
 
-  inline SnapshotLimitedQuery::SnapshotLimitedQuery(const SnapshotLimit& limit)
+  inline SnapshotLimitedQuery::SnapshotLimitedQuery(SnapshotLimit limit)
     : m_snapshotLimit(limit) {}
 
   inline const SnapshotLimit& SnapshotLimitedQuery::GetSnapshotLimit() const {

@@ -1,51 +1,49 @@
-#ifndef BEAM_PARAMETEREVALUATORNODE_HPP
-#define BEAM_PARAMETEREVALUATORNODE_HPP
+#ifndef BEAM_PARAMETER_EVALUATOR_NODE_HPP
+#define BEAM_PARAMETER_EVALUATOR_NODE_HPP
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class BaseParameterEvaluatorNode
-      \brief Base class for the ParameterEvaluatorNode.
-   */
+  /** Base class for the ParameterEvaluatorNode. */
   class BaseParameterEvaluatorNode {
     public:
+      virtual ~BaseParameterEvaluatorNode() = default;
 
-      //! Returns the type evaluated by this node.
+      /** Returns the type evaluated by this node. */
       virtual const std::type_info& GetResultType() const = 0;
 
-      //! Returns the parameter index.
+      /** Returns the parameter index. */
       virtual int GetIndex() const = 0;
 
-      //! Initializes the parameter to use when performing an evaluation.
+      /** Initializes the parameter to use when performing an evaluation. */
       virtual void SetParameter(const void** parameter) = 0;
   };
 
-  /*! \class ParameterEvaluatorNode
-      \brief Evaluates to a supplied parameter.
-      \tparam ResultType The type of parameter to return.
+  /**
+   * Evaluates to a supplied parameter.
+   * @param T The type of parameter to return.
    */
-  template<typename ResultType>
-  class ParameterEvaluatorNode : public EvaluatorNode<ResultType>,
-      public BaseParameterEvaluatorNode {
+  template<typename T>
+  class ParameterEvaluatorNode :
+      public EvaluatorNode<T>, public BaseParameterEvaluatorNode {
     public:
-      using Result = ResultType;
+      using Result = T;
 
-      //! Constructs a ParameterEvaluatorNode with a given index.
-      /*!
-        \param index The parameter's index.
-      */
-      ParameterEvaluatorNode(int index);
+      /**
+       * Constructs a ParameterEvaluatorNode with a given index.
+       * @param index The parameter's index.
+       */
+      explicit ParameterEvaluatorNode(int index);
 
-      virtual const std::type_info& GetResultType() const;
+      const std::type_info& GetResultType() const override;
 
-      virtual int GetIndex() const;
+      int GetIndex() const override;
 
-      virtual void SetParameter(const void** parameter);
+      void SetParameter(const void** parameter) override;
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
       int m_index;
@@ -62,34 +60,30 @@ namespace Queries {
     using SupportedTypes = TypeList;
   };
 
-  template<typename ResultType>
-  ParameterEvaluatorNode<ResultType>::ParameterEvaluatorNode(int index)
-      : m_index(index),
-        m_parameter(nullptr) {}
+  template<typename T>
+  ParameterEvaluatorNode<T>::ParameterEvaluatorNode(int index)
+    : m_index(index),
+      m_parameter(nullptr) {}
 
-  template<typename ResultType>
-  const std::type_info& ParameterEvaluatorNode<ResultType>::
-      GetResultType() const {
-    return EvaluatorNode<ResultType>::GetResultType();
+  template<typename T>
+  const std::type_info& ParameterEvaluatorNode<T>::GetResultType() const {
+    return EvaluatorNode<T>::GetResultType();
   }
 
-  template<typename ResultType>
-  int ParameterEvaluatorNode<ResultType>::GetIndex() const {
+  template<typename T>
+  int ParameterEvaluatorNode<T>::GetIndex() const {
     return m_index;
   }
 
-  template<typename ResultType>
-  void ParameterEvaluatorNode<ResultType>::SetParameter(
-      const void** parameter) {
+  template<typename T>
+  void ParameterEvaluatorNode<T>::SetParameter(const void** parameter) {
     m_parameter = reinterpret_cast<const Result**>(parameter);
   }
 
-  template<typename ResultType>
-  typename ParameterEvaluatorNode<ResultType>::Result
-      ParameterEvaluatorNode<ResultType>::Eval() {
+  template<typename T>
+  typename ParameterEvaluatorNode<T>::Result ParameterEvaluatorNode<T>::Eval() {
     return **m_parameter;
   }
-}
 }
 
 #endif

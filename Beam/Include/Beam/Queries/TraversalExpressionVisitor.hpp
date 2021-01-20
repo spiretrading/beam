@@ -1,5 +1,5 @@
-#ifndef BEAM_TRAVERSALEXPRESSIONVISITOR_HPP
-#define BEAM_TRAVERSALEXPRESSIONVISITOR_HPP
+#ifndef BEAM_TRAVERSAL_EXPRESSION_VISITOR_HPP
+#define BEAM_TRAVERSAL_EXPRESSION_VISITOR_HPP
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
@@ -12,38 +12,35 @@
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Queries/Queries.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class TraversalExpressionVisitor
-      \brief An ExpressionVisitor that traverses all of its children.
-   */
+  /** An ExpressionVisitor that traverses all of its children. */
   class TraversalExpressionVisitor : public ExpressionVisitor {
     public:
-      virtual void Visit(const ConstantExpression& expression) override;
+      void Visit(const ConstantExpression& expression) override;
 
-      virtual void Visit(const FunctionExpression& expression) override;
+      void Visit(const FunctionExpression& expression) override;
 
-      virtual void Visit(
+      void Visit(
         const GlobalVariableDeclarationExpression& expression) override;
 
-      virtual void Visit(const MemberAccessExpression& expression) override;
+      void Visit(const MemberAccessExpression& expression) override;
 
-      virtual void Visit(const OrExpression& expression) override;
+      void Visit(const OrExpression& expression) override;
 
-      virtual void Visit(const ParameterExpression& expression) override;
+      void Visit(const ParameterExpression& expression) override;
 
-      virtual void Visit(const ReduceExpression& expression) override;
+      void Visit(const ReduceExpression& expression) override;
 
-      virtual void Visit(const SetVariableExpression& expression) override;
+      void Visit(const SetVariableExpression& expression) override;
 
-      virtual void Visit(const VariableExpression& expression) override;
+      void Visit(const VariableExpression& expression) override;
 
-      virtual void Visit(const VirtualExpression& expression) override;
+      void Visit(const VirtualExpression& expression) override;
   };
 
   inline void TraversalExpressionVisitor::Visit(
-      const ConstantExpression& expression) {}
+    const ConstantExpression& expression) {}
 
   inline void TraversalExpressionVisitor::Visit(
       const FunctionExpression& expression) {
@@ -84,11 +81,10 @@ namespace Queries {
   }
 
   inline void TraversalExpressionVisitor::Visit(
-      const VariableExpression& expression) {}
+    const VariableExpression& expression) {}
 
   inline void TraversalExpressionVisitor::Visit(
-      const VirtualExpression& expression) {}
-}
+    const VirtualExpression& expression) {}
 }
 
 #endif

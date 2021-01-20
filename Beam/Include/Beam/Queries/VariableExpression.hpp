@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERIESVARIABLEEXPRESSION_HPP
-#define BEAM_QUERIESVARIABLEEXPRESSION_HPP
+#ifndef BEAM_QUERIES_VARIABLE_EXPRESSION_HPP
+#define BEAM_QUERIES_VARIABLE_EXPRESSION_HPP
 #include <string>
 #include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
@@ -8,38 +8,35 @@
 #include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class VariableExpression
-      \brief Evaluates to the current value of a variable.
-   */
-  class VariableExpression : public VirtualExpression,
-      public CloneableMixin<VariableExpression> {
+  /** Evaluates to the current value of a variable. */
+  class VariableExpression :
+      public VirtualExpression, public CloneableMixin<VariableExpression> {
     public:
 
-      //! Constructs a VariableExpression.
-      /*!
-        \param name The name of the variable.
-        \param dataType The variable's data type.
-      */
-      VariableExpression(const std::string& name, const DataType& dataType);
+      /**
+       * Constructs a VariableExpression.
+       * @param name The name of the variable.
+       * @param dataType The variable's data type.
+       */
+      VariableExpression(std::string name, DataType dataType);
 
-      //! Copies a VariableExpression.
-      /*!
-        \param expression The VariableExpression to copy.
-      */
+      /**
+       * Copies a VariableExpression.
+       * @param expression The VariableExpression to copy.
+       */
       VariableExpression(const VariableExpression& expression) = default;
 
-      //! Returns the name of the variable.
+      /** Returns the name of the variable. */
       const std::string& GetName() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -51,10 +48,10 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  inline VariableExpression::VariableExpression(const std::string& name,
-      const DataType& dataType)
-      : m_name(name),
-        m_dataType(dataType) {}
+  inline VariableExpression::VariableExpression(std::string name,
+    DataType dataType)
+    : m_name(std::move(name)),
+      m_dataType(std::move(dataType)) {}
 
   inline const std::string& VariableExpression::GetName() const {
     return m_name;
@@ -73,7 +70,7 @@ namespace Queries {
   }
 
   inline VariableExpression::VariableExpression()
-      : m_dataType(BoolType()) {}
+    : m_dataType(BoolType()) {}
 
   template<typename Shuttler>
   void VariableExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
@@ -85,7 +82,6 @@ namespace Queries {
   inline void ExpressionVisitor::Visit(const VariableExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

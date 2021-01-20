@@ -8,73 +8,61 @@ namespace Beam::Queries {
   class BaseParameterEvaluatorNode;
   template<typename T> class BasicQuery;
   template<typename D, typename E> class BufferedDataStore;
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-    class CachedDataStore;
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-    class CachedDataStoreEntry;
-  template<typename ResultType> class ConstantEvaluatorNode;
+  template<typename D, typename T> class CachedDataStore;
+  template<typename D, typename T> class CachedDataStoreEntry;
+  template<typename T> class ConstantEvaluatorNode;
   class ConstantExpression;
   class Evaluator;
-  template<typename ResultType> class EvaluatorNode;
-  template<typename QueryTypes> class EvaluatorTranslator;
+  template<typename T> class EvaluatorNode;
+  template<typename Q> class EvaluatorTranslator;
   class ExpressionQuery;
   template<typename I, typename O, typename C> class ExpressionSubscriptions;
   class ExpressionTranslationException;
   class ExpressionVisitor;
   class FilteredQuery;
-  template<typename FunctionType> class FunctionEvaluatorNode;
+  template<typename F> class FunctionEvaluatorNode;
   class FunctionExpression;
-  template<typename VariableType, typename BodyType>
-    class GlobalVariableDeclarationEvaluatorNode;
+  template<typename V, typename B> class GlobalVariableDeclarationEvaluatorNode;
   class GlobalVariableDeclarationExpression;
-  template<typename InputType, typename OutputType, typename IndexType,
-    typename ServiceProtocolClientType> class IndexedExpressionSubscriptions;
-  template<typename ValueType, typename IndexType,
-    typename ServiceProtocolClientType> class IndexedSubscriptions;
-  template<typename ValueType, typename IndexType> class IndexedValue;
+  template<typename T, typename O, typename I, typename C>
+    class IndexedExpressionSubscriptions;
+  template<typename V, typename I, typename C> class IndexedSubscriptions;
+  template<typename V, typename I> class IndexedValue;
   template<typename T> class IndexedQuery;
   class IndexListQuery;
   class InterruptableQuery;
   enum class InterruptionPolicy;
-  template<typename QueryType, typename ValueType,
-    typename EvaluatorTranslatorFilterType> class LocalDataStore;
-  template<typename MemberType, typename ObjectType>
-    class MemberAccessEvaluatorNode;
+  template<typename Q, typename V, typename T> class LocalDataStore;
+  template<typename M, typename T> class MemberAccessEvaluatorNode;
   class MemberAccessExpression;
   template<typename T> class NativeDataType;
   template<typename T> class NativeValue;
   class OrExpression;
   class OrEvaluatorNode;
   template<typename I, typename A> class PagedQuery;
-  template<typename ResultType> class ParameterEvaluatorNode;
+  template<typename T> class ParameterEvaluatorNode;
   class ParameterExpression;
-  template<typename ValueType, typename QueryType,
-    typename EvaluatorTranslatorType, typename ServiceProtocolClientHandlerType,
-    typename QueryServiceType, typename EndQueryMessageType>
-    class QueryClientPublisher;
+  template<typename V, typename Q, typename E, typename C, typename S,
+    typename M> class QueryClientPublisher;
   class QueryInterruptedException;
   template<typename T> struct QueryResult;
   class Range;
   class RangedQuery;
-  template<typename t> class ReadEvaluatorNode;
+  template<typename T> class ReadEvaluatorNode;
   template<typename T> class ReduceEvaluatorNode;
   class ReduceExpression;
   class Sequence;
   template<typename T> class SequencedValue;
-  template<typename QueryType, typename ValueType>
-    class SequencedValuePublisher;
+  template<typename Q, typename V> class SequencedValuePublisher;
   class Sequencer;
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-    class SessionCachedDataStore;
-  template<typename DataStoreType, typename EvaluatorTranslatorFilterType>
-    class SessionCachedDataStoreEntry;
+  template<typename D, typename T> class SessionCachedDataStore;
+  template<typename D, typename T> class SessionCachedDataStoreEntry;
   class SetVariableExpression;
   class SnapshotLimit;
   class SnapshotLimitedQuery;
   template<typename C, typename V, typename I, typename T> class SqlDataStore;
   class SqlTranslator;
-  template<typename ValueType, typename ServiceProtocolClientType>
-    class Subscriptions;
+  template<typename V, typename C> class Subscriptions;
   class TraversalExpressionVisitor;
   class TypeCompatibilityException;
   class VariableExpression;
@@ -84,7 +72,7 @@ namespace Beam::Queries {
   using Expression = ClonePtr<VirtualExpression>;
   class VirtualValue;
   using Value = ClonePtr<VirtualValue>;
-  template<typename t> class WriteEvaluatorNode;
+  template<typename T> class WriteEvaluatorNode;
 }
 
 #endif

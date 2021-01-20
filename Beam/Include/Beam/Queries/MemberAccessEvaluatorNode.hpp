@@ -8,32 +8,32 @@
 
 namespace Beam::Queries {
 
-  /*! \class MemberAccessEvaluatorNode
-      \brief Returns a member/field of an object.
-      \tparam MemberType The type of the member to return.
-      \tparam ObjectType The type of object to access.
+  /**
+   * Returns a member/field of an object.
+   * @param <M> The type of the member to return.
+   * @param <T> The type of object to access.
    */
-  template<typename MemberType, typename ObjectType>
-  class MemberAccessEvaluatorNode : public EvaluatorNode<MemberType> {
+  template<typename M, typename T>
+  class MemberAccessEvaluatorNode : public EvaluatorNode<M> {
     public:
-      using Result = MemberType;
+      using Result = M;
 
-      //! The type of object to access.
-      using Object = ObjectType;
+      /** The type of object to access. */
+      using Object = T;
 
-      //! The type of pointer used to access the member.
-      using MemberAccessor = MemberType Object::*;
+      /** The type of pointer used to access the member. */
+      using MemberAccessor = M Object::*;
 
-      //! Constructs a MemberAccessEvaluatorNode.
-      /*!
-        \param objectEvaluator The evaluator to apply the member access to.
-        \param memberAccessor The pointer used to access the member.
-      */
+      /**
+       * Constructs a MemberAccessEvaluatorNode.
+       * @param objectEvaluator The evaluator to apply the member access to.
+       * @param memberAccessor The pointer used to access the member.
+       */
       MemberAccessEvaluatorNode(
         std::unique_ptr<EvaluatorNode<Object>> objectEvaluator,
         MemberAccessor memberAccessor);
 
-      virtual Result Eval();
+      Result Eval() override;
 
     private:
       std::unique_ptr<EvaluatorNode<Object>> m_objectEvaluator;
@@ -42,20 +42,20 @@ namespace Beam::Queries {
 
   template<template<typename> class Node, typename Object,
     typename MemberAccessor>
-  MemberAccessEvaluatorNode(std::unique_ptr<Node<Object>>,
-    MemberAccessor) -> MemberAccessEvaluatorNode<std::decay_t<
-    decltype(std::declval<Object>().*std::declval<MemberAccessor>())>, Object>;
+  MemberAccessEvaluatorNode(std::unique_ptr<Node<Object>>, MemberAccessor) ->
+    MemberAccessEvaluatorNode<std::decay_t<decltype(
+      std::declval<Object>().*std::declval<MemberAccessor>())>, Object>;
 
-  template<typename MemberType, typename ObjectType>
-  MemberAccessEvaluatorNode<MemberType, ObjectType>::MemberAccessEvaluatorNode(
+  template<typename M, typename T>
+  MemberAccessEvaluatorNode<M, T>::MemberAccessEvaluatorNode(
     std::unique_ptr<EvaluatorNode<Object>> objectEvaluator,
     MemberAccessor memberAccessor)
     : m_objectEvaluator(std::move(objectEvaluator)),
       m_memberAccessor(memberAccessor) {}
 
-  template<typename MemberType, typename ObjectType>
-  typename MemberAccessEvaluatorNode<MemberType, ObjectType>::Result
-      MemberAccessEvaluatorNode<MemberType, ObjectType>::Eval() {
+  template<typename M, typename T>
+  typename MemberAccessEvaluatorNode<M, T>::Result
+      MemberAccessEvaluatorNode<M, T>::Eval() {
     return m_objectEvaluator->Eval().*m_memberAccessor;
   }
 }

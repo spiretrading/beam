@@ -1,5 +1,5 @@
-#ifndef BEAM_QUERIESSETVARIABLEEXPRESSION_HPP
-#define BEAM_QUERIESSETVARIABLEEXPRESSION_HPP
+#ifndef BEAM_QUERIES_SET_VARIABLE_EXPRESSION_HPP
+#define BEAM_QUERIES_SET_VARIABLE_EXPRESSION_HPP
 #include <string>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/DataType.hpp"
@@ -8,41 +8,38 @@
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam {
-namespace Queries {
+namespace Beam::Queries {
 
-  /*! \class SetVariableExpression
-      \brief Sets the value of a variable.
-   */
-  class SetVariableExpression : public VirtualExpression,
-      public CloneableMixin<SetVariableExpression> {
+  /** Sets the value of a variable. */
+  class SetVariableExpression :
+      public VirtualExpression, public CloneableMixin<SetVariableExpression> {
     public:
 
-      //! Constructs a SetVariableExpression.
-      /*!
-        \param name The name of the variable to set.
-        \param value The value to assign to the variable.
-      */
-      SetVariableExpression(const std::string& name, const Expression& value);
+      /**
+       * Constructs a SetVariableExpression.
+       * @param name The name of the variable to set.
+       * @param value The value to assign to the variable.
+       */
+      SetVariableExpression(std::string name, Expression value);
 
-      //! Copies a SetVariableExpression.
-      /*!
-        \param expression The SetVariableExpression to copy.
-      */
+      /**
+       * Copies a SetVariableExpression.
+       * @param expression The SetVariableExpression to copy.
+       */
       SetVariableExpression(const SetVariableExpression& expression) = default;
 
-      //! Returns the name of the variable to set.
+      /** Returns the name of the variable to set. */
       const std::string& GetName() const;
 
-      //! Returns the value to set the variable to.
+      /** Returns the value to set the variable to. */
       const Expression& GetValue() const;
 
-      virtual const DataType& GetType() const;
+      const DataType& GetType() const override;
 
-      virtual void Apply(ExpressionVisitor& visitor) const;
+      void Apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      virtual std::ostream& ToStream(std::ostream& out) const;
+      std::ostream& ToStream(std::ostream& out) const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -54,10 +51,10 @@ namespace Queries {
       void Shuttle(Shuttler& shuttle, unsigned int version);
   };
 
-  inline SetVariableExpression::SetVariableExpression(const std::string& name,
-      const Expression& value)
-      : m_name(name),
-        m_value(value) {}
+  inline SetVariableExpression::SetVariableExpression(std::string name,
+    Expression value)
+    : m_name(std::move(name)),
+      m_value(std::move(value)) {}
 
   inline const std::string& SetVariableExpression::GetName() const {
     return m_name;
@@ -81,7 +78,7 @@ namespace Queries {
   }
 
   inline SetVariableExpression::SetVariableExpression()
-      : m_value(ConstantExpression(false)) {}
+    : m_value(ConstantExpression(false)) {}
 
   template<typename Shuttler>
   void SetVariableExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
@@ -94,7 +91,6 @@ namespace Queries {
       const SetVariableExpression& expression) {
     Visit(static_cast<const VirtualExpression&>(expression));
   }
-}
 }
 
 #endif

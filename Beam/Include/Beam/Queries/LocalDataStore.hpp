@@ -115,7 +115,9 @@ namespace Beam::Queries {
 
   template<typename Q, typename V, typename T>
   void LocalDataStore<Q, V, T>::Store(const IndexedValue& value) {
-    auto& entry = m_entries.Get(value->GetIndex());
+    auto& entry = m_entries.GetOrInsert(value->GetIndex(), [&] {
+      return Entry(m_translator);
+    });
     entry.Store(value);
   }
 

@@ -27,8 +27,6 @@ namespace {
   struct CustomTranslator : EvaluatorTranslator<CustomQueryTypes> {
     std::vector<int> m_specialValues;
 
-    CustomTranslator() = default;
-
     CustomTranslator(const std::vector<int>& specialValues)
       : m_specialValues(std::move(specialValues)) {}
 

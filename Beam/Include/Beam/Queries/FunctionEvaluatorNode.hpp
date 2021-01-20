@@ -76,7 +76,7 @@ template<typename Type, typename Container>
   template<typename F>
   class FunctionEvaluatorNode : public EvaluatorNode<
       typename boost::function_types::result_type<
-      typename GetSignature<F>::type>::type> {
+        typename GetSignature<F>::type>::type> {
     public:
       using Result = typename EvaluatorNode<
         typename boost::function_types::result_type<

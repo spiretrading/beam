@@ -1,4 +1,5 @@
 #include <vector>
+#include <boost/mpl/push_back.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
@@ -14,6 +15,45 @@ using namespace Beam::TimeService;
 namespace {
   using DataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
     EvaluatorTranslator<QueryTypes>>;
+
+  struct CustomQueryTypes {
+    using NativeTypes = boost::mpl::insert<QueryTypes::NativeTypes,
+      boost::mpl::end<QueryTypes::NativeTypes>::type, TestEntry>::type;
+    using ValueTypes = boost::mpl::insert<QueryTypes::ValueTypes,
+      boost::mpl::end<QueryTypes::NativeTypes>::type, TestEntry>::type;
+    using ComparableTypes = QueryTypes::ComparableTypes;
+  };
+
+  struct CustomTranslator : EvaluatorTranslator<CustomQueryTypes> {
+    std::vector<int> m_specialValues;
+
+    CustomTranslator() = default;
+
+    CustomTranslator(const std::vector<int>& specialValues)
+      : m_specialValues(std::move(specialValues)) {}
+
+    std::unique_ptr<EvaluatorTranslator<CustomQueryTypes>>
+        NewTranslator() const override {
+      return std::make_unique<CustomTranslator>(m_specialValues);
+    }
+
+    void Visit(const MemberAccessExpression& expression) override {
+      expression.GetExpression()->Apply(*this);
+      auto valueExpression =
+        StaticCast<std::unique_ptr<EvaluatorNode<TestEntry>>>(GetEvaluator());
+      if(expression.GetName() == "is_special") {
+        SetEvaluator(MakeFunctionEvaluatorNode(
+          [specialValues = m_specialValues] (const TestEntry& entry) {
+            return std::find_if(specialValues.begin(), specialValues.end(),
+              [&] (auto specialValue) {
+                return entry.m_value == specialValue;
+              }) != specialValues.end();
+        }, std::move(valueExpression)));
+      } else {
+        EvaluatorTranslator<CustomQueryTypes>::Visit(expression);
+      }
+    }
+  };
 }
 
 TEST_SUITE("LocalDataStore") {
@@ -79,5 +119,30 @@ TEST_SUITE("LocalDataStore") {
         entries.end());
       expectedEntries.pop_back();
     }
+  }
+
+  TEST_CASE("custom_translator") {
+    auto specialValues = std::vector{3, 5, 9};
+    auto dataStore = LocalDataStore<
+      BasicQuery<std::string>, TestEntry, CustomTranslator>(specialValues);
+    auto timeClient = IncrementalTimeClient();
+    for(auto i = 1; i <= 10; ++i) {
+      auto value = SequencedValue(
+        IndexedValue(TestEntry{i, timeClient.GetTime()}, "hello"),
+        Beam::Queries::Sequence(i));
+      dataStore.Store(value);
+    }
+    auto specialQuery = BasicQuery<std::string>();
+    specialQuery.SetIndex("hello");
+    specialQuery.SetRange(Range::Historical());
+    specialQuery.SetSnapshotLimit(SnapshotLimit::Unlimited());
+    specialQuery.SetFilter(MemberAccessExpression("is_special",
+      NativeDataType<bool>(),
+      ParameterExpression(0, NativeDataType<TestEntry>())));
+    auto specialEntries = dataStore.Load(specialQuery);
+    REQUIRE(specialEntries.size() == 3);
+    REQUIRE(specialEntries[0]->m_value == 3);
+    REQUIRE(specialEntries[1]->m_value == 5);
+    REQUIRE(specialEntries[2]->m_value == 9);
   }
 }

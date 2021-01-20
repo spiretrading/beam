@@ -21,6 +21,9 @@ namespace Beam::Queries {
       /** Visits a MemberAccessExpression. */
       virtual void Visit(const MemberAccessExpression& expression);
 
+      /** Visits a NotExpression. */
+      virtual void Visit(const NotExpression& expression);
+
       /** Visits an OrExpression. */
       virtual void Visit(const OrExpression& expression);
 

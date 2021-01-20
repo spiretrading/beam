@@ -125,7 +125,7 @@ if [ ! -d "tclap-1.2.2" ]; then
   fi
   rm -f v1.2.2.zip
 fi
-viper_commit="297df9a56c9c1272da38eed7fe0748db81ce821f"
+viper_commit="0a31584b9c8229613edda551208625b454ddffbe"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/spiretrading/viper
   if [ "$?" == "0" ]; then

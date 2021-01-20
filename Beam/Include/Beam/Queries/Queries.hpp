@@ -3,6 +3,8 @@
 #include "Beam/Pointers/ClonePtr.hpp"
 
 namespace Beam::Queries {
+  class AndExpression;
+  class AndEvaluatorNode;
   template<typename D, typename E> class AsyncDataStore;
   class BaseEvaluatorNode;
   class BaseParameterEvaluatorNode;
@@ -37,8 +39,10 @@ namespace Beam::Queries {
   class MemberAccessExpression;
   template<typename T> class NativeDataType;
   template<typename T> class NativeValue;
-  class OrExpression;
+  class NotExpression;
+  class NotEvaluatorNode;
   class OrEvaluatorNode;
+  class OrExpression;
   template<typename I, typename A> class PagedQuery;
   template<typename T> class ParameterEvaluatorNode;
   class ParameterExpression;

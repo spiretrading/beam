@@ -8,6 +8,7 @@
 #include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
+#include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/Queries.hpp"
@@ -42,6 +43,7 @@ namespace Beam::Queries {
 
       void Visit(const ConstantExpression& expression) override;
       void Visit(const FunctionExpression& expression) override;
+      void Visit(const NotExpression& expression) override;
       void Visit(const OrExpression& expression) override;
       void Visit(const ParameterExpression& expression) override;
       void Visit(const VirtualExpression& expression) override;
@@ -120,6 +122,12 @@ namespace Beam::Queries {
       BOOST_THROW_EXCEPTION(ExpressionTranslationException(
         "Function not supported."));
     }
+  }
+
+  inline void SqlTranslator::Visit(const NotExpression& expression) {
+    expression.GetOperand()->Apply(*this);
+    auto operandTranslation = GetTranslation();
+    GetTranslation() = !operandTranslation;
   }
 
   inline void SqlTranslator::Visit(const OrExpression& expression) {

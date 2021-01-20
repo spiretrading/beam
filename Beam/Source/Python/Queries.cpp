@@ -11,12 +11,14 @@
 #include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionQuery.hpp"
+#include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/IndexListQuery.hpp"
 #include "Beam/Queries/InterruptableQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
-#include "Beam/Queries/ExpressionTranslationException.hpp"
+#include "Beam/Queries/NotExpression.hpp"
+#include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/QueryInterruptedException.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
@@ -168,6 +170,24 @@ void Beam::Python::ExportMemberAccessExpression(pybind11::module& module) {
   implicitly_convertible<MemberAccessExpression, Expression>();
 }
 
+void Beam::Python::ExportNotExpression(pybind11::module& module) {
+  class_<NotExpression, VirtualExpression>(module, "NotExpression").
+    def(init<Expression>()).
+    def(init<const NotExpression&>()).
+    def_property_readonly("operand", &NotExpression::GetOperand);
+  implicitly_convertible<NotExpression, Expression>();
+}
+
+void Beam::Python::ExportOrExpression(pybind11::module& module) {
+  class_<OrExpression, VirtualExpression>(module, "OrExpression").
+    def(init<Expression, Expression>()).
+    def(init<const OrExpression&>()).
+    def_property_readonly("left_expression", &OrExpression::GetLeftExpression).
+    def_property_readonly("right_expression",
+      &OrExpression::GetRightExpression);
+  implicitly_convertible<OrExpression, Expression>();
+}
+
 void Beam::Python::ExportParameterExpression(pybind11::module& module) {
   class_<ParameterExpression, VirtualExpression>(module, "ParameterExpression").
     def(init<int, const DataType&>()).
@@ -188,6 +208,8 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   ExportIndexedQuery<object>(submodule, "IndexedQuery");
   ExportIndexedValue(submodule);
   ExportMemberAccessExpression(submodule);
+  ExportNotExpression(submodule);
+  ExportOrExpression(submodule);
   ExportParameterExpression(submodule);
   ExportRange(submodule);
   ExportRangedQuery(submodule);

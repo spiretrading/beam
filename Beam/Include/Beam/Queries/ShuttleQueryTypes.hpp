@@ -4,6 +4,7 @@
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
 #include "Beam/Queries/MemberAccessExpression.hpp"
+#include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
@@ -38,6 +39,7 @@ namespace Beam::Queries {
     (GlobalVariableDeclarationExpression,
       "Beam.Queries.GlobalVariableDeclarationExpression"),
     (MemberAccessExpression, "Beam.Queries.MemberAccessExpression"),
+    (NotExpression, "Beam.Queries.NotExpression"),
     (OrExpression, "Beam.Queries.OrExpression"),
     (ParameterExpression, "Beam.Queries.ParameterExpression"),
     (ReduceExpression, "Beam.Queries.ReduceExpression"),

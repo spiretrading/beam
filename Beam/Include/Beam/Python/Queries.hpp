@@ -101,6 +101,18 @@ namespace Beam::Python {
   void ExportMemberAccessExpression(pybind11::module& module);
 
   /**
+   * Exports the NotExpression class.
+   * @param module The module to export to.
+   */
+  void ExportNotExpression(pybind11::module& module);
+
+  /**
+   * Exports the OrExpression class.
+   * @param module The module to export to.
+   */
+  void ExportOrExpression(pybind11::module& module);
+
+  /**
    * Exports the ParameterExpression class.
    * @param module The module to export to.
    */

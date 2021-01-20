@@ -5,6 +5,7 @@
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
 #include "Beam/Queries/MemberAccessExpression.hpp"
+#include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
@@ -25,6 +26,8 @@ namespace Beam::Queries {
         const GlobalVariableDeclarationExpression& expression) override;
 
       void Visit(const MemberAccessExpression& expression) override;
+
+      void Visit(const NotExpression& expression) override;
 
       void Visit(const OrExpression& expression) override;
 
@@ -58,6 +61,11 @@ namespace Beam::Queries {
   inline void TraversalExpressionVisitor::Visit(
       const MemberAccessExpression& expression) {
     expression.GetExpression()->Apply(*this);
+  }
+
+  inline void TraversalExpressionVisitor::Visit(
+      const NotExpression& expression) {
+    expression.GetOperand()->Apply(*this);
   }
 
   inline void TraversalExpressionVisitor::Visit(

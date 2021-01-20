@@ -14,6 +14,8 @@
 #include "Beam/Queries/GlobalVariableDeclarationEvaluatorNode.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
 #include "Beam/Queries/MemberAccessExpression.hpp"
+#include "Beam/Queries/NotExpression.hpp"
+#include "Beam/Queries/NotEvaluatorNode.hpp"
 #include "Beam/Queries/OrEvaluatorNode.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterEvaluatorNode.hpp"
@@ -84,6 +86,8 @@ namespace Beam::Queries {
 
       void Visit(
         const GlobalVariableDeclarationExpression& expression) override;
+
+      void Visit(const NotExpression& expression) override;
 
       void Visit(const OrExpression& expression) override;
 
@@ -297,6 +301,16 @@ namespace Beam::Queries {
       bodyExpression->GetType()->GetNativeType())(*globalVariableEvaluator,
       std::move(bodyEvaluator));
     SetEvaluator(std::move(globalVariableEvaluator));
+  }
+
+  template<typename QueryTypes>
+  void EvaluatorTranslator<QueryTypes>::Visit(const NotExpression& expression) {
+    auto operandExpression = expression.GetOperand();
+    operandExpression->Apply(*this);
+    auto operandEvaluator =
+      Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
+    SetEvaluator(
+      std::make_unique<NotEvaluatorNode>(std::move(operandEvaluator)));
   }
 
   template<typename QueryTypes>

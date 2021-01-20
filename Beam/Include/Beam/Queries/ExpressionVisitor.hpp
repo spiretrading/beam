@@ -9,6 +9,9 @@ namespace Beam::Queries {
     public:
       virtual ~ExpressionVisitor() = default;
 
+      /** Visits an AndExpression. */
+      virtual void Visit(const AndExpression& expression);
+
       /** Visits a ConstantExpression. */
       virtual void Visit(const ConstantExpression& expression);
 

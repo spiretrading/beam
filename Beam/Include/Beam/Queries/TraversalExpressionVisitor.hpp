@@ -1,5 +1,6 @@
 #ifndef BEAM_TRAVERSAL_EXPRESSION_VISITOR_HPP
 #define BEAM_TRAVERSAL_EXPRESSION_VISITOR_HPP
+#include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
@@ -18,6 +19,8 @@ namespace Beam::Queries {
   /** An ExpressionVisitor that traverses all of its children. */
   class TraversalExpressionVisitor : public ExpressionVisitor {
     public:
+      void Visit(const AndExpression& expression) override;
+
       void Visit(const ConstantExpression& expression) override;
 
       void Visit(const FunctionExpression& expression) override;
@@ -41,6 +44,12 @@ namespace Beam::Queries {
 
       void Visit(const VirtualExpression& expression) override;
   };
+
+  inline void TraversalExpressionVisitor::Visit(
+      const AndExpression& expression) {
+    expression.GetLeftExpression()->Apply(*this);
+    expression.GetRightExpression()->Apply(*this);
+  }
 
   inline void TraversalExpressionVisitor::Visit(
     const ConstantExpression& expression) {}

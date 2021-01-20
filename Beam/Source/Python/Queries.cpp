@@ -6,6 +6,7 @@
 #include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Variant.hpp"
+#include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/DataType.hpp"
@@ -35,6 +36,16 @@ using namespace Beam::Queries;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace pybind11;
+
+void Beam::Python::ExportAndExpression(pybind11::module& module) {
+  class_<AndExpression, VirtualExpression>(module, "AndExpression").
+    def(init<Expression, Expression>()).
+    def(init<const AndExpression&>()).
+    def_property_readonly("left_expression", &AndExpression::GetLeftExpression).
+    def_property_readonly("right_expression",
+      &AndExpression::GetRightExpression);
+  implicitly_convertible<AndExpression, Expression>();
+}
 
 void Beam::Python::ExportExpression(pybind11::module& module) {
   class_<VirtualExpression>(module, "Expression").
@@ -208,6 +219,7 @@ void Beam::Python::ExportQueries(pybind11::module& module) {
   ExportIndexedQuery<object>(submodule, "IndexedQuery");
   ExportIndexedValue(submodule);
   ExportMemberAccessExpression(submodule);
+  ExportAndExpression(submodule);
   ExportNotExpression(submodule);
   ExportOrExpression(submodule);
   ExportParameterExpression(submodule);

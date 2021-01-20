@@ -18,6 +18,12 @@
 namespace Beam::Python {
 
   /**
+   * Exports the AndExpression class.
+   * @param module The module to export to.
+   */
+  void ExportAndExpression(pybind11::module& module);
+
+  /**
    * Exports the ConstantExpression class.
    * @param module The module to export to.
    */

@@ -1,5 +1,6 @@
 #ifndef BEAM_SHUTTLE_QUERY_TYPES_HPP
 #define BEAM_SHUTTLE_QUERY_TYPES_HPP
+#include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
@@ -34,6 +35,7 @@ namespace Beam::Queries {
     (DateTimeValue, "Beam.Queries.DateTimeValue"));
 
   BEAM_REGISTER_TYPES(RegisterExpressionTypes,
+    (AndExpression, "Beam.Queries.AndExpression"),
     (ConstantExpression, "Beam.Queries.ConstantExpression"),
     (FunctionExpression, "Beam.Queries.FunctionExpression"),
     (GlobalVariableDeclarationExpression,

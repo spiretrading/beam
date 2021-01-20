@@ -7,6 +7,8 @@
 #include <vector>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Queries/AndExpression.hpp"
+#include "Beam/Queries/AndEvaluatorNode.hpp"
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
@@ -79,6 +81,8 @@ namespace Beam::Queries {
        * @param evaluator The most recently translated evaluator.
        */
       void SetEvaluator(std::unique_ptr<BaseEvaluatorNode> evaluator);
+
+      void Visit(const AndExpression& expression) override;
 
       void Visit(const ConstantExpression& expression) override;
 
@@ -170,6 +174,20 @@ namespace Beam::Queries {
   void EvaluatorTranslator<QueryTypes>::SetEvaluator(
       std::unique_ptr<BaseEvaluatorNode> evaluator) {
     m_evaluator = std::move(evaluator);
+  }
+
+  template<typename QueryTypes>
+  void EvaluatorTranslator<QueryTypes>::Visit(const AndExpression& expression) {
+    auto leftExpression = expression.GetLeftExpression();
+    leftExpression->Apply(*this);
+    auto leftEvaluator = Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(
+      GetEvaluator());
+    auto rightExpression = expression.GetRightExpression();
+    rightExpression->Apply(*this);
+    auto rightEvaluator = Beam::StaticCast<
+      std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
+    SetEvaluator(std::make_unique<AndEvaluatorNode>(std::move(leftEvaluator),
+      std::move(rightEvaluator)));
   }
 
   template<typename QueryTypes>

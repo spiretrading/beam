@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/Expressions/Expressions.hpp>
+#include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
@@ -41,6 +42,7 @@ namespace Beam::Queries {
       /** Returns the current translation. */
       Viper::Expression& GetTranslation();
 
+      void Visit(const AndExpression& expression) override;
       void Visit(const ConstantExpression& expression) override;
       void Visit(const FunctionExpression& expression) override;
       void Visit(const NotExpression& expression) override;
@@ -74,6 +76,14 @@ namespace Beam::Queries {
   inline Viper::Expression SqlTranslator::Make() {
     m_expression->Apply(*this);
     return std::move(GetTranslation());
+  }
+
+  inline void SqlTranslator::Visit(const AndExpression& expression) {
+    expression.GetLeftExpression()->Apply(*this);
+    auto leftTranslation = GetTranslation();
+    expression.GetRightExpression()->Apply(*this);
+    auto rightTranslation = GetTranslation();
+    GetTranslation() = leftTranslation && rightTranslation;
   }
 
   inline void SqlTranslator::Visit(const ConstantExpression& expression) {

@@ -209,7 +209,7 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
 IF NOT EXIST boost_1_72_0 (
-  wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.zip -O boost_1_72_0.zip --no-check-certificate
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.zip -O boost_1_72_0.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
     unzip boost_1_72_0.zip
     PUSHD boost_1_72_0

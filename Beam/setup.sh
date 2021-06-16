@@ -182,7 +182,7 @@ if [ ! -d "zlib-1.2.11" ]; then
   rm -f v1.2.11.zip
 fi
 if [ ! -d "boost_1_72_0" ]; then
-  wget https://dl.bintray.com/boostorg/release/1.72.0/source/boost_1_72_0.tar.gz -O boost_1_72_0.tar.gz --no-check-certificate
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.gz -O boost_1_72_0.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
     tar xvf boost_1_72_0.tar.gz
     pushd boost_1_72_0

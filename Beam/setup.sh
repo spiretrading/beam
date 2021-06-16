@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="fb157605eb7725f4e63fd923c013d8007b8f8772"
+aspen_commit="cab364d5471c413d2f5a71db72f21cede90f06f39"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -125,7 +125,7 @@ if [ ! -d "tclap-1.2.2" ]; then
   fi
   rm -f v1.2.2.zip
 fi
-viper_commit="0a31584b9c8229613edda551208625b454ddffbe"
+viper_commit="1b68c4bad88fae9ce5cde57a3079ad167af8fed6"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/spiretrading/viper
   if [ "$?" == "0" ]; then

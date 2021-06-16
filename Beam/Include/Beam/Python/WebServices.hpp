@@ -89,6 +89,18 @@ namespace Beam::Python {
   void ExportUri(pybind11::module& module);
 
   /**
+   * Exports the WebSocketConfig struct.
+   * @param module The module to export to.
+   */
+  void ExportWebSocketConfig(pybind11::module& module);
+
+  /**
+   * Exports the WebSocket class.
+   * @param module The module to export to.
+   */
+  void ExportWebSocket(pybind11::module& module);
+
+  /**
    * Exports the WebServices namespace.
    * @param module The module to export to.
    */

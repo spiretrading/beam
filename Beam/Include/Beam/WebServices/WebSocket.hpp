@@ -365,7 +365,7 @@ namespace Details {
       sendStream.flush();
       m_channel = m_channelBuilder(m_uri);
       m_channel->GetWriter().Write(sendBuffer);
-      auto receiveBuffer = typename Channel::Reader::Buffer();
+      auto receiveBuffer = IO::SharedBuffer();
       while(true) {
         m_channel->GetReader().Read(Store(receiveBuffer));
         m_parser.Feed(receiveBuffer.GetData(), receiveBuffer.GetSize());

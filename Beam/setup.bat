@@ -71,7 +71,7 @@ IF NOT EXIST cryptopp840 (
   IF !ERRORLEVEL! LEQ 0 (
     MD cryptopp840
     PUSHD cryptopp840
-    unzip ..\cryptopp840.zip
+    tar -xf ..\cryptopp840.zip
     TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
@@ -92,7 +92,7 @@ IF NOT EXIST cryptopp840 (
 IF NOT EXIST mariadb-connector-c-3.1.13 (
   wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.13.zip -O mariadb-connector-c-3.1.13.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip mariadb-connector-c-3.1.13.zip
+    tar -xf mariadb-connector-c-3.1.13.zip
     PUSHD mariadb-connector-c-3.1.13
     cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
@@ -129,7 +129,7 @@ IF NOT EXIST openssl-1.1.1h (
 IF NOT EXIST sqlite-amalgamation-3340000 (
   wget https://www.sqlite.org/2020/sqlite-amalgamation-3340000.zip -O sqlite-amalgamation-3340000.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip sqlite-amalgamation-3340000.zip
+    tar -xf sqlite-amalgamation-3340000.zip
     PUSHD sqlite-amalgamation-3340000
     cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
@@ -146,7 +146,7 @@ IF NOT EXIST sqlite-amalgamation-3340000 (
 IF NOT EXIST tclap-1.2.2 (
   wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip v1.2.2.zip
+    tar -xf v1.2.2.zip
   ) ELSE (
     SET EXIT_STATUS=1
   )
@@ -213,7 +213,7 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 IF NOT EXIST boost_1_72_0 (
   wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.zip -O boost_1_72_0.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip boost_1_72_0.zip
+    tar -xf boost_1_72_0.zip
     PUSHD boost_1_72_0
     PUSHD tools\build
     CALL bootstrap.bat vc142

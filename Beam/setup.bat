@@ -20,16 +20,16 @@ FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property insta
   )
 )
 IF NOT EXIST Strawberry (
-  wget http://strawberryperl.com/download/5.32.0.1/strawberry-perl-5.32.0.1-64bit-portable.zip -O strawberry-perl-5.32.0.1-64bit-portable.zip --no-check-certificate
+  wget https://strawberryperl.com/download/5.32.1.1/strawberry-perl-5.32.1.1-64bit-portable.zip -O strawberry-perl-5.32.1.1-64bit-portable.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
     MD Strawberry
     PUSHD Strawberry
-    unzip ..\strawberry-perl-5.32.0.1-64bit-portable.zip
+    tar -xf ..\strawberry-perl-5.32.1.1-64bit-portable.zip
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q strawberry-perl-5.32.0.1-64bit-portable.zip
+  DEL /F /Q strawberry-perl-5.32.1.1-64bit-portable.zip
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=

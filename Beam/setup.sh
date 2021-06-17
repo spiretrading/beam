@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="cab364d5471c413d2f5a71db72f21cede90f06f39"
+aspen_commit="ab364d5471c413d2f5a71db72f21cede90f06f39"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -68,11 +68,11 @@ if [ ! -d "cryptopp840" ]; then
   fi
   rm -f cryptopp840.zip
 fi
-if [ ! -d "mariadb-connector-c-3.1.11" ]; then
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.11.zip -O mariadb-connector-c-3.1.11.zip --no-check-certificate
+if [ ! -d "mariadb-connector-c-3.1.13" ]; then
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.13.zip -O mariadb-connector-c-3.1.13.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip mariadb-connector-c-3.1.11.zip
-    pushd mariadb-connector-c-3.1.11
+    unzip mariadb-connector-c-3.1.13.zip
+    pushd mariadb-connector-c-3.1.13
     cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     make -j $cores
     make install
@@ -80,7 +80,7 @@ if [ ! -d "mariadb-connector-c-3.1.11" ]; then
   else
     exit_status=1
   fi
-  rm -f mariadb-connector-c-3.1.11.zip
+  rm -f mariadb-connector-c-3.1.13.zip
 fi
 if [ ! -d "openssl-1.1.1h" ]; then
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate

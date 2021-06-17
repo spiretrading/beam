@@ -33,7 +33,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="cab364d5471c413d2f5a71db72f21cede90f06f39"
+SET ASPEN_COMMIT="ab364d5471c413d2f5a71db72f21cede90f06f39"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -89,15 +89,17 @@ IF NOT EXIST cryptopp840 (
   )
   DEL /F /Q cryptopp840.zip
 )
-IF NOT EXIST mariadb-connector-c-3.1.11 (
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.11.zip -O mariadb-connector-c-3.1.11.zip --no-check-certificate
+IF NOT EXIST mariadb-connector-c-3.1.13 (
+  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.13.zip -O mariadb-connector-c-3.1.13.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    unzip mariadb-connector-c-3.1.11.zip
-    PUSHD mariadb-connector-c-3.1.11
+    unzip mariadb-connector-c-3.1.13.zip
+    PUSHD mariadb-connector-c-3.1.13
     cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
     MOVE mariadbclient.vcxproj.new mariadbclient.vcxproj
+    TYPE mariadb_obj.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadb_obj.vcxproj.new
+    MOVE mariadb_obj.vcxproj.new mariadb_obj.vcxproj
     POPD
     cmake --build . --target mariadbclient --config Debug
     cmake --build . --target mariadbclient --config Release
@@ -105,7 +107,7 @@ IF NOT EXIST mariadb-connector-c-3.1.11 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q mariadb-connector-c-3.1.11.zip
+  DEL /F /Q mariadb-connector-c-3.1.13.zip
 )
 IF NOT EXIST openssl-1.1.1h (
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate

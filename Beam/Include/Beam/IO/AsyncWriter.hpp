@@ -59,7 +59,7 @@ namespace IO {
   template<typename B>
   void AsyncWriter<W>::Write(const B& data) {
     try {
-      m_tasks.Push([=] {
+      m_tasks.Push([=, this] {
         try {
           m_destination->Write(data);
         } catch(const std::exception&) {

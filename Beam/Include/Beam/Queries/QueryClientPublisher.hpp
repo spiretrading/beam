@@ -133,7 +133,7 @@ namespace Beam::Queries {
   void QueryClientPublisher<V, Q, E, C, S, M>::SubmitQuery(const Query& query,
       ScopedQueueWriter<SequencedValue<Value>> queue) {
     if(query.GetRange().GetEnd() == Sequence::Last()) {
-      m_queryRoutines.Spawn([=, queue = std::move(queue)] () mutable {
+      m_queryRoutines.Spawn([=, this, queue = std::move(queue)] () mutable {
         auto filter = Translate<EvaluatorTranslator>(query.GetFilter());
         auto publisher = std::make_shared<Publisher>(query, std::move(filter),
           std::move(queue));
@@ -162,7 +162,7 @@ namespace Beam::Queries {
         }
       });
     } else {
-      m_queryRoutines.Spawn([=, queue = std::move(queue)] () mutable {
+      m_queryRoutines.Spawn([=, this, queue = std::move(queue)] () mutable {
         try {
           auto client = m_clientHandler->GetClient();
           auto queryResult = client->template SendRequest<QueryService>(
@@ -250,7 +250,7 @@ namespace Beam::Queries {
   template<typename QueryMessage>
   void QueryClientPublisher<V, Q, E, C, S, M>::AddMessageHandler() {
     Services::AddMessageSlot<QueryMessage>(Store(m_clientHandler->GetSlots()),
-      [=] (auto& sender, const auto& value) {
+      [this] (auto& sender, const auto& value) {
         Publish(value);
       });
   }

@@ -60,7 +60,7 @@ namespace Threading {
     }
     m_isPending = true;
     m_deadLineTimer.expires_from_now(m_interval);
-    m_deadLineTimer.async_wait([=] (const auto& error) {
+    m_deadLineTimer.async_wait([this] (const auto& error) {
       auto lock = boost::lock_guard(m_mutex);
       if(error) {
         m_publisher.Push(Timer::Result::CANCELED);

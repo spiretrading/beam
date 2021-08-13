@@ -176,7 +176,7 @@ namespace Beam::Queries {
       return;
     }
     m_bufferCount = 0;
-    m_tasks.Push([=] {
+    m_tasks.Push([this] {
       Flush();
     });
   }

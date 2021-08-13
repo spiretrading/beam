@@ -72,7 +72,7 @@ namespace Beam {
   template<typename T, typename Q>
   void QueueReaderPublisher<T, Q>::Start() {
     if(!m_isReading.exchange(true)) {
-      m_routine = Routines::Spawn([=] { ReadLoop(); });
+      m_routine = Routines::Spawn([this] { ReadLoop(); });
     }
   }
 

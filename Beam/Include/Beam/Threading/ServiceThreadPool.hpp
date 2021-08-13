@@ -45,7 +45,7 @@ namespace Beam::Threading {
         m_threadCount(boost::thread::hardware_concurrency()),
         m_threads(std::make_unique<boost::thread[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread([=] {
+      m_threads[i] = boost::thread([this] {
         m_service.run();
       });
     }

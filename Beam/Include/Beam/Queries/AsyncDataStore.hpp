@@ -214,7 +214,7 @@ namespace Details {
   void AsyncDataStore<D, E>::TestFlush() {
     if(!m_isFlushing) {
       m_isFlushing = true;
-      m_tasks.Push([=] {
+      m_tasks.Push([this] {
         Flush();
       });
     }

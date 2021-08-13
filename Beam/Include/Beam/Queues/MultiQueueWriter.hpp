@@ -42,7 +42,7 @@ namespace Beam {
   template<typename T>
   auto MultiQueueWriter<T>::GetWriter() {
     return m_callbacks.GetSlot<Source>(
-      [=] (auto&& value) {
+      [this] (auto&& value) {
         m_queue.Push(std::forward<decltype(value)>(value));
       });
   }

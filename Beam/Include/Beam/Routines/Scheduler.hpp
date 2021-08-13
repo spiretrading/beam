@@ -105,7 +105,7 @@ namespace Details {
         m_threads(std::make_unique<boost::thread[]>(m_threadCount)),
         m_contexts(std::make_unique<Context[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread([=] {
+      m_threads[i] = boost::thread([=, this] {
         Run(m_contexts[i]);
       });
     }

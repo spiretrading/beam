@@ -160,7 +160,7 @@ namespace Beam::Services {
       auto client = std::make_shared<ServiceProtocolClient>(std::move(channel),
         &m_slots, m_timerFactory());
       clients.Insert(client);
-      clientRoutines.Spawn([=, &clients] {
+      clientRoutines.Spawn([=, this, &clients] {
         try {
           m_acceptSlot(*client);
           HandleMessagesLoop(*client);

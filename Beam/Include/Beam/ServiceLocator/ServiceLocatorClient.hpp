@@ -420,8 +420,8 @@ namespace Beam::ServiceLocator {
   template<typename B>
   void ServiceLocatorClient<B>::MonitorAccounts(
       ScopedQueueWriter<AccountUpdate> queue) {
-    m_tasks.Push([=, queue = std::make_shared<ScopedQueueWriter<AccountUpdate>>(
-        std::move(queue))] {
+    m_tasks.Push([this, queue =
+        std::make_shared<ScopedQueueWriter<AccountUpdate>>(std::move(queue))] {
       if(m_accountUpdatePublisher.GetSize() != 0) {
         try {
           for(auto& account : m_accountUpdateSnapshot) {
@@ -593,7 +593,7 @@ namespace Beam::ServiceLocator {
     Login(*client);
     auto services = std::vector<ServiceEntry>();
     m_services.Swap(services);
-    m_tasks.Push([=] {
+    m_tasks.Push([=, this] {
       for(auto& service : services) {
         Register(service.GetName(), service.GetProperties());
       }
@@ -617,7 +617,7 @@ namespace Beam::ServiceLocator {
   template<typename B>
   void ServiceLocatorClient<B>::OnAccountUpdate(ServiceProtocolClient& client,
       const AccountUpdate& update) {
-    m_tasks.Push([=] {
+    m_tasks.Push([=, this] {
       if(update.m_type == AccountUpdate::Type::ADDED) {
         m_accountUpdateSnapshot.push_back(update.m_account);
       } else {

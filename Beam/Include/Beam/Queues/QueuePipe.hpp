@@ -53,7 +53,7 @@ namespace Beam {
     ScopedQueueWriter<Target> writer)
     : m_reader(std::move(reader)),
       m_writer(std::move(writer)),
-      m_routine(Routines::Spawn([=] { ReadLoop(); })) {}
+      m_routine(Routines::Spawn([this] { ReadLoop(); })) {}
 
   template<typename T, typename U>
   QueuePipe<T, U>::~QueuePipe() {

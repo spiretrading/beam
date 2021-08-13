@@ -53,7 +53,7 @@ namespace Beam {
     } else {
       for(auto& queue : m_queues) {
         m_routines.Spawn(
-          [=, queue = &queue] {
+          [this, queue = &queue] {
             try {
               while(true) {
                 m_destination.Push(queue->Pop());

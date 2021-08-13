@@ -160,7 +160,7 @@ namespace Beam {
   inline void TaskQueue::Break(const std::exception_ptr& exception) {
     if(!m_isBroken.exchange(true)) {
       m_callbacks.Break(exception);
-      Push([=] {
+      Push([=, this] {
         m_tasks.Break(exception);
       });
     }
@@ -169,15 +169,15 @@ namespace Beam {
   template<typename T, typename F, typename B>
   auto TaskQueue::GetSlotHelper(F&& callback, B&& breakCallback) {
     return m_callbacks.GetSlot<T>(
-      [=, callback = std::make_shared<std::remove_reference_t<F>>(
+      [this, callback = std::make_shared<std::remove_reference_t<F>>(
           std::forward<F>(callback))] (const T& value) {
-        m_tasks.Push([=] {
+        m_tasks.Push([=, this] {
           (*callback)(value);
         });
       },
-      [=, breakCallback = std::make_shared<std::remove_reference_t<B>>(
+      [this, breakCallback = std::make_shared<std::remove_reference_t<B>>(
           std::forward<B>(breakCallback))] (const std::exception_ptr& e) {
-        m_tasks.Push([=] () {
+        m_tasks.Push([=, this] () {
           (*breakCallback)(e);
         });
       });

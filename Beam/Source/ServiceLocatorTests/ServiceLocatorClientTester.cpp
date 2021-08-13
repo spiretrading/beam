@@ -43,7 +43,7 @@ namespace {
         AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
         std::placeholders::_3));
       auto builder = TestServiceProtocolClientBuilder(
-        [=] {
+        [this] {
           auto channel = std::make_unique<
             TestServiceProtocolClientBuilder::Channel>("test",
             *m_serverConnection);
@@ -63,7 +63,7 @@ TEST_SUITE("ServiceLocatorClient") {
 
   TEST_CASE_FIXTURE(Fixture, "login_rejected") {
     auto builder = TestServiceProtocolClientBuilder(
-      [=] {
+      [this] {
         return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
           "test", *m_serverConnection);
       }, factory<std::unique_ptr<TestServiceProtocolClientBuilder::Timer>>());

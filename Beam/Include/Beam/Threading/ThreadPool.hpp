@@ -135,7 +135,7 @@ namespace Beam::Threading {
         m_task(nullptr),
         m_available(true),
         m_stopped(false) {
-    m_thread = boost::thread([=] {
+    m_thread = boost::thread([this] {
       Run();
     });
   }

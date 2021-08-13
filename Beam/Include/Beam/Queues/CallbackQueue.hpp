@@ -73,20 +73,20 @@ namespace Beam {
   template<typename T, typename F, typename B>
   auto CallbackQueue::GetSlot(F&& callback, B&& breakCallback) {
     auto queue = MakeCallbackQueueWriter<T>(
-      [=, callback = std::make_shared<std::remove_reference_t<F>>(
+      [this, callback = std::make_shared<std::remove_reference_t<F>>(
           std::forward<F>(callback))] (auto&& value) {
         m_tasks.Add(
           [=, value = std::forward<decltype(value)>(value)] () mutable {
             (*callback)(std::forward<decltype(value)>(value));
           });
       },
-      [=, breakCallback = std::make_shared<std::remove_reference_t<B>>(
+      [this, breakCallback = std::make_shared<std::remove_reference_t<B>>(
           std::forward<B>(breakCallback))] (const std::exception_ptr& e) {
         m_tasks.Add([=] {
           (*breakCallback)(e);
         });
       });
-    m_tasks.Add([=] () mutable {
+    m_tasks.Add([=, this] () mutable {
       if(m_isBroken) {
         queue->Break(m_exception);
       } else {
@@ -114,7 +114,7 @@ namespace Beam {
       }
       m_exception = exception;
     }
-    m_tasks.Add([=] {
+    m_tasks.Add([=, this] {
       m_isBroken = true;
       for(auto& queue : m_queues) {
         queue.Break(m_exception);

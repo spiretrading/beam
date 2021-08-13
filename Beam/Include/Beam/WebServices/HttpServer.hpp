@@ -138,7 +138,7 @@ namespace Beam::WebServices {
         continue;
       }
       clients.Insert(channel);
-      clientRoutines.Spawn([=, &clients] {
+      clientRoutines.Spawn([=, this, &clients] {
         auto parser = HttpRequestParser();
         auto requestBuffer = IO::SharedBuffer();
         auto responseBuffer = IO::SharedBuffer();

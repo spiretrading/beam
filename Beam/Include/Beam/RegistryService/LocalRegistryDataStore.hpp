@@ -100,7 +100,7 @@ namespace Beam::RegistryService {
     auto newEntry = source;
     auto& children = m_children.at(destination.m_id);
     auto entryIterator = std::find_if(children.begin(), children.end(),
-      [=] (auto entry) {
+      [&] (auto entry) {
         return m_entries.at(entry).m_name == source.m_name;
       });
     if(entryIterator != children.end()) {
@@ -129,8 +129,7 @@ namespace Beam::RegistryService {
       const RegistryEntry& destination) {
     auto& destinationChildren = m_children.at(destination.m_id);
     auto entryIterator = std::find_if(destinationChildren.begin(),
-      destinationChildren.end(),
-      [=] (auto entry) {
+      destinationChildren.end(), [&] (auto entry) {
         return m_entries.at(entry).m_name == source.m_name;
       });
     if(entryIterator != destinationChildren.end()) {

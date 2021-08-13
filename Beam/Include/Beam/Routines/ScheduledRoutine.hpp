@@ -77,7 +77,7 @@ namespace Beam::Routines {
       SetState(State::RUNNING);
       m_continuation = boost::context::callcc(std::allocator_arg,
         boost::context::fixedsize_stack(m_stackSize),
-        [=] (boost::context::continuation&& parent) {
+        [this] (boost::context::continuation&& parent) {
           return InitializeRoutine(std::move(parent));
         });
     } else {

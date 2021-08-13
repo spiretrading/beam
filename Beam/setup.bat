@@ -33,7 +33,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="6a27b02c17e07d25b1fdb607b305daf8c9c1bf6d"
+SET ASPEN_COMMIT="c6e27744a15496a5847c58536e5ada190511433e"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -210,21 +210,21 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-IF NOT EXIST boost_1_72_0 (
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.zip -O boost_1_72_0.zip --no-check-certificate
+IF NOT EXIST boost_1_77_0 (
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.zip -O boost_1_77_0.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf boost_1_72_0.zip
-    PUSHD boost_1_72_0
+    tar -xf boost_1_77_0.zip
+    PUSHD boost_1_77_0
     PUSHD tools\build
     CALL bootstrap.bat vc142
     POPD
-    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
-    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_72_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q boost_1_72_0.zip
+  DEL /F /Q boost_1_77_0.zip
 )
 IF NOT EXIST cache_files (
   MD cache_files

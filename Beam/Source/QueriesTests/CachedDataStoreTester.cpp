@@ -78,8 +78,10 @@ TEST_SUITE("CachedDataStore") {
       query.SetSnapshotLimit(SnapshotLimit::Unlimited());
       auto queryResult = dataStore.Load(query);
       REQUIRE(queryResult.size() == 2);
-      REQUIRE(queryResult[0] == entryA);
-      REQUIRE(queryResult[1] == entryB);
+      REQUIRE(queryResult[0].GetValue() == entryA.GetValue());
+      REQUIRE(queryResult[0].GetSequence() == entryA.GetSequence());
+      REQUIRE(queryResult[1].GetValue() == entryB.GetValue());
+      REQUIRE(queryResult[1].GetSequence() == entryB.GetSequence());
     }
     for(auto i = Beam::Queries::Sequence(102); i < Beam::Queries::Sequence(130);
         i = Increment(i)) {
@@ -142,8 +144,10 @@ TEST_SUITE("CachedDataStore") {
       query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 2);
       auto queryResult = dataStore.Load(query);
       REQUIRE(queryResult.size() == 2);
-      REQUIRE(queryResult[0] == entryA);
-      REQUIRE(queryResult[1] == entryB);
+      REQUIRE(queryResult[0].GetValue() == entryA.GetValue());
+      REQUIRE(queryResult[0].GetSequence() == entryA.GetSequence());
+      REQUIRE(queryResult[1].GetValue() == entryB.GetValue());
+      REQUIRE(queryResult[1].GetSequence() == entryB.GetSequence());
     }
     for(auto i = Beam::Queries::Sequence(90); i < Beam::Queries::Sequence(108);
         i = Increment(i)) {

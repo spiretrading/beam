@@ -7,6 +7,7 @@
 #include <boost/mpl/front.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/mpl/pop_front.hpp>
+#include <boost/exception/exception.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/preprocessor/comma_if.hpp>
 #include <boost/preprocessor/empty.hpp>
@@ -19,6 +20,16 @@
 #include <boost/preprocessor/repeat.hpp>
 
 namespace Beam {
+
+  /** Indicates that a template instantiation is not supported. */
+  class InstantiationNotSupportedException : public std::runtime_error,
+      public boost::exception {
+    public:
+
+      /** Constructs an InstantiationNotSupportedException. */
+      InstantiationNotSupportedException();
+  };
+
 namespace Detail {
   #define BEAM_INSTANTIATE_PARAMETERS 10
 
@@ -110,32 +121,21 @@ namespace Detail {
   #undef BEAM_COMPARE_TYPES
 }
 
-  /*! \class InstantiationNotSupportedException
-      \brief Indicates that a template instantiation is not supported.
+  /**
+   * Returns a function template's instantiation.
+   * @param type The template parameter type.
+   * @return The function template instantiated with the specified types.
    */
-  class InstantiationNotSupportedException : public std::runtime_error,
-      public boost::exception {
-    public:
-
-      //! Constructs an InstantiationNotSupportedException.
-      InstantiationNotSupportedException();
-  };
-
-  inline InstantiationNotSupportedException::
-      InstantiationNotSupportedException()
-      : std::runtime_error{""} {}
-
-  //! Returns a function template's instantiation.
-  /*!
-    \param type The template parameter type.
-    \return The function template instantiated with the specified types.
-  */
   template<typename TemplateMetaClass, typename... T>
   auto Instantiate(const T&... type) {
     return Detail::TemplateInstantiater<
       TemplateMetaClass, sizeof...(T)>::Instantiate(
-      static_cast<const std::type_info&>(type)...);
+        static_cast<const std::type_info&>(type)...);
   }
+
+  inline InstantiationNotSupportedException::
+      InstantiationNotSupportedException()
+    : std::runtime_error("") {}
 }
 
 #endif

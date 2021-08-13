@@ -1,6 +1,7 @@
 #ifndef BEAM_FIXED_STRING_HPP
 #define BEAM_FIXED_STRING_HPP
 #include <cstring>
+#include <utility>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {

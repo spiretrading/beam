@@ -4,9 +4,9 @@ set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
 set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.so")
 set(BOOST_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/include/")
-set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
-set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_72_0/lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_77_0/include/")
+set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_77_0/lib")
+set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_77_0/lib")
 set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
 set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")

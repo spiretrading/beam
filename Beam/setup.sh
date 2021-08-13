@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="6a27b02c17e07d25b1fdb607b305daf8c9c1bf6d"
+aspen_commit="c6e27744a15496a5847c58536e5ada190511433e"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -181,20 +181,20 @@ if [ ! -d "zlib-1.2.11" ]; then
   fi
   rm -f v1.2.11.zip
 fi
-if [ ! -d "boost_1_72_0" ]; then
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.72.0/source/boost_1_72_0.tar.gz -O boost_1_72_0.tar.gz --no-check-certificate
+if [ ! -d "boost_1_77_0" ]; then
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz -O boost_1_77_0.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
-    tar xvf boost_1_72_0.tar.gz
-    pushd boost_1_72_0
+    tar xvf boost_1_77_0.tar.gz
+    pushd boost_1_77_0
     export BOOST_BUILD_PATH=$(pwd -P)
     ./bootstrap.sh
-    ./b2 -j$cores --prefix="$root/boost_1_72_0" cxxflags="-std=c++17 -fPIC" install
+    ./b2 -j$cores --prefix="$root/boost_1_77_0" cxxflags="-std=c++20 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
   else
     exit_status=1
   fi
-  rm -f boost_1_72_0.tar.gz
+  rm -f boost_1_77_0.tar.gz
 fi
 if [ ! -d cache_files ]; then
   mkdir cache_files

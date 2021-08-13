@@ -1,5 +1,6 @@
 #ifndef BEAM_CALLBACK_QUEUE_HPP
 #define BEAM_CALLBACK_QUEUE_HPP
+#include <mutex>
 #include <vector>
 #include "Beam/Queues/CallbackQueueWriter.hpp"
 #include "Beam/Queues/Queues.hpp"

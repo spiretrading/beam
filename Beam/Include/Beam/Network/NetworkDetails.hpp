@@ -1,6 +1,7 @@
 #ifndef BEAM_NETWORK_DETAILS_HPP
 #define BEAM_NETWORK_DETAILS_HPP
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ssl.hpp>

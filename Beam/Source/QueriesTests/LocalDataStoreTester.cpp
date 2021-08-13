@@ -95,17 +95,19 @@ TEST_SUITE("LocalDataStore") {
     auto dataStore = DataStore();
     auto timeClient = IncrementalTimeClient();
     auto valueA = SequencedValue(IndexedValue(
-      TestEntry{5, timeClient.GetTime()}, "hello"), Beam::Queries::Sequence(1));
+      TestEntry{5, timeClient.GetTime()}, std::string("hello")),
+      Beam::Queries::Sequence(1));
     dataStore.Store(valueA);
     auto valueB = SequencedValue(IndexedValue(
-      TestEntry{6, timeClient.GetTime()}, "hello"), Beam::Queries::Sequence(2));
+      TestEntry{6, timeClient.GetTime()}, std::string("hello")),
+      Beam::Queries::Sequence(2));
     dataStore.Store(valueB);
     auto valueC = SequencedValue(IndexedValue(
-      TestEntry{7, timeClient.GetTime()}, "goodbye"),
+      TestEntry{7, timeClient.GetTime()}, std::string("goodbye")),
       Beam::Queries::Sequence(1));
     dataStore.Store(valueC);
     auto valueD = SequencedValue(IndexedValue(
-      TestEntry{8, timeClient.GetTime()}, "goodbye"),
+      TestEntry{8, timeClient.GetTime()}, std::string("goodbye")),
       Beam::Queries::Sequence(2));
     dataStore.Store(valueD);
     auto entries = dataStore.LoadAll();

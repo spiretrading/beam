@@ -77,8 +77,10 @@ TEST_SUITE("SessionCachedDataStore") {
       query.SetSnapshotLimit(SnapshotLimit::Unlimited());
       auto queryResult = dataStore.Load(query);
       REQUIRE(queryResult.size() == 2);
-      REQUIRE(queryResult[0] == entryA);
-      REQUIRE(queryResult[1] == entryB);
+      REQUIRE(queryResult[0].GetValue() == entryA.GetValue());
+      REQUIRE(queryResult[0].GetSequence() == entryA.GetSequence());
+      REQUIRE(queryResult[1].GetValue() == entryB.GetValue());
+      REQUIRE(queryResult[1].GetSequence() == entryB.GetSequence());
     }
     for(auto i = Sequence(102); i < Sequence(130); i = Increment(i)) {
       auto entry = SequencedValue(IndexedValue(TestEntry{

@@ -102,7 +102,7 @@ namespace Beam {
   template<typename T, typename C, typename B>
   CallbackQueueWriter<T, C, B>::CallbackQueueWriter(Callback callback,
     BreakCallback breakCallback)
-    : m_callbacks({std::move(callback), std::move(breakCallback)}) {}
+    : m_callbacks(Callbacks{std::move(callback), std::move(breakCallback)}) {}
 
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(const Target& value) {

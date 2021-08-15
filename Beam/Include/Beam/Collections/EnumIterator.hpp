@@ -11,11 +11,17 @@ namespace Beam {
    * @param <T> The enum type to iterate over.
    */
   template<typename T>
-  class EnumIterator : public std::iterator<std::input_iterator_tag, T> {
+  class EnumIterator {
     public:
 
       /** The enum type to iterate over. */
       using Type = T;
+
+      using iterator_category = std::input_iterator_tag;
+      using value_type = Type;
+      using difference_type = Type;
+      using pointer = Type*;
+      using reference = Type&;
 
       /** Constructs an iterator to the first enumerated value. */
       EnumIterator();

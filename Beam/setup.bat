@@ -33,7 +33,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="c6e27744a15496a5847c58536e5ada190511433e"
+SET ASPEN_COMMIT="132d33f7b66f9922ee84693139071a94f4a67c96"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -152,7 +152,7 @@ IF NOT EXIST tclap-1.2.2 (
   )
   DEL /F /Q v1.2.2.zip
 )
-SET VIPER_COMMIT="1b68c4bad88fae9ce5cde57a3079ad167af8fed6"
+SET VIPER_COMMIT="4bedea2659c1c42b5c57b920d11e250b1ba95d0b"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! EQU 0 (

@@ -83,36 +83,26 @@ namespace Beam::RegistryService {
   void RegistryServlet<C, D>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterRegistryServices(Store(slots));
-    LoadPathService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnLoadPathRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    LoadParentService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnLoadParentRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    LoadChildrenService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnLoadChildrenRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    MakeDirectoryService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnMakeDirectoryRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    CopyService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnCopyRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    MoveService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnMoveRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    LoadValueService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnLoadValueRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    MakeValueService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnMakeValueRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-    StoreValueService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnStoreValueRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-    DeleteService::AddSlot(Store(slots), std::bind(
-      &RegistryServlet::OnDeleteRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
+    LoadPathService::AddSlot(
+      Store(slots), std::bind_front(&RegistryServlet::OnLoadPathRequest, this));
+    LoadParentService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnLoadParentRequest, this));
+    LoadChildrenService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnLoadChildrenRequest, this));
+    MakeDirectoryService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnMakeDirectoryRequest, this));
+    CopyService::AddSlot(
+      Store(slots), std::bind_front(&RegistryServlet::OnCopyRequest, this));
+    MoveService::AddSlot(
+      Store(slots), std::bind_front(&RegistryServlet::OnMoveRequest, this));
+    LoadValueService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnLoadValueRequest, this));
+    MakeValueService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnMakeValueRequest, this));
+    StoreValueService::AddSlot(Store(slots),
+      std::bind_front(&RegistryServlet::OnStoreValueRequest, this));
+    DeleteService::AddSlot(
+      Store(slots), std::bind_front(&RegistryServlet::OnDeleteRequest, this));
   }
 
   template<typename C, typename D>

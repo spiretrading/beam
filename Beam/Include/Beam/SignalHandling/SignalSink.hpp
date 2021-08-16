@@ -147,9 +147,6 @@ namespace Details {
   #define BEAM_DECLARE_PARAMETER(z, n, q)                                      \
     BOOST_PP_COMMA_IF(n) typename boost::mpl::at_c<ParameterTypes, n>::type a##n
 
-  #define CALLBACK_PLACEHOLDERS(z, n, a)                                       \
-    BOOST_PP_COMMA_IF(n) BOOST_PP_CAT(std::placeholders::_, BOOST_PP_INC(n))
-
   #define PUSH_BACK_PARAMETERS(z, n, a)                                        \
     Details::CopyParameter<std::is_abstract<typename std::remove_reference<    \
       typename boost::mpl::at_c<ParameterTypes, n>::type>::type>::value>()(    \
@@ -159,12 +156,11 @@ namespace Details {
   template<typename SlotType>                                                  \
   SlotType SignalSink::GetSlotImplementation<SlotType, n>::Invoke(             \
       SignalSink* sink) {                                                      \
-    using ParameterTypes = typename boost::function_types::parameter_types<                   \
-      typename GetSignature<SlotType>::type>::type;             \
-    return std::bind(static_cast<void (SignalSink::*)(                         \
+    using ParameterTypes = typename boost::function_types::parameter_types<    \
+      typename GetSignature<SlotType>::type>::type;                            \
+    return std::bind_front(static_cast<void (SignalSink::*)(                   \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY))>(            \
-      &SignalSink::Slot<SlotType, ParameterTypes>), sink BOOST_PP_COMMA_IF(n)  \
-      BOOST_PP_REPEAT(n, CALLBACK_PLACEHOLDERS, BOOST_PP_EMPTY));              \
+      &SignalSink::Slot<SlotType, ParameterTypes>), sink);                     \
   }                                                                            \
                                                                                \
   template<typename SlotType, typename ParameterTypes>                         \

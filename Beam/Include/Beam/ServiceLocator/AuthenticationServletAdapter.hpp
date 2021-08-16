@@ -103,14 +103,12 @@ namespace Beam::ServiceLocator {
     slots->GetRegistry().template Register<SendSessionIdService::Response<
       ServiceProtocolClient>>(
       "Beam.ServiceLocator.SendSessionIdService.Response");
-    SendSessionIdService::AddRequestSlot(Store(slots), std::bind(
-      &AuthenticationServletAdapter::OnSendSessionIdRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    SendSessionIdService::AddRequestSlot(Store(slots), std::bind_front(
+      &AuthenticationServletAdapter::OnSendSessionIdRequest, this));
     Services::ServiceSlots<ServiceProtocolClient> servletSlots;
     m_servlet->RegisterServices(Store(servletSlots));
-    auto serviceRequestPreHook = std::bind(
-      &AuthenticationServletAdapter::OnServiceRequest, this,
-      std::placeholders::_1);
+    auto serviceRequestPreHook =
+      std::bind_front(&AuthenticationServletAdapter::OnServiceRequest, this);
     servletSlots.Apply([&] (auto& name, auto& slot) {
       slot.AddPreHook(serviceRequestPreHook);
     });

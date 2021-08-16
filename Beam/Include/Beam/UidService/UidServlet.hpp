@@ -61,9 +61,8 @@ namespace Beam::UidService {
   void UidServlet<C, D>::RegisterServices(
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterUidServices(Store(slots));
-    ReserveUidsService::AddSlot(Store(slots), std::bind(
-      &UidServlet::OnReserveUidsRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
+    ReserveUidsService::AddSlot(
+      Store(slots), std::bind_front(&UidServlet::OnReserveUidsRequest, this));
   }
 
   template<typename C, typename D>

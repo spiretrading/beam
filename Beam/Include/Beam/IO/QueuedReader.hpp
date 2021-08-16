@@ -93,8 +93,8 @@ namespace IO {
   template<typename B, typename R>
   void QueuedReader<B, R>::LaunchReadLoop() {
     if(!m_isReadLoopRunning.exchange(true)) {
-      m_readLoopHandler = Routines::Spawn(
-        std::bind(&QueuedReader::ReadLoop, this));
+      m_readLoopHandler =
+        Routines::Spawn(std::bind_front(&QueuedReader::ReadLoop, this));
     }
   }
 

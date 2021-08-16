@@ -343,8 +343,8 @@ namespace Details {
 
   template<typename M, typename T, typename P, typename S, bool V>
   void ServiceProtocolClient<M, T, P, S, V>::SpawnMessageHandler() {
-    m_messageHandler = Routines::Spawn(
-      std::bind(HandleMessagesLoop<ServiceProtocolClient>, std::ref(*this)));
+    m_messageHandler = Routines::Spawn(std::bind_front(
+      HandleMessagesLoop<ServiceProtocolClient>, std::ref(*this)));
   }
 
   template<typename M, typename T, typename P, typename S, bool V>
@@ -365,10 +365,10 @@ namespace Details {
       return;
     }
     m_timer->Start();
-    m_timerLoop = Routines::Spawn(
-      std::bind(&ServiceProtocolClient::TimerLoop, this));
-    m_readLoop = Routines::Spawn(
-      std::bind(&ServiceProtocolClient::ReadLoop, this));
+    m_timerLoop =
+      Routines::Spawn(std::bind_front(&ServiceProtocolClient::TimerLoop, this));
+    m_readLoop =
+      Routines::Spawn(std::bind_front(&ServiceProtocolClient::ReadLoop, this));
   }
 
   template<typename M, typename T, typename P, typename S, bool V>

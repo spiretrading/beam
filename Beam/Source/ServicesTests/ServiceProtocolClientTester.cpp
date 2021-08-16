@@ -52,7 +52,7 @@ TEST_SUITE("ServiceProtocolClient") {
         RegisterTestServices(Store(client.GetSlots()));
         VoidService::AddRequestSlot(Store(client.GetSlots()),
           std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
-          &callbackCount));
+            &callbackCount));
         try {
           while(true) {
             auto message = client.ReadMessage();

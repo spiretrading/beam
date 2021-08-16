@@ -153,8 +153,8 @@ namespace Beam::Network {
       m_isDeadlinePending = true;
       m_deadline.expires_from_now(boost::chrono::microseconds{
         m_options.m_timeout.total_microseconds()});
-      m_deadline.async_wait(std::bind(&UdpSocketReceiver::CheckDeadline, this,
-        std::placeholders::_1));
+      m_deadline.async_wait(
+        std::bind_front(&UdpSocketReceiver::CheckDeadline, this));
     }
     try {
       auto result = readResult.Get();

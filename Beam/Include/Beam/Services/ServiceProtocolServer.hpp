@@ -116,8 +116,8 @@ namespace Beam::Services {
         m_timerFactory(std::move(timerFactory)),
         m_acceptSlot(std::move(acceptSlot)),
         m_clientClosedSlot(std::move(clientClosedSlot)) {
-    m_acceptRoutine = Routines::Spawn(std::bind(
-      &ServiceProtocolServer::AcceptLoop, this));
+    m_acceptRoutine = Routines::Spawn(
+      std::bind_front(&ServiceProtocolServer::AcceptLoop, this));
   }
 
   template<typename C, typename S, typename E, typename T, typename I, bool P>

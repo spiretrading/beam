@@ -71,9 +71,9 @@ namespace Beam::UidService::Tests {
   inline UidClientBox UidServiceTestEnvironment::MakeClient() {
     return UidClientBox(
       std::in_place_type<UidClient<ServiceProtocolClientBuilder>>,
-      ServiceProtocolClientBuilder(std::bind(boost::factory<
+      ServiceProtocolClientBuilder(std::bind_front(boost::factory<
         std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
-        "test_uid_client", std::ref(m_serverConnection)), std::bind(
+        "test_uid_client", std::ref(m_serverConnection)), std::bind_front(
           boost::factory<
             std::unique_ptr<ServiceProtocolClientBuilder::Timer>>())));
   }

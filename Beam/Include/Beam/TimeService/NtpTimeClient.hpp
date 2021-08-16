@@ -210,8 +210,7 @@ namespace Beam::TimeService {
     try {
       Synchronize();
       m_timer->GetPublisher().Monitor(m_tasks.GetSlot<Threading::Timer::Result>(
-        std::bind(&NtpTimeClient::OnTimerExpired, this,
-        std::placeholders::_1)));
+        std::bind_front(&NtpTimeClient::OnTimerExpired, this)));
       m_timer->Start();
     } catch(const std::exception&) {
       Close();

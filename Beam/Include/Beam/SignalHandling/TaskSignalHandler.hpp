@@ -43,12 +43,12 @@ namespace Beam::SignalHandling {
   };
 
   inline TaskSignalHandler::TaskSignalHandler()
-      : m_signalProcessor(std::bind(&QueuedSignalHandler::HandleSignals,
+      : m_signalProcessor(std::bind_front(&QueuedSignalHandler::HandleSignals,
           std::ref(m_queuedSignalHandler))),
         m_taskCount(0),
         m_stopping(false) {
     m_queuedSignalHandler.SetQueuedSlot(
-      std::bind(&TaskSignalHandler::OnSignalsQueued, this));
+      std::bind_front(&TaskSignalHandler::OnSignalsQueued, this));
   }
 
   inline TaskSignalHandler::~TaskSignalHandler() {

@@ -56,9 +56,9 @@ void Beam::Python::ExportApplicationServiceLocatorClient(module& module) {
         IpAddress address) {
       return std::make_shared<PythonApplicationServiceLocatorClient>(
         std::move(username), std::move(password),
-        ApplicationServiceLocatorClient::SessionBuilder(
-          std::bind(factory<std::unique_ptr<TcpSocketChannel>>(), address),
-          std::bind(factory<std::unique_ptr<LiveTimer>>(), seconds(10))));
+        ApplicationServiceLocatorClient::SessionBuilder(std::bind_front(
+          factory<std::unique_ptr<TcpSocketChannel>>(), address),
+          std::bind_front(factory<std::unique_ptr<LiveTimer>>(), seconds(10))));
     }), call_guard<GilRelease>());
 }
 

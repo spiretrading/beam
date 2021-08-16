@@ -53,9 +53,8 @@ namespace Tests {
   void TestServlet<ContainerType>::RegisterServices(Out<ServiceSlots<
       ServiceProtocolClient>> slots) {
     RegisterTestServices(Store(slots));
-    VoidService::AddRequestSlot(Store(slots),
-      std::bind(&TestServlet::OnVoidRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
+    VoidService::AddRequestSlot(
+      Store(slots), std::bind_front(&TestServlet::OnVoidRequest, this));
   }
 
   template<typename ContainerType>

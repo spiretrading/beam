@@ -105,7 +105,8 @@ namespace Beam::WebServices {
     badRequestResponse.Encode(Store(BAD_REQUEST_RESPONSE_BUFFER));
     auto notFoundResponse = HttpResponse(HttpStatusCode::NOT_FOUND);
     notFoundResponse.Encode(Store(NOT_FOUND_RESPONSE_BUFFER));
-    m_acceptRoutine = Routines::Spawn(std::bind(&HttpServer::AcceptLoop, this));
+    m_acceptRoutine =
+      Routines::Spawn(std::bind_front(&HttpServer::AcceptLoop, this));
   }
 
   template<typename C>

@@ -88,7 +88,7 @@ namespace Beam::RegistryService::Tests {
     return RegistryClientBox(
       std::in_place_type<RegistryClient<ServiceProtocolClientBuilder>>,
       ServiceProtocolClientBuilder(serviceLocatorClient,
-        std::bind(boost::factory<std::unique_ptr<
+        std::bind_front(boost::factory<std::unique_ptr<
           ServiceProtocolClientBuilder::Channel>>(), "test_registry_client",
           std::ref(m_serverConnection)),
         boost::factory<

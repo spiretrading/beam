@@ -80,9 +80,8 @@ TEST_SUITE("ServiceProtocolServer") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "exception") {
-    IdentityService::AddRequestSlot(Store(m_protocolServer.GetSlots()),
-      std::bind(OnIdentityRequest, std::placeholders::_1,
-      std::placeholders::_2));
+    IdentityService::AddRequestSlot(
+      Store(m_protocolServer.GetSlots()), &OnIdentityRequest);
     REQUIRE_THROWS_WITH_AS(m_clientProtocol.SendRequest<IdentityService>(0),
       "Exception.", ServiceRequestException);
     auto result = m_clientProtocol.SendRequest<IdentityService>(123);

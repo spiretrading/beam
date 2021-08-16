@@ -274,14 +274,12 @@ namespace Beam::ServiceLocator {
       try : m_username(std::move(username)),
             m_password(std::move(password)),
             m_clientHandler(std::forward<BF>(clientBuilder),
-              std::bind(&ServiceLocatorClient::OnReconnect, this,
-              std::placeholders::_1)) {
+              std::bind_front(&ServiceLocatorClient::OnReconnect, this)) {
     RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
     RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
     Services::AddMessageSlot<AccountUpdateMessage>(
       Store(m_clientHandler.GetSlots()),
-      std::bind(&ServiceLocatorClient::OnAccountUpdate, this,
-      std::placeholders::_1, std::placeholders::_2));
+      std::bind_front(&ServiceLocatorClient::OnAccountUpdate, this));
     try {
       auto client = m_clientHandler.GetClient();
       Login(*client);

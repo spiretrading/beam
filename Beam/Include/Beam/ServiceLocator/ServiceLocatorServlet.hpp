@@ -174,91 +174,62 @@ namespace Beam::ServiceLocator {
       Out<Services::ServiceSlots<ServiceProtocolClient>> slots) {
     RegisterServiceLocatorServices(Store(slots));
     RegisterServiceLocatorMessages(Store(slots));
-    LoginService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoginRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    RegisterService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnRegisterRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    UnregisterService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnUnregisterRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    LocateService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLocateRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    SubscribeAvailabilityService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnSubscribeRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    UnsubscribeAvailabilityService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnUnsubscribeRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    MonitorDirectoryEntryService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnMonitorDirectoryEntryRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
-    LoadPathService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadPath, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    MonitorAccountsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnMonitorAccounts, this, std::placeholders::_1));
-    UnmonitorAccountsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnUnmonitorAccounts, this,
-      std::placeholders::_1));
-    LoadDirectoryEntryService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadDirectoryEntry, this, std::placeholders::_1,
-      std::placeholders::_2));
-    LoadParentsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadParentsRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    LoadChildrenService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadChildrenRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
-    LoadAllAccountsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadAllAccountsRequest, this,
-      std::placeholders::_1));
-    FindAccountService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnFindAccountRequest, this, std::placeholders::_1,
-      std::placeholders::_2));
-    MakeAccountService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnMakeAccountRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-    MakeDirectoryService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnMakeDirectoryRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    DeleteDirectoryEntryService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnDeleteDirectoryEntryRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
-    AssociateService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnAssociateRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    DetachService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnDetachRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    StorePasswordService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnStorePasswordRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    HasPermissionsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnHasPermissionsRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-      std::placeholders::_4));
-    StorePermissionsService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnStorePermissionsRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-      std::placeholders::_4));
-    LoadRegistrationTimeService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadRegistrationTimeRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
-    LoadLastLoginTimeService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnLoadLastLoginTimeRequest, this,
-      std::placeholders::_1, std::placeholders::_2));
-    RenameService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnRenameRequest, this, std::placeholders::_1,
-      std::placeholders::_2, std::placeholders::_3));
-    AuthenticateAccountService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnAuthenticateAccountRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    SessionAuthenticationService::AddSlot(Store(slots), std::bind(
-      &ServiceLocatorServlet::OnSessionAuthenticationRequest, this,
-      std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    LoginService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLoginRequest, this));
+    RegisterService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnRegisterRequest, this));
+    UnregisterService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnUnregisterRequest, this));
+    LocateService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLocateRequest, this));
+    SubscribeAvailabilityService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnSubscribeRequest, this));
+    UnsubscribeAvailabilityService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnUnsubscribeRequest, this));
+    MonitorDirectoryEntryService::AddSlot(Store(slots), std::bind_front(
+      &ServiceLocatorServlet::OnMonitorDirectoryEntryRequest, this));
+    LoadPathService::AddSlot(
+      Store(slots), std::bind_front(&ServiceLocatorServlet::OnLoadPath, this));
+    MonitorAccountsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnMonitorAccounts, this));
+    UnmonitorAccountsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnUnmonitorAccounts, this));
+    LoadDirectoryEntryService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLoadDirectoryEntry, this));
+    LoadParentsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLoadParentsRequest, this));
+    LoadChildrenService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLoadChildrenRequest, this));
+    LoadAllAccountsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnLoadAllAccountsRequest, this));
+    FindAccountService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnFindAccountRequest, this));
+    MakeAccountService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnMakeAccountRequest, this));
+    MakeDirectoryService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnMakeDirectoryRequest, this));
+    DeleteDirectoryEntryService::AddSlot(Store(slots), std::bind_front(
+      &ServiceLocatorServlet::OnDeleteDirectoryEntryRequest, this));
+    AssociateService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnAssociateRequest, this));
+    DetachService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnDetachRequest, this));
+    StorePasswordService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnStorePasswordRequest, this));
+    HasPermissionsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnHasPermissionsRequest, this));
+    StorePermissionsService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnStorePermissionsRequest, this));
+    LoadRegistrationTimeService::AddSlot(Store(slots),std::bind_front(
+      &ServiceLocatorServlet::OnLoadRegistrationTimeRequest, this));
+    LoadLastLoginTimeService::AddSlot(Store(slots), std::bind_front(
+      &ServiceLocatorServlet::OnLoadLastLoginTimeRequest, this));
+    RenameService::AddSlot(Store(slots),
+      std::bind_front(&ServiceLocatorServlet::OnRenameRequest, this));
+    AuthenticateAccountService::AddSlot(Store(slots), std::bind_front(
+      &ServiceLocatorServlet::OnAuthenticateAccountRequest, this));
+    SessionAuthenticationService::AddSlot(Store(slots), std::bind_front(
+      &ServiceLocatorServlet::OnSessionAuthenticationRequest, this));
   }
 
   template<typename C, typename D>

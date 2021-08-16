@@ -90,8 +90,8 @@ namespace Beam::Parsers {
     m_publisher.Monitor(std::move(monitor));
     auto isParsing = m_isParsing.exchange(true);
     if(!isParsing) {
-      m_parseLoop = Routines::Spawn(std::bind(&ParserPublisher::ParseLoop,
-        const_cast<ParserPublisher*>(this)));
+      m_parseLoop = Routines::Spawn(std::bind_front(
+        &ParserPublisher::ParseLoop, const_cast<ParserPublisher*>(this)));
     }
   }
 

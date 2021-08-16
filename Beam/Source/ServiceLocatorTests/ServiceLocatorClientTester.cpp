@@ -39,9 +39,8 @@ namespace {
         factory<std::unique_ptr<TriggerTimer>>(), NullSlot(), NullSlot());
       RegisterServiceLocatorServices(Store(m_protocolServer->GetSlots()));
       RegisterServiceLocatorMessages(Store(m_protocolServer->GetSlots()));
-      LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-        AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-        std::placeholders::_3));
+      LoginService::AddSlot(
+        Store(m_protocolServer->GetSlots()), &AcceptLoginRequest);
       auto builder = TestServiceProtocolClientBuilder(
         [this] {
           auto channel = std::make_unique<
@@ -120,9 +119,8 @@ TEST_SUITE("ServiceLocatorClient") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "monitor_accounts_reconnect") {
-    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3));
+    LoginService::AddSlot(
+      Store(m_protocolServer->GetSlots()), &AcceptLoginRequest);
     auto testAccounts = std::vector<DirectoryEntry>();
     testAccounts.push_back(DirectoryEntry::MakeAccount(123, "accountA"));
     testAccounts.push_back(DirectoryEntry::MakeAccount(124, "accountB"));
@@ -146,9 +144,8 @@ TEST_SUITE("ServiceLocatorClient") {
   }
 
   TEST_CASE_FIXTURE(Fixture, "register_service_reconnect") {
-    LoginService::AddSlot(Store(m_protocolServer->GetSlots()), std::bind(
-      AcceptLoginRequest, std::placeholders::_1, std::placeholders::_2,
-      std::placeholders::_3));
+    LoginService::AddSlot(
+      Store(m_protocolServer->GetSlots()), &AcceptLoginRequest);
     auto nextId = 1;
     auto registeredServices = std::vector<ServiceEntry>();
     auto recoveryToken = Async<void>();

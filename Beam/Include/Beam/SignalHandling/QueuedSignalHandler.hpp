@@ -122,28 +122,23 @@ namespace SignalHandling {
   #define BEAM_DECLARE_PARAMETER(z, n, q)                                      \
     BOOST_PP_COMMA_IF(n) typename boost::mpl::at_c<ParameterTypes, n>::type a##n
 
-  #define BEAM_CALLBACK_PLACEHOLDERS(z, n, a)                                  \
-    BOOST_PP_COMMA_IF(n) BOOST_PP_CAT(std::placeholders::_, BOOST_PP_INC(n))
-
   #define BOOST_PP_LOCAL_MACRO(n)                                              \
   template<typename SlotType>                                                  \
   SlotType QueuedSignalHandler::GetSlotImplementation<SlotType, n>::Invoke(    \
       QueuedSignalHandler* handler, const SlotType& slot) {                    \
     using ParameterTypes = typename boost::function_types::parameter_types<    \
       typename GetSignature<SlotType>::type>::type;                            \
-    return std::bind(static_cast<void (QueuedSignalHandler::*)(                \
+    return std::bind_front(static_cast<void (QueuedSignalHandler::*)(          \
       const SlotType& BOOST_PP_COMMA_IF(n)                                     \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY))>(            \
-      &QueuedSignalHandler::Slot<SlotType, ParameterTypes>), handler, slot     \
-      BOOST_PP_COMMA_IF(n)                                                     \
-      BOOST_PP_REPEAT(n, BEAM_CALLBACK_PLACEHOLDERS, BOOST_PP_EMPTY));         \
+      &QueuedSignalHandler::Slot<SlotType, ParameterTypes>), handler, slot);   \
   }                                                                            \
                                                                                \
   template<typename SlotType, typename ParameterTypes>                         \
   void QueuedSignalHandler::Slot(const SlotType& slot BOOST_PP_COMMA_IF(n)     \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY)) {            \
     boost::lock_guard<boost::mutex> lock(m_mutex);                             \
-    m_slots.push_back(std::bind(slot BOOST_PP_COMMA_IF(n)                      \
+    m_slots.push_back(std::bind_front(slot BOOST_PP_COMMA_IF(n)                \
       BOOST_PP_ENUM_PARAMS(n, a)));                                            \
     if(m_slots.size() == 1 && m_queuedSlot) {                                  \
       m_queuedSlot();                                                          \

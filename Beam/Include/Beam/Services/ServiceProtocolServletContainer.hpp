@@ -87,11 +87,10 @@ namespace Beam::Services {
 BEAM_SUPPRESS_THIS_INITIALIZER()
       try : m_servlet(std::forward<SF>(servlet)),
             m_protocolServer(std::forward<CF>(serverConnection),
-              std::move(timerFactory), std::bind(
-                &ServiceProtocolServletContainer::OnClientAccepted, this,
-                std::placeholders::_1),
-              std::bind(&ServiceProtocolServletContainer::OnClientClosed, this,
-                std::placeholders::_1)) {
+              std::move(timerFactory), std::bind_front(
+                &ServiceProtocolServletContainer::OnClientAccepted, this),
+              std::bind_front(
+                &ServiceProtocolServletContainer::OnClientClosed, this)) {
 BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->RegisterServices(Store(m_protocolServer.GetSlots()));
     m_isOpen.GetEval().SetResult();

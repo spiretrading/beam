@@ -60,6 +60,11 @@ export class Date {
       this._month === other._month && this._day === other._day;
   }
 
+  /** Converts this Date to a JavaScript Date. */
+  public toDate(): globalThis.Date {
+    return new globalThis.Date(this.year, this.month - 1, this.day);
+  }
+
   /** Converts this Date to JSON. */
   public toJson(): any {
     if(this.equals(Date.NEG_INFIN)) {
@@ -87,8 +92,7 @@ export class Date {
   }
 
   public toString(): string {
-    return new globalThis.Date(this.year, this.month - 1,
-      this.day).toLocaleDateString();
+    return this.toDate().toLocaleDateString();
   }
 
   private _year: number;

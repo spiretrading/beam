@@ -64,6 +64,14 @@ export class DateTime {
       other._timeOfDay);
   }
 
+  /** Converts this DateTime to a JavaScript Date. */
+  public toDate(): globalThis.Date {
+    return new globalThis.Date(this.date.year, this.date.month - 1,
+      this.date.day, this.timeOfDay.getTotalHours(),
+      this.timeOfDay.getTotalMinutes(),
+      this.timeOfDay.getTotalSeconds());
+  }
+
   /** Converts this date/time to JSON. */
   public toJson(): any {
     if(this._date.equals(Date.POS_INFIN)) {
@@ -104,10 +112,7 @@ export class DateTime {
   }
 
   public toString(): string {
-    return new globalThis.Date(this.date.year, this.date.month - 1,
-      this.date.day, this.timeOfDay.getTotalHours(),
-      this.timeOfDay.getTotalMinutes(),
-      this.timeOfDay.getTotalSeconds()).toLocaleString();
+    return this.toDate().toLocaleString();
   }
 
   private _date: Date;

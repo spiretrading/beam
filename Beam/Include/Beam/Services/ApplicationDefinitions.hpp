@@ -65,6 +65,17 @@ namespace Beam::Services {
       explicit ApplicationClient(
         typename SessionBuilder::ServiceLocatorClient serviceLocatorClient);
 
+      /**
+       * Constructs an ApplicationClient.
+       * @param serviceLocatorClient The ServiceLocatorClient used to
+       *        authenticate sessions.
+       * @param args Any additional arguments to forward to the client.
+       */
+      template<typename... T>
+      explicit ApplicationClient(
+        typename SessionBuilder::ServiceLocatorClient serviceLocatorClient,
+        T&&... args);
+
       /** Returns a reference to the Client. */
       Client& operator *();
 
@@ -141,6 +152,25 @@ namespace Beam::Services {
               boost::posix_time::seconds(10));
           });
       }()) {}
+
+  template<template<typename> class C, typename N, typename B>
+  template<typename... T>
+  ApplicationClient<C, N, B>::ApplicationClient(
+    typename SessionBuilder::ServiceLocatorClient serviceLocatorClient,
+    T&&... args)
+    : m_client([&] {
+        auto clientBox = ServiceLocator::ServiceLocatorClientBox(
+          &FullyDereference(serviceLocatorClient));
+        return SessionBuilder(std::move(serviceLocatorClient),
+          [=] () mutable {
+            return std::make_unique<Network::TcpSocketChannel>(
+              ServiceLocator::LocateServiceAddresses(clientBox, N::name));
+          },
+          [] {
+            return std::make_unique<Threading::LiveTimer>(
+              boost::posix_time::seconds(10));
+          });
+      }(), std::forward<T>(args)...) {}
 
   template<template<typename> class C, typename N, typename B>
   typename ApplicationClient<C, N, B>::Client&

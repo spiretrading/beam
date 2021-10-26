@@ -50,7 +50,7 @@ namespace Beam::Parsers {
   }
 
   template<typename T, typename Buffer, typename =
-    std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value, B>>
+    std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>>
   auto Parse(const Buffer& source) {
     return ParseFrom(default_parser<T>, source);
   }

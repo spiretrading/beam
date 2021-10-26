@@ -46,6 +46,11 @@ namespace Beam {
   }
 }
 
+namespace Beam::Parsers {
+  template<>
+  inline const auto default_parser<JsonValue> = JsonParser();
+}
+
 namespace Beam::Serialization {
   template<>
   struct IsStructure<JsonObject> : std::false_type {};

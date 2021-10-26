@@ -44,7 +44,7 @@ namespace Beam::Parsers {
         {
           auto context = SubParserStream<Stream>(source);
           if(!m_parser.Read(context, listValue)) {
-            return false;
+            return true;
           }
           m_modifier(value, listValue);
           context.Accept();
@@ -103,7 +103,7 @@ namespace Beam::Parsers {
         {
           auto context = SubParserStream<Stream>(source);
           if(!m_parser.Read(context)) {
-            return false;
+            return true;
           }
           m_modifier(value);
           context.Accept();

@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <vector>
 #include <boost/throw_exception.hpp>
+#include "Beam/IO/Buffer.hpp"
 #include "Beam/Parsers/ListParser.hpp"
 #include "Beam/Parsers/ParserException.hpp"
 #include "Beam/Parsers/Parsers.hpp"
@@ -48,7 +49,8 @@ namespace Beam::Parsers {
     return ParseFrom(default_parser<T>, source);
   }
 
-  template<typename T, typename Buffer>
+  template<typename T, typename Buffer, typename =
+    std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value, B>>
   auto Parse(const Buffer& source) {
     return ParseFrom(default_parser<T>, source);
   }

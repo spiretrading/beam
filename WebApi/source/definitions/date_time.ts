@@ -60,15 +60,23 @@ export class DateTime {
 
   /** Tests if two date/times represent the same point in time. */
   public equals(other: DateTime): boolean {
-    return other && this._date.equals(other._date) && this._timeOfDay.equals(
-      other._timeOfDay);
+    return other && this._date.equals(other._date) &&
+      this._timeOfDay.equals(other._timeOfDay);
   }
 
   /** Converts this DateTime to a JavaScript Date. */
   public toDate(): globalThis.Date {
-    const time = this.timeOfDay.split();
-    return new globalThis.Date(this.date.year, this.date.month - 1,
-      this.date.day, time.hours, time.minutes, time.seconds);
+    if(this._date.equals(Date.POS_INFIN)) {
+      return new globalThis.Date(8640000000000000);
+    } else if(this._date.equals(Date.NEG_INFIN)) {
+      return new globalThis.Date(-8640000000000000);
+    } else if(this._date.equals(Date.NOT_A_DATE)) {
+      return new globalThis.Date(NaN);
+    }
+    const {hours, minutes, seconds} = split(this._timeOfDay.ticks);
+    return new globalThis.Date(`${this._date.year}-` +
+      `${padZeros(this._date.month)}-${padZeros(this._date.day)}T` +
+      `${padZeros(hours)}:${padZeros(minutes)}:${padZeros(seconds)}Z`);
   }
 
   /** Converts this date/time to JSON. */
@@ -80,34 +88,9 @@ export class DateTime {
     } else if(this._date.equals(Date.NOT_A_DATE)) {
       return 'not-a-date-time';
     }
-    const TICKS_PER_HOUR = Duration.TICKS_PER_SECOND *
-      Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR;
-    const TICKS_PER_MINUTE = Duration.TICKS_PER_SECOND *
-      Duration.SECONDS_PER_MINUTE;
-    let ticks = this._timeOfDay.ticks;
-    const hours = Math.trunc(ticks / TICKS_PER_HOUR);
-    ticks -= hours * TICKS_PER_HOUR;
-    const minutes = Math.trunc(ticks / TICKS_PER_MINUTE);
-    ticks -= minutes * TICKS_PER_MINUTE;
-    const seconds = ticks / Duration.TICKS_PER_SECOND;
-    const hourComponent = (() => {
-      if(hours === 0) {
-        return '00';
-      } else if(hours < 10) {
-        return '0' + hours.toString();
-      }
-      return hours.toString();
-    })();
-    const minuteComponent = (() => {
-      if(minutes === 0) {
-        return '00';
-      } else if(minutes < 10) {
-        return '0' + minutes.toString();
-      }
-      return minutes.toString();
-    })();
-    return this._date.toJson().concat('T').concat(hourComponent).concat(
-      minuteComponent).concat(seconds.toString());
+    const {hours, minutes, seconds} = split(this._timeOfDay.ticks);
+    return this._date.toJson().concat('T').concat(padZeros(hours)).
+      concat(padZeros(minutes)).concat(padZeros(seconds));
   }
 
   public toString(): string {
@@ -116,4 +99,26 @@ export class DateTime {
 
   private _date: Date;
   private _timeOfDay: Duration;
+}
+
+function padZeros(value: number) {
+  if(value === 0) {
+    return '00';
+  } else if(value < 10) {
+    return '0' + value.toString();
+  }
+  return value.toString();
+}
+
+function split(ticks: number) {
+  const TICKS_PER_HOUR = Duration.TICKS_PER_SECOND *
+    Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR;
+  const TICKS_PER_MINUTE = Duration.TICKS_PER_SECOND *
+    Duration.SECONDS_PER_MINUTE;
+  const hours = Math.trunc(ticks / TICKS_PER_HOUR);
+  ticks -= hours * TICKS_PER_HOUR;
+  const minutes = Math.trunc(ticks / TICKS_PER_MINUTE);
+  ticks -= minutes * TICKS_PER_MINUTE;
+  const seconds = ticks / Duration.TICKS_PER_SECOND;
+  return {hours, minutes, seconds};
 }

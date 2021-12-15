@@ -83,7 +83,7 @@ export class Duration {
     }
     const ticks = sign * Duration.TICKS_PER_SECOND *
       (seconds / decimalPlaces + Duration.SECONDS_PER_MINUTE * minutes +
-      Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR * hours);
+        Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR * hours);
     return new Duration(ticks);
   }
 
@@ -198,8 +198,8 @@ export class Duration {
       }
       return '';
     })();
-    return sign.concat(hourComponent).concat(
-      ':').concat(minuteComponent).concat(':').concat(seconds.toString());
+    return sign.concat(hourComponent).concat(':').concat(minuteComponent).
+      concat(':').concat(seconds.toString());
   }
 
   public toString(): string {

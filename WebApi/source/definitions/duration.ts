@@ -87,8 +87,9 @@ export class Duration {
     return new Duration(ticks);
   }
 
-  /** Constructs a time duration, prefer to use composition of existing
-   *  constants rather than direct construction.
+  /**
+   * Constructs a time duration, prefer to use composition of existing
+   * constants rather than direct construction.
    * @param ticks - The number of ticks.
    */
   constructor(ticks: number) {

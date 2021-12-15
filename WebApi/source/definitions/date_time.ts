@@ -23,9 +23,10 @@ export class DateTime {
       return DateTime.NOT_A_DATE_TIME;
     }
     const date = Date.fromJson(value);
-    const hours = 10 * (value.charCodeAt(9) - 48) + value.charCodeAt(10);
-    const minutes = 10 * (value.charCodeAt(11) - 48) + value.charCodeAt(12);
-    let seconds = 10 * (value.charCodeAt(13) - 48) + value.charCodeAt(14);
+    const hours = 10 * (value.charCodeAt(9) - 48) + value.charCodeAt(10) - 48;
+    const minutes =
+      10 * (value.charCodeAt(11) - 48) + value.charCodeAt(12) - 48;
+    let seconds = 10 * (value.charCodeAt(13) - 48) + value.charCodeAt(14) - 48;
     let i = 15;
     if(value.length > i && value[i] === '.') {
       ++i;
@@ -36,14 +37,13 @@ export class DateTime {
       }
       seconds /= decimalPlaces;
     }
-    return new DateTime(date,
-      new Duration(Duration.TICKS_PER_SECOND *
-        (60 * 60 * hours + 60 * minutes + seconds)));
+    return new DateTime(date, new Duration(
+      Duration.TICKS_PER_SECOND * (60 * 60 * hours + 60 * minutes + seconds)));
   }
 
   /** Constructs a date/time. */
-  constructor(date: Date = Date.NOT_A_DATE,
-      timeOfDay: Duration = Duration.ZERO) {
+  constructor(
+      date: Date = Date.NOT_A_DATE, timeOfDay: Duration = Duration.ZERO) {
     this._date = date;
     this._timeOfDay = timeOfDay;
   }
@@ -66,10 +66,9 @@ export class DateTime {
 
   /** Converts this DateTime to a JavaScript Date. */
   public toDate(): globalThis.Date {
+    const time = this.timeOfDay.split();
     return new globalThis.Date(this.date.year, this.date.month - 1,
-      this.date.day, this.timeOfDay.getTotalHours(),
-      this.timeOfDay.getTotalMinutes(),
-      this.timeOfDay.getTotalSeconds());
+      this.date.day, time.hours, time.minutes, time.seconds);
   }
 
   /** Converts this date/time to JSON. */
@@ -90,7 +89,7 @@ export class DateTime {
     ticks -= hours * TICKS_PER_HOUR;
     const minutes = Math.trunc(ticks / TICKS_PER_MINUTE);
     ticks -= minutes * TICKS_PER_MINUTE;
-    const seconds = ticks;
+    const seconds = ticks / Duration.TICKS_PER_SECOND;
     const hourComponent = (() => {
       if(hours === 0) {
         return '00';

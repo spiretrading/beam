@@ -76,8 +76,8 @@ IF NOT EXIST cryptopp870 (
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    devenv cryptlib.vcxproj /useenv /Build "Debug"
-    devenv cryptlib.vcxproj /useenv /Build "Release"
+	msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32 cryptlib.vcxproj
+	msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Release;Platform=Win32 cryptlib.vcxproj
     MD include
     PUSHD include
     MD cryptopp
@@ -113,7 +113,7 @@ IF NOT EXIST openssl-1.1.1q (
   wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
     gzip -d -c openssl-1.1.1q.tar.gz | tar -xf -
-    MOVE openssl-1.1.1h openssl-1.1.1q-build
+    MOVE openssl-1.1.1q openssl-1.1.1q-build
     PUSHD openssl-1.1.1q-build
     perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1q" --openssldir="!ROOT!\openssl-1.1.1q"
     SET CL=/MP
@@ -197,8 +197,8 @@ IF NOT EXIST zlib-1.2.13 (
     PUSHD zlib-1.2.13\contrib\vstudio\vc14
     TYPE zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
     MOVE zlibstat.vcxproj.new zlibstat.vcxproj
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=ReleaseWithoutAsm
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=ReleaseWithoutAsm;Platform=Win32
     POPD
   ) ELSE (
     RD /S /Q zlib-1.2.13
@@ -216,10 +216,10 @@ IF NOT EXIST boost_1_77_0 (
     tar -xf boost_1_77_0.zip
     PUSHD boost_1_77_0
     PUSHD tools\build
-    CALL bootstrap.bat vc142
+    CALL bootstrap.bat vc143
     POPD
-    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static,shared runtime-link=shared install
-    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.2 link=static runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
     POPD
   ) ELSE (
     SET EXIT_STATUS=1

@@ -33,7 +33,7 @@ IF NOT EXIST Strawberry (
 )
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="132d33f7b66f9922ee84693139071a94f4a67c96"
+SET ASPEN_COMMIT="c51b69f7ae9cc3c3dc0523a730ceca4b1c13f254"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -66,12 +66,12 @@ IF EXIST aspen (
   )
   POPD
 )
-IF NOT EXIST cryptopp840 (
-  wget https://www.cryptopp.com/cryptopp840.zip -O cryptopp840.zip --no-check-certificate
+IF NOT EXIST cryptopp870 (
+  wget https://www.cryptopp.com/cryptopp870.zip -O cryptopp870.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    MD cryptopp840
-    PUSHD cryptopp840
-    tar -xf ..\cryptopp840.zip
+    MD cryptopp870
+    PUSHD cryptopp870
+    tar -xf ..\cryptopp870.zip
     TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
@@ -87,13 +87,13 @@ IF NOT EXIST cryptopp840 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q cryptopp840.zip
+  DEL /F /Q cryptopp870.zip
 )
-IF NOT EXIST mariadb-connector-c-3.1.13 (
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.13.zip -O mariadb-connector-c-3.1.13.zip --no-check-certificate
+IF NOT EXIST mariadb-connector-c-3.3.3 (
+  wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.3.3.zip -O mariadb-connector-c-3.3.3.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf mariadb-connector-c-3.1.13.zip
-    PUSHD mariadb-connector-c-3.1.13
+    tar -xf mariadb-connector-c-3.3.3.zip
+    PUSHD mariadb-connector-c-3.3.3
     cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     PUSHD libmariadb
     TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
@@ -107,30 +107,30 @@ IF NOT EXIST mariadb-connector-c-3.1.13 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q mariadb-connector-c-3.1.13.zip
+  DEL /F /Q mariadb-connector-c-3.3.3.zip
 )
-IF NOT EXIST openssl-1.1.1h (
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate
+IF NOT EXIST openssl-1.1.1q (
+  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    gzip -d -c openssl-1.1.1h.tar.gz | tar -xf -
-    MOVE openssl-1.1.1h openssl-1.1.1h-build
-    PUSHD openssl-1.1.1h-build
-    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1h" --openssldir="!ROOT!\openssl-1.1.1h"
+    gzip -d -c openssl-1.1.1q.tar.gz | tar -xf -
+    MOVE openssl-1.1.1h openssl-1.1.1q-build
+    PUSHD openssl-1.1.1q-build
+    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1q" --openssldir="!ROOT!\openssl-1.1.1q"
     SET CL=/MP
     nmake
     nmake install
     POPD
-    RD /S /Q openssl-1.1.1h-build
+    RD /S /Q openssl-1.1.1q-build
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q openssl-1.1.1h.tar.gz
+  DEL /F /Q openssl-1.1.1q.tar.gz
 )
-IF NOT EXIST sqlite-amalgamation-3340000 (
-  wget https://www.sqlite.org/2020/sqlite-amalgamation-3340000.zip -O sqlite-amalgamation-3340000.zip --no-check-certificate
+IF NOT EXIST sqlite-amalgamation-3400100 (
+  wget https://www.sqlite.org/2022/sqlite-amalgamation-3400100.zip -O sqlite-amalgamation-3400100.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf sqlite-amalgamation-3340000.zip
-    PUSHD sqlite-amalgamation-3340000
+    tar -xf sqlite-amalgamation-3400100.zip
+    PUSHD sqlite-amalgamation-3400100
     cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
     lib sqlite3.obj
     COPY sqlite3.lib sqlite3d.lib
@@ -141,16 +141,16 @@ IF NOT EXIST sqlite-amalgamation-3340000 (
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q sqlite-amalgamation-3340000.zip
+  DEL /F /Q sqlite-amalgamation-3400100.zip
 )
-IF NOT EXIST tclap-1.2.2 (
-  wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
+IF NOT EXIST tclap-1.2.5 (
+  wget https://github.com/mirror/tclap/archive/v1.2.5.zip -O v1.2.5.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf v1.2.2.zip
+    tar -xf v1.2.5.zip
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q v1.2.2.zip
+  DEL /F /Q v1.2.5.zip
 )
 SET VIPER_COMMIT="4bedea2659c1c42b5c57b920d11e250b1ba95d0b"
 IF NOT EXIST viper (
@@ -191,17 +191,17 @@ IF NOT EXIST yaml-cpp (
     SET EXIT_STATUS=1
   )
 )
-IF NOT EXIST zlib-1.2.11 (
-  git clone --branch v1.2.11 https://github.com/madler/zlib.git zlib-1.2.11
+IF NOT EXIST zlib-1.2.13 (
+  git clone --branch v1.2.13 https://github.com/madler/zlib.git zlib-1.2.13
   IF !ERRORLEVEL! EQU 0 (
-    PUSHD zlib-1.2.11\contrib\vstudio\vc14
+    PUSHD zlib-1.2.13\contrib\vstudio\vc14
     TYPE zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
     MOVE zlibstat.vcxproj.new zlibstat.vcxproj
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=Debug
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v142 /p:Configuration=ReleaseWithoutAsm
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug
+    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=ReleaseWithoutAsm
     POPD
   ) ELSE (
-    RD /S /Q zlib-1.2.11
+    RD /S /Q zlib-1.2.13
     SET EXIT_STATUS=1
   )
 )

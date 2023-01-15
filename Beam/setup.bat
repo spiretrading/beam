@@ -210,21 +210,21 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-IF NOT EXIST boost_1_77_0 (
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.zip -O boost_1_77_0.zip --no-check-certificate
+IF NOT EXIST boost_1_81_0 (
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.zip -O boost_1_81_0.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf boost_1_77_0.zip
-    PUSHD boost_1_77_0
+    tar -xf boost_1_81_0.zip
+    PUSHD boost_1_81_0
     PUSHD tools\build
     CALL bootstrap.bat vc143
     POPD
-    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
-    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_77_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_81_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_81_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q boost_1_77_0.zip
+  DEL /F /Q boost_1_81_0.zip
 )
 IF NOT EXIST cache_files (
   MD cache_files

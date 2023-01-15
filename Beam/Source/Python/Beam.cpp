@@ -13,26 +13,25 @@ using namespace pybind11;
 template struct Beam::Routines::Details::CurrentRoutineGlobal<void>;
 template struct Beam::Routines::Details::NextId<void>;
 
-PYBIND11_MODULE(_beam, module) {
-  ExportIO(module);
-  ExportCodecs(module);
-  ExportJson(module);
-  ExportKeyValuePair(module);
-  ExportNetwork(module);
-  ExportQueues(module);
-  ExportQueries(module);
-  ExportReactors(module);
-  ExportRegistryService(module);
-  ExportRoutines(module);
-  ExportServiceLocator(module);
-  ExportSql(module);
-  ExportThreading(module);
-  ExportTimeService(module);
-  ExportUidService(module);
-  ExportWebServices(module);
-  ExportYaml(module);
-  module.def("is_running", &IsRunning);
-  module.def("received_kill_event", &ReceivedKillEvent);
-  module.def("wait_for_kill_event", &WaitForKillEvent,
-    call_guard<GilRelease>());
+PYBIND11_MODULE(_beam, m) {
+  ExportIO(m);
+  ExportCodecs(m);
+  ExportJson(m);
+  ExportKeyValuePair(m);
+  ExportNetwork(m);
+  ExportQueues(m);
+  ExportQueries(m);
+  ExportReactors(m);
+  ExportRegistryService(m);
+  ExportRoutines(m);
+  ExportServiceLocator(m);
+  ExportSql(m);
+  ExportThreading(m);
+  ExportTimeService(m);
+  ExportUidService(m);
+  ExportWebServices(m);
+  ExportYaml(m);
+  m.def("is_running", &IsRunning);
+  m.def("received_kill_event", &ReceivedKillEvent);
+  m.def("wait_for_kill_event", &WaitForKillEvent, call_guard<GilRelease>());
 }

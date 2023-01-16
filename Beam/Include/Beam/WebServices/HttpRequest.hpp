@@ -1,5 +1,5 @@
-#ifndef BEAM_HTTPSERVERREQUEST_HPP
-#define BEAM_HTTPSERVERREQUEST_HPP
+#ifndef BEAM_HTTP_SERVER_REQUEST_HPP
+#define BEAM_HTTP_SERVER_REQUEST_HPP
 #include <sstream>
 #include <string>
 #include <vector>
@@ -15,150 +15,143 @@
 #include "Beam/WebServices/Uri.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam {
-namespace WebServices {
+namespace Beam::WebServices {
 
-  /*! \enum ConnectionHeader
-      \brief The set of acceptable Connection header values.
-   */
+  /** The set of acceptable Connection header values. */
   enum class ConnectionHeader {
 
-    //! Close the connection.
+    /** Close the connection. */
     CLOSE,
 
-    //! Keep the connection open.
+    /** Keep the connection open. */
     KEEP_ALIVE,
 
-    //! Upgrade the connection.
+    /** Upgrade the connection. */
     UPGRADE
   };
 
-  /*! \struct SpecialHeaders
-      \brief Keeps info about specially designated headers.
-   */
+  /** Keeps info about specially designated headers. */
   struct SpecialHeaders {
 
-    //! The host.
+    /** The host. */
     std::string m_host;
 
-    //! The size of the body.
+    /** The size of the body. */
     std::size_t m_contentLength;
 
-    //! Whether to keep the connection open.
+    /** Whether to keep the connection open. */
     ConnectionHeader m_connection;
 
-    //! Constructs a default SpecialHeaders field.
+    /** Constructs a default SpecialHeaders field. */
     SpecialHeaders();
 
-    //! Constructs a default SpecialHeaders field for a specified HTTP version.
-    /*!
-      \param version The HTTP version to get the default headers for.
-    */
+    /**
+     * Constructs a default SpecialHeaders field for a specified HTTP version.
+     * @param version The HTTP version to get the default headers for.
+     */
     SpecialHeaders(const HttpVersion& version);
   };
 
-  /*! \class HttpRequest
-      \brief Represents an HTTP request.
-   */
+  /** Represents an HTTP request. */
   class HttpRequest {
     public:
 
-      //! Constructs an HTTP/1.1 GET request.
-      /*!
-        \param uri The URI to request.
-      */
+      /**
+       * Constructs an HTTP/1.1 GET request.
+       * @param uri The URI to request.
+       */
       HttpRequest(Uri uri);
 
-      //! Constructs an HTTP/1.1 request.
-      /*!
-        \param method The HTTP method.
-        \param uri The URI to request.
-      */
+      /**
+       * Constructs an HTTP/1.1 request.
+       * @param method The HTTP method.
+       * @param uri The URI to request.
+       */
       HttpRequest(HttpMethod method, Uri uri);
 
-      //! Constructs an HTTP/1.1 request.
-      /*!
-        \param method The HTTP method.
-        \param uri The URI to request.
-        \param body The body.
-      */
+      /**
+       * Constructs an HTTP/1.1 request.
+       * @param method The HTTP method.
+       * @param uri The URI to request.
+       * @param body The body.
+       */
       HttpRequest(HttpMethod method, Uri uri, IO::SharedBuffer body);
 
-      //! Constructs an HttpRequest.
-      /*!
-        \param version The HTTP version in major/minor format.
-        \param method The HTTP method.
-        \param uri The URI to perform the <i>method</i> on.
-      */
+      /**
+       * Constructs an HttpRequest.
+       * @param version The HTTP version in major/minor format.
+       * @param method The HTTP method.
+       * @param uri The URI to perform the <i>method</i> on.
+       */
       HttpRequest(HttpVersion version, HttpMethod method, Uri uri);
 
-      //! Constructs an HttpRequest.
-      /*!
-        \param version The HTTP version in major/minor format.
-        \param method The HTTP method.
-        \param uri The URI to perform the <i>method</i> on.
-        \param headers The request headers.
-        \param specialHeaders The set of specially designated headers.
-        \param cookies The Cookies.
-        \param body The message body.
-      */
+      /**
+       * Constructs an HttpRequest.
+       * @param version The HTTP version in major/minor format.
+       * @param method The HTTP method.
+       * @param uri The URI to perform the <i>method</i> on.
+       * @param headers The request headers.
+       * @param specialHeaders The set of specially designated headers.
+       * @param cookies The Cookies.
+       * @param body The message body.
+       */
       HttpRequest(HttpVersion version, HttpMethod method, Uri uri,
         std::vector<HttpHeader> headers, const SpecialHeaders& specialHeaders,
         std::vector<Cookie> cookies, IO::SharedBuffer body);
 
-      //! Returns the HTTP version.
+      /** Returns the HTTP version. */
       const HttpVersion& GetVersion() const;
 
-      //! Returns the HttpMethod to perform.
+      /** Returns the HttpMethod to perform. */
       HttpMethod GetMethod() const;
 
-      //! Returns the URI.
+      /** Returns the URI. */
       const Uri& GetUri() const;
 
-      //! Returns the value of a header.
-      /*!
-        \param name The name of the header.
-        \return The value of the header with the specified <i>name</i>.
-      */
+      /**
+       * Returns the value of a header.
+       * @param name The name of the header.
+       * @return The value of the header with the specified <i>name</i>.
+       */
       boost::optional<const std::string&> GetHeader(
         const std::string& name) const;
 
-      //! Returns all headers.
+      /** Returns all headers. */
       const std::vector<HttpHeader>& GetHeaders() const;
 
-      //! Returns the special headers.
+      /** Returns the special headers. */
       const SpecialHeaders& GetSpecialHeaders() const;
 
-      //! Adds a header.
-      /*!
-        \param header The header to add.
-      */
+      /**
+       * Adds a header.
+       * @param header The header to add.
+       */
       void Add(HttpHeader header);
 
-      //! Returns a Cookie with a specified name.
-      /*!
-        \param name The name of the Cookie.
-        \return The Cookie with the specified name or an empty Cookie if the
-                Cookie was not found.
-      */
+      /**
+       * Returns a Cookie with a specified name.
+       * @param name The name of the Cookie.
+       * @return The Cookie with the specified name or an empty Cookie if the
+       *         Cookie was not found.
+       */
       boost::optional<const Cookie&> GetCookie(const std::string& name) const;
 
-      //! Returns all Cookies.
+      /** Returns all Cookies. */
       const std::vector<Cookie>& GetCookies() const;
 
-      //! Adds a Cookie.
-      /*!
-        \param cookie The Cookie to add.
-      */
+      /**
+       * Adds a Cookie.
+       * @param cookie The Cookie to add.
+       */
       void Add(Cookie cookie);
 
-      //! Returns the message body.
+      /** Returns the message body. */
       const IO::SharedBuffer& GetBody() const;
 
-      //! Outputs this response into a Buffer.
-      /*!
-        \param buffer The Buffer to output this response to.
-      */
+      /**
+       * Outputs this response into a Buffer.
+       * @param buffer The Buffer to output this response to.
+       */
       template<typename Buffer>
       void Encode(Out<Buffer> buffer) const;
 
@@ -204,7 +197,7 @@ namespace WebServices {
     }
     if(!request.GetCookies().empty()) {
       sink << "Cookie: ";
-      bool isFirst = true;
+      auto isFirst = true;
       for(auto& cookie : request.GetCookies()) {
         if(!isFirst) {
           sink << "; ";
@@ -226,8 +219,8 @@ namespace WebServices {
   }
 
   inline SpecialHeaders::SpecialHeaders()
-      : m_contentLength{0},
-        m_connection{ConnectionHeader::KEEP_ALIVE} {}
+    : m_contentLength(0),
+      m_connection(ConnectionHeader::KEEP_ALIVE) {}
 
   inline SpecialHeaders::SpecialHeaders(const HttpVersion& version) {
     if(version == HttpVersion::Version1_1()) {
@@ -240,31 +233,31 @@ namespace WebServices {
   }
 
   inline HttpRequest::HttpRequest(Uri uri)
-      : HttpRequest{HttpMethod::GET, std::move(uri)} {}
+    : HttpRequest(HttpMethod::GET, std::move(uri)) {}
 
   inline HttpRequest::HttpRequest(HttpMethod method, Uri uri)
-      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri)} {}
+    : HttpRequest(HttpVersion::Version1_1(), method, std::move(uri)) {}
 
-  inline HttpRequest::HttpRequest(HttpMethod method, Uri uri,
-      IO::SharedBuffer body)
-      : HttpRequest{HttpVersion::Version1_1(), method, std::move(uri), {}, {},
-          {}, std::move(body)} {}
+  inline HttpRequest::HttpRequest(
+      HttpMethod method, Uri uri, IO::SharedBuffer body)
+    : HttpRequest(HttpVersion::Version1_1(), method, std::move(uri), {}, {},
+        {}, std::move(body)) {}
 
-  inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
-      Uri uri)
-      : HttpRequest{version, method, std::move(uri), {}, {}, {}, {}} {}
+  inline HttpRequest::HttpRequest(
+      HttpVersion version, HttpMethod method, Uri uri)
+    : HttpRequest(version, method, std::move(uri), {}, {}, {}, {}) {}
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
       Uri uri, std::vector<HttpHeader> headers,
       const SpecialHeaders& specialHeaders, std::vector<Cookie> cookies,
       IO::SharedBuffer body)
-      : m_version{std::move(version)},
-        m_method{std::move(method)},
-        m_uri{std::move(uri)},
-        m_headers{std::move(headers)},
-        m_specialHeaders{specialHeaders},
-        m_cookies{std::move(cookies)},
-        m_body{std::move(body)} {
+      : m_version(std::move(version)),
+        m_method(std::move(method)),
+        m_uri(std::move(uri)),
+        m_headers(std::move(headers)),
+        m_specialHeaders(specialHeaders),
+        m_cookies(std::move(cookies)),
+        m_body(std::move(body)) {
     if(m_specialHeaders.m_host.empty()) {
       m_specialHeaders.m_host = m_uri.GetHostname();
       if(m_uri.GetPort() != 0 &&
@@ -279,12 +272,12 @@ namespace WebServices {
       m_specialHeaders.m_contentLength = m_uri.GetQuery().size();
       m_body.Reset();
       m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
-      Add(HttpHeader{"Content-Type", "application/x-www-form-urlencoded"});
+      Add(HttpHeader("Content-Type", "application/x-www-form-urlencoded"));
     }
     if(!m_uri.GetUsername().empty() || !m_uri.GetPassword().empty()) {
       auto authentication = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(
         m_uri.GetUsername() + ":" + m_uri.GetPassword()));
-      Add(HttpHeader{"Authorization", "Basic " + authentication});
+      Add(HttpHeader("Authorization", "Basic " + authentication));
     }
     m_specialHeaders.m_contentLength = m_body.GetSize();
   }
@@ -312,7 +305,7 @@ namespace WebServices {
         return m_specialHeaders.m_host;
       } else if(name == "Content-Length") {
         return Threading::With(m_contentLength,
-          [&] (auto& contentLength) -> std::string& {
+          [&] (auto& contentLength) -> auto& {
             if(contentLength.empty()) {
               contentLength = std::to_string(m_specialHeaders.m_contentLength);
             }
@@ -359,7 +352,7 @@ namespace WebServices {
       } else if(header.GetValue() == "Upgrade") {
         m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
       } else {
-        BOOST_THROW_EXCEPTION(std::runtime_error{"Invalid Connection header."});
+        BOOST_THROW_EXCEPTION(std::runtime_error("Invalid Connection header."));
       }
     } else {
       m_headers.push_back(std::move(header));
@@ -383,7 +376,7 @@ namespace WebServices {
   }
 
   inline void HttpRequest::Add(Cookie cookie) {
-      m_cookies.push_back(std::move(cookie));
+    m_cookies.push_back(std::move(cookie));
   }
 
   inline const IO::SharedBuffer& HttpRequest::GetBody() const {
@@ -392,12 +385,11 @@ namespace WebServices {
 
   template<typename Buffer>
   void HttpRequest::Encode(Out<Buffer> buffer) const {
-    std::stringstream ss;
+    auto ss = std::stringstream();
     ss << *this;
     auto str = ss.str();
     buffer->Append(str.c_str(), str.size());
   }
-}
 }
 
 #endif

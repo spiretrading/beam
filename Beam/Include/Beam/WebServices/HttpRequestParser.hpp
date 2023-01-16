@@ -1,8 +1,7 @@
-#ifndef BEAM_HTTPREQUESTPARSER_HPP
-#define BEAM_HTTPREQUESTPARSER_HPP
+#ifndef BEAM_HTTP_REQUEST_PARSER_HPP
+#define BEAM_HTTP_REQUEST_PARSER_HPP
 #include <deque>
 #include <boost/algorithm/string.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
@@ -14,23 +13,21 @@
 namespace Beam {
 namespace WebServices {
 
-  /*! \class HttpRequestParser
-      \brief Parses an HTTP request.
-   */
-  class HttpRequestParser : private boost::noncopyable {
+  /* Parses an HTTP request. */
+  class HttpRequestParser {
     public:
 
-      //! Constructs an HttpRequestParser.
+      /** Constructs an HttpRequestParser. */
       HttpRequestParser();
 
-      //! Feeds the parser additional characters to parse.
-      /*!
-        \param c The first character to feed.
-        \param size The number of characters to feed.
-      */
+      /**
+       * Feeds the parser additional characters to parse.
+       * @param c The first character to feed.
+       * @param size The number of characters to feed.
+       */
       void Feed(const char* c, std::size_t size);
 
-      //! Returns the next HttpRequest.
+      /** Returns the next HttpRequest. */
       boost::optional<HttpRequest> GetNextRequest();
 
     private:
@@ -51,6 +48,8 @@ namespace WebServices {
       std::deque<HttpRequest> m_requests;
       IO::SharedBuffer m_buffer;
 
+      HttpRequestParser(const HttpRequestParser&) = delete;
+      HttpRequestParser(HttpRequestParser&&) = delete;
       void ParseMethod(const char* c, std::size_t size);
       void ParseHeader(const char* c, std::size_t size);
       void ParseCookie(const char* source, int length);
@@ -59,7 +58,7 @@ namespace WebServices {
   };
 
   inline HttpRequestParser::HttpRequestParser()
-      : m_parserState{ParserState::METHOD} {}
+    : m_parserState(ParserState::METHOD) {}
 
   inline void HttpRequestParser::Feed(const char* c, std::size_t size) {
     const auto LINE_LENGTH = 2;

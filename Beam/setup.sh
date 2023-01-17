@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="132d33f7b66f9922ee84693139071a94f4a67c96"
+aspen_commit="a924c73e22a4f51dd7d779d33bc8e9fb4fe7517d"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -54,41 +54,27 @@ if [ -d "aspen" ]; then
   fi
   popd
 fi
-if [ ! -d "cryptopp840" ]; then
-  wget https://www.cryptopp.com/cryptopp840.zip -O cryptopp840.zip --no-check-certificate
+if [ ! -d "cryptopp870" ]; then
+  wget https://www.cryptopp.com/cryptopp870.zip -O cryptopp870.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    mkdir cryptopp840
-    pushd cryptopp840
-    unzip ../cryptopp840.zip
+    mkdir cryptopp870
+    pushd cryptopp870
+    unzip ../cryptopp870.zip
     make -j $cores
-    make install PREFIX="$root/cryptopp840"
+    make install PREFIX="$root/cryptopp870"
     popd
   else
     exit_status=1
   fi
-  rm -f cryptopp840.zip
+  rm -f cryptopp870.zip
 fi
-if [ ! -d "mariadb-connector-c-3.1.13" ]; then
-  wget https://github.com/MariaDB/mariadb-connector-c/archive/v3.1.13.zip -O mariadb-connector-c-3.1.13.zip --no-check-certificate
+if [ ! -d "openssl-1.1.1q" ]; then
+  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip mariadb-connector-c-3.1.13.zip
-    pushd mariadb-connector-c-3.1.13
-    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
-    make -j $cores
-    make install
-    popd
-  else
-    exit_status=1
-  fi
-  rm -f mariadb-connector-c-3.1.13.zip
-fi
-if [ ! -d "openssl-1.1.1h" ]; then
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1h.tar.gz -O openssl-1.1.1h.tar.gz --no-check-certificate
-  if [ "$?" == "0" ]; then
-    gzip -d -c openssl-1.1.1h.tar.gz | tar -x
-    pushd openssl-1.1.1h
+    gzip -d -c openssl-1.1.1q.tar.gz | tar -x
+    pushd openssl-1.1.1q
     export LDFLAGS=-ldl
-    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.1.1h"
+    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.1.1q"
     make -j $cores
     make test
     make install
@@ -97,25 +83,41 @@ if [ ! -d "openssl-1.1.1h" ]; then
   else
     exit_status=1
   fi
-  rm -f openssl-1.1.1h.tar.gz
+  rm -f openssl-1.1.1q.tar.gz
 fi
-if [ ! -d "sqlite-amalgamation-3340000" ]; then
-  wget https://www.sqlite.org/2020/sqlite-amalgamation-3340000.zip -O sqlite-amalgamation-3340000.zip --no-check-certificate
+if [ ! -d "mariadb-connector-c-3.3.3" ]; then
+  wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.3.3.zip -O mariadb-connector-c-3.3.3.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip sqlite-amalgamation-3340000.zip
-    pushd sqlite-amalgamation-3340000
+    unzip mariadb-connector-c-3.3.3.zip
+    pushd mariadb-connector-c-3.3.3
+    export OPENSSL_ROOT_DIR="$root/openssl-1.1.1q"
+    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
+    make -j $cores
+    make install
+    unset OPENSSL_ROOT_DIR
+    popd
+  else
+    exit_status=1
+  fi
+  rm -f mariadb-connector-c-3.3.3.zip
+fi
+if [ ! -d "sqlite-amalgamation-3400100" ]; then
+  wget https://www.sqlite.org/2022/sqlite-amalgamation-3400100.zip -O sqlite-amalgamation-3400100.zip --no-check-certificate
+  if [ "$?" == "0" ]; then
+    unzip sqlite-amalgamation-3400100.zip
+    pushd sqlite-amalgamation-3400100
     gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
     popd
   else
     exit_status=1
   fi
-  rm -f sqlite-amalgamation-3340000.zip
+  rm -f sqlite-amalgamation-3400100.zip
 fi
-if [ ! -d "tclap-1.2.2" ]; then
-  wget https://github.com/mirror/tclap/archive/v1.2.2.zip -O v1.2.2.zip --no-check-certificate
+if [ ! -d "tclap-1.2.5" ]; then
+  wget https://github.com/mirror/tclap/archive/v1.2.5.zip -O v1.2.5.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip v1.2.2.zip
-    pushd tclap-1.2.2
+    unzip v1.2.5.zip
+    pushd tclap-1.2.5
     ./autotools.sh
     ./configure
     make -j $cores
@@ -123,9 +125,9 @@ if [ ! -d "tclap-1.2.2" ]; then
   else
     exit_status=1
   fi
-  rm -f v1.2.2.zip
+  rm -f v1.2.5.zip
 fi
-viper_commit="4bedea2659c1c42b5c57b920d11e250b1ba95d0b"
+viper_commit="c77e2c92bd370d3ed1aafb8dabd796a0356327a0"
 if [ ! -d "viper" ]; then
   git clone https://www.github.com/spiretrading/viper
   if [ "$?" == "0" ]; then
@@ -165,13 +167,13 @@ if [ ! -d "yaml-cpp-0.6.2" ]; then
     exit_status=1
   fi
 fi
-if [ ! -d "zlib-1.2.11" ]; then
-  wget https://github.com/madler/zlib/archive/v1.2.11.zip --no-check-certificate
+if [ ! -d "zlib-1.2.13" ]; then
+  wget https://github.com/madler/zlib/archive/v1.2.13.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip v1.2.11.zip
-    pushd zlib-1.2.11
+    unzip v1.2.13.zip
+    pushd zlib-1.2.13
     export CFLAGS="-fPIC"
-    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/zlib-1.2.11" -G "Unix Makefiles"
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/zlib-1.2.13" -G "Unix Makefiles"
     make -j $cores
     make install
     unset CFLAGS
@@ -179,22 +181,22 @@ if [ ! -d "zlib-1.2.11" ]; then
   else
     exit_status=1
   fi
-  rm -f v1.2.11.zip
+  rm -f v1.2.13.zip
 fi
-if [ ! -d "boost_1_77_0" ]; then
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.77.0/source/boost_1_77_0.tar.gz -O boost_1_77_0.tar.gz --no-check-certificate
+if [ ! -d "boost_1_81_0" ]; then
+  wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.zip -O boost_1_81_0.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    tar xvf boost_1_77_0.tar.gz
-    pushd boost_1_77_0
+    unzip boost_1_81_0.zip
+    pushd boost_1_81_0
     export BOOST_BUILD_PATH=$(pwd -P)
     ./bootstrap.sh
-    ./b2 -j$cores --prefix="$root/boost_1_77_0" cxxflags="-std=c++20 -fPIC" install
+    ./b2 -j$cores --prefix="$root/boost_1_81_0" cxxflags="-std=c++20 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
   else
     exit_status=1
   fi
-  rm -f boost_1_77_0.tar.gz
+  rm -f boost_1_81_0.zip
 fi
 if [ ! -d cache_files ]; then
   mkdir cache_files

@@ -57,7 +57,11 @@ void Beam::Python::ExportRoutineHandlerGroup(pybind11::module& module) {
       [] (RoutineHandlerGroup& self, const std::function<void ()>& callable) {
         return self.Spawn(
           [callable = SharedObject(cast(callable))] {
-            callable->cast<std::function<void ()>>()();
+            auto f = [&] {
+              auto lock = GilLock();
+              return callable->cast<std::function<void ()>>();
+            }();
+            f();
           });
       })
     .def("wait", &RoutineHandlerGroup::Wait, call_guard<GilRelease>());
@@ -75,7 +79,11 @@ void Beam::Python::ExportRoutines(pybind11::module& module) {
     [] (const std::function<void ()>& callable) {
       return Spawn(
         [callable = SharedObject(cast(callable))] {
-          callable->cast<std::function<void ()>>()();
+          auto f = [&] {
+            auto lock = GilLock();
+            return callable->cast<std::function<void ()>>();
+          }();
+          f();
         });
     });
   submodule.def("wait", &Wait, call_guard<GilRelease>());

@@ -19,6 +19,12 @@
 #include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam::WebServices {
+namespace Details {
+  inline ConnectionHeader GetSpecialHeadersConnection(
+      const HttpRequest& request) {
+    return request.GetSpecialHeaders().m_connection;
+  }
+}
 
   /**
    * Implements an HTTP server.
@@ -149,11 +155,11 @@ namespace Beam::WebServices {
             parser.Feed(requestBuffer.GetData(), requestBuffer.GetSize());
             requestBuffer.Reset();
             auto request = parser.GetNextRequest();
-            while(request.is_initialized()) {
+            while(request) {
               std::cout << *request << "\n\n\n" << std::flush;
               responseBuffer.Reset();
-              if(request->GetSpecialHeaders().m_connection ==
-                  ConnectionHeader::UPGRADE) {
+              auto connection = Details::GetSpecialHeadersConnection(*request);
+              if(connection == ConnectionHeader::UPGRADE) {
                 auto wasUpgraded = UpgradeConnection(*request, channel,
                   responseBuffer);
                 if(wasUpgraded) {

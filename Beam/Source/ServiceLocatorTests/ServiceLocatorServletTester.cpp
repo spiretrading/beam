@@ -135,7 +135,7 @@ TEST_SUITE("ServiceLocatorServlet") {
       username, password);
     auto result = m_clientProtocol->SendRequest<AuthenticateAccountService>(
       "invalid_user", "password");
-    REQUIRE(result.m_type == DirectoryEntry::Type::NONE);
+    REQUIRE((result.m_type == DirectoryEntry::Type::NONE));
     REQUIRE(result.m_id == -1);
     REQUIRE(result.m_name.empty());
   }
@@ -150,7 +150,7 @@ TEST_SUITE("ServiceLocatorServlet") {
       username, password);
     auto result = m_clientProtocol->SendRequest<AuthenticateAccountService>(
       "user1", "invalid_password");
-    REQUIRE(result.m_type == DirectoryEntry::Type::NONE);
+    REQUIRE((result.m_type == DirectoryEntry::Type::NONE));
     REQUIRE(result.m_id == -1);
     REQUIRE(result.m_name.empty());
   }
@@ -176,7 +176,7 @@ TEST_SUITE("ServiceLocatorServlet") {
       username, password);
     auto result = m_clientProtocol->SendRequest<AuthenticateAccountService>(
       "user1", "password");
-    REQUIRE(result.m_type == DirectoryEntry::Type::ACCOUNT);
+    REQUIRE((result.m_type == DirectoryEntry::Type::ACCOUNT));
     REQUIRE(result.m_id == loginResult.account.m_id);
     REQUIRE(result.m_name == loginResult.account.m_name);
   }
@@ -428,7 +428,7 @@ TEST_SUITE("ServiceLocatorServlet") {
     m_clientProtocol->SendRequest<MakeAccountService>(accountName, "",
       DirectoryEntry::GetStarDirectory());
     auto createdAccount = m_dataStore.LoadAccount(accountName);
-    REQUIRE(createdAccount.m_type == DirectoryEntry::Type::ACCOUNT);
+    REQUIRE((createdAccount.m_type == DirectoryEntry::Type::ACCOUNT));
     REQUIRE(createdAccount.m_name == accountName);
   }
 

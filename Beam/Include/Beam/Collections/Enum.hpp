@@ -13,6 +13,8 @@
       NONE = -1,                                                               \
       __VA_ARGS__                                                              \
     };                                                                         \
+                                                                               \
+    auto operator <=>(const name##EnumMembers& rhs) const = default;           \
   };                                                                           \
                                                                                \
   using name = ::Beam::Enum<name##EnumMembers, PP_NARG(__VA_ARGS__)>;

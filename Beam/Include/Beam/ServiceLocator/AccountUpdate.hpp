@@ -26,11 +26,7 @@ namespace Beam::ServiceLocator {
     /** The type of update. */
     Type m_type;
 
-    /** Tests if two updates represent the same account and type. */
-    bool operator ==(const AccountUpdate& update) const;
-
-    /** Tests if two updates have different accounts or types. */
-    bool operator !=(const AccountUpdate& update) const;
+    bool operator ==(const AccountUpdate& update) const = default;
   };
 
   inline std::ostream& operator <<(std::ostream& out,
@@ -41,17 +37,9 @@ namespace Beam::ServiceLocator {
     return out << "DELETED";
   }
 
-  inline std::ostream& operator <<(std::ostream& out,
-      const AccountUpdate& update) {
+  inline std::ostream& operator <<(
+      std::ostream& out, const AccountUpdate& update) {
     return out << '(' << update.m_account << ' ' << update.m_type << ')';
-  }
-
-  inline bool AccountUpdate::operator ==(const AccountUpdate& update) const {
-    return m_account == update.m_account && m_type == update.m_type;
-  }
-
-  inline bool AccountUpdate::operator !=(const AccountUpdate& update) const {
-    return !(*this == update);
   }
 }
 

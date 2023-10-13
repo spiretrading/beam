@@ -42,25 +42,13 @@ namespace Beam::Network {
        */
       IpAddress(std::string host, unsigned short port);
 
-      /**
-       * Returns <code>true</code> iff the host and port are identical.
-       * @param rhs The right hand side of the comparison.
-       * @return <code>true</code> iff the two IpAddresses are equal.
-       */
-      bool operator ==(const IpAddress& rhs) const;
-
-      /**
-       * Returns <code>true</code> iff the host or port are different.
-       * @param rhs The right hand side of the comparison.
-       * @return <code>true</code> iff the two IpAddresses are not equal.
-       */
-      bool operator !=(const IpAddress& rhs) const;
-
       /** Returns the host. */
       const std::string& GetHost() const;
 
       /** Returns the port. */
       unsigned short GetPort() const;
+
+      bool operator ==(const IpAddress& rhs) const = default;
 
     private:
       std::string m_host;
@@ -113,14 +101,6 @@ namespace Beam::Network {
   inline IpAddress::IpAddress(std::string host, unsigned short port)
     : m_host(std::move(host)),
       m_port(port) {}
-
-  inline bool IpAddress::operator ==(const IpAddress& rhs) const {
-    return m_host == rhs.m_host && m_port == rhs.m_port;
-  }
-
-  inline bool IpAddress::operator !=(const IpAddress& rhs) const {
-    return !(*this == rhs);
-  }
 
   inline const std::string& IpAddress::GetHost() const {
     return m_host;

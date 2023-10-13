@@ -71,19 +71,7 @@ namespace Beam::Queries {
       /** Returns a pointer to the Value. */
       Value* operator ->();
 
-      /**
-       * Compares this value for equality.
-       * @param value The value to compare to for equality.
-       * @return <code>true</code> iff the two values are equal.
-       */
-      bool operator ==(const IndexedValue& rhs) const;
-
-      /**
-       * Compares this value for inequality.
-       * @param value The value to compare to for inequality.
-       * @return <code>true</code> iff the two values are not equal.
-       */
-      bool operator !=(const IndexedValue& rhs) const;
+      bool operator ==(const IndexedValue& rhs) const = default;
 
     private:
       friend struct Serialization::Shuttle<IndexedValue<V, I>>;
@@ -105,7 +93,7 @@ namespace Beam::Queries {
   template<typename Value, typename Index>
   inline std::ostream& operator <<(std::ostream& out,
       const IndexedValue<Value, Index>& value) {
-    return out << "(" << value.GetIndex() << " " << value.GetValue() << ")";
+    return out << '(' << value.GetIndex() << ' ' << value.GetValue() << ')';
   }
 
   template<typename V, typename I>
@@ -178,16 +166,6 @@ namespace Beam::Queries {
   template<typename V, typename I>
   typename IndexedValue<V, I>::Value* IndexedValue<V, I>::operator ->() {
     return &m_value;
-  }
-
-  template<typename V, typename I>
-  bool IndexedValue<V, I>::operator ==(const IndexedValue& rhs) const {
-    return m_value == rhs.m_value && m_index == rhs.m_index;
-  }
-
-  template<typename V, typename I>
-  bool IndexedValue<V, I>::operator !=(const IndexedValue& rhs) const {
-    return !(*this == rhs);
   }
 }
 

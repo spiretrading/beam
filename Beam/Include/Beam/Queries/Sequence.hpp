@@ -42,53 +42,7 @@ namespace Beam::Queries {
       /** Returns the ordinal. */
       Ordinal GetOrdinal() const noexcept;
 
-      /**
-       * Compares whether this Sequence comes before another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code> comes before
-       *         <i>sequence</i>.
-       */
-      bool operator <(const Sequence& sequence) const noexcept;
-
-      /**
-       * Compares whether this Sequence comes before or is equal to another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code> comes before or is
-       *         equal to <i>sequence</i>.
-       */
-      bool operator <=(const Sequence& sequence) const noexcept;
-
-      /**
-       * Compares whether this Sequence is equal to another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code> is equal to
-       *         <i>sequence</i>.
-       */
-      bool operator ==(const Sequence& sequence) const noexcept;
-
-      /**
-       * Compares whether this Sequence is not equal to another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code>is not equal to
-       *         <i>sequence</i>.
-       */
-      bool operator !=(const Sequence& sequence) const noexcept;
-
-      /**
-       * Compares whether this Sequence comes after another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code> comes after
-       *         <i>sequence</i>.
-       */
-      bool operator >(const Sequence& sequence) const noexcept;
-
-      /**
-       * Compares whether this Sequence comes after or is equal to another.
-       * @param sequence The Sequence to compare to.
-       * @return <code>true</code> iff <code>this</code> comes after or is equal
-       *         to <i>sequence</i>.
-       */
-      bool operator >=(const Sequence& sequence) const noexcept;
+      auto operator <=>(const Sequence& sequence) const = default;
 
     private:
       Ordinal m_ordinal;
@@ -252,30 +206,6 @@ namespace Beam::Queries {
   inline Sequence::Ordinal Sequence::GetOrdinal() const noexcept {
     return m_ordinal;
   }
-
-  inline bool Sequence::operator <(const Sequence& sequence) const noexcept {
-    return m_ordinal < sequence.m_ordinal;
-  }
-
-  inline bool Sequence::operator <=(const Sequence& sequence) const noexcept {
-    return m_ordinal <= sequence.m_ordinal;
-  }
-
-  inline bool Sequence::operator ==(const Sequence& sequence) const noexcept {
-    return m_ordinal == sequence.m_ordinal;
-  }
-
-  inline bool Sequence::operator !=(const Sequence& sequence) const noexcept {
-    return !(*this == sequence);
-  }
-
-  inline bool Sequence::operator >(const Sequence& sequence) const noexcept {
-    return m_ordinal > sequence.m_ordinal;
-  }
-
-  inline bool Sequence::operator >=(const Sequence& sequence) const noexcept {
-    return m_ordinal >= sequence.m_ordinal;
-  }
 }
 
 namespace Beam::Serialization {
@@ -293,9 +223,9 @@ namespace Beam::Serialization {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, Queries::Sequence& value,
         unsigned int version) {
-      Queries::Sequence::Ordinal ordinal;
+      auto ordinal = Queries::Sequence::Ordinal();
       shuttle.Shuttle("ordinal", ordinal);
-      value = Queries::Sequence{ordinal};
+      value = Queries::Sequence(ordinal);
     }
   };
 }

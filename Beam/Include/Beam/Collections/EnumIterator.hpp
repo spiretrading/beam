@@ -41,21 +41,7 @@ namespace Beam {
       /** Increments this iterator. */
       EnumIterator operator ++();
 
-      /**
-       * Tests whether two iterators are pointing to the same value.
-       * @param i The iterator to compare for equality.
-       * @return <code>true</code> iff <code>this</code> iterator is pointing
-       *         to the same value as <i>i</i>.
-       */
-      bool operator ==(const EnumIterator& i) const;
-
-      /**
-       * Tests whether two iterators are pointing to different values.
-       * @param i The iterator to compare for inequality.
-       * @return <code>true</code> iff <code>this</code> iterator is pointing
-       *         to a different value than <i>i</i>.
-       */
-      bool operator !=(const EnumIterator& i) const;
+      bool operator ==(const EnumIterator& i) const = default;
 
     private:
       Type m_current;
@@ -124,16 +110,6 @@ namespace Beam {
     auto i = *this;
     m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
     return i;
-  }
-
-  template<typename T>
-  bool EnumIterator<T>::operator ==(const EnumIterator& i) const {
-    return m_current == i.m_current;
-  }
-
-  template<typename T>
-  bool EnumIterator<T>::operator !=(const EnumIterator& i) const {
-    return !(*this == i);
   }
 }
 

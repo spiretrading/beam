@@ -1,5 +1,5 @@
-#ifndef BEAM_SHUTTLETESTTYPES_HPP
-#define BEAM_SHUTTLETESTTYPES_HPP
+#ifndef BEAM_SHUTTLE_TEST_TYPES_HPP
+#define BEAM_SHUTTLE_TEST_TYPES_HPP
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Serialization/DataShuttle.hpp"
@@ -7,49 +7,34 @@
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/SerializationTests/SerializationTests.hpp"
 
-namespace Beam {
-namespace Serialization {
+namespace Beam::Serialization {
 namespace Tests {
 
-  /*! \class StructWithFreeShuttle
-      \brief Struct with a free symmetric shuttle.
-   */
+  /** Struct with a free symmetric shuttle. */
   struct StructWithFreeShuttle {
     char m_a;
     int m_b;
     double m_c;
 
-    //! Tests for equality.
-    /*!
-      \param rhs The right hand side of the equality.
-      \return <code>true</code> iff <i>this</i> is equal to </i>rhs</i>.
-    */
-    bool operator ==(const StructWithFreeShuttle& rhs) const;
+    bool operator ==(const StructWithFreeShuttle& rhs) const = default;
   };
 
-  /*! \class ClassWithShuttleMethod
-      \brief Class type with a symmetric shuttle method.
-   */
+  /** Class type with a symmetric shuttle method. */
   class ClassWithShuttleMethod {
     public:
 
-      //! Constructs an uninitialized ClassWithShuttleMethod.
+      /** Constructs an uninitialized ClassWithShuttleMethod. */
       ClassWithShuttleMethod() = default;
 
-      //! Constructs a ClassWithShuttleMethod.
-      /*!
-        \param a The char value to shuttle.
-        \param b The int value to shuttle.
-        \param c The double value to shuttle.
-      */
+      /**
+       * Constructs a ClassWithShuttleMethod.
+       * @param a The char value to shuttle.
+       * @param b The int value to shuttle.
+       * @param c The double value to shuttle.
+       */
       ClassWithShuttleMethod(char a, int b, double c);
 
-      //! Tests for equality.
-      /*!
-        \param rhs The right hand side of the equality.
-        \return <code>true</code> iff <i>this</i> is equal to </i>rhs</i>.
-      */
-      bool operator ==(const ClassWithShuttleMethod& rhs) const;
+      bool operator ==(const ClassWithShuttleMethod& rhs) const = default;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -65,29 +50,22 @@ namespace Tests {
       }
   };
 
-  /*! \class ClassWithSendReceiveMethods
-      \brief Class type with different methods for sending/receiving.
-   */
+  /** Class type with different methods for sending/receiving. */
   class ClassWithSendReceiveMethods {
     public:
 
-      //! Constructs an uninitialized ClassWithSendReceiveMethods.
+      /** Constructs an uninitialized ClassWithSendReceiveMethods. */
       ClassWithSendReceiveMethods() = default;
 
-      //! Constructs a ClassWithSendReceiveMethods.
-      /*!
-        \param a The char value to shuttle.
-        \param b The int value to shuttle.
-        \param c The double value to shuttle.
-      */
+      /**
+       * Constructs a ClassWithSendReceiveMethods.
+       * @param a The char value to shuttle.
+       * @param b The int value to shuttle.
+       * @param c The double value to shuttle.
+       */
       ClassWithSendReceiveMethods(char a, int b, double c);
 
-      //! Tests for equality.
-      /*!
-        \param rhs The right hand side of the equality.
-        \return <code>true</code> iff <i>this</i> is equal to </i>rhs</i>.
-      */
-      bool operator ==(const ClassWithSendReceiveMethods& rhs) const;
+      bool operator ==(const ClassWithSendReceiveMethods& rhs) const = default;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -118,29 +96,22 @@ namespace Tests {
       }
   };
 
-  /*! \class ClassWithVersioning
-      \brief Class type with versioning.
-   */
+  /** Class type with versioning. */
   class ClassWithVersioning {
     public:
 
-      //! Constructs an uninitialized ClassWithVersioning.
+      /** Constructs an uninitialized ClassWithVersioning. */
       ClassWithVersioning() = default;
 
-      //! Constructs a ClassWithVersioning.
-      /*!
-        \param v0 Value visible in version 0.
-        \param v1 Value visible in version 1.
-        \param v2 Value visible in version 2.
-      */
+      /**
+       * Constructs a ClassWithVersioning.
+       * @param v0 Value visible in version 0.
+       * @param v1 Value visible in version 1.
+       * @param v2 Value visible in version 2.
+       */
       ClassWithVersioning(int v0, int v1, int v2);
 
-      //! Tests for equality.
-      /*!
-        \param rhs The right hand side of the equality.
-        \return <code>true</code> iff <i>this</i> is equal to </i>rhs</i>.
-      */
-      bool operator ==(const ClassWithVersioning& rhs) const;
+      bool operator ==(const ClassWithVersioning& rhs) const = default;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -164,27 +135,23 @@ namespace Tests {
       }
   };
 
-  /*! \class PolymorphicBaseClass
-      \brief Base class of a polymorphic type.
-   */
+  /** Base class of a polymorphic type. */
   class PolymorphicBaseClass {
     public:
       virtual ~PolymorphicBaseClass() = default;
 
-      //! Returns an identifier for this class.
+      /** Returns an identifier for this class. */
       virtual std::string ToString() const = 0;
   };
 
-  /*! \class PolymorphicDerivedClassA
-      \brief Inherits PolymorphicBaseClass.
-   */
+  /** Inherits PolymorphicBaseClass. */
   class PolymorphicDerivedClassA : public PolymorphicBaseClass {
     public:
 
-      //! Constructs a PolymorphicDerivedClassA.
+      /** Constructs a PolymorphicDerivedClassA. */
       PolymorphicDerivedClassA() = default;
 
-      virtual std::string ToString() const;
+      virtual std::string ToString() const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -193,16 +160,14 @@ namespace Tests {
       void Shuttle(Shuttler& shuttle, unsigned int version) {}
   };
 
-  /*! \class PolymorphicDerivedClassB
-      \brief Inherits PolymorphicBaseClass.
-   */
+  /** Inherits PolymorphicBaseClass. */
   class PolymorphicDerivedClassB : public PolymorphicBaseClass {
     public:
 
-      //! Constructs a PolymorphicDerivedClassB.
+      /** Constructs a PolymorphicDerivedClassB. */
       PolymorphicDerivedClassB() = default;
 
-      virtual std::string ToString() const;
+      virtual std::string ToString() const override;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -211,61 +176,45 @@ namespace Tests {
       void Shuttle(Shuttler& shuttle, unsigned int version) {}
   };
 
-  /*! \class ProxiedFunctionType
-      \brief Tests shuttling via proxy functions.
-   */
+  /** Tests shuttling via proxy functions. */
   class ProxiedFunctionType {
     public:
 
-      //! Constructs an empty ProxiedFunctionType.
+      /** Constructs an empty ProxiedFunctionType. */
       ProxiedFunctionType() = default;
 
-      //! Constructs a ProxiedFunctionType.
-      /*!
-        \param value The value to return in the ToString.
-      */
+      /**
+       * Constructs a ProxiedFunctionType.
+       * @param value The value to return in the ToString.
+       */
       explicit ProxiedFunctionType(const std::string& value);
 
-      //! Tests two instances for equality.
-      /*!
-        \param rhs The instance to test for equality.
-        \return <code>true</code> iff </i>rhs</i>'s ToString() is equal to
-                <code>this</i> ToString().
-      */
-      bool operator ==(const ProxiedFunctionType& rhs) const;
-
-      //! Returns the held value.
+      /** Returns the held value. */
       std::string ToString() const;
+
+      bool operator ==(const ProxiedFunctionType& rhs) const = default;
 
     private:
       std::string m_value;
   };
 
-  /*! \class ProxiedMethodType
-      \brief Tests shuttling via proxy methods.
-   */
+  /** Tests shuttling via proxy methods. */
   class ProxiedMethodType {
     public:
 
-      //! Constructs an empty ProxiedMethodType.
+      /** Constructs an empty ProxiedMethodType. */
       ProxiedMethodType() = default;
 
-      //! Constructs a ProxiedMethodType.
-      /*!
-        \param value The value to return in the ToString.
-      */
+      /**
+       * Constructs a ProxiedMethodType.
+       * @param value The value to return in the ToString.
+       */
       explicit ProxiedMethodType(const std::string& value);
 
-      //! Tests two instances for equality.
-      /*!
-        \param rhs The instance to test for equality.
-        \return <code>true</code> iff </i>rhs</i>'s ToString() is equal to
-                <code>this</i> ToString().
-      */
-      bool operator ==(const ProxiedMethodType& rhs) const;
-
-      //! Returns the held value.
+      /** Returns the held value. */
       std::string ToString() const;
+
+      bool operator ==(const ProxiedMethodType& rhs) const = default;
 
     private:
       friend struct Serialization::DataShuttle;
@@ -323,7 +272,6 @@ namespace Tests {
       value = Tests::ProxiedFunctionType(proxy);
     }
   };
-}
 }
 
 #endif

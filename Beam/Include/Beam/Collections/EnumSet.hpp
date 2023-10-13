@@ -55,20 +55,6 @@ namespace Beam {
       explicit operator std::bitset<T::COUNT>& ();
 
       /**
-       * Tests two EnumSet's for equality.
-       * @param rhs The right hand side to test.
-       * @return <code>true</code> iff this set is equal to <i>rhs</i>.
-       */
-      bool operator ==(const EnumSet& rhs) const;
-
-      /**
-       * Tests two EnumSet's for inequality.
-       * @param rhs The right hand side to test.
-       * @return <code>true</code> iff this set is not equal to <i>rhs</i>.
-       */
-      bool operator !=(const EnumSet& rhs) const;
-
-      /**
        * Tests if a value belongs to this set.
        * @param value The value to test.
        * @return <code>true</code> iff the <i>value</i> is a member of this set.
@@ -95,6 +81,8 @@ namespace Beam {
 
       /** Returns the bitset. */
       const std::bitset<T::COUNT>& GetBitset() const;
+
+      bool operator ==(const EnumSet& rhs) const = default;
 
     private:
       std::bitset<Type::COUNT> m_bitset;
@@ -139,7 +127,7 @@ namespace Beam {
 
   template<typename T>
   EnumSet<T>::EnumSet(const std::bitset<Type::COUNT>& set)
-    : m_bitset{set} {}
+    : m_bitset(set) {}
 
   template<typename T>
   EnumSet<T>::operator const std::bitset<T::COUNT>& () const {
@@ -149,16 +137,6 @@ namespace Beam {
   template<typename T>
   EnumSet<T>::operator std::bitset<T::COUNT>& () {
     return m_bitset;
-  }
-
-  template<typename T>
-  bool EnumSet<T>::operator ==(const EnumSet& rhs) const {
-    return m_bitset == rhs.m_bitset;
-  }
-
-  template<typename T>
-  bool EnumSet<T>::operator !=(const EnumSet& rhs) const {
-    return !(*this == rhs);
   }
 
   template<typename T>

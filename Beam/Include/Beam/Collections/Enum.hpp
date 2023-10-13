@@ -57,28 +57,7 @@ namespace Beam {
        * @param rhs The Enum to test against.
        * @return <code>true</code> iff this Enum comes before <i>rhs</i>.
        */
-      bool operator <(Enum rhs) const;
-
-      /**
-       * Tests if this Enum comes before another.
-       * @param rhs The Enum to test against.
-       * @return <code>true</code> iff this Enum comes before <i>rhs</i>.
-       */
       bool operator <(Type rhs) const;
-
-      /**
-       * Tests two Enums for equality.
-       * @param rhs The right hand side of the equality.
-       * @return <code>true</code> iff this is equal to <i>rhs</i>.
-       */
-      bool operator ==(Enum rhs) const;
-
-      /**
-       * Tests two Enums for inequality.
-       * @param rhs The right hand side of the inequality.
-       * @return <code>true</code> iff this is not equal to <i>rhs</i>.
-       */
-      bool operator !=(Enum rhs) const;
 
       /**
        * Tests two Enums for equality.
@@ -93,6 +72,8 @@ namespace Beam {
        * @return <code>true</code> iff this is not equal to <i>rhs</i>.
        */
       bool operator !=(Type rhs) const;
+
+      auto operator <=>(const Enum& rhs) const = default;
 
     private:
       Type m_value;
@@ -116,23 +97,8 @@ namespace Beam {
   }
 
   template<typename T, std::size_t N>
-  bool Enum<T, N>::operator <(Enum rhs) const {
-    return m_value < rhs.m_value;
-  }
-
-  template<typename T, std::size_t N>
   bool Enum<T, N>::operator <(Type rhs) const {
     return m_value < rhs;
-  }
-
-  template<typename T, std::size_t N>
-  bool Enum<T, N>::operator ==(Enum rhs) const {
-    return m_value == rhs.m_value;
-  }
-
-  template<typename T, std::size_t N>
-  bool Enum<T, N>::operator !=(Enum rhs) const {
-    return !(*this == rhs);
   }
 
   template<typename T, std::size_t N>

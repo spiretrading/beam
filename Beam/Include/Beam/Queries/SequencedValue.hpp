@@ -67,19 +67,7 @@ namespace Beam::Queries {
       /** Returns a pointer to the Value. */
       Value* operator ->();
 
-      /**
-       * Compares this value for equality.
-       * @param value The value to compare to for equality.
-       * @return <code>true</code> iff the two values are equal.
-       */
-      bool operator ==(const SequencedValue& rhs) const;
-
-      /**
-       * Compares this value for inequality.
-       * @param value The value to compare to for inequality.
-       * @return <code>true</code> iff the two values are not equal.
-       */
-      bool operator !=(const SequencedValue& rhs) const;
+      bool operator ==(const SequencedValue& rhs) const = default;
 
     private:
       friend struct Serialization::Shuttle<SequencedValue<T>>;
@@ -180,19 +168,9 @@ namespace Beam::Queries {
     return &m_value;
   }
 
-  template<typename T>
-  bool SequencedValue<T>::operator ==(const SequencedValue& rhs) const {
-    return m_value == rhs.m_value && m_sequence == rhs.m_sequence;
-  }
-
-  template<typename T>
-  bool SequencedValue<T>::operator !=(const SequencedValue& rhs) const {
-    return !(*this == rhs);
-  }
-
   template<typename T, typename Q>
-  bool SequenceComparator::operator()(const SequencedValue<T>& lhs,
-      const SequencedValue<Q>& rhs) const {
+  bool SequenceComparator::operator()(
+      const SequencedValue<T>& lhs, const SequencedValue<Q>& rhs) const {
     return lhs.GetSequence() < rhs.GetSequence();
   }
 }

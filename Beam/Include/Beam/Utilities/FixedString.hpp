@@ -6,69 +6,70 @@
 
 namespace Beam {
 
-  /** String class used to store small strings using a fixed buffer.
-      \tparam N The size of the fixed buffer.
+  /**
+   * String class used to store small strings using a fixed buffer.
+   * @param <N> The size of the fixed buffer.
    */
   template<std::size_t N>
   class FixedString {
     public:
       static constexpr auto SIZE = N;
 
-      //! Constructs an empty string.
+      /** Constructs an empty string. */
       FixedString();
 
-      //! Copies a FixedString up to a maximum of N bytes.
-      /*!
-        \param fixedString The FixedString to copy.
-      */
+      /**
+       * Copies a FixedString up to a maximum of N bytes.
+       * @param fixedString The FixedString to copy.
+       */
       template<std::size_t Q>
       FixedString(const FixedString<Q>& fixedString);
 
-      //! Copies a C string up to a maximum of N bytes.
-      /*!
-        \param data The data to copy.
-      */
+      /**
+       * Copies a C string up to a maximum of N bytes.
+       * @param data The data to copy.
+       */
       FixedString(const char* data);
 
-      //! Copies a raw buffer up to a maximum of N bytes.
-      /*!
-        \param data The data to copy.
-        \param size The size of the data to copy.
-      */
+      /**
+       * Copies a raw buffer up to a maximum of N bytes.
+       * @param data The data to copy.
+       * @param size The size of the data to copy.
+       */
       FixedString(const char* data, std::size_t size);
 
-      //! Copies a string up to a maximum of N bytes.
-      /*!
-        \param data The data to copy.
-      */
+      /**
+       * Copies a string up to a maximum of N bytes.
+       * @param data The data to copy.
+       */
       FixedString(const std::string& data);
 
-      //! Assigns from a FixedString up to a maximum of N bytes.
-      /*!
-        \param fixedString The FixedString to assign from.
-      */
+      /**
+       * Assigns from a FixedString up to a maximum of N bytes.
+       * @param fixedString The FixedString to assign from.
+       */
       template<std::size_t Q>
       FixedString& operator =(const FixedString<Q>& fixedString);
 
-      //! Assigns from a C string up to a maximum of N bytes.
-      /*!
-        \param data The data to assign from.
-      */
+      /**
+       * Assigns from a C string up to a maximum of N bytes.
+       * @param data The data to assign from.
+       */
       FixedString& operator =(const char* data);
 
-      //! Assigns from a string up to a maximum of N bytes.
-      /*!
-        \param data The data to assign from.
-      */
+      /**
+       * Assigns from a string up to a maximum of N bytes.
+       * @param data The data to assign from.
+       */
       FixedString& operator =(const std::string& data);
 
-      //! Returns the raw character buffer storing the data.
+      /** Returns the raw character buffer storing the data. */
       const char* GetData() const;
 
-      //! Returns <code>true</code> iff this FixedString is empty.
+      /** Returns <code>true</code> iff this FixedString is empty. */
       bool IsEmpty() const;
 
-      //! Resets to the empty string.
+      /** Resets to the empty string. */
       void Reset();
 
     private:

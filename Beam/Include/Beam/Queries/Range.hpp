@@ -78,21 +78,7 @@ namespace Beam::Queries {
       /** Returns the end of the Range. */
       const Point& GetEnd() const noexcept;
 
-      /**
-       * Checks if two Ranges are equal.
-       * @param range The Range to check for equality.
-       * @return <code>true</code> iff <code>this</code> is equal to
-       *         <i>range</i>.
-       */
-      bool operator ==(const Range& range) const noexcept;
-
-      /**
-       * Checks if two Ranges are not equal.
-       * @param range The Range to check for inequality.
-       * @return <code>true</code> iff <code>this</code> is not equal to
-       *         <i>range</i>.
-       */
-      bool operator !=(const Range& range) const noexcept;
+      bool operator ==(const Range& range) const = default;
 
     private:
       Point m_start;
@@ -196,8 +182,8 @@ namespace Beam::Queries {
     return !(range == sequence);
   }
 
-  inline bool operator ==(Range::Point range,
-      boost::posix_time::ptime time) noexcept {
+  inline bool operator ==(
+      Range::Point range, boost::posix_time::ptime time) noexcept {
     return boost::get<const boost::posix_time::ptime>(&range) &&
       boost::get<boost::posix_time::ptime>(range) == time;
   }
@@ -252,14 +238,6 @@ namespace Beam::Queries {
 
   inline const Range::Point& Range::GetEnd() const noexcept {
     return m_end;
-  }
-
-  inline bool Range::operator ==(const Range& range) const noexcept {
-    return m_start == range.m_start && m_end == range.m_end;
-  }
-
-  inline bool Range::operator !=(const Range& range) const noexcept {
-    return !(*this == range);
   }
 
   inline bool Range::IsValid(Point point) noexcept {

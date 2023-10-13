@@ -26,42 +26,13 @@ namespace Beam {
     /** The value associated with the key. */
     Value m_value;
 
-    /** Constructs a KeyValuePair. */
-    KeyValuePair() = default;
-
-    /**
-     * Constructs a KeyValuePair.
-     * @param key The pair's key.
-     * @param value The value to associate with the <i>key</i>.
-     */
-    KeyValuePair(Key key, Value value);
-
-    /** Tests if another pair has an equal key and value. */
-    bool operator ==(const KeyValuePair& pair) const;
-
-    /** Tests if another pair has a non-equal key or value. */
-    bool operator !=(const KeyValuePair& pair) const;
+    bool operator ==(const KeyValuePair& pair) const = default;
   };
 
   template<typename Key, typename Value>
   std::ostream& operator <<(std::ostream& out,
       const KeyValuePair<Key, Value>& pair) {
     return out << '(' << pair.m_key << ' ' << pair.m_value << ')';
-  }
-
-  template<typename K, typename V>
-  KeyValuePair<K, V>::KeyValuePair(Key key, Value value)
-    : m_key(std::move(key)),
-      m_value(std::move(value)) {}
-
-  template<typename K, typename V>
-  bool KeyValuePair<K, V>::operator ==(const KeyValuePair& pair) const {
-    return m_key == pair.m_key && m_value == pair.m_value;
-  }
-
-  template<typename K, typename V>
-  bool KeyValuePair<K, V>::operator !=(const KeyValuePair& pair) const {
-    return !(*this == pair);
   }
 }
 

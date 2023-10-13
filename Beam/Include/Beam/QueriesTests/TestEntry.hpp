@@ -21,9 +21,7 @@ namespace Beam::Queries::Tests {
     /** The test timestamp. */
     boost::posix_time::ptime m_timestamp;
 
-    bool operator ==(const TestEntry& rhs) const;
-
-    bool operator !=(const TestEntry& rhs) const;
+    bool operator ==(const TestEntry& rhs) const = default;
   };
 
   using SequencedTestEntry = SequencedValue<TestEntry>;

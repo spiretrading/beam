@@ -176,6 +176,13 @@ namespace Beam::Queries {
     return out << "(" << range.GetStart() << " " << range.GetEnd() << ")";
   }
 
+  inline std::size_t hash_value(const Range& range) {
+    auto seed = std::size_t(0);
+    boost::hash_combine(seed, std::hash<Range::Point>()(range.GetStart()));
+    boost::hash_combine(seed, std::hash<Range::Point>()(range.GetEnd()));
+    return seed;
+  }
+
   inline bool operator ==(Range::Point range, Sequence sequence) noexcept {
     return boost::get<const Sequence>(&range) &&
       boost::get<Sequence>(range) == sequence;
@@ -308,12 +315,7 @@ namespace std {
   template<>
   struct hash<Beam::Queries::Range> {
     std::size_t operator ()(const Beam::Queries::Range& value) const noexcept {
-      auto seed = std::size_t(0);
-      boost::hash_combine(
-        seed, std::hash<Beam::Queries::Range::Point>()(value.GetStart()));
-      boost::hash_combine(
-        seed, std::hash<Beam::Queries::Range::Point>()(value.GetEnd()));
-      return seed;
+      return Beam::Queries::hash_value(value);
     }
   };
 }

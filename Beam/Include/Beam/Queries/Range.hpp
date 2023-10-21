@@ -1,8 +1,10 @@
 #ifndef BEAM_QUERY_RANGE_HPP
 #define BEAM_QUERY_RANGE_HPP
+#include <functional>
 #include <ostream>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/functional/hash.hpp>
 #include <boost/variant.hpp>
 #include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Sequence.hpp"
@@ -10,6 +12,7 @@
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Serialization/ShuttleVariant.hpp"
+#include "Beam/Utilities/HashPtime.hpp"
 
 namespace Beam::Queries {
 
@@ -297,6 +300,20 @@ namespace Beam::Serialization {
       shuttle.Shuttle("start", start);
       shuttle.Shuttle("end", end);
       value = Queries::Range(start, end);
+    }
+  };
+}
+
+namespace std {
+  template<>
+  struct hash<Beam::Queries::Range> {
+    std::size_t operator ()(const Beam::Queries::Range& value) const noexcept {
+      auto seed = std::size_t(0);
+      boost::hash_combine(
+        seed, std::hash<Beam::Queries::Range::Point>()(value.GetStart()));
+      boost::hash_combine(
+        seed, std::hash<Beam::Queries::Range::Point>()(value.GetEnd()));
+      return seed;
     }
   };
 }

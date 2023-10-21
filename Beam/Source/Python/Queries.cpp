@@ -269,6 +269,9 @@ void Beam::Python::ExportRange(pybind11::module& module) {
     def_property_readonly("end", &Range::GetEnd).
     def(self == self).
     def(self != self).
+    def("__hash__", [] (Queries::Range self) {
+      return std::hash<Queries::Range>()(self);
+    }).
     def("__str__", &lexical_cast<std::string, Range>);
 }
 
@@ -301,6 +304,9 @@ void Beam::Python::ExportSequence(pybind11::module& module) {
     def(self != self).
     def(self >= self).
     def(self > self).
+    def("__hash__", [] (Queries::Sequence self) {
+      return std::hash<Queries::Sequence>()(self);
+    }).
     def("__str__", &lexical_cast<std::string, Queries::Sequence>);
   module.def("increment", &Increment);
   module.def("decrement", &Decrement);

@@ -2,6 +2,7 @@
 #define BEAM_SEQUENCE_HPP
 #include <climits>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <ostream>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -185,6 +186,10 @@ namespace Beam::Queries {
     return out << sequence.GetOrdinal();
   }
 
+  inline std::size_t hash_value(Sequence sequence) noexcept {
+    return static_cast<std::size_t>(sequence.GetOrdinal());
+  }
+
   inline Sequence Sequence::First() noexcept {
     return Sequence(0);
   }
@@ -226,6 +231,15 @@ namespace Beam::Serialization {
       auto ordinal = Queries::Sequence::Ordinal();
       shuttle.Shuttle("ordinal", ordinal);
       value = Queries::Sequence(ordinal);
+    }
+  };
+}
+
+namespace std {
+  template<>
+  struct hash<Beam::Queries::Sequence> {
+    std::size_t operator ()(Beam::Queries::Sequence value) const noexcept {
+      return Beam::Queries::hash_value(value);
     }
   };
 }

@@ -13,14 +13,18 @@ namespace Details {
   struct hash_combine<std::tuple<T...>, N> {
     void operator ()(std::size_t& seed, const std::tuple<T...>& value) const {
       hash_combine<std::tuple<T...>, N - 1>()(seed, value);
-      boost::hash_combine(seed, std::get<N>(value));
+      boost::hash_combine(
+        seed, std::hash<std::tuple_element<N, std::tuple<T...>>::type>()(
+          std::get<N>(value)));
     }
   };
 
   template<typename... T>
   struct hash_combine<std::tuple<T...>, 0> {
     void operator ()(std::size_t& seed, const std::tuple<T...>& value) const {
-      boost::hash_combine(seed, std::get<0>(value));
+      boost::hash_combine(seed,
+        std::hash<std::tuple_element<0, std::tuple<T...>>::type>()(
+          std::get<0>(value)));
     }
   };
 };
@@ -30,9 +34,9 @@ namespace std {
   template<typename... T>
   struct hash<std::tuple<T...>> {
     std::size_t operator ()(const std::tuple<T...>& value) const {
-      std::size_t seed = 0;
-      Beam::Details::hash_combine<std::tuple<T...>, sizeof...(T) - 1>()(seed,
-        value);
+      auto seed = std::size_t(0);
+      Beam::Details::hash_combine<std::tuple<T...>, sizeof...(T) - 1>()(
+        seed, value);
       return seed;
     }
   };

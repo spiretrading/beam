@@ -78,7 +78,8 @@ namespace Beam {
   void WeakQueueWriter<T>::Break(const std::exception_ptr& e) {
     auto queue = [&] {
       auto lock = std::lock_guard(m_mutex);
-      return m_queue.lock();
+      auto queue = std::move(m_queue);
+      return queue.lock();
     }();
     if(!queue) {
       return;

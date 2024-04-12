@@ -8,8 +8,8 @@ using namespace Beam;
 TEST_SUITE("SequencePublisher") {
   TEST_CASE("adaptor") {
     auto queue = std::make_shared<Queue<int>>();
-    auto publisher = MakeSequencePublisherAdaptor(
-      std::make_unique<QueueReaderPublisher<int>>(queue));
+    auto reader = QueueReaderPublisher<int>(queue);
+    auto publisher = MakeSequencePublisherAdaptor(&reader);
     queue->Push(3);
     queue->Push(1);
     queue->Push(4);

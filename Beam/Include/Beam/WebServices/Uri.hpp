@@ -1,5 +1,6 @@
 #ifndef BEAM_URI_HPP
 #define BEAM_URI_HPP
+#include <cstdint>
 #include <ostream>
 #include <regex>
 #include <stdexcept>

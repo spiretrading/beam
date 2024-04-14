@@ -1,5 +1,6 @@
 #ifndef BEAM_STOMPFRAMEPARSER_HPP
 #define BEAM_STOMPFRAMEPARSER_HPP
+#include <cstdint>
 #include <deque>
 #include <vector>
 #include <boost/noncopyable.hpp>

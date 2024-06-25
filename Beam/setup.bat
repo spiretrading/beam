@@ -110,7 +110,7 @@ IF NOT EXIST mariadb-connector-c-3.3.3 (
   DEL /F /Q mariadb-connector-c-3.3.3.zip
 )
 IF NOT EXIST openssl-1.1.1q (
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
+  wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
     gzip -d -c openssl-1.1.1q.tar.gz | tar -xf -
     MOVE openssl-1.1.1q openssl-1.1.1q-build

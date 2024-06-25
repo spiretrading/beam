@@ -69,7 +69,7 @@ if [ ! -d "cryptopp870" ]; then
   rm -f cryptopp870.zip
 fi
 if [ ! -d "openssl-1.1.1q" ]; then
-  wget https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
+  wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
     gzip -d -c openssl-1.1.1q.tar.gz | tar -x
     pushd openssl-1.1.1q

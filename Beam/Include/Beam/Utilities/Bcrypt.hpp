@@ -6,6 +6,7 @@
 #include <cstring>
 #include <string>
 #include <cryptopp/osrng.h>
+#include "Beam/Utilities/BeamWorkaround.hpp"
 
 #ifdef snprintf
   #undef snprintf
@@ -593,7 +594,6 @@ namespace Details {
 
   void encode_salt(char*, std::uint8_t*, std::uint16_t, std::uint8_t);
   void encode_base64(std::uint8_t*, const std::uint8_t*, std::uint16_t);
-  void decode_base64(std::uint8_t*, std::uint16_t, std::uint8_t*);
 
   static const std::uint8_t Base64Code[] =
     "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -616,9 +616,9 @@ namespace Details {
   #define CHAR64(c)  ( (c) > 127 ? 255 : index_64[(c)])
 
   inline void decode_base64(std::uint8_t* buffer, std::uint16_t len,
-      std::uint8_t* data) {
+      const std::uint8_t* data) {
     std::uint8_t* bp = buffer;
-    std::uint8_t* p = data;
+    const std::uint8_t* p = data;
     std::uint8_t c1, c2, c3, c4;
     while(bp < buffer + len) {
       c1 = CHAR64(*p);

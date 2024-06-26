@@ -4,6 +4,7 @@
 #include <ostream>
 #include "Beam/IO/IO.hpp"
 #include "Beam/Pointers/Out.hpp"
+#include "Beam/Utilities/Bcrypt.hpp"
 #include "Beam/Utilities/Concept.hpp"
 
 namespace Beam::IO {
@@ -286,7 +287,21 @@ namespace Beam::IO {
    */
   template<typename B>
   std::enable_if_t<ImplementsConcept<B, Buffer>::value> Base64Decode(
-    const std::string& source, Out<B> buffer) {}
+      const std::string& source, Out<B> buffer) {
+    auto padding = [&] {
+      if(source.size() >= 2 && source[source.size() - 1] == '=' &&
+          source[source.size() - 2] == '=') {
+        return 2;
+      } else if(source.size() >= 1 && source[source.size() - 1] == '=') {
+        return 1;
+      }
+      return 0;
+    }();
+    buffer->Reserve((3 * source.size()) / 4 - padding);
+    Details::decode_base64(
+      reinterpret_cast<std::uint8_t*>(buffer->GetMutableData()),
+      buffer->GetSize(), reinterpret_cast<const std::uint8_t*>(source.data()));
+  }
 }
 
 #endif

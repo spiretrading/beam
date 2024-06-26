@@ -179,7 +179,11 @@ namespace Serialization {
   template<typename S>
   template<typename T>
   std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value>
-    JsonReceiver<S>::Shuttle(const char* name, T& value) {}
+      JsonReceiver<S>::Shuttle(const char* name, T& value) {
+    auto base64String = std::string();
+    Shuttle(name, base64String);
+    IO::Base64Decode(base64String, Store(value));
+  }
 
   template<typename S>
   void JsonReceiver<S>::Shuttle(const char* name, std::string& value) {

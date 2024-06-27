@@ -176,9 +176,19 @@ TEST_SUITE("DataShuttle") {
     SUBCASE("string") {
       TestShuttlingReference(T::MakeSender(), T::MakeReceiver(),
         std::string("hello world"));
-      TestShuttlingReference(T::MakeSender(), T::MakeReceiver(), std::string(""));
+      TestShuttlingReference(
+        T::MakeSender(), T::MakeReceiver(), std::string(""));
       TestShuttlingConstant(T::MakeSender(), T::MakeReceiver(),
         std::string("hello world"));
+    }
+
+    SUBCASE("buffer") {
+      TestShuttlingReference(T::MakeSender(), T::MakeReceiver(),
+        BufferFromString<SharedBuffer>(std::string("the quick brown fox")));
+      TestShuttlingReference(T::MakeSender(), T::MakeReceiver(),
+        BufferFromString<SharedBuffer>(std::string("")));
+      TestShuttlingConstant(T::MakeSender(), T::MakeReceiver(),
+        BufferFromString<SharedBuffer>(std::string("hello world")));
     }
 
     SUBCASE("sequence") {

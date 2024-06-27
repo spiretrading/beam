@@ -4,7 +4,6 @@
 #include <ostream>
 #include "Beam/IO/IO.hpp"
 #include "Beam/Pointers/Out.hpp"
-#include "Beam/Utilities/Bcrypt.hpp"
 #include "Beam/Utilities/Concept.hpp"
 
 namespace Beam::IO {
@@ -288,19 +287,48 @@ namespace Beam::IO {
   template<typename B>
   std::enable_if_t<ImplementsConcept<B, Buffer>::value> Base64Decode(
       const std::string& source, Out<B> buffer) {
-    auto padding = [&] {
-      if(source.size() >= 2 && source[source.size() - 1] == '=' &&
-          source[source.size() - 2] == '=') {
-        return 2;
-      } else if(source.size() >= 1 && source[source.size() - 1] == '=') {
-        return 1;
+    static const auto DECODING_TABLE = [] {
+      auto table = std::array<std::uint8_t, 256>();
+      for(auto i = std::uint8_t(0); i < 64; ++i) {
+        table["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
       }
-      return 0;
+      return table;
     }();
-    buffer->Reserve((3 * source.size()) / 4 - padding);
-    Details::decode_base64(
-      reinterpret_cast<std::uint8_t*>(buffer->GetMutableData()),
-      buffer->GetSize(), reinterpret_cast<const std::uint8_t*>(source.data()));
+    auto source_size = source.size();
+    while(source_size > 0 && source[source_size - 1] == '=') {
+      --source_size;
+    }
+    auto output_length = (3 * source_size) / 4;
+    buffer->Reserve(output_length);
+    auto i = std::size_t(0);
+    auto j = std::size_t(0);
+    while(i < source_size) {
+      auto a = i < source_size ?
+        DECODING_TABLE[static_cast<unsigned char>(source[i])] : 64;
+      ++i;
+      auto b = i < source_size ?
+        DECODING_TABLE[static_cast<unsigned char>(source[i])] : 64;
+      ++i;
+      auto c = i < source_size ?
+        DECODING_TABLE[static_cast<unsigned char>(source[i])] : 64;
+      ++i;
+      auto d = i < source_size ?
+        DECODING_TABLE[static_cast<unsigned char>(source[i])] : 64;
+      ++i;
+      auto triple = (a << 18) + (b << 12) + (c << 6) + d;
+      if(j < output_length) {
+        buffer->GetMutableData()[j] = (triple >> 16) & 0xFF;
+        ++j;
+      }
+      if(j < output_length) {
+        buffer->GetMutableData()[j] = (triple >> 8) & 0xFF;
+        ++j;
+      }
+      if(j < output_length) {
+        buffer->GetMutableData()[j] = triple & 0xFF;
+        ++j;
+      }
+    }
   }
 }
 

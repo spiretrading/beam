@@ -1,5 +1,7 @@
 #ifndef BEAM_BUFFER_HPP
 #define BEAM_BUFFER_HPP
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <ostream>
 #include "Beam/IO/IO.hpp"

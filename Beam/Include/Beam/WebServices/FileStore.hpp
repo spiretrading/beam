@@ -64,6 +64,10 @@ namespace Beam::WebServices {
 
       FileStore(const FileStore&) = delete;
       FileStore& operator =(const FileStore&) = delete;
+      static void Populate(std::ostream& out, const std::string& name);
+      static std::string MakeDisplayPath(const std::filesystem::path& path);
+      std::string MakeDirectoryListing(
+        const std::filesystem::path& target) const;
       bool IsSubdirectory(const std::filesystem::path& target) const;
   };
 
@@ -110,22 +114,30 @@ namespace Beam::WebServices {
 
   inline void FileStore::Serve(
       const std::filesystem::path& path, Out<HttpResponse> response) {
-    auto fullPath = std::filesystem::canonical(m_root / path);
-    if(!IsSubdirectory(fullPath)) {
-      response->SetStatusCode(HttpStatusCode::NOT_FOUND);
-      return;
-    }
-    auto file = std::ifstream(fullPath, std::ios::in | std::ios::binary);
-    if(!file) {
+    auto errorCode = std::error_code();
+    auto fullPath = std::filesystem::canonical(m_root / path, errorCode);
+    if(errorCode || !IsSubdirectory(fullPath)) {
       response->SetStatusCode(HttpStatusCode::NOT_FOUND);
       return;
     }
     auto buffer = IO::SharedBuffer();
-    buffer.Grow(static_cast<std::size_t>(std::filesystem::file_size(fullPath)));
-    file.read(buffer.GetMutableData(), buffer.GetSize());
-    auto& contentType = m_contentTypePatterns.GetContentType(fullPath);
-    if(!contentType.empty()) {
-      response->SetHeader({"Content-Type", contentType});
+    if(std::filesystem::is_directory(fullPath)) {
+      auto listing = MakeDirectoryListing(fullPath);
+      buffer.Append(listing.c_str(), listing.size());
+      response->SetHeader({"Content-Type", "text/html"});
+    } else {
+      auto file = std::ifstream(fullPath, std::ios::in | std::ios::binary);
+      if(!file) {
+        response->SetStatusCode(HttpStatusCode::NOT_FOUND);
+        return;
+      }
+      buffer.Grow(
+        static_cast<std::size_t>(std::filesystem::file_size(fullPath)));
+      file.read(buffer.GetMutableData(), buffer.GetSize());
+      auto& contentType = m_contentTypePatterns.GetContentType(fullPath);
+      if(!contentType.empty()) {
+        response->SetHeader({"Content-Type", contentType});
+      }
     }
     response->SetBody(std::move(buffer));
   }
@@ -133,6 +145,62 @@ namespace Beam::WebServices {
   inline void FileStore::Serve(
       const HttpRequest& request, Out<HttpResponse> response) {
     Serve(request.GetUri().GetPath(), Store(response));
+  }
+
+  inline void FileStore::Populate(std::ostream& out, const std::string& name) {
+    out << "<a href=\"" << name << "\">" << name << "</a>\n";
+  }
+
+  inline std::string FileStore::MakeDisplayPath(
+      const std::filesystem::path& path) {
+    auto out = std::string();
+    for(auto i = path.begin(); i != path.end(); ++i) {
+      out += i->string();
+      if(std::next(i) != path.end()) {
+        out += '/';
+      }
+    }
+    return out;
+  }
+
+  inline std::string FileStore::MakeDirectoryListing(
+      const std::filesystem::path& target) const {
+    auto relative_path = std::filesystem::relative(target, m_root);
+    auto display_path = [&] {
+      if(target == m_root) {
+        return std::string("/");
+      } else {
+        return "/" + MakeDisplayPath(relative_path);
+      }
+    }();
+    auto out = std::ostringstream();
+    out << "<!DOCTYPE html>\n";
+    out << "<html>\n<head>\n<title>Index of " << display_path <<
+      "</title>\n</head>\n<body>\n";
+    out << "<h1>Index of " << display_path << "</h1>\n";
+    out << "<hr>\n<pre>\n";
+    if(target != m_root) {
+      out << "<a href=\"../\">..</a>\n";
+    }
+    auto directories = std::vector<std::string>();
+    auto files = std::vector<std::string>();
+    for(auto& entry : std::filesystem::directory_iterator(target)) {
+      if(entry.is_directory()) {
+        directories.push_back(entry.path().filename().string() + "/");
+      } else {
+        files.push_back(entry.path().filename().string());
+      }
+    }
+    std::sort(directories.begin(), directories.end());
+    for(auto& directory : directories) {
+      Populate(out, directory);
+    }
+    std::sort(files.begin(), files.end());
+    for(auto& file : files) {
+      Populate(out, file);
+    }
+    out << "</pre>\n<hr>\n</body>\n</html>";
+    return out.str();
   }
 
   inline bool FileStore::IsSubdirectory(

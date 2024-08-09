@@ -15,8 +15,8 @@ using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
-  using HttpFileServletContainer = HttpServletContainer<HttpFileServlet,
-    TcpServerSocket>;
+  using HttpFileServletContainer =
+    HttpServletContainer<HttpFileServlet, TcpServerSocket>;
 }
 
 int main(int argc, const char** argv) {

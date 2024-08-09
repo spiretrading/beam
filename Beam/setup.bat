@@ -67,17 +67,17 @@ IF EXIST aspen (
   POPD
 )
 IF NOT EXIST cryptopp870 (
-  wget https://www.cryptopp.com/cryptopp870.zip -O cryptopp870.zip --no-check-certificate
+  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_7_0.zip -O cryptopp870.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    MD cryptopp870
+    tar -xf cryptopp870.zip
+    MOVE cryptopp-CRYPTOPP_8_7_0 cryptopp870
     PUSHD cryptopp870
-    tar -xf ..\cryptopp870.zip
     TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
     TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
     MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-	msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32 cryptlib.vcxproj
-	msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Release;Platform=Win32 cryptlib.vcxproj
+    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32 cryptlib.vcxproj
+    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Release;Platform=Win32 cryptlib.vcxproj
     MD include
     PUSHD include
     MD cryptopp

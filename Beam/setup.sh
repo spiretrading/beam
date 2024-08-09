@@ -55,11 +55,11 @@ if [ -d "aspen" ]; then
   popd
 fi
 if [ ! -d "cryptopp870" ]; then
-  wget https://www.cryptopp.com/cryptopp870.zip -O cryptopp870.zip --no-check-certificate
+  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_7_0.zip -O cryptopp870.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    mkdir cryptopp870
+    unzip cryptopp870.zip
+    mv cryptopp-CRYPTOPP_8_7_0 cryptopp870
     pushd cryptopp870
-    unzip ../cryptopp870.zip
     make -j $cores
     make install PREFIX="$root/cryptopp870"
     popd

@@ -152,7 +152,7 @@ IF NOT EXIST tclap-1.2.5 (
   )
   DEL /F /Q v1.2.5.zip
 )
-SET VIPER_COMMIT="c77e2c92bd370d3ed1aafb8dabd796a0356327a0"
+SET VIPER_COMMIT="f0e05acaadb41abf3e1632b76b9c5f9fb5b8af99"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! EQU 0 (
@@ -210,21 +210,21 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-IF NOT EXIST boost_1_81_0 (
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.zip -O boost_1_81_0.zip --no-check-certificate
+IF NOT EXIST boost_1_86_0 (
+  wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip -O boost_1_86_0.zip --no-check-certificate
   IF !ERRORLEVEL! LEQ 0 (
-    tar -xf boost_1_81_0.zip
-    PUSHD boost_1_81_0
+    tar -xf boost_1_86_0.zip
+    PUSHD boost_1_86_0
     PUSHD tools\build
     CALL bootstrap.bat vc143
     POPD
-    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_81_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
-    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_81_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
+    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
     POPD
   ) ELSE (
     SET EXIT_STATUS=1
   )
-  DEL /F /Q boost_1_81_0.zip
+  DEL /F /Q boost_1_86_0.zip
 )
 IF NOT EXIST cache_files (
   MD cache_files

@@ -211,9 +211,10 @@ namespace Beam::Queries {
     } else if(expression.GetName() == DIVISION_NAME) {
       TranslateFunction<DivisionExpressionTranslator, 2>(expression);
     } else if(expression.GetName() == LESS_NAME) {
-      TranslateFunction<LessExpressionTranslator<NativeTypes>, 2>(expression);
+      TranslateFunction<LessExpressionTranslator<ComparableTypes>, 2>(
+        expression);
     } else if(expression.GetName() == LESS_EQUALS_NAME) {
-      TranslateFunction<LessEqualsExpressionTranslator<NativeTypes>, 2>(
+      TranslateFunction<LessEqualsExpressionTranslator<ComparableTypes>, 2>(
         expression);
     } else if(expression.GetName() == EQUALS_NAME) {
       TranslateFunction<EqualsExpressionTranslator<NativeTypes>, 2>(expression);
@@ -221,15 +222,17 @@ namespace Beam::Queries {
       TranslateFunction<NotEqualsExpressionTranslator<NativeTypes>, 2>(
         expression);
     } else if(expression.GetName() == GREATER_EQUALS_NAME) {
-      TranslateFunction<GreaterEqualsExpressionTranslator<NativeTypes>, 2>(
+      TranslateFunction<GreaterEqualsExpressionTranslator<ComparableTypes>, 2>(
         expression);
     } else if(expression.GetName() == GREATER_NAME) {
-      TranslateFunction<GreaterExpressionTranslator<NativeTypes>, 2>(
+      TranslateFunction<GreaterExpressionTranslator<ComparableTypes>, 2>(
         expression);
     } else if(expression.GetName() == MAX_NAME) {
-      TranslateFunction<MaxExpressionTranslator<NativeTypes>, 2>(expression);
+      TranslateFunction<MaxExpressionTranslator<ComparableTypes>, 2>(
+        expression);
     } else if(expression.GetName() == MIN_NAME) {
-      TranslateFunction<MinExpressionTranslator<NativeTypes>, 2>(expression);
+      TranslateFunction<MinExpressionTranslator<ComparableTypes>, 2>(
+        expression);
     } else {
       BOOST_THROW_EXCEPTION(
         ExpressionTranslationException("Function not supported."));

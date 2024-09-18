@@ -117,6 +117,8 @@ namespace Beam::Queries {
       std::unordered_map<std::string, std::vector<VariableEntry>> m_variables;
 
       const VariableEntry& FindVariable(const std::string& name) const;
+      template<typename Operation, int COUNT>
+      void TranslateFunction(const FunctionExpression& expression);
   };
 
   template<typename QueryTypes>
@@ -201,92 +203,36 @@ namespace Beam::Queries {
   void EvaluatorTranslator<QueryTypes>::Visit(
       const FunctionExpression& expression) {
     if(expression.GetName() == ADDITION_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      auto& leftExpression = expression.GetParameters()[0];
-      leftExpression->Apply(*this);
-      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
-      parameters.push_back(std::move(m_evaluator));
-      auto& rightExpression = expression.GetParameters()[1];
-      rightExpression->Apply(*this);
-      parameters.push_back(std::move(m_evaluator));
-      try {
-        m_evaluator.reset(Instantiate<
-          FunctionEvaluatorNodeTranslator<AdditionExpressionTranslator>>(
-          leftExpression->GetType()->GetNativeType(),
-          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
-      } catch(const InstantiationNotSupportedException&) {
-        std::throw_with_nested(
-          ExpressionTranslationException("Type mismatch."));
-      }
+      TranslateFunction<AdditionExpressionTranslator, 2>(expression);
+    } else if(expression.GetName() == SUBTRACTION_NAME) {
+      TranslateFunction<SubtractionExpressionTranslator, 2>(expression);
+    } else if(expression.GetName() == MULTIPLICATION_NAME) {
+      TranslateFunction<MultiplicationExpressionTranslator, 2>(expression);
+    } else if(expression.GetName() == DIVISION_NAME) {
+      TranslateFunction<DivisionExpressionTranslator, 2>(expression);
+    } else if(expression.GetName() == LESS_NAME) {
+      TranslateFunction<LessExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.GetName() == LESS_EQUALS_NAME) {
+      TranslateFunction<LessEqualsExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == EQUALS_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      auto& leftExpression = expression.GetParameters()[0];
-      leftExpression->Apply(*this);
-      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
-      parameters.push_back(std::move(m_evaluator));
-      auto& rightExpression = expression.GetParameters()[1];
-      rightExpression->Apply(*this);
-      parameters.push_back(std::move(m_evaluator));
-      try {
-        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-          EqualsExpressionTranslator<NativeTypes>>>(
-          leftExpression->GetType()->GetNativeType(),
-          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
-      } catch(const InstantiationNotSupportedException&) {
-        std::throw_with_nested(
-          ExpressionTranslationException("Type mismatch."));
-      }
+      TranslateFunction<EqualsExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.GetName() == NOT_EQUALS_NAME) {
+      TranslateFunction<NotEqualsExpressionTranslator<NativeTypes>, 2>(
+        expression);
+    } else if(expression.GetName() == GREATER_EQUALS_NAME) {
+      TranslateFunction<GreaterEqualsExpressionTranslator<NativeTypes>, 2>(
+        expression);
+    } else if(expression.GetName() == GREATER_NAME) {
+      TranslateFunction<GreaterExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == MAX_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      auto& leftExpression = expression.GetParameters()[0];
-      leftExpression->Apply(*this);
-      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
-      parameters.push_back(std::move(m_evaluator));
-      auto& rightExpression = expression.GetParameters()[1];
-      rightExpression->Apply(*this);
-      parameters.push_back(std::move(m_evaluator));
-      try {
-        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-          MaxExpressionTranslator<NativeTypes>>>(
-          leftExpression->GetType()->GetNativeType(),
-          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
-      } catch(const InstantiationNotSupportedException&) {
-        std::throw_with_nested(
-          ExpressionTranslationException("Type mismatch."));
-      }
+      TranslateFunction<MaxExpressionTranslator<NativeTypes>, 2>(expression);
     } else if(expression.GetName() == MIN_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      auto& leftExpression = expression.GetParameters()[0];
-      leftExpression->Apply(*this);
-      auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
-      parameters.push_back(std::move(m_evaluator));
-      auto& rightExpression = expression.GetParameters()[1];
-      rightExpression->Apply(*this);
-      parameters.push_back(std::move(m_evaluator));
-      try {
-        m_evaluator.reset(Instantiate<FunctionEvaluatorNodeTranslator<
-          MinExpressionTranslator<NativeTypes>>>(
-          leftExpression->GetType()->GetNativeType(),
-          rightExpression->GetType()->GetNativeType())(std::move(parameters)));
-      } catch(const InstantiationNotSupportedException&) {
-        std::throw_with_nested(
-          ExpressionTranslationException("Type mismatch."));
-      }
+      TranslateFunction<MinExpressionTranslator<NativeTypes>, 2>(expression);
     } else {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-        "Function not supported."));
+      BOOST_THROW_EXCEPTION(
+        ExpressionTranslationException("Function not supported."));
     }
   }
 
@@ -406,6 +352,55 @@ namespace Beam::Queries {
         "Variable not found."));
     }
     return variableIterator->second.back();
+  }
+
+  template<typename QueryTypes>
+  template<typename Translator, int COUNT>
+  void EvaluatorTranslator<QueryTypes>::TranslateFunction(
+      const FunctionExpression& expression) {
+    if(expression.GetParameters().size() != COUNT) {
+      BOOST_THROW_EXCEPTION(
+        ExpressionTranslationException("Invalid parameter count."));
+    }
+    auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
+    for(auto& parameter : expression.GetParameters()) {
+      parameter->Apply(*this);
+      parameters.push_back(std::move(m_evaluator));
+    }
+    try {
+      if constexpr(COUNT == 1) {
+        m_evaluator.reset(Instantiate<
+          FunctionEvaluatorNodeTranslator<Translator>>(
+            expression.GetParameters()[0]->GetType()->GetNativeType())(
+              std::move(parameters)));
+      } else if constexpr(COUNT == 2) {
+        m_evaluator.reset(Instantiate<
+          FunctionEvaluatorNodeTranslator<Translator>>(
+            expression.GetParameters()[0]->GetType()->GetNativeType(),
+            expression.GetParameters()[1]->GetType()->GetNativeType())(
+              std::move(parameters)));
+      } else if constexpr(COUNT == 3) {
+        m_evaluator.reset(Instantiate<
+          FunctionEvaluatorNodeTranslator<Translator>>(
+            expression.GetParameters()[0]->GetType()->GetNativeType(),
+            expression.GetParameters()[1]->GetType()->GetNativeType(),
+            expression.GetParameters()[2]->GetType()->GetNativeType())(
+              std::move(parameters)));
+      } else if constexpr(COUNT == 4) {
+        m_evaluator.reset(Instantiate<
+          FunctionEvaluatorNodeTranslator<Translator>>(
+            expression.GetParameters()[0]->GetType()->GetNativeType(),
+            expression.GetParameters()[1]->GetType()->GetNativeType(),
+            expression.GetParameters()[2]->GetType()->GetNativeType(),
+            expression.GetParameters()[3]->GetType()->GetNativeType())(
+              std::move(parameters)));
+      } else {
+        std::throw_with_nested(
+          ExpressionTranslationException("Type mismatch."));
+      }
+    } catch(const InstantiationNotSupportedException&) {
+      std::throw_with_nested(ExpressionTranslationException("Type mismatch."));
+    }
   }
 }
 

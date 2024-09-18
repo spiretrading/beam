@@ -50,7 +50,17 @@ void Beam::Python::ExportAndExpression(pybind11::module& module) {
 void Beam::Python::ExportExpression(pybind11::module& module) {
   class_<VirtualExpression>(module, "Expression").
     def_property_readonly("data_type", &VirtualExpression::GetType).
-    def("apply", &VirtualExpression::Apply);
+    def("apply", &VirtualExpression::Apply).
+    def(self < self).
+    def(self <= self).
+    def(self == self).
+    def(self != self).
+    def(self >= self).
+    def(self > self).
+    def(self + self).
+    def(self - self).
+    def(self * self).
+    def(self / self);
   class_<Expression>(module, "CloneableExpression").
     def(init<const VirtualExpression&>());
   implicitly_convertible<VirtualExpression, Expression>();

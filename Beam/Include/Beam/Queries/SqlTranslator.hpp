@@ -54,6 +54,9 @@ namespace Beam::Queries {
       Viper::Expression m_parameter;
       Expression m_expression;
       Viper::Expression m_translation;
+
+      template<typename F>
+      void Translate(const FunctionExpression& expression, F&& translation);
   };
 
   /**
@@ -109,28 +112,48 @@ namespace Beam::Queries {
 
   inline void SqlTranslator::Visit(const FunctionExpression& expression) {
     if(expression.GetName() == ADDITION_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      expression.GetParameters()[0]->Apply(*this);
-      auto leftTranslation = GetTranslation();
-      expression.GetParameters()[1]->Apply(*this);
-      auto rightTranslation = GetTranslation();
-      GetTranslation() = leftTranslation + rightTranslation;
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left + right;
+      });
+    } else if(expression.GetName() == SUBTRACTION_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left - right;
+      });
+    } else if(expression.GetName() == MULTIPLICATION_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left * right;
+      });
+    } else if(expression.GetName() == DIVISION_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left / right;
+      });
+    } else if(expression.GetName() == LESS_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left < right;
+      });
+    } else if(expression.GetName() == LESS_EQUALS_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left <= right;
+      });
     } else if(expression.GetName() == EQUALS_NAME) {
-      if(expression.GetParameters().size() != 2) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Invalid parameters."));
-      }
-      expression.GetParameters()[0]->Apply(*this);
-      auto leftTranslation = GetTranslation();
-      expression.GetParameters()[1]->Apply(*this);
-      auto rightTranslation = GetTranslation();
-      GetTranslation() = leftTranslation == rightTranslation;
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left == right;
+      });
+    } else if(expression.GetName() == NOT_EQUALS_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left != right;
+      });
+    } else if(expression.GetName() == GREATER_EQUALS_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left >= right;
+      });
+    } else if(expression.GetName() > LESS_EQUALS_NAME) {
+      Translate(expression, [] (auto&& left, auto&& right) {
+        return left > right;
+      });
     } else {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-        "Function not supported."));
+      BOOST_THROW_EXCEPTION(
+        ExpressionTranslationException("Function not supported."));
     }
   }
 
@@ -163,6 +186,21 @@ namespace Beam::Queries {
 
   inline Viper::Expression& SqlTranslator::GetTranslation() {
     return m_translation;
+  }
+
+  template<typename F>
+  void SqlTranslator::Translate(
+      const FunctionExpression& expression, F&& translation) {
+    if(expression.GetParameters().size() != 2) {
+      BOOST_THROW_EXCEPTION(
+        ExpressionTranslationException("Invalid parameters."));
+    }
+    expression.GetParameters()[0]->Apply(*this);
+    auto left = GetTranslation();
+    expression.GetParameters()[1]->Apply(*this);
+    auto right = GetTranslation();
+    GetTranslation() =
+      std::forward<F>(translation)(std::move(left), std::move(right));
   }
 }
 

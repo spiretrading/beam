@@ -203,13 +203,17 @@ namespace Beam::Queries {
   void EvaluatorTranslator<QueryTypes>::Visit(
       const FunctionExpression& expression) {
     if(expression.GetName() == ADDITION_NAME) {
-      TranslateFunction<AdditionExpressionTranslator, 2>(expression);
+      TranslateFunction<AdditionExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == SUBTRACTION_NAME) {
-      TranslateFunction<SubtractionExpressionTranslator, 2>(expression);
+      TranslateFunction<SubtractionExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == MULTIPLICATION_NAME) {
-      TranslateFunction<MultiplicationExpressionTranslator, 2>(expression);
+      TranslateFunction<MultiplicationExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == DIVISION_NAME) {
-      TranslateFunction<DivisionExpressionTranslator, 2>(expression);
+      TranslateFunction<DivisionExpressionTranslator<NativeTypes>, 2>(
+        expression);
     } else if(expression.GetName() == LESS_NAME) {
       TranslateFunction<LessExpressionTranslator<ComparableTypes>, 2>(
         expression);

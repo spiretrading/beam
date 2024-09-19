@@ -4,6 +4,10 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <boost/mpl/back.hpp>
+#include <boost/mpl/copy_if.hpp>
+#include <boost/mpl/fold.hpp>
+#include <boost/mpl/front.hpp>
 #include <boost/mpl/front_inserter.hpp>
 #include <boost/mpl/copy_if.hpp>
 #include <boost/mpl/list.hpp>
@@ -19,6 +23,24 @@ namespace Details {
     typename = decltype(std::declval<Q>() < std::declval<Q>())>
   std::true_type HasLessThanTest(const Q&);
   std::false_type HasLessThanTest(...);
+
+  template<typename T1>
+  struct MakePairs {
+    template <typename T2>
+    struct apply {
+      using type = boost::mpl::vector<T1, T2>;
+    };
+  };
+
+  template<typename T, template<typename> typename HasOperation>
+  struct Signatures {
+    using type = typename boost::mpl::copy_if<
+      typename boost::mpl::fold<T, boost::mpl::list<>,
+        boost::mpl::transform<T, MakePairs<boost::mpl::_2>,
+          boost::mpl::front_inserter<boost::mpl::_1>>>::type,
+      HasOperation<boost::mpl::_1>,
+      boost::mpl::front_inserter<boost::mpl::list<>>>::type;
+  };
 }
 
   /** The name used for the addition function. */
@@ -273,6 +295,7 @@ namespace Details {
     std::true_type>::type {};
 
   /** Contains the meta-data needed to translate an addition Expression. */
+  template<typename ValueTypes>
   struct AdditionExpressionTranslator {
     template<typename T0, typename T1>
     struct Operation {
@@ -281,17 +304,19 @@ namespace Details {
       }
     };
 
-    using SupportedTypes = boost::mpl::list<boost::mpl::vector<int, int>,
-      boost::mpl::vector<double, double>,
-      boost::mpl::vector<int, double>,
-      boost::mpl::vector<double, int>,
-      boost::mpl::vector<boost::posix_time::time_duration,
-        boost::posix_time::time_duration>,
-      boost::mpl::vector<boost::posix_time::ptime,
-        boost::posix_time::time_duration>>;
+    template<typename T>
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        { left + right };
+      }> {};
+
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a subtraction Expression. */
+  template<typename ValueTypes>
   struct SubtractionExpressionTranslator {
     template<typename T0, typename T1>
     struct Operation {
@@ -300,17 +325,19 @@ namespace Details {
       }
     };
 
-    using SupportedTypes = boost::mpl::list<boost::mpl::vector<int, int>,
-      boost::mpl::vector<double, double>,
-      boost::mpl::vector<int, double>,
-      boost::mpl::vector<double, int>,
-      boost::mpl::vector<boost::posix_time::time_duration,
-        boost::posix_time::time_duration>,
-      boost::mpl::vector<boost::posix_time::ptime,
-        boost::posix_time::time_duration>>;
+    template<typename T>
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        { left - right };
+      }> {};
+
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a multiplication Expression. */
+  template<typename ValueTypes>
   struct MultiplicationExpressionTranslator {
     template<typename T0, typename T1>
     struct Operation {
@@ -319,13 +346,23 @@ namespace Details {
       }
     };
 
-    using SupportedTypes = boost::mpl::list<boost::mpl::vector<int, int>,
-      boost::mpl::vector<double, double>,
-      boost::mpl::vector<int, double>,
-      boost::mpl::vector<double, int>>;
+    template<typename T>
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<typename boost::mpl::front<T>::type,
+          boost::posix_time::time_duration>;
+        requires !std::is_same_v<
+          typename boost::mpl::back<T>::type, boost::posix_time::time_duration>;
+        { left * right };
+      }> {};
+
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a division Expression. */
+  template<typename ValueTypes>
   struct DivisionExpressionTranslator {
     template<typename T0, typename T1>
     struct Operation {
@@ -334,10 +371,23 @@ namespace Details {
       }
     };
 
-    using SupportedTypes = boost::mpl::list<boost::mpl::vector<int, int>,
-      boost::mpl::vector<double, double>,
-      boost::mpl::vector<int, double>,
-      boost::mpl::vector<double, int>>;
+    template<typename T>
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<
+          typename boost::mpl::front<T>::type, bool>;
+        requires !std::is_same_v<
+          typename boost::mpl::back<T>::type, bool>;
+        requires !std::is_same_v<typename boost::mpl::front<T>::type,
+          boost::posix_time::time_duration>;
+        requires !std::is_same_v<
+          typename boost::mpl::back<T>::type, boost::posix_time::time_duration>;
+        { left / right };
+      }> {};
+
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a less Expression. */
@@ -351,16 +401,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<typename boost::mpl::front<T>::type, bool>;
+        requires !std::is_same_v<typename boost::mpl::back<T>::type, bool>;
+        { left < right };
+      }> {};
 
-    using ComparableTypes = typename boost::mpl::copy_if<ValueTypes,
-      HasLessThan<boost::mpl::placeholders::_1>,
-      boost::mpl::front_inserter<boost::mpl::list<>>>::type;
-
-    using SupportedTypes = typename boost::mpl::transform<ComparableTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a less or equals Expression. */
@@ -374,16 +424,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<typename boost::mpl::front<T>::type, bool>;
+        requires !std::is_same_v<typename boost::mpl::back<T>::type, bool>;
+        { left <= right };
+      }> {};
 
-    using ComparableTypes = typename boost::mpl::copy_if<ValueTypes,
-      HasLessThan<boost::mpl::placeholders::_1>,
-      boost::mpl::front_inserter<boost::mpl::list<>>>::type;
-
-    using SupportedTypes = typename boost::mpl::transform<ComparableTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate an equals Expression. */
@@ -397,12 +447,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires std::is_same_v<typename boost::mpl::front<T>::type,
+          typename boost::mpl::back<T>::type>;
+        { left == right };
+      }> {};
 
-    using SupportedTypes = typename boost::mpl::transform<ValueTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a not equals Expression. */
@@ -416,12 +470,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires std::is_same_v<typename boost::mpl::front<T>::type,
+          typename boost::mpl::back<T>::type>;
+        { left != right };
+      }> {};
 
-    using SupportedTypes = typename boost::mpl::transform<ValueTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /**
@@ -437,16 +495,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<typename boost::mpl::front<T>::type, bool>;
+        requires !std::is_same_v<typename boost::mpl::back<T>::type, bool>;
+        { left >= right };
+      }> {};
 
-    using ComparableTypes = typename boost::mpl::copy_if<ValueTypes,
-      HasLessThan<boost::mpl::placeholders::_1>,
-      boost::mpl::front_inserter<boost::mpl::list<>>>::type;
-
-    using SupportedTypes = typename boost::mpl::transform<ComparableTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a greater Expression. */
@@ -460,16 +518,16 @@ namespace Details {
     };
 
     template<typename T>
-    struct MakeSignature {
-      using type = typename boost::mpl::vector<T, T, bool>::type;
-    };
+    struct HasOperation : std::bool_constant<
+      requires(const typename boost::mpl::front<T>::type& left,
+          const typename boost::mpl::back<T>::type& right) {
+        requires !std::is_same_v<typename boost::mpl::front<T>::type, bool>;
+        requires !std::is_same_v<typename boost::mpl::back<T>::type, bool>;
+        { (left > right) };
+      }> {};
 
-    using ComparableTypes = typename boost::mpl::copy_if<ValueTypes,
-      HasLessThan<boost::mpl::placeholders::_1>,
-      boost::mpl::front_inserter<boost::mpl::list<>>>::type;
-
-    using SupportedTypes = typename boost::mpl::transform<ComparableTypes,
-      MakeSignature<boost::mpl::placeholders::_1>>::type;
+    using SupportedTypes =
+      typename Details::Signatures<ValueTypes, HasOperation>::type;
   };
 
   /** Contains the meta-data needed to translate a max Expression. */

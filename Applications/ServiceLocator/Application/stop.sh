@@ -1,6 +1,6 @@
 #!/bin/bash
 APPLICATION="ServiceLocator"
-CHECK_SCRIPT="./check_server.sh"
+CHECK_SCRIPT="./check.sh"
 PID_FILE="pid.lock"
 log_file=$(ls -t srv_*.log 2>/dev/null | head -n 1)
 

@@ -33,7 +33,6 @@ is_any_address_listening() {
   for addr in "${all_addresses[@]}"; do
     host="${addr%%:*}"
     port="${addr##*:}"
-    echo --$host--$port--
     if ss -ltn | grep -qE "$host:$port"; then
       return 0
     fi

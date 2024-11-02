@@ -41,14 +41,11 @@ is_any_address_listening() {
 }
 
 while true; do
-  echo "Uid: A"
   if ./check.sh | grep -q "$APPLICATION is not running."; then
     exit 1
   fi
-  echo "Uid: B"
   if is_any_address_listening; then
     break
   fi
-  echo "Uid: C"
   sleep 0.5
 done

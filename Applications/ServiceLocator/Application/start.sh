@@ -16,7 +16,7 @@ fi
 ./$APPLICATION > "$log_name" 2>&1 &
 new_pid=$!
 echo "$new_pid" > "pid.lock"
-interface=$(yq '.interface // empty' "$CONFIG_FILE")
+interface=$(yq '.interface // ""' "$CONFIG_FILE")
 all_addresses=()
 if [[ -n "$interface" ]]; then
   all_addresses+=("$interface")

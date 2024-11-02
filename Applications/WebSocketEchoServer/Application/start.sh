@@ -30,10 +30,10 @@ is_any_address_listening() {
     host="${addr%%:*}"
     port="${addr##*:}"
     if ss -ltn | grep -qE "$host:$port"; then
-      return 1
+      return 0
     fi
   done
-  return 0
+  return 1
 }
 
 while true; do

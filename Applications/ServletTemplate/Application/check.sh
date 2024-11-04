@@ -14,3 +14,4 @@ if [[ -f "$PID_FILE" ]]; then
   fi
 fi
 echo "$APPLICATION is not running."
+exit 1

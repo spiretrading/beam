@@ -71,6 +71,8 @@ namespace Beam::Routines {
   }
 
   inline void ScheduledRoutine::Continue() {
+    Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
+    ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
     Details::CurrentRoutineGlobal<void>::GetInstance() = this;
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
@@ -84,6 +86,8 @@ namespace Beam::Routines {
       SetState(State::RUNNING);
       m_continuation = m_continuation.resume();
     }
+    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
+    --Details::CurrentRoutineGlobal<void>::activeRoutineCount;
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
   }
 
@@ -92,7 +96,7 @@ namespace Beam::Routines {
       : m_isPendingResume(false),
         m_stackSize(stackSize) {
     if(contextId == -1) {
-      m_contextId = GetId() % boost::thread::hardware_concurrency();
+      m_contextId = GetId() % 2;
     } else {
       m_contextId = contextId;
     }
@@ -100,6 +104,7 @@ namespace Beam::Routines {
 
   BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::Defer() {
+    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     #ifdef BEAM_ENABLE_STACK_PRINT
     #ifndef NDEBUG
@@ -114,6 +119,7 @@ namespace Beam::Routines {
   }
 
   inline void ScheduledRoutine::Suspend() {
+    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
     Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
     SetState(State::PENDING_SUSPEND);
     #ifdef BEAM_ENABLE_STACK_PRINT

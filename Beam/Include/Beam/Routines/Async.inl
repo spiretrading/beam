@@ -24,7 +24,7 @@ namespace Beam::Routines {
   template<typename T>
   typename boost::call_traits<typename StorageType<T>::type>::reference
       Async<T>::Get() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_state == State::PENDING) {
       Routines::Suspend(Store(m_suspendedRoutines), lock);
     }
@@ -51,7 +51,7 @@ namespace Beam::Routines {
 
   template<typename T>
   void Async<T>::SetState(State state) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     assert(m_state == State::PENDING);
     assert(state != State::PENDING);
     m_state = state;

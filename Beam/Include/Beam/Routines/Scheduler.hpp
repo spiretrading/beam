@@ -1,13 +1,11 @@
 #ifndef BEAM_SCHEDULER_HPP
 #define BEAM_SCHEDULER_HPP
+#include <condition_variable>
 #include <deque>
-#include <iostream>
+#include <mutex>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Threading/Sync.hpp"
@@ -24,6 +22,7 @@
 
 namespace Beam::Routines {
 namespace Details {
+  void InstallHooks();
 
   /** Schedules the execution of Routines across multiple threads. */
   class Scheduler : public Singleton<Scheduler> {
@@ -75,11 +74,11 @@ namespace Details {
 
     private:
       struct Context {
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
         bool m_isRunning;
         std::deque<ScheduledRoutine*> m_pendingRoutines;
         std::unordered_set<ScheduledRoutine*> m_suspendedRoutines;
-        boost::condition_variable m_pendingRoutinesAvailableCondition;
+        std::condition_variable m_pendingRoutinesAvailableCondition;
 
         Context();
       };
@@ -87,7 +86,7 @@ namespace Details {
       friend class Beam::Routines::ScheduledRoutine;
       friend void Resume(ScheduledRoutine*& routine);
       std::size_t m_threadCount;
-      std::unique_ptr<boost::thread[]> m_threads;
+      std::unique_ptr<std::thread[]> m_threads;
       Threading::Sync<RoutineIds> m_routineIds;
       std::unique_ptr<Context[]> m_contexts;
 
@@ -101,17 +100,19 @@ namespace Details {
     : m_isRunning(true) {}
 
   inline Scheduler::Scheduler()
-      : m_threadCount(boost::thread::hardware_concurrency()),
-        m_threads(std::make_unique<boost::thread[]>(m_threadCount)),
+      : m_threadCount(2),
+        m_threads(std::make_unique<std::thread[]>(m_threadCount)),
         m_contexts(std::make_unique<Context[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread([=, this] {
+      m_threads[i] = std::thread([=, this] {
         Run(m_contexts[i]);
       });
     }
+    InstallHooks();
   }
 
   inline Scheduler::~Scheduler() {
+    CurrentRoutineGlobal<void>::isInsideRoutine = false;
     Stop();
   }
 
@@ -121,7 +122,7 @@ namespace Details {
 
   inline bool Scheduler::HasPendingRoutines(std::size_t contextId) const {
     auto& context = m_contexts[contextId];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     return !context.m_pendingRoutines.empty();
   }
 
@@ -145,8 +146,8 @@ namespace Details {
   template<typename F>
   Routine::Id Scheduler::Spawn(F&& f, std::size_t stackSize,
       std::size_t contextId) {
-    auto routine = new FunctionRoutine(std::forward<F>(f), stackSize,
-      contextId);
+    auto routine =
+      new FunctionRoutine(std::forward<F>(f), stackSize, contextId);
     auto id = routine->GetId();
     Threading::With(m_routineIds, [&] (auto& routineIds) {
       routineIds.insert(std::pair(id, routine));
@@ -157,7 +158,7 @@ namespace Details {
 
   inline void Scheduler::Queue(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     context.m_pendingRoutines.push_back(&routine);
     if(context.m_pendingRoutines.size() == 1) {
       context.m_pendingRoutinesAvailableCondition.notify_all();
@@ -166,7 +167,7 @@ namespace Details {
 
   inline void Scheduler::Suspend(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     routine.SetState(Routine::State::SUSPENDED);
     if(routine.IsPendingResume()) {
       routine.SetPendingResume(false);
@@ -179,7 +180,7 @@ namespace Details {
 
   inline void Scheduler::Resume(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.GetContextId()];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     auto routineIterator = context.m_suspendedRoutines.find(&routine);
     if(routineIterator == context.m_suspendedRoutines.end()) {
       routine.SetPendingResume(true);
@@ -193,7 +194,7 @@ namespace Details {
   inline void Scheduler::Stop() {
     for(std::size_t i = 0; i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
-      auto lock = boost::lock_guard(context.m_mutex);
+      auto lock = std::lock_guard(context.m_mutex);
       context.m_isRunning = false;
       context.m_pendingRoutinesAvailableCondition.notify_all();
     }
@@ -202,7 +203,7 @@ namespace Details {
     }
     for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
-      auto lock = boost::lock_guard(context.m_mutex);
+      auto lock = std::lock_guard(context.m_mutex);
     }
   }
 
@@ -210,7 +211,7 @@ namespace Details {
     while(true) {
       auto routine = static_cast<ScheduledRoutine*>(nullptr);
       {
-        auto lock = boost::unique_lock(context.m_mutex);
+        auto lock = std::unique_lock(context.m_mutex);
         while(context.m_pendingRoutines.empty()) {
           if(!context.m_isRunning && context.m_pendingRoutines.empty() &&
               context.m_suspendedRoutines.empty()) {
@@ -293,5 +294,7 @@ namespace Details {
     Details::Scheduler::GetInstance().Resume(*this);
   }
 }
+
+#include "Beam/Routines/Win32Hooks.hpp"
 
 #endif

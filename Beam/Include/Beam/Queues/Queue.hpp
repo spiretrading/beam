@@ -1,11 +1,11 @@
 #ifndef BEAM_QUEUE_HPP
 #define BEAM_QUEUE_HPP
+#include <condition_variable>
 #include <deque>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
 
@@ -39,8 +39,8 @@ namespace Beam {
       using QueueWriter<T>::Break;
 
     private:
-      mutable boost::mutex m_mutex;
-      mutable Threading::ConditionVariable m_isAvailableCondition;
+      mutable std::mutex m_mutex;
+      mutable std::condition_variable m_isAvailableCondition;
       std::deque<T> m_queue;
       std::exception_ptr m_breakException;
 
@@ -49,13 +49,13 @@ namespace Beam {
 
   template<typename T>
   bool Queue<T>::IsBroken() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_breakException != nullptr && m_queue.empty();
   }
 
   template<typename T>
   typename Queue<T>::Source Queue<T>::Pop() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
     }
@@ -69,7 +69,7 @@ namespace Beam {
 
   template<typename T>
   boost::optional<typename Queue<T>::Source> Queue<T>::TryPop() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_queue.empty()) {
       return boost::none;
     }
@@ -80,7 +80,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Push(const Target& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -92,7 +92,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Push(Target&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException != nullptr) {
       std::rethrow_exception(m_breakException);
     }
@@ -104,7 +104,7 @@ namespace Beam {
 
   template<typename T>
   void Queue<T>::Break(const std::exception_ptr& exception) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException != nullptr) {
       return;
     }

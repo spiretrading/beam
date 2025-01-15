@@ -1,11 +1,11 @@
 #ifndef BEAM_ROUTINE_HANDLER_HPP
 #define BEAM_ROUTINE_HANDLER_HPP
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::Routines {
 
@@ -61,8 +61,8 @@ namespace Beam::Routines {
   /** Waits for all pending Routines to complete. */
   inline void FlushPendingRoutines() {
     auto& scheduler = Details::Scheduler::GetInstance();
-    auto threadCountMutex = Threading::Mutex();
-    auto threadCountCondition = Threading::ConditionVariable();
+    auto threadCountMutex = std::mutex();
+    auto threadCountCondition = std::condition_variable();
     while(true) {
       auto threadCount = scheduler.GetThreadCount();
       auto routines = std::vector<RoutineHandler>();
@@ -71,7 +71,7 @@ namespace Beam::Routines {
         routines.emplace_back(Spawn([&] {
           auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
           {
-            auto lock = boost::unique_lock(threadCountMutex);
+            auto lock = std::unique_lock(threadCountMutex);
             --threadCount;
             if(threadCount == 0) {
               threadCountCondition.notify_all();

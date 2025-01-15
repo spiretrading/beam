@@ -1,11 +1,11 @@
 #ifndef BEAM_STATE_QUEUE_HPP
 #define BEAM_STATE_QUEUE_HPP
+#include <condition_variable>
+#include <mutex>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Queues.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
 
@@ -38,8 +38,8 @@ namespace Beam {
       using AbstractQueue<T>::Break;
 
     private:
-      mutable boost::mutex m_mutex;
-      mutable Threading::ConditionVariable m_isAvailableCondition;
+      mutable std::mutex m_mutex;
+      mutable std::condition_variable m_isAvailableCondition;
       boost::optional<Target> m_value;
       std::exception_ptr m_breakException;
 
@@ -48,7 +48,7 @@ namespace Beam {
 
   template<typename T>
   typename StateQueue<T>::Source StateQueue<T>::Peek() const {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
     }
@@ -60,7 +60,7 @@ namespace Beam {
 
   template<typename T>
   typename StateQueue<T>::Source StateQueue<T>::Pop() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(!UnlockedIsAvailable()) {
       m_isAvailableCondition.wait(lock);
     }
@@ -74,7 +74,7 @@ namespace Beam {
 
   template<typename T>
   boost::optional<typename StateQueue<T>::Source> StateQueue<T>::TryPop() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(!m_value) {
       return boost::none;
     }
@@ -85,7 +85,7 @@ namespace Beam {
 
   template<typename T>
   void StateQueue<T>::Push(const Target& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);
     }
@@ -99,7 +99,7 @@ namespace Beam {
 
   template<typename T>
   void StateQueue<T>::Push(Target&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException) {
       std::rethrow_exception(m_breakException);
     }
@@ -113,7 +113,7 @@ namespace Beam {
 
   template<typename T>
   void StateQueue<T>::Break(const std::exception_ptr& exception) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_breakException) {
       return;
     }

@@ -1,12 +1,12 @@
 #ifndef BEAM_SEQUENCE_PUBLISHER_HPP
 #define BEAM_SEQUENCE_PUBLISHER_HPP
+#include <mutex>
 #include <vector>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/WeakQueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
 
@@ -52,7 +52,7 @@ namespace Beam {
       using QueueWriter<T>::Break;
       using SnapshotPublisher<T, S>::With;
     private:
-      mutable Threading::RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       Snapshot m_sequence;
       QueueWriterPublisher<Type> m_publisher;
   };
@@ -101,20 +101,20 @@ namespace Beam {
   template<typename T, typename S>
   void SequencePublisher<T, S>::Monitor(ScopedQueueWriter<Type> monitor,
       Out<boost::optional<Snapshot>> snapshot) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     *snapshot = m_sequence;
     m_publisher.Monitor(std::move(monitor));
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::With(const std::function<void ()>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f();
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Monitor(ScopedQueueWriter<Type> queue) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     for(auto& i : m_sequence) {
       queue.Push(i);
     }
@@ -123,21 +123,21 @@ namespace Beam {
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(const Type& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_sequence.push_back(value);
     m_publisher.Push(value);
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Push(Type&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_sequence.push_back(value);
     m_publisher.Push(std::move(value));
   }
 
   template<typename T, typename S>
   void SequencePublisher<T, S>::Break(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_publisher.Break(e);
   }
 }

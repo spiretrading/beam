@@ -1,13 +1,13 @@
 #ifndef BEAM_QUEUE_WRITER_PUBLISHER_HPP
 #define BEAM_QUEUE_WRITER_PUBLISHER_HPP
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <boost/thread/locks.hpp>
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
 
@@ -40,7 +40,7 @@ namespace Beam {
       using QueueWriter<Target>::Break;
       using Publisher<T>::With;
     private:
-      mutable Threading::RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::exception_ptr m_exception;
       mutable std::vector<ScopedQueueWriter<Target>> m_queues;
   };

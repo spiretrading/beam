@@ -8,6 +8,34 @@
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam::Routines::Details {
+  class SpinMutex {
+    public:
+      SpinMutex() noexcept = default;
+
+      void lock() noexcept {
+        while(m_flag.test_and_set(std::memory_order_acquire)) {}
+      }
+
+      void unlock() noexcept {
+        m_flag.clear(std::memory_order_release);
+      }
+
+      bool try_lock() noexcept {
+        return !m_flag.test_and_set(std::memory_order_acquire);
+      }
+
+    private:
+      std::atomic_flag m_flag;
+
+      SpinMutex(const SpinMutex&) = delete;
+      SpinMutex& operator =(const SpinMutex&) = delete;
+  };
+
+  class WaitMutex {
+    public:
+      static inline auto WAIT_MUTEX = SpinMutex();
+  };
+
   struct ThreadIdNode {
     DWORD m_originalThreadId;
     DWORD m_targetThreadId;
@@ -65,8 +93,8 @@ namespace Beam::Routines::Details {
       return nullptr;
     }
     const auto TRAMPOLINE_SIZE = std::size_t(16);
-    auto trampoline = VirtualAlloc(
-      nullptr, TRAMPOLINE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    auto trampoline = VirtualAlloc(nullptr,
+      TRAMPOLINE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if(!trampoline) {
       return nullptr;
     }
@@ -108,19 +136,19 @@ namespace Beam::Routines::Details {
       return std::forward<F>(f)();
     }
     CurrentRoutineGlobal<void>::isInsideRoutine = false;
-    auto suspension = SuspendedRoutineQueue();
     auto result = NTSTATUS();
-    auto mutex = std::mutex();
-    auto thread = std::thread([&] {
-      result = std::forward<F>(f)();
-      {
-        auto lock = std::lock_guard(mutex);
-        ResumeFront(Store(suspension));
-      }
-    });
-    thread.detach();
     {
+      auto suspension = SuspendedRoutineQueue();
+      auto mutex = SpinMutex();
       auto lock = std::unique_lock(mutex);
+      auto thread = std::thread([&] {
+        result = std::forward<F>(f)();
+        {
+          auto lock = std::lock_guard(mutex);
+          ResumeFront(Store(suspension));
+        }
+      });
+      thread.detach();
       Suspend(Store(suspension), lock);
     }
     CurrentRoutineGlobal<void>::isInsideRoutine = true;
@@ -151,10 +179,13 @@ namespace Beam::Routines::Details {
     static_cast<NTSTATUS (NTAPI*)(HANDLE)>(nullptr);
 
   inline NTSTATUS NTAPI MyNtAlertThreadByThreadId(HANDLE threadId) {
+    auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
     if(auto node = ThreadIdNode::find(reinterpret_cast<DWORD>(threadId))) {
+      lock.unlock();
       return OriginalNtAlertThreadByThreadId(reinterpret_cast<HANDLE>(
         static_cast<std::uintptr_t>(node->m_targetThreadId)));
     } else {
+      lock.unlock();
       return OriginalNtAlertThreadByThreadId(threadId);
     }
   }
@@ -164,18 +195,34 @@ namespace Beam::Routines::Details {
 
   inline NTSTATUS NTAPI MyNtWaitForAlertByThreadId(
       PVOID address, PLARGE_INTEGER timeout) {
+    if(CurrentRoutineGlobal<void>::activeRoutineCount == 0 ||
+        !CurrentRoutineGlobal<void>::isInsideRoutine) {
+      return OriginalNtWaitForAlertByThreadId(address, timeout);
+    }
+    CurrentRoutineGlobal<void>::isInsideRoutine = false;
+    auto suspension = SuspendedRoutineQueue();
+    auto result = NTSTATUS();
     auto threadId = GetCurrentThreadId();
-    return CallNt([=] {
-      auto targetId = GetCurrentThreadId();
-      if(threadId == targetId) {
-        return OriginalNtWaitForAlertByThreadId(address, timeout);
-      }
-      auto node = ThreadIdNode(threadId, targetId, nullptr);
-      ThreadIdNode::add(node);
-      auto result = OriginalNtWaitForAlertByThreadId(address, timeout);
-      ThreadIdNode::remove(node);
-      return result;
-    });
+    {
+      auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
+      auto flag = std::atomic_bool(false);
+      auto thread = std::thread([&] {
+        auto targetId = GetCurrentThreadId();
+        auto node = ThreadIdNode(threadId, targetId, nullptr);
+        ThreadIdNode::add(node);
+        flag = true;
+        result = OriginalNtWaitForAlertByThreadId(address, timeout);
+        auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
+        ThreadIdNode::remove(node);
+        lock.unlock();
+        ResumeFront(Store(suspension));
+      });
+      thread.detach();
+      while(!flag) {}
+      Suspend(Store(suspension), lock);
+    }
+    CurrentRoutineGlobal<void>::isInsideRoutine = true;
+    return result;
   }
 
   static auto OriginalNtWaitForKeyedEvent =

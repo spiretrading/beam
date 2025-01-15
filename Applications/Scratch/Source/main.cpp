@@ -9,27 +9,27 @@ using namespace Beam::Routines;
 using namespace std::chrono_literals;
 
 int main() {
-  try {
-    auto m = std::mutex();
-    auto c = std::condition_variable();
-    auto b = false;
-    auto r1 = RoutineHandler(Spawn([&] {
-      std::this_thread::sleep_for(1000ms);
-      auto l = std::unique_lock(m);
-      while(!b) {
-        c.wait(l);
-      }
-    }));
-    auto r2 = RoutineHandler(Spawn([&] {
-      std::this_thread::sleep_for(2000ms);
-      auto l = std::lock_guard(m);
-      b = true;
-      c.notify_all();
-    }));
-    r1.Wait();
-    r2.Wait();
-  } catch(const PipeBrokenException&) {
+  while(true) {
+    try {
+      auto source = std::make_shared<Queue<int>>();
+      auto queues = std::vector<ScopedQueueReader<int>>();
+      queues.push_back(source);
+      auto queue = AggregateQueueReader(std::move(queues));
+      source->Push(123);
+      std::cout << "A" << std::endl;
+      queue.Pop();
+      std::cout << "B" << std::endl;
+      source->Push(321);
+      std::cout << "C" << std::endl;
+      source->Break();
+      std::cout << "D" << std::endl;
+      queue.Pop();
+      std::cout << "E" << std::endl;
+      queue.Pop();
+      std::cout << "F" << std::endl;
+    } catch(const PipeBrokenException&) {
+    }
+    std::cout << "G" << std::endl;
   }
-  std::cout << "Done";
   return 0;
 }

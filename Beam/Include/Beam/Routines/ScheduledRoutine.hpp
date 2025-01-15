@@ -71,8 +71,6 @@ namespace Beam::Routines {
   }
 
   inline void ScheduledRoutine::Continue() {
-    Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
-    ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
     Details::CurrentRoutineGlobal<void>::GetInstance() = this;
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
@@ -80,10 +78,14 @@ namespace Beam::Routines {
       m_continuation = boost::context::callcc(std::allocator_arg,
         boost::context::fixedsize_stack(m_stackSize),
         [this] (boost::context::continuation&& parent) {
+          Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
+          ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
           return InitializeRoutine(std::move(parent));
         });
     } else {
       SetState(State::RUNNING);
+      Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
+      ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
       m_continuation = m_continuation.resume();
     }
     Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;

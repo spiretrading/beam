@@ -1,5 +1,6 @@
 #ifndef BEAM_WIN32_HOOKS_HPP
 #define BEAM_WIN32_HOOKS_HPP
+#include <array>
 #include <atomic>
 #include <string_view>
 #include <thread>
@@ -156,6 +157,37 @@ namespace Beam::Routines::Details {
     });
   }
 
+  struct WaitEntry {
+    SpinMutex m_mutex;
+    SuspendedRoutineQueue m_suspendedRoutines;
+  };
+
+  inline WaitEntry& GetWaitEntry(void* address) {
+    static auto entries = std::array<WaitEntry, 256>();
+    return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
+      entries.size()];
+  }
+
+  inline NTSTATUS WaitOn(void* address, int value, LARGE_INTEGER* timeout) {
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    if(*reinterpret_cast<int*>(address) != value) {
+      return 0;
+    }
+    Suspend(Store(waitEntry.m_suspendedRoutines), lock);
+    return 0;
+  }
+
+  inline void WakeAll(void* address) {
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::lock_guard(waitEntry.m_mutex);
+    Resume(Store(waitEntry.m_suspendedRoutines));
+  }
+
+  inline void WakeSingle(void* address) {
+    WakeAll(address);
+  }
+
   static auto OriginalRtlSleepConditionVariableSRW =
     static_cast<NTSTATUS (WINAPI*)(RTL_CONDITION_VARIABLE*, RTL_SRWLOCK*,
       LARGE_INTEGER*, ULONG)>(nullptr);
@@ -163,17 +195,20 @@ namespace Beam::Routines::Details {
   inline NTSTATUS WINAPI MyRtlSleepConditionVariableSRW(
       RTL_CONDITION_VARIABLE* variable, RTL_SRWLOCK* lock,
       LARGE_INTEGER* timeout, ULONG flags) {
-    if(InterlockedCompareExchangePointer(reinterpret_cast<void**>(
-        &variable->Ptr), nullptr, nullptr) == nullptr) {
-    }
     auto value = *reinterpret_cast<int*>(&variable->Ptr);
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       ReleaseSRWLockShared(lock);
     } else {
       ReleaseSRWLockExclusive(lock);
     }
-    auto status =
-      RtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
+    auto status = [&] {
+      if(CurrentRoutineGlobal<void>::activeRoutineCount == 0 ||
+          !CurrentRoutineGlobal<void>::isInsideRoutine) {
+        return RtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
+      } else {
+        return WaitOn(&variable->Ptr, value, timeout);
+      }
+    }();
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       AcquireSRWLockShared(lock);
     } else {
@@ -185,16 +220,20 @@ namespace Beam::Routines::Details {
   static auto OriginalRtlWakeConditionVariable =
     static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
 
-  void WINAPI MyRtlWakeConditionVariable(RTL_CONDITION_VARIABLE* variable) {
+  inline void WINAPI MyRtlWakeConditionVariable(
+      RTL_CONDITION_VARIABLE* variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
+    WakeSingle(variable);
     RtlWakeAddressSingle(variable);
   }
 
   static auto OriginalRtlWakeAllConditionVariable =
     static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
 
-  void WINAPI MyRtlWakeAllConditionVariable(RTL_CONDITION_VARIABLE *variable) {
+  inline void WINAPI MyRtlWakeAllConditionVariable(
+      RTL_CONDITION_VARIABLE *variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
+    WakeAll(variable);
     RtlWakeAddressAll(variable);
   }
 

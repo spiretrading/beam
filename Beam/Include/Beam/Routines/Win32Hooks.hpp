@@ -31,60 +31,9 @@ namespace Beam::Routines::Details {
       SpinMutex& operator =(const SpinMutex&) = delete;
   };
 
-  class WaitMutex {
-    public:
-      static inline auto WAIT_MUTEX = SpinMutex();
-  };
-
-  struct ThreadIdNode {
-    DWORD m_originalThreadId;
-    DWORD m_targetThreadId;
-    std::atomic<ThreadIdNode*> m_previous;
-    std::atomic<ThreadIdNode*> m_next;
-    static inline auto head = std::atomic<ThreadIdNode*>(nullptr);
-
-    static void add(ThreadIdNode& node) {
-      auto oldHead = static_cast<ThreadIdNode*>(nullptr);
-      do {
-        oldHead = head.load(std::memory_order_relaxed);
-        node.m_next.store(oldHead, std::memory_order_relaxed);
-        if(oldHead) {
-          oldHead->m_previous.store(&node, std::memory_order_relaxed);
-        }
-      } while(!head.compare_exchange_weak(oldHead, &node,
-          std::memory_order_release, std::memory_order_relaxed));
-    }
-
-    static void remove(ThreadIdNode& node) {
-      auto previous = node.m_previous.load(std::memory_order_acquire);
-      auto next = node.m_next.load(std::memory_order_acquire);
-      if(previous) {
-        previous->m_next.store(next, std::memory_order_release);
-      } else {
-        auto expected = &node;
-        head.compare_exchange_strong(expected, next,
-          std::memory_order_release, std::memory_order_relaxed);
-      }
-      if(next) {
-        next->m_previous.store(previous, std::memory_order_release);
-      }
-    }
-
-    static ThreadIdNode* find(DWORD originalThreadId) {
-      auto current = head.load(std::memory_order_acquire);
-      while(current) {
-        if(current->m_originalThreadId == originalThreadId) {
-          return current;
-        }
-        current = current->m_next.load(std::memory_order_acquire);
-      }
-      return nullptr;
-    }
-  };
-
   template <typename F>
-  F Hook(std::string_view target_name, F hook) {
-    auto kernel_module = GetModuleHandleW(L"ntdll.dll");
+  F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
+    auto kernel_module = GetModuleHandleW(module);
     if(!kernel_module) {
       return nullptr;
     }
@@ -155,6 +104,13 @@ namespace Beam::Routines::Details {
     return result;
   }
 
+  static auto RtlWaitOnAddress = static_cast<NTSTATUS (NTAPI*)(
+    _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
+  static auto RtlWakeAddressSingle =
+    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
+  static auto RtlWakeAddressAll =
+    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
+
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
 
@@ -173,56 +129,6 @@ namespace Beam::Routines::Details {
     return CallNt([=] {
       return OriginalNtWaitForSingleObject(handle, alertable, timeout);
     });
-  }
-
-  static auto OriginalNtAlertThreadByThreadId =
-    static_cast<NTSTATUS (NTAPI*)(HANDLE)>(nullptr);
-
-  inline NTSTATUS NTAPI MyNtAlertThreadByThreadId(HANDLE threadId) {
-    auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
-    if(auto node = ThreadIdNode::find(reinterpret_cast<DWORD>(threadId))) {
-      lock.unlock();
-      return OriginalNtAlertThreadByThreadId(reinterpret_cast<HANDLE>(
-        static_cast<std::uintptr_t>(node->m_targetThreadId)));
-    } else {
-      lock.unlock();
-      return OriginalNtAlertThreadByThreadId(threadId);
-    }
-  }
-
-  static auto OriginalNtWaitForAlertByThreadId =
-    static_cast<NTSTATUS (NTAPI*)(PVOID, PLARGE_INTEGER)>(nullptr);
-
-  inline NTSTATUS NTAPI MyNtWaitForAlertByThreadId(
-      PVOID address, PLARGE_INTEGER timeout) {
-    if(CurrentRoutineGlobal<void>::activeRoutineCount == 0 ||
-        !CurrentRoutineGlobal<void>::isInsideRoutine) {
-      return OriginalNtWaitForAlertByThreadId(address, timeout);
-    }
-    CurrentRoutineGlobal<void>::isInsideRoutine = false;
-    auto suspension = SuspendedRoutineQueue();
-    auto result = NTSTATUS();
-    auto threadId = GetCurrentThreadId();
-    {
-      auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
-      auto flag = std::atomic_bool(false);
-      auto thread = std::thread([&] {
-        auto targetId = GetCurrentThreadId();
-        auto node = ThreadIdNode(threadId, targetId, nullptr);
-        ThreadIdNode::add(node);
-        flag = true;
-        result = OriginalNtWaitForAlertByThreadId(address, timeout);
-        auto lock = std::unique_lock(WaitMutex::WAIT_MUTEX);
-        ThreadIdNode::remove(node);
-        lock.unlock();
-        ResumeFront(Store(suspension));
-      });
-      thread.detach();
-      while(!flag) {}
-      Suspend(Store(suspension), lock);
-    }
-    CurrentRoutineGlobal<void>::isInsideRoutine = true;
-    return result;
   }
 
   static auto OriginalNtWaitForKeyedEvent =
@@ -250,7 +156,53 @@ namespace Beam::Routines::Details {
     });
   }
 
+  static auto OriginalRtlSleepConditionVariableSRW =
+    static_cast<NTSTATUS (WINAPI*)(RTL_CONDITION_VARIABLE*, RTL_SRWLOCK*,
+      LARGE_INTEGER*, ULONG)>(nullptr);
+
+  inline NTSTATUS WINAPI MyRtlSleepConditionVariableSRW(
+      RTL_CONDITION_VARIABLE* variable, RTL_SRWLOCK* lock,
+      LARGE_INTEGER* timeout, ULONG flags) {
+    auto value = *reinterpret_cast<int*>(&variable->Ptr);
+    if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
+      ReleaseSRWLockShared(lock);
+    } else {
+      ReleaseSRWLockExclusive(lock);
+    }
+    auto status =
+      RtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
+    if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
+      AcquireSRWLockShared(lock);
+    } else {
+      AcquireSRWLockExclusive(lock);
+    }
+    return status;
+  }
+
+  static auto OriginalRtlWakeConditionVariable =
+    static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
+
+  void WINAPI MyRtlWakeConditionVariable(RTL_CONDITION_VARIABLE* variable) {
+    InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
+    RtlWakeAddressSingle(variable);
+  }
+
+  static auto OriginalRtlWakeAllConditionVariable =
+    static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
+
+  void WINAPI MyRtlWakeAllConditionVariable(RTL_CONDITION_VARIABLE *variable) {
+    InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
+    RtlWakeAddressAll(variable);
+  }
+
   inline void InstallHooks() {
+    RtlWaitOnAddress = reinterpret_cast<NTSTATUS (NTAPI*)(
+      _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWaitOnAddress"));
+    RtlWakeAddressSingle = reinterpret_cast<void (NTAPI*)(_In_ void*)>(
+      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressSingle"));
+    RtlWakeAddressAll = reinterpret_cast<void (NTAPI*)(_In_ void*)>(
+      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressAll"));
     OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
     if(!OriginalNtDelayExecution) {
       return;
@@ -260,16 +212,6 @@ namespace Beam::Routines::Details {
     if(!OriginalNtWaitForSingleObject) {
       return;
     }
-    OriginalNtAlertThreadByThreadId =
-      Hook("NtAlertThreadByThreadId", MyNtAlertThreadByThreadId);
-    if(!OriginalNtAlertThreadByThreadId) {
-      return;
-    }
-    OriginalNtWaitForAlertByThreadId =
-      Hook("NtWaitForAlertByThreadId", MyNtWaitForAlertByThreadId);
-    if(!OriginalNtWaitForAlertByThreadId) {
-      return;
-    }
     OriginalNtWaitForKeyedEvent =
       Hook("NtWaitForKeyedEvent", MyNtWaitForKeyedEvent);
     if(!OriginalNtWaitForKeyedEvent) {
@@ -277,6 +219,21 @@ namespace Beam::Routines::Details {
     }
     OriginalNtWriteFile = Hook("NtWriteFile", MyNtWriteFile);
     if(!OriginalNtWriteFile) {
+      return;
+    }
+    OriginalRtlSleepConditionVariableSRW =
+      Hook("RtlSleepConditionVariableSRW", MyRtlSleepConditionVariableSRW);
+    if(!OriginalRtlSleepConditionVariableSRW) {
+      return;
+    }
+    OriginalRtlWakeConditionVariable =
+      Hook("RtlWakeConditionVariable", MyRtlWakeConditionVariable);
+    if(!OriginalRtlWakeConditionVariable) {
+      return;
+    }
+    OriginalRtlWakeAllConditionVariable =
+      Hook("RtlWakeAllConditionVariable", MyRtlWakeAllConditionVariable);
+    if(!OriginalRtlWakeAllConditionVariable) {
       return;
     }
   }

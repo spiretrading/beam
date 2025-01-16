@@ -16,7 +16,6 @@
 namespace Beam::Routines {
 namespace Details {
 #if !defined(BEAM_BUILD_DLL) && !defined(BEAM_USE_DLL)
-
   template<typename T>
   struct CurrentRoutineGlobal {
     static inline thread_local Routine* m_value;
@@ -30,15 +29,12 @@ namespace Details {
 
   template<typename T>
   struct NextId {
-    static std::atomic_uint64_t m_value;
+    static inline auto m_value = std::atomic_uint64_t(0);
 
     static std::atomic_uint64_t& GetInstance() {
       return m_value;
     }
   };
-
-  template<typename T>
-  std::atomic_uint64_t NextId<T>::m_value;
 
 #else
   template<typename T>
@@ -97,12 +93,6 @@ namespace Details {
 
       /** Returns the State of this Routine. */
       State GetState() const;
-
-      /**
-       * Returns <code>true</code> iff this Routine needs to be scheduled for
-       * execution.
-       */
-      virtual bool IsScheduled() const;
 
       /**
        * Waits for the completion of this Routine.
@@ -223,10 +213,6 @@ namespace Details {
 
   inline Routine::State Routine::GetState() const {
     return m_state;
-  }
-
-  inline bool Routine::IsScheduled() const {
-    return true;
   }
 
   inline void Routine::Wait(Eval<void> result) {

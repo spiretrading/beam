@@ -1,37 +1,14 @@
 #ifndef BEAM_WIN32_HOOKS_HPP
 #define BEAM_WIN32_HOOKS_HPP
 #include <array>
-#include <atomic>
 #include <string_view>
 #include <thread>
 #include <windows.h>
 #include <winternl.h>
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Threading/SpinMutex.hpp"
 
 namespace Beam::Routines::Details {
-  class SpinMutex {
-    public:
-      SpinMutex() noexcept = default;
-
-      void lock() noexcept {
-        while(m_flag.test_and_set(std::memory_order_acquire)) {}
-      }
-
-      void unlock() noexcept {
-        m_flag.clear(std::memory_order_release);
-      }
-
-      bool try_lock() noexcept {
-        return !m_flag.test_and_set(std::memory_order_acquire);
-      }
-
-    private:
-      std::atomic_flag m_flag;
-
-      SpinMutex(const SpinMutex&) = delete;
-      SpinMutex& operator =(const SpinMutex&) = delete;
-  };
-
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
     auto kernel_module = GetModuleHandleW(module);
@@ -89,7 +66,7 @@ namespace Beam::Routines::Details {
     auto result = NTSTATUS();
     {
       auto suspension = SuspendedRoutineQueue();
-      auto mutex = SpinMutex();
+      auto mutex = Threading::SpinMutex();
       auto lock = std::unique_lock(mutex);
       auto thread = std::thread([&] {
         result = std::forward<F>(f)();
@@ -111,7 +88,6 @@ namespace Beam::Routines::Details {
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
   static auto RtlWakeAddressAll =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
-
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
 
@@ -158,7 +134,7 @@ namespace Beam::Routines::Details {
   }
 
   struct WaitEntry {
-    SpinMutex m_mutex;
+    Threading::SpinMutex m_mutex;
     SuspendedRoutineQueue m_suspendedRoutines;
   };
 

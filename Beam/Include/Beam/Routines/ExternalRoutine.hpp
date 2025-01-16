@@ -15,8 +15,6 @@ namespace Beam::Routines {
 
       ~ExternalRoutine() override;
 
-      bool IsScheduled() const override;
-
     protected:
       void Execute() override;
 
@@ -39,10 +37,6 @@ namespace Beam::Routines {
 
   inline ExternalRoutine::~ExternalRoutine() {
     SetState(State::COMPLETE);
-  }
-
-  inline bool ExternalRoutine::IsScheduled() const {
-    return false;
   }
 
   inline void ExternalRoutine::Execute() {

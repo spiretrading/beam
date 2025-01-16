@@ -104,12 +104,12 @@ namespace Beam::Routines::Details {
     return result;
   }
 
-  static auto RtlWaitOnAddress = static_cast<NTSTATUS (NTAPI*)(
+  static auto RtlWaitOnAddress = static_cast<NTSTATUS (WINAPI*)(
     _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
   static auto RtlWakeAddressSingle =
-    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
+    static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
   static auto RtlWakeAddressAll =
-    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
+    static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
 
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
@@ -163,6 +163,9 @@ namespace Beam::Routines::Details {
   inline NTSTATUS WINAPI MyRtlSleepConditionVariableSRW(
       RTL_CONDITION_VARIABLE* variable, RTL_SRWLOCK* lock,
       LARGE_INTEGER* timeout, ULONG flags) {
+    if(InterlockedCompareExchangePointer(reinterpret_cast<void**>(
+        &variable->Ptr), nullptr, nullptr) == nullptr) {
+    }
     auto value = *reinterpret_cast<int*>(&variable->Ptr);
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       ReleaseSRWLockShared(lock);
@@ -196,12 +199,12 @@ namespace Beam::Routines::Details {
   }
 
   inline void InstallHooks() {
-    RtlWaitOnAddress = reinterpret_cast<NTSTATUS (NTAPI*)(
+    RtlWaitOnAddress = reinterpret_cast<NTSTATUS (WINAPI*)(
       _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWaitOnAddress"));
-    RtlWakeAddressSingle = reinterpret_cast<void (NTAPI*)(_In_ void*)>(
+    RtlWakeAddressSingle = reinterpret_cast<void (WINAPI*)(_In_ void*)>(
       GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressSingle"));
-    RtlWakeAddressAll = reinterpret_cast<void (NTAPI*)(_In_ void*)>(
+    RtlWakeAddressAll = reinterpret_cast<void (WINAPI*)(_In_ void*)>(
       GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressAll"));
     OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
     if(!OriginalNtDelayExecution) {

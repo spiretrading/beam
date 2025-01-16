@@ -1,8 +1,8 @@
 #ifndef BEAM_MULTI_QUEUE_WRITER_HPP
 #define BEAM_MULTI_QUEUE_WRITER_HPP
 #include "Beam/Queues/CallbackQueue.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/Queue.hpp"
+#include "Beam/Queues/Queues.hpp"
 
 namespace Beam {
 

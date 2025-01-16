@@ -1,11 +1,11 @@
 #ifndef BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
 #define BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
+#include <mutex>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
 
@@ -87,7 +87,7 @@ namespace Beam {
       using QueueWriter<V>::Break;
       using SnapshotPublisher<V, S>::With;
     private:
-      mutable Threading::RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       InitializationFunction m_initialize;
       FilteredUpdateFunction m_update;
       LocalPtr<Snapshot> m_snapshot;
@@ -119,14 +119,14 @@ namespace Beam {
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f(*m_snapshot);
   }
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     *snapshot = *m_snapshot;
     m_publisher.Monitor(std::move(queue));
   }
@@ -134,21 +134,21 @@ namespace Beam {
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::With(
       const std::function<void ()>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f();
   }
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Monitor(
       ScopedQueueWriter<Type> queue) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_initialize(*m_snapshot, queue);
     m_publisher.Monitor(std::move(queue));
   }
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Push(const Type& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(!m_update(*m_snapshot, value)) {
       return;
     }
@@ -157,7 +157,7 @@ namespace Beam {
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Push(Type&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(!m_update(*m_snapshot, value)) {
       return;
     }
@@ -166,7 +166,7 @@ namespace Beam {
 
   template<typename V, typename S>
   void ValueSnapshotPublisher<V, S>::Break(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_publisher.Break(e);
   }
 }

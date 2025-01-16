@@ -94,7 +94,7 @@ namespace Beam {
   template<typename T, typename S>
   void SequencePublisher<T, S>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f(m_sequence);
   }
 

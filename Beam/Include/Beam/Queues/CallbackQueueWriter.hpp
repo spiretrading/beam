@@ -5,7 +5,6 @@
 #include <memory>
 #include <mutex>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Utilities/ReportException.hpp"
@@ -106,7 +105,7 @@ namespace Beam {
 
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(const Target& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
@@ -115,7 +114,7 @@ namespace Beam {
 
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Push(Target&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
@@ -125,7 +124,7 @@ namespace Beam {
   template<typename T, typename C, typename B>
   void CallbackQueueWriter<T, C, B>::Break(const std::exception_ptr& e) {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_exception) {
         return;
       }

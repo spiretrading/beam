@@ -1,11 +1,11 @@
 #ifndef BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
 #define BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 #include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
@@ -66,7 +66,7 @@ namespace Beam {
       using SnapshotPublisher<
         std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::With;
     private:
-      mutable Threading::RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::unordered_map<Key, Value> m_table;
       QueueWriterPublisher<Type> m_publisher;
   };
@@ -88,14 +88,14 @@ namespace Beam {
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::With(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f(m_table);
   }
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     *snapshot = m_table;
     m_publisher.Monitor(std::move(queue));
   }
@@ -103,14 +103,14 @@ namespace Beam {
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::With(
       const std::function<void ()>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f();
   }
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Monitor(
       ScopedQueueWriter<Type> queue) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(!m_table.empty()) {
       auto update = Type();
       for(auto& i : m_table) {
@@ -126,7 +126,7 @@ namespace Beam {
     if(value.empty()) {
       return;
     }
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     for(auto& i : value) {
       m_table[i.m_key] = i.m_value;
     }
@@ -135,7 +135,7 @@ namespace Beam {
 
   template<typename K, typename V>
   void MultiUpdateTablePublisher<K, V>::Break(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_publisher.Break(e);
   }
 }

@@ -61,6 +61,7 @@ namespace Beam::Routines::Details {
     if(!Routine::m_isInsideRoutine) {
       return std::forward<F>(f)();
     }
+    auto isInsideRoutine = Routine::m_isInsideRoutine;
     Routine::m_isInsideRoutine = false;
     auto result = NTSTATUS();
     {
@@ -77,7 +78,7 @@ namespace Beam::Routines::Details {
       thread.detach();
       Suspend(Store(suspension), lock);
     }
-    Routine::m_isInsideRoutine = true;
+    Routine::m_isInsideRoutine = isInsideRoutine;
     return result;
   }
 
@@ -138,6 +139,12 @@ namespace Beam::Routines::Details {
   };
 
   inline WaitEntry& GetWaitEntry(void* address) {
+/* TODO: Fix this to work properly.
+    static auto m = Threading::SpinMutex();
+    static auto entries = std::unordered_map<void*, WaitEntry>();
+    auto lock = std::lock_guard(m);
+    return entries[address];
+*/
     static auto entries = std::array<WaitEntry, 256>();
     return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
       entries.size()];
@@ -163,6 +170,13 @@ namespace Beam::Routines::Details {
 
   inline void WakeSingle(void* address) {
     WakeAll(address);
+/*
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::lock_guard(waitEntry.m_mutex);
+    if(!waitEntry.m_suspendedRoutines.empty()) {
+      ResumeFront(Store(waitEntry.m_suspendedRoutines));
+    }
+*/
   }
 
   static auto OriginalRtlSleepConditionVariableSRW =

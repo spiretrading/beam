@@ -1,7 +1,6 @@
 #ifndef BEAM_CALL_ONCE_HPP
 #define BEAM_CALL_ONCE_HPP
 #include <atomic>
-#include <boost/thread/locks.hpp>
 #include "Beam/Threading/Threading.hpp"
 
 namespace Beam::Threading {

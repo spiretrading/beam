@@ -1,12 +1,12 @@
 #ifndef BEAM_SQL_SERVICE_LOCATOR_DATA_STORE_HPP
 #define BEAM_SQL_SERVICE_LOCATOR_DATA_STORE_HPP
+#include <mutex>
 #include <boost/throw_exception.hpp>
 #include <Viper/Viper.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SqlDefinitions.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::ServiceLocator {
 
@@ -90,7 +90,7 @@ namespace Beam::ServiceLocator {
       void Close() override;
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::unique_ptr<Connection> m_connection;
       unsigned int m_nextEntryId;
       IO::OpenState m_openState;

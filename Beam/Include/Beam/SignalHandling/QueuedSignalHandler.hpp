@@ -24,7 +24,7 @@ namespace Beam::SignalHandling {
       using QueuedSlot = std::function<void()>;
 
       /** Constructs a QueuedSignalHandler. */
-      QueuedSignalHandler();
+      QueuedSignalHandler() = default;
 
       /**
        * Sets the slot called when signals are queued.
@@ -80,8 +80,6 @@ namespace Beam::SignalHandling {
       #include BOOST_PP_LOCAL_ITERATE()
       #undef BEAM_DECLARE_PARAMETER
   };
-
-  inline QueuedSignalHandler::QueuedSignalHandler() {}
 
   inline void QueuedSignalHandler::SetQueuedSlot(const QueuedSlot& queuedSlot) {
     auto lock = std::lock_guard(m_mutex);

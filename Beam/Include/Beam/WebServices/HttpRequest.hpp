@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/WebServices/Cookie.hpp"

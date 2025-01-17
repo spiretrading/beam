@@ -1,15 +1,14 @@
 #ifndef BEAM_RESOURCE_POOL_HPP
 #define BEAM_RESOURCE_POOL_HPP
 #include <algorithm>
+#include <condition_variable>
 #include <deque>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/thread/locks.hpp>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/TimedConditionVariable.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
@@ -101,14 +100,14 @@ namespace Beam {
 
     private:
       template<typename, typename> friend class ScopedResource;
-      Threading::Mutex m_mutex;
+      std::mutex m_mutex;
       boost::posix_time::time_duration m_timeout;
       Make m_builder;
       std::size_t m_minObjectCount;
       std::size_t m_maxObjectCount;
       std::size_t m_currentObjectCount;
       std::deque<std::unique_ptr<Type>> m_objects;
-      Threading::TimedConditionVariable m_objectAvailableCondition;
+      std::condition_variable m_objectAvailableCondition;
 
       ResourcePool(const ResourcePool&) = delete;
       ResourcePool& operator =(const ResourcePool&) = delete;

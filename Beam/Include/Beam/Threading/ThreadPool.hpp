@@ -1,6 +1,7 @@
 #ifndef BEAM_THREAD_POOL_HPP
 #define BEAM_THREAD_POOL_HPP
 #include <condition_variable>
+#include <cstdlib>
 #include <deque>
 #include <iostream>
 #include <mutex>
@@ -157,7 +158,7 @@ namespace Beam::Threading {
         if(m_task == nullptr) {
           auto waitTime = std::chrono::seconds(LOWER_BOUND_WAIT_TIME) +
             std::chrono::seconds(
-              rand() % (UPPER_BOUND_WAIT_TIME - LOWER_BOUND_WAIT_TIME));
+              std::rand() % (UPPER_BOUND_WAIT_TIME - LOWER_BOUND_WAIT_TIME));
           if(!m_available ||
               (m_taskAvailableCondition.wait_for(lock, waitTime) ==
                 std::cv_status::timeout && m_task == nullptr) || !m_available) {

@@ -1,8 +1,8 @@
 #ifndef BEAM_TRIGGER_TIMER_HPP
 #define BEAM_TRIGGER_TIMER_HPP
+#include <condition_variable>
+#include <mutex>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Timer.hpp"
 
 namespace Beam {
@@ -32,11 +32,11 @@ namespace Threading {
       const Publisher<Timer::Result>& GetPublisher() const;
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       int m_state;
       Timer::Result m_result;
       QueueWriterPublisher<Timer::Result> m_publisher;
-      ConditionVariable m_trigger;
+      std::condition_variable m_trigger;
 
       TriggerTimer(const TriggerTimer&) = delete;
       TriggerTimer& operator =(const TriggerTimer&) = delete;
@@ -51,7 +51,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Trigger() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_result = Timer::Result::EXPIRED;
     if(m_state == 0) {
       m_state = 2;
@@ -61,7 +61,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Fail() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_result = Timer::Result::FAIL;
     if(m_state == 0) {
       m_state = 2;
@@ -71,7 +71,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Start() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_state == 0) {
       m_state = 1;
     } else if(m_state == 2) {
@@ -80,7 +80,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Cancel() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_state == 0) {
       m_state = 1;
     } else if(m_state == 1) {
@@ -92,7 +92,7 @@ namespace Threading {
   }
 
   inline void TriggerTimer::Wait() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_state != 0) {
       m_trigger.wait(lock);
     }

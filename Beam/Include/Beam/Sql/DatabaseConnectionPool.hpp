@@ -1,12 +1,11 @@
 #ifndef BEAM_DATABASE_CONNECTION_POOL_HPP
 #define BEAM_DATABASE_CONNECTION_POOL_HPP
+#include <condition_variable>
 #include <deque>
 #include <memory>
-#include <boost/thread/locks.hpp>
+#include <mutex>
 #include "Beam/Sql/ScopedDatabaseConnection.hpp"
 #include "Beam/Sql/Sql.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 
@@ -40,9 +39,9 @@ namespace Beam {
 
     private:
       friend class ScopedDatabaseConnection<Connection>;
-      Threading::Mutex m_mutex;
+      std::mutex m_mutex;
       std::deque<std::unique_ptr<Connection>> m_connections;
-      Threading::ConditionVariable m_connectionAvailableCondition;
+      std::condition_variable m_connectionAvailableCondition;
 
       DatabaseConnectionPool(const DatabaseConnectionPool&) = delete;
       DatabaseConnectionPool& operator =(
@@ -66,7 +65,7 @@ namespace Beam {
   template<typename C>
   ScopedDatabaseConnection<typename DatabaseConnectionPool<C>::Connection>
       DatabaseConnectionPool<C>::Acquire() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_connections.empty()) {
       m_connectionAvailableCondition.wait(lock);
     }
@@ -78,7 +77,7 @@ namespace Beam {
 
   template<typename C>
   void DatabaseConnectionPool<C>::Add(std::unique_ptr<Connection> connection) {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     m_connections.push_back(std::move(connection));
     m_connectionAvailableCondition.notify_all();
   }

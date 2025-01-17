@@ -1,11 +1,10 @@
 #ifndef BEAM_THREAD_POOL_HPP
 #define BEAM_THREAD_POOL_HPP
+#include <condition_variable>
 #include <deque>
 #include <iostream>
+#include <mutex>
 #include <type_traits>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
@@ -53,13 +52,13 @@ namespace Beam::Threading {
         void Run() override;
       };
       struct TaskThread {
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
         ThreadPool* m_threadPool;
         BaseTask* m_task;
         bool m_available;
         bool m_stopped;
-        boost::thread m_thread;
-        boost::condition_variable m_taskAvailableCondition;
+        std::thread m_thread;
+        std::condition_variable m_taskAvailableCondition;
 
         TaskThread(ThreadPool& threadPool);
         bool SetTask(BaseTask& task);
@@ -68,14 +67,14 @@ namespace Beam::Threading {
       };
       static constexpr auto LOWER_BOUND_WAIT_TIME = 30;
       static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       std::size_t m_maxThreadCount;
       bool m_isWaitingForCompletion;
       std::size_t m_runningThreads;
       std::size_t m_activeThreads;
       std::deque<TaskThread*> m_threads;
       std::deque<BaseTask*> m_tasks;
-      boost::condition_variable m_threadsFinishedCondition;
+      std::condition_variable m_threadsFinishedCondition;
 
       ThreadPool();
       ThreadPool(const ThreadPool&) = delete;
@@ -99,8 +98,8 @@ namespace Beam::Threading {
   }
 
   template<typename F, typename R>
-  void ThreadPool::Invoker<F, R>::operator ()(F& function,
-      Routines::Eval<R> result) const {
+  void ThreadPool::Invoker<F, R>::operator ()(
+      F& function, Routines::Eval<R> result) const {
     try {
       result.SetResult(function());
     } catch(const std::exception&) {
@@ -109,8 +108,8 @@ namespace Beam::Threading {
   }
 
   template<typename F>
-  void ThreadPool::Invoker<F, void>::operator ()(F& function,
-      Routines::Eval<void> result) const {
+  void ThreadPool::Invoker<F, void>::operator ()(
+      F& function, Routines::Eval<void> result) const {
     try {
       function();
       result.SetResult();
@@ -135,13 +134,13 @@ namespace Beam::Threading {
         m_task(nullptr),
         m_available(true),
         m_stopped(false) {
-    m_thread = boost::thread([this] {
+    m_thread = std::thread([this] {
       Run();
     });
   }
 
   inline bool ThreadPool::TaskThread::SetTask(BaseTask& task) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     assert(m_task == nullptr);
     if(!m_available) {
       return false;
@@ -154,14 +153,14 @@ namespace Beam::Threading {
   inline void ThreadPool::TaskThread::Run() {
     while(true) {
       {
-        auto lock = boost::unique_lock(m_mutex);
+        auto lock = std::unique_lock(m_mutex);
         if(m_task == nullptr) {
-          auto waitTime = boost::posix_time::seconds(LOWER_BOUND_WAIT_TIME) +
-            boost::posix_time::seconds(rand() % (UPPER_BOUND_WAIT_TIME -
-            LOWER_BOUND_WAIT_TIME));
+          auto waitTime = std::chrono::seconds(LOWER_BOUND_WAIT_TIME) +
+            std::chrono::seconds(
+              rand() % (UPPER_BOUND_WAIT_TIME - LOWER_BOUND_WAIT_TIME));
           if(!m_available ||
-              (!m_taskAvailableCondition.timed_wait(lock, waitTime) &&
-              m_task == nullptr) || !m_available) {
+              (m_taskAvailableCondition.wait_for(lock, waitTime) ==
+                std::cv_status::timeout && m_task == nullptr) || !m_available) {
             m_available = false;
             auto stopped = m_stopped;
             lock.unlock();
@@ -189,7 +188,7 @@ namespace Beam::Threading {
   }
 
   inline void ThreadPool::TaskThread::Stop() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_available = false;
     m_stopped = true;
     m_task = nullptr;
@@ -197,7 +196,7 @@ namespace Beam::Threading {
   }
 
   inline ThreadPool::~ThreadPool() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     m_isWaitingForCompletion = true;
     m_maxThreadCount = 0;
     while(!m_threads.empty()) {
@@ -211,7 +210,7 @@ namespace Beam::Threading {
   }
 
   inline ThreadPool::ThreadPool()
-    : m_maxThreadCount(boost::thread::hardware_concurrency()),
+    : m_maxThreadCount(std::thread::hardware_concurrency()),
       m_runningThreads(0),
       m_activeThreads(0),
       m_isWaitingForCompletion(false) {}
@@ -223,7 +222,7 @@ namespace Beam::Threading {
   }
 
   inline void ThreadPool::QueueTask(BaseTask& task) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto threadFound = false;
     while(!threadFound) {
       if(m_threads.empty() && m_runningThreads < m_maxThreadCount) {
@@ -246,7 +245,7 @@ namespace Beam::Threading {
   }
 
   inline bool ThreadPool::AddThread(TaskThread& taskThread) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_maxThreadCount == 0) {
       --m_activeThreads;
       --m_runningThreads;
@@ -274,7 +273,7 @@ namespace Beam::Threading {
   }
 
   inline void ThreadPool::RemoveThread(TaskThread& taskThread) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     --m_runningThreads;
     RemoveFirst(m_threads, &taskThread);
   }

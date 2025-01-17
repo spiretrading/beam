@@ -1,10 +1,5 @@
 #ifndef BEAM_PREFERRED_CONDITION_VARIABLE_HPP
 #define BEAM_PREFERRED_CONDITION_VARIABLE_HPP
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Threading/Threading.hpp"
 
 namespace Beam::Threading {
@@ -16,7 +11,7 @@ namespace Beam::Threading {
    */
   template<typename M>
   struct PreferredConditionVariable {
-    using type = boost::condition_variable_any;
+    using type = std::condition_variable_any;
   };
 
   template<typename M>
@@ -24,18 +19,8 @@ namespace Beam::Threading {
     typename PreferredConditionVariable<M>::type;
 
   template<>
-  struct PreferredConditionVariable<boost::mutex> {
-    using type = boost::condition_variable;
-  };
-
-  template<>
-  struct PreferredConditionVariable<Mutex> {
-    using type = ConditionVariable;
-  };
-
-  template<>
-  struct PreferredConditionVariable<RecursiveMutex> {
-    using type = ConditionVariable;
+  struct PreferredConditionVariable<std::mutex> {
+    using type = std::condition_variable;
   };
 }
 

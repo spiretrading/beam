@@ -1,11 +1,11 @@
 #ifndef BEAM_LIVE_TIMER_HPP
 #define BEAM_LIVE_TIMER_HPP
+#include <condition_variable>
+#include <mutex>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Threading/Timer.hpp"
 
@@ -20,7 +20,7 @@ namespace Threading {
        * Constructs a LiveTimer.
        * @param interval The time interval before expiring.
        */
-      LiveTimer(boost::posix_time::time_duration interval);
+      explicit LiveTimer(boost::posix_time::time_duration interval);
 
       ~LiveTimer();
 
@@ -33,12 +33,12 @@ namespace Threading {
       const Publisher<Timer::Result>& GetPublisher() const;
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
       boost::asio::deadline_timer m_deadLineTimer;
       bool m_isPending;
       QueueWriterPublisher<Timer::Result> m_publisher;
-      ConditionVariable m_trigger;
+      std::condition_variable m_trigger;
 
       LiveTimer(const LiveTimer&) = delete;
       LiveTimer& operator =(const LiveTimer&) = delete;
@@ -54,14 +54,14 @@ namespace Threading {
   }
 
   inline void LiveTimer::Start() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_isPending) {
       return;
     }
     m_isPending = true;
     m_deadLineTimer.expires_from_now(m_interval);
     m_deadLineTimer.async_wait([this] (const auto& error) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(error) {
         m_publisher.Push(Timer::Result::CANCELED);
       } else {
@@ -73,7 +73,7 @@ namespace Threading {
   }
 
   inline void LiveTimer::Cancel() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_isPending) {
       m_deadLineTimer.cancel();
       while(m_isPending) {
@@ -83,7 +83,7 @@ namespace Threading {
   }
 
   inline void LiveTimer::Wait() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_isPending) {
       m_trigger.wait(lock);
     }

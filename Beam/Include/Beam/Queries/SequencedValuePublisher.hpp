@@ -1,11 +1,10 @@
 #ifndef BEAM_SEQUENCED_VALUE_PUBLISHER_HPP
 #define BEAM_SEQUENCED_VALUE_PUBLISHER_HPP
 #include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 #include <boost/range/iterator_range.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
@@ -100,7 +99,7 @@ namespace Beam::Queries {
       void Break(const std::exception_ptr& e);
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       Query m_query;
       std::unique_ptr<Evaluator> m_filter;
       ScopedQueueWriter<Value> m_queue;
@@ -124,14 +123,14 @@ namespace Beam::Queries {
 
   template<typename Q, typename V>
   int SequencedValuePublisher<Q, V>::GetId() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_queryId;
   }
 
   template<typename Q, typename V>
   template<typename T>
   void SequencedValuePublisher<Q, V>::Push(T&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_queryId == -1) {
       m_writeLog.emplace_back(std::forward<T>(value));
     } else {
@@ -147,7 +146,7 @@ namespace Beam::Queries {
   template<typename Iterator>
   void SequencedValuePublisher<Q, V>::PushSnapshot(Iterator begin,
       Iterator end) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     for(auto& value : boost::iterator_range<Iterator>(begin, end)) {
       if(value.GetSequence() >= m_nextSequence &&
           TestFilter(*m_filter, *value)) {
@@ -159,13 +158,13 @@ namespace Beam::Queries {
 
   template<typename Q, typename V>
   void SequencedValuePublisher<Q, V>::BeginSnapshot() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_queryId = -1;
   }
 
   template<typename Q, typename V>
   void SequencedValuePublisher<Q, V>::EndSnapshot(int queryId) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_queryId = queryId;
     auto writeLog = std::vector<Value>();
     writeLog.swap(m_writeLog);
@@ -181,7 +180,7 @@ namespace Beam::Queries {
   template<typename Q, typename V>
   typename SequencedValuePublisher<Q, V>::Query
       SequencedValuePublisher<Q, V>::BeginRecovery() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_queryId = -1;
     if(m_query.GetInterruptionPolicy() == InterruptionPolicy::RECOVER_DATA ||
         m_query.GetInterruptionPolicy() ==

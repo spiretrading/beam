@@ -1,11 +1,10 @@
 #ifndef BEAM_SYNCHRONIZED_MAP_HPP
 #define BEAM_SYNCHRONIZED_MAP_HPP
+#include <mutex>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
@@ -15,7 +14,7 @@ namespace Beam {
    * @param <T> The type of map to wrap.
    * @param <M> The type of mutex used to synchronized this container.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class SynchronizedMap {
     public:
 
@@ -148,13 +147,13 @@ namespace Beam {
    * @param V The map's value.
    * @param M The type of mutex used to synchronized this container.
    */
-  template<typename K, typename V, typename M = boost::mutex>
+  template<typename K, typename V, typename M = std::mutex>
   using SynchronizedUnorderedMap = SynchronizedMap<std::unordered_map<K, V>, M>;
 
   template<typename T, typename M>
   typename SynchronizedMap<T, M>::Value&
       SynchronizedMap<T, M>::Get(const Key& key) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       valueIterator = m_map.emplace(std::piecewise_construct,
@@ -167,7 +166,7 @@ namespace Beam {
   template<typename F>
   typename SynchronizedMap<T, M>::Value&
       SynchronizedMap<T, M>::GetOrInsert(const Key& key, F&& valueBuilder) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       valueIterator = m_map.emplace(std::piecewise_construct,
@@ -181,7 +180,7 @@ namespace Beam {
   template<typename F>
   typename SynchronizedMap<T, M>::Value&
       SynchronizedMap<T, M>::TestAndSet(const Key& key, F&& test) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       test(m_map);
@@ -193,7 +192,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<typename SynchronizedMap<T, M>::Value>
       SynchronizedMap<T, M>::FindValue(const Key& key) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       return boost::none;
@@ -204,7 +203,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<const typename SynchronizedMap<T, M>::Value&>
       SynchronizedMap<T, M>::Find(const Key& key) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       return boost::none;
@@ -215,7 +214,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<typename SynchronizedMap<T, M>::Value&>
       SynchronizedMap<T, M>::Find(const Key& key) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto valueIterator = m_map.find(key);
     if(valueIterator == m_map.end()) {
       return boost::none;
@@ -226,7 +225,7 @@ namespace Beam {
   template<typename T, typename M>
   template<typename ValueForward>
   bool SynchronizedMap<T, M>::Insert(const Key& key, ValueForward&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_map.insert(
       std::pair(key, Value(std::forward<ValueForward>(value)))).second;
   }
@@ -234,7 +233,7 @@ namespace Beam {
   template<typename T, typename M>
   template<typename ValueForward>
   void SynchronizedMap<T, M>::Update(const Key& key, ValueForward&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_map[key] = std::forward<ValueForward>(value);
   }
 
@@ -242,34 +241,34 @@ namespace Beam {
   void SynchronizedMap<T, M>::Clear() {
     auto map = Map();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       map.swap(m_map);
     }
   }
 
   template<typename T, typename M>
   void SynchronizedMap<T, M>::Erase(const Key& key) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_map.erase(key);
   }
 
   template<typename T, typename M>
   void SynchronizedMap<T, M>::Swap(Map& map) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_map.swap(map);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedMap<T, M>::With(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_map);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedMap<T, M>::With(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_map);
   }
 }

@@ -2,6 +2,7 @@
 #define BEAM_FILE_SYSTEM_REGISTRY_DATA_STORE_HPP
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/BasicIStreamReader.hpp"
@@ -13,7 +14,6 @@
 #include "Beam/RegistryService/RegistryEntry.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::RegistryService {
 
@@ -54,7 +54,7 @@ namespace Beam::RegistryService {
       void Close() override;
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::filesystem::path m_root;
       std::uint64_t m_nextId;
       IO::OpenState m_openState;
@@ -188,7 +188,7 @@ namespace Beam::RegistryService {
 
   inline void FileSystemRegistryDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     transaction();
   }
 

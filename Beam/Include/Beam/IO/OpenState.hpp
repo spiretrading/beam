@@ -2,12 +2,12 @@
 #define BEAM_OPEN_STATE_HPP
 #include <atomic>
 #include <cassert>
+#include <condition_variable>
 #include <cstdint>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IO.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam::IO {
 
@@ -47,9 +47,9 @@ namespace Beam::IO {
         CLOSING,
         CLOSED
       };
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::atomic<State> m_state;
-      Threading::ConditionVariable m_closingCondition;
+      std::condition_variable m_closingCondition;
 
       OpenState(const OpenState&) = delete;
       OpenState& operator =(const OpenState&) = delete;
@@ -88,7 +88,7 @@ namespace Beam::IO {
     if(expected == State::CLOSED) {
       return true;
     }
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_state != State::CLOSED) {
       m_closingCondition.wait(lock);
     }
@@ -97,7 +97,7 @@ namespace Beam::IO {
 
   inline void OpenState::Close() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_state.exchange(State::CLOSED) == State::CLOSED) {
         return;
       }

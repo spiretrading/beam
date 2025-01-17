@@ -1,8 +1,7 @@
 #ifndef BEAM_SYNCHRONIZED_LIST_HPP
 #define BEAM_SYNCHRONIZED_LIST_HPP
+#include <mutex>
 #include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Collections/Collections.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 
@@ -14,7 +13,7 @@ namespace Beam {
    * @param <T> The type of list to wrap.
    * @param <M> The type of mutex used to synchronized this container.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class SynchronizedList {
     public:
 
@@ -120,59 +119,59 @@ namespace Beam {
    * @param <V> The type of value.
    * @param <M> The type of mutex used to synchronized this container.
    */
-  template<typename ValueType, typename M = boost::mutex>
+  template<typename ValueType, typename M = std::mutex>
   using SynchronizedVector = SynchronizedList<std::vector<ValueType>, M>;
 
   template<typename T, typename M>
   SynchronizedList<T, M>::SynchronizedList(const SynchronizedList& list) {
-    auto lock = boost::lock_guard(list.m_mutex);
+    auto lock = std::lock_guard(list.m_mutex);
     m_list.insert(m_list.end(), list.m_list.begin(), list.m_list.end());
   }
 
   template<typename T, typename M>
   template<typename U, typename V>
   SynchronizedList<T, M>::SynchronizedList(const SynchronizedList<U, V>& list) {
-    auto lock = boost::lock_guard(list.m_mutex);
+    auto lock = std::lock_guard(list.m_mutex);
     m_list.insert(m_list.end(), list.m_list.begin(), list.m_list.end());
   }
 
   template<typename T, typename M>
   SynchronizedList<T, M>::SynchronizedList(SynchronizedList&& list) {
-    auto lock = boost::lock_guard(list.m_mutex);
+    auto lock = std::lock_guard(list.m_mutex);
     m_list = std::move(list.m_list);
   }
 
   template<typename T, typename M>
   typename SynchronizedList<T, M>::List
       SynchronizedList<T, M>::Acquire() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_list;
   }
 
   template<typename T, typename M>
   template<typename ValueForward>
   void SynchronizedList<T, M>::PushBack(ValueForward&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_list.push_back(std::forward<ValueForward>(value));
   }
 
   template<typename T, typename M>
   template<typename Container>
   void SynchronizedList<T, M>::Append(const Container& container) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_list.insert(m_list.end(), container.begin(), container.end());
   }
 
   template<typename T, typename M>
   void SynchronizedList<T, M>::Remove(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     Beam::RemoveAll(m_list, value);
   }
 
   template<typename T, typename M>
   template<typename F>
   void SynchronizedList<T, M>::RemoveIf(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_list.erase(std::remove_if(m_list.begin(), m_list.end(),
       std::forward<F>(f)), m_list.end());
   }
@@ -180,14 +179,14 @@ namespace Beam {
   template<typename T, typename M>
   template<typename F>
   void SynchronizedList<T, M>::ForEach(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     std::for_each(m_list.begin(), m_list.end(), std::forward<F>(f));
   }
 
   template<typename T, typename M>
   template<typename F>
   void SynchronizedList<T, M>::ForEach(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     std::for_each(m_list.begin(), m_list.end(), std::forward<F>(f));
   }
 
@@ -195,28 +194,28 @@ namespace Beam {
   void SynchronizedList<T, M>::Clear() {
     auto list = List();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       list.swap(m_list);
     }
   }
 
   template<typename T, typename M>
   void SynchronizedList<T, M>::Swap(List& list) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_list.swap(list);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedList<T, M>::With(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_list);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedList<T, M>::With(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_list);
   }
 }

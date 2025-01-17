@@ -1,5 +1,6 @@
 #ifndef BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
 #define BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
+#include <mutex>
 #include <tuple>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
@@ -8,7 +9,6 @@
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Utilities/HashTuple.hpp"
 
 namespace Beam::ServiceLocator {
@@ -108,7 +108,7 @@ namespace Beam::ServiceLocator {
         std::unordered_map<DirectoryEntry, Permissions> m_permissions;
       };
       using DirectoryEntryPair = std::tuple<DirectoryEntry, DirectoryEntry>;
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       unsigned int m_nextId;
       std::unordered_map<unsigned int, std::shared_ptr<AccountEntry>>
         m_idToAccounts;
@@ -450,7 +450,7 @@ namespace Beam::ServiceLocator {
 
   inline void LocalServiceLocatorDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     transaction();
   }
 

@@ -2,8 +2,8 @@
 #define BEAM_REMOTE_HPP
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Threading/PreferredConditionVariable.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
@@ -14,7 +14,7 @@ namespace Beam {
    * @param <T> The type of value to load.
    * @param <M> The type of mutex used to synchronize the initialization.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class Remote {
     public:
 
@@ -97,7 +97,7 @@ namespace Beam {
     if(m_isAvailable) {
       return *m_value;
     }
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(!m_isAvailable && !m_isLoading) {
       m_isLoading = true;
       {

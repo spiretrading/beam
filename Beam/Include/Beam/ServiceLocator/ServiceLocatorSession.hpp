@@ -1,8 +1,7 @@
 #ifndef BEAM_SERVICE_LOCATOR_SESSION_HPP
 #define BEAM_SERVICE_LOCATOR_SESSION_HPP
+#include <mutex>
 #include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/ServiceLocator/AuthenticatedSession.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
@@ -94,7 +93,7 @@ namespace Beam::ServiceLocator {
         LOGGING_IN,
         LOGGED_IN
       };
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       LoginState m_loginState;
       std::string m_sessionId;
       std::vector<ServiceEntry> m_registeredServices;
@@ -108,7 +107,7 @@ namespace Beam::ServiceLocator {
   inline ServiceLocatorSession::ServiceLocatorSession(
       ServiceLocatorSession&& session)
       : AuthenticatedSession(std::move(session)) {
-    auto lock = boost::lock_guard(session.m_mutex);
+    auto lock = std::lock_guard(session.m_mutex);
     m_loginState = std::move(session.m_loginState);
     m_sessionId = std::move(session.m_sessionId);
     m_registeredServices = std::move(session.m_registeredServices);
@@ -116,20 +115,20 @@ namespace Beam::ServiceLocator {
   }
 
   inline std::string ServiceLocatorSession::GetSessionId() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_sessionId;
   }
 
   inline void ServiceLocatorSession::SetSessionId(
       const DirectoryEntry& account, const std::string& sessionId) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     SetAccount(account);
     m_sessionId = sessionId;
     m_loginState = LoginState::LOGGED_IN;
   }
 
   inline bool ServiceLocatorSession::TryLogin() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_loginState == LoginState::NOT_LOGGED_IN) {
       m_loginState = LoginState::LOGGING_IN;
       return true;
@@ -138,7 +137,7 @@ namespace Beam::ServiceLocator {
   }
 
   inline void ServiceLocatorSession::ResetLogin() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     ResetAccount();
     m_sessionId.clear();
     m_loginState = LoginState::NOT_LOGGED_IN;
@@ -146,39 +145,38 @@ namespace Beam::ServiceLocator {
 
   inline std::vector<std::string>
       ServiceLocatorSession::GetServiceSubscriptions() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_serviceSubscriptions;
   }
 
   inline void ServiceLocatorSession::SubscribeService(
       const std::string& serviceName) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_serviceSubscriptions.push_back(serviceName);
   }
 
   inline void ServiceLocatorSession::UnsubscribeService(
       const std::string& serviceName) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     RemoveAll(m_serviceSubscriptions, serviceName);
   }
 
   inline std::vector<ServiceEntry>
       ServiceLocatorSession::GetRegisteredServices() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_registeredServices;
   }
 
   inline void ServiceLocatorSession::RegisterService(
       const ServiceEntry& serviceEntry) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_registeredServices.push_back(serviceEntry);
   }
 
   inline void ServiceLocatorSession::UnregisterService(int serviceId) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = std::find_if(m_registeredServices.begin(),
-      m_registeredServices.end(),
-      [&] (auto& service) {
+      m_registeredServices.end(), [&] (auto& service) {
         return service.GetId() == serviceId;
       });
     if(i != m_registeredServices.end()) {
@@ -187,18 +185,18 @@ namespace Beam::ServiceLocator {
   }
 
   inline void ServiceLocatorSession::Monitor(const DirectoryEntry& entry) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_monitors.push_back(entry);
   }
 
   inline void ServiceLocatorSession::Unmonitor(const DirectoryEntry& entry) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     RemoveAll(m_monitors, entry);
   }
 
   inline std::vector<DirectoryEntry>
       ServiceLocatorSession::GetMonitors() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_monitors;
   }
 }

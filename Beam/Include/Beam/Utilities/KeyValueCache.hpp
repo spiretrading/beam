@@ -1,7 +1,7 @@
 #ifndef BEAM_KEY_VALUE_CACHE_HPP
 #define BEAM_KEY_VALUE_CACHE_HPP
 #include <functional>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Utilities/Utilities.hpp"
 
@@ -13,7 +13,7 @@ namespace Beam {
    * @param <V> The type of value to store.
    * @param <M> The type of mutex used to synchronize access.
    */
-  template<typename K, typename V, typename M = boost::mutex>
+  template<typename K, typename V, typename M = std::mutex>
   class KeyValueCache {
     public:
 

@@ -1,7 +1,7 @@
 #ifndef BEAM_TASK_SIGNAL_HANDLER_HPP
 #define BEAM_TASK_SIGNAL_HANDLER_HPP
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
+#include <condition_variable>
+#include <mutex>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/SignalHandling/QueuedSignalHandler.hpp"
@@ -29,12 +29,12 @@ namespace Beam::SignalHandling {
         const Slot& slot);
 
     private:
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       QueuedSignalHandler m_queuedSignalHandler;
       std::function<void ()> m_signalProcessor;
       int m_taskCount;
       bool m_stopping;
-      boost::condition_variable m_resultsEmptyCondition;
+      std::condition_variable m_resultsEmptyCondition;
 
       TaskSignalHandler(const TaskSignalHandler&) = delete;
       TaskSignalHandler& operator =(const TaskSignalHandler&) = delete;
@@ -52,7 +52,7 @@ namespace Beam::SignalHandling {
   }
 
   inline TaskSignalHandler::~TaskSignalHandler() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_taskCount != 0) {
       m_stopping = true;
       m_resultsEmptyCondition.wait(lock);
@@ -60,13 +60,13 @@ namespace Beam::SignalHandling {
   }
 
   inline void TaskSignalHandler::OnSignalsQueued() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     Threading::Park(m_signalProcessor);
     ++m_taskCount;
   }
 
   inline void TaskSignalHandler::OnSignalsProcessed() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     --m_taskCount;
     if(m_stopping && m_taskCount == 0) {
       m_resultsEmptyCondition.notify_one();

@@ -1,5 +1,6 @@
-#ifndef BEAM_QUEUEDSIGNALHANDLER_HPP
-#define BEAM_QUEUEDSIGNALHANDLER_HPP
+#ifndef BEAM_QUEUED_SIGNAL_HANDLER_HPP
+#define BEAM_QUEUED_SIGNAL_HANDLER_HPP
+#include <mutex>
 #include <vector>
 #include <boost/call_traits.hpp>
 #include <boost/function_types/function_arity.hpp>
@@ -10,53 +11,48 @@
 #include <boost/preprocessor/iteration/local.hpp>
 #include <boost/preprocessor/repetition/enum_binary_params.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/SignalHandling/SignalHandling.hpp"
 #include "Beam/Utilities/Functional.hpp"
 
-namespace Beam {
-namespace SignalHandling {
+namespace Beam::SignalHandling {
 
-  /*! \class QueuedSignalHandler
-      \brief Allows for the delayed handling of signals.
-   */
+  /** Allows for the delayed handling of signals. */
   class QueuedSignalHandler : private boost::noncopyable {
     public:
 
-      //! Indicates that one or more signals have been queued.
+      /** Indicates that one or more signals have been queued. */
       using QueuedSlot = std::function<void()>;
 
-      //! Constructs a QueuedSignalHandler.
+      /** Constructs a QueuedSignalHandler. */
       QueuedSignalHandler();
 
-      //! Sets the slot called when signals are queued.
-      /*!
-        \param queuedSlot The slot to call when signals are queued.
-      */
+      /**
+       * Sets the slot called when signals are queued.
+       * @param queuedSlot The slot to call when signals are queued.
+       */
       void SetQueuedSlot(const QueuedSlot& queuedSlot);
 
-      //! Dispatches all signals.
+      /** Dispatches all signals. */
       void HandleSignals();
 
-      //! Queues a task to be performed.
-      /*!
-        \param task The task to perform.
-      */
+      /**
+       * Queues a task to be performed.
+       * @param task The task to perform.
+       */
       void QueueTask(const std::function<void ()>& task);
 
-      //! Returns a slot compatible with this signal handler.
-      /*!
-        \tparam SlotType A function type of the form R (P0, P1, ...)
-        \param slot The slot to make compatible with this signal handler.
-        \return A slot compatible with this signal handler.
-      */
+      /**
+       * Returns a slot compatible with this signal handler.
+       * @param <SlotType> A function type of the form R (P0, P1, ...)
+       * @param slot The slot to make compatible with this signal handler.
+       * @return A slot compatible with this signal handler.
+       */
       template<typename SlotType>
       std::function<typename GetSignature<SlotType>::type> GetSlot(
         const SlotType& slot);
 
     private:
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       QueuedSlot m_queuedSlot;
       std::vector<std::function<void ()>> m_slots;
 
@@ -88,24 +84,24 @@ namespace SignalHandling {
   inline QueuedSignalHandler::QueuedSignalHandler() {}
 
   inline void QueuedSignalHandler::SetQueuedSlot(const QueuedSlot& queuedSlot) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_queuedSlot = queuedSlot;
   }
 
   inline void QueuedSignalHandler::HandleSignals() {
-    std::vector<std::function<void ()>> slots;
+    auto slots = std::vector<std::function<void ()>>();
     {
-      boost::lock_guard<boost::mutex> lock(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       slots.swap(m_slots);
     }
-    for(const std::function<void ()>& slot : slots) {
+    for(auto& slot : slots) {
       slot();
     }
   }
 
   inline void QueuedSignalHandler::QueueTask(
       const std::function<void ()>& task) {
-    boost::lock_guard<boost::mutex> lock(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_slots.push_back(task);
     if(m_slots.size() == 1 && m_queuedSlot) {
       m_queuedSlot();
@@ -137,7 +133,7 @@ namespace SignalHandling {
   template<typename SlotType, typename ParameterTypes>                         \
   void QueuedSignalHandler::Slot(const SlotType& slot BOOST_PP_COMMA_IF(n)     \
       BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER, BOOST_PP_EMPTY)) {            \
-    boost::lock_guard<boost::mutex> lock(m_mutex);                             \
+    auto lock = std::lock_guard(m_mutex);                                      \
     m_slots.push_back(std::bind_front(slot BOOST_PP_COMMA_IF(n)                \
       BOOST_PP_ENUM_PARAMS(n, a)));                                            \
     if(m_slots.size() == 1 && m_queuedSlot) {                                  \
@@ -149,7 +145,6 @@ namespace SignalHandling {
   #include BOOST_PP_LOCAL_ITERATE()
   #undef BEAM_CALLBACK_PLACEHOLDERS
   #undef BEAM_DECLARE_PARAMETER
-}
 }
 
 #endif

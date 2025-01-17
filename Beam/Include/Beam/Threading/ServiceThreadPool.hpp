@@ -1,8 +1,8 @@
 #ifndef BEAM_SERVICE_THREAD_POOL_HPP
 #define BEAM_SERVICE_THREAD_POOL_HPP
 #include <memory>
+#include <thread>
 #include <boost/asio/io_service.hpp>
-#include <boost/thread/thread.hpp>
 #include "Beam/Network/Network.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/Singleton.hpp"
@@ -25,7 +25,7 @@ namespace Beam::Threading {
       boost::asio::io_service m_service;
       boost::asio::io_service::work m_work;
       std::size_t m_threadCount;
-      std::unique_ptr<boost::thread[]> m_threads;
+      std::unique_ptr<std::thread[]> m_threads;
 
       ServiceThreadPool();
       ServiceThreadPool(const ServiceThreadPool&) = delete;
@@ -42,10 +42,10 @@ namespace Beam::Threading {
 
   inline ServiceThreadPool::ServiceThreadPool()
       : m_work(m_service),
-        m_threadCount(boost::thread::hardware_concurrency()),
-        m_threads(std::make_unique<boost::thread[]>(m_threadCount)) {
+        m_threadCount(std::thread::hardware_concurrency()),
+        m_threads(std::make_unique<std::thread[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
-      m_threads[i] = boost::thread([this] {
+      m_threads[i] = std::thread([this] {
         m_service.run();
       });
     }

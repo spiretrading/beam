@@ -1,10 +1,9 @@
 #ifndef BEAM_SYNCHRONIZED_SET_HPP
 #define BEAM_SYNCHRONIZED_SET_HPP
+#include <mutex>
 #include <unordered_set>
 #include <utility>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
@@ -14,7 +13,7 @@ namespace Beam {
    * @param <T> The type of set to wrap.
    * @param <M> The type of mutex used for synchronization.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class SynchronizedSet {
     public:
 
@@ -137,19 +136,19 @@ namespace Beam {
    * @param K The set's key.
    * @param M The type of mutex used to synchronized this container.
    */
-  template<typename K, typename M = boost::mutex>
+  template<typename K, typename M = std::mutex>
   using SynchronizedUnorderedSet = SynchronizedSet<std::unordered_set<K>, M>;
 
   template<typename T, typename M>
   bool SynchronizedSet<T, M>::Contains(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.find(value) != m_set.end();
   }
 
   template<typename T, typename M>
   boost::optional<typename SynchronizedSet<T, M>::Value>
       SynchronizedSet<T, M>::FindValue(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_set.find(value);
     if(i == m_set.end()) {
       return boost::none;
@@ -160,7 +159,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<const typename SynchronizedSet<T, M>::Value&>
       SynchronizedSet<T, M>::Find(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_set.find(value);
     if(i == m_set.end()) {
       return boost::none;
@@ -171,7 +170,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<typename SynchronizedSet<T, M>::Value&>
       SynchronizedSet<T, M>::Find(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_set.find(value);
     if(i == m_set.end()) {
       return boost::none;
@@ -182,14 +181,14 @@ namespace Beam {
   template<typename T, typename M>
   typename SynchronizedSet<T, M>::Value
       SynchronizedSet<T, M>::Get(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return *m_set.insert(value).first;
   }
 
   template<typename T, typename M>
   template<typename F>
   void SynchronizedSet<T, M>::TestAndSet(const Value& value, F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_set.find(value) != m_set.end()) {
       return;
     }
@@ -200,20 +199,20 @@ namespace Beam {
   template<typename T, typename M>
   template<typename V>
   bool SynchronizedSet<T, M>::Insert(V&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.insert(std::forward<V>(value)).second;
   }
 
   template<typename T, typename M>
   template<typename... Args>
   bool SynchronizedSet<T, M>::Emplace(Args&&... args) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.emplace(std::forward<Args>(args)...).second;
   }
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::Update(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto entry = m_set.insert(value);
     if(entry.second) {
       return;
@@ -226,34 +225,34 @@ namespace Beam {
   void SynchronizedSet<T, M>::Clear() {
     auto set = Set();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       set.swap(m_set);
     }
   }
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::Erase(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_set.erase(value);
   }
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::Swap(Set& set) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_set.swap(set);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedSet<T, M>::With(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_set);
   }
 
   template<typename T, typename M>
   template<typename F>
   decltype(auto) SynchronizedSet<T, M>::With(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return f(m_set);
   }
 }

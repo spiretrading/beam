@@ -131,7 +131,7 @@ namespace Beam {
 
   template<typename T, typename B>
   void ResourcePool<T, B>::Reset() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_objects.size() != m_currentObjectCount) {
       m_objectAvailableCondition.wait(lock);
     }
@@ -145,7 +145,7 @@ namespace Beam {
   template<typename T, typename B>
   ScopedResource<typename ResourcePool<T, B>::Type,
       typename ResourcePool<T, B>::Make> ResourcePool<T, B>::Acquire() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     auto unconditionalWait = false;
     while(m_objects.empty()) {
       if(unconditionalWait || m_currentObjectCount >= m_maxObjectCount) {
@@ -174,7 +174,7 @@ namespace Beam {
   template<typename T, typename B>
   boost::optional<ScopedResource<typename ResourcePool<T, B>::Type,
       typename ResourcePool<T, B>::Make>> ResourcePool<T, B>::TryAcquire() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_objects.empty()) {
       return boost::none;
     }
@@ -185,7 +185,7 @@ namespace Beam {
 
   template<typename T, typename B>
   void ResourcePool<T, B>::Add(std::unique_ptr<Type> object) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_objects.push_back(std::move(object));
     m_objectAvailableCondition.notify_one();
   }

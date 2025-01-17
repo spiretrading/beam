@@ -214,6 +214,8 @@ namespace Beam::Routines::Details {
   }
 
   inline bool InstallHooks() {
+    #pragma warning(push)
+    #pragma warning(disable:4191)
     RtlWaitOnAddress = reinterpret_cast<NTSTATUS (WINAPI*)(
       _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWaitOnAddress"));
@@ -221,6 +223,7 @@ namespace Beam::Routines::Details {
       GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressSingle"));
     RtlWakeAddressAll = reinterpret_cast<void (WINAPI*)(_In_ void*)>(
       GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressAll"));
+    #pragma warning(pop)
     OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
     if(!OriginalNtDelayExecution) {
       return false;

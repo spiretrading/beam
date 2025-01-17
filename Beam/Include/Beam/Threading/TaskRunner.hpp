@@ -1,10 +1,9 @@
 #ifndef BEAM_TASK_RUNNER_HPP
 #define BEAM_TASK_RUNNER_HPP
+#include <condition_variable>
 #include <deque>
 #include <functional>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
@@ -35,21 +34,21 @@ namespace Beam::Threading {
       bool IsEmpty() const;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       bool m_handlingTasks;
       std::deque<Task> m_pendingTasks;
-      boost::condition_variable m_handlingTaskCondition;
+      std::condition_variable m_handlingTaskCondition;
 
       TaskRunner(const TaskRunner&) = delete;
       TaskRunner& operator =(const TaskRunner&) = delete;
-      void HandleTasks(boost::unique_lock<boost::mutex>& lock);
+      void HandleTasks(std::unique_lock<std::mutex>& lock);
   };
 
   inline TaskRunner::TaskRunner()
     : m_handlingTasks(false) {}
 
   inline TaskRunner::~TaskRunner() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_handlingTasks || !m_pendingTasks.empty()) {
       m_handlingTaskCondition.wait(lock);
     }
@@ -57,7 +56,7 @@ namespace Beam::Threading {
 
   template<typename F>
   inline void TaskRunner::Add(F&& task) {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     m_pendingTasks.push_back(std::forward<F>(task));
     if(m_handlingTasks) {
       return;
@@ -66,11 +65,11 @@ namespace Beam::Threading {
   }
 
   inline bool TaskRunner::IsEmpty() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_pendingTasks.empty() && !m_handlingTasks;
   }
 
-  inline void TaskRunner::HandleTasks(boost::unique_lock<boost::mutex>& lock) {
+  inline void TaskRunner::HandleTasks(std::unique_lock<std::mutex>& lock) {
     m_handlingTasks = true;
     while(!m_pendingTasks.empty()) {
       auto task = std::move(m_pendingTasks.front());

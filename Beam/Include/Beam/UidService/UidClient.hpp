@@ -1,13 +1,13 @@
 #ifndef BEAM_UID_CLIENT_HPP
 #define BEAM_UID_CLIENT_HPP
-#include <boost/thread/mutex.hpp>
+#include <condition_variable>
+#include <mutex>
 #include <cstdint>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/UidService/UidService.hpp"
 #include "Beam/UidService/UidServices.hpp"
 
@@ -44,8 +44,8 @@ namespace Beam::UidService {
       std::uint64_t m_nextUid;
       std::uint64_t m_lastUid;
       std::uint64_t m_blockSize;
-      mutable boost::mutex m_mutex;
-      mutable Threading::ConditionVariable m_uidsAvailableCondition;
+      mutable std::mutex m_mutex;
+      mutable std::condition_variable m_uidsAvailableCondition;
       Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
       IO::OpenState m_openState;
   };
@@ -70,7 +70,7 @@ namespace Beam::UidService {
 
   template<typename B>
   std::uint64_t UidClient<B>::LoadNextUid() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_nextUid > m_lastUid) {
       if(m_nextUid == m_lastUid + 1) {
         ++m_nextUid;

@@ -37,7 +37,7 @@ namespace Network {
   inline bool SecureSocketReader::IsDataAvailable() const {
     auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      auto lock = boost::lock_guard(m_socket->m_mutex);
+      auto lock = std::lock_guard(m_socket->m_mutex);
       m_socket->m_socket.lowest_layer().io_control(command);
     }
     return command.get() > 0;

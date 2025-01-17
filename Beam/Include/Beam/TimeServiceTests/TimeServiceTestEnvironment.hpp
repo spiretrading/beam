@@ -1,11 +1,11 @@
 #ifndef BEAM_TIME_SERVICE_TEST_ENVIRONMENT_HPP
 #define BEAM_TIME_SERVICE_TEST_ENVIRONMENT_HPP
+#include <mutex>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironmentException.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTests.hpp"
 
@@ -52,7 +52,7 @@ namespace Beam::TimeService::Tests {
       };
       friend class TestTimeClient;
       friend class TestTimer;
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       boost::posix_time::ptime m_currentTime;
       boost::posix_time::time_duration m_nextTrigger;
       SynchronizedVector<TestTimeClient*> m_timeClients;
@@ -63,7 +63,7 @@ namespace Beam::TimeService::Tests {
       TimeServiceTestEnvironment& operator =(
         const TimeServiceTestEnvironment&) = delete;
       void LockedSetTime(boost::posix_time::ptime time,
-        boost::unique_lock<Threading::Mutex>& lock);
+        std::unique_lock<std::mutex>& lock);
       void Add(TestTimeClient* timeClient);
       void Remove(TestTimeClient* timeClient);
       void Add(TestTimer* timer);
@@ -81,7 +81,7 @@ namespace Beam::TimeService::Tests {
       SetTime(time);
     } catch(const std::exception&) {
       Close();
-      BOOST_RETHROW;
+      throw;
     }
   }
 
@@ -96,14 +96,14 @@ namespace Beam::TimeService::Tests {
         TimeServiceTestEnvironmentException("Invalid date/time."));
     }
     Routines::FlushPendingRoutines();
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     LockedSetTime(time, lock);
   }
 
   inline void TimeServiceTestEnvironment::AdvanceTime(
       boost::posix_time::time_duration duration) {
     Routines::FlushPendingRoutines();
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_currentTime == boost::posix_time::not_a_date_time) {
       m_currentTime = boost::posix_time::ptime(
         boost::gregorian::date(2016, 8, 14), boost::posix_time::seconds(0));
@@ -112,7 +112,7 @@ namespace Beam::TimeService::Tests {
   }
 
   inline boost::posix_time::ptime TimeServiceTestEnvironment::GetTime() const {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     return m_currentTime;
   }
 
@@ -129,8 +129,7 @@ namespace Beam::TimeService::Tests {
   }
 
   inline void TimeServiceTestEnvironment::LockedSetTime(
-      boost::posix_time::ptime time,
-      boost::unique_lock<Threading::Mutex>& lock) {
+      boost::posix_time::ptime time, std::unique_lock<std::mutex>& lock) {
     if(m_currentTime != boost::posix_time::not_a_date_time &&
         m_currentTime >= time) {
       return;

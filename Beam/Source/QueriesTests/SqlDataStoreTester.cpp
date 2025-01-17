@@ -9,7 +9,6 @@
 using namespace Beam;
 using namespace Beam::Queries;
 using namespace Beam::Queries::Tests;
-using namespace Beam::Threading;
 using namespace Beam::TimeService;
 using namespace Viper;
 

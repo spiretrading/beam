@@ -51,7 +51,7 @@ namespace Beam::Threading {
     if(m_isInitialized) {
       return false;
     }
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_isInitialized) {
       return false;
     }

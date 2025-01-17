@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <Aspen/Chain.hpp>
 #include <Aspen/Lift.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Beam/Queues/MultiQueueWriter.hpp"
 #include "Beam/Reactors/QueueReactor.hpp"
 #include "Beam/Threading/Timer.hpp"

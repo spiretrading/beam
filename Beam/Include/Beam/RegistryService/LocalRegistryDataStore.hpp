@@ -1,12 +1,12 @@
 #ifndef BEAM_LOCAL_REGISTRY_DATA_STORE_HPP
 #define BEAM_LOCAL_REGISTRY_DATA_STORE_HPP
+#include <mutex>
 #include <unordered_map>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/RegistryService/RegistryDataStore.hpp"
 #include "Beam/RegistryService/RegistryDataStoreException.hpp"
 #include "Beam/RegistryService/RegistryEntry.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::RegistryService {
 
@@ -44,7 +44,7 @@ namespace Beam::RegistryService {
       void Close() override;
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::uint64_t m_nextId;
       std::unordered_map<std::uint64_t, RegistryEntry> m_entries;
       std::unordered_map<std::uint64_t, std::uint64_t> m_parents;
@@ -176,7 +176,7 @@ namespace Beam::RegistryService {
 
   inline void LocalRegistryDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     transaction();
   }
 

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <utility>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Collections/SynchronizedMap.hpp"
@@ -106,7 +107,7 @@ namespace Beam::Queries {
         Range m_range;
         std::unique_ptr<Evaluator> m_filter;
         std::vector<Value> m_writeLog;
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
 
         SubscriptionEntry(int id, ServiceProtocolClient& client,
           const Range& range, std::unique_ptr<Evaluator> filter);
@@ -180,7 +181,7 @@ namespace Beam::Queries {
     }
     auto& subscriptionEntry = **subscriptionEntryLookup;
     m_initializingSubscriptions.Erase(result.m_queryId);
-    auto lock = boost::lock_guard(subscriptionEntry.m_mutex);
+    auto lock = std::lock_guard(subscriptionEntry.m_mutex);
     if(result.m_snapshot.empty()) {
       result.m_snapshot.swap(subscriptionEntry.m_writeLog);
     } else {
@@ -227,7 +228,7 @@ namespace Beam::Queries {
           lastClient = subscriptionEntry->m_client;
           continue;
         }
-        auto lock = boost::lock_guard(subscriptionEntry->m_mutex);
+        auto lock = std::lock_guard(subscriptionEntry->m_mutex);
         if((subscriptionEntry->m_range.GetStart() == Sequence::Present() ||
             RangePointGreaterOrEqual(value,
             subscriptionEntry->m_range.GetStart())) &&

@@ -1,10 +1,10 @@
 #ifndef BEAM_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_SERVICE_LOCATOR_CLIENT_HPP
+#include <mutex>
 #include <string>
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/IO/ConnectException.hpp"
@@ -247,7 +247,7 @@ namespace Beam::ServiceLocator {
     private:
       using ServiceProtocolClient =
         typename ServiceProtocolClientBuilder::Client;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::string m_username;
       std::string m_password;
       Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
@@ -299,20 +299,20 @@ namespace Beam::ServiceLocator {
 
   template<typename B>
   DirectoryEntry ServiceLocatorClient<B>::GetAccount() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_account;
   }
 
   template<typename B>
   std::string ServiceLocatorClient<B>::GetSessionId() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_sessionId;
   }
 
   template<typename B>
   std::string ServiceLocatorClient<B>::GetEncryptedSessionId(
       unsigned int key) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return ComputeSHA(std::to_string(key) + m_sessionId);
   }
 
@@ -580,7 +580,7 @@ namespace Beam::ServiceLocator {
   void ServiceLocatorClient<B>::Login(ServiceProtocolClient& client) {
     auto loginResult = client.template SendRequest<LoginService>(m_username,
       m_password);
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_account = loginResult.account;
     m_sessionId = loginResult.session_id;
   }

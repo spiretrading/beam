@@ -1,9 +1,12 @@
-#ifndef BEAM_SIGNALSINK_HPP
-#define BEAM_SIGNALSINK_HPP
+#ifndef BEAM_SIGNAL_SINK_HPP
+#define BEAM_SIGNAL_SINK_HPP
+#include <any>
+#include <condition_variable>
 #include <deque>
+#include <mutex>
 #include <vector>
 #include <type_traits>
-#include <boost/any.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/function_types/function_arity.hpp>
 #include <boost/function_types/parameter_types.hpp>
 #include <boost/mpl/at.hpp>
@@ -15,14 +18,11 @@
 #include <boost/preprocessor/repetition/repeat.hpp>
 #include <boost/preprocessor/repetition/repeat_from_to.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/SignalHandling/SignalHandling.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/Utilities/Functional.hpp"
 
-namespace Beam {
-namespace SignalHandling {
+namespace Beam::SignalHandling {
 namespace Details {
   template<bool Enabled>
   struct CopyParameter {};
@@ -30,7 +30,7 @@ namespace Details {
   template<>
   struct CopyParameter<true> {
     template<typename T>
-    void operator ()(std::vector<boost::any>& parameters, const T& value) {
+    void operator ()(std::vector<std::any>& parameters, const T& value) {
       parameters.push_back(&value);
     }
   };
@@ -38,59 +38,55 @@ namespace Details {
   template<>
   struct CopyParameter<false> {
     template<typename T>
-    void operator ()(std::vector<boost::any>& parameters, const T& value) {
+    void operator ()(std::vector<std::any>& parameters, const T& value) {
       parameters.push_back(value);
     }
   };
 }
 
-  /*! \class SignalSink
-      \brief Stores signals and their parameters.
-   */
+  /** Stores signals and their parameters. */
   class SignalSink : private boost::noncopyable {
     public:
 
-      /*! \struct SignalEntry
-          \brief Stores the contents of a signal.
-       */
+      /** Stores the contents of a signal. */
       struct SignalEntry {
 
-        //! The type of signal.
+        /** The type of signal. */
         const std::type_info* m_type;
 
-        //! Stores the signal's parameters.
-        std::vector<boost::any> m_parameters;
+        /** Stores the signal's parameters. */
+        std::vector<std::any> m_parameters;
 
-        //! Constructs a SignalEntry.
-        /*!
-          \param type The type of signal.
-          \param parameters The list of parameters from the signal.
-        */
+        /**
+         * Constructs a SignalEntry.
+         * @param type The type of signal.
+         * @param parameters The list of parameters from the signal.
+         */
         SignalEntry(const std::type_info& type,
-          const std::vector<boost::any>& parameters);
+          const std::vector<std::any>& parameters);
       };
 
-      //! Constructs a SignalSink.
-      SignalSink();
+      /** Constructs a SignalSink. */
+      SignalSink() = default;
 
-      //! Returns the next signal.
-      /*!
-        \param timeout The amount of time to wait for the next signal.
-        \return The next signal queued.
-      */
+      /**
+       * Returns the next signal.
+       * @param timeout The amount of time to wait for the next signal.
+       * @return The next signal queued.
+       */
       SignalEntry GetNextSignal(boost::posix_time::time_duration timeout);
 
-      //! Returns a slot compatible with this signal handler.
-      /*!
-        \tparam SlotType A function type of the form R (P0, P1, ...)
-        \return A slot compatible with this signal handler.
-      */
+      /**
+       * Returns a slot compatible with this signal handler.
+       * @param <SlotType> A function type of the form R (P0, P1, ...)
+       * @return A slot compatible with this signal handler.
+       */
       template<typename SlotType>
       std::function<typename GetSignature<SlotType>::type> GetSlot();
 
     private:
-      boost::mutex m_mutex;
-      boost::condition_variable m_signalEmptyCondition;
+      std::mutex m_mutex;
+      std::condition_variable m_signalEmptyCondition;
       std::deque<SignalEntry> m_signalEntries;
 
       template<typename SlotType, int Arity =
@@ -116,24 +112,24 @@ namespace Details {
       #undef BEAM_DECLARE_PARAMETER
   };
 
-  inline SignalSink::SignalEntry::SignalEntry(const std::type_info& type,
-      const std::vector<boost::any>& parameters)
-      : m_type(&type),
-        m_parameters(parameters) {}
-
-  inline SignalSink::SignalSink() {}
+  inline SignalSink::SignalEntry::SignalEntry(
+    const std::type_info& type, const std::vector<std::any>& parameters)
+    : m_type(&type),
+      m_parameters(parameters) {}
 
   inline SignalSink::SignalEntry SignalSink::GetNextSignal(
       boost::posix_time::time_duration timeout) {
-    boost::unique_lock<boost::mutex> lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_signalEntries.empty()) {
       if(timeout == boost::posix_time::pos_infin) {
         m_signalEmptyCondition.wait(lock);
-      } else if(!m_signalEmptyCondition.timed_wait(lock, timeout)) {
+      } else if(m_signalEmptyCondition.wait_for(
+          lock, std::chrono::microseconds(timeout.total_microseconds())) ==
+            std::cv_status::timeout) {
         BOOST_THROW_EXCEPTION(Threading::TimeoutException());
       }
     }
-    SignalEntry entry = m_signalEntries.front();
+    auto entry = m_signalEntries.front();
     m_signalEntries.pop_front();
     return entry;
   }
@@ -166,8 +162,8 @@ namespace Details {
   template<typename SlotType, typename ParameterTypes>                         \
   void SignalSink::Slot(BOOST_PP_REPEAT(n, BEAM_DECLARE_PARAMETER,             \
       BOOST_PP_EMPTY)) {                                                       \
-    boost::lock_guard<boost::mutex> lock(m_mutex);                             \
-    std::vector<boost::any> parameters;                                        \
+    auto lock = std::lock_guard lock(m_mutex);                                 \
+    auto parameters = std::vector<std::any>();                                 \
     BOOST_PP_REPEAT(n, PUSH_BACK_PARAMETERS, a);                               \
     m_signalEntries.push_back(SignalEntry(typeid(SlotType), parameters));      \
     if(m_signalEntries.size() == 1) {                                          \
@@ -180,7 +176,6 @@ namespace Details {
   #undef PUSH_BACK_PARAMETERS
   #undef CALLBACK_PLACEHOLDERS
   #undef BEAM_DECLARE_PARAMETER
-}
 }
 
 #endif

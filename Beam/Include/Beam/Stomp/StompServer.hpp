@@ -1,5 +1,6 @@
 #ifndef BEAM_STOMP_SERVER_HPP
 #define BEAM_STOMP_SERVER_HPP
+#include <mutex>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/ConnectException.hpp"
@@ -10,7 +11,6 @@
 #include "Beam/Stomp/Stomp.hpp"
 #include "Beam/Stomp/StompFrame.hpp"
 #include "Beam/Stomp/StompFrameParser.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::Stomp {
 
@@ -46,7 +46,7 @@ namespace Beam::Stomp {
       void Close();
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       GetOptionalLocalPtr<C> m_channel;
       StompFrameParser m_parser;
       IO::SharedBuffer m_readBuffer;
@@ -73,7 +73,7 @@ namespace Beam::Stomp {
       Write(connectedFrame);
     } catch(const std::exception&) {
       Close();
-      BOOST_RETHROW;
+      throw;
     }
   }
 
@@ -114,7 +114,7 @@ namespace Beam::Stomp {
   template<typename C>
   void StompServer<C>::Write(const StompFrame& frame) {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_writeBuffer.Reset();
       Serialize(frame, Store(m_writeBuffer));
       m_channel->GetWriter().Write(m_writeBuffer);

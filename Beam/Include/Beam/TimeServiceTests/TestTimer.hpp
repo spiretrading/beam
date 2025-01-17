@@ -1,5 +1,6 @@
 #ifndef BEAM_TEST_TIMER_HPP
 #define BEAM_TEST_TIMER_HPP
+#include <mutex>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/TriggerTimer.hpp"
@@ -7,8 +8,7 @@
 #include "Beam/TimeServiceTests/TimeServiceTests.hpp"
 
 namespace Beam {
-namespace TimeService {
-namespace Tests {
+namespace TimeService::Tests {
 
   /** The type of Timer used by the TestEnvironment. */
   class TestTimer {
@@ -36,7 +36,7 @@ namespace Tests {
       friend class TimeServiceTestEnvironment;
       friend void Fail(TestTimer& timer);
       friend void Trigger(TestTimer& timer);
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
       TimeServiceTestEnvironment* m_environment;
       bool m_hasStarted;
@@ -58,7 +58,7 @@ namespace Tests {
 
   inline void TestTimer::Start() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_hasStarted) {
         return;
       }
@@ -70,7 +70,7 @@ namespace Tests {
 
   inline void TestTimer::Cancel() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(!m_hasStarted) {
         return;
       }
@@ -94,15 +94,15 @@ namespace Tests {
       timer->m_timer.Trigger();
       return;
     }
-    auto entry = TimerEntry{timer, timer->m_interval};
-    auto lock = boost::lock_guard(m_mutex);
+    auto entry = TimerEntry(timer, timer->m_interval);
+    auto lock = std::lock_guard(m_mutex);
     m_timers.PushBack(entry);
     m_nextTrigger = std::min(m_nextTrigger, timer->m_interval);
   }
 
   inline void Fail(TestTimer& timer) {
     {
-      auto lock = boost::lock_guard(timer.m_mutex);
+      auto lock = std::lock_guard(timer.m_mutex);
       timer.m_hasStarted = false;
     }
     timer.m_timer.Fail();
@@ -110,12 +110,11 @@ namespace Tests {
 
   inline void Trigger(TestTimer& timer) {
     {
-      auto lock = boost::lock_guard(timer.m_mutex);
+      auto lock = std::lock_guard(timer.m_mutex);
       timer.m_hasStarted = false;
     }
     timer.m_timer.Trigger();
   }
-}
 }
 
   template<>

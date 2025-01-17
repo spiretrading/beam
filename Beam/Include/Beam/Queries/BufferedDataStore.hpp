@@ -2,9 +2,8 @@
 #define BEAM_BUFFERED_DATA_STORE_HPP
 #include <algorithm>
 #include <memory>
+#include <mutex>
 #include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -70,7 +69,7 @@ namespace Beam::Queries {
     private:
       using ReserveDataStore = LocalDataStore<Query, Value,
         EvaluatorTranslatorFilter>;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       GetOptionalLocalPtr<D> m_dataStore;
       std::size_t m_bufferSize;
       std::size_t m_bufferCount;
@@ -105,7 +104,7 @@ namespace Beam::Queries {
       BufferedDataStore<D, E>::Load(const Query& query) {
     auto buffer = std::shared_ptr<ReserveDataStore>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       buffer = m_flushedDataStore;
     }
     auto matches = std::vector<SequencedValue>();
@@ -143,7 +142,7 @@ namespace Beam::Queries {
 
   template<typename D, typename E>
   void BufferedDataStore<D, E>::Store(const IndexedValue& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     ++m_bufferCount;
     m_dataStoreBuffer->Store(value);
     TestFlush();
@@ -151,7 +150,7 @@ namespace Beam::Queries {
 
   template<typename D, typename E>
   void BufferedDataStore<D, E>::Store(const std::vector<IndexedValue>& values) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_bufferCount += values.size();
     m_dataStoreBuffer->Store(values);
     TestFlush();
@@ -185,12 +184,12 @@ namespace Beam::Queries {
   void BufferedDataStore<D, E>::Flush() {
     auto dataStore = std::make_shared<ReserveDataStore>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       dataStore.swap(m_dataStoreBuffer);
     }
     m_dataStore->Store(dataStore->LoadAll());
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_flushedDataStore = m_dataStoreBuffer;
     }
   }

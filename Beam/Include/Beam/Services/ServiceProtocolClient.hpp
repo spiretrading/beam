@@ -2,9 +2,9 @@
 #define BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #include <atomic>
 #include <iostream>
+#include <mutex>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -152,7 +152,7 @@ namespace Details {
       void Close();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       typename P::template apply<ServiceSlots>::type m_slots;
       MessageProtocol m_protocol;
       GetOptionalLocalPtr<T> m_timer;
@@ -312,16 +312,16 @@ namespace Details {
     auto request = typename Service::template Request<ServiceProtocolClient>(
       requestId, parameters);
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_pendingRequests.insert(std::pair(requestId, &resultEval));
     }
     Open();
     try {
       m_protocol.Send(&request);
     } catch(const std::exception&) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_pendingRequests.erase(requestId);
-      BOOST_RETHROW;
+      throw;
     }
     return std::move(resultAsync.Get());
   }
@@ -378,7 +378,7 @@ namespace Details {
     m_timer->Cancel();
     auto pendingRequests = std::unordered_map<int, Routines::BaseEval*>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       pendingRequests.swap(m_pendingRequests);
     }
     for(auto& eval : pendingRequests | boost::adaptors::map_values) {
@@ -409,7 +409,7 @@ namespace Details {
         dynamic_cast<ServiceMessage<ServiceProtocolClient>*>(message.get());
       if(serviceMessage != nullptr && serviceMessage->IsResponseMessage()) {
         auto eval = [&] {
-          auto lock = boost::lock_guard(m_mutex);
+          auto lock = std::lock_guard(m_mutex);
           auto responseIterator = m_pendingRequests.find(
             serviceMessage->GetRequestId());
           if(responseIterator != m_pendingRequests.end()) {

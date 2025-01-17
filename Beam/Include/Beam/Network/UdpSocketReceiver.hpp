@@ -1,7 +1,10 @@
 #ifndef BEAM_UDP_SOCKET_RECEIVER_HPP
 #define BEAM_UDP_SOCKET_RECEIVER_HPP
+#include <condition_variable>
+#include <mutex>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/chrono/system_clocks.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Network/Network.hpp"
@@ -10,8 +13,6 @@
 #include "Beam/Network/UdpSocketOptions.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::Network {
 
@@ -77,10 +78,10 @@ namespace Beam::Network {
         Out<IpAddress> address);
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       bool m_isOpen;
       bool m_isDeadlinePending;
-      Threading::ConditionVariable m_isCompleteCondition;
+      std::condition_variable m_isCompleteCondition;
       UdpSocketOptions m_options;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       boost::asio::basic_waitable_timer<boost::chrono::steady_clock> m_deadline;
@@ -108,7 +109,7 @@ namespace Beam::Network {
   }
 
   inline UdpSocketReceiver::~UdpSocketReceiver() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(!m_isDeadlinePending) {
       return;
     }
@@ -129,7 +130,7 @@ namespace Beam::Network {
     auto readResult = Routines::Async<std::size_t>();
     auto senderEndpoint = boost::asio::ip::udp::endpoint();
     {
-      auto lock = boost::lock_guard(m_socket->m_mutex);
+      auto lock = std::lock_guard(m_socket->m_mutex);
       if(!m_socket->m_isOpen) {
         BOOST_THROW_EXCEPTION(IO::EndOfFileException());
       }
@@ -149,7 +150,7 @@ namespace Beam::Network {
     }
     auto hasTimeout = m_options.m_timeout != boost::posix_time::pos_infin;
     if(hasTimeout) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_isDeadlinePending = true;
       m_deadline.expires_from_now(boost::chrono::microseconds{
         m_options.m_timeout.total_microseconds()});
@@ -197,7 +198,7 @@ namespace Beam::Network {
   inline void UdpSocketReceiver::CheckDeadline(
       const boost::system::error_code& error) {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_isDeadlinePending = false;
       if(!m_isOpen) {
         m_isCompleteCondition.notify_one();
@@ -207,7 +208,7 @@ namespace Beam::Network {
     if(error != boost::asio::error::operation_aborted) {
       auto errorCode = boost::system::error_code();
       {
-        auto lock = boost::lock_guard(m_socket->m_mutex);
+        auto lock = std::lock_guard(m_socket->m_mutex);
         m_socket->m_socket.close(errorCode);
       }
     }

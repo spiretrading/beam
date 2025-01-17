@@ -1,7 +1,7 @@
 #ifndef BEAM_MESSAGE_PROTOCOL_HPP
 #define BEAM_MESSAGE_PROTOCOL_HPP
+#include <mutex>
 #include <utility>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/Encoder.hpp"
@@ -102,7 +102,7 @@ namespace Beam::Services {
       void Close();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       IO::OpenState m_openState;
       GetOptionalLocalPtr<C> m_channel;
       IO::AsyncWriter<typename Channel::Writer*> m_writer;
@@ -136,7 +136,7 @@ namespace Beam::Services {
   template<typename C, typename S, typename E>
   template<typename T>
   std::unique_ptr<T> MessageProtocol<C, S, E>::Clone(const T& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return Serialization::ShuttleClone(value, *m_sender, *m_receiver);
   }
 
@@ -147,7 +147,7 @@ namespace Beam::Services {
     buffer->Append(std::uint32_t(0));
     auto serializationBuffer = Buffer();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_sender->SetSink(Ref(serializationBuffer));
       m_sender->Send(message);
     }
@@ -170,7 +170,7 @@ namespace Beam::Services {
       encoderBuffer.Append(std::uint32_t(0));
     }
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_sender->SetSink(Ref(senderBuffer));
       m_sender->Send(message);
     }
@@ -229,7 +229,7 @@ namespace Beam::Services {
     } catch(const std::exception&) {
       m_receiveBuffer.Reset();
       m_decoderBuffer.Reset();
-      BOOST_RETHROW;
+      throw;
     }
   }
 

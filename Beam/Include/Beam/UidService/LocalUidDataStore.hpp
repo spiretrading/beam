@@ -1,7 +1,7 @@
 #ifndef BEAM_LOCAL_UID_DATA_STORE_HPP
 #define BEAM_LOCAL_UID_DATA_STORE_HPP
+#include <mutex>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
 namespace Beam::UidService {
@@ -24,7 +24,7 @@ namespace Beam::UidService {
       void Close() override;
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::uint64_t m_nextUid;
       IO::OpenState m_openState;
   };
@@ -48,7 +48,7 @@ namespace Beam::UidService {
 
   inline void LocalUidDataStore::WithTransaction(
       const std::function<void ()>& transaction) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     transaction();
   }
 

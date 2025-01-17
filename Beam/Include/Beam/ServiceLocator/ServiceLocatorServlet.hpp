@@ -12,7 +12,6 @@
 #include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/Sync.hpp"
 
 namespace Beam::ServiceLocator {
@@ -60,8 +59,7 @@ namespace Beam::ServiceLocator {
         std::unordered_map<DirectoryEntry, DirectoryEntryMonitorEntry>;
       using Sessions = std::unordered_map<std::string, ServiceProtocolClient*>;
       GetOptionalLocalPtr<D> m_dataStore;
-      SynchronizedVector<ServiceProtocolClient*, Threading::Mutex>
-        m_accountUpdateSubscribers;
+      SynchronizedVector<ServiceProtocolClient*> m_accountUpdateSubscribers;
       Threading::Sync<Sessions> m_sessions;
       Threading::Sync<ServiceListings> m_serviceListings;
       Threading::Sync<ServiceEntryListings> m_serviceEntryListings;

@@ -1,6 +1,7 @@
 #ifndef BEAM_APPLICATION_INTERRUPT_WIN32_HPP
 #define BEAM_APPLICATION_INTERRUPT_WIN32_HPP
-#include <boost/thread.hpp>
+#include <mutex>
+#include <thread>
 #include <windows.h>
 #include "Beam/Utilities/Utilities.hpp"
 
@@ -11,8 +12,8 @@ namespace Details {
     return isRunning;
   }
 
-  inline boost::mutex& RunningMutexWrapper() {
-    static auto runningMutex = boost::mutex();
+  inline std::mutex& RunningMutexWrapper() {
+    static auto runningMutex = std::mutex();
     return runningMutex;
   }
 
@@ -20,7 +21,7 @@ namespace Details {
     switch(ctrl) {
       case CTRL_C_EVENT:
         {
-          auto lock = boost::lock_guard(RunningMutexWrapper());
+          auto lock = std::lock_guard(RunningMutexWrapper());
           IsRunningWrapper() = false;
         }
         return true;
@@ -33,7 +34,7 @@ namespace Details {
   inline bool IsRunning() {
     static auto initializeControlHandler = SetConsoleCtrlHandler(
       reinterpret_cast<PHANDLER_ROUTINE>(Details::CtrlHandler), TRUE);
-    auto lock = boost::lock_guard(Details::RunningMutexWrapper());
+    auto lock = std::lock_guard(Details::RunningMutexWrapper());
     return Details::IsRunningWrapper();
   }
 
@@ -45,7 +46,7 @@ namespace Details {
   /** Waits for a shutdown event. */
   inline void WaitForKillEvent() {
     while(!ReceivedKillEvent()) {
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 }

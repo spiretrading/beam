@@ -1,32 +1,30 @@
-#ifndef BEAM_TRIGGERSLOT_HPP
-#define BEAM_TRIGGERSLOT_HPP
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
+#ifndef BEAM_TRIGGER_SLOT_HPP
+#define BEAM_TRIGGER_SLOT_HPP
+#include <condition_variable>
+#include <mutex>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/SignalHandling/SignalHandling.hpp"
 
-namespace Beam {
-namespace SignalHandling {
+namespace Beam::SignalHandling {
 
-  /*! \class TriggerSlot
-      \brief Used to wait or query for a generic signal.
-   */
+  /** Used to wait or query for a generic signal. */
   class TriggerSlot {
     public:
 
-      //! Constructs a TriggerSlot.
+      /** Constructs a TriggerSlot. */
       TriggerSlot();
 
-      //! Returns <code>true</code> iff this slot was invoked.
+      /** Returns <code>true</code> iff this slot was invoked. */
       bool IsTriggered() const;
 
-      //! Waits until this slot is triggered.
+      /** Waits until this slot is triggered. */
       void Wait() const;
 
-      //! Waits until this slot is triggered.
-      /*!
-        \param timeout The amount of time to wait.
-        \return <code>true</code> iff this slot was invoked.
-      */
+      /**
+       * Waits until this slot is triggered.
+       * @param timeout The amount of time to wait.
+       * @return <code>true</code> iff this slot was invoked.
+       */
       bool Wait(boost::posix_time::time_duration timeout) const;
 
       template<typename... Args>
@@ -34,9 +32,9 @@ namespace SignalHandling {
 
     private:
       struct Implementation {
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
         bool m_triggered;
-        boost::condition_variable m_isTriggeredCondition;
+        std::condition_variable m_isTriggeredCondition;
       };
       std::shared_ptr<Implementation> m_implementation;
   };
@@ -47,12 +45,12 @@ namespace SignalHandling {
   }
 
   inline bool TriggerSlot::IsTriggered() const {
-    boost::lock_guard<boost::mutex> lock(m_implementation->m_mutex);
+    auto lock = std::lock_guard(m_implementation->m_mutex);
     return m_implementation->m_triggered;
   }
 
   inline void TriggerSlot::Wait() const {
-    boost::unique_lock<boost::mutex> lock(m_implementation->m_mutex);
+    auto lock = std::unique_lock(m_implementation->m_mutex);
     while(!m_implementation->m_triggered) {
       m_implementation->m_isTriggeredCondition.wait(lock);
     }
@@ -60,21 +58,21 @@ namespace SignalHandling {
 
   inline bool TriggerSlot::Wait(boost::posix_time::time_duration timeout)
       const {
-    boost::unique_lock<boost::mutex> lock(m_implementation->m_mutex);
+    auto lock = std::unique_lock(m_implementation->m_mutex);
     if(m_implementation->m_triggered) {
       return true;
     }
-    m_implementation->m_isTriggeredCondition.timed_wait(lock, timeout);
+    m_implementation->m_isTriggeredCondition.wait_for(lock,
+      std::chrono::microseconds(timeout.total_microseconds()));
     return m_implementation->m_triggered;
   }
 
   template<typename... Args>
-  void TriggerSlot::operator ()(Args&&... args) {
-    boost::lock_guard<boost::mutex> lock(m_implementation->m_mutex);
+  void TriggerSlot::operator ()(Args&&... args) const {
+    auto lock = std::lock_guard(m_implementation->m_mutex);
     m_implementation->m_triggered = true;
     m_implementation->m_isTriggeredCondition.notify_all();
   }
-}
 }
 
 #endif

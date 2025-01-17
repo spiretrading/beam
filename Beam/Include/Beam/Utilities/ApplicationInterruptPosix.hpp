@@ -1,7 +1,8 @@
 #ifndef BEAM_APPLICATION_INTERRUPT_POSIX_HPP
 #define BEAM_APPLICATION_INTERRUPT_POSIX_HPP
+#include <mutex>
+#include <thread>
 #include <signal.h>
-#include <boost/thread.hpp>
 #include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
@@ -11,13 +12,13 @@ namespace Details {
     return isRunning;
   }
 
-  inline boost::mutex& RunningMutexWrapper() {
-    static auto runningMutex = boost::mutex();
+  inline std::mutex& RunningMutexWrapper() {
+    static auto runningMutex = std::mutex();
     return runningMutex;
   }
 
   inline void CtrlHandler(int sig) {
-    auto lock = boost::lock_guard(RunningMutexWrapper());
+    auto lock = std::lock_guard(RunningMutexWrapper());
     IsRunningWrapper() = false;
   }
 
@@ -30,7 +31,7 @@ namespace Details {
   /** Checks if the operating system signaled to shutdown the application. */
   inline bool IsRunning() {
     static auto initializeControlHandler = Details::InstallHandler();
-    auto lock = boost::lock_guard(Details::RunningMutexWrapper());
+    auto lock = std::lock_guard(Details::RunningMutexWrapper());
     return Details::IsRunningWrapper();
   }
 
@@ -42,7 +43,7 @@ namespace Details {
   /** Waits for a shutdown event. */
   inline void WaitForKillEvent() {
     while(!ReceivedKillEvent()) {
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 }

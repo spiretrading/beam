@@ -1,10 +1,9 @@
 #ifndef BEAM_SYNC_HPP
 #define BEAM_SYNC_HPP
+#include <mutex>
+#include <shared_mutex>
 #include <type_traits>
 #include <variant>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/utility/declval.hpp>
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
@@ -16,19 +15,19 @@ namespace Details {
 
   template<typename T>
   struct IsSharedMutex<T, std::enable_if_t<
-      std::is_void_v<decltype(boost::declval<T>().lock_shared())> &&
-      std::is_same_v<decltype(boost::declval<T>().try_lock_shared()), bool> &&
-      std::is_void_v<decltype(boost::declval<T>().unlock_shared())>>> :
+      std::is_void_v<decltype(std::declval<T>().lock_shared())> &&
+      std::is_same_v<decltype(std::declval<T>().try_lock_shared()), bool> &&
+      std::is_void_v<decltype(std::declval<T>().unlock_shared())>>> :
     std::true_type {};
 
   template<typename T, typename = void>
   struct ReadLock {
-    using type = boost::unique_lock<T>;
+    using type = std::unique_lock<T>;
   };
 
   template<typename T>
   struct ReadLock<T, std::enable_if_t<IsSharedMutex<T>::value>> {
-    using type = boost::shared_lock<T>;
+    using type = std::shared_lock<T>;
   };
 
   template<typename T>
@@ -36,7 +35,7 @@ namespace Details {
 
   template<typename T>
   struct WriteLock {
-    using type = boost::unique_lock<T>;
+    using type = std::unique_lock<T>;
   };
 
   template<typename T>
@@ -49,7 +48,7 @@ namespace Details {
    * @param <M> The type of mutex to use.
    */
   BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class Sync {
     public:
 
@@ -290,10 +289,10 @@ namespace Details {
   template<typename T, typename M>
   template<typename S2, typename M2, typename F>
   decltype(auto) Sync<T, M>::With(Sync<S2, M2>& s2, F&& f) {
-    auto lock1 = LockProxy(WriteLock(m_mutex, boost::defer_lock));
+    auto lock1 = LockProxy(WriteLock(m_mutex, std::defer_lock));
     auto lock2 = typename Sync<S2, M2>::LockProxy(
-      typename Sync<S2, M2>::WriteLock(s2.m_mutex, boost::defer_lock));
-    boost::lock(lock1, lock2);
+      typename Sync<S2, M2>::WriteLock(s2.m_mutex, std::defer_lock));
+    std::lock(lock1, lock2);
     m_lock = &lock1;
     s2.m_lock = &lock2;
     return f(m_value, s2.m_value);

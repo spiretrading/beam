@@ -2,6 +2,7 @@
 #define BEAM_SERVICE_LOCATOR_DATA_STORE_HPP
 #include <string>
 #include <unordered_set>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/noncopyable.hpp>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"

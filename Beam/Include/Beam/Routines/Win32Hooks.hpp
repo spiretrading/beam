@@ -135,7 +135,7 @@ namespace Beam::Routines::Details {
 
   struct WaitEntry {
     Threading::SpinMutex m_mutex;
-    SuspendedRoutineQueue m_suspendedRoutines;
+    SuspendedRoutineQueue<void*> m_suspendedRoutines;
   };
 
   inline WaitEntry& GetWaitEntry(void* address) {
@@ -156,7 +156,7 @@ namespace Beam::Routines::Details {
     if(*reinterpret_cast<int*>(address) != value) {
       return 0;
     }
-    Suspend(Store(waitEntry.m_suspendedRoutines), lock);
+    Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
     return 0;
   }
 
@@ -164,19 +164,16 @@ namespace Beam::Routines::Details {
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::lock_guard(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      Resume(Store(waitEntry.m_suspendedRoutines));
+      ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address);
     }
   }
 
   inline void WakeSingle(void* address) {
-    WakeAll(address);
-/*
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::lock_guard(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      ResumeFront(Store(waitEntry.m_suspendedRoutines));
+      ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address);
     }
-*/
   }
 
   static auto OriginalRtlSleepConditionVariableSRW =

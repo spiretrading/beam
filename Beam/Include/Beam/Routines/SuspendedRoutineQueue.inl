@@ -31,7 +31,7 @@ namespace Beam::Routines {
   }
 
   template<typename... Lock>
-  void Suspend(Out<SuspendedRoutineQueue> suspendedRoutines, Lock&... lock) {
+  void Suspend(Out<SuspendedRoutineQueue<>> suspendedRoutines, Lock&... lock) {
     auto currentRoutine = SuspendedRoutineNode();
     currentRoutine.m_routine->PendingSuspend();
     suspendedRoutines->push_back(currentRoutine);
@@ -39,8 +39,19 @@ namespace Beam::Routines {
     Suspend();
   }
 
-  template<typename... Lock>
-  void ResumeFront(Out<SuspendedRoutineQueue> suspendedRoutines) {
+  template<typename T, typename... Lock>
+  void Suspend(
+      Out<SuspendedRoutineQueue<T>> suspendedRoutines, T key, Lock&... lock) {
+    auto currentRoutine = SuspendedRoutineNode<T>();
+    currentRoutine.m_key = std::move(key);
+    currentRoutine.m_routine->PendingSuspend();
+    suspendedRoutines->push_back(currentRoutine);
+    auto releases = ReverseRelease(lock...);
+    Suspend();
+  }
+
+  template<typename T>
+  void ResumeFront(Out<SuspendedRoutineQueue<T>> suspendedRoutines) {
     if(suspendedRoutines->empty()) {
       return;
     }
@@ -49,16 +60,46 @@ namespace Beam::Routines {
     Routines::Resume(routine);
   }
 
-  template<typename... Lock>
-  void Resume(Out<SuspendedRoutineQueue> suspendedRoutines) {
-    auto resumedRoutines = SuspendedRoutineQueue();
+  template<typename T>
+  void ResumeFirstMatch(
+      Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key) {
+    for(auto i = suspendedRoutines->begin();
+        i != suspendedRoutines->end(); ++i) {
+      if(i->m_key == key) {
+        auto suspendedRoutine = i->m_routine;
+        suspendedRoutines->erase(i);
+        Routines::Resume(suspendedRoutine);
+        break;
+      }
+    }
+  }
+
+  template<typename T>
+  void ResumeAllMatches(
+      Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key) {
+    auto i = suspendedRoutines->begin();
+    while(i != suspendedRoutines->end()) {
+      if(i->m_key == key) {
+        auto suspendedRoutine = i->m_routine;
+        i = suspendedRoutines->erase(i);
+        Routines::Resume(suspendedRoutine);
+      } else {
+        ++i;
+      }
+    }
+  }
+
+  template<typename T>
+  void Resume(Out<SuspendedRoutineQueue<T>> suspendedRoutines) {
+    auto resumedRoutines = SuspendedRoutineQueue<T>();
     resumedRoutines.swap(*suspendedRoutines);
     for(auto& routine : resumedRoutines) {
       Resume(routine.m_routine);
     }
   }
 
-  inline SuspendedRoutineNode::SuspendedRoutineNode()
+  template<typename T>
+  SuspendedRoutineNode<T>::SuspendedRoutineNode()
     : m_routine(&GetCurrentRoutine()) {}
 }
 

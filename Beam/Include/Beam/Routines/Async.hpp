@@ -72,7 +72,7 @@ namespace Beam::Routines {
       friend class Eval<Type>;
       mutable std::mutex m_mutex;
       State m_state;
-      SuspendedRoutineQueue m_suspendedRoutines;
+      SuspendedRoutineQueue<> m_suspendedRoutines;
       boost::optional<typename StorageType<Type>::type> m_result;
       std::exception_ptr m_exception;
 

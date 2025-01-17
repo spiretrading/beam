@@ -10,9 +10,6 @@ using namespace Beam::Python;
 using namespace Beam::Threading;
 using namespace pybind11;
 
-template struct Beam::Routines::Details::CurrentRoutineGlobal<void>;
-template struct Beam::Routines::Details::NextId<void>;
-
 PYBIND11_MODULE(_beam, m) {
   ExportIO(m);
   ExportCodecs(m);

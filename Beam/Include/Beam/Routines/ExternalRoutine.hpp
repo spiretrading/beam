@@ -16,8 +16,6 @@ namespace Beam::Routines {
       ~ExternalRoutine() override;
 
     protected:
-      void Execute() override;
-
       void Defer() override;
 
       void PendingSuspend() override;
@@ -37,10 +35,6 @@ namespace Beam::Routines {
 
   inline ExternalRoutine::~ExternalRoutine() {
     SetState(State::COMPLETE);
-  }
-
-  inline void ExternalRoutine::Execute() {
-    SetState(State::RUNNING);
   }
 
   inline void ExternalRoutine::Defer() {}
@@ -73,11 +67,10 @@ namespace Beam::Routines {
   }
 
   inline Routine& GetCurrentRoutine() {
-    auto routine = Details::CurrentRoutineGlobal<void>::GetInstance();
+    auto& routine = Routine::m_currentRoutine;
     if(!routine) {
       thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
       routine = externalRoutine.get();
-      Details::CurrentRoutineGlobal<void>::GetInstance() = routine;
     }
     return *routine;
   }

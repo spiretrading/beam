@@ -41,6 +41,9 @@ namespace Beam::Routines {
        */
       ScheduledRoutine(std::size_t stackSize, std::size_t contextId);
 
+      /** Begins execution of the function associated with this routine. */
+      virtual void Execute() = 0;
+
       void Defer() override;
 
       void PendingSuspend() override;
@@ -60,6 +63,7 @@ namespace Beam::Routines {
       std::string m_stackPrint;
       #endif
 
+      void Run();
       bool IsPendingResume() const;
       void SetPendingResume(bool value);
       boost::context::continuation InitializeRoutine(
@@ -71,26 +75,20 @@ namespace Beam::Routines {
   }
 
   inline void ScheduledRoutine::Continue() {
-    Details::CurrentRoutineGlobal<void>::GetInstance() = this;
+    Routine::m_currentRoutine = this;
     m_isPendingResume = false;
     if(GetState() == State::PENDING) {
-      SetState(State::RUNNING);
       m_continuation = boost::context::callcc(std::allocator_arg,
         boost::context::fixedsize_stack(m_stackSize),
         [this] (boost::context::continuation&& parent) {
-          Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
-          ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
           return InitializeRoutine(std::move(parent));
         });
     } else {
-      SetState(State::RUNNING);
-      Details::CurrentRoutineGlobal<void>::isInsideRoutine = true;
-      ++Details::CurrentRoutineGlobal<void>::activeRoutineCount;
+      Run();
       m_continuation = m_continuation.resume();
     }
-    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
-    --Details::CurrentRoutineGlobal<void>::activeRoutineCount;
-    Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
+    Routine::m_isInsideRoutine = false;
+    Routine::m_currentRoutine = nullptr;
   }
 
   inline ScheduledRoutine::ScheduledRoutine(std::size_t stackSize,
@@ -106,8 +104,8 @@ namespace Beam::Routines {
 
   BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::Defer() {
-    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
-    Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
+    Routine::m_isInsideRoutine = false;
+    Routine::m_currentRoutine = nullptr;
     #ifdef BEAM_ENABLE_STACK_PRINT
     #ifndef NDEBUG
     m_stackPrint = CaptureStackPrint();
@@ -121,15 +119,13 @@ namespace Beam::Routines {
   }
 
   inline void ScheduledRoutine::Suspend() {
-    Details::CurrentRoutineGlobal<void>::isInsideRoutine = false;
-    Details::CurrentRoutineGlobal<void>::GetInstance() = nullptr;
-    SetState(State::PENDING_SUSPEND);
-    #ifdef BEAM_ENABLE_STACK_PRINT
-    #ifndef NDEBUG
-    m_stackPrint = CaptureStackPrint();
-    #endif
-    #endif
-    m_parent = m_parent.resume();
+    PendingSuspend();
+    Defer();
+  }
+
+  inline void ScheduledRoutine::Run() {
+    SetState(State::RUNNING);
+    Routine::m_isInsideRoutine = true;
   }
 
   inline bool ScheduledRoutine::IsPendingResume() const {
@@ -142,6 +138,7 @@ namespace Beam::Routines {
 
   inline boost::context::continuation ScheduledRoutine::InitializeRoutine(
       boost::context::continuation&& parent) {
+    Run();
     m_parent = std::move(parent);
     try {
       Execute();

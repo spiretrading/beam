@@ -58,11 +58,10 @@ namespace Beam::Routines::Details {
 
   template<typename F>
   NTSTATUS CallNt(F&& f) {
-    if(CurrentRoutineGlobal<void>::activeRoutineCount == 0 ||
-        !CurrentRoutineGlobal<void>::isInsideRoutine) {
+    if(!Routine::m_isInsideRoutine) {
       return std::forward<F>(f)();
     }
-    CurrentRoutineGlobal<void>::isInsideRoutine = false;
+    Routine::m_isInsideRoutine = false;
     auto result = NTSTATUS();
     {
       auto suspension = SuspendedRoutineQueue();
@@ -78,7 +77,7 @@ namespace Beam::Routines::Details {
       thread.detach();
       Suspend(Store(suspension), lock);
     }
-    CurrentRoutineGlobal<void>::isInsideRoutine = true;
+    Routine::m_isInsideRoutine = true;
     return result;
   }
 
@@ -157,7 +156,9 @@ namespace Beam::Routines::Details {
   inline void WakeAll(void* address) {
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::lock_guard(waitEntry.m_mutex);
-    Resume(Store(waitEntry.m_suspendedRoutines));
+    if(!waitEntry.m_suspendedRoutines.empty()) {
+      Resume(Store(waitEntry.m_suspendedRoutines));
+    }
   }
 
   inline void WakeSingle(void* address) {
@@ -178,8 +179,7 @@ namespace Beam::Routines::Details {
       ReleaseSRWLockExclusive(lock);
     }
     auto status = [&] {
-      if(CurrentRoutineGlobal<void>::activeRoutineCount == 0 ||
-          !CurrentRoutineGlobal<void>::isInsideRoutine) {
+      if(!Routine::m_isInsideRoutine) {
         return RtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
       } else {
         return WaitOn(&variable->Ptr, value, timeout);
@@ -213,7 +213,7 @@ namespace Beam::Routines::Details {
     RtlWakeAddressAll(variable);
   }
 
-  inline void InstallHooks() {
+  inline bool InstallHooks() {
     RtlWaitOnAddress = reinterpret_cast<NTSTATUS (WINAPI*)(
       _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWaitOnAddress"));
@@ -223,38 +223,43 @@ namespace Beam::Routines::Details {
       GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressAll"));
     OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
     if(!OriginalNtDelayExecution) {
-      return;
+      return false;
     }
     OriginalNtWaitForSingleObject =
       Hook("NtWaitForSingleObject", MyNtWaitForSingleObject);
     if(!OriginalNtWaitForSingleObject) {
-      return;
+      return false;
     }
     OriginalNtWaitForKeyedEvent =
       Hook("NtWaitForKeyedEvent", MyNtWaitForKeyedEvent);
     if(!OriginalNtWaitForKeyedEvent) {
-      return;
+      return false;
     }
     OriginalNtWriteFile = Hook("NtWriteFile", MyNtWriteFile);
     if(!OriginalNtWriteFile) {
-      return;
+      return false;
     }
     OriginalRtlSleepConditionVariableSRW =
       Hook("RtlSleepConditionVariableSRW", MyRtlSleepConditionVariableSRW);
     if(!OriginalRtlSleepConditionVariableSRW) {
-      return;
+      return false;
     }
     OriginalRtlWakeConditionVariable =
       Hook("RtlWakeConditionVariable", MyRtlWakeConditionVariable);
     if(!OriginalRtlWakeConditionVariable) {
-      return;
+      return false;
     }
     OriginalRtlWakeAllConditionVariable =
       Hook("RtlWakeAllConditionVariable", MyRtlWakeAllConditionVariable);
     if(!OriginalRtlWakeAllConditionVariable) {
-      return;
+      return false;
     }
+    return true;
   }
+
+  struct HookInstaller {
+    static inline auto installHooks = InstallHooks();
+  };
 }
 
 #endif

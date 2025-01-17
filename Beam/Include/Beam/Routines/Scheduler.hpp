@@ -12,25 +12,20 @@
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
-#ifndef BEAM_SCHEDULER_DEFAULT_STACK_SIZE
-  #ifdef _WIN32
-    #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 131072
-  #else
-    #define BEAM_SCHEDULER_DEFAULT_STACK_SIZE 1048576
-  #endif
-#endif
-
 namespace Beam::Routines {
 namespace Details {
-  void InstallHooks();
 
   /** Schedules the execution of Routines across multiple threads. */
   class Scheduler : public Singleton<Scheduler> {
     public:
 
       /** The default size of a Routine's stack. */
-      static constexpr std::size_t DEFAULT_STACK_SIZE =
-        BEAM_SCHEDULER_DEFAULT_STACK_SIZE;
+      static constexpr auto DEFAULT_STACK_SIZE =
+        #ifdef _WIN32
+          std::size_t(131072);
+        #else
+          std::size_t(1048576);
+        #endif
 
       /**
        * Constructs a Scheduler with a number of threads equal to the system's
@@ -84,7 +79,6 @@ namespace Details {
       };
       using RoutineIds = std::unordered_map<Routine::Id, ScheduledRoutine*>;
       friend class Beam::Routines::ScheduledRoutine;
-      friend void Resume(ScheduledRoutine*& routine);
       std::size_t m_threadCount;
       std::unique_ptr<std::thread[]> m_threads;
       Threading::Sync<RoutineIds> m_routineIds;
@@ -108,11 +102,9 @@ namespace Details {
         Run(m_contexts[i]);
       });
     }
-    InstallHooks();
   }
 
   inline Scheduler::~Scheduler() {
-    CurrentRoutineGlobal<void>::isInsideRoutine = false;
     Stop();
   }
 
@@ -192,6 +184,7 @@ namespace Details {
   }
 
   inline void Scheduler::Stop() {
+    Routine::m_isInsideRoutine = false;
     for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
       auto lock = std::lock_guard(context.m_mutex);

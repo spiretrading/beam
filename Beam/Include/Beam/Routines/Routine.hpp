@@ -14,52 +14,13 @@
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Routines {
-namespace Details {
-#if !defined(BEAM_BUILD_DLL) && !defined(BEAM_USE_DLL)
-  template<typename T>
-  struct CurrentRoutineGlobal {
-    static inline thread_local Routine* m_value;
-    static inline thread_local bool isInsideRoutine;
-    static inline auto activeRoutineCount = std::atomic_uint32_t(0);
-
-    static Routine*& GetInstance() {
-      return m_value;
-    }
-  };
-
-  template<typename T>
-  struct NextId {
-    static inline auto m_value = std::atomic_uint64_t(0);
-
-    static std::atomic_uint64_t& GetInstance() {
-      return m_value;
-    }
-  };
-
-#else
-  template<typename T>
-  struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
-    static Routine*& GetInstance() {
-      static thread_local Routine* value;
-      return value;
-    }
-  };
-
-  template<typename T>
-  struct BEAM_EXPORT_DLL NextId {
-    static std::atomic_uint64_t& GetInstance() {
-      static std::atomic_uint64_t value;
-      return value;
-    }
-  };
-  BEAM_EXTERN template struct BEAM_EXPORT_DLL CurrentRoutineGlobal<void>;
-  BEAM_EXTERN template struct BEAM_EXPORT_DLL NextId<void>;
-#endif
-}
 
   /** Encapsulates a single sub-routine spawned by a Scheduler. */
   class Routine {
     public:
+
+      /** Indicates whether a routine is currently running on this thread. */
+      static inline thread_local auto m_isInsideRoutine = false;
 
       /** Lists the states a Routine can be in. */
       enum class State {
@@ -100,9 +61,6 @@ namespace Details {
        */
       void Wait(Eval<void> result);
 
-      /** Implements the body of this Routine. */
-      virtual void Execute() = 0;
-
       /** Defers execution of this Routine so that another may run. */
       virtual void Defer() = 0;
 
@@ -117,11 +75,16 @@ namespace Details {
 
     protected:
 
+      /** A pointer to this thread's local current routine. */
+      static inline thread_local auto m_currentRoutine =
+        static_cast<Routine*>(nullptr);
+
       /** Sets the State. */
       void SetState(State state);
 
     private:
       using WaitResults = std::vector<Eval<void>>;
+      friend Routine& GetCurrentRoutine();
       friend void Defer();
       friend void Suspend();
       template<typename HeadLock, typename... TailLocks>
@@ -132,6 +95,7 @@ namespace Details {
       friend void Resume(Routine*&);
       template<typename Container>
       friend void Resume(Out<Threading::Sync<Container>>);
+      static inline auto m_next_id = std::atomic_uint64_t(0);
       State m_state;
       Id m_id;
       Threading::Sync<WaitResults> m_waitResults;
@@ -194,7 +158,7 @@ namespace Details {
   }
 
   inline Routine::Routine()
-    : m_id(++Details::NextId<void>::GetInstance()),
+    : m_id(++m_next_id),
       m_state(State::PENDING) {}
 
   inline Routine::~Routine() {

@@ -5,6 +5,7 @@
 #include <thread>
 #include <windows.h>
 #include <winternl.h>
+#include <ntstatus.h>
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/SpinMutex.hpp"
@@ -104,56 +105,81 @@ namespace Beam::Routines::Details {
       entries.size()];
   }
 
+  template<typename T>
+  VOID CALLBACK OnTimerExpired(PVOID parameter, BOOLEAN timerOrWaitFired) {
+    auto& waitEntry = *static_cast<WaitEntry<T>*>(parameter);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    Resume(Store(waitEntry.m_suspendedRoutines));
+  }
+
   static auto OriginalRtlWaitOnAddress = static_cast<NTSTATUS (WINAPI*)(
     _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
 
-  inline NTSTATUS WINAPI MyRtlWaitOnAddress(_In_ void* address, _In_ void* value,
-      _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
+  inline NTSTATUS WINAPI MyRtlWaitOnAddress(_In_ void* address,
+      _In_ void* value, _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
     if(!Routine::m_isInsideRoutine) {
       return OriginalRtlWaitOnAddress(address, value, size, timeout);
     }
+    auto isInsideRoutine = Routine::m_isInsideRoutine;
+    Routine::m_isInsideRoutine = false;
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(std::memcmp(address, value, size) != 0) {
-      return 0;
+      Routine::m_isInsideRoutine = isInsideRoutine;
+      return STATUS_SUCCESS;
     }
+    if(!timeout || timeout->QuadPart == INFINITE) {
+      Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
+      Routine::m_isInsideRoutine = isInsideRoutine;
+      return STATUS_SUCCESS;
+    }
+    auto timer = HANDLE();
+    auto timeoutMs = ToDwordTimeout(timeout);
+    auto timerResult = CreateTimerQueueTimer(&timer, nullptr,
+      OnTimerExpired<void*>, &waitEntry, timeoutMs, 0, WT_EXECUTEONLYONCE);
     Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
-    return 0;
+    if(timer) {
+      DeleteTimerQueueTimer(nullptr, timer, nullptr);
+    }
+    Routine::m_isInsideRoutine = isInsideRoutine;
+    if(std::memcmp(address, value, size) != 0) {
+      return STATUS_SUCCESS;
+    }
+    return STATUS_TIMEOUT;
   }
 
   static auto OriginalRtlWakeAddressSingle =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
 
   inline void WINAPI MyRtlWakeAddressSingle(_In_ void* address) {
+    auto isInsideRoutine = Routine::m_isInsideRoutine;
+    Routine::m_isInsideRoutine = false;
     OriginalRtlWakeAddressSingle(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
       ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
+    Routine::m_isInsideRoutine = isInsideRoutine;
   }
 
   static auto OriginalRtlWakeAddressAll =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
 
   inline void WINAPI MyRtlWakeAddressAll(_In_ void* address) {
+    auto isInsideRoutine = Routine::m_isInsideRoutine;
+    Routine::m_isInsideRoutine = false;
     OriginalRtlWakeAddressAll(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
       ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
+    Routine::m_isInsideRoutine = isInsideRoutine;
   }
 
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
-
-  inline VOID CALLBACK OnTimerExpired(
-      PVOID parameter, BOOLEAN timerOrWaitFired) {
-    auto& waitEntry = *static_cast<WaitEntry<void>*>(parameter);
-    auto lock = std::unique_lock(waitEntry.m_mutex);
-    Resume(Store(waitEntry.m_suspendedRoutines));
-  }
 
   inline NTSTATUS NTAPI MyNtDelayExecution(
       BOOLEAN alertable, PLARGE_INTEGER timeout) {
@@ -162,14 +188,27 @@ namespace Beam::Routines::Details {
     }
     auto isInsideRoutine = Routine::m_isInsideRoutine;
     Routine::m_isInsideRoutine = false;
-    auto timer = HANDLE();
-    auto timeoutMs = ToDwordTimeout(timeout);
-    auto waitEntry = WaitEntry<void>();
-    {
+    if(!timeout || timeout->QuadPart == INFINITE) {
+      auto waitEntry = WaitEntry<void>();
       auto lock = std::unique_lock(waitEntry.m_mutex);
-      CreateTimerQueueTimer(
-        &timer, nullptr, OnTimerExpired, &waitEntry, timeoutMs, 0, 0);
       Suspend(Store(waitEntry.m_suspendedRoutines), lock);
+    } else {
+      auto timer = HANDLE();
+      auto timeoutMs = ToDwordTimeout(timeout);
+      auto waitEntry = WaitEntry<void>();
+      {
+        auto lock = std::unique_lock(waitEntry.m_mutex);
+        auto timerResult = CreateTimerQueueTimer(&timer, nullptr,
+          OnTimerExpired<void>, &waitEntry, timeoutMs, 0, WT_EXECUTEONLYONCE);
+        if(!timer) {
+          Routine::m_isInsideRoutine = isInsideRoutine;
+          return timerResult;
+        }
+        Suspend(Store(waitEntry.m_suspendedRoutines), lock);
+        if(timer) {
+          DeleteTimerQueueTimer(nullptr, timer, nullptr);
+        }
+      }
     }
     Routine::m_isInsideRoutine = isInsideRoutine;
     return 0;

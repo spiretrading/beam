@@ -10,6 +10,15 @@
 #include "Beam/Threading/SpinMutex.hpp"
 
 namespace Beam::Routines::Details {
+  DWORD ToDwordTimeout(PLARGE_INTEGER timeout) {
+    if(timeout->QuadPart >= 0) {
+      return 0;
+    }
+    auto relative100ns = -timeout->QuadPart;
+    auto msTimeout = static_cast<DWORD>(relative100ns / 10000);
+    return msTimeout;
+  }
+
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
     auto kernel_module = GetModuleHandleW(module);
@@ -83,13 +92,14 @@ namespace Beam::Routines::Details {
     return result;
   }
 
+  template<typename T>
   struct WaitEntry {
     Threading::SpinMutex m_mutex;
-    SuspendedRoutineQueue<void*> m_suspendedRoutines;
+    SuspendedRoutineQueue<T> m_suspendedRoutines;
   };
 
-  inline WaitEntry& GetWaitEntry(void* address) {
-    static auto entries = std::array<WaitEntry, 256>();
+  inline WaitEntry<void*>& GetWaitEntry(void* address) {
+    static auto entries = std::array<WaitEntry<void*>, 256>();
     return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
       entries.size()];
   }
@@ -138,11 +148,31 @@ namespace Beam::Routines::Details {
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
 
+  inline VOID CALLBACK OnTimerExpired(
+      PVOID parameter, BOOLEAN timerOrWaitFired) {
+    auto& waitEntry = *static_cast<WaitEntry<void>*>(parameter);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    Resume(Store(waitEntry.m_suspendedRoutines));
+  }
+
   inline NTSTATUS NTAPI MyNtDelayExecution(
       BOOLEAN alertable, PLARGE_INTEGER timeout) {
-    return CallNt([=] {
+    if(!Routine::m_isInsideRoutine) {
       return OriginalNtDelayExecution(alertable, timeout);
-    });
+    }
+    auto isInsideRoutine = Routine::m_isInsideRoutine;
+    Routine::m_isInsideRoutine = false;
+    auto timer = HANDLE();
+    auto timeoutMs = ToDwordTimeout(timeout);
+    auto waitEntry = WaitEntry<void>();
+    {
+      auto lock = std::unique_lock(waitEntry.m_mutex);
+      CreateTimerQueueTimer(
+        &timer, nullptr, OnTimerExpired, &waitEntry, timeoutMs, 0, 0);
+      Suspend(Store(waitEntry.m_suspendedRoutines), lock);
+    }
+    Routine::m_isInsideRoutine = isInsideRoutine;
+    return 0;
   }
 
   static auto OriginalNtWaitForSingleObject =

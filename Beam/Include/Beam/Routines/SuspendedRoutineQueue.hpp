@@ -65,20 +65,22 @@ namespace Beam::Routines {
    * Routines.
    * @param suspendedRoutines Stores the Routines being suspended.
    * @param key The key to find.
+   * @param lock The lock used to synchronize the suspended routines.
    */
-  template<typename T>
+  template<typename T, typename Lock>
   void ResumeFirstMatch(
-    Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key);
+    Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key, Lock& lock);
 
   /**
    * Resumes all Routines found that match a key in a queue of suspended
    * Routines.
    * @param suspendedRoutines Stores the Routines being suspended.
    * @param key The key to find.
+   * @param lock The lock used to synchronize the suspended routines.
    */
-  template<typename T>
+  template<typename T, typename Lock>
   void ResumeAllMatches(
-    Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key);
+    Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key, Lock& lock);
 
   /**
    * Resumes all Routines found in a queue of suspended Routines.

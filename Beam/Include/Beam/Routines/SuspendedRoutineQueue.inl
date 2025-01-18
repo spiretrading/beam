@@ -60,28 +60,30 @@ namespace Beam::Routines {
     Routines::Resume(routine);
   }
 
-  template<typename T>
-  void ResumeFirstMatch(
-      Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key) {
+  template<typename T, typename Lock>
+  void ResumeFirstMatch(Out<SuspendedRoutineQueue<T>> suspendedRoutines,
+      const T& key, Lock& lock) {
     for(auto i = suspendedRoutines->begin();
         i != suspendedRoutines->end(); ++i) {
       if(i->m_key == key) {
         auto suspendedRoutine = i->m_routine;
         suspendedRoutines->erase(i);
+        auto release = Threading::Release(lock);
         Routines::Resume(suspendedRoutine);
         break;
       }
     }
   }
 
-  template<typename T>
-  void ResumeAllMatches(
-      Out<SuspendedRoutineQueue<T>> suspendedRoutines, const T& key) {
+  template<typename T, typename Lock>
+  void ResumeAllMatches(Out<SuspendedRoutineQueue<T>> suspendedRoutines,
+      const T& key, Lock& lock) {
     auto i = suspendedRoutines->begin();
     while(i != suspendedRoutines->end()) {
       if(i->m_key == key) {
         auto suspendedRoutine = i->m_routine;
         i = suspendedRoutines->erase(i);
+        auto release = Threading::Release(lock);
         Routines::Resume(suspendedRoutine);
       } else {
         ++i;

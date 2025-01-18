@@ -139,12 +139,6 @@ namespace Beam::Routines::Details {
   };
 
   inline WaitEntry& GetWaitEntry(void* address) {
-/* TODO: Fix this to work properly.
-    static auto m = Threading::SpinMutex();
-    static auto entries = std::unordered_map<void*, WaitEntry>();
-    auto lock = std::lock_guard(m);
-    return entries[address];
-*/
     static auto entries = std::array<WaitEntry, 256>();
     return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
       entries.size()];
@@ -162,17 +156,17 @@ namespace Beam::Routines::Details {
 
   inline void WakeAll(void* address) {
     auto& waitEntry = GetWaitEntry(address);
-    auto lock = std::lock_guard(waitEntry.m_mutex);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address);
+      ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
   }
 
   inline void WakeSingle(void* address) {
     auto& waitEntry = GetWaitEntry(address);
-    auto lock = std::lock_guard(waitEntry.m_mutex);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address);
+      ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
   }
 

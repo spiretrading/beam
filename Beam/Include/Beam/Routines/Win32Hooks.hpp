@@ -83,12 +83,58 @@ namespace Beam::Routines::Details {
     return result;
   }
 
-  static auto RtlWaitOnAddress = static_cast<NTSTATUS (WINAPI*)(
+  struct WaitEntry {
+    Threading::SpinMutex m_mutex;
+    SuspendedRoutineQueue<void*> m_suspendedRoutines;
+  };
+
+  inline WaitEntry& GetWaitEntry(void* address) {
+    static auto entries = std::array<WaitEntry, 256>();
+    return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
+      entries.size()];
+  }
+
+  static auto OriginalRtlWaitOnAddress = static_cast<NTSTATUS (WINAPI*)(
     _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
-  static auto RtlWakeAddressSingle =
+
+  inline NTSTATUS WINAPI MyRtlWaitOnAddress(_In_ void* address, _In_ void* value,
+      _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
+    if(!Routine::m_isInsideRoutine) {
+      return OriginalRtlWaitOnAddress(address, value, size, timeout);
+    }
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    if(std::memcmp(address, value, size) != 0) {
+      return 0;
+    }
+    Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
+    return 0;
+  }
+
+  static auto OriginalRtlWakeAddressSingle =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
-  static auto RtlWakeAddressAll =
+
+  inline void WINAPI MyRtlWakeAddressSingle(_In_ void* address) {
+    OriginalRtlWakeAddressSingle(address);
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    if(!waitEntry.m_suspendedRoutines.empty()) {
+      ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
+    }
+  }
+
+  static auto OriginalRtlWakeAddressAll =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
+
+  inline void WINAPI MyRtlWakeAddressAll(_In_ void* address) {
+    OriginalRtlWakeAddressAll(address);
+    auto& waitEntry = GetWaitEntry(address);
+    auto lock = std::unique_lock(waitEntry.m_mutex);
+    if(!waitEntry.m_suspendedRoutines.empty()) {
+      ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
+    }
+  }
+
   static auto OriginalNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
 
@@ -134,43 +180,6 @@ namespace Beam::Routines::Details {
     });
   }
 
-  struct WaitEntry {
-    Threading::SpinMutex m_mutex;
-    SuspendedRoutineQueue<void*> m_suspendedRoutines;
-  };
-
-  inline WaitEntry& GetWaitEntry(void* address) {
-    static auto entries = std::array<WaitEntry, 256>();
-    return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
-      entries.size()];
-  }
-
-  inline NTSTATUS WaitOn(void* address, int value, LARGE_INTEGER* timeout) {
-    auto& waitEntry = GetWaitEntry(address);
-    auto lock = std::unique_lock(waitEntry.m_mutex);
-    if(*reinterpret_cast<int*>(address) != value) {
-      return 0;
-    }
-    Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
-    return 0;
-  }
-
-  inline void WakeAll(void* address) {
-    auto& waitEntry = GetWaitEntry(address);
-    auto lock = std::unique_lock(waitEntry.m_mutex);
-    if(!waitEntry.m_suspendedRoutines.empty()) {
-      ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
-    }
-  }
-
-  inline void WakeSingle(void* address) {
-    auto& waitEntry = GetWaitEntry(address);
-    auto lock = std::unique_lock(waitEntry.m_mutex);
-    if(!waitEntry.m_suspendedRoutines.empty()) {
-      ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
-    }
-  }
-
   static auto OriginalRtlSleepConditionVariableSRW =
     static_cast<NTSTATUS (WINAPI*)(RTL_CONDITION_VARIABLE*, RTL_SRWLOCK*,
       LARGE_INTEGER*, ULONG)>(nullptr);
@@ -184,13 +193,8 @@ namespace Beam::Routines::Details {
     } else {
       ReleaseSRWLockExclusive(lock);
     }
-    auto status = [&] {
-      if(!Routine::m_isInsideRoutine) {
-        return RtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
-      } else {
-        return WaitOn(&variable->Ptr, value, timeout);
-      }
-    }();
+    auto status =
+      MyRtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       AcquireSRWLockShared(lock);
     } else {
@@ -205,8 +209,7 @@ namespace Beam::Routines::Details {
   inline void WINAPI MyRtlWakeConditionVariable(
       RTL_CONDITION_VARIABLE* variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
-    WakeSingle(variable);
-    RtlWakeAddressSingle(variable);
+    MyRtlWakeAddressSingle(variable);
   }
 
   static auto OriginalRtlWakeAllConditionVariable =
@@ -215,21 +218,23 @@ namespace Beam::Routines::Details {
   inline void WINAPI MyRtlWakeAllConditionVariable(
       RTL_CONDITION_VARIABLE *variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
-    WakeAll(variable);
-    RtlWakeAddressAll(variable);
+    MyRtlWakeAddressAll(variable);
   }
 
   inline bool InstallHooks() {
-    #pragma warning(push)
-    #pragma warning(disable:4191)
-    RtlWaitOnAddress = reinterpret_cast<NTSTATUS (WINAPI*)(
-      _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
-        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWaitOnAddress"));
-    RtlWakeAddressSingle = reinterpret_cast<void (WINAPI*)(_In_ void*)>(
-      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressSingle"));
-    RtlWakeAddressAll = reinterpret_cast<void (WINAPI*)(_In_ void*)>(
-      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlWakeAddressAll"));
-    #pragma warning(pop)
+    OriginalRtlWaitOnAddress = Hook("RtlWaitOnAddress", MyRtlWaitOnAddress);
+    if(!OriginalRtlWaitOnAddress) {
+      return false;
+    }
+    OriginalRtlWakeAddressSingle =
+      Hook("RtlWakeAddressSingle", MyRtlWakeAddressSingle);
+    if(!OriginalRtlWakeAddressSingle) {
+      return false;
+    }
+    OriginalRtlWakeAddressAll = Hook("RtlWakeAddressAll", MyRtlWakeAddressAll);
+    if(!OriginalRtlWakeAddressAll) {
+      return false;
+    }
     OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
     if(!OriginalNtDelayExecution) {
       return false;

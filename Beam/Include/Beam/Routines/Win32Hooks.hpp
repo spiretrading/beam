@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <winternl.h>
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/SpinMutex.hpp"
 
 namespace Beam::Routines::Details {

@@ -1,8 +1,7 @@
 #ifndef BEAM_ROUTINES_HPP
 #define BEAM_ROUTINES_HPP
 
-namespace Beam {
-namespace Routines {
+namespace Beam::Routines {
   template<typename T> class Async;
   class BaseAsync;
   class BaseEval;
@@ -13,11 +12,6 @@ namespace Routines {
   class RoutineException;
   class RoutineHandler;
   class ScheduledRoutine;
-  template<typename T> struct SuspendedRoutineNode;
-namespace Details {
-  class Scheduler;
-}
-}
 }
 
 #endif

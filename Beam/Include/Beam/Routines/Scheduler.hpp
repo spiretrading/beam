@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Routines/Routines.hpp"
+#include "Beam/Routines/Win32Hooks.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
@@ -287,7 +288,5 @@ namespace Details {
     Details::Scheduler::GetInstance().Resume(*this);
   }
 }
-
-#include "Beam/Routines/Win32Hooks.hpp"
 
 #endif

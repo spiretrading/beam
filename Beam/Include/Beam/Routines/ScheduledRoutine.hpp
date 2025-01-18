@@ -17,6 +17,9 @@
 #include "Beam/Utilities/StackPrint.hpp"
 
 namespace Beam::Routines {
+namespace Details {
+  class Scheduler;
+}
 
   /* Implements a Routine that executes within a Scheduler. */
   class ScheduledRoutine : public Routine {

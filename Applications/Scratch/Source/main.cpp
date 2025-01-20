@@ -6,24 +6,23 @@ using namespace Beam::Routines;
 using namespace std::chrono_literals;
 
 int main() {
-  auto m = std::mutex();
-  auto c = std::condition_variable();
-  auto b = false;
-  auto r = RoutineHandler(Spawn([&] {
-    auto l = std::unique_lock(m);
-    while(!b) {
-      if(c.wait_for(l, 3s) == std::cv_status::timeout) {
-        std::cout << "Timedout" << std::endl;
-      }
-    }
+  auto m1 = std::mutex();
+  auto m2 = std::mutex();
+  m1.lock();
+  m2.lock();
+  auto r1 = RoutineHandler(Spawn([&] {
+    m1.lock();
   }));
-  std::this_thread::sleep_for(9s);
-  {
-    auto l = std::lock_guard(m);
-    b = true;
-    c.notify_all();
-  }
-  r.Wait();
+  auto r2 = RoutineHandler(Spawn([&] {
+    m2.lock();
+  }));
+  std::this_thread::sleep_for(5s);
+  auto r3 = RoutineHandler(Spawn([&] {
+    std::cout << "Yo";
+  }));
+  r1.Wait();
+  r2.Wait();
+  r3.Wait();
   std::cout << "Done" << std::endl;
   return 0;
 }

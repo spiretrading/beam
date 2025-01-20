@@ -249,6 +249,123 @@ namespace Beam::Routines::Details {
     });
   }
 
+  inline SHORT InterlockedExchangeAdd16(SHORT volatile* target, SHORT value) {
+    auto oldValue = SHORT();
+    auto newValue = SHORT();
+    do {
+      oldValue = *target;
+      newValue = oldValue + value;
+    } while (InterlockedCompareExchange16(
+      target, newValue, oldValue) != oldValue);
+    return oldValue;
+  }
+
+  struct WinSrwLock {
+    short m_exclusiveWaiters;
+    unsigned short m_owners;
+  };
+
+  union WinLocks {
+    RTL_SRWLOCK* m_asRtl;
+    WinSrwLock* m_asWin;
+    LONG* m_asLong;
+  };
+
+  union WinLocksValue {
+    WinSrwLock m_asWin;
+    LONG m_asLong;
+  };
+
+  static auto OriginalRtlAcquireSRWLockExclusive =
+    static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+
+  inline void WINAPI MyRtlAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
+    if(!Routine::m_isInsideRoutine) {
+      return OriginalRtlAcquireSRWLockExclusive(lock);
+    }
+    auto winLock = WinLocks(lock);
+    InterlockedExchangeAdd16(&winLock.m_asWin->m_exclusiveWaiters, 2);
+    while(true) {
+      auto previousLock = WinLocksValue();
+      auto nextLock = WinLocksValue();
+      auto wait = false;
+      do {
+        previousLock.m_asWin = *winLock.m_asWin;
+        nextLock.m_asWin = previousLock.m_asWin;
+        if(!previousLock.m_asWin.m_owners) {
+          nextLock.m_asWin.m_owners = 1;
+          nextLock.m_asWin.m_exclusiveWaiters -= 2;
+          nextLock.m_asWin.m_exclusiveWaiters |= 1;
+          wait = false;
+        } else {
+          wait = true;
+        }
+      } while(InterlockedCompareExchange(winLock.m_asLong,
+        nextLock.m_asLong, previousLock.m_asLong) != previousLock.m_asLong);
+      if(!wait) {
+        return;
+      }
+      MyRtlWaitOnAddress(
+        &winLock.m_asWin->m_owners, &nextLock.m_asWin.m_owners,
+        sizeof(unsigned short), nullptr);
+    }
+  }
+
+  static auto OriginalRtlTryAcquireSRWLockExclusive =
+    static_cast<BOOLEAN (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+
+  BOOLEAN WINAPI MyRtlTryAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
+    if(!Routine::m_isInsideRoutine) {
+      return OriginalRtlTryAcquireSRWLockExclusive(lock);
+    }
+    auto winLock = WinLocks(lock);
+    auto previousLock = WinLocksValue();
+    auto nextLock = WinLocksValue();
+    BOOLEAN ret;
+      do
+      {
+          previousLock.m_asWin = *winLock.m_asWin;
+          nextLock.m_asWin = previousLock.m_asWin;
+          if (!previousLock.m_asWin.m_owners)
+          {
+            nextLock.m_asWin.m_owners = 1;
+            nextLock.m_asWin.m_exclusiveWaiters |= 1;
+              ret = TRUE;
+          }
+          else
+          {
+              ret = FALSE;
+          }
+      } while(InterlockedCompareExchange(winLock.m_asLong,
+        nextLock.m_asLong, previousLock.m_asLong) != previousLock.m_asLong);
+
+      return ret;
+  }
+
+  static auto OriginalRtlReleaseSRWLockExclusive =
+    static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+
+  inline void WINAPI MyRtlReleaseSRWLockExclusive(RTL_SRWLOCK* lock) {
+    if(!Routine::m_isInsideRoutine) {
+      return OriginalRtlReleaseSRWLockExclusive(lock);
+    }
+    auto winLock = WinLocks(lock);
+    auto previousLock = WinLocksValue();
+    auto nextLock = WinLocksValue();
+    do {
+      previousLock.m_asWin = *winLock.m_asWin;
+      nextLock = previousLock;
+      nextLock.m_asWin.m_owners = 0;
+      nextLock.m_asWin.m_exclusiveWaiters &= ~1;
+    } while(InterlockedCompareExchange(winLock.m_asLong, nextLock.m_asLong,
+      previousLock.m_asLong) != previousLock.m_asLong);
+    if(nextLock.m_asWin.m_exclusiveWaiters) {
+      MyRtlWakeAddressSingle(&winLock.m_asWin->m_owners);
+    } else {
+      MyRtlWakeAddressAll(winLock.m_asWin);
+    }
+  }
+
   static auto OriginalRtlSleepConditionVariableSRW =
     static_cast<NTSTATUS (WINAPI*)(RTL_CONDITION_VARIABLE*, RTL_SRWLOCK*,
       LARGE_INTEGER*, ULONG)>(nullptr);
@@ -320,6 +437,21 @@ namespace Beam::Routines::Details {
     }
     OriginalNtWriteFile = Hook("NtWriteFile", MyNtWriteFile);
     if(!OriginalNtWriteFile) {
+      return false;
+    }
+    OriginalRtlAcquireSRWLockExclusive =
+      Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
+    if(!OriginalRtlAcquireSRWLockExclusive) {
+      return false;
+    }
+    OriginalRtlTryAcquireSRWLockExclusive =
+      Hook("RtlTryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive);
+    if(!OriginalRtlTryAcquireSRWLockExclusive) {
+      return false;
+    }
+    OriginalRtlReleaseSRWLockExclusive =
+      Hook("RtlReleaseSRWLockExclusive", MyRtlReleaseSRWLockExclusive);
+    if(!OriginalRtlReleaseSRWLockExclusive) {
       return false;
     }
     OriginalRtlSleepConditionVariableSRW =

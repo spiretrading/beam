@@ -20,6 +20,8 @@ namespace Beam::Routines::Details {
     return msTimeout;
   }
 
+  inline auto isHooking = false;
+
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
     auto kernel_module = GetModuleHandleW(module);
@@ -69,11 +71,11 @@ namespace Beam::Routines::Details {
 
   template<typename F>
   NTSTATUS CallNt(F&& f) {
-    if(!Routine::m_isInsideRoutine) {
+    if(!Routine::IsInsideRoutine()) {
       return std::forward<F>(f)();
     }
-    auto isInsideRoutine = Routine::m_isInsideRoutine;
-    Routine::m_isInsideRoutine = false;
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     auto result = NTSTATUS();
     {
       auto suspension = SuspendedRoutineQueue();
@@ -89,7 +91,7 @@ namespace Beam::Routines::Details {
       thread.detach();
       Suspend(Store(suspension), lock);
     }
-    Routine::m_isInsideRoutine = isInsideRoutine;
+    Routine::IsInsideRoutine() = isInsideRoutine;
     return result;
   }
 
@@ -99,10 +101,11 @@ namespace Beam::Routines::Details {
     SuspendedRoutineQueue<T> m_suspendedRoutines;
   };
 
+  inline auto waitEntries = std::array<WaitEntry<void*>, 256>();
+
   inline WaitEntry<void*>& GetWaitEntry(void* address) {
-    static auto entries = std::array<WaitEntry<void*>, 256>();
-    return entries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
-      entries.size()];
+    return waitEntries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
+      waitEntries.size()];
   }
 
   template<typename T>
@@ -117,20 +120,20 @@ namespace Beam::Routines::Details {
 
   inline NTSTATUS WINAPI MyRtlWaitOnAddress(_In_ void* address,
       _In_ void* value, _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
-    if(!Routine::m_isInsideRoutine) {
+    if(!Routine::IsInsideRoutine()) {
       return OriginalRtlWaitOnAddress(address, value, size, timeout);
     }
-    auto isInsideRoutine = Routine::m_isInsideRoutine;
-    Routine::m_isInsideRoutine = false;
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(std::memcmp(address, value, size) != 0) {
-      Routine::m_isInsideRoutine = isInsideRoutine;
+      Routine::IsInsideRoutine() = isInsideRoutine;
       return STATUS_SUCCESS;
     }
     if(!timeout || timeout->QuadPart == INFINITE) {
       Suspend(Store(waitEntry.m_suspendedRoutines), address, lock);
-      Routine::m_isInsideRoutine = isInsideRoutine;
+      Routine::IsInsideRoutine() = isInsideRoutine;
       return STATUS_SUCCESS;
     }
     auto timer = HANDLE();
@@ -141,7 +144,7 @@ namespace Beam::Routines::Details {
     if(timer) {
       DeleteTimerQueueTimer(nullptr, timer, nullptr);
     }
-    Routine::m_isInsideRoutine = isInsideRoutine;
+    Routine::IsInsideRoutine() = isInsideRoutine;
     if(std::memcmp(address, value, size) != 0) {
       return STATUS_SUCCESS;
     }
@@ -152,30 +155,30 @@ namespace Beam::Routines::Details {
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
 
   inline void WINAPI MyRtlWakeAddressSingle(_In_ void* address) {
-    auto isInsideRoutine = Routine::m_isInsideRoutine;
-    Routine::m_isInsideRoutine = false;
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     OriginalRtlWakeAddressSingle(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
       ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
-    Routine::m_isInsideRoutine = isInsideRoutine;
+    Routine::IsInsideRoutine() = isInsideRoutine;
   }
 
   static auto OriginalRtlWakeAddressAll =
     static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
 
   inline void WINAPI MyRtlWakeAddressAll(_In_ void* address) {
-    auto isInsideRoutine = Routine::m_isInsideRoutine;
-    Routine::m_isInsideRoutine = false;
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     OriginalRtlWakeAddressAll(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
       ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
     }
-    Routine::m_isInsideRoutine = isInsideRoutine;
+    Routine::IsInsideRoutine() = isInsideRoutine;
   }
 
   static auto OriginalNtDelayExecution =
@@ -183,11 +186,11 @@ namespace Beam::Routines::Details {
 
   inline NTSTATUS NTAPI MyNtDelayExecution(
       BOOLEAN alertable, PLARGE_INTEGER timeout) {
-    if(!Routine::m_isInsideRoutine) {
+    if(!Routine::IsInsideRoutine()) {
       return OriginalNtDelayExecution(alertable, timeout);
     }
-    auto isInsideRoutine = Routine::m_isInsideRoutine;
-    Routine::m_isInsideRoutine = false;
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     if(!timeout || timeout->QuadPart == INFINITE) {
       auto waitEntry = WaitEntry<void>();
       auto lock = std::unique_lock(waitEntry.m_mutex);
@@ -201,7 +204,7 @@ namespace Beam::Routines::Details {
         auto timerResult = CreateTimerQueueTimer(&timer, nullptr,
           OnTimerExpired<void>, &waitEntry, timeoutMs, 0, WT_EXECUTEONLYONCE);
         if(!timer) {
-          Routine::m_isInsideRoutine = isInsideRoutine;
+          Routine::IsInsideRoutine() = isInsideRoutine;
           return timerResult;
         }
         Suspend(Store(waitEntry.m_suspendedRoutines), lock);
@@ -210,7 +213,7 @@ namespace Beam::Routines::Details {
         }
       }
     }
-    Routine::m_isInsideRoutine = isInsideRoutine;
+    Routine::IsInsideRoutine() = isInsideRoutine;
     return 0;
   }
 
@@ -280,7 +283,7 @@ namespace Beam::Routines::Details {
     static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
 
   inline void WINAPI MyRtlAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
-    if(!Routine::m_isInsideRoutine) {
+    if(isHooking) {
       return OriginalRtlAcquireSRWLockExclusive(lock);
     }
     auto winLock = WinLocks(lock);
@@ -315,7 +318,7 @@ namespace Beam::Routines::Details {
     static_cast<BOOLEAN (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
 
   BOOLEAN WINAPI MyRtlTryAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
-    if(!Routine::m_isInsideRoutine) {
+    if(isHooking) {
       return OriginalRtlTryAcquireSRWLockExclusive(lock);
     }
     auto winLock = WinLocks(lock);
@@ -346,7 +349,7 @@ namespace Beam::Routines::Details {
     static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
 
   inline void WINAPI MyRtlReleaseSRWLockExclusive(RTL_SRWLOCK* lock) {
-    if(!Routine::m_isInsideRoutine) {
+    if(isHooking) {
       return OriginalRtlReleaseSRWLockExclusive(lock);
     }
     auto winLock = WinLocks(lock);
@@ -408,6 +411,7 @@ namespace Beam::Routines::Details {
   }
 
   inline bool InstallHooks() {
+    isHooking = true;
     OriginalRtlWaitOnAddress = Hook("RtlWaitOnAddress", MyRtlWaitOnAddress);
     if(!OriginalRtlWaitOnAddress) {
       return false;
@@ -439,11 +443,6 @@ namespace Beam::Routines::Details {
     if(!OriginalNtWriteFile) {
       return false;
     }
-    OriginalRtlAcquireSRWLockExclusive =
-      Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
-    if(!OriginalRtlAcquireSRWLockExclusive) {
-      return false;
-    }
     OriginalRtlTryAcquireSRWLockExclusive =
       Hook("RtlTryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive);
     if(!OriginalRtlTryAcquireSRWLockExclusive) {
@@ -469,6 +468,12 @@ namespace Beam::Routines::Details {
     if(!OriginalRtlWakeAllConditionVariable) {
       return false;
     }
+    OriginalRtlAcquireSRWLockExclusive =
+      Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
+    if(!OriginalRtlAcquireSRWLockExclusive) {
+      return false;
+    }
+    isHooking = false;
     return true;
   }
 

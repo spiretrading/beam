@@ -20,7 +20,7 @@ namespace Beam::Routines {
     public:
 
       /** Indicates whether a routine is currently running on this thread. */
-      static inline thread_local auto m_isInsideRoutine = false;
+      static bool& IsInsideRoutine();
 
       /** Lists the states a Routine can be in. */
       enum class State {
@@ -155,6 +155,11 @@ namespace Beam::Routines {
     auto initialRoutine = routine;
     routine = nullptr;
     initialRoutine->Resume();
+  }
+
+  inline bool& Routine::IsInsideRoutine() {
+    static thread_local auto isInsideRoutine = false;
+    return isInsideRoutine;
   }
 
   inline Routine::Routine()

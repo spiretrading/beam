@@ -185,7 +185,7 @@ namespace Details {
   }
 
   inline void Scheduler::Stop() {
-    Routine::m_isInsideRoutine = false;
+    Routine::IsInsideRoutine() = false;
     for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       auto& context = m_contexts[i];
       auto lock = std::lock_guard(context.m_mutex);

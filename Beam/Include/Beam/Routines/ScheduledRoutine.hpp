@@ -90,7 +90,7 @@ namespace Details {
       Run();
       m_continuation = m_continuation.resume();
     }
-    Routine::m_isInsideRoutine = false;
+    Routine::IsInsideRoutine() = false;
     Routine::m_currentRoutine = nullptr;
   }
 
@@ -107,7 +107,7 @@ namespace Details {
 
   BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::Defer() {
-    Routine::m_isInsideRoutine = false;
+    Routine::IsInsideRoutine() = false;
     Routine::m_currentRoutine = nullptr;
     #ifdef BEAM_ENABLE_STACK_PRINT
     #ifndef NDEBUG
@@ -128,7 +128,7 @@ namespace Details {
 
   inline void ScheduledRoutine::Run() {
     SetState(State::RUNNING);
-    Routine::m_isInsideRoutine = true;
+    Routine::IsInsideRoutine() = true;
   }
 
   inline bool ScheduledRoutine::IsPendingResume() const {

@@ -69,32 +69,6 @@ namespace Beam::Routines::Details {
     return reinterpret_cast<F>(trampoline);
   }
 
-  template<typename F>
-  NTSTATUS CallNt(F&& f) {
-    if(!Routine::IsInsideRoutine()) {
-      return std::forward<F>(f)();
-    }
-    auto isInsideRoutine = Routine::IsInsideRoutine();
-    Routine::IsInsideRoutine() = false;
-    auto result = NTSTATUS();
-    {
-      auto suspension = SuspendedRoutineQueue();
-      auto mutex = Threading::SpinMutex();
-      auto lock = std::unique_lock(mutex);
-      auto thread = std::thread([&] {
-        result = std::forward<F>(f)();
-        {
-          auto lock = std::lock_guard(mutex);
-          ResumeFront(Store(suspension));
-        }
-      });
-      thread.detach();
-      Suspend(Store(suspension), lock);
-    }
-    Routine::IsInsideRoutine() = isInsideRoutine;
-    return result;
-  }
-
   template<typename T>
   struct WaitEntry {
     Threading::SpinMutex m_mutex;
@@ -218,41 +192,6 @@ namespace Beam::Routines::Details {
     return 0;
   }
 
-  static auto OriginalNtWaitForSingleObject =
-    static_cast<NTSTATUS (NTAPI*)(HANDLE, BOOLEAN, PLARGE_INTEGER)>(nullptr);
-
-  inline NTSTATUS NTAPI MyNtWaitForSingleObject(
-      HANDLE handle, BOOLEAN alertable, PLARGE_INTEGER timeout) {
-    return CallNt([=] {
-      return OriginalNtWaitForSingleObject(handle, alertable, timeout);
-    });
-  }
-
-  static auto OriginalNtWaitForKeyedEvent =
-    static_cast<NTSTATUS (NTAPI*)(HANDLE, PVOID, BOOLEAN, PLARGE_INTEGER)>(
-      nullptr);
-
-  inline NTSTATUS NTAPI MyNtWaitForKeyedEvent(HANDLE eventHandle, PVOID key,
-      BOOLEAN alertable, PLARGE_INTEGER timeout) {
-    return CallNt([=] {
-      return OriginalNtWaitForKeyedEvent(eventHandle, key, alertable, timeout);
-    });
-  }
-
-  static auto OriginalNtWriteFile =
-    static_cast<NTSTATUS (NTAPI*)(HANDLE, HANDLE, PIO_APC_ROUTINE, PVOID,
-      PIO_STATUS_BLOCK, PVOID, ULONG, PLARGE_INTEGER, PULONG)>(nullptr);
-
-  inline NTSTATUS NTAPI MyNtWriteFile(HANDLE file_handle, HANDLE event,
-      PIO_APC_ROUTINE  apc_routine, PVOID apc_context,
-      PIO_STATUS_BLOCK io_status_block, PVOID buffer, ULONG length,
-      PLARGE_INTEGER byte_offset, PULONG key) {
-    return CallNt([=] {
-      return OriginalNtWriteFile(file_handle, event, apc_routine, apc_context,
-        io_status_block, buffer, length, byte_offset, key);
-    });
-  }
-
   inline SHORT InterlockedExchangeAdd16(SHORT volatile* target, SHORT value) {
     auto oldValue = SHORT();
     auto newValue = SHORT();
@@ -280,12 +219,26 @@ namespace Beam::Routines::Details {
     LONG m_asLong;
   };
 
+  struct LockEntry {
+    DWORD id;
+    bool locked;
+  };
+
+  inline auto mmm = Threading::SpinMutex();
+  inline auto iii = std::size_t(0);
+  inline auto locks = std::array<LockEntry, 1000>();
+
   static auto OriginalRtlAcquireSRWLockExclusive =
     static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
 
   inline void WINAPI MyRtlAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
     if(isHooking) {
       return OriginalRtlAcquireSRWLockExclusive(lock);
+    }
+    {
+      auto l = std::lock_guard(mmm);
+      locks[iii] = LockEntry(GetCurrentThreadId(), true);
+      ++iii;
     }
     auto winLock = WinLocks(lock);
     InterlockedExchangeAdd16(&winLock.m_asWin->m_exclusiveWaiters, 2);
@@ -353,6 +306,11 @@ namespace Beam::Routines::Details {
     if(isHooking) {
       return OriginalRtlReleaseSRWLockExclusive(lock);
     }
+    {
+      auto l = std::lock_guard(mmm);
+      locks[iii] = LockEntry(GetCurrentThreadId(), false);
+      ++iii;
+    }
     auto winLock = WinLocks(lock);
     auto previousLock = WinLocksValue();
     auto nextLock = WinLocksValue();
@@ -410,6 +368,15 @@ namespace Beam::Routines::Details {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
     MyRtlWakeAddressAll(variable);
   }
+/*
+  static auto OriginalLdrpInitializeThread =
+    static_cast<VOID (NTAPI*)(IN PCONTEXT)>(nullptr);
+
+  inline VOID NTAPI MyLdrpInitializeThread(IN PCONTEXT Context) {
+    isHooking = true;
+    OriginalLdrpInitializeThread
+  }
+*/
 
   inline bool InstallHooks() {
     isHooking = true;
@@ -430,20 +397,17 @@ namespace Beam::Routines::Details {
     if(!OriginalNtDelayExecution) {
       return false;
     }
-    OriginalNtWaitForSingleObject =
-      Hook("NtWaitForSingleObject", MyNtWaitForSingleObject);
-    if(!OriginalNtWaitForSingleObject) {
+    OriginalRtlTryAcquireSRWLockExclusive =
+      Hook("TryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive, L"kernel32.dll");
+    if(!OriginalRtlTryAcquireSRWLockExclusive) {
       return false;
     }
-    OriginalNtWaitForKeyedEvent =
-      Hook("NtWaitForKeyedEvent", MyNtWaitForKeyedEvent);
-    if(!OriginalNtWaitForKeyedEvent) {
+    OriginalRtlReleaseSRWLockExclusive =
+      Hook("ReleaseSRWLockExclusive", MyRtlReleaseSRWLockExclusive, L"kernel32.dll");
+    if(!OriginalRtlReleaseSRWLockExclusive) {
       return false;
     }
-    OriginalNtWriteFile = Hook("NtWriteFile", MyNtWriteFile);
-    if(!OriginalNtWriteFile) {
-      return false;
-    }
+/*
     OriginalRtlTryAcquireSRWLockExclusive =
       Hook("RtlTryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive);
     if(!OriginalRtlTryAcquireSRWLockExclusive) {
@@ -454,6 +418,7 @@ namespace Beam::Routines::Details {
     if(!OriginalRtlReleaseSRWLockExclusive) {
       return false;
     }
+*/
     OriginalRtlSleepConditionVariableSRW =
       Hook("RtlSleepConditionVariableSRW", MyRtlSleepConditionVariableSRW);
     if(!OriginalRtlSleepConditionVariableSRW) {
@@ -469,11 +434,25 @@ namespace Beam::Routines::Details {
     if(!OriginalRtlWakeAllConditionVariable) {
       return false;
     }
+/*
     OriginalRtlAcquireSRWLockExclusive =
       Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
     if(!OriginalRtlAcquireSRWLockExclusive) {
       return false;
     }
+*/
+    OriginalRtlAcquireSRWLockExclusive =
+      Hook("AcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive, L"kernel32.dll");
+    if(!OriginalRtlAcquireSRWLockExclusive) {
+      return false;
+    }
+/*
+    OriginalLdrpInitializeThread = Hook("LdrpInitializeThread", MyLdrpInitializeThread);
+    if(!OriginalLdrpInitializeThread) {
+      return false;
+    }
+*/
+
     isHooking = false;
     return true;
   }

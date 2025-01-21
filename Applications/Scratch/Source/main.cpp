@@ -6,6 +6,11 @@ using namespace Beam::Routines;
 using namespace std::chrono_literals;
 
 int main() {
+  auto t = std::thread([&] {
+    std::cout << "Yo";
+  });
+  std::this_thread::sleep_for(5s);
+/*
   auto m1 = std::mutex();
   auto m2 = std::mutex();
   m1.lock();
@@ -24,5 +29,7 @@ int main() {
   r2.Wait();
   r3.Wait();
   std::cout << "Done" << std::endl;
+*/
+  t.join();
   return 0;
 }

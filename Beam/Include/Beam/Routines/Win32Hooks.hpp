@@ -11,7 +11,7 @@
 #include "Beam/Threading/SpinMutex.hpp"
 
 namespace Beam::Routines::Details {
-  DWORD ToDwordTimeout(PLARGE_INTEGER timeout) {
+  inline DWORD ToDwordTimeout(PLARGE_INTEGER timeout) {
     if(timeout->QuadPart >= 0) {
       return 0;
     }
@@ -75,7 +75,7 @@ namespace Beam::Routines::Details {
     SuspendedRoutineQueue<T> m_suspendedRoutines;
   };
 
-  inline auto waitEntries = std::array<WaitEntry<void*>, 256>();
+  static auto waitEntries = std::array<WaitEntry<void*>, 256>();
 
   inline WaitEntry<void*>& GetWaitEntry(void* address) {
     return waitEntries[(reinterpret_cast<std::uintptr_t>(address) >> 4) %
@@ -192,41 +192,25 @@ namespace Beam::Routines::Details {
     return 0;
   }
 
-  inline SHORT InterlockedExchangeAdd16(SHORT volatile* target, SHORT value) {
-    auto oldValue = SHORT();
-    auto newValue = SHORT();
-    do {
-      oldValue = *target;
-      newValue = oldValue + value;
-    } while (InterlockedCompareExchange16(
-      target, newValue, oldValue) != oldValue);
-    return oldValue;
+  static const auto LOCK_STATE_FREE = std::uintptr_t(0);
+  static const auto LOCK_STATE_EXCLUSIVE = std::uintptr_t(1);
+  static const auto LOCK_STATE_WAITING = std::uintptr_t(2);
+
+  static auto OriginalRtlTryAcquireSRWLockExclusive =
+    static_cast<BOOLEAN (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+
+  inline BOOLEAN WINAPI MyRtlTryAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
+    if(isHooking) {
+      return OriginalRtlTryAcquireSRWLockExclusive(lock);
+    }
+    auto expected = LOCK_STATE_FREE;
+    auto& flag = *reinterpret_cast<std::atomic<std::uintptr_t>*>(&lock->Ptr);
+    if(flag.compare_exchange_strong(
+        expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
+      return TRUE;
+    }
+    return FALSE;
   }
-
-  struct WinSrwLock {
-    short m_exclusiveWaiters;
-    unsigned short m_owners;
-  };
-
-  union WinLocks {
-    RTL_SRWLOCK* m_asRtl;
-    WinSrwLock* m_asWin;
-    LONG* m_asLong;
-  };
-
-  union WinLocksValue {
-    WinSrwLock m_asWin;
-    LONG m_asLong;
-  };
-
-  struct LockEntry {
-    DWORD id;
-    bool locked;
-  };
-
-  inline auto mmm = Threading::SpinMutex();
-  inline auto iii = std::size_t(0);
-  inline auto locks = std::array<LockEntry, 1000>();
 
   static auto OriginalRtlAcquireSRWLockExclusive =
     static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
@@ -235,96 +219,39 @@ namespace Beam::Routines::Details {
     if(isHooking) {
       return OriginalRtlAcquireSRWLockExclusive(lock);
     }
-    {
-      auto l = std::lock_guard(mmm);
-      locks[iii] = LockEntry(GetCurrentThreadId(), true);
-      ++iii;
+    auto expected = LOCK_STATE_FREE;
+    auto& flag = *reinterpret_cast<std::atomic<std::uintptr_t>*>(&lock->Ptr);
+    if(flag.compare_exchange_strong(
+        expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
+      return;
     }
-    auto winLock = WinLocks(lock);
-    InterlockedExchangeAdd16(&winLock.m_asWin->m_exclusiveWaiters, 2);
     while(true) {
-      auto previousLock = WinLocksValue();
-      auto nextLock = WinLocksValue();
-      auto wait = false;
-      do {
-        previousLock.m_asWin = *winLock.m_asWin;
-        nextLock.m_asWin = previousLock.m_asWin;
-        if(!previousLock.m_asWin.m_owners) {
-          nextLock.m_asWin.m_owners = 1;
-          nextLock.m_asWin.m_exclusiveWaiters -= 2;
-          nextLock.m_asWin.m_exclusiveWaiters |= 1;
-          wait = false;
-        } else {
-          wait = true;
+      expected = flag.load(std::memory_order_relaxed);
+      if(expected == LOCK_STATE_FREE) {
+        if(flag.compare_exchange_strong(
+            expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
+          return;
         }
-      } while(InterlockedCompareExchange(winLock.m_asLong,
-        nextLock.m_asLong, previousLock.m_asLong) != previousLock.m_asLong);
-      if(!wait) {
-        return;
+      } else {
+        if(flag.compare_exchange_strong(expected,
+            expected | LOCK_STATE_WAITING, std::memory_order_acquire)) {
+          MyRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
+        }
       }
-      MyRtlWaitOnAddress(
-        &winLock.m_asWin->m_owners, &nextLock.m_asWin.m_owners,
-        sizeof(unsigned short), nullptr);
     }
-  }
-
-  static auto OriginalRtlTryAcquireSRWLockExclusive =
-    static_cast<BOOLEAN (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
-
-  BOOLEAN WINAPI MyRtlTryAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
-    if(isHooking) {
-      return OriginalRtlTryAcquireSRWLockExclusive(lock);
-    }
-    auto winLock = WinLocks(lock);
-    auto previousLock = WinLocksValue();
-    auto nextLock = WinLocksValue();
-    BOOLEAN ret;
-      do
-      {
-          previousLock.m_asWin = *winLock.m_asWin;
-          nextLock.m_asWin = previousLock.m_asWin;
-          if (!previousLock.m_asWin.m_owners)
-          {
-            nextLock.m_asWin.m_owners = 1;
-            nextLock.m_asWin.m_exclusiveWaiters |= 1;
-              ret = TRUE;
-          }
-          else
-          {
-              ret = FALSE;
-          }
-      } while(InterlockedCompareExchange(winLock.m_asLong,
-        nextLock.m_asLong, previousLock.m_asLong) != previousLock.m_asLong);
-
-      return ret;
   }
 
   static auto OriginalRtlReleaseSRWLockExclusive =
-    static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+    static_cast<void (NTAPI*)(RTL_SRWLOCK*)>(nullptr);
 
-  inline void WINAPI MyRtlReleaseSRWLockExclusive(RTL_SRWLOCK* lock) {
+  inline void NTAPI MyRtlReleaseSRWLockExclusive(RTL_SRWLOCK* lock) {
     if(isHooking) {
       return OriginalRtlReleaseSRWLockExclusive(lock);
     }
-    {
-      auto l = std::lock_guard(mmm);
-      locks[iii] = LockEntry(GetCurrentThreadId(), false);
-      ++iii;
-    }
-    auto winLock = WinLocks(lock);
-    auto previousLock = WinLocksValue();
-    auto nextLock = WinLocksValue();
-    do {
-      previousLock.m_asWin = *winLock.m_asWin;
-      nextLock = previousLock;
-      nextLock.m_asWin.m_owners = 0;
-      nextLock.m_asWin.m_exclusiveWaiters &= ~1;
-    } while(InterlockedCompareExchange(winLock.m_asLong, nextLock.m_asLong,
-      previousLock.m_asLong) != previousLock.m_asLong);
-    if(nextLock.m_asWin.m_exclusiveWaiters) {
-      MyRtlWakeAddressSingle(&winLock.m_asWin->m_owners);
-    } else {
-      MyRtlWakeAddressAll(winLock.m_asWin);
+    auto* flag = reinterpret_cast<std::atomic<std::uintptr_t>*>(&lock->Ptr);
+    if(flag->exchange(
+        LOCK_STATE_FREE, std::memory_order_release) & LOCK_STATE_WAITING) {
+      MyRtlWakeAddressSingle(flag);
     }
   }
 
@@ -368,15 +295,6 @@ namespace Beam::Routines::Details {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
     MyRtlWakeAddressAll(variable);
   }
-/*
-  static auto OriginalLdrpInitializeThread =
-    static_cast<VOID (NTAPI*)(IN PCONTEXT)>(nullptr);
-
-  inline VOID NTAPI MyLdrpInitializeThread(IN PCONTEXT Context) {
-    isHooking = true;
-    OriginalLdrpInitializeThread
-  }
-*/
 
   inline bool InstallHooks() {
     isHooking = true;
@@ -398,17 +316,6 @@ namespace Beam::Routines::Details {
       return false;
     }
     OriginalRtlTryAcquireSRWLockExclusive =
-      Hook("TryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive, L"kernel32.dll");
-    if(!OriginalRtlTryAcquireSRWLockExclusive) {
-      return false;
-    }
-    OriginalRtlReleaseSRWLockExclusive =
-      Hook("ReleaseSRWLockExclusive", MyRtlReleaseSRWLockExclusive, L"kernel32.dll");
-    if(!OriginalRtlReleaseSRWLockExclusive) {
-      return false;
-    }
-/*
-    OriginalRtlTryAcquireSRWLockExclusive =
       Hook("RtlTryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive);
     if(!OriginalRtlTryAcquireSRWLockExclusive) {
       return false;
@@ -418,7 +325,6 @@ namespace Beam::Routines::Details {
     if(!OriginalRtlReleaseSRWLockExclusive) {
       return false;
     }
-*/
     OriginalRtlSleepConditionVariableSRW =
       Hook("RtlSleepConditionVariableSRW", MyRtlSleepConditionVariableSRW);
     if(!OriginalRtlSleepConditionVariableSRW) {
@@ -434,25 +340,11 @@ namespace Beam::Routines::Details {
     if(!OriginalRtlWakeAllConditionVariable) {
       return false;
     }
-/*
     OriginalRtlAcquireSRWLockExclusive =
       Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
     if(!OriginalRtlAcquireSRWLockExclusive) {
       return false;
     }
-*/
-    OriginalRtlAcquireSRWLockExclusive =
-      Hook("AcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive, L"kernel32.dll");
-    if(!OriginalRtlAcquireSRWLockExclusive) {
-      return false;
-    }
-/*
-    OriginalLdrpInitializeThread = Hook("LdrpInitializeThread", MyLdrpInitializeThread);
-    if(!OriginalLdrpInitializeThread) {
-      return false;
-    }
-*/
-
     isHooking = false;
     return true;
   }

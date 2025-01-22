@@ -20,6 +20,9 @@ int main() {
   auto r3 = RoutineHandler(Spawn([&] {
     std::cout << "Yo";
   }));
+  std::this_thread::sleep_for(5s);
+  m1.unlock();
+  m2.unlock();
   r1.Wait();
   r2.Wait();
   r3.Wait();

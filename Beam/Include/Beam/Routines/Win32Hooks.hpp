@@ -2,7 +2,6 @@
 #define BEAM_WIN32_HOOKS_HPP
 #include <array>
 #include <string_view>
-#include <thread>
 #include <windows.h>
 #include <winternl.h>
 #include <ntstatus.h>
@@ -89,10 +88,10 @@ namespace Beam::Routines::Details {
     Resume(Store(waitEntry.m_suspendedRoutines));
   }
 
-  static auto OriginalRtlWaitOnAddress = static_cast<NTSTATUS (WINAPI*)(
+  static auto OriginalRtlWaitOnAddress = static_cast<NTSTATUS (NTAPI*)(
     _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
 
-  inline NTSTATUS WINAPI MyRtlWaitOnAddress(_In_ void* address,
+  inline NTSTATUS NTAPI MyRtlWaitOnAddress(_In_ void* address,
       _In_ void* value, _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
     if(!Routine::IsInsideRoutine()) {
       return OriginalRtlWaitOnAddress(address, value, size, timeout);
@@ -127,9 +126,9 @@ namespace Beam::Routines::Details {
   }
 
   static auto OriginalRtlWakeAddressSingle =
-    static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
+    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
 
-  inline void WINAPI MyRtlWakeAddressSingle(_In_ void* address) {
+  inline void NTAPI MyRtlWakeAddressSingle(_In_ void* address) {
     OriginalRtlWakeAddressSingle(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
@@ -142,9 +141,9 @@ namespace Beam::Routines::Details {
   }
 
   static auto OriginalRtlWakeAddressAll =
-    static_cast<void (WINAPI*)(_In_ void*)>(nullptr);
+    static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
 
-  inline void WINAPI MyRtlWakeAddressAll(_In_ void* address) {
+  inline void NTAPI MyRtlWakeAddressAll(_In_ void* address) {
     OriginalRtlWakeAddressAll(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
@@ -157,10 +156,10 @@ namespace Beam::Routines::Details {
   }
 
   static auto OriginalNtDelayExecution =
-    static_cast<NTSTATUS (NTAPI*)(BOOLEAN, PLARGE_INTEGER)>(nullptr);
+    static_cast<NTSTATUS (NTAPI*)(IN BOOLEAN, IN PLARGE_INTEGER)>(nullptr);
 
   inline NTSTATUS NTAPI MyNtDelayExecution(
-      BOOLEAN alertable, PLARGE_INTEGER timeout) {
+      IN BOOLEAN alertable, IN PLARGE_INTEGER timeout) {
     if(!Routine::IsInsideRoutine()) {
       return OriginalNtDelayExecution(alertable, timeout);
     }
@@ -197,9 +196,10 @@ namespace Beam::Routines::Details {
   static const auto LOCK_STATE_WAITING = std::uintptr_t(2);
 
   static auto OriginalRtlTryAcquireSRWLockExclusive =
-    static_cast<BOOLEAN (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+    static_cast<BOOLEAN (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline BOOLEAN WINAPI MyRtlTryAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
+  inline BOOLEAN NTAPI MyRtlTryAcquireSRWLockExclusive(
+      _Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
       return OriginalRtlTryAcquireSRWLockExclusive(lock);
     }
@@ -213,9 +213,9 @@ namespace Beam::Routines::Details {
   }
 
   static auto OriginalRtlAcquireSRWLockExclusive =
-    static_cast<void (WINAPI*)(RTL_SRWLOCK*)>(nullptr);
+    static_cast<void (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline void WINAPI MyRtlAcquireSRWLockExclusive(RTL_SRWLOCK* lock) {
+  inline void NTAPI MyRtlAcquireSRWLockExclusive(_Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
       return OriginalRtlAcquireSRWLockExclusive(lock);
     }
@@ -232,37 +232,35 @@ namespace Beam::Routines::Details {
             expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
           return;
         }
-      } else {
-        if(flag.compare_exchange_strong(expected,
-            expected | LOCK_STATE_WAITING, std::memory_order_acquire)) {
-          MyRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
-        }
+      } else if(flag.compare_exchange_strong(
+          expected, expected | LOCK_STATE_WAITING, std::memory_order_acquire)) {
+        MyRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
       }
     }
   }
 
   static auto OriginalRtlReleaseSRWLockExclusive =
-    static_cast<void (NTAPI*)(RTL_SRWLOCK*)>(nullptr);
+    static_cast<void (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline void NTAPI MyRtlReleaseSRWLockExclusive(RTL_SRWLOCK* lock) {
+  inline void NTAPI MyRtlReleaseSRWLockExclusive(_Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
       return OriginalRtlReleaseSRWLockExclusive(lock);
     }
-    auto* flag = reinterpret_cast<std::atomic<std::uintptr_t>*>(&lock->Ptr);
-    if(flag->exchange(
+    auto& flag = *reinterpret_cast<std::atomic<std::uintptr_t>*>(&lock->Ptr);
+    if(flag.exchange(
         LOCK_STATE_FREE, std::memory_order_release) & LOCK_STATE_WAITING) {
-      MyRtlWakeAddressSingle(flag);
+      MyRtlWakeAddressAll(&flag);
     }
   }
 
   static auto OriginalRtlSleepConditionVariableSRW =
-    static_cast<NTSTATUS (WINAPI*)(RTL_CONDITION_VARIABLE*, RTL_SRWLOCK*,
-      LARGE_INTEGER*, ULONG)>(nullptr);
+    static_cast<NTSTATUS (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE,
+      _Inout_ PRTL_SRWLOCK, _In_opt_ PLARGE_INTEGER, _In_ ULONG)>(nullptr);
 
   inline NTSTATUS WINAPI MyRtlSleepConditionVariableSRW(
-      RTL_CONDITION_VARIABLE* variable, RTL_SRWLOCK* lock,
-      LARGE_INTEGER* timeout, ULONG flags) {
-    auto value = *reinterpret_cast<int*>(&variable->Ptr);
+      _Inout_ PRTL_CONDITION_VARIABLE variable, _Inout_ PRTL_SRWLOCK lock,
+      _In_opt_ PLARGE_INTEGER timeout, _In_ ULONG flags) {
+    auto value = *reinterpret_cast<LONG*>(&variable->Ptr);
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       ReleaseSRWLockShared(lock);
     } else {
@@ -279,19 +277,19 @@ namespace Beam::Routines::Details {
   }
 
   static auto OriginalRtlWakeConditionVariable =
-    static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
+    static_cast<void (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE)>(nullptr);
 
-  inline void WINAPI MyRtlWakeConditionVariable(
-      RTL_CONDITION_VARIABLE* variable) {
+  inline void NTAPI MyRtlWakeConditionVariable(
+      _Inout_ PRTL_CONDITION_VARIABLE variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
     MyRtlWakeAddressSingle(variable);
   }
 
   static auto OriginalRtlWakeAllConditionVariable =
-    static_cast<void (WINAPI*)(RTL_CONDITION_VARIABLE*)>(nullptr);
+    static_cast<void (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE)>(nullptr);
 
   inline void WINAPI MyRtlWakeAllConditionVariable(
-      RTL_CONDITION_VARIABLE *variable) {
+      _Inout_ PRTL_CONDITION_VARIABLE variable) {
     InterlockedIncrement(reinterpret_cast<LONG*>(&variable->Ptr));
     MyRtlWakeAddressAll(variable);
   }

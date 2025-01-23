@@ -149,8 +149,8 @@ namespace Beam {
     while(m_objects.empty()) {
       if(unconditionalWait || m_currentObjectCount >= m_maxObjectCount) {
         m_objectAvailableCondition.wait(lock);
-      } else if(m_objectAvailableCondition.wait_for(
-          std::chrono::microseconds(lock, m_timeout.total_microseconds())) ==
+      } else if(m_objectAvailableCondition.wait_for(lock,
+          std::chrono::microseconds(m_timeout.total_microseconds())) ==
             std::cv_status::timeout) {
         if(m_objects.empty() && m_currentObjectCount < m_maxObjectCount) {
           try {

@@ -106,7 +106,7 @@ int main(int argc, const char** argv) {
       "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
       "\nCopyright (C) 2020 Spire Trading Inc.");
     auto clientCount = Extract<int>(config, "clients",
-      static_cast<int>(boost::thread::hardware_concurrency()));
+      static_cast<int>(std::thread::hardware_concurrency()));
     auto server = ApplicationServerConnection();
     auto routines = RoutineHandlerGroup();
     routines.Spawn([&] {

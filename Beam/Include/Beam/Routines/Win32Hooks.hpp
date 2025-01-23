@@ -88,13 +88,13 @@ namespace Beam::Routines::Details {
     Resume(Store(waitEntry.m_suspendedRoutines));
   }
 
-  inline auto OriginalRtlWaitOnAddress = static_cast<NTSTATUS (NTAPI*)(
+  inline auto NativeRtlWaitOnAddress = static_cast<NTSTATUS (NTAPI*)(
     _In_ void*, _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(nullptr);
 
-  inline NTSTATUS NTAPI MyRtlWaitOnAddress(_In_ void* address,
+  inline NTSTATUS NTAPI HookedRtlWaitOnAddress(_In_ void* address,
       _In_ void* value, _In_ size_t size, _In_opt_ PLARGE_INTEGER timeout) {
     if(!Routine::IsInsideRoutine()) {
-      return OriginalRtlWaitOnAddress(address, value, size, timeout);
+      return NativeRtlWaitOnAddress(address, value, size, timeout);
     }
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
@@ -125,11 +125,11 @@ namespace Beam::Routines::Details {
     return STATUS_TIMEOUT;
   }
 
-  inline auto OriginalRtlWakeAddressSingle =
+  inline auto NativeRtlWakeAddressSingle =
     static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
 
-  inline void NTAPI MyRtlWakeAddressSingle(_In_ void* address) {
-    OriginalRtlWakeAddressSingle(address);
+  inline void NTAPI HookedRtlWakeAddressSingle(_In_ void* address) {
+    NativeRtlWakeAddressSingle(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
@@ -140,11 +140,11 @@ namespace Beam::Routines::Details {
     }
   }
 
-  inline auto OriginalRtlWakeAddressAll =
+  inline auto NativeRtlWakeAddressAll =
     static_cast<void (NTAPI*)(_In_ void*)>(nullptr);
 
-  inline void NTAPI MyRtlWakeAddressAll(_In_ void* address) {
-    OriginalRtlWakeAddressAll(address);
+  inline void NTAPI HookedRtlWakeAddressAll(_In_ void* address) {
+    NativeRtlWakeAddressAll(address);
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
@@ -155,13 +155,13 @@ namespace Beam::Routines::Details {
     }
   }
 
-  inline auto OriginalNtDelayExecution =
+  inline auto NativeNtDelayExecution =
     static_cast<NTSTATUS (NTAPI*)(IN BOOLEAN, IN PLARGE_INTEGER)>(nullptr);
 
-  inline NTSTATUS NTAPI MyNtDelayExecution(
+  inline NTSTATUS NTAPI HookedNtDelayExecution(
       IN BOOLEAN alertable, IN PLARGE_INTEGER timeout) {
     if(!Routine::IsInsideRoutine()) {
-      return OriginalNtDelayExecution(alertable, timeout);
+      return NativeNtDelayExecution(alertable, timeout);
     }
     auto isInsideRoutine = Routine::IsInsideRoutine();
     Routine::IsInsideRoutine() = false;
@@ -195,13 +195,13 @@ namespace Beam::Routines::Details {
   static const auto LOCK_STATE_EXCLUSIVE = LONG(1);
   static const auto LOCK_STATE_WAITING = LONG(2);
 
-  inline auto OriginalRtlTryAcquireSRWLockExclusive =
+  inline auto NativeRtlTryAcquireSRWLockExclusive =
     static_cast<BOOLEAN (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline BOOLEAN NTAPI MyRtlTryAcquireSRWLockExclusive(
+  inline BOOLEAN NTAPI HookedRtlTryAcquireSRWLockExclusive(
       _Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
-      return OriginalRtlTryAcquireSRWLockExclusive(lock);
+      return NativeRtlTryAcquireSRWLockExclusive(lock);
     }
     auto expected = LOCK_STATE_FREE;
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
@@ -212,12 +212,13 @@ namespace Beam::Routines::Details {
     return FALSE;
   }
 
-  inline auto OriginalRtlAcquireSRWLockExclusive =
+  inline auto NativeRtlAcquireSRWLockExclusive =
     static_cast<void (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline void NTAPI MyRtlAcquireSRWLockExclusive(_Inout_ PRTL_SRWLOCK lock) {
+  inline void NTAPI HookedRtlAcquireSRWLockExclusive(
+      _Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
-      return OriginalRtlAcquireSRWLockExclusive(lock);
+      return NativeRtlAcquireSRWLockExclusive(lock);
     }
     auto expected = LOCK_STATE_FREE;
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
@@ -234,30 +235,31 @@ namespace Beam::Routines::Details {
         }
       } else if(flag.compare_exchange_strong(
           expected, expected | LOCK_STATE_WAITING, std::memory_order_acquire)) {
-        MyRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
+        HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
       }
     }
   }
 
-  inline auto OriginalRtlReleaseSRWLockExclusive =
+  inline auto NativeRtlReleaseSRWLockExclusive =
     static_cast<void (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
 
-  inline void NTAPI MyRtlReleaseSRWLockExclusive(_Inout_ PRTL_SRWLOCK lock) {
+  inline void NTAPI HookedRtlReleaseSRWLockExclusive(
+      _Inout_ PRTL_SRWLOCK lock) {
     if(isHooking) {
-      return OriginalRtlReleaseSRWLockExclusive(lock);
+      return NativeRtlReleaseSRWLockExclusive(lock);
     }
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
     if(flag.exchange(
         LOCK_STATE_FREE, std::memory_order_release) & LOCK_STATE_WAITING) {
-      MyRtlWakeAddressAll(&flag);
+      HookedRtlWakeAddressAll(&flag);
     }
   }
 
-  inline auto OriginalRtlSleepConditionVariableSRW =
+  inline auto NativeRtlSleepConditionVariableSRW =
     static_cast<NTSTATUS (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE,
       _Inout_ PRTL_SRWLOCK, _In_opt_ PLARGE_INTEGER, _In_ ULONG)>(nullptr);
 
-  inline NTSTATUS WINAPI MyRtlSleepConditionVariableSRW(
+  inline NTSTATUS WINAPI HookedRtlSleepConditionVariableSRW(
       _Inout_ PRTL_CONDITION_VARIABLE variable, _Inout_ PRTL_SRWLOCK lock,
       _In_opt_ PLARGE_INTEGER timeout, _In_ ULONG flags) {
     auto value = reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr)->load();
@@ -267,7 +269,7 @@ namespace Beam::Routines::Details {
       ReleaseSRWLockExclusive(lock);
     }
     auto status =
-      MyRtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
+      HookedRtlWaitOnAddress(&variable->Ptr, &value, sizeof(value), timeout);
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       AcquireSRWLockShared(lock);
     } else {
@@ -276,82 +278,81 @@ namespace Beam::Routines::Details {
     return status;
   }
 
-  inline auto OriginalRtlWakeConditionVariable =
+  inline auto NativeRtlWakeConditionVariable =
     static_cast<void (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE)>(nullptr);
 
-  inline void NTAPI MyRtlWakeConditionVariable(
+  inline void NTAPI HookedRtlWakeConditionVariable(
       _Inout_ PRTL_CONDITION_VARIABLE variable) {
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr);
     ++flag;
-    MyRtlWakeAddressSingle(variable);
+    HookedRtlWakeAddressSingle(variable);
   }
 
-  inline auto OriginalRtlWakeAllConditionVariable =
+  inline auto NativeRtlWakeAllConditionVariable =
     static_cast<void (NTAPI*)(_Inout_ PRTL_CONDITION_VARIABLE)>(nullptr);
 
-  inline void WINAPI MyRtlWakeAllConditionVariable(
+  inline void WINAPI HookedRtlWakeAllConditionVariable(
       _Inout_ PRTL_CONDITION_VARIABLE variable) {
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr);
     ++flag;
-    MyRtlWakeAddressAll(variable);
+    HookedRtlWakeAddressAll(variable);
   }
 
   inline bool InstallHooks() {
     isHooking = true;
-    OriginalRtlWaitOnAddress = Hook("RtlWaitOnAddress", MyRtlWaitOnAddress);
-    if(!OriginalRtlWaitOnAddress) {
+    NativeRtlWaitOnAddress = Hook("RtlWaitOnAddress", HookedRtlWaitOnAddress);
+    if(!NativeRtlWaitOnAddress) {
       return false;
     }
-    OriginalRtlWakeAddressSingle =
-      Hook("RtlWakeAddressSingle", MyRtlWakeAddressSingle);
-    if(!OriginalRtlWakeAddressSingle) {
+    NativeRtlWakeAddressSingle =
+      Hook("RtlWakeAddressSingle", HookedRtlWakeAddressSingle);
+    if(!NativeRtlWakeAddressSingle) {
       return false;
     }
-    OriginalRtlWakeAddressAll = Hook("RtlWakeAddressAll", MyRtlWakeAddressAll);
-    if(!OriginalRtlWakeAddressAll) {
+    NativeRtlWakeAddressAll =
+      Hook("RtlWakeAddressAll", HookedRtlWakeAddressAll);
+    if(!NativeRtlWakeAddressAll) {
       return false;
     }
-    OriginalNtDelayExecution = Hook("NtDelayExecution", MyNtDelayExecution);
-    if(!OriginalNtDelayExecution) {
+    NativeNtDelayExecution = Hook("NtDelayExecution", HookedNtDelayExecution);
+    if(!NativeNtDelayExecution) {
       return false;
     }
-    OriginalRtlTryAcquireSRWLockExclusive =
-      Hook("RtlTryAcquireSRWLockExclusive", MyRtlTryAcquireSRWLockExclusive);
-    if(!OriginalRtlTryAcquireSRWLockExclusive) {
+    NativeRtlTryAcquireSRWLockExclusive = Hook(
+      "RtlTryAcquireSRWLockExclusive", HookedRtlTryAcquireSRWLockExclusive);
+    if(!NativeRtlTryAcquireSRWLockExclusive) {
       return false;
     }
-    OriginalRtlReleaseSRWLockExclusive =
-      Hook("RtlReleaseSRWLockExclusive", MyRtlReleaseSRWLockExclusive);
-    if(!OriginalRtlReleaseSRWLockExclusive) {
+    NativeRtlReleaseSRWLockExclusive =
+      Hook("RtlReleaseSRWLockExclusive", HookedRtlReleaseSRWLockExclusive);
+    if(!NativeRtlReleaseSRWLockExclusive) {
       return false;
     }
-    OriginalRtlSleepConditionVariableSRW =
-      Hook("RtlSleepConditionVariableSRW", MyRtlSleepConditionVariableSRW);
-    if(!OriginalRtlSleepConditionVariableSRW) {
+    NativeRtlSleepConditionVariableSRW =
+      Hook("RtlSleepConditionVariableSRW", HookedRtlSleepConditionVariableSRW);
+    if(!NativeRtlSleepConditionVariableSRW) {
       return false;
     }
-    OriginalRtlWakeConditionVariable =
-      Hook("RtlWakeConditionVariable", MyRtlWakeConditionVariable);
-    if(!OriginalRtlWakeConditionVariable) {
+    NativeRtlWakeConditionVariable =
+      Hook("RtlWakeConditionVariable", HookedRtlWakeConditionVariable);
+    if(!NativeRtlWakeConditionVariable) {
       return false;
     }
-    OriginalRtlWakeAllConditionVariable =
-      Hook("RtlWakeAllConditionVariable", MyRtlWakeAllConditionVariable);
-    if(!OriginalRtlWakeAllConditionVariable) {
+    NativeRtlWakeAllConditionVariable =
+      Hook("RtlWakeAllConditionVariable", HookedRtlWakeAllConditionVariable);
+    if(!NativeRtlWakeAllConditionVariable) {
       return false;
     }
-    OriginalRtlAcquireSRWLockExclusive =
-      Hook("RtlAcquireSRWLockExclusive", MyRtlAcquireSRWLockExclusive);
-    if(!OriginalRtlAcquireSRWLockExclusive) {
+    NativeRtlAcquireSRWLockExclusive =
+      Hook("RtlAcquireSRWLockExclusive", HookedRtlAcquireSRWLockExclusive);
+    if(!NativeRtlAcquireSRWLockExclusive) {
       return false;
     }
     isHooking = false;
     return true;
   }
 
-  struct HookInstaller {
-    static inline auto installHooks = InstallHooks();
-  };
+  inline auto installHooks = InstallHooks();
 }
 
 #endif

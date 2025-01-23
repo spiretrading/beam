@@ -141,7 +141,7 @@ namespace Beam::Services {
         } catch(const std::exception&) {
           m_client = nullptr;
           m_openState.Close();
-          BOOST_RETHROW;
+          throw;
         }
         return m_client;
       } catch(const IO::ConnectException&) {
@@ -155,7 +155,7 @@ namespace Beam::Services {
         m_reconnectTimer = nullptr;
       } catch(const std::exception&) {
         m_openState.Close();
-        BOOST_RETHROW;
+        throw;
       }
     }
   }

@@ -149,18 +149,16 @@ namespace Beam {
     while(m_objects.empty()) {
       if(unconditionalWait || m_currentObjectCount >= m_maxObjectCount) {
         m_objectAvailableCondition.wait(lock);
-      } else {
-        try {
-          m_objectAvailableCondition.timed_wait(m_timeout, lock);
-        } catch(const Threading::TimeoutException&) {
-          if(m_objects.empty() && m_currentObjectCount < m_maxObjectCount) {
-            try {
-              auto scopedObject = ScopedResource(Ref(*this), m_builder());
-              ++m_currentObjectCount;
-              return scopedObject;
-            } catch(const std::exception&) {
-              unconditionalWait = true;
-            }
+      } else if(m_objectAvailableCondition.wait_for(
+          std::chrono::microseconds(lock, m_timeout.total_microseconds())) ==
+            std::cv_status::timeout) {
+        if(m_objects.empty() && m_currentObjectCount < m_maxObjectCount) {
+          try {
+            auto scopedObject = ScopedResource(Ref(*this), m_builder());
+            ++m_currentObjectCount;
+            return scopedObject;
+          } catch(const std::exception&) {
+            unconditionalWait = true;
           }
         }
       }

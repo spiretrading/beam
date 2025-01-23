@@ -43,7 +43,7 @@ namespace Beam::TimeService::Tests {
       m_environment->Add(this);
     } catch(const std::exception&) {
       Close();
-      BOOST_RETHROW;
+      throw;
     }
   }
 

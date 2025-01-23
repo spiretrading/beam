@@ -1,6 +1,6 @@
 #ifndef BEAM_INCREMENTAL_TIME_CLIENT_HPP
 #define BEAM_INCREMENTAL_TIME_CLIENT_HPP
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/TimeService/TimeService.hpp"

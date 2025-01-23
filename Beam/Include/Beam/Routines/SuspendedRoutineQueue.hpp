@@ -108,6 +108,21 @@ namespace Beam::Routines::Details {
   }
 
   /**
+   * Resumes all Routines found in a queue of suspended Routines.
+   * @param suspendedRoutines Stores the Routines being suspended.
+   */
+  template<typename T>
+  void Resume(Out<SuspendedRoutineQueue<T>> suspendedRoutines) {
+    auto resumedRoutines = SuspendedRoutineQueue<T>();
+    resumedRoutines.swap(*suspendedRoutines);
+    while(!resumedRoutines.empty()) {
+      auto resumedRoutine = &resumedRoutines.front();
+      resumedRoutines.erase(resumedRoutines.begin());
+      Resume(resumedRoutine->m_routine);
+    }
+  }
+
+  /**
    * Resumes the first Routine found that matches a key in a queue of suspended
    * Routines.
    * @param suspendedRoutines Stores the Routines being suspended.
@@ -139,30 +154,19 @@ namespace Beam::Routines::Details {
   template<typename T, typename Lock>
   void ResumeAllMatches(Out<SuspendedRoutineQueue<T>> suspendedRoutines,
       const T& key, Lock& lock) {
+    auto resumedRoutines = SuspendedRoutineQueue<T>();
     auto i = suspendedRoutines->begin();
     while(i != suspendedRoutines->end()) {
       if(i->m_key == key) {
-        auto suspendedRoutine = i->m_routine;
+        auto resumedRoutine = &*i;
         i = suspendedRoutines->erase(i);
-        auto release = Threading::Release(lock);
-        Routines::Resume(suspendedRoutine);
+        resumedRoutines.push_back(*resumedRoutine);
       } else {
         ++i;
       }
     }
-  }
-
-  /**
-   * Resumes all Routines found in a queue of suspended Routines.
-   * @param suspendedRoutines Stores the Routines being suspended.
-   */
-  template<typename T>
-  void Resume(Out<SuspendedRoutineQueue<T>> suspendedRoutines) {
-    auto resumedRoutines = SuspendedRoutineQueue<T>();
-    resumedRoutines.swap(*suspendedRoutines);
-    for(auto& routine : resumedRoutines) {
-      Resume(routine.m_routine);
-    }
+    auto release = Threading::Release(lock);
+    Resume(Store(resumedRoutines));
   }
 
   template<typename T>

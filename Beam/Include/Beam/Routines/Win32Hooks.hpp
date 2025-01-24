@@ -249,10 +249,8 @@ namespace Beam::Routines::Details {
       return NativeRtlReleaseSRWLockExclusive(lock);
     }
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
-    if(flag.exchange(
-        LOCK_STATE_FREE, std::memory_order_release) & LOCK_STATE_WAITING) {
-      HookedRtlWakeAddressAll(&flag);
-    }
+    flag.exchange(LOCK_STATE_FREE, std::memory_order_release);
+    HookedRtlWakeAddressAll(&flag);
   }
 
   inline auto NativeRtlSleepConditionVariableSRW =

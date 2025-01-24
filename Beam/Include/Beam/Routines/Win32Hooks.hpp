@@ -226,18 +226,7 @@ namespace Beam::Routines::Details {
         expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
       return;
     }
-    while(true) {
-      expected = flag.load(std::memory_order_relaxed);
-      if(expected == LOCK_STATE_FREE) {
-        if(flag.compare_exchange_strong(
-            expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
-          return;
-        }
-      } else if(flag.compare_exchange_strong(
-          expected, expected | LOCK_STATE_WAITING, std::memory_order_acquire)) {
-        HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
-      }
-    }
+    HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
   }
 
   inline auto NativeRtlReleaseSRWLockExclusive =

@@ -222,7 +222,7 @@ namespace Beam::Routines::Details {
     }
     auto expected = LOCK_STATE_FREE;
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
-    while(flag.compare_exchange_strong(
+    while(!flag.compare_exchange_strong(
         expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
       HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
     }

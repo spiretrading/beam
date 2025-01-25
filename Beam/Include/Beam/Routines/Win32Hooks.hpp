@@ -191,26 +191,8 @@ namespace Beam::Routines::Details {
     return 0;
   }
 
-  static const auto LOCK_STATE_FREE = LONG(0);
-  static const auto LOCK_STATE_EXCLUSIVE = LONG(1);
-  static const auto LOCK_STATE_WAITING = LONG(2);
-
-  inline auto NativeRtlTryAcquireSRWLockExclusive =
+  inline auto RtlTryAcquireSRWLockExclusive =
     static_cast<BOOLEAN (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
-
-  inline BOOLEAN NTAPI HookedRtlTryAcquireSRWLockExclusive(
-      _Inout_ PRTL_SRWLOCK lock) {
-    if(isHooking) {
-      return NativeRtlTryAcquireSRWLockExclusive(lock);
-    }
-    auto expected = LOCK_STATE_FREE;
-    auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
-    if(flag.compare_exchange_strong(
-        expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
-      return TRUE;
-    }
-    return FALSE;
-  }
 
   inline auto NativeRtlAcquireSRWLockExclusive =
     static_cast<void (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(nullptr);
@@ -220,11 +202,11 @@ namespace Beam::Routines::Details {
     if(isHooking) {
       return NativeRtlAcquireSRWLockExclusive(lock);
     }
-    auto expected = LOCK_STATE_FREE;
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
-    while(!flag.compare_exchange_strong(
-        expected, LOCK_STATE_EXCLUSIVE, std::memory_order_acquire)) {
+    auto expected = flag.load();
+    while(!RtlTryAcquireSRWLockExclusive(lock)) {
       HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
+      expected = flag.load();
     }
   }
 
@@ -236,8 +218,8 @@ namespace Beam::Routines::Details {
     if(isHooking) {
       return NativeRtlReleaseSRWLockExclusive(lock);
     }
+    NativeRtlReleaseSRWLockExclusive(lock);
     auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
-    flag.exchange(LOCK_STATE_FREE, std::memory_order_release);
     HookedRtlWakeAddressAll(&flag);
   }
 
@@ -304,10 +286,20 @@ namespace Beam::Routines::Details {
     if(!NativeNtDelayExecution) {
       return false;
     }
-    NativeRtlTryAcquireSRWLockExclusive = Hook(
-      "RtlTryAcquireSRWLockExclusive", HookedRtlTryAcquireSRWLockExclusive);
-    if(!NativeRtlTryAcquireSRWLockExclusive) {
-      return false;
+    {
+      auto kernel_module = GetModuleHandleW(L"ntdll.dll");
+      if(!kernel_module) {
+        return false;
+      }
+      auto target =
+        GetProcAddress(kernel_module, "RtlTryAcquireSRWLockExclusive");
+      if(!target) {
+        return false;
+      }
+      #pragma warning(disable: 4191)
+      RtlTryAcquireSRWLockExclusive =
+        reinterpret_cast<BOOLEAN (NTAPI*)(_Inout_ PRTL_SRWLOCK)>(target);
+      #pragma warning(default: 4191)
     }
     NativeRtlReleaseSRWLockExclusive =
       Hook("RtlReleaseSRWLockExclusive", HookedRtlReleaseSRWLockExclusive);

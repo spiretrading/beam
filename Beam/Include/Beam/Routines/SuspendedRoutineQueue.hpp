@@ -138,7 +138,10 @@ namespace Beam::Routines::Details {
         auto suspendedRoutine = i->m_routine;
         suspendedRoutines->erase(i);
         auto release = Threading::Release(lock);
+        auto isInsideRoutine = Routine::IsInsideRoutine();
+        Routine::IsInsideRoutine() = false;
         Routines::Resume(suspendedRoutine);
+        Routine::IsInsideRoutine() = isInsideRoutine;
         break;
       }
     }
@@ -165,8 +168,14 @@ namespace Beam::Routines::Details {
         ++i;
       }
     }
+    if(resumedRoutines.empty()) {
+      return;
+    }
     auto release = Threading::Release(lock);
+    auto isInsideRoutine = Routine::IsInsideRoutine();
+    Routine::IsInsideRoutine() = false;
     Resume(Store(resumedRoutines));
+    Routine::IsInsideRoutine() = isInsideRoutine;
   }
 
   template<typename T>

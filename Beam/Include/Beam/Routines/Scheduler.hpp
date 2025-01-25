@@ -95,7 +95,7 @@ namespace Details {
     : m_isRunning(true) {}
 
   inline Scheduler::Scheduler()
-      : m_threadCount(2),
+      : m_threadCount(std::thread::hardware_concurrency()),
         m_threads(std::make_unique<std::thread[]>(m_threadCount)),
         m_contexts(std::make_unique<Context[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {

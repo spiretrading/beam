@@ -133,10 +133,7 @@ namespace Beam::Routines::Details {
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      auto isInsideRoutine = Routine::IsInsideRoutine();
-      Routine::IsInsideRoutine() = false;
       ResumeFirstMatch(Store(waitEntry.m_suspendedRoutines), address, lock);
-      Routine::IsInsideRoutine() = isInsideRoutine;
     }
   }
 
@@ -148,10 +145,7 @@ namespace Beam::Routines::Details {
     auto& waitEntry = GetWaitEntry(address);
     auto lock = std::unique_lock(waitEntry.m_mutex);
     if(!waitEntry.m_suspendedRoutines.empty()) {
-      auto isInsideRoutine = Routine::IsInsideRoutine();
-      Routine::IsInsideRoutine() = false;
       ResumeAllMatches(Store(waitEntry.m_suspendedRoutines), address, lock);
-      Routine::IsInsideRoutine() = isInsideRoutine;
     }
   }
 

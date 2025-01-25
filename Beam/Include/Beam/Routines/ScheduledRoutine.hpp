@@ -94,12 +94,12 @@ namespace Details {
     Routine::m_currentRoutine = nullptr;
   }
 
-  inline ScheduledRoutine::ScheduledRoutine(std::size_t stackSize,
-      std::size_t contextId)
+  inline ScheduledRoutine::ScheduledRoutine(
+      std::size_t stackSize, std::size_t contextId)
       : m_isPendingResume(false),
         m_stackSize(stackSize) {
     if(contextId == -1) {
-      m_contextId = GetId() % 2;
+      m_contextId = GetId() % std::thread::hardware_concurrency();
     } else {
       m_contextId = contextId;
     }

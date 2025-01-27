@@ -1,6 +1,6 @@
 #ifndef BEAM_LOCAL_TIME_CLIENT_HPP
 #define BEAM_LOCAL_TIME_CLIENT_HPP
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include "Beam/TimeService/TimeService.hpp"
 
 namespace Beam::TimeService {

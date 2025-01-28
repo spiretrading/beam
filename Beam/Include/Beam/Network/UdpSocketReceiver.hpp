@@ -96,7 +96,7 @@ namespace Beam::Network {
       m_isDeadlinePending(false),
       m_options(options),
       m_socket(std::move(socket)),
-      m_deadline(*m_socket->m_ioService) {
+      m_deadline(*m_socket->m_ioContext) {
     auto errorCode = boost::system::error_code();
     auto bufferSize = boost::asio::socket_base::receive_buffer_size(
       static_cast<int>(m_options.m_receiveBufferSize));
@@ -151,7 +151,7 @@ namespace Beam::Network {
     if(hasTimeout) {
       auto lock = boost::lock_guard(m_mutex);
       m_isDeadlinePending = true;
-      m_deadline.expires_from_now(boost::chrono::microseconds{
+      m_deadline.expires_after(boost::chrono::microseconds{
         m_options.m_timeout.total_microseconds()});
       m_deadline.async_wait(
         std::bind_front(&UdpSocketReceiver::CheckDeadline, this));

@@ -1,8 +1,6 @@
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/RegistryServiceTests/*.hpp)
-file(GLOB source_files ${BEAM_SOURCE_PATH}/RegistryServiceTests/*.cpp)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-endif()
+file(GLOB_RECURSE
+  header_files ${BEAM_INCLUDE_PATH}/Beam/RegistryServiceTests/*.hpp)
+file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/RegistryServiceTests/*.cpp)
 add_executable(RegistryServiceTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(RegistryServiceTests
@@ -22,8 +20,8 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     pthread rt)
 endif()
-add_custom_command(TARGET RegistryServiceTests POST_BUILD
-  COMMAND RegistryServiceTests)
+add_custom_command(TARGET RegistryServiceTests
+  POST_BUILD COMMAND RegistryServiceTests)
 install(TARGETS RegistryServiceTests CONFIGURATIONS Debug
   DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)
 install(TARGETS RegistryServiceTests CONFIGURATIONS Release RelWithDebInfo

@@ -51,7 +51,7 @@ namespace Network {
 
     private:
       TcpSocketOptions m_options;
-      boost::asio::io_service* m_ioService;
+      boost::asio::io_context* m_ioContext;
       boost::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
       IO::OpenState m_openState;
 
@@ -71,17 +71,21 @@ namespace Network {
   inline TcpServerSocket::TcpServerSocket(const IpAddress& interface,
       const TcpSocketOptions& options)
       : m_options(options),
-        m_ioService(&Threading::ServiceThreadPool::GetInstance().GetService()) {
+        m_ioContext(&Threading::ServiceThreadPool::GetInstance().GetContext()) {
     try {
-      auto resolver = boost::asio::ip::tcp::resolver(*m_ioService);
-      auto query = boost::asio::ip::tcp::resolver::query(interface.GetHost(),
-        std::to_string(interface.GetPort()));
-      auto error = boost::system::error_code();
-      auto endpointIterator = resolver.resolve(query, error);
-      if(error) {
-        BOOST_THROW_EXCEPTION(SocketException(error.value(), error.message()));
+      auto resolver = boost::asio::ip::tcp::resolver(*m_ioContext);
+      auto errorCode = boost::system::error_code();
+      auto endpoints = resolver.resolve(
+        interface.GetHost(), std::to_string(interface.GetPort()), errorCode);
+      if(errorCode) {
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
-      m_acceptor.emplace(*m_ioService, *endpointIterator);
+      if(endpoints.empty()) {
+        BOOST_THROW_EXCEPTION(SocketException(
+          boost::asio::error::invalid_argument, "Invalid interface."));
+      }
+      m_acceptor.emplace(*m_ioContext, *endpoints.begin());
     } catch(const boost::system::system_error& e) {
       Close();
       try {

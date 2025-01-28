@@ -1,8 +1,5 @@
-file(GLOB header_files ${BEAM_INCLUDE_PATH}/Beam/QueriesTests/*.hpp)
-file(GLOB source_files ${BEAM_SOURCE_PATH}/QueriesTests/*.cpp)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-endif()
+file(GLOB_RECURSE header_files ${BEAM_INCLUDE_PATH}/Beam/QueriesTests/*.hpp)
+file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/QueriesTests/*.cpp)
 add_executable(QueriesTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(QueriesTests

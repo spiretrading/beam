@@ -1,5 +1,6 @@
 #ifndef BEAM_UDP_SOCKET_SENDER_HPP
 #define BEAM_UDP_SOCKET_SENDER_HPP
+#include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
@@ -63,7 +64,7 @@ namespace Beam::Network {
     m_socket->BeginWriteOperation();
     m_tasks.Add([&] {
       auto destinationEndpoint = boost::asio::ip::udp::endpoint(
-        boost::asio::ip::address::from_string(destination.GetHost()),
+        boost::asio::ip::make_address(destination.GetHost()),
         destination.GetPort());
       m_socket->m_socket.async_send_to(boost::asio::buffer(data, size),
           destinationEndpoint, [&] (const auto& error, auto writeSize) {

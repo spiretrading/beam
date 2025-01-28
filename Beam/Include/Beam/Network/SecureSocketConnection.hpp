@@ -98,72 +98,72 @@ namespace Network {
       const boost::optional<IpAddress>& interface) {
     try {
       m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);
-      auto errorCode = boost::system::error_code();
+      auto errorCode =
+        boost::system::error_code(boost::asio::error::host_not_found);
       for(auto& address : addresses) {
         errorCode.clear();
-        auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioService);
-        auto query = boost::asio::ip::tcp::resolver::query(address.GetHost(),
-          std::to_string(address.GetPort()));
-        auto end = boost::asio::ip::tcp::resolver::iterator();
-        auto endpointIterator = resolver.resolve(query, errorCode);
+        auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioContext);
+        auto endpoints = resolver.resolve(
+          address.GetHost(), std::to_string(address.GetPort()), errorCode);
         if(errorCode) {
-          BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-            errorCode.message()));
+          BOOST_THROW_EXCEPTION(
+            SocketException(errorCode.value(), errorCode.message()));
         }
         errorCode = boost::asio::error::host_not_found;
-        while(errorCode && endpointIterator != end) {
+        for(auto& endpoint : endpoints) {
           auto closeError = boost::system::error_code();
           m_socket->m_socket.lowest_layer().close(closeError);
           if(interface) {
             auto localEndpoint = boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::address::from_string(interface->GetHost(),
-              errorCode), interface->GetPort());
+              boost::asio::ip::make_address(interface->GetHost(), errorCode),
+              interface->GetPort());
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-                errorCode.message()));
+              BOOST_THROW_EXCEPTION(
+                SocketException(errorCode.value(), errorCode.message()));
             }
-            m_socket->m_socket.lowest_layer().open(boost::asio::ip::tcp::v4(),
-              errorCode);
+            m_socket->m_socket.lowest_layer().open(
+              boost::asio::ip::tcp::v4(), errorCode);
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-                errorCode.message()));
+              BOOST_THROW_EXCEPTION(
+                SocketException(errorCode.value(), errorCode.message()));
             }
             m_socket->m_socket.lowest_layer().bind(localEndpoint, errorCode);
             if(errorCode) {
-              BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-                errorCode.message()));
+              BOOST_THROW_EXCEPTION(
+                SocketException(errorCode.value(), errorCode.message()));
             }
           }
-          m_socket->m_socket.lowest_layer().connect(*endpointIterator,
-            errorCode);
-          ++endpointIterator;
+          m_socket->m_socket.lowest_layer().connect(endpoint, errorCode);
+          if(!errorCode) {
+            break;
+          }
         }
         if(!errorCode) {
           break;
         }
       }
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
-      auto bufferSize = boost::asio::socket_base::send_buffer_size(
-        options.m_writeBufferSize);
+      auto bufferSize =
+        boost::asio::socket_base::send_buffer_size(options.m_writeBufferSize);
       m_socket->m_socket.lowest_layer().set_option(bufferSize, errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
       auto noDelay = boost::asio::ip::tcp::no_delay(options.m_noDelayEnabled);
       m_socket->m_socket.lowest_layer().set_option(noDelay, errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
-      m_socket->m_socket.handshake(boost::asio::ssl::stream_base::client,
-        errorCode);
+      m_socket->m_socket.handshake(
+        boost::asio::ssl::stream_base::client, errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
     } catch(const IO::ConnectException&) {
       Close();

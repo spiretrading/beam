@@ -1,7 +1,4 @@
-file(GLOB source_files ${BEAM_SOURCE_PATH}/ParsersTests/*.cpp)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-endif()
+file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ParsersTests/*.cpp)
 add_executable(ParsersTests ${header_files} ${source_files})
 if(UNIX)
   target_link_libraries(ParsersTests

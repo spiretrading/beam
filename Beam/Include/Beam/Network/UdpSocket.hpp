@@ -84,8 +84,8 @@ namespace Beam::Network {
       const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          Threading::ServiceThreadPool::GetInstance().GetService(),
-          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
           boost::asio::ip::udp::v4())) {
     Open(boost::none, options);
   }
@@ -98,8 +98,8 @@ namespace Beam::Network {
       const IpAddress& interface, const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          Threading::ServiceThreadPool::GetInstance().GetService(),
-          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
           boost::asio::ip::udp::v4())) {
     Open(interface, options);
   }
@@ -132,43 +132,39 @@ namespace Beam::Network {
       const UdpSocketOptions& options) {
     try {
       auto errorCode = boost::system::error_code();
-      auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_ioService);
-      auto query = boost::asio::ip::udp::resolver::query(m_address.GetHost(),
-        std::to_string(m_address.GetPort()));
-      auto end = boost::asio::ip::udp::resolver::iterator();
-      auto endpointIterator = resolver.resolve(query, errorCode);
+      auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_ioContext);
+      auto endpoints = resolver.resolve(
+        m_address.GetHost(), std::to_string(m_address.GetPort()), errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
       auto isAddressResolved = false;
-      while(endpointIterator != end) {
-        auto endPoint = boost::asio::ip::udp::endpoint(*endpointIterator);
-        auto address = endPoint.address().to_string();
+      for(auto& endpoint : endpoints) {
+        auto address = endpoint.host_name();
         if(!address.empty()) {
           m_address = IpAddress(address, m_address.GetPort());
           isAddressResolved = true;
           break;
         }
-        ++endpointIterator;
       }
       if(!isAddressResolved) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(
-          "Unable to resolve IP address."));
+        BOOST_THROW_EXCEPTION(
+          IO::ConnectException("Unable to resolve IP address."));
       }
       m_socket->m_socket.set_option(
         boost::asio::ip::udp::socket::reuse_address(true), errorCode);
       if(errorCode) {
-        BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-          errorCode.message()));
+        BOOST_THROW_EXCEPTION(
+          SocketException(errorCode.value(), errorCode.message()));
       }
       if(interface) {
         m_socket->m_socket.bind(boost::asio::ip::udp::endpoint(
-          boost::asio::ip::address_v4::from_string(interface->GetHost()),
+          boost::asio::ip::make_address_v4(interface->GetHost()),
           interface->GetPort()), errorCode);
         if(errorCode) {
-          BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
-            errorCode.message()));
+          BOOST_THROW_EXCEPTION(
+            SocketException(errorCode.value(), errorCode.message()));
         }
       }
       m_receiver.emplace(options, m_socket);

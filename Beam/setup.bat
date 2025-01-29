@@ -3,37 +3,31 @@ SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
 IF EXIST cache_files\beam.txt (
-  FOR /F %%i IN (
-      'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
-    FOR /F %%j IN (
-        'ls -l --time-style=full-iso cache_files\beam.txt ^| awk "{print $6 $7}"') DO (
-      IF "%%i" LSS "%%j" (
-        EXIT /B 0
-      )
-    )
+  powershell -Command "& { "^
+    "$setupTimestamp = (Get-Item '%~dp0setup.bat').LastWriteTime; "^
+    "$aspenTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; "^
+    "if ($setupTimestamp -lt $aspenTimestamp) {"^
+    "  Exit 0;"^
+    "} else {"^
+    "  Exit 1;"^
+    "}"^
+  "}"
+  IF ERRORLEVEL 0 (
+    EXIT /B 0
   )
 )
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property installationPath`) DO (
+FOR /F "usebackq delims=" %%i IN (` ^
+    !VSWHERE! -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
     CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=amd64
   )
 )
-IF NOT EXIST Strawberry (
-  wget https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip -O strawberry-perl-5.40.0.1-64bit-portable.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    MD Strawberry
-    PUSHD Strawberry
-    tar -xf ..\strawberry-perl-5.40.0.1-64bit-portable.zip
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q strawberry-perl-5.40.0.1-64bit-portable.zip
-)
+CALL :DownloadAndExtract "Strawberry" ^
+  "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="397c852627c69f753eb0184095191afd027b30e2"
+SET ASPEN_COMMIT="7991dbf01d93c702fd1638150dbd59338be95e40"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -66,28 +60,22 @@ IF EXIST aspen (
   )
   POPD
 )
-IF NOT EXIST cryptopp890 (
-  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip -O cryptopp890.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf cryptopp890.zip
-    MOVE cryptopp-CRYPTOPP_8_9_0 cryptopp890
-    PUSHD cryptopp890
-    TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
-    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
-    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 /p:Configuration=Debug cryptlib.vcxproj
-    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 /p:Configuration=Release cryptlib.vcxproj
-    MD include
-    PUSHD include
-    MD cryptopp
-    COPY ..\*.h cryptopp
-    POPD
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q cryptopp890.zip
+CALL :DownloadAndExtract "cryptopp890" ^
+  "https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD cryptopp890
+  TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
+  MOVE cryptlib.vcxproj.new cryptlib.vcxproj
+  TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
+  MOVE cryptlib.vcxproj.new cryptlib.vcxproj
+  msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 /p:Configuration=Debug cryptlib.vcxproj
+  msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 /p:Configuration=Release cryptlib.vcxproj
+  MD include
+  PUSHD include
+  MD cryptopp
+  COPY ..\*.h cryptopp
+  POPD
+  POPD
 )
 IF NOT EXIST mariadb-connector-c-3.4.3 (
   wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.3.zip -O mariadb-connector-c-3.4.3.zip --no-check-certificate
@@ -143,15 +131,8 @@ IF NOT EXIST sqlite-amalgamation-3480000 (
   )
   DEL /F /Q sqlite-amalgamation-3480000.zip
 )
-IF NOT EXIST tclap-1.2.5 (
-  wget https://github.com/mirror/tclap/archive/v1.2.5.zip -O v1.2.5.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf v1.2.5.zip
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q v1.2.5.zip
-)
+CALL :DownloadAndExtract "tclap-1.2.5" ^
+  "https://github.com/mirror/tclap/archive/v1.2.5.zip"
 SET VIPER_COMMIT="baa7791140abd87b16d2132451812e293e71c93d"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
@@ -232,3 +213,62 @@ IF NOT EXIST cache_files (
 ECHO timestamp > cache_files\beam.txt
 ENDLOCAL
 EXIT /B !EXIT_STATUS!
+
+:DownloadAndExtract
+SET FOLDER=%~1
+SET URL=%~2
+SET BUILD_NEEDED=0
+FOR /F "tokens=* delims=/" %%A IN ("%URL%") DO (
+  SET ARCHIVE=%%~nxA
+)
+SET EXTENSION=%ARCHIVE:~-4%
+IF EXIST %FOLDER% (
+  EXIT /B 0
+)
+powershell -Command "Invoke-WebRequest -Uri '%URL%' -OutFile '%ARCHIVE%'"
+IF ERRORLEVEL 1 (
+  ECHO Error: Failed to download %ARCHIVE%.
+  SET EXIT_STATUS=1
+  EXIT /B
+)
+SET EXTRACT_PATH=_extract_tmp
+MD "%EXTRACT_PATH%"
+IF /I "%EXTENSION%"==".zip" (
+  powershell -Command ^
+    "Expand-Archive -Path '%ARCHIVE%' -DestinationPath '%EXTRACT_PATH%'"
+) ELSE IF /I "%EXTENSION%"==".tgz" (
+  powershell -Command "tar -xf '%ARCHIVE%' -C '%EXTRACT_PATH%'"
+) ELSE IF /I "%ARCHIVE:~-7%"==".tar.gz" (
+  powershell -Command "tar -xf '%ARCHIVE%' -C '%EXTRACT_PATH%'"
+) ELSE (
+  ECHO Error: Unknown archive format for %ARCHIVE%.
+  SET EXIT_STATUS=1
+  EXIT /B 1
+)
+SET DETECTED_FOLDER=
+FOR %%F IN ("%EXTRACT_PATH%\*") DO (
+  IF NOT DEFINED DETECTED_FOLDER (
+    SET DETECTED_FOLDER=%%F
+  ) ELSE (
+    SET DETECTED_FOLDER=MULTIPLE
+  )
+)
+IF "%DETECTED_FOLDER%"=="MULTIPLE" (
+  MD "%FOLDER%"
+  MOVE "%EXTRACT_PATH%\*" "%FOLDER%\"
+) ELSE IF NOT "%DETECTED_FOLDER%"=="" (
+  IF NOT "%DETECTED_FOLDER%"=="MULTIPLE" (
+    IF NOT "%DETECTED_FOLDER%"=="%FOLDER%" (
+      MOVE "%DETECTED_FOLDER%" "%FOLDER%"
+    )
+  )
+)
+RD /S /Q "%EXTRACT_PATH%"
+IF ERRORLEVEL 1 (
+  ECHO Error: Failed to extract %ARCHIVE%.
+  SET EXIT_STATUS=1
+  EXIT /B 0
+)
+SET BUILD_NEEDED=1
+DEL /F /Q %ARCHIVE%
+EXIT /B 0

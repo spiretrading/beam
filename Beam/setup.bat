@@ -3,16 +3,17 @@ SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
 IF EXIST cache_files\beam.txt (
-  powershell -Command "& { "^
-    "$setupTimestamp = (Get-Item '%~dp0setup.bat').LastWriteTime; "^
-    "$aspenTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; "^
-    "if ($setupTimestamp -lt $aspenTimestamp) {"^
-    "  Exit 0;"^
-    "} else {"^
-    "  Exit 1;"^
-    "}"^
+  SET CACHE_COMMAND=powershell -Command "& { " ^
+    "$setupTimestamp = (Get-Item '%~dp0setup.bat').LastWriteTime; " ^
+    "$aspenTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; " ^
+    "if($setupTimestamp -lt $aspenTimestamp) {" ^
+    "  Write-Output '0';" ^
+    "} else {" ^
+    "  Write-Output '1';" ^
+    "}" ^
   "}"
-  IF ERRORLEVEL 0 (
+  FOR /F "delims=" %%A IN ('CALL !CACHE_COMMAND!') DO SET IS_CACHED=%%A
+  IF "!IS_CACHED!"=="0" (
     EXIT /B 0
   )
 )
@@ -27,7 +28,7 @@ CALL :DownloadAndExtract "Strawberry" ^
   "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="7991dbf01d93c702fd1638150dbd59338be95e40"
+SET ASPEN_COMMIT="beaccaba724fdb5c34437f770af04e0c01ba65ff"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (

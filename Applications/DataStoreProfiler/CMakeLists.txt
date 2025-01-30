@@ -92,6 +92,7 @@ if(UNIX)
     dl pthread rt)
 endif()
 if(WIN32)
-  target_link_libraries(DataStoreProfiler crypt32 Secur32.Lib shlwapi ws2_32)
+  target_link_libraries(
+    DataStoreProfiler Bcrypt crypt32 Secur32.Lib shlwapi ws2_32)
 endif()
 install(TARGETS DataStoreProfiler DESTINATION ${PROJECT_BINARY_DIR}/Application)

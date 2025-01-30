@@ -20,6 +20,13 @@ elseif(UNIX)
   set(configure_script "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
     "${CMAKE_BUILD_TYPE}")
 endif()
+execute_process(COMMAND ${configure_script}
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" RESULT_VARIABLE configure_result
+  OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error
+  OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
+if(NOT configure_result EQUAL 0)
+  message(FATAL_ERROR "Configuration script failed with error:\n${configure_error}\nOutput:\n${configure_output}")
+endif()
 include(Config/dependencies.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${ASPEN_INCLUDE_PATH})

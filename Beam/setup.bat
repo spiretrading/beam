@@ -167,6 +167,7 @@ IF %BUILD_NEEDED%==1 (
   cmake --build . --target ALL_BUILD --config Debug
   cmake --build . --target ALL_BUILD --config Release
   POPD
+  POPD
 )
 CALL :DownloadAndExtract "zlib-1.3.1" ^
   "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.zip"

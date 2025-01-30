@@ -5,8 +5,8 @@ SET ROOT=%cd%
 IF EXIST cache_files\beam.txt (
   SET CACHE_COMMAND=powershell -Command "& { " ^
     "$setupTimestamp = (Get-Item '%~dp0setup.bat').LastWriteTime; " ^
-    "$aspenTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; " ^
-    "if($setupTimestamp -lt $aspenTimestamp) {" ^
+    "$beamTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; " ^
+    "if($setupTimestamp -lt $beamTimestamp) {" ^
     "  Write-Output '0';" ^
     "} else {" ^
     "  Write-Output '1';" ^

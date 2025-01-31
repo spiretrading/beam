@@ -262,6 +262,7 @@ namespace Beam::Routines::Details {
 
   inline bool InstallHooks() {
     isHooking = true;
+    Routine::TLS_SLOT = TlsAlloc();
     NativeRtlWaitOnAddress = Hook("RtlWaitOnAddress", HookedRtlWaitOnAddress);
     if(!NativeRtlWaitOnAddress) {
       return false;

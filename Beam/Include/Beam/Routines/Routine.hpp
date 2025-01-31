@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <tuple>
 #include <vector>
+#include <windows.h>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Routines/Routines.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -18,6 +19,7 @@ namespace Beam::Routines {
   /** Encapsulates a single sub-routine spawned by a Scheduler. */
   class Routine {
     public:
+      static inline auto TLS_SLOT = std::uint32_t(0xFFFFFFFF);
 
       /** Indicates whether a routine is currently running on this thread. */
       static bool& IsInsideRoutine();
@@ -158,8 +160,13 @@ namespace Beam::Routines {
   }
 
   inline bool& Routine::IsInsideRoutine() {
-    static thread_local auto isInsideRoutine = false;
-    return isInsideRoutine;
+    if(TlsGetValue(TLS_SLOT)) {
+      static thread_local auto isInsideRoutine = false;
+      return isInsideRoutine;
+    } else {
+      static auto external = false;
+      return external;
+    }
   }
 
   inline Routine::Routine()

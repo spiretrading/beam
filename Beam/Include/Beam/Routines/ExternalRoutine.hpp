@@ -2,6 +2,7 @@
 #define BEAM_EXTERNAL_ROUTINE_HPP
 #include <condition_variable>
 #include <mutex>
+#include <windows.h>
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam::Routines {
@@ -69,6 +70,7 @@ namespace Beam::Routines {
   inline Routine& GetCurrentRoutine() {
     auto& routine = Routine::m_currentRoutine;
     if(!routine) {
+      TlsSetValue(Routine::TLS_SLOT, reinterpret_cast<void*>(1));
       thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
       routine = externalRoutine.get();
     }

@@ -100,6 +100,7 @@ namespace Details {
         m_contexts(std::make_unique<Context[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
       m_threads[i] = std::thread([=, this] {
+        TlsSetValue(Routine::TLS_SLOT, reinterpret_cast<void*>(1));
         Run(m_contexts[i]);
       });
     }

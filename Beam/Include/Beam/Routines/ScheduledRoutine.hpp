@@ -1,14 +1,17 @@
 #ifndef BEAM_SCHEDULED_ROUTINE_HPP
 #define BEAM_SCHEDULED_ROUTINE_HPP
 #include <iostream>
+#ifdef WIN32
+  #define BOOST_USE_WINFIB
+#endif
 #if defined _MSC_VER
-#define BEAM_DISABLE_OPTIMIZATIONS __pragma(optimize( "", off ))
-#define other beam_other
-#include <boost/context/continuation.hpp>
-#undef other
+  #define BEAM_DISABLE_OPTIMIZATIONS __pragma(optimize( "", off ))
+  #define other beam_other
+  #include <boost/context/continuation.hpp>
+  #undef other
 #else
-#define BEAM_DISABLE_OPTIMIZATIONS
-#include <boost/context/continuation.hpp>
+  #define BEAM_DISABLE_OPTIMIZATIONS
+  #include <boost/context/continuation.hpp>
 #endif
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Routines.hpp"

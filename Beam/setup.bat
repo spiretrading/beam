@@ -192,16 +192,19 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-CALL :DownloadAndExtract "boost_1_85_0" ^
-  "https://archives.boost.io/release/1.85.0/source/boost_1_85_0.zip"
+CALL :DownloadAndExtract "boost_1_86_0" ^
+  "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip"
 IF %BUILD_NEEDED%==1 (
-  PUSHD boost_1_85_0
+  PUSHD boost_1_86_0
   PUSHD tools\build
   CALL bootstrap.bat vc143
   POPD
   tools\build\b2 !BJAM_PROCESSORS! --without-context ^
-    --prefix="!ROOT!\boost_1_85_0" --build-type=complete toolset=msvc-14.3 ^
-    link=static,shared runtime-link=shared install
+    --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=64 ^
+    context-impl=winfib toolset=msvc-14.3 link=static,shared runtime-link=shared install
+  tools\build\b2 !BJAM_PROCESSORS! --with-context ^
+    --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=64 ^
+    context-impl=winfib toolset=msvc-14.3 link=static runtime-link=shared install
   POPD
 )
 IF NOT EXIST cache_files (

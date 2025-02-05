@@ -199,12 +199,9 @@ IF %BUILD_NEEDED%==1 (
   PUSHD tools\build
   CALL bootstrap.bat vc143
   POPD
-  tools\build\b2 !BJAM_PROCESSORS! --without-context ^
-    --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=64 ^
-    context-impl=winfib toolset=msvc-14.3 link=static,shared runtime-link=shared install
-  tools\build\b2 !BJAM_PROCESSORS! --with-context ^
-    --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=64 ^
-    context-impl=winfib toolset=msvc-14.3 link=static runtime-link=shared install
+  tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_86_0" ^
+    --build-type=complete address-model=64 context-impl=winfib ^
+    toolset=msvc-14.3 link=static runtime-link=shared install
   POPD
 )
 IF NOT EXIST cache_files (

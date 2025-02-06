@@ -143,7 +143,15 @@ namespace Beam::Network {
       for(auto& endpoint : endpoints) {
         auto address = endpoint.host_name();
         if(!address.empty()) {
-          m_address = IpAddress(address, m_address.GetPort());
+          auto ipAddresses = resolver.resolve(boost::asio::ip::udp::v4(),
+            address, std::to_string(m_address.GetPort()));
+          if(ipAddresses.empty()) {
+            m_address = IpAddress(address, m_address.GetPort());
+          } else {
+            m_address = IpAddress(
+              ipAddresses.begin()->endpoint().address().to_string(),
+              m_address.GetPort());
+          }
           isAddressResolved = true;
           break;
         }

@@ -4,9 +4,9 @@ set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
 set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.so")
 set(BOOST_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_81_0/include/")
-set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_81_0/lib")
-set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_81_0/lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/include/")
+set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/lib")
+set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/lib")
 set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
 set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")
@@ -24,33 +24,33 @@ set(BOOST_THREAD_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_thread.a")
 set(BOOST_THREAD_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_thread.a")
 set(CRYPTOPP_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp870/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/include")
 set(CRYPTOPP_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp870/lib/libcryptopp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/lib/libcryptopp.a")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp870/lib/libcryptopp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/lib/libcryptopp.a")
 set(MYSQL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.3.3/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.3.3/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/libmariadb/libmariadbclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.3.3/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/libmariadb/libmariadbclient.a")
 set(OPEN_SSL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1q/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1q/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libcrypto.a")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1q/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libcrypto.a")
 set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1q/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-1.1.1q/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libssl.a")
 set(SQLITE_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3400100")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000")
 set(SQLITE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3400100/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000/sqlite3.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3400100/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000/sqlite3.lib")
 set(YAML_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/include")
 set(YAML_LIBRARY_DEBUG_PATH
@@ -59,6 +59,6 @@ set(YAML_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/build/libyaml-cpp.a")
 set(ZLIB_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.2.13/include")
 set(ZLIB_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.2.13/libz.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1/libz.a")
 set(ZLIB_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.2.13/libz.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1/libz.a")

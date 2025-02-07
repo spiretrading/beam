@@ -6,10 +6,12 @@
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/control/if.hpp>
 #include <boost/preprocessor/facilities/empty.hpp>
+#include <boost/preprocessor/punctuation/comma_if.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/for_each_i.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
+#include <boost/preprocessor/tuple/rem.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include "Beam/Serialization/Serialization.hpp"
 #include "Beam/Utilities/Preprocessor.hpp"

@@ -7,11 +7,11 @@ set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Python PROPERTIES OUTPUT_NAME _beam)
 target_compile_definitions(
   Python PRIVATE ASPEN_USE_DLL BEAM_BUILD_DLL BEAM_ENABLE_STACK_PRINT)
+set_target_properties(Python PROPERTIES CXX_VISIBILITY_PRESET hidden
+  VISIBILITY_INLINES_HIDDEN 1)
 if(MSVC)
   target_compile_definitions(Python PRIVATE HAVE_SNPRINTF)
   set_target_properties(Python PROPERTIES SUFFIX ".pyd")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(Python PRIVATE -fvisibility=hidden)
 endif()
 if(UNIX)
   set_target_properties(Python PROPERTIES PREFIX "")

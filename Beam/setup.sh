@@ -21,7 +21,7 @@ if [ -f "cache_files/beam.txt" ]; then
   fi
 fi
 cores="`grep -c "processor" < /proc/cpuinfo`"
-aspen_commit="baa1acb9ea7a7dd780b932929e49591ac358066e"
+aspen_commit="21212499dfba1165c21cf4a3f938647cdefe8236"
 build_aspen=0
 if [ ! -d "aspen" ]; then
   git clone https://www.github.com/spiretrading/aspen
@@ -54,27 +54,27 @@ if [ -d "aspen" ]; then
   fi
   popd
 fi
-if [ ! -d "cryptopp870" ]; then
-  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_7_0.zip -O cryptopp870.zip --no-check-certificate
+if [ ! -d "cryptopp890" ]; then
+  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip -O cryptopp890.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip cryptopp870.zip
-    mv cryptopp-CRYPTOPP_8_7_0 cryptopp870
-    pushd cryptopp870
+    unzip cryptopp890.zip
+    mv cryptopp-CRYPTOPP_8_9_0 cryptopp890
+    pushd cryptopp890
     make -j $cores
-    make install PREFIX="$root/cryptopp870"
+    make install PREFIX="$root/cryptopp890"
     popd
   else
     exit_status=1
   fi
-  rm -f cryptopp870.zip
+  rm -f cryptopp890.zip
 fi
-if [ ! -d "openssl-1.1.1q" ]; then
-  wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
+if [ ! -d "openssl-3.4.0" ]; then
+  wget "https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz" -O openssl-3.4.0.tar.gz --no-check-certificate
   if [ "$?" == "0" ]; then
-    gzip -d -c openssl-1.1.1q.tar.gz | tar -x
-    pushd openssl-1.1.1q
+    gzip -d -c openssl-3.4.0.tar.gz | tar -x
+    pushd openssl-3.4.0
     export LDFLAGS=-ldl
-    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-1.1.1q"
+    ./config no-shared threads -fPIC -ldl --prefix="$root/openssl-3.4.0"
     make -j $cores
     make test
     make install
@@ -83,14 +83,14 @@ if [ ! -d "openssl-1.1.1q" ]; then
   else
     exit_status=1
   fi
-  rm -f openssl-1.1.1q.tar.gz
+  rm -f openssl-3.4.0.tar.gz
 fi
-if [ ! -d "mariadb-connector-c-3.3.3" ]; then
-  wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.3.3.zip -O mariadb-connector-c-3.3.3.zip --no-check-certificate
+if [ ! -d "mariadb-connector-c-3.4.3" ]; then
+  wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.3.zip -O mariadb-connector-c-3.4.3.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip mariadb-connector-c-3.3.3.zip
-    pushd mariadb-connector-c-3.3.3
-    export OPENSSL_ROOT_DIR="$root/openssl-1.1.1q"
+    unzip mariadb-connector-c-3.4.3.zip
+    pushd mariadb-connector-c-3.4.3
+    export OPENSSL_ROOT_DIR="$root/openssl-3.4.0"
     cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
     make -j $cores
     make install
@@ -99,19 +99,19 @@ if [ ! -d "mariadb-connector-c-3.3.3" ]; then
   else
     exit_status=1
   fi
-  rm -f mariadb-connector-c-3.3.3.zip
+  rm -f mariadb-connector-c-3.4.3.zip
 fi
-if [ ! -d "sqlite-amalgamation-3400100" ]; then
-  wget https://www.sqlite.org/2022/sqlite-amalgamation-3400100.zip -O sqlite-amalgamation-3400100.zip --no-check-certificate
+if [ ! -d "sqlite-amalgamation-3480000" ]; then
+  wget https://www.sqlite.org/2025/sqlite-amalgamation-3480000.zip -O sqlite-amalgamation-3480000.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip sqlite-amalgamation-3400100.zip
-    pushd sqlite-amalgamation-3400100
+    unzip sqlite-amalgamation-3480000.zip
+    pushd sqlite-amalgamation-3480000
     gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c
     popd
   else
     exit_status=1
   fi
-  rm -f sqlite-amalgamation-3400100.zip
+  rm -f sqlite-amalgamation-3480000.zip
 fi
 if [ ! -d "tclap-1.2.5" ]; then
   wget https://github.com/mirror/tclap/archive/v1.2.5.zip -O v1.2.5.zip --no-check-certificate
@@ -167,13 +167,13 @@ if [ ! -d "yaml-cpp-0.6.2" ]; then
     exit_status=1
   fi
 fi
-if [ ! -d "zlib-1.2.13" ]; then
-  wget https://github.com/madler/zlib/archive/v1.2.13.zip --no-check-certificate
+if [ ! -d "zlib-1.3.1" ]; then
+  wget "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.zip" --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip v1.2.13.zip
-    pushd zlib-1.2.13
+    unzip v1.3.1.zip
+    pushd zlib-1.3.1
     export CFLAGS="-fPIC"
-    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/zlib-1.2.13" -G "Unix Makefiles"
+    cmake -DCMAKE_INSTALL_PREFIX:PATH="$root/zlib-1.3.1" -G "Unix Makefiles"
     make -j $cores
     make install
     unset CFLAGS
@@ -181,22 +181,22 @@ if [ ! -d "zlib-1.2.13" ]; then
   else
     exit_status=1
   fi
-  rm -f v1.2.13.zip
+  rm -f v1.3.1.zip
 fi
-if [ ! -d "boost_1_81_0" ]; then
-  wget https://boostorg.jfrog.io/artifactory/main/release/1.81.0/source/boost_1_81_0.zip -O boost_1_81_0.zip --no-check-certificate
+if [ ! -d "boost_1_86_0" ]; then
+  wget "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip" -O boost_1_86_0.zip --no-check-certificate
   if [ "$?" == "0" ]; then
-    unzip boost_1_81_0.zip
-    pushd boost_1_81_0
+    unzip boost_1_86_0.zip
+    pushd boost_1_86_0
     export BOOST_BUILD_PATH=$(pwd -P)
     ./bootstrap.sh
-    ./b2 -j$cores --prefix="$root/boost_1_81_0" cxxflags="-std=c++20 -fPIC" install
+    ./b2 -j$cores --prefix="$root/boost_1_86_0" cxxflags="-std=c++20 -fPIC" install
     popd
     unset BOOST_BUILD_PATH
   else
     exit_status=1
   fi
-  rm -f boost_1_81_0.zip
+  rm -f boost_1_86_0.zip
 fi
 if [ ! -d cache_files ]; then
   mkdir cache_files

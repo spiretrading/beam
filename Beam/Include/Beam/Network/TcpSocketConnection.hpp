@@ -94,8 +94,13 @@ namespace Network {
       const std::vector<IpAddress>& addresses,
       const boost::optional<IpAddress>& interface) {
     try {
-      auto errorCode =
-        boost::system::error_code(boost::asio::error::host_not_found);
+      auto errorCode = [&] {
+        if(addresses.empty()) {
+          return boost::system::error_code();
+        } else {
+          return boost::system::error_code(boost::asio::error::host_not_found);
+        }
+      }();
       for(auto& address : addresses) {
         errorCode.clear();
         auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioContext);

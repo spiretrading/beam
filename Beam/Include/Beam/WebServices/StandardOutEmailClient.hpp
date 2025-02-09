@@ -1,21 +1,17 @@
-#ifndef BEAM_STANDARDOUTEMAILCLIENT_HPP
-#define BEAM_STANDARDOUTEMAILCLIENT_HPP
+#ifndef BEAM_STANDARD_OUT_EMAIL_CLIENT_HPP
+#define BEAM_STANDARD_OUT_EMAIL_CLIENT_HPP
 #include <iostream>
-#include <boost/noncopyable.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/WebServices/Email.hpp"
 #include "Beam/WebServices/EmailClient.hpp"
 #include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam {
-namespace WebServices {
+namespace Beam::WebServices {
 
-  /*! \class StandardOutEmailClient.
-      \brief Displays emails to stdout.
-   */
-  class StandardOutEmailClient : private boost::noncopyable {
+  /** Displays emails to stdout. */
+  class StandardOutEmailClient {
     public:
-      StandardOutEmailClient();
+      StandardOutEmailClient() = default;
 
       ~StandardOutEmailClient();
 
@@ -27,25 +23,22 @@ namespace WebServices {
       IO::OpenState m_openState;
   };
 
-  inline StandardOutEmailClient::StandardOutEmailClient() {
-    m_openState.SetOpen();
-  }
-
   inline StandardOutEmailClient::~StandardOutEmailClient() {
     Close();
   }
 
   inline void StandardOutEmailClient::Send(const Email& email) {
-    std::cout << email << std::flush;
+    if(m_openState.IsOpen()) {
+      std::cout << email << std::flush;
+    }
   }
 
   inline void StandardOutEmailClient::Close() {
     if(m_openState.SetClosing()) {
       return;
     }
-    m_openState.SetClosed();
+    m_openState.Close();
   }
-}
 }
 
 #endif

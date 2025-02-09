@@ -1,5 +1,5 @@
-#ifndef BEAM_STACKPRINTWIN32_HPP
-#define BEAM_STACKPRINTWIN32_HPP
+#ifndef BEAM_STACK_PRINT_WIN32_HPP
+#define BEAM_STACK_PRINT_WIN32_HPP
 #pragma comment(lib, "DbgHelp.lib")
 #include <string>
 #include <boost/thread/locks.hpp>

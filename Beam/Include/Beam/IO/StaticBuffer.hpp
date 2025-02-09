@@ -97,10 +97,9 @@ namespace IO {
 
   template<std::size_t N>
   StaticBuffer<N>::StaticBuffer(const StaticBuffer& buffer)
-      : m_size(0),
-        m_front(&m_data[0]) {
-    Append(data, size);
-  }
+    : m_size(buffer.m_size),
+      m_data(buffer.m_data),
+      m_front(&m_data[0]) {}
 
   template<std::size_t N>
   StaticBuffer<N>::StaticBuffer(const void* data, std::size_t size)

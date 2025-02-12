@@ -23,51 +23,60 @@ namespace Beam::Routines::Details {
 
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
-    auto kernel_module = GetModuleHandleW(module);
-    if(!kernel_module) {
-      return nullptr;
-    }
-    auto target = GetProcAddress(kernel_module, target_name.data());
-    if(!target) {
-      return nullptr;
-    }
-    const auto TRAMPOLINE_SIZE = std::size_t(16);
-    auto trampoline = VirtualAlloc(nullptr,
-      TRAMPOLINE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    if(!trampoline) {
-      return nullptr;
-    }
-    const auto PROLOGUE_SIZE = std::size_t(5);
-    std::memcpy(trampoline, target, PROLOGUE_SIZE);
-    auto return_address =
-      reinterpret_cast<std::uintptr_t>(target) + PROLOGUE_SIZE;
-    auto trampoline_bytes = reinterpret_cast<BYTE*>(trampoline);
-    const auto JMP = BYTE(0xE9);
-    trampoline_bytes[PROLOGUE_SIZE] = JMP;
-    const auto JMP_SIZE = std::size_t(5);
-    *reinterpret_cast<std::int32_t*>(&trampoline_bytes[PROLOGUE_SIZE + 1]) =
-      static_cast<std::int32_t>(return_address -
-        (reinterpret_cast<std::uintptr_t>(trampoline) +
-          PROLOGUE_SIZE + JMP_SIZE));
-    auto old_protect = DWORD();
-    if(!VirtualProtect(
-        target, PROLOGUE_SIZE, PAGE_EXECUTE_READWRITE, &old_protect)) {
-      VirtualFree(trampoline, 0, MEM_RELEASE);
-      return nullptr;
-    }
-    auto hook_address = reinterpret_cast<std::uintptr_t>(hook);
-    auto offset =
-      hook_address - reinterpret_cast<std::uintptr_t>(target) - JMP_SIZE;
-    BYTE jump_instruction[JMP_SIZE] = { JMP };
-    std::memcpy(&jump_instruction[1], &offset, sizeof(std::int32_t));
-    std::memcpy(target, jump_instruction, sizeof(jump_instruction));
-    if(!VirtualProtect(target, PROLOGUE_SIZE, old_protect, &old_protect)) {
-      VirtualFree(trampoline, 0, MEM_RELEASE);
-      return nullptr;
-    }
-    return reinterpret_cast<F>(trampoline);
-  }
+      auto kernel_module = GetModuleHandleW(module);
+      if (!kernel_module) {
+          return nullptr;
+      }
+      auto target = reinterpret_cast<uint8_t*>(GetProcAddress(kernel_module, target_name.data()));
+      if (!target) {
+          return nullptr;
+      }
 
+      // x86-64: 14 bytes needed for a `mov rax, hook; jmp rax`
+      constexpr size_t HOOK_SIZE = 14;
+      constexpr size_t TRAMPOLINE_SIZE = 32;
+
+      // Allocate trampoline
+      auto trampoline = reinterpret_cast<uint8_t*>(VirtualAlloc(nullptr, TRAMPOLINE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+      if (!trampoline) {
+          return nullptr;
+      }
+
+      // Copy original bytes to trampoline
+      std::memcpy(trampoline, target, HOOK_SIZE);
+
+      // Append jump from trampoline back to original function
+      uint8_t trampoline_jump[] = {
+          0x48, 0xB8, // mov rax, <original function>
+          0, 0, 0, 0, 0, 0, 0, 0, // placeholder for function address
+          0xFF, 0xE0  // jmp rax
+      };
+      *reinterpret_cast<uintptr_t*>(&trampoline_jump[2]) = reinterpret_cast<uintptr_t>(target + HOOK_SIZE);
+      std::memcpy(trampoline + HOOK_SIZE, trampoline_jump, sizeof(trampoline_jump));
+
+      // Prepare hook patch: `mov rax, hook; jmp rax`
+      uint8_t hook_patch[] = {
+          0x48, 0xB8, // mov rax, <hook function>
+          0, 0, 0, 0, 0, 0, 0, 0, // placeholder for hook address
+          0xFF, 0xE0  // jmp rax
+      };
+      *reinterpret_cast<uintptr_t*>(&hook_patch[2]) = reinterpret_cast<uintptr_t>(hook);
+
+      // Modify memory protection to allow writing
+      DWORD old_protect;
+      if (!VirtualProtect(target, HOOK_SIZE, PAGE_EXECUTE_READWRITE, &old_protect)) {
+          VirtualFree(trampoline, 0, MEM_RELEASE);
+          return nullptr;
+      }
+
+      // Write the hook
+      std::memcpy(target, hook_patch, sizeof(hook_patch));
+
+      // Restore memory protection
+      VirtualProtect(target, HOOK_SIZE, old_protect, &old_protect);
+
+      return reinterpret_cast<F>(trampoline);
+  }
   template<typename T>
   struct WaitEntry {
     Threading::SpinMutex m_mutex;

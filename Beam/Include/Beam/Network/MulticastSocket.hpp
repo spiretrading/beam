@@ -93,8 +93,8 @@ namespace Beam::Network {
       const IpAddress& interface, const MulticastSocketOptions& options)
       : m_group(group),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          Threading::ServiceThreadPool::GetInstance().GetService(),
-          Threading::ServiceThreadPool::GetInstance().GetService(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
+          Threading::ServiceThreadPool::GetInstance().GetContext(),
           boost::asio::ip::udp::v4())) {
     Open(interface, options);
   }
@@ -127,7 +127,7 @@ namespace Beam::Network {
       const MulticastSocketOptions& options) {
     try {
       auto errorCode = boost::system::error_code();
-      auto outboundInterface = boost::asio::ip::address_v4::from_string(
+      auto outboundInterface = boost::asio::ip::make_address_v4(
         interface.GetHost(), errorCode);
       if(errorCode) {
         BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),
@@ -159,8 +159,8 @@ namespace Beam::Network {
           errorCode.message()));
       }
       auto joinGroup = boost::asio::ip::multicast::join_group(
-        boost::asio::ip::address_v4::from_string(m_group.GetHost()),
-        boost::asio::ip::address_v4::from_string(interface.GetHost()));
+        boost::asio::ip::make_address_v4(m_group.GetHost()),
+        boost::asio::ip::make_address_v4(interface.GetHost()));
       m_socket->m_socket.set_option(joinGroup, errorCode);
       if(errorCode) {
         BOOST_THROW_EXCEPTION(SocketException(errorCode.value(),

@@ -22,15 +22,16 @@ namespace Beam::Threading {
       friend class Beam::Network::UdpSocket;
       friend class LiveTimer;
       friend class Singleton<ServiceThreadPool>;
-      boost::asio::io_service m_service;
-      boost::asio::io_service::work m_work;
+      boost::asio::io_context m_service;
+      boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+        m_work;
       std::size_t m_threadCount;
       std::unique_ptr<std::thread[]> m_threads;
 
       ServiceThreadPool();
       ServiceThreadPool(const ServiceThreadPool&) = delete;
       ServiceThreadPool& operator =(const ServiceThreadPool&) = delete;
-      boost::asio::io_service& GetService();
+      boost::asio::io_context& GetContext();
   };
 
   inline ServiceThreadPool::~ServiceThreadPool() {
@@ -41,7 +42,7 @@ namespace Beam::Threading {
   }
 
   inline ServiceThreadPool::ServiceThreadPool()
-      : m_work(m_service),
+      : m_work(boost::asio::make_work_guard(m_service)),
         m_threadCount(std::thread::hardware_concurrency()),
         m_threads(std::make_unique<std::thread[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
@@ -51,7 +52,7 @@ namespace Beam::Threading {
     }
   }
 
-  inline boost::asio::io_service& ServiceThreadPool::GetService() {
+  inline boost::asio::io_context& ServiceThreadPool::GetContext() {
     return m_service;
   }
 }

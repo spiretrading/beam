@@ -4,7 +4,6 @@
 #include <memory>
 #include <mutex>
 #include <utility>
-#include <boost/asio/io_service.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
@@ -16,7 +15,7 @@ namespace Beam::Network::Details {
   struct SocketEntry {
     using Socket = S;
     mutable std::mutex m_mutex;
-    boost::asio::io_service* m_ioService;
+    boost::asio::io_context* m_ioContext;
     Socket m_socket;
     bool m_isOpen;
     bool m_isReadPending;
@@ -24,8 +23,8 @@ namespace Beam::Network::Details {
     std::condition_variable m_isPendingCondition;
 
     template<typename... Args>
-    SocketEntry(boost::asio::io_service& ioService, Args&&... args)
-      : m_ioService(&ioService),
+    SocketEntry(boost::asio::io_context& ioContext, Args&&... args)
+      : m_ioContext(&ioContext),
         m_socket(std::forward<Args>(args)...),
         m_isOpen(false),
         m_isReadPending(false),
@@ -77,7 +76,7 @@ namespace Beam::Network::Details {
   struct SecureSocketEntry {
     using Socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
     std::mutex m_mutex;
-    boost::asio::io_service* m_ioService;
+    boost::asio::io_context* m_ioContext;
     boost::asio::ssl::context m_context;
     Socket m_socket;
     bool m_isOpen;
@@ -86,8 +85,8 @@ namespace Beam::Network::Details {
     std::condition_variable m_isPendingCondition;
 
     template<typename... Args>
-    SecureSocketEntry(boost::asio::io_service& ioService, Args&&... args)
-      : m_ioService(&ioService),
+    SecureSocketEntry(boost::asio::io_context& ioContext, Args&&... args)
+      : m_ioContext(&ioContext),
         m_context(boost::asio::ssl::context::sslv23),
         m_socket(std::forward<Args>(args)..., m_context),
         m_isOpen(false),

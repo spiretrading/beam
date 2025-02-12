@@ -8,4 +8,5 @@ findstr "%VERSION%" Version.hpp > NUL
 IF NOT "%ERRORLEVEL%" == "0" (
   ECHO #define QUEUE_STRESS_TEST_VERSION "%VERSION%"> Version.hpp
 )
+EXIT /B 0
 ENDLOCAL

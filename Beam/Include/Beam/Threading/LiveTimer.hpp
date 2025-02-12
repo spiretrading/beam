@@ -46,7 +46,7 @@ namespace Threading {
 
   inline LiveTimer::LiveTimer(boost::posix_time::time_duration interval)
     : m_interval(interval),
-      m_deadLineTimer(ServiceThreadPool().GetInstance().GetService()),
+      m_deadLineTimer(ServiceThreadPool().GetInstance().GetContext()),
       m_isPending(false) {}
 
   inline LiveTimer::~LiveTimer() {

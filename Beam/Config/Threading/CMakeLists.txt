@@ -1,7 +1,4 @@
-file(GLOB source_files ${BEAM_SOURCE_PATH}/ThreadingTests/*.cpp)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-endif()
+file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ThreadingTests/*.cpp)
 add_executable(ThreadingTests ${header_files} ${source_files})
 target_link_libraries(ThreadingTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
@@ -20,8 +17,8 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
     pthread rt)
 endif()
-add_custom_command(TARGET ThreadingTests POST_BUILD
-  COMMAND ThreadingTests)
+add_custom_command(TARGET ThreadingTests
+  POST_BUILD COMMAND ThreadingTests)
 install(TARGETS ThreadingTests CONFIGURATIONS Debug
   DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)
 install(TARGETS ThreadingTests CONFIGURATIONS Release RelWithDebInfo

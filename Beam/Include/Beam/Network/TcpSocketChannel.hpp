@@ -128,8 +128,8 @@ namespace Network {
   inline TcpSocketChannel::TcpSocketChannel(
     const std::vector<IpAddress>& addresses, const TcpSocketOptions& options)
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetService(),
-        Threading::ServiceThreadPool::GetInstance().GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetContext(),
+        Threading::ServiceThreadPool::GetInstance().GetContext())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses),
       m_reader(m_socket),
@@ -143,8 +143,8 @@ namespace Network {
     const std::vector<IpAddress>& addresses, const IpAddress& interface,
     const TcpSocketOptions& options)
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetService(),
-        Threading::ServiceThreadPool::GetInstance().GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetContext(),
+        Threading::ServiceThreadPool::GetInstance().GetContext())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses, interface),
       m_reader(m_socket),
@@ -169,8 +169,8 @@ namespace Network {
 
   inline TcpSocketChannel::TcpSocketChannel()
     : m_socket(std::make_shared<Details::TcpSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetService(),
-        Threading::ServiceThreadPool::GetInstance().GetService())),
+        Threading::ServiceThreadPool::GetInstance().GetContext(),
+        Threading::ServiceThreadPool::GetInstance().GetContext())),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}

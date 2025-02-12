@@ -3,37 +3,32 @@ SETLOCAL EnableDelayedExpansion
 SET EXIT_STATUS=0
 SET ROOT=%cd%
 IF EXIST cache_files\beam.txt (
-  FOR /F %%i IN (
-      'ls -l --time-style=full-iso "%~dp0\setup.bat" ^| awk "{print $6 $7}"') DO (
-    FOR /F %%j IN (
-        'ls -l --time-style=full-iso cache_files\beam.txt ^| awk "{print $6 $7}"') DO (
-      IF "%%i" LSS "%%j" (
-        EXIT /B 0
-      )
-    )
+  SET CACHE_COMMAND=powershell -Command "& { " ^
+    "$setupTimestamp = (Get-Item '%~dp0setup.bat').LastWriteTime; " ^
+    "$beamTimestamp = (Get-Item 'cache_files\\beam.txt').LastWriteTime; " ^
+    "if($setupTimestamp -lt $beamTimestamp) {" ^
+    "  Write-Output '0';" ^
+    "} else {" ^
+    "  Write-Output '1';" ^
+    "}" ^
+  "}"
+  FOR /F "delims=" %%A IN ('CALL !CACHE_COMMAND!') DO SET IS_CACHED=%%A
+  IF "!IS_CACHED!"=="0" (
+    EXIT /B 0
   )
 )
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-FOR /f "usebackq delims=" %%i IN (`!VSWHERE! -prerelease -latest -property installationPath`) DO (
+FOR /F "usebackq delims=" %%i IN (` ^
+    !VSWHERE! -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
-    CALL "%%i\Common7\Tools\vsdevcmd.bat"
+    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=amd64
   )
 )
-IF NOT EXIST Strawberry (
-  wget https://strawberryperl.com/download/5.32.1.1/strawberry-perl-5.32.1.1-64bit-portable.zip -O strawberry-perl-5.32.1.1-64bit-portable.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    MD Strawberry
-    PUSHD Strawberry
-    tar -xf ..\strawberry-perl-5.32.1.1-64bit-portable.zip
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q strawberry-perl-5.32.1.1-64bit-portable.zip
-)
+CALL :DownloadAndExtract "Strawberry" ^
+  "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="baa1acb9ea7a7dd780b932929e49591ac358066e"
+SET ASPEN_COMMIT="21212499dfba1165c21cf4a3f938647cdefe8236"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -66,93 +61,82 @@ IF EXIST aspen (
   )
   POPD
 )
-IF NOT EXIST cryptopp870 (
-  wget https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_7_0.zip -O cryptopp870.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf cryptopp870.zip
-    MOVE cryptopp-CRYPTOPP_8_7_0 cryptopp870
-    PUSHD cryptopp870
-    TYPE cryptlib.vcxproj | sed "s/<WholeProgramOptimization>true<\/WholeProgramOptimization>/<WholeProgramOptimization>false<\/WholeProgramOptimization>/" > cryptlib.vcxproj.new
-    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    TYPE cryptlib.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > cryptlib.vcxproj.new
-    MOVE cryptlib.vcxproj.new cryptlib.vcxproj
-    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32 cryptlib.vcxproj
-    msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Release;Platform=Win32 cryptlib.vcxproj
-    MD include
-    PUSHD include
-    MD cryptopp
-    COPY ..\*.h cryptopp
-    POPD
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q cryptopp870.zip
+CALL :DownloadAndExtract "cryptopp890" ^
+  "https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD cryptopp890
+  powershell -Command "(Get-Content cryptlib.vcxproj) -replace " ^
+    "'<WholeProgramOptimization>true</WholeProgramOptimization>', " ^
+    "'<WholeProgramOptimization>false</WholeProgramOptimization>' | " ^
+    "Set-Content cryptlib.vcxproj"
+  powershell -Command "(Get-Content cryptlib.vcxproj) -replace " ^
+    "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
+    "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
+    "Set-Content cryptlib.vcxproj"
+  msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 ^
+    /p:Configuration=Debug cryptlib.vcxproj
+  msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 ^
+    /p:Configuration=Release cryptlib.vcxproj
+  MD include
+  PUSHD include
+  MD cryptopp
+  COPY ..\*.h cryptopp
+  POPD
+  POPD
 )
-IF NOT EXIST mariadb-connector-c-3.3.3 (
-  wget https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.3.3.zip -O mariadb-connector-c-3.3.3.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf mariadb-connector-c-3.3.3.zip
-    PUSHD mariadb-connector-c-3.3.3
-    cmake -A Win32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
-    PUSHD libmariadb
-    TYPE mariadbclient.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadbclient.vcxproj.new
-    MOVE mariadbclient.vcxproj.new mariadbclient.vcxproj
-    TYPE mariadb_obj.vcxproj | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > mariadb_obj.vcxproj.new
-    MOVE mariadb_obj.vcxproj.new mariadb_obj.vcxproj
-    POPD
-    cmake --build . --target mariadbclient --config Debug
-    cmake --build . --target mariadbclient --config Release
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q mariadb-connector-c-3.3.3.zip
+CALL :DownloadAndExtract "mariadb-connector-c-3.4.3" ^
+  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.3.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD mariadb-connector-c-3.4.3
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
+  PUSHD libmariadb
+  powershell -Command "(Get-Content mariadbclient.vcxproj) -replace " ^
+    "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
+    "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
+    "Set-Content mariadbclient.vcxproj"
+  powershell -Command "(Get-Content mariadb_obj.vcxproj) -replace " ^
+    "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
+    "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
+    "Set-Content mariadb_obj.vcxproj"
+  POPD
+  cmake --build . --target mariadbclient --config Debug
+  cmake --build . --target mariadbclient --config Release
+  POPD
 )
-IF NOT EXIST openssl-1.1.1q (
-  wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1q.tar.gz -O openssl-1.1.1q.tar.gz --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    gzip -d -c openssl-1.1.1q.tar.gz | tar -xf -
-    MOVE openssl-1.1.1q openssl-1.1.1q-build
-    PUSHD openssl-1.1.1q-build
-    perl Configure VC-WIN32 no-asm no-shared no-tests --prefix="!ROOT!\openssl-1.1.1q" --openssldir="!ROOT!\openssl-1.1.1q"
-    SET CL=/MP
-    nmake
-    nmake install
-    POPD
-    RD /S /Q openssl-1.1.1q-build
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q openssl-1.1.1q.tar.gz
+CALL :DownloadAndExtract "openssl-3.4.0" ^
+  "https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz"
+IF %BUILD_NEEDED%==1 (
+  MOVE openssl-3.4.0 openssl-3.4.0-build
+  PUSHD openssl-3.4.0-build
+  perl Configure VC-WIN64A no-asm no-shared no-tests ^
+    --prefix="!ROOT!\openssl-3.4.0" --openssldir="!ROOT!\openssl-3.4.0"
+  SET CL=/MP
+  nmake
+  nmake install
+  POPD
+  RD /S /Q openssl-3.4.0-build
 )
-IF NOT EXIST sqlite-amalgamation-3400100 (
-  wget https://www.sqlite.org/2022/sqlite-amalgamation-3400100.zip -O sqlite-amalgamation-3400100.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf sqlite-amalgamation-3400100.zip
-    PUSHD sqlite-amalgamation-3400100
-    cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
-    lib sqlite3.obj
-    COPY sqlite3.lib sqlite3d.lib
-    DEL sqlite3.obj
-    cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
-    lib sqlite3.obj
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q sqlite-amalgamation-3400100.zip
+CALL :DownloadAndExtract "sqlite-amalgamation-3480000" ^
+  "https://www.sqlite.org/2025/sqlite-amalgamation-3480000.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD sqlite-amalgamation-3480000
+  cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
+  lib sqlite3.obj
+  COPY sqlite3.lib sqlite3d.lib
+  DEL sqlite3.obj
+  cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c
+  lib sqlite3.obj
+  POPD
 )
-IF NOT EXIST tclap-1.2.5 (
-  wget https://github.com/mirror/tclap/archive/v1.2.5.zip -O v1.2.5.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf v1.2.5.zip
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q v1.2.5.zip
-)
-SET VIPER_COMMIT="f0e05acaadb41abf3e1632b76b9c5f9fb5b8af99"
+CALL :DownloadAndExtract "tclap-1.2.5" ^
+  "https://github.com/mirror/tclap/archive/v1.2.5.zip"
+SET VIPER_COMMIT="baa7791140abd87b16d2132451812e293e71c93d"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! EQU 0 (
@@ -174,57 +158,51 @@ IF EXIST viper (
   )
   POPD
 )
-IF NOT EXIST yaml-cpp (
-  git clone https://github.com/jbeder/yaml-cpp.git yaml-cpp
-  IF !ERRORLEVEL! EQU 0 (
-    PUSHD yaml-cpp
-    git checkout 0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79
-    MD build
-    PUSHD build
-    cmake -A Win32 ..
-    cmake --build . --target ALL_BUILD --config Debug
-    cmake --build . --target ALL_BUILD --config Release
-    POPD
-    POPD
-  ) ELSE (
-    RD /S /Q yaml-cpp
-    SET EXIT_STATUS=1
-  )
+CALL :DownloadAndExtract "yaml-cpp" ^
+  "https://github.com/jbeder/yaml-cpp/archive/0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD yaml-cpp
+  MD build
+  PUSHD build
+  cmake ..
+  cmake --build . --target ALL_BUILD --config Debug
+  cmake --build . --target ALL_BUILD --config Release
+  POPD
+  POPD
 )
-IF NOT EXIST zlib-1.2.13 (
-  git clone --branch v1.2.13 https://github.com/madler/zlib.git zlib-1.2.13
-  IF !ERRORLEVEL! EQU 0 (
-    PUSHD zlib-1.2.13\contrib\vstudio\vc14
-    TYPE zlibstat.vcxproj | sed "s/ZLIB_WINAPI;//" | sed "s/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDebugDLL<\/RuntimeLibrary>/" | sed "s/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/<RuntimeLibrary>MultiThreadedDLL<\/RuntimeLibrary>/" > zlibstat.vcxproj.new
-    MOVE zlibstat.vcxproj.new zlibstat.vcxproj
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=Debug;Platform=Win32
-    msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 /p:Configuration=ReleaseWithoutAsm;Platform=Win32
-    POPD
-  ) ELSE (
-    RD /S /Q zlib-1.2.13
-    SET EXIT_STATUS=1
-  )
+CALL :DownloadAndExtract "zlib-1.3.1" ^
+  "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD zlib-1.3.1\contrib\vstudio\vc17
+  powershell -Command "(Get-Content zlibstat.vcxproj) -replace " ^
+    "'ZLIB_WINAPI;', '' -replace " ^
+    "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
+    "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
+    "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
+    "Set-Content zlibstat.vcxproj"
+  msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 ^
+    /p:Platform=x64 /p:Configuration=Debug
+  msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 ^
+    /p:Platform=x64 /p:Configuration=ReleaseWithoutAsm
+  POPD
 )
 IF "%NUMBER_OF_PROCESSORS%" == "" (
   SET BJAM_PROCESSORS=
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-IF NOT EXIST boost_1_86_0 (
-  wget https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip -O boost_1_86_0.zip --no-check-certificate
-  IF !ERRORLEVEL! LEQ 0 (
-    tar -xf boost_1_86_0.zip
-    PUSHD boost_1_86_0
-    PUSHD tools\build
-    CALL bootstrap.bat vc143
-    POPD
-    tools\build\b2 !BJAM_PROCESSORS! --without-context --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static,shared runtime-link=shared install
-    tools\build\b2 !BJAM_PROCESSORS! --with-context --prefix="!ROOT!\boost_1_86_0" --build-type=complete address-model=32 toolset=msvc-14.3 link=static runtime-link=shared install
-    POPD
-  ) ELSE (
-    SET EXIT_STATUS=1
-  )
-  DEL /F /Q boost_1_86_0.zip
+CALL :DownloadAndExtract "boost_1_86_0" ^
+  "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip"
+IF %BUILD_NEEDED%==1 (
+  PUSHD boost_1_86_0
+  PUSHD tools\build
+  CALL bootstrap.bat vc143
+  POPD
+  tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_86_0" ^
+    --build-type=complete address-model=64 context-impl=winfib ^
+    toolset=msvc-14.3 link=static runtime-link=shared install
+  POPD
 )
 IF NOT EXIST cache_files (
   MD cache_files
@@ -232,3 +210,70 @@ IF NOT EXIST cache_files (
 ECHO timestamp > cache_files\beam.txt
 ENDLOCAL
 EXIT /B !EXIT_STATUS!
+
+:DownloadAndExtract
+SET FOLDER=%~1
+SET URL=%~2
+SET BUILD_NEEDED=0
+FOR /F "tokens=* delims=/" %%A IN ("%URL%") DO (
+  SET ARCHIVE=%%~nxA
+)
+SET EXTENSION=%ARCHIVE:~-4%
+IF EXIST !FOLDER! (
+  EXIT /B 0
+)
+powershell -Command "$ProgressPreference = 'SilentlyContinue'; "^
+  "Invoke-WebRequest -Uri '%URL%' -OutFile '%ARCHIVE%'"
+IF ERRORLEVEL 1 (
+  ECHO Error: Failed to download !ARCHIVE!.
+  SET EXIT_STATUS=1
+  EXIT /B
+)
+SET EXTRACT_PATH=_extract_tmp
+RD /S /Q "!EXTRACT_PATH!" >NUL 2>NUL
+MD "!EXTRACT_PATH!"
+IF /I "!EXTENSION!"==".zip" (
+  powershell -Command "$ProgressPreference = 'SilentlyContinue'; "^
+    "Expand-Archive -Path '%ARCHIVE%' -DestinationPath '%EXTRACT_PATH%'"
+) ELSE IF /I "!EXTENSION!"==".tgz" (
+  powershell -Command "$ProgressPreference = 'SilentlyContinue'; "^
+    "tar -xf '%ARCHIVE%' -C '%EXTRACT_PATH%'"
+) ELSE IF /I "%ARCHIVE:~-7%"==".tar.gz" (
+  powershell -Command "$ProgressPreference = 'SilentlyContinue'; "^
+    "tar -xf '%ARCHIVE%' -C '%EXTRACT_PATH%'"
+) ELSE (
+  ECHO Error: Unknown archive format for %ARCHIVE%.
+  SET EXIT_STATUS=1
+  EXIT /B 1
+)
+SET DETECTED_FOLDER=
+FOR %%F IN ("!EXTRACT_PATH!\*") DO (
+  IF "!DETECTED_FOLDER!"=="" (
+    SET DETECTED_FOLDER=%%F
+  ) ELSE (
+    SET DETECTED_FOLDER=MULTIPLE
+  )
+)
+FOR /D %%F IN ("!EXTRACT_PATH!\*") DO (
+  IF "!DETECTED_FOLDER!"=="" (
+    SET DETECTED_FOLDER=%%F
+  ) ELSE (
+    SET DETECTED_FOLDER=MULTIPLE
+  )
+)
+IF "!DETECTED_FOLDER!"=="MULTIPLE" (
+  REN "!EXTRACT_PATH!" "!FOLDER!"
+) ELSE IF NOT "!DETECTED_FOLDER!"=="!EXTRACT_PATH!\!FOLDER!" (
+  MOVE /Y "!DETECTED_FOLDER!" "!FOLDER!" >NUL
+) ELSE (
+  MOVE /Y "!EXTRACT_PATH!\!FOLDER!" "!ROOT!" >NUL
+)
+RD /S /Q "!EXTRACT_PATH!"
+IF ERRORLEVEL 1 (
+  ECHO Error: Failed to extract !ARCHIVE!.
+  SET EXIT_STATUS=1
+  EXIT /B 0
+)
+SET BUILD_NEEDED=1
+DEL /F /Q !ARCHIVE!
+EXIT /B 0

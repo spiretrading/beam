@@ -1,5 +1,5 @@
-#ifndef BEAM_STACKPRINTPOSIX_HPP
-#define BEAM_STACKPRINTPOSIX_HPP
+#ifndef BEAM_STACK_PRINT_POSIX_HPP
+#define BEAM_STACK_PRINT_POSIX_HPP
 #include <string>
 #include "Beam/Utilities/Utilities.hpp"
 

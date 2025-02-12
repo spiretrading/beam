@@ -1,5 +1,5 @@
 #ifdef _MSC_VER
-  #include "Beam/Utilities/InstantiateTemplateMsvc.hpp"
+  #include "Beam/Utilities/InstantiateTemplateMsvc.inl"
 #else
-  #include "Beam/Utilities/InstantiateTemplateStd.hpp"
+  #include "Beam/Utilities/InstantiateTemplateStd.inl"
 #endif

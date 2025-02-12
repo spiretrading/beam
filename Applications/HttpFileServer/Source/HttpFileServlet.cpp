@@ -9,7 +9,7 @@ using namespace Beam::IO;
 using namespace Beam::WebServices;
 
 HttpFileServlet::HttpFileServlet()
-  : m_fileStore("webapp") {}
+  : m_fileStore("web_app") {}
 
 HttpFileServlet::~HttpFileServlet() {
   Close();
@@ -18,7 +18,7 @@ HttpFileServlet::~HttpFileServlet() {
 std::vector<HttpRequestSlot> HttpFileServlet::GetSlots() {
   auto slots = std::vector<HttpRequestSlot>();
   slots.emplace_back(MatchAny(HttpMethod::GET),
-    std::bind(&HttpFileServlet::OnServeFile, this, std::placeholders::_1));
+    std::bind_front(&HttpFileServlet::OnServeFile, this));
   return slots;
 }
 

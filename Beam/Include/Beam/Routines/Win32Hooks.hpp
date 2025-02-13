@@ -24,7 +24,7 @@ namespace Beam::Routines::Details {
 
   inline auto isHooking = false;
 
-  std::size_t GetModRMEncodingSize(const std::uint8_t* address) {
+  inline std::size_t GetModRMEncodingSize(const std::uint8_t* address) {
     auto modrm = address[0];
     auto mod = modrm >> 6;
     auto rm = modrm & 0x07;
@@ -51,7 +51,7 @@ namespace Beam::Routines::Details {
 
   inline std::size_t GetInstructionSize(const std::uint8_t* address) {
     auto op = address[0];
-    if (op == 0x0F) {
+    if(op == 0x0F) {
       auto secondOp = address[1];
       if(secondOp >= 0x80 && secondOp <= 0x8F) {
         return 6;
@@ -68,12 +68,23 @@ namespace Beam::Routines::Details {
       return GetModRMEncodingSize(address + 1) + 1;
     } else if(op >= 0x40 && op <= 0x4F) { // REX prefix (0x40-0x4F)
       return 1 + GetInstructionSize(address + 1);
+    } else if(op >= 0x50 && op <= 0x57) {
+      return 1;
+    } else if(op >= 0x58 && op <= 0x5F) {
+      return 1;
     } else if(op >= 0x70 && op <= 0x7F) {
       return 2;
     } else if(op == 0x80) {
       return GetModRMEncodingSize(address + 1) + 2;
     } else if(op == 0x83) {
       return GetModRMEncodingSize(address + 1) + 2;
+    } else if(op == 0x85) {
+      auto modrm = address[1];
+      auto mod = modrm >> 6;
+      if(mod == 3) {
+        return 2;
+      }
+      return GetModRMEncodingSize(address + 1) + 1;
     } else if(op == 0x8B) {
       auto modrm = address[1];
       auto mod = modrm >> 6;
@@ -87,6 +98,8 @@ namespace Beam::Routines::Details {
       return GetModRMEncodingSize(address + 1) + 1;
     } else if(op == 0x90) { // NOP
       return 1;
+    } else if(op == 0xA8) {
+      return 2;
     } else if(op >= 0xB0 && op <= 0xB7) {
       return 2;
     } else if(op >= 0xB8 && op <= 0xBF) { // MOV reg, imm32 (0xB8-0xBF)

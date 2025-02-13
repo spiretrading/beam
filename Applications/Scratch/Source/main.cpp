@@ -10,7 +10,7 @@ int main() {
     NTSTATUS (NTAPI*)(_In_ void*,
       _In_ void*, _In_ size_t, _In_opt_ PLARGE_INTEGER)>(
         reinterpret_cast<std::uint8_t*>(
-          GetProcAddress(kernelModule, "RtlReleaseSRWLockExclusive")));
+          GetProcAddress(kernelModule, "RtlWakeAllConditionVariable")));
   target(nullptr, nullptr, 0, nullptr);
   return 0;
 }

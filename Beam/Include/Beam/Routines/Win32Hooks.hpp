@@ -1,6 +1,9 @@
 #ifndef BEAM_WIN32_HOOKS_HPP
 #define BEAM_WIN32_HOOKS_HPP
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
 #include <string_view>
 #include <windows.h>
 #include <winternl.h>
@@ -20,6 +23,104 @@ namespace Beam::Routines::Details {
   }
 
   inline auto isHooking = false;
+
+  std::size_t GetInstructionSize(const std::uint8_t* address) {
+    auto op = address[0];
+    switch(op) {
+      case 0x90: // NOP
+        return 1;
+      case 0xC3: // RET
+        return 1;
+      case 0xCC: // INT 3 (breakpoint)
+        return 1;
+      case 0xE9: // jmp rel32
+        return 5;
+      case 0xEB: // jmp short rel8
+        return 2;
+
+      // MOV reg, imm (opcode 0xB8-0xBF)
+      case 0xB8: case 0xB9: case 0xBA: case 0xBB:
+      case 0xBC: case 0xBD: case 0xBE: case 0xBF:
+
+        // MOV r32, imm32 in x64 typically takes 5 bytes.
+        return 5;
+
+      // Handle REX-prefixed opcodes minimally.
+      default:
+
+        // Check for REX prefix (0x40-0x4F)
+        if (op >= 0x40 && op <= 0x4F) {
+
+          // For simplicity, assume the next byte is an opcode we can handle.
+          auto nextOp = address[1];
+          switch (nextOp) {
+            case 0x90: // REX NOP variant
+              return 2;
+
+            // Add additional cases as needed.
+            default:
+              throw std::runtime_error(
+                "Unrecognized instruction after REX prefix");
+          }
+        }
+        throw std::runtime_error("Unrecognized instruction");
+    }
+  }
+
+  struct SavedInstructions {
+    static constexpr auto MAX_SIZE = 29;
+    std::array<std::uint8_t, MAX_SIZE> m_instructions;
+    std::size_t m_size;
+  };
+
+  template<typename F>
+  SavedInstructions SaveInstructions(F target) {
+    static const auto REDIRECT_SIZE = 14;
+    auto instructions = SavedInstructions();
+    auto f = reinterpret_cast<const std::uint8_t*>(target);
+    auto accumulatedSize = std::size_t(0);
+    while(accumulatedSize < REDIRECT_SIZE) {
+      if(accumulatedSize >= SavedInstructions::MAX_SIZE) {
+        throw std::runtime_error("Exceeded backup array size");
+      }
+      auto instructionSize = GetInstructionSize(f + accumulated);
+      if(accumulatedSize + instructionSize > SavedInstructions::MAX_SIZE) {
+        throw std::runtime_error(
+          "Instruction overshoots backup array capacity");
+      }
+      for(auto i = std::size_t(0); i < instructionSize; ++i) {
+        instructions.m_instructions[accumulatedSize + i] =
+          *(f + accumulatedSize + i);
+      }
+      accumulatedSize += instructionSize;
+    }
+    instructions.m_size = accumulatedSize;
+    return instructions;
+  }
+
+  template<typename F>
+  F MakeTrampoline(F target) {
+    auto instructions = SaveInstructions(target);
+    static const auto JUMP_SIZE = std::size_t(12);
+    auto trampolineSize = instructions.m_size + JUMP_SIZE;
+    auto trampoline = VirtualAlloc(nullptr, trampolineSize,
+      MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if(!trampoline) {
+      throw std::runtime_error("Unable to allocate memory for trampoline.");
+    }
+    std::memcpy(
+      trampoline, instructions.m_instructions.data(), instructions.m_size);
+    auto jumpLocation =
+      static_cast<std::uint8_t*>(trampoline) + instructions.m_size;
+    auto jumpTarget =
+      reinterpret_cast<std::uintptr_t>(target) + instructions.m_size;
+    jumpLocation[0] = 0x48;
+    jumpLocation[1] = 0xB8;
+    *reinterpret_cast<uint64_t*>(jumpLocation + 2) = jumpTarget;
+    jumpLocation[10] = 0xFF;
+    jumpLocation[11] = 0xE0;
+    return reinterpret_cast<F>(trampoline);
+  }
 
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {

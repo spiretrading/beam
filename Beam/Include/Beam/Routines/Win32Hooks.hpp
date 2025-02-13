@@ -24,47 +24,90 @@ namespace Beam::Routines::Details {
 
   inline auto isHooking = false;
 
-  std::size_t GetInstructionSize(const std::uint8_t* address) {
-    auto op = address[0];
-    switch(op) {
-      case 0x90: // NOP
-        return 1;
-      case 0xC3: // RET
-        return 1;
-      case 0xCC: // INT 3 (breakpoint)
-        return 1;
-      case 0xE9: // jmp rel32
-        return 5;
-      case 0xEB: // jmp short rel8
-        return 2;
-
-      // MOV reg, imm (opcode 0xB8-0xBF)
-      case 0xB8: case 0xB9: case 0xBA: case 0xBB:
-      case 0xBC: case 0xBD: case 0xBE: case 0xBF:
-
-        // MOV r32, imm32 in x64 typically takes 5 bytes.
-        return 5;
-
-      // Handle REX-prefixed opcodes minimally.
-      default:
-
-        // Check for REX prefix (0x40-0x4F)
-        if (op >= 0x40 && op <= 0x4F) {
-
-          // For simplicity, assume the next byte is an opcode we can handle.
-          auto nextOp = address[1];
-          switch (nextOp) {
-            case 0x90: // REX NOP variant
-              return 2;
-
-            // Add additional cases as needed.
-            default:
-              throw std::runtime_error(
-                "Unrecognized instruction after REX prefix");
-          }
-        }
-        throw std::runtime_error("Unrecognized instruction");
+  std::size_t GetModRMEncodingSize(const std::uint8_t* address) {
+    auto modrm = address[0];
+    auto mod = modrm >> 6;
+    auto rm = modrm & 0x07;
+    auto size = std::size_t(1);
+    if(mod != 3 && rm == 4) {
+      size += 1;
+      auto sib = address[1];
+      auto base = sib & 0x07;
+      if(mod == 0 && base == 5) {
+        size += 4;
+      }
+    } else {
+      if(mod == 0 && rm == 5) {
+        size += 4;
+      }
     }
+    if(mod == 1) {
+      size += 1;
+    } else if(mod == 2) {
+      size += 4;
+    }
+    return size;
+  }
+
+  inline std::size_t GetInstructionSize(const std::uint8_t* address) {
+    auto op = address[0];
+    if (op == 0x0F) {
+      auto secondOp = address[1];
+      if(secondOp >= 0x80 && secondOp <= 0x8F) {
+        return 6;
+      } else if(secondOp == 0xB1) {
+        return GetModRMEncodingSize(address + 2) + 2;
+      } else {
+        throw std::runtime_error("Unsupported two-byte opcode");
+      }
+    } else if(op == 0x2D) { // SUB EAX, imm32 (0x2D)
+      return 5;
+    } else if(op == 0x31) { // XOR edx, edx (commonly 31 D2)
+      return 2;
+    } else if(op == 0x33) {
+      return GetModRMEncodingSize(address + 1) + 1;
+    } else if(op >= 0x40 && op <= 0x4F) { // REX prefix (0x40-0x4F)
+      return 1 + GetInstructionSize(address + 1);
+    } else if(op >= 0x70 && op <= 0x7F) {
+      return 2;
+    } else if(op == 0x80) {
+      return GetModRMEncodingSize(address + 1) + 2;
+    } else if(op == 0x83) {
+      return GetModRMEncodingSize(address + 1) + 2;
+    } else if(op == 0x8B) {
+      auto modrm = address[1];
+      auto mod = modrm >> 6;
+      if(mod == 3) {
+        return 2;
+      }
+      return GetModRMEncodingSize(address + 1) + 1;
+    } else if(op == 0x89) {
+      return GetModRMEncodingSize(address + 1) + 1;
+    } else if (op == 0x8D) {
+      return GetModRMEncodingSize(address + 1) + 1;
+    } else if(op == 0x90) { // NOP
+      return 1;
+    } else if(op >= 0xB0 && op <= 0xB7) {
+      return 2;
+    } else if(op >= 0xB8 && op <= 0xBF) { // MOV reg, imm32 (0xB8-0xBF)
+      return 5;
+    } else if(op == 0xC3 || op == 0xCC) { // RET or INT 3
+      return 1;
+    } else if(op == 0xE9) { // JMP rel32
+      return 5;
+    } else if(op == 0xEB) { // JMP short rel8
+      return 2;
+    } else if(op == 0xF0) { // LOCK prefix
+      return 1 + GetInstructionSize(address + 1);
+    } else if(op == 0xF6) {
+      auto modrm = address[1];
+      auto regField = (modrm >> 3) & 0x07;
+      if(regField != 0) {
+        throw std::runtime_error("Unsupported F6 instruction variant.");
+      }
+      return GetModRMEncodingSize(address + 1) + 2;
+    }
+    throw std::runtime_error("Unrecognized instruction.");
   }
 
   struct SavedInstructions {
@@ -83,7 +126,7 @@ namespace Beam::Routines::Details {
       if(accumulatedSize >= SavedInstructions::MAX_SIZE) {
         throw std::runtime_error("Exceeded backup array size");
       }
-      auto instructionSize = GetInstructionSize(f + accumulated);
+      auto instructionSize = GetInstructionSize(f + accumulatedSize);
       if(accumulatedSize + instructionSize > SavedInstructions::MAX_SIZE) {
         throw std::runtime_error(
           "Instruction overshoots backup array capacity");
@@ -122,62 +165,43 @@ namespace Beam::Routines::Details {
     return reinterpret_cast<F>(trampoline);
   }
 
+  template<typename F>
+  void PatchTarget(F target, F hook) {
+    static constexpr auto PATCH_SIZE = std::size_t(12);
+    auto targetBytes = reinterpret_cast<std::uint8_t*>(target);
+    auto oldProtect = DWORD();
+    if(!VirtualProtect(
+        targetBytes, PATCH_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+      throw std::runtime_error("VirtualProtect failed");
+    }
+    targetBytes[0] = 0x48;
+    targetBytes[1] = 0xB8;
+    *reinterpret_cast<std::uint64_t*>(targetBytes + 2) =
+      reinterpret_cast<std::uint64_t>(hook);
+    targetBytes[10] = 0xFF;
+    targetBytes[11] = 0xE0;
+    FlushInstructionCache(GetCurrentProcess(), targetBytes, PATCH_SIZE);
+    if(!VirtualProtect(targetBytes, PATCH_SIZE, oldProtect, &oldProtect)) {
+      throw std::runtime_error("VirtualProtect restore failed");
+    }
+  }
+
   template <typename F>
   F Hook(std::string_view target_name, F hook, LPCWSTR module = L"ntdll.dll") {
-      auto kernel_module = GetModuleHandleW(module);
-      if (!kernel_module) {
-          return nullptr;
-      }
-      auto target = reinterpret_cast<uint8_t*>(GetProcAddress(kernel_module, target_name.data()));
-      if (!target) {
-          return nullptr;
-      }
-
-      // x86-64: 14 bytes needed for a `mov rax, hook; jmp rax`
-      constexpr size_t HOOK_SIZE = 14;
-      constexpr size_t TRAMPOLINE_SIZE = 32;
-
-      // Allocate trampoline
-      auto trampoline = reinterpret_cast<uint8_t*>(VirtualAlloc(nullptr, TRAMPOLINE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
-      if (!trampoline) {
-          return nullptr;
-      }
-
-      // Copy original bytes to trampoline
-      std::memcpy(trampoline, target, HOOK_SIZE);
-
-      // Append jump from trampoline back to original function
-      uint8_t trampoline_jump[] = {
-          0x48, 0xB8, // mov rax, <original function>
-          0, 0, 0, 0, 0, 0, 0, 0, // placeholder for function address
-          0xFF, 0xE0  // jmp rax
-      };
-      *reinterpret_cast<uintptr_t*>(&trampoline_jump[2]) = reinterpret_cast<uintptr_t>(target + HOOK_SIZE);
-      std::memcpy(trampoline + HOOK_SIZE, trampoline_jump, sizeof(trampoline_jump));
-
-      // Prepare hook patch: `mov rax, hook; jmp rax`
-      uint8_t hook_patch[] = {
-          0x48, 0xB8, // mov rax, <hook function>
-          0, 0, 0, 0, 0, 0, 0, 0, // placeholder for hook address
-          0xFF, 0xE0  // jmp rax
-      };
-      *reinterpret_cast<uintptr_t*>(&hook_patch[2]) = reinterpret_cast<uintptr_t>(hook);
-
-      // Modify memory protection to allow writing
-      DWORD old_protect;
-      if (!VirtualProtect(target, HOOK_SIZE, PAGE_EXECUTE_READWRITE, &old_protect)) {
-          VirtualFree(trampoline, 0, MEM_RELEASE);
-          return nullptr;
-      }
-
-      // Write the hook
-      std::memcpy(target, hook_patch, sizeof(hook_patch));
-
-      // Restore memory protection
-      VirtualProtect(target, HOOK_SIZE, old_protect, &old_protect);
-
-      return reinterpret_cast<F>(trampoline);
+    auto kernelModule = GetModuleHandleW(module);
+    if(!kernelModule) {
+      return nullptr;
+    }
+    auto target = reinterpret_cast<F>(reinterpret_cast<std::uint8_t*>(
+      GetProcAddress(kernelModule, target_name.data())));
+    if(!target) {
+      return nullptr;
+    }
+    auto trampoline = MakeTrampoline(target);
+    PatchTarget(target, hook);
+    return trampoline;
   }
+
   template<typename T>
   struct WaitEntry {
     Threading::SpinMutex m_mutex;

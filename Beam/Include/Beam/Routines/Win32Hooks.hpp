@@ -172,7 +172,7 @@ namespace Beam::Routines::Details {
       reinterpret_cast<std::uintptr_t>(target) + instructions.m_size;
     jumpLocation[0] = 0x48;
     jumpLocation[1] = 0xB8;
-    *reinterpret_cast<uint64_t*>(jumpLocation + 2) = jumpTarget;
+    *reinterpret_cast<std::uint64_t*>(jumpLocation + 2) = jumpTarget;
     jumpLocation[10] = 0xFF;
     jumpLocation[11] = 0xE0;
     return reinterpret_cast<F>(trampoline);
@@ -343,7 +343,7 @@ namespace Beam::Routines::Details {
     if(isHooking) {
       return NativeRtlAcquireSRWLockExclusive(lock);
     }
-    auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
+    auto& flag = *reinterpret_cast<std::atomic_uintptr_t*>(&lock->Ptr);
     auto expected = flag.load();
     while(!RtlTryAcquireSRWLockExclusive(lock)) {
       HookedRtlWaitOnAddress(&flag, &expected, sizeof(expected), nullptr);
@@ -360,7 +360,7 @@ namespace Beam::Routines::Details {
       return NativeRtlReleaseSRWLockExclusive(lock);
     }
     NativeRtlReleaseSRWLockExclusive(lock);
-    auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&lock->Ptr);
+    auto& flag = *reinterpret_cast<std::atomic_uintptr_t*>(&lock->Ptr);
     HookedRtlWakeAddressAll(&flag);
   }
 
@@ -371,7 +371,8 @@ namespace Beam::Routines::Details {
   inline NTSTATUS WINAPI HookedRtlSleepConditionVariableSRW(
       _Inout_ PRTL_CONDITION_VARIABLE variable, _Inout_ PRTL_SRWLOCK lock,
       _In_opt_ PLARGE_INTEGER timeout, _In_ ULONG flags) {
-    auto value = reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr)->load();
+    auto value =
+      reinterpret_cast<std::atomic_uintptr_t*>(&variable->Ptr)->load();
     if(flags & RTL_CONDITION_VARIABLE_LOCKMODE_SHARED) {
       ReleaseSRWLockShared(lock);
     } else {
@@ -392,7 +393,7 @@ namespace Beam::Routines::Details {
 
   inline void NTAPI HookedRtlWakeConditionVariable(
       _Inout_ PRTL_CONDITION_VARIABLE variable) {
-    auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr);
+    auto& flag = *reinterpret_cast<std::atomic_uintptr_t*>(&variable->Ptr);
     ++flag;
     HookedRtlWakeAddressSingle(variable);
   }
@@ -402,14 +403,13 @@ namespace Beam::Routines::Details {
 
   inline void WINAPI HookedRtlWakeAllConditionVariable(
       _Inout_ PRTL_CONDITION_VARIABLE variable) {
-    auto& flag = *reinterpret_cast<std::atomic<LONG>*>(&variable->Ptr);
+    auto& flag = *reinterpret_cast<std::atomic_uintptr_t*>(&variable->Ptr);
     ++flag;
     HookedRtlWakeAddressAll(variable);
   }
 
   inline bool InstallHooks() {
     isHooking = true;
-    Routine::TLS_SLOT = TlsAlloc();
     NativeRtlWaitOnAddress = Hook("RtlWaitOnAddress", HookedRtlWaitOnAddress);
     if(!NativeRtlWaitOnAddress) {
       return false;

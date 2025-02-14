@@ -70,7 +70,7 @@ namespace Beam::Routines {
   inline Routine& GetCurrentRoutine() {
     auto& routine = Routine::m_currentRoutine;
     if(!routine) {
-      TlsSetValue(Routine::TLS_SLOT, reinterpret_cast<void*>(1));
+      Routine::IsInsideRoutine() = true;
       thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
       routine = externalRoutine.get();
     }

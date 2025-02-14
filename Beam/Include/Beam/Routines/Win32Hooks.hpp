@@ -29,15 +29,15 @@ namespace Beam::Routines::Details {
     auto mod = modrm >> 6;
     auto rm = modrm & 0x07;
     auto size = std::size_t(1);
-    if(mod != 3 && rm == 4) {
+    if(mod == 0 && rm == 5) {
+      size += 4;
+    } else if(mod == 3) {
+      return size;
+    } else if(rm == 4) {
       size += 1;
       auto sib = address[1];
       auto base = sib & 0x07;
       if(mod == 0 && base == 5) {
-        size += 4;
-      }
-    } else {
-      if(mod == 0 && rm == 5) {
         size += 4;
       }
     }
@@ -67,7 +67,7 @@ namespace Beam::Routines::Details {
     } else if(op == 0x33) {
       return GetModRMEncodingSize(address + 1) + 1;
     } else if(op >= 0x40 && op <= 0x4F) { // REX prefix (0x40-0x4F)
-      return 1 + GetInstructionSize(address + 1);
+      return GetInstructionSize(address + 1) + 1;
     } else if(op >= 0x50 && op <= 0x57) {
       return 1;
     } else if(op >= 0x58 && op <= 0x5F) {
@@ -79,18 +79,8 @@ namespace Beam::Routines::Details {
     } else if(op == 0x83) {
       return GetModRMEncodingSize(address + 1) + 2;
     } else if(op == 0x85) {
-      auto modrm = address[1];
-      auto mod = modrm >> 6;
-      if(mod == 3) {
-        return 2;
-      }
       return GetModRMEncodingSize(address + 1) + 1;
     } else if(op == 0x8B) {
-      auto modrm = address[1];
-      auto mod = modrm >> 6;
-      if(mod == 3) {
-        return 2;
-      }
       return GetModRMEncodingSize(address + 1) + 1;
     } else if(op == 0x89) {
       return GetModRMEncodingSize(address + 1) + 1;
@@ -166,6 +156,32 @@ namespace Beam::Routines::Details {
     }
     std::memcpy(
       trampoline, instructions.m_instructions.data(), instructions.m_size);
+    auto delta = reinterpret_cast<std::intptr_t>(target) -
+      reinterpret_cast<std::intptr_t>(trampoline);
+    auto offset = std::size_t(0);
+    while(offset < instructions.m_size) {
+      auto instruction = static_cast<std::uint8_t*>(trampoline) + offset;
+      if(*instruction == 0x8B) {
+        auto modrm = instruction[1];
+        auto mod = modrm >> 6;
+        auto rm = modrm & 0x07;
+        if(mod == 0 && rm == 5) {
+          if(delta >= std::numeric_limits<std::int32_t>::min() &&
+              delta <= std::numeric_limits<std::int32_t>::max()) {
+            auto displacement =
+              reinterpret_cast<std::int32_t*>(instruction + 2);
+            *displacement += static_cast<std::int32_t>(delta);
+          } else {
+            instruction[0] = 0xB8;
+
+            /** TODO: Fix this hardcoded value. */
+            *reinterpret_cast<std::uint32_t*>(instruction + 1) = 10240;
+            instruction[5] = 0x90;
+          }
+        }
+      }
+      offset += GetInstructionSize(instruction);
+    }
     auto jumpLocation =
       static_cast<std::uint8_t*>(trampoline) + instructions.m_size;
     auto jumpTarget =

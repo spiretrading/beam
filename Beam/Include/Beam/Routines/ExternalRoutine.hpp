@@ -70,7 +70,6 @@ namespace Beam::Routines {
   inline Routine& GetCurrentRoutine() {
     auto& routine = Routine::m_currentRoutine;
     if(!routine) {
-      Routine::IsInsideRoutine() = true;
       thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
       routine = externalRoutine.get();
     }

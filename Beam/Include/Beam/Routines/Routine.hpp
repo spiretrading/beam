@@ -19,6 +19,7 @@ namespace Beam::Routines {
   /** Encapsulates a single sub-routine spawned by a Scheduler. */
   class Routine {
     public:
+      static inline bool m_isSchedulerRunning = true;
 
       /** Indicates whether a routine is currently running on this thread. */
       static bool& IsInsideRoutine();
@@ -160,6 +161,9 @@ namespace Beam::Routines {
 
   inline bool& Routine::IsInsideRoutine() {
     static thread_local auto isInsideRoutine = false;
+    if(!m_isSchedulerRunning) {
+      return m_isSchedulerRunning;
+    }
     return isInsideRoutine;
   }
 

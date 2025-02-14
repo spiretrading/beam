@@ -100,7 +100,6 @@ namespace Details {
         m_contexts(std::make_unique<Context[]>(m_threadCount)) {
     for(auto i = std::size_t(0); i < m_threadCount; ++i) {
       m_threads[i] = std::thread([=, this] {
-        Routine::IsInsideRoutine() = true;
         Run(m_contexts[i]);
       });
     }
@@ -186,6 +185,7 @@ namespace Details {
   }
 
   inline void Scheduler::Stop() {
+    Routine::m_isSchedulerRunning = false;
     Routine::IsInsideRoutine() = false;
     for(auto i = std::size_t(0); i != m_threadCount; ++i) {
       auto& context = m_contexts[i];

@@ -160,11 +160,12 @@ namespace Beam::Routines {
   }
 
   inline bool& Routine::IsInsideRoutine() {
-    static thread_local auto isInsideRoutine = false;
-    if(!m_isSchedulerRunning) {
-      return m_isSchedulerRunning;
-    }
-    return isInsideRoutine;
+    static auto TLS_SLOT = TlsAlloc();
+    if(auto value = TlsGetValue(TLS_SLOT)) {
+      return *static_cast<bool*>(value);
+    };
+    TlsSetValue(TLS_SLOT, new bool());
+    return IsInsideRoutine();
   }
 
   inline Routine::Routine()

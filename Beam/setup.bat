@@ -28,7 +28,7 @@ CALL :DownloadAndExtract "Strawberry" ^
   "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="21212499dfba1165c21cf4a3f938647cdefe8236"
+SET ASPEN_COMMIT="40e8804dbafec627253ed04fa17b23968c9b49a1"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (

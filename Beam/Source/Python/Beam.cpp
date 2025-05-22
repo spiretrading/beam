@@ -13,7 +13,7 @@ using namespace pybind11;
 template struct Beam::Routines::Details::CurrentRoutineGlobal<void>;
 template struct Beam::Routines::Details::NextId<void>;
 
-PYBIND11_MODULE(_beam, m) {
+PYBIND11_MODULE(beam, m) {
   ExportIO(m);
   ExportCodecs(m);
   ExportJson(m);

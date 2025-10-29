@@ -8,7 +8,6 @@
 #include "Beam/Network/SocketIdentifier.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Implements the Channel interface using a multicast socket. */
   class MulticastSocketChannel {
@@ -22,23 +21,23 @@ namespace Network {
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        */
-      MulticastSocketChannel(const IpAddress& group);
+      explicit MulticastSocketChannel(const IpAddress& group);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param options The options to apply to the socket.
        */
-      MulticastSocketChannel(const IpAddress& group,
-        const MulticastSocketOptions& options);
+      MulticastSocketChannel(
+        const IpAddress& group, const MulticastSocketOptions& options);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param interface The interface to use.
        */
-      MulticastSocketChannel(const IpAddress& group,
-        const IpAddress& interface);
+      MulticastSocketChannel(
+        const IpAddress& group, const IpAddress& interface);
 
       /**
        * Constructs a MulticastSocketChannel.
@@ -49,13 +48,10 @@ namespace Network {
       MulticastSocketChannel(const IpAddress& group, const IpAddress& interface,
         const MulticastSocketOptions& options);
 
-      const Identifier& GetIdentifier() const;
-
-      Connection& GetConnection();
-
-      Reader& GetReader();
-
-      Writer& GetWriter();
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
 
     private:
       Identifier m_identifier;
@@ -72,16 +68,16 @@ namespace Network {
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group)
     : MulticastSocketChannel(group, MulticastSocketOptions()) {}
 
-  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const MulticastSocketOptions& options)
+  inline MulticastSocketChannel::MulticastSocketChannel(
+    const IpAddress& group, const MulticastSocketOptions& options)
     : m_identifier(group),
       m_socket(std::make_shared<MulticastSocket>(group, options)),
       m_connection(m_socket),
       m_reader(m_socket, group),
       m_writer(m_socket, group) {}
 
-  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const IpAddress& interface)
+  inline MulticastSocketChannel::MulticastSocketChannel(
+    const IpAddress& group, const IpAddress& interface)
     : MulticastSocketChannel(group, interface, MulticastSocketOptions()) {}
 
   inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
@@ -93,30 +89,22 @@ namespace Network {
       m_writer(m_socket, group) {}
 
   inline const MulticastSocketChannel::Identifier&
-      MulticastSocketChannel::GetIdentifier() const {
+      MulticastSocketChannel::get_identifier() const {
     return m_identifier;
   }
 
   inline MulticastSocketChannel::Connection&
-      MulticastSocketChannel::GetConnection() {
+      MulticastSocketChannel::get_connection() {
     return m_connection;
   }
 
-  inline MulticastSocketChannel::Reader& MulticastSocketChannel::GetReader() {
+  inline MulticastSocketChannel::Reader& MulticastSocketChannel::get_reader() {
     return m_reader;
   }
 
-  inline MulticastSocketChannel::Writer& MulticastSocketChannel::GetWriter() {
+  inline MulticastSocketChannel::Writer& MulticastSocketChannel::get_writer() {
     return m_writer;
   }
-}
-
-  template<>
-  struct ImplementsConcept<Network::MulticastSocketChannel, IO::Channel<
-    Network::MulticastSocketChannel::Identifier,
-    Network::MulticastSocketChannel::Connection,
-    Network::MulticastSocketChannel::Reader,
-    Network::MulticastSocketChannel::Writer>> : std::true_type {};
 }
 
 #endif

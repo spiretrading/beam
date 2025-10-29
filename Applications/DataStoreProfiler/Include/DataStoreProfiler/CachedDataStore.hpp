@@ -1,99 +1,98 @@
-#ifndef BEAM_DATASTOREPROFILER_CACHEDDATASTORE_HPP
-#define BEAM_DATASTOREPROFILER_CACHEDDATASTORE_HPP
+#ifndef BEAM_DATA_STORE_PROFILER_CACHED_DATA_STORE_HPP
+#define BEAM_DATA_STORE_PROFILER_CACHED_DATA_STORE_HPP
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/Pointers/Dereference.hpp>
 #include <Beam/Queries/CachedDataStore.hpp>
 #include <Beam/Queries/EvaluatorTranslator.hpp>
-#include <boost/noncopyable.hpp>
 #include "DataStoreProfiler/DataStoreQueryWrapper.hpp"
 #include "DataStoreProfiler/EntryQuery.hpp"
 
 namespace Beam {
 
-  /*! \class CachedDataStore
-      \brief Caches ongoing writes for quicker read access.
-      \tparam BaseDataStoreType The underlying data store to cache.
+  /**
+   * Caches ongoing writes for quicker read access.
+   * @tparam D The underlying data store to cache.
    */
-  template<typename BaseDataStoreType>
-  class CachedDataStore : private boost::noncopyable {
+  template<typename D>
+  class CachedProfileDataStore {
     public:
 
-      //! The type of DataStore to buffer.
-      using BaseDataStore = GetTryDereferenceType<BaseDataStoreType>;
+      /** The type of DataStore to buffer. */
+      using BaseDataStore = dereference_t<D>;
 
-      //! Constructs a CachedDataStore.
-      /*!
-        \param dataStore Initializes the data store to commit data to.
-        \param blockSize The number of messages to cache per index.
-      */
-      template<typename BaseDataStoreForward>
-      CachedDataStore(BaseDataStoreForward&& dataStore, int blockSize);
+      /**
+       * Constructs a CachedProfileDataStore.
+       * @param data_store Initializes the data store to commit data to.
+       * @param block_size The number of messages to cache per index.
+       */
+      template<Initializes<D> DF>
+      CachedProfileDataStore(DF&& data_store, int block_size);
 
-      ~CachedDataStore();
+      ~CachedProfileDataStore();
 
-      void Clear();
-
-      std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
-
-      void Store(const SequencedIndexedEntry& entry);
-
-      void Store(const std::vector<SequencedIndexedEntry>& entries);
-
-      void Close();
+      void clear();
+      std::vector<SequencedEntry> load_entries(const EntryQuery& query);
+      void store(const SequencedIndexedEntry& entry);
+      void store(const std::vector<SequencedIndexedEntry>& entries);
+      void close();
 
     private:
-      GetOptionalLocalPtr<BaseDataStoreType> m_dataStore;
-      Queries::CachedDataStore<DataStoreQueryWrapper<BaseDataStore*>,
-        Queries::EvaluatorTranslator<Queries::QueryTypes>> m_cachedDataStore;
-      IO::OpenState m_openState;
+      local_ptr_t<D> m_data_store;
+      CachedDataStore<DataStoreQueryWrapper<BaseDataStore*>,
+        EvaluatorTranslator<QueryTypes>> m_cached_data_store;
+      OpenState m_open_state;
 
-      void Shutdown();
+      CachedProfileDataStore(const CachedProfileDataStore&) = delete;
+      CachedProfileDataStore& operator =(const CachedProfileDataStore&) =
+        delete;
+      void shutdown();
   };
 
-  template<typename BaseDataStoreType>
-  template<typename BaseDataStoreForward>
-  CachedDataStore<BaseDataStoreType>::CachedDataStore(
-      BaseDataStoreForward&& dataStore, int blockSize)
-      : m_dataStore{std::forward<BaseDataStoreForward>(dataStore)},
-        m_cachedDataStore{&*m_dataStore, blockSize} {
-    m_openState.SetOpen();
+  template<typename D>
+  CachedProfileDataStore(D&&, int) ->
+    CachedProfileDataStore<std::remove_cvref_t<D>>;
+
+  template<typename D>
+  template<Initializes<D> DF>
+  CachedProfileDataStore<D>::CachedProfileDataStore(
+    DF&& data_store, int block_size)
+    : m_data_store(std::forward<DF>(data_store)),
+      m_cached_data_store(&*m_data_store, block_size) {}
+
+  template<typename D>
+  CachedProfileDataStore<D>::~CachedProfileDataStore() {
+    close();
   }
 
-  template<typename BaseDataStoreType>
-  CachedDataStore<BaseDataStoreType>::~CachedDataStore() {
-    Close();
+  template<typename D>
+  void CachedProfileDataStore<D>::clear() {
+    m_data_store->clear();
   }
 
-  template<typename BaseDataStoreType>
-  void CachedDataStore<BaseDataStoreType>::Clear() {
-    m_dataStore->Clear();
-  }
-
-  template<typename BaseDataStoreType>
-  std::vector<SequencedEntry> CachedDataStore<BaseDataStoreType>::LoadEntries(
+  template<typename D>
+  std::vector<SequencedEntry> CachedProfileDataStore<D>::load_entries(
       const EntryQuery& query) {
-    return m_cachedDataStore.Load(query);
+    return m_cached_data_store.load(query);
   }
 
-  template<typename BaseDataStoreType>
-  void CachedDataStore<BaseDataStoreType>::Store(
-      const SequencedIndexedEntry& entry) {
-    m_cachedDataStore.Store(entry);
+  template<typename D>
+  void CachedProfileDataStore<D>::store(const SequencedIndexedEntry& entry) {
+    m_cached_data_store.store(entry);
   }
 
-  template<typename BaseDataStoreType>
-  void CachedDataStore<BaseDataStoreType>::Close() {
-    if(m_openState.SetClosing()) {
+  template<typename D>
+  void CachedProfileDataStore<D>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    Shutdown();
+    shutdown();
   }
 
-  template<typename BaseDataStoreType>
-  void CachedDataStore<BaseDataStoreType>::Shutdown() {
-    m_cachedDataStore.Close();
-    m_dataStore->Close();
-    m_openState.SetClosed();
+  template<typename D>
+  void CachedProfileDataStore<D>::shutdown() {
+    m_cached_data_store.close();
+    m_data_store->close();
+    m_open_state.set_closed();
   }
 }
 

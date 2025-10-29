@@ -3,133 +3,123 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
+#include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 
 namespace Beam {
-namespace Serialization {
+  template<IsConstBuffer> class BinaryReceiver;
 
   /**
    * Implements a Sender using a binary format.
-   * @param <S> The type of Buffer to send the data to.
+   * @tparam S The type of Buffer to send the data to.
    */
-  template<typename S>
+  template<IsBuffer S>
   class BinarySender : public SenderMixin<BinarySender<S>> {
     public:
-      static_assert(ImplementsConcept<S, IO::Buffer>::value,
-        "Sink must implement the Buffer Concept.");
       using Sink = S;
       using SenderMixin<BinarySender>::SenderMixin;
 
-      void SetSink(Ref<Sink> sink);
-
-      template<typename T>
-      std::enable_if_t<std::is_fundamental_v<T>> Send(
-        const char* name, const T& value);
-
-      template<typename T>
-      std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> Send(
-        const char* name, const T& value);
-
-      void Send(const char* name, const std::string& value,
-        unsigned int version);
-
+      void set(Ref<Sink> sink);
+      template<typename T> requires std::is_fundamental_v<T>
+      void send(const char* name, const T& value);
+      template<IsConstBuffer T>
+      void send(const char* name, const T& value);
+      void send(const char* name, const std::string& value);
       template<std::size_t N>
-      void Send(const char* name, const FixedString<N>& value,
-        unsigned int version);
-
-      void StartStructure(const char* name);
-
-      void EndStructure();
-
-      void StartSequence(const char* name, const int& size);
-
-      void StartSequence(const char* name);
-
-      void EndSequence();
-
-      using SenderMixin<BinarySender>::Send;
-      using SenderMixin<BinarySender>::Shuttle;
+      void send(const char* name, const FixedString<N>& value);
+      void start_structure(const char* name);
+      void end_structure();
+      void start_sequence(const char* name, const int& size);
+      void start_sequence(const char* name);
+      void end_sequence();
+      using SenderMixin<BinarySender>::shuttle;
+      using SenderMixin<BinarySender>::send;
 
     private:
       Sink* m_sink;
       std::size_t m_size;
   };
 
-  template<typename S>
-  void BinarySender<S>::SetSink(Ref<Sink> sink) {
-    m_sink = sink.Get();
-    m_size = m_sink->GetSize();
+  template<IsBuffer S>
+  void BinarySender<S>::set(Ref<Sink> sink) {
+    m_sink = sink.get();
+    m_size = m_sink->get_size();
   }
 
-  template<typename S>
-  template<typename T>
-  std::enable_if_t<std::is_fundamental_v<T>> BinarySender<S>::Send(
-      const char* name, const T& value) {
-    m_sink->Grow(sizeof(T));
-    std::memcpy(m_sink->GetMutableData() + m_size,
-      reinterpret_cast<const char*>(&value), sizeof(T));
+  template<IsBuffer S>
+  template<typename T> requires std::is_fundamental_v<T>
+  void BinarySender<S>::send(const char* name, const T& value) {
+    append(*m_sink, value);
     m_size += sizeof(T);
   }
 
-  template<typename S>
-  template<typename T>
-  std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value>
-      BinarySender<S>::Send(const char* name, const T& value) {
-    auto size = static_cast<std::uint32_t>(value.GetSize());
-    Shuttle(size);
-    m_sink->Grow(size);
-    std::memcpy(m_sink->GetMutableData() + m_size, value.GetData(), size);
+  template<IsBuffer S>
+  template<IsConstBuffer T>
+  void BinarySender<S>::send(const char* name, const T& value) {
+    auto size = static_cast<std::uint32_t>(value.get_size());
+    send(size);
+    auto available_size = m_sink->grow(size);
+    if(available_size < size) {
+      boost::throw_with_location(
+        SerializationException("Data length out of range."));
+    }
+    std::memcpy(
+      get_mutable_suffix(*m_sink, available_size), value.get_data(), size);
     m_size += size;
   }
 
-  template<typename S>
-  void BinarySender<S>::Send(const char* name, const std::string& value,
-      unsigned int version) {
+  template<IsBuffer S>
+  void BinarySender<S>::send(const char* name, const std::string& value) {
     auto size = static_cast<std::uint32_t>(value.size());
-    Shuttle(size);
-    m_sink->Grow(size);
-    std::memcpy(m_sink->GetMutableData() + m_size, value.c_str(), size);
+    send(size);
+    auto available_size = m_sink->grow(size);
+    if(available_size < size) {
+      boost::throw_with_location(
+        SerializationException("Data length out of range."));
+    }
+    std::memcpy(
+      get_mutable_suffix(*m_sink, available_size), value.c_str(), size);
     m_size += size;
   }
 
-  template<typename S>
+  template<IsBuffer S>
   template<std::size_t N>
-  void BinarySender<S>::Send(const char* name, const FixedString<N>& value,
-      unsigned int version) {
-    m_sink->Grow(N);
-    std::memcpy(m_sink->GetMutableData() + m_size, value.GetData(), N);
+  void BinarySender<S>::send(const char* name, const FixedString<N>& value) {
+    auto available_size = m_sink->grow(N);
+    if(available_size < N) {
+      boost::throw_with_location(
+        SerializationException("Data length out of range."));
+    }
+    std::memcpy(
+      get_mutable_suffix(*m_sink, available_size), value.get_data(), N);
     m_size += N;
   }
 
-  template<typename S>
-  void BinarySender<S>::StartStructure(const char* name) {}
+  template<IsBuffer S>
+  void BinarySender<S>::start_structure(const char* name) {}
 
-  template<typename S>
-  void BinarySender<S>::EndStructure() {}
+  template<IsBuffer S>
+  void BinarySender<S>::end_structure() {}
 
-  template<typename S>
-  void BinarySender<S>::StartSequence(const char* name, const int& size) {
-    Shuttle(size);
+  template<IsBuffer S>
+  void BinarySender<S>::start_sequence(const char* name, const int& size) {
+    send(size);
   }
 
-  template<typename S>
-  void BinarySender<S>::StartSequence(const char* name) {}
+  template<IsBuffer S>
+  void BinarySender<S>::start_sequence(const char* name) {}
+
+  template<IsBuffer S>
+  void BinarySender<S>::end_sequence() {}
 
   template<typename S>
-  void BinarySender<S>::EndSequence() {}
-
-  template<typename S>
-  struct Inverse<BinarySender<S>> {
+  struct inverse<BinarySender<S>> {
     using type = BinaryReceiver<S>;
   };
-}
-
-  template<typename S>
-  struct ImplementsConcept<Serialization::BinarySender<S>,
-    Serialization::Sender<S>> : std::true_type {};
 }
 
 #endif

@@ -1,76 +1,55 @@
 #ifndef BEAM_LOCAL_CONNECTION_HPP
 #define BEAM_LOCAL_CONNECTION_HPP
 #include <atomic>
-#include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/Connection.hpp"
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/PipedWriter.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 
 namespace Beam {
-namespace IO {
 
-  /**
-   * Implements a local Connection.
-   * @param <B> The type of Buffer to use.
-   */
-  template<typename B>
+  /** Implements a local Connection. */
   class LocalConnection {
     public:
-
-      /** The type of Buffer to use. */
-      using Buffer = B;
-
-      /** The type of LocalServerConnection this connects to. */
-      using LocalServerConnection = IO::LocalServerConnection<Buffer>;
 
       /**
        * Constructs a LocalConnection.
        * @param writer The Writer to use.
-       * @param endpointWriter The Writer being used by the endpoint.
+       * @param end The Writer being used by the end.
        */
-      LocalConnection(std::shared_ptr<PipedWriter<Buffer>> writer,
-        std::shared_ptr<PipedWriter<Buffer>> endpointWriter);
+      LocalConnection(std::shared_ptr<PipedWriter> writer,
+        std::shared_ptr<PipedWriter> end);
 
       ~LocalConnection();
 
-      void Close();
+      void close();
 
     private:
-      std::shared_ptr<PipedWriter<Buffer>> m_writer;
-      std::shared_ptr<PipedWriter<Buffer>> m_endpointWriter;
-      OpenState m_openState;
+      std::shared_ptr<PipedWriter> m_writer;
+      std::shared_ptr<PipedWriter> m_end;
+      OpenState m_open_state;
 
       LocalConnection(const LocalConnection&) = delete;
       LocalConnection& operator =(const LocalConnection&) = delete;
   };
 
-  template<typename B>
-  LocalConnection<B>::LocalConnection(
-    std::shared_ptr<PipedWriter<Buffer>> writer,
-    std::shared_ptr<PipedWriter<Buffer>> endpointWriter)
+  inline LocalConnection::LocalConnection(
+    std::shared_ptr<PipedWriter> writer, std::shared_ptr<PipedWriter> end)
     : m_writer(std::move(writer)),
-      m_endpointWriter(std::move(endpointWriter)) {}
+      m_end(std::move(end)) {}
 
-  template<typename B>
-  LocalConnection<B>::~LocalConnection() {
-    Close();
+  inline LocalConnection::~LocalConnection() {
+    close();
   }
 
-  template<typename B>
-  void LocalConnection<B>::Close() {
-    if(m_openState.SetClosing()) {
+  inline void LocalConnection::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_endpointWriter->Break();
-    m_writer->Break();
-    m_openState.Close();
+    m_end->close();
+    m_writer->close();
+    m_open_state.close();
   }
-}
-
-  template<typename B>
-  struct ImplementsConcept<IO::LocalConnection<B>, IO::Connection> :
-    std::true_type {};
 }
 
 #endif

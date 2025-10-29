@@ -2,7 +2,7 @@
 #define BEAM_NETWORK_SECURE_SOCKET_OPTIONS_HPP
 #include "Beam/Network/TcpSocketOptions.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /**
    * Stores the various options that can be applied to a SecureSocketChannel.

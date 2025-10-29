@@ -1,9 +1,9 @@
 #ifndef BEAM_SYNCHRONIZED_LIST_HPP
 #define BEAM_SYNCHRONIZED_LIST_HPP
+#include <concepts>
 #include <vector>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
-#include "Beam/Collections/Collections.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 
 namespace Beam {
@@ -11,8 +11,8 @@ namespace Beam {
   /**
    * Wraps a list container allowing for atomic operations to be performed on
    * it.
-   * @param <T> The type of list to wrap.
-   * @param <M> The type of mutex used to synchronized this container.
+   * @tparam T The type of list to wrap.
+   * @tparam M The type of mutex used to synchronized this container.
    */
   template<typename T, typename M = boost::mutex>
   class SynchronizedList {
@@ -34,81 +34,75 @@ namespace Beam {
        * Copies a list.
        * @param list The list to copy.
        */
-      SynchronizedList(const SynchronizedList& list);
-
-      /**
-       * Copies a list.
-       * @param list The list to copy.
-       */
       template<typename U, typename V>
       SynchronizedList(const SynchronizedList<U, V>& list);
 
-      /**
-       * Moves a list.
-       * @param list The list to move.
-       */
+      SynchronizedList(const SynchronizedList& list);
       SynchronizedList(SynchronizedList&& list);
 
       /** Returns a copy of this list. */
-      List Acquire() const;
+      List load() const;
 
       /**
-       * Adds a value into the end of the list.
+       * Adds a value at the end of the list.
        * @param value The value to insert.
        */
-      template<typename ValueForward>
-      void PushBack(ValueForward&& value);
+      template<typename V>
+      void push_back(V&& value);
 
       /**
        * Appends a container to the end of the list.
        * @param container The container to append.
        */
-      template<typename Container>
-      void Append(const Container& container);
+      template<typename C>
+      void append(const C& container);
 
       /**
        * Removes a value from the list.
        * @param value The value to remove.
        */
-      void Remove(const Value& value);
+      void erase(const Value& value);
 
       /**
        * Removes all values matching a predicate.
        * @param f The predicate to match.
        */
-      template<typename F>
-      void RemoveIf(F&& f);
+      template<std::predicate<const Value&> F>
+      void erase_if(F f) {
+        auto lock = boost::lock_guard(m_mutex);
+        std::erase_if(m_list, std::move(f));
+      }
 
       /** Performs an action on each element of this list. */
       template<typename F>
-      void ForEach(F&& f);
+      void for_each(F f);
 
       /** Performs an action on each element of this list. */
       template<typename F>
-      void ForEach(F&& f) const;
+      void for_each(F f) const;
 
       /** Clears the contents of this list. */
-      void Clear();
+      void clear();
 
       /**
        * Swaps this list with another.
        * @param list The list to swap with.
        */
-      void Swap(List& list);
+      void swap(List& list);
 
       /**
        * Performs a synchronized action with the list.
        * @param f The action to perform on the list.
        */
       template<typename F>
-      decltype(auto) With(F&& f);
+      decltype(auto) with(F&& f);
 
       /**
        * Performs a synchronized action with the list.
        * @param f The action to perform on the list.
        */
       template<typename F>
-      decltype(auto) With(F&& f) const;
+      decltype(auto) with(F&& f) const;
 
     private:
       mutable Mutex m_mutex;
@@ -117,17 +111,11 @@ namespace Beam {
 
   /**
    * A SynchronizedList using an std::vector.
-   * @param <V> The type of value.
-   * @param <M> The type of mutex used to synchronized this container.
+   * @tparam V The type of value.
+   * @tparam M The type of mutex used to synchronized this container.
    */
   template<typename ValueType, typename M = boost::mutex>
   using SynchronizedVector = SynchronizedList<std::vector<ValueType>, M>;
-
-  template<typename T, typename M>
-  SynchronizedList<T, M>::SynchronizedList(const SynchronizedList& list) {
-    auto lock = boost::lock_guard(list.m_mutex);
-    m_list.insert(m_list.end(), list.m_list.begin(), list.m_list.end());
-  }
 
   template<typename T, typename M>
   template<typename U, typename V>
@@ -137,62 +125,59 @@ namespace Beam {
   }
 
   template<typename T, typename M>
+  SynchronizedList<T, M>::SynchronizedList(const SynchronizedList& list) {
+    auto lock = boost::lock_guard(list.m_mutex);
+    m_list = list.m_list;
+  }
+
+  template<typename T, typename M>
   SynchronizedList<T, M>::SynchronizedList(SynchronizedList&& list) {
     auto lock = boost::lock_guard(list.m_mutex);
     m_list = std::move(list.m_list);
   }
 
   template<typename T, typename M>
-  typename SynchronizedList<T, M>::List
-      SynchronizedList<T, M>::Acquire() const {
+  typename SynchronizedList<T, M>::List SynchronizedList<T, M>::load() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_list;
   }
 
   template<typename T, typename M>
-  template<typename ValueForward>
-  void SynchronizedList<T, M>::PushBack(ValueForward&& value) {
+  template<typename V>
+  void SynchronizedList<T, M>::push_back(V&& value) {
     auto lock = boost::lock_guard(m_mutex);
-    m_list.push_back(std::forward<ValueForward>(value));
+    m_list.push_back(std::forward<V>(value));
   }
 
   template<typename T, typename M>
-  template<typename Container>
-  void SynchronizedList<T, M>::Append(const Container& container) {
+  template<typename C>
+  void SynchronizedList<T, M>::append(const C& container) {
     auto lock = boost::lock_guard(m_mutex);
     m_list.insert(m_list.end(), container.begin(), container.end());
   }
 
   template<typename T, typename M>
-  void SynchronizedList<T, M>::Remove(const Value& value) {
+  void SynchronizedList<T, M>::erase(const Value& value) {
     auto lock = boost::lock_guard(m_mutex);
-    Beam::RemoveAll(m_list, value);
+    std::erase(m_list, value);
   }
 
   template<typename T, typename M>
   template<typename F>
-  void SynchronizedList<T, M>::RemoveIf(F&& f) {
+  void SynchronizedList<T, M>::for_each(F f) {
     auto lock = boost::lock_guard(m_mutex);
-    m_list.erase(std::remove_if(m_list.begin(), m_list.end(),
-      std::forward<F>(f)), m_list.end());
+    std::for_each(m_list.begin(), m_list.end(), std::move(f));
   }
 
   template<typename T, typename M>
   template<typename F>
-  void SynchronizedList<T, M>::ForEach(F&& f) {
+  void SynchronizedList<T, M>::for_each(F f) const {
     auto lock = boost::lock_guard(m_mutex);
-    std::for_each(m_list.begin(), m_list.end(), std::forward<F>(f));
+    std::for_each(m_list.begin(), m_list.end(), std::move(f));
   }
 
   template<typename T, typename M>
-  template<typename F>
-  void SynchronizedList<T, M>::ForEach(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
-    std::for_each(m_list.begin(), m_list.end(), std::forward<F>(f));
-  }
-
-  template<typename T, typename M>
-  void SynchronizedList<T, M>::Clear() {
+  void SynchronizedList<T, M>::clear() {
     auto list = List();
     {
       auto lock = boost::lock_guard(m_mutex);
@@ -201,23 +186,28 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  void SynchronizedList<T, M>::Swap(List& list) {
+  void SynchronizedList<T, M>::swap(List& list) {
     auto lock = boost::lock_guard(m_mutex);
     m_list.swap(list);
   }
 
   template<typename T, typename M>
   template<typename F>
-  decltype(auto) SynchronizedList<T, M>::With(F&& f) {
+  decltype(auto) SynchronizedList<T, M>::with(F&& f) {
     auto lock = boost::lock_guard(m_mutex);
-    return f(m_list);
+    return std::forward<F>(f)(m_list);
   }
 
   template<typename T, typename M>
   template<typename F>
-  decltype(auto) SynchronizedList<T, M>::With(F&& f) const {
+  decltype(auto) SynchronizedList<T, M>::with(F&& f) const {
     auto lock = boost::lock_guard(m_mutex);
-    return f(m_list);
+    return std::forward<F>(f)(m_list);
+  }
+
+  template<typename T, typename M>
+  void swap(SynchronizedList<T, M>& a, SynchronizedList<T, M>& b) {
+    a.swap(b);
   }
 }
 

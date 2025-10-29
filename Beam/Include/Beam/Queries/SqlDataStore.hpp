@@ -4,18 +4,18 @@
 #include <iterator>
 #include <vector>
 #include <Viper/Viper.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SqlTranslator.hpp"
 #include "Beam/Queries/SqlUtilities.hpp"
 #include "Beam/Sql/DatabaseConnectionPool.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Specifies whether to create the table on connection. */
   enum class SqlConnectionOption {
@@ -32,10 +32,10 @@ namespace Beam::Queries {
 
   /**
    * Loads and stores SequencedValue's in an SQL database.
-   * @param <C> The type of SQL connection to query.
-   * @param <V> The type of SQL row to store the value.
-   * @param <I> The type of SQL row to store the index.
-   * @param <T> The type of SqlTranslator used for filtering values.
+   * @tparam C The type of SQL connection to query.
+   * @tparam V The type of SQL row to store the value.
+   * @tparam I The type of SQL row to store the index.
+   * @tparam T The type of SqlTranslator used for filtering values.
    */
   template<typename C, typename V, typename I, typename T>
   class SqlDataStore {
@@ -63,37 +63,37 @@ namespace Beam::Queries {
       using Query = BasicQuery<Index>;
 
       /** The SequencedValue to store. */
-      using SequencedValue = ::Beam::Queries::SequencedValue<Value>;
+      using SequencedValue = Beam::SequencedValue<Value>;
 
       /** The IndexedValue to store. */
-      using IndexedValue = ::Beam::Queries::SequencedValue<
-        ::Beam::Queries::IndexedValue<Value, Index>>;
+      using IndexedValue =
+        Beam::SequencedValue<Beam::IndexedValue<Value, Index>>;
 
       /**
        * Constructs an SqlDataStore.
        * @param table The name of the SQL table.
-       * @param valueRow The SQL row to store the value.
-       * @param indexRow The SQL row to store the index.
-       * @param readerPool The pool of SQL connections used for reading.
-       * @param writerPool The pool of SQL connections used for writing.
+       * @param value_row The SQL row to store the value.
+       * @param index_row The SQL row to store the index.
+       * @param reader_pool The pool of SQL connections used for reading.
+       * @param writer_pool The pool of SQL connections used for writing.
        */
-      SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
-        Ref<DatabaseConnectionPool<Connection>> readerPool,
-        Ref<DatabaseConnectionPool<Connection>> writerPool);
+      SqlDataStore(std::string table, ValueRow value_row, IndexRow index_row,
+        Ref<DatabaseConnectionPool<Connection>> reader_pool,
+        Ref<DatabaseConnectionPool<Connection>> writer_pool);
 
       /**
        * Constructs an SqlDataStore.
        * @param table The name of the SQL table.
-       * @param valueRow The SQL row to store the value.
-       * @param indexRow The SQL row to store the index.
-       * @param readerPool The pool of SQL connections used for reading.
-       * @param writerPool The pool of SQL connections used for writing.
-       * @param connectionOption Specifies the ConnectionOption to use.
+       * @param value_row The SQL row to store the value.
+       * @param index_row The SQL row to store the index.
+       * @param reader_pool The pool of SQL connections used for reading.
+       * @param writer_pool The pool of SQL connections used for writing.
+       * @param connection_option Specifies the ConnectionOption to use.
        */
-      SqlDataStore(std::string table, ValueRow valueRow, IndexRow indexRow,
-        Ref<DatabaseConnectionPool<Connection>> readerPool,
-        Ref<DatabaseConnectionPool<Connection>> writerPool,
-        SqlConnectionOption connectionOption);
+      SqlDataStore(std::string table, ValueRow value_row, IndexRow index_row,
+        Ref<DatabaseConnectionPool<Connection>> reader_pool,
+        Ref<DatabaseConnectionPool<Connection>> writer_pool,
+        SqlConnectionOption connection_option);
 
       ~SqlDataStore();
 
@@ -102,98 +102,81 @@ namespace Beam::Queries {
        * @param query The search query to execute.
        * @return The list of the values that satisfy the search <i>query</i>.
        */
-      std::vector<SequencedValue> Load(const Query& query);
+      std::vector<SequencedValue> load(const Viper::Expression& query);
 
-      /**
-       * Executes a search query.
-       * @param query The search query to execute.
-       * @return The list of the values that satisfy the search <i>query</i>.
-       */
-      std::vector<SequencedValue> Load(const Viper::Expression& query);
-
-      /**
-       * Stores a Value.
-       * @param value The Value to store.
-       */
-      void Store(const IndexedValue& value);
-
-      /**
-       * Stores a list of Values.
-       * @param values The list of Values to store.
-       */
-      void Store(const std::vector<IndexedValue>& values);
-
-      void Close();
+      std::vector<SequencedValue> load(const Query& query);
+      void store(const IndexedValue& value);
+      void store(const std::vector<IndexedValue>& values);
+      void close();
 
     private:
       std::string m_table;
-      ValueRow m_valueRow;
-      IndexRow m_indexRow;
+      ValueRow m_value_row;
+      IndexRow m_index_row;
       Viper::Row<IndexedValue> m_row;
-      Viper::Row<SequencedValue> m_sequencedRow;
-      DatabaseConnectionPool<Connection>* m_readerPool;
-      DatabaseConnectionPool<Connection>* m_writerPool;
+      Viper::Row<SequencedValue> m_sequenced_row;
+      DatabaseConnectionPool<Connection>* m_reader_pool;
+      DatabaseConnectionPool<Connection>* m_writer_pool;
   };
 
   template<typename C, typename V, typename I, typename T>
-  SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
-      IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
-      Ref<DatabaseConnectionPool<Connection>> writerPool,
-      SqlConnectionOption connectionOption)
+  SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow value_row,
+      IndexRow index_row, Ref<DatabaseConnectionPool<Connection>> reader_pool,
+      Ref<DatabaseConnectionPool<Connection>> writer_pool,
+      SqlConnectionOption connection_option)
       : m_table(std::move(table)),
-        m_valueRow(std::move(valueRow)),
-        m_indexRow(std::move(indexRow)),
-        m_readerPool(readerPool.Get()),
-        m_writerPool(writerPool.Get()) {
-    m_valueRow = m_valueRow.
+        m_value_row(std::move(value_row)),
+        m_index_row(std::move(index_row)),
+        m_reader_pool(reader_pool.get()),
+        m_writer_pool(writer_pool.get()) {
+    m_value_row = m_value_row.
       add_column("timestamp",
         [] (const auto& row) {
-          return GetTimestamp(row);
+          return get_timestamp(row);
         },
         [] (auto& row, auto value) {
-          GetTimestamp(row) = value;
+          get_timestamp(row) = value;
         });
-    m_sequencedRow = Viper::Row<SequencedValue>().
-      extend(m_valueRow,
+    m_sequenced_row = Viper::Row<SequencedValue>().
+      extend(m_value_row,
         [] (auto& row) -> auto& {
-          return row.GetValue();
+          return row.get_value();
         }).
       add_column("query_sequence",
         [] (const auto& row) {
-          return row.GetSequence().GetOrdinal();
+          return row.get_sequence().get_ordinal();
         },
         [] (auto& row, auto value) {
-          row.GetSequence() = Sequence(value);
+          row.get_sequence() = Sequence(value);
         });
-    auto isIndexEmbedded = false;
-    for(auto& indexColumn : m_indexRow.get_columns()) {
-      for(auto& valueColumn : m_valueRow.get_columns()) {
-        if(indexColumn.m_name == valueColumn.m_name) {
-          isIndexEmbedded = true;
+    auto is_index_embedded = false;
+    for(auto& index_column : m_index_row.get_columns()) {
+      for(auto& value_column : m_value_row.get_columns()) {
+        if(index_column.m_name == value_column.m_name) {
+          is_index_embedded = true;
           break;
         }
       }
     }
-    if(!isIndexEmbedded) {
-      m_row = m_row.extend(m_indexRow,
-        [] (auto& row) -> auto& {
-          return row->GetIndex();
-        });
+    if(!is_index_embedded) {
+      m_row = m_row.extend(m_index_row, [] (auto& row) -> auto& {
+        return row->get_index();
+      });
     }
     m_row = m_row.
-      extend(m_valueRow,
+      extend(m_value_row,
         [] (auto& row) -> auto& {
-          return row->GetValue();
+          return row->get_value();
         }).
       add_column("query_sequence",
         [] (const auto& row) {
-          return row.GetSequence().GetOrdinal();
+          return row.get_sequence().get_ordinal();
         },
         [] (auto& row, auto value) {
-          row.GetSequence() = Sequence(value);
+          row.get_sequence() = Sequence(value);
         });
     auto index = std::vector<std::string>();
-    for(auto& column : m_indexRow.get_columns()) {
+    for(auto& column : m_index_row.get_columns()) {
       index.push_back(column.m_name);
     }
     auto sequence_index = index;
@@ -203,75 +186,75 @@ namespace Beam::Queries {
     timestamp_index.push_back("query_sequence");
     timestamp_index.push_back("timestamp");
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
-    if(connectionOption == SqlConnectionOption::CREATE) {
-      auto connection = m_writerPool->Acquire();
+    if(connection_option == SqlConnectionOption::CREATE) {
+      auto connection = m_writer_pool->acquire();
       connection->execute(create_if_not_exists(m_row, m_table));
-    } else if(connectionOption == SqlConnectionOption::ENSURE) {
-      auto connection = m_writerPool->Acquire();
+    } else if(connection_option == SqlConnectionOption::ENSURE) {
+      auto connection = m_writer_pool->acquire();
       if(!connection->has_table(m_table)) {
-        BOOST_THROW_EXCEPTION(IO::ConnectException(
-          "Table " + m_table + " doesn't exist."));
+        boost::throw_with_location(
+          ConnectException("Table " + m_table + " doesn't exist."));
       }
     }
   }
 
   template<typename C, typename V, typename I, typename T>
-  SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow valueRow,
-    IndexRow indexRow, Ref<DatabaseConnectionPool<Connection>> readerPool,
-    Ref<DatabaseConnectionPool<Connection>> writerPool)
-    : SqlDataStore(std::move(table), std::move(valueRow), std::move(indexRow),
-        Ref(readerPool), Ref(writerPool), SqlConnectionOption::CREATE) {}
+  SqlDataStore<C, V, I, T>::SqlDataStore(std::string table, ValueRow value_row,
+    IndexRow index_row, Ref<DatabaseConnectionPool<Connection>> reader_pool,
+    Ref<DatabaseConnectionPool<Connection>> writer_pool)
+    : SqlDataStore(std::move(table), std::move(value_row), std::move(index_row),
+        Ref(reader_pool), Ref(writer_pool), SqlConnectionOption::CREATE) {}
 
   template<typename C, typename V, typename I, typename T>
   SqlDataStore<C, V, I, T>::~SqlDataStore() {
-    Close();
+    close();
   }
 
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
-      SqlDataStore<C, V, I, T>::Load(const Query& query) {
+      SqlDataStore<C, V, I, T>::load(const Query& query) {
     auto index = std::optional<Viper::Expression>();
     auto column = std::string();
-    for(auto i = std::size_t(0); i != m_indexRow.get_columns().size(); ++i) {
-      m_indexRow.append_value(query.GetIndex(), i, column);
-      auto term = Viper::sym(m_indexRow.get_columns()[i].m_name) ==
-        Viper::sym(column);
-      if(index.has_value()) {
+    for(auto i = std::size_t(0); i != m_index_row.get_columns().size(); ++i) {
+      m_index_row.append_value(query.get_index(), i, column);
+      auto term =
+        Viper::sym(m_index_row.get_columns()[i].m_name) == Viper::sym(column);
+      if(index) {
         *index = *index && term;
       } else {
         index.emplace(std::move(term));
       }
       column.clear();
     }
-    if(!index.has_value()) {
+    if(!index) {
       index.emplace();
     }
-    return LoadSqlQuery<SqlTranslator>(query, m_sequencedRow, m_table, *index,
-      *m_readerPool);
+    return load_sql_query<SqlTranslator>(
+      query, m_sequenced_row, m_table, *index, *m_reader_pool);
   }
 
   template<typename C, typename V, typename I, typename T>
   std::vector<typename SqlDataStore<C, V, I, T>::SequencedValue>
-      SqlDataStore<C, V, I, T>::Load(const Viper::Expression& query) {
-    return LoadSqlQuery(query, m_sequencedRow, m_table, *m_readerPool);
+      SqlDataStore<C, V, I, T>::load(const Viper::Expression& query) {
+    return load_sql_query(query, m_sequenced_row, m_table, *m_reader_pool);
   }
 
   template<typename C, typename V, typename I, typename T>
-  void SqlDataStore<C, V, I, T>::Store(const IndexedValue& value) {
-    auto connection = m_writerPool->Acquire();
+  void SqlDataStore<C, V, I, T>::store(const IndexedValue& value) {
+    auto connection = m_writer_pool->acquire();
     connection->execute(Viper::insert(m_row, m_table, &value));
   }
 
   template<typename C, typename V, typename I, typename T>
-  void SqlDataStore<C, V, I, T>::Store(
+  void SqlDataStore<C, V, I, T>::store(
       const std::vector<IndexedValue>& values) {
-    auto connection = m_writerPool->Acquire();
-    connection->execute(Viper::insert(m_row, m_table, values.begin(),
-      values.end()));
+    auto connection = m_writer_pool->acquire();
+    connection->execute(
+      Viper::insert(m_row, m_table, values.begin(), values.end()));
   }
 
   template<typename C, typename V, typename I, typename T>
-  void SqlDataStore<C, V, I, T>::Close() {}
+  void SqlDataStore<C, V, I, T>::close() {}
 }
 
 #endif

@@ -16,7 +16,7 @@ namespace Beam::Python {
        * Constructs a SharedObject.
        * @param object The object to store.
        */
-      SharedObject(pybind11::object object);
+      explicit SharedObject(pybind11::object object);
 
       /** Returns a reference to the object. */
       pybind11::object& operator *() const;

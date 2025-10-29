@@ -6,69 +6,69 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/Network/Network.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam::Network::Details {
+namespace Beam::Details {
   template<typename S>
   struct SocketEntry {
     using Socket = S;
-    mutable Threading::Mutex m_mutex;
-    boost::asio::io_context* m_ioContext;
+    mutable Mutex m_mutex;
+    boost::asio::io_context* m_io_context;
     Socket m_socket;
-    bool m_isOpen;
-    bool m_isReadPending;
-    int m_pendingWrites;
-    Threading::ConditionVariable m_isPendingCondition;
+    bool m_is_open;
+    bool m_is_read_pending;
+    int m_pending_writes;
+    ConditionVariable m_is_pending_condition;
 
     template<typename... Args>
     SocketEntry(boost::asio::io_context& ioContext, Args&&... args)
-      : m_ioContext(&ioContext),
+      : m_io_context(&ioContext),
         m_socket(std::forward<Args>(args)...),
-        m_isOpen(false),
-        m_isReadPending(false),
-        m_pendingWrites(0) {}
+        m_is_open(false),
+        m_is_read_pending(false),
+        m_pending_writes(0) {}
 
-    void Close() {
-      auto errorCode = boost::system::error_code();
+    void close() {
+      auto error_code = boost::system::error_code();
       auto lock = std::unique_lock(m_mutex);
-      if(!m_isOpen) {
+      if(!m_is_open) {
         return;
       }
-      m_isOpen = false;
-      m_socket.shutdown(Socket::shutdown_both, errorCode);
-      m_socket.close(errorCode);
-      while(m_isReadPending) {
-        m_isPendingCondition.wait(lock);
+      m_is_open = false;
+      m_socket.shutdown(Socket::shutdown_both, error_code);
+      m_socket.close(error_code);
+      while(m_is_read_pending) {
+        m_is_pending_condition.wait(lock);
       }
-      while(m_pendingWrites != 0) {
-        m_isPendingCondition.wait(lock);
-      }
-    }
-
-    void EndReadOperation() {
-      auto lock = std::lock_guard(m_mutex);
-      m_isReadPending = false;
-      if(!m_isOpen) {
-        m_isPendingCondition.notify_all();
+      while(m_pending_writes != 0) {
+        m_is_pending_condition.wait(lock);
       }
     }
 
-    void BeginWriteOperation() {
+    void end_read_operation() {
       auto lock = std::lock_guard(m_mutex);
-      if(!m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
+      m_is_read_pending = false;
+      if(!m_is_open) {
+        m_is_pending_condition.notify_all();
       }
-      ++m_pendingWrites;
     }
 
-    void EndWriteOperation() {
+    void begin_write_operation() {
       auto lock = std::lock_guard(m_mutex);
-      --m_pendingWrites;
-      if(m_pendingWrites == 0 && !m_isOpen) {
-        m_isPendingCondition.notify_all();
+      if(!m_is_open) {
+        boost::throw_with_location(EndOfFileException());
+      }
+      ++m_pending_writes;
+    }
+
+    void end_write_operation() {
+      auto lock = std::lock_guard(m_mutex);
+      --m_pending_writes;
+      if(m_pending_writes == 0 && !m_is_open) {
+        m_is_pending_condition.notify_all();
       }
     }
   };
@@ -76,63 +76,63 @@ namespace Beam::Network::Details {
 
   struct SecureSocketEntry {
     using Socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
-    Threading::Mutex m_mutex;
-    boost::asio::io_context* m_ioContext;
+    Mutex m_mutex;
+    boost::asio::io_context* m_io_context;
     boost::asio::ssl::context m_context;
     Socket m_socket;
-    bool m_isOpen;
-    bool m_isReadPending;
-    int m_pendingWrites;
-    Threading::ConditionVariable m_isPendingCondition;
+    bool m_is_open;
+    bool m_is_read_pending;
+    int m_pending_writes;
+    ConditionVariable m_is_pending_condition;
 
     template<typename... Args>
     SecureSocketEntry(boost::asio::io_context& ioContext, Args&&... args)
-      : m_ioContext(&ioContext),
+      : m_io_context(&ioContext),
         m_context(boost::asio::ssl::context::sslv23),
         m_socket(std::forward<Args>(args)..., m_context),
-        m_isOpen(false),
-        m_isReadPending(false),
-        m_pendingWrites(0) {}
+        m_is_open(false),
+        m_is_read_pending(false),
+        m_pending_writes(0) {}
 
-    void Close() {
-      auto errorCode = boost::system::error_code();
+    void close() {
+      auto error_code = boost::system::error_code();
       auto lock = std::unique_lock(m_mutex);
-      if(!m_isOpen) {
+      if(!m_is_open) {
         return;
       }
-      m_isOpen = false;
+      m_is_open = false;
       m_socket.lowest_layer().shutdown(
-        boost::asio::ip::tcp::socket::shutdown_both, errorCode);
-      m_socket.lowest_layer().close(errorCode);
-      while(m_isReadPending) {
-        m_isPendingCondition.wait(lock);
+        boost::asio::ip::tcp::socket::shutdown_both, error_code);
+      m_socket.lowest_layer().close(error_code);
+      while(m_is_read_pending) {
+        m_is_pending_condition.wait(lock);
       }
-      while(m_pendingWrites != 0) {
-        m_isPendingCondition.wait(lock);
-      }
-    }
-
-    void EndReadOperation() {
-      auto lock = std::lock_guard(m_mutex);
-      m_isReadPending = false;
-      if(!m_isOpen) {
-        m_isPendingCondition.notify_all();
+      while(m_pending_writes != 0) {
+        m_is_pending_condition.wait(lock);
       }
     }
 
-    void BeginWriteOperation() {
+    void end_read_operation() {
       auto lock = std::lock_guard(m_mutex);
-      if(!m_isOpen) {
-        BOOST_THROW_EXCEPTION(IO::EndOfFileException());
+      m_is_read_pending = false;
+      if(!m_is_open) {
+        m_is_pending_condition.notify_all();
       }
-      ++m_pendingWrites;
     }
 
-    void EndWriteOperation() {
+    void begin_write_operation() {
       auto lock = std::lock_guard(m_mutex);
-      --m_pendingWrites;
-      if(m_pendingWrites == 0 && !m_isOpen) {
-        m_isPendingCondition.notify_all();
+      if(!m_is_open) {
+        boost::throw_with_location(EndOfFileException());
+      }
+      ++m_pending_writes;
+    }
+
+    void end_write_operation() {
+      auto lock = std::lock_guard(m_mutex);
+      --m_pending_writes;
+      if(m_pending_writes == 0 && !m_is_open) {
+        m_is_pending_condition.notify_all();
       }
     }
   };
@@ -140,7 +140,7 @@ namespace Beam::Network::Details {
   using TcpSocketEntry = SocketEntry<boost::asio::ip::tcp::socket>;
   using UdpSocketEntry = SocketEntry<boost::asio::ip::udp::socket>;
 
-  inline bool IsEndOfFile(const boost::system::error_code& error) {
+  inline bool is_end_of_file(const boost::system::error_code& error) {
     return error == boost::asio::error::broken_pipe ||
       error == boost::asio::error::connection_aborted ||
       error == boost::asio::error::connection_reset ||

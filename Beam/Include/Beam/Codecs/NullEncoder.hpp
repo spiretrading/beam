@@ -2,79 +2,42 @@
 #define BEAM_NULL_ENCODER_HPP
 #include <cstring>
 #include <boost/throw_exception.hpp>
-#include "Beam/Codecs/Codecs.hpp"
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Codecs/EncoderException.hpp"
 #include "Beam/IO/Buffer.hpp"
 
 namespace Beam {
-namespace Codecs {
+  class NullDecoder;
 
   /** An Encoder that leaves its contents 'as-is'. */
   class NullEncoder {
     public:
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Encode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t encode(const S& source, Out<B> destination);
   };
 
   template<>
-  struct InPlaceSupport<NullEncoder> : std::true_type {};
+  struct in_place_support<NullEncoder> : std::true_type {};
 
   template<>
-  struct Inverse<NullEncoder> {
+  struct inverse<NullEncoder> {
     using type = NullDecoder;
   };
 
-  inline std::size_t NullEncoder::Encode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    if(source == destination) {
-      return sourceSize;
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t NullEncoder::encode(const S& source, Out<B> destination) {
+    if(source.get_data() == destination->get_data()) {
+      return source.get_size();
     }
-    if(destinationSize < sourceSize) {
-      BOOST_THROW_EXCEPTION(EncoderException(
+    auto available_size = reserve(*destination, source.get_size());
+    if(available_size < source.get_size()) {
+      boost::throw_with_location(EncoderException(
         "The destination was not large enough to hold the encoded data."));
     }
-    std::memcpy(destination, source, sourceSize);
-    return sourceSize;
+    std::memcpy(
+      destination->get_mutable_data(), source.get_data(), source.get_size());
+    return source.get_size();
   }
-
-  template<typename Buffer>
-  std::size_t NullEncoder::Encode(const Buffer& source, void* destination,
-      std::size_t destinationSize) {
-    return Encode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename Buffer>
-  std::size_t NullEncoder::Encode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination) {
-    destination->Reserve(sourceSize);
-    return Encode(source, sourceSize, destination->GetMutableData(),
-      destination->GetSize());
-  }
-
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t NullEncoder::Encode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination) {
-    return Encode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<>
-  struct ImplementsConcept<Codecs::NullEncoder, Codecs::Encoder> :
-    std::true_type {};
 }
 
 #endif

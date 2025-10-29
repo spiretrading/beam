@@ -34,6 +34,7 @@ export class DateTime {
       while(i < value.length) {
         decimalPlaces *= 10;
         seconds = 10 * seconds + (value.charCodeAt(i) - 48);
+        ++i;
       }
       seconds /= decimalPlaces;
     }

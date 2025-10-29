@@ -1,16 +1,12 @@
 #ifndef BEAM_INTERRUPTION_POLICY_HPP
 #define BEAM_INTERRUPTION_POLICY_HPP
-#include <ostream>
 #include <boost/throw_exception.hpp>
-#include "Beam/Queries/Queries.hpp"
-#include "Beam/Serialization/Receiver.hpp"
-#include "Beam/Serialization/Sender.hpp"
-#include "Beam/Serialization/SerializationException.hpp"
+#include "Beam/Collections/Enum.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Enumerates the ways to recover from a Query being interrupted. */
-  enum class InterruptionPolicy {
+  BEAM_ENUM(InterruptionPolicy,
 
     /** Breaks the Query. */
     BREAK_QUERY,
@@ -19,46 +15,31 @@ namespace Beam::Queries {
     RECOVER_DATA,
 
     /** Ignores all lost data. */
-    IGNORE_CONTINUE,
-  };
-
-  inline std::ostream& operator <<(
-      std::ostream& out, InterruptionPolicy policy) {
-    if(policy == InterruptionPolicy::BREAK_QUERY) {
-      return out << "BREAK_QUERY";
-    } else if(policy == InterruptionPolicy::RECOVER_DATA) {
-      return out << "RECOVER_DATA";
-    } else if(policy == InterruptionPolicy::IGNORE_CONTINUE) {
-      return out << "IGNORE_CONTINUE";
-    } else {
-      return out << "NONE";
-    }
-  }
-}
-
-namespace Beam::Serialization {
-  template<>
-  struct IsStructure<Queries::InterruptionPolicy> : std::false_type {};
+    IGNORE_CONTINUE
+  );
 
   template<>
-  struct Send<Queries::InterruptionPolicy> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        Queries::InterruptionPolicy value) const {
-      shuttle.Send(name, value);
+  constexpr auto is_structure<InterruptionPolicy> = false;
+
+  template<>
+  struct Send<InterruptionPolicy> {
+    template<IsSender S>
+    void operator ()(
+        S& shuttle, const char* name, InterruptionPolicy value) const {
+      shuttle.send(name, static_cast<int>(value));
     }
   };
 
   template<>
-  struct Receive<Queries::InterruptionPolicy> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        Queries::InterruptionPolicy& value) const {
-      shuttle.Shuttle(name, value);
-      if(value < Queries::InterruptionPolicy::BREAK_QUERY ||
-          value > Queries::InterruptionPolicy::IGNORE_CONTINUE) {
-        value = Queries::InterruptionPolicy::BREAK_QUERY;
-        BOOST_THROW_EXCEPTION(SerializationException("Invalid policy."));
+  struct Receive<InterruptionPolicy> {
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, const char* name, InterruptionPolicy& value) const {
+      value = static_cast<InterruptionPolicy>(receive<int>(receiver, name));
+      if(static_cast<int>(value) < InterruptionPolicy::BREAK_QUERY ||
+          static_cast<int>(value) > InterruptionPolicy::IGNORE_CONTINUE) {
+        value = InterruptionPolicy::BREAK_QUERY;
+        boost::throw_with_location(SerializationException("Invalid policy."));
       }
     }
   };

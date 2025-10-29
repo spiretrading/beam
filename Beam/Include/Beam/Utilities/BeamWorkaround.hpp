@@ -1,6 +1,5 @@
 #ifndef BEAM_WORKAROUND_HPP
 #define BEAM_WORKAROUND_HPP
-#include "Beam/Utilities/Utilities.hpp"
 
 #ifdef __GNUC__
   #define BEAM_SUPPRESS_THIS_INITIALIZER()

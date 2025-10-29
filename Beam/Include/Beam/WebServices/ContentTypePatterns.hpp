@@ -1,70 +1,65 @@
-#ifndef BEAM_CONTENTTYPEPATTERNS_HPP
-#define BEAM_CONTENTTYPEPATTERNS_HPP
+#ifndef BEAM_CONTENT_TYPE_PATTERNS_HPP
+#define BEAM_CONTENT_TYPE_PATTERNS_HPP
 #include <filesystem>
 #include <string>
 #include <unordered_map>
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class ContentTypePatterns
-      \brief Maps rules about file paths to content types.
-   */
+  /** Maps rules about file paths to content types. */
   class ContentTypePatterns {
     public:
 
-      //! Returns a default set of patterns.
-      static ContentTypePatterns GetDefaultPatterns();
+      /** Returns a default set of patterns. */
+      static ContentTypePatterns get_default_patterns();
 
-      //! Constructs an empty set of patterns.
+      /** Constructs an empty set of patterns. */
       ContentTypePatterns() = default;
 
-      //! Identifies a file path's content type.
-      /*!
-        \param path The file path to identify.
-        \return The content type for the specified <i>path</i>.
-      */
-      const std::string& GetContentType(
+      /**
+       * Identifies a file path's content type.
+       * @param path The file path to identify.
+       * @return The content type for the specified path.
+       */
+      const std::string& get_content_type(
         const std::filesystem::path& path) const;
 
-      //! Associates a content type with a file extension.
-      /*!
-        \param extension The extension to add.
-        \param contentType The content type to associate with the
-               <i>extension</i>.
-      */
-      void AddExtension(std::string extension, std::string contentType);
+      /**
+       * Associates a content type with a file extension.
+       * @param extension The extension to add.
+       * @param content_type The content type to associate with the extension.
+       */
+      void add_extension(std::string extension, std::string content_type);
 
     private:
-      std::string m_defaultContentType;
-      std::unordered_map<std::string, std::string> m_fileExtensionContentTypes;
+      std::string m_default_content_type;
+      std::unordered_map<std::string, std::string>
+        m_file_extension_content_types;
   };
 
-  inline ContentTypePatterns ContentTypePatterns::GetDefaultPatterns() {
-    ContentTypePatterns patterns;
-    patterns.AddExtension("css", "text/css");
-    patterns.AddExtension("html", "text/html");
-    patterns.AddExtension("js", "application/javascript");
-    patterns.AddExtension("svg", "image/svg+xml");
+  inline ContentTypePatterns ContentTypePatterns::get_default_patterns() {
+    auto patterns = ContentTypePatterns();
+    patterns.add_extension("css", "text/css");
+    patterns.add_extension("html", "text/html");
+    patterns.add_extension("js", "application/javascript");
+    patterns.add_extension("svg", "image/svg+xml");
     return patterns;
   }
 
-  inline const std::string& ContentTypePatterns::GetContentType(
+  inline const std::string& ContentTypePatterns::get_content_type(
       const std::filesystem::path& path) const {
-    auto contentType = m_fileExtensionContentTypes.find(
-      path.extension().string());
-    if(contentType == m_fileExtensionContentTypes.end()) {
-      return m_defaultContentType;
+    auto content_type =
+      m_file_extension_content_types.find(path.extension().string());
+    if(content_type == m_file_extension_content_types.end()) {
+      return m_default_content_type;
     }
-    return contentType->second;
+    return content_type->second;
   }
 
-  inline void ContentTypePatterns::AddExtension(std::string extension,
-      std::string contentType) {
-    m_fileExtensionContentTypes["." + extension] = std::move(contentType);
+  inline void ContentTypePatterns::add_extension(
+      std::string extension, std::string content_type) {
+    m_file_extension_content_types["." + extension] = std::move(content_type);
   }
-}
 }
 
 #endif

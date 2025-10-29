@@ -5,91 +5,89 @@
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Queries.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Queries/TypeCompatibilityException.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Represents a logical not expression. */
-  class NotExpression :
-      public VirtualExpression, public CloneableMixin<NotExpression> {
+  class NotExpression : public VirtualExpression {
     public:
 
       /**
        * Constructs a NotExpression.
        * @param operand The operand to evaluate.
        */
-      NotExpression(Expression operand);
-
-      /**
-       * Copies a NotExpression.
-       * @param expression The NotExpression to copy.
-       */
-      NotExpression(const NotExpression& expression) = default;
+      explicit NotExpression(Expression operand);
 
       /** Returns the operand. */
-      const Expression& GetOperand() const;
+      const Expression& get_operand() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
       Expression m_operand;
 
       NotExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
+
+  /**
+   * Constructs a NotExpression.
+   * @param operand The expression to negate.
+   * @return A NotExpression negating its operand.
+   */
+  inline NotExpression operator !(const Expression& operand) {
+    return NotExpression(operand);
+  }
 
   inline NotExpression::NotExpression(Expression operand)
       : m_operand(std::move(operand)) {
-    if(m_operand->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(
+    if(m_operand.get_type() != typeid(bool)) {
+      boost::throw_with_location(
         TypeCompatibilityException("Expression must be bool."));
     }
   }
 
-  inline const Expression& NotExpression::GetOperand() const {
+  inline const Expression& NotExpression::get_operand() const {
     return m_operand;
   }
 
-  inline const DataType& NotExpression::GetType() const {
-    static auto value = DataType(BoolType::GetInstance());
-    return value;
+  inline std::type_index NotExpression::get_type() const {
+    return typeid(bool);
   }
 
-  inline void NotExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void NotExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& NotExpression::ToStream(std::ostream& out) const {
-    return out << "(not " << GetOperand() << ")";
+  inline std::ostream& NotExpression::to_stream(std::ostream& out) const {
+    return out << "(not " << get_operand() << ')';
   }
 
   inline NotExpression::NotExpression()
     : m_operand(ConstantExpression(false)) {}
 
-  template<typename Shuttler>
-  void NotExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("operand", m_operand);
-    if(Serialization::IsReceiver<Shuttler>::value) {
-      if(m_operand->GetType()->GetNativeType() != typeid(bool)) {
-        BOOST_THROW_EXCEPTION(
-          Serialization::SerializationException("Incompatible types."));
+  template<IsShuttle S>
+  void NotExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("operand", m_operand);
+    if(IsReceiver<S>) {
+      if(m_operand.get_type() != typeid(bool)) {
+        boost::throw_with_location(
+          SerializationException("Incompatible types."));
       }
     }
   }
 
-  inline void ExpressionVisitor::Visit(const NotExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+  inline void ExpressionVisitor::visit(const NotExpression& expression) {
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

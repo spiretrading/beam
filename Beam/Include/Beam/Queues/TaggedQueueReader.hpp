@@ -2,7 +2,6 @@
 #define BEAM_TAGGED_QUEUE_READER_HPP
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
@@ -33,15 +32,12 @@ namespace Beam {
        * @return A QueueWriter that tags values pushed onto it with the
        *         specified <i>key</i>.
        */
-      auto GetSlot(Key key);
+      auto get_slot(Key key);
 
-      Source Pop() override;
-
-      boost::optional<Source> TryPop() override;
-
-      void Break(const std::exception_ptr& exception) override;
-
-      using QueueReader<KeyValuePair<K, V>>::Break;
+      Source pop() override;
+      boost::optional<Source> try_pop() override;
+      void close(const std::exception_ptr& exception) override;
+      using QueueReader<KeyValuePair<K, V>>::close;
 
     private:
       Queue<Source> m_values;
@@ -49,28 +45,28 @@ namespace Beam {
   };
 
   template<typename K, typename V>
-  auto TaggedQueueReader<K, V>::GetSlot(Key key) {
-    return m_callbacks.GetSlot<Value>(
-      [=, key = std::move(key)] (const Value& value) {
-        m_values.Push(KeyValuePair(key, value));
+  auto TaggedQueueReader<K, V>::get_slot(Key key) {
+    return m_callbacks.get_slot<Value>(
+      [=, key = std::move(key), this] (const Value& value) {
+        m_values.push(KeyValuePair(key, value));
       });
   }
 
   template<typename K, typename V>
-  typename TaggedQueueReader<K, V>::Source TaggedQueueReader<K, V>::Pop() {
-    return m_values.Pop();
+  typename TaggedQueueReader<K, V>::Source TaggedQueueReader<K, V>::pop() {
+    return m_values.pop();
   }
 
   template<typename K, typename V>
   boost::optional<typename TaggedQueueReader<K, V>::Source>
-      TaggedQueueReader<K, V>::TryPop() {
-    return m_values.TryPop();
+      TaggedQueueReader<K, V>::try_pop() {
+    return m_values.try_pop();
   }
 
   template<typename K, typename V>
-  void TaggedQueueReader<K, V>::Break(const std::exception_ptr& exception) {
-    m_callbacks.Break(exception);
-    m_values.Break(exception);
+  void TaggedQueueReader<K, V>::close(const std::exception_ptr& exception) {
+    m_callbacks.close(exception);
+    m_values.close(exception);
   }
 }
 

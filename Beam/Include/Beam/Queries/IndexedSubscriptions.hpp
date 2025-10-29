@@ -4,17 +4,16 @@
 #include <boost/range/adaptor/map.hpp>
 #include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/Subscriptions.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Keeps track of subscriptions to data streamed via an IndexedQuery.
-   * @param <V> The type of data published.
-   * @param <I> The type of index queried.
-   * @param <C> The type of ServiceProtocolClients subscribing to queries.
+   * @tparam V The type of data published.
+   * @tparam I The type of index queried.
+   * @tparam C The type of ServiceProtocolClients subscribing to queries.
    */
   template<typename V, typename I, typename C>
   class IndexedSubscriptions {
@@ -43,7 +42,7 @@ namespace Beam::Queries {
        * @param filter The filter to apply to published values.
        * @return The query's unique id.
        */
-      int Add(const Index& index, ServiceProtocolClient& client,
+      int add(const Index& index, ServiceProtocolClient& client,
         const Range& range, std::unique_ptr<Evaluator> filter);
 
       /**
@@ -54,7 +53,7 @@ namespace Beam::Queries {
        * @param filter The filter to apply to published values.
        * @return The query's unique id.
        */
-      int Initialize(const Index& index, ServiceProtocolClient& client,
+      int init(const Index& index, ServiceProtocolClient& client,
         const Range& range, std::unique_ptr<Evaluator> filter);
 
       /**
@@ -65,7 +64,7 @@ namespace Beam::Queries {
        *        subscription.
        */
       template<typename F>
-      void Commit(const Index& index,
+      void commit(const Index& index,
         QueryResult<SequencedValue<BaseValue>> result, F&& f);
 
       /**
@@ -73,24 +72,24 @@ namespace Beam::Queries {
        * @param index The query's index.
        * @param id The query's id.
        */
-      void End(const Index& index, int id);
+      void end(const Index& index, int id);
 
       /**
        * Removes all of a client's subscriptions.
        * @param client The client whose subscriptions are to be removed.
        */
-      void RemoveAll(ServiceProtocolClient& client);
+      void remove_all(ServiceProtocolClient& client);
 
       /**
        * Publishes a value to all clients who subscribed to it.
        * @param value The value to publish.
-       * @param clientFilter The function called to filter out clients to send
+       * @param client_filter The function called to filter out clients to send
        *        the value to.
        * @param sender The function called to send the value to the
        *        ServiceProtocolClient.
        */
       template<typename ClientFilter, typename Sender>
-      void Publish(const Value& value, const ClientFilter& clientFilter,
+      void publish(const Value& value, const ClientFilter& client_filter,
         const Sender& sender);
 
       /**
@@ -100,7 +99,7 @@ namespace Beam::Queries {
        *        ServiceProtocolClient.
        */
       template<typename Sender>
-      void Publish(const Value& value, const Sender& sender);
+      void publish(const Value& value, const Sender& sender);
 
     private:
       using BaseSubscriptions = Subscriptions<BaseValue, ServiceProtocolClient>;
@@ -112,65 +111,65 @@ namespace Beam::Queries {
   };
 
   template<typename V, typename I, typename C>
-  int IndexedSubscriptions<V, I, C>::Add(const Index& index,
-      ServiceProtocolClient& client, const Range& range,
+  int IndexedSubscriptions<V, I, C>::add(
+      const Index& index, ServiceProtocolClient& client, const Range& range,
       std::unique_ptr<Evaluator> filter) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    return subscriptions.Add(client, range, std::move(filter));
+    return subscriptions.add(client, range, std::move(filter));
   }
 
   template<typename V, typename I, typename C>
-  int IndexedSubscriptions<V, I, C>::Initialize(const Index& index,
+  int IndexedSubscriptions<V, I, C>::init(const Index& index,
       ServiceProtocolClient& client, const Range& range,
       std::unique_ptr<Evaluator> filter) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    return subscriptions.Initialize(client, range, std::move(filter));
+    return subscriptions.init(client, range, std::move(filter));
   }
 
   template<typename V, typename I, typename C>
   template<typename F>
-  void IndexedSubscriptions<V, I, C>::Commit(const Index& index,
+  void IndexedSubscriptions<V, I, C>::commit(const Index& index,
       QueryResult<SequencedValue<BaseValue>> result, F&& f) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    return subscriptions.Commit(std::move(result), std::forward<F>(f));
+    return subscriptions.commit(std::move(result), std::forward<F>(f));
   }
 
   template<typename V, typename I, typename C>
-  void IndexedSubscriptions<V, I, C>::End(const Index& index, int id) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+  void IndexedSubscriptions<V, I, C>::end(const Index& index, int id) {
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.End(id);
+    subscriptions.end(id);
   }
 
   template<typename V, typename I, typename C>
-  void IndexedSubscriptions<V, I, C>::RemoveAll(ServiceProtocolClient& client) {
-    m_subscriptions.With([&] (auto& subscriptions) {
-      for(auto& baseSubscription :
-          subscriptions | boost::adaptors::map_values) {
-        baseSubscription->RemoveAll(client);
+  void IndexedSubscriptions<V, I, C>::remove_all(
+      ServiceProtocolClient& client) {
+    m_subscriptions.with([&] (auto& subscriptions) {
+      for(auto& subscription : subscriptions | boost::adaptors::map_values) {
+        subscription->remove_all(client);
       }
     });
   }
 
   template<typename V, typename I, typename C>
   template<typename ClientFilter, typename Sender>
-  void IndexedSubscriptions<V, I, C>::Publish(const Value& value,
-      const ClientFilter& clientFilter, const Sender& sender) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
-      value->GetIndex(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.Publish(value, clientFilter, sender);
+  void IndexedSubscriptions<V, I, C>::publish(const Value& value,
+      const ClientFilter& client_filter, const Sender& sender) {
+    auto& subscriptions = *m_subscriptions.get_or_insert(
+      value->get_index(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
+    subscriptions.publish(value, client_filter, sender);
   }
 
   template<typename V, typename I, typename C>
   template<typename Sender>
-  void IndexedSubscriptions<V, I, C>::Publish(const Value& value,
-      const Sender& sender) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
-      value->GetIndex(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.Publish(value, sender);
+  void IndexedSubscriptions<V, I, C>::publish(
+      const Value& value, const Sender& sender) {
+    auto& subscriptions = *m_subscriptions.get_or_insert(
+      value->get_index(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
+    subscriptions.publish(value, sender);
   }
 }
 

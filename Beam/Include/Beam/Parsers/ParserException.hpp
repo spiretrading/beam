@@ -1,13 +1,11 @@
 #ifndef BEAM_PARSER_EXCEPTION_HPP
 #define BEAM_PARSER_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/Parsers/Parsers.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Signals an error parsing a value. */
-  class ParserException : public std::runtime_error, public boost::exception {
+  class ParserException : public std::runtime_error {
     public:
       using std::runtime_error::runtime_error;
 

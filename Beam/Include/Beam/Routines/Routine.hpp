@@ -5,9 +5,7 @@
 #include <cstdint>
 #include <tuple>
 #include <vector>
-#include <boost/noncopyable.hpp>
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Routines/Routines.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/LockRelease.hpp"
@@ -16,238 +14,197 @@
 #include <boost/thread.hpp>
 
 namespace Beam {
-namespace Routines {
 namespace Details {
-#if !defined(BEAM_BUILD_DLL) && !defined(BEAM_USE_DLL)
-  template<typename T>
-  struct CurrentRoutineGlobal {
-    static thread_local Routine* m_value;
-
-    static Routine*& GetInstance() {
-      return m_value;
-    }
-  };
-
-  template<typename T>
-  thread_local Routine* CurrentRoutineGlobal<T>::m_value;
-
-  template<typename T>
-  struct NextId {
-    static std::atomic_uint64_t m_value;
-
-    static std::atomic_uint64_t& GetInstance() {
-      return m_value;
-    }
-  };
-
-  template<typename T>
-  std::atomic_uint64_t NextId<T>::m_value;
-
-#else
-  template<typename T>
   struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
-    static Routine*& GetInstance() {
-      static thread_local Routine* value;
+    static Routine*& get() {
+      static thread_local auto value = static_cast<Routine*>(nullptr);
       return value;
     }
   };
 
-  template<typename T>
   struct BEAM_EXPORT_DLL NextId {
-    static std::atomic_uint64_t& GetInstance() {
-      static std::atomic_uint64_t value;
-      return value;
+    static std::atomic_uint64_t& get() {
+      static auto m_value = std::atomic_uint64_t();
+      return m_value;
     }
   };
-  BEAM_EXTERN template struct BEAM_EXPORT_DLL CurrentRoutineGlobal<void>;
-  BEAM_EXTERN template struct BEAM_EXPORT_DLL NextId<void>;
-#endif
 }
 
-  /*! \class Routine
-      \brief Encapsulates a single sub-routine spawned by a Scheduler.
-   */
-  class Routine : private boost::noncopyable {
+  /** Encapsulates a single sub-routine spawned by a Scheduler. */
+  class Routine {
     public:
 
-      /*! \struct State
-          \brief Lists the states a Routine can be in.
-       */
+      /** Lists the states a Routine can be in. */
       enum class State {
 
-        //! The Routine is waiting to be run.
+        /** The Routine is waiting to be run. */
         PENDING,
 
-        //! The Routine is currently running.
+        /** The Routine is currently running. */
         RUNNING,
 
-        //! The Routine is pending a suspend.
+        /** The Routine is pending a suspend. */
         PENDING_SUSPEND,
 
-        //! The Routine is suspended.
+        /** The Routine is suspended. */
         SUSPENDED,
 
-        //! The Routine has completed.
+        /** The Routine has completed. */
         COMPLETE
       };
 
-      //! The type used to identify a Routine.
+      /** The type used to identify a Routine. */
       using Id = std::uint64_t;
 
-      //! Constructs a Routine.
-      Routine();
+      /** Constructs a Routine. */
+      Routine() noexcept;
 
       virtual ~Routine();
 
-      //! Returns this Routine's identifier.
-      Id GetId() const;
+      /** Returns this Routine's identifier. */
+      Id get_id() const;
 
-      //! Returns the State of this Routine.
-      State GetState() const;
+      /** Returns the State of this Routine. */
+      State get_state() const;
 
-      //! Waits for the completion of this Routine.
-      /*!
-        \param result Used to signal completion of this Routine.
-      */
-      void Wait(Eval<void> result);
+      /**
+       * Waits for the completion of this Routine.
+       * @param result Used to signal completion of this Routine.
+       */
+      void wait(Eval<void> result);
 
-      //! Implements the body of this Routine.
-      virtual void Execute() = 0;
+      /** Implements the body of this Routine. */
+      virtual void execute() = 0;
 
-      //! Defers execution of this Routine so that another may run.
-      virtual void Defer() = 0;
+      /** Defers execution of this Routine so that another may run. */
+      virtual void defer() = 0;
 
-      //! Marks this Routine as about to enter a suspended State.
-      virtual void PendingSuspend() = 0;
+      /** Marks this Routine as about to enter a suspended State. */
+      virtual void pending_suspend() = 0;
 
-      //! Suspends execution of this Routine until it is resumed.
-      virtual void Suspend() = 0;
+      /** Suspends execution of this Routine until it is resumed. */
+      virtual void suspend() = 0;
 
-      //! Resumes execution of a Routine.
-      virtual void Resume() = 0;
+      /** Resumes execution of a Routine. */
+      virtual void resume() = 0;
 
     protected:
 
-      //! Sets the State.
-      void SetState(State state);
+      /** Sets the State. */
+      void set(State state);
 
     private:
       using WaitResults = std::vector<Eval<void>>;
-      friend class Threading::Mutex;
-      friend class Threading::RecursiveMutex;
-      friend void Defer();
-      friend void Suspend();
+      friend class Mutex;
+      friend class RecursiveMutex;
+      friend void defer();
+      friend void suspend();
       template<typename HeadLock, typename... TailLocks>
-      friend void Suspend(Out<Routine*>, HeadLock&, TailLocks&...);
+      friend void suspend(Out<Routine*>, HeadLock&, TailLocks&...);
       template<typename Container, typename... Lock>
-      friend void Suspend(Out<Threading::Sync<Container>> suspendedRoutines,
+      friend void suspend(Out<Sync<Container>> suspendedRoutines,
         Lock&... lock);
-      friend void Resume(Routine*&);
+      friend void resume(Routine*&);
       template<typename Container>
-      friend void Resume(Out<Threading::Sync<Container>>);
+      friend void resume(Out<Sync<Container>>);
       State m_state;
       Id m_id;
-      Threading::Sync<WaitResults> m_waitResults;
+      Sync<WaitResults> m_wait_results;
   };
 
-  //! Returns the currently executing Routine.
-  Routine& GetCurrentRoutine();
+  /** Returns the currently executing Routine. */
+  Routine& get_current_routine();
 
-  //! Defers the currently executing Routine.
-  inline void Defer() {
-    GetCurrentRoutine().Defer();
+  /** Defers the currently executing Routine. */
+  inline void defer() {
+    get_current_routine().defer();
   }
 
-  //! Waits for a Routine to complete.
-  /*!
-    \param id The id of the Routine to wait for.
-  */
-  void Wait(Routine::Id id);
+  /**
+   * Waits for a Routine to complete.
+   * @param id The id of the Routine to wait for.
+   */
+  void wait(Routine::Id id);
 
-  //! Suspends the currently running Routine.
-  inline void Suspend() {
-    GetCurrentRoutine().Suspend();
+  /** Suspends the currently running Routine. */
+  inline void suspend() {
+    get_current_routine().suspend();
   }
 
-  //! Suspends the currently running Routine.
-  /*!
-    \param suspendedRoutine Stores the Routine being suspended.
-  */
-  inline void Suspend(Out<Routine*> suspendedRoutine) {
-    *suspendedRoutine = &GetCurrentRoutine();
-    Suspend();
+  /**
+   * Suspends the currently running Routine.
+   * @param routine Stores the Routine being suspended.
+   */
+  inline void Suspend(Out<Routine*> routine) {
+    *routine = &get_current_routine();
+    suspend();
   }
 
-  //! Suspends the currently running Routine.
-  /*!
-    \param suspendedRoutine Stores the Routine being suspended.
-    \param lock The lock to release while the Routine is suspended.
-  */
+  /**
+   * Suspends the currently running Routine.
+   * @param routine Stores the Routine being suspended.
+   * @param lock The lock to release while the Routine is suspended.
+   */
   template<typename HeadLock, typename... TailLocks>
-  void Suspend(Out<Routine*> suspendedRoutine, HeadLock& headLock,
-      TailLocks&... tailLocks) {
-    *suspendedRoutine = &GetCurrentRoutine();
-    GetCurrentRoutine().PendingSuspend();
-    auto releases = std::make_tuple(Threading::Release(headLock),
-      Threading::Release(tailLocks)...);
-    Suspend();
+  void suspend(Out<Routine*> routine, HeadLock& head, TailLocks&... tail) {
+    *routine = &get_current_routine();
+    get_current_routine().pending_suspend();
+    auto releases = std::tuple(release(head), release(tail)...);
+    suspend();
   }
 
-  //! Resumes execution of a suspended Routine.
-  /*!
-    \param routine The Routine to resume.
-  */
-  inline void Resume(Routine*& routine) {
-    if(routine == nullptr) {
+  /**
+   * Resumes execution of a suspended Routine.
+   * @param routine The Routine to resume.
+   */
+  inline void resume(Routine*& routine) {
+    if(!routine) {
       return;
     }
-    auto initialRoutine = routine;
+    auto initial_routine = routine;
     routine = nullptr;
-    initialRoutine->Resume();
+    initial_routine->resume();
   }
 
-  inline Routine::Routine()
-      : m_id(++Details::NextId<void>::GetInstance()),
-        m_state(State::PENDING) {}
+  inline Routine::Routine() noexcept
+    : m_id(++Details::NextId::get()),
+      m_state(State::PENDING) {}
 
   inline Routine::~Routine() {
-    Threading::With(m_waitResults,
-      [&] (auto& waitResults) {
-        for(auto& waitResult : waitResults) {
-          waitResult.SetResult();
-        }
-        waitResults.clear();
-      });
+    with(m_wait_results, [&] (auto& results) {
+      for(auto& result : results) {
+        result.set();
+      }
+      results.clear();
+    });
     assert(m_state == State::COMPLETE || m_state == State::PENDING);
   }
 
-  inline Routine::Id Routine::GetId() const {
+  inline Routine::Id Routine::get_id() const {
     return m_id;
   }
 
-  inline Routine::State Routine::GetState() const {
+  inline Routine::State Routine::get_state() const {
     return m_state;
   }
 
-  inline void Routine::Wait(Eval<void> result) {
-    Threading::With(m_waitResults,
-      [&] (auto& waitResults) {
-        waitResults.push_back(std::move(result));
-      });
+  inline void Routine::wait(Eval<void> result) {
+    with(m_wait_results, [&] (auto& results) {
+      results.push_back(std::move(result));
+    });
   }
 
-  inline void Routine::SetState(State state) {
+  inline void Routine::set(State state) {
     m_state = state;
   }
 
-  inline void Routine::Defer() {}
+  inline void Routine::defer() {}
 
-  inline void Routine::PendingSuspend() {}
+  inline void Routine::pending_suspend() {}
 
-  inline void Routine::Suspend() {}
+  inline void Routine::suspend() {}
 
-  inline void Routine::Resume() {}
-}
+  inline void Routine::resume() {}
 }
 
 #include "Beam/Routines/ExternalRoutine.hpp"

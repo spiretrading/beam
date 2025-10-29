@@ -4,7 +4,6 @@
 #include "Beam/Queries/FunctionEvaluatorNode.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
 
 TEST_SUITE("FunctionEvaluatorNode") {
   TEST_CASE("empty_function") {
@@ -14,20 +13,19 @@ TEST_SUITE("FunctionEvaluatorNode") {
       }
     };
     auto function = FunctionEvaluatorNode(Function());
-    REQUIRE(function.Eval() == 123);
+    REQUIRE(function.eval() == 123);
   }
 
   TEST_CASE("unary_function") {
     struct Function {
-      std::string operator ()(std::string value) const {
+      std::string operator ()(const std::string& value) const {
         REQUIRE(value == "hello ");
         return value + "world";
       }
     };
     auto function = FunctionEvaluatorNode(Function(),
-      std::make_unique<ConstantEvaluatorNode<std::string>>(
-      ConstantEvaluatorNode<std::string>("hello ")));
-    REQUIRE(function.Eval() == "hello world");
+      std::make_unique<ConstantEvaluatorNode<std::string>>("hello "));
+    REQUIRE(function.eval() == "hello world");
   }
 
   TEST_CASE("binary_function") {
@@ -39,10 +37,8 @@ TEST_SUITE("FunctionEvaluatorNode") {
       }
     };
     auto function = FunctionEvaluatorNode(Function(),
-      std::make_unique<ConstantEvaluatorNode<int>>(
-      ConstantEvaluatorNode(2)),
-      std::make_unique<ConstantEvaluatorNode<double>>(
-      ConstantEvaluatorNode(3.14)));
-    REQUIRE(function.Eval() == 6.28);
+      std::make_unique<ConstantEvaluatorNode<int>>(2),
+      std::make_unique<ConstantEvaluatorNode<double>>(3.14));
+    REQUIRE(function.eval() == 6.28);
   }
 }

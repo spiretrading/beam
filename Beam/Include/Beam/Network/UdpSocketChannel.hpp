@@ -8,7 +8,6 @@
 #include "Beam/Network/UdpSocketWriter.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Implements the Channel interface using a UDP socket. */
   class UdpSocketChannel {
@@ -22,15 +21,15 @@ namespace Network {
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        */
-      UdpSocketChannel(const IpAddress& address);
+      explicit UdpSocketChannel(const IpAddress& address);
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        * @param options The options to apply to the socket.
        */
-      UdpSocketChannel(const IpAddress& address,
-        const UdpSocketOptions& options);
+      UdpSocketChannel(
+        const IpAddress& address, const UdpSocketOptions& options);
 
       /**
        * Constructs a UdpSocketChannel.
@@ -48,13 +47,10 @@ namespace Network {
       UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
         const UdpSocketOptions& options);
 
-      const Identifier& GetIdentifier() const;
-
-      Connection& GetConnection();
-
-      Reader& GetReader();
-
-      Writer& GetWriter();
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
 
     private:
       Identifier m_identifier;
@@ -70,16 +66,12 @@ namespace Network {
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address)
     : UdpSocketChannel(address, UdpSocketOptions()) {}
 
-  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    const UdpSocketOptions& options)
-    : m_identifier(address),
-      m_socket(std::make_shared<UdpSocket>(address, options)),
-      m_connection(m_socket),
-      m_reader(m_socket),
-      m_writer(m_socket) {}
+  inline UdpSocketChannel::UdpSocketChannel(
+    const IpAddress& address, const UdpSocketOptions& options)
+    : UdpSocketChannel(address, IpAddress("0.0.0.0", 0), options) {}
 
-  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
-    const IpAddress& interface)
+  inline UdpSocketChannel::UdpSocketChannel(
+    const IpAddress& address, const IpAddress& interface)
     : UdpSocketChannel(address, interface, UdpSocketOptions()) {}
 
   inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
@@ -91,29 +83,21 @@ namespace Network {
       m_writer(m_socket) {}
 
   inline const UdpSocketChannel::Identifier&
-      UdpSocketChannel::GetIdentifier() const {
+      UdpSocketChannel::get_identifier() const {
     return m_identifier;
   }
 
-  inline UdpSocketChannel::Connection& UdpSocketChannel::GetConnection() {
+  inline UdpSocketChannel::Connection& UdpSocketChannel::get_connection() {
     return m_connection;
   }
 
-  inline UdpSocketChannel::Reader& UdpSocketChannel::GetReader() {
+  inline UdpSocketChannel::Reader& UdpSocketChannel::get_reader() {
     return m_reader;
   }
 
-  inline UdpSocketChannel::Writer& UdpSocketChannel::GetWriter() {
+  inline UdpSocketChannel::Writer& UdpSocketChannel::get_writer() {
     return m_writer;
   }
-}
-
-  template<>
-  struct ImplementsConcept<Network::UdpSocketChannel, IO::Channel<
-    Network::UdpSocketChannel::Identifier,
-    Network::UdpSocketChannel::Connection,
-    Network::UdpSocketChannel::Reader, Network::UdpSocketChannel::Writer>> :
-    std::true_type {};
 }
 
 #endif

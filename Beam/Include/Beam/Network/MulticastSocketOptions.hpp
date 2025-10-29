@@ -2,7 +2,7 @@
 #define BEAM_MULTICAST_SOCKET_OPTIONS_HPP
 #include "Beam/Network/UdpSocketOptions.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Stores the various options that can be applied to a MulticastSocket. */
   struct MulticastSocketOptions : UdpSocketOptions {

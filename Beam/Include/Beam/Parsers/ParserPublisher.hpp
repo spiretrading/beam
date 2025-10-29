@@ -3,16 +3,15 @@
 #include <atomic>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/Reader.hpp"
+#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
-#include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Parsers/Traits.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Reactors/Reactors.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Specifies how a Parser Reactor should handle an error. */
   BEAM_ENUM(ParserErrorPolicy,
@@ -28,80 +27,80 @@ namespace Beam::Parsers {
 
   /**
    * Publishes values parsed from a Reader.
-   * @param <R> The type of Reader to parse from.
-   * @param <P> The type of Parser to use.
+   * @tparam R The type of Reader to parse from.
+   * @tparam P The type of Parser to use.
    */
-  template<typename R, typename P>
+  template<typename R, IsParser P> requires IsReader<dereference_t<R>>
   class ParserPublisher final : public Publisher<parser_result_t<P>> {
     public:
 
       /** The type of Reader to parse from. */
-      using Reader = R;
+      using Reader = dereference_t<R>;
 
       /** The type of Parser to use. */
       using Parser = P;
+
       using Source = parser_result_t<Parser>;
 
       /**
        * Constructs a ParserPublisher.
        * @param reader Initializes the Reader to use.
        * @param parser Initializes the Parser.
-       * @param errorPolicy The policy used to handle an error.
+       * @param error_policy The policy used to handle an error.
        */
-      template<typename RF>
-      ParserPublisher(RF&& reader, Parser parser,
-        ParserErrorPolicy errorPolicy);
+      template<Initializes<R> RF>
+      ParserPublisher(
+        RF&& reader, Parser parser, ParserErrorPolicy error_policy);
 
-      void With(const std::function<void ()>& f) const override;
-
-      void Monitor(ScopedQueueWriter<Source> monitor) const override;
+      void with(const std::function<void ()>& f) const override;
+      void monitor(ScopedQueueWriter<Source> monitor) const override;
 
     private:
-      GetOptionalLocalPtr<R> m_reader;
+      local_ptr_t<R> m_reader;
       Parser m_parser;
-      ParserErrorPolicy m_errorPolicy;
+      ParserErrorPolicy m_error_policy;
       QueueWriterPublisher<Source> m_publisher;
-      mutable std::atomic_bool m_isParsing;
-      mutable Routines::RoutineHandler m_parseLoop;
+      mutable std::atomic_bool m_is_parsing;
+      mutable RoutineHandler m_loop;
 
-      void ParseLoop();
+      void loop();
   };
 
-  template<typename RF, typename Parser>
-  ParserPublisher(RF&&, Parser, ParserErrorPolicy) ->
-    ParserPublisher<std::decay_t<RF>, to_parser_t<Parser>>;
+  template<typename RF, typename P>
+  ParserPublisher(RF&&, P, ParserErrorPolicy) ->
+    ParserPublisher<std::remove_cvref_t<RF>, to_parser_t<P>>;
 
-  template<typename R, typename P>
-  template<typename RF>
-  ParserPublisher<R, P>::ParserPublisher(RF&& reader, Parser parser,
-    ParserErrorPolicy errorPolicy)
+  template<typename R, IsParser P> requires IsReader<dereference_t<R>>
+  template<Initializes<R> RF>
+  ParserPublisher<R, P>::ParserPublisher(
+    RF&& reader, Parser parser, ParserErrorPolicy error_policy)
     : m_reader(std::forward<RF>(reader)),
       m_parser(std::move(parser)),
-      m_errorPolicy(errorPolicy),
-      m_isParsing(false) {}
+      m_error_policy(error_policy),
+      m_is_parsing(false) {}
 
-  template<typename R, typename P>
-  void ParserPublisher<R, P>::With(const std::function<void ()>& f) const {
-    m_publisher.With(f);
+  template<typename R, IsParser P> requires IsReader<dereference_t<R>>
+  void ParserPublisher<R, P>::with(const std::function<void ()>& f) const {
+    m_publisher.with(f);
   }
 
-  template<typename R, typename P>
-  void ParserPublisher<R, P>::Monitor(ScopedQueueWriter<Source> monitor) const {
-    m_publisher.Monitor(std::move(monitor));
-    auto isParsing = m_isParsing.exchange(true);
-    if(!isParsing) {
-      m_parseLoop = Routines::Spawn(std::bind_front(
-        &ParserPublisher::ParseLoop, const_cast<ParserPublisher*>(this)));
+  template<typename R, IsParser P> requires IsReader<dereference_t<R>>
+  void ParserPublisher<R, P>::monitor(ScopedQueueWriter<Source> monitor) const {
+    m_publisher.monitor(std::move(monitor));
+    if(!m_is_parsing.exchange(true)) {
+      m_loop = spawn(std::bind_front(
+        &ParserPublisher::loop, const_cast<ParserPublisher*>(this)));
     }
   }
 
-  template<typename R, typename P>
-  void ParserPublisher<R, P>::ParseLoop() {
+  template<typename R, IsParser P> requires IsReader<dereference_t<R>>
+  void ParserPublisher<R, P>::loop() {
     auto stream = ReaderParserStream(&*m_reader);
     auto value = Source();
-    while(m_parser.Read(stream, value)) {
-      m_publisher.Push(std::move(value));
+    while(m_parser.read(stream, value)) {
+      m_publisher.push(std::move(value));
     }
+    m_publisher.close();
   }
 }
 

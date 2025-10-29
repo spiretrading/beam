@@ -7,14 +7,13 @@
 
 namespace Beam {
 
-  //! Converts a POSIX timestamp into an int for storage in an SQL row.
-  /*!
-    \param timestamp The POSIX timestamp to convert.
-    \return An integer that can be used for storage of a timestamp in an
-            SQL row.
-  */
-  inline std::uint64_t ToSqlTimestamp(
-      const boost::posix_time::ptime& timestamp) {
+  /**
+   * Converts a POSIX timestamp into an int for storage in an SQL row.
+   * @param timestamp The POSIX timestamp to convert.
+   * @return An integer that can be used for storage of a timestamp in an
+   *         SQL row.
+   */
+  inline std::uint64_t to_sql_timestamp(boost::posix_time::ptime timestamp) {
     static const auto BASE = boost::posix_time::ptime(
       boost::gregorian::date(1970, boost::gregorian::Jan, 1),
       boost::posix_time::seconds(0));
@@ -29,12 +28,12 @@ namespace Beam {
     return delta.total_milliseconds();
   }
 
-  //! Converts a timestamp in an SQL row into a POSIX timestamp.
-  /*!
-    \param timestamp The SQL timestamp to convert.
-    \return The POSIX timestamp.
-  */
-  inline boost::posix_time::ptime FromSqlTimestamp(std::uint64_t timestamp) {
+  /**
+   * Converts a timestamp in an SQL row into a POSIX timestamp.
+   * @param timestamp The SQL timestamp to convert.
+   * @return The POSIX timestamp.
+   */
+  inline boost::posix_time::ptime from_sql_timestamp(std::uint64_t timestamp) {
     static const boost::posix_time::ptime BASE(
       boost::gregorian::date(1970, boost::gregorian::Jan, 1),
       boost::posix_time::seconds(0));
@@ -56,16 +55,16 @@ namespace Viper {
 
   template<>
   struct ToSql<boost::posix_time::ptime> {
-    void operator ()(boost::posix_time::ptime value,
-        std::string& column) const {
-      return to_sql(Beam::ToSqlTimestamp(value), column);
+    void operator ()(
+        boost::posix_time::ptime value, std::string& column) const {
+      return to_sql(Beam::to_sql_timestamp(value), column);
     }
   };
 
   template<>
   struct FromSql<boost::posix_time::ptime> {
     auto operator ()(const RawColumn& column) const {
-      return Beam::FromSqlTimestamp(from_sql<std::uint64_t>(column));
+      return Beam::from_sql_timestamp(from_sql<std::uint64_t>(column));
     }
   };
 }

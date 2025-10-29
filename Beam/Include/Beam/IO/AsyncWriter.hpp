@@ -10,63 +10,56 @@
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 
 namespace Beam {
-namespace IO {
 
   /**
    * Asynchronously writes to a destination using a Routine.
-   * @param <W> The Writer to write to.
+   * @tparam W The Writer to write to.
    */
-  template<typename W>
+  template<typename W> requires IsWriter<dereference_t<W>>
   class AsyncWriter {
     public:
-      using Buffer = SharedBuffer;
 
       /** The destination to write to. */
-      using DestinationWriter = GetTryDereferenceType<W>;
+      using DestinationWriter = dereference_t<W>;
 
       /**
        * Constructs an AsyncWriter.
        * @param destination Used to initialize the destination of all writes.
        */
-      template<typename WF>
-      AsyncWriter(WF&& destination);
+      template<Initializes<W> WF>
+      explicit AsyncWriter(WF&& destination);
 
-      void Write(const void* data, std::size_t size);
-
-      template<typename B>
-      void Write(const B& data);
+      template<IsConstBuffer T>
+      void write(const T& data);
+      template<IsConstBuffer T>
+      void write(T&& data);
 
     private:
-      GetOptionalLocalPtr<W> m_destination;
+      local_ptr_t<W> m_destination;
       std::exception_ptr m_exception;
       RoutineTaskQueue m_tasks;
   };
 
   template<typename W>
-  AsyncWriter(W&&) -> AsyncWriter<std::decay_t<W>>;
+  AsyncWriter(W&&) -> AsyncWriter<std::remove_cvref_t<W>>;
 
-  template<typename W>
-  template<typename WF>
+  template<typename W> requires IsWriter<dereference_t<W>>
+  template<Initializes<W> WF>
   AsyncWriter<W>::AsyncWriter(WF&& destination)
     : m_destination(std::forward<WF>(destination)) {}
 
-  template<typename W>
-  void AsyncWriter<W>::Write(const void* data, std::size_t size) {
-    Write(SharedBuffer(data, size));
-  }
-
-  template<typename W>
-  template<typename B>
-  void AsyncWriter<W>::Write(const B& data) {
+  template<typename W> requires IsWriter<dereference_t<W>>
+  template<IsConstBuffer B>
+  void AsyncWriter<W>::write(const B& data) {
     try {
-      m_tasks.Push([=, this] {
+      m_tasks.push([=, this] {
         try {
-          m_destination->Write(data);
+          m_destination->write(data);
         } catch(const std::exception&) {
           if(!m_exception) {
             m_exception = std::current_exception();
-            m_tasks.Break();
-            BOOST_THROW_EXCEPTION(PipeBrokenException());
+            m_tasks.close();
+            boost::throw_with_location(PipeBrokenException());
           }
         }
       });
@@ -74,11 +67,26 @@ namespace IO {
       std::rethrow_exception(m_exception);
     }
   }
-}
 
-  template<typename BufferType, typename W>
-  struct ImplementsConcept<IO::AsyncWriter<W>, IO::Writer<BufferType>> :
-    std::true_type {};
+  template<typename W> requires IsWriter<dereference_t<W>>
+  template<IsConstBuffer B>
+  void AsyncWriter<W>::write(B&& data) {
+    try {
+      m_tasks.push([=, data = std::move(data), this] {
+        try {
+          m_destination->write(data);
+        } catch(const std::exception&) {
+          if(!m_exception) {
+            m_exception = std::current_exception();
+            m_tasks.close();
+            boost::throw_with_location(PipeBrokenException());
+          }
+        }
+      });
+    } catch(const PipeBrokenException&) {
+      std::rethrow_exception(m_exception);
+    }
+  }
 }
 
 #endif

@@ -1,14 +1,13 @@
 #ifndef BEAM_OPTIONAL_LOCK_HPP
 #define BEAM_OPTIONAL_LOCK_HPP
 #include <boost/thread/mutex.hpp>
-#include "Beam/Threading/Threading.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /**
    * Acquires a mutex based on a template parameter.
-   * @param <A> <code>true</code> iff the mutex should be acquired.
-   * @param <M> The type of mutex to acquire.
+   * @tparam A <code>true</code> iff the mutex should be acquired.
+   * @tparam M The type of mutex to acquire.
    */
   template<bool A, typename M = boost::mutex>
   class OptionalLock {};

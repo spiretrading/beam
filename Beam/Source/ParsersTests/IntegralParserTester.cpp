@@ -3,26 +3,25 @@
 #include "Beam/Parsers/ReaderParserStream.hpp"
 
 using namespace Beam;
-using namespace Beam::Parsers;
 
 TEST_SUITE("IntegralParser") {
   TEST_CASE("positive_int") {
     auto parser = IntegralParser<int>();
-    auto source = ParserStreamFromString("123");
+    auto source = to_parser_stream("123");
     auto value = int();
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == 123);
-    source = ParserStreamFromString("a123");
-    REQUIRE(!parser.Read(source, value));
+    source = to_parser_stream("a123");
+    REQUIRE(!parser.read(source, value));
   }
 
   TEST_CASE("negative_int") {
     auto parser = IntegralParser<int>();
-    auto source = ParserStreamFromString("-123");
+    auto source = to_parser_stream("-123");
     auto value = int();
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == -123);
-    source = ParserStreamFromString("-a123");
-    REQUIRE(!parser.Read(source, value));
+    source = to_parser_stream("-a123");
+    REQUIRE(!parser.read(source, value));
   }
 }

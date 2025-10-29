@@ -5,7 +5,7 @@
 #include <boost/thread/mutex.hpp>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /** Stores authentication info for a ServiceProtocolServlet Session. */
   class AuthenticatedSession {
@@ -14,30 +14,26 @@ namespace Beam::ServiceLocator {
       /** Constructs an AuthenticatedSession. */
       AuthenticatedSession() = default;
 
-      /** Copies an AuthenticatedSession. */
       AuthenticatedSession(const AuthenticatedSession& session);
-
-      /** Acquires an AuthenticatedSession. */
-      AuthenticatedSession(AuthenticatedSession&& session);
+      AuthenticatedSession(AuthenticatedSession&& session) noexcept;
 
       /** Returns <code>true</code> iff the Channel is logged in. */
-      bool IsLoggedIn() const;
+      bool is_logged_in() const;
 
       /** Returns the account. */
-      DirectoryEntry GetAccount() const;
+      DirectoryEntry get_account() const;
 
       /**
        * Sets the account, establishing it as having logged in.
        * @param account The account to associate with this Channel.
        */
-      void SetAccount(const DirectoryEntry& account);
+      void set_account(const DirectoryEntry& account);
 
       /** Resets the Account, logging it out. */
-      void ResetAccount();
+      void reset_account();
 
       AuthenticatedSession& operator =(const AuthenticatedSession& rhs);
-
-      AuthenticatedSession& operator =(AuthenticatedSession&& rhs);
+      AuthenticatedSession& operator =(AuthenticatedSession&& rhs) noexcept;
 
     private:
       mutable boost::mutex m_mutex;
@@ -51,28 +47,28 @@ namespace Beam::ServiceLocator {
   }
 
   inline AuthenticatedSession::AuthenticatedSession(
-      AuthenticatedSession&& session) {
+      AuthenticatedSession&& session) noexcept {
     auto lock = boost::lock_guard(session.m_mutex);
     m_account = std::move(session.m_account);
   }
 
-  inline bool AuthenticatedSession::IsLoggedIn() const {
+  inline bool AuthenticatedSession::is_logged_in() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_account.m_id != -1;
   }
 
-  inline DirectoryEntry AuthenticatedSession::GetAccount() const {
+  inline DirectoryEntry AuthenticatedSession::get_account() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_account;
   }
 
-  inline void AuthenticatedSession::SetAccount(const DirectoryEntry& account) {
+  inline void AuthenticatedSession::set_account(const DirectoryEntry& account) {
     auto lock = boost::lock_guard(m_mutex);
     assert(m_account.m_id == -1);
     m_account = account;
   }
 
-  inline void AuthenticatedSession::ResetAccount() {
+  inline void AuthenticatedSession::reset_account() {
     auto lock = boost::lock_guard(m_mutex);
     m_account = {};
   }
@@ -80,15 +76,15 @@ namespace Beam::ServiceLocator {
   inline AuthenticatedSession& AuthenticatedSession::operator =(
       const AuthenticatedSession& rhs) {
     auto lock = boost::lock_guard(m_mutex);
-    auto rhsLock = boost::lock_guard(rhs.m_mutex);
+    auto rhs_lock = boost::lock_guard(rhs.m_mutex);
     m_account = rhs.m_account;
     return *this;
   }
 
   inline AuthenticatedSession& AuthenticatedSession::operator =(
-      AuthenticatedSession&& rhs) {
-    auto lock = boost::lock_guard(rhs.m_mutex);
-    auto rhsLock = boost::lock_guard(rhs.m_mutex);
+      AuthenticatedSession&& rhs) noexcept {
+    auto lock = boost::lock_guard(m_mutex);
+    auto rhs_lock = boost::lock_guard(rhs.m_mutex);
     m_account = std::move(rhs.m_account);
     return *this;
   }

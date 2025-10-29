@@ -1,53 +1,48 @@
-#ifndef BEAM_HTTPHEADER_HPP
-#define BEAM_HTTPHEADER_HPP
+#ifndef BEAM_HTTP_HEADER_HPP
+#define BEAM_HTTP_HEADER_HPP
 #include <ostream>
 #include <string>
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class HttpHeader
-      \brief Stores an HTTP header.
-   */
+  /** Stores an HTTP header. */
   class HttpHeader {
     public:
 
-      //! Constructs an HttpHeader.
-      /*!
-        \param name The header's name.
-        \param value The header's value.
-      */
-      HttpHeader(std::string name, std::string value);
+      /**
+       * Constructs an HttpHeader.
+       * @param name The header's name.
+       * @param value The header's value.
+       */
+      HttpHeader(std::string name, std::string value) noexcept;
 
-      //! Returns the header's name.
-      const std::string& GetName() const;
+      /** Returns the header's name. */
+      const std::string& get_name() const;
 
-      //! Returns the header's value.
-      const std::string& GetValue() const;
+      /** Returns the header's value. */
+      const std::string& get_value() const;
 
     private:
       std::string m_name;
       std::string m_value;
   };
 
-  inline std::ostream& operator <<(std::ostream& sink,
-      const HttpHeader& header) {
-    return sink << header.GetName() << ':' << ' ' << header.GetValue();
+  inline std::ostream& operator <<(
+      std::ostream& sink, const HttpHeader& header) {
+    return sink << header.get_name() << ':' << ' ' << header.get_value();
   }
 
-  inline HttpHeader::HttpHeader(std::string name, std::string value)
-      : m_name{std::move(name)},
-        m_value{std::move(value)} {}
+  inline HttpHeader::HttpHeader(std::string name, std::string value) noexcept
+    : m_name(std::move(name)),
+      m_value(std::move(value)) {}
 
-  inline const std::string& HttpHeader::GetName() const {
+  inline const std::string& HttpHeader::get_name() const {
     return m_name;
   }
 
-  inline const std::string& HttpHeader::GetValue() const {
+  inline const std::string& HttpHeader::get_value() const {
     return m_value;
   }
-}
 }
 
 #endif

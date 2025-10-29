@@ -2,87 +2,55 @@
 #define BEAM_DEREFERENCE_HPP
 #include <memory>
 #include <type_traits>
-#include "Beam/Pointers/Pointers.hpp"
+#include <utility>
 
 namespace Beam {
 
-  /** Returns <code>true</code> iff a type can be dereferenced. */
+  /** Tests if a type can be dereferenced. */
   template<typename T>
-  struct IsDereferenceable {
-    private:
-      using YesType = char;
-      using NoType = struct {
-        YesType a[2];
-      };
+  concept IsDereferenceable =
+    !std::is_class_v<std::remove_cvref_t<T>> && requires(T& t) { *t; } ||
+    std::is_class_v<std::remove_cvref_t<T>> && requires(T & t) {
+      *t;
+      t.operator->();
+    };
 
-      template<typename C>
-      static YesType Test(std::decay_t<
-        decltype(*std::declval<C>())>* = nullptr);
-
-      template<typename C>
-      static NoType Test(...);
-
-    public:
-      static constexpr auto value =
-        sizeof(Test<T>(nullptr)) == sizeof(YesType);
-  };
-
-  /** Returns <code>true</code> iff a type represents a 'managed' pointer. */
   template<typename T>
-  struct IsManagedPointer {
-    static constexpr auto value = false;
-  };
+  inline constexpr bool is_managed_pointer_v = false;
 
   template<typename T, typename D>
-  struct IsManagedPointer<std::unique_ptr<T, D>> {
-    static constexpr auto value = true;
-  };
+  inline constexpr bool is_managed_pointer_v<std::unique_ptr<T, D>> = true;
 
   template<typename T>
-  struct IsManagedPointer<std::shared_ptr<T>> {
-    static constexpr auto value = true;
-  };
+  inline constexpr bool is_managed_pointer_v<std::shared_ptr<T>> = true;
 
-  /** Returns the type resulting from a dereference operation. */
+  /** Tests if a type represents a 'managed' pointer (unique_ptr/shared_ptr). */
   template<typename T>
-  struct DereferenceType {
-    using type = std::decay_t<decltype(*std::declval<T>())>;
-  };
-
-  template<typename T>
-  using GetDereferenceType = typename DereferenceType<T>::type;
+  concept IsManagedPointer = is_managed_pointer_v<std::remove_cvref_t<T>>;
 
   /**
-   * Returns the type resulting from a dereference operation or the type itself
-   * if it can't be dereferenced.
+   * If T can be dereferenced, yields the dereferenced type
+   * (with references removed). Otherwise yields T.
    */
   template<typename T>
-  struct TryDereferenceType {
-    private:
-      template<typename U, bool Enabled>
-      struct TryDereferenceHelper {
-        using type = GetDereferenceType<U>;
-      };
+  struct dereference {
+    using type = std::remove_cvref_t<T>;
+  };
 
-      template<typename U>
-      struct TryDereferenceHelper<U, false> {
-        using type = U;
-      };
-
-    public:
-      using type = typename TryDereferenceHelper<std::decay_t<T>,
-        IsDereferenceable<std::decay_t<T>>::value>::type;
+  template<IsDereferenceable T>
+  struct dereference<T> {
+    using type = std::remove_cvref_t<decltype(*std::declval<T&>())>;
   };
 
   template<typename T>
-  using GetTryDereferenceType = typename TryDereferenceType<T>::type;
+  using dereference_t = typename dereference<T>::type;
 
   template<typename T>
-  decltype(auto) FullyDereference(T&& value) {
-    if constexpr(IsDereferenceable<std::decay_t<T>>::value) {
-      return FullyDereference(*value);
+  decltype(auto) fully_dereference(T&& value) {
+    if constexpr(IsDereferenceable<T>) {
+      return fully_dereference(*value);
     } else {
-      return value;
+      return std::forward<T>(value);
     }
   }
 }

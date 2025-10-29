@@ -1,17 +1,17 @@
 #ifndef BEAM_EXPECT_HPP
 #define BEAM_EXPECT_HPP
+#include <concepts>
 #include <exception>
 #include <iostream>
 #include <type_traits>
 #include <utility>
 #include <variant>
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 
   /**
    * Stores a value that could potentially result in an exception.
-   * @param <T> The type of value to store.
+   * @tparam T The type of value to store.
    */
   template<typename T>
   class Expect {
@@ -27,59 +27,64 @@ namespace Beam {
        * Constructs an Expect with a normal value.
        * @param value The value to store.
        */
-      Expect(const T& value);
+      Expect(const Type& value) noexcept(
+        std::is_nothrow_copy_constructible_v<Type>);
 
       /**
        * Constructs an Expect with a normal value.
        * @param value The value to store.
        */
-      Expect(T&& value);
+      Expect(Type&& value) noexcept(std::is_nothrow_move_constructible_v<Type>);
 
       /**
        * Constructs an Expect with an exception.
        * @param exception The exception to throw.
        */
-      Expect(const std::exception_ptr& exception);
+      Expect(const std::exception_ptr& exception) noexcept;
 
       /** Implicitly converts to the underlying value. */
-      operator const T& () const;
+      operator const Type& () const;
 
       /** Returns <code>true</code> iff a value is stored. */
-      bool IsValue() const;
+      bool is_value() const;
 
       /** Returns <code>true</code> iff an exception is stored. */
-      bool IsException() const;
+      bool is_exception() const;
 
       /** Returns the stored value, or throws an exception. */
-      const T& Get() const&;
+      const Type& get() const&;
 
       /** Returns the stored value, or throws an exception. */
-      T& Get() &;
+      Type& get() &;
 
       /** Returns the stored value, or throws an exception. */
-      T&& Get() &&;
+      Type&& get() &&;
 
       /** Returns the exception. */
-      std::exception_ptr GetException() const;
+      std::exception_ptr get_exception() const;
 
       /**
        * Calls a function and stores its value.
        * @param f The function to call.
        */
-      template<typename F>
-      void Try(F&& f);
+      template<std::invocable<> F>
+      void try_call(F&& f);
 
       template<typename U>
-      Expect& operator =(const Expect<U>& rhs);
+      Expect& operator =(const Expect<U>& rhs) noexcept(
+        std::is_nothrow_assignable_v<Type, const U&>);
 
       template<typename U>
-      Expect& operator =(Expect<U>&& rhs);
+      Expect& operator =(Expect<U>&& rhs) noexcept(
+        std::is_nothrow_assignable_v<Type, U&&>);
 
       template<typename U>
-      Expect& operator =(const U& rhs);
+      Expect& operator =(const U& rhs) noexcept(
+        std::is_nothrow_assignable_v<Type, const U&>);
 
       template<typename U>
-      Expect& operator =(U&& rhs);
+      Expect& operator =(U&& rhs) noexcept(
+        std::is_nothrow_assignable_v<Type, U&&>);
 
     private:
       template<typename> friend class Expect;
@@ -88,7 +93,7 @@ namespace Beam {
 
   /**
    * Stores a value that could potentially result in an exception.
-   * @param <T> The type of value to store.
+   * @tparam T The type of value to store.
    */
   template<>
   class Expect<void> {
@@ -104,26 +109,26 @@ namespace Beam {
        * Constructs an Expect with an exception.
        * @param exception The exception to throw.
        */
-      Expect(const std::exception_ptr& exception);
+      Expect(const std::exception_ptr& exception) noexcept;
 
       /** Returns <code>true</code> iff a value is stored. */
-      bool IsValue() const;
+      bool is_value() const;
 
       /** Returns <code>true</code> iff an exception is stored. */
-      bool IsException() const;
+      bool is_exception() const;
 
       /** Returns the stored value, or throws an exception. */
-      void Get() const;
+      void get() const;
 
       /** Returns the exception. */
-      std::exception_ptr GetException() const;
+      std::exception_ptr get_exception() const;
 
       /**
        * Calls a function and stores its value.
        * @param f The function to call.
        */
-      template<typename F>
-      void Try(F&& f);
+      template<std::invocable<> F>
+      void try_call(F&& f);
 
     private:
       std::exception_ptr m_exception;
@@ -134,18 +139,18 @@ namespace Beam {
    * @param f The function to call.
    * @return The result of <i>f</i>.
    */
-  template<typename F>
-  Expect<std::decay_t<std::invoke_result_t<F>>> Try(F&& f) noexcept {
-    using Result = std::decay_t<std::invoke_result_t<F>>;
+  template<std::invocable<> F>
+  auto try_call(F&& f) noexcept {
+    using Result = std::remove_cvref_t<std::invoke_result_t<F>>;
     try {
-      if constexpr(std::is_same_v<Result, void>) {
-        f();
-        return {};
+      if constexpr(std::same_as<Result, void>) {
+        std::forward<F>(f)();
+        return Expect<void>();
       } else {
-        return f();
+        return Expect<Result>(std::forward<F>(f)());
       }
     } catch(...) {
-      return std::current_exception();
+      return Expect<Result>(std::current_exception());
     }
   }
 
@@ -155,10 +160,10 @@ namespace Beam {
    * @param args The arguments to pass to f.
    * @return The result of f.
    */
-  template<typename F, typename... Args>
-  decltype(auto) Require(F&& f, Args&&... args) noexcept {
+  template<typename F, typename... Args> requires std::invocable<F, Args&&...>
+  decltype(auto) require(F&& f, Args&&... args) noexcept {
     try {
-      return f(std::forward<Args>(args)...);
+      return std::forward<F>(f)(std::forward<Args>(args)...);
     } catch(const std::exception& e) {
       std::cerr << e.what();
     } catch(...) {
@@ -175,11 +180,11 @@ namespace Beam {
    * @param e The outer exception used if <i>f</i> throws.
    * @return The result of f.
    */
-  template<typename F, typename E, typename = std::enable_if_t<
-    std::is_base_of_v<std::exception, std::decay_t<E>>>>
-  decltype(auto) TryOrNest(F&& f, E&& e) {
+  template<std::invocable<> F, typename E> requires
+    std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
+  decltype(auto) try_or_nest(F&& f, E&& e) {
     try {
-      return f();
+      return std::forward<F>(f)();
     } catch(...) {
       std::throw_with_nested(std::forward<E>(e));
     }
@@ -193,47 +198,49 @@ namespace Beam {
    * @param e The outer exception.
    * @return The std::exception_ptr representing an std::nested_exception.
    */
-  template<typename E, typename = std::enable_if_t<
-    std::is_base_of_v<std::exception, std::decay_t<E>>>>
-  std::exception_ptr NestCurrentException(E&& e) {
+  template<typename E> requires
+    std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
+  std::exception_ptr nest_current_exception(E&& e) {
     try {
       std::throw_with_nested(std::forward<E>(e));
     } catch(...) {
       return std::current_exception();
     }
-    return nullptr;
+    return std::exception_ptr();
   }
 
   template<typename T>
-  Expect<T>::Expect(const T& value)
+  Expect<T>::Expect(const Type& value) noexcept(
+    std::is_nothrow_copy_constructible_v<Type>)
     : m_value(value) {}
 
   template<typename T>
-  Expect<T>::Expect(T&& value)
+  Expect<T>::Expect(Type&& value) noexcept(
+    std::is_nothrow_move_constructible_v<Type>)
     : m_value(std::move(value)) {}
 
   template<typename T>
-  Expect<T>::Expect(const std::exception_ptr& exception)
+  Expect<T>::Expect(const std::exception_ptr& exception) noexcept
     : m_value(exception) {}
 
   template<typename T>
-  Expect<T>::operator const T& () const {
-    return Get();
+  Expect<T>::operator const typename Expect<T>::Type& () const {
+    return get();
   }
 
   template<typename T>
-  bool Expect<T>::IsValue() const {
+  bool Expect<T>::is_value() const {
     return m_value.index() == 0;
   }
 
   template<typename T>
-  bool Expect<T>::IsException() const {
+  bool Expect<T>::is_exception() const {
     return m_value.index() == 1;
   }
 
   template<typename T>
-  const typename Expect<T>::Type& Expect<T>::Get() const& {
-    if(IsValue()) {
+  const typename Expect<T>::Type& Expect<T>::get() const& {
+    if(is_value()) {
       return std::get<Type>(m_value);
     }
     std::rethrow_exception(std::get<std::exception_ptr>(m_value));
@@ -241,8 +248,8 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Expect<T>::Type& Expect<T>::Get() & {
-    if(IsValue()) {
+  typename Expect<T>::Type& Expect<T>::get() & {
+    if(is_value()) {
       return std::get<Type>(m_value);
     }
     std::rethrow_exception(std::get<std::exception_ptr>(m_value));
@@ -250,8 +257,8 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Expect<T>::Type&& Expect<T>::Get() && {
-    if(IsValue()) {
+  typename Expect<T>::Type&& Expect<T>::get() && {
+    if(is_value()) {
       return std::move(std::get<Type>(m_value));
     }
     std::rethrow_exception(std::get<std::exception_ptr>(m_value));
@@ -259,16 +266,16 @@ namespace Beam {
   }
 
   template<typename T>
-  std::exception_ptr Expect<T>::GetException() const {
-    if(IsException()) {
+  std::exception_ptr Expect<T>::get_exception() const {
+    if(is_exception()) {
       return std::get<std::exception_ptr>(m_value);
     }
     return std::exception_ptr();
   }
 
   template<typename T>
-  template<typename F>
-  void Expect<T>::Try(F&& f) {
+  template<std::invocable<> F>
+  void Expect<T>::try_call(F&& f) {
     try {
       m_value = f();
     } catch(...) {
@@ -278,57 +285,65 @@ namespace Beam {
 
   template<typename T>
   template<typename U>
-  Expect<T>& Expect<T>::operator =(const Expect<U>& rhs) {
+  Expect<typename Expect<T>::Type>&
+    Expect<T>::operator =(const Expect<U>& rhs) noexcept(
+      std::is_nothrow_assignable_v<Type, const U&>) {
     m_value = rhs.m_value;
     return *this;
   }
 
   template<typename T>
   template<typename U>
-  Expect<T>& Expect<T>::operator =(Expect<U>&& rhs) {
+  Expect<typename Expect<T>::Type>&
+    Expect<T>::operator =(Expect<U>&& rhs) noexcept(
+      std::is_nothrow_assignable_v<Type, U&&>) {
     m_value = std::move(rhs.m_value);
     return *this;
   }
 
   template<typename T>
   template<typename U>
-  Expect<T>& Expect<T>::operator =(const U& rhs) {
+  Expect<typename Expect<T>::Type>&
+    Expect<T>::operator =(const U& rhs) noexcept(
+      std::is_nothrow_assignable_v<Type, const U&>) {
     m_value = rhs;
     return *this;
   }
 
   template<typename T>
   template<typename U>
-  Expect<T>& Expect<T>::operator =(U&& rhs) {
+  Expect<typename Expect<T>::Type>&
+    Expect<T>::operator =(U&& rhs) noexcept(
+      std::is_nothrow_assignable_v<Type, U&&>) {
     m_value = std::move(rhs);
     return *this;
   }
 
-  inline Expect<void>::Expect(const std::exception_ptr& exception)
+  inline Expect<void>::Expect(const std::exception_ptr& exception) noexcept
     : m_exception(exception) {}
 
-  inline bool Expect<void>::IsValue() const {
-    return m_exception == nullptr;
+  inline bool Expect<void>::is_value() const {
+    return !m_exception;
   }
 
-  inline bool Expect<void>::IsException() const {
+  inline bool Expect<void>::is_exception() const {
     return m_exception != nullptr;
   }
 
-  inline void Expect<void>::Get() const {
+  inline void Expect<void>::get() const {
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
   }
 
-  inline std::exception_ptr Expect<void>::GetException() const {
+  inline std::exception_ptr Expect<void>::get_exception() const {
     return m_exception;
   }
 
-  template<typename F>
-  void Expect<void>::Try(F&& f) {
+  template<std::invocable<> F>
+  void Expect<void>::try_call(F&& f) {
     try {
-      f();
+      std::forward<F>(f)();
       m_exception = std::exception_ptr();
     } catch(...) {
       m_exception = std::current_exception();

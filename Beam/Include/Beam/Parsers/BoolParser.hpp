@@ -1,93 +1,95 @@
 #ifndef BEAM_BOOL_PARSER_HPP
 #define BEAM_BOOL_PARSER_HPP
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
-  /** Matches a bool symbol. */
+  /** Matches the boolean symbols "true" and "false". */
   class BoolParser {
     public:
       using Result = bool;
 
-      template<typename Stream>
-      bool Read(Stream& source, bool& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, bool& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
-  template<typename Stream>
-  bool BoolParser::Read(Stream& source, bool& value) const {
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+  /** An instance of a BoolParser. */
+  inline const auto bool_p = BoolParser();
+
+  template<IsParserStream S>
+  bool BoolParser::read(S& source, bool& value) const {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == 't' && context.Read()) {
-      if(context.GetChar() != 'r' || !context.Read()) {
+    if(context.peek() == 't' && context.read()) {
+      if(context.peek() != 'r' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'u' || !context.Read()) {
+      if(context.peek() != 'u' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'e') {
+      if(context.peek() != 'e') {
         return false;
       }
-      context.Accept();
+      context.accept();
       value = true;
       return true;
-    } else if(context.GetChar() == 'f' && context.Read()) {
-      if(context.GetChar() != 'a' || !context.Read()) {
+    } else if(context.peek() == 'f' && context.read()) {
+      if(context.peek() != 'a' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'l' || !context.Read()) {
+      if(context.peek() != 'l' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 's' || !context.Read()) {
+      if(context.peek() != 's' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'e') {
+      if(context.peek() != 'e') {
         return false;
       }
-      context.Accept();
+      context.accept();
       value = false;
       return true;
     }
     return false;
   }
 
-  template<typename Stream>
-  bool BoolParser::Read(Stream& source) const {
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+  template<IsParserStream S>
+  bool BoolParser::read(S& source) const {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == 't' && context.Read()) {
-      if(context.GetChar() != 'r' || !context.Read()) {
+    if(context.peek() == 't' && context.read()) {
+      if(context.peek() != 'r' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'u' || !context.Read()) {
+      if(context.peek() != 'u' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'e') {
+      if(context.peek() != 'e') {
         return false;
       }
-      context.Accept();
+      context.accept();
       return true;
-    } else if(context.GetChar() == 'f' && context.Read()) {
-      if(context.GetChar() != 'a' || !context.Read()) {
+    } else if(context.peek() == 'f' && context.read()) {
+      if(context.peek() != 'a' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'l' || !context.Read()) {
+      if(context.peek() != 'l' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 's' || !context.Read()) {
+      if(context.peek() != 's' || !context.read()) {
         return false;
       }
-      if(context.GetChar() != 'e') {
+      if(context.peek() != 'e') {
         return false;
       }
-      context.Accept();
+      context.accept();
       return true;
     }
     return false;

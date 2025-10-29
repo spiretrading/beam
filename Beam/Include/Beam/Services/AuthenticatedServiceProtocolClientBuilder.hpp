@@ -3,19 +3,21 @@
 #include <utility>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/SessionAuthenticator.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * A ServiceProtocolClientBuilder that authenticates its session.
-   * @param <C> The type of ServiceLocatorClient used to authenticate the
+   * @tparam C The type of ServiceLocatorClient used to authenticate the
    *        session.
-   * @param <P> The type of MessageProtocol used to send and receive messages.
-   * @param <T> The type of Timer used for heartbeats.
+   * @tparam P The type of MessageProtocol used to send and receive messages.
+   * @tparam T The type of Timer used for heartbeats.
    */
-  template<typename C, typename P, typename T>
+  template<IsServiceLocatorClient C, typename P, typename T> requires
+    IsTimer<dereference_t<T>>
   class AuthenticatedServiceProtocolClientBuilder {
     public:
 
@@ -43,54 +45,51 @@ namespace Beam::Services {
       using TimerBuilder =
         typename ServiceProtocolClientBuilder<P, T>::TimerBuilder;
 
-      /** The type of Authenticator used. */
-      using Authenticator =
-        typename ServiceLocator::Authenticator<Client>::type;
-
       /**
        * Constructs an AuthenticatedServiceProtocolClientBuilder.
-       * @param serviceLocatorClient The ServiceLocatorClient used to
+       * @param service_locator_client The ServiceLocatorClient used to
        *        authenticate the session.
-       * @param channelBuilder Used to build new Channels.
-       * @param timerBuilder Used to build heartbeat Timers.
+       * @param channel_builder Used to build new Channels.
+       * @param timer_builder Used to build heartbeat Timers.
        */
-      template<typename CF>
-      AuthenticatedServiceProtocolClientBuilder(CF&& serviceLocatorClient,
-        ChannelBuilder channelBuilder, TimerBuilder timerBuilder);
+      AuthenticatedServiceProtocolClientBuilder(
+        Ref<ServiceLocatorClient> service_locator_client,
+        ChannelBuilder channel_builder, TimerBuilder timer_builder);
 
-      std::unique_ptr<Client> MakeClient(ServiceSlots<Client>& slots);
-
-      std::unique_ptr<Timer> MakeTimer();
+      std::unique_ptr<Client> make_client(ServiceSlots<Client>& slots);
+      std::unique_ptr<Timer> make_timer();
 
     private:
-      GetOptionalLocalPtr<C> m_serviceLocatorClient;
-      ServiceProtocolClientBuilder<P, T> m_clientBuilder;
+      ServiceLocatorClient* m_service_locator_client;
+      ServiceProtocolClientBuilder<P, T> m_client_builder;
   };
 
-  template<typename C, typename P, typename T>
-  template<typename CF>
+  template<IsServiceLocatorClient C, typename P, typename T> requires
+    IsTimer<dereference_t<T>>
   AuthenticatedServiceProtocolClientBuilder<C, P, T>::
-    AuthenticatedServiceProtocolClientBuilder(CF&& serviceLocatorClient,
-    ChannelBuilder channelBuilder, TimerBuilder timerBuilder)
-    : m_serviceLocatorClient(std::forward<CF>(serviceLocatorClient)),
-      m_clientBuilder(std::move(channelBuilder), std::move(timerBuilder)) {}
+    AuthenticatedServiceProtocolClientBuilder(
+      Ref<ServiceLocatorClient> service_locator_client,
+      ChannelBuilder channel_builder, TimerBuilder timer_builder)
+    : m_service_locator_client(service_locator_client.get()),
+      m_client_builder(std::move(channel_builder), std::move(timer_builder)) {}
 
-  template<typename C, typename P, typename T>
+  template<IsServiceLocatorClient C, typename P, typename T> requires
+    IsTimer<dereference_t<T>>
   std::unique_ptr<
       typename AuthenticatedServiceProtocolClientBuilder<C, P, T>::Client>
-      AuthenticatedServiceProtocolClientBuilder<C, P, T>::MakeClient(
-      ServiceSlots<Client>& slots) {
-    auto client = m_clientBuilder.MakeClient(slots);
-    ServiceLocator::Authenticate(ServiceLocator::SessionAuthenticator(
-      Ref(*m_serviceLocatorClient)), *client);
+        AuthenticatedServiceProtocolClientBuilder<C, P, T>::make_client(
+          ServiceSlots<Client>& slots) {
+    auto client = m_client_builder.make_client(slots);
+    authenticate(SessionAuthenticator(Ref(*m_service_locator_client)), *client);
     return client;
   }
 
-  template<typename C, typename P, typename T>
+  template<IsServiceLocatorClient C, typename P, typename T> requires
+    IsTimer<dereference_t<T>>
   std::unique_ptr<
       typename AuthenticatedServiceProtocolClientBuilder<C, P, T>::Timer>
-      AuthenticatedServiceProtocolClientBuilder<C, P, T>::MakeTimer() {
-    return m_clientBuilder.MakeTimer();
+        AuthenticatedServiceProtocolClientBuilder<C, P, T>::make_timer() {
+    return m_client_builder.make_timer();
   }
 }
 

@@ -7,86 +7,87 @@
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /** Stores session info for a ServiceLocatorServlet Channel. */
   class ServiceLocatorSession : public AuthenticatedSession {
     public:
 
       /** Constructs a ServiceLocatorSession. */
-      ServiceLocatorSession();
+      ServiceLocatorSession() noexcept;
 
       /**
        * Acquires a ServiceLocatorSession.
        * @param session The ServiceLocatorSession to acquire.
        */
-      ServiceLocatorSession(ServiceLocatorSession&& session);
+      ServiceLocatorSession(ServiceLocatorSession&& session) noexcept;
 
       /** Returns the session id. */
-      std::string GetSessionId() const;
+      std::string get_session_id() const;
 
       /**
        * Sets the session id.
        * @param account The account that the session belongs to.
-       * @param sessionId The session id.
+       * @param session_id The session id.
        */
-      void SetSessionId(const DirectoryEntry& account,
-        const std::string& sessionId);
+      void set_session_id(
+        const DirectoryEntry& account, const std::string& session_id);
 
       /**
        * Begins a login attempt.
        * @return <code>true</code> iff the session is in a state where a login
        *         attempt is permissible.
        */
-      bool TryLogin();
+      bool try_login();
 
       /** Marks the session as not logged in. */
-      void ResetLogin();
+      void reset_login();
 
       /** Returns the services being subscribed to by this Channel. */
-      std::vector<std::string> GetServiceSubscriptions() const;
+      std::vector<std::string> get_service_subscriptions() const;
 
       /**
        * Subscribes to a service.
-       * @param serviceName The name of the service to subscribe to.
+       * @param service_name The name of the service to subscribe to.
        */
-      void SubscribeService(const std::string& serviceName);
+      void subscribe_service(const std::string& service_name);
 
       /**
        * Unsubscribes from a service.
-       * @param serviceName The name of the service to unsubscribe from.
+       * @param service_name The name of the service to unsubscribe from.
        */
-      void UnsubscribeService(const std::string& serviceName);
+      void unsubscribe_service(const std::string& service_name);
 
       /** Returns the ServiceEntries registered by this Channel. */
-      std::vector<ServiceEntry> GetRegisteredServices() const;
+      std::vector<ServiceEntry> get_registered_services() const;
 
       /**
        * Registers a service.
-       * @param serviceEntry The ServiceEntry describing the registered service.
+       * @param service_entry The ServiceEntry describing the registered
+       *        service.
        */
-      void RegisterService(const ServiceEntry& serviceEntry);
+      void register_service(const ServiceEntry& service_entry);
 
       /**
        * Unregisters a service id.
-       * @param serviceId The id of the service unregister.
+       * @param service_id The id of the service unregister.
        */
-      void UnregisterService(int serviceId);
+      void unregister_service(int service_id);
 
       /**
        * Monitors a DirectoryEntry.
        * @param entry The DirectoryEntry to monitor.
        */
-      void Monitor(const DirectoryEntry& entry);
+      void monitor(const DirectoryEntry& entry);
 
       /**
        * Stops monitoring a DirectoryEntry.
        * @param entry The DirectoryEntry to stop monitoring.
        */
-      void Unmonitor(const DirectoryEntry& entry);
+      void unmonitor(const DirectoryEntry& entry);
 
       /** Returns the list of all DirectoryEntries being monitored. */
-      std::vector<DirectoryEntry> GetMonitors() const;
+      std::vector<DirectoryEntry> get_monitors() const;
 
     private:
       enum class LoginState {
@@ -95,109 +96,109 @@ namespace Beam::ServiceLocator {
         LOGGED_IN
       };
       mutable boost::mutex m_mutex;
-      LoginState m_loginState;
-      std::string m_sessionId;
-      std::vector<ServiceEntry> m_registeredServices;
-      std::vector<std::string> m_serviceSubscriptions;
+      LoginState m_login_state;
+      std::string m_session_id;
+      std::vector<ServiceEntry> m_registered_services;
+      std::vector<std::string> m_service_subscriptions;
       std::vector<DirectoryEntry> m_monitors;
   };
 
-  inline ServiceLocatorSession::ServiceLocatorSession()
-    : m_loginState(LoginState::NOT_LOGGED_IN) {}
+  inline ServiceLocatorSession::ServiceLocatorSession() noexcept
+    : m_login_state(LoginState::NOT_LOGGED_IN) {}
 
   inline ServiceLocatorSession::ServiceLocatorSession(
-      ServiceLocatorSession&& session)
+      ServiceLocatorSession&& session) noexcept
       : AuthenticatedSession(std::move(session)) {
     auto lock = boost::lock_guard(session.m_mutex);
-    m_loginState = std::move(session.m_loginState);
-    m_sessionId = std::move(session.m_sessionId);
-    m_registeredServices = std::move(session.m_registeredServices);
-    m_serviceSubscriptions = std::move(session.m_serviceSubscriptions);
+    m_login_state = std::move(session.m_login_state);
+    m_session_id = std::move(session.m_session_id);
+    m_registered_services = std::move(session.m_registered_services);
+    m_service_subscriptions = std::move(session.m_service_subscriptions);
+    m_monitors = std::move(session.m_monitors);
   }
 
-  inline std::string ServiceLocatorSession::GetSessionId() const {
+  inline std::string ServiceLocatorSession::get_session_id() const {
     auto lock = boost::lock_guard(m_mutex);
-    return m_sessionId;
+    return m_session_id;
   }
 
-  inline void ServiceLocatorSession::SetSessionId(
-      const DirectoryEntry& account, const std::string& sessionId) {
+  inline void ServiceLocatorSession::set_session_id(
+      const DirectoryEntry& account, const std::string& session_id) {
     auto lock = boost::lock_guard(m_mutex);
-    SetAccount(account);
-    m_sessionId = sessionId;
-    m_loginState = LoginState::LOGGED_IN;
+    set_account(account);
+    m_session_id = session_id;
+    m_login_state = LoginState::LOGGED_IN;
   }
 
-  inline bool ServiceLocatorSession::TryLogin() {
+  inline bool ServiceLocatorSession::try_login() {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_loginState == LoginState::NOT_LOGGED_IN) {
-      m_loginState = LoginState::LOGGING_IN;
+    if(m_login_state == LoginState::NOT_LOGGED_IN) {
+      m_login_state = LoginState::LOGGING_IN;
       return true;
     }
     return false;
   }
 
-  inline void ServiceLocatorSession::ResetLogin() {
+  inline void ServiceLocatorSession::reset_login() {
     auto lock = boost::lock_guard(m_mutex);
-    ResetAccount();
-    m_sessionId.clear();
-    m_loginState = LoginState::NOT_LOGGED_IN;
+    reset_account();
+    m_session_id.clear();
+    m_login_state = LoginState::NOT_LOGGED_IN;
   }
 
   inline std::vector<std::string>
-      ServiceLocatorSession::GetServiceSubscriptions() const {
+      ServiceLocatorSession::get_service_subscriptions() const {
     auto lock = boost::lock_guard(m_mutex);
-    return m_serviceSubscriptions;
+    return m_service_subscriptions;
   }
 
-  inline void ServiceLocatorSession::SubscribeService(
-      const std::string& serviceName) {
+  inline void ServiceLocatorSession::subscribe_service(
+      const std::string& service_name) {
     auto lock = boost::lock_guard(m_mutex);
-    m_serviceSubscriptions.push_back(serviceName);
+    m_service_subscriptions.push_back(service_name);
   }
 
-  inline void ServiceLocatorSession::UnsubscribeService(
-      const std::string& serviceName) {
+  inline void ServiceLocatorSession::unsubscribe_service(
+      const std::string& service_name) {
     auto lock = boost::lock_guard(m_mutex);
-    RemoveAll(m_serviceSubscriptions, serviceName);
+    std::erase(m_service_subscriptions, service_name);
   }
 
   inline std::vector<ServiceEntry>
-      ServiceLocatorSession::GetRegisteredServices() const {
+      ServiceLocatorSession::get_registered_services() const {
     auto lock = boost::lock_guard(m_mutex);
-    return m_registeredServices;
+    return m_registered_services;
   }
 
-  inline void ServiceLocatorSession::RegisterService(
-      const ServiceEntry& serviceEntry) {
+  inline void ServiceLocatorSession::register_service(
+      const ServiceEntry& service_entry) {
     auto lock = boost::lock_guard(m_mutex);
-    m_registeredServices.push_back(serviceEntry);
+    m_registered_services.push_back(service_entry);
   }
 
-  inline void ServiceLocatorSession::UnregisterService(int serviceId) {
+  inline void ServiceLocatorSession::unregister_service(int service_id) {
     auto lock = boost::lock_guard(m_mutex);
-    auto i = std::find_if(m_registeredServices.begin(),
-      m_registeredServices.end(),
-      [&] (auto& service) {
-        return service.GetId() == serviceId;
+    auto i = std::find_if(m_registered_services.begin(),
+      m_registered_services.end(), [&] (const auto& service) {
+        return service.get_id() == service_id;
       });
-    if(i != m_registeredServices.end()) {
-      m_registeredServices.erase(i);
+    if(i != m_registered_services.end()) {
+      m_registered_services.erase(i);
     }
   }
 
-  inline void ServiceLocatorSession::Monitor(const DirectoryEntry& entry) {
+  inline void ServiceLocatorSession::monitor(const DirectoryEntry& entry) {
     auto lock = boost::lock_guard(m_mutex);
     m_monitors.push_back(entry);
   }
 
-  inline void ServiceLocatorSession::Unmonitor(const DirectoryEntry& entry) {
+  inline void ServiceLocatorSession::unmonitor(const DirectoryEntry& entry) {
     auto lock = boost::lock_guard(m_mutex);
-    RemoveAll(m_monitors, entry);
+    std::erase(m_monitors, entry);
   }
 
   inline std::vector<DirectoryEntry>
-      ServiceLocatorSession::GetMonitors() const {
+      ServiceLocatorSession::get_monitors() const {
     auto lock = boost::lock_guard(m_mutex);
     return m_monitors;
   }

@@ -2,7 +2,7 @@
 #define BEAM_NETWORK_UDP_SOCKET_OPTIONS_HPP
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Stores the various options that can be applied to a UdpSocket. */
   struct UdpSocketOptions {
@@ -14,23 +14,23 @@ namespace Beam::Network {
     int m_ttl;
 
     /** Whether to enable loopback. */
-    bool m_enableLoopback;
+    bool m_enable_loopback;
 
     /** The max datagram size. */
-    std::size_t m_maxDatagramSize;
+    std::size_t m_max_datagram_size;
 
     /** The default size of the receive buffer. */
-    std::size_t m_receiveBufferSize;
+    std::size_t m_receive_buffer_size;
 
     /** Constructs the default options. */
-    UdpSocketOptions();
+    UdpSocketOptions() noexcept;
   };
 
-  inline UdpSocketOptions::UdpSocketOptions()
+  inline UdpSocketOptions::UdpSocketOptions() noexcept
     : m_timeout(boost::posix_time::pos_infin),
       m_ttl(-1),
-      m_maxDatagramSize(2 * 1024),
-      m_receiveBufferSize(8 * 1024) {}
+      m_max_datagram_size(2 * 1024),
+      m_receive_buffer_size(8 * 1024) {}
 }
 
 #endif

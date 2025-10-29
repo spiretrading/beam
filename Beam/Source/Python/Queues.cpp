@@ -1,110 +1,109 @@
 #include "Beam/Python/Queues.hpp"
+#include <Aspen/Conversions.hpp>
+#include <Aspen/Python/Box.hpp>
+#include <Aspen/Python/Reactor.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/QueueWriter.hpp"
-#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
-#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Publisher.hpp"
+#include "Beam/Queues/PublisherReactor.hpp"
+#include "Beam/Queues/QueueReactor.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/TaskQueue.hpp"
 
+using namespace Aspen;
 using namespace Beam;
 using namespace Beam::Python;
 using namespace pybind11;
 
-void Beam::Python::ExportBasePublisher(pybind11::module& module) {
-  class_<BasePublisher, std::shared_ptr<BasePublisher>>(module, "BasePublisher")
-    .def("with", static_cast<void (BasePublisher::*)(
-      const std::function<void ()>&) const>(&BasePublisher::With),
+void Beam::Python::export_base_publisher(pybind11::module& module) {
+  class_<BasePublisher, std::shared_ptr<BasePublisher>>(
+    module, "BasePublisher").
+    def("apply", static_cast<void (BasePublisher::*)(
+      const std::function<void ()>&) const>(&BasePublisher::with),
       call_guard<GilRelease>());
 }
 
-void Beam::Python::ExportBaseQueue(pybind11::module& module) {
-  class_<BaseQueue, std::shared_ptr<BaseQueue>>(module, "BaseQueue")
-    .def("close", static_cast<void (BaseQueue::*)(const std::exception_ptr&)>(
-      &BaseQueue::Break))
-    .def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::Break));
+void Beam::Python::export_base_queue(pybind11::module& module) {
+  class_<BaseQueue, std::shared_ptr<BaseQueue>>(module, "BaseQueue").
+    def("close", static_cast<void (BaseQueue::*)(const std::exception_ptr&)>(
+      &BaseQueue::close)).
+    def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::close));
 }
 
-void Beam::Python::ExportBaseSnapshotPublisher(pybind11::module& module) {
-  class_<BaseSnapshotPublisher, std::shared_ptr<BaseSnapshotPublisher>>(module,
-    "BaseSnapshotPublisher");
+void Beam::Python::export_publisher_reactor(pybind11::module& module) {
+  module.def("monitor", [] (Publisher<object>& publisher) {
+    return shared_box(publisher_reactor(std::move(publisher)));
+  });
 }
 
-void Beam::Python::ExportQueues(pybind11::module& module) {
-  ExportBasePublisher(module);
-  ExportBaseQueue(module);
-  ExportBaseSnapshotPublisher(module);
-  ExportQueueSuite<object>(module, "");
-  ExportQueueSuite<std::function<void ()>>(module, "VoidFunction");
-  ExportRoutineTaskQueue(module);
-  ExportTaskQueue(module);
-  module.def("flush",
-    [] (QueueReader<object>& queue, list l) {
-      try {
-        while(true) {
-          auto value = [&] {
-            auto release = GilRelease();
-            return queue.Pop();
-          }();
-          l.append(std::move(value));
-        }
-      } catch(const std::exception&) {}
-    });
+void Beam::Python::export_queue_reactor(pybind11::module& module) {
+  export_reactor<QueueReactor<object>>(module, "QueueReactor").
+    def(pybind11::init<std::shared_ptr<QueueReader<object>>>());
+}
+
+void Beam::Python::export_queues(pybind11::module& module) {
+  export_base_publisher(module);
+  export_base_queue(module);
+  export_publisher_reactor(module);
+  export_queue_suite<object>(module, "");
+  export_queue_suite<std::function<void ()>>(module, "VoidFunction");
+  export_routine_task_queue(module);
+  export_task_queue(module);
+  module.def("flush", [] (QueueReader<object>& queue, list l) {
+    try {
+      while(true) {
+        auto value = [&] {
+          auto release = GilRelease();
+          return queue.pop();
+        }();
+        l.append(std::move(value));
+      }
+    } catch(const std::exception&) {}
+  });
   register_exception<PipeBrokenException>(module, "PipeBrokenException");
 }
 
-void Beam::Python::ExportRoutineTaskQueue(pybind11::module& module) {
+void Beam::Python::export_routine_task_queue(pybind11::module& module) {
   class_<RoutineTaskQueue, std::shared_ptr<RoutineTaskQueue>,
-    QueueWriter<std::function<void ()>>>(module, "RoutineTaskQueue")
-    .def(init())
-    .def("__del__",
-      [] (RoutineTaskQueue& self) {
-        self.Break();
-        self.Wait();
-      }, call_guard<GilRelease>())
-    .def("get_slot",
-      [] (RoutineTaskQueue& self, SharedObject slot) {
-        auto queue = self.GetSlot<SharedObject>(
-          [=] (const SharedObject& object) {
-            auto lock = GilLock();
-            (*slot)(*object);
-          });
-        return MakeToPythonQueueWriter(std::move(queue));
-      })
-    .def("get_slot",
-      [] (RoutineTaskQueue& self, SharedObject slot, SharedObject breakSlot) {
-        auto queue = self.GetSlot<SharedObject>(
-          [=](const SharedObject& object) {
-            auto lock = GilLock();
-            (*slot)(*object);
-          },
-          [=](const std::exception_ptr& e) {
-            auto lock = GilLock();
-            (*breakSlot)(e);
-          });
-        return MakeToPythonQueueWriter(std::move(queue));
-      })
-    .def("wait", &RoutineTaskQueue::Wait, call_guard<GilRelease>());
+    QueueWriter<std::function<void ()>>>(module, "RoutineTaskQueue").
+    def(pybind11::init(&make_python_shared<RoutineTaskQueue>)).
+    def("get_slot",
+      [] (RoutineTaskQueue& self,
+          const PythonFunction<void (const SharedObject&)>& slot) {
+        return make_to_python_queue_writer(self.get_slot<SharedObject>(slot));
+      }).
+    def("get_slot",
+      [] (RoutineTaskQueue& self,
+          const PythonFunction<void (const SharedObject&)>& slot,
+          const PythonFunction<void (const std::exception_ptr&)>& break_slot) {
+        return make_to_python_queue_writer(
+          self.get_slot<SharedObject>(slot, break_slot));
+      }).
+    def("wait", &RoutineTaskQueue::wait, call_guard<GilRelease>());
 }
 
-void Beam::Python::ExportTaskQueue(pybind11::module& module) {
+void Beam::Python::export_task_queue(pybind11::module& module) {
   class_<TaskQueue, std::shared_ptr<TaskQueue>,
-    AbstractQueue<std::function<void ()>>>(module, "TaskQueue")
-    .def(init())
-    .def("get_slot",
+    AbstractQueue<std::function<void ()>>>(module, "TaskQueue").
+    def(pybind11::init()).
+    def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot) {
-        auto queue = self.GetSlot(std::move(slot));
-        return MakeToPythonQueueWriter(std::move(queue));
-      })
-    .def("get_slot",
+        auto queue = self.get_slot(std::move(slot));
+        return make_to_python_queue_writer(std::move(queue));
+      }).
+    def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
-          std::function<void (const std::exception_ptr&)> breakSlot) {
-        auto queue = self.GetSlot(std::move(slot), std::move(breakSlot));
-        return MakeToPythonQueueWriter(std::move(queue));
-      })
-    .def("pop", &TaskQueue::Pop, call_guard<GilRelease>());
-  module.def("handle_tasks", &HandleTasks, call_guard<GilRelease>());
+          std::function<void (const std::exception_ptr&)> break_slot) {
+        auto queue = self.get_slot(std::move(slot), std::move(break_slot));
+        return make_to_python_queue_writer(std::move(queue));
+      }).
+    def("pop", &TaskQueue::pop, call_guard<GilRelease>());
+  module.def("flush", [] (TaskQueue& queue) {
+    flush(queue);
+  });
 }

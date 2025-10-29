@@ -1,45 +1,44 @@
-#ifndef BEAM_SHUTTLEARRAY_HPP
-#define BEAM_SHUTTLEARRAY_HPP
+#ifndef BEAM_SHUTTLE_ARRAY_HPP
+#define BEAM_SHUTTLE_ARRAY_HPP
 #include <array>
 #include <boost/throw_exception.hpp>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
-namespace Serialization {
   template<typename T, std::size_t N>
-  struct IsStructure<std::array<T, N>> : std::false_type {};
+  constexpr auto is_structure<std::array<T, N>> = false;
 
   template<typename T, std::size_t N>
   struct Send<std::array<T, N>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const std::array<T, N>& value) const {
-      shuttle.StartSequence(name, static_cast<int>(N));
-      for(const auto& i : value) {
-        shuttle.Shuttle(i);
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, const std::array<T, N>& value) const {
+      sender.start_sequence(name, static_cast<int>(N));
+      for(auto& i : value) {
+        sender.send(i);
       }
-      shuttle.EndSequence();
+      sender.end_sequence();
     }
   };
 
   template<typename T, std::size_t N>
   struct Receive<std::array<T, N>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        std::array<T, N>& value) const {
-      int size;
-      shuttle.StartSequence(name, size);
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, const char* name, std::array<T, N>& value) const {
+      auto size = 0;
+      receiver.start_sequence(name, size);
       if(size != N) {
-        BOOST_THROW_EXCEPTION(SerializationException("Array size mismatch."));
+        boost::throw_with_location(
+          SerializationException("Array size mismatch."));
       }
-      for(int i = 0; i < size; ++i) {
-        shuttle.Shuttle(value[i]);
+      for(auto i = 0; i < size; ++i) {
+        receiver.receive(value[i]);
       }
-      shuttle.EndSequence();
+      receiver.end_sequence();
     }
   };
-}
 }
 
 #endif

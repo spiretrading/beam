@@ -5,82 +5,65 @@
 #include <boost/variant/get.hpp>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Json/Json.hpp"
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Json/JsonValue.hpp"
-#include "Beam/Parsers/ConversionParser.hpp"
-#include "Beam/Parsers/ForListParser.hpp"
-#include "Beam/Parsers/ListParser.hpp"
-#include "Beam/Parsers/ReaderParserStream.hpp"
-#include "Beam/Parsers/RuleParser.hpp"
-#include "Beam/Parsers/Types.hpp"
+#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
 
   /** Parses JSON objects. */
-  inline const auto& JsonParser() {
-    static const auto value = [] {
-      auto objectParser = Parsers::RuleParser<JsonObject>();
-      auto arrayParser = Parsers::RuleParser<std::vector<JsonValue>>();
-      auto nullParser = Parsers::Symbol("null", JsonNull());
-      auto keyParser = Parsers::string_p;
-      auto valueParser = Parsers::Convert(Parsers::string_p | nullParser |
-        Parsers::bool_p | Parsers::double_p | objectParser | arrayParser,
-        [] (const auto& value) {
-          return JsonValue(value);
-        });
-      auto keyValueParser = Parsers::tokenize >> keyParser >> ':' >>
-        valueParser;
-      objectParser.SetRule(Parsers::tokenize >> '{' >>
-        Parsers::ForList(JsonObject(), keyValueParser, ',',
-          [] (auto& object, const auto& value) {
-            object.Set(std::get<0>(value), std::get<1>(value));
-          }) >> '}');
-      arrayParser.SetRule(Parsers::tokenize >> '[' >>
-        Parsers::List(valueParser, ',') >> ']');
-      return valueParser;
-    }();
-    return value;
-  }
-}
+  inline const auto json_p = [] {
+    auto object_parser = DeferredParser<JsonObject>();
+    auto array = DeferredParser<std::vector<JsonValue>>();
+    auto null_parser = symbol("null", JsonNull());
+    auto key_parser = string_p;
+    auto value_parser = convert(string_p | null_parser | bool_p | double_p |
+      object_parser | array, [] (const auto& value) {
+        return JsonValue(value);
+      });
+    auto key_value_pair_parser = tokenize(key_parser, ':', value_parser);
+    object_parser.set(tokenize('{',
+        for_list(key_value_pair_parser, JsonObject(), ',',
+        [] (auto& object, const auto& value) {
+          object.set(std::get<0>(value), std::get<1>(value));
+        }), '}'));
+    array.set(tokenize('[', list(value_parser, ','), ']'));
+    return value_parser;
+  }();
 
-namespace Beam::Parsers {
   template<>
-  inline const auto default_parser<JsonValue> = JsonParser();
-}
+  inline const auto default_parser<JsonValue> = json_p;
 
-namespace Beam::Serialization {
   template<>
-  struct IsStructure<JsonObject> : std::false_type {};
+  constexpr auto is_structure<JsonObject> = false;
 
   template<>
   struct Send<JsonObject> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const JsonObject& value) const {
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, const JsonObject& value) const {
       auto destination = std::stringstream();
-      value.Save(destination);
-      shuttle.Send(name, destination.str());
+      value.save(destination);
+      sender.send(name, destination.str());
     }
   };
 
   template<>
   struct Receive<JsonObject> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        JsonObject& value) const {
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name, JsonObject& value) const {
       auto data = std::string();
-      shuttle.Shuttle(name, data);
-      auto stream = Parsers::ReaderParserStream(IO::BufferReader(
-        IO::BufferFromString<IO::SharedBuffer>(data)));
-      auto jsonValue = JsonValue();
-      if(!JsonParser().Read(stream, jsonValue) ||
-          boost::get<JsonObject>(&jsonValue) == nullptr) {
-        BOOST_THROW_EXCEPTION(SerializationException("Invalid JSON object."));
+      receiver.receive(name, data);
+      auto stream = ReaderParserStream(BufferReader(from<SharedBuffer>(data)));
+      auto json_value = JsonValue();
+      if(!json_p.read(stream, json_value) ||
+          !boost::get<JsonObject>(&json_value)) {
+        boost::throw_with_location(
+          SerializationException("Invalid JSON object."));
       }
-      value = boost::get<JsonObject>(jsonValue);
+      value = boost::get<JsonObject>(json_value);
     }
   };
 }

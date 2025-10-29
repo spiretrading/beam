@@ -1,41 +1,20 @@
-#ifndef BEAM_INVALIDHTTPRESPONSEEXCEPTION_HPP
-#define BEAM_INVALIDHTTPRESPONSEEXCEPTION_HPP
+#ifndef BEAM_INVALID_HTTP_RESPONSE_EXCEPTION_HPP
+#define BEAM_INVALID_HTTP_RESPONSE_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class InvalidHttpResponseException
-      \brief Signals an invalid HTTP response.
-   */
-  class InvalidHttpResponseException : public std::runtime_error,
-      public boost::exception {
+  /** Signals an invalid HTTP response. */
+  class InvalidHttpResponseException : public std::runtime_error {
     public:
+      using std::runtime_error::runtime_error;
 
-      //! Constructs an InvalidHttpResponseException.
+      /** Constructs an InvalidHttpResponseException. */
       InvalidHttpResponseException();
-
-      //! Constructs an InvalidHttpResponseException.
-      /*!
-        \param message A message describing the error.
-      */
-      InvalidHttpResponseException(const std::string& message);
-
-      virtual ~InvalidHttpResponseException() throw();
   };
 
   inline InvalidHttpResponseException::InvalidHttpResponseException()
-      : InvalidHttpResponseException{"Invalid HTTP Response."} {}
-
-  inline InvalidHttpResponseException::InvalidHttpResponseException(
-      const std::string& message)
-      : std::runtime_error{message} {}
-
-  inline InvalidHttpResponseException::
-      ~InvalidHttpResponseException() throw() {}
-}
+    : InvalidHttpResponseException("Invalid HTTP Response.") {}
 }
 
 #endif

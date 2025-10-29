@@ -1,57 +1,49 @@
-#ifndef BEAM_WEBSOCKETWRITER_HPP
-#define BEAM_WEBSOCKETWRITER_HPP
-#include <boost/noncopyable.hpp>
-#include <Beam/IO/SharedBuffer.hpp>
+#ifndef BEAM_WEB_SOCKET_WRITER_HPP
+#define BEAM_WEB_SOCKET_WRITER_HPP
+#include <memory>
 #include "Beam/IO/Writer.hpp"
-#include "Beam/WebServices/WebServices.hpp"
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/WebServices/WebSocket.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class WebSocketWriter
-      \brief Provides the Writer interface to a WebSocket.
+  /**
+   * Provides the Writer interface to a WebSocket.
+   * @tparam T The type of WebSocket to adapt.
    */
-  template<typename WebSocketType>
-  class WebSocketWriter : private boost::noncopyable {
+  template<typename T>
+  class WebSocketWriter;
+
+  template<typename C> requires IsChannel<dereference_t<C>>
+  class WebSocketWriter<WebSocket<C>> {
     public:
 
-      //! The type of WebSocket to write to.
-      using WebSocket = WebSocketType;
-      using Buffer = IO::SharedBuffer;
+      /** The type of WebSocket to write to. */
+      using WebSocket = Beam::WebSocket<C>;
 
-      void Write(const void* data, std::size_t size);
-
-      void Write(const Buffer& data);
+      template<IsConstBuffer B>
+      void write(const B& data);
 
     private:
-      template<typename> friend class WebSocketChannel;
+      template<typename S> requires IsChannel<dereference_t<S>>
+      friend class WebSocketChannel;
       std::shared_ptr<WebSocket> m_socket;
 
-      WebSocketWriter(const std::shared_ptr<WebSocket>& socket);
+      WebSocketWriter(std::shared_ptr<WebSocket> socket);
+      WebSocketWriter(const WebSocketWriter&) = delete;
+      WebSocketWriter& operator =(const WebSocketWriter&) = delete;
   };
 
-  template<typename WebSocketType>
-  void WebSocketWriter<WebSocketType>::Write(const void* data,
-      std::size_t size) {
-    m_socket->Write(data, size);
+  template<typename C> requires IsChannel<dereference_t<C>>
+  template<IsConstBuffer B>
+  void WebSocketWriter<WebSocket<C>>::write(const B& data) {
+    m_socket->write(data);
   }
 
-  template<typename WebSocketType>
-  void WebSocketWriter<WebSocketType>::Write(const Buffer& data) {
-    Write(data.GetData(), data.GetSize());
-  }
-
-  template<typename WebSocketType>
-  WebSocketWriter<WebSocketType>::WebSocketWriter(
-      const std::shared_ptr<WebSocket>& socket)
-      : m_socket{socket} {}
-}
-
-  template<typename WebSocketType>
-  struct ImplementsConcept<WebServices::WebSocketWriter<WebSocketType>,
-      IO::Writer<typename WebServices::WebSocketWriter<WebSocketType>::Buffer>>
-      : std::true_type {};
+  template<typename C> requires IsChannel<dereference_t<C>>
+  WebSocketWriter<WebSocket<C>>::WebSocketWriter(
+    std::shared_ptr<WebSocket> socket)
+    : m_socket(std::move(socket)) {}
 }
 
 #endif

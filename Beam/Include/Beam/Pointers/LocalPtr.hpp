@@ -4,15 +4,13 @@
 #include <utility>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/Initializer.hpp"
-#include "Beam/Pointers/NativePtr.hpp"
-#include "Beam/Pointers/Pointers.hpp"
-#include "Beam/Utilities/TypeList.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
   /**
    * Wraps a local value as if it were a pointer.
-   * @param <T> The type to wrap.
+   * @tparam T The type to wrap.
    */
   template<typename T>
   class LocalPtr {
@@ -27,17 +25,22 @@ namespace Beam {
        */
       template<typename... Args, typename =
         disable_copy_constructor_t<LocalPtr, Args...>>
-      LocalPtr(Args&&... args);
+      LocalPtr(Args&&... args) noexcept(
+        std::is_nothrow_constructible_v<Type, Args&&...>);
 
       /**
        * Constructs a LocalPtr.
        * @param initializer Stores the parameters used to initialize the value.
        */
       template<typename... Args>
-      LocalPtr(Initializer<Args...>&& initializer);
+      LocalPtr(Initializer<Args...>&& initializer) noexcept(
+        std::is_nothrow_constructible_v<Type, Args...>);
 
       /** Tests if this LocalPtr is initialized. */
       explicit operator bool() const;
+
+      /** Returns the value. */
+      Type* get() const;
 
       /** Returns a reference to the value. */
       Type& operator *() const;
@@ -45,15 +48,8 @@ namespace Beam {
       /** Returns a pointer to the value. */
       Type* operator ->() const;
 
-      /** Returns the value. */
-      Type& Get() const;
-
     private:
       mutable Type m_value;
-
-      template<typename Tuple, std::size_t... Sequence>
-      LocalPtr(std::integer_sequence<std::size_t, Sequence...> sequence,
-        Tuple&& args);
   };
 
   /**
@@ -62,13 +58,21 @@ namespace Beam {
    * scenes.
    */
   template<typename T>
-  struct OptionalLocalPtr {
-    using type = std::conditional_t<IsDereferenceable<T>::value,
-      GetOptionalNativePtr<T>, LocalPtr<T>>;
+  struct local_ptr {
+    using type = std::conditional_t<IsDereferenceable<T>, T, LocalPtr<T>>;
   };
 
   template<typename T>
-  using GetOptionalLocalPtr = typename OptionalLocalPtr<T>::type;
+  using local_ptr_t = typename local_ptr<T>::type;
+
+  /**
+   * Checks if a type can be used to construct another type or initialize a
+   * pointer or indirect value of some type.
+   * @tparam T The type to test.
+   * @tparam U The type to initialize from T.
+   */
+  template<typename T, typename U>
+  concept Initializes = std::constructible_from<local_ptr_t<U>, T&&>;
 
   /**
    * Helper function for capturing references inside lambda expressions.
@@ -80,35 +84,41 @@ namespace Beam {
    *         LocalPtr if <i>value</i> is an rvalue reference.
    */
   template<typename T>
-  auto CapturePtr(std::remove_reference_t<T>& value) {
+  auto capture_ptr(std::remove_cvref_t<T>& value) {
     if constexpr(std::is_lvalue_reference_v<T>) {
       return &value;
     } else {
-      return LocalPtr<std::remove_reference_t<T>>(static_cast<T&&>(value));
+      return LocalPtr<std::remove_cvref_t<T>>(static_cast<T&&>(value));
     }
   }
 
   template<typename T>
-  auto CapturePtr(std::remove_reference_t<T>&& value) {
+  auto capture_ptr(std::remove_cvref_t<T>&& value) {
     static_assert(!std::is_lvalue_reference_v<T>,
       "Can not forward an rvalue as an lvalue.");
-    return LocalPtr<std::remove_reference_t<T>>(static_cast<T&&>(value));
+    return LocalPtr<std::remove_cvref_t<T>>(static_cast<T&&>(value));
   }
 
   template<typename T>
   template<typename... Args, typename>
-  LocalPtr<T>::LocalPtr(Args&&... args)
+  LocalPtr<T>::LocalPtr(Args&&... args) noexcept(
+    std::is_nothrow_constructible_v<Type, Args&&...>)
     : m_value(std::forward<Args>(args)...) {}
 
   template<typename T>
   template<typename... Args>
-  LocalPtr<T>::LocalPtr(Initializer<Args...>&& args)
-    : LocalPtr(std::make_integer_sequence<std::size_t, sizeof...(Args)>(),
-        std::move(args.m_args)) {}
+  LocalPtr<T>::LocalPtr(Initializer<Args...>&& args) noexcept(
+    std::is_nothrow_constructible_v<Type, Args...>)
+    : m_value(make<Type>(std::move(args))) {}
 
   template<typename T>
   LocalPtr<T>::operator bool() const {
     return true;
+  }
+
+  template<typename T>
+  T* LocalPtr<T>::get() const {
+    return &m_value;
   }
 
   template<typename T>
@@ -120,17 +130,6 @@ namespace Beam {
   T* LocalPtr<T>::operator ->() const {
     return &m_value;
   }
-
-  template<typename T>
-  T& LocalPtr<T>::Get() const {
-    return m_value;
-  }
-
-  template<typename T>
-  template<typename Tuple, std::size_t... Sequence>
-  LocalPtr<T>::LocalPtr(
-    std::integer_sequence<std::size_t, Sequence...> sequence, Tuple&& args)
-    : m_value(std::get<Sequence>(std::forward<Tuple>(args))...) {}
 }
 
 #endif

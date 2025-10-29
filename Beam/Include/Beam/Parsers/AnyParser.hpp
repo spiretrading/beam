@@ -1,33 +1,35 @@
 #ifndef BEAM_ANY_PARSER_HPP
 #define BEAM_ANY_PARSER_HPP
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Matches any character. */
   class AnyParser {
     public:
       using Result = char;
 
-      template<typename Stream>
-      bool Read(Stream& source, char& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, char& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
-  template<typename Stream>
-  bool AnyParser::Read(Stream& source, char& value) const {
-    if(!source.Read()) {
+  /** An instance of an AnyParser. */
+  inline const auto any_p = AnyParser();
+
+  template<IsParserStream S>
+  bool AnyParser::read(S& source, char& value) const {
+    if(!source.read()) {
       return false;
     }
-    value = source.GetChar();
+    value = source.peek();
     return true;
   }
 
-  template<typename Stream>
-  bool AnyParser::Read(Stream& source) const {
-    return source.Read();
+  template<IsParserStream S>
+  bool AnyParser::read(S& source) const {
+    return source.read();
   }
 }
 

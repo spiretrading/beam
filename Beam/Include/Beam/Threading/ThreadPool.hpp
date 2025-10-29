@@ -1,5 +1,6 @@
 #ifndef BEAM_THREAD_POOL_HPP
 #define BEAM_THREAD_POOL_HPP
+#include <concepts>
 #include <deque>
 #include <iostream>
 #include <type_traits>
@@ -7,13 +8,12 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/Threading.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /** Implements a thread pool for running Tasks. */
   class ThreadPool : public Singleton<ThreadPool> {
@@ -25,64 +25,68 @@ namespace Beam::Threading {
        * @param function The function execute.
        * @param result The result of the <i>function</i>.
        */
-      template<typename F, typename R>
-      void Queue(F&& function, Routines::Eval<R> result);
+      template<std::invocable<> F, typename R> requires
+        std::convertible_to<std::invoke_result_t<F>, R>
+      void queue(F&& function, Eval<R> result);
 
     private:
       friend class Singleton<ThreadPool>;
       struct TaskThread;
       struct BaseTask {
         virtual ~BaseTask() = default;
-        virtual void Run() = 0;
+
+        virtual void run() = 0;
       };
       template<typename F, typename R>
       struct Invoker {
-        void operator ()(F& function, Routines::Eval<R> result) const;
+        void operator ()(F& function, Eval<R> result) const;
       };
       template<typename F>
       struct Invoker<F, void> {
-        void operator ()(F& function, Routines::Eval<void> result) const;
+        void operator ()(F& function, Eval<void> result) const;
       };
       template<typename F, typename R>
       struct Task : BaseTask {
         F m_function;
-        Routines::Eval<R> m_result;
+        Eval<R> m_result;
 
         template<typename U>
-        Task(U&& function, Routines::Eval<R> result);
-        void Run() override;
+        Task(U&& function, Eval<R> result);
+
+        void run() override;
       };
       struct TaskThread {
         boost::mutex m_mutex;
-        ThreadPool* m_threadPool;
+        ThreadPool* m_thread_pool;
         BaseTask* m_task;
         bool m_available;
         bool m_stopped;
         boost::thread m_thread;
-        boost::condition_variable m_taskAvailableCondition;
+        boost::condition_variable m_task_available_condition;
 
-        TaskThread(ThreadPool& threadPool);
-        bool SetTask(BaseTask& task);
-        void Run();
-        void Stop();
+        TaskThread(ThreadPool& thread_pool);
+
+        bool set_task(BaseTask& task);
+        void run();
+        void stop();
       };
       static constexpr auto LOWER_BOUND_WAIT_TIME = 30;
       static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
       boost::mutex m_mutex;
-      std::size_t m_maxThreadCount;
-      bool m_isWaitingForCompletion;
-      std::size_t m_runningThreads;
-      std::size_t m_activeThreads;
+      std::size_t m_max_thread_count;
+      bool m_is_waiting_for_completion;
+      std::size_t m_running_threads;
+      std::size_t m_active_threads;
       std::deque<TaskThread*> m_threads;
       std::deque<BaseTask*> m_tasks;
-      boost::condition_variable m_threadsFinishedCondition;
+      boost::condition_variable m_threads_finished_condition;
 
       ThreadPool();
       ThreadPool(const ThreadPool&) = delete;
       ThreadPool& operator =(const ThreadPool&) = delete;
-      void QueueTask(BaseTask& task);
-      bool AddThread(TaskThread& taskThread);
-      void RemoveThread(TaskThread& taskThread);
+      void queue(BaseTask& task);
+      bool add(TaskThread& task_thread);
+      void remove(TaskThread& task_thread);
   };
 
   /**
@@ -90,83 +94,88 @@ namespace Beam::Threading {
    * @param f The blocking function to invoke.
    * @return The result of invoking <i>f</i>.
    */
-  template<typename F>
-  auto Park(F&& f) {
-    using Result = std::remove_reference_t<std::invoke_result_t<F>>;
-    auto result = Routines::Async<Result>();
-    ThreadPool::GetInstance().Queue(std::forward<F>(f), result.GetEval());
-    return std::move(result.Get());
+  template<std::invocable<> F>
+  auto park(F&& f) {
+    using Result = std::remove_cvref_t<std::invoke_result_t<F>>;
+    auto result = Async<Result>();
+    ThreadPool::get().queue(std::forward<F>(f), result.get_eval());
+    if constexpr(std::same_as<Result, void>) {
+      result.get();
+      return;
+    } else {
+      return std::move(result.get());
+    }
   }
 
   template<typename F, typename R>
-  void ThreadPool::Invoker<F, R>::operator ()(F& function,
-      Routines::Eval<R> result) const {
+  void ThreadPool::Invoker<F, R>::operator ()(
+      F& function, Eval<R> result) const {
     try {
-      result.SetResult(function());
+      result.set(function());
     } catch(const std::exception&) {
-      result.SetException(std::current_exception());
+      result.set_exception(std::current_exception());
     }
   }
 
   template<typename F>
-  void ThreadPool::Invoker<F, void>::operator ()(F& function,
-      Routines::Eval<void> result) const {
+  void ThreadPool::Invoker<F, void>::operator ()(
+      F& function, Eval<void> result) const {
     try {
       function();
-      result.SetResult();
+      result.set();
     } catch(const std::exception&) {
-      result.SetException(std::current_exception());
+      result.set_exception(std::current_exception());
     }
   }
 
   template<typename F, typename R>
   template<typename U>
-  ThreadPool::Task<F, R>::Task(U&& function, Routines::Eval<R> result)
+  ThreadPool::Task<F, R>::Task(U&& function, Eval<R> result)
     : m_function(std::forward<U>(function)),
       m_result(std::move(result)) {}
 
   template<typename F, typename R>
-  void ThreadPool::Task<F, R>::Run() {
+  void ThreadPool::Task<F, R>::run() {
     Invoker<F, R>()(m_function, std::move(m_result));
   }
 
-  inline ThreadPool::TaskThread::TaskThread(ThreadPool& threadPool)
-      : m_threadPool(&threadPool),
+  inline ThreadPool::TaskThread::TaskThread(ThreadPool& thread_pool)
+      : m_thread_pool(&thread_pool),
         m_task(nullptr),
         m_available(true),
         m_stopped(false) {
     m_thread = boost::thread([this] {
-      Run();
+      run();
     });
   }
 
-  inline bool ThreadPool::TaskThread::SetTask(BaseTask& task) {
+  inline bool ThreadPool::TaskThread::set_task(BaseTask& task) {
     auto lock = boost::lock_guard(m_mutex);
-    assert(m_task == nullptr);
+    assert(!m_task);
     if(!m_available) {
       return false;
     }
     m_task = &task;
-    m_taskAvailableCondition.notify_one();
+    m_task_available_condition.notify_one();
     return true;
   }
 
-  inline void ThreadPool::TaskThread::Run() {
+  inline void ThreadPool::TaskThread::run() {
     while(true) {
       {
         auto lock = boost::unique_lock(m_mutex);
-        if(m_task == nullptr) {
-          auto waitTime = boost::posix_time::seconds(LOWER_BOUND_WAIT_TIME) +
-            boost::posix_time::seconds(rand() % (UPPER_BOUND_WAIT_TIME -
-            LOWER_BOUND_WAIT_TIME));
+        if(!m_task) {
+          auto wait_time = boost::posix_time::seconds(LOWER_BOUND_WAIT_TIME) +
+            boost::posix_time::seconds(rand() %
+              (UPPER_BOUND_WAIT_TIME - LOWER_BOUND_WAIT_TIME));
           if(!m_available ||
-              (!m_taskAvailableCondition.timed_wait(lock, waitTime) &&
-              m_task == nullptr) || !m_available) {
+              (!m_task_available_condition.timed_wait(lock, wait_time) &&
+                !m_task) || !m_available) {
             m_available = false;
             auto stopped = m_stopped;
             lock.unlock();
             if(!stopped) {
-              m_threadPool->RemoveThread(*this);
+              m_thread_pool->remove(*this);
             }
             delete this;
             return;
@@ -174,109 +183,110 @@ namespace Beam::Threading {
         }
         assert(m_available);
         try {
-          m_task->Run();
+          m_task->run();
         } catch(...) {
           std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
         }
         delete m_task;
         m_task = nullptr;
       }
-      if(!m_threadPool->AddThread(*this)) {
+      if(!m_thread_pool->add(*this)) {
         delete this;
         return;
       }
     }
   }
 
-  inline void ThreadPool::TaskThread::Stop() {
+  inline void ThreadPool::TaskThread::stop() {
     auto lock = boost::lock_guard(m_mutex);
     m_available = false;
     m_stopped = true;
     m_task = nullptr;
-    m_taskAvailableCondition.notify_all();
+    m_task_available_condition.notify_all();
   }
 
   inline ThreadPool::~ThreadPool() {
     auto lock = boost::unique_lock(m_mutex);
-    m_isWaitingForCompletion = true;
-    m_maxThreadCount = 0;
+    m_is_waiting_for_completion = true;
+    m_max_thread_count = 0;
     while(!m_threads.empty()) {
-      auto taskThread = m_threads.back();
-      taskThread->Stop();
+      auto task_thread = m_threads.back();
+      task_thread->stop();
       m_threads.pop_back();
     }
-    if(m_activeThreads != 0) {
-      m_threadsFinishedCondition.wait(lock);
+    if(m_active_threads != 0) {
+      m_threads_finished_condition.wait(lock);
     }
   }
 
   inline ThreadPool::ThreadPool()
-    : m_maxThreadCount(boost::thread::hardware_concurrency()),
-      m_runningThreads(0),
-      m_activeThreads(0),
-      m_isWaitingForCompletion(false) {}
+    : m_max_thread_count(boost::thread::hardware_concurrency()),
+      m_running_threads(0),
+      m_active_threads(0),
+      m_is_waiting_for_completion(false) {}
 
-  template<typename F, typename R>
-  void ThreadPool::Queue(F&& function, Routines::Eval<R> result) {
+  template<std::invocable<> F, typename R> requires
+    std::convertible_to<std::invoke_result_t<F>, R>
+  void ThreadPool::queue(F&& function, Eval<R> result) {
     auto task = new Task<F, R>(std::forward<F>(function), std::move(result));
-    QueueTask(*task);
+    queue(*task);
   }
 
-  inline void ThreadPool::QueueTask(BaseTask& task) {
+  inline void ThreadPool::queue(BaseTask& task) {
     auto lock = boost::lock_guard(m_mutex);
-    auto threadFound = false;
-    while(!threadFound) {
-      if(m_threads.empty() && m_runningThreads < m_maxThreadCount) {
-        auto taskThread = new TaskThread(*this);
-        taskThread->SetTask(task);
-        ++m_activeThreads;
-        ++m_runningThreads;
+    auto is_thread_found = false;
+    while(!is_thread_found) {
+      if(m_threads.empty() && m_running_threads < m_max_thread_count) {
+        auto task_thread = new TaskThread(*this);
+        task_thread->set_task(task);
+        ++m_active_threads;
+        ++m_running_threads;
         return;
       } else if(!m_tasks.empty() || m_threads.empty()) {
         m_tasks.push_back(&task);
         return;
       }
-      auto taskThread = m_threads.front();
+      auto task_thread = m_threads.front();
       m_threads.pop_front();
-      threadFound = taskThread->SetTask(task);
-      if(threadFound) {
-        ++m_activeThreads;
+      is_thread_found = task_thread->set_task(task);
+      if(is_thread_found) {
+        ++m_active_threads;
       }
     }
   }
 
-  inline bool ThreadPool::AddThread(TaskThread& taskThread) {
+  inline bool ThreadPool::add(TaskThread& task_thread) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_maxThreadCount == 0) {
-      --m_activeThreads;
-      --m_runningThreads;
-      if(m_activeThreads == 0) {
-        m_threadsFinishedCondition.notify_all();
+    if(m_max_thread_count == 0) {
+      --m_active_threads;
+      --m_running_threads;
+      if(m_active_threads == 0) {
+        m_threads_finished_condition.notify_all();
       }
       return false;
     }
     if(m_tasks.empty()) {
-      m_threads.push_back(&taskThread);
-      --m_activeThreads;
-      if(m_isWaitingForCompletion && m_activeThreads == 0) {
-        m_threadsFinishedCondition.notify_all();
+      m_threads.push_back(&task_thread);
+      --m_active_threads;
+      if(m_is_waiting_for_completion && m_active_threads == 0) {
+        m_threads_finished_condition.notify_all();
       }
       return true;
     }
     auto task = m_tasks.front();
-    if(!taskThread.SetTask(*task)) {
-      --m_activeThreads;
-      --m_runningThreads;
+    if(!task_thread.set_task(*task)) {
+      --m_active_threads;
+      --m_running_threads;
       return false;
     }
     m_tasks.pop_front();
     return true;
   }
 
-  inline void ThreadPool::RemoveThread(TaskThread& taskThread) {
+  inline void ThreadPool::remove(TaskThread& task_thread) {
     auto lock = boost::lock_guard(m_mutex);
-    --m_runningThreads;
-    RemoveFirst(m_threads, &taskThread);
+    --m_running_threads;
+    remove_first(m_threads, &task_thread);
   }
 }
 

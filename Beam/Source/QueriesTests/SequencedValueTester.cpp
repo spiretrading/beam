@@ -1,30 +1,31 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/SequencedValue.hpp"
+#include "Beam/QueriesTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 
 TEST_SUITE("SequencedValue") {
   TEST_CASE("default_constructor") {
-    auto intValue = SequencedValue<int>();
-    REQUIRE(intValue.GetSequence() == Sequence());
-    REQUIRE(intValue.GetValue() == 0);
-    auto stringValue = SequencedValue<std::string>();
-    REQUIRE(stringValue.GetSequence() == Sequence());
-    REQUIRE(stringValue.GetValue() == "");
+    auto int_value = SequencedValue<int>();
+    REQUIRE(int_value.get_sequence() == Sequence());
+    REQUIRE(int_value.get_value() == 0);
+    auto string_value = SequencedValue<std::string>();
+    REQUIRE(string_value.get_sequence() == Sequence());
+    REQUIRE(string_value.get_value() == "");
   }
 
   TEST_CASE("value_and_sequence_constructor") {
     auto value = SequencedValue(std::string("hello world"), Sequence(1));
-    REQUIRE(value.GetValue() == "hello world");
-    REQUIRE(value.GetSequence() == Sequence(1));
+    REQUIRE(value.get_value() == "hello world");
+    REQUIRE(value.get_sequence() == Sequence(1));
   }
 
   TEST_CASE("dereference") {
-    auto intValue = SequencedValue(123, Sequence(1));
-    REQUIRE(*intValue == 123);
-    auto stringValue = SequencedValue(std::string("hello world"), Sequence(1));
-    REQUIRE(*stringValue == "hello world");
+    auto int_value = SequencedValue(123, Sequence(1));
+    REQUIRE(*int_value == 123);
+    auto string_value = SequencedValue(std::string("hello world"), Sequence(1));
+    REQUIRE(*string_value == "hello world");
   }
 
   TEST_CASE("equals_operator") {
@@ -49,9 +50,11 @@ TEST_SUITE("SequencedValue") {
       SequencedValue(std::string("hello world"), Sequence(2)));
   }
 
-  TEST_CASE("make_sequenced_value") {
-    auto value = SequencedValue(321, Sequence(1));
-    REQUIRE(value.GetValue() == 321);
-    REQUIRE(value.GetSequence() == Sequence(1));
+  TEST_CASE("stream") {
+    auto value = SequencedValue(std::string("hello world"), Sequence(1));
+    auto ss = std::stringstream();
+    ss << value;
+    REQUIRE(ss.str() == "(hello world 1)");
+    test_round_trip_shuttle(value);
   }
 }

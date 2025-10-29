@@ -12,82 +12,78 @@ namespace Beam {
 
   /**
    * Performs asyncronous writes to an underlying data store.
-   * @param <D> The underlying data store to commit the data to.
+   * @tparam D The underlying data store to commit the data to.
    */
   template<typename D>
-  class AsyncDataStore {
+  class AsyncProfileDataStore {
     public:
 
       /** The type of DataStore to buffer. */
-      using BaseDataStore = GetTryDereferenceType<D>;
+      using BaseDataStore = dereference_t<D>;
 
       /**
-       * Constructs an AsyncDataStore.
-       * @param dataStore Initializes the data store to commit data to.
+       * Constructs an AsyncProfileDataStore.
+       * @param data_store Initializes the data store to commit data to.
        */
-      template<typename DF>
-      AsyncDataStore(DF&& dataStore);
+      template<Initializes<D> DF>
+      explicit AsyncProfileDataStore(DF&& data_store);
 
-      ~AsyncDataStore();
+      ~AsyncProfileDataStore();
 
-      void Clear();
-
-      std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
-
-      void Store(const SequencedIndexedEntry& entry);
-
-      void Store(const std::vector<SequencedIndexedEntry>& entries);
-
-      void Close();
+      void clear();
+      std::vector<SequencedEntry> load_entries(const EntryQuery& query);
+      void store(const SequencedIndexedEntry& entry);
+      void store(const std::vector<SequencedIndexedEntry>& entries);
+      void close();
 
     private:
-      GetOptionalLocalPtr<D> m_dataStore;
-      Queries::AsyncDataStore<DataStoreQueryWrapper<BaseDataStore*>,
-        Queries::EvaluatorTranslator<Queries::QueryTypes>> m_asyncDataStore;
-      IO::OpenState m_openState;
+      local_ptr_t<D> m_data_store;
+      AsyncDataStore<DataStoreQueryWrapper<BaseDataStore*>,
+        EvaluatorTranslator<QueryTypes>> m_async_data_store;
+      OpenState m_open_state;
 
-      AsyncDataStore(const AsyncDataStore&) = delete;
-      AsyncDataStore& operator =(const AsyncDataStore&) = delete;
+      AsyncProfileDataStore(const AsyncProfileDataStore&) = delete;
+      AsyncProfileDataStore& operator =(const AsyncProfileDataStore&) = delete;
   };
 
-  template<typename DF>
-  AsyncDataStore(DF&&) -> AsyncDataStore<std::remove_reference_t<DF>>;
+  template<typename D>
+  AsyncProfileDataStore(D&&) -> AsyncProfileDataStore<std::remove_cvref_t<D>>;
 
   template<typename D>
-  template<typename DF>
-  AsyncDataStore<D>::AsyncDataStore(DF&& dataStore)
-    : m_dataStore(std::forward<DF>(dataStore)),
-      m_asyncDataStore(&*m_dataStore) {}
+  template<Initializes<D> DF>
+  AsyncProfileDataStore<D>::AsyncProfileDataStore(DF&& data_store)
+    : m_data_store(std::forward<DF>(data_store)),
+      m_async_data_store(&*m_data_store) {}
 
   template<typename D>
-  AsyncDataStore<D>::~AsyncDataStore() {
-    Close();
+  AsyncProfileDataStore<D>::~AsyncProfileDataStore() {
+    close();
   }
 
   template<typename D>
-  void AsyncDataStore<D>::Clear() {
-    m_dataStore->Clear();
+  void AsyncProfileDataStore<D>::clear() {
+    m_data_store->clear();
   }
 
   template<typename D>
-  std::vector<SequencedEntry> AsyncDataStore<D>::LoadEntries(
+  std::vector<SequencedEntry> AsyncProfileDataStore<D>::load_entries(
       const EntryQuery& query) {
-    return m_asyncDataStore.Load(query);
+    return m_async_data_store.load(query);
   }
 
   template<typename D>
-  void AsyncDataStore<D>::Store(const SequencedIndexedEntry& entry) {
-    m_asyncDataStore.Store(entry);
+  void AsyncProfileDataStore<D>::store(const SequencedIndexedEntry& entry) {
+    m_async_data_store.store(entry);
   }
 
   template<typename D>
-  void AsyncDataStore<D>::Close() {
-    if(m_openState.SetClosing()) {
+  void AsyncProfileDataStore<D>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_asyncDataStore.Close();
-    m_dataStore->Close();
-    m_openState.Close();
+    m_async_data_store.close();
+    m_data_store->close();
+    m_open_state.close();
   }
 }
 

@@ -6,63 +6,51 @@
 #include "Beam/CodecsTests/ReverseDecoder.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::Codecs::Tests;
-using namespace Beam::IO;
+using namespace Beam::Tests;
 
 TEST_SUITE("CodedReader") {
   TEST_CASE("empty") {
-    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
-      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>("")),
-      ReverseDecoder());
+    auto reader =
+      CodedReader(BufferReader(from<SharedBuffer>("")), ReverseDecoder());
     auto buffer = SharedBuffer();
-    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
   }
 
   TEST_CASE("single_byte") {
-    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
-      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>("a")),
-      ReverseDecoder());
+    auto reader =
+      CodedReader(BufferReader(from<SharedBuffer>("a")), ReverseDecoder());
     auto buffer = SharedBuffer();
-    REQUIRE(codedReader.Read(Store(buffer)) == 1);
-    REQUIRE(buffer.GetSize() == 1);
-    REQUIRE(buffer.GetData()[0] == 'a');
-    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+    REQUIRE(reader.read(out(buffer)) == 1);
+    REQUIRE(buffer == "a");
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
   }
 
   TEST_CASE("read") {
     auto message = std::string("hello world");
     auto reverse = std::string("dlrow olleh");
-    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
-      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>(message)),
-      ReverseDecoder());
+    auto reader =
+      CodedReader(BufferReader(from<SharedBuffer>(message)), ReverseDecoder());
     auto buffer = SharedBuffer();
-    REQUIRE(codedReader.Read(Store(buffer)) ==
-      static_cast<int>(reverse.size()));
-    REQUIRE(buffer.GetSize() == static_cast<int>(reverse.size()));
-    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == reverse);
-    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+    REQUIRE(reader.read(out(buffer)) == static_cast<int>(reverse.size()));
+    REQUIRE(buffer == reverse);
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
   }
 
   TEST_CASE("read_some") {
     auto message = std::string("helloworld");
-    auto firstReverse = std::string("dlrow");
-    auto secondReverse = std::string("olleh");
-    auto codedReader = CodedReader<SharedBuffer, BufferReader<SharedBuffer>,
-      ReverseDecoder>(Initialize(BufferFromString<SharedBuffer>(message)),
-      ReverseDecoder());
+    auto first_reverse = std::string("dlrow");
+    auto second_reverse = std::string("olleh");
+    auto reader =
+      CodedReader(BufferReader(from<SharedBuffer>(message)), ReverseDecoder());
     auto buffer = SharedBuffer();
-    REQUIRE(codedReader.Read(Store(buffer),
-      static_cast<int>(firstReverse.size())) ==
-      static_cast<int>(firstReverse.size()));
-    REQUIRE(buffer.GetSize() == static_cast<int>(firstReverse.size()));
-    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == firstReverse);
-    buffer.Reset();
-    REQUIRE(codedReader.Read(Store(buffer),
-      static_cast<int>(secondReverse.size())) ==
-      static_cast<int>(secondReverse.size()));
-    REQUIRE(buffer.GetSize() == static_cast<int>(secondReverse.size()));
-    REQUIRE(std::string(buffer.GetData(), buffer.GetSize()) == secondReverse);
-    REQUIRE_THROWS_AS(codedReader.Read(Store(buffer)), EndOfFileException);
+    REQUIRE(reader.read(out(buffer), static_cast<int>(first_reverse.size())) ==
+      static_cast<int>(first_reverse.size()));
+    REQUIRE(buffer == first_reverse);
+    reset(buffer);
+    REQUIRE(reader.read(out(buffer),
+      static_cast<int>(second_reverse.size())) ==
+        static_cast<int>(second_reverse.size()));
+    REQUIRE(buffer == second_reverse);
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
   }
 }

@@ -1,9 +1,8 @@
 #ifndef BEAM_NULL_AUTHENTICATOR_HPP
 #define BEAM_NULL_AUTHENTICATOR_HPP
 #include "Beam/ServiceLocator/Authenticator.hpp"
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /**
    * Does not perform any authentication of a ServiceProtocolClient's
@@ -11,12 +10,13 @@ namespace Beam::ServiceLocator {
    */
   class NullAuthenticator {
     public:
-      template<typename ServiceProtocolClient>
-      void operator ()(ServiceProtocolClient& client) const;
+      template<typename M, typename T, typename P, typename S, bool V>
+      void operator ()(ServiceProtocolClient<M, T, P, S, V>& client) const;
   };
 
-  template<typename ServiceProtocolClient>
-  void NullAuthenticator::operator ()(ServiceProtocolClient& client) const {}
+  template<typename M, typename T, typename P, typename S, bool V>
+  void NullAuthenticator::operator ()(
+    ServiceProtocolClient<M, T, P, S, V>& client) const {}
 }
 
 #endif

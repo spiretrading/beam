@@ -11,7 +11,7 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Sql/SqlConnection.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/UidService/SqlUidDataStore.hpp"
 #include "Beam/UidService/UidServlet.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
@@ -19,14 +19,6 @@
 #include "Version.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::IO;
-using namespace Beam::Network;
-using namespace Beam::Serialization;
-using namespace Beam::ServiceLocator;
-using namespace Beam::Services;
-using namespace Beam::Threading;
-using namespace Beam::UidService;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace Viper;
@@ -35,33 +27,33 @@ namespace {
   using UidServletContainer = ServiceProtocolServletContainer<
     MetaAuthenticationServletAdapter<
       MetaUidServlet<SqlUidDataStore<SqlConnection<MySql::Connection>>>,
-      ApplicationServiceLocatorClient::Client*>, TcpServerSocket,
+      ApplicationServiceLocatorClient*>, TcpServerSocket,
     BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<LiveTimer>>;
 }
 
 int main(int argc, const char** argv) {
   try {
-    auto config = ParseCommandLine(argc, argv, "1.0-r" UID_SERVER_VERSION
-      "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto mySqlConfig = TryOrNest([&] {
-      return MySqlConfig::Parse(GetNode(config, "data_store"));
+    auto config = parse_command_line(argc, argv, "1.0-r" UID_SERVER_VERSION
+      "\nCopyright (C) 2026 Spire Trading Inc.");
+    auto mysql_config = try_or_nest([&] {
+      return MySqlConfig::parse(get_node(config, "data_store"));
     }, std::runtime_error("Error parsing section 'data_store'."));
-    auto serviceConfig = TryOrNest([&] {
-      return ServiceConfiguration::Parse(GetNode(config, "server"),
-        UidService::SERVICE_NAME);
+    auto service_config = try_or_nest([&] {
+      return ServiceConfiguration::parse(
+        get_node(config, "server"), UID_SERVICE_NAME);
     }, std::runtime_error("Error parsing section 'server'."));
-    auto serviceLocatorClient = MakeApplicationServiceLocatorClient(
-      GetNode(config, "service_locator"));
-    auto server = UidServletContainer(Initialize(serviceLocatorClient.Get(),
-      Initialize(MakeSqlConnection(MySql::Connection(
-        mySqlConfig.m_address.GetHost(), mySqlConfig.m_address.GetPort(),
-        mySqlConfig.m_username, mySqlConfig.m_password,
-        mySqlConfig.m_schema)))), Initialize(serviceConfig.m_interface),
+    auto service_locator_client = ApplicationServiceLocatorClient(
+      ServiceLocatorClientConfig::parse(get_node(config, "service_locator")));
+    auto server = UidServletContainer(init(&service_locator_client,
+      init(make_sql_connection(MySql::Connection(
+        mysql_config.m_address.get_host(), mysql_config.m_address.get_port(),
+        mysql_config.m_username, mysql_config.m_password,
+        mysql_config.m_schema)))), init(service_config.m_interface),
       std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
-    Register(*serviceLocatorClient, serviceConfig);
-    WaitForKillEvent();
+    add(service_locator_client, service_config);
+    wait_for_kill_event();
   } catch(...) {
-    ReportCurrentException();
+    report_current_exception();
     return -1;
   }
   return 0;

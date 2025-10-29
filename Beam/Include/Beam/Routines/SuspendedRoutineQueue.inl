@@ -1,10 +1,10 @@
 #ifndef BEAM_SUSPENDED_ROUTINE_QUEUE_INL
 #define BEAM_SUSPENDED_ROUTINE_QUEUE_INL
 #include <type_traits>
-#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Routines/SuspendedRoutineQueue.hpp"
 
-namespace Beam::Routines {
+namespace Beam {
   template<typename T1, typename T2>
   struct Releaser {
     T1 m_head;
@@ -18,48 +18,48 @@ namespace Beam::Routines {
 
   template<typename R1, typename R2>
   Releaser(R1&&, R2&&) ->
-    Releaser<std::remove_reference_t<R1>, std::remove_reference_t<R2>>;
+    Releaser<std::remove_cvref_t<R1>, std::remove_cvref_t<R2>>;
 
   template<typename Head>
-  auto ReverseRelease(Head& head) {
-    return Threading::Release(head);
+  auto reverse_release(Head& head) {
+    return release(head);
   }
 
   template<typename Head, typename... Tail>
-  auto ReverseRelease(Head& head, Tail&... tail) {
-    return Releaser(ReverseRelease(tail...), ReverseRelease(head));
+  auto reverse_release(Head& head, Tail&... tail) {
+    return Releaser(reverse_release(tail...), reverse_release(head));
   }
 
   template<typename... Lock>
-  void Suspend(Out<SuspendedRoutineQueue> suspendedRoutines, Lock&... lock) {
-    auto currentRoutine = SuspendedRoutineNode();
-    currentRoutine.m_routine->PendingSuspend();
-    suspendedRoutines->push_back(currentRoutine);
-    auto releases = ReverseRelease(lock...);
-    Suspend();
+  void suspend(Out<SuspendedRoutineQueue> routines, Lock&... lock) {
+    auto current = SuspendedRoutineNode();
+    current.m_routine->pending_suspend();
+    routines->push_back(current);
+    auto releases = reverse_release(lock...);
+    suspend();
   }
 
   template<typename... Lock>
-  void ResumeFront(Out<SuspendedRoutineQueue> suspendedRoutines) {
-    if(suspendedRoutines->empty()) {
+  void resume_front(Out<SuspendedRoutineQueue> routines) {
+    if(routines->empty()) {
       return;
     }
-    auto routine = suspendedRoutines->front().m_routine;
-    suspendedRoutines->pop_front();
-    Routines::Resume(routine);
+    auto routine = routines->front().m_routine;
+    routines->pop_front();
+    resume(routine);
   }
 
   template<typename... Lock>
-  void Resume(Out<SuspendedRoutineQueue> suspendedRoutines) {
-    auto resumedRoutines = SuspendedRoutineQueue();
-    resumedRoutines.swap(*suspendedRoutines);
-    for(auto& routine : resumedRoutines) {
-      Resume(routine.m_routine);
+  void resume(Out<SuspendedRoutineQueue> routines) {
+    auto resumed_routines = SuspendedRoutineQueue();
+    resumed_routines.swap(*routines);
+    for(auto& routine : resumed_routines) {
+      resume(routine.m_routine);
     }
   }
 
-  inline SuspendedRoutineNode::SuspendedRoutineNode()
-    : m_routine(&GetCurrentRoutine()) {}
+  inline SuspendedRoutineNode::SuspendedRoutineNode() noexcept
+    : m_routine(&get_current_routine()) {}
 }
 
 #endif

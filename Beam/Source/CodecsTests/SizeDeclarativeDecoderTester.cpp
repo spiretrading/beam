@@ -3,53 +3,37 @@
 #include "Beam/CodecsTests/ReverseDecoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
+using namespace boost;
+using namespace boost::endian;
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::Codecs::Tests;
-using namespace Beam::IO;
+using namespace Beam::Tests;
 
 TEST_SUITE("SizeDeclarativeDecoder") {
-  TEST_CASE("empty_decode_from_buffer_to_buffer") {
+  TEST_CASE("empty_decode") {
     auto decoder = SizeDeclarativeDecoder<ReverseDecoder>();
-    auto message = BufferFromString<SharedBuffer>("");
-    auto decodedMessage = BufferFromString<SharedBuffer>("");
-    auto outputBuffer = SharedBuffer();
-    outputBuffer.Append(ToBigEndian<std::uint32_t>(message.GetSize()));
-    outputBuffer.Append(message);
-    auto decodedBuffer = SharedBuffer();
-    auto decodeSize = decoder.Decode(outputBuffer, Store(decodedBuffer));
-    auto expectedDecodeSize = decodedMessage.GetSize();
-    REQUIRE(decodeSize == expectedDecodeSize);
-    REQUIRE(decodedBuffer == decodedMessage);
+    auto message = from<SharedBuffer>("");
+    auto decoded_message = from<SharedBuffer>("");
+    auto output = SharedBuffer();
+    append(output, native_to_big<std::uint32_t>(message.get_size()));
+    append(output, message);
+    auto decoded_buffer = SharedBuffer();
+    auto decode_size = decoder.decode(output, out(decoded_buffer));
+    auto expected_decode_size = decoded_message.get_size();
+    REQUIRE(decode_size == expected_decode_size);
+    REQUIRE(decoded_buffer == decoded_message);
   }
 
-  TEST_CASE("decode_from_buffer_to_buffer") {
+  TEST_CASE("decode") {
     auto decoder = SizeDeclarativeDecoder<ReverseDecoder>();
-    auto message = BufferFromString<SharedBuffer>("hello");
-    auto decodedMessage = BufferFromString<SharedBuffer>("olleh");
-    auto outputBuffer = SharedBuffer();
-    outputBuffer.Append(ToBigEndian<std::uint32_t>(message.GetSize()));
-    outputBuffer.Append(message);
-    auto decodedBuffer = SharedBuffer();
-    auto decodeSize = decoder.Decode(outputBuffer, Store(decodedBuffer));
-    auto expectedDecodeSize = decodedMessage.GetSize();
-    REQUIRE(decodeSize == expectedDecodeSize);
-    REQUIRE(decodedBuffer == decodedMessage);
-  }
-
-  TEST_CASE("TestEmptyDecodeFromBufferToPointer") {
-    auto decoder = SizeDeclarativeDecoder<ReverseDecoder>();
-    auto message = BufferFromString<SharedBuffer>("");
-    auto decodedMessage = BufferFromString<SharedBuffer>("");
-    auto outputBuffer = SharedBuffer();
-    outputBuffer.Append(ToBigEndian<std::uint32_t>(message.GetSize()));
-    outputBuffer.Append(message);
-    auto decodedBuffer = SharedBuffer();
-    decodedBuffer.Reserve(decodedMessage.GetSize());
-    auto decodeSize = decoder.Decode(outputBuffer,
-      decodedMessage.GetMutableData(), decodedMessage.GetSize());
-    auto expectedDecodeSize = decodedMessage.GetSize();
-    REQUIRE(decodeSize == expectedDecodeSize);
-    REQUIRE(decodedBuffer == decodedMessage);
+    auto message = from<SharedBuffer>("hello");
+    auto decoded_message = from<SharedBuffer>("olleh");
+    auto output = SharedBuffer();
+    append(output, native_to_big<std::uint32_t>(message.get_size()));
+    append(output, message);
+    auto decoded_buffer = SharedBuffer();
+    auto decode_size = decoder.decode(output, out(decoded_buffer));
+    auto expected_decode_size = decoded_message.get_size();
+    REQUIRE(decode_size == expected_decode_size);
+    REQUIRE(decoded_buffer == decoded_message);
   }
 }

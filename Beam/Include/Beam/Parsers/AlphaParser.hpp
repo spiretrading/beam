@@ -1,44 +1,46 @@
 #ifndef BEAM_ALPHA_PARSER_HPP
 #define BEAM_ALPHA_PARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Matches an alphabet character. */
   class AlphaParser {
     public:
       using Result = char;
 
-      template<typename Stream>
-      bool Read(Stream& source, char& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, char& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
-  template<typename Stream>
-  bool AlphaParser::Read(Stream& source, char& value) const {
-    if(!source.Read()) {
+  /** An instance of an AlphaParser. */
+  inline const auto alpha_p = AlphaParser();
+
+  template<IsParserStream S>
+  bool AlphaParser::read(S& source, char& value) const {
+    if(!source.read()) {
       return false;
     }
-    value = source.GetChar();
+    value = source.peek();
     if(std::isalpha(value)) {
       return true;
     }
-    source.Undo();
+    source.undo();
     return false;
   }
 
-  template<typename Stream>
-  bool AlphaParser::Read(Stream& source) const {
-    if(!source.Read()) {
+  template<IsParserStream S>
+  bool AlphaParser::read(S& source) const {
+    if(!source.read()) {
       return false;
     }
-    if(std::isalpha(source.GetChar())) {
+    if(std::isalpha(source.peek())) {
       return true;
     }
-    source.Undo();
+    source.undo();
     return false;
   }
 }

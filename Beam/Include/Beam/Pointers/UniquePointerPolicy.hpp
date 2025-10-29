@@ -1,7 +1,6 @@
 #ifndef BEAM_UNIQUE_POINTER_POLICY_HPP
 #define BEAM_UNIQUE_POINTER_POLICY_HPP
 #include <memory>
-#include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 

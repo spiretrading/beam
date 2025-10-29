@@ -1,49 +1,55 @@
 #ifndef BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
 #define BEAM_TO_PYTHON_SERVER_CONNECTION_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
-namespace Beam::IO {
+namespace Beam::Python {
 
   /**
    * Wraps a ServerConnection for use with Python.
-   * @param <C> The type of ServerConnection to wrap.
+   * @tparam C The type of ServerConnection to wrap.
    */
-  template<typename C>
+  template<IsServerConnection C>
   class ToPythonServerConnection {
     public:
 
       /** The type of ServerConnection to wrap. */
       using ServerConnection = C;
-      using Channel = ChannelBox;
+
+      using Channel = typename ServerConnection::Channel;
 
       /**
        * Constructs a ToPythonServerConnection in-place.
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonServerConnection(Args&&... args);
-
-      ToPythonServerConnection(ToPythonServerConnection&&) = default;
+      explicit ToPythonServerConnection(Args&&... args);
 
       ~ToPythonServerConnection();
 
-      /** Returns the wrapped ServerConnection. */
-      const ServerConnection& GetConnection() const;
+      /** Returns a reference to the underlying server connection. */
+      ServerConnection& get();
 
-      /** Returns the wrapped ServerConnection. */
-      ServerConnection& GetConnection();
+      /** Returns a reference to the underlying server connection. */
+      const ServerConnection& get() const;
 
-      std::unique_ptr<Channel> Accept();
+      /** Returns a reference to the underlying server connection. */
+      ServerConnection& operator *();
 
-      void Close();
+      /** Returns a reference to the underlying server connection. */
+      const ServerConnection& operator *() const;
 
-      ToPythonServerConnection& operator =(
-        ToPythonServerConnection&&) = default;
+      /** Returns a pointer to the underlying server connection. */
+      ServerConnection* operator ->();
+
+      /** Returns a pointer to the underlying server connection. */
+      const ServerConnection* operator ->() const;
+
+      std::unique_ptr<Channel> accept();
+      void close();
 
     private:
       boost::optional<ServerConnection> m_connection;
@@ -55,43 +61,67 @@ namespace Beam::IO {
 
   template<typename ServerConnection>
   ToPythonServerConnection(ServerConnection&&) ->
-    ToPythonServerConnection<std::decay_t<ServerConnection>>;
+    ToPythonServerConnection<std::remove_cvref_t<ServerConnection>>;
 
-  template<typename C>
+  template<IsServerConnection C>
   template<typename... Args>
   ToPythonServerConnection<C>::ToPythonServerConnection(Args&&... args)
-    : m_connection((Python::GilRelease(), boost::in_place_init),
+    : m_connection((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
-  template<typename C>
+  template<IsServerConnection C>
   ToPythonServerConnection<C>::~ToPythonServerConnection() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_connection.reset();
   }
 
-  template<typename C>
-  const typename ToPythonServerConnection<C>::ServerConnection&
-      ToPythonServerConnection<C>::GetConnection() const {
-    return *m_connection;
-  }
-
-  template<typename C>
+  template<IsServerConnection C>
   typename ToPythonServerConnection<C>::ServerConnection&
-      ToPythonServerConnection<C>::GetConnection() {
+      ToPythonServerConnection<C>::get() {
     return *m_connection;
   }
 
-  template<typename C>
-  std::unique_ptr<typename ToPythonServerConnection<C>::Channel>
-      ToPythonServerConnection<C>::Accept() {
-    auto release = Python::GilRelease();
-    return std::make_unique<Channel>(m_connection->Accept());
+  template<IsServerConnection C>
+  const typename ToPythonServerConnection<C>::ServerConnection&
+      ToPythonServerConnection<C>::get() const {
+    return *m_connection;
   }
 
-  template<typename C>
-  void ToPythonServerConnection<C>::Close() {
-    auto release = Python::GilRelease();
-    m_connection->Close();
+  template<IsServerConnection C>
+  typename ToPythonServerConnection<C>::ServerConnection&
+      ToPythonServerConnection<C>::operator *() {
+    return *m_connection;
+  }
+
+  template<IsServerConnection C>
+  const typename ToPythonServerConnection<C>::ServerConnection&
+      ToPythonServerConnection<C>::operator *() const {
+    return *m_connection;
+  }
+
+  template<IsServerConnection C>
+  typename ToPythonServerConnection<C>::ServerConnection*
+      ToPythonServerConnection<C>::operator ->() {
+    return m_connection.get_ptr();
+  }
+
+  template<IsServerConnection C>
+  const typename ToPythonServerConnection<C>::ServerConnection*
+      ToPythonServerConnection<C>::operator ->() const {
+    return m_connection.get_ptr();
+  }
+
+  template<IsServerConnection C>
+  std::unique_ptr<typename ToPythonServerConnection<C>::Channel>
+      ToPythonServerConnection<C>::accept() {
+    auto release = GilRelease();
+    return m_connection->accept();
+  }
+
+  template<IsServerConnection C>
+  void ToPythonServerConnection<C>::close() {
+    auto release = GilRelease();
+    m_connection->close();
   }
 }
 

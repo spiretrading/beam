@@ -1,44 +1,46 @@
+#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/SnapshotLimit.hpp"
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 
 TEST_SUITE("SnapshotLimit") {
   TEST_CASE("default_constructor") {
     auto limit = SnapshotLimit();
-    REQUIRE(limit.GetSize() == 0);
-    REQUIRE(limit.GetType() == SnapshotLimit::Type::HEAD);
+    REQUIRE(limit.get_size() == 0);
+    REQUIRE(limit.get_type() == SnapshotLimit::Type::HEAD);
   }
 
   TEST_CASE("constructor") {
-    auto headLimit = SnapshotLimit(SnapshotLimit::Type::HEAD, 123);
-    REQUIRE(headLimit.GetType() == SnapshotLimit::Type::HEAD);
-    REQUIRE(headLimit.GetSize() == 123);
-    auto negativeHeadLimit = SnapshotLimit(SnapshotLimit::Type::HEAD, -123);
-    REQUIRE(negativeHeadLimit.GetType() == SnapshotLimit::Type::HEAD);
-    REQUIRE(negativeHeadLimit.GetSize() == 0);
-    auto emptyHeadLimit = SnapshotLimit(SnapshotLimit::Type::HEAD, 0);
-    REQUIRE(emptyHeadLimit.GetType() == SnapshotLimit::Type::HEAD);
-    REQUIRE(emptyHeadLimit.GetSize() == 0);
-    auto tailLimit = SnapshotLimit(SnapshotLimit::Type::TAIL, 123);
-    REQUIRE(tailLimit.GetType() == SnapshotLimit::Type::TAIL);
-    REQUIRE(tailLimit.GetSize() == 123);
-    auto negativeTailLimit = SnapshotLimit(SnapshotLimit::Type::TAIL, -123);
-    REQUIRE(negativeTailLimit.GetType() == SnapshotLimit::Type::HEAD);
-    REQUIRE(negativeTailLimit.GetSize() == 0);
-    auto emptyTailLimit = SnapshotLimit(SnapshotLimit::Type::TAIL, 0);
-    REQUIRE(emptyTailLimit.GetType() == SnapshotLimit::Type::HEAD);
-    REQUIRE(emptyTailLimit.GetSize() == 0);
+    auto head_limit = SnapshotLimit(SnapshotLimit::Type::HEAD, 123);
+    REQUIRE(head_limit.get_type() == SnapshotLimit::Type::HEAD);
+    REQUIRE(head_limit.get_size() == 123);
+    auto negative_head_limit = SnapshotLimit(SnapshotLimit::Type::HEAD, -123);
+    REQUIRE(negative_head_limit.get_type() == SnapshotLimit::Type::HEAD);
+    REQUIRE(negative_head_limit.get_size() == 0);
+    auto empty_head_limit = SnapshotLimit(SnapshotLimit::Type::HEAD, 0);
+    REQUIRE(empty_head_limit.get_type() == SnapshotLimit::Type::HEAD);
+    REQUIRE(empty_head_limit.get_size() == 0);
+    auto tail_limit = SnapshotLimit(SnapshotLimit::Type::TAIL, 123);
+    REQUIRE(tail_limit.get_type() == SnapshotLimit::Type::TAIL);
+    REQUIRE(tail_limit.get_size() == 123);
+    auto negative_tail_limit = SnapshotLimit(SnapshotLimit::Type::TAIL, -123);
+    REQUIRE(negative_tail_limit.get_type() == SnapshotLimit::Type::HEAD);
+    REQUIRE(negative_tail_limit.get_size() == 0);
+    auto empty_tail_limit = SnapshotLimit(SnapshotLimit::Type::TAIL, 0);
+    REQUIRE(empty_tail_limit.get_type() == SnapshotLimit::Type::HEAD);
+    REQUIRE(empty_tail_limit.get_size() == 0);
   }
 
   TEST_CASE("none_snapshot_limit") {
-    REQUIRE(SnapshotLimit::None().GetSize() == 0);
+    REQUIRE(SnapshotLimit::NONE.get_size() == 0);
   }
 
   TEST_CASE("unlimited_snapshot_limit") {
-    REQUIRE(SnapshotLimit::Unlimited().GetSize() ==
-      std::numeric_limits<int>::max());
+    REQUIRE(
+      SnapshotLimit::UNLIMITED.get_size() == std::numeric_limits<int>::max());
   }
 
   TEST_CASE("equals_operator") {
@@ -50,8 +52,8 @@ TEST_SUITE("SnapshotLimit") {
       SnapshotLimit(SnapshotLimit::Type::HEAD, 123));
     REQUIRE(SnapshotLimit(
       SnapshotLimit::Type::HEAD, std::numeric_limits<int>::max()) ==
-      SnapshotLimit(
-      SnapshotLimit::Type::TAIL, std::numeric_limits<int>::max()));
+        SnapshotLimit(
+          SnapshotLimit::Type::TAIL, std::numeric_limits<int>::max()));
     REQUIRE(SnapshotLimit(SnapshotLimit::Type::TAIL, 0) ==
       SnapshotLimit(SnapshotLimit::Type::TAIL, 0));
     REQUIRE(SnapshotLimit(SnapshotLimit::Type::TAIL, 0) ==
@@ -60,8 +62,8 @@ TEST_SUITE("SnapshotLimit") {
       SnapshotLimit(SnapshotLimit::Type::TAIL, 123));
     REQUIRE(SnapshotLimit(
       SnapshotLimit::Type::TAIL, std::numeric_limits<int>::max()) ==
-      SnapshotLimit(
-      SnapshotLimit::Type::HEAD, std::numeric_limits<int>::max()));
+        SnapshotLimit(
+          SnapshotLimit::Type::HEAD, std::numeric_limits<int>::max()));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::HEAD, 1) ==
       SnapshotLimit(SnapshotLimit::Type::TAIL, 1)));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::HEAD, 123) ==
@@ -79,20 +81,20 @@ TEST_SUITE("SnapshotLimit") {
       SnapshotLimit(SnapshotLimit::Type::TAIL, 0)));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::HEAD, 123) !=
       SnapshotLimit(SnapshotLimit::Type::HEAD, 123)));
-    REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::HEAD,
-      std::numeric_limits<int>::max()) !=
-      SnapshotLimit(SnapshotLimit::Type::TAIL,
-      std::numeric_limits<int>::max())));
+    REQUIRE(!(SnapshotLimit(
+      SnapshotLimit::Type::HEAD, std::numeric_limits<int>::max()) !=
+        SnapshotLimit(
+          SnapshotLimit::Type::TAIL, std::numeric_limits<int>::max())));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::TAIL, 0) !=
       SnapshotLimit(SnapshotLimit::Type::TAIL, 0)));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::TAIL, 0) !=
       SnapshotLimit(SnapshotLimit::Type::HEAD, 0)));
     REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::TAIL, 123) !=
       SnapshotLimit(SnapshotLimit::Type::TAIL, 123)));
-    REQUIRE(!(SnapshotLimit(SnapshotLimit::Type::TAIL,
-      std::numeric_limits<int>::max()) !=
-      SnapshotLimit(SnapshotLimit::Type::HEAD,
-      std::numeric_limits<int>::max())));
+    REQUIRE(!(SnapshotLimit(
+      SnapshotLimit::Type::TAIL, std::numeric_limits<int>::max()) !=
+        SnapshotLimit(
+          SnapshotLimit::Type::HEAD, std::numeric_limits<int>::max())));
     REQUIRE(SnapshotLimit(SnapshotLimit::Type::HEAD, 1) !=
       SnapshotLimit(SnapshotLimit::Type::TAIL, 1));
     REQUIRE(SnapshotLimit(SnapshotLimit::Type::HEAD, 123) !=
@@ -101,5 +103,26 @@ TEST_SUITE("SnapshotLimit") {
       SnapshotLimit(SnapshotLimit::Type::HEAD, 1));
     REQUIRE(SnapshotLimit(SnapshotLimit::Type::TAIL, 123) !=
       SnapshotLimit(SnapshotLimit::Type::TAIL, 456));
+  }
+
+  TEST_CASE("stream") {
+    auto head_limit = SnapshotLimit::from_head(123);
+    auto ss = std::stringstream();
+    ss << head_limit;
+    REQUIRE(ss.str() == "(HEAD 123)");
+    auto tail_limit = SnapshotLimit::from_tail(123);
+    ss = std::stringstream();
+    ss << tail_limit;
+    REQUIRE(ss.str() == "(TAIL 123)");
+    ss = std::stringstream();
+    ss << SnapshotLimit::NONE;
+    REQUIRE(ss.str() == "None");
+    ss = std::stringstream();
+    ss << SnapshotLimit::UNLIMITED;
+    REQUIRE(ss.str() == "Unlimited");
+    test_round_trip_shuttle(head_limit);
+    test_round_trip_shuttle(tail_limit);
+    test_round_trip_shuttle(SnapshotLimit::Type::HEAD);
+    test_round_trip_shuttle(SnapshotLimit::Type::TAIL);
   }
 }

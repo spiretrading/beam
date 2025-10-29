@@ -4,7 +4,8 @@
 using namespace Beam;
 
 namespace {
-  bool IsPermutation(const std::vector<int>& a, const std::vector<int>& b) {
+  bool is_permutation(
+      const std::vector<int>& a, const std::vector<int>& b) {
     return std::is_permutation(a.begin(), a.end(), b.begin(), b.end());
   }
 }
@@ -12,7 +13,7 @@ namespace {
 TEST_SUITE("AggregateQueueReader") {
   TEST_CASE("empty") {
     auto queue = AggregateQueueReader<int>({});
-    REQUIRE_THROWS_AS(queue.Pop(), PipeBrokenException);
+    REQUIRE_THROWS_AS(queue.pop(), PipeBrokenException);
   }
 
   TEST_CASE("single") {
@@ -20,12 +21,12 @@ TEST_SUITE("AggregateQueueReader") {
     auto queues = std::vector<ScopedQueueReader<int>>();
     queues.push_back(source);
     auto queue = AggregateQueueReader(std::move(queues));
-    source->Push(123);
-    REQUIRE(queue.Pop() == 123);
-    source->Push(321);
-    source->Break();
-    REQUIRE(queue.Pop() == 321);
-    REQUIRE_THROWS_AS(queue.Pop(), PipeBrokenException);
+    source->push(123);
+    REQUIRE(queue.pop() == 123);
+    source->push(321);
+    source->close();
+    REQUIRE(queue.pop() == 321);
+    REQUIRE_THROWS_AS(queue.pop(), PipeBrokenException);
   }
 
   TEST_CASE("double") {
@@ -35,47 +36,47 @@ TEST_SUITE("AggregateQueueReader") {
     queues.push_back(source1);
     queues.push_back(source2);
     auto queue = AggregateQueueReader(std::move(queues));
-    source2->Push(3);
-    source1->Push(1);
-    source2->Push(4);
-    source1->Push(5);
-    source1->Push(8);
-    source1->Push(1);
-    source1->Break();
+    source2->push(3);
+    source1->push(1);
+    source2->push(4);
+    source1->push(5);
+    source1->push(8);
+    source1->push(1);
+    source1->close();
     auto pops = std::vector<int>();
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    source2->Push(2);
-    source2->Push(6);
-    source2->Push(1);
-    source2->Push(3);
-    source2->Break();
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    pops.push_back(queue.Pop());
-    REQUIRE(IsPermutation(pops, {3, 1, 4, 5, 8, 1, 2, 6, 1, 3}));
-    REQUIRE_THROWS_AS(queue.Pop(), PipeBrokenException);
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    source2->push(2);
+    source2->push(6);
+    source2->push(1);
+    source2->push(3);
+    source2->close();
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    pops.push_back(queue.pop());
+    REQUIRE(is_permutation(pops, {3, 1, 4, 5, 8, 1, 2, 6, 1, 3}));
+    REQUIRE_THROWS_AS(queue.pop(), PipeBrokenException);
   }
 
-  TEST_CASE("break") {
+  TEST_CASE("close") {
     auto source1 = std::make_shared<Queue<int>>();
     auto source2 = std::make_shared<Queue<int>>();
     auto queues = std::vector<ScopedQueueReader<int>>();
     queues.push_back(source1);
     queues.push_back(source2);
     auto queue = AggregateQueueReader(std::move(queues));
-    source2->Push(3);
-    source1->Push(1);
-    queue.Pop();
-    queue.Pop();
-    queue.Break();
-    REQUIRE(source1->IsBroken());
-    REQUIRE(source2->IsBroken());
+    source2->push(3);
+    source1->push(1);
+    queue.pop();
+    queue.pop();
+    queue.close();
+    REQUIRE(source1->is_broken());
+    REQUIRE(source2->is_broken());
   }
 
   TEST_CASE("break_on_destruction") {
@@ -87,7 +88,7 @@ TEST_SUITE("AggregateQueueReader") {
     {
       auto queue = AggregateQueueReader(std::move(queues));
     }
-    REQUIRE(source1->IsBroken());
-    REQUIRE(source2->IsBroken());
+    REQUIRE(source1->is_broken());
+    REQUIRE(source2->is_broken());
   }
 }

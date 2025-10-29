@@ -3,14 +3,13 @@
 #include <memory>
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Utilities/Casts.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Writes a value to a pointer.
-   * @param <T> The type of data to write.
+   * @tparam T The type of data to write.
    */
   template<typename T>
   class WriteEvaluatorNode : public EvaluatorNode<T> {
@@ -25,25 +24,32 @@ namespace Beam::Queries {
       WriteEvaluatorNode(
         Result* destination, std::unique_ptr<EvaluatorNode<Result>> value);
 
-      Result Eval() override;
+      Result eval() override;
 
     private:
       Result* m_destination;
       std::unique_ptr<EvaluatorNode<Result>> m_value;
   };
 
+  /**
+   * Translates a WriteExpression into a WriteEvaluatorNode.
+   * @tparam TypeList The list of types supported.
+   */
   template<typename TypeList>
   struct WriteEvaluatorNodeTranslator {
+    using type = TypeList;
+
     template<typename T>
-    static std::unique_ptr<BaseEvaluatorNode> Template(void* destination,
-        std::unique_ptr<BaseEvaluatorNode> value) {
+    std::unique_ptr<BaseEvaluatorNode> operator ()(
+        void* destination, std::unique_ptr<BaseEvaluatorNode> value) const {
       return std::make_unique<WriteEvaluatorNode<T>>(
         static_cast<T*>(destination),
-        StaticCast<std::unique_ptr<EvaluatorNode<T>>>(std::move(value)));
+        static_pointer_cast<EvaluatorNode<T>>(std::move(value)));
     }
-
-    using SupportedTypes = TypeList;
   };
+
+  template<typename R, typename Q>
+  WriteEvaluatorNode(R*, std::unique_ptr<Q>) -> WriteEvaluatorNode<R>;
 
   template<typename T>
   WriteEvaluatorNode<T>::WriteEvaluatorNode(Result* destination,
@@ -52,8 +58,8 @@ namespace Beam::Queries {
       m_value(std::move(value)) {}
 
   template<typename T>
-  typename WriteEvaluatorNode<T>::Result WriteEvaluatorNode<T>::Eval() {
-    return *m_destination = m_value->Eval();
+  typename WriteEvaluatorNode<T>::Result WriteEvaluatorNode<T>::eval() {
+    return *m_destination = m_value->eval();
   }
 }
 

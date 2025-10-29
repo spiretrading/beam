@@ -1,75 +1,83 @@
-#ifndef BEAM_EMAILADDRESS_HPP
-#define BEAM_EMAILADDRESS_HPP
+#ifndef BEAM_EMAIL_ADDRESS_HPP
+#define BEAM_EMAIL_ADDRESS_HPP
 #include <ostream>
 #include <string>
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class EmailAddress
-      \brief Represents an email address.
-   */
+  /** Represents an email address. */
   class EmailAddress {
     public:
 
-      //! Constructs an email address.
-      /*!
-        \param address The email address.
+      /**
+       * Constructs an email address.
+       * @param address The email address.
        */
-      EmailAddress(std::string address);
+      EmailAddress(std::string address) noexcept;
 
-      //! Constructs an email address.
-      /*!
-        \param address The email address.
-        \param displayName The address's display name.
-      */
-      EmailAddress(std::string address, std::string displayName);
+      /**
+       * Constructs an email address.
+       * @param address The email address.
+       */
+      EmailAddress(const char* address);
 
-      //! Returns the proper address.
-      const std::string& GetAddress() const;
+      /**
+       * Constructs an email address.
+       * @param address The email address.
+       * @param display_name The address's display name.
+       */
+      EmailAddress(std::string address, std::string display_name) noexcept;
 
-      //! Returns the display name.
-      const std::string& GetDisplayName() const;
+      /** Returns the proper address. */
+      const std::string& get_address() const;
 
-      //! Returns the address's user portion (that which precedes the @ sign).
-      std::string GetUser() const;
+      /** Returns the display name. */
+      const std::string& get_display_name() const;
 
-      //! Returns the address's domain (that which follows the @ sign).
-      std::string GetDomain() const;
+      /**
+       * Returns the address's user portion (that which precedes the @ sign).
+       */
+      std::string get_user() const;
+
+      /** Returns the address's domain (that which follows the @ sign). */
+      std::string get_domain() const;
 
     private:
       std::string m_address;
-      std::string m_displayName;
+      std::string m_display_name;
   };
 
-  inline std::ostream& operator <<(std::ostream& sink,
-      const EmailAddress& address) {
-    if(!address.GetDisplayName().empty()) {
-      sink << address.GetDisplayName() << " <" << address.GetAddress() << ">";
+  inline std::ostream& operator <<(
+      std::ostream& sink, const EmailAddress& address) {
+    if(!address.get_display_name().empty()) {
+      sink << address.get_display_name() << " <" << address.get_address() <<
+        '>';
     } else {
-      sink << address.GetAddress();
+      sink << address.get_address();
     }
     return sink;
   }
 
-  inline EmailAddress::EmailAddress(std::string address)
-      : m_address{std::move(address)} {}
+  inline EmailAddress::EmailAddress(std::string address) noexcept
+    : m_address(std::move(address)) {}
 
-  inline EmailAddress::EmailAddress(std::string address,
-      std::string displayName)
-      : m_address{std::move(address)},
-        m_displayName{std::move(displayName)} {}
+  inline EmailAddress::EmailAddress(const char* address)
+    : EmailAddress(std::string(address)) {}
 
-  inline const std::string& EmailAddress::GetAddress() const {
+  inline EmailAddress::EmailAddress(
+    std::string address, std::string display_name) noexcept
+    : m_address(std::move(address)),
+      m_display_name(std::move(display_name)) {}
+
+  inline const std::string& EmailAddress::get_address() const {
     return m_address;
   }
 
-  inline const std::string& EmailAddress::GetDisplayName() const {
-    return m_displayName;
+  inline const std::string& EmailAddress::get_display_name() const {
+    return m_display_name;
   }
 
-  inline std::string EmailAddress::GetUser() const {
+  inline std::string EmailAddress::get_user() const {
     auto separator = m_address.find('@');
     if(separator == std::string::npos) {
       return m_address;
@@ -77,14 +85,13 @@ namespace WebServices {
     return m_address.substr(0, separator);
   }
 
-  inline std::string EmailAddress::GetDomain() const {
+  inline std::string EmailAddress::get_domain() const {
     auto separator = m_address.find('@');
     if(separator == std::string::npos) {
       return {};
     }
     return m_address.substr(separator + 1);
   }
-}
 }
 
 #endif

@@ -9,7 +9,7 @@
 namespace Beam {
   inline const auto SERVICE_NAME = std::string("TEMPLATE_SERVICE");
 
-  BEAM_DEFINE_SERVICES(ServletTemplateServices,
+  BEAM_DEFINE_SERVICES(servlet_template_services,
 
     /**
      * Submits a request to echo a message at a specified rate.
@@ -17,17 +17,17 @@ namespace Beam {
      * @param rate The number of times per second to repeat the message.
      * @return Unusued.
      */
-    (EchoService, "Beam.ServletTemplate.EchoService", int, std::string, message,
-      int, rate));
+    (EchoService, "Beam.ServletTemplate.EchoService", int,
+      (std::string, message), (int, rate)));
 
-  BEAM_DEFINE_MESSAGES(ServletTemplateMessages,
+  BEAM_DEFINE_MESSAGES(servlet_template_messages,
 
     /**
      * Sends an echo'd message.
      * @param message The message that was requested to be echo'd.
      */
-    (EchoMessage, "Beam.ServletTemplate.EchoMessage", boost::posix_time::ptime,
-      timestamp, std::string, message));
+    (EchoMessage, "Beam.ServletTemplate.EchoMessage",
+      (boost::posix_time::ptime, timestamp), (std::string, message)));
 }
 
 #endif

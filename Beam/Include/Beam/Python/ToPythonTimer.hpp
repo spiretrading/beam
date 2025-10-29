@@ -1,51 +1,57 @@
 #ifndef BEAM_TO_PYTHON_TIMER_HPP
 #define BEAM_TO_PYTHON_TIMER_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/Threading/Timer.hpp"
+#include "Beam/TimeService/Timer.hpp"
 
-namespace Beam::Threading {
+namespace Beam::Python {
 
   /**
    * Wraps a Timer class for use within Python.
-   * @param <T> The type of Timer to wrap.
+   * @tparam T The type of Timer to wrap.
    */
-  template<typename T>
+  template<IsTimer T>
   class ToPythonTimer {
     public:
 
       /** The type of Timer to wrap. */
       using Timer = T;
 
+      using Result = Beam::Timer::Result;
+
       /**
        * Constructs a ToPythonTimer in-place.
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonTimer(Args&&... args);
-
-      ToPythonTimer(ToPythonTimer&&) = default;
+      explicit ToPythonTimer(Args&&... args);
 
       ~ToPythonTimer();
 
-      /** Returns the wrapped Timer. */
-      const Timer& GetTimer() const;
+      /** Returns a reference to the underlying timer. */
+      Timer& get();
 
-      /** Returns the wrapped Timer. */
-      Timer& GetTimer();
+      /** Returns a reference to the underlying timer. */
+      const Timer& get() const;
 
-      void Start();
+      /** Returns a reference to the underlying timer. */
+      Timer& operator *();
 
-      void Cancel();
+      /** Returns a reference to the underlying timer. */
+      const Timer& operator *() const;
 
-      void Wait();
+      /** Returns a pointer to the underlying timer. */
+      Timer* operator ->();
 
-      const Publisher<Threading::Timer::Result>& GetPublisher() const;
+      /** Returns a pointer to the underlying timer. */
+      const Timer* operator ->() const;
 
-      ToPythonTimer& operator =(ToPythonTimer&&) = default;
+      void start();
+      void cancel();
+      void wait();
+      const Publisher<Beam::Timer::Result>& get_publisher() const;
 
     private:
       boost::optional<Timer> m_timer;
@@ -55,52 +61,74 @@ namespace Beam::Threading {
   };
 
   template<typename Timer>
-  ToPythonTimer(Timer&&) -> ToPythonTimer<std::decay_t<Timer>>;
+  ToPythonTimer(Timer&&) -> ToPythonTimer<std::remove_cvref_t<Timer>>;
 
-  template<typename T>
+  template<IsTimer T>
   template<typename... Args>
   ToPythonTimer<T>::ToPythonTimer(Args&&... args)
-    : m_timer((Python::GilRelease(), boost::in_place_init),
-        std::forward<Args>(args)...) {}
+    : m_timer(
+        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
 
-  template<typename C>
-  ToPythonTimer<C>::~ToPythonTimer() {
-    auto release = Python::GilRelease();
+  template<IsTimer T>
+  ToPythonTimer<T>::~ToPythonTimer() {
+    auto release = GilRelease();
     m_timer.reset();
   }
 
-  template<typename T>
-  const typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::GetTimer() const {
+  template<IsTimer T>
+  typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::get() {
     return *m_timer;
   }
 
-  template<typename T>
-  typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::GetTimer() {
+  template<IsTimer T>
+  const typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::get() const {
     return *m_timer;
   }
 
-  template<typename T>
-  void ToPythonTimer<T>::Start() {
-    auto release = Python::GilRelease();
-    m_timer->Start();
+  template<IsTimer T>
+  typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::operator *() {
+    return *m_timer;
   }
 
-  template<typename T>
-  void ToPythonTimer<T>::Cancel() {
-    auto release = Python::GilRelease();
-    m_timer->Cancel();
+  template<IsTimer T>
+  const typename ToPythonTimer<T>::Timer& ToPythonTimer<T>::operator *()
+      const {
+    return *m_timer;
   }
 
-  template<typename T>
-  void ToPythonTimer<T>::Wait() {
-    auto release = Python::GilRelease();
-    m_timer->Wait();
+  template<IsTimer T>
+  typename ToPythonTimer<T>::Timer* ToPythonTimer<T>::operator ->() {
+    return m_timer.get_ptr();
   }
 
-  template<typename T>
-  const Publisher<Threading::Timer::Result>&
-      ToPythonTimer<T>::GetPublisher() const {
-    return m_timer->GetPublisher();
+  template<IsTimer T>
+  const typename ToPythonTimer<T>::Timer* ToPythonTimer<T>::operator ->()
+      const {
+    return m_timer.get_ptr();
+  }
+
+  template<IsTimer T>
+  void ToPythonTimer<T>::start() {
+    auto release = GilRelease();
+    m_timer->start();
+  }
+
+  template<IsTimer T>
+  void ToPythonTimer<T>::cancel() {
+    auto release = GilRelease();
+    m_timer->cancel();
+  }
+
+  template<IsTimer T>
+  void ToPythonTimer<T>::wait() {
+    auto release = GilRelease();
+    m_timer->wait();
+  }
+
+  template<IsTimer T>
+  const Publisher<Beam::Timer::Result>&
+      ToPythonTimer<T>::get_publisher() const {
+    return m_timer->get_publisher();
   }
 }
 

@@ -3,19 +3,15 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Queries.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleVector.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** An Expression representing a native function. */
-  class FunctionExpression : public VirtualExpression,
-      public CloneableMixin<FunctionExpression> {
+  class FunctionExpression : public VirtualExpression {
     public:
 
       /**
@@ -24,83 +20,76 @@ namespace Beam::Queries {
        * @param type The type that this function evaluates to.
        * @param parameters The function's parameters.
        */
-      FunctionExpression(std::string name, DataType type,
+      FunctionExpression(std::string name, std::type_index type,
         std::vector<Expression> parameters);
 
-      /**
-       * Copies a FunctionExpression.
-       * @param expression The FunctionExpression to copy.
-       */
-      FunctionExpression(const FunctionExpression& expression) = default;
-
       /** Returns the name of the function. */
-      const std::string& GetName() const;
+      const std::string& get_name() const;
 
       /** Returns the function's parameters. */
-      const std::vector<Expression>& GetParameters() const;
+      const std::vector<Expression>& get_parameters() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
       std::string m_name;
-      DataType m_type;
+      std::type_index m_type;
       std::vector<Expression> m_parameters;
 
       FunctionExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
-  inline FunctionExpression::FunctionExpression(std::string name, DataType type,
-    std::vector<Expression> parameters)
+  inline FunctionExpression::FunctionExpression(
+    std::string name, std::type_index type, std::vector<Expression> parameters)
     : m_name(std::move(name)),
       m_type(std::move(type)),
       m_parameters(std::move(parameters)) {}
 
-  inline const std::string& FunctionExpression::GetName() const {
+  inline const std::string& FunctionExpression::get_name() const {
     return m_name;
   }
 
   inline const std::vector<Expression>&
-      FunctionExpression::GetParameters() const {
+      FunctionExpression::get_parameters() const {
     return m_parameters;
   }
 
-  inline const DataType& FunctionExpression::GetType() const {
+  inline std::type_index FunctionExpression::get_type() const {
     return m_type;
   }
 
-  inline void FunctionExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void FunctionExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& FunctionExpression::ToStream(std::ostream& out) const {
-    out << "(" << m_name;
+  inline std::ostream& FunctionExpression::to_stream(std::ostream& out) const {
+    out << '(' << m_name;
     for(auto& parameter : m_parameters) {
-      out << " " << *parameter;
+      out << ' ' << parameter;
     }
-    return out << ")";
+    return out << ')';
   }
 
   inline FunctionExpression::FunctionExpression()
-    : FunctionExpression("", BoolType(), {}) {}
+    : FunctionExpression("", typeid(bool), {}) {}
 
-  template<typename Shuttler>
-  void FunctionExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("name", m_name);
-    shuttle.Shuttle("type", m_type);
-    shuttle.Shuttle("parameters", m_parameters);
+  template<IsShuttle S>
+  void FunctionExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("name", m_name);
+    shuttle.shuttle("type", m_type);
+    shuttle.shuttle("parameters", m_parameters);
   }
 
-  inline void ExpressionVisitor::Visit(const FunctionExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+  inline void ExpressionVisitor::visit(const FunctionExpression& expression) {
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

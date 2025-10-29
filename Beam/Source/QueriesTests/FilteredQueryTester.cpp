@@ -1,38 +1,47 @@
+#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/FilteredQuery.hpp"
+#include "Beam/Queries/ConstantExpression.hpp"
+#include "Beam/Queries/Evaluator.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
 
 TEST_SUITE("FilteredQuery") {
-  TEST_CASE("default_constructor") {
+  TEST_CASE("constructor") {
     auto query = FilteredQuery();
-    auto& f = *query.GetFilter();
-    REQUIRE(typeid(f) == typeid(ConstantExpression));
-    auto filter = query.GetFilter().StaticCast<ConstantExpression>();
-    REQUIRE(filter.GetValue()->GetValue<bool>() == true);
+    REQUIRE(query.get_filter().get_type() == typeid(bool));
   }
 
-  TEST_CASE("filter_constructor") {
-    auto query = FilteredQuery(ConstantExpression(false));
-    auto& f = *query.GetFilter();
-    REQUIRE(typeid(f) == typeid(ConstantExpression));
-    auto filter = query.GetFilter().StaticCast<ConstantExpression>();
-    REQUIRE(filter.GetValue()->GetValue<bool>() == false);
-    try {
-      auto invalidQuery = FilteredQuery(ConstantExpression(123));
-      REQUIRE(false);
-    } catch(const std::exception&) {}
+  TEST_CASE("construct_boolean_filter") {
+    auto expression = Expression(ConstantExpression(true));
+    auto query = FilteredQuery(expression);
+    REQUIRE(query.get_filter().get_type() == typeid(bool));
+  }
+
+  TEST_CASE("construct_non_boolean_filter") {
+    REQUIRE_THROWS_AS(
+      FilteredQuery(ConstantExpression(1)), TypeCompatibilityException);
   }
 
   TEST_CASE("set_filter") {
     auto query = FilteredQuery();
-    auto filter = query.GetFilter().StaticCast<ConstantExpression>();
-    REQUIRE(filter.GetValue()->GetValue<bool>() != false);
-    query.SetFilter(ConstantExpression(false));
-    filter = query.GetFilter().StaticCast<ConstantExpression>();
-    REQUIRE(filter.GetValue()->GetValue<bool>() == false);
-    REQUIRE_THROWS_AS(query.SetFilter(ConstantExpression(123)),
-      std::runtime_error);
+    query.set_filter(ConstantExpression(false));
+    REQUIRE(query.get_filter().get_type() == typeid(bool));
+    REQUIRE_THROWS_AS(query.set_filter(Expression(ConstantExpression(1))),
+      TypeCompatibilityException);
+  }
+
+  TEST_CASE("stream") {
+    auto query = FilteredQuery();
+    auto ss = std::stringstream();
+    ss << query;
+    REQUIRE(ss.str() == "true");
+  }
+
+  TEST_CASE("test_filter") {
+    auto true_evaluator = translate(ConstantExpression(true));
+    auto false_evaluator = translate(ConstantExpression(false));
+    REQUIRE(test_filter(*true_evaluator, 123));
+    REQUIRE(!test_filter(*false_evaluator, 123));
   }
 }

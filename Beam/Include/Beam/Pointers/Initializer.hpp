@@ -2,7 +2,6 @@
 #define BEAM_INITIALIZER_HPP
 #include <tuple>
 #include <utility>
-#include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 
@@ -21,13 +20,7 @@ namespace Beam {
      * @param args The parameters used to initialize the value.
      */
     template<typename... ArgForwards>
-    Initializer(ArgForwards&&... args);
-
-    /** Returns the tuple storing the arguments. */
-    std::tuple<Args&&...>& ToTuple();
-
-    /** Returns the tuple storing the arguments. */
-    const std::tuple<Args&&...>& ToTuple() const;
+    Initializer(ArgForwards&&... args) noexcept;
   };
 
   /**
@@ -35,24 +28,28 @@ namespace Beam {
    * @param args The list of arguments to use as an initializer.
    */
   template<typename... Args>
-  auto Initialize(Args&&... args) {
+  auto init(Args&&... args) noexcept {
     return Initializer<Args...>(std::forward<Args>(args)...);
+  }
+
+  template<typename T, typename... Args, std::size_t... Sequence>
+  auto make(Initializer<Args...>&& initializer,
+      std::index_sequence<Sequence...>) noexcept(
+        std::is_nothrow_constructible_v<T, Args...>) {
+    return T(std::get<Sequence>(std::move(initializer.m_args))...);
+  }
+
+  template<typename T, typename... Args>
+  auto make(Initializer<Args...>&& initializer) noexcept(
+      std::is_nothrow_constructible_v<T, Args...>) {
+    return make<T, Args...>(std::move(initializer),
+      std::make_index_sequence<sizeof...(Args)>());
   }
 
   template<typename... Args>
   template<typename... ArgForwards>
-  Initializer<Args...>::Initializer(ArgForwards&&... args)
+  Initializer<Args...>::Initializer(ArgForwards&&... args) noexcept
     : m_args(std::forward<ArgForwards>(args)...) {}
-
-  template<typename... Args>
-  std::tuple<Args&&...>& Initializer<Args...>::ToTuple() {
-    return m_args;
-  }
-
-  template<typename... Args>
-  const std::tuple<Args&&...>& Initializer<Args...>::ToTuple() const {
-    return m_args;
-  }
 }
 
 #endif

@@ -12,13 +12,12 @@
 #include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SetVariableExpression.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Translates a query expression into an SQL expression. */
   class SqlTranslator : protected ExpressionVisitor {
@@ -32,23 +31,23 @@ namespace Beam::Queries {
       SqlTranslator(std::string parameter, Expression expression);
 
       /** Returns the SQL expression. */
-      Viper::Expression Make();
+      Viper::Expression make();
 
     protected:
 
       /** Returns the parameter. */
-      const Viper::Expression& GetParameter() const;
+      const Viper::Expression& get_parameter() const;
 
       /** Returns the current translation. */
-      Viper::Expression& GetTranslation();
+      Viper::Expression& get_translation();
 
-      void Visit(const AndExpression& expression) override;
-      void Visit(const ConstantExpression& expression) override;
-      void Visit(const FunctionExpression& expression) override;
-      void Visit(const NotExpression& expression) override;
-      void Visit(const OrExpression& expression) override;
-      void Visit(const ParameterExpression& expression) override;
-      void Visit(const VirtualExpression& expression) override;
+      void visit(const AndExpression& expression) override;
+      void visit(const ConstantExpression& expression) override;
+      void visit(const FunctionExpression& expression) override;
+      void visit(const NotExpression& expression) override;
+      void visit(const OrExpression& expression) override;
+      void visit(const ParameterExpression& expression) override;
+      void visit(const VirtualExpression& expression) override;
 
     private:
       Viper::Expression m_parameter;
@@ -56,7 +55,7 @@ namespace Beam::Queries {
       Viper::Expression m_translation;
 
       template<typename F>
-      void Translate(const FunctionExpression& expression, F&& translation);
+      void translate(const FunctionExpression& expression, F&& translation);
   };
 
   /**
@@ -66,140 +65,138 @@ namespace Beam::Queries {
    * @return The SQL expression.
    */
   template<typename Translator = SqlTranslator>
-  auto MakeSqlQuery(std::string parameter, Expression expression) {
+  auto make_sql_query(std::string parameter, Expression expression) {
     auto translator = Translator(std::move(parameter), std::move(expression));
-    return translator.Make();
+    return translator.make();
   }
 
-  inline SqlTranslator::SqlTranslator(std::string parameter,
-    Expression expression)
+  inline SqlTranslator::SqlTranslator(
+    std::string parameter, Expression expression)
     : m_parameter(Viper::sym(std::move(parameter))),
       m_expression(std::move(expression)) {}
 
-  inline Viper::Expression SqlTranslator::Make() {
-    m_expression->Apply(*this);
-    return std::move(GetTranslation());
+  inline Viper::Expression SqlTranslator::make() {
+    m_expression.apply(*this);
+    return get_translation();
   }
 
-  inline void SqlTranslator::Visit(const AndExpression& expression) {
-    expression.GetLeftExpression()->Apply(*this);
-    auto leftTranslation = GetTranslation();
-    expression.GetRightExpression()->Apply(*this);
-    auto rightTranslation = GetTranslation();
-    GetTranslation() = leftTranslation && rightTranslation;
+  inline void SqlTranslator::visit(const AndExpression& expression) {
+    expression.get_left().apply(*this);
+    auto left = get_translation();
+    expression.get_right().apply(*this);
+    auto right = get_translation();
+    get_translation() = left && right;
   }
 
-  inline void SqlTranslator::Visit(const ConstantExpression& expression) {
-    auto& value = expression.GetValue();
-    if(value->GetType()->GetNativeType() == typeid(bool)) {
-      GetTranslation() = Viper::literal(value->GetValue<bool>());
-    } else if(value->GetType()->GetNativeType() == typeid(char)) {
-      GetTranslation() = Viper::literal(value->GetValue<char>());
-    } else if(value->GetType()->GetNativeType() == typeid(int)) {
-      GetTranslation() = Viper::literal(value->GetValue<int>());
-    } else if(value->GetType()->GetNativeType() == typeid(std::uint64_t)) {
-      GetTranslation() = Viper::literal(value->GetValue<std::uint64_t>());
-    } else if(value->GetType()->GetNativeType() == typeid(double)) {
-      GetTranslation() = Viper::literal(value->GetValue<double>());
-    } else if(value->GetType()->GetNativeType() == typeid(std::string)) {
-      GetTranslation() = Viper::literal(value->GetValue<std::string>());
-    } else if(value->GetType()->GetNativeType() ==
-        typeid(boost::posix_time::ptime)) {
-      GetTranslation() = Viper::literal(
-        value->GetValue<boost::posix_time::ptime>());
+  inline void SqlTranslator::visit(const ConstantExpression& expression) {
+    auto& value = expression.get_value();
+    if(value.get_type() == typeid(bool)) {
+      get_translation() = Viper::literal(value.as<bool>());
+    } else if(value.get_type() == typeid(char)) {
+      get_translation() = Viper::literal(value.as<char>());
+    } else if(value.get_type() == typeid(int)) {
+      get_translation() = Viper::literal(value.as<int>());
+    } else if(value.get_type() == typeid(std::uint64_t)) {
+      get_translation() = Viper::literal(value.as<std::uint64_t>());
+    } else if(value.get_type() == typeid(double)) {
+      get_translation() = Viper::literal(value.as<double>());
+    } else if(value.get_type() == typeid(std::string)) {
+      get_translation() = Viper::literal(value.as<std::string>());
+    } else if(value.get_type() == typeid(boost::posix_time::ptime)) {
+      get_translation() = Viper::literal(value.as<boost::posix_time::ptime>());
     }
   }
 
-  inline void SqlTranslator::Visit(const FunctionExpression& expression) {
-    if(expression.GetName() == ADDITION_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+  inline void SqlTranslator::visit(const FunctionExpression& expression) {
+    if(expression.get_name() == ADDITION_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left + right;
       });
-    } else if(expression.GetName() == SUBTRACTION_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == SUBTRACTION_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left - right;
       });
-    } else if(expression.GetName() == MULTIPLICATION_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == MULTIPLICATION_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left * right;
       });
-    } else if(expression.GetName() == DIVISION_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == DIVISION_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left / right;
       });
-    } else if(expression.GetName() == LESS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == LESS_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left < right;
       });
-    } else if(expression.GetName() == LESS_EQUALS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == LESS_EQUALS_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left <= right;
       });
-    } else if(expression.GetName() == EQUALS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == EQUALS_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left == right;
       });
-    } else if(expression.GetName() == NOT_EQUALS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == NOT_EQUALS_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left != right;
       });
-    } else if(expression.GetName() == GREATER_EQUALS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == GREATER_EQUALS_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left >= right;
       });
-    } else if(expression.GetName() > LESS_EQUALS_NAME) {
-      Translate(expression, [] (auto&& left, auto&& right) {
+    } else if(expression.get_name() == GREATER_NAME) {
+      translate(expression, [] (auto&& left, auto&& right) {
         return left > right;
       });
     } else {
-      BOOST_THROW_EXCEPTION(
+      boost::throw_with_location(
         ExpressionTranslationException("Function not supported."));
     }
   }
 
-  inline void SqlTranslator::Visit(const NotExpression& expression) {
-    expression.GetOperand()->Apply(*this);
-    auto operandTranslation = GetTranslation();
-    GetTranslation() = !operandTranslation;
+  inline void SqlTranslator::visit(const NotExpression& expression) {
+    expression.get_operand().apply(*this);
+    auto translation = get_translation();
+    get_translation() = !translation;
   }
 
-  inline void SqlTranslator::Visit(const OrExpression& expression) {
-    expression.GetLeftExpression()->Apply(*this);
-    auto leftTranslation = GetTranslation();
-    expression.GetRightExpression()->Apply(*this);
-    auto rightTranslation = GetTranslation();
-    GetTranslation() = leftTranslation || rightTranslation;
+  inline void SqlTranslator::visit(const OrExpression& expression) {
+    expression.get_left().apply(*this);
+    auto left = get_translation();
+    expression.get_right().apply(*this);
+    auto right = get_translation();
+    get_translation() = left || right;
   }
 
-  inline void SqlTranslator::Visit(const ParameterExpression& expression) {
-    GetTranslation() = m_parameter;
+  inline void SqlTranslator::visit(const ParameterExpression& expression) {
+    get_translation() = m_parameter;
   }
 
-  inline void SqlTranslator::Visit(const VirtualExpression& expression) {
-    BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-      "Invalid expression."));
+  inline void SqlTranslator::visit(const VirtualExpression& expression) {
+    boost::throw_with_location(
+      ExpressionTranslationException("Invalid expression."));
   }
 
-  inline const Viper::Expression& SqlTranslator::GetParameter() const {
+  inline const Viper::Expression& SqlTranslator::get_parameter() const {
     return m_parameter;
   }
 
-  inline Viper::Expression& SqlTranslator::GetTranslation() {
+  inline Viper::Expression& SqlTranslator::get_translation() {
     return m_translation;
   }
 
   template<typename F>
-  void SqlTranslator::Translate(
+  void SqlTranslator::translate(
       const FunctionExpression& expression, F&& translation) {
-    if(expression.GetParameters().size() != 2) {
-      BOOST_THROW_EXCEPTION(
+    if(expression.get_parameters().size() != 2) {
+      boost::throw_with_location(
         ExpressionTranslationException("Invalid parameters."));
     }
-    expression.GetParameters()[0]->Apply(*this);
-    auto left = GetTranslation();
-    expression.GetParameters()[1]->Apply(*this);
-    auto right = GetTranslation();
-    GetTranslation() =
+    expression.get_parameters()[0].apply(*this);
+    auto left = get_translation();
+    expression.get_parameters()[1].apply(*this);
+    auto right = get_translation();
+    get_translation() =
       std::forward<F>(translation)(std::move(left), std::move(right));
   }
 }

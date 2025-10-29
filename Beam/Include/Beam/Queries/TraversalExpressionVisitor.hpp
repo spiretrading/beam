@@ -12,95 +12,83 @@
 #include "Beam/Queries/ReduceExpression.hpp"
 #include "Beam/Queries/SetVariableExpression.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** An ExpressionVisitor that traverses all of its children. */
   class TraversalExpressionVisitor : public ExpressionVisitor {
     public:
-      void Visit(const AndExpression& expression) override;
-
-      void Visit(const ConstantExpression& expression) override;
-
-      void Visit(const FunctionExpression& expression) override;
-
-      void Visit(
+      void visit(const AndExpression& expression) override;
+      void visit(const ConstantExpression& expression) override;
+      void visit(const FunctionExpression& expression) override;
+      void visit(
         const GlobalVariableDeclarationExpression& expression) override;
-
-      void Visit(const MemberAccessExpression& expression) override;
-
-      void Visit(const NotExpression& expression) override;
-
-      void Visit(const OrExpression& expression) override;
-
-      void Visit(const ParameterExpression& expression) override;
-
-      void Visit(const ReduceExpression& expression) override;
-
-      void Visit(const SetVariableExpression& expression) override;
-
-      void Visit(const VariableExpression& expression) override;
-
-      void Visit(const VirtualExpression& expression) override;
+      void visit(const MemberAccessExpression& expression) override;
+      void visit(const NotExpression& expression) override;
+      void visit(const OrExpression& expression) override;
+      void visit(const ParameterExpression& expression) override;
+      void visit(const ReduceExpression& expression) override;
+      void visit(const SetVariableExpression& expression) override;
+      void visit(const VariableExpression& expression) override;
+      void visit(const VirtualExpression& expression) override;
   };
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const AndExpression& expression) {
-    expression.GetLeftExpression()->Apply(*this);
-    expression.GetRightExpression()->Apply(*this);
+    expression.get_left().apply(*this);
+    expression.get_right().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
     const ConstantExpression& expression) {}
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const FunctionExpression& expression) {
-    for(auto& parameter : expression.GetParameters()) {
-      parameter->Apply(*this);
+    for(auto& parameter : expression.get_parameters()) {
+      parameter.apply(*this);
     }
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const GlobalVariableDeclarationExpression& expression) {
-    expression.GetInitialValue()->Apply(*this);
-    expression.GetBody()->Apply(*this);
+    expression.get_initial_value().apply(*this);
+    expression.get_body().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const MemberAccessExpression& expression) {
-    expression.GetExpression()->Apply(*this);
+    expression.get_expression().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const NotExpression& expression) {
-    expression.GetOperand()->Apply(*this);
+    expression.get_operand().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const OrExpression& expression) {
-    expression.GetLeftExpression()->Apply(*this);
-    expression.GetRightExpression()->Apply(*this);
+    expression.get_left().apply(*this);
+    expression.get_right().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
-      const ParameterExpression& expression) {}
+  inline void TraversalExpressionVisitor::visit(
+    const ParameterExpression& expression) {}
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const ReduceExpression& expression) {
-    expression.GetReduceExpression()->Apply(*this);
-    expression.GetSeriesExpression()->Apply(*this);
+    expression.get_reducer().apply(*this);
+    expression.get_series().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
       const SetVariableExpression& expression) {
-    expression.GetValue()->Apply(*this);
+    expression.get_value().apply(*this);
   }
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
     const VariableExpression& expression) {}
 
-  inline void TraversalExpressionVisitor::Visit(
+  inline void TraversalExpressionVisitor::visit(
     const VirtualExpression& expression) {}
 }
 

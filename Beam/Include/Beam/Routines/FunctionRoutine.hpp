@@ -4,11 +4,11 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/Routines/ScheduledRoutine.hpp"
 
-namespace Beam::Routines {
+namespace Beam {
 
   /**
    * Implements a Routine using a callable object.
-   * @param <F> The type of the callable object to run.
+   * @tparam F The type of the callable object to run.
    */
   template<typename F>
   class FunctionRoutine final : public ScheduledRoutine {
@@ -17,16 +17,16 @@ namespace Beam::Routines {
       /**
        * Constructs a FunctionRoutine.
        * @param function The callable object to run.
-       * @param contextId The id of the Context to run in, or -1 to assign it an
+       * @param stack_size The size of the stack to allocate.
+       * @param context_id The id of the Context to run in or -1 to assign it an
        *        arbitrary context id.
-       * @param stackSize The size of the stack to allocate.
        */
       template<typename FF>
-      FunctionRoutine(FF&& function, std::size_t stackSize,
-        std::size_t contextId);
+      FunctionRoutine(
+        FF&& function, std::size_t stack_size, std::size_t context_id) noexcept;
 
     protected:
-      void Execute() override;
+      void execute() override;
 
     private:
       boost::optional<F> m_function;
@@ -34,17 +34,17 @@ namespace Beam::Routines {
 
   template<typename F>
   FunctionRoutine(F&&, std::size_t, std::size_t) ->
-    FunctionRoutine<std::remove_reference_t<F>>;
+    FunctionRoutine<std::remove_cvref_t<F>>;
 
   template<typename F>
   template<typename FF>
-  FunctionRoutine<F>::FunctionRoutine(FF&& function, std::size_t stackSize,
-    std::size_t contextId)
-    : ScheduledRoutine(stackSize, contextId),
+  FunctionRoutine<F>::FunctionRoutine(
+    FF&& function, std::size_t stack_size, std::size_t context_id) noexcept
+    : ScheduledRoutine(stack_size, context_id),
       m_function(std::forward<FF>(function)) {}
 
   template<typename F>
-  void FunctionRoutine<F>::Execute() {
+  void FunctionRoutine<F>::execute() {
     try {
       (*m_function)();
     } catch(...) {

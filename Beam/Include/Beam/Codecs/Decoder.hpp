@@ -1,58 +1,98 @@
 #ifndef BEAM_DECODER_HPP
 #define BEAM_DECODER_HPP
-#include "Beam/Codecs/Codecs.hpp"
+#include <concepts>
+#include <cstdint>
+#include <memory>
 #include "Beam/Codecs/Encoder.hpp"
+#include "Beam/IO/BufferRef.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
-#include "Beam/Utilities/Concept.hpp"
+#include "Beam/Pointers/VirtualPtr.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::Codecs {
+namespace Beam {
+
+  /** Determines whether a type meets the Decoder concept. */
+  template<typename T>
+  concept IsDecoder = requires(T& decoder) {
+    { decoder.decode(std::declval<BufferCRef>(),
+        out(std::declval<BufferRef&>())) } -> std::convertible_to<std::size_t>;
+  };
 
   /** Interface for decoding data. */
-  struct Decoder : Concept<Decoder> {
+  class Decoder {
+    public:
 
-    /**
-     * Decodes data to a specified destination.
-     * @param source The source data to decode.
-     * @param sourceSize The size of the <i>source</i>.
-     * @param destination The destination of the decoded <i>source</i>.
-     * @param destinationSize The size of the <i>destination</i>.
-     */
-    std::size_t Decode(const void* source, std::size_t sourceSize,
-      void* destination, std::size_t destinationSize);
+      /**
+       * Constructs a Decoder of a specified type using emplacement.
+       * @tparam T The type of decoder to emplace.
+       * @param args The arguments to pass to the emplaced decoder.
+       */
+      template<IsDecoder T, typename... Args>
+      explicit Decoder(std::in_place_type_t<T>, Args&&... args);
 
-    /**
-     * Decodes data to a specified destination.
-     * @tparam <Buffer> The type of Buffer to decode.
-     * @param source The source data to decode.
-     * @param destination The destination of the decoded <i>source</i>.
-     * @param destinationSize The size of the <i>destination</i>.
-     */
-    template<typename Buffer>
-    std::size_t Decode(const Buffer& source, void* destination,
-      std::size_t destinationSize);
+      /**
+       * Constructs a Decoder by referencing an existing decoder.
+       * @param decoder The decoder to reference.
+       */
+      template<DisableCopy<Decoder> T> requires IsDecoder<dereference_t<T>>
+      Decoder(T&& decoder);
 
-    /**
-     * Decodes data to a specified destination.
-     * @tparam <Buffer> The type of Buffer to store the decoding.
-     * @param source The source data to decode.
-     * @param sourceSize The size of the source data.
-     * @param destination The destination of the decoded <i>source</i>.
-     */
-    template<typename Buffer>
-    std::size_t Decode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination);
+      Decoder(const Decoder&) = default;
 
-    /**
-     * Decodes data to a specified destination.
-     * @tparam <SourceBuffer> The type of Buffer to decode.
-     * @tparam <DestinationBuffer> The type of Buffer to store the decoding.
-     * \param source The source data to decode.
-     * \param destination The destination of the decoded <i>source</i>.
-     */
-    template<typename SourceBuffer, typename DestinationBuffer>
-    std::size_t Decode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination);
+      /**
+       * Decodes data to a specified destination.
+       * @param source The source data to decode.
+       * @param destination The destination of the decoded <i>source</i>.
+       */
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t decode(const S source, Out<B> destination);
+
+    private:
+      struct VirtualDecoder {
+        virtual ~VirtualDecoder() = default;
+
+        virtual std::size_t decode(
+          BufferCRef source, BufferRef destination) = 0;
+      };
+      template<typename D>
+      struct WrappedDecoder final : VirtualDecoder {
+        using Decoder = D;
+        local_ptr_t<Decoder> m_decoder;
+
+        template<typename... Args>
+        WrappedDecoder(Args&&... args);
+
+        std::size_t decode(BufferCRef source, BufferRef destination) override;
+      };
+      VirtualPtr<VirtualDecoder> m_decoder;
   };
+
+  template<IsDecoder T, typename... Args>
+  Decoder::Decoder(std::in_place_type_t<T>, Args&&... args)
+    : m_decoder(
+        make_virtual_ptr<WrappedDecoder<T>>(std::forward<Args>(args)...)) {}
+
+  template<DisableCopy<Decoder> T> requires IsDecoder<dereference_t<T>>
+  Decoder::Decoder(T&& decoder)
+    : m_decoder(make_virtual_ptr<WrappedDecoder<std::remove_cvref_t<T>>>(
+        std::forward<T>(decoder))) {}
+
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t Decoder::decode(const S source, Out<B> destination) {
+    return m_decoder->decode(source, *destination);
+  }
+
+  template<typename D>
+  template<typename... Args>
+  Decoder::WrappedDecoder<D>::WrappedDecoder(Args&&... args)
+    : m_decoder(std::forward<Args>(args)...) {}
+
+  template<typename D>
+  std::size_t Decoder::WrappedDecoder<D>::decode(
+      BufferCRef source, BufferRef destination) {
+    return m_decoder->decode(source, out(destination));
+  }
 }
 
 #endif

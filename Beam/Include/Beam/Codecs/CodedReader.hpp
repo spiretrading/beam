@@ -5,133 +5,113 @@
 #include "Beam/IO/IOException.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
-namespace Codecs {
 
   /**
    * Reads coded data using a Decoder.
-   * @param <B> The type of Buffer to read into.
-   * @param <R> The type of Reader to read encoded data from.
-   * @param <D> The type of Decoder used.
+   * @tparam R The type of Reader to read encoded data from.
+   * @tparam D The type of Decoder used.
    */
-  template<typename B, typename R, typename D>
+  template<typename R, typename D> requires
+    IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
   class CodedReader {
     public:
 
-      /** The type of Buffer to read into. */
-      using Buffer = B;
-
       /** The type of Reader to read from. */
-      using SourceReader = GetTryDereferenceType<R>;
+      using SourceReader = dereference_t<R>;
 
       /** The type of Decoder used. */
-      using Decoder = GetTryDereferenceType<D>;
+      using Decoder = dereference_t<D>;
 
       /**
        * Constructs a CodedReader.
        * @param source Initializes the source to read from.
        * @param decoder Initializes the Decoder to use.
        */
-      template<typename SF, typename DF>
+      template<Initializes<R> SF, Initializes<D> DF>
       CodedReader(SF&& source, DF&& decoder);
 
-      bool IsDataAvailable() const;
-
-      template<typename T>
-      std::size_t Read(Out<T> destination);
-
-      std::size_t Read(char* destination, std::size_t size);
-
-      template<typename T>
-      std::size_t Read(Out<T> destination, std::size_t size);
+      bool poll() const;
+      template<IsBuffer B>
+      std::size_t read(Out<B> destination, std::size_t size = -1);
 
     private:
-      GetOptionalLocalPtr<R> m_source;
-      GetOptionalLocalPtr<D> m_decoder;
-      IO::PipedReader<Buffer> m_reader;
-      IO::PipedWriter<Buffer> m_writer;
-      Buffer m_sourceBuffer;
-      Buffer m_decoderBuffer;
+      local_ptr_t<R> m_source;
+      local_ptr_t<D> m_decoder;
+      PipedReader m_reader;
+      PipedWriter m_writer;
+      SharedBuffer m_source_buffer;
+      SharedBuffer m_decoder_buffer;
 
       CodedReader(const CodedReader&) = delete;
       CodedReader& operator =(const CodedReader&) = delete;
-      void ReadSource();
+      void read();
   };
 
-  template<typename B, typename R, typename D>
-  template<typename SF, typename DF>
-  CodedReader<B, R, D>::CodedReader(SF&& source, DF&& decoder)
+  template<typename S, typename D>
+  CodedReader(S&&, D&&) ->
+    CodedReader<std::remove_cvref_t<S>, std::remove_cvref_t<D>>;
+
+  template<typename R, typename D> requires
+    IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
+  template<Initializes<R> SF, Initializes<D> DF>
+  CodedReader<R, D>::CodedReader(SF&& source, DF&& decoder)
     : m_source(std::forward<SF>(source)),
       m_decoder(std::forward<DF>(decoder)),
       m_writer(Ref(m_reader)) {}
 
-  template<typename B, typename R, typename D>
-  bool CodedReader<B, R, D>::IsDataAvailable() const {
-    return m_reader.IsDataAvailable() || m_source->IsDataAvailable();
+  template<typename R, typename D> requires
+    IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
+  bool CodedReader<R, D>::poll() const {
+    return m_reader.poll() || m_source->poll();
   }
 
-  template<typename B, typename R, typename D>
-  template<typename T>
-  std::size_t CodedReader<B, R, D>::Read(Out<T> destination) {
-    return Read(Store(destination), std::numeric_limits<std::size_t>::max());
+  template<typename R, typename D> requires
+    IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
+  template<IsBuffer B>
+  std::size_t CodedReader<R, D>::read(Out<B> destination, std::size_t size) {
+    read();
+    return m_reader.read(out(destination), size);
   }
 
-  template<typename B, typename R, typename D>
-  std::size_t CodedReader<B, R, D>::Read(char* destination, std::size_t size) {
-    ReadSource();
-    return m_reader.Read(destination, size);
-  }
-
-  template<typename B, typename R, typename D>
-  template<typename T>
-  std::size_t CodedReader<B, R, D>::Read(Out<T> destination, std::size_t size) {
-    ReadSource();
-    return m_reader.Read(Store(destination), size);
-  }
-
-  template<typename B, typename R, typename D>
-  void CodedReader<B, R, D>::ReadSource() {
-    if(m_reader.IsDataAvailable()) {
+  template<typename R, typename D> requires
+    IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
+  void CodedReader<R, D>::read() {
+    if(m_reader.poll()) {
       return;
     }
     try {
-      m_source->Read(Store(m_sourceBuffer));
+      m_source->read(out(m_source_buffer));
     } catch(const std::exception&) {
-      m_writer.Break(std::current_exception());
+      m_writer.close(std::current_exception());
       return;
     }
-    if constexpr(InPlaceSupport<Decoder>::value) {
+    if constexpr(in_place_support_v<Decoder>) {
       try {
-        m_decoder->Decode(m_sourceBuffer, Store(m_sourceBuffer));
+        m_decoder->decode(m_source_buffer, out(m_source_buffer));
       } catch(const std::exception&) {
-        m_writer.Break(NestCurrentException(
-          IO::IOException("Decoder failed.")));
+        m_writer.close(nest_current_exception(IOException("Decoder failed.")));
         return;
       }
-      m_writer.Write(m_sourceBuffer);
-      m_sourceBuffer.Reset();
+      m_writer.write(m_source_buffer);
+      reset(m_source_buffer);
     } else {
       try {
-        m_decoder->Decode(m_sourceBuffer, Store(m_decoderBuffer));
+        m_decoder->decode(m_source_buffer, out(m_decoder_buffer));
       } catch(const std::exception&) {
-        m_writer.Break(NestCurrentException(
-          IO::IOException("Decoder failed.")));
+        m_writer.close(nest_current_exception(IOException("Decoder failed.")));
         return;
       }
-      m_writer.Write(m_decoderBuffer);
-      m_decoderBuffer.Reset();
-      m_sourceBuffer.Reset();
+      m_writer.write(m_decoder_buffer);
+      reset(m_decoder_buffer);
+      reset(m_source_buffer);
     }
   }
-}
-
-  template<typename B, typename R, typename D>
-  struct ImplementsConcept<Codecs::CodedReader<B, R, D>, IO::Reader> :
-    std::true_type {};
 }
 
 #endif

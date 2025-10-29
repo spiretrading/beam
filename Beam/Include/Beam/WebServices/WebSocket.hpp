@@ -5,38 +5,48 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <vector>
+#include <boost/endian/conversion.hpp>
+#include <boost/throw_exception.hpp>
 #include <cryptopp/osrng.h>
 #include <cryptopp/sha.h>
 #include "Beam/IO/BufferOutputStream.hpp"
+#include "Beam/IO/Channel.hpp"
+#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/ServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/Out.hpp"
+#include "Beam/WebServices/HttpHeader.hpp"
+#include "Beam/WebServices/HttpMethod.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpResponseParser.hpp"
+#include "Beam/WebServices/HttpStatusCode.hpp"
+#include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/Uri.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 namespace Details {
-  inline std::string ComputeShaDigest(const std::string& source) {
+  inline std::string compute_sha_digest(std::string_view source) {
     auto sha = CryptoPP::SHA1();
     auto digest = std::array<CryptoPP::byte, CryptoPP::SHA1::DIGESTSIZE>();
     sha.CalculateDigest(digest.data(), reinterpret_cast<const CryptoPP::byte*>(
-      source.c_str()), source.length());
-    return std::string(reinterpret_cast<const char*>(digest.data()),
-      CryptoPP::SHA1::DIGESTSIZE);
+      source.data()), source.length());
+    return std::string(
+      reinterpret_cast<const char*>(digest.data()), CryptoPP::SHA1::DIGESTSIZE);
   }
 
-  inline std::string GenerateKey() {
-    static auto randomPool = CryptoPP::AutoSeededRandomPool();
-    static constexpr auto KEY_LENGTH = 16;
-    auto randomBytes = std::array<char, KEY_LENGTH>();
-    randomPool.GenerateBlock(
-      reinterpret_cast<CryptoPP::byte*>(randomBytes.data()), KEY_LENGTH);
-    return std::string(randomBytes.data(), KEY_LENGTH);
+  inline std::string generate_key() {
+    static auto random_pool = CryptoPP::AutoSeededRandomPool();
+    static const auto KEY_LENGTH = 16;
+    auto random_bytes = std::array<char, KEY_LENGTH>();
+    random_pool.GenerateBlock(
+      reinterpret_cast<CryptoPP::byte*>(random_bytes.data()), KEY_LENGTH);
+    return std::string(random_bytes.data(), KEY_LENGTH);
   }
 }
 
@@ -48,19 +58,21 @@ namespace Details {
       WebSocketConfig();
 
       /** Sets the URI to connect to. */
-      WebSocketConfig& SetUri(Uri uri);
+      WebSocketConfig& set_uri(const Uri& uri);
 
-      /** Sets the websocket version. */
-      WebSocketConfig& SetVersion(std::string version);
+      /** Sets the web socket version. */
+      WebSocketConfig& set_version(const std::string& version);
 
       /** Sets the list of protocols. */
-      WebSocketConfig& SetProtocols(std::vector<std::string> protocols);
+      WebSocketConfig& set_protocols(const std::vector<std::string>& protocols);
 
       /** Sets the list of extensions. */
-      WebSocketConfig& SetExtensions(std::vector<std::string> extensions);
+      WebSocketConfig& set_extensions(
+        const std::vector<std::string>& extensions);
 
     private:
-      template<typename> friend class WebSocket;
+      template<typename C> requires IsChannel<dereference_t<C>>
+        friend class WebSocket;
       Uri m_uri;
       std::string m_version;
       std::vector<std::string> m_protocols;
@@ -69,15 +81,15 @@ namespace Details {
 
   /**
    * Implements a WebSocket connection to a server.
-   * @param <C> The type Channel used to connect to the server.
+   * @tparam C The type Channel used to connect to the server.
    */
-  template<typename C>
+  template<typename C> requires IsChannel<dereference_t<C>>
   class WebSocket {
-    struct ServerTag{};
+    struct ServerTag {};
     public:
 
       /** The type of Channel used to connect to the server. */
-      using Channel = GetTryDereferenceType<C>;
+      using Channel = dereference_t<C>;
 
       /**
        * The factory used to build Channels.
@@ -89,178 +101,171 @@ namespace Details {
       /**
        * Constructs a WebSocket.
        * @param config The config used to initialize this socket.
-       * @param channelBuilder Constructs the Channel used to connect to the
+       * @param channel_builder Constructs the Channel used to connect to the
        *        server.
        */
-      WebSocket(WebSocketConfig config, ChannelBuilder channelBuilder);
+      WebSocket(WebSocketConfig config, ChannelBuilder channel_builder);
 
       /**
        * Constructs a WebSocket operating in server-mode for internal use only.
        * @param channel The existing Channel to adapt.
        * @param tag Internal use only.
        */
-      template<typename CF>
+      template<Initializes<C> CF>
       WebSocket(CF&& channel, ServerTag tag);
 
       ~WebSocket();
 
       /** Returns the Uri this socket connects to. */
-      const Uri& GetUri() const;
+      const Uri& get_uri() const;
 
       /** Reads the next frame from the web socket. */
-      IO::SharedBuffer Read();
-
-      /**
-       * Writes to the web socket.
-       * @param data The raw data to write.
-       * @param size The number of bytes to write.
-       */
-      void Write(const void* data, std::size_t size);
+      SharedBuffer read();
 
       /**
        * Writes to the web socket.
        * @param buffer The buffer to write.
        */
-      template<typename Buffer>
-      void Write(const Buffer& buffer);
+      template<IsConstBuffer B>
+      void write(const B& buffer);
 
-      void Close();
+      void close();
 
     private:
-      template<typename> friend class HttpServer;
-      bool m_isServerMode;
+      template<typename S> requires IsServerConnection<dereference_t<S>>
+      friend class HttpServer;
+      bool m_is_server_mode;
       Uri m_uri;
       std::vector<std::string> m_protocols;
       std::vector<std::string> m_extensions;
       std::string m_version;
-      ChannelBuilder m_channelBuilder;
+      ChannelBuilder m_channel_builder;
       HttpResponseParser m_parser;
-      GetOptionalLocalPtr<C> m_channel;
-      std::mt19937 m_randomEngine;
-      IO::SharedBuffer m_frameBuffer;
-      IO::OpenState m_openState;
+      local_ptr_t<C> m_channel;
+      std::mt19937 m_random_engine;
+      SharedBuffer m_frame_buffer;
+      OpenState m_open_state;
 
-      void Open();
+      void open();
   };
+
+  template<typename F>
+  WebSocket(WebSocketConfig, F) ->
+    WebSocket<std::invoke_result_t<F, const Uri&>>;
 
   inline WebSocketConfig::WebSocketConfig()
     : m_version("13") {}
 
-  inline WebSocketConfig& WebSocketConfig::SetUri(Uri uri) {
-    m_uri = std::move(uri);
+  inline WebSocketConfig& WebSocketConfig::set_uri(const Uri& uri) {
+    m_uri = uri;
     return *this;
   }
 
-  inline WebSocketConfig& WebSocketConfig::SetVersion(std::string version) {
-    m_version = std::move(version);
+  inline WebSocketConfig& WebSocketConfig::set_version(
+      const std::string& version) {
+    m_version = version;
     return *this;
   }
 
-  inline WebSocketConfig& WebSocketConfig::SetProtocols(
-      std::vector<std::string> protocols) {
-    m_protocols = std::move(protocols);
+  inline WebSocketConfig& WebSocketConfig::set_protocols(
+      const std::vector<std::string>& protocols) {
+    m_protocols = protocols;
     return *this;
   }
 
-  inline WebSocketConfig& WebSocketConfig::SetExtensions(
-      std::vector<std::string> extensions) {
-    m_extensions = std::move(extensions);
+  inline WebSocketConfig& WebSocketConfig::set_extensions(
+      const std::vector<std::string>& extensions) {
+    m_extensions = extensions;
     return *this;
   }
 
-  template<typename C>
-  WebSocket<C>::WebSocket(WebSocketConfig config, ChannelBuilder channelBuilder)
-      : m_isServerMode(false),
+  template<typename C> requires IsChannel<dereference_t<C>>
+  WebSocket<C>::WebSocket(
+      WebSocketConfig config, ChannelBuilder channel_builder)
+      : m_is_server_mode(false),
         m_uri(std::move(config.m_uri)),
         m_protocols(std::move(config.m_protocols)),
         m_extensions(std::move(config.m_extensions)),
         m_version(std::move(config.m_version)),
-        m_channelBuilder(std::move(channelBuilder)),
-        m_randomEngine(static_cast<unsigned int>(std::time(nullptr))) {
-    if(m_uri.GetPort() == 0) {
-      if(m_uri.GetScheme() == "http" || m_uri.GetScheme() == "ws") {
-        m_uri.SetPort(80);
-      } else if(m_uri.GetScheme() == "https" || m_uri.GetScheme() == "wss") {
-        m_uri.SetPort(443);
+        m_channel_builder(std::move(channel_builder)),
+        m_random_engine(static_cast<unsigned int>(std::time(nullptr))) {
+    if(m_uri.get_port() == 0) {
+      if(m_uri.get_scheme() == "http" || m_uri.get_scheme() == "ws") {
+        m_uri.set_port(80);
+      } else if(m_uri.get_scheme() == "https" || m_uri.get_scheme() == "wss") {
+        m_uri.set_port(443);
       }
     }
-    Open();
+    open();
   }
 
-  template<typename C>
-  template<typename CF>
+  template<typename C> requires IsChannel<dereference_t<C>>
+  template<Initializes<C> CF>
   WebSocket<C>::WebSocket(CF&& channel, ServerTag)
-    : m_isServerMode(true),
+    : m_is_server_mode(true),
       m_channel(std::forward<CF>(channel)) {}
 
-  template <typename C>
+  template<typename C> requires IsChannel<dereference_t<C>>
   WebSocket<C>::~WebSocket() {
-    Close();
+    close();
   }
 
-  template<typename C>
-  const Uri& WebSocket<C>::GetUri() const {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  const Uri& WebSocket<C>::get_uri() const {
     return m_uri;
   }
 
-  template<typename C>
-  IO::SharedBuffer WebSocket<C>::Read() {
-    auto payload = IO::SharedBuffer();
+  template<typename C> requires IsChannel<dereference_t<C>>
+  SharedBuffer WebSocket<C>::read() {
+    auto payload = SharedBuffer();
     while(true) {
-      auto opCodeBuffer = std::array<unsigned char, 2>();
-      m_channel->GetReader().Read(reinterpret_cast<char*>(opCodeBuffer.data()),
-        opCodeBuffer.size());
-      auto isFinalFragment = 0;
-      auto opCode = std::uint8_t();
-      auto hasMask = 0;
-      auto maskingKey = std::uint32_t();
-      auto payloadLength = std::uint64_t();
-      isFinalFragment = opCodeBuffer[0] & (1 << 7);
-      opCode = opCodeBuffer[0] & 0x0F;
-      hasMask = opCodeBuffer[1] & (1 << 7);
-      payloadLength = opCodeBuffer[1] & ~(1 << 7);
-      if(payloadLength == 126) {
-        auto revisedPayloadLength = std::uint16_t();
-        m_channel->GetReader().Read(
-          reinterpret_cast<char*>(&revisedPayloadLength),
-          sizeof(revisedPayloadLength));
-        payloadLength = FromBigEndian(revisedPayloadLength);
-      } else if(payloadLength == 127) {
-        auto revisedPayloadLength = std::uint64_t();
-        m_channel->GetReader().Read(
-          reinterpret_cast<char*>(&revisedPayloadLength),
-          sizeof(revisedPayloadLength));
-        payloadLength = FromBigEndian(revisedPayloadLength);
+      auto op_code_buffer = std::array<unsigned char, 2>();
+      Beam::read(m_channel->get_reader(), out(op_code_buffer));
+      auto is_final_fragment = op_code_buffer[0] & (1 << 7);
+      auto op_code = op_code_buffer[0] & 0x0F;
+      auto has_mask = op_code_buffer[1] & (1 << 7);
+      auto masking_key = std::uint32_t();
+      auto payload_length = op_code_buffer[1] & ~(1 << 7);
+      if(payload_length == 126) {
+        auto revised_payload_length = std::uint16_t();
+        Beam::read(m_channel->get_reader(), out(revised_payload_length));
+        payload_length = boost::endian::big_to_native(revised_payload_length);
+      } else if(payload_length == 127) {
+        auto revised_payload_length = std::uint64_t();
+        Beam::read(m_channel->get_reader(), out(revised_payload_length));
+        payload_length = boost::endian::big_to_native(revised_payload_length);
       }
-      if(hasMask) {
-        m_channel->GetReader().Read(reinterpret_cast<char*>(&maskingKey),
-          sizeof(maskingKey));
+      if(has_mask) {
+        Beam::read(m_channel->get_reader(), out(masking_key));
       }
-      auto cursor = payload.GetSize();
-      m_channel->GetReader().Read(Store(payload),
-        static_cast<std::size_t>(payloadLength));
-      if(hasMask) {
-        for(auto i = cursor; i < payloadLength; ++i) {
-          payload.GetMutableData()[i] = payload.GetMutableData()[i] ^
-            (reinterpret_cast<unsigned char*>(&maskingKey)[
-            (i - cursor) % sizeof(maskingKey)]);
+      auto cursor = payload.get_size();
+      if(payload_length != 0) {
+        m_channel->get_reader().read(out(payload), payload_length);
+      }
+      if(has_mask) {
+        for(auto i = cursor; i < payload_length; ++i) {
+          payload.get_mutable_data()[i] = payload.get_mutable_data()[i] ^
+            (reinterpret_cast<unsigned char*>(&masking_key)[
+              (i - cursor) % sizeof(masking_key)]);
         }
       }
-      if(isFinalFragment) {
+      if(is_final_fragment) {
         break;
       }
     }
     return payload;
   }
 
-  template<typename C>
-  void WebSocket<C>::Write(const void* data, std::size_t size) {
-    static constexpr auto MAX_PAYLOAD_LENGTH = std::size_t(125);
-    static constexpr auto MAX_TWO_BYTE_PAYLOAD_LENGTH = std::size_t(1 << 16);
-    auto frame = typename Channel::Writer::Buffer();
-    auto code = std::uint8_t((1 << 7) | 1);
-    frame.Append(&code, sizeof(code));
-    auto payloadLength = [&] {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  template<IsConstBuffer B>
+  void WebSocket<C>::write(const B& buffer) {
+    static const auto MAX_PAYLOAD_LENGTH = std::size_t(125);
+    static const auto MAX_TWO_BYTE_PAYLOAD_LENGTH = std::size_t(1 << 16);
+    auto size = buffer.get_size();
+    auto data = buffer.get_data();
+    auto frame = SharedBuffer();
+    append(frame, std::uint8_t((1 << 7) | 1));
+    auto payload_length = [&] {
       if(size <= MAX_PAYLOAD_LENGTH) {
         return static_cast<std::uint8_t>(size);
       } else if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
@@ -269,131 +274,122 @@ namespace Details {
         return std::uint8_t{127};
       }
     }();
-    if(!m_isServerMode) {
-      payloadLength |= (1 << 7);
+    if(!m_is_server_mode) {
+      payload_length |= (1 << 7);
     }
-    frame.Append(&payloadLength, sizeof(payloadLength));
+    append(frame, payload_length);
     if(size > MAX_PAYLOAD_LENGTH) {
       if(size <= MAX_TWO_BYTE_PAYLOAD_LENGTH) {
-        auto extendedPayloadLength = ToBigEndian(
-          static_cast<std::uint16_t>(size));
-        frame.Append(&extendedPayloadLength, sizeof(extendedPayloadLength));
+        auto extended_payload_length =
+          boost::endian::native_to_big(static_cast<std::uint16_t>(size));
+        append(frame, extended_payload_length);
       } else {
-        auto extendedPayloadLength = ToBigEndian(
-          static_cast<std::uint64_t>(size));
-        frame.Append(&extendedPayloadLength, sizeof(extendedPayloadLength));
+        auto extended_payload_length =
+          boost::endian::native_to_big(static_cast<std::uint64_t>(size));
+        append(frame, extended_payload_length);
       }
     }
-    if(m_isServerMode) {
-      frame.Append(data, size);
+    if(m_is_server_mode) {
+      append(frame, data, size);
     } else {
-      auto maskingKey = std::uint32_t(m_randomEngine());
-      frame.Append(&maskingKey, sizeof(maskingKey));
-      auto frameSize = frame.GetSize();
-      frame.Append(data, size);
+      auto masking_key = std::uint32_t(m_random_engine());
+      append(frame, masking_key);
+      auto frame_size = frame.get_size();
+      append(frame, data, size);
       for(auto i = std::size_t(0); i < size; ++i) {
-        auto index = i + frameSize;
-        frame.GetMutableData()[index] = frame.GetMutableData()[index] ^
-          (reinterpret_cast<unsigned char*>(&maskingKey)[
-          i % sizeof(maskingKey)]);
+        auto index = i + frame_size;
+        frame.get_mutable_data()[index] = frame.get_mutable_data()[index] ^
+          (reinterpret_cast<unsigned char*>(&masking_key)[
+            i % sizeof(masking_key)]);
       }
     }
-    m_channel->GetWriter().Write(frame);
+    m_channel->get_writer().write(frame);
   }
 
-  template<typename C>
-  template<typename Buffer>
-  void WebSocket<C>::Write(const Buffer& buffer) {
-    Write(buffer.GetData(), buffer.GetSize());
-  }
-
-  template<typename C>
-  void WebSocket<C>::Close() {
-    if(m_openState.SetClosing()) {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_channel->GetConnection().Close();
-    m_openState.Close();
+    m_channel->get_connection().close();
+    m_open_state.close();
   }
 
-  template<typename C>
-  void WebSocket<C>::Open() {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::open() {
     static constexpr auto MAGIC_TOKEN = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     try {
-      auto request = HttpRequest(HttpVersion::Version1_1(), HttpMethod::GET,
-        m_uri);
-      request.Add(HttpHeader{"Upgrade", "websocket"});
-      request.Add(HttpHeader{"Connection", "Upgrade"});
-      auto key = Details::GenerateKey();
-      auto base64Key = IO::Base64Encode(
-        IO::BufferFromString<IO::SharedBuffer>(key));
-      request.Add(HttpHeader{"Sec-WebSocket-Key", base64Key});
+      auto request =
+        HttpRequest(HttpVersion::version_1_1(), HttpMethod::GET, m_uri);
+      request.add(HttpHeader("Upgrade", "websocket"));
+      request.add(HttpHeader("Connection", "Upgrade"));
+      auto key = Details::generate_key();
+      auto base64_key = encode_base64(from<SharedBuffer>(key));
+      request.add(HttpHeader("Sec-WebSocket-Key", base64_key));
       if(!m_protocols.empty()) {
-        auto protocols = std::string();
-        auto isFirst = true;
+      auto protocols = std::string();
+        auto is_first = true;
         for(auto& protocol : m_protocols) {
-          if(isFirst) {
-            isFirst = false;
+          if(is_first) {
+            is_first = false;
           } else {
             protocols += ", ";
           }
           protocols += protocol;
         }
-        request.Add(HttpHeader{"Sec-WebSocket-Protocol", protocols});
+        request.add(HttpHeader("Sec-WebSocket-Protocol", protocols));
       }
       if(!m_extensions.empty()) {
         auto extensions = std::string();
-        auto isFirst = true;
+        auto is_first = true;
         for(auto& extension : m_extensions) {
-          if(isFirst) {
-            isFirst = false;
+          if(is_first) {
+            is_first = false;
           } else {
             extensions += "; ";
           }
           extensions += extension;
         }
-        request.Add(HttpHeader{"Sec-WebSocket-Extensions", extensions});
+        request.add(HttpHeader("Sec-WebSocket-Extensions", extensions));
       }
       if(!m_version.empty()) {
-        request.Add(HttpHeader{"Sec-WebSocket-Version", m_version});
+        request.add(HttpHeader("Sec-WebSocket-Version", m_version));
       }
-      auto sendBuffer = typename Channel::Writer::Buffer();
-      auto sendStream =
-        IO::BufferOutputStream<typename Channel::Writer::Buffer>(
-        Ref(sendBuffer));
-      sendStream << request;
-      sendStream.flush();
-      m_channel = m_channelBuilder(m_uri);
-      m_channel->GetWriter().Write(sendBuffer);
-      auto receiveBuffer = IO::SharedBuffer();
+      auto send_buffer = SharedBuffer();
+      request.encode(out(send_buffer));
+      m_channel = m_channel_builder(m_uri);
+      m_channel->get_writer().write(send_buffer);
+      auto receive_buffer = SharedBuffer();
       while(true) {
-        m_channel->GetReader().Read(Store(receiveBuffer));
-        m_parser.Feed(receiveBuffer.GetData(), receiveBuffer.GetSize());
-        auto response = m_parser.GetNextResponse();
-        receiveBuffer.Reset();
+        m_channel->get_reader().read(out(receive_buffer));
+        m_parser.feed(std::string_view(
+          receive_buffer.get_data(), receive_buffer.get_size()));
+        auto response = m_parser.get_next_response();
+        reset(receive_buffer);
         if(response) {
-          if(response->GetStatusCode() != HttpStatusCode::SWITCHING_PROTOCOLS) {
-            BOOST_THROW_EXCEPTION(IO::ConnectException("Invalid status code: " +
-              GetReasonPhrase(response->GetStatusCode())));
+          if(response->get_status_code() !=
+              HttpStatusCode::SWITCHING_PROTOCOLS) {
+            boost::throw_with_location(
+              ConnectException("Invalid status code: " +
+                get_reason_phrase(response->get_status_code())));
           }
-          auto acceptHeader = response->GetHeader("Sec-WebSocket-Accept");
-          if(!acceptHeader.is_initialized()) {
-            BOOST_THROW_EXCEPTION(IO::ConnectException("Invalid accept key."));
+          auto accept_header = response->get_header("Sec-WebSocket-Accept");
+          if(!accept_header.is_initialized()) {
+            boost::throw_with_location(ConnectException("Invalid accept key."));
           }
-          auto acceptToken = IO::Base64Encode(
-            IO::BufferFromString<IO::SharedBuffer>(Details::ComputeShaDigest(
-            base64Key + MAGIC_TOKEN)));
-          if(acceptToken != *acceptHeader) {
-            BOOST_THROW_EXCEPTION(IO::ConnectException{"Invalid accept key."});
+          auto accept_token = encode_base64(from<SharedBuffer>(
+            Details::compute_sha_digest(base64_key + MAGIC_TOKEN)));
+          if(accept_token != *accept_header) {
+            boost::throw_with_location(ConnectException("Invalid accept key."));
           }
           break;
         }
       }
     } catch(const std::exception&) {
-      Close();
-      BOOST_RETHROW;
+      close();
+      throw;
     }
-    m_frameBuffer = m_parser.GetRemainingBuffer();
+    m_frame_buffer = m_parser.get_remaining_buffer();
   }
 }
 

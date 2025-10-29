@@ -1,54 +1,51 @@
 #include <vector>
-#include <boost/mpl/push_back.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/QueriesTests/TestEntry.hpp"
-#include "Beam/TimeService/IncrementalTimeClient.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace Beam::TimeService;
+using namespace Beam::Tests;
+using namespace boost;
+using namespace boost::mp11;
+using namespace boost::posix_time;
 
 namespace {
-  using DataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
-    EvaluatorTranslator<QueryTypes>>;
+  using DataStore = LocalDataStore<
+    BasicQuery<std::string>, TestEntry, EvaluatorTranslator<QueryTypes>>;
 
   struct CustomQueryTypes {
-    using NativeTypes = boost::mpl::insert<QueryTypes::NativeTypes,
-      boost::mpl::end<QueryTypes::NativeTypes>::type, TestEntry>::type;
-    using ValueTypes = boost::mpl::insert<QueryTypes::ValueTypes,
-      boost::mpl::end<QueryTypes::NativeTypes>::type, TestEntry>::type;
+    using NativeTypes = mp_push_back<QueryTypes::NativeTypes, TestEntry>;
+    using ValueTypes = mp_push_back<QueryTypes::ValueTypes, TestEntry>;
     using ComparableTypes = QueryTypes::ComparableTypes;
   };
 
   struct CustomTranslator : EvaluatorTranslator<CustomQueryTypes> {
-    std::vector<int> m_specialValues;
+    std::vector<int> m_special_values;
 
-    CustomTranslator(const std::vector<int>& specialValues)
-      : m_specialValues(std::move(specialValues)) {}
+    CustomTranslator(std::vector<int> special_values)
+      : m_special_values(std::move(special_values)) {}
 
     std::unique_ptr<EvaluatorTranslator<CustomQueryTypes>>
-        NewTranslator() const override {
-      return std::make_unique<CustomTranslator>(m_specialValues);
+        make_translator() const override {
+      return std::make_unique<CustomTranslator>(m_special_values);
     }
 
-    void Visit(const MemberAccessExpression& expression) override {
-      expression.GetExpression()->Apply(*this);
-      auto valueExpression =
-        StaticCast<std::unique_ptr<EvaluatorNode<TestEntry>>>(GetEvaluator());
-      if(expression.GetName() == "is_special") {
-        SetEvaluator(MakeFunctionEvaluatorNode(
-          [specialValues = m_specialValues] (const TestEntry& entry) {
-            return std::find_if(specialValues.begin(), specialValues.end(),
-              [&] (auto specialValue) {
-                return entry.m_value == specialValue;
-              }) != specialValues.end();
-        }, std::move(valueExpression)));
+    void visit(const MemberAccessExpression& expression) override {
+      expression.get_expression().apply(*this);
+      auto value =
+        static_pointer_cast<EvaluatorNode<TestEntry>>(get_evaluator());
+      if(expression.get_name() == "is_special") {
+        set_evaluator(make_function_evaluator_node(
+          [special_values = m_special_values] (const TestEntry& entry) {
+            return std::ranges::any_of(
+              special_values, [&] (auto special_value) {
+                return entry.m_value == special_value;
+              });
+        }, std::move(value)));
       } else {
-        EvaluatorTranslator<CustomQueryTypes>::Visit(expression);
+        EvaluatorTranslator<CustomQueryTypes>::visit(expression);
       }
     }
   };
@@ -56,93 +53,89 @@ namespace {
 
 TEST_SUITE("LocalDataStore") {
   TEST_CASE("store_and_load") {
-    auto dataStore = DataStore();
-    auto timeClient = IncrementalTimeClient();
-    auto sequence = Beam::Queries::Sequence(5);
-    auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
-      sequence);
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
+    auto data_store = DataStore();
+    auto sequence = Beam::Sequence(5);
+    auto entry_a = store(data_store, "hello", 100,
+      time_from_string("2024-05-06 13:21:53:06"), sequence);
+    sequence = increment(sequence);
+    auto entry_b = store(data_store, "hello", 200,
+      time_from_string("2024-05-06 13:21:53:08"), sequence);
+    sequence = increment(sequence);
+    auto entry_c = store(data_store, "hello", 300,
+      time_from_string("2024-05-06 13:21:53:10"), sequence);
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::UNLIMITED, {entry_a, entry_b, entry_c});
+    test_query(
+      data_store, "hello", Beam::Range::TOTAL, SnapshotLimit::from_head(0), {});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(1), {entry_a});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(2), {entry_a, entry_b});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(3), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(4), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(0), {});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(1), {entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(2), {entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(3), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(4), {entry_a, entry_b, entry_c});
   }
 
   TEST_CASE("load_all") {
-    auto dataStore = DataStore();
-    auto timeClient = IncrementalTimeClient();
-    auto valueA = SequencedValue(IndexedValue(
-      TestEntry{5, timeClient.GetTime()}, std::string("hello")),
-      Beam::Queries::Sequence(1));
-    dataStore.Store(valueA);
-    auto valueB = SequencedValue(IndexedValue(
-      TestEntry{6, timeClient.GetTime()}, std::string("hello")),
-      Beam::Queries::Sequence(2));
-    dataStore.Store(valueB);
-    auto valueC = SequencedValue(IndexedValue(
-      TestEntry{7, timeClient.GetTime()}, std::string("goodbye")),
-      Beam::Queries::Sequence(1));
-    dataStore.Store(valueC);
-    auto valueD = SequencedValue(IndexedValue(
-      TestEntry{8, timeClient.GetTime()}, std::string("goodbye")),
-      Beam::Queries::Sequence(2));
-    dataStore.Store(valueD);
-    auto entries = dataStore.LoadAll();
-    auto expectedEntries = std::vector{valueA, valueB, valueC, valueD};
-    REQUIRE(entries.size() == expectedEntries.size());
-    while(!expectedEntries.empty()) {
-      auto expectedEntry = expectedEntries.back();
-      REQUIRE(std::find(entries.begin(), entries.end(), expectedEntry) !=
-        entries.end());
-      expectedEntries.pop_back();
+    auto data_store = DataStore();
+    auto value_a = SequencedValue(
+      IndexedValue(TestEntry(5, time_from_string("2024-05-06 13:21:53:06")),
+        std::string("hello")), Beam::Sequence(1));
+    data_store.store(value_a);
+    auto value_b = SequencedValue(
+      IndexedValue(TestEntry(6, time_from_string("2024-05-06 13:21:53:08")),
+        std::string("hello")), Beam::Sequence(2));
+    data_store.store(value_b);
+    auto value_c = SequencedValue(
+      IndexedValue(TestEntry(7, time_from_string("2024-05-06 13:21:53:09")),
+        std::string("goodbye")), Beam::Sequence(1));
+    data_store.store(value_c);
+    auto value_d = SequencedValue(
+      IndexedValue(TestEntry(8, time_from_string("2024-05-06 13:21:53:10")),
+        std::string("goodbye")), Beam::Sequence(2));
+    data_store.store(value_d);
+    auto entries = data_store.load_all();
+    auto expected_entries = std::vector{value_a, value_b, value_c, value_d};
+    REQUIRE(entries.size() == expected_entries.size());
+    while(!expected_entries.empty()) {
+      auto expected_entry = expected_entries.back();
+      REQUIRE(std::ranges::find(entries, expected_entry) != entries.end());
+      expected_entries.pop_back();
     }
   }
 
   TEST_CASE("custom_translator") {
-    auto specialValues = std::vector{3, 5, 9};
-    auto dataStore = LocalDataStore<
-      BasicQuery<std::string>, TestEntry, CustomTranslator>(specialValues);
-    auto timeClient = IncrementalTimeClient();
+    auto special_values = std::vector{3, 5, 9};
+    auto data_store = LocalDataStore<
+      BasicQuery<std::string>, TestEntry, CustomTranslator>(special_values);
+    auto timestamp = time_from_string("2024-05-06 13:21:53:00");
     for(auto i = 1; i <= 10; ++i) {
-      auto value = SequencedValue(
-        IndexedValue(TestEntry{i, timeClient.GetTime()}, "hello"),
-        Beam::Queries::Sequence(i));
-      dataStore.Store(value);
+      auto value = SequencedValue(IndexedValue(
+        TestEntry(i, timestamp + seconds(i)), std::string("hello")),
+        Beam::Sequence(i));
+      data_store.store(value);
     }
-    auto specialQuery = BasicQuery<std::string>();
-    specialQuery.SetIndex("hello");
-    specialQuery.SetRange(Range::Historical());
-    specialQuery.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    specialQuery.SetFilter(MemberAccessExpression("is_special",
-      NativeDataType<bool>(),
-      ParameterExpression(0, NativeDataType<TestEntry>())));
-    auto specialEntries = dataStore.Load(specialQuery);
-    REQUIRE(specialEntries.size() == 3);
-    REQUIRE(specialEntries[0]->m_value == 3);
-    REQUIRE(specialEntries[1]->m_value == 5);
-    REQUIRE(specialEntries[2]->m_value == 9);
+    auto special_query = BasicQuery<std::string>();
+    special_query.set_index("hello");
+    special_query.set_range(Range::HISTORICAL);
+    special_query.set_snapshot_limit(SnapshotLimit::UNLIMITED);
+    special_query.set_filter(MemberAccessExpression(
+      "is_special", typeid(bool), ParameterExpression(0, typeid(TestEntry))));
+    auto special_entries = data_store.load(special_query);
+    REQUIRE(special_entries.size() == 3);
+    REQUIRE(special_entries[0]->m_value == 3);
+    REQUIRE(special_entries[1]->m_value == 5);
+    REQUIRE(special_entries[2]->m_value == 9);
   }
 }

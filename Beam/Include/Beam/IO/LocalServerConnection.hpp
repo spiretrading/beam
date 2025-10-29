@@ -1,123 +1,97 @@
 #ifndef BEAM_LOCAL_SERVER_CONNECTION_HPP
 #define BEAM_LOCAL_SERVER_CONNECTION_HPP
 #include <memory>
-#include "Beam/IO/Buffer.hpp"
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerChannel.hpp"
 #include "Beam/IO/ServerConnection.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/Async.hpp"
 
 namespace Beam {
-namespace IO {
 namespace Details {
-  template<typename Buffer>
-  void Connect(LocalServerConnection<Buffer>& server,
-    LocalClientChannel<Buffer>& client, const std::string&);
+  void connect(LocalServerConnection&, LocalClientChannel&, const std::string&);
 }
 
-  /**
-   * Implements a local ServerConnection.
-   * @param <B> The type of Buffer the server's Channels read/write to.
-   */
-  template<typename B>
+  /** Implements a local ServerConnection. */
   class LocalServerConnection {
     public:
-
-      /** The type of Buffer used by the Channel's Readers and Writers. */
-      using Buffer = B;
-
-      using Channel = LocalServerChannel<Buffer>;
+      using Channel = LocalServerChannel;
 
       /** Constructs a LocalServerConnection. */
       LocalServerConnection() = default;
 
       ~LocalServerConnection();
 
-      std::unique_ptr<Channel> Accept();
-
-      void Close();
+      std::unique_ptr<Channel> accept();
+      void close();
 
     private:
-      template<typename Buffer>
-      friend void Details::Connect(IO::LocalServerConnection<Buffer>&,
-        IO::LocalClientChannel<Buffer>&, const std::string&);
+      friend void Details::connect(
+        LocalServerConnection&, LocalClientChannel&, const std::string&);
       struct PendingChannelEntry {
-        LocalClientChannel<Buffer>* m_client;
+        LocalClientChannel* m_client;
         std::string m_name;
-        Routines::Eval<void> m_result;
+        Eval<void> m_result;
       };
-      Queue<PendingChannelEntry*> m_pendingChannels;
+      Queue<PendingChannelEntry*> m_pending_channels;
 
       LocalServerConnection(const LocalServerConnection&) = delete;
       LocalServerConnection& operator =(const LocalServerConnection&) = delete;
-      void Connect(LocalClientChannel<Buffer>& client, const std::string& name);
+      void connect(LocalClientChannel& client, const std::string& name);
   };
 
-  template<typename B>
-  LocalServerConnection<B>::~LocalServerConnection() {
-    Close();
+  inline LocalServerConnection::~LocalServerConnection() {
+    close();
   }
 
-  template<typename B>
-  std::unique_ptr<typename LocalServerConnection<B>::Channel>
-      LocalServerConnection<B>::Accept() {
+  inline std::unique_ptr<LocalServerConnection::Channel>
+      LocalServerConnection::accept() {
     auto entry = [&] {
       try {
-        return m_pendingChannels.Pop();
+        return m_pending_channels.pop();
       } catch(const std::exception&) {
-        BOOST_THROW_EXCEPTION(EndOfFileException());
+        boost::throw_with_location(EndOfFileException());
       }
     }();
-    auto serverReader = std::make_unique<PipedReader<Buffer>>();
-    auto clientWriter = std::make_shared<PipedWriter<Buffer>>(
-      Ref(*serverReader));
-    auto clientReader = std::make_unique<PipedReader<Buffer>>();
-    auto serverWriter = std::make_shared<PipedWriter<Buffer>>(
-      Ref(*clientReader));
-    auto channel = std::make_unique<Channel>(entry->m_name,
-      std::move(serverReader), serverWriter, clientWriter);
-    entry->m_client->m_reader = std::move(clientReader);
-    entry->m_client->m_writer = clientWriter;
-    entry->m_client->m_connection.emplace(std::move(clientWriter),
-      std::move(serverWriter));
-    entry->m_result.SetResult();
+    auto server_reader = std::make_unique<PipedReader>();
+    auto client_writer = std::make_shared<PipedWriter>(Ref(*server_reader));
+    auto client_reader = std::make_unique<PipedReader>();
+    auto server_writer = std::make_shared<PipedWriter>(Ref(*client_reader));
+    auto channel = std::make_unique<Channel>(
+      entry->m_name, std::move(server_reader), server_writer, client_writer);
+    entry->m_client->m_reader = std::move(client_reader);
+    entry->m_client->m_writer = client_writer;
+    entry->m_client->m_connection.emplace(
+      std::move(client_writer), std::move(server_writer));
+    entry->m_result.set();
     return channel;
   }
 
-  template<typename B>
-  void LocalServerConnection<B>::Close() {
-    m_pendingChannels.Break(ConnectException("Server unavailable."));
-    while(auto entry = m_pendingChannels.TryPop()) {
-      (*entry)->m_result.SetException(ConnectException("Server unavailable."));
+  inline void LocalServerConnection::close() {
+    m_pending_channels.close(ConnectException("Server unavailable."));
+    while(auto entry = m_pending_channels.try_pop()) {
+      (*entry)->m_result.set_exception(ConnectException("Server unavailable."));
     }
   }
 
-  template<typename B>
-  void LocalServerConnection<B>::Connect(LocalClientChannel<Buffer>& client,
-      const std::string& name) {
-    auto result = Routines::Async<void>();
-    auto entry = PendingChannelEntry{&client, name, result.GetEval()};
-    m_pendingChannels.Push(&entry);
-    result.Get();
+  inline void LocalServerConnection::connect(
+      LocalClientChannel& client, const std::string& name) {
+    auto result = Async<void>();
+    auto entry = PendingChannelEntry(&client, name, result.get_eval());
+    m_pending_channels.push(&entry);
+    result.get();
   }
 
 namespace Details {
-  template<typename Buffer>
-  void Connect(LocalServerConnection<Buffer>& server,
-      LocalClientChannel<Buffer>& client, const std::string& name) {
-    server.Connect(client, name);
+  inline void connect(LocalServerConnection& server, LocalClientChannel& client,
+      const std::string& name) {
+    server.connect(client, name);
   }
 }
-}
-
-  template<typename B>
-  struct ImplementsConcept<IO::LocalServerConnection<B>,
-    IO::ServerConnection<typename IO::LocalServerConnection<B>::Channel>> :
-    std::true_type {};
 }
 
 #endif

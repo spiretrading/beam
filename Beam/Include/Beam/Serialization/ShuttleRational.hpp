@@ -1,35 +1,32 @@
-#ifndef BEAM_SHUTTLERATIONAL_HPP
-#define BEAM_SHUTTLERATIONAL_HPP
+#ifndef BEAM_SHUTTLE_RATIONAL_HPP
+#define BEAM_SHUTTLE_RATIONAL_HPP
 #include <boost/rational.hpp>
-#include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
-namespace Serialization {
   template<typename T>
   struct Send<boost::rational<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const boost::rational<T>& value,
+    template<IsSender S>
+    void operator ()(S& sender, const boost::rational<T>& value,
         unsigned int version) const {
-      shuttle.Shuttle("numerator", value.numerator());
-      shuttle.Shuttle("denominator", value.denominator());
+      sender.send("numerator", value.numerator());
+      sender.send("denominator", value.denominator());
     }
   };
 
   template<typename T>
   struct Receive<boost::rational<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, boost::rational<T>& value,
-        unsigned int version) const {
-      typename boost::rational<T>::int_type numerator;
-      shuttle.Shuttle("numerator", numerator);
-      typename boost::rational<T>::int_type denominator;
-      shuttle.Shuttle("denominator", denominator);
-      value.assign(numerator, denominator);
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, boost::rational<T>& value, unsigned int version) const {
+      auto numerator =
+        receive<typename boost::rational<T>::int_type>(receiver, "numerator");
+      auto denominator = 
+        receive<typename boost::rational<T>::int_type>(receiver, "denominator");
+      value.assign(std::move(numerator), std::move(denominator));
     }
   };
-}
 }
 
 #endif

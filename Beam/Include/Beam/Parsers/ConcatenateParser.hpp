@@ -1,78 +1,43 @@
 #ifndef BEAM_CONCATENATE_PARSER_HPP
 #define BEAM_CONCATENATE_PARSER_HPP
 #include <tuple>
-#include <type_traits>
 #include <utility>
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/ParserTraits.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Traits.hpp"
-#include "Beam/Utilities/NullType.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 namespace Details {
-  template<typename T1, typename T2>
-  struct ConcatenateResult {
-    using type = std::tuple<T1, T2>;
-  };
-
-  template<typename T>
-  struct ConcatenateResult<T, NullType> {
-    using type = T;
-  };
-
-  template<typename T>
-  struct ConcatenateResult<NullType, T> {
-    using type = T;
-  };
-
-  template<typename... T1, typename... T2>
-  struct ConcatenateResult<std::tuple<T1...>, std::tuple<T2...>> {
-    using type = std::tuple<T1..., T2...>;
-  };
-
-  template<typename T1, typename... T2>
-  struct ConcatenateResult<T1, std::tuple<T2...>> {
-    using type = std::tuple<T1, T2...>;
-  };
-
-  template<typename T1, typename... T2>
-  struct ConcatenateResult<std::tuple<T2...>, T1> {
-    using type = std::tuple<T2..., T1>;
-  };
-
-  template<typename... T1, typename... T2>
-  std::tuple<T1..., T2...> TupleCat(std::tuple<T1...>&& t1,
-      std::tuple<T2...>&& t2) {
-    return std::tuple_cat(std::move(t1), std::move(t2));
-  }
-
-  template<typename T1, typename... T2>
-  std::tuple<T1, T2...> TupleCat(T1&& t1, std::tuple<T2...>&& t2) {
-    return std::tuple_cat(std::make_tuple(std::forward<T1>(t1)), std::move(t2));
-  }
-
-  template<typename T1, typename... T2>
-  std::tuple<T2..., T1> TupleCat(std::tuple<T2...>&& t2, T1&& t1) {
-    return std::tuple_cat(std::move(t2), std::make_tuple(std::forward<T1>(t1)));
-  }
-
-  template<typename T1, typename T2>
-  std::tuple<T1, T2> TupleCat(T1&& t1, T2&& t2) {
-    return std::make_tuple(std::forward<T1>(t1), std::forward<T2>(t2));
+  template<typename L, typename R>
+  auto tuple_cat(L&& left, R&& right) {
+    if constexpr(is_instance_v<std::remove_cvref_t<L>, std::tuple> &&
+        is_instance_v<std::remove_cvref_t<R>, std::tuple>) {
+      return std::tuple_cat(std::forward<L>(left), std::forward<R>(right));
+    } else if constexpr(!is_instance_v<std::remove_cvref_t<L>, std::tuple> &&
+        !is_instance_v<std::remove_cvref_t<R>, std::tuple>) {
+      return std::tuple(std::forward<L>(left), std::forward<R>(right));
+    } else if constexpr(!is_instance_v<std::remove_cvref_t<L>, std::tuple>) {
+      return std::tuple_cat(
+        std::tuple(std::forward<L>(left)), std::forward<R>(right));
+    } else {
+      return std::tuple_cat(
+        std::forward<L>(left), std::tuple(std::forward<R>(right)));
+    }
   }
 }
 
   /**
    * Concatenates two parsers so that they must both match in order.
    * The result of the parsing is one of:
-   *   a) NullType if both L and R are NullType Parsers.
-   *   b) L if only R is a NullType Parser.
-   *   c) R if only L is a NullType Parser.
+   *   a) void if both L and R are Parser<void>.
+   *   b) L if only R is a Parser<void>.
+   *   c) R if only L is a Parser<void>.
    *   d) An std::tuple of both L's Result and R's Result.
-   * @param <L> The parser that must match to the left.
-   * @param <R> The parser that must match to the right.
+   * @tparam L The parser that must match to the left.
+   * @tparam R The parser that must match to the right.
    */
-  template<typename L, typename R, typename E>
+  template<IsParser L, IsParser R>
   class ConcatenateParser {
     public:
 
@@ -83,211 +48,223 @@ namespace Details {
       using RightParser = R;
   };
 
-  struct BaseConcatenateParser {};
-
   template<typename L, typename R>
-  class ConcatenateParser<L, R, std::enable_if_t<
-      std::is_same_v<parser_result_t<L>, NullType> &&
-      std::is_same_v<parser_result_t<R>, NullType>>> :
-        public BaseConcatenateParser {
+  ConcatenateParser(L, R) -> ConcatenateParser<to_parser_t<L>, to_parser_t<R>>;
+
+  template<IsParserOf<void> L, IsParserOf<void> R>
+  class ConcatenateParser<L, R> {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = NullType;
+      using Result = void;
 
-      ConcatenateParser(LeftParser leftParser, RightParser rightParser)
-        : m_leftParser(std::move(leftParser)),
-          m_rightParser(std::move(rightParser)) {}
+      /**
+       * Constructs a ConcatenateParser.
+       * @param left The parser that must match to the left.
+       * @param right The parser that must match to the right.
+       */
+      ConcatenateParser(LeftParser left, RightParser right)
+        : m_left(std::move(left)),
+          m_right(std::move(right)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
-          context.Accept();
+      template<IsParserStream S>
+      bool read(S& source) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context)) {
+          context.accept();
           return true;
         }
         return false;
       }
 
     private:
-      LeftParser m_leftParser;
-      RightParser m_rightParser;
+      LeftParser m_left;
+      RightParser m_right;
   };
 
-  template<typename L, typename R>
-  class ConcatenateParser<L, R, std::enable_if_t<
-      std::is_same_v<parser_result_t<L>, NullType> &&
-      !std::is_same_v<parser_result_t<R>, NullType>>> :
-        public BaseConcatenateParser {
-    public:
-      using LeftParser = L;
-      using RightParser = R;
-      using Result = parser_result_t<RightParser>;
-
-      ConcatenateParser(LeftParser leftParser, RightParser rightParser)
-        : m_leftParser(std::move(leftParser)),
-          m_rightParser(std::move(rightParser)) {}
-
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context, value)) {
-          context.Accept();
-          return true;
-        }
-        return false;
-      }
-
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
-          context.Accept();
-          return true;
-        }
-        return false;
-      }
-
-    private:
-      LeftParser m_leftParser;
-      RightParser m_rightParser;
-  };
-
-  template<typename L, typename R>
-  class ConcatenateParser<L, R, std::enable_if_t<
-      !std::is_same_v<parser_result_t<L>, NullType> &&
-      std::is_same_v<parser_result_t<R>, NullType>>> :
-        public BaseConcatenateParser {
+  template<IsParser L, IsParserOf<void> R> requires(
+    !std::is_same_v<parser_result_t<L>, void>)
+  class ConcatenateParser<L, R> {
     public:
       using LeftParser = L;
       using RightParser = R;
       using Result = parser_result_t<LeftParser>;
 
-      ConcatenateParser(LeftParser leftParser, RightParser rightParser)
-        : m_leftParser(std::move(leftParser)),
-          m_rightParser(std::move(rightParser)) {}
+      ConcatenateParser(LeftParser left, RightParser right)
+        : m_left(std::move(left)),
+          m_right(std::move(right)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context, value) && m_rightParser.Read(context)) {
-          context.Accept();
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context, value) && m_right.read(context)) {
+          context.accept();
           return true;
         }
         return false;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
-          context.Accept();
+      template<IsParserStream S>
+      bool read(S& source) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context)) {
+          context.accept();
           return true;
         }
         return false;
       }
 
     private:
-      LeftParser m_leftParser;
-      RightParser m_rightParser;
+      LeftParser m_left;
+      RightParser m_right;
   };
 
-  template<typename L, typename R>
-  class ConcatenateParser<L, R, std::enable_if_t<
-      !std::is_base_of_v<BaseConcatenateParser, L> &&
-      !std::is_same_v<parser_result_t<L>, NullType> &&
-      !std::is_same_v<parser_result_t<R>, NullType>>> :
-        public BaseConcatenateParser {
+  template<IsParserOf<void> L, IsParser R> requires(
+    !std::is_same_v<parser_result_t<R>, void>)
+  class ConcatenateParser<L, R> {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = std::tuple<parser_result_t<LeftParser>,
-        parser_result_t<RightParser>>;
+      using Result = parser_result_t<RightParser>;
 
-      ConcatenateParser(LeftParser leftParser, RightParser rightParser)
-        : m_leftParser(std::move(leftParser)),
-          m_rightParser(std::move(rightParser)) {}
+      ConcatenateParser(LeftParser left, RightParser right)
+        : m_left(std::move(left)),
+          m_right(std::move(right)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream<Stream>(source);
-        auto leftValue = parser_result_t<LeftParser>();
-        if(!m_leftParser.Read(context, leftValue)) {
-          return false;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context, value)) {
+          context.accept();
+          return true;
         }
-        auto rightValue = parser_result_t<RightParser>();
-        if(!m_rightParser.Read(context, rightValue)) {
-          return false;
-        }
-        context.Accept();
-        value = std::make_tuple(std::move(leftValue), std::move(rightValue));
-        return true;
+        return false;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
-          context.Accept();
+      template<IsParserStream S>
+      bool read(S& source) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context)) {
+          context.accept();
           return true;
         }
         return false;
       }
 
     private:
-      LeftParser m_leftParser;
-      RightParser m_rightParser;
+      LeftParser m_left;
+      RightParser m_right;
   };
 
-  template<typename L, typename R>
-  class ConcatenateParser<L, R, std::enable_if_t<
-      std::is_base_of_v<BaseConcatenateParser, L> &&
-      !std::is_same_v<parser_result_t<L>, NullType> &&
-      !std::is_same_v<parser_result_t<R>, NullType>>> :
-        public BaseConcatenateParser {
+  template<IsParser L, IsParser R> requires(
+    !is_instance_v<to_parser_t<L>, ConcatenateParser> &&
+      !is_instance_v<to_parser_t<R>, ConcatenateParser> &&
+        !std::is_same_v<parser_result_t<L>, void> &&
+          !std::is_same_v<parser_result_t<R>, void>)
+  class ConcatenateParser<L, R> {
     public:
       using LeftParser = L;
       using RightParser = R;
-      using Result = typename Details::ConcatenateResult<
-        parser_result_t<LeftParser>, parser_result_t<RightParser>>::type;
+      using Result =
+        std::tuple<parser_result_t<LeftParser>, parser_result_t<RightParser>>;
 
-      ConcatenateParser(LeftParser leftParser, RightParser rightParser)
-        : m_leftParser(std::move(leftParser)),
-          m_rightParser(std::move(rightParser)) {}
+      ConcatenateParser(LeftParser left, RightParser right)
+        : m_left(std::move(left)),
+          m_right(std::move(right)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
-        auto context = SubParserStream<Stream>(source);
-        auto leftValue = parser_result_t<LeftParser>();
-        if(!m_leftParser.Read(context, leftValue)) {
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
+        auto context = SubParserStream<S>(source);
+        auto left_value = parser_result_t<LeftParser>();
+        if(!m_left.read(context, left_value)) {
           return false;
         }
-        auto rightValue = parser_result_t<RightParser>();
-        if(!m_rightParser.Read(context, rightValue)) {
+        auto right_value = parser_result_t<RightParser>();
+        if(!m_right.read(context, right_value)) {
           return false;
         }
-        context.Accept();
-        value = Details::TupleCat(std::move(leftValue), std::move(rightValue));
+        context.accept();
+        value = std::tuple(std::move(left_value), std::move(right_value));
         return true;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        auto context = SubParserStream<Stream>(source);
-        if(m_leftParser.Read(context) && m_rightParser.Read(context)) {
-          context.Accept();
+      template<IsParserStream S>
+      bool read(S& source) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context)) {
+          context.accept();
           return true;
         }
         return false;
       }
 
     private:
-      LeftParser m_leftParser;
-      RightParser m_rightParser;
+      LeftParser m_left;
+      RightParser m_right;
   };
 
-  template<typename L, typename R>
-  ConcatenateParser(L, R) -> ConcatenateParser<to_parser_t<L>, to_parser_t<R>>;
+  template<IsParser L, IsParser R> requires(
+    (is_instance_v<to_parser_t<L>, ConcatenateParser> ||
+      is_instance_v<to_parser_t<R>, ConcatenateParser>) &&
+      !std::is_same_v<parser_result_t<L>, void> &&
+        !std::is_same_v<parser_result_t<R>, void>)
+  class ConcatenateParser<L, R> {
+    public:
+      using LeftParser = L;
+      using RightParser = R;
+      using Result =
+        decltype(Details::tuple_cat(std::declval<parser_result_t<LeftParser>>(),
+          std::declval<parser_result_t<RightParser>>()));
+
+      ConcatenateParser(LeftParser left, RightParser right)
+        : m_left(std::move(left)),
+          m_right(std::move(right)) {}
+
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
+        auto context = SubParserStream<S>(source);
+        auto left_value = parser_result_t<LeftParser>();
+        if(!m_left.read(context, left_value)) {
+          return false;
+        }
+        auto right_value = parser_result_t<RightParser>();
+        if(!m_right.read(context, right_value)) {
+          return false;
+        }
+        context.accept();
+        value =
+          Details::tuple_cat(std::move(left_value), std::move(right_value));
+        return true;
+      }
+
+      template<IsParserStream S>
+      bool read(S& source) const {
+        auto context = SubParserStream<S>(source);
+        if(m_left.read(context) && m_right.read(context)) {
+          context.accept();
+          return true;
+        }
+        return false;
+      }
+
+    private:
+      LeftParser m_left;
+      RightParser m_right;
+  };
+
+  /**
+   * Concatenates two parsers so that they must both match in order.
+   * @param left The parser that must match to the left.
+   * @param right The parser that must match to the right.
+   * @return A ConcatenateParser that matches <i>left</i> followed by
+   *         <i>right</i>.
+   */
+  template<typename L, typename R> requires
+    IsParser<std::remove_cvref_t<L>> && IsParser<to_parser_t<R>> ||
+    IsParser<to_parser_t<L>> && IsParser<std::remove_cvref_t<R>>
+  auto operator >>(L&& left, R&& right) {
+    return ConcatenateParser(std::forward<L>(left), std::forward<R>(right));
+  }
 }
 
 #endif

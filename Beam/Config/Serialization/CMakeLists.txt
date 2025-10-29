@@ -15,7 +15,7 @@ if(UNIX)
     optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_SYSTEM_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH}
-    pthread rt)
+    atomic pthread rt)
 endif()
 add_custom_command(TARGET SerializationTests
   POST_BUILD COMMAND SerializationTests)

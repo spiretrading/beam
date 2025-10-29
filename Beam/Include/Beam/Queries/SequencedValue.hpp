@@ -1,16 +1,15 @@
 #ifndef BEAM_SEQUENCED_VALUE_HPP
 #define BEAM_SEQUENCED_VALUE_HPP
 #include <type_traits>
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Stores a value that is part of a Sequence.
-   * @param <T> The value's data type.
+   * @tparam T The value's data type.
    */
   template<typename T>
   class SequencedValue {
@@ -20,14 +19,15 @@ namespace Beam::Queries {
       using Value = T;
 
       /** Constructs a SequenceValue. */
-      SequencedValue();
+      SequencedValue() noexcept(std::is_nothrow_default_constructible_v<T>);
 
       /**
        * Converts from one type of SequencedValue to another.
        * @param value The value to convert.
        */
       template<typename U>
-      SequencedValue(const SequencedValue<U>& value);
+      SequencedValue(const SequencedValue<U>& value) noexcept(
+        std::is_nothrow_constructible_v<T, const U&>);
 
       /**
        * Constructs a SequencedValue.
@@ -35,19 +35,20 @@ namespace Beam::Queries {
        * @param sequence The value's Sequence.
        */
       template<typename VF>
-      SequencedValue(VF&& value, Sequence sequence);
+      SequencedValue(VF&& value, Sequence sequence) noexcept(
+        std::is_nothrow_constructible_v<T, VF&&>);
 
       /** Returns the Value. */
-      const Value& GetValue() const;
+      const Value& get_value() const;
 
       /** Returns the Value. */
-      Value& GetValue();
+      Value& get_value();
 
       /** Returns the Sequence. */
-      Sequence GetSequence() const;
+      Sequence get_sequence() const;
 
       /** Returns the Sequence. */
-      Sequence& GetSequence();
+      Sequence& get_sequence();
 
       /** Implicitly converts this to the value it represents. */
       operator const Value& () const;
@@ -67,71 +68,76 @@ namespace Beam::Queries {
       /** Returns a pointer to the Value. */
       Value* operator ->();
 
-      bool operator ==(const SequencedValue& rhs) const = default;
+      bool operator ==(const SequencedValue&) const = default;
 
     private:
-      friend struct Serialization::Shuttle<SequencedValue<T>>;
+      friend struct Shuttle<SequencedValue<T>>;
       Value m_value;
       Sequence m_sequence;
   };
 
   template<typename V>
   SequencedValue(V&& value, const Sequence& sequence) ->
-    SequencedValue<std::decay_t<V>>;
+    SequencedValue<std::remove_cvref_t<V>>;
 
   /** Defines a comparator for any two SequencedValues. */
   struct SequenceComparator {
     template<typename T, typename Q>
     bool operator()(const SequencedValue<T>& lhs,
-      const SequencedValue<Q>& rhs) const;
+      const SequencedValue<Q>& rhs) const noexcept;
   };
 
   template<typename T>
   struct TimestampAccessor<SequencedValue<T>> {
     decltype(auto) operator ()(const SequencedValue<T>& value) const {
-      return GetTimestamp(value.GetValue());
+      return get_timestamp(value.get_value());
     }
   };
 
   template<typename T>
-  inline std::ostream& operator <<(std::ostream& out,
-      const SequencedValue<T>& value) {
-    return out << "(" << value.GetValue() << " " << value.GetSequence() << ")";
+  inline std::ostream& operator <<(
+      std::ostream& out, const SequencedValue<T>& value) {
+    return out << '(' << value.get_value() << " " << value.get_sequence() <<
+      ')';
   }
 
   template<typename T>
-  SequencedValue<T>::SequencedValue()
+  SequencedValue<T>::SequencedValue() noexcept(
+    std::is_nothrow_default_constructible_v<T>)
     : m_value() {}
 
   template<typename T>
   template<typename U>
-  SequencedValue<T>::SequencedValue(const SequencedValue<U>& value)
-    : m_value(value.GetValue()),
-      m_sequence(value.GetSequence()) {}
+  SequencedValue<T>::SequencedValue(const SequencedValue<U>& value) noexcept(
+    std::is_nothrow_constructible_v<T, const U&>)
+    : m_value(value.get_value()),
+      m_sequence(value.get_sequence()) {}
 
   template<typename T>
   template<typename VF>
-  SequencedValue<T>::SequencedValue(VF&& value, Sequence sequence)
+  SequencedValue<T>::SequencedValue(VF&& value, Sequence sequence) noexcept(
+    std::is_nothrow_constructible_v<T, VF&&>)
     : m_value(std::forward<VF>(value)),
       m_sequence(sequence) {}
 
   template<typename T>
-  const typename SequencedValue<T>::Value& SequencedValue<T>::GetValue() const {
+  const typename SequencedValue<T>::Value&
+      SequencedValue<T>::get_value() const {
     return m_value;
   }
 
   template<typename T>
-  typename SequencedValue<T>::Value& SequencedValue<T>::GetValue() {
+  typename SequencedValue<T>::Value& SequencedValue<T>::get_value() {
     return m_value;
   }
 
   template<typename T>
-  Sequence SequencedValue<T>::GetSequence() const {
+  Sequence SequencedValue<T>::get_sequence() const {
     return m_sequence;
   }
 
   template<typename T>
-  Sequence& SequencedValue<T>::GetSequence() {
+  Sequence& SequencedValue<T>::get_sequence() {
     return m_sequence;
   }
 
@@ -169,20 +175,18 @@ namespace Beam::Queries {
   }
 
   template<typename T, typename Q>
-  bool SequenceComparator::operator()(
-      const SequencedValue<T>& lhs, const SequencedValue<Q>& rhs) const {
-    return lhs.GetSequence() < rhs.GetSequence();
+  bool SequenceComparator::operator()(const SequencedValue<T>& lhs,
+      const SequencedValue<Q>& rhs) const noexcept {
+    return lhs.get_sequence() < rhs.get_sequence();
   }
-}
 
-namespace Beam::Serialization {
   template<typename T>
-  struct Shuttle<Beam::Queries::SequencedValue<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Beam::Queries::SequencedValue<T>& value,
-        unsigned int version) {
-      shuttle.Shuttle("value", value.m_value);
-      shuttle.Shuttle("sequence", value.m_sequence);
+  struct Shuttle<Beam::SequencedValue<T>> {
+    template<IsShuttle S>
+    void operator ()(S& shuttle, Beam::SequencedValue<T>& value,
+        unsigned int version) const {
+      shuttle.shuttle("value", value.m_value);
+      shuttle.shuttle("sequence", value.m_sequence);
     }
   };
 }

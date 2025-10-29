@@ -1,12 +1,13 @@
 #ifndef BEAM_OUT_HPP
 #define BEAM_OUT_HPP
-#include "Beam/Pointers/Pointers.hpp"
+#include <concepts>
+#include <utility>
 
 namespace Beam {
 
   /**
-   * Used to identify a parameter as an output.
-   * @param <T> The type of the parameter.
+   * Used to mark a parameter as an output.
+   * @tparam T The type of the parameter.
    */
   template<typename T>
   class Out {
@@ -15,30 +16,11 @@ namespace Beam {
       /** The type of the parameter. */
       using Type = T;
 
-      /** Allows for polymorphic Out params. */
-      template<typename U>
-      Out(const Out<U>& out);
+      /** Returns a pointer to the result. */
+      Type* get();
 
-      /**
-       * Copies an Out.
-       * @param out The Out to copy.
-       */
-      Out(const Out& out);
-
-      /**
-       * Acquires an Out.
-       * @param out The Out to acquire.
-       */
-      Out(Out&& out);
-
-      /**
-       * Acquires an Out.
-       * @param out The Out to acquire.
-       */
-      Out& operator =(Out&& out);
-
-      /** Returns <code>true</code> iff the result is ignored. */
-      bool IsIgnored() const;
+      /** Returns a pointer to the result. */
+      const Type* get() const;
 
       /** Returns a reference to the result. */
       Type& operator *();
@@ -52,19 +34,12 @@ namespace Beam {
       /** Returns a pointer to the result. */
       const Type* operator ->() const;
 
-      /** Returns a pointer to the result. */
-      Type* Get();
-
-      /** Returns a pointer to the result. */
-      const Type* Get() const;
-
     private:
-      template<typename> friend class Out;
-      template<typename U> friend Out<U> Store(U& result);
-      template<typename U> friend Out<U> Store(Out<U>& result);
+      template<typename U> friend Out<U> out(U& result);
+      template<typename U> friend Out<U> out(Out<U>& result);
       Type* m_result;
 
-      Out(Type* result);
+      Out(Type& result) noexcept;
   };
 
   /**
@@ -73,8 +48,8 @@ namespace Beam {
    * @return An Out to the <i>result</i>.
    */
   template<typename T>
-  Out<T> Store(T& result) {
-    return Out<T>(&result);
+  Out<T> out(T& result) {
+    return Out(result);
   }
 
   /**
@@ -83,38 +58,18 @@ namespace Beam {
    * @return An Out to the <i>result</i>.
    */
   template<typename T>
-  Out<T> Store(Out<T>& result) {
-    return Out<T>(result.Get());
+  Out<T> out(Out<T>& result) {
+    return Out(*result.get());
   }
 
   template<typename T>
-  template<typename U>
-  Out<T>::Out(const Out<U>& out)
-    : m_result(out.m_result) {}
-
-  template<typename T>
-  Out<T>::Out(const Out& out)
-    : m_result(out.m_result) {}
-
-  template<typename T>
-  Out<T>::Out(Out&& out)
-      : m_result(out.m_result) {
-    out.m_result = nullptr;
+  typename Out<T>::Type* Out<T>::get() {
+    return m_result;
   }
 
   template<typename T>
-  Out<T>& Out<T>::operator =(Out&& out) {
-    if(this == &out) {
-      return *this;
-    }
-    m_result = out.m_result;
-    out.m_result = nullptr;
-    return *this;
-  }
-
-  template<typename T>
-  bool Out<T>::IsIgnored() const {
-    return m_result == nullptr;
+  const typename Out<T>::Type* Out<T>::get() const {
+    return m_result;
   }
 
   template<typename T>
@@ -138,18 +93,8 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Out<T>::Type* Out<T>::Get() {
-    return m_result;
-  }
-
-  template<typename T>
-  const typename Out<T>::Type* Out<T>::Get() const {
-    return m_result;
-  }
-
-  template<typename T>
-  Out<T>::Out(T* result)
-    : m_result(result) {}
+  Out<T>::Out(Type& result) noexcept
+    : m_result(&result) {}
 }
 
 #endif

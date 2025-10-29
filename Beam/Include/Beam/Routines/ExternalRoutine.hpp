@@ -5,86 +5,78 @@
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam {
-namespace Routines {
 
-  /*! \class ExternalRoutine
-      \brief Represents a Routine that is not run from within a Scheduler.
-   */
+  /** Represents a Routine that is not run from within a Scheduler. */
   class ExternalRoutine final : public Routine {
     public:
 
-      //! Constructs an ExternalRoutine.
-      ExternalRoutine();
+      /** Constructs an ExternalRoutine. */
+      ExternalRoutine() noexcept;
 
       ~ExternalRoutine() override;
 
     protected:
-      void Execute() override;
-
-      void Defer() override;
-
-      void PendingSuspend() override;
-
-      void Suspend() override;
-
-      void Resume() override;
+      void execute() override;
+      void defer() override;
+      void pending_suspend() override;
+      void suspend() override;
+      void resume() override;
 
     private:
       mutable boost::mutex m_mutex;
-      mutable boost::condition_variable m_suspendedCondition;
-      bool m_isPendingResume;
+      mutable boost::condition_variable m_suspended_condition;
+      bool m_is_pending_resume;
   };
 
-  inline ExternalRoutine::ExternalRoutine()
-      : m_isPendingResume{false} {}
+  inline ExternalRoutine::ExternalRoutine() noexcept
+    : m_is_pending_resume(false) {}
 
   inline ExternalRoutine::~ExternalRoutine() {
-    SetState(State::COMPLETE);
+    set(State::COMPLETE);
   }
 
-  inline void ExternalRoutine::Execute() {
-    SetState(State::RUNNING);
+  inline void ExternalRoutine::execute() {
+    set(State::RUNNING);
   }
 
-  inline void ExternalRoutine::Defer() {}
+  inline void ExternalRoutine::defer() {}
 
-  inline void ExternalRoutine::PendingSuspend() {
-    SetState(State::PENDING_SUSPEND);
+  inline void ExternalRoutine::pending_suspend() {
+    set(State::PENDING_SUSPEND);
   }
 
-  inline void ExternalRoutine::Suspend() {
-    boost::unique_lock<boost::mutex> lock{m_mutex};
-    SetState(State::SUSPENDED);
-    if(m_isPendingResume) {
-      m_isPendingResume = false;
+  inline void ExternalRoutine::suspend() {
+    auto lock = boost::unique_lock(m_mutex);
+    set(State::SUSPENDED);
+    if(m_is_pending_resume) {
+      m_is_pending_resume = false;
       return;
     }
-    while(GetState() == State::SUSPENDED) {
-      m_suspendedCondition.wait(lock);
+    while(get_state() == State::SUSPENDED) {
+      m_suspended_condition.wait(lock);
     }
   }
 
-  inline void ExternalRoutine::Resume() {
-    boost::lock_guard<boost::mutex> lock{m_mutex};
-    if(GetState() == State::PENDING_SUSPEND) {
-      m_isPendingResume = true;
+  inline void ExternalRoutine::resume() {
+    auto lock = boost::unique_lock(m_mutex);
+    if(get_state() == State::PENDING_SUSPEND) {
+      m_is_pending_resume = true;
       return;
     }
-    assert(GetState() == State::SUSPENDED);
-    SetState(State::RUNNING);
-    m_suspendedCondition.notify_one();
+    assert(get_state() == State::SUSPENDED);
+    set(State::RUNNING);
+    m_suspended_condition.notify_one();
   }
 
-  inline Routine& GetCurrentRoutine() {
-    auto routine = Details::CurrentRoutineGlobal<void>::GetInstance();
-    if(routine == nullptr) {
-      thread_local auto externalRoutine = std::make_unique<ExternalRoutine>();
-      routine = externalRoutine.get();
-      Details::CurrentRoutineGlobal<void>::GetInstance() = routine;
+  inline Routine& get_current_routine() {
+    auto routine = Details::CurrentRoutineGlobal::get();
+    if(!routine) {
+      thread_local auto external_routine = std::make_unique<ExternalRoutine>();
+      routine = external_routine.get();
+      Details::CurrentRoutineGlobal::get() = routine;
     }
     return *routine;
   }
-}
 }
 
 #endif

@@ -1,31 +1,32 @@
 #ifndef BEAM_STRING_PARSER_HPP
 #define BEAM_STRING_PARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Matches a quoted string. */
   class StringParser {
     public:
       using Result = std::string;
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
-  template<typename Stream>
-  bool StringParser::Read(Stream& source, Result& value) const {
+  /** The global instance of a StringParser. */
+  inline const auto string_p = StringParser();
+
+  template<IsParserStream S>
+  bool StringParser::read(S& source, Result& value) const {
     value.clear();
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() != '\"') {
+    if(context.peek() != '\"') {
       return false;
     }
     enum {
@@ -33,41 +34,41 @@ namespace Beam::Parsers {
       TERMINAL,
       ESCAPE
     } state = NORMAL;
-    while(context.Read()) {
+    while(context.read()) {
       if(state == NORMAL) {
-        if(context.GetChar() == '\"') {
+        if(context.peek() == '\"') {
           state = TERMINAL;
           break;
-        } else if(context.GetChar() == '\\') {
+        } else if(context.peek() == '\\') {
           state = ESCAPE;
-        } else if(!std::iscntrl(context.GetChar())) {
-          value += context.GetChar();
+        } else if(!std::iscntrl(context.peek())) {
+          value += context.peek();
         } else {
           break;
         }
       } else if(state == ESCAPE) {
-        if(context.GetChar() == 'n') {
+        if(context.peek() == 'n') {
           value += '\n';
           state = NORMAL;
-        } else if(context.GetChar() == 't') {
+        } else if(context.peek() == 't') {
           value += '\t';
           state = NORMAL;
-        } else if(context.GetChar() == '\"') {
+        } else if(context.peek() == '\"') {
           value += '\"';
           state = NORMAL;
-        } else if(context.GetChar() == '\\') {
+        } else if(context.peek() == '\\') {
           value += '\\';
           state = NORMAL;
-        } else if(context.GetChar() == '/') {
+        } else if(context.peek() == '/') {
           value += '/';
           state = NORMAL;
-        } else if(context.GetChar() == 'b') {
+        } else if(context.peek() == 'b') {
           value += '\b';
           state = NORMAL;
-        } else if(context.GetChar() == 'f') {
+        } else if(context.peek() == 'f') {
           value += '\f';
           state = NORMAL;
-        } else if(context.GetChar() == 'r') {
+        } else if(context.peek() == 'r') {
           value += '\r';
           state = NORMAL;
         } else {
@@ -78,17 +79,17 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
+    context.accept();
     return true;
   }
 
-  template<typename Stream>
-  bool StringParser::Read(Stream& source) const {
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+  template<IsParserStream S>
+  bool StringParser::read(S& source) const {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() != '\"') {
+    if(context.peek() != '\"') {
       return false;
     }
     enum {
@@ -96,34 +97,34 @@ namespace Beam::Parsers {
       TERMINAL,
       ESCAPE
     } state = NORMAL;
-    while(context.Read()) {
+    while(context.read()) {
       if(state == NORMAL) {
-        if(context.GetChar() == '\"') {
+        if(context.peek() == '\"') {
           state = TERMINAL;
           break;
-        } else if(context.GetChar() == '\\') {
+        } else if(context.peek() == '\\') {
           state = ESCAPE;
-        } else if(!std::iscntrl(context.GetChar())) {
+        } else if(!std::iscntrl(context.peek())) {
           continue;
         } else {
           break;
         }
       } else if(state == ESCAPE) {
-        if(context.GetChar() == 'n') {
+        if(context.peek() == 'n') {
           state = NORMAL;
-        } else if(context.GetChar() == 't') {
+        } else if(context.peek() == 't') {
           state = NORMAL;
-        } else if(context.GetChar() == '\"') {
+        } else if(context.peek() == '\"') {
           state = NORMAL;
-        } else if(context.GetChar() == '\\') {
+        } else if(context.peek() == '\\') {
           state = NORMAL;
-        } else if(context.GetChar() == '/') {
+        } else if(context.peek() == '/') {
           state = NORMAL;
-        } else if(context.GetChar() == 'b') {
+        } else if(context.peek() == 'b') {
           state = NORMAL;
-        } else if(context.GetChar() == 'f') {
+        } else if(context.peek() == 'f') {
           state = NORMAL;
-        } else if(context.GetChar() == 'r') {
+        } else if(context.peek() == 'r') {
           state = NORMAL;
         } else {
           break;
@@ -133,7 +134,7 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
+    context.accept();
     return true;
   }
 }

@@ -4,9 +4,8 @@
 #include "Beam/Network/SecureSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/WebServices/Uri.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /** Implements a Channel factory for a SecureSocketChannel. */
   class SecureSocketChannelFactory {
@@ -16,14 +15,13 @@ namespace Beam::WebServices {
        * Returns a new SecureSocketChannel.
        * @param uri The URI that the Channel should connect to.
        */
-      std::unique_ptr<Network::SecureSocketChannel> operator ()(
-        const Uri& uri) const;
+      std::unique_ptr<SecureSocketChannel> operator ()(const Uri& uri) const;
   };
 
-  inline std::unique_ptr<Network::SecureSocketChannel>
+  inline std::unique_ptr<SecureSocketChannel>
       SecureSocketChannelFactory::operator ()(const Uri& url) const {
-    auto address = Network::IpAddress(url.GetHostname(), url.GetPort());
-    return std::make_unique<Network::SecureSocketChannel>(std::move(address));
+    auto address = IpAddress(url.get_hostname(), url.get_port());
+    return std::make_unique<SecureSocketChannel>(std::move(address));
   }
 }
 

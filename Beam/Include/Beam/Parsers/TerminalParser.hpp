@@ -1,38 +1,37 @@
 #ifndef BEAM_TERMINAL_PARSER_HPP
 #define BEAM_TERMINAL_PARSER_HPP
-#include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Utilities/NullType.hpp"
+#include "Beam/Parsers/Parser.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /** Matches a single character. */
   class TerminalParser {
     public:
-      using Result = NullType;
+      using Result = void;
 
       /**
        * Constructs a TerminalParser.
        * @param value The value to match.
        */
-      TerminalParser(char value);
+      TerminalParser(char value) noexcept;
 
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
 
     private:
       char m_value;
   };
 
-  inline TerminalParser::TerminalParser(char value)
+  inline TerminalParser::TerminalParser(char value) noexcept
     : m_value(value) {}
 
-  template<typename Stream>
-  bool TerminalParser::Read(Stream& source) const {
-    if(!source.Read()) {
+  template<IsParserStream S>
+  bool TerminalParser::read(S& source) const {
+    if(!source.read()) {
       return false;
     }
-    if(source.GetChar() != m_value) {
-      source.Undo();
+    if(source.peek() != m_value) {
+      source.undo();
       return false;
     }
     return true;

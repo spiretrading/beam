@@ -1,24 +1,22 @@
 #ifndef BEAM_PLUS_PARSER_HPP
 #define BEAM_PLUS_PARSER_HPP
-#include <string>
-#include <type_traits>
+#include <concepts>
 #include <vector>
-#include <boost/optional.hpp>
-#include "Beam/Parsers/Parsers.hpp"
-#include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Traits.hpp"
+#include <boost/optional/optional.hpp>
+#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/ParserTraits.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
    * Matches a sub Parser one or more times.
    * The result of the parsing is one of:
-   * a) NullType if the sub-expression is a NullType Parser.
+   * a) void if the sub-expression is a void Parser.
    * b) An std::string if the sub-expression returns a char or optional<char>.
    * c) An std::vector of the sub-expression's Result.
-   * @param <P> The parser to match one or more times.
+   * @tparam P The parser to match one or more times.
    */
-  template<typename P, typename E>
+  template<IsParser P>
   class PlusParser {
     public:
 
@@ -27,150 +25,155 @@ namespace Beam::Parsers {
   };
 
   template<typename P>
-  class PlusParser<P, std::enable_if_t<
-      std::is_same_v<parser_result_t<P>, char>>> {
+  PlusParser(P) -> PlusParser<to_parser_t<P>>;
+
+  /**
+   * Constructs a PlusParser.
+   * @param parser The parser to match one or more times.
+   */
+  template<IsParser P>
+  auto operator +(P parser) {
+    return PlusParser(std::move(parser));
+  }
+
+  template<IsParserOf<char> P>
+  class PlusParser<P> {
     public:
       using SubParser = P;
       using Result = std::string;
 
-      PlusParser(SubParser subParser)
-        : m_subParser(std::move(subParser)) {}
+      PlusParser(SubParser sub_parser)
+        : m_sub_parser(std::move(sub_parser)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
         value.clear();
-        auto nextChar = char();
-        if(m_subParser.Read(source, nextChar)) {
-          value += nextChar;
+        auto next_char = char();
+        if(m_sub_parser.read(source, next_char)) {
+          value += next_char;
         } else {
           return false;
         }
-        while(m_subParser.Read(source, nextChar)) {
-          value += nextChar;
+        while(m_sub_parser.read(source, next_char)) {
+          value += next_char;
         }
         return true;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        if(!m_subParser.Read(source)) {
+      template<IsParserStream S>
+      bool read(S& source) const {
+        if(!m_sub_parser.read(source)) {
           return false;
         }
-        while(m_subParser.Read(source)) {}
+        while(m_sub_parser.read(source)) {}
         return true;
       }
 
     private:
-      SubParser m_subParser;
+      SubParser m_sub_parser;
   };
 
-  template<typename P>
-  class PlusParser<P, std::enable_if_t<
-      std::is_same_v<parser_result_t<P>, boost::optional<char>>>> {
+  template<IsParserOf<boost::optional<char>> P>
+  class PlusParser<P> {
     public:
       using SubParser = P;
       using Result = std::string;
 
-      PlusParser(SubParser subParser)
-        : m_subParser(std::move(subParser)) {}
+      PlusParser(SubParser sub_parser)
+        : m_sub_parser(std::move(sub_parser)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
         value.clear();
-        auto nextChar = boost::optional<char>();
-        if(m_subParser.Read(source, nextChar)) {
-          if(nextChar) {
-            value += *nextChar;
+        auto next_char = boost::optional<char>();
+        if(m_sub_parser.read(source, next_char)) {
+          if(next_char) {
+            value += *next_char;
           }
         } else {
           return false;
         }
-        while(m_subParser.Read(source, nextChar)) {
-          if(nextChar) {
-            value += *nextChar;
+        while(m_sub_parser.read(source, next_char)) {
+          if(next_char) {
+            value += *next_char;
           }
         }
         return true;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        if(!m_subParser.Read(source)) {
+      template<IsParserStream S>
+      bool read(S& source) const {
+        if(!m_sub_parser.read(source)) {
           return false;
         }
-        while(m_subParser.Read(source)) {}
+        while(m_sub_parser.read(source)) {}
         return true;
       }
 
     private:
-      SubParser m_subParser;
+      SubParser m_sub_parser;
   };
 
-  template<typename P>
-  class PlusParser<P, std::enable_if_t<
-      !std::is_same_v<parser_result_t<P>, NullType> &&
-      !std::is_same_v<parser_result_t<P>, char> &&
-      !std::is_same_v<parser_result_t<P>, boost::optional<char>>>> {
+  template<IsParser P> requires(!std::same_as<parser_result_t<P>, char> &&
+    !std::same_as<parser_result_t<P>, boost::optional<char>> &&
+      !std::same_as<parser_result_t<P>, void>)
+  class PlusParser<P> {
     public:
       using SubParser = P;
       using Result = std::vector<parser_result_t<SubParser>>;
 
-      PlusParser(SubParser subParser)
-        : m_subParser(std::move(subParser)) {}
+      PlusParser(SubParser sub_parser)
+        : m_sub_parser(std::move(sub_parser)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const {
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const {
         value.clear();
-        auto nextValue = parser_result_t<SubParser>();
-        if(m_subParser.Read(source, nextValue)) {
-          value.push_back(std::move(nextValue));
+        auto next_value = parser_result_t<SubParser>();
+        if(m_sub_parser.read(source, next_value)) {
+          value.push_back(std::move(next_value));
         } else {
           return false;
         }
-        while(m_subParser.Read(source, nextValue)) {
-          value.push_back(std::move(nextValue));
+        while(m_sub_parser.read(source, next_value)) {
+          value.push_back(std::move(next_value));
         }
         return true;
       }
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        if(!m_subParser.Read(source)) {
+      template<IsParserStream S>
+      bool read(S& source) const {
+        if(!m_sub_parser.read(source)) {
           return false;
         }
-        while(m_subParser.Read(source)) {}
+        while(m_sub_parser.read(source)) {}
         return true;
       }
 
     private:
-      SubParser m_subParser;
+      SubParser m_sub_parser;
   };
 
-  template<typename P>
-  class PlusParser<P, std::enable_if_t<
-      std::is_same_v<parser_result_t<P>, NullType>>> {
+  template<IsParserOf<void> P>
+  class PlusParser<P> {
     public:
       using SubParser = P;
-      using Result = NullType;
+      using Result = void;
 
-      PlusParser(SubParser subParser)
-        : m_subParser(std::move(subParser)) {}
+      PlusParser(SubParser sub_parser)
+        : m_sub_parser(std::move(sub_parser)) {}
 
-      template<typename Stream>
-      bool Read(Stream& source) const {
-        if(!m_subParser.Read(source)) {
+      template<IsParserStream S>
+      bool read(S& source) const {
+        if(!m_sub_parser.read(source)) {
           return false;
         }
-        while(m_subParser.Read(source)) {}
+        while(m_sub_parser.read(source)) {}
         return true;
       }
 
     private:
-      SubParser m_subParser;
+      SubParser m_sub_parser;
   };
-
-  template<typename P>
-  PlusParser(P) -> PlusParser<to_parser_t<P>>;
 }
 
 #endif

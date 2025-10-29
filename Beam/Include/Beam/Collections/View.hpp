@@ -1,17 +1,21 @@
 #ifndef BEAM_VIEW_HPP
 #define BEAM_VIEW_HPP
+#include <concepts>
 #include <iterator>
 #include <memory>
-#include <type_traits>
+#include <boost/iterator/counting_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/tuple/tuple.hpp>
 #include "Beam/Collections/AnyIterator.hpp"
-#include "Beam/Collections/Collections.hpp"
 #include "Beam/Collections/SharedIterator.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
   /**
    * Provides a shallow view over a collection or pair of iterators.
-   * @param <T> The type to provide the view over.
+   * @tparam T The type to provide the view over.
    */
   template<typename T>
   class View {
@@ -40,63 +44,51 @@ namespace Beam {
 
       /**
        * Constructs a View from a collection.
-       * @param collection The Collection to view.
+       * @param collection The collection to view.
        */
-      template<typename Collection>
-      View(const Collection& collection);
+      template<std::ranges::input_range C>
+      View(const C& collection);
 
       /**
        * Constructs a View from a collection.
-       * @param collection The Collection to view.
+       * @param collection The collection to view.
        */
-      template<typename Collection, typename = std::enable_if_t<
-        !std::is_base_of_v<View, std::remove_reference_t<Collection>>>>
-      View(Collection& collection);
+      template<std::ranges::input_range C,
+        typename = disable_copy_constructor_t<View, C>>
+      View(C& collection);
 
       /**
        * Constructs a View from a collection.
-       * @param collection The Collection to view.
+       * @param collection The collection to view.
        */
-      template<typename Collection, typename = std::enable_if_t<
-        !std::is_base_of_v<View, std::remove_reference_t<Collection>> &&
-        !std::is_lvalue_reference_v<Collection>>>
-      View(Collection&& collection);
+      template<std::ranges::input_range C,
+        typename = disable_copy_constructor_t<View, C>>
+      View(C&& collection);
 
       /**
        * Copies a View.
        * @param view The View to copy.
        */
-      View(const View& view) = default;
-
-      /**
-       * Copies a View.
-       * @param view The View to copy.
-       */
-      template<typename U, typename = std::enable_if_t<
-        std::is_same_v<U, std::remove_const_t<Type>> && std::is_const_v<Type>>>
+      template<typename U>
       View(const View<U>& view);
 
       /**
        * Moves a View.
        * @param view The View to move.
        */
-      View(View&& view) = default;
-
-      /**
-       * Moves a View.
-       * @param view The View to move.
-       */
-      template<typename U, typename = std::enable_if_t<
-        std::is_same_v<U, std::remove_const_t<Type>> && std::is_const_v<Type>>>
+      template<typename U>
       View(View<U>&& view);
 
       /**
        * Constructs a View from two iterators.
-       * @param beginIterator An iterator to the beginning of the View.
-       * @param endIterator An iterator to the end of the View.
+       * @param begin An iterator to the beginning of the View.
+       * @param end An iterator to the end of the View.
        */
       template<typename BeginIterator, typename EndIterator>
-      View(BeginIterator&& beginIterator, EndIterator&& endIterator);
+      View(BeginIterator&& begin, EndIterator&& end);
+
+      View(const View&) = default;
+      View(View&& view) = default;
 
       /**
        * Returns an element contained in this View.
@@ -149,18 +141,18 @@ namespace Beam {
   };
 
   template<typename Collection>
-  View(Collection&&) -> View<std::remove_reference_t<
+  View(Collection&&) -> View<std::remove_cvref_t<
     decltype(*std::declval<Collection>().begin())>>;
 
   template<typename B, typename E>
-  View(B&&, E&&) -> View<std::remove_reference_t<decltype(*std::declval<B>())>>;
+  View(B&&, E&&) -> View<std::remove_cvref_t<decltype(*std::declval<B>())>>;
 
   /**
    * Drops the last elements of a View.
    * @param view The View to drop elements from.
    */
   template<typename T>
-  View<T> DropLast(const View<T>& view) {
+  View<T> drop_last(const View<T>& view) {
     if(view.size() <= 1) {
       return View<T>();
     } else {
@@ -168,42 +160,58 @@ namespace Beam {
     }
   }
 
+  /**
+   * Creates a View that dereferences each element of a collection of pointers.
+   * @param range The collection to create the View over.
+   * @return The dereferenced View.
+   */
+  template<typename C>
+  auto make_dereference_view(C& range) {
+    auto first = std::begin(range);
+    auto last = std::end(range);
+    auto transform = [] (const auto& ptr) -> decltype(auto) {
+      return *ptr;
+    };
+    return View(
+      boost::make_transform_iterator(first, transform),
+      boost::make_transform_iterator(last, transform));
+  }
+
   template<typename T>
-  template<typename Collection>
-  View<T>::View(const Collection& collection)
+  template<std::ranges::input_range C>
+  View<T>::View(const C& collection)
     : m_begin(collection.cbegin()),
       m_end(collection.cend()) {}
 
   template<typename T>
-  template<typename Collection, typename>
-  View<T>::View(Collection& collection)
+  template<std::ranges::input_range C, typename>
+  View<T>::View(C& collection)
     : m_begin(collection.begin()),
       m_end(collection.end()) {}
 
   template<typename T>
-  template<typename Collection, typename>
-  View<T>::View(Collection&& collection) {
-    auto sharedCollection = std::make_shared<Collection>(
-      std::forward<Collection>(collection));
-    m_begin = SharedIterator(sharedCollection, sharedCollection->begin());
-    m_end = SharedIterator(sharedCollection, sharedCollection->end());
+  template<std::ranges::input_range C, typename>
+  View<T>::View(C&& collection) {
+    auto shared_collection = std::make_shared<C>(std::forward<C>(collection));
+    m_begin = SharedIterator(shared_collection, shared_collection->begin());
+    m_end = SharedIterator(shared_collection, shared_collection->end());
   }
 
   template<typename T>
-  template<typename U, typename>
+  template<typename U>
   View<T>::View(const View<U>& view)
     : View(view.m_begin, view.m_end) {}
 
   template<typename T>
-  template<typename U, typename>
+  template<typename U>
   View<T>::View(View<U>&& view)
     : View(std::move(view.m_begin), std::move(view.m_end)) {}
 
   template<typename T>
   template<typename BeginIterator, typename EndIterator>
-  View<T>::View(BeginIterator&& beginIterator, EndIterator&& endIterator)
-    : m_begin(std::forward<BeginIterator>(beginIterator)),
-      m_end(std::forward<EndIterator>(endIterator)) {}
+  View<T>::View(BeginIterator&& begin, EndIterator&& end)
+    : m_begin(std::forward<BeginIterator>(begin)),
+      m_end(std::forward<EndIterator>(end)) {}
 
   template<typename T>
   const typename View<T>::Type& View<T>::operator [](std::size_t index) const {

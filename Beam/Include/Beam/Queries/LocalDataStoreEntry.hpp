@@ -9,20 +9,19 @@
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Loads and stores SequencedValue's in memory.
-   * @param <Q> The type of query used to load values.
-   * @param <V> The type value to store.
-   * @param <T> The type of EvaluatorTranslator used for filtering values.
+   * @tparam Q The type of query used to load values.
+   * @tparam V The type value to store.
+   * @tparam T The type of EvaluatorTranslator used for filtering values.
    */
   template<typename Q, typename V, typename T>
   class LocalDataStoreEntry {
@@ -35,7 +34,7 @@ namespace Beam::Queries {
       using Value = V;
 
       /** The SequencedValue to store. */
-      using SequencedValue = ::Beam::Queries::SequencedValue<Value>;
+      using SequencedValue = Beam::SequencedValue<Value>;
 
       /** The type of EvaluatorTranslator used for filtering values. */
       using EvaluatorTranslatorFilter = T;
@@ -58,26 +57,26 @@ namespace Beam::Queries {
       explicit LocalDataStoreEntry(const Translator& translator);
 
       /** Returns all the values stored by this data store. */
-      std::vector<SequencedValue> LoadAll() const;
+      std::vector<SequencedValue> load_all() const;
 
       /**
        * Executes a search query.
        * @param query The search query to execute.
        * @return The list of the values that satisfy the search <i>query</i>.
        */
-      std::vector<SequencedValue> Load(const Query& query) const;
+      std::vector<SequencedValue> load(const Query& query) const;
 
       /**
        * Stores a Value.
        * @param value The Value to store.
        */
-      void Store(const SequencedValue& value);
+      void store(const SequencedValue& value);
 
       /**
        * Stores a list of Values.
        * @param values The Values to store.
        */
-      void Store(const std::vector<SequencedValue>& values);
+      void store(const std::vector<SequencedValue>& values);
 
     private:
       using ValueList = SynchronizedVector<SequencedValue>;
@@ -88,7 +87,7 @@ namespace Beam::Queries {
   template<typename Q, typename V, typename T>
   LocalDataStoreEntry<Q, V, T>::LocalDataStoreEntry()
     : m_translator([] (const auto& expression) {
-        return Translate<EvaluatorTranslatorFilter>(expression);
+        return translate<EvaluatorTranslatorFilter>(expression);
       }) {}
 
   template<typename Q, typename V, typename T>
@@ -98,78 +97,78 @@ namespace Beam::Queries {
 
   template<typename Q, typename V, typename T>
   std::vector<typename LocalDataStoreEntry<Q, V, T>::SequencedValue>
-      LocalDataStoreEntry<Q, V, T>::LoadAll() const {
-    return m_values.Acquire();
+      LocalDataStoreEntry<Q, V, T>::load_all() const {
+    return m_values.load();
   }
 
   template<typename Q, typename V, typename T>
   std::vector<typename LocalDataStoreEntry<Q, V, T>::SequencedValue>
-      LocalDataStoreEntry<Q, V, T>::Load(const Query& query) const {
-    if(query.GetSnapshotLimit().GetSize() == 0 ||
-        query.GetRange().GetStart() == Sequence::Present() ||
-        query.GetRange().GetStart() == Sequence::Last()) {
+      LocalDataStoreEntry<Q, V, T>::load(const Query& query) const {
+    if(query.get_snapshot_limit().get_size() == 0 ||
+        query.get_range().get_start() == Sequence::PRESENT ||
+        query.get_range().get_start() == Sequence::LAST) {
       return {};
     }
     auto matches = std::vector<SequencedValue>();
-    auto& startPoint = query.GetRange().GetStart();
-    auto& endPoint = query.GetRange().GetEnd();
-    auto filter = m_translator(query.GetFilter());
-    m_values.With([&] (const auto& values) {
-      if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::TAIL) {
+    auto& start = query.get_range().get_start();
+    auto& end = query.get_range().get_end();
+    auto filter = m_translator(query.get_filter());
+    m_values.with([&] (const auto& values) {
+      if(query.get_snapshot_limit().get_type() == SnapshotLimit::Type::TAIL) {
         for(auto& value : boost::adaptors::reverse(values)) {
-          if(RangePointGreaterOrEqual(value, startPoint) &&
-              RangePointLesserOrEqual(value, endPoint) &&
-              TestFilter(*filter, *value)) {
+          if(range_point_greater_or_equal(value, start) &&
+              range_point_lesser_or_equal(value, end) &&
+              test_filter(*filter, *value)) {
             matches.push_back(value);
             if(static_cast<int>(matches.size()) >=
-                query.GetSnapshotLimit().GetSize()) {
+                query.get_snapshot_limit().get_size()) {
               break;
             }
           }
         }
       } else {
         for(auto& value : values) {
-          if(RangePointGreaterOrEqual(value, startPoint) &&
-              RangePointLesserOrEqual(value, endPoint) &&
-              TestFilter(*filter, *value)) {
+          if(range_point_greater_or_equal(value, start) &&
+              range_point_lesser_or_equal(value, end) &&
+              test_filter(*filter, *value)) {
             matches.push_back(value);
             if(static_cast<int>(matches.size()) >=
-                query.GetSnapshotLimit().GetSize()) {
+                query.get_snapshot_limit().get_size()) {
               break;
             }
           }
         }
       }
     });
-    if(query.GetSnapshotLimit().GetType() == SnapshotLimit::Type::TAIL) {
+    if(query.get_snapshot_limit().get_type() == SnapshotLimit::Type::TAIL) {
       std::reverse(matches.begin(), matches.end());
     }
     return matches;
   }
 
   template<typename Q, typename V, typename T>
-  void LocalDataStoreEntry<Q, V, T>::Store(const SequencedValue& value) {
-    m_values.With([&] (auto& values) {
-      if(values.empty() || value.GetSequence() > values.back().GetSequence()) {
+  void LocalDataStoreEntry<Q, V, T>::store(const SequencedValue& value) {
+    m_values.with([&] (auto& values) {
+      if(values.empty() ||
+          value.get_sequence() > values.back().get_sequence()) {
         values.push_back(value);
         return;
       }
-      auto insertIterator = std::lower_bound(values.begin(), values.end(),
-        value, SequenceComparator());
-      if(insertIterator != values.end() &&
-          insertIterator->GetSequence() == value.GetSequence()) {
-        *insertIterator = value;
+      auto i = std::lower_bound(
+        values.begin(), values.end(), value, SequenceComparator());
+      if(i != values.end() && i->get_sequence() == value.get_sequence()) {
+        *i = value;
       } else {
-        values.insert(insertIterator, value);
+        values.insert(i, value);
       }
     });
   }
 
   template<typename Q, typename V, typename T>
-  void LocalDataStoreEntry<Q, V, T>::Store(
+  void LocalDataStoreEntry<Q, V, T>::store(
       const std::vector<SequencedValue>& values) {
     for(auto& value : values) {
-      Store(value);
+      store(value);
     }
   }
 }

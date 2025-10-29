@@ -2,121 +2,106 @@
 #define BEAM_SCOPED_QUEUE_WRITER_HPP
 #include <memory>
 #include <type_traits>
-#include <utility>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
   /**
    * Stores a handle to a QueueWriter that breaks when the object goes out of
    * scope.
-   * @param <T> The type of data to read from the QueueWriter.
-   * @param <Q> The type of QueueWriter to handle.
+   * @tparam T The type of data to read from the QueueWriter.
+   * @tparam Q The type of QueueWriter to handle.
    */
   template<typename T, typename Q = std::shared_ptr<QueueWriter<T>>>
   class ScopedQueueWriter : public QueueWriter<T> {
     public:
 
       /** The type of QueueWriter to handle. */
-      using QueueWriter = GetTryDereferenceType<Q>;
+      using QueueWriter = dereference_t<Q>;
       using Target = typename Beam::QueueWriter<T>::Target;
 
       /**
        * Constructs a ScopedQueueWriter.
        * @param queue The QueueWriter to manage.
        */
-      template<typename QF, typename = std::enable_if_t<
-        !std::is_base_of_v<ScopedQueueWriter, std::decay_t<QF>> &&
-        std::is_same_v<typename GetTryDereferenceType<QF>::Target,
-        typename QueueWriter::Target>>>
-      ScopedQueueWriter(QF&& queue);
+      template<Initializes<Q> QF,
+        typename = disable_copy_constructor_t<ScopedQueueWriter, QF>>
+      ScopedQueueWriter(QF&& queue) noexcept(
+        std::is_nothrow_constructible_v<local_ptr_t<Q>, QF&&>);
 
       template<typename U>
-      ScopedQueueWriter(ScopedQueueWriter<Target, U>&& queue);
-
-      ScopedQueueWriter(ScopedQueueWriter&& queue);
-
+      ScopedQueueWriter(ScopedQueueWriter<Target, U>&& queue) noexcept(
+        std::is_nothrow_constructible_v<local_ptr_t<Q>, local_ptr_t<U>&&>);
       ~ScopedQueueWriter() override;
 
-      void Push(const Target& value) override;
-
-      void Push(Target&& value) override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      ScopedQueueWriter& operator =(ScopedQueueWriter&& queue);
-
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      void close(const std::exception_ptr& e) override;
       template<typename U>
-      ScopedQueueWriter& operator =(ScopedQueueWriter<Target, U>&& queue);
-
-     using Beam::QueueWriter<T>::Break;
+      ScopedQueueWriter& operator =(ScopedQueueWriter<Target, U>&& queue)
+        noexcept(
+          std::is_nothrow_assignable_v<local_ptr_t<Q>&, local_ptr_t<U>&&>);
+      using Beam::QueueWriter<T>::close;
 
     private:
       template<typename, typename> friend class ScopedQueueWriter;
-      GetOptionalLocalPtr<Q> m_queue;
+      local_ptr_t<Q> m_queue;
   };
 
-  template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
-    ScopedQueueWriter<typename GetTryDereferenceType<Q>::Target,
-    std::decay_t<Q>>, std::decay_t<Q>>>>
+  template<typename Q>
   ScopedQueueWriter(Q&&) -> ScopedQueueWriter<
-    typename GetTryDereferenceType<Q>::Target, std::decay_t<Q>>;
+    typename dereference_t<Q>::Target, std::remove_cvref_t<Q>>;
 
   template<typename T, typename Q>
-  template<typename QF, typename>
-  ScopedQueueWriter<T, Q>::ScopedQueueWriter(QF&& queue)
+  template<Initializes<Q> QF, typename>
+  ScopedQueueWriter<T, Q>::ScopedQueueWriter(QF&& queue) noexcept(
+    std::is_nothrow_constructible_v<local_ptr_t<Q>, QF&&>)
     : m_queue(std::forward<QF>(queue)) {}
 
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueWriter<T, Q>::ScopedQueueWriter(
-    ScopedQueueWriter<Target, U>&& queue)
-    : m_queue(std::move(queue.m_queue)) {}
-
-  template<typename T, typename Q>
-  ScopedQueueWriter<T, Q>::ScopedQueueWriter(ScopedQueueWriter&& queue)
+    ScopedQueueWriter<Target, U>&& queue) noexcept(
+      std::is_nothrow_constructible_v<local_ptr_t<Q>, local_ptr_t<U>&&>)
     : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
   ScopedQueueWriter<T, Q>::~ScopedQueueWriter() {
     if(m_queue) {
-      m_queue->Break();
+      m_queue->close();
     }
   }
 
   template<typename T, typename Q>
-  void ScopedQueueWriter<T, Q>::Push(const Target& value) {
-    m_queue->Push(value);
-  }
-
-  template<typename T, typename Q>
-  void ScopedQueueWriter<T, Q>::Push(Target&& value) {
-    m_queue->Push(std::move(value));
-  }
-
-  template<typename T, typename Q>
-  void ScopedQueueWriter<T, Q>::Break(const std::exception_ptr& e) {
+  void ScopedQueueWriter<T, Q>::push(const Target& value) {
     if(m_queue) {
-      m_queue->Break(e);
+      m_queue->push(value);
     }
   }
 
   template<typename T, typename Q>
-  ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
-      ScopedQueueWriter&& queue) {
-    Break();
-    m_queue = std::move(queue.m_queue);
-    return *this;
+  void ScopedQueueWriter<T, Q>::push(Target&& value) {
+    if(m_queue) {
+      m_queue->push(std::move(value));
+    }
+  }
+
+  template<typename T, typename Q>
+  void ScopedQueueWriter<T, Q>::close(const std::exception_ptr& e) {
+    if(m_queue) {
+      m_queue->close(e);
+    }
   }
 
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueWriter<T, Q>& ScopedQueueWriter<T, Q>::operator =(
-      ScopedQueueWriter<Target, U>&& queue) {
-    Break();
+      ScopedQueueWriter<Target, U>&& queue) noexcept(
+        std::is_nothrow_assignable_v<local_ptr_t<Q>&, local_ptr_t<U>&&>) {
+    close();
     m_queue = std::move(queue.m_queue);
     return *this;
   }

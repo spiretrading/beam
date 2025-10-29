@@ -1,15 +1,17 @@
 #ifndef BEAM_RECEIVER_MIXIN_HPP
 #define BEAM_RECEIVER_MIXIN_HPP
+#include <typeindex>
 #include <type_traits>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/Receiver.hpp"
+#include "Beam/Serialization/SerializedValue.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 
-namespace Beam::Serialization {
+namespace Beam {
 
   /**
    * Provides default implementations of common Receiver methods.
-   * @param <R> The Receiver inheriting this mixin.
+   * @tparam R The Receiver inheriting this mixin.
    */
   template<typename R>
   class ReceiverMixin {
@@ -19,127 +21,146 @@ namespace Beam::Serialization {
       using Receiver = R;
 
       /** Constructs a ReceiverMixin with no polymorphic types. */
-      ReceiverMixin();
+      ReceiverMixin() noexcept;
 
       /**
        * Constructs a ReceiverMixin.
        * @param registry The TypeRegistry used for receiving polymorphic types.
        */
-      ReceiverMixin(
-        Ref<const TypeRegistry<typename Inverse<Receiver>::type>> registry);
+      explicit ReceiverMixin(
+        Ref<const TypeRegistry<inverse_t<Receiver>>> registry) noexcept;
 
       template<typename T>
-      void Shuttle(T& value, void* dummy = nullptr);
-
+      void shuttle(const char* name, const T& value);
       template<typename T>
-      std::enable_if_t<std::is_enum_v<T>> Shuttle(const char* name, T& value,
-        void* dummy = nullptr);
-
+      void shuttle(const T& value);
       template<typename T>
-      std::enable_if_t<std::is_class_v<T> && IsStructure<T>::value &&
-        !ImplementsConcept<T, IO::Buffer>::value> Shuttle(const char* name,
-          T& value, void* dummy = nullptr);
-
+      void receive(T& value);
+      void receive(const char* name, std::type_index& value);
       template<typename T>
-      std::enable_if_t<std::is_class_v<T> && IsSequence<T>::value, int> Shuttle(
-        const char* name, T& value, void* dummy = nullptr);
-
+      void receive(const char* name, T& value) requires std::is_enum_v<T>;
       template<typename T>
-      std::enable_if_t<std::is_class_v<T> && !IsStructure<T>::value &&
-        !IsSequence<T>::value> Shuttle(const char* name, T& value,
-          void* dummy = nullptr);
-
+      void receive(const char* name, T& value) requires(
+        std::is_class_v<T> && is_structure<T> && !IsBuffer<T>);
       template<typename T>
-      std::enable_if_t<std::is_class_v<T>> Shuttle(const char* name, T*& value,
-        void* dummy = nullptr);
-
+      void receive(const char* name, T& value) requires(
+        std::is_class_v<T> && is_sequence<T> && !IsBuffer<T>);
       template<typename T>
-      std::enable_if_t<std::is_class_v<T>> Shuttle(const char* name,
-        SerializedValue<T>& value, void* dummy = nullptr);
+      void receive(const char* name, T& value) requires(std::is_class_v<T> &&
+        !is_structure<T> && !is_sequence<T> && !IsBuffer<T>);
+      template<typename T>
+      void receive(const char* name, T*& value);
+      template<typename T>
+      void receive(const char* name, T*& value) requires std::is_class_v<T>;
 
     private:
-      const TypeRegistry<typename Inverse<R>::type>* m_typeRegistry;
+      const TypeRegistry<inverse_t<R>>* m_registry;
+
+      Receiver& self();
   };
 
   template<typename R>
-  ReceiverMixin<R>::ReceiverMixin()
-    : m_typeRegistry(nullptr) {}
+  ReceiverMixin<R>::ReceiverMixin() noexcept
+    : m_registry(nullptr) {}
 
   template<typename R>
   ReceiverMixin<R>::ReceiverMixin(
-    Ref<const TypeRegistry<typename Inverse<R>::type>> registry)
-    : m_typeRegistry(registry.Get()) {}
+    Ref<const TypeRegistry<inverse_t<R>>> registry) noexcept
+    : m_registry(registry.get()) {}
 
   template<typename R>
   template<typename T>
-  void ReceiverMixin<R>::Shuttle(T& value, void* dummy) {
-    static_cast<Receiver*>(this)->Shuttle(nullptr, value);
+  void ReceiverMixin<R>::shuttle(const char* name, const T& value) {
+    self().receive(name, const_cast<T&>(value));
   }
 
   template<typename R>
   template<typename T>
-  std::enable_if_t<std::is_enum_v<T>> ReceiverMixin<R>::Shuttle(
-      const char* name, T& value, void* dummy) {
-    auto baseValue = std::int32_t();
-    static_cast<Receiver*>(this)->Shuttle(name, baseValue);
-    value = static_cast<T>(baseValue);
+  void ReceiverMixin<R>::shuttle(const T& value) {
+    self().receive(const_cast<T&>(value));
   }
 
   template<typename R>
   template<typename T>
-  std::enable_if_t<std::is_class_v<T> && IsStructure<T>::value &&
-      !ImplementsConcept<T, IO::Buffer>::value> ReceiverMixin<R>::Shuttle(
-        const char* name, T& value, void* dummy) {
-    static_cast<Receiver*>(this)->StartStructure(name);
-    unsigned int version;
-    static_cast<Receiver*>(this)->Shuttle("__version", version);
-    Serialization::Receive<T>()(*static_cast<Receiver*>(this), value, version);
-    static_cast<Receiver*>(this)->EndStructure();
+  void ReceiverMixin<R>::receive(T& value) {
+    self().receive(nullptr, value);
+  }
+
+  template<typename R>
+  void ReceiverMixin<R>::receive(const char* name, std::type_index& value) {
+    assert(m_registry != nullptr);
+    auto type_name = std::string();
+    self().receive(name, type_name);
+    value = m_registry->get_type_index(type_name);
   }
 
   template<typename R>
   template<typename T>
-  std::enable_if_t<std::is_class_v<T> && IsSequence<T>::value, int>
-      ReceiverMixin<R>::Shuttle(const char* name, T& value, void* dummy) {
-    static_cast<Receiver*>(this)->StartSequence(name);
-    Serialization::Receive<T>()(*static_cast<Receiver*>(this), value);
-    static_cast<Receiver*>(this)->EndSequence();
+  void ReceiverMixin<R>::receive(const char* name, T& value) requires
+      std::is_enum_v<T> {
+    auto base_value = std::int32_t();
+    self().receive(name, base_value);
+    value = static_cast<T>(base_value);
   }
 
   template<typename R>
   template<typename T>
-  std::enable_if_t<std::is_class_v<T> && !IsStructure<T>::value &&
-      !IsSequence<T>::value> ReceiverMixin<R>::Shuttle(const char* name,
-        T& value, void* dummy) {
-    Serialization::Receive<T>()(*static_cast<Receiver*>(this), name, value);
+  void ReceiverMixin<R>::receive(const char* name, T& value) requires(
+      std::is_class_v<T> && is_structure<T> && !IsBuffer<T>) {
+    self().start_structure(name);
+    auto version = unsigned();
+    self().receive("__version", version);
+    Receive<T>()(self(), value, version);
+    self().end_structure();
   }
 
   template<typename R>
   template<typename T>
-  std::enable_if_t<std::is_class_v<T>> ReceiverMixin<R>::Shuttle(
-      const char* name, T*& value, void* dummy) {
-    assert(m_typeRegistry != nullptr);
-    static_cast<Receiver*>(this)->StartStructure(name);
-    auto typeName = std::string();
-    static_cast<Receiver*>(this)->Shuttle("__type", typeName);
-    if(typeName == "__null") {
+  void ReceiverMixin<R>::receive(const char* name, T& value) requires(
+      std::is_class_v<T> && is_sequence<T> && !IsBuffer<T>) {
+    self().start_sequence(name);
+    Receive<T>()(self(), value);
+    self().end_sequence();
+  }
+
+  template<typename R>
+  template<typename T>
+  void ReceiverMixin<R>::receive(const char* name, T& value) requires(
+      std::is_class_v<T> && !is_structure<T> && !is_sequence<T> &&
+        !IsBuffer<T>) {
+    Receive<T>()(self(), name, value);
+  }
+
+  template<typename R>
+  template<typename T>
+  void ReceiverMixin<R>::receive(const char* name, T*& value) {
+    value = DataShuttle::make_new<T>();
+    self().receive(name, *value);
+  }
+
+  template<typename R>
+  template<typename T>
+  void ReceiverMixin<R>::receive(const char* name, T*& value) requires
+      std::is_class_v<T> {
+    assert(m_registry != nullptr);
+    self().start_structure(name);
+    auto type_name = std::string();
+    self().receive("__type", type_name);
+    if(type_name == "__null") {
       value = nullptr;
     } else {
-      unsigned int version;
-      static_cast<Receiver*>(this)->Shuttle("__version", version);
-      auto& entry = m_typeRegistry->GetEntry(typeName);
-      value = entry.template Make<T>();
-      entry.Receive(*static_cast<Receiver*>(this), value, version);
+      auto version = unsigned();
+      self().receive("__version", version);
+      auto& entry = m_registry->get_entry(type_name);
+      value = static_cast<T*>(entry.make());
+      entry.receive(self(), value, version);
     }
-    static_cast<Receiver*>(this)->EndStructure();
+    self().end_structure();
   }
 
   template<typename R>
-  template<typename T>
-  std::enable_if_t<std::is_class_v<T>> ReceiverMixin<R>::Shuttle(
-      const char* name, SerializedValue<T>& value, void* dummy) {
-    value.Initialize();
-    Shuttle(name, *value);
+  typename ReceiverMixin<R>::Receiver& ReceiverMixin<R>::self() {
+    return static_cast<Receiver&>(*this);
   }
 }
 

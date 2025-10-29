@@ -1,9 +1,8 @@
 #ifndef BEAM_PERMISSIONS_HPP
 #define BEAM_PERMISSIONS_HPP
 #include "Beam/Collections/EnumSet.hpp"
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /** Enumerates a DirectoryEntry's permissions. */
   BEAM_ENUM(Permission,

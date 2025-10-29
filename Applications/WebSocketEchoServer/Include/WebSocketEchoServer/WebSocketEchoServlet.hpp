@@ -7,7 +7,7 @@
 #include <Beam/WebServices/HttpServerPredicates.hpp>
 #include <Beam/WebServices/HttpUpgradeSlot.hpp>
 
-namespace Beam::WebSocketEchoServer {
+namespace Beam {
 
   /** Implements a web servlet that echo's messages. */
   template<typename C>
@@ -23,15 +23,15 @@ namespace Beam::WebSocketEchoServer {
       ~WebSocketEchoServlet();
 
       /** Returns the web socket upgrade slots. */
-      std::vector<WebSocketSlot> GetWebSocketSlots();
+      std::vector<WebSocketSlot> get_web_socket_slots();
 
-      void Close();
+      void close();
 
     private:
-      IO::OpenState m_openState;
+      OpenState m_open_state;
 
-      void OnUpgrade(const Beam::WebServices::HttpRequest& request,
-        std::unique_ptr<WebSocketChannel> channel);
+      void on_upgrade(
+        const HttpRequest& request, std::unique_ptr<WebSocketChannel> channel);
   };
 
   struct MetaWebSocketEchoServlet {
@@ -43,35 +43,32 @@ namespace Beam::WebSocketEchoServer {
 
   template<typename C>
   WebSocketEchoServlet<C>::~WebSocketEchoServlet() {
-    Close();
+    close();
   }
 
   template<typename C>
   std::vector<typename WebSocketEchoServlet<C>::WebSocketSlot>
-      WebSocketEchoServlet<C>::GetWebSocketSlots() {
+      WebSocketEchoServlet<C>::get_web_socket_slots() {
     auto slots = std::vector<WebSocketSlot>();
-    slots.emplace_back(
-      Beam::WebServices::MatchAny(Beam::WebServices::HttpMethod::GET),
-      std::bind(&WebSocketEchoServlet::OnUpgrade, this, std::placeholders::_1,
-      std::placeholders::_2));
+    slots.emplace_back(match_any(HttpMethod::GET),
+      std::bind_front(&WebSocketEchoServlet::on_upgrade, this));
     return slots;
   }
 
   template<typename C>
-  void WebSocketEchoServlet<C>::Close() {
-    m_openState.Close();
+  void WebSocketEchoServlet<C>::close() {
+    m_open_state.close();
   }
 
   template<typename C>
-  void WebSocketEchoServlet<C>::OnUpgrade(
-      const Beam::WebServices::HttpRequest& request,
-      std::unique_ptr<WebSocketChannel> channel) {
-    Beam::Routines::Spawn([=, channel = std::move(channel)] {
+  void WebSocketEchoServlet<C>::on_upgrade(
+      const HttpRequest& request, std::unique_ptr<WebSocketChannel> channel) {
+    spawn([=, channel = std::move(channel)] {
       while(true) {
-        auto buffer = IO::SharedBuffer();
-        channel->GetReader().Read(Beam::Store(buffer));
+        auto buffer = SharedBuffer();
+        channel->get_reader().read(out(buffer));
         std::cout << buffer << std::endl;
-        channel->GetWriter().Write(buffer);
+        channel->get_writer().write(buffer);
       }
     });
   }

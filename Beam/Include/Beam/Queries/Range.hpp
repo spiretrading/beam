@@ -6,15 +6,14 @@
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/variant.hpp>
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Serialization/ShuttleVariant.hpp"
-#include "Beam/Utilities/HashPtime.hpp"
+#include "Beam/Utilities/HashPosixTimeTypes.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Defines the range of values to Query over in terms of time or Sequence
@@ -29,19 +28,19 @@ namespace Beam::Queries {
       using Point = boost::variant<Sequence, boost::posix_time::ptime>;
 
       /** Returns an empty Range. */
-      static Range Empty() noexcept;
+      static const Range EMPTY;
 
       /** Returns a Range representing all historical Sequences. */
-      static Range Historical() noexcept;
+      static const Range HISTORICAL;
 
       /**
        * Returns a Range representing the entire Sequence including real time
        * data.
        */
-      static Range Total() noexcept;
+      static const Range TOTAL;
 
       /** Returns a Range representing real time data. */
-      static Range RealTime() noexcept;
+      static const Range REAL_TIME;
 
       /** Constructs an empty Range. */
       Range() noexcept;
@@ -76,25 +75,25 @@ namespace Beam::Queries {
         boost::posix_time::special_values end) noexcept;
 
       /** Returns the start of the Range. */
-      const Point& GetStart() const noexcept;
+      const Point& get_start() const noexcept;
 
       /** Returns the end of the Range. */
-      const Point& GetEnd() const noexcept;
+      const Point& get_end() const noexcept;
 
-      bool operator ==(const Range& range) const = default;
+      bool operator ==(const Range&) const = default;
 
     private:
       Point m_start;
       Point m_end;
 
-      static bool IsValid(Point point) noexcept;
-      static Point Validate(Point point) noexcept;
-      void Initialize(Point start, Point end) noexcept;
+      static bool is_valid(Point point) noexcept;
+      static Point validate(Point point) noexcept;
+      void initialize(Point start, Point end) noexcept;
   };
 
   /**
    * Provides access to an object's timestamp field.
-   * @param <T> The type of object to access.
+   * @tparam T The type of object to access.
    */
   template<typename T>
   struct TimestampAccessor {
@@ -113,7 +112,7 @@ namespace Beam::Queries {
    * @return The <i>value</i>'s timestamp.
    */
   template<typename T>
-  boost::posix_time::ptime& GetTimestamp(T& value) noexcept {
+  boost::posix_time::ptime& get_timestamp(T& value) noexcept {
     return TimestampAccessor<T>()(value);
   }
 
@@ -123,7 +122,7 @@ namespace Beam::Queries {
    * @return The <i>value</i>'s timestamp.
    */
   template<typename T>
-  const boost::posix_time::ptime& GetTimestamp(const T& value) noexcept {
+  const boost::posix_time::ptime& get_timestamp(const T& value) noexcept {
     return TimestampAccessor<T>()(value);
   }
 
@@ -131,7 +130,7 @@ namespace Beam::Queries {
   struct TimestampComparator {
     template<typename T, typename Q>
     bool operator ()(const T& lhs, const Q& rhs) const noexcept {
-      return GetTimestamp(lhs) < GetTimestamp(rhs);
+      return get_timestamp(lhs) < get_timestamp(rhs);
     }
   };
 
@@ -143,12 +142,13 @@ namespace Beam::Queries {
    *         <i>point</i>.
    */
   template<typename T>
-  bool RangePointLesserOrEqual(const T& value, Range::Point point) noexcept {
+  bool range_point_lesser_or_equal(
+      const T& value, Range::Point point) noexcept {
     if(auto sequence = boost::get<Sequence>(&point)) {
-      return value.GetSequence() <= *sequence;
+      return value.get_sequence() <= *sequence;
     }
     auto& timestamp = boost::get<boost::posix_time::ptime>(point);
-    return GetTimestamp(value) <= timestamp;
+    return get_timestamp(value) <= timestamp;
   }
 
   /**
@@ -159,27 +159,28 @@ namespace Beam::Queries {
    *         <i>point</i>.
    */
   template<typename T>
-  bool RangePointGreaterOrEqual(const T& value, Range::Point point) noexcept {
+  bool range_point_greater_or_equal(
+      const T& value, Range::Point point) noexcept {
     if(auto sequence = boost::get<Sequence>(&point)) {
-      return value.GetSequence() >= *sequence;
+      return value.get_sequence() >= *sequence;
     }
     auto& timestamp = boost::get<boost::posix_time::ptime>(point);
-    return GetTimestamp(value) >= timestamp;
+    return get_timestamp(value) >= timestamp;
   }
 
   inline std::ostream& operator <<(std::ostream& out, const Range& range) {
-    if(range == Range::Empty()) {
+    if(range == Range::EMPTY) {
       return out << "Empty";
-    } else if(range == Range::Total()) {
+    } else if(range == Range::TOTAL) {
       return out << "Total";
     }
-    return out << "(" << range.GetStart() << " " << range.GetEnd() << ")";
+    return out << '(' << range.get_start() << " " << range.get_end() << ')';
   }
 
   inline std::size_t hash_value(const Range& range) {
     auto seed = std::size_t(0);
-    boost::hash_combine(seed, std::hash<Range::Point>()(range.GetStart()));
-    boost::hash_combine(seed, std::hash<Range::Point>()(range.GetEnd()));
+    boost::hash_combine(seed, std::hash<Range::Point>()(range.get_start()));
+    boost::hash_combine(seed, std::hash<Range::Point>()(range.get_end()));
     return seed;
   }
 
@@ -198,59 +199,53 @@ namespace Beam::Queries {
       boost::get<boost::posix_time::ptime>(range) == time;
   }
 
-  inline bool operator !=(Range::Point range,
-      const boost::posix_time::ptime& time) noexcept {
+  inline bool operator !=(
+      Range::Point range, const boost::posix_time::ptime& time) noexcept {
     return !(range == time);
   }
 
-  inline Range Range::Empty() noexcept {
-    return Range(Sequence::First(), Sequence::First());
-  }
+  inline const Range Range::EMPTY = Range(Sequence::FIRST, Sequence::FIRST);
 
-  inline Range Range::Historical() noexcept {
-    return Range(Sequence::First(), Sequence::Present());
-  }
+  inline const Range Range::HISTORICAL =
+    Range(Sequence::FIRST, Sequence::PRESENT);
 
-  inline Range Range::Total() noexcept {
-    return Range(Sequence::First(), Sequence::Last());
-  }
+  inline const Range Range::TOTAL = Range(Sequence::FIRST, Sequence::LAST);
 
-  inline Range Range::RealTime() noexcept {
-    return Range(Sequence::Present(), Sequence::Last());
-  }
+  inline const Range Range::REAL_TIME =
+    Range(Sequence::PRESENT, Sequence::LAST);
 
   inline Range::Range() noexcept
-    : m_start(Sequence::First()),
-      m_end(Sequence::First()) {}
+    : m_start(Sequence::FIRST),
+      m_end(Sequence::FIRST) {}
 
   inline Range::Range(Point start, Point end) noexcept {
-    Initialize(start, end);
+    initialize(start, end);
+  }
+
+  inline Range::Range(
+      boost::posix_time::special_values start, Point end) noexcept {
+    initialize(boost::posix_time::ptime(start), end);
+  }
+
+  inline Range::Range(
+      Point start, boost::posix_time::special_values end) noexcept {
+    initialize(start, boost::posix_time::ptime(end));
   }
 
   inline Range::Range(boost::posix_time::special_values start,
-      Point end) noexcept {
-    Initialize(boost::posix_time::ptime(start), end);
-  }
-
-  inline Range::Range(Point start,
       boost::posix_time::special_values end) noexcept {
-    Initialize(start, boost::posix_time::ptime(end));
+    initialize(boost::posix_time::ptime(start), boost::posix_time::ptime(end));
   }
 
-  inline Range::Range(boost::posix_time::special_values start,
-      boost::posix_time::special_values end) noexcept {
-    Initialize(boost::posix_time::ptime(start), boost::posix_time::ptime(end));
-  }
-
-  inline const Range::Point& Range::GetStart() const noexcept {
+  inline const Range::Point& Range::get_start() const noexcept {
     return m_start;
   }
 
-  inline const Range::Point& Range::GetEnd() const noexcept {
+  inline const Range::Point& Range::get_end() const noexcept {
     return m_end;
   }
 
-  inline bool Range::IsValid(Point point) noexcept {
+  inline bool Range::is_valid(Point point) noexcept {
     if(auto time = boost::get<const boost::posix_time::ptime>(&point)) {
       if(time->is_special()) {
         if(*time != boost::posix_time::pos_infin &&
@@ -262,12 +257,12 @@ namespace Beam::Queries {
     return true;
   }
 
-  inline Range::Point Range::Validate(Point point) noexcept {
+  inline Range::Point Range::validate(Point point) noexcept {
     if(auto pointDate = boost::get<const boost::posix_time::ptime>(&point)) {
       if(*pointDate == boost::posix_time::neg_infin) {
-        return Sequence::First();
+        return Sequence::FIRST;
       } else if(*pointDate == boost::posix_time::pos_infin) {
-        return Sequence::Last();
+        return Sequence::LAST;
       } else {
         return point;
       }
@@ -275,47 +270,43 @@ namespace Beam::Queries {
     return point;
   }
 
-  inline void Range::Initialize(Point start, Point end) noexcept {
-    if(!IsValid(start) || !IsValid(end)) {
-      m_start = Sequence::First();
-      m_end = Sequence::First();
+  inline void Range::initialize(Point start, Point end) noexcept {
+    if(!is_valid(start) || !is_valid(end)) {
+      m_start = Sequence::FIRST;
+      m_end = Sequence::FIRST;
       return;
     }
-    m_start = Validate(start);
-    m_end = Validate(end);
+    m_start = validate(start);
+    m_end = validate(end);
   }
-}
 
-namespace Beam::Serialization {
   template<>
-  struct Send<Beam::Queries::Range> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const Beam::Queries::Range& value,
-        unsigned int version) {
-      shuttle.Shuttle("start", value.GetStart());
-      shuttle.Shuttle("end", value.GetEnd());
+  struct Send<Beam::Range> {
+    template<IsSender S>
+    void operator ()(
+        S& sender, const Beam::Range& value, unsigned int version) const {
+      sender.send("start", value.get_start());
+      sender.send("end", value.get_end());
     }
   };
 
   template<>
-  struct Receive<Beam::Queries::Range> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Beam::Queries::Range& value,
-        unsigned int version) {
-      auto start = Queries::Range::Point();
-      auto end = Queries::Range::Point();
-      shuttle.Shuttle("start", start);
-      shuttle.Shuttle("end", end);
-      value = Queries::Range(start, end);
+  struct Receive<Beam::Range> {
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, Beam::Range& value, unsigned int version) const {
+      auto start = receive<Range::Point>(receiver, "start");
+      auto end = receive<Range::Point>(receiver, "end");
+      value = Range(start, end);
     }
   };
 }
 
 namespace std {
   template<>
-  struct hash<Beam::Queries::Range> {
-    std::size_t operator ()(const Beam::Queries::Range& value) const noexcept {
-      return Beam::Queries::hash_value(value);
+  struct hash<Beam::Range> {
+    std::size_t operator ()(const Beam::Range& value) const noexcept {
+      return Beam::hash_value(value);
     }
   };
 }

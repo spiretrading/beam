@@ -1,69 +1,51 @@
 #ifndef BEAM_PIPED_READER_HPP
 #define BEAM_PIPED_READER_HPP
-#include <limits>
 #include <memory>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/PipedWriter.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Queues/Queue.hpp"
 
 namespace Beam {
-namespace IO {
 
-  /**
-   * Reads the contents written by a PipedWriter.
-   * @param <B> The type of Buffer to read to.
-   */
-  template<typename B>
+  /** Reads the contents written by a PipedWriter. */
   class PipedReader {
     public:
-      using Buffer = B;
-
-      /** The type of the PipedWriter that connects to this PipedReader. */
-      using PipedWriter = IO::PipedWriter<Buffer>;
 
       /** Constructs an empty PipedReader. */
       PipedReader();
 
       ~PipedReader();
 
-      bool IsDataAvailable() const;
-
-      template<typename R>
-      std::size_t Read(Out<R> destination);
-
-      std::size_t Read(char* destination, std::size_t size);
-
-      template<typename R>
-      std::size_t Read(Out<R> destination, std::size_t size);
+      bool poll() const;
+      template<IsBuffer R>
+      std::size_t read(Out<R> destination, std::size_t size = -1);
 
     private:
-      friend class IO::PipedWriter<Buffer>;
-      mutable BufferReader<Buffer> m_reader;
-      std::shared_ptr<Queue<BufferReader<Buffer>>> m_messages;
+      friend class PipedWriter;
+      mutable BufferReader<SharedBuffer> m_reader;
+      std::shared_ptr<Queue<BufferReader<SharedBuffer>>> m_messages;
 
       PipedReader(const PipedReader&) = delete;
       PipedReader& operator =(const PipedReader&) = delete;
   };
 
-  template<typename B>
-  PipedReader<B>::PipedReader()
-    : m_reader(BufferFromString<Buffer>("")),
-      m_messages(std::make_shared<Queue<BufferReader<Buffer>>>()) {}
+  inline PipedReader::PipedReader()
+    : m_reader(SharedBuffer()),
+      m_messages(std::make_shared<Queue<BufferReader<SharedBuffer>>>()) {}
 
-  template<typename B>
-  PipedReader<B>::~PipedReader() {
-    m_messages->Break(EndOfFileException("Pipe broken."));
+  inline PipedReader::~PipedReader() {
+    m_messages->close(EndOfFileException("Pipe broken."));
   }
 
-  template<typename B>
-  bool PipedReader<B>::IsDataAvailable() const {
+  inline bool PipedReader::poll() const {
     while(true) {
-      if(m_reader.IsDataAvailable()) {
+      if(m_reader.poll()) {
         return true;
       }
-      if(auto reader = m_messages->TryPop()) {
+      if(auto reader = m_messages->try_pop()) {
         m_reader = std::move(*reader);
       } else {
         return false;
@@ -72,38 +54,41 @@ namespace IO {
     return false;
   }
 
-  template<typename B>
-  template<typename R>
-  std::size_t PipedReader<B>::Read(Out<R> destination) {
-    return Read(Store(destination), std::numeric_limits<std::size_t>::max());
-  }
-
-  template<typename B>
-  std::size_t PipedReader<B>::Read(char* destination, std::size_t size) {
+  template<IsBuffer R>
+  std::size_t PipedReader::read(Out<R> destination, std::size_t size) {
     while(true) {
       try {
-        return m_reader.Read(destination, size);
+        return m_reader.read(out(destination), size);
       } catch(const EndOfFileException&) {
-        m_reader = m_messages->Pop();
+        m_reader = m_messages->pop();
       }
     }
   }
 
-  template<typename B>
-  template<typename R>
-  std::size_t PipedReader<B>::Read(Out<R> destination, std::size_t size) {
-    while(true) {
-      try {
-        return m_reader.Read(Store(destination), size);
-      } catch(const EndOfFileException&) {
-        m_reader = m_messages->Pop();
-      }
-    }
-  }
-}
+  inline PipedWriter::PipedWriter(Ref<PipedReader> destination)
+    : m_messages(destination->m_messages) {}
 
-  template<typename B>
-  struct ImplementsConcept<IO::PipedReader<B>, IO::Reader> : std::true_type {};
+  inline PipedWriter::~PipedWriter() {
+    close();
+  }
+
+  inline void PipedWriter::close(const std::exception_ptr& e) {
+    m_messages->close(e);
+  }
+
+  template<typename E>
+  void PipedWriter::close(const E& e) {
+    close(std::make_exception_ptr(e));
+  }
+
+  inline void PipedWriter::close() {
+    close(EndOfFileException("Pipe broken."));
+  }
+
+  template<IsConstBuffer T>
+  void PipedWriter::write(const T& data) {
+    m_messages->push(BufferReader(SharedBuffer(data)));
+  }
 }
 
 #endif

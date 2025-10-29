@@ -11,19 +11,18 @@
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
 #include "Beam/Queries/QueryInterruptedException.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Publishes SequencedValues sent via a query.
-   * @param <Q> The type of query submitted.
-   * @param <V> The type of data received.
+   * @tparam Q The type of query submitted.
+   * @tparam V The type of data received.
    */
   template<typename Q, typename V>
   class SequencedValuePublisher {
@@ -41,72 +40,73 @@ namespace Beam::Queries {
        * @param filter The filter to apply to published values.
        * @param queue The queue to publish the data to.
        */
-      SequencedValuePublisher(const Query& query,
-        std::unique_ptr<Evaluator> filter, ScopedQueueWriter<Value> queue);
+      SequencedValuePublisher(Query query, std::unique_ptr<Evaluator> filter,
+        ScopedQueueWriter<Value> queue);
 
       /** Returns the id of the query. */
-      int GetId() const;
+      int get_id() const;
 
       /**
        * Publishes data.
        * @param value The value to publish.
        */
-      template<typename T>
-      void Push(T&& value);
+      template<
+        std::convertible_to<typename SequencedValuePublisher<Q, V>::Value> T>
+      void push(T&& value);
 
       /**
        * Publishes data used as part of a query's snapshot.
        * @param begin An iterator to the beginning of the snapshot.
        * @param end An iterator to one past the end of the snapshot.
        */
-      template<typename Iterator>
-      void PushSnapshot(Iterator begin, Iterator end);
+      template<std::input_iterator I>
+      void push_snapshot(I begin, I end);
 
       /** Begins receiving data used to initialize the query. */
-      void BeginSnapshot();
+      void begin_snapshot();
 
       /**
        * Ends the snapshot.
-       * @param queryId The query's id.
+       * @param id The query's id.
        */
-      void EndSnapshot(int queryId);
+      void end_snapshot(int id);
 
       /**
        * Begins recovering data lost from an interrupted query.
        * @return The query to submit to recover the lost data.
        */
-      Query BeginRecovery();
+      Query begin_recovery();
 
       /**
        * Ends the data recovery, resuming normal query publication.
-       * @param queryId The resumed query's id.
+       * @param id The resumed query's id.
        */
-      void EndRecovery(int queryId);
+      void end_recovery(int id);
 
       /** Breaks the queue receiving the published data. */
-      void Break();
+      void close();
 
       /**
        * Breaks the queue receiving the published data.
        * @param e The exception used to break the queue.
        */
       template<typename E>
-      void Break(const E& e);
+      void close(const E& e);
 
       /**
        * Breaks the queue receiving the published data.
        * @param e The exception used to break the queue.
        */
-      void Break(const std::exception_ptr& e);
+      void close(const std::exception_ptr& e);
 
     private:
       mutable boost::mutex m_mutex;
       Query m_query;
       std::unique_ptr<Evaluator> m_filter;
       ScopedQueueWriter<Value> m_queue;
-      int m_queryId;
-      Sequence m_nextSequence;
-      std::vector<Value> m_writeLog;
+      int m_id;
+      Sequence m_next_sequence;
+      std::vector<Value> m_write_log;
 
       SequencedValuePublisher(const SequencedValuePublisher&) = delete;
       SequencedValuePublisher& operator =(
@@ -114,117 +114,112 @@ namespace Beam::Queries {
   };
 
   template<typename Q, typename V>
-  SequencedValuePublisher<Q, V>::SequencedValuePublisher(const Query& query,
+  SequencedValuePublisher<Q, V>::SequencedValuePublisher(Query query,
     std::unique_ptr<Evaluator> filter, ScopedQueueWriter<Value> queue)
-    : m_query(query),
+    : m_query(std::move(query)),
       m_filter(std::move(filter)),
       m_queue(std::move(queue)),
-      m_queryId(-1),
-      m_nextSequence(Sequence::First()) {}
+      m_id(-1),
+      m_next_sequence(Sequence::FIRST) {}
 
   template<typename Q, typename V>
-  int SequencedValuePublisher<Q, V>::GetId() const {
+  int SequencedValuePublisher<Q, V>::get_id() const {
     auto lock = boost::lock_guard(m_mutex);
-    return m_queryId;
+    return m_id;
   }
 
   template<typename Q, typename V>
-  template<typename T>
-  void SequencedValuePublisher<Q, V>::Push(T&& value) {
+  template<std::convertible_to<typename SequencedValuePublisher<Q, V>::Value> T>
+  void SequencedValuePublisher<Q, V>::push(T&& value) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_queryId == -1) {
-      m_writeLog.emplace_back(std::forward<T>(value));
-    } else {
-      if(value.GetSequence() >= m_nextSequence &&
-          TestFilter(*m_filter, *value)) {
-        m_nextSequence = Increment(value.GetSequence());
-        m_queue.Push(std::forward<T>(value));
+    if(m_id == -1) {
+      m_write_log.emplace_back(std::forward<T>(value));
+    } else if(value.get_sequence() >= m_next_sequence &&
+        test_filter(*m_filter, *value)) {
+      m_next_sequence = increment(value.get_sequence());
+      m_queue.push(std::forward<T>(value));
+    }
+  }
+
+  template<typename Q, typename V>
+  template<std::input_iterator I>
+  void SequencedValuePublisher<Q, V>::push_snapshot(I begin, I end) {
+    auto lock = boost::lock_guard(m_mutex);
+    for(auto& value : boost::iterator_range<I>(begin, end)) {
+      if(value.get_sequence() >= m_next_sequence &&
+          test_filter(*m_filter, *value)) {
+        m_next_sequence = increment(value.get_sequence());
+        m_queue.push(std::move(value));
       }
     }
   }
 
   template<typename Q, typename V>
-  template<typename Iterator>
-  void SequencedValuePublisher<Q, V>::PushSnapshot(Iterator begin,
-      Iterator end) {
+  void SequencedValuePublisher<Q, V>::begin_snapshot() {
     auto lock = boost::lock_guard(m_mutex);
-    for(auto& value : boost::iterator_range<Iterator>(begin, end)) {
-      if(value.GetSequence() >= m_nextSequence &&
-          TestFilter(*m_filter, *value)) {
-        m_nextSequence = Increment(value.GetSequence());
-        m_queue.Push(std::move(value));
-      }
-    }
+    m_id = -1;
   }
 
   template<typename Q, typename V>
-  void SequencedValuePublisher<Q, V>::BeginSnapshot() {
+  void SequencedValuePublisher<Q, V>::end_snapshot(int id) {
     auto lock = boost::lock_guard(m_mutex);
-    m_queryId = -1;
-  }
-
-  template<typename Q, typename V>
-  void SequencedValuePublisher<Q, V>::EndSnapshot(int queryId) {
-    auto lock = boost::lock_guard(m_mutex);
-    m_queryId = queryId;
-    auto writeLog = std::vector<Value>();
-    writeLog.swap(m_writeLog);
-    for(auto& value : writeLog) {
-      if(value.GetSequence() >= m_nextSequence &&
-          TestFilter(*m_filter, *value)) {
-        m_nextSequence = Increment(value.GetSequence());
-        m_queue.Push(std::move(value));
+    m_id = id;
+    auto write_log = std::vector<Value>();
+    write_log.swap(m_write_log);
+    for(auto& value : write_log) {
+      if(value.get_sequence() >= m_next_sequence &&
+          test_filter(*m_filter, *value)) {
+        m_next_sequence = increment(value.get_sequence());
+        m_queue.push(std::move(value));
       }
     }
   }
 
   template<typename Q, typename V>
   typename SequencedValuePublisher<Q, V>::Query
-      SequencedValuePublisher<Q, V>::BeginRecovery() {
+      SequencedValuePublisher<Q, V>::begin_recovery() {
     auto lock = boost::lock_guard(m_mutex);
-    m_queryId = -1;
-    if(m_query.GetInterruptionPolicy() == InterruptionPolicy::RECOVER_DATA ||
-        m_query.GetInterruptionPolicy() ==
-        InterruptionPolicy::IGNORE_CONTINUE) {
-      auto startPoint = Range::Point();
-      if(m_query.GetInterruptionPolicy() ==
+    m_id = -1;
+    if(m_query.get_interruption_policy() == InterruptionPolicy::RECOVER_DATA ||
+        m_query.get_interruption_policy() ==
           InterruptionPolicy::IGNORE_CONTINUE) {
-        startPoint = Sequence::Present();
-      } else {
-        if(m_nextSequence == Sequence::First()) {
-          startPoint = m_query.GetRange().GetStart();
-        } else {
-          startPoint = m_nextSequence;
+      auto start = [&] () -> Range::Point {
+        if(m_query.get_interruption_policy() ==
+            InterruptionPolicy::IGNORE_CONTINUE) {
+          return Sequence::PRESENT;
+        } else if(m_next_sequence == Sequence::FIRST) {
+          return m_query.get_range().get_start();
         }
-      }
-      auto recoveryQuery = m_query;
-      recoveryQuery.SetRange(startPoint, m_query.GetRange().GetEnd());
-      return recoveryQuery;
+        return m_next_sequence;
+      }();
+      auto recovery_query = m_query;
+      recovery_query.set_range(start, m_query.get_range().get_end());
+      return recovery_query;
     } else {
-      m_queue.Break(QueryInterruptedException());
-      BOOST_THROW_EXCEPTION(QueryInterruptedException());
+      m_queue.close(QueryInterruptedException());
+      boost::throw_with_location(QueryInterruptedException());
     }
   }
 
   template<typename Q, typename V>
-  void SequencedValuePublisher<Q, V>::EndRecovery(int queryId) {
-    EndSnapshot(queryId);
+  void SequencedValuePublisher<Q, V>::end_recovery(int id) {
+    end_snapshot(id);
   }
 
   template<typename Q, typename V>
-  void SequencedValuePublisher<Q, V>::Break() {
-    m_queue.Break();
+  void SequencedValuePublisher<Q, V>::close() {
+    m_queue.close();
   }
 
   template<typename Q, typename V>
   template<typename E>
-  void SequencedValuePublisher<Q, V>::Break(const E& e) {
-    Break(std::make_exception_ptr(e));
+  void SequencedValuePublisher<Q, V>::close(const E& e) {
+    close(std::make_exception_ptr(e));
   }
 
   template<typename Q, typename V>
-  void SequencedValuePublisher<Q, V>::Break(const std::exception_ptr& e) {
-    m_queue.Break(e);
+  void SequencedValuePublisher<Q, V>::close(const std::exception_ptr& e) {
+    m_queue.close(e);
   }
 }
 

@@ -1,19 +1,18 @@
 #ifndef BEAM_TO_PYTHON_WRITER_HPP
 #define BEAM_TO_PYTHON_WRITER_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
-namespace Beam::IO {
+namespace Beam::Python {
 
   /**
    * Wraps a Writer for use with Python.
-   * @param <W> The type of Writer to wrap.
+   * @tparam W The type of Writer to wrap.
    */
-  template<typename W>
+  template<IsWriter W>
   class ToPythonWriter {
     public:
 
@@ -25,17 +24,30 @@ namespace Beam::IO {
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonWriter(Args&&... args);
+      explicit ToPythonWriter(Args&&... args);
 
       ~ToPythonWriter();
 
-      ToPythonWriter(ToPythonWriter&&) = default;
+      /** Returns a reference to the underlying writer. */
+      Writer& get();
 
-      void Write(const void* data, std::size_t size);
+      /** Returns a reference to the underlying writer. */
+      const Writer& get() const;
 
-      void Write(const BufferView& data);
+      /** Returns a reference to the underlying writer. */
+      Writer& operator *();
 
-      ToPythonWriter& operator =(ToPythonWriter&&) = default;
+      /** Returns a reference to the underlying writer. */
+      const Writer& operator *() const;
+
+      /** Returns a pointer to the underlying writer. */
+      Writer* operator ->();
+
+      /** Returns a pointer to the underlying writer. */
+      const Writer* operator ->() const;
+
+      template<IsConstBuffer B>
+      void write(const B& data);
 
     private:
       boost::optional<Writer> m_writer;
@@ -45,30 +57,57 @@ namespace Beam::IO {
   };
 
   template<typename Writer>
-  ToPythonWriter(Writer&&) -> ToPythonWriter<std::decay_t<Writer>>;
+  ToPythonWriter(Writer&&) -> ToPythonWriter<std::remove_cvref_t<Writer>>;
 
-  template<typename R>
+  template<IsWriter W>
   template<typename... Args>
-  ToPythonWriter<R>::ToPythonWriter(Args&&... args)
-    : m_writer((Python::GilRelease(), boost::in_place_init),
+  ToPythonWriter<W>::ToPythonWriter(Args&&... args)
+    : m_writer((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
-  template<typename W>
+  template<IsWriter W>
   ToPythonWriter<W>::~ToPythonWriter() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_writer.reset();
   }
 
-  template<typename W>
-  void ToPythonWriter<W>::Write(const void* data, std::size_t size) {
-    auto release = Python::GilRelease();
-    m_writer->Write(data, size);
+  template<IsWriter W>
+  typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::get() {
+    return *m_writer;
   }
 
-  template<typename W>
-  void ToPythonWriter<W>::Write(const BufferView& data) {
-    auto release = Python::GilRelease();
-    m_writer->Write(data);
+  template<IsWriter W>
+  const typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::get() const {
+    return *m_writer;
+  }
+
+  template<IsWriter W>
+  typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::operator *() {
+    return *m_writer;
+  }
+
+  template<IsWriter W>
+  const typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::operator *()
+      const {
+    return *m_writer;
+  }
+
+  template<IsWriter W>
+  typename ToPythonWriter<W>::Writer* ToPythonWriter<W>::operator ->() {
+    return m_writer.get_ptr();
+  }
+
+  template<IsWriter W>
+  const typename ToPythonWriter<W>::Writer* ToPythonWriter<W>::operator ->()
+      const {
+    return m_writer.get_ptr();
+  }
+
+  template<IsWriter W>
+  template<IsConstBuffer B>
+  void ToPythonWriter<W>::write(const B& data) {
+    auto release = GilRelease();
+    m_writer->write(data);
   }
 }
 

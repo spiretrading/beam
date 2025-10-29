@@ -7,25 +7,25 @@ using namespace Beam;
 TEST_SUITE("MultiQueueWriter") {
   TEST_CASE("break_immediately") {
     auto reader = MultiQueueWriter<int>();
-    reader.Break();
-    REQUIRE_THROWS_AS(reader.Push(1), PipeBrokenException);
-    REQUIRE_THROWS_AS(reader.Pop(), PipeBrokenException);
-    REQUIRE(!reader.TryPop());
+    reader.close();
+    REQUIRE_THROWS_AS(reader.push(1), PipeBrokenException);
+    REQUIRE_THROWS_AS(reader.pop(), PipeBrokenException);
+    REQUIRE(!reader.try_pop());
   }
 
   TEST_CASE("single_writer") {
     auto reader = MultiQueueWriter<int>();
-    auto writer = reader.GetWriter();
-    writer.Push(123);
-    REQUIRE(reader.Pop() == 123);
-    writer.Break();
-    REQUIRE_THROWS_AS(writer.Push(1), PipeBrokenException);
-    writer = reader.GetWriter();
-    writer.Push(321);
-    REQUIRE(reader.Pop() == 321);
-    reader.Break();
-    REQUIRE_THROWS_AS(reader.Push(1), PipeBrokenException);
-    REQUIRE_THROWS_AS(reader.Pop(), PipeBrokenException);
-    REQUIRE(!reader.TryPop());
+    auto writer = reader.get_writer();
+    writer.push(123);
+    REQUIRE(reader.pop() == 123);
+    writer.close();
+    REQUIRE_THROWS_AS(writer.push(1), PipeBrokenException);
+    writer = reader.get_writer();
+    writer.push(321);
+    REQUIRE(reader.pop() == 321);
+    reader.close();
+    REQUIRE_THROWS_AS(reader.push(1), PipeBrokenException);
+    REQUIRE_THROWS_AS(reader.pop(), PipeBrokenException);
+    REQUIRE(!reader.try_pop());
   }
 }

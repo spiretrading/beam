@@ -1,14 +1,13 @@
 #ifndef BEAM_MESSAGE_HPP
 #define BEAM_MESSAGE_HPP
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Abstract base class for a message.
-   * @param <C> The type of ServiceProtocolClient interpreting this Message.
+   * @tparam C The type of ServiceProtocolClient interpreting this Message.
    */
   template<typename C>
   class Message {
@@ -22,10 +21,10 @@ namespace Beam::Services {
       /**
        * Emits a signal for this Message.
        * @param slot The slot to call.
-       * @param protocol The protocol which received the Message.
+       * @param client The client which received the Message.
        */
-      virtual void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-        Ref<ServiceProtocolClient> protocol) const = 0;
+      virtual void emit(BaseServiceSlot<ServiceProtocolClient>* slot,
+        Ref<ServiceProtocolClient> client) const = 0;
 
     protected:
 

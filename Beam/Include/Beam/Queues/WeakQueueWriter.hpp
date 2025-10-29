@@ -5,14 +5,14 @@
 #include <utility>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
   /**
    * Wraps a shared_ptr<QueueWriter<T>> using a weak pointer.
-   * @param <T> The data to push onto the QueueWriter.
+   * @tparam T The data to push onto the QueueWriter.
    */
   template<typename T>
   class WeakQueueWriter : public QueueWriter<T> {
@@ -23,59 +23,61 @@ namespace Beam {
        * Constructs a WeakQueueWriter.
        * @param queue The Queue wrap.
        */
-      explicit WeakQueueWriter(std::shared_ptr<QueueWriter<Target>> queue);
+      explicit WeakQueueWriter(
+        std::shared_ptr<QueueWriter<Target>> queue) noexcept;
 
       ~WeakQueueWriter() override;
 
-      void Push(const Target& value) override;
-
-      void Push(Target&& value) override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      using QueueWriter<T>::Break;
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      void close(const std::exception_ptr& e) override;
+      using QueueWriter<T>::close;
 
     private:
       mutable std::mutex m_mutex;
       std::weak_ptr<QueueWriter<Target>> m_queue;
 
-      std::shared_ptr<QueueWriter<Target>> Lock() const;
+      std::shared_ptr<QueueWriter<Target>> lock() const;
   };
+
+  template<typename T>
+  WeakQueueWriter(std::shared_ptr<T>) -> WeakQueueWriter<typename T::Target>;
 
   /**
    * Makes a WeakQueueWriter.
    * @param queue The QueueWriter to wrap.
    * @return A WeakQueueWriter wrapping the <i>queue</i>.
    */
-  template<typename T>
-  auto MakeWeakQueueWriter(std::shared_ptr<QueueWriter<T>> queue) {
-    return std::make_shared<WeakQueueWriter<T>>(std::move(queue));
+  template<IsSubclass<QueueWriter> Q>
+  auto make_weak_queue_writer(std::shared_ptr<Q> queue) {
+    return std::make_shared<WeakQueueWriter<typename Q::Target>>(
+      std::move(queue));
   }
 
   template<typename T>
   WeakQueueWriter<T>::WeakQueueWriter(
-    std::shared_ptr<QueueWriter<Target>> queue)
+    std::shared_ptr<QueueWriter<Target>> queue) noexcept
     : m_queue(std::move(queue)) {}
 
   template<typename T>
   WeakQueueWriter<T>::~WeakQueueWriter() {
-    Break();
+    close();
   }
 
   template<typename T>
-  void WeakQueueWriter<T>::Push(const Target& value) {
-    auto queue = Lock();
-    queue->Push(value);
+  void WeakQueueWriter<T>::push(const Target& value) {
+    auto queue = lock();
+    queue->push(value);
   }
 
   template<typename T>
-  void WeakQueueWriter<T>::Push(Target&& value) {
-    auto queue = Lock();
-    queue->Push(std::move(value));
+  void WeakQueueWriter<T>::push(Target&& value) {
+    auto queue = lock();
+    queue->push(std::move(value));
   }
 
   template<typename T>
-  void WeakQueueWriter<T>::Break(const std::exception_ptr& e) {
+  void WeakQueueWriter<T>::close(const std::exception_ptr& e) {
     auto queue = [&] {
       auto lock = std::lock_guard(m_mutex);
       auto queue = std::move(m_queue);
@@ -84,16 +86,16 @@ namespace Beam {
     if(!queue) {
       return;
     }
-    queue->Break(e);
+    queue->close(e);
   }
 
   template<typename T>
   std::shared_ptr<QueueWriter<typename WeakQueueWriter<T>::Target>>
-      WeakQueueWriter<T>::Lock() const {
+      WeakQueueWriter<T>::lock() const {
     auto lock = std::lock_guard(m_mutex);
     auto queue = m_queue.lock();
     if(!queue) {
-      BOOST_THROW_EXCEPTION(PipeBrokenException());
+      boost::throw_with_location(PipeBrokenException());
     }
     return queue;
   }

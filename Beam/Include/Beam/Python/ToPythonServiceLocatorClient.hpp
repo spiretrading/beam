@@ -1,21 +1,18 @@
 #ifndef BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_TO_PYTHON_SERVICE_LOCATOR_CLIENT_HPP
-#include <memory>
-#include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
-#include "Beam/Utilities/TypeList.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam::Python {
 
   /**
    * Wraps a ServiceLocatorClient class for use within Python.
-   * param <C> The type of ServiceLocatorClient to wrap.
+   * @tparam C The type of ServiceLocatorClient to wrap.
    */
-  template<typename C>
+  template<IsServiceLocatorClient C>
   class ToPythonServiceLocatorClient {
     public:
 
@@ -23,309 +20,319 @@ namespace Beam::ServiceLocator {
       using Client = C;
 
       /**
-       * Constructs a ToPythonServiceLocatorClient.
-       * @param args The arguments to forward to the Client's constructor.
+       * Constructs a ToPythonServiceLocatorClient in-place.
+       * @param args The arguments to forward to the constructor.
        */
-      template<typename... Args, typename =
-        disable_copy_constructor_t<ToPythonServiceLocatorClient, Args...>>
-      ToPythonServiceLocatorClient(Args&&... args);
+      template<typename... Args>
+      explicit ToPythonServiceLocatorClient(Args&&... args);
 
       ~ToPythonServiceLocatorClient();
 
-      /** Returns the wrapped client. */
-      const Client& GetClient() const;
+      /** Returns a reference to the underlying client. */
+      Client& get();
 
-      /** Returns the wrapped client. */
-      Client& GetClient();
+      /** Returns a reference to the underlying client. */
+      const Client& get() const;
 
-      DirectoryEntry GetAccount() const;
+      /** Returns a reference to the underlying client. */
+      Client& operator *();
 
-      std::string GetSessionId() const;
+      /** Returns a reference to the underlying client. */
+      const Client& operator *() const;
 
-      std::string GetEncryptedSessionId(unsigned int key) const;
+      /** Returns a pointer to the underlying client. */
+      Client* operator ->();
 
-      DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password);
+      /** Returns a pointer to the underlying client. */
+      const Client* operator ->() const;
 
-      DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key);
-
-      std::vector<ServiceEntry> Locate(const std::string& name);
-
-      ServiceEntry Register(const std::string& name,
-        const JsonObject& properties);
-
-      void Unregister(const ServiceEntry& service);
-
-      std::vector<DirectoryEntry> LoadAllAccounts();
-
-      boost::optional<DirectoryEntry> FindAccount(const std::string& name);
-
-      DirectoryEntry MakeAccount(const std::string& name,
+      DirectoryEntry get_account() const;
+      std::string get_session_id() const;
+      std::string get_encrypted_session_id(unsigned int key) const;
+      DirectoryEntry authenticate_account(
+        const std::string& username, const std::string& password);
+      DirectoryEntry authenticate_session(
+        const std::string& session_id, unsigned int key);
+      std::vector<ServiceEntry> locate(const std::string& name);
+      ServiceEntry add(const std::string& name, const JsonObject& properties);
+      void remove(const ServiceEntry& service);
+      std::vector<DirectoryEntry> load_all_accounts();
+      boost::optional<DirectoryEntry> find_account(const std::string& name);
+      DirectoryEntry make_account(const std::string& name,
         const std::string& password, const DirectoryEntry& parent);
-
-      DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent);
-
-      void StorePassword(const DirectoryEntry& account,
-        const std::string& password);
-
-      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue);
-
-      DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path);
-
-      DirectoryEntry LoadDirectoryEntry(unsigned int id);
-
-      std::vector<DirectoryEntry> LoadParents(const DirectoryEntry& entry);
-
-      std::vector<DirectoryEntry> LoadChildren(const DirectoryEntry& entry);
-
-      void Delete(const DirectoryEntry& entry);
-
-      void Associate(const DirectoryEntry& entry, const DirectoryEntry& parent);
-
-      void Detach(const DirectoryEntry& entry, const DirectoryEntry& parent);
-
-      bool HasPermissions(const DirectoryEntry& account,
+      DirectoryEntry make_directory(
+        const std::string& name, const DirectoryEntry& parent);
+      void store_password(
+        const DirectoryEntry& account, const std::string& password);
+      void monitor(ScopedQueueWriter<AccountUpdate> queue);
+      DirectoryEntry load_directory_entry(
+        const DirectoryEntry& root, const std::string& path);
+      DirectoryEntry load_directory_entry(unsigned int id);
+      std::vector<DirectoryEntry> load_parents(const DirectoryEntry& entry);
+      std::vector<DirectoryEntry> load_children(const DirectoryEntry& entry);
+      void remove(const DirectoryEntry& entry);
+      void associate(
+        const DirectoryEntry& entry, const DirectoryEntry& parent);
+      void detach(const DirectoryEntry& entry, const DirectoryEntry& parent);
+      bool has_permissions(const DirectoryEntry& account,
         const DirectoryEntry& target, Permissions permissions);
-
-      void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions);
-
-      boost::posix_time::ptime LoadRegistrationTime(
+      void store(const DirectoryEntry& source, const DirectoryEntry& target,
+        Permissions permissions);
+      boost::posix_time::ptime load_registration_time(
         const DirectoryEntry& account);
-
-      boost::posix_time::ptime LoadLastLoginTime(const DirectoryEntry& account);
-
-      DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name);
-
-      void Close();
+      boost::posix_time::ptime load_last_login_time(
+        const DirectoryEntry& account);
+      DirectoryEntry rename(
+        const DirectoryEntry& entry, const std::string& name);
+      void close();
 
     private:
       boost::optional<Client> m_client;
 
-      ToPythonServiceLocatorClient(
-        const ToPythonServiceLocatorClient&) = delete;
+      ToPythonServiceLocatorClient(const ToPythonServiceLocatorClient&) =
+        delete;
       ToPythonServiceLocatorClient& operator =(
         const ToPythonServiceLocatorClient&) = delete;
   };
 
   template<typename Client>
   ToPythonServiceLocatorClient(Client&&) ->
-    ToPythonServiceLocatorClient<std::decay_t<Client>>;
+    ToPythonServiceLocatorClient<std::remove_cvref_t<Client>>;
 
-  template<typename C>
-  template<typename... Args, typename>
+  template<IsServiceLocatorClient C>
+  template<typename... Args>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
-    : m_client((Python::GilRelease(), boost::in_place_init),
-        std::forward<Args>(args)...) {}
+    : m_client(
+        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
 
-  template<typename C>
+  template<IsServiceLocatorClient C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_client.reset();
   }
 
-  template<typename C>
-  const typename ToPythonServiceLocatorClient<C>::Client&
-      ToPythonServiceLocatorClient<C>::GetClient() const {
-    return *m_client;
-  }
-
-  template<typename C>
+  template<IsServiceLocatorClient C>
   typename ToPythonServiceLocatorClient<C>::Client&
-      ToPythonServiceLocatorClient<C>::GetClient() {
+      ToPythonServiceLocatorClient<C>::get() {
     return *m_client;
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::GetAccount() const {
-    auto release = Python::GilRelease();
-    return m_client->GetAccount();
+  template<IsServiceLocatorClient C>
+  const typename ToPythonServiceLocatorClient<C>::Client&
+      ToPythonServiceLocatorClient<C>::get() const {
+    return *m_client;
   }
 
-  template<typename C>
-  std::string ToPythonServiceLocatorClient<C>::GetSessionId() const {
-    auto release = Python::GilRelease();
-    return m_client->GetSessionId();
+  template<IsServiceLocatorClient C>
+  typename ToPythonServiceLocatorClient<C>::Client&
+      ToPythonServiceLocatorClient<C>::operator *() {
+    return *m_client;
   }
 
-  template<typename C>
-  std::string ToPythonServiceLocatorClient<C>::GetEncryptedSessionId(
+  template<IsServiceLocatorClient C>
+  const typename ToPythonServiceLocatorClient<C>::Client&
+      ToPythonServiceLocatorClient<C>::operator *() const {
+    return *m_client;
+  }
+
+  template<IsServiceLocatorClient C>
+  typename ToPythonServiceLocatorClient<C>::Client*
+      ToPythonServiceLocatorClient<C>::operator ->() {
+    return m_client.get_ptr();
+  }
+
+  template<IsServiceLocatorClient C>
+  const typename ToPythonServiceLocatorClient<C>::Client*
+      ToPythonServiceLocatorClient<C>::operator ->() const {
+    return m_client.get_ptr();
+  }
+
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::get_account() const {
+    auto release = GilRelease();
+    return m_client->get_account();
+  }
+
+  template<IsServiceLocatorClient C>
+  std::string ToPythonServiceLocatorClient<C>::get_session_id() const {
+    auto release = GilRelease();
+    return m_client->get_session_id();
+  }
+
+  template<IsServiceLocatorClient C>
+  std::string ToPythonServiceLocatorClient<C>::get_encrypted_session_id(
       unsigned int key) const {
-    auto release = Python::GilRelease();
-    return m_client->GetEncryptedSessionId(key);
+    auto release = GilRelease();
+    return m_client->get_encrypted_session_id(key);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::AuthenticateAccount(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::authenticate_account(
       const std::string& username, const std::string& password) {
-    auto release = Python::GilRelease();
-    return m_client->AuthenticateAccount(username, password);
+    auto release = GilRelease();
+    return m_client->authenticate_account(username, password);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::AuthenticateSession(
-      const std::string& sessionId, unsigned int key) {
-    auto release = Python::GilRelease();
-    return m_client->AuthenticateSession(sessionId, key);
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::authenticate_session(
+      const std::string& session_id, unsigned int key) {
+    auto release = GilRelease();
+    return m_client->authenticate_session(session_id, key);
   }
 
-  template<typename C>
-  std::vector<ServiceEntry> ToPythonServiceLocatorClient<C>::Locate(
+  template<IsServiceLocatorClient C>
+  std::vector<ServiceEntry> ToPythonServiceLocatorClient<C>::locate(
       const std::string& name) {
-    auto release = Python::GilRelease();
-    return m_client->Locate(name);
+    auto release = GilRelease();
+    return m_client->locate(name);
   }
 
-  template<typename C>
-  ServiceEntry ToPythonServiceLocatorClient<C>::Register(
+  template<IsServiceLocatorClient C>
+  ServiceEntry ToPythonServiceLocatorClient<C>::add(
       const std::string& name, const JsonObject& properties) {
-    auto release = Python::GilRelease();
-    return m_client->Register(name, properties);
+    auto release = GilRelease();
+    return m_client->add(name, properties);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Unregister(
-      const ServiceEntry& service) {
-    auto release = Python::GilRelease();
-    return m_client->Unregister(service);
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::remove(const ServiceEntry& service) {
+    auto release = GilRelease();
+    m_client->remove(service);
   }
 
-  template<typename C>
-  std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::
-      LoadAllAccounts() {
-    auto release = Python::GilRelease();
-    return m_client->LoadAllAccounts();
+  template<IsServiceLocatorClient C>
+  std::vector<DirectoryEntry>
+      ToPythonServiceLocatorClient<C>::load_all_accounts() {
+    auto release = GilRelease();
+    return m_client->load_all_accounts();
   }
 
-  template<typename C>
-  boost::optional<DirectoryEntry> ToPythonServiceLocatorClient<C>::FindAccount(
+  template<IsServiceLocatorClient C>
+  boost::optional<DirectoryEntry> ToPythonServiceLocatorClient<C>::find_account(
       const std::string& name) {
-    auto release = Python::GilRelease();
-    return m_client->FindAccount(name);
+    auto release = GilRelease();
+    return m_client->find_account(name);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::MakeAccount(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::make_account(
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent) {
-    auto release = Python::GilRelease();
-    return m_client->MakeAccount(name, password, parent);
+    auto release = GilRelease();
+    return m_client->make_account(name, password, parent);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::MakeDirectory(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::make_directory(
       const std::string& name, const DirectoryEntry& parent) {
-    auto release = Python::GilRelease();
-    return m_client->MakeDirectory(name, parent);
+    auto release = GilRelease();
+    return m_client->make_directory(name, parent);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::StorePassword(
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::store_password(
       const DirectoryEntry& account, const std::string& password) {
-    auto release = Python::GilRelease();
-    m_client->StorePassword(account, password);
+    auto release = GilRelease();
+    m_client->store_password(account, password);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::MonitorAccounts(
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::monitor(
       ScopedQueueWriter<AccountUpdate> queue) {
-    auto release = Python::GilRelease();
-    m_client->MonitorAccounts(std::move(queue));
+    auto release = GilRelease();
+    m_client->monitor(std::move(queue));
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::LoadDirectoryEntry(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::load_directory_entry(
       const DirectoryEntry& root, const std::string& path) {
-    auto release = Python::GilRelease();
-    return m_client->LoadDirectoryEntry(root, path);
+    auto release = GilRelease();
+    return m_client->load_directory_entry(root, path);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::LoadDirectoryEntry(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::load_directory_entry(
       unsigned int id) {
-    auto release = Python::GilRelease();
-    return m_client->LoadDirectoryEntry(id);
+    auto release = GilRelease();
+    return m_client->load_directory_entry(id);
   }
 
-  template<typename C>
-  std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::LoadParents(
+  template<IsServiceLocatorClient C>
+  std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::load_parents(
       const DirectoryEntry& entry) {
-    auto release = Python::GilRelease();
-    return m_client->LoadParents(entry);
+    auto release = GilRelease();
+    return m_client->load_parents(entry);
   }
 
-  template<typename C>
-  std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::LoadChildren(
+  template<IsServiceLocatorClient C>
+  std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::load_children(
       const DirectoryEntry& entry) {
-    auto release = Python::GilRelease();
-    return m_client->LoadChildren(entry);
+    auto release = GilRelease();
+    return m_client->load_children(entry);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Delete(const DirectoryEntry& entry) {
-    auto release = Python::GilRelease();
-    m_client->Delete(entry);
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::remove(const DirectoryEntry& entry) {
+    auto release = GilRelease();
+    m_client->remove(entry);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Associate(const DirectoryEntry& entry,
-      const DirectoryEntry& parent) {
-    auto release = Python::GilRelease();
-    m_client->Associate(entry, parent);
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::associate(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    auto release = GilRelease();
+    m_client->associate(entry, parent);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Detach(const DirectoryEntry& entry,
-      const DirectoryEntry& parent) {
-    auto release = Python::GilRelease();
-    m_client->Detach(entry, parent);
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::detach(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    auto release = GilRelease();
+    m_client->detach(entry, parent);
   }
 
-  template<typename C>
-  bool ToPythonServiceLocatorClient<C>::HasPermissions(
+  template<IsServiceLocatorClient C>
+  bool ToPythonServiceLocatorClient<C>::has_permissions(
       const DirectoryEntry& account, const DirectoryEntry& target,
       Permissions permissions) {
-    auto release = Python::GilRelease();
-    return m_client->HasPermissions(account, target, permissions);
+    auto release = GilRelease();
+    return m_client->has_permissions(account, target, permissions);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::StorePermissions(
-      const DirectoryEntry& source, const DirectoryEntry& target,
-      Permissions permissions) {
-    auto release = Python::GilRelease();
-    m_client->StorePermissions(source, target, permissions);
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::store(const DirectoryEntry& source,
+      const DirectoryEntry& target, Permissions permissions) {
+    auto release = GilRelease();
+    m_client->store(source, target, permissions);
   }
 
-  template<typename C>
-  boost::posix_time::ptime ToPythonServiceLocatorClient<C>::
-      LoadRegistrationTime(const DirectoryEntry& account) {
-    auto release = Python::GilRelease();
-    return m_client->LoadRegistrationTime(account);
+  template<IsServiceLocatorClient C>
+  boost::posix_time::ptime
+      ToPythonServiceLocatorClient<C>::load_registration_time(
+        const DirectoryEntry& account) {
+    auto release = GilRelease();
+    return m_client->load_registration_time(account);
   }
 
-  template<typename C>
-  boost::posix_time::ptime ToPythonServiceLocatorClient<C>::LoadLastLoginTime(
-      const DirectoryEntry& account) {
-    auto release = Python::GilRelease();
-    return m_client->LoadLastLoginTime(account);
+  template<IsServiceLocatorClient C>
+  boost::posix_time::ptime
+      ToPythonServiceLocatorClient<C>::load_last_login_time(
+        const DirectoryEntry& account) {
+    auto release = GilRelease();
+    return m_client->load_last_login_time(account);
   }
 
-  template<typename C>
-  DirectoryEntry ToPythonServiceLocatorClient<C>::Rename(
+  template<IsServiceLocatorClient C>
+  DirectoryEntry ToPythonServiceLocatorClient<C>::rename(
       const DirectoryEntry& entry, const std::string& name) {
-    auto release = Python::GilRelease();
-    return m_client->Rename(entry, name);
+    auto release = GilRelease();
+    return m_client->rename(entry, name);
   }
 
-  template<typename C>
-  void ToPythonServiceLocatorClient<C>::Close() {
-    auto release = Python::GilRelease();
-    m_client->Close();
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::close() {
+    auto release = GilRelease();
+    m_client->close();
   }
 }
 

@@ -5,57 +5,33 @@
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
-namespace Beam::Serialization {
-namespace Details {
-  template<typename Shuttler, typename Tuple>
-  void Send(Shuttler& shuttle, std::integer_sequence<std::size_t>,
-    const Tuple& value) {}
-
-  template<typename Shuttler, typename Tuple, std::size_t Head,
-    std::size_t... Tail>
-  void Send(Shuttler& shuttle,
-      std::integer_sequence<std::size_t, Head, Tail...>, const Tuple& value) {
-    shuttle.Shuttle(std::get<Head>(value));
-    Send(shuttle, std::integer_sequence<std::size_t, Tail...>(), value);
-  }
-
-  template<typename Shuttler, typename Tuple>
-  void Receive(Shuttler& shuttle, std::integer_sequence<std::size_t>,
-    Tuple& value) {}
-
-  template<typename Shuttler, typename Tuple, std::size_t Head,
-    std::size_t... Tail>
-  void Receive(Shuttler& shuttle,
-      std::integer_sequence<std::size_t, Head, Tail...>, Tuple& value) {
-    shuttle.Shuttle(std::get<Head>(value));
-    Receive(shuttle, std::integer_sequence<std::size_t, Tail...>(), value);
-  }
-}
-
+namespace Beam {
   template<typename... Args>
-  struct IsStructure<std::tuple<Args...>> : std::false_type {};
+  constexpr auto is_structure<std::tuple<Args...>> = false;
 
   template<typename... Args>
   struct Send<std::tuple<Args...>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const std::tuple<Args...>& value) const {
-      using Sequence = std::make_integer_sequence<std::size_t, sizeof...(Args)>;
-      shuttle.StartSequence(name);
-      Details::Send(shuttle, Sequence(), value);
-      shuttle.EndSequence();
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, const std::tuple<Args...>& value) const {
+      sender.start_sequence(name);
+      std::apply([&] (const auto&... elements) {
+        ((sender.send(elements)), ...);
+      }, value);
+      sender.end_sequence();
     }
   };
 
   template<typename... Args>
   struct Receive<std::tuple<Args...>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        std::tuple<Args...>& value) const {
-      using Sequence = std::make_integer_sequence<std::size_t, sizeof...(Args)>;
-      shuttle.StartSequence(name);
-      Details::Receive(shuttle, Sequence(), value);
-      shuttle.EndSequence();
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, const char* name, std::tuple<Args...>& value) const {
+      receiver.start_sequence(name);
+      std::apply([&] (auto&... elements) {
+        ((receiver.receive(elements)), ...);
+      }, value);
+      receiver.end_sequence();
     }
   };
 }

@@ -6,17 +6,16 @@
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
-#include "Beam/QueriesTests/QueriesTests.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Routines/Async.hpp"
 
-namespace Beam::Queries::Tests {
+namespace Beam::Tests {
 
   /**
    * Implements a DataStore for testing purposes by reifying operations.
-   * @param <Q> The type of query used to load values.
-   * @param <V> The type value to store.
+   * @tparam Q The type of query used to load values.
+   * @tparam V The type value to store.
    */
   template<typename Q, typename V>
   class TestDataStore {
@@ -32,11 +31,11 @@ namespace Beam::Queries::Tests {
       using Value = V;
 
       /** The SequencedValue to store. */
-      using SequencedValue = ::Beam::Queries::SequencedValue<Value>;
+      using SequencedValue = Beam::SequencedValue<Value>;
 
       /** The IndexedValue to store. */
-      using IndexedValue = ::Beam::Queries::SequencedValue<
-        ::Beam::Queries::IndexedValue<Value, Index>>;
+      using IndexedValue =
+        Beam::SequencedValue<Beam::IndexedValue<Value, Index>>;
 
       /** Stores a load operation. */
       struct LoadOperation {
@@ -45,7 +44,7 @@ namespace Beam::Queries::Tests {
         Query m_query;
 
         /** Used to produce the result of the load operation. */
-        Routines::Eval<std::vector<SequencedValue>> m_result;
+        Eval<std::vector<SequencedValue>> m_result;
       };
 
       /** Stores a store operation. */
@@ -55,7 +54,7 @@ namespace Beam::Queries::Tests {
         std::vector<IndexedValue> m_values;
 
         /** Used to indicate the result of the store operation. */
-        Routines::Eval<void> m_result;
+        Eval<void> m_result;
       };
 
       /** Represents an operation that can be performed on this DataStore. */
@@ -67,19 +66,16 @@ namespace Beam::Queries::Tests {
       ~TestDataStore();
 
       /** Returns the object publishing Operations. */
-      const Publisher<std::shared_ptr<Operation>>& GetOperationPublisher();
+      const Publisher<std::shared_ptr<Operation>>& get_operation_publisher();
 
-      std::vector<SequencedValue> Load(const Query& query);
-
-      void Store(const IndexedValue& value);
-
-      void Store(const std::vector<IndexedValue>& values);
-
-      void Close();
+      std::vector<SequencedValue> load(const Query& query);
+      void store(const IndexedValue& value);
+      void store(const std::vector<IndexedValue>& values);
+      void close();
 
     private:
-      IO::OpenState m_openState;
-      QueueWriterPublisher<std::shared_ptr<Operation>> m_operationPublisher;
+      OpenState m_open_state;
+      QueueWriterPublisher<std::shared_ptr<Operation>> m_operation_publisher;
 
       TestDataStore(const TestDataStore&) = delete;
       TestDataStore& operator =(const TestDataStore&) = delete;
@@ -87,43 +83,42 @@ namespace Beam::Queries::Tests {
 
   template<typename Q, typename V>
   TestDataStore<Q, V>::~TestDataStore() {
-    Close();
+    close();
   }
 
   template<typename Q, typename V>
   const Publisher<std::shared_ptr<typename TestDataStore<Q, V>::Operation>>&
-      TestDataStore<Q, V>::GetOperationPublisher() {
-    return m_operationPublisher;
+      TestDataStore<Q, V>::get_operation_publisher() {
+    return m_operation_publisher;
   }
 
   template<typename Q, typename V>
   std::vector<typename TestDataStore<Q, V>::SequencedValue>
-      TestDataStore<Q, V>::Load(const Query& query) {
-    auto async = Routines::Async<std::vector<SequencedValue>>();
-    auto operation = std::make_shared<Operation>(
-      LoadOperation{query, async.GetEval()});
-    m_operationPublisher.Push(operation);
-    return async.Get();
+      TestDataStore<Q, V>::load(const Query& query) {
+    auto async = Async<std::vector<SequencedValue>>();
+    auto operation =
+      std::make_shared<Operation>(LoadOperation(query, async.get_eval()));
+    m_operation_publisher.push(operation);
+    return async.get();
   }
 
   template<typename Q, typename V>
-  void TestDataStore<Q, V>::Store(const IndexedValue& value) {
-    auto values = std::vector{value};
-    Store(values);
+  void TestDataStore<Q, V>::store(const IndexedValue& value) {
+    store(std::vector{value});
   }
 
   template<typename Q, typename V>
-  void TestDataStore<Q, V>::Store(const std::vector<IndexedValue>& values) {
-    auto async = Routines::Async<void>();
-    auto operation = std::make_shared<Operation>(
-      StoreOperation{values, async.GetEval()});
-    m_operationPublisher.Push(operation);
-    async.Get();
+  void TestDataStore<Q, V>::store(const std::vector<IndexedValue>& values) {
+    auto async = Async<void>();
+    auto operation =
+      std::make_shared<Operation>(StoreOperation(values, async.get_eval()));
+    m_operation_publisher.push(operation);
+    async.get();
   }
 
   template<typename Q, typename V>
-  void TestDataStore<Q, V>::Close() {
-    m_openState.Close();
+  void TestDataStore<Q, V>::close() {
+    m_open_state.close();
   }
 }
 

@@ -1,20 +1,26 @@
 #ifndef BEAM_SIZE_DECLARATIVE_ENCODER_HPP
 #define BEAM_SIZE_DECLARATIVE_ENCODER_HPP
 #include <cstdint>
+#include <limits>
+#include <boost/endian.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Codecs/EncoderException.hpp"
-#include "Beam/IO/BufferSlice.hpp"
-#include "Beam/Utilities/Endian.hpp"
+#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/SuffixBuffer.hpp"
+#include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
-namespace Codecs {
+  template<typename D> requires IsDecoder<dereference_t<D>>
+  class SizeDeclarativeDecoder;
 
   /**
    * Augments an existing encoder by first prepending the size of the buffer.
-   * @param <E> The type used to encode the remainder of the buffer.
+   * @tparam E The type used to encode the remainder of the buffer.
    */
-  template<typename E>
+  template<typename E> requires IsEncoder<dereference_t<E>>
   class SizeDeclarativeEncoder {
     public:
 
@@ -22,91 +28,51 @@ namespace Codecs {
       using Encoder = E;
 
       /** Constructs a SizeDeclarativeEncoder. */
-      SizeDeclarativeEncoder() = default;
+      SizeDeclarativeEncoder() requires std::default_initializable<Encoder> =
+        default;
 
       /**
        * Constructs a SizeDeclarativeEncoder.
        * @param encoder The underlaying Encoder to use.
        */
-      SizeDeclarativeEncoder(Encoder encoder);
+      template<Initializes<E> EF>
+      explicit SizeDeclarativeEncoder(EF&& encoder);
 
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Encode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t encode(const S& source, Out<B> destination);
 
     private:
-      Encoder m_encoder;
+      local_ptr_t<E> m_encoder;
   };
 
   template<typename E>
-  struct Inverse<SizeDeclarativeEncoder<E>> {
-    using type = SizeDeclarativeDecoder<GetInverse<E>>;
+  struct inverse<SizeDeclarativeEncoder<E>> {
+    using type = SizeDeclarativeDecoder<inverse_t<E>>;
   };
 
-  template<typename E>
-  SizeDeclarativeEncoder<E>::SizeDeclarativeEncoder(Encoder encoder)
+  template<typename E> requires IsEncoder<dereference_t<E>>
+  template<Initializes<E> EF>
+  SizeDeclarativeEncoder<E>::SizeDeclarativeEncoder(EF&& encoder)
     : m_encoder(std::move(encoder)) {}
 
-  template<typename E>
-  std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    if(destinationSize < sizeof(std::uint32_t)) {
-      BOOST_THROW_EXCEPTION(EncoderException("Destination size is too small."));
+  template<typename E> requires IsEncoder<dereference_t<E>>
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t SizeDeclarativeEncoder<E>::encode(
+      const S& source, Out<B> destination) {
+    auto portable_size = boost::endian::native_to_big(
+      static_cast<std::uint32_t>(source.get_size()));
+    auto available_size =
+      reserve(*destination, source.get_size() + sizeof(portable_size));
+    if (available_size < source.get_size() + sizeof(portable_size)) {
+      boost::throw_with_location(EncoderException(
+        "The destination was not large enough to hold the encoded data."));
     }
-    auto portableSourceSize = ToBigEndian<std::uint32_t>(sourceSize);
-    std::memcpy(destination, reinterpret_cast<const char*>(&portableSourceSize),
-      sizeof(portableSourceSize));
-    auto messageDestination = reinterpret_cast<char*>(destination) +
-      sizeof(std::uint32_t);
-    return m_encoder.Encode(source, sourceSize, messageDestination,
-      destinationSize - sizeof(std::uint32_t)) + sizeof(std::uint32_t);
+    auto destination_view =
+      SuffixBuffer(Ref(*destination), sizeof(portable_size));
+    auto encoded_size = m_encoder->encode(source, out(destination_view));
+    write(*destination, 0, portable_size);
+    return static_cast<std::size_t>(encoded_size + sizeof(portable_size));
   }
-
-  template<typename E>
-  template<typename Buffer>
-  std::size_t SizeDeclarativeEncoder<E>::Encode(const Buffer& source,
-      void* destination, std::size_t destinationSize) {
-    return Encode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename E>
-  template<typename Buffer>
-  std::size_t SizeDeclarativeEncoder<E>::Encode(const void* source,
-      std::size_t sourceSize, Out<Buffer> destination) {
-    try {
-      destination->Append(ToBigEndian<std::uint32_t>(sourceSize));
-    } catch(const std::exception&) {
-      std::throw_with_nested(EncoderException());
-    }
-    auto destinationView = IO::BufferSlice(Ref(*destination),
-      sizeof(std::uint32_t));
-    return m_encoder.Encode(source, sourceSize, Store(destinationView)) +
-      sizeof(std::uint32_t);
-  }
-
-  template<typename E>
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t SizeDeclarativeEncoder<E>::Encode(
-      const SourceBuffer& source, Out<DestinationBuffer> destination) {
-    return Encode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<typename E>
-  struct ImplementsConcept<Codecs::SizeDeclarativeEncoder<E>, Codecs::Encoder> :
-    std::true_type {};
 }
 
 #endif

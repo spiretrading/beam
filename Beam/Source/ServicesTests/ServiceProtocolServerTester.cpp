@@ -12,79 +12,69 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServer.hpp"
-#include "Beam/ServicesTests/ServicesTests.hpp"
 #include "Beam/SignalHandling/NullSlot.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::IO;
-using namespace Beam::Routines;
-using namespace Beam::Serialization;
-using namespace Beam::Services;
-using namespace Beam::Services::Tests;
-using namespace Beam::SignalHandling;
-using namespace Beam::Threading;
+using namespace Beam::Tests;
 using namespace boost;
 
 namespace {
-  using TestServerConnection = LocalServerConnection<SharedBuffer>;
-  using TestClientChannel = LocalClientChannel<SharedBuffer>;
-  using TestServiceProtocolServer = ServiceProtocolServer<TestServerConnection*,
-    BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<TriggerTimer>>;
-  using ClientServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<TestClientChannel, BinarySender<SharedBuffer>, NullEncoder>,
-    TriggerTimer>;
+  using TestServiceProtocolServer =
+    ServiceProtocolServer<LocalServerConnection*,
+      BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<TriggerTimer>>;
+  using ClientServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
+    LocalClientChannel, BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
 
   struct Fixture {
-    TestServerConnection m_serverConnection;
-    TestServiceProtocolServer m_protocolServer;
-    ClientServiceProtocolClient m_clientProtocol;
+    LocalServerConnection m_server_connection;
+    TestServiceProtocolServer m_protocol_server;
+    ClientServiceProtocolClient m_client_protocol;
 
     Fixture()
-      : m_protocolServer(&m_serverConnection,
+      : m_protocol_server(&m_server_connection,
           factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot()),
-        m_clientProtocol(Initialize("test", m_serverConnection), Initialize()) {
-      RegisterTestServices(Store(m_protocolServer.GetSlots()));
-      RegisterTestServices(Store(m_clientProtocol.GetSlots()));
+        m_client_protocol(init("test", m_server_connection), init()) {
+      register_test_services(out(m_protocol_server.get_slots()));
+      register_test_services(out(m_client_protocol.get_slots()));
     }
   };
 
-  void OnVoidRequest(RequestToken<
+  void on_void_request(RequestToken<
       TestServiceProtocolServer::ServiceProtocolClient, VoidService>& request,
-      int n, bool* callbackTriggered) {
-    *callbackTriggered = true;
-    request.SetResult();
+      int n, bool* callback_triggered) {
+    *callback_triggered = true;
+    request.set();
   }
 
-  void OnIdentityRequest(RequestToken<
+  void on_identity_request(RequestToken<
       TestServiceProtocolServer::ServiceProtocolClient, IdentityService>&
-      request, int n) {
+        request, int n) {
     if(n == 0) {
       throw ServiceRequestException("Exception.");
     }
-    request.SetResult(n);
+    request.set(n);
   }
 }
 
 TEST_SUITE("ServiceProtocolServer") {
   TEST_CASE_FIXTURE(Fixture, "void_return_type") {
-    auto callbackTriggered = false;
-    VoidService::AddRequestSlot(Store(m_protocolServer.GetSlots()),
-      std::bind(OnVoidRequest, std::placeholders::_1, std::placeholders::_2,
-      &callbackTriggered));
-  
-    // Startup and invoke the service.
-    m_clientProtocol.SendRequest<VoidService>(123);
-    REQUIRE(callbackTriggered);
+    auto callback_triggered = false;
+    VoidService::add_request_slot(out(m_protocol_server.get_slots()),
+      [&] (auto&&... args) {
+        return on_void_request(std::forward<decltype(args)>(args)...,
+          &callback_triggered);
+      });
+    m_client_protocol.send_request<VoidService>(123);
+    REQUIRE(callback_triggered);
   }
 
   TEST_CASE_FIXTURE(Fixture, "exception") {
-    IdentityService::AddRequestSlot(
-      Store(m_protocolServer.GetSlots()), &OnIdentityRequest);
-    REQUIRE_THROWS_WITH_AS(m_clientProtocol.SendRequest<IdentityService>(0),
+    IdentityService::add_request_slot(
+      out(m_protocol_server.get_slots()), &on_identity_request);
+    REQUIRE_THROWS_WITH_AS(m_client_protocol.send_request<IdentityService>(0),
       "Exception.", ServiceRequestException);
-    auto result = m_clientProtocol.SendRequest<IdentityService>(123);
+    auto result = m_client_protocol.send_request<IdentityService>(123);
     REQUIRE(result == 123);
   }
 }

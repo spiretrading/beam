@@ -6,13 +6,11 @@
 #include <Beam/Pointers/Ref.hpp>
 #include <Beam/WebServices/FileStore.hpp>
 #include <Beam/WebServices/HttpRequestSlot.hpp>
-#include <boost/noncopyable.hpp>
-#include "HttpFileServer/HttpFileServer.hpp"
 
-namespace Beam::HttpFileServer {
+namespace Beam {
 
   /** Implements a web servlet for static files. */
-  class HttpFileServlet : private boost::noncopyable {
+  class HttpFileServlet {
     public:
 
       /** Constructs a HttpFileServlet. */
@@ -20,16 +18,16 @@ namespace Beam::HttpFileServer {
 
       ~HttpFileServlet();
 
-      std::vector<WebServices::HttpRequestSlot> GetSlots();
-
-      void Close();
+      std::vector<HttpRequestSlot> get_slots();
+      void close();
 
     private:
-      WebServices::FileStore m_fileStore;
-      IO::OpenState m_openState;
+      FileStore m_file_store;
+      OpenState m_open_state;
 
-      WebServices::HttpResponse OnServeFile(
-        const WebServices::HttpRequest& request);
+      HttpFileServlet(const HttpFileServlet&) = delete;
+      HttpFileServlet& operator =(const HttpFileServlet&) = delete;
+      HttpResponse on_serve_file(const HttpRequest& request);
   };
 }
 

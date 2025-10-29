@@ -1,11 +1,11 @@
 #ifndef BEAM_CONDITION_VARIABLE_HPP
 #define BEAM_CONDITION_VARIABLE_HPP
+#include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
-#include "Beam/Threading/Threading.hpp"
 #include "Beam/Threading/Sync.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /** Implements a condition variable that suspends the current Routine. */
   class ConditionVariable {
@@ -29,7 +29,7 @@ namespace Beam::Threading {
 
     private:
       boost::mutex m_mutex;
-      Routines::SuspendedRoutineQueue m_suspendedRoutines;
+      SuspendedRoutineQueue m_suspended_routines;
 
       ConditionVariable(const ConditionVariable&) = delete;
       ConditionVariable& operator =(const ConditionVariable&) = delete;
@@ -37,18 +37,18 @@ namespace Beam::Threading {
 
   template<typename... Lock>
   void ConditionVariable::wait(Lock&... lock) {
-    auto selfLock = boost::unique_lock(m_mutex);
-    Routines::Suspend(Store(m_suspendedRoutines), lock..., selfLock);
+    auto self_lock = boost::unique_lock(m_mutex);
+    suspend(out(m_suspended_routines), lock..., self_lock);
   }
 
   inline void ConditionVariable::notify_one() {
     auto lock = boost::lock_guard(m_mutex);
-    Routines::ResumeFront(Store(m_suspendedRoutines));
+    resume_front(out(m_suspended_routines));
   }
 
   inline void ConditionVariable::notify_all() {
     auto lock = boost::lock_guard(m_mutex);
-    Routines::Resume(Store(m_suspendedRoutines));
+    resume(out(m_suspended_routines));
   }
 }
 

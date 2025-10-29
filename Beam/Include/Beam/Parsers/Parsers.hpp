@@ -1,44 +1,42 @@
 #ifndef BEAM_PARSERS_HPP
 #define BEAM_PARSERS_HPP
-
-namespace Beam::Parsers {
-  class AlphaParser;
-  class AnyParser;
-  class BlankParser;
-  class BoolParser;
-  template<typename L, typename R, typename E = void> class ConcatenateParser;
-  template<typename P, typename F, typename E = void> class ConversionParser;
-  template<typename F> class DecimalParser;
-  template<typename L, typename R> class DifferenceParser;
-  class DigitParser;
-  template<typename P> class DiscardParser;
-  template<typename E> class EnumeratorParser;
-  class EpsilonParser;
-  template<typename P, typename R, typename M, typename E = void>
-    class ForListParser;
-  template<typename I> class IntegralParser;
-  template<typename P> class ListParser;
-  template<typename R> class NoneParser;
-  template<typename P> class NotParser;
-  template<typename L, typename R, typename E = void> class OrParser;
-  template<typename R> struct Parser;
-  template<typename R> class ParserBox;
-  class ParserException;
-  template<typename R, typename P> class ParserPublisher;
-  struct ParserStream;
-  class ParserStreamBox;
-  template<typename P, typename E = void> class PlusParser;
-  template<typename I> class RationalParser;
-  template<typename R> class ReaderParserStream;
-  template<typename R> class RuleParser;
-  template<typename P> class SequenceParser;
-  class SkipSpaceParser;
-  class SpaceParser;
-  template<typename P, typename E = void> class StarParser;
-  class StringParser;
-  template<typename P> class SubParserStream;
-  class TerminalParser;
-  template<typename P> class TokenParser;
-}
+#include "Beam/Parsers/AlphaParser.hpp"
+#include "Beam/Parsers/AnyParser.hpp"
+#include "Beam/Parsers/BlankParser.hpp"
+#include "Beam/Parsers/BoolParser.hpp"
+#include "Beam/Parsers/ConcatenateParser.hpp"
+#include "Beam/Parsers/ConversionParser.hpp"
+#include "Beam/Parsers/DateParser.hpp"
+#include "Beam/Parsers/DateTimeParser.hpp"
+#include "Beam/Parsers/DecimalParser.hpp"
+#include "Beam/Parsers/DefaultParser.hpp"
+#include "Beam/Parsers/DeferredParser.hpp"
+#include "Beam/Parsers/DifferenceParser.hpp"
+#include "Beam/Parsers/DigitParser.hpp"
+#include "Beam/Parsers/DiscardParser.hpp"
+#include "Beam/Parsers/EnumeratorParser.hpp"
+#include "Beam/Parsers/EpsilonParser.hpp"
+#include "Beam/Parsers/ForListParser.hpp"
+#include "Beam/Parsers/IntegralParser.hpp"
+#include "Beam/Parsers/ListParser.hpp"
+#include "Beam/Parsers/NoneParser.hpp"
+#include "Beam/Parsers/NotParser.hpp"
+#include "Beam/Parsers/OrParser.hpp"
+#include "Beam/Parsers/Parse.hpp"
+#include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/ParserPublisher.hpp"
+#include "Beam/Parsers/PlusParser.hpp"
+#include "Beam/Parsers/RationalParser.hpp"
+#include "Beam/Parsers/ReaderParserStream.hpp"
+#include "Beam/Parsers/SequenceParser.hpp"
+#include "Beam/Parsers/SkipSpaceParser.hpp"
+#include "Beam/Parsers/SpaceParser.hpp"
+#include "Beam/Parsers/StarParser.hpp"
+#include "Beam/Parsers/StringParser.hpp"
+#include "Beam/Parsers/SubParserStream.hpp"
+#include "Beam/Parsers/SymbolParser.hpp"
+#include "Beam/Parsers/TerminalParser.hpp"
+#include "Beam/Parsers/TimeDurationParser.hpp"
+#include "Beam/Parsers/Tokenize.hpp"
 
 #endif

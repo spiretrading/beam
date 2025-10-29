@@ -10,7 +10,7 @@ namespace Beam::Python {
 
   /**
    * Provides a trampoline template for exporting AbstractQueue classes.
-   * @param <T> The type of AbstactQueue to trampoline.
+   * @tparam T The type of AbstactQueue to trampoline.
    */
   template<typename T>
   struct TrampolineAbstractQueue final : T {
@@ -18,31 +18,31 @@ namespace Beam::Python {
     using Target = typename T::Target;
     using T::T;
 
-    Source Pop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "pop", Pop);
+    Source pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(Source, T, "pop", pop);
     }
 
-    boost::optional<Source> TryPop() override {
-      PYBIND11_OVERLOAD_PURE_NAME(boost::optional<Source>, T, "try_pop",
-        TryPop);
+    boost::optional<Source> try_pop() override {
+      PYBIND11_OVERLOAD_PURE_NAME(
+        boost::optional<Source>, T, "try_pop", try_pop);
     }
 
-    void Push(Target&& value) override {
-      Push(value);
+    void push(Target&& value) override {
+      push(value);
     }
 
-    void Push(const Target& value) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", Push, value);
+    void push(const Target& value) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "push", push, value);
     }
 
-    void Break(const std::exception_ptr& e) override {
-      PYBIND11_OVERLOAD_PURE_NAME(void, T, "close", Break, e);
+    void close(const std::exception_ptr& e) override {
+      PYBIND11_OVERLOAD_PURE_NAME(void, T, "close", close, e);
     }
   };
 
   /**
    * Wraps an AbstractQueue of Python objects to a AbstractQueue of type T.
-   * @param <T> The data to store in the Queue.
+   * @tparam T The data to store in the Queue.
    */
   template<typename T>
   class FromPythonAbstractQueue final : public AbstractQueue<T> {
@@ -59,25 +59,20 @@ namespace Beam::Python {
        * Constructs a FromPythonAbstractQueue.
        * param queue The AbstractQueue to wrap.
        */
-      FromPythonAbstractQueue(
+      explicit FromPythonAbstractQueue(
         std::shared_ptr<AbstractQueue<pybind11::object>> queue);
 
       ~FromPythonAbstractQueue() override;
 
-      //! Returns the AbstractQueue being wrapped.
-      const std::shared_ptr<AbstractQueue<pybind11::object>>& GetQueue() const;
+      /** Returns the AbstractQueue being wrapped. */
+      const std::shared_ptr<AbstractQueue<pybind11::object>>& get_queue() const;
 
-      Source Pop() override;
-
-      boost::optional<Source> TryPop() override;
-
-      void Push(const Target& value) override;
-
-      void Push(Target&& value) override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      using AbstractQueue<T>::Break;
+      Source pop() override;
+      boost::optional<Source> try_pop() override;
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      void close(const std::exception_ptr& e) override;
+      using AbstractQueue<T>::close;
 
     private:
       std::shared_ptr<AbstractQueue<pybind11::object>> m_queue;
@@ -90,7 +85,7 @@ namespace Beam::Python {
    * @param queue The AbstractQueue to wrap.
    */
   template<typename T>
-  auto MakeFromPythonAbstractQueue(
+  auto make_from_python_abstract_queue(
       std::shared_ptr<AbstractQueue<pybind11::object>> queue) {
     return std::make_shared<FromPythonAbstractQueue<T>>(std::move(queue));
   }
@@ -98,15 +93,15 @@ namespace Beam::Python {
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue()
     : m_queue(std::make_shared<Queue<pybind11::object>>()),
-      m_reader(MakeFromPythonQueueReader<Source>(m_queue)),
-      m_writer(MakeFromPythonQueueWriter<Target>(m_queue)) {}
+      m_reader(make_from_python_queue_reader<Source>(m_queue)),
+      m_writer(make_from_python_queue_writer<Target>(m_queue)) {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::FromPythonAbstractQueue(
     std::shared_ptr<AbstractQueue<pybind11::object>> queue)
     : m_queue(std::move(queue)),
-      m_reader(MakeFromPythonQueueReader<Source>(m_queue)),
-      m_writer(MakeFromPythonQueueWriter<Target>(m_queue)) {}
+      m_reader(make_from_python_queue_reader<Source>(m_queue)),
+      m_writer(make_from_python_queue_writer<Target>(m_queue)) {}
 
   template<typename T>
   FromPythonAbstractQueue<T>::~FromPythonAbstractQueue() {
@@ -116,35 +111,35 @@ namespace Beam::Python {
 
   template<typename T>
   const std::shared_ptr<AbstractQueue<pybind11::object>>&
-      FromPythonAbstractQueue<T>::GetQueue() const {
+      FromPythonAbstractQueue<T>::get_queue() const {
     return m_queue;
   }
 
   template<typename T>
   typename FromPythonAbstractQueue<T>::Source
-      FromPythonAbstractQueue<T>::Pop() {
-    return m_reader->Pop();
+      FromPythonAbstractQueue<T>::pop() {
+    return m_reader->pop();
   }
 
   template<typename T>
   boost::optional<typename FromPythonAbstractQueue<T>::Source>
-      FromPythonAbstractQueue<T>::TryPop() {
-    return m_reader->TryPop();
+      FromPythonAbstractQueue<T>::try_pop() {
+    return m_reader->try_pop();
   }
 
   template<typename T>
-  void FromPythonAbstractQueue<T>::Push(const Target& value) {
-    m_writer->Push(value);
+  void FromPythonAbstractQueue<T>::push(const Target& value) {
+    m_writer->push(value);
   }
 
   template<typename T>
-  void FromPythonAbstractQueue<T>::Push(Target&& value) {
-    m_writer->Push(std::move(value));
+  void FromPythonAbstractQueue<T>::push(Target&& value) {
+    m_writer->push(std::move(value));
   }
 
   template<typename T>
-  void FromPythonAbstractQueue<T>::Break(const std::exception_ptr& e) {
-    m_queue->Break(e);
+  void FromPythonAbstractQueue<T>::close(const std::exception_ptr& e) {
+    m_queue->close(e);
   }
 }
 

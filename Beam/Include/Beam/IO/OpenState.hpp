@@ -6,40 +6,41 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/IO.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 
-namespace Beam::IO {
+namespace Beam {
 
   /** Stores state about whether a Connection/Client is open. */
   class OpenState {
     public:
 
       /** Constructs an OpenState. */
-      OpenState();
+      OpenState() noexcept;
 
+#ifndef NDEBUG
       ~OpenState();
+#endif
 
       /** Returns <code>true</code> iff the state is open. */
-      bool IsOpen() const;
+      bool is_open() const;
 
       /** Returns <code>true</code> iff the state is closing. */
-      bool IsClosing() const;
+      bool is_closing() const;
 
       /** Returns <code>true</code> iff the state is closed. */
-      bool IsClosed() const;
+      bool is_closed() const;
 
       /**
        * Tests if the state is open and raises a NotConnectionException
        * otherwise.
        */
-      void EnsureOpen() const;
+      void ensure_open() const;
 
       /** Sets the state to closing and returns the prior closing state. */
-      bool SetClosing();
+      bool set_closing();
 
       /** Sets the state to closed and returns the prior open state. */
-      void Close();
+      void close();
 
     private:
       enum class State : std::uint8_t {
@@ -49,38 +50,40 @@ namespace Beam::IO {
       };
       mutable boost::mutex m_mutex;
       std::atomic<State> m_state;
-      Threading::ConditionVariable m_closingCondition;
+      ConditionVariable m_closing_condition;
 
       OpenState(const OpenState&) = delete;
       OpenState& operator =(const OpenState&) = delete;
   };
 
-  inline OpenState::OpenState()
+  inline OpenState::OpenState() noexcept
     : m_state(State::OPEN) {}
 
+#ifndef NDEBUG
   inline OpenState::~OpenState() {
-    assert(IsClosed());
+    assert(is_closed());
   }
+#endif
 
-  inline bool OpenState::IsOpen() const {
+  inline bool OpenState::is_open() const {
     return m_state == State::OPEN;
   }
 
-  inline bool OpenState::IsClosing() const {
+  inline bool OpenState::is_closing() const {
     return m_state == State::CLOSING;
   }
 
-  inline bool OpenState::IsClosed() const {
+  inline bool OpenState::is_closed() const {
     return m_state == State::CLOSED;
   }
 
-  inline void OpenState::EnsureOpen() const {
+  inline void OpenState::ensure_open() const {
     if(m_state != State::OPEN) {
-      BOOST_THROW_EXCEPTION(EndOfFileException());
+      boost::throw_with_location(EndOfFileException());
     }
   }
 
-  inline bool OpenState::SetClosing() {
+  inline bool OpenState::set_closing() {
     auto expected = State::OPEN;
     if(m_state.compare_exchange_strong(expected, State::CLOSING)) {
       return false;
@@ -90,19 +93,19 @@ namespace Beam::IO {
     }
     auto lock = boost::unique_lock(m_mutex);
     while(m_state != State::CLOSED) {
-      m_closingCondition.wait(lock);
+      m_closing_condition.wait(lock);
     }
     return true;
   }
 
-  inline void OpenState::Close() {
+  inline void OpenState::close() {
     {
       auto lock = boost::lock_guard(m_mutex);
       if(m_state.exchange(State::CLOSED) == State::CLOSED) {
         return;
       }
     }
-    m_closingCondition.notify_all();
+    m_closing_condition.notify_all();
   }
 }
 

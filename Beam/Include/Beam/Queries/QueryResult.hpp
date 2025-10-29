@@ -1,15 +1,14 @@
 #ifndef BEAM_QUERY_RESULT_HPP
 #define BEAM_QUERY_RESULT_HPP
 #include <vector>
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleVector.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Stores the result of a query.
-   * @param <T> The type of data returned by the query.
+   * @tparam T The type of data returned by the query.
    */
   template<typename T>
   struct QueryResult {
@@ -18,40 +17,40 @@ namespace Beam::Queries {
     using Type = T;
 
     /** The query's unique id. */
-    int m_queryId;
+    int m_id;
 
     /** A snapshot of available data from the query. */
     std::vector<Type> m_snapshot;
 
     /** Constructs a default QueryResult. */
-    QueryResult();
+    QueryResult() noexcept;
 
     /**
      * Constructs a QueryResult.
-     * @param queryId The query's unique id.
+     * @param id The query's unique id.
      * @param snapshot The snapshot of available data from the query.
      */
-    QueryResult(int queryId, std::vector<Type> snapshot);
+    QueryResult(int id, std::vector<Type> snapshot) noexcept;
+
+    bool operator ==(const QueryResult&) const = default;
   };
 
   template<typename T>
-  QueryResult<T>::QueryResult()
-    : m_queryId(-1) {}
+  QueryResult<T>::QueryResult() noexcept
+    : m_id(-1) {}
 
   template<typename T>
-  QueryResult<T>::QueryResult(int queryId, std::vector<Type> snapshot)
-    : m_queryId(queryId),
+  QueryResult<T>::QueryResult(int id, std::vector<Type> snapshot) noexcept
+    : m_id(id),
       m_snapshot(std::move(snapshot)) {}
-}
 
-namespace Beam::Serialization {
   template<typename T>
-  struct Shuttle<Queries::QueryResult<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Queries::QueryResult<T>& value,
-        unsigned int version) {
-      shuttle.Shuttle("query_id", value.m_queryId);
-      shuttle.Shuttle("snapshot", value.m_snapshot);
+  struct Shuttle<QueryResult<T>> {
+    template<IsShuttle S>
+    void operator ()(
+        S& shuttle, QueryResult<T>& value, unsigned int version) const {
+      shuttle.shuttle("id", value.m_id);
+      shuttle.shuttle("snapshot", value.m_snapshot);
     }
   };
 }

@@ -1,13 +1,11 @@
 #ifndef BEAM_DECODER_EXCEPTION_HPP
 #define BEAM_DECODER_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/Codecs/Codecs.hpp"
 
-namespace Beam::Codecs {
+namespace Beam {
 
   /** Signals that an error occurred while decoding. */
-  class DecoderException : public std::runtime_error, public boost::exception {
+  class DecoderException : public std::runtime_error {
     public:
       using runtime_error::runtime_error;
 

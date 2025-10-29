@@ -2,42 +2,36 @@
 #define BEAM_STANDARD_OUT_EMAIL_CLIENT_HPP
 #include <iostream>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/WebServices/Email.hpp"
 #include "Beam/WebServices/EmailClient.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /** Displays emails to stdout. */
   class StandardOutEmailClient {
     public:
       StandardOutEmailClient() = default;
-
       ~StandardOutEmailClient();
 
-      void Send(const Email& email);
-
-      void Close();
+      void send(const Email& email);
+      void close();
 
     private:
-      IO::OpenState m_openState;
+      OpenState m_open_state;
   };
 
   inline StandardOutEmailClient::~StandardOutEmailClient() {
-    Close();
+    close();
   }
 
-  inline void StandardOutEmailClient::Send(const Email& email) {
-    if(m_openState.IsOpen()) {
+  inline void StandardOutEmailClient::send(const Email& email) {
+    m_open_state.ensure_open();
+    if(m_open_state.is_open()) {
       std::cout << email << std::flush;
     }
   }
 
-  inline void StandardOutEmailClient::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_openState.Close();
+  inline void StandardOutEmailClient::close() {
+    m_open_state.close();
   }
 }
 

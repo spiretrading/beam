@@ -1,19 +1,21 @@
 #ifndef BEAM_ENUMERATOR_PARSER_HPP
 #define BEAM_ENUMERATOR_PARSER_HPP
+#include <algorithm>
+#include <concepts>
 #include <iterator>
+#include <type_traits>
 #include <vector>
 #include <boost/lexical_cast.hpp>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Parsers/ConversionParser.hpp"
-#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 #include "Beam/Parsers/SymbolParser.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
    * Used to parse an Enumerator.
-   * @param <E> The type of Enumerator to parse.
+   * @tparam E The type of Enumerator to parse.
    */
   template<typename E>
   class EnumeratorParser {
@@ -24,11 +26,13 @@ namespace Beam::Parsers {
        * Constructs an EnumeratorParser.
        * @param first An iterator to the first enumerated value.
        * @param last An iterator to one past the last enumerated value.
-       * @param toString The function used to convert the Enumerator to a
+       * @param to_string The function used to convert the Enumerator to a
        *        string.
        */
-      template<typename I1, typename I2, typename F>
-      EnumeratorParser(I1 first, I2 last, F toString);
+      template<typename I1, typename I2, typename F> requires
+        std::invocable<F, E> &&
+        std::convertible_to<std::invoke_result_t<F, E>, std::string>
+      EnumeratorParser(I1 first, I2 last, F to_string);
 
       /**
        * Constructs an EnumeratorParser.
@@ -38,11 +42,10 @@ namespace Beam::Parsers {
       template<typename I1, typename I2>
       EnumeratorParser(I1 first, I2 last);
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
 
     private:
       struct EnumConverter {
@@ -73,12 +76,22 @@ namespace Beam::Parsers {
   }
 
   template<typename E>
-  template<typename I1, typename I2, typename F>
-  EnumeratorParser<E>::EnumeratorParser(I1 first, I2 last, F toString) {
+  template<typename I1, typename I2, typename F> requires
+    std::invocable<F, E> &&
+    std::convertible_to<std::invoke_result_t<F, E>, std::string>
+  EnumeratorParser<E>::EnumeratorParser(I1 first, I2 last, F to_string) {
+    auto cases = std::vector<std::tuple<E, std::string>>();
     while(first != last) {
-      m_parsers.push_back(Convert(SymbolParser(toString(*first)),
-        EnumConverter(*first)));
+      cases.push_back(std::tuple(*first, to_string(*first)));
       ++first;
+    }
+    std::sort(cases.begin(), cases.end(),
+      [] (const auto& lhs, const auto& rhs) {
+        return std::get<1>(lhs).size() > std::get<1>(rhs).size();
+      });
+    for(auto& c : cases) {
+      m_parsers.push_back(
+        convert(SymbolParser(std::get<1>(c)), EnumConverter(std::get<0>(c))));
     }
   }
 
@@ -89,12 +102,12 @@ namespace Beam::Parsers {
         &boost::lexical_cast<std::string, Result>) {}
 
   template<typename E>
-  template<typename Stream>
-  bool EnumeratorParser<E>::Read(Stream& source, Result& value) const {
+  template<IsParserStream S>
+  bool EnumeratorParser<E>::read(S& source, Result& value) const {
     for(auto& parser : m_parsers) {
-      auto context = SubParserStream<Stream>(source);
-      if(parser.Read(context, value)) {
-        context.Accept();
+      auto context = SubParserStream<S>(source);
+      if(parser.read(context, value)) {
+        context.accept();
         return true;
       }
     }
@@ -102,12 +115,12 @@ namespace Beam::Parsers {
   }
 
   template<typename E>
-  template<typename Stream>
-  bool EnumeratorParser<E>::Read(Stream& source) const {
+  template<IsParserStream S>
+  bool EnumeratorParser<E>::read(S& source) const {
     for(auto& parser : m_parsers) {
-      auto context = SubParserStream<Stream>(source);
-      if(parser.Read(context)) {
-        context.Accept();
+      auto context = SubParserStream<S>(source);
+      if(parser.read(context)) {
+        context.accept();
         return true;
       }
     }

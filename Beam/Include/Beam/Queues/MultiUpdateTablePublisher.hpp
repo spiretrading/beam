@@ -2,9 +2,9 @@
 #define BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
 #include <unordered_map>
 #include <vector>
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
+#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
@@ -12,16 +12,16 @@ namespace Beam {
 
   /**
    * Publishes multiple updates to a table.
-   * @param <K> The unique index/key into the table.
-   * @param <V> The value associated with the key.
+   * @tparam K The unique index/key into the table.
+   * @tparam V The value associated with the key.
    */
   template<typename K, typename V>
   class MultiUpdateTablePublisher final : public SnapshotPublisher<
       std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>,
       public QueueWriter<std::vector<KeyValuePair<K, V>>> {
     public:
-      using Type = typename SnapshotPublisher<std::vector<KeyValuePair<K, V>>,
-        std::unordered_map<K, V>>::Type;
+      using Type = typename SnapshotPublisher<
+        std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::Type;
       using Snapshot = typename SnapshotPublisher<
         std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::Snapshot;
 
@@ -38,77 +38,72 @@ namespace Beam {
        * Pushes a single update.
        * @param update The update to push.
        */
-      void Push(const KeyValuePair<Key, Value>& update);
+      void push(const KeyValuePair<Key, Value>& update);
 
       /**
        * Pushes a key/value pair onto the table.
        * @param key The table entry's key.
        * @param value The value to associate with the <i>key</i>.
        */
-      void Push(const Key& key, const Value& value);
+      void push(const Key& key, const Value& value);
 
-      void With(
-        const std::function<void (boost::optional<const Snapshot&>)>& f)
+      void with(const std::function<void (boost::optional<const Snapshot&>)>& f)
         const override;
-
-      void Monitor(ScopedQueueWriter<Type> monitor,
+      void monitor(ScopedQueueWriter<Type> monitor,
         Out<boost::optional<Snapshot>> snapshot) const override;
-
-      void With(const std::function<void ()>& f) const override;
-
-      void Monitor(ScopedQueueWriter<Type> monitor) const override;
-
-      void Push(const Type& value) override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      using QueueWriter<std::vector<KeyValuePair<K, V>>>::Break;
+      void with(const std::function<void ()>& f) const override;
+      void monitor(ScopedQueueWriter<Type> monitor) const override;
+      void push(const Type& value) override;
+      void push(Type&& value) override;
+      void close(const std::exception_ptr& e) override;
+      using QueueWriter<std::vector<KeyValuePair<K, V>>>::close;
       using SnapshotPublisher<
-        std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::With;
+        std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::with;
+
     private:
-      mutable Threading::RecursiveMutex m_mutex;
+      mutable RecursiveMutex m_mutex;
       std::unordered_map<Key, Value> m_table;
       QueueWriterPublisher<Type> m_publisher;
   };
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Push(
+  void MultiUpdateTablePublisher<K, V>::push(
       const KeyValuePair<Key, Value>& update) {
     auto value = std::vector<KeyValuePair<Key, Value>>();
     value.push_back(update);
-    Push(value);
+    push(value);
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Push(const Key& key,
-      const Value& value) {
-    Push(KeyValuePair(key, value));
+  void MultiUpdateTablePublisher<K, V>::push(
+      const Key& key, const Value& value) {
+    push(KeyValuePair(key, value));
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::With(
+  void MultiUpdateTablePublisher<K, V>::with(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f(m_table);
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Monitor(ScopedQueueWriter<Type> queue,
+  void MultiUpdateTablePublisher<K, V>::monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
     auto lock = boost::lock_guard(m_mutex);
     *snapshot = m_table;
-    m_publisher.Monitor(std::move(queue));
+    m_publisher.monitor(std::move(queue));
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::With(
+  void MultiUpdateTablePublisher<K, V>::with(
       const std::function<void ()>& f) const {
     auto lock = boost::lock_guard(m_mutex);
     f();
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Monitor(
+  void MultiUpdateTablePublisher<K, V>::monitor(
       ScopedQueueWriter<Type> queue) const {
     auto lock = boost::lock_guard(m_mutex);
     if(!m_table.empty()) {
@@ -116,13 +111,13 @@ namespace Beam {
       for(auto& i : m_table) {
         update.push_back(KeyValuePair(i.first, i.second));
       }
-      queue.Push(std::move(update));
+      queue.push(std::move(update));
     }
-    m_publisher.Monitor(std::move(queue));
+    m_publisher.monitor(std::move(queue));
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Push(const Type& value) {
+  void MultiUpdateTablePublisher<K, V>::push(const Type& value) {
     if(value.empty()) {
       return;
     }
@@ -130,13 +125,25 @@ namespace Beam {
     for(auto& i : value) {
       m_table[i.m_key] = i.m_value;
     }
-    m_publisher.Push(value);
+    m_publisher.push(value);
   }
 
   template<typename K, typename V>
-  void MultiUpdateTablePublisher<K, V>::Break(const std::exception_ptr& e) {
+  void MultiUpdateTablePublisher<K, V>::push(Type&& value) {
+    if(value.empty()) {
+      return;
+    }
     auto lock = boost::lock_guard(m_mutex);
-    m_publisher.Break(e);
+    for(auto& i : value) {
+      m_table[i.m_key] = i.m_value;
+    }
+    m_publisher.push(std::move(value));
+  }
+
+  template<typename K, typename V>
+  void MultiUpdateTablePublisher<K, V>::close(const std::exception_ptr& e) {
+    auto lock = boost::lock_guard(m_mutex);
+    m_publisher.close(e);
   }
 }
 

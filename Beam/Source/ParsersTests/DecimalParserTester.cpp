@@ -3,26 +3,25 @@
 #include "Beam/Parsers/ReaderParserStream.hpp"
 
 using namespace Beam;
-using namespace Beam::Parsers;
 
 TEST_SUITE("DecimalParser") {
   TEST_CASE("positive_decimal") {
     auto parser = DecimalParser<double>();
-    auto source = ParserStreamFromString("3.300000");
+    auto source = to_parser_stream("3.300000");
     auto value = double();
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == 3.3);
-    source = ParserStreamFromString("1.a32");
-    REQUIRE(!parser.Read(source, value));
+    source = to_parser_stream("1.a32");
+    REQUIRE(!parser.read(source, value));
   }
 
   TEST_CASE("negative_decimal") {
     auto parser = DecimalParser<double>();
-    auto source = ParserStreamFromString("-3.1415");
+    auto source = to_parser_stream("-3.1415");
     auto value = double();
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == -3.1415);
-    source = ParserStreamFromString("-a3.123");
-    REQUIRE(!parser.Read(source, value));
+    source = to_parser_stream("-a3.123");
+    REQUIRE(!parser.read(source, value));
   }
 }

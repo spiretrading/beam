@@ -12,86 +12,83 @@ namespace Beam {
 
   /**
    * Buffers writes to an underlying data store.
-   * @param <D> The underlying data store to commit the data to.
+   * @tparam D The underlying data store to commit the data to.
    */
   template<typename D>
-  class BufferedDataStore {
+  class BufferedProfileDataStore {
     public:
 
       /** The type of DataStore to buffer. */
-      using BaseDataStore = GetTryDereferenceType<D>;
+      using BaseDataStore = dereference_t<D>;
 
       /**
-       * Constructs a BufferedDataStore.
-       * @param dataStore Initializes the data store to commit data to.
-       * @param bufferSize The number of messages to buffer before committing to
-       *        to the <i>dataStore</i>.
+       * Constructs a BufferedProfileDataStore.
+       * @param data_store Initializes the data store to commit data to.
+       * @param buffer_size The number of messages to buffer before committing
+       *        to the <i>data_store</i>.
        */
-      template<typename DF>
-      BufferedDataStore(DF&& dataStore, std::size_t bufferSize);
+      template<Initializes<D> DF>
+      BufferedProfileDataStore(DF&& data_store, std::size_t buffer_size);
 
-      ~BufferedDataStore();
+      ~BufferedProfileDataStore();
 
-      void Clear();
-
-      std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
-
-      void Store(const SequencedIndexedEntry& entry);
-
-      void Store(const std::vector<SequencedIndexedEntry>& entries);
-
-      void Close();
+      void clear();
+      std::vector<SequencedEntry> load_entries(const EntryQuery& query);
+      void store(const SequencedIndexedEntry& entry);
+      void store(const std::vector<SequencedIndexedEntry>& entries);
+      void close();
 
     private:
-      GetOptionalLocalPtr<D> m_dataStore;
-      Queries::BufferedDataStore<DataStoreQueryWrapper<BaseDataStore*>,
-        Queries::EvaluatorTranslator<Queries::QueryTypes>> m_bufferedDataStore;
-      IO::OpenState m_openState;
+      local_ptr_t<D> m_data_store;
+      BufferedDataStore<DataStoreQueryWrapper<BaseDataStore*>,
+        EvaluatorTranslator<QueryTypes>> m_buffered_data_store;
+      OpenState m_open_state;
 
-      BufferedDataStore(const BufferedDataStore&) = delete;
-      BufferedDataStore& operator =(const BufferedDataStore&) = delete;
+      BufferedProfileDataStore(const BufferedProfileDataStore&) = delete;
+      BufferedProfileDataStore& operator =(
+        const BufferedProfileDataStore&) = delete;
   };
 
-  template<typename DF>
-  BufferedDataStore(DF&&, std::size_t) ->
-    BufferedDataStore<std::remove_reference_t<DF>>;
+  template<typename D>
+  BufferedProfileDataStore(D&&, std::size_t) ->
+    BufferedProfileDataStore<std::remove_cvref_t<D>>;
 
   template<typename D>
-  template<typename DF>
-  BufferedDataStore<D>::BufferedDataStore(DF&& dataStore,
-    std::size_t bufferSize)
-    : m_dataStore(std::forward<DF>(dataStore)),
-      m_bufferedDataStore(&*m_dataStore, bufferSize) {}
+  template<Initializes<D> DF>
+  BufferedProfileDataStore<D>::BufferedProfileDataStore(
+    DF&& data_store, std::size_t buffer_size)
+    : m_data_store(std::forward<DF>(data_store)),
+      m_buffered_data_store(&*m_data_store, buffer_size) {}
 
   template<typename D>
-  BufferedDataStore<D>::~BufferedDataStore() {
-    Close();
+  BufferedProfileDataStore<D>::~BufferedProfileDataStore() {
+    close();
   }
 
   template<typename D>
-  void BufferedDataStore<D>::Clear() {
-    m_dataStore->Clear();
+  void BufferedProfileDataStore<D>::clear() {
+    m_data_store->clear();
   }
 
   template<typename D>
-  std::vector<SequencedEntry> BufferedDataStore<D>::LoadEntries(
+  std::vector<SequencedEntry> BufferedProfileDataStore<D>::load_entries(
       const EntryQuery& query) {
-    return m_bufferedDataStore.Load(query);
+    return m_buffered_data_store.load(query);
   }
 
   template<typename D>
-  void BufferedDataStore<D>::Store(const SequencedIndexedEntry& entry) {
-    m_bufferedDataStore.Store(entry);
+  void BufferedProfileDataStore<D>::store(const SequencedIndexedEntry& entry) {
+    m_buffered_data_store.store(entry);
   }
 
   template<typename D>
-  void BufferedDataStore<D>::Close() {
-    if(m_openState.SetClosing()) {
+  void BufferedProfileDataStore<D>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_bufferedDataStore.Close();
-    m_dataStore->Close();
-    m_openState.Close();
+    m_buffered_data_store.close();
+    m_data_store->close();
+    m_open_state.close();
   }
 }
 

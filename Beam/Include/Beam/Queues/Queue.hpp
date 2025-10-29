@@ -4,7 +4,6 @@
 #include <boost/thread/mutex.hpp>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
@@ -12,7 +11,7 @@ namespace Beam {
   /**
    * Implements a Queue that can safely block within a Routine waiting for data
    * to arrive.
-   * @param <T> The data to store in the Queue.
+   * @tparam T The data to store in the Queue.
    */
   template<typename T>
   class Queue : public AbstractQueue<T> {
@@ -24,43 +23,38 @@ namespace Beam {
       Queue() = default;
 
       /** Returns <code>true</code> iff this Queue is broken. */
-      bool IsBroken() const;
+      bool is_broken() const;
 
-      Source Pop() override;
-
-      boost::optional<Source> TryPop() override;
-
-      void Push(const Target& value) override;
-
-      void Push(Target&& value) override;
-
-      void Break(const std::exception_ptr& exception) override;
-
-      using QueueWriter<T>::Break;
+      Source pop() override;
+      boost::optional<Source> try_pop() override;
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      void close(const std::exception_ptr& exception) override;
+      using QueueWriter<T>::close;
 
     private:
       mutable boost::mutex m_mutex;
-      mutable Threading::ConditionVariable m_isAvailableCondition;
+      mutable ConditionVariable m_is_available_condition;
       std::deque<T> m_queue;
-      std::exception_ptr m_breakException;
+      std::exception_ptr m_break_exception;
 
-      bool UnlockedIsAvailable() const;
+      bool unlocked_is_available() const;
   };
 
   template<typename T>
-  bool Queue<T>::IsBroken() const {
+  bool Queue<T>::is_broken() const {
     auto lock = boost::lock_guard(m_mutex);
-    return m_breakException != nullptr && m_queue.empty();
+    return m_break_exception && m_queue.empty();
   }
 
   template<typename T>
-  typename Queue<T>::Source Queue<T>::Pop() {
+  typename Queue<T>::Source Queue<T>::pop() {
     auto lock = boost::unique_lock(m_mutex);
-    while(!UnlockedIsAvailable()) {
-      m_isAvailableCondition.wait(lock);
+    while(!unlocked_is_available()) {
+      m_is_available_condition.wait(lock);
     }
     if(m_queue.empty()) {
-      std::rethrow_exception(m_breakException);
+      std::rethrow_exception(m_break_exception);
     }
     auto value = std::move(m_queue.front());
     m_queue.pop_front();
@@ -68,7 +62,7 @@ namespace Beam {
   }
 
   template<typename T>
-  boost::optional<typename Queue<T>::Source> Queue<T>::TryPop() {
+  boost::optional<typename Queue<T>::Source> Queue<T>::try_pop() {
     auto lock = boost::lock_guard(m_mutex);
     if(m_queue.empty()) {
       return boost::none;
@@ -79,42 +73,42 @@ namespace Beam {
   }
 
   template<typename T>
-  void Queue<T>::Push(const Target& value) {
+  void Queue<T>::push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_breakException != nullptr) {
-      std::rethrow_exception(m_breakException);
+    if(m_break_exception) {
+      std::rethrow_exception(m_break_exception);
     }
     m_queue.push_back(value);
     if(m_queue.size() == 1) {
-      m_isAvailableCondition.notify_one();
+      m_is_available_condition.notify_one();
     }
   }
 
   template<typename T>
-  void Queue<T>::Push(Target&& value) {
+  void Queue<T>::push(Target&& value) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_breakException != nullptr) {
-      std::rethrow_exception(m_breakException);
+    if(m_break_exception) {
+      std::rethrow_exception(m_break_exception);
     }
     m_queue.push_back(std::move(value));
     if(m_queue.size() == 1) {
-      m_isAvailableCondition.notify_one();
+      m_is_available_condition.notify_one();
     }
   }
 
   template<typename T>
-  void Queue<T>::Break(const std::exception_ptr& exception) {
+  void Queue<T>::close(const std::exception_ptr& exception) {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_breakException != nullptr) {
+    if(m_break_exception) {
       return;
     }
-    m_breakException = exception;
-    m_isAvailableCondition.notify_all();
+    m_break_exception = exception;
+    m_is_available_condition.notify_all();
   }
 
   template<typename T>
-  bool Queue<T>::UnlockedIsAvailable() const {
-    return !m_queue.empty() || m_breakException;
+  bool Queue<T>::unlocked_is_available() const {
+    return !m_queue.empty() || m_break_exception;
   }
 }
 

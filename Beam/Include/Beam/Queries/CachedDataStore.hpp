@@ -5,22 +5,21 @@
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/CachedDataStoreEntry.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Caches data read from a data store.
-   * @param <D> The type of data store to buffer writes to.
-   * @param <F> The type of EvaluatorTranslator used for filtering values.
+   * @tparam D The type of data store to buffer writes to.
+   * @tparam F The type of EvaluatorTranslator used for filtering values.
    */
-  template<typename D, typename F =
-    typename GetTryDereferenceType<D>::EvaluatorTranslatorFilter>
+  template<typename D,
+    typename F = typename dereference_t<D>::EvaluatorTranslatorFilter>
   class CachedDataStore {
     public:
 
       /** The type of data store to buffer writes to. */
-      using DataStore = GetTryDereferenceType<D>;
+      using DataStore = dereference_t<D>;
 
       /** The type of query used to load values. */
       using Query = typename DataStore::Query;
@@ -42,80 +41,76 @@ namespace Beam::Queries {
 
       /**
        * Constructs a CachedDataStore.
-       * @param dataStore Initializes the data store to cache.
-       * @param blockSize The size of a single cache block.
+       * @param data_store Initializes the data store to cache.
+       * @param block_size The size of a single cache block.
        */
-      template<typename DF>
-      CachedDataStore(DF&& dataStore, int blockSize);
+      template<Initializes<D> DF>
+      CachedDataStore(DF&& data_store, int block_size);
 
       ~CachedDataStore();
 
-      std::vector<SequencedValue> Load(const Query& query);
-
-      void Store(const IndexedValue& value);
-
-      void Store(const std::vector<IndexedValue>& values);
-
-      void Close();
+      std::vector<SequencedValue> load(const Query& query);
+      void store(const IndexedValue& value);
+      void store(const std::vector<IndexedValue>& values);
+      void close();
 
     private:
-      using CachedDataStoreEntry = ::Beam::Queries::CachedDataStoreEntry<
-        DataStore*, F>;
-      GetOptionalLocalPtr<D> m_dataStore;
-      int m_blockSize;
+      using CachedDataStoreEntry = Beam::CachedDataStoreEntry<DataStore*, F>;
+      local_ptr_t<D> m_data_store;
+      int m_block_size;
       SynchronizedUnorderedMap<Index, CachedDataStoreEntry> m_caches;
-      IO::OpenState m_openState;
+      OpenState m_open_state;
 
       CachedDataStore(const CachedDataStore&) = delete;
       CachedDataStore& operator =(const CachedDataStore&) = delete;
-      CachedDataStoreEntry& LoadCache(const Index& index);
+      CachedDataStoreEntry& load_cache(const Index& index);
   };
 
   template<typename D, typename F>
-  template<typename DF>
-  CachedDataStore<D, F>::CachedDataStore(DF&& dataStore, int blockSize)
-    : m_dataStore(std::forward<DF>(dataStore)),
-      m_blockSize(blockSize) {}
+  template<Initializes<D> DF>
+  CachedDataStore<D, F>::CachedDataStore(DF&& data_store, int block_size)
+    : m_data_store(std::forward<DF>(data_store)),
+      m_block_size(block_size) {}
 
   template<typename D, typename F>
   CachedDataStore<D, F>::~CachedDataStore() {
-    Close();
+    close();
   }
 
   template<typename D, typename F>
   std::vector<typename CachedDataStore<D, F>::SequencedValue>
-      CachedDataStore<D, F>::Load(const Query& query) {
-    auto& cache = LoadCache(query.GetIndex());
-    return cache.Load(query);
+      CachedDataStore<D, F>::load(const Query& query) {
+    auto& cache = load_cache(query.get_index());
+    return cache.load(query);
   }
 
   template<typename D, typename F>
-  void CachedDataStore<D, F>::Store(const IndexedValue& value) {
-    m_dataStore->Store(value);
-    auto& cache = LoadCache(value->GetIndex());
-    cache.Store(value);
+  void CachedDataStore<D, F>::store(const IndexedValue& value) {
+    m_data_store->store(value);
+    auto& cache = load_cache(value->get_index());
+    cache.store(value);
   }
 
   template<typename D, typename F>
-  void CachedDataStore<D, F>::Store(const std::vector<IndexedValue>& values) {
-    m_dataStore->Store(values);
+  void CachedDataStore<D, F>::store(const std::vector<IndexedValue>& values) {
+    m_data_store->store(values);
     for(auto& value : values) {
-      auto& cache = LoadCache(value->GetIndex());
-      cache.Store(value);
+      auto& cache = load_cache(value->get_index());
+      cache.store(value);
     }
   }
 
   template<typename D, typename F>
-  void CachedDataStore<D, F>::Close() {
-    m_openState.Close();
+  void CachedDataStore<D, F>::close() {
+    m_open_state.close();
   }
 
   template<typename D, typename F>
   typename CachedDataStore<D, F>::CachedDataStoreEntry&
-      CachedDataStore<D, F>::LoadCache(const Index& index) {
-    return m_caches.TestAndSet(index, [&] (auto& caches) {
+      CachedDataStore<D, F>::load_cache(const Index& index) {
+    return m_caches.test_and_set(index, [&] (auto& caches) {
       caches.emplace(std::piecewise_construct, std::forward_as_tuple(index),
-        std::forward_as_tuple(&*m_dataStore, index, m_blockSize));
+        std::forward_as_tuple(&*m_data_store, index, m_block_size));
     });
   }
 }

@@ -5,8 +5,11 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/mp11.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/variant/variant.hpp>
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/AndEvaluatorNode.hpp"
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"
@@ -22,26 +25,51 @@
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/ParameterEvaluatorNode.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/ReadEvaluatorNode.hpp"
 #include "Beam/Queries/ReduceEvaluatorNode.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
+#include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Queries/WriteEvaluatorNode.hpp"
 #include "Beam/Utilities/Casts.hpp"
-#include "Beam/Utilities/InstantiateTemplate.hpp"
+#include "Beam/Utilities/Instantiate.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** The maximum number of supported parameters. */
   constexpr auto MAX_EVALUATOR_PARAMETERS = 2;
 
+  /** A variant able to represent any query type. */
+  using QueryVariant = boost::variant<bool, char, int, double, std::uint64_t,
+    std::string, boost::posix_time::ptime, boost::posix_time::time_duration>;
+
+  /** Wraps a QueryVariant into a SequencedValue. */
+  using SequencedQueryVariant = SequencedValue<QueryVariant>;
+
+  /** Stores typedefs of various types that can be used in an Expression. */
+  struct QueryTypes {
+
+    /** Lists all native types. */
+    using NativeTypes = boost::mp11::mp_list<bool, char, int, double,
+      std::uint64_t, std::string, boost::posix_time::ptime,
+      boost::posix_time::time_duration>;
+
+    /** Lists all value types. */
+    using ValueTypes = boost::mp11::mp_list<bool, char, int, double,
+      std::uint64_t, std::string, boost::posix_time::ptime,
+      boost::posix_time::time_duration>;
+
+    /** Lists types that can be compared. */
+    using ComparableTypes = boost::mp11::mp_list<bool, char, int, double,
+      std::uint64_t, std::string, boost::posix_time::ptime,
+      boost::posix_time::time_duration>;
+  };
+
   /**
    * Translates an Expression into an EvaluatorNode.
-   * @param <QueryTypes> The list of types supported.
+   * @tparam QueryTypes The list of types supported.
    */
   template<typename QueryTypes>
   class EvaluatorTranslator : protected ExpressionVisitor {
@@ -60,19 +88,19 @@ namespace Beam::Queries {
        * Translates an Expression.
        * @param expression The Expression to translate.
        */
-      void Translate(const Expression& expression);
+      void translate(const Expression& expression);
 
       /** Returns the EvaluatorNode that was last translated. */
-      std::unique_ptr<BaseEvaluatorNode> GetEvaluator();
+      std::unique_ptr<BaseEvaluatorNode> get_evaluator();
 
       /** Returns the parameters that were translated. */
-      const std::vector<BaseParameterEvaluatorNode*>& GetParameters() const;
+      const std::vector<BaseParameterEvaluatorNode*>& get_parameters() const;
 
       /**
        * Creates a new instance of this translator, typically used for
        * sub-expressions.
        */
-      virtual std::unique_ptr<EvaluatorTranslator> NewTranslator() const;
+      virtual std::unique_ptr<EvaluatorTranslator> make_translator() const;
 
     protected:
 
@@ -80,332 +108,291 @@ namespace Beam::Queries {
        * Sets the most recently translated evaluator.
        * @param evaluator The most recently translated evaluator.
        */
-      void SetEvaluator(std::unique_ptr<BaseEvaluatorNode> evaluator);
+      void set_evaluator(std::unique_ptr<BaseEvaluatorNode> evaluator);
 
-      void Visit(const AndExpression& expression) override;
-
-      void Visit(const ConstantExpression& expression) override;
-
-      void Visit(const FunctionExpression& expression) override;
-
-      void Visit(
+      void visit(const AndExpression& expression) override;
+      void visit(const ConstantExpression& expression) override;
+      void visit(const FunctionExpression& expression) override;
+      void visit(
         const GlobalVariableDeclarationExpression& expression) override;
-
-      void Visit(const NotExpression& expression) override;
-
-      void Visit(const OrExpression& expression) override;
-
-      void Visit(const ParameterExpression& expression) override;
-
-      void Visit(const ReduceExpression& expression) override;
-
-      void Visit(const SetVariableExpression& expression) override;
-
-      void Visit(const VariableExpression& expression) override;
-
-      void Visit(const VirtualExpression& expression) override;
+      void visit(const NotExpression& expression) override;
+      void visit(const OrExpression& expression) override;
+      void visit(const ParameterExpression& expression) override;
+      void visit(const ReduceExpression& expression) override;
+      void visit(const SetVariableExpression& expression) override;
+      void visit(const VariableExpression& expression) override;
+      void visit(const VirtualExpression& expression) override;
 
     private:
       struct VariableEntry {
         void* m_address;
-        const std::type_info* m_type;
+        std::type_index m_type;
 
-        VariableEntry(void* address, const std::type_info& type);
+        VariableEntry(void* address, std::type_index type);
       };
       std::unique_ptr<BaseEvaluatorNode> m_evaluator;
       std::vector<BaseParameterEvaluatorNode*> m_parameters;
       std::unordered_map<std::string, std::vector<VariableEntry>> m_variables;
 
-      const VariableEntry& FindVariable(const std::string& name) const;
+      const VariableEntry& find_variable(const std::string& name) const;
       template<typename Operation, int COUNT>
-      void TranslateFunction(const FunctionExpression& expression);
+      void translate(const FunctionExpression& expression);
   };
 
   template<typename QueryTypes>
-  EvaluatorTranslator<QueryTypes>::VariableEntry::VariableEntry(void* address,
-    const std::type_info& type)
+  EvaluatorTranslator<QueryTypes>::VariableEntry::VariableEntry(
+    void* address, std::type_index type)
     : m_address(address),
-      m_type(&type) {}
+      m_type(type) {}
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Translate(
+  void EvaluatorTranslator<QueryTypes>::translate(
       const Expression& expression) {
-    expression->Apply(*this);
-    auto parameterChecks = std::array<boost::optional<const std::type_info*>,
-      MAX_EVALUATOR_PARAMETERS>();
-    auto maxIndex = -1;
+    expression.apply(*this);
+    auto parameter_checks =
+      std::array<boost::optional<std::type_index>, MAX_EVALUATOR_PARAMETERS>();
+    auto max_index = -1;
     for(auto& parameter : m_parameters) {
-      maxIndex = std::max(maxIndex, parameter->GetIndex());
-      auto& parameterCheck = parameterChecks[parameter->GetIndex()];
-      if(parameterCheck) {
-        if(**parameterCheck != parameter->GetResultType()) {
-          BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-            "Parameter type mismatch."));
-        }
+      max_index = std::max(max_index, parameter->get_index());
+      auto& check = parameter_checks[parameter->get_index()];
+      if(check && check != parameter->get_type()) {
+        boost::throw_with_location(
+          ExpressionTranslationException("Parameter type mismatch."));
       } else {
-        parameterCheck = &parameter->GetResultType();
+        check = parameter->get_type();
       }
     }
-    for(auto i = 0; i <= maxIndex; ++i) {
-      if(!parameterChecks[i]) {
-        BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-          "Missing parameter."));
+    for(auto i = 0; i <= max_index; ++i) {
+      if(!parameter_checks[i]) {
+        boost::throw_with_location(
+          ExpressionTranslationException("Missing parameter."));
       }
     }
   }
 
   template<typename QueryTypes>
-  std::unique_ptr<BaseEvaluatorNode> EvaluatorTranslator<QueryTypes>::
-      GetEvaluator() {
+  std::unique_ptr<BaseEvaluatorNode>
+      EvaluatorTranslator<QueryTypes>::get_evaluator() {
     return std::move(m_evaluator);
   }
 
   template<typename QueryTypes>
   const std::vector<BaseParameterEvaluatorNode*>&
-      EvaluatorTranslator<QueryTypes>::GetParameters() const {
+      EvaluatorTranslator<QueryTypes>::get_parameters() const {
     return m_parameters;
   }
 
   template<typename QueryTypes>
   std::unique_ptr<EvaluatorTranslator<QueryTypes>>
-      EvaluatorTranslator<QueryTypes>::NewTranslator() const {
+      EvaluatorTranslator<QueryTypes>::make_translator() const {
     return std::make_unique<EvaluatorTranslator>();
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::SetEvaluator(
+  void EvaluatorTranslator<QueryTypes>::set_evaluator(
       std::unique_ptr<BaseEvaluatorNode> evaluator) {
     m_evaluator = std::move(evaluator);
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(const AndExpression& expression) {
-    auto leftExpression = expression.GetLeftExpression();
-    leftExpression->Apply(*this);
-    auto leftEvaluator = Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(
-      GetEvaluator());
-    auto rightExpression = expression.GetRightExpression();
-    rightExpression->Apply(*this);
-    auto rightEvaluator = Beam::StaticCast<
-      std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
-    SetEvaluator(std::make_unique<AndEvaluatorNode>(std::move(leftEvaluator),
-      std::move(rightEvaluator)));
+  void EvaluatorTranslator<QueryTypes>::visit(const AndExpression& expression) {
+    expression.get_left().apply(*this);
+    auto left = static_pointer_cast<EvaluatorNode<bool>>(get_evaluator());
+    expression.get_right().apply(*this);
+    auto right = static_pointer_cast<EvaluatorNode<bool>>(get_evaluator());
+    set_evaluator(
+      std::make_unique<AndEvaluatorNode>(std::move(left), std::move(right)));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const ConstantExpression& expression) {
-    m_evaluator.reset(Instantiate<ConstantEvaluatorNodeTranslator<NativeTypes>>(
-      expression.GetType()->GetNativeType())(expression));
+    m_evaluator.reset(instantiate<ConstantEvaluatorNodeTranslator<NativeTypes>>(
+      expression.get_value().get_type())(expression));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const FunctionExpression& expression) {
-    if(expression.GetName() == ADDITION_NAME) {
-      TranslateFunction<AdditionExpressionTranslator<NativeTypes>, 2>(
+    if(expression.get_name() == ADDITION_NAME) {
+      translate<AdditionExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == SUBTRACTION_NAME) {
+      translate<SubtractionExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == MULTIPLICATION_NAME) {
+      translate<MultiplicationExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == DIVISION_NAME) {
+      translate<DivisionExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == LESS_NAME) {
+      translate<LessExpressionTranslator<ComparableTypes>, 2>(expression);
+    } else if(expression.get_name() == LESS_EQUALS_NAME) {
+      translate<LessEqualsExpressionTranslator<ComparableTypes>, 2>(expression);
+    } else if(expression.get_name() == EQUALS_NAME) {
+      translate<EqualsExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == NOT_EQUALS_NAME) {
+      translate<NotEqualsExpressionTranslator<NativeTypes>, 2>(expression);
+    } else if(expression.get_name() == GREATER_EQUALS_NAME) {
+      translate<GreaterEqualsExpressionTranslator<ComparableTypes>, 2>(
         expression);
-    } else if(expression.GetName() == SUBTRACTION_NAME) {
-      TranslateFunction<SubtractionExpressionTranslator<NativeTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == MULTIPLICATION_NAME) {
-      TranslateFunction<MultiplicationExpressionTranslator<NativeTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == DIVISION_NAME) {
-      TranslateFunction<DivisionExpressionTranslator<NativeTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == LESS_NAME) {
-      TranslateFunction<LessExpressionTranslator<ComparableTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == LESS_EQUALS_NAME) {
-      TranslateFunction<LessEqualsExpressionTranslator<ComparableTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == EQUALS_NAME) {
-      TranslateFunction<EqualsExpressionTranslator<NativeTypes>, 2>(expression);
-    } else if(expression.GetName() == NOT_EQUALS_NAME) {
-      TranslateFunction<NotEqualsExpressionTranslator<NativeTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == GREATER_EQUALS_NAME) {
-      TranslateFunction<GreaterEqualsExpressionTranslator<ComparableTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == GREATER_NAME) {
-      TranslateFunction<GreaterExpressionTranslator<ComparableTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == MAX_NAME) {
-      TranslateFunction<MaxExpressionTranslator<ComparableTypes>, 2>(
-        expression);
-    } else if(expression.GetName() == MIN_NAME) {
-      TranslateFunction<MinExpressionTranslator<ComparableTypes>, 2>(
-        expression);
+    } else if(expression.get_name() == GREATER_NAME) {
+      translate<GreaterExpressionTranslator<ComparableTypes>, 2>(expression);
+    } else if(expression.get_name() == MAX_NAME) {
+      translate<MaxExpressionTranslator<ComparableTypes>, 2>(expression);
+    } else if(expression.get_name() == MIN_NAME) {
+      translate<MinExpressionTranslator<ComparableTypes>, 2>(expression);
     } else {
-      BOOST_THROW_EXCEPTION(
+      boost::throw_with_location(
         ExpressionTranslationException("Function not supported."));
     }
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const GlobalVariableDeclarationExpression& expression) {
-    auto& initialValueExpression = expression.GetInitialValue();
-    initialValueExpression->Apply(*this);
-    auto initialValueEvaluator = std::move(GetEvaluator());
-    auto& bodyExpression = expression.GetBody();
+    auto& initial_value_expression = expression.get_initial_value();
+    initial_value_expression.apply(*this);
+    auto initial_value_evaluator = get_evaluator();
+    auto& body_expression = expression.get_body();
     auto address = static_cast<void*>(nullptr);
-    auto globalVariableEvaluator = Instantiate<
+    auto global_variable_evaluator = instantiate<
       GlobalVariableDeclarationEvaluatorNodeTranslator<NativeTypes>>(
-      initialValueExpression->GetType()->GetNativeType(),
-      bodyExpression->GetType()->GetNativeType())(
-      std::move(initialValueEvaluator), Store(address));
-    auto& variables = m_variables[expression.GetName()];
-    variables.emplace_back(address,
-      initialValueExpression->GetType()->GetNativeType());
+        initial_value_expression.get_type(), body_expression.get_type())(
+          std::move(initial_value_evaluator), out(address));
+    auto& variables = m_variables[expression.get_name()];
+    variables.emplace_back(address, initial_value_expression.get_type());
     try {
-      bodyExpression->Apply(*this);
+      body_expression.apply(*this);
     } catch(const std::exception&) {
       variables.pop_back();
       throw;
     }
-    auto bodyEvaluator = std::move(GetEvaluator());
+    auto body_evaluator = get_evaluator();
     variables.pop_back();
-    Instantiate<GlobalVariableDeclarationEvaluatorNodeSetBody<NativeTypes>>(
-      initialValueExpression->GetType()->GetNativeType(),
-      bodyExpression->GetType()->GetNativeType())(*globalVariableEvaluator,
-      std::move(bodyEvaluator));
-    SetEvaluator(std::move(globalVariableEvaluator));
+    instantiate<GlobalVariableDeclarationEvaluatorNodeSetBody<NativeTypes>>(
+      initial_value_expression.get_type(), body_expression.get_type())(
+        *global_variable_evaluator, std::move(body_evaluator));
+    set_evaluator(std::move(global_variable_evaluator));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(const NotExpression& expression) {
-    auto operandExpression = expression.GetOperand();
-    operandExpression->Apply(*this);
-    auto operandEvaluator =
-      Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
-    SetEvaluator(
-      std::make_unique<NotEvaluatorNode>(std::move(operandEvaluator)));
+  void EvaluatorTranslator<QueryTypes>::visit(const NotExpression& expression) {
+    expression.get_operand().apply(*this);
+    auto operand = static_pointer_cast<EvaluatorNode<bool>>(get_evaluator());
+    set_evaluator(std::make_unique<NotEvaluatorNode>(std::move(operand)));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(const OrExpression& expression) {
-    auto leftExpression = expression.GetLeftExpression();
-    leftExpression->Apply(*this);
-    auto leftEvaluator = Beam::StaticCast<std::unique_ptr<EvaluatorNode<bool>>>(
-      GetEvaluator());
-    auto rightExpression = expression.GetRightExpression();
-    rightExpression->Apply(*this);
-    auto rightEvaluator = Beam::StaticCast<
-      std::unique_ptr<EvaluatorNode<bool>>>(GetEvaluator());
-    SetEvaluator(std::make_unique<OrEvaluatorNode>(std::move(leftEvaluator),
-      std::move(rightEvaluator)));
+  void EvaluatorTranslator<QueryTypes>::visit(const OrExpression& expression) {
+    expression.get_left().apply(*this);
+    auto left = static_pointer_cast<EvaluatorNode<bool>>(get_evaluator());
+    expression.get_right().apply(*this);
+    auto right = static_pointer_cast<EvaluatorNode<bool>>(get_evaluator());
+    set_evaluator(
+      std::make_unique<OrEvaluatorNode>(std::move(left), std::move(right)));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const ParameterExpression& expression) {
-    if(expression.GetIndex() < 0 ||
-        expression.GetIndex() >= MAX_EVALUATOR_PARAMETERS) {
-      BOOST_THROW_EXCEPTION(
+    if(expression.get_index() < 0 ||
+        expression.get_index() >= MAX_EVALUATOR_PARAMETERS) {
+      boost::throw_with_location(
         ExpressionTranslationException("Too many parameters."));
     }
-    m_evaluator.reset(Instantiate<
-      ParameterEvaluatorNodeTranslator<NativeTypes>>(
-      expression.GetType()->GetNativeType())(expression));
+    m_evaluator.reset(instantiate<
+      ParameterEvaluatorNodeTranslator<NativeTypes>>(expression.get_type())(
+        expression));
     m_parameters.push_back(dynamic_cast<BaseParameterEvaluatorNode*>(
       m_evaluator.get()));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const SetVariableExpression& expression) {
-    auto& variable = FindVariable(expression.GetName());
-    if(*variable.m_type != expression.GetType()->GetNativeType()) {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException("Type mismatch."));
+    auto& variable = find_variable(expression.get_name());
+    if(variable.m_type != expression.get_type()) {
+      boost::throw_with_location(
+        ExpressionTranslationException("Type mismatch."));
     }
-    auto valueExpression = expression.GetValue();
-    valueExpression->Apply(*this);
-    auto valueEvaluator = std::move(GetEvaluator());
-    auto evaluator = Instantiate<WriteEvaluatorNodeTranslator<NativeTypes>>(
-      expression.GetType()->GetNativeType())(variable.m_address,
-      std::move(valueEvaluator));
-    SetEvaluator(std::move(evaluator));
+    expression.get_value().apply(*this);
+    auto value_evaluator = get_evaluator();
+    auto evaluator = instantiate<WriteEvaluatorNodeTranslator<NativeTypes>>(
+      expression.get_type())(variable.m_address, std::move(value_evaluator));
+    set_evaluator(std::move(evaluator));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const VariableExpression& expression) {
-    auto& variable = FindVariable(expression.GetName());
-    if(*variable.m_type != expression.GetType()->GetNativeType()) {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException("Type mismatch."));
+    auto& variable = find_variable(expression.get_name());
+    if(variable.m_type != expression.get_type()) {
+      boost::throw_with_location(
+        ExpressionTranslationException("Type mismatch."));
     }
-    auto evaluator = Instantiate<ReadEvaluatorNodeTranslator<NativeTypes>>(
-      expression.GetType()->GetNativeType())(variable.m_address);
-    SetEvaluator(std::move(evaluator));
+    auto evaluator = instantiate<ReadEvaluatorNodeTranslator<NativeTypes>>(
+      expression.get_type())(variable.m_address);
+    set_evaluator(std::move(evaluator));
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const VirtualExpression& expression) {
-    BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-      "Expression not supported."));
+    boost::throw_with_location(
+      ExpressionTranslationException("Expression not supported."));
   }
 
   template<typename QueryTypes>
   const typename EvaluatorTranslator<QueryTypes>::VariableEntry&
-      EvaluatorTranslator<QueryTypes>::FindVariable(
-      const std::string& name) const {
-    auto variableIterator = m_variables.find(name);
-    if(variableIterator == m_variables.end() ||
-        variableIterator->second.empty()) {
-      BOOST_THROW_EXCEPTION(ExpressionTranslationException(
-        "Variable not found."));
+      EvaluatorTranslator<QueryTypes>::find_variable(
+        const std::string& name) const {
+    auto i = m_variables.find(name);
+    if(i == m_variables.end() || i->second.empty()) {
+      boost::throw_with_location(
+        ExpressionTranslationException("Variable not found."));
     }
-    return variableIterator->second.back();
+    return i->second.back();
   }
 
   template<typename QueryTypes>
   template<typename Translator, int COUNT>
-  void EvaluatorTranslator<QueryTypes>::TranslateFunction(
+  void EvaluatorTranslator<QueryTypes>::translate(
       const FunctionExpression& expression) {
-    if(expression.GetParameters().size() != COUNT) {
-      BOOST_THROW_EXCEPTION(
+    if(expression.get_parameters().size() != COUNT) {
+      boost::throw_with_location(
         ExpressionTranslationException("Invalid parameter count."));
     }
     auto parameters = std::vector<std::unique_ptr<BaseEvaluatorNode>>();
-    for(auto& parameter : expression.GetParameters()) {
-      parameter->Apply(*this);
+    for(auto& parameter : expression.get_parameters()) {
+      parameter.apply(*this);
       parameters.push_back(std::move(m_evaluator));
     }
     try {
       if constexpr(COUNT == 1) {
-        m_evaluator.reset(Instantiate<
+        m_evaluator.reset(instantiate<
           FunctionEvaluatorNodeTranslator<Translator>>(
-            expression.GetParameters()[0]->GetType()->GetNativeType())(
-              std::move(parameters)));
+            expression.get_parameters()[0].get_type())(std::move(parameters)));
       } else if constexpr(COUNT == 2) {
-        m_evaluator.reset(Instantiate<
+        m_evaluator.reset(instantiate<
           FunctionEvaluatorNodeTranslator<Translator>>(
-            expression.GetParameters()[0]->GetType()->GetNativeType(),
-            expression.GetParameters()[1]->GetType()->GetNativeType())(
-              std::move(parameters)));
+            expression.get_parameters()[0].get_type(),
+            expression.get_parameters()[1].get_type())(std::move(parameters)));
       } else if constexpr(COUNT == 3) {
-        m_evaluator.reset(Instantiate<
+        m_evaluator.reset(instantiate<
           FunctionEvaluatorNodeTranslator<Translator>>(
-            expression.GetParameters()[0]->GetType()->GetNativeType(),
-            expression.GetParameters()[1]->GetType()->GetNativeType(),
-            expression.GetParameters()[2]->GetType()->GetNativeType())(
-              std::move(parameters)));
+            expression.get_parameters()[0].get_type(),
+            expression.get_parameters()[1].get_type(),
+            expression.get_parameters()[2].get_type())(std::move(parameters)));
       } else if constexpr(COUNT == 4) {
-        m_evaluator.reset(Instantiate<
+        m_evaluator.reset(instantiate<
           FunctionEvaluatorNodeTranslator<Translator>>(
-            expression.GetParameters()[0]->GetType()->GetNativeType(),
-            expression.GetParameters()[1]->GetType()->GetNativeType(),
-            expression.GetParameters()[2]->GetType()->GetNativeType(),
-            expression.GetParameters()[3]->GetType()->GetNativeType())(
-              std::move(parameters)));
+            expression.get_parameters()[0].get_type(),
+            expression.get_parameters()[1].get_type(),
+            expression.get_parameters()[2].get_type(),
+            expression.get_parameters()[3].get_type())(std::move(parameters)));
       } else {
         std::throw_with_nested(
           ExpressionTranslationException("Type mismatch."));
       }
-    } catch(const InstantiationNotSupportedException&) {
+    } catch(const std::invalid_argument&) {
       std::throw_with_nested(ExpressionTranslationException("Type mismatch."));
     }
   }

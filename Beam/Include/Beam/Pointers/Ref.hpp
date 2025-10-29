@@ -1,12 +1,12 @@
 #ifndef BEAM_REF_HPP
 #define BEAM_REF_HPP
-#include "Beam/Pointers/Pointers.hpp"
+#include <concepts>
 
 namespace Beam {
 
   /**
    * Used to explicitly pass a reference.
-   * @param <T> The type being referenced.
+   * @tparam T The type being referenced.
    */
   template<typename T>
   class Ref {
@@ -19,26 +19,19 @@ namespace Beam {
        * Constructs a Ref.
        * @param reference The reference to wrap.
        */
-      explicit Ref(Type& reference);
+      explicit Ref(Type& reference) noexcept;
 
       /** Allows for polymorphic Refs. */
       template<typename U>
-      Ref(const Ref<U>& reference);
+      Ref(const Ref<U>& reference) noexcept requires
+        std::convertible_to<U*, Type*>
+        : m_reference(reference.get()) {}
 
-      /** Copies a Ref. */
-      Ref(const Ref& ref) = default;
+      Ref(const Ref&) = default;
+      Ref(Ref&& reference) noexcept;
 
-      /**
-       * Acquires a Ref.
-       * @param ref The Ref to acquire.
-       */
-      Ref(Ref&& ref);
-
-      /**
-       * Acquires a Ref.
-       * @param ref The Ref to acquire.
-       */
-      Ref& operator =(Ref&& ref);
+      /** Returns a pointer to the result. */
+      Type* get() const;
 
       /** Returns a reference to the result. */
       Type& operator *() const;
@@ -46,36 +39,26 @@ namespace Beam {
       /** Returns a pointer to the result. */
       Type* operator ->() const;
 
-      /** Returns a pointer to the result. */
-      Type* Get() const;
+      Ref& operator =(const Ref&) = default;
+      Ref& operator =(Ref&& reference) noexcept;
 
     private:
       Type* m_reference;
   };
 
   template<typename T>
-  Ref<T>::Ref(Type& reference)
+  Ref<T>::Ref(Type& reference) noexcept
     : m_reference(&reference) {}
 
   template<typename T>
-  template<typename U>
-  Ref<T>::Ref(const Ref<U>& reference)
-    : m_reference(reference.Get()) {}
-
-  template<typename T>
-  Ref<T>::Ref(Ref&& ref)
+  Ref<T>::Ref(Ref&& ref) noexcept
       : m_reference(ref.m_reference) {
     ref.m_reference = nullptr;
   }
 
   template<typename T>
-  Ref<T>& Ref<T>::operator =(Ref&& ref) {
-    if(this == &ref) {
-      return *this;
-    }
-    m_reference = ref.m_reference;
-    ref.m_reference = nullptr;
-    return *this;
+  typename Ref<T>::Type* Ref<T>::get() const {
+    return m_reference;
   }
 
   template<typename T>
@@ -89,8 +72,13 @@ namespace Beam {
   }
 
   template<typename T>
-  typename Ref<T>::Type* Ref<T>::Get() const {
-    return m_reference;
+  Ref<T>& Ref<T>::operator =(Ref&& reference) noexcept {
+    if(this == &reference) {
+      return *this;
+    }
+    m_reference = reference.m_reference;
+    reference.m_reference = nullptr;
+    return *this;
   }
 }
 

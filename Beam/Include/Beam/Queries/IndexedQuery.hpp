@@ -1,14 +1,13 @@
 #ifndef BEAM_INDEXED_QUERY_HPP
 #define BEAM_INDEXED_QUERY_HPP
 #include <ostream>
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Queries over a value used as an index.
-   * @param <T> The type used as the index.
+   * @tparam T The type used as the index.
    */
   template<typename T>
   class IndexedQuery {
@@ -24,22 +23,22 @@ namespace Beam::Queries {
        * Constructs an IndexedQuery with a specified index.
        * @param index The index to use.
        */
-      IndexedQuery(Index index);
+      explicit IndexedQuery(Index index);
 
       /** Returns the index. */
-      const Index& GetIndex() const;
+      const Index& get_index() const;
 
       /** Sets the index. */
-      void SetIndex(const Index& index);
+      void set_index(const Index& index);
 
     private:
-      friend struct Serialization::Shuttle<IndexedQuery>;
+      friend struct Shuttle<IndexedQuery>;
       Index m_index;
   };
 
   template<typename T>
   std::ostream& operator <<(std::ostream& out, const IndexedQuery<T>& query) {
-    return out << query.GetIndex();
+    return out << query.get_index();
   }
 
   template<typename T>
@@ -51,23 +50,21 @@ namespace Beam::Queries {
     : m_index(std::move(index)) {}
 
   template<typename T>
-  const typename IndexedQuery<T>::Index& IndexedQuery<T>::GetIndex() const {
+  const typename IndexedQuery<T>::Index& IndexedQuery<T>::get_index() const {
     return m_index;
   }
 
   template<typename T>
-  void IndexedQuery<T>::SetIndex(const Index& index) {
+  void IndexedQuery<T>::set_index(const Index& index) {
     m_index = index;
   }
-}
 
-namespace Beam::Serialization {
   template<typename T>
-  struct Shuttle<Queries::IndexedQuery<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Queries::IndexedQuery<T>& value,
-        unsigned int version) {
-      shuttle.Shuttle("index", value.m_index);
+  struct Shuttle<IndexedQuery<T>> {
+    template<IsShuttle S>
+    void operator ()(
+        S& shuttle, IndexedQuery<T>& value, unsigned int version) const {
+      shuttle.shuttle("index", value.m_index);
     }
   };
 }

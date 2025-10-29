@@ -2,7 +2,6 @@
 #define BEAM_QUEUE_READER_PUBLISHER_HPP
 #include <atomic>
 #include "Beam/Queues/Publisher.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/ScopedQueueReader.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
@@ -11,8 +10,8 @@ namespace Beam {
 
   /**
    * Publishes values received from a QueueReader.
-   * @param <T> The type of values to read.
-   * @param <Q> The type of QueueReader to read from.
+   * @tparam T The type of values to read.
+   * @tparam Q The type of QueueReader to read from.
    */
   template<typename T, typename Q = std::shared_ptr<QueueReader<T>>>
   class QueueReaderPublisher final : public Publisher<T> {
@@ -27,64 +26,63 @@ namespace Beam {
 
       ~QueueReaderPublisher() override;
 
-      void With(const std::function<void ()>& f) const override;
+      void with(const std::function<void ()>& f) const override;
+      void monitor(ScopedQueueWriter<Type> monitor) const override;
+      using Publisher<T>::with;
 
-      void Monitor(ScopedQueueWriter<Type> monitor) const override;
-
-      using Publisher<T>::With;
     private:
-      std::atomic_bool m_isReading;
+      std::atomic_bool m_is_reading;
       ScopedQueueReader<T, Q> m_reader;
       QueueWriterPublisher<T> m_writer;
-      Routines::RoutineHandler m_routine;
+      RoutineHandler m_routine;
 
-      void Start();
-      void ReadLoop();
+      void start();
+      void loop();
   };
 
   template<typename Q>
   QueueReaderPublisher(Q&&) ->
-    QueueReaderPublisher<typename GetTryDereferenceType<Q>::Source>;
+    QueueReaderPublisher<typename dereference_t<Q>::Source>;
 
   template<typename T, typename Q>
   QueueReaderPublisher<T, Q>::QueueReaderPublisher(
     ScopedQueueReader<T, Q> reader)
-    : m_isReading(false),
+    : m_is_reading(false),
       m_reader(std::move(reader)) {}
 
   template<typename T, typename Q>
   QueueReaderPublisher<T, Q>::~QueueReaderPublisher() {
-    m_reader.Break();
+    m_reader.close();
   }
 
   template<typename T, typename Q>
-  void QueueReaderPublisher<T, Q>::With(const std::function<void ()>& f) const {
-    m_writer.With(f);
+  void QueueReaderPublisher<T, Q>::with(const std::function<void ()>& f) const {
+    m_writer.with(f);
   }
 
   template<typename T, typename Q>
-  void QueueReaderPublisher<T, Q>::Monitor(
+  void QueueReaderPublisher<T, Q>::monitor(
       ScopedQueueWriter<Type> monitor) const {
-    m_writer.Monitor(std::move(monitor));
-    const_cast<QueueReaderPublisher*>(this)->Start();
+    m_writer.monitor(std::move(monitor));
+    const_cast<QueueReaderPublisher*>(this)->start();
   }
 
   template<typename T, typename Q>
-  void QueueReaderPublisher<T, Q>::Start() {
-    if(!m_isReading.exchange(true)) {
-      m_routine = Routines::Spawn([this] { ReadLoop(); });
+  void QueueReaderPublisher<T, Q>::start() {
+    if(!m_is_reading.exchange(true)) {
+      m_routine = spawn(std::bind_front(&QueueReaderPublisher::loop, this));
     }
   }
 
   template<typename T, typename Q>
-  void QueueReaderPublisher<T, Q>::ReadLoop() {
+  void QueueReaderPublisher<T, Q>::loop() {
     try {
       while(true) {
-        m_writer.Push(m_reader.Pop());
+        m_writer.push(m_reader.pop());
       }
     } catch(const std::exception&) {
-      m_writer.Break(std::current_exception());
-      m_reader.Break(std::current_exception());
+      m_writer.close(std::current_exception());
+      m_reader.close(std::current_exception());
     }
   }
 }

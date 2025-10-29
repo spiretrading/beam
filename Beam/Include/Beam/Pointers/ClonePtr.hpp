@@ -4,7 +4,6 @@
 #include <memory>
 #include <type_traits>
 #include <boost/optional/optional.hpp>
-#include "Beam/Pointers/Pointers.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
@@ -18,8 +17,8 @@ namespace Beam {
 
   /**
    * Wraps a value by cloning it when copying or assigning.
-   * @param <T> The type of value to wrap.
-   * @param <C> Specifies how to clone objects.
+   * @tparam T The type of value to wrap.
+   * @tparam C Specifies how to clone objects.
    */
   template<typename T, typename C>
   class ClonePtr {
@@ -96,11 +95,11 @@ namespace Beam {
       Type* operator ->() const;
 
     private:
-      template<typename, typename> friend struct Serialization::Receive;
-      template<typename, typename> friend struct Serialization::Send;
+      template<typename, typename> friend struct Receive;
+      template<typename, typename> friend struct Send;
       std::unique_ptr<Type> m_object;
 
-      ClonePtr(Serialization::ReceiveBuilder);
+      ClonePtr();
   };
 
   template<typename T, typename TC>
@@ -218,7 +217,7 @@ namespace Beam {
 
   /**
    * Mixin class that implements the Cloneable interface.
-   * @param <T> The class to provide the mixin to.
+   * @tparam T The class to provide the mixin to.
    */
   template<typename T>
   class CloneableMixin : public virtual Cloneable {
@@ -317,17 +316,12 @@ namespace Beam {
   }
 
   template<typename T, typename C>
-  ClonePtr<T, C>::ClonePtr(Serialization::ReceiveBuilder) {}
+  ClonePtr<T, C>::ClonePtr() {}
 
   template<typename T>
   void* CloneableMixin<T>::Clone() const {
     return new T(static_cast<const T&>(*this));
   }
-}
-
-namespace Beam::Serialization {
-  template<typename T, typename C>
-  struct IsDefaultConstructable<ClonePtr<T, C>> : std::false_type {};
 
   template<typename T, typename C>
   struct IsStructure<ClonePtr<T, C>> : std::false_type {};

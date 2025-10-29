@@ -1,42 +1,38 @@
-#ifndef BEAM_SHUTTLEMAP_HPP
-#define BEAM_SHUTTLEMAP_HPP
+#ifndef BEAM_SHUTTLE_MAP_HPP
+#define BEAM_SHUTTLE_MAP_HPP
 #include <map>
 #include "Beam/Serialization/ShuttlePair.hpp"
 
 namespace Beam {
-namespace Serialization {
   template<typename K, typename T, typename C, typename A>
-  struct IsStructure<std::map<K, T, C, A>> : std::false_type {};
+  constexpr auto is_structure<std::map<K, T, C, A>> = false;
 
   template<typename K, typename T, typename C, typename A>
   struct Send<std::map<K, T, C, A>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const std::map<K, T, C, A>& value) const {
-      shuttle.StartSequence(name, static_cast<int>(value.size()));
-      for(const auto& i : value) {
-        shuttle.Shuttle(i);
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, const std::map<K, T, C, A>& value) const {
+      sender.start_sequence(name, static_cast<int>(value.size()));
+      for(auto& i : value) {
+        sender.send(i);
       }
-      shuttle.EndSequence();
+      sender.end_sequence();
     }
   };
 
   template<typename K, typename T, typename C, typename A>
   struct Receive<std::map<K, T, C, A>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        std::map<K, T, C, A>& value) const {
-      int size;
-      shuttle.StartSequence(name, size);
-      for(int i = 0; i < size; ++i) {
-        std::pair<K, T> entry;
-        shuttle.Shuttle(entry);
-        value.insert(entry);
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, const char* name, std::map<K, T, C, A>& value) const {
+      auto size = int();
+      receiver.start_sequence(name, size);
+      for(auto i = 0; i < size; ++i) {
+        value.insert(receive<std::pair<K, T>>(receiver));
       }
-      shuttle.EndSequence();
+      receiver.end_sequence();
     }
   };
-}
 }
 
 #endif

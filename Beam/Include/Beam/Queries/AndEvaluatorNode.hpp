@@ -2,9 +2,8 @@
 #define BEAM_AND_EVALUATOR_NODE_HPP
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Evaluates an and expression. */
   class AndEvaluatorNode : public EvaluatorNode<bool> {
@@ -19,7 +18,7 @@ namespace Beam::Queries {
       AndEvaluatorNode(std::unique_ptr<EvaluatorNode<bool>> left,
         std::unique_ptr<EvaluatorNode<bool>> right);
 
-      bool Eval() override;
+      bool eval() override;
 
     private:
       std::unique_ptr<EvaluatorNode<bool>> m_left;
@@ -32,8 +31,8 @@ namespace Beam::Queries {
     : m_left(std::move(left)),
       m_right(std::move(right)) {}
 
-  inline bool AndEvaluatorNode::Eval() {
-    return m_left->Eval() && m_right->Eval();
+  inline bool AndEvaluatorNode::eval() {
+    return m_left->eval() && m_right->eval();
   }
 }
 

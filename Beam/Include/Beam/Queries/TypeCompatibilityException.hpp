@@ -1,16 +1,13 @@
 #ifndef BEAM_TYPE_COMPATIBILITY_EXCEPTION_HPP
 #define BEAM_TYPE_COMPATIBILITY_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Indicates that an Expression was constructed with incompatible DataTypes.
    */
-  class TypeCompatibilityException : public std::runtime_error,
-      public boost::exception {
+  class TypeCompatibilityException : public std::runtime_error {
     public:
       using std::runtime_error::runtime_error;
 

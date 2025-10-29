@@ -12,11 +12,12 @@
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/Service.hpp"
 
-namespace Beam::ServiceLocator {
-  BEAM_DEFINE_RECORD(LoginServiceResult, DirectoryEntry, account,
-    std::string, session_id);
+namespace Beam {
+  BEAM_DEFINE_RECORD(
+    LoginServiceResult, (DirectoryEntry, account), (std::string, session_id));
 
-  BEAM_DEFINE_SERVICES(ServiceLocatorServices,
+namespace ServiceLocatorServices {
+  BEAM_DEFINE_SERVICES(service_locator_services,
 
     /**
      * Sends an encoded session id.
@@ -24,7 +25,7 @@ namespace Beam::ServiceLocator {
      * @param session_id The encoded session id.
      */
     (SendSessionIdService, "Beam.ServiceLocator.SendSessionIdService", void,
-      unsigned int, key, std::string, session_id),
+      (unsigned int, key), (std::string, session_id)),
 
     /**
      * Logs into the ServiceLocator.
@@ -36,7 +37,7 @@ namespace Beam::ServiceLocator {
      *         session_id: The login's session id.
      */
     (LoginService, "Beam.ServiceLocator.LoginService", LoginServiceResult,
-      std::string, username, std::string, password),
+      (std::string, username), (std::string, password)),
 
     /**
      * Registers a service with the ServiceLocator.
@@ -45,14 +46,14 @@ namespace Beam::ServiceLocator {
      * @return A ServiceEntry representing the registered service.
      */
     (RegisterService, "Beam.ServiceLocator.RegisterService", ServiceEntry,
-      std::string, name, JsonObject, properties),
+      (std::string, name), (JsonObject, properties)),
 
     /**
      * Unregisters a service from the ServiceLocator.
      * @param service The id of the service to unregister.
      */
-    (UnregisterService, "Beam.ServiceLocator.UnregisterService", void, int,
-      service),
+    (UnregisterService, "Beam.ServiceLocator.UnregisterService", void,
+      (int, service)),
 
     /**
      * Locates a service.
@@ -60,7 +61,7 @@ namespace Beam::ServiceLocator {
      * @return A list of ServiceEntries for the service that was located.
      */
     (LocateService, "Beam.ServiceLocator.LocateService",
-      std::vector<ServiceEntry>, std::string, name),
+      std::vector<ServiceEntry>, (std::string, name)),
 
     /**
      * Subscribes to notifications about the availability of a service.
@@ -70,15 +71,15 @@ namespace Beam::ServiceLocator {
      */
     (SubscribeAvailabilityService,
       "Beam.ServiceLocator.SubscribeAvailabilityService",
-      std::vector<ServiceEntry>, std::string, name),
+      std::vector<ServiceEntry>, (std::string, name)),
 
     /**
      * Unsubscribes from notifications about the availability of a service.
      * @param name The name of the service to unsubscribe from.
      */
     (UnsubscribeAvailabilityService,
-      "Beam.ServiceLocator.UnsubscribeAvailabilityService", void, std::string,
-      name),
+      "Beam.ServiceLocator.UnsubscribeAvailabilityService", void,
+      (std::string, name)),
 
     /**
      * Requests update messages to a DirectoryEntry.
@@ -87,7 +88,7 @@ namespace Beam::ServiceLocator {
      */
     (MonitorDirectoryEntryService,
       "Beam.ServiceLocator.MonitorDirectoryEntryService",
-      std::vector<DirectoryEntry>, DirectoryEntry, entry),
+      std::vector<DirectoryEntry>, (DirectoryEntry, entry)),
 
     /**
      * Returns all accounts and sends updates when accounts are created/removed.
@@ -108,7 +109,7 @@ namespace Beam::ServiceLocator {
      * @return The DirectoryEntry with the specified <i>id</i>.
      */
     (LoadDirectoryEntryService, "Beam.ServiceLocator.LoadDirectoryEntryService",
-      DirectoryEntry, unsigned int, id),
+      DirectoryEntry, (unsigned int, id)),
 
     /**
      * Loads a DirectoryEntry from a path.
@@ -117,7 +118,7 @@ namespace Beam::ServiceLocator {
      * @return The DirectoryEntry at the specified <i>path</i>.
      */
     (LoadPathService, "Beam.ServiceLocator.LoadPathService", DirectoryEntry,
-      DirectoryEntry, root, std::string, path),
+      (DirectoryEntry, root), (std::string, path)),
 
     /**
      * Loads all of a DirectoryEntry's parents.
@@ -125,7 +126,7 @@ namespace Beam::ServiceLocator {
      * @return The list of parents.
      */
     (LoadParentsService, "Beam.ServiceLocator.LoadParentsService",
-      std::vector<DirectoryEntry>, DirectoryEntry, entry),
+      std::vector<DirectoryEntry>, (DirectoryEntry, entry)),
 
     /**
      * Loads all of a DirectoryEntry's children.
@@ -133,7 +134,7 @@ namespace Beam::ServiceLocator {
      * @return The list of children.
      */
     (LoadChildrenService, "Beam.ServiceLocator.LoadChildrenService",
-      std::vector<DirectoryEntry>, DirectoryEntry, entry),
+      std::vector<DirectoryEntry>, (DirectoryEntry, entry)),
 
     /**
      * Loads all accounts the session is permissioned to read from.
@@ -149,7 +150,7 @@ namespace Beam::ServiceLocator {
      * @return The DirectoryEntry of the account with the specified <i>name</i>.
      */
     (FindAccountService, "Beam.ServiceLocator.FindAccountService",
-      boost::optional<DirectoryEntry>, std::string, name),
+      boost::optional<DirectoryEntry>, (std::string, name)),
 
     /**
      * Creates an account.
@@ -159,8 +160,8 @@ namespace Beam::ServiceLocator {
      * @return The DirectoryEntry of the account that was created.
      */
     (MakeAccountService, "Beam.ServiceLocator.MakeAccountService",
-      DirectoryEntry, std::string, name, std::string, password, DirectoryEntry,
-      parent),
+      DirectoryEntry, (std::string, name), (std::string, password),
+      (DirectoryEntry, parent)),
 
     /**
      * Creates a directory.
@@ -169,15 +170,15 @@ namespace Beam::ServiceLocator {
      * @return The DirectoryEntry of the directory that was created.
      */
     (MakeDirectoryService, "Beam.ServiceLocator.MakeDirectoryService",
-      DirectoryEntry, std::string, name, DirectoryEntry, parent),
+      DirectoryEntry, (std::string, name), (DirectoryEntry, parent)),
 
     /**
      * Deletes a DirectoryEntry.
      * @param entry The DirectoryEntry to delete.
      */
     (DeleteDirectoryEntryService,
-      "Beam.ServiceLocator.DeleteDirectoryEntryService", void, DirectoryEntry,
-      entry),
+      "Beam.ServiceLocator.DeleteDirectoryEntryService", void,
+      (DirectoryEntry, entry)),
 
     /**
      * Associates a DirectoryEntry with a parent.
@@ -186,15 +187,15 @@ namespace Beam::ServiceLocator {
      *        <i>entry</i>.
      */
     (AssociateService, "Beam.ServiceLocator.AssociateService", void,
-      DirectoryEntry, entry, DirectoryEntry, parent),
+      (DirectoryEntry, entry), (DirectoryEntry, parent)),
 
     /**
      * Detaches a DirectoryEntry from a parent.
      * @param entry The DirectoryEntry to detach.
      * @param parent The parent DirectoryEntry to detach.
      */
-    (DetachService, "Beam.ServiceLocator.DetachService", void, DirectoryEntry,
-      entry, DirectoryEntry, parent),
+    (DetachService, "Beam.ServiceLocator.DetachService", void,
+      (DirectoryEntry, entry), (DirectoryEntry, parent)),
 
     /**
      * Sets an account's password.
@@ -202,7 +203,7 @@ namespace Beam::ServiceLocator {
      * @param password The <i>account</i>'s new password.
      */
     (StorePasswordService, "Beam.ServiceLocator.StorePasswordService", void,
-      DirectoryEntry, account, std::string, password),
+      (DirectoryEntry, account), (std::string, password)),
 
     /**
      * Tests if an account has Permissions to a DirectoryEntry.
@@ -213,8 +214,8 @@ namespace Beam::ServiceLocator {
      *         <code>permissions</code> on the <i>target</i>.
      */
     (HasPermissionsService, "Beam.ServiceLocator.HasPermissionsService", bool,
-      DirectoryEntry, account, DirectoryEntry, target, Permissions,
-      permissions),
+      (DirectoryEntry, account), (DirectoryEntry, target),
+      (Permissions, permissions)),
 
     /**
      * Sets a DirectoryEntry's Permissions to another DirectoryEntry.
@@ -226,8 +227,8 @@ namespace Beam::ServiceLocator {
      *        <i>source</i> over the <i>target</i>.
      */
     (StorePermissionsService, "Beam.ServiceLocator.StorePermissionsService",
-      void, DirectoryEntry, source, DirectoryEntry, target, Permissions,
-      permissions),
+      void, (DirectoryEntry, source), (DirectoryEntry, target),
+      (Permissions, permissions)),
 
     /**
      * Loads the registration time of an account.
@@ -236,7 +237,7 @@ namespace Beam::ServiceLocator {
      */
     (LoadRegistrationTimeService,
       "Beam.ServiceLocator.LoadRegistrationTimeService",
-      boost::posix_time::ptime, DirectoryEntry, account),
+      boost::posix_time::ptime, (DirectoryEntry, account)),
 
     /**
      * Loads an account's most recent login time.
@@ -244,7 +245,7 @@ namespace Beam::ServiceLocator {
      * @return The <i>account</i>'s most recent login time.
      */
     (LoadLastLoginTimeService, "Beam.ServiceLocator.LoadLastLoginTimeService",
-      boost::posix_time::ptime, DirectoryEntry, account),
+      boost::posix_time::ptime, (DirectoryEntry, account)),
 
     /**
      * Renames a DirectoryEntry.
@@ -253,7 +254,7 @@ namespace Beam::ServiceLocator {
      * @return The updated DirectoryEntry.
      */
     (RenameService, "Beam.ServiceLocator.RenameService", DirectoryEntry,
-      DirectoryEntry, entry, std::string, name),
+      (DirectoryEntry, entry), (std::string, name)),
 
     /**
      * Authenticates an account.
@@ -264,7 +265,7 @@ namespace Beam::ServiceLocator {
      */
     (AuthenticateAccountService,
       "Beam.ServiceLocator.AuthenticateAccountService", DirectoryEntry,
-      std::string, username, std::string, password),
+      (std::string, username), (std::string, password)),
 
     /**
      * Authenticates a session.
@@ -274,9 +275,9 @@ namespace Beam::ServiceLocator {
      */
     (SessionAuthenticationService,
       "Beam.ServiceLocator.SessionAuthenticationService", DirectoryEntry,
-      std::string, session_id, unsigned int, key));
+      (std::string, session_id), (unsigned int, key)));
 
-  BEAM_DEFINE_MESSAGES(ServiceLocatorMessages,
+  BEAM_DEFINE_MESSAGES(service_locator_messages,
 
     /**
      * Indicates one DirectoryEntry has been associated with another.
@@ -284,8 +285,8 @@ namespace Beam::ServiceLocator {
      * @param parent The parent the <i>entry</i> is now associated with.
      */
     (DirectoryEntryAssociatedMessage,
-      "Beam.ServiceLocator.DirectoryEntryAssociatedMessage", DirectoryEntry,
-      entry, DirectoryEntry, parent),
+      "Beam.ServiceLocator.DirectoryEntryAssociatedMessage",
+      (DirectoryEntry, entry), (DirectoryEntry, parent)),
 
     /**
      * Indicates one DirectoryEntry has been detached from another.
@@ -293,8 +294,8 @@ namespace Beam::ServiceLocator {
      * @param parent The parent the <i>entry</i> is now detached from.
      */
     (DirectoryEntryDetachedMessage,
-      "Beam.ServiceLocator.DirectoryEntryDetachedMessage", DirectoryEntry,
-      entry, DirectoryEntry, parent),
+      "Beam.ServiceLocator.DirectoryEntryDetachedMessage",
+      (DirectoryEntry, entry), (DirectoryEntry, parent)),
 
     /**
      * Indicates whether a service is available.
@@ -303,15 +304,16 @@ namespace Beam::ServiceLocator {
      *        available.
      */
     (ServiceAvailabilityMessage,
-      "Beam.ServiceLocator.ServiceAvailabilityMessage", ServiceEntry, service,
-      bool, is_available),
+      "Beam.ServiceLocator.ServiceAvailabilityMessage",
+      (ServiceEntry, service), (bool, is_available)),
 
     /**
      * Indicates an account has been added or deleted.
      * @param update The update that occurred.
      */
     (AccountUpdateMessage, "Beam.ServiceLocator.AccountUpdateMessage",
-      AccountUpdate, update));
+      (AccountUpdate, update)));
+}
 }
 
 #endif

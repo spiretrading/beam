@@ -4,28 +4,25 @@
 #include <Beam/WebServices/HttpServerPredicates.hpp>
 
 using namespace Beam;
-using namespace Beam::HttpFileServer;
-using namespace Beam::IO;
-using namespace Beam::WebServices;
 
 HttpFileServlet::HttpFileServlet()
-  : m_fileStore("web_app") {}
+  : m_file_store("web_app") {}
 
 HttpFileServlet::~HttpFileServlet() {
-  Close();
+  close();
 }
 
-std::vector<HttpRequestSlot> HttpFileServlet::GetSlots() {
+std::vector<HttpRequestSlot> HttpFileServlet::get_slots() {
   auto slots = std::vector<HttpRequestSlot>();
-  slots.emplace_back(MatchAny(HttpMethod::GET),
-    std::bind_front(&HttpFileServlet::OnServeFile, this));
+  slots.emplace_back(match_any(HttpMethod::GET),
+    std::bind_front(&HttpFileServlet::on_serve_file, this));
   return slots;
 }
 
-void HttpFileServlet::Close() {
-  m_openState.Close();
+void HttpFileServlet::close() {
+  m_open_state.close();
 }
 
-HttpResponse HttpFileServlet::OnServeFile(const HttpRequest& request) {
-  return m_fileStore.Serve(request);
+HttpResponse HttpFileServlet::on_serve_file(const HttpRequest& request) {
+  return m_file_store.serve(request);
 }

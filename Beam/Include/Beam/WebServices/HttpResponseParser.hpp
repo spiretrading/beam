@@ -1,422 +1,417 @@
-#ifndef BEAM_HTTPRESPONSEPARSER_HPP
-#define BEAM_HTTPRESPONSEPARSER_HPP
+#ifndef BEAM_HTTP_RESPONSE_PARSER_HPP
+#define BEAM_HTTP_RESPONSE_PARSER_HPP
 #include <cstdlib>
+#include <cstring>
 #include <deque>
+#include <string>
+#include <string_view>
+#include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
+#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/WebServices/Cookie.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
+#include "Beam/WebServices/HttpStatusCode.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/InvalidHttpResponseException.hpp"
 #include "Beam/WebServices/TransferEncoding.hpp"
-#include "Beam/WebServices/Uri.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \class HttpResponseParser
-      \brief Parses an HTTP response.
-   */
-  class HttpResponseParser : private boost::noncopyable {
+  /** Parses an HTTP response. */
+  class HttpResponseParser {
     public:
 
-      //! Constructs an HttpResponseParser.
-      HttpResponseParser();
+      /** Constructs an HttpResponseParser. */
+      HttpResponseParser() noexcept;
 
-      //! Feeds the parser additional characters to parse.
-      /*!
-        \param c The first character to feed.
-        \param size The number of characters to feed.
-      */
-      void Feed(const char* c, std::size_t size);
+      /**
+       * Feeds the parser additional characters to parse.
+       * @param source The characters to feed to the parser.
+       */
+      void feed(std::string_view source);
 
-      //! Returns the next HttpResponse.
-      boost::optional<HttpResponse> GetNextResponse();
+      /** Returns the next HttpResponse. */
+      boost::optional<HttpResponse> get_next_response();
 
-      //! Returns the remaining unparsed Buffer.
-      IO::SharedBuffer GetRemainingBuffer() const;
+      /** Returns the remaining unparsed Buffer. */
+      SharedBuffer get_remaining_buffer() const;
 
     private:
       enum class ParserState {
-        VERSION,
-        HEADER,
+        STATUS_LINE,
+        HEADERS,
         BODY,
+        CHUNKED_SIZE,
+        CHUNKED_DATA,
+        CHUNKED_END,
         ERR
       };
-      enum class ChunkState {
-        SKIP_LINE,
-        SIZE,
-        BODY,
-        ERR
-      };
-      ParserState m_parserState;
+      ParserState m_state;
+      std::string m_buffer;
       HttpVersion m_version;
-      HttpStatusCode m_statusCode;
+      HttpStatusCode m_status_code;
       std::vector<HttpHeader> m_headers;
       std::vector<Cookie> m_cookies;
-      boost::optional<std::size_t> m_contentLength;
-      TransferEncoding m_transferEncoding;
-      std::size_t m_chunkSize;
-      ChunkState m_chunkState;
-      IO::SharedBuffer m_body;
+      boost::optional<std::size_t> m_content_length;
+      TransferEncoding m_transfer_encoding;
+      std::size_t m_chunk_size;
+      std::size_t m_chunk_bytes_read;
+      std::size_t m_body_bytes_read;
+      SharedBuffer m_body;
       std::deque<HttpResponse> m_responses;
-      IO::SharedBuffer m_buffer;
 
-      void PushResponse();
-      void ParseVersion(const char* c, std::size_t size);
-      void ParseHeader(const char* c, std::size_t size);
-      std::tuple<std::string, std::string> ParseCookiePair(const char* source,
-        int length);
-      void ParseCookie(const std::string& source);
-      void ParseBodyWithContentLength(const char* c, std::size_t size);
-      void ParseBodyWithContentLength(const char* c);
-      void ParseChunkedBody(const char* c, std::size_t size);
+      HttpResponseParser(const HttpResponseParser&) = delete;
+      HttpResponseParser& operator =(const HttpResponseParser&) = delete;
+      void parse();
+      void parse_status_line();
+      void parse_headers();
+      void parse_body();
+      void parse_chunked_size();
+      void parse_chunked_data();
+      void parse_chunked_end();
+      void parse_cookie(std::string_view source);
+      void finalize_response();
+      void reset_parser();
+      std::size_t find_line_end() const;
   };
 
-  inline HttpResponseParser::HttpResponseParser()
-      : m_parserState{ParserState::VERSION},
-        m_transferEncoding{TransferEncoding::NONE},
-        m_chunkSize{0},
-        m_chunkState{ChunkState::SKIP_LINE} {}
+  inline HttpResponseParser::HttpResponseParser() noexcept
+    : m_state(ParserState::STATUS_LINE),
+      m_transfer_encoding(TransferEncoding::NONE),
+      m_chunk_size(0),
+      m_chunk_bytes_read(0),
+      m_body_bytes_read(0) {}
 
-  inline void HttpResponseParser::Feed(const char* c, std::size_t size) {
-    if(m_parserState == ParserState::VERSION) {
-      auto end = static_cast<const char*>(std::memchr(c, '\r', size));
-      if(end == nullptr) {
-        m_buffer.Append(c, size);
-        return;
-      }
-      if(m_buffer.IsEmpty()) {
-        ParseVersion(c, (end - c));
-      } else {
-        m_buffer.Append(c, end - c);
-        ParseVersion(m_buffer.GetData(), m_buffer.GetSize());
-        m_buffer.Reset();
-      }
-      if(m_parserState == ParserState::ERR) {
-        return;
-      }
-      size -= (end - c) + 1;
-      c = end + 1;
-      m_parserState = ParserState::HEADER;
+  inline void HttpResponseParser::feed(std::string_view source) {
+    m_buffer.append(source);
+    parse();
+  }
+
+  inline boost::optional<HttpResponse>
+      HttpResponseParser::get_next_response() {
+    if(!m_responses.empty()) {
+      auto response = std::move(m_responses.front());
+      m_responses.pop_front();
+      return response;
     }
-    while(m_parserState == ParserState::HEADER) {
-      if(size == 0) {
-        return;
-      }
-      auto end = static_cast<const char*>(std::memchr(c, '\r', size));
-      if(end == nullptr) {
-        m_buffer.Append(c, size);
-        return;
-      } else if(end == c + 1) {
-        ++c;
-        --size;
-        m_parserState = ParserState::BODY;
-        break;
-      }
-      if(m_buffer.IsEmpty()) {
-        ParseHeader(c, (end - c));
-      } else {
-        m_buffer.Append(c, end - c);
-        ParseHeader(m_buffer.GetData(), m_buffer.GetSize());
-        m_buffer.Reset();
-      }
-      if(m_parserState == ParserState::ERR) {
-        return;
-      }
-      size -= (end - c) + 1;
-      c = end + 1;
-      m_parserState = ParserState::HEADER;
+    if(m_state == ParserState::ERR) {
+      boost::throw_with_location(InvalidHttpResponseException());
     }
-    if(m_parserState == ParserState::BODY) {
-      if(m_contentLength.is_initialized()) {
-        ParseBodyWithContentLength(c, size);
-      } else if(m_transferEncoding == TransferEncoding::CHUNKED) {
-        if(m_buffer.IsEmpty()) {
-          ParseChunkedBody(c, size);
+    return boost::none;
+  }
+
+  inline SharedBuffer HttpResponseParser::get_remaining_buffer() const {
+    return SharedBuffer(m_buffer.data(), m_buffer.size());
+  }
+
+  inline void HttpResponseParser::parse() {
+    while(true) {
+      if(m_state == ParserState::STATUS_LINE) {
+        parse_status_line();
+        if(m_state != ParserState::HEADERS) {
+          return;
+        }
+      }
+      if(m_state == ParserState::HEADERS) {
+        parse_headers();
+        if(m_state != ParserState::BODY &&
+            m_state != ParserState::CHUNKED_SIZE) {
+          return;
+        }
+      }
+      if(m_state == ParserState::BODY) {
+        parse_body();
+        if(m_state != ParserState::STATUS_LINE) {
+          return;
+        }
+      }
+      if(m_state == ParserState::CHUNKED_SIZE) {
+        parse_chunked_size();
+        if(m_state != ParserState::CHUNKED_DATA &&
+            m_state != ParserState::CHUNKED_END) {
+          return;
+        }
+      }
+      if(m_state == ParserState::CHUNKED_DATA) {
+        parse_chunked_data();
+        if(m_state != ParserState::CHUNKED_SIZE) {
+          return;
+        }
+      }
+      if(m_state == ParserState::CHUNKED_END) {
+        parse_chunked_end();
+        if(m_state != ParserState::STATUS_LINE) {
+          return;
+        }
+      }
+      if(m_state == ParserState::ERR) {
+        return;
+      }
+    }
+  }
+
+  inline void HttpResponseParser::parse_status_line() {
+    auto line_end = find_line_end();
+    if(line_end == std::string::npos) {
+      return;
+    }
+    auto line = std::string_view(m_buffer.data(), line_end);
+    if(line.size() < 12) {
+      m_state = ParserState::ERR;
+      return;
+    }
+    auto version_text = line.substr(0, 8);
+    if(version_text == "HTTP/1.0") {
+      m_version = HttpVersion::version_1_0();
+    } else if(version_text == "HTTP/1.1") {
+      m_version = HttpVersion::version_1_1();
+    } else {
+      m_state = ParserState::ERR;
+      return;
+    }
+    if(line[8] != ' ') {
+      m_state = ParserState::ERR;
+      return;
+    }
+    auto status_start = std::size_t(9);
+    auto status_end = line.find(' ', status_start);
+    if(status_end == std::string_view::npos) {
+      status_end = line.size();
+    }
+    auto status_text = line.substr(status_start, status_end - status_start);
+    try {
+      auto status_value = std::stoi(std::string(status_text));
+      m_status_code = static_cast<HttpStatusCode>(status_value);
+    } catch(...) {
+      m_state = ParserState::ERR;
+      return;
+    }
+    m_buffer.erase(0, line_end + 2);
+    m_state = ParserState::HEADERS;
+  }
+
+  inline void HttpResponseParser::parse_headers() {
+    while(true) {
+      auto line_end = find_line_end();
+      if(line_end == std::string::npos) {
+        return;
+      }
+      if(line_end == 0) {
+        if(m_buffer.size() < 2) {
+          return;
+        }
+        m_buffer.erase(0, 2);
+        if(m_buffer.size() >= 2 && m_buffer[0] == '\r' &&
+            m_buffer[1] == '\n') {
+          m_buffer.erase(0, 2);
+        }
+        if(m_transfer_encoding == TransferEncoding::CHUNKED) {
+          m_state = ParserState::CHUNKED_SIZE;
+          m_chunk_size = 0;
+          m_chunk_bytes_read = 0;
+        } else if(m_content_length.is_initialized()) {
+          m_state = ParserState::BODY;
+          m_body_bytes_read = 0;
         } else {
-          m_buffer.Append(c, size);
-          auto buffer = std::move(m_buffer);
-          m_buffer.Reset();
-          ParseChunkedBody(buffer.GetData(), buffer.GetSize());
+          finalize_response();
         }
-        if(m_chunkState == ChunkState::ERR) {
-          m_parserState = ParserState::ERR;
-          return;
+        return;
+      }
+      auto line = std::string_view(m_buffer.data(), line_end);
+      auto colon_position = line.find(':');
+      if(colon_position == std::string_view::npos) {
+        m_state = ParserState::ERR;
+        return;
+      }
+      auto name = std::string(line.substr(0, colon_position));
+      auto value_start = colon_position + 1;
+      if(value_start >= line.size() || line[value_start] != ' ') {
+        m_state = ParserState::ERR;
+        return;
+      }
+      ++value_start;
+      auto value = std::string(line.substr(value_start));
+      if(boost::iequals(name, "Content-Length")) {
+        if(!m_content_length.is_initialized()) {
+          try {
+            m_content_length = std::stoull(value);
+          } catch(...) {
+            m_state = ParserState::ERR;
+            return;
+          }
         }
+      } else if(boost::iequals(name, "Transfer-Encoding")) {
+        if(boost::iequals(value, "chunked")) {
+          m_transfer_encoding = TransferEncoding::CHUNKED;
+        }
+        m_headers.emplace_back(std::move(name), std::move(value));
+      } else if(boost::iequals(name, "Set-Cookie")) {
+        parse_cookie(value);
       } else {
-        PushResponse();
+        m_headers.emplace_back(std::move(name), std::move(value));
       }
+      m_buffer.erase(0, line_end + 2);
     }
   }
 
-  inline boost::optional<HttpResponse> HttpResponseParser::GetNextResponse() {
-    if(m_responses.empty()) {
-      if(m_parserState == ParserState::ERR) {
-        BOOST_THROW_EXCEPTION(InvalidHttpResponseException{});
+  inline void HttpResponseParser::parse_body() {
+    auto bytes_needed = *m_content_length - m_body_bytes_read;
+    auto bytes_available = m_buffer.size();
+    if(bytes_available < bytes_needed) {
+      if(bytes_available > 0) {
+        append(m_body, m_buffer.data(), bytes_available);
+        m_body_bytes_read += bytes_available;
+        m_buffer.clear();
       }
-      return boost::none;
-    }
-    auto response = std::move(m_responses.front());
-    m_responses.pop_front();
-    return std::move(response);
-  }
-
-  inline IO::SharedBuffer HttpResponseParser::GetRemainingBuffer() const {
-    return m_buffer;
-  }
-
-  inline void HttpResponseParser::PushResponse() {
-    m_responses.emplace_back(m_version, m_statusCode, std::move(m_headers),
-      std::move(m_cookies), std::move(m_body));
-    m_headers.clear();
-    m_cookies.clear();
-    m_contentLength.reset();
-    m_transferEncoding = TransferEncoding::NONE;
-    m_chunkSize = 0;
-    m_chunkState = ChunkState::SKIP_LINE;
-    m_body.Reset();
-    m_parserState = ParserState::VERSION;
-  }
-
-  inline void HttpResponseParser::ParseVersion(const char* c,
-      std::size_t size) {
-    static const auto HTTP_VERSION_SIZE = 9;
-    if(size < HTTP_VERSION_SIZE) {
-      m_parserState = ParserState::ERR;
       return;
     }
-    if(std::memcmp(c, "HTTP/1.0 ", HTTP_VERSION_SIZE) == 0) {
-      m_version = HttpVersion::Version1_0();
-    } else if(std::memcmp(c, "HTTP/1.1 ", HTTP_VERSION_SIZE) == 0) {
-      m_version = HttpVersion::Version1_1();
+    if(bytes_needed > 0) {
+      append(m_body, m_buffer.data(), bytes_needed);
+      m_buffer.erase(0, bytes_needed);
+    }
+    finalize_response();
+  }
+
+  inline void HttpResponseParser::parse_chunked_size() {
+    auto line_end = find_line_end();
+    if(line_end == std::string::npos) {
+      return;
+    }
+    auto line = std::string_view(m_buffer.data(), line_end);
+    try {
+      m_chunk_size = std::stoull(std::string(line), nullptr, 16);
+    } catch(...) {
+      m_state = ParserState::ERR;
+      return;
+    }
+    m_buffer.erase(0, line_end + 2);
+    if(m_chunk_size == 0) {
+      m_state = ParserState::CHUNKED_END;
     } else {
-      m_parserState = ParserState::ERR;
+      m_state = ParserState::CHUNKED_DATA;
+      m_chunk_bytes_read = 0;
     }
-    c += HTTP_VERSION_SIZE;
-    size -= HTTP_VERSION_SIZE;
-    auto statusCodeEnd = static_cast<const char*>(std::memchr(c, ' ', size));
-    if(statusCodeEnd == nullptr) {
-      statusCodeEnd = c + size;
-    }
-    int statusCode = 0;
-    while(c != statusCodeEnd) {
-      statusCode = 10 * statusCode + (*c - '0');
-      ++c;
-      --size;
-    }
-    m_statusCode = static_cast<HttpStatusCode>(statusCode);
   }
 
-  inline void HttpResponseParser::ParseHeader(const char* c, std::size_t size) {
-    if(*c != '\n') {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    ++c;
-    --size;
-    auto nameEnd = static_cast<const char*>(std::memchr(c, ':', size));
-    if(nameEnd == nullptr) {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    auto nameLength = static_cast<unsigned int>(nameEnd - c);
-    std::string name{c, nameLength};
-    c += nameLength + 1;
-    size -= nameLength + 1;
-    if(*c != ' ') {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    ++c;
-    --size;
-    std::string value{c, size};
-    if(name == "Content-Length") {
-      if(!m_contentLength.is_initialized()) {
-        try {
-          m_contentLength = std::stoul(value);
-        } catch(const std::exception&) {
-          m_parserState = ParserState::ERR;
-          return;
-        }
+  inline void HttpResponseParser::parse_chunked_data() {
+    auto bytes_needed = m_chunk_size - m_chunk_bytes_read + 2;
+    auto bytes_available = m_buffer.size();
+    if(bytes_available < bytes_needed) {
+      auto data_available = std::min(
+        bytes_available, m_chunk_size - m_chunk_bytes_read);
+      if(data_available > 0) {
+        append(m_body, m_buffer.data(), data_available);
+        m_chunk_bytes_read += data_available;
+        m_buffer.erase(0, data_available);
       }
-    } else if(name == "Set-Cookie") {
-      ParseCookie(value);
-    } else if(name == "Transfer-Encoding") {
-      if(value == "chunked") {
-        m_transferEncoding = TransferEncoding::CHUNKED;
-      }
-      m_headers.emplace_back(std::move(name), std::move(value));
-    } else {
-      m_headers.emplace_back(std::move(name), std::move(value));
+      return;
     }
+    auto data_to_read = m_chunk_size - m_chunk_bytes_read;
+    if(data_to_read > 0) {
+      append(m_body, m_buffer.data(), data_to_read);
+      m_buffer.erase(0, data_to_read);
+    }
+    if(m_buffer.size() < 2 || m_buffer[0] != '\r' || m_buffer[1] != '\n') {
+      m_state = ParserState::ERR;
+      return;
+    }
+    m_buffer.erase(0, 2);
+    m_state = ParserState::CHUNKED_SIZE;
   }
 
-  inline std::tuple<std::string, std::string>
-      HttpResponseParser::ParseCookiePair(const char* source, int length) {
-    auto separator = static_cast<const char*>(std::memchr(source, '=', length));
-    if(separator == nullptr) {
-      return std::make_tuple(std::string{},
-        std::string{source, static_cast<unsigned int>(length)});
-    } else {
-      return std::make_tuple(std::string{source, separator},
-        std::string{separator + 1, static_cast<std::string::size_type>(length) -
-        (separator - source) - 1});
+  inline void HttpResponseParser::parse_chunked_end() {
+    if(m_buffer.size() < 2) {
+      return;
     }
+    if(m_buffer[0] != '\r' || m_buffer[1] != '\n') {
+      m_state = ParserState::ERR;
+      return;
+    }
+    m_buffer.erase(0, 2);
+    finalize_response();
   }
 
-  inline void HttpResponseParser::ParseCookie(const std::string& source) {
-    std::string::size_type front = 0;
-    auto separator = source.find(';', front);
-    if(separator == std::string::npos) {
+  inline void HttpResponseParser::parse_cookie(std::string_view source) {
+    auto separator = source.find(';');
+    if(separator == std::string_view::npos) {
       separator = source.size();
     }
-    auto cookiePair = ParseCookiePair(source.c_str() + front,
-      separator - front);
-    Cookie cookie{std::get<0>(cookiePair), std::get<1>(cookiePair)};
-    front = separator + 2;
-    while(front < source.size()) {
-      separator = source.find(';', front);
-      if(separator == std::string::npos) {
-        separator = source.size();
+    auto cookie_value = source.substr(0, separator);
+    auto equals_position = cookie_value.find('=');
+    if(equals_position == std::string_view::npos) {
+      m_cookies.emplace_back(std::string(), std::string(cookie_value));
+      return;
+    }
+    auto name = std::string(cookie_value.substr(0, equals_position));
+    auto value = std::string(cookie_value.substr(equals_position + 1));
+    auto cookie = Cookie(std::move(name), std::move(value));
+    auto pos = separator;
+    while(pos < source.size()) {
+      if(source[pos] == ';') {
+        pos += 2;
       }
-      auto token = source.c_str() + front;
-      auto length = separator - front;
-      front = separator + 2;
-      auto delimiter = std::memchr(token, '=', length);
-      if(delimiter == nullptr) {
-        std::string directive{token, static_cast<unsigned int>(length)}; 
-        if(boost::iequals(directive, "HttpOnly")) {
-          cookie.SetHttpOnly(true);
-        } else if(boost::iequals(directive, "Secure")) {
-          cookie.SetSecure(true);
+      if(pos >= source.size()) {
+        break;
+      }
+      auto next_separator = source.find(';', pos);
+      if(next_separator == std::string_view::npos) {
+        next_separator = source.size();
+      }
+      auto attribute = source.substr(pos, next_separator - pos);
+      auto attr_equals = attribute.find('=');
+      if(attr_equals == std::string_view::npos) {
+        auto attr_name = std::string(attribute);
+        if(boost::iequals(attr_name, "HttpOnly")) {
+          cookie.set_http_only(true);
+        } else if(boost::iequals(attr_name, "Secure")) {
+          cookie.set_secure(true);
         }
       } else {
-        auto directive = ParseCookiePair(token, length);
-        if(boost::iequals(std::get<0>(directive), "path")) {
-          cookie.SetPath(std::get<1>(directive));
-        } else if(boost::iequals(std::get<0>(directive), "domain")) {
-          cookie.SetDomain(std::get<1>(directive));
+        auto attr_name = std::string(attribute.substr(0, attr_equals));
+        auto attr_value = std::string(attribute.substr(attr_equals + 1));
+        if(boost::iequals(attr_name, "path")) {
+          cookie.set_path(attr_value);
+        } else if(boost::iequals(attr_name, "domain")) {
+          cookie.set_domain(attr_value);
         }
       }
+      pos = next_separator;
     }
     m_cookies.push_back(std::move(cookie));
   }
 
-  inline void HttpResponseParser::ParseBodyWithContentLength(const char* c,
-      std::size_t size) {
-    const auto LINE_LENGTH = 2;
-    if(size == 0) {
-      return;
-    }
-    if(m_buffer.GetSize() + size < *m_contentLength + LINE_LENGTH) {
-      m_buffer.Append(c, size);
-      return;
-    }
-    if(m_buffer.IsEmpty()) {
-      ParseBodyWithContentLength(c);
-      size -= *m_contentLength + LINE_LENGTH;
-      c += *m_contentLength + LINE_LENGTH;
-    } else {
-      auto length = (*m_contentLength + LINE_LENGTH) - m_buffer.GetSize();
-      m_buffer.Append(c, length);
-      ParseBodyWithContentLength(m_buffer.GetData());
-      m_buffer.Reset();
-      size -= length;
-      c += length;
-    }
-    if(m_parserState == ParserState::ERR) {
-      return;
-    }
-    PushResponse();
-    if(size != 0) {
-      m_buffer.Append(c, size);
-      auto tempBuffer = std::move(m_buffer);
-      m_buffer = IO::SharedBuffer{};
-      Feed(tempBuffer.GetData(), tempBuffer.GetSize());
-    }
+  inline void HttpResponseParser::finalize_response() {
+    m_responses.emplace_back(m_version, m_status_code, std::move(m_headers),
+      std::move(m_cookies), std::move(m_body));
+    reset_parser();
   }
 
-  inline void HttpResponseParser::ParseBodyWithContentLength(const char* c) {
-    auto size = *m_contentLength + 2;
-    if(*c != '\r' || *(c + 1) != '\n') {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    if(*m_contentLength != 0) {
-      m_body.Append(c + 2, *m_contentLength);
-    }
+  inline void HttpResponseParser::reset_parser() {
+    m_state = ParserState::STATUS_LINE;
+    m_headers.clear();
+    m_cookies.clear();
+    m_content_length.reset();
+    m_transfer_encoding = TransferEncoding::NONE;
+    m_chunk_size = 0;
+    m_chunk_bytes_read = 0;
+    m_body_bytes_read = 0;
+    m_body = SharedBuffer();
   }
 
-  inline void HttpResponseParser::ParseChunkedBody(const char* c,
-      std::size_t size) {
-    const auto LINE_LENGTH = 2;
-    const auto HEX_BASE = 16;
-    if(m_chunkState == ChunkState::SKIP_LINE) {
-      if(size < LINE_LENGTH) {
-        m_buffer.Append(c, size);
-        return;
-      }
-      if(*c == '\r' && *(c + 1) == '\n') {
-        c += 2;
-        size -= 2;
-      } else {
-        m_chunkState = ChunkState::ERR;
-        return;
-      }
-      m_chunkState = ChunkState::SIZE;
+  inline std::size_t HttpResponseParser::find_line_end() const {
+    if(m_buffer.size() < 2) {
+      return std::string::npos;
     }
-    if(m_chunkState == ChunkState::SIZE) {
-      if(size == 0) {
-        return;
-      }
-      auto end = static_cast<const char*>(std::memchr(c, '\n', size));
-      if(end == nullptr) {
-        m_buffer.Append(c, size);
-        return;
-      }
-      std::string value(c, static_cast<int>(end - c - 1));
-      try {
-        m_chunkSize = static_cast<std::size_t>(std::stoull(value, NULL,
-          HEX_BASE));
-      } catch(const std::exception&) {
-        m_chunkState = ChunkState::ERR;
-        return;
-      }
-      size -= (end - c) + 1;
-      c = end + 1;
-      if(m_chunkSize == 0) {
-        PushResponse();
-        if(size != 0) {
-          m_buffer.Append(c, size);
-          auto tempBuffer = std::move(m_buffer);
-          m_buffer = IO::SharedBuffer{};
-          Feed(tempBuffer.GetData(), tempBuffer.GetSize());
-        }
-      } else {
-        m_chunkState = ChunkState::BODY;
+    for(auto i = std::size_t(0); i < m_buffer.size() - 1; ++i) {
+      if(m_buffer[i] == '\r' && m_buffer[i + 1] == '\n') {
+        return i;
       }
     }
-    if(m_chunkState == ChunkState::BODY) {
-      if(size < m_chunkSize + 2) {
-        m_buffer.Append(c, size);
-        return;
-      } else {
-        m_body.Append(c, m_chunkSize);
-        if(c[m_chunkSize] == '\r' && c[m_chunkSize + 1] == '\n') {
-          c += m_chunkSize + 2;
-          size -= m_chunkSize + 2;
-          m_chunkState = ChunkState::SIZE;
-          ParseChunkedBody(c, size);
-        } else {
-          m_chunkState = ChunkState::ERR;
-        }
-      }
-    }
+    return std::string::npos;
   }
-}
 }
 
 #endif

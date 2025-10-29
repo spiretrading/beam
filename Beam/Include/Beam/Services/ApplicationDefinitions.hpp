@@ -1,10 +1,10 @@
 #ifndef BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
 #include <string>
-#include <Beam/Codecs/SizeDeclarativeDecoder.hpp>
-#include <Beam/Codecs/SizeDeclarativeEncoder.hpp>
-#include <Beam/Codecs/ZLibDecoder.hpp>
-#include <Beam/Codecs/ZLibEncoder.hpp>
+#include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
+#include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
+#include "Beam/Codecs/ZLibDecoder.hpp"
+#include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
@@ -12,14 +12,13 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/AuthenticatedServiceProtocolClientBuilder.hpp"
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/TimeService/LiveTimer.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Wraps a constant string representing a service name.
-   * @param <N> The name of the service to wrap.
+   * @tparam N The name of the service to wrap.
    */
   template<const std::string& N>
   struct ServiceName {
@@ -29,184 +28,86 @@ namespace Beam::Services {
   };
 
   /** The default type of SessionBuilder used. */
-  template<typename ServiceLocatorClient =
-    Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>
+  template<IsServiceLocatorClient C = ProtocolServiceLocatorClient<
+    ServiceProtocolClientBuilder<
+      MessageProtocol<std::unique_ptr<TcpSocketChannel>,
+        BinarySender<SharedBuffer>>, LiveTimer>>>
   using DefaultSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocatorClient, MessageProtocol<
-      std::unique_ptr<Network::TcpSocketChannel>,
-      Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-    Threading::LiveTimer>;
+    C, MessageProtocol<std::unique_ptr<TcpSocketChannel>,
+      BinarySender<SharedBuffer>, NullEncoder>, LiveTimer>;
 
   /** A SessionBuilder that uses ZLib compression. */
-  template<typename ServiceLocatorClient =
-    Beam::ServiceLocator::ApplicationServiceLocatorClient::Client*>
+  template<IsServiceLocatorClient C = ProtocolServiceLocatorClient<
+    ServiceProtocolClientBuilder<
+      MessageProtocol<std::unique_ptr<TcpSocketChannel>,
+        BinarySender<SharedBuffer>>, LiveTimer>>>
   using ZLibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
-    ServiceLocatorClient, MessageProtocol<
-      std::unique_ptr<Network::TcpSocketChannel>,
-      Serialization::BinarySender<IO::SharedBuffer>,
-      Codecs::SizeDeclarativeEncoder<Codecs::ZLibEncoder>>,
-    Threading::LiveTimer>;
-
-  /** Encapsulates a service client used in an application. */
-  template<template<typename> class C, typename N,
-    typename B = DefaultSessionBuilder<>>
-  class ApplicationClient {
-    public:
-      using SessionBuilder = B;
-
-      /** Defines the standard client used for applications. */
-      using Client = C<SessionBuilder>;
-
-      /**
-       * Constructs an ApplicationClient.
-       * @param serviceLocatorClient The ServiceLocatorClient used to
-       *        authenticate sessions.
-       */
-      explicit ApplicationClient(
-        typename SessionBuilder::ServiceLocatorClient serviceLocatorClient);
-
-      /**
-       * Constructs an ApplicationClient.
-       * @param serviceLocatorClient The ServiceLocatorClient used to
-       *        authenticate sessions.
-       * @param args Any additional arguments to forward to the client.
-       */
-      template<typename... T>
-      explicit ApplicationClient(
-        typename SessionBuilder::ServiceLocatorClient serviceLocatorClient,
-        T&&... args);
-
-      /** Returns a reference to the Client. */
-      Client& operator *();
-
-      /** Returns a reference to the Client. */
-      const Client& operator *() const;
-
-      /** Returns a pointer to the Client. */
-      Client* operator ->();
-
-      /** Returns a pointer to the Client. */
-      const Client* operator ->() const;
-
-      /** Returns a pointer to the Client. */
-      Client* Get();
-
-      /** Returns a pointer to the Client. */
-      const Client* Get() const;
-
-    private:
-      Client m_client;
-
-      ApplicationClient(const ApplicationClient&) = delete;
-      ApplicationClient& operator =(const ApplicationClient&) = delete;
-  };
+    C, MessageProtocol<std::unique_ptr<TcpSocketChannel>,
+      BinarySender<SharedBuffer>, SizeDeclarativeEncoder<ZLibEncoder>>,
+    LiveTimer>;
 
   /**
    * Returns a DefaultSessionBuilder.
-   * @param serviceLocatorClient The ServiceLocatorClient used to authenticate
-   *        sessions.
+   * @param client The ServiceLocatorClient used to authenticate sessions.
    */
-  template<typename SessionBuilder, typename ServiceLocatorClient>
-  auto MakeSessionBuilder(ServiceLocatorClient&& serviceLocatorClient,
-      const std::string& service) {
-    auto clientBox = ServiceLocator::ServiceLocatorClientBox(&FullyDereference(
-      serviceLocatorClient));
-    return SessionBuilder(
-      std::forward<ServiceLocatorClient>(serviceLocatorClient),
-      [=] () mutable {
-        return std::make_unique<Network::TcpSocketChannel>(
-          ServiceLocator::LocateServiceAddresses(clientBox, service));
+  template<typename SessionBuilder, IsServiceLocatorClient C>
+  auto make_session_builder(Ref<C>& client, const std::string& service) {
+    return SessionBuilder(Ref(client),
+      [=, client = client.get()] () mutable {
+        return std::make_unique<TcpSocketChannel>(
+          locate_service_addresses(*client, service));
       },
       [] {
-        return std::make_unique<Threading::LiveTimer>(
-          boost::posix_time::seconds(10));
+        return std::make_unique<LiveTimer>(boost::posix_time::seconds(10));
       });
   }
 
   /**
    * Returns a DefaultSessionBuilder.
-   * @param serviceLocatorClient The ServiceLocatorClient used to authenticate
-   *        sessions.
+   * @param client The ServiceLocatorClient used to authenticate sessions.
    */
-  template<typename ServiceLocatorClient>
-  auto MakeDefaultSessionBuilder(ServiceLocatorClient&& serviceLocatorClient,
-      const std::string& service) {
-    return MakeSessionBuilder<DefaultSessionBuilder<
-      std::decay_t<ServiceLocatorClient>>>(std::forward<ServiceLocatorClient>(
-        serviceLocatorClient), service);
+  template<IsServiceLocatorClient C>
+  auto make_default_session_builder(
+      Ref<C>& client, const std::string& service) {
+    return make_session_builder<DefaultSessionBuilder<C>>(Ref(client), service);
   }
 
-  template<template<typename> class C, typename N, typename B>
-  ApplicationClient<C, N, B>::ApplicationClient(
-    typename SessionBuilder::ServiceLocatorClient serviceLocatorClient)
-    : m_client([&] {
-        auto clientBox = ServiceLocator::ServiceLocatorClientBox(
-          &FullyDereference(serviceLocatorClient));
-        return SessionBuilder(std::move(serviceLocatorClient),
-          [=] () mutable {
-            return std::make_unique<Network::TcpSocketChannel>(
-              ServiceLocator::LocateServiceAddresses(clientBox, N::name));
-          },
-          [] {
-            return std::make_unique<Threading::LiveTimer>(
-              boost::posix_time::seconds(10));
-          });
-      }()) {}
+  /**
+   * Encapsulates a standard application client.
+   * @tparam C The type of client to encapsulate.
+   * @tparam N The name of the service.
+   * @tparam B The type of SessionBuilder to use.
+   */
+  template<template<typename> class C, typename N,
+    typename B = DefaultSessionBuilder<>>
+  class ApplicationClient : public C<B> {
+    public:
+
+      /** The type of SessionBuilder used. */
+      using SessionBuilder = B;
+
+      /** The type of client being encapsulated. */
+      using Client = C<SessionBuilder>;
+
+      /**
+       * Constructs an ApplicationClient.
+       * @param service_locator_client The ServiceLocatorClient used to
+       *        authenticate the session.
+       * @param args The arguments to pass to the encapsulated client.
+       */
+      template<typename... T>
+      explicit ApplicationClient(
+        Ref<typename SessionBuilder::ServiceLocatorClient>
+          service_locator_client, T&&... args);
+  };
 
   template<template<typename> class C, typename N, typename B>
   template<typename... T>
   ApplicationClient<C, N, B>::ApplicationClient(
-    typename SessionBuilder::ServiceLocatorClient serviceLocatorClient,
+    Ref<typename SessionBuilder::ServiceLocatorClient> service_locator_client,
     T&&... args)
-    : m_client([&] {
-        auto clientBox = ServiceLocator::ServiceLocatorClientBox(
-          &FullyDereference(serviceLocatorClient));
-        return SessionBuilder(std::move(serviceLocatorClient),
-          [=] () mutable {
-            return std::make_unique<Network::TcpSocketChannel>(
-              ServiceLocator::LocateServiceAddresses(clientBox, N::name));
-          },
-          [] {
-            return std::make_unique<Threading::LiveTimer>(
-              boost::posix_time::seconds(10));
-          });
-      }(), std::forward<T>(args)...) {}
-
-  template<template<typename> class C, typename N, typename B>
-  typename ApplicationClient<C, N, B>::Client&
-      ApplicationClient<C, N, B>::operator *() {
-    return m_client;
-  }
-
-  template<template<typename> class C, typename N, typename B>
-  const typename ApplicationClient<C, N, B>::Client&
-      ApplicationClient<C, N, B>::operator *() const {
-    return m_client;
-  }
-
-  template<template<typename> class C, typename N, typename B>
-  typename ApplicationClient<C, N, B>::Client*
-      ApplicationClient<C, N, B>:: operator ->() {
-    return &m_client;
-  }
-
-  template<template<typename> class C, typename N, typename B>
-  const typename ApplicationClient<C, N, B>::Client*
-      ApplicationClient<C, N, B>::operator ->() const {
-    return &m_client;
-  }
-
-  template<template<typename> class C, typename N, typename B>
-  typename ApplicationClient<C, N, B>::Client*
-      ApplicationClient<C, N, B>::Get() {
-    return &m_client;
-  }
-
-  template<template<typename> class C, typename N, typename B>
-  const typename ApplicationClient<C, N, B>::Client*
-      ApplicationClient<C, N, B>::Get() const {
-    return &m_client;
-  }
+    : C<B>(make_session_builder<SessionBuilder>(
+        service_locator_client, N::name), std::forward<T>(args)...) {}
 }
 
 #endif

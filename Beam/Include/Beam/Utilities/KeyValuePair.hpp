@@ -8,8 +8,8 @@ namespace Beam {
 
   /**
    * Stores a key/value pair.
-   * @param <K> The pair's key.
-   * @param <V> The value associated with the key.
+   * @tparam K The pair's key.
+   * @tparam V The value associated with the key.
    */
   template<typename K, typename V>
   struct KeyValuePair {
@@ -29,21 +29,18 @@ namespace Beam {
     bool operator ==(const KeyValuePair& pair) const = default;
   };
 
-  template<typename Key, typename Value>
-  std::ostream& operator <<(std::ostream& out,
-      const KeyValuePair<Key, Value>& pair) {
+  template<typename K, typename V>
+  std::ostream& operator <<(std::ostream& out, const KeyValuePair<K, V>& pair) {
     return out << '(' << pair.m_key << ' ' << pair.m_value << ')';
   }
-}
 
-namespace Beam::Serialization {
   template<typename K, typename V>
   struct Shuttle<KeyValuePair<K, V>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, KeyValuePair<K, V>& value,
-        unsigned int version) const {
-      shuttle.Shuttle("key", value.m_key);
-      shuttle.Shuttle("value", value.m_value);
+    template<IsShuttle S>
+    void operator ()(
+        S& shuttle, KeyValuePair<K, V>& value, unsigned int version) const {
+      shuttle.shuttle("key", value.m_key);
+      shuttle.shuttle("value", value.m_value);
     }
   };
 }

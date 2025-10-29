@@ -23,12 +23,16 @@ target_link_libraries(Python
   optimized ${ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH}
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
+  debug ${MYSQL_LIBRARY_DEBUG_PATH}
+  optimized ${MYSQL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug ${PYTHON_LIBRARY_DEBUG_PATH}
   optimized ${PYTHON_LIBRARY_OPTIMIZED_PATH}
+  debug ${SQLITE_LIBRARY_DEBUG_PATH}
+  optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
   optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
   debug ${ZLIB_LIBRARY_DEBUG_PATH}
@@ -47,7 +51,7 @@ if(UNIX)
     optimized ${BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH})
 endif()
 if(WIN32)
-  target_link_libraries(Python Crypt32.lib)
+  target_link_libraries(Python bcrypt crypt32 Secur32 shlwapi Ws2_32)
 endif()
 install(TARGETS Python CONFIGURATIONS Debug
   DESTINATION ${LIB_INSTALL_DIRECTORY}/Debug)

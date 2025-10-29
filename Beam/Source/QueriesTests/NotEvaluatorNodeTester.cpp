@@ -3,21 +3,18 @@
 #include "Beam/Queries/NotEvaluatorNode.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
 
 TEST_SUITE("NotEvaluatorNode") {
   TEST_CASE("constructor") {
     {
       auto evaluator =
-        NotEvaluatorNode(std::make_unique<ConstantEvaluatorNode<bool>>(
-          ConstantEvaluatorNode(true)));
-      REQUIRE(!evaluator.Eval());
+        NotEvaluatorNode(std::make_unique<ConstantEvaluatorNode<bool>>(true));
+      REQUIRE(!evaluator.eval());
     }
     {
       auto evaluator =
-        NotEvaluatorNode(std::make_unique<ConstantEvaluatorNode<bool>>(
-          ConstantEvaluatorNode(false)));
-      REQUIRE(evaluator.Eval());
+        NotEvaluatorNode(std::make_unique<ConstantEvaluatorNode<bool>>(false));
+      REQUIRE(evaluator.eval());
     }
   }
 }

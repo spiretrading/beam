@@ -2,13 +2,12 @@
 #define BEAM_HEARTBEAT_MESSAGE_HPP
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Services/Message.hpp"
-#include "Beam/Services/Services.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Represents a heartbeat.
-   * @param <C> The type of ServiceProtocolClient interpreting this Message.
+   * @tparam C The type of ServiceProtocolClient interpreting this Message.
    */
   template<typename C>
   class HeartbeatMessage : public Message<C> {
@@ -20,24 +19,23 @@ namespace Beam::Services {
       /** Constructs a HeartbeatMessage. */
       HeartbeatMessage() = default;
 
-      void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
-        Ref<ServiceProtocolClient> protocol) const override;
+      void emit(BaseServiceSlot<ServiceProtocolClient>* slot,
+        Ref<ServiceProtocolClient> client) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
 
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
   template<typename C>
-  void HeartbeatMessage<C>::EmitSignal(
-    BaseServiceSlot<ServiceProtocolClient>* slot,
-    Ref<ServiceProtocolClient> protocol) const {}
+  void HeartbeatMessage<C>::emit(BaseServiceSlot<ServiceProtocolClient>* slot,
+    Ref<ServiceProtocolClient> client) const {}
 
   template<typename C>
-  template<typename Shuttler>
-  void HeartbeatMessage<C>::Shuttle(Shuttler& shuttle, unsigned int version) {}
+  template<IsShuttle S>
+  void HeartbeatMessage<C>::shuttle(S& shuttle, unsigned int version) {}
 }
 
 #endif

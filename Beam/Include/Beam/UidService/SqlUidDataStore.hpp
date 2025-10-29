@@ -7,14 +7,14 @@
 #include "Beam/UidService/SqlDefinitions.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
-namespace Beam::UidService {
+namespace Beam {
 
   /**
    * Implements the UidDataStore using SQL.
-   * @param <C> The type of SQL connection.
+   * @tparam C The type of SQL connection.
    */
   template<typename C>
-  class SqlUidDataStore : public UidDataStore {
+  class SqlUidDataStore {
     public:
 
       /** The type of SQL connection. */
@@ -24,23 +24,20 @@ namespace Beam::UidService {
        * Constructs an SqlUidDataStore.
        * @param connection The connection to the SQL database.
        */
-      SqlUidDataStore(std::unique_ptr<Connection> connection);
+      explicit SqlUidDataStore(std::unique_ptr<Connection> connection);
 
-      ~SqlUidDataStore() override;
+      ~SqlUidDataStore();
 
-      std::uint64_t GetNextUid() override;
-
-      std::uint64_t Reserve(std::uint64_t size) override;
-
-      void WithTransaction(const std::function<void ()>& transaction) override;
-
-      void Close() override;
+      std::uint64_t get_next_uid();
+      std::uint64_t reserve(std::uint64_t size);
+      template<std::invocable<> F>
+      decltype(auto) with_transaction(F&& transaction);
+      void close();
 
     private:
-      mutable Threading::Mutex m_mutex;
+      mutable Mutex m_mutex;
       std::unique_ptr<Connection> m_connection;
-      std::uint64_t m_nextUid;
-      IO::OpenState m_openState;
+      OpenState m_open_state;
   };
 
   template<typename C>
@@ -49,51 +46,52 @@ namespace Beam::UidService {
     try {
       m_connection->open();
       if(!m_connection->has_table("next_uid")) {
-        m_connection->execute(Viper::create(GetNextUidRow(), "next_uid"));
-        auto firstUid = 1;
-        m_connection->execute(Viper::insert(GetNextUidRow(), "next_uid",
-          &firstUid));
+        m_connection->execute(Viper::create(get_next_uid_row(), "next_uid"));
+        auto first_uid = 1;
+        m_connection->execute(
+          Viper::insert(get_next_uid_row(), "next_uid", &first_uid));
       }
     } catch(const std::exception&) {
-      Close();
-      BOOST_RETHROW;
+      close();
+      throw;
     }
   }
 
   template<typename C>
   SqlUidDataStore<C>::~SqlUidDataStore() {
-    Close();
+    close();
   }
 
   template<typename C>
-  std::uint64_t SqlUidDataStore<C>::GetNextUid() {
-    auto nextUid = std::uint64_t();
-    m_connection->execute(Viper::select(GetNextUidRow(), "next_uid", &nextUid));
-    return nextUid;
+  std::uint64_t SqlUidDataStore<C>::get_next_uid() {
+    auto next_uid = std::uint64_t();
+    m_connection->execute(
+      Viper::select(get_next_uid_row(), "next_uid", &next_uid));
+    return next_uid;
   }
 
   template<typename C>
-  std::uint64_t SqlUidDataStore<C>::Reserve(std::uint64_t size) {
-    auto nextUid = GetNextUid();
-    m_connection->execute(Viper::update("next_uid",
-      {"uid", Viper::literal(nextUid + size)}));
-    return nextUid;
+  std::uint64_t SqlUidDataStore<C>::reserve(std::uint64_t size) {
+    auto next_uid = get_next_uid();
+    m_connection->execute(
+      Viper::update("next_uid", {"uid", Viper::literal(next_uid + size)}));
+    return next_uid;
   }
 
   template<typename C>
-  void SqlUidDataStore<C>::WithTransaction(
-      const std::function<void ()>& transaction) {
+  template<std::invocable<> F>
+  decltype(auto) SqlUidDataStore<C>::with_transaction(F&& transaction) {
     auto lock = std::lock_guard(m_mutex);
-    Viper::transaction(*m_connection, transaction);
+    return Viper::transaction(*m_connection, std::forward<F>(transaction));
   }
 
   template<typename C>
-  void SqlUidDataStore<C>::Close() {
-    if(m_openState.SetClosing()) {
+  void SqlUidDataStore<C>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
     m_connection->close();
-    m_openState.Close();
+    m_open_state.close();
   }
 }
 

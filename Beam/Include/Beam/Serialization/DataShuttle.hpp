@@ -1,262 +1,267 @@
-#ifndef BEAM_DATASHUTTLE_HPP
-#define BEAM_DATASHUTTLE_HPP
+#ifndef BEAM_DATA_SHUTTLE_HPP
+#define BEAM_DATA_SHUTTLE_HPP
 #include <type_traits>
 #include <boost/throw_exception.hpp>
+#include "Beam/IO/Buffer.hpp"
+#include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
-#include "Beam/Serialization/Serialization.hpp"
-#include "Beam/Serialization/SerializedValue.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
-#include "Beam/Utilities/Concept.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
-namespace Serialization {
-  template<typename T>
-  T DefaultConstruct() {
-    return {};
-  }
 
-  struct ReceiveBuilder {
-    template<typename T>
-    explicit operator T() const {
-      return DefaultConstruct<T>();
-    }
+  /** Concept satisfied by types that implement the DataShuttle interface. */
+  template<typename T>
+  concept IsShuttle = requires(T a) {
+    { a.shuttle(std::declval<const char*>(), std::declval<int&>()) } ->
+      std::same_as<void>;
+    { a.shuttle(std::declval<int&>()) } -> std::same_as<void>;
+    { a.start_structure(std::declval<const char*>()) } -> std::same_as<void>;
+    { a.end_structure() } -> std::same_as<void>;
+    { a.start_sequence(std::declval<const char*>(), std::declval<int&>()) } ->
+      std::same_as<void>;
+    { a.start_sequence(std::declval<const char*>()) } -> std::same_as<void>;
+    { a.end_sequence() } -> std::same_as<void>;
   };
 
-  template<typename T, typename Enabled = void>
-  struct IsDefaultConstructable : std::true_type {};
+  /** Concept satisfied by types that implement the Receiver interface. */
+  template<typename T>
+  concept IsReceiver = requires(T a) {
+    typename T::Source;
+    requires IsConstBuffer<typename T::Source>;
+    { a.set(std::declval<Ref<const typename T::Source>>()) } ->
+      std::same_as<void>;
+    { a.receive(std::declval<int&>()) } -> std::same_as<void>;
+    { a.receive(std::declval<const char*>(), std::declval<int&>()) } ->
+      std::same_as<void>;
+  } && IsShuttle<T>;
 
-  /*! \class DataShuttle
-      \brief Concept for moving data back and forth.
+  /** Concept satisfied by types that implement the Sender interface. */
+  template<typename T>
+  concept IsSender = requires(T a) {
+    typename T::Sink;
+    requires IsBuffer<typename T::Sink>;
+    { a.set(std::declval<Ref<typename T::Sink>>()) } -> std::same_as<void>;
+    { a.send(std::declval<const int&>()) } -> std::same_as<void>;
+    { a.send_version(std::declval<const int&>(),
+      std::declval<unsigned int>()) } -> std::same_as<void>;
+    { a.send(std::declval<const char*>(), std::declval<const int&>()) } ->
+      std::same_as<void>;
+  } && IsShuttle<T>;
+
+  /**
+   * A customization point for default constructing types.
+   * @tparam T The type to default construct.
+   * @return A default constructed instance of <code>T</code>.
    */
-  struct DataShuttle : Concept<DataShuttle> {
+  template<typename T>
+  T default_construct() = delete;
 
-    //! Shuttles an unnamed value.
-    /*!
-      \param value The value to shuttle.
-    */
-    template<typename T>
-    void Shuttle(T& value);
+  /** Specifies a class that's responsible for shuttling data. */
+  class DataShuttle {
+    public:
 
-    //! Shuttles a generic type.
-    /*!
-      \param name The name of the value.
-      \param value The value to shuttle.
-    */
-    template<typename T>
-    void Shuttle(const char* name, T& value);
+      /** Indicates whether a type is default constructible. */
+      template<typename T>
+      static constexpr auto is_default_constructible =
+        requires {{ default_construct<T>() } -> std::same_as<T>; } ||
+        requires { T(); };
 
-    //! Marks the start of a structured datum.
-    /*!
-      \param name The name of the structured datum.
-    */
-    void StartStructure(const char* name);
+      /**
+       * Shuttles an unnamed value.
+       * @param value The value to shuttle.
+       */
+      template<typename T>
+      void shuttle(T& value);
 
-    //! Marks the end of a structured datum.
-    void EndStructure();
+      /**
+       * Shuttles a generic type.
+       * @param name The name of the value.
+       * @param value The value to shuttle.
+       */
+      template<typename T>
+      void shuttle(const char* name, T& value);
 
-    //! Marks the start of a sequence with a predetermined size.
-    /*!
-      \param name The name of the sequence.
-      \param size The number of elements in the sequence.
-    */
-    void StartSequence(const char* name, int& size);
+      /**
+       * Marks the start of a structured datum.
+       * @param name The name of the structured datum.
+       */
+      void start_structure(const char* name);
 
-    //! Marks the start of a sequence with a predetermined size.
-    /*!
-      \param name The name of the sequence.
-      \param size The number of elements in the sequence.
-    */
-    void StartSequence(const char* name, const int& size);
+      /** Marks the end of a structured datum. */
+      void end_structure();
 
-    //! Marks the start of a sequence.
-    /*!
-      \param name The name of the sequence.
-    */
-    void StartSequence(const char* name);
+      /**
+       * Marks the start of a sequence with a predetermined size.
+       * @param name The name of the sequence.
+       * @param size The number of elements in the sequence.
+       */
+      void start_sequence(const char* name, int& size);
 
-    //! Marks the end of a sequence.
-    void EndSequence();
+      /**
+       * Marks the start of a sequence with a predetermined size.
+       * @param name The name of the sequence.
+       * @param size The number of elements in the sequence.
+       */
+      void start_sequence(const char* name, const int& size);
+
+      /**
+       * Marks the start of a sequence.
+       * @param name The name of the sequence.
+       */
+      void start_sequence(const char* name);
+
+      /** Marks the end of a sequence. */
+      void end_sequence();
 
     private:
-      template<typename SinkType> friend struct Sender;
-      template<typename SourceType> friend struct Receiver;
-      template<typename SenderType> friend class TypeRegistry;
-      template<typename T> friend class SerializedValue;
-      template<typename T, typename Enabled> friend struct Send;
-      template<typename T, typename Enabled> friend struct Shuttle;
-      template<typename T, typename Enabled> friend struct Receive;
-      template<typename T, typename Enabled = void>
-      struct FactoryHelper {
-        T* operator ()() const {
-          return new T();
-        }
-      };
+      template<IsBuffer> friend struct Sender;
+      template<IsConstBuffer> friend struct Receiver;
+      template<typename> friend class TypeRegistry;
+      template<typename, typename> friend struct Send;
+      template<typename, typename> friend struct Receive;
+      template<typename, typename> friend struct Shuttle;
+      template<typename> friend class ReceiverMixin;
+      template<typename> friend class SerializedValue;
       template<typename T>
-      struct FactoryHelper<T, typename std::enable_if<
-          !IsDefaultConstructable<T>::value>::type> {
-        T* operator ()() const {
-          return new T(ReceiveBuilder{});
-        }
-      };
-      template<typename T, typename Enabled = void>
-      struct SerializedValueBuilder {
-        void operator ()(SerializedValue<T>& value) const {
-          BEAM_SUPPRESS_POD_INITIALIZER()
-          value.m_ptr = new(&value.m_storage) T();
-          BEAM_UNSUPPRESS_POD_INITIALIZER()
-        }
-      };
+      static T make();
       template<typename T>
-      struct SerializedValueBuilder<T, typename std::enable_if<
-          !IsDefaultConstructable<T>::value>::type> {
-        void operator ()(SerializedValue<T>& value) const {
-          BEAM_SUPPRESS_POD_INITIALIZER()
-          value.m_ptr = new(&value.m_storage) T(ReceiveBuilder{});
-          BEAM_UNSUPPRESS_POD_INITIALIZER()
-        }
-      };
-
-      template<typename T>
-      static T* Make();
-      template<typename T>
-      static void Make(SerializedValue<T>& ptr);
-      template<typename Shuttler, typename T>
-      static void Send(Shuttler& shuttle, const T& value, unsigned int version);
-      template<typename Shuttler, typename T>
-      static void Send(Shuttler& shuttle, const char* name, const T& value);
-      template<typename Shuttler, typename T>
-      static void Receive(Shuttler& shuttle, T& value, unsigned int version);
-      template<typename Shuttler, typename T>
-      static void Receive(Shuttler& shuttle, const char* name, T& value);
-      template<typename Shuttler, typename T>
-      static void Shuttle(Shuttler& shuttle, T& value, unsigned int version);
-      template<typename Shuttler, typename T>
-      static void Shuttle(Shuttler& shuttle, const T& value,
-        unsigned int version);
+      static T* make_new();
+      template<IsSender S, typename T>
+      static void send(S& sender, const T& value, unsigned int version);
+      template<IsSender S, typename T>
+      static void send(S& sender, const char* name, const T& value);
+      template<IsReceiver R, typename T>
+      static void receive(R& receiver, T& value, unsigned int version);
+      template<IsReceiver R, typename T>
+      static void receive(R& receiver, const char* name, T& value);
+      template<IsShuttle S, typename T>
+      static void shuttle(S& shuttle, T& value, unsigned int version);
+      template<IsShuttle S, typename T>
+      static void shuttle(S& shuttle, const T& value, unsigned int version);
   };
 
-  /*! \class Version
-      \brief Stores a type's serialization version.
+  /** Stores a type's serialization version. */
+  template<typename T>
+  constexpr auto shuttle_version = static_cast<unsigned int>(0);
+
+  /**
+   * Type trait for whether a type is shuttled as a structure.
+   * @tparam T The type to check.
+   */
+  template<typename T, typename = void>
+  constexpr auto is_structure = std::is_class_v<T>;
+
+  /**
+   * Type trait for whether a type is shuttled as a sequence.
+   * @tparam T The type to check.
    */
   template<typename T>
-  struct Version : std::integral_constant<unsigned int, 0> {};
+  constexpr auto is_sequence = false;
 
-  /*! \class Inverse
-      \brief Type trait providing a Shuttle's inverse.
-      \tparam ShuttleType The type of Shuttle whose inverse is to be given.
+  /**
+   * Contains operations for shuttling a type.
+   * @tparam T The type being specialized.
    */
-  template<typename ShuttleType>
-  struct Inverse {};
-
-  template<typename ShuttleType>
-  using GetInverse = typename Inverse<ShuttleType>::type;
-
-  /*! \class IsStructure
-      \brief Type trait for whether a type is shuttled as a structure.
-      \tparam T The type to check.
-   */
-  template<typename T, typename Enabled = void>
-  struct IsStructure : std::is_class<T>::type {};
-
-  /*! \class IsSequence
-      \brief Type trait for whether a type is shuttled as a sequence.
-      \tparam T The type to check.
-   */
-  template<typename T>
-  struct IsSequence : std::false_type {};
-
-  /*! \class Shuttle
-      \brief Contains operations for shuttling a type.
-      \tparam T The type being specialized.
-   */
-  template<typename T, typename Enabled = void>
+  template<typename T, typename = void>
   struct Shuttle {
 
-    //! Shuttles a value.
-    /*!
-      \tparam Shuttler The type of DataShuttle to use.
-      \param shuttle The DataShuttle to use.
-      \param value The value to shuttle.
-      \param version The class version being serialized.
-    */
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, T& value, unsigned int version) const;
+    /**
+     * Shuttles a value.
+     * @tparam S The type of DataShuttle to use.
+     * @param shuttle The DataShuttle to use.
+     * @param value The value to shuttle.
+     * @param version The class version being serialized.
+     */
+    template<IsShuttle S>
+    void operator ()(S& shuttle, T& value, unsigned int version) const;
   };
 
-  //! Shuttles a value and checks that it does not evaluate to
-  //! <code>nullptr</code>.
-  /*!
-    \tparam Shuttler The type of DataShuttle to use.
-    \tparam T The type of value to shuttle.
-    \param shuttle The DataShuttle to use.
-    \param name The name of the value being shuttled.
-    \param value The value to shuttle.
-  */
-  template<typename Shuttler, typename T>
-  void ShuttleNonNull(Shuttler& shuttle, const char* name, T& value) {
-    shuttle.Shuttle(name, value);
-    if(IsReceiver<Shuttler>::value) {
-      if(value == nullptr) {
-        BOOST_THROW_EXCEPTION(SerializationException("Invalid null value."));
+  /**
+   * Shuttles a value and checks that it does not evaluate to
+   * <code>nullptr</code>.
+   * @tparam S The type of DataShuttle to use.
+   * @tparam T The type of value to shuttle.
+   * @param shuttle The DataShuttle to use.
+   * @param name The name of the value being shuttled.
+   * @param value The value to shuttle.
+   */
+  template<IsShuttle S, typename T>
+  void shuttle_non_null(S& shuttle, const char* name, T& value) {
+    shuttle.shuttle(name, value);
+    if constexpr(IsReceiver<S>) {
+      if(!value) {
+        boost::throw_with_location(
+          SerializationException("Invalid null value."));
       }
     }
   }
 
   template<typename T>
-  T* DataShuttle::Make() {
-    return FactoryHelper<T>()();
+  T DataShuttle::make() {
+    if constexpr(requires { { default_construct<T>() } -> std::same_as<T>; }) {
+      return T(default_construct<T>());
+    } else if constexpr(requires { T(); }) {
+      return T();
+    } else {
+      static_assert(std::is_default_constructible_v<T>,
+        "DataShuttle requires default-constructible T or a default_construct<T>"
+        " customization.");
+    }
   }
 
   template<typename T>
-  void DataShuttle::Make(SerializedValue<T>& value) {
-    return SerializedValueBuilder<T>()(value);
+  T* DataShuttle::make_new() {
+    if constexpr(requires { { default_construct<T>() } -> std::same_as<T>; }) {
+      return new T(default_construct<T>());
+    } else if constexpr(requires { T(); }) {
+      return new T();
+    }
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Send(Shuttler& shuttle, const T& value,
-      unsigned int version) {
-    value.Send(shuttle, version);
+  template<IsSender S, typename T>
+  void DataShuttle::send(S& sender, const T& value, unsigned int version) {
+    if constexpr(requires(S& s, const T& t, unsigned int v) { t.send(s, v); }) {
+      value.send(sender, version);
+    } else {
+      Shuttle<T>()(sender, const_cast<T&>(value), version);
+    }
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Send(Shuttler& shuttle, const char* name, const T& value) {
-    value.Send(shuttle, name);
+  template<IsSender S, typename T>
+  void DataShuttle::send(S& sender, const char* name, const T& value) {
+    value.send(sender, name);
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Receive(Shuttler& shuttle, T& value, unsigned int version) {
-    value.Receive(shuttle, version);
+  template<IsReceiver R, typename T>
+  void DataShuttle::receive(R& receiver, T& value, unsigned int version) {
+    if constexpr(requires(R& r, T& t, unsigned int v) { t.receive(r, v); }) {
+      value.receive(receiver, version);
+    } else {
+      Shuttle<T>()(receiver, value, version);
+    }
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Receive(Shuttler& shuttle, const char* name, T& value) {
-    value.Receive(shuttle, name);
+  template<IsReceiver R, typename T>
+  void DataShuttle::receive(R& receiver, const char* name, T& value) {
+    value.receive(receiver, name);
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Shuttle(Shuttler& shuttle, T& value, unsigned int version) {
-    value.Shuttle(shuttle, version);
+  template<IsShuttle S, typename T>
+  void DataShuttle::shuttle(S& shuttle, T& value, unsigned int version) {
+    value.shuttle(shuttle, version);
   }
 
-  template<typename Shuttler, typename T>
-  void DataShuttle::Shuttle(Shuttler& shuttle, const T& value,
-      unsigned int version) {
-    const_cast<T&>(value).Shuttle(shuttle, version);
+  template<IsShuttle S, typename T>
+  void DataShuttle::shuttle(S& shuttle, const T& value, unsigned int version) {
+    const_cast<T&>(value).shuttle(shuttle, version);
   }
 
   template<typename T, typename Enabled>
-  template<typename Shuttler>
-  void Shuttle<T, Enabled>::operator ()(Shuttler& shuttle, T& value,
-      unsigned int version) const {
-    DataShuttle::Shuttle(shuttle, value, version);
+  template<IsShuttle S>
+  void Shuttle<T, Enabled>::operator ()(
+      S& shuttle, T& value, unsigned int version) const {
+    DataShuttle::shuttle(shuttle, value, version);
   }
-
-  template<typename T>
-  void SerializedValue<T>::Initialize() {
-    Reset();
-    DataShuttle::Make(*this);
-  }
-}
 }
 
 #endif

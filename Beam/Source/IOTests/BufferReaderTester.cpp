@@ -1,54 +1,66 @@
 #include <doctest/doctest.h>
 #include "Beam/IO/BufferReader.hpp"
-#include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
-using namespace Beam::IO;
-using namespace boost;
 
 TEST_SUITE("BufferReader") {
   TEST_CASE("create_empty") {
-    auto reader = BufferReader<SharedBuffer>(
-      BufferFromString<SharedBuffer>(""));
+    auto reader = BufferReader(from<SharedBuffer>(""));
     auto buffer = SharedBuffer();
-    REQUIRE_THROWS_AS(reader.Read(Store(buffer)), EndOfFileException);
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
   }
 
-  TEST_CASE("read") {
+  TEST_CASE("read_all") {
     auto message = std::string("hello world");
-    auto reader = BufferReader<SharedBuffer>(
-      BufferFromString<SharedBuffer>(message));
-    auto data = SharedBuffer();
-    auto sizeRead = reader.Read(Store(data));
-    REQUIRE(message.size() == sizeRead);
-    REQUIRE(data == message);
+    auto reader = BufferReader(from<SharedBuffer>(message));
+    auto buffer = SharedBuffer();
+    auto size_read = reader.read(out(buffer));
+    REQUIRE(size_read == message.size());
+    REQUIRE(buffer == message);
   }
 
   TEST_CASE("read_some_to_buffer") {
-    auto message = std::string("hello world");
-    auto reader = BufferReader<SharedBuffer>(
-      BufferFromString<SharedBuffer>(message));
-    auto data = SharedBuffer();
-    auto sizeRead = reader.Read(Store(data), 6);
-    REQUIRE(sizeRead == 6);
-    REQUIRE(data == "hello ");
-    data.Reset();
-    sizeRead = reader.Read(Store(data), 5);
-    REQUIRE(sizeRead == 5);
-    REQUIRE(data == "world");
+    auto reader = BufferReader(from<SharedBuffer>("hello world"));
+    auto buffer = SharedBuffer();
+    auto size_read = reader.read(out(buffer), 6);
+    REQUIRE(size_read == 6);
+    REQUIRE(buffer == "hello ");
+    reset(buffer);
+    size_read = reader.read(out(buffer), 5);
+    REQUIRE(size_read == 5);
+    REQUIRE(buffer == "world");
   }
 
-  TEST_CASE("read_some_to_pointer") {
-    auto message = std::string("hello world");
-    auto reader = BufferReader<SharedBuffer>(
-      BufferFromString<SharedBuffer>(message));
-    auto data = std::make_unique<char[]>(message.size());
-    auto sizeRead = reader.Read(data.get(), 6);
-    REQUIRE(sizeRead == 6);
-    REQUIRE(strncmp(data.get(), "hello ", 6) == 0);
-    sizeRead = reader.Read(data.get(), 5);
-    REQUIRE(sizeRead == 5);
-    REQUIRE(strncmp(data.get(), "world", 5) == 0);
+  TEST_CASE("poll_behavior") {
+    auto reader = BufferReader(from<SharedBuffer>("abc"));
+    REQUIRE(reader.poll() == true);
+    auto data = SharedBuffer();
+    auto size_read = reader.read(out(data), 3);
+    REQUIRE(size_read == 3);
+    REQUIRE(!reader.poll());
+  }
+
+  TEST_CASE("copy_independence") {
+    auto reader = BufferReader(from<SharedBuffer>("abcdefgh"));
+    auto reader_copy = reader;
+    auto a = SharedBuffer();
+    auto b = SharedBuffer();
+    auto a_read = reader.read(out(a), 3);
+    REQUIRE(a_read == 3);
+    auto b_read = reader_copy.read(out(b), 4);
+    REQUIRE(b_read == 4);
+    REQUIRE(a == std::string("abc"));
+    REQUIRE(b == std::string("abcd"));
+    REQUIRE(reader.poll());
+    REQUIRE(reader_copy.poll());
+  }
+
+  TEST_CASE("end_of_file_after_consumed") {
+    auto reader = BufferReader(from<SharedBuffer>("xy"));
+    auto data = SharedBuffer();
+    auto size_read = reader.read(out(data));
+    REQUIRE(size_read == 2);
+    REQUIRE_THROWS_AS(reader.read(out(data), 1), EndOfFileException);
   }
 }

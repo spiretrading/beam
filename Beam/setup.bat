@@ -136,7 +136,7 @@ IF %BUILD_NEEDED%==1 (
 )
 CALL :DownloadAndExtract "tclap-1.2.5" ^
   "https://github.com/mirror/tclap/archive/v1.2.5.zip"
-SET VIPER_COMMIT="bc345548f946ba89d3060d510a18a7613fdfc181"
+SET VIPER_COMMIT="c5adf4c8101d30077fc0fa35cfb1b7b96bf2d1fe"
 IF NOT EXIST viper (
   git clone https://www.github.com/spiretrading/viper
   IF !ERRORLEVEL! EQU 0 (

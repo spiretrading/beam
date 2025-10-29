@@ -1,9 +1,8 @@
 #ifndef BEAM_LOCAL_TIME_CLIENT_HPP
 #define BEAM_LOCAL_TIME_CLIENT_HPP
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include "Beam/TimeService/TimeService.hpp"
+#include "Beam/TimeService/TimeClient.hpp"
 
-namespace Beam::TimeService {
+namespace Beam {
 
   /** A TimeClient that uses the local computer's clock. */
   class LocalTimeClient {
@@ -12,16 +11,15 @@ namespace Beam::TimeService {
       /** Constructs a LocalTimeClient. */
       LocalTimeClient() = default;
 
-      boost::posix_time::ptime GetTime();
-
-      void Close();
+      boost::posix_time::ptime get_time();
+      void close();
   };
 
-  inline boost::posix_time::ptime LocalTimeClient::GetTime() {
+  inline boost::posix_time::ptime LocalTimeClient::get_time() {
     return boost::posix_time::microsec_clock::universal_time();
   }
 
-  inline void LocalTimeClient::Close() {}
+  inline void LocalTimeClient::close() {}
 }
 
 #endif

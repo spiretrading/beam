@@ -7,30 +7,30 @@ using namespace pybind11;
 
 namespace {
   struct ObjectDeleter {
-    void operator ()(pybind11::object* object) const {
+    void operator ()(object* object) const {
       auto lock = GilLock();
       delete object;
     }
   };
 }
 
-SharedObject::SharedObject(pybind11::object object)
+SharedObject::SharedObject(object object)
   : m_object(new pybind11::object(std::move(object)), ObjectDeleter()) {}
 
-pybind11::object& SharedObject::operator *() const {
+object& SharedObject::operator *() const {
   return *m_object;
 }
 
-pybind11::object* SharedObject::operator ->() const {
+object* SharedObject::operator ->() const {
   return m_object.get();
 }
 
-pybind11::handle SharedObjectTypeCaster::cast(const SharedObject& value,
-    pybind11::return_value_policy policy, pybind11::handle parent) {
+handle SharedObjectTypeCaster::cast(const SharedObject& value,
+    return_value_policy policy, handle parent) {
   return value->inc_ref();
 }
 
-bool SharedObjectTypeCaster::load(pybind11::handle source, bool) {
+bool SharedObjectTypeCaster::load(handle source, bool) {
   m_value.emplace(reinterpret_borrow<object>(std::move(source)));
   return true;
 }

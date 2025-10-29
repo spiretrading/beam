@@ -2,60 +2,57 @@
 #define BEAM_SESSION_AUTHENTICATOR_HPP
 #include <type_traits>
 #include <cryptopp/osrng.h>
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/Ref.hpp"
 #include "Beam/ServiceLocator/Authenticator.hpp"
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
+#include "Beam/Services/ServiceProtocolClient.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /**
    * Used to authenticate a ServiceProtocolClient's session.
-   * @param <C> The type of ServiceLocatorClient used to authenticate the
+   * @tparam C The type of ServiceLocatorClient used to authenticate the
    *            session.
    */
-  template<typename C>
+  template<IsServiceLocatorClient C>
   class SessionAuthenticator {
     public:
 
       /** The type of ServiceLocatorClient used to authenticate the session. */
-      using ServiceLocatorClient = GetTryDereferenceType<C>;
+      using ServiceLocatorClient = C;
 
       /**
        * Constructs a SessionAuthenticator.
-       * @param serviceLocatorClient The ServiceLocatorClient used to
-       *        authenticate the session.
+       * @param client The ServiceLocatorClient used to authenticate the
+       *        session.
        */
-      template<typename CF>
-      explicit SessionAuthenticator(CF&& serviceLocatorClient);
+      explicit SessionAuthenticator(Ref<ServiceLocatorClient> client);
 
-      template<typename ServiceProtocolClient>
-      void operator ()(ServiceProtocolClient& client) const;
+      template<typename M, typename T, typename P, typename S, bool V>
+      void operator ()(ServiceProtocolClient<M, T, P, S, V>& client) const;
 
     private:
-      GetOptionalLocalPtr<C> m_serviceLocatorClient;
+      ServiceLocatorClient* m_client;
   };
 
-  template<typename C>
-  SessionAuthenticator(C&&) -> SessionAuthenticator<std::decay_t<C>>;
+  template<IsServiceLocatorClient C>
+  SessionAuthenticator<C>::SessionAuthenticator(
+    Ref<ServiceLocatorClient> client)
+    : m_client(client.get()) {}
 
-  template<typename C>
-  template<typename CF>
-  SessionAuthenticator<C>::SessionAuthenticator(CF&& serviceLocatorClient)
-    : m_serviceLocatorClient(std::forward<CF>(serviceLocatorClient)) {}
-
-  template<typename C>
-  template<typename ServiceProtocolClient>
+  template<IsServiceLocatorClient C>
+  template<typename M, typename T, typename P, typename S, bool V>
   void SessionAuthenticator<C>::operator ()(
-      ServiceProtocolClient& client) const {
-    auto randomGenerator = CryptoPP::AutoSeededRandomPool();
+      ServiceProtocolClient<M, T, P, S, V>& client) const {
+    auto random_generator = CryptoPP::AutoSeededRandomPool();
     auto key = int();
-    randomGenerator.GenerateBlock(reinterpret_cast<unsigned char*>(&key),
-      sizeof(key));
-    RegisterServiceLocatorServices(Store(client.GetSlots()));
-    client.template SendRequest<SendSessionIdService>(key,
-      m_serviceLocatorClient->GetEncryptedSessionId(key));
+    random_generator.GenerateBlock(
+      reinterpret_cast<unsigned char*>(&key), sizeof(key));
+    ServiceLocatorServices::register_service_locator_services(
+      out(client.get_slots()));
+    client.template send_request<ServiceLocatorServices::SendSessionIdService>(
+      key, m_client->get_encrypted_session_id(key));
   }
 }
 

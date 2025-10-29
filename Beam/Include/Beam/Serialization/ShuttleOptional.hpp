@@ -1,40 +1,34 @@
-#ifndef BEAM_SHUTTLEOPTIONAL_HPP
-#define BEAM_SHUTTLEOPTIONAL_HPP
+#ifndef BEAM_SHUTTLE_OPTIONAL_HPP
+#define BEAM_SHUTTLE_OPTIONAL_HPP
 #include <boost/optional/optional.hpp>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
-namespace Serialization {
   template<typename T>
   struct Send<boost::optional<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const boost::optional<T>& value,
+    template<IsSender S>
+    void operator ()(S& sender, const boost::optional<T>& value,
         unsigned int version) const {
-      shuttle.Shuttle("is_initialized", value.is_initialized());
-      if(value.is_initialized()) {
-        shuttle.Shuttle("value", *value);
+      sender.send("is_initialized", value.is_initialized());
+      if(value) {
+        sender.send("value", *value);
       }
     }
   };
 
   template<typename T>
   struct Receive<boost::optional<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, boost::optional<T>& value,
-        unsigned int version) const {
-      bool isInitialized;
-      shuttle.Shuttle("is_initialized", isInitialized);
-      if(isInitialized) {
-        SerializedValue<T> held;
-        shuttle.Shuttle("value", held);
-        value = *held;
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, boost::optional<T>& value, unsigned int version) const {
+      if(receive<bool>(receiver, "is_initialized")) {
+        value = receive<T>(receiver, "value");
       } else {
-        value = boost::optional<T>();
+        value = boost::none;
       }
     }
   };
-}
 }
 
 #endif

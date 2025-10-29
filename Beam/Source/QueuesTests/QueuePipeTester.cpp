@@ -11,15 +11,15 @@ TEST_SUITE("QueuePipe") {
     {
       auto pipe = QueuePipe(source, destination);
     }
-    REQUIRE(source->IsBroken());
-    REQUIRE(destination->IsBroken());
+    REQUIRE(source->is_broken());
+    REQUIRE(destination->is_broken());
   }
 
   TEST_CASE("convert") {
     auto source = std::make_shared<Queue<int>>();
     auto destination = std::make_shared<Queue<double>>();
     auto pipe = QueuePipe(source, destination);
-    source->Push(123);
-    REQUIRE(destination->Pop() == 123.0);
+    source->push(123);
+    REQUIRE(destination->pop() == 123.0);
   }
 }

@@ -9,115 +9,110 @@
 #include <Beam/Queries/SqlTranslator.hpp>
 #include <Beam/Sql/DatabaseConnectionPool.hpp>
 #include <Beam/Sql/SqlConnection.hpp>
-#include <boost/throw_exception.hpp>
 #include <Viper/MySql/Connection.hpp>
 
 namespace Beam {
 
   /** Stores data in a MySQL database. */
-  class MySqlDataStore {
+  class MySqlProfileDataStore {
     public:
 
       /**
-       * Constructs a MySqlDataStore.
+       * Constructs a MySqlProfileDataStore.
        * @param address The IP address of the MySQL database to connect to.
        * @param schema The name of the schema.
        * @param username The username to connect as.
        * @param password The password associated with the <i>username</i>.
        */
-      MySqlDataStore(Network::IpAddress address, std::string schema,
+      MySqlProfileDataStore(IpAddress address, std::string schema,
         std::string username, std::string password);
 
-      ~MySqlDataStore();
+      ~MySqlProfileDataStore();
 
-      /** Clears the contents of the database. */
-      void Clear();
-
-      std::vector<SequencedEntry> LoadEntries(const EntryQuery& query);
-
-      void Store(const SequencedIndexedEntry& entry);
-
-      void Store(const std::vector<SequencedIndexedEntry>& entries);
-
-      void Close();
+      void clear();
+      std::vector<SequencedEntry> load_entries(const EntryQuery& query);
+      void store(const SequencedIndexedEntry& entry);
+      void store(const std::vector<SequencedIndexedEntry>& entries);
+      void close();
 
     private:
       template<typename V, typename I>
-      using DataStore = Queries::SqlDataStore<
-        SqlConnection<Viper::MySql::Connection>, V, I, Queries::SqlTranslator>;
+      using DataStore = SqlDataStore<
+        SqlConnection<Viper::MySql::Connection>, V, I, SqlTranslator>;
       DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>
-        m_readerPool;
+        m_reader_pool;
       DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>
-        m_writerPool;
-      DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_dataStore;
-      IO::OpenState m_openState;
+        m_writer_pool;
+      DataStore<Viper::Row<Entry>, Viper::Row<std::string>> m_data_store;
+      OpenState m_open_state;
 
-      MySqlDataStore(const MySqlDataStore&) = delete;
-      MySqlDataStore& operator =(const MySqlDataStore&) = delete;
-      static Viper::Row<Entry> BuildValueRow();
-      static Viper::Row<std::string> BuildIndexRow();
+      MySqlProfileDataStore(const MySqlProfileDataStore&) = delete;
+      MySqlProfileDataStore& operator =(const MySqlProfileDataStore&) = delete;
+      static Viper::Row<Entry> build_value_row();
+      static Viper::Row<std::string> build_index_row();
   };
 
-  inline MySqlDataStore::MySqlDataStore(Network::IpAddress address,
+  inline MySqlProfileDataStore::MySqlProfileDataStore(IpAddress address,
     std::string schema, std::string username, std::string password)
-    : m_readerPool(std::thread::hardware_concurrency(), [=] {
-        auto connection = MakeSqlConnection(Viper::MySql::Connection(
-          address.GetHost(), address.GetPort(), username, password, schema));
+    : m_reader_pool(std::thread::hardware_concurrency(), [=] {
+        auto connection = make_sql_connection(Viper::MySql::Connection(
+          address.get_host(), address.get_port(), username, password, schema));
         connection->open();
         return connection;
       }),
-      m_writerPool(std::thread::hardware_concurrency(), [=] {
-        auto connection = MakeSqlConnection(Viper::MySql::Connection(
-          address.GetHost(), address.GetPort(), username, password, schema));
+      m_writer_pool(std::thread::hardware_concurrency(), [=] {
+        auto connection = make_sql_connection(Viper::MySql::Connection(
+          address.get_host(), address.get_port(), username, password, schema));
         connection->open();
         return connection;
       }),
-      m_dataStore("entries", BuildValueRow(), BuildIndexRow(),
-        Ref(m_readerPool), Ref(m_writerPool)) {}
+      m_data_store("entries", build_value_row(), build_index_row(),
+        Ref(m_reader_pool), Ref(m_writer_pool)) {}
 
-  inline MySqlDataStore::~MySqlDataStore() {
-    Close();
+  inline MySqlProfileDataStore::~MySqlProfileDataStore() {
+    close();
   }
 
-  inline void MySqlDataStore::Clear() {
-    auto connection = m_writerPool.Acquire();
+  inline void MySqlProfileDataStore::clear() {
+    auto connection = m_writer_pool.acquire();
     connection->execute(Viper::truncate("entries"));
   }
 
-  inline std::vector<SequencedEntry> MySqlDataStore::LoadEntries(
+  inline std::vector<SequencedEntry> MySqlProfileDataStore::load_entries(
       const EntryQuery& query) {
-    return m_dataStore.Load(query);
+    return m_data_store.load(query);
   }
 
-  inline void MySqlDataStore::Store(const SequencedIndexedEntry& entry) {
-    return m_dataStore.Store(entry);
+  inline void MySqlProfileDataStore::store(
+      const SequencedIndexedEntry& entry) {
+    return m_data_store.store(entry);
   }
 
-  inline void MySqlDataStore::Store(
+  inline void MySqlProfileDataStore::store(
       const std::vector<SequencedIndexedEntry>& entries) {
-    return m_dataStore.Store(entries);
+    return m_data_store.store(entries);
   }
 
-  inline void MySqlDataStore::Close() {
-    if(m_openState.SetClosing()) {
+  inline void MySqlProfileDataStore::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_writerPool.Close();
-    m_readerPool.Close();
-    m_openState.Close();
+    m_writer_pool.close();
+    m_reader_pool.close();
+    m_open_state.close();
   }
 
-  inline Viper::Row<Entry> MySqlDataStore::BuildValueRow() {
+  inline Viper::Row<Entry> MySqlProfileDataStore::build_value_row() {
     return Viper::Row<Entry>().
-      add_column("item_a", &Entry::m_itemA).
-      add_column("item_b", &Entry::m_itemB).
-      add_column("item_c", &Entry::m_itemC).
-      add_column("item_d", Viper::varchar(100), &Entry::m_itemD);
+      add_column("item_a", &Entry::m_item_a).
+      add_column("item_b", &Entry::m_item_b).
+      add_column("item_c", &Entry::m_item_c).
+      add_column("item_d", Viper::varchar(100), &Entry::m_item_d);
   }
 
-  inline Viper::Row<std::string> MySqlDataStore::BuildIndexRow() {
-    return Viper::Row<std::string>().add_column("name",
-      Viper::VarCharDataType(16));
+  inline Viper::Row<std::string> MySqlProfileDataStore::build_index_row() {
+    return Viper::Row<std::string>().add_column(
+      "name", Viper::VarCharDataType(16));
   }
 }
 

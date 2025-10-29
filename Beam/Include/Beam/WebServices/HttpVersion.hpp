@@ -1,29 +1,29 @@
 #ifndef BEAM_HTTP_VERSION_HPP
 #define BEAM_HTTP_VERSION_HPP
-#include "Beam/WebServices/WebServices.hpp"
+#include <ostream>
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /** Stores the HTTP version being used. */
   class HttpVersion {
     public:
 
       /** Returns HTTP version 1.0 */
-      static constexpr HttpVersion Version1_0() noexcept;
+      static constexpr HttpVersion version_1_0() noexcept;
 
       /** Returns HTTP version 1.1 */
-      static constexpr HttpVersion Version1_1() noexcept;
+      static constexpr HttpVersion version_1_1() noexcept;
 
       /** Constructs a default HttpVersion. */
       constexpr HttpVersion() noexcept;
 
       /** Returns the major version number. */
-      constexpr int GetMajor() const noexcept;
+      constexpr int get_major() const noexcept;
 
       /** Returns the minor version number. */
-      constexpr int GetMinor() const noexcept;
+      constexpr int get_minor() const noexcept;
 
-      bool operator ==(const HttpVersion& version) const = default;
+      bool operator ==(const HttpVersion&) const = default;
 
     private:
       int m_major;
@@ -34,33 +34,32 @@ namespace Beam::WebServices {
 
   inline std::ostream& operator <<(
       std::ostream& sink, const HttpVersion& version) {
-    if(version == HttpVersion::Version1_1()) {
+    if(version == HttpVersion::version_1_1()) {
       sink << "HTTP/1.1";
-    } else if(version == HttpVersion::Version1_0()) {
+    } else if(version == HttpVersion::version_1_0()) {
       sink << "HTTP/1.0";
     } else {
-      sink << "HTTP/" << version.GetMajor() << "." << version.GetMinor();
+      sink << "HTTP/" << version.get_major() << '.' << version.get_minor();
     }
     return sink;
   }
 
-  constexpr HttpVersion HttpVersion::Version1_0() noexcept {
+  constexpr HttpVersion HttpVersion::version_1_0() noexcept {
     return HttpVersion(1, 0);
   }
 
-  constexpr HttpVersion HttpVersion::Version1_1() noexcept {
+  constexpr HttpVersion HttpVersion::version_1_1() noexcept {
     return HttpVersion(1, 1);
   }
 
   constexpr HttpVersion::HttpVersion() noexcept
-    : m_major(1),
-      m_minor(1) {}
+    : HttpVersion(1, 1) {}
 
-  constexpr int HttpVersion::GetMajor() const noexcept {
+  constexpr int HttpVersion::get_major() const noexcept {
     return m_major;
   }
 
-  constexpr int HttpVersion::GetMinor() const noexcept {
+  constexpr int HttpVersion::get_minor() const noexcept {
     return m_minor;
   }
 

@@ -2,17 +2,15 @@
 #define BEAM_TEST_TIMER_HPP
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
-#include "Beam/TimeServiceTests/TimeServiceTests.hpp"
 
-namespace Beam {
-namespace TimeService {
-namespace Tests {
+namespace Beam::Tests {
 
   /** The type of Timer used by the TestEnvironment. */
   class TestTimer {
     public:
+      using Result = Timer::Result;
 
       /**
        * Constructs a TestTimer.
@@ -24,23 +22,20 @@ namespace Tests {
 
       ~TestTimer();
 
-      void Start();
-
-      void Cancel();
-
-      void Wait();
-
-      const Publisher<Threading::Timer::Result>& GetPublisher() const;
+      void start();
+      void cancel();
+      void wait();
+      const Publisher<Timer::Result>& get_publisher() const;
 
     private:
       friend class TimeServiceTestEnvironment;
-      friend void Fail(TestTimer& timer);
-      friend void Trigger(TestTimer& timer);
+      friend void fail(TestTimer& timer);
+      friend void trigger(TestTimer& timer);
       mutable boost::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
       TimeServiceTestEnvironment* m_environment;
-      bool m_hasStarted;
-      Threading::TriggerTimer m_timer;
+      bool m_has_started;
+      TriggerTimer m_timer;
 
       TestTimer(const TestTimer&) = delete;
       TestTimer& operator =(const TestTimer&) = delete;
@@ -49,78 +44,71 @@ namespace Tests {
   inline TestTimer::TestTimer(boost::posix_time::time_duration interval,
     Ref<TimeServiceTestEnvironment> environment)
     : m_interval(interval),
-      m_environment(environment.Get()),
-      m_hasStarted(false) {}
+      m_environment(environment.get()),
+      m_has_started(false) {}
 
   inline TestTimer::~TestTimer() {
-    Cancel();
+    cancel();
   }
 
-  inline void TestTimer::Start() {
+  inline void TestTimer::start() {
     {
       auto lock = boost::lock_guard(m_mutex);
-      if(m_hasStarted) {
+      if(m_has_started) {
         return;
       }
-      m_hasStarted = true;
+      m_has_started = true;
     }
-    m_timer.Start();
-    m_environment->Add(this);
+    m_timer.start();
+    m_environment->add(this);
   }
 
-  inline void TestTimer::Cancel() {
+  inline void TestTimer::cancel() {
     {
       auto lock = boost::lock_guard(m_mutex);
-      if(!m_hasStarted) {
+      if(!m_has_started) {
         return;
       }
-      m_hasStarted = false;
+      m_has_started = false;
     }
-    m_environment->Remove(this);
-    m_timer.Cancel();
+    m_environment->remove(this);
+    m_timer.cancel();
   }
 
-  inline void TestTimer::Wait() {
-    m_timer.Wait();
+  inline void TestTimer::wait() {
+    m_timer.wait();
   }
 
-  inline const Publisher<Threading::Timer::Result>&
-      TestTimer::GetPublisher() const {
-    return m_timer.GetPublisher();
+  inline const Publisher<Timer::Result>& TestTimer::get_publisher() const {
+    return m_timer.get_publisher();
   }
 
-  inline void TimeServiceTestEnvironment::Add(TestTimer* timer) {
+  inline void TimeServiceTestEnvironment::add(TestTimer* timer) {
     if(timer->m_interval <= boost::posix_time::seconds(0)) {
-      timer->m_timer.Trigger();
+      timer->m_timer.trigger();
       return;
     }
-    auto entry = TimerEntry{timer, timer->m_interval};
+    auto entry = TimerEntry(timer, timer->m_interval);
     auto lock = boost::lock_guard(m_mutex);
-    m_timers.PushBack(entry);
-    m_nextTrigger = std::min(m_nextTrigger, timer->m_interval);
+    m_timers.push_back(entry);
+    m_next_trigger = std::min(m_next_trigger, timer->m_interval);
   }
 
-  inline void Fail(TestTimer& timer) {
+  inline void fail(TestTimer& timer) {
     {
       auto lock = boost::lock_guard(timer.m_mutex);
-      timer.m_hasStarted = false;
+      timer.m_has_started = false;
     }
-    timer.m_timer.Fail();
+    timer.m_timer.fail();
   }
 
-  inline void Trigger(TestTimer& timer) {
+  inline void trigger(TestTimer& timer) {
     {
       auto lock = boost::lock_guard(timer.m_mutex);
-      timer.m_hasStarted = false;
+      timer.m_has_started = false;
     }
-    timer.m_timer.Trigger();
+    timer.m_timer.trigger();
   }
-}
-}
-
-  template<>
-  struct ImplementsConcept<TimeService::Tests::TestTimer, Threading::Timer> :
-    std::true_type {};
 }
 
 #endif

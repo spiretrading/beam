@@ -17,7 +17,6 @@ CALL:build Applications\DataStoreProfiler %*
 CALL:build Applications\HttpFileServer %*
 CALL:build Applications\QueryStressTest %*
 CALL:build Applications\QueueStressTest %*
-CALL:build Applications\RegistryServer %*
 CALL:build Applications\Scratch %*
 CALL:build Applications\ServiceLocator %*
 CALL:build Applications\ServiceProtocolProfiler %*

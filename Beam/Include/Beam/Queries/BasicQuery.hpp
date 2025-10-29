@@ -4,12 +4,11 @@
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/InterruptableQuery.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Composes various standard query types into a query with common and basic
@@ -19,13 +18,12 @@ namespace Beam::Queries {
   class BasicQuery : public IndexedQuery<T>, public RangedQuery,
       public SnapshotLimitedQuery, public InterruptableQuery,
       public FilteredQuery {
-    public:
     protected:
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
   };
 
   /**
@@ -33,12 +31,12 @@ namespace Beam::Queries {
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> MakeCurrentQuery(Index index) {
+  BasicQuery<Index> make_current_query(Index index) {
     auto query = BasicQuery<Index>();
-    query.SetIndex(std::move(index));
-    query.SetRange(Range::Total());
-    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
-    query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
+    query.set_index(std::move(index));
+    query.set_range(Range::TOTAL);
+    query.set_snapshot_limit(SnapshotLimit::Type::TAIL, 1);
+    query.set_interruption_policy(InterruptionPolicy::IGNORE_CONTINUE);
     return query;
   }
 
@@ -47,11 +45,11 @@ namespace Beam::Queries {
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> MakeLatestQuery(Index index) {
+  BasicQuery<Index> make_latest_query(Index index) {
     auto query = BasicQuery<Index>();
-    query.SetIndex(std::move(index));
-    query.SetRange(Range::Historical());
-    query.SetSnapshotLimit(SnapshotLimit::Type::TAIL, 1);
+    query.set_index(std::move(index));
+    query.set_range(Range::HISTORICAL);
+    query.set_snapshot_limit(SnapshotLimit::Type::TAIL, 1);
     return query;
   }
 
@@ -60,30 +58,29 @@ namespace Beam::Queries {
    * @param index The index to query.
    */
   template<typename Index>
-  BasicQuery<Index> MakeRealTimeQuery(Index index) {
+  BasicQuery<Index> make_real_time_query(Index index) {
     auto query = BasicQuery<Index>();
-    query.SetIndex(std::move(index));
-    query.SetRange(Range::RealTime());
-    query.SetInterruptionPolicy(InterruptionPolicy::IGNORE_CONTINUE);
+    query.set_index(std::move(index));
+    query.set_range(Range::REAL_TIME);
+    query.set_interruption_policy(InterruptionPolicy::IGNORE_CONTINUE);
     return query;
   }
 
   template<typename T>
   std::ostream& operator <<(std::ostream& out, const BasicQuery<T>& query) {
-    return out << "(" << query.GetIndex() << " " << query.GetRange() << " " <<
-      query.GetSnapshotLimit() << " " << query.GetInterruptionPolicy() << " " <<
-      query.GetFilter() << ")";
+    return out << '(' << query.get_index() << ' ' << query.get_range() << ' ' <<
+      query.get_snapshot_limit() << ' ' << query.get_interruption_policy() <<
+      ' ' << query.get_filter() << ')';
   }
 
   template<typename T>
-  template<typename Shuttler>
-  void BasicQuery<T>::Shuttle(Shuttler& shuttle, unsigned int version) {
-    Beam::Serialization::Shuttle<IndexedQuery<T>>()(shuttle, *this, version);
-    Beam::Serialization::Shuttle<RangedQuery>()(shuttle, *this, version);
-    Beam::Serialization::Shuttle<SnapshotLimitedQuery>()(shuttle, *this,
-      version);
-    Beam::Serialization::Shuttle<InterruptableQuery>()(shuttle, *this, version);
-    Beam::Serialization::Shuttle<FilteredQuery>()(shuttle, *this, version);
+  template<IsShuttle S>
+  void BasicQuery<T>::shuttle(S& shuttle, unsigned int version) {
+    Beam::Shuttle<IndexedQuery<T>>()(shuttle, *this, version);
+    Beam::Shuttle<RangedQuery>()(shuttle, *this, version);
+    Beam::Shuttle<SnapshotLimitedQuery>()(shuttle, *this, version);
+    Beam::Shuttle<InterruptableQuery>()(shuttle, *this, version);
+    Beam::Shuttle<FilteredQuery>()(shuttle, *this, version);
   }
 }
 

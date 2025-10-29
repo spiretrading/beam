@@ -1,21 +1,17 @@
 #ifndef BEAM_BUFFER_READER_HPP
 #define BEAM_BUFFER_READER_HPP
-#include <cstring>
-#include <type_traits>
+#include <algorithm>
 #include <boost/throw_exception.hpp>
-#include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/Reader.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
-namespace IO {
 
   /**
    * Reads data from a Buffer.
-   * @param <B> The type of Buffer to read from.
+   * @tparam B The type of Buffer to read from.
    */
-  template<typename B>
+  template<IsBuffer B>
   class BufferReader {
     public:
       using Buffer = B;
@@ -24,147 +20,84 @@ namespace IO {
        * Constructs a BufferReader from a Buffer.
        * @param source The Buffer to read from.
        */
-      template<typename BF>
-      BufferReader(BF&& source);
+      explicit BufferReader(Buffer source);
 
-      /**
-       * Copies a BufferReader.
-       * @param reader The BufferReader to copy.
-       */
       BufferReader(const BufferReader& reader);
-
-      /**
-       * Acquires ownership of a BufferReader.
-       * @param reader The Reader to acquire.
-       */
       BufferReader(BufferReader&& reader);
 
-      bool IsDataAvailable() const;
-
-      template<typename R>
-      std::size_t Read(Out<R> destination);
-
-      std::size_t Read(char* destination, std::size_t size);
-
-      template<typename R>
-      std::size_t Read(Out<R> destination, std::size_t size);
-
+      bool poll() const;
+      template<IsBuffer R>
+      std::size_t read(Out<R> destination, std::size_t size = -1);
       BufferReader& operator =(const BufferReader& reader);
-
       BufferReader& operator =(BufferReader&& reader);
 
     private:
       Buffer m_source;
-      const char* m_readIterator;
-      std::size_t m_readRemaining;
+      const char* m_cursor;
+      std::size_t m_remaining_size;
   };
 
-  template<typename BF>
-  BufferReader(BF&& source) -> BufferReader<std::decay_t<BF>>;
+  template<IsBuffer B>
+  BufferReader<B>::BufferReader(Buffer source)
+    : m_source(std::move(source)),
+      m_cursor(m_source.get_data()),
+      m_remaining_size(m_source.get_size()) {}
 
-  template<typename B>
-  template<typename BF>
-  BufferReader<B>::BufferReader(BF&& source)
-    : m_source(std::forward<BF>(source)),
-      m_readIterator(m_source.GetData()),
-      m_readRemaining(m_source.GetSize()) {}
-
-  template<typename B>
+  template<IsBuffer B>
   BufferReader<B>::BufferReader(const BufferReader& reader)
     : m_source(reader.m_source),
-      m_readIterator(m_source.GetData() +
-        (m_source.GetSize() - reader.m_readRemaining)),
-      m_readRemaining(reader.m_readRemaining) {}
+      m_cursor(
+        m_source.get_data() + (m_source.get_size() - reader.m_remaining_size)),
+      m_remaining_size(reader.m_remaining_size) {}
 
-  template<typename B>
+  template<IsBuffer B>
   BufferReader<B>::BufferReader(BufferReader&& reader)
       : m_source(std::move(reader.m_source)),
-        m_readIterator(m_source.GetData() +
-          (m_source.GetSize() - reader.m_readRemaining)),
-        m_readRemaining(reader.m_readRemaining) {
-    reader.m_readIterator = nullptr;
-    reader.m_readRemaining = 0;
+        m_cursor(m_source.get_data() +
+          (m_source.get_size() - reader.m_remaining_size)),
+        m_remaining_size(reader.m_remaining_size) {
+    reader.m_cursor = nullptr;
+    reader.m_remaining_size = 0;
   }
 
-  template<typename B>
-  bool BufferReader<B>::IsDataAvailable() const {
-    return m_readRemaining > 0;
+  template<IsBuffer B>
+  bool BufferReader<B>::poll() const {
+    return m_remaining_size != 0;
   }
 
-  template<typename B>
-  template<typename R>
-  std::size_t BufferReader<B>::Read(Out<R> destination) {
-    if(m_readRemaining == 0) {
-      BOOST_THROW_EXCEPTION(EndOfFileException());
+  template<IsBuffer B>
+  template<IsBuffer R>
+  std::size_t BufferReader<B>::read(Out<R> destination, std::size_t size) {
+    if(m_remaining_size == 0 || !m_cursor) {
+      boost::throw_with_location(EndOfFileException());
     }
-    try {
-      destination->Append(m_readIterator, m_readRemaining);
-    } catch(const std::exception&) {
-      std::throw_with_nested(IOException());
-    }
-    auto result = m_readRemaining;
-    m_readRemaining = 0;
-    return result;
+    auto read_size =
+      append_up_to(*destination, m_cursor, std::min(size, m_remaining_size));
+    m_cursor += read_size;
+    m_remaining_size -= read_size;
+    return read_size;
   }
 
-  template<typename B>
-  std::size_t BufferReader<B>::Read(char* destination, std::size_t size) {
-    if(m_readRemaining == 0) {
-      BOOST_THROW_EXCEPTION(EndOfFileException());
-    }
-    auto result = std::min(size, m_readRemaining);
-    std::memcpy(destination, m_readIterator, result);
-    m_readRemaining -= result;
-    m_readIterator += result;
-    return result;
-  }
-
-  template<typename B>
-  template<typename R>
-  std::size_t BufferReader<B>::Read(Out<R> destination, std::size_t size) {
-    if(m_readRemaining == 0) {
-      BOOST_THROW_EXCEPTION(EndOfFileException());
-    }
-    auto result = std::min(m_readRemaining, size);
-    try {
-      destination->Append(m_readIterator, result);
-    } catch(const std::exception&) {
-      std::throw_with_nested(IOException());
-    }
-    m_readIterator += result;
-    m_readRemaining -= result;
-    return result;
-  }
-
-  template<typename B>
+  template<IsBuffer B>
   BufferReader<B>& BufferReader<B>::operator =(const BufferReader& reader) {
-    if(this == &reader) {
-      return *this;
-    }
     m_source = reader.m_source;
-    m_readIterator = m_source.GetData() +
-      (m_source.GetSize() - reader.m_readRemaining);
-    m_readRemaining = reader.m_readRemaining;
+    m_remaining_size = reader.m_remaining_size;
+    m_cursor = m_source.get_data() + (m_source.get_size() - m_remaining_size);
     return *this;
   }
 
-  template<typename B>
+  template<IsBuffer B>
   BufferReader<B>& BufferReader<B>::operator =(BufferReader&& reader) {
     if(this == &reader) {
       return *this;
     }
     m_source = std::move(reader.m_source);
-    m_readIterator = m_source.GetData() +
-      (m_source.GetSize() - reader.m_readRemaining);
-    m_readRemaining = reader.m_readRemaining;
-    reader.m_readIterator = nullptr;
-    reader.m_readRemaining = 0;
+    m_remaining_size = reader.m_remaining_size;
+    m_cursor = m_source.get_data() + (m_source.get_size() - m_remaining_size);
+    reader.m_cursor = nullptr;
+    reader.m_remaining_size = 0;
     return *this;
   }
-}
-
-  template<typename B>
-  struct ImplementsConcept<IO::BufferReader<B>, IO::Reader> : std::true_type {};
 }
 
 #endif

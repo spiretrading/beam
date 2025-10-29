@@ -1,15 +1,14 @@
 #ifndef BEAM_ASYNC_HPP
 #define BEAM_ASYNC_HPP
-#include <type_traits>
+#include <exception>
+#include <variant>
 #include <boost/call_traits.hpp>
-#include <boost/optional/optional.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
-#include "Beam/Utilities/StorageType.hpp"
 
-namespace Beam::Routines {
+namespace Beam {
+  template<typename> class Eval;
 
   /** Stores details common to all the Async templates. */
   class BaseAsync {
@@ -29,6 +28,7 @@ namespace Beam::Routines {
       };
 
     protected:
+      inline static const auto NONE_EXCEPTION = std::exception_ptr();
 
       /** Constructs an empty BaseAsync. */
       BaseAsync() = default;
@@ -40,7 +40,7 @@ namespace Beam::Routines {
 
   /**
    * Stores the result of an asynchronous operation.
-   * @param <T> The type of the asynchronous result.
+   * @tparam T The type of the asynchronous result.
    */
   template<typename T>
   class Async final : public BaseAsync {
@@ -50,33 +50,59 @@ namespace Beam::Routines {
       using Type = T;
 
       /** Constructs an Async. */
-      Async();
+      Async() noexcept;
 
       /** Returns an object that can be used to evaluate this Async. */
-      Eval<Type> GetEval();
+      Eval<Type> get_eval();
 
       /** Returns the result of the operation. */
-      typename boost::call_traits<typename StorageType<Type>::type>::reference
-        Get();
+      typename boost::call_traits<Type>::reference get();
 
       /** Returns the exception. */
-      const std::exception_ptr& GetException() const;
+      const std::exception_ptr& get_exception() const;
 
       /** Returns the state of this Async. */
-      State GetState() const;
+      State get_state() const;
 
       /** Resets this Async so that it can be reused. */
-      void Reset();
+      void reset();
 
     private:
       friend class Eval<Type>;
       mutable boost::mutex m_mutex;
-      State m_state;
-      SuspendedRoutineQueue m_suspendedRoutines;
-      boost::optional<typename StorageType<Type>::type> m_result;
-      std::exception_ptr m_exception;
+      SuspendedRoutineQueue m_suspended_routines;
+      std::variant<std::monostate, Type, std::exception_ptr> m_result;
 
-      void SetState(State state);
+      template<typename R>
+      void set(R&& result);
+      template<typename... A>
+      void emplace(A&&... args);
+      void set_exception(const std::exception_ptr& e);
+  };
+
+  template<>
+  class Async<void> final : public BaseAsync {
+    public:
+      using Type = void;
+
+      Async() noexcept;
+
+      Eval<Type> get_eval();
+      void get();
+      const std::exception_ptr& get_exception() const;
+      State get_state() const;
+      void reset();
+
+    private:
+      friend class Eval<Type>;
+      mutable boost::mutex m_mutex;
+      SuspendedRoutineQueue m_suspended_routines;
+      std::variant<
+        std::monostate, std::monostate, std::exception_ptr> m_result;
+
+      void set();
+      void emplace();
+      void set_exception(const std::exception_ptr& e);
   };
 
   /** Base class for the Eval template. */
@@ -89,13 +115,13 @@ namespace Beam::Routines {
        * @param e The exception to set.
        */
       template<typename E>
-      void SetException(const E& e);
+      void set_exception(const E& e);
 
       /**
        * Sets an exception to be returned.
        * @param e The exception to set.
        */
-      virtual void SetException(const std::exception_ptr& e) = 0;
+      virtual void set_exception(const std::exception_ptr& e) = 0;
 
     protected:
 
@@ -109,7 +135,7 @@ namespace Beam::Routines {
 
   /**
    * Evaluates the result of an asynchronous operation.
-   * @param <T> The type of the asynchronous operation.
+   * @tparam T The type of the asynchronous operation.
    */
   template<typename T>
   class Eval final : public BaseEval {
@@ -119,42 +145,52 @@ namespace Beam::Routines {
       using Type = T;
 
       /** Constructs an Eval whose result is discarded. */
-      Eval();
+      Eval() noexcept;
 
-      /**
-       * Acquires an Eval.
-       * @param eval The Eval to acquire.
-       */
-      Eval(Eval&& eval);
-
-      /**
-       * Acquires an Eval.
-       * @param rhs The Eval to acquire.
-       */
-      Eval& operator =(Eval&& rhs);
+      Eval(Eval&& eval) noexcept;
 
       /**
        * Returns <code>true</code> iff no Async is associated with this Eval.
        */
-      bool IsEmpty() const;
+      bool is_empty() const;
 
       /**
        * Sets the result of this Eval.
        * @param result The result of this Eval.
        */
       template<typename R>
-      void SetResult(R&& result);
-
-      /** Sets the result of this Eval. */
-      void SetResult();
+      void set(R&& result);
 
       /** Emplaces the result of this Eval. */
       template<typename... R>
-      void Emplace(R&&... result);
+      void emplace(R&&... result);
 
-      virtual void SetException(const std::exception_ptr& e);
+      void set_exception(const std::exception_ptr& e) override;
+      Eval& operator =(Eval&& rhs) noexcept;
+      using BaseEval::set_exception;
 
-      using BaseEval::SetException;
+    private:
+      friend class Async<Type>;
+      Async<Type>* m_async;
+
+      Eval(Ref<Async<Type>> async);
+  };
+
+  template<>
+  class Eval<void> final : public BaseEval {
+    public:
+      using Type = void;
+
+      Eval() noexcept;
+      Eval(Eval&& eval) noexcept;
+
+      bool is_empty() const;
+      void set();
+      void emplace();
+      void set_exception(const std::exception_ptr& e) override;
+      Eval& operator =(Eval&& rhs) noexcept;
+      using BaseEval::set_exception;
+
     private:
       friend class Async<Type>;
       Async<Type>* m_async;
@@ -162,5 +198,7 @@ namespace Beam::Routines {
       Eval(Ref<Async<Type>> async);
   };
 }
+
+#include "Beam/Routines/Routine.hpp"
 
 #endif

@@ -3,20 +3,14 @@
 #include "Beam/IO/Connection.hpp"
 
 namespace Beam {
-namespace IO {
 
   /** A Connection used for testing purposes. */
   class NullConnection {
     public:
-      void Close();
+      void close();
   };
 
-  inline void NullConnection::Close() {}
-}
-
-  template<>
-  struct ImplementsConcept<IO::NullConnection, IO::Connection> :
-    std::true_type {};
+  inline void NullConnection::close() {}
 }
 
 #endif

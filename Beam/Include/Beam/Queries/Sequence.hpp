@@ -6,11 +6,11 @@
 #include <limits>
 #include <ostream>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include "Beam/Queries/Queries.hpp"
+#include <boost/throw_exception.hpp>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Used to order sequential data. */
   class Sequence {
@@ -20,16 +20,16 @@ namespace Beam::Queries {
       using Ordinal = std::uint64_t;
 
       /** Returns the first possible Sequence. */
-      static Sequence First() noexcept;
+      static const Sequence FIRST;
 
       /** Returns the last possible Sequence. */
-      static Sequence Last() noexcept;
+      static const Sequence LAST;
 
       /**
-       * Returns a Sequence that can be used to represent the 'Present' in a
+       * Returns a Sequence that can be used to represent the 'present' in a
        * query.
        */
-      static Sequence Present() noexcept;
+      static const Sequence PRESENT;
 
       /** Constructs a Sequence representing the first element. */
       Sequence() noexcept;
@@ -41,7 +41,7 @@ namespace Beam::Queries {
       explicit Sequence(Ordinal ordinal) noexcept;
 
       /** Returns the ordinal. */
-      Ordinal GetOrdinal() const noexcept;
+      Ordinal get_ordinal() const noexcept;
 
       auto operator <=>(const Sequence& sequence) const = default;
 
@@ -54,11 +54,11 @@ namespace Beam::Queries {
    * @param sequence The Sequence to increment.
    * @return The Sequence that immediately follows <i>sequence</i>.
    */
-  inline Sequence Increment(const Sequence& sequence) noexcept {
-    if(sequence == Sequence::Last()) {
+  inline Sequence increment(Sequence sequence) noexcept {
+    if(sequence == Sequence::LAST) {
       return sequence;
     }
-    return Sequence(sequence.GetOrdinal() + 1);
+    return Sequence(sequence.get_ordinal() + 1);
   }
 
   /**
@@ -66,7 +66,7 @@ namespace Beam::Queries {
    * @param sequence The Sequence to increment.
    */
   inline Sequence& operator ++(Sequence& sequence) noexcept {
-    sequence = Increment(sequence);
+    sequence = increment(sequence);
     return sequence;
   }
 
@@ -75,9 +75,9 @@ namespace Beam::Queries {
    * @param sequence The Sequence to increment.
    */
   inline Sequence operator ++(Sequence& sequence, int) noexcept {
-    auto initialValue = sequence;
-    sequence = Increment(sequence);
-    return initialValue;
+    auto initial = sequence;
+    sequence = increment(sequence);
+    return initial;
   }
 
   /**
@@ -85,11 +85,11 @@ namespace Beam::Queries {
    * @param sequence The Sequence to decrement.
    * @return The Sequence that immediately precedes <i>sequence</i>.
    */
-  inline Sequence Decrement(const Sequence& sequence) noexcept {
-    if(sequence == Sequence::First()) {
+  inline Sequence decrement(Sequence sequence) noexcept {
+    if(sequence == Sequence::FIRST) {
       return sequence;
     }
-    return Sequence(sequence.GetOrdinal() - 1);
+    return Sequence(sequence.get_ordinal() - 1);
   }
 
   /**
@@ -97,31 +97,28 @@ namespace Beam::Queries {
    * @param timestamp The timestamp to encode.
    * @return The Sequence number with the <i>timestamp</i> encoded into it.
    */
-  inline Sequence EncodeTimestamp(boost::posix_time::ptime timestamp) {
+  inline Sequence to_sequence(boost::posix_time::ptime timestamp) {
     const auto YEAR_SIZE = 13;
     const auto MONTH_SIZE = 4;
     const auto DAY_SIZE = 6;
     const auto ENCODING_SIZE = YEAR_SIZE + MONTH_SIZE + DAY_SIZE;
     if(timestamp == boost::posix_time::neg_infin) {
-      return Sequence::First();
+      return Sequence::FIRST;
     } else if(timestamp == boost::posix_time::pos_infin) {
-      return Sequence::Last();
+      return Sequence::LAST;
     } else if(timestamp.is_not_a_date_time()) {
       return Sequence(0);
     } else if(timestamp.is_special()) {
-      BOOST_THROW_EXCEPTION(std::out_of_range("Invalid timestamp."));
+      boost::throw_with_location(std::out_of_range("Invalid timestamp."));
     } else {
-      auto yearComponent =
-        static_cast<Sequence::Ordinal>(timestamp.date().year()) <<
+      auto year = static_cast<Sequence::Ordinal>(timestamp.date().year()) <<
         (CHAR_BIT * sizeof(Sequence::Ordinal) - YEAR_SIZE);
-      auto monthComponent =
-        static_cast<Sequence::Ordinal>(timestamp.date().month()) <<
+      auto month = static_cast<Sequence::Ordinal>(timestamp.date().month()) <<
         (CHAR_BIT * sizeof(Sequence::Ordinal) - (YEAR_SIZE + MONTH_SIZE));
-      auto dayComponent =
-        static_cast<Sequence::Ordinal>(timestamp.date().day()) <<
+      auto day = static_cast<Sequence::Ordinal>(timestamp.date().day()) <<
         (CHAR_BIT * sizeof(Sequence::Ordinal) -
         (YEAR_SIZE + MONTH_SIZE + DAY_SIZE));
-      return Sequence(yearComponent + monthComponent + dayComponent);
+      return Sequence(year + month + day);
     }
   }
 
@@ -130,17 +127,17 @@ namespace Beam::Queries {
    * @param timestamp The timestamp to encode.
    * @return The Sequence number with the <i>timestamp</i> encoded into it.
    */
-  inline Sequence EncodeTimestamp(boost::posix_time::ptime timestamp,
-      Sequence sequence) {
+  inline Sequence encode(
+      boost::posix_time::ptime timestamp, Sequence sequence) {
     if(timestamp == boost::posix_time::neg_infin) {
-      return Sequence::First();
+      return Sequence::FIRST;
     } else if(timestamp == boost::posix_time::pos_infin) {
-      return Sequence::Last();
+      return Sequence::LAST;
     } else if(timestamp.is_not_a_date_time()) {
       return sequence;
     } else {
       return Sequence(
-        EncodeTimestamp(timestamp).GetOrdinal() + sequence.GetOrdinal());
+        to_sequence(timestamp).get_ordinal() + sequence.get_ordinal());
     }
   }
 
@@ -149,31 +146,31 @@ namespace Beam::Queries {
    * @param sequence The Sequence to decode.
    * @return The timestamp encoded within the <i>sequence</i>
    */
-  inline boost::posix_time::ptime DecodeTimestamp(Sequence sequence) {
+  inline boost::posix_time::ptime decode_timestamp(Sequence sequence) {
     const auto YEAR_SIZE = 13;
     const auto MONTH_SIZE = 4;
     const auto DAY_SIZE = 6;
     const auto ENCODING_SIZE = YEAR_SIZE + MONTH_SIZE + DAY_SIZE;
-    if(sequence == Sequence::First()) {
+    if(sequence == Sequence::FIRST) {
       return boost::posix_time::neg_infin;
-    } else if(sequence == Sequence::Last()) {
+    } else if(sequence == Sequence::LAST) {
       return boost::posix_time::pos_infin;
-    } else if(sequence == Sequence::Present()) {
+    } else if(sequence == Sequence::PRESENT) {
       return boost::posix_time::not_a_date_time;
     } else {
-      auto dateEncoding = static_cast<std::uint32_t>(
+      auto date = static_cast<std::uint32_t>(
         ((static_cast<Sequence::Ordinal>(-1) <<
-        (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE)) &
-        sequence.GetOrdinal()) >>
-        (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE));
+          (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE)) &
+            sequence.get_ordinal()) >>
+              (CHAR_BIT * sizeof(Sequence::Ordinal) - ENCODING_SIZE));
       auto day = static_cast<unsigned short>(
-        ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & dateEncoding);
-      dateEncoding >>= DAY_SIZE;
+        ~(static_cast<std::uint32_t>(-1) << DAY_SIZE) & date);
+      date >>= DAY_SIZE;
       auto month = static_cast<unsigned short>(
-        ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) & dateEncoding);
-      dateEncoding >>= MONTH_SIZE;
+        ~(static_cast<std::uint32_t>(-1) << MONTH_SIZE) & date);
+      date >>= MONTH_SIZE;
       auto year = static_cast<unsigned short>(
-        ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & dateEncoding);
+        ~(static_cast<std::uint32_t>(-1) << YEAR_SIZE) & date);
       if(year == 0) {
         return boost::posix_time::not_a_date_time;
       }
@@ -183,24 +180,19 @@ namespace Beam::Queries {
   }
 
   inline std::ostream& operator <<(std::ostream& out, Sequence sequence) {
-    return out << sequence.GetOrdinal();
+    return out << sequence.get_ordinal();
   }
 
   inline std::size_t hash_value(Sequence sequence) noexcept {
-    return static_cast<std::size_t>(sequence.GetOrdinal());
+    return static_cast<std::size_t>(sequence.get_ordinal());
   }
 
-  inline Sequence Sequence::First() noexcept {
-    return Sequence(0);
-  }
+  inline const Sequence Sequence::FIRST = Sequence(0);
 
-  inline Sequence Sequence::Last() noexcept {
-    return Sequence(std::numeric_limits<Ordinal>::max());
-  }
+  inline const Sequence Sequence::LAST =
+    Sequence(std::numeric_limits<Ordinal>::max());
 
-  inline Sequence Sequence::Present() noexcept {
-    return Decrement(Last());
-  }
+  inline const Sequence Sequence::PRESENT = decrement(LAST);
 
   inline Sequence::Sequence() noexcept
     : m_ordinal(0) {}
@@ -208,38 +200,35 @@ namespace Beam::Queries {
   inline Sequence::Sequence(Ordinal ordinal) noexcept
     : m_ordinal(ordinal) {}
 
-  inline Sequence::Ordinal Sequence::GetOrdinal() const noexcept {
+  inline Sequence::Ordinal Sequence::get_ordinal() const noexcept {
     return m_ordinal;
   }
-}
 
-namespace Beam::Serialization {
   template<>
-  struct Send<Queries::Sequence> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const Queries::Sequence& value,
-        unsigned int version) {
-      shuttle.Shuttle("ordinal", value.GetOrdinal());
+  constexpr auto is_structure<Sequence> = false;
+
+  template<>
+  struct Send<Sequence> {
+    template<IsSender S>
+    void operator ()(S& sender, const char* name, const Sequence& value) const {
+      sender.send(name, value.get_ordinal());
     }
   };
 
   template<>
-  struct Receive<Queries::Sequence> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Queries::Sequence& value,
-        unsigned int version) {
-      auto ordinal = Queries::Sequence::Ordinal();
-      shuttle.Shuttle("ordinal", ordinal);
-      value = Queries::Sequence(ordinal);
+  struct Receive<Sequence> {
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name, Sequence& value) const {
+      value = Sequence(receive<Sequence::Ordinal>(receiver, name));
     }
   };
 }
 
 namespace std {
   template<>
-  struct hash<Beam::Queries::Sequence> {
-    std::size_t operator ()(Beam::Queries::Sequence value) const noexcept {
-      return Beam::Queries::hash_value(value);
+  struct hash<Beam::Sequence> {
+    std::size_t operator ()(Beam::Sequence value) const noexcept {
+      return Beam::hash_value(value);
     }
   };
 }

@@ -7,14 +7,15 @@
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
+#include "Beam/Services/MessageProtocol.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
+#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /** Stores the configuration needed to connect a ServiceLocatorClient. */
   struct ServiceLocatorClientConfig {
@@ -23,64 +24,16 @@ namespace Beam::ServiceLocator {
      * Creates a config by parsing a YAML node.
      * @param node The YAML node to parse.
      */
-    static ServiceLocatorClientConfig Parse(const YAML::Node& node);
+    static ServiceLocatorClientConfig parse(const YAML::Node& node);
 
     /** The address to connect to. */
-    Network::IpAddress m_address;
+    IpAddress m_address;
 
     /** The username to use. */
     std::string m_username;
 
     /** The password to login with. */
     std::string m_password;
-  };
-
-  /** Encapsulates a standard ServiceLocatorClient used in an application. */
-  class ApplicationServiceLocatorClient {
-    public:
-
-      /** The type used to build client sessions. */
-      using SessionBuilder = Services::ServiceProtocolClientBuilder<
-        Services::MessageProtocol<std::unique_ptr<Network::TcpSocketChannel>,
-          Serialization::BinarySender<IO::SharedBuffer>>, Threading::LiveTimer>;
-
-      /** Defines the standard ServiceLocatorClient used for applications. */
-      using Client = ServiceLocatorClient<SessionBuilder>;
-
-      /**
-       * Constructs an ApplicationServiceLocatorClient.
-       * @param username The session's username.
-       * @param password The session's password.
-       * @param address The IP address to connect to.
-       */
-      ApplicationServiceLocatorClient(std::string username,
-        std::string password, Network::IpAddress address);
-
-      /** Returns a reference to the Client. */
-      Client& operator *();
-
-      /** Returns a reference to the Client. */
-      const Client& operator *() const;
-
-      /** Returns a pointer to the Client. */
-      Client* operator ->();
-
-      /** Returns a pointer to the Client. */
-      const Client* operator ->() const;
-
-      /** Returns a pointer to the Client. */
-      Client* Get();
-
-      /** Returns a pointer to the Client. */
-      const Client* Get() const;
-
-    private:
-      Client m_client;
-
-      ApplicationServiceLocatorClient(
-        const ApplicationServiceLocatorClient&) = delete;
-      ApplicationServiceLocatorClient& operator =(
-        const ApplicationServiceLocatorClient&) = delete;
   };
 
   /** Stores the configuration for a service. */
@@ -90,7 +43,7 @@ namespace Beam::ServiceLocator {
     std::string m_name;
 
     /** The network interface to bind the service to. */
-    Network::IpAddress m_interface;
+    IpAddress m_interface;
 
     /** The ServiceEntry properties to register. */
     JsonObject m_properties;
@@ -98,11 +51,39 @@ namespace Beam::ServiceLocator {
     /**
      * Parses a ServiceConfiguration from a YAML node.
      * @param node The YAML node containing the service configuration.
-     * @param defaultName The service's default name used if the <i>node</i>
+     * @param default_name The service's default name used if the <i>node</i>
      *        doesn't explicitly provide one.
      */
-    static ServiceConfiguration Parse(const YAML::Node& node,
-      const std::string& defaultName);
+    static ServiceConfiguration parse(
+      const YAML::Node& node, const std::string& default_name);
+  };
+
+  class ApplicationServiceLocatorClient : public ProtocolServiceLocatorClient<
+      ServiceProtocolClientBuilder<
+        MessageProtocol<std::unique_ptr<TcpSocketChannel>,
+          BinarySender<SharedBuffer>>, LiveTimer>> {
+    public:
+      using ServiceProtocolClientBuilder =
+        typename ProtocolServiceLocatorClient<
+          Beam::ServiceProtocolClientBuilder<MessageProtocol<
+            std::unique_ptr<TcpSocketChannel>, BinarySender<SharedBuffer>>,
+            LiveTimer>>::ServiceProtocolClientBuilder;
+
+      /**
+       * Constructs an ApplicationServiceLocatorClient.
+       * @param username The username to login with.
+       * @param password The password to login with.
+       * @param address The address of the ServiceLocator.
+       */
+      ApplicationServiceLocatorClient(const std::string& username,
+        const std::string& password, const IpAddress& address);
+
+      /**
+       * Constructs an ApplicationServiceLocatorClient from a configuration.
+       * @param config The configuration to use.
+       */
+      explicit ApplicationServiceLocatorClient(
+        ServiceLocatorClientConfig config);
   };
 
   /**
@@ -110,94 +91,51 @@ namespace Beam::ServiceLocator {
    * @param client The ServiceLocatorClient used to register the service.
    * @param config The ServiceConfiguration to register.
    */
-  template<typename ServiceLocatorClient>
-  ServiceEntry Register(ServiceLocatorClient& client,
-      const ServiceConfiguration& config) {
-    return TryOrNest([&] {
-      return client.Register(config.m_name, config.m_properties);
+  template<IsServiceLocatorClient C>
+  ServiceEntry add(C& client, const ServiceConfiguration& config) {
+    return try_or_nest([&] {
+      return client.add(config.m_name, config.m_properties);
     }, std::runtime_error("Error registering service."));
   }
 
-  /**
-   * Returns an ApplicationServiceLocatorClient whose connection details are
-   * parsed from a YAML node.
-   * @param node The YAML node to parse.
-   * @return An ApplicationServiceLocatorClient connected to the service locator
-   *         specified by the <i>node</i>.
-   */
-  inline ApplicationServiceLocatorClient MakeApplicationServiceLocatorClient(
-      const YAML::Node& node) {
-    auto config = TryOrNest([&] {
-      return ServiceLocatorClientConfig::Parse(node);
-    }, std::runtime_error("Error parsing service locator config."));
-    return ApplicationServiceLocatorClient(config.m_username,
-      config.m_password, config.m_address);
-  }
-
-  inline ServiceLocatorClientConfig ServiceLocatorClientConfig::Parse(
+  inline ServiceLocatorClientConfig ServiceLocatorClientConfig::parse(
       const YAML::Node& node) {
     auto config = ServiceLocatorClientConfig();
-    config.m_address = Extract<Network::IpAddress>(node, "address");
-    config.m_username = Extract<std::string>(node, "username");
-    config.m_password = Extract<std::string>(node, "password");
+    config.m_address = extract<IpAddress>(node, "address");
+    config.m_username = extract<std::string>(node, "username");
+    config.m_password = extract<std::string>(node, "password");
     return config;
   }
 
-  inline ServiceConfiguration ServiceConfiguration::Parse(
-      const YAML::Node& node, const std::string& defaultName) {
+  inline ServiceConfiguration ServiceConfiguration::parse(
+      const YAML::Node& node, const std::string& default_name) {
     auto config = ServiceConfiguration();
-    config.m_name = Extract<std::string>(node, "service", defaultName);
-    config.m_interface = Extract<Network::IpAddress>(node, "interface");
-    auto addresses = std::vector<Network::IpAddress>();
+    config.m_name = extract<std::string>(node, "service", default_name);
+    config.m_interface = extract<IpAddress>(node, "interface");
+    auto addresses = std::vector<IpAddress>();
     addresses.push_back(config.m_interface);
-    addresses = Extract<std::vector<Network::IpAddress>>(node, "addresses",
-      addresses);
-    config.m_properties["addresses"] = boost::lexical_cast<std::string>(
-      Stream(addresses));
+    addresses = extract<std::vector<IpAddress>>(node, "addresses", addresses);
+    config.m_properties["addresses"] =
+      boost::lexical_cast<std::string>(Stream(addresses));
     return config;
   }
 
   inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
-    std::string username, std::string password, Network::IpAddress address)
-    : m_client(std::move(username), std::move(password),
-        SessionBuilder(
+    const std::string& username, const std::string& password,
+    const IpAddress& address)
+    : ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>(
+        username, password, ServiceProtocolClientBuilder(
           [=] {
-            return std::make_unique<Network::TcpSocketChannel>(address);
+            return std::make_unique<TcpSocketChannel>(address);
           },
           [] {
-            return std::make_unique<Threading::LiveTimer>(
-              boost::posix_time::seconds(10));
+            return std::make_unique<LiveTimer>(boost::posix_time::seconds(10));
           })) {}
 
-  inline ApplicationServiceLocatorClient::Client&
-      ApplicationServiceLocatorClient::operator *() {
-    return m_client;
-  }
-
-  inline const ApplicationServiceLocatorClient::Client&
-      ApplicationServiceLocatorClient::operator *() const {
-    return m_client;
-  }
-
-  inline ApplicationServiceLocatorClient::Client*
-      ApplicationServiceLocatorClient::operator ->() {
-    return &m_client;
-  }
-
-  inline const ApplicationServiceLocatorClient::Client*
-      ApplicationServiceLocatorClient::operator ->() const {
-    return &m_client;
-  }
-
-  inline ApplicationServiceLocatorClient::Client*
-      ApplicationServiceLocatorClient::Get() {
-    return &m_client;
-  }
-
-  inline const ApplicationServiceLocatorClient::Client*
-      ApplicationServiceLocatorClient::Get() const {
-    return &m_client;
-  }
+  inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
+    ServiceLocatorClientConfig config)
+    : ApplicationServiceLocatorClient(std::move(config.m_username),
+        std::move(config.m_password), std::move(config.m_address)) {}
 }
 
 #endif

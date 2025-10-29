@@ -4,21 +4,20 @@
 #include "Beam/Parsers/Parse.hpp"
 
 using namespace Beam;
-using namespace Beam::Parsers;
 using namespace boost;
 
 TEST_SUITE("JsonParser") {
   TEST_CASE("empty") {
-    auto value = Parse<JsonValue>("{}");
+    auto value = parse<JsonValue>("{}");
     auto object = get<JsonObject>(&value);
-    REQUIRE(object != nullptr);
+    REQUIRE(object);
     REQUIRE(lexical_cast<std::string>(*object) == "{}");
   }
 
   TEST_CASE("single_field") {
-    auto value = Parse<JsonValue>("{\"a\":5}");
+    auto value = parse<JsonValue>("{\"a\":5}");
     auto object = get<JsonObject>(&value);
-    REQUIRE(object != nullptr);
+    REQUIRE(object);
     REQUIRE((*object)["a"] == 5);
     REQUIRE(lexical_cast<std::string>(*object) == "{\"a\":5}");
   }

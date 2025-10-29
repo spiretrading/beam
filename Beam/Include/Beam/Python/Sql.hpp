@@ -8,7 +8,7 @@ namespace Beam::Python {
    * Exports the Sql classes/functions.
    * @param module The module to export to.
    */
-  void ExportSql(pybind11::module& module);
+  void export_sql(pybind11::module& module);
 }
 
 #endif

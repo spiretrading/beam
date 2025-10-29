@@ -4,56 +4,56 @@
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
-namespace Beam::UidService {
+namespace Beam {
 
   /** Implements an in memory UidDataStore. */
-  class LocalUidDataStore : public UidDataStore {
+  class LocalUidDataStore {
     public:
 
       /** Constructs a LocalUidDataStore starting from a UID of 1. */
       LocalUidDataStore();
 
-      ~LocalUidDataStore() override;
+      ~LocalUidDataStore();
 
-      std::uint64_t GetNextUid() override;
-
-      std::uint64_t Reserve(std::uint64_t size) override;
-
-      void WithTransaction(const std::function<void ()>& transaction) override;
-
-      void Close() override;
+      std::uint64_t get_next_uid();
+      std::uint64_t reserve(std::uint64_t size);
+      template<std::invocable<> F>
+      decltype(auto) with_transaction(F&& transaction);
+      void close();
 
     private:
-      mutable Threading::Mutex m_mutex;
-      std::uint64_t m_nextUid;
-      IO::OpenState m_openState;
+      mutable Mutex m_mutex;
+      std::uint64_t m_next_uid;
+      OpenState m_open_state;
   };
 
   inline LocalUidDataStore::LocalUidDataStore()
-    : m_nextUid(1) {}
+    : m_next_uid(1) {}
 
   inline LocalUidDataStore::~LocalUidDataStore() {
-    Close();
+    close();
   }
 
-  inline std::uint64_t LocalUidDataStore::GetNextUid() {
-    return m_nextUid;
+  inline std::uint64_t LocalUidDataStore::get_next_uid() {
+    m_open_state.ensure_open();
+    return m_next_uid;
   }
 
-  inline std::uint64_t LocalUidDataStore::Reserve(std::uint64_t size) {
-    auto nextUid = m_nextUid;
-    m_nextUid += size;
-    return nextUid;
+  inline std::uint64_t LocalUidDataStore::reserve(std::uint64_t size) {
+    m_open_state.ensure_open();
+    auto next_uid = m_next_uid;
+    m_next_uid += size;
+    return next_uid;
   }
 
-  inline void LocalUidDataStore::WithTransaction(
-      const std::function<void ()>& transaction) {
+  template<std::invocable<> F>
+  decltype(auto) LocalUidDataStore::with_transaction(F&& transaction) {
     auto lock = boost::lock_guard(m_mutex);
-    transaction();
+    return std::forward<F>(transaction)();
   }
 
-  inline void LocalUidDataStore::Close() {
-    m_openState.Close();
+  inline void LocalUidDataStore::close() {
+    m_open_state.close();
   }
 }
 

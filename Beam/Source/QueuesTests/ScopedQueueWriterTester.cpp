@@ -10,7 +10,7 @@ TEST_SUITE("ScopedQueueWriter") {
     {
       auto s = ScopedQueueWriter(&q);
     }
-    REQUIRE(q.IsBroken());
+    REQUIRE(q.is_broken());
   }
 
   TEST_CASE("move") {
@@ -18,19 +18,19 @@ TEST_SUITE("ScopedQueueWriter") {
     {
       auto s1 = ScopedQueueWriter(&q);
       auto s2 = std::move(s1);
-      REQUIRE(!q.IsBroken());
+      REQUIRE(!q.is_broken());
     }
-    REQUIRE(q.IsBroken());
+    REQUIRE(q.is_broken());
   }
 
   TEST_CASE("move_convert") {
     auto q = std::make_shared<Queue<int>>();
     auto s1 = ScopedQueueWriter(q);
-    auto s2 = ScopedQueueWriter<int, std::shared_ptr<QueueWriter<int>>>(
-      std::move(s1));
-    REQUIRE(!q->IsBroken());
-    s2.Push(123);
-    REQUIRE(q->Pop() == 123);
+    auto s2 =
+      ScopedQueueWriter<int, std::shared_ptr<QueueWriter<int>>>(std::move(s1));
+    REQUIRE(!q->is_broken());
+    s2.push(123);
+    REQUIRE(q->pop() == 123);
   }
 
   TEST_CASE("assign") {
@@ -40,12 +40,12 @@ TEST_SUITE("ScopedQueueWriter") {
       auto s1 = ScopedQueueWriter(q1);
       auto s2 = ScopedQueueWriter(q2);
       std::swap(s1, s2);
-      REQUIRE(!q1->IsBroken());
-      REQUIRE(!q2->IsBroken());
+      REQUIRE(!q1->is_broken());
+      REQUIRE(!q2->is_broken());
       s1 = std::move(s2);
-      REQUIRE(q2->IsBroken());
-      REQUIRE(!q1->IsBroken());
+      REQUIRE(q2->is_broken());
+      REQUIRE(!q1->is_broken());
     }
-    REQUIRE(q1->IsBroken());
+    REQUIRE(q1->is_broken());
   }
 }

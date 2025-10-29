@@ -2,9 +2,8 @@
 #define BEAM_NOT_EVALUATOR_NODE_HPP
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Evaluates a not expression. */
   class NotEvaluatorNode : public EvaluatorNode<bool> {
@@ -15,9 +14,9 @@ namespace Beam::Queries {
        * Constructs a NotEvaluatorNode.
        * @param operand The operand to evaluate.
        */
-      NotEvaluatorNode(std::unique_ptr<EvaluatorNode<bool>> operand);
+      explicit NotEvaluatorNode(std::unique_ptr<EvaluatorNode<bool>> operand);
 
-      bool Eval() override;
+      bool eval() override;
 
     private:
       std::unique_ptr<EvaluatorNode<bool>> m_operand;
@@ -27,8 +26,8 @@ namespace Beam::Queries {
     std::unique_ptr<EvaluatorNode<bool>> operand)
     : m_operand(std::move(operand)) {}
 
-  inline bool NotEvaluatorNode::Eval() {
-    return !m_operand->Eval();
+  inline bool NotEvaluatorNode::eval() {
+    return !m_operand->eval();
   }
 }
 

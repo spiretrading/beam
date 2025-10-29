@@ -1,28 +1,14 @@
-#ifndef BEAM_NOTSUPPORTEDEXCEPTION_HPP
-#define BEAM_NOTSUPPORTEDEXCEPTION_HPP
+#ifndef BEAM_NOT_SUPPORTED_EXCEPTION_HPP
+#define BEAM_NOT_SUPPORTED_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 
-  /*! \class NotSupportedException
-      \brief Indicates that an optional virtual method is not supported.
-   */
-  class NotSupportedException : public std::runtime_error,
-      public boost::exception {
+  /** Indicates that an optional virtual method is not supported. */
+  class NotSupportedException : public std::runtime_error {
     public:
-
-      //! Constructs a NotSupportedException.
-      /*!
-        \param message Typically the name of the method that's not supported.
-      */
-      NotSupportedException(const std::string& message);
+      using std::runtime_error::runtime_error;
   };
-
-  inline NotSupportedException::NotSupportedException(
-      const std::string& message)
-      : std::runtime_error(message) {}
 }
 
 #endif

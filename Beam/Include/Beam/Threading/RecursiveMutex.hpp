@@ -6,18 +6,19 @@
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/LockRelease.hpp"
-#include "Beam/Threading/Threading.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /** Implements a recursive_mutex that suspends the current Routine. */
   class RecursiveMutex {
     public:
 
       /** Constructs a RecursiveMutex. */
-      RecursiveMutex();
+      RecursiveMutex() noexcept;
 
+#ifndef NDEBUG
       ~RecursiveMutex();
+#endif
 
       /** Locks this Mutex. */
       void lock();
@@ -32,50 +33,52 @@ namespace Beam::Threading {
       boost::mutex m_mutex;
       int m_counter;
       int m_depth;
-      Routines::Routine* m_owner;
-      Routines::SuspendedRoutineQueue m_suspendedRoutines;
+      Routine* m_owner;
+      SuspendedRoutineQueue m_routines;
 
       RecursiveMutex(const RecursiveMutex&) = delete;
       RecursiveMutex& operator =(const RecursiveMutex&) = delete;
   };
 
-  inline RecursiveMutex::RecursiveMutex()
+  inline RecursiveMutex::RecursiveMutex() noexcept
     : m_counter(0),
       m_depth(0),
       m_owner(nullptr) {}
 
+#ifndef NDEBUG
   inline RecursiveMutex::~RecursiveMutex() {
     assert(m_counter == 0);
   }
+#endif
 
   inline void RecursiveMutex::lock() {
-    auto currentRoutine = Routines::SuspendedRoutineNode();
+    auto current = SuspendedRoutineNode();
     auto lock = boost::unique_lock(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
-      if(currentRoutine.m_routine != m_owner) {
-        m_suspendedRoutines.push_back(currentRoutine);
-        currentRoutine.m_routine->PendingSuspend();
-        auto release = Release(lock);
-        Routines::Suspend();
+      if(current.m_routine != m_owner) {
+        m_routines.push_back(current);
+        current.m_routine->pending_suspend();
+        auto releaser = release(lock);
+        suspend();
       }
     }
     ++m_depth;
-    m_owner = currentRoutine.m_routine;
+    m_owner = current.m_routine;
   }
 
   inline bool RecursiveMutex::try_lock() {
-    auto currentRoutine = &Routines::GetCurrentRoutine();
+    auto current = &get_current_routine();
     auto lock = boost::lock_guard(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
-      if(currentRoutine != m_owner) {
+      if(current != m_owner) {
         --m_counter;
         return false;
       }
     }
     ++m_depth;
-    m_owner = currentRoutine;
+    m_owner = current;
     return true;
   }
 
@@ -88,12 +91,12 @@ namespace Beam::Threading {
     --m_counter;
     if(m_counter > 0) {
       if(m_depth == 0) {
-        if(m_suspendedRoutines.empty()) {
+        if(m_routines.empty()) {
           return;
         }
-        auto routine = m_suspendedRoutines.front().m_routine;
-        m_suspendedRoutines.pop_front();
-        Routines::Resume(routine);
+        auto routine = m_routines.front().m_routine;
+        m_routines.pop_front();
+        resume(routine);
       }
     }
   }

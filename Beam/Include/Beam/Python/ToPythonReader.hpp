@@ -1,19 +1,18 @@
 #ifndef BEAM_TO_PYTHON_READER_HPP
 #define BEAM_TO_PYTHON_READER_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Python/GilRelease.hpp"
 
-namespace Beam::IO {
+namespace Beam::Python {
 
   /**
    * Wraps a Reader for use with Python.
-   * @param <R> The type of Reader to wrap.
+   * @tparam R The type of Reader to wrap.
    */
-  template<typename R>
+  template<IsReader R>
   class ToPythonReader {
     public:
 
@@ -25,27 +24,31 @@ namespace Beam::IO {
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonReader(Args&&... args);
-
-      ToPythonReader(ToPythonReader&&) = default;
+      explicit ToPythonReader(Args&&... args);
 
       ~ToPythonReader();
 
-      /** Returns the wrapped Reader. */
-      const Reader& GetReader() const;
+      /** Returns a reference to the underlying reader. */
+      Reader& get();
 
-      /** Returns the wrapped Reader. */
-      Reader& GetReader();
+      /** Returns a reference to the underlying reader. */
+      const Reader& get() const;
 
-      bool IsDataAvailable() const;
+      /** Returns a reference to the underlying reader. */
+      Reader& operator *();
 
-      std::size_t Read(Out<BufferBox> destination);
+      /** Returns a reference to the underlying reader. */
+      const Reader& operator *() const;
 
-      std::size_t Read(char* destination, std::size_t size);
+      /** Returns a pointer to the underlying reader. */
+      Reader* operator ->();
 
-      std::size_t Read(Out<BufferBox> destination, std::size_t size);
+      /** Returns a pointer to the underlying reader. */
+      const Reader* operator ->() const;
 
-      ToPythonReader& operator =(ToPythonReader&&) = default;
+      bool poll() const;
+      template<IsBuffer B>
+      std::size_t read(Out<B> destination, std::size_t size = -1);
 
     private:
       boost::optional<Reader> m_reader;
@@ -55,54 +58,63 @@ namespace Beam::IO {
   };
 
   template<typename Reader>
-  ToPythonReader(Reader&&) -> ToPythonReader<std::decay_t<Reader>>;
+  ToPythonReader(Reader&&) -> ToPythonReader<std::remove_cvref_t<Reader>>;
 
-  template<typename R>
+  template<IsReader R>
   template<typename... Args>
   ToPythonReader<R>::ToPythonReader(Args&&... args)
-    : m_reader((Python::GilRelease(), boost::in_place_init),
+    : m_reader((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
-  template<typename R>
+  template<IsReader R>
   ToPythonReader<R>::~ToPythonReader() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_reader.reset();
   }
 
-  template<typename R>
-  const typename ToPythonReader<R>::Reader&
-      ToPythonReader<R>::GetReader() const {
+  template<IsReader R>
+  typename ToPythonReader<R>::Reader& ToPythonReader<R>::get() {
     return *m_reader;
   }
 
-  template<typename R>
-  typename ToPythonReader<R>::Reader& ToPythonReader<R>::GetReader() {
+  template<IsReader R>
+  const typename ToPythonReader<R>::Reader& ToPythonReader<R>::get() const {
     return *m_reader;
   }
 
-  template<typename R>
-  bool ToPythonReader<R>::IsDataAvailable() const {
-    auto release = Python::GilRelease();
-    return m_reader->IsDataAvailable();
+  template<IsReader R>
+  typename ToPythonReader<R>::Reader& ToPythonReader<R>::operator *() {
+    return *m_reader;
   }
 
-  template<typename R>
-  std::size_t ToPythonReader<R>::Read(Out<BufferBox> destination) {
-    auto release = Python::GilRelease();
-    return m_reader->Read(Store(destination));
+  template<IsReader R>
+  const typename ToPythonReader<R>::Reader& ToPythonReader<R>::operator *()
+      const {
+    return *m_reader;
   }
 
-  template<typename R>
-  std::size_t ToPythonReader<R>::Read(char* destination, std::size_t size) {
-    auto release = Python::GilRelease();
-    return m_reader->Read(destination, size);
+  template<IsReader R>
+  typename ToPythonReader<R>::Reader* ToPythonReader<R>::operator ->() {
+    return m_reader.get_ptr();
   }
 
-  template<typename R>
-  std::size_t ToPythonReader<R>::Read(Out<BufferBox> destination,
-      std::size_t size) {
-    auto release = Python::GilRelease();
-    return m_reader->Read(Store(destination), size);
+  template<IsReader R>
+  const typename ToPythonReader<R>::Reader* ToPythonReader<R>::operator ->()
+      const {
+    return m_reader.get_ptr();
+  }
+
+  template<IsReader R>
+  bool ToPythonReader<R>::poll() const {
+    auto release = GilRelease();
+    return m_reader->poll();
+  }
+
+  template<IsReader R>
+  template<IsBuffer B>
+  std::size_t ToPythonReader<R>::read(Out<B> destination, std::size_t size) {
+    auto release = GilRelease();
+    return m_reader->read(out(destination), size);
   }
 }
 

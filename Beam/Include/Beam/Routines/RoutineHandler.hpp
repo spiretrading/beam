@@ -1,55 +1,40 @@
 #ifndef BEAM_ROUTINE_HANDLER_HPP
 #define BEAM_ROUTINE_HANDLER_HPP
 #include <atomic>
-#include "Beam/Routines/Routines.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 
-namespace Beam::Routines {
+namespace Beam {
 
   /** Used to spawn a Routine and wait for its completion. */
   class RoutineHandler {
     public:
 
       /** Constructs a RoutineHandler. */
-      RoutineHandler();
+      RoutineHandler() noexcept;
 
       /**
        * Constructs a RoutineHandler.
        * @param id The Id of the Routine to manage.
        */
-      RoutineHandler(Routine::Id id);
+      RoutineHandler(Routine::Id id) noexcept;
 
-      /**
-       * Acquires a RoutineHandler.
-       * @param routineHandler The RoutineHandler to acquire.
-       */
-      RoutineHandler(RoutineHandler&& routineHandler);
-
+      RoutineHandler(RoutineHandler&& handler) noexcept;
       ~RoutineHandler();
 
-      /**
-       * Assigns a Routine to this handler.
-       * @param id The Id of the Routine to handle.
-       */
-      RoutineHandler& operator =(Routine::Id id);
-
-      /**
-       * Acquires a RoutineHandler.
-       * @param routineHandler The RoutineHandler to acquire.
-       */
-      RoutineHandler& operator =(RoutineHandler&& routineHandler);
-
       /** Returns the Routine's id. */
-      Routine::Id GetId() const;
+      Routine::Id get_id() const;
 
       /** Detaches the current Routine from this handler. */
-      void Detach();
+      void detach();
 
       /** Waits for the completion of the previously spawned Routine. */
-      void Wait();
+      void wait();
+
+      RoutineHandler& operator =(Routine::Id id) noexcept;
+      RoutineHandler& operator =(RoutineHandler&& handler) noexcept;
 
     private:
       Routine::Id m_id;
@@ -59,88 +44,88 @@ namespace Beam::Routines {
   };
 
   /** Waits for all pending Routines to complete. */
-  inline void FlushPendingRoutines() {
-    auto& scheduler = Details::Scheduler::GetInstance();
-    auto threadCountMutex = Threading::Mutex();
-    auto threadCountCondition = Threading::ConditionVariable();
+  inline void flush_pending_routines() {
+    auto& scheduler = Details::Scheduler::get();
+    auto thread_count_mutex = Mutex();
+    auto thread_count_condition = ConditionVariable();
     while(true) {
-      auto threadCount = scheduler.GetThreadCount();
+      auto thread_count = scheduler.get_thread_count();
       auto routines = std::vector<RoutineHandler>();
-      auto isComplete = std::atomic_bool(true);
-      for(auto i = std::size_t(0); i < scheduler.GetThreadCount(); ++i) {
-        routines.emplace_back(Spawn([&] {
-          auto& routine = static_cast<ScheduledRoutine&>(GetCurrentRoutine());
+      auto is_complete = std::atomic_bool(true);
+      for(auto i = std::size_t(0); i < scheduler.get_thread_count(); ++i) {
+        routines.emplace_back(spawn([&] {
+          auto& routine = static_cast<ScheduledRoutine&>(get_current_routine());
           {
-            auto lock = boost::unique_lock(threadCountMutex);
-            --threadCount;
-            if(threadCount == 0) {
-              threadCountCondition.notify_all();
+            auto lock = boost::unique_lock(thread_count_mutex);
+            --thread_count;
+            if(thread_count == 0) {
+              thread_count_condition.notify_all();
             } else {
-              while(threadCount != 0) {
-                threadCountCondition.wait(lock);
+              while(thread_count != 0) {
+                thread_count_condition.wait(lock);
               }
             }
           }
-          if(scheduler.HasPendingRoutines(routine.GetContextId())) {
-            isComplete = false;
+          if(scheduler.has_pending_routines(routine.get_context_id())) {
+            is_complete = false;
           }
         }, Details::Scheduler::DEFAULT_STACK_SIZE, i));
       }
       routines.clear();
-      if(isComplete) {
+      if(is_complete) {
         break;
       }
     }
   }
 
-  inline RoutineHandler::RoutineHandler()
+  inline RoutineHandler::RoutineHandler() noexcept
     : RoutineHandler(0) {}
 
-  inline RoutineHandler::RoutineHandler(Routine::Id id)
+  inline RoutineHandler::RoutineHandler(Routine::Id id) noexcept
     : m_id(id) {}
 
-  inline RoutineHandler::RoutineHandler(RoutineHandler&& routineHandler)
-      : RoutineHandler(routineHandler.m_id) {
-    routineHandler.Detach();
+  inline RoutineHandler::RoutineHandler(RoutineHandler&& handler) noexcept
+      : RoutineHandler(handler.m_id) {
+    handler.detach();
   }
 
   inline RoutineHandler::~RoutineHandler() {
-    Wait();
+    wait();
   }
 
-  inline RoutineHandler& RoutineHandler::operator =(Routine::Id id) {
+  inline Routine::Id RoutineHandler::get_id() const {
+    return m_id;
+  }
+
+  inline void RoutineHandler::detach() {
+    m_id = 0;
+  }
+
+  inline void RoutineHandler::wait() {
+    if(m_id == 0) {
+      return;
+    }
+    Details::Scheduler::get().wait(m_id);
+    m_id = 0;
+  }
+
+  inline RoutineHandler& RoutineHandler::operator =(Routine::Id id) noexcept {
     if(m_id == id) {
       return *this;
     }
-    Wait();
+    wait();
     m_id = id;
     return *this;
   }
 
   inline RoutineHandler& RoutineHandler::operator =(
-      RoutineHandler&& routineHandler) {
-    if(this == &routineHandler) {
+      RoutineHandler&& handler) noexcept {
+    if(this == &handler) {
       return *this;
     }
-    *this = routineHandler.m_id;
-    routineHandler.Detach();
+    *this = handler.m_id;
+    handler.detach();
     return *this;
-  }
-
-  inline Routine::Id RoutineHandler::GetId() const {
-    return m_id;
-  }
-
-  inline void RoutineHandler::Detach() {
-    m_id = 0;
-  }
-
-  inline void RoutineHandler::Wait() {
-    if(m_id == 0) {
-      return;
-    }
-    Details::Scheduler::GetInstance().Wait(m_id);
-    m_id = 0;
   }
 }
 

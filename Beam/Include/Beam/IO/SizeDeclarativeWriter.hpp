@@ -1,77 +1,69 @@
 #ifndef BEAM_SIZE_DECLARATIVE_WRITER_HPP
 #define BEAM_SIZE_DECLARATIVE_WRITER_HPP
 #include <type_traits>
+#include <boost/endian.hpp>
+#include "Beam/IO/IOException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
-namespace IO {
 
   /**
    * Writes to a destination, declaring the size to be written.
-   * @param <W> The Writer to write to.
+   * @tparam W The Writer to write to.
    */
-  template<typename W>
+  template<typename W> requires IsWriter<dereference_t<W>>
   class SizeDeclarativeWriter {
     public:
-      using Buffer = SharedBuffer;
 
       /** The destination to write to. */
-      using DestinationWriter = GetTryDereferenceType<W>;
+      using DestinationWriter = dereference_t<W>;
 
       /**
        * Constructs a SizeDeclarativeWriter.
        * @param destination Used to initialize the destination of all writes.
        */
-      template<typename WF>
-      SizeDeclarativeWriter(WF&& destination);
+      template<Initializes<W> WF>
+      explicit SizeDeclarativeWriter(WF&& destination);
 
-      void Write(const void* data, std::size_t size);
-
-      template<typename B>
-      void Write(const B& data);
+      template<IsConstBuffer T>
+      void write(const T& data);
 
     private:
-      GetOptionalLocalPtr<W> m_destination;
+      local_ptr_t<W> m_destination;
 
       SizeDeclarativeWriter(const SizeDeclarativeWriter&) = delete;
       SizeDeclarativeWriter& operator =(const SizeDeclarativeWriter&) = delete;
   };
 
   template<typename W>
-  SizeDeclarativeWriter(W&&) -> SizeDeclarativeWriter<std::decay_t<W>>;
+  SizeDeclarativeWriter(W&&) ->
+    SizeDeclarativeWriter<std::remove_cvref_t<W>>;
 
-  template<typename W>
-  template<typename WF>
+  template<typename W> requires IsWriter<dereference_t<W>>
+  template<Initializes<W> WF>
   SizeDeclarativeWriter<W>::SizeDeclarativeWriter(WF&& destination)
     : m_destination(std::forward<WF>(destination)) {}
 
-  template<typename W>
-  void SizeDeclarativeWriter<W>::Write(const void* data, std::size_t size) {
-    auto portableInt = ToLittleEndian(static_cast<std::uint32_t>(size));
-    auto buffer = typename DestinationWriter::Buffer();
+  template<typename W> requires IsWriter<dereference_t<W>>
+  template<IsConstBuffer T>
+  void SizeDeclarativeWriter<W>::write(const T& data) {
+    if(data.get_size() == 0) {
+      return;
+    }
+    auto buffer = SharedBuffer();
     try {
-      buffer.Append(reinterpret_cast<const char*>(&portableInt),
-        sizeof(std::uint32_t));
-      buffer.Append(data, size);
+      append(buffer, boost::endian::native_to_little(
+        static_cast<std::uint32_t>(data.get_size())));
+      append(buffer, data);
     } catch(const std::exception&) {
       std::throw_with_nested(IOException());
     }
-    m_destination->Write(std::move(buffer));
+    m_destination->write(std::move(buffer));
   }
-
-  template<typename W>
-  template<typename B>
-  void SizeDeclarativeWriter<W>::Write(const B& data) {
-    return Write(data.GetData(), data.GetSize());
-  }
-}
-
-  template<typename B, typename W>
-  struct ImplementsConcept<IO::SizeDeclarativeWriter<W>, IO::Writer<B>> :
-    std::true_type {};
 }
 
 #endif

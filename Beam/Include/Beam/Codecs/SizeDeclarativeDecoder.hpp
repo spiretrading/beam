@@ -1,21 +1,25 @@
 #ifndef BEAM_SIZE_DECLARATIVE_DECODER_HPP
 #define BEAM_SIZE_DECLARATIVE_DECODER_HPP
 #include <cstdint>
+#include <boost/endian.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
 #include "Beam/IO/Buffer.hpp"
-#include "Beam/Utilities/Endian.hpp"
+#include "Beam/IO/SuffixBuffer.hpp"
+#include "Beam/Pointers/Dereference.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
-namespace Codecs {
+  template<typename E> requires IsEncoder<dereference_t<E>>
+  class SizeDeclarativeEncoder;
 
   /**
    * Augments an existing decoder by first decoding a size from a buffer and
    * then decoding the contents.
-   * @param <D> The type used to decode the remainder of the buffer.
+   * @tparam D The type used to decode the remainder of the buffer.
    */
-  template<typename D>
+  template<typename D> requires IsDecoder<dereference_t<D>>
   class SizeDeclarativeDecoder {
     public:
 
@@ -23,100 +27,53 @@ namespace Codecs {
       using Decoder = D;
 
       /** Constructs a SizeDeclarativeDecoder. */
-      SizeDeclarativeDecoder() = default;
+      SizeDeclarativeDecoder() requires std::default_initializable<Decoder> =
+        default;
 
       /**
        * Constructs a SizeDeclarativeDecoder.
        * @param decoder The underlying Decoder to use.
        */
-      SizeDeclarativeDecoder(Decoder decoder);
+      template<Initializes<D> DF>
+      explicit SizeDeclarativeDecoder(DF&& decoder);
 
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Decode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t decode(const S source, Out<B> destination);
 
     private:
-      Decoder m_decoder;
+      local_ptr_t<D> m_decoder;
   };
 
   template<typename D>
-  struct Inverse<SizeDeclarativeDecoder<D>> {
-    using type = SizeDeclarativeEncoder<GetInverse<D>>;
+  struct inverse<SizeDeclarativeDecoder<D>> {
+    using type = SizeDeclarativeEncoder<inverse_t<D>>;
   };
 
-  template<typename D>
-  SizeDeclarativeDecoder<D>::SizeDeclarativeDecoder(Decoder decoder)
-    : m_decoder(std::move(decoder)) {}
+  template<typename D> requires IsDecoder<dereference_t<D>>
+  template<Initializes<D> DF>
+  SizeDeclarativeDecoder<D>::SizeDeclarativeDecoder(DF&& decoder)
+    : m_decoder(std::forward<DF>(decoder)) {}
 
-  template<typename D>
-  std::size_t SizeDeclarativeDecoder<D>::Decode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    if(sourceSize < sizeof(std::uint32_t)) {
-      BOOST_THROW_EXCEPTION(DecoderException("Source size too small."));
+  template<typename D> requires IsDecoder<dereference_t<D>>
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t SizeDeclarativeDecoder<D>::decode(
+      const S source, Out<B> destination) {
+    if(source.get_size() < sizeof(std::uint32_t)) {
+      boost::throw_with_location(DecoderException("Source size too small."));
     }
-    auto nativeOriginalSize = std::uint32_t();
-    std::memcpy(reinterpret_cast<char*>(&nativeOriginalSize), source,
-      sizeof(nativeOriginalSize));
-    auto originalSize = FromBigEndian(nativeOriginalSize);
-    if(destinationSize < originalSize) {
-      BOOST_THROW_EXCEPTION(DecoderException("Destination size too small."));
+    auto native_length = std::uint32_t();
+    std::memcpy(reinterpret_cast<char*>(&native_length), source.get_data(),
+      sizeof(native_length));
+    auto original_length =
+      static_cast<std::size_t>(boost::endian::big_to_native(native_length));
+    auto available_size = reserve(*destination, original_length);
+    if(available_size < original_length) {
+      boost::throw_with_location(
+        DecoderException("Destination size too small."));
     }
-    return m_decoder.Decode(reinterpret_cast<const char*>(source) +
-      sizeof(std::uint32_t), sourceSize - sizeof(std::uint32_t), destination,
-      destinationSize);
+    return m_decoder->decode(
+      suffix(Ref(source), sizeof(native_length)), out(destination));
   }
-
-  template<typename D>
-  template<typename Buffer>
-  std::size_t SizeDeclarativeDecoder<D>::Decode(const Buffer& source,
-      void* destination, std::size_t destinationSize) {
-    return Decode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename D>
-  template<typename Buffer>
-  std::size_t SizeDeclarativeDecoder<D>::Decode(const void* source,
-      std::size_t sourceSize, Out<Buffer> destination) {
-    if(sourceSize < sizeof(std::uint32_t)) {
-      BOOST_THROW_EXCEPTION(DecoderException("Source size too small."));
-    }
-    auto nativeOriginalSize = std::uint32_t();
-    std::memcpy(reinterpret_cast<char*>(&nativeOriginalSize), source,
-      sizeof(nativeOriginalSize));
-    auto originalSize = FromBigEndian(nativeOriginalSize);
-    try {
-      destination->Reserve(originalSize);
-    } catch(const std::exception&) {
-      std::throw_with_nested(DecoderException());
-    }
-    return m_decoder.Decode(reinterpret_cast<const char*>(source) +
-      sizeof(std::uint32_t), sourceSize - sizeof(std::uint32_t),
-      Store(destination));
-  }
-
-  template<typename D>
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t SizeDeclarativeDecoder<D>::Decode(
-      const SourceBuffer& source, Out<DestinationBuffer> destination) {
-    return Decode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<typename D>
-  struct ImplementsConcept<Codecs::SizeDeclarativeDecoder<D>, Codecs::Decoder> :
-    std::true_type {};
 }
 
 #endif

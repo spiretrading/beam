@@ -2,7 +2,6 @@
 #define BEAM_ENUM_SET_HPP
 #include <bitset>
 #include <type_traits>
-#include "Beam/Collections/Collections.hpp"
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
@@ -12,7 +11,7 @@ namespace Beam {
 
   /**
    * Stores a set of enum values.
-   * @param <T> The enum type to store.
+   * @tparam T The enum type to store.
    */
   template<typename T>
   class EnumSet {
@@ -25,7 +24,7 @@ namespace Beam {
        * Returns an EnumSet from its underlying representation.
        * @param value The value to build the EnumSet from.
        */
-      static EnumSet FromRepresentation(std::uint32_t value);
+      static EnumSet from_bitmask(std::uint32_t value);
 
       /** Constructs an empty EnumSet. */
       EnumSet() = default;
@@ -34,19 +33,19 @@ namespace Beam {
        * Constructs an EnumSet containing a single value.
        * @param value The value to store.
        */
-      EnumSet(Type value);
+      EnumSet(Type value) noexcept;
 
       /**
        * Constructs an EnumSet containing a single value.
        * @param value The value to store.
        */
-      EnumSet(typename Type::Type value);
+      EnumSet(typename Type::Type value) noexcept;
 
       /**
        * Constructs an EnumSet from a bitset.
        * @param set The bitset to represent.
        */
-      explicit EnumSet(const std::bitset<Type::COUNT>& set);
+      explicit EnumSet(const std::bitset<Type::COUNT>& set) noexcept;
 
       /** Converts this set to a bitset. */
       explicit operator const std::bitset<T::COUNT>& () const;
@@ -59,30 +58,24 @@ namespace Beam {
        * @param value The value to test.
        * @return <code>true</code> iff the <i>value</i> is a member of this set.
        */
-      bool Test(Type value) const;
+      bool test(Type value) const;
 
       /**
        * Adds all values in a set to this set.
-       * @param set The set of values to add to this set.
+       * @param values The set of values to add to this set.
        */
-      EnumSet& SetAll(const EnumSet& values);
-
-      /**
-       * Adds a value to this set.
-       * @param value The value to add to this set.
-       */
-      EnumSet& Set(Type value);
+      EnumSet& set(const EnumSet& values);
 
       /**
        * Removes a value from this set.
-       * @param value The value to remove from this set.
+       * @param values The set of values to remove from this set.
        */
-      EnumSet& Unset(Type value);
+      EnumSet& reset(const EnumSet& values);
 
       /** Returns the bitset. */
-      const std::bitset<T::COUNT>& GetBitset() const;
+      const std::bitset<T::COUNT>& get_bitset() const;
 
-      bool operator ==(const EnumSet& rhs) const = default;
+      bool operator ==(const EnumSet&) const = default;
 
     private:
       std::bitset<Type::COUNT> m_bitset;
@@ -90,43 +83,44 @@ namespace Beam {
 
   template<typename T>
   std::ostream& operator <<(std::ostream& out, const EnumSet<T>& set) {
-    return out << set.GetBitset();
+    return out << set.get_bitset();
   }
 
   template<typename T>
   EnumSet<T> operator &(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>(lhs.GetBitset() & rhs.GetBitset());
+    return EnumSet<T>(lhs.get_bitset() & rhs.get_bitset());
   }
 
   template<typename T>
   EnumSet<T> operator |(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>(lhs.GetBitset() | rhs.GetBitset());
+    return EnumSet<T>(lhs.get_bitset() | rhs.get_bitset());
   }
 
   template<typename T>
   EnumSet<T> operator ^(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
-    return EnumSet<T>(lhs.GetBitset() ^ rhs.GetBitset());
+    return EnumSet<T>(lhs.get_bitset() ^ rhs.get_bitset());
   }
 
   template<typename T>
-  EnumSet<T> EnumSet<T>::FromRepresentation(std::uint32_t value) {
+  EnumSet<T> EnumSet<T>::from_bitmask(std::uint32_t value) {
     auto set = EnumSet();
     set.m_bitset = value;
     return set;
   }
 
   template<typename T>
-  EnumSet<T>::EnumSet(Type value) {
-    Set(value);
+  EnumSet<T>::EnumSet(Type value) noexcept {
+    if(value != Type::NONE) {
+      m_bitset.set(static_cast<int>(value));
+    }
   }
 
   template<typename T>
-  EnumSet<T>::EnumSet(typename Type::Type value) {
-    Set(value);
-  }
+  EnumSet<T>::EnumSet(typename Type::Type value) noexcept
+    : EnumSet(static_cast<Type>(value)) {}
 
   template<typename T>
-  EnumSet<T>::EnumSet(const std::bitset<Type::COUNT>& set)
+  EnumSet<T>::EnumSet(const std::bitset<Type::COUNT>& set) noexcept
     : m_bitset(set) {}
 
   template<typename T>
@@ -140,7 +134,7 @@ namespace Beam {
   }
 
   template<typename T>
-  bool EnumSet<T>::Test(Type value) const {
+  bool EnumSet<T>::test(Type value) const {
     if(value == Type::NONE) {
       return true;
     }
@@ -148,54 +142,40 @@ namespace Beam {
   }
 
   template<typename T>
-  EnumSet<T>& EnumSet<T>::SetAll(const EnumSet& values) {
+  EnumSet<T>& EnumSet<T>::set(const EnumSet& values) {
     m_bitset |= values.m_bitset;
     return *this;
   }
 
   template<typename T>
-  EnumSet<T>& EnumSet<T>::Set(Type value) {
-    if(value != Type::NONE) {
-      m_bitset.set(static_cast<int>(value));
-    }
+  EnumSet<T>& EnumSet<T>::reset(const EnumSet& values) {
+    m_bitset &= ~values.m_bitset;
     return *this;
   }
 
   template<typename T>
-  EnumSet<T>& EnumSet<T>::Unset(Type value) {
-    if(value != Type::NONE) {
-      m_bitset.reset(static_cast<int>(value));
-    }
-    return *this;
-  }
-
-  template<typename T>
-  const std::bitset<T::COUNT>& EnumSet<T>::GetBitset() const {
+  const std::bitset<T::COUNT>& EnumSet<T>::get_bitset() const {
     return m_bitset;
   }
-}
 
-namespace Beam::Serialization {
   template<typename T>
-  struct IsStructure<EnumSet<T>> : std::false_type {};
+  constexpr auto is_structure<EnumSet<T>> = false;
 
   template<typename T>
   struct Send<EnumSet<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const EnumSet<T>& value) const {
-      shuttle.Send(name, value.GetBitset());
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, const EnumSet<T>& value) const {
+      sender.send(name, value.get_bitset());
     }
   };
 
   template<typename T>
   struct Receive<EnumSet<T>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        EnumSet<T>& value) const {
-      auto set = std::bitset<EnumSet<T>::Type::COUNT>();
-      shuttle.Shuttle(name, set);
-      value = EnumSet<T>{set};
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name, EnumSet<T>& value) const {
+      value = EnumSet<T>(
+        receive<std::bitset<EnumSet<T>::Type::COUNT>>(receiver, name));
     }
   };
 }

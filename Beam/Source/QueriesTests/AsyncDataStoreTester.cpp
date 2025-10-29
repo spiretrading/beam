@@ -9,258 +9,245 @@
 #include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
-#include "Beam/TimeService/IncrementalTimeClient.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
-using namespace Beam::Queries::Tests;
-using namespace Beam::Routines;
-using namespace Beam::Threading;
-using namespace Beam::TimeService;
+using namespace Beam::Tests;
+using namespace boost;
+using namespace boost::posix_time;
 
 namespace {
-  using TestLocalDataStore = LocalDataStore<BasicQuery<std::string>, TestEntry,
-    EvaluatorTranslator<QueryTypes>>;
+  using TestLocalDataStore = LocalDataStore<
+    BasicQuery<std::string>, TestEntry, EvaluatorTranslator<QueryTypes>>;
   using DataStore = AsyncDataStore<TestLocalDataStore>;
   using DataStoreDispatcher = TestDataStore<BasicQuery<std::string>, TestEntry>;
-  using IntrusiveDataStore = AsyncDataStore<std::shared_ptr<
-    DataStoreDispatcher>, EvaluatorTranslator<QueryTypes>>;
+  using IntrusiveDataStore = AsyncDataStore<
+    std::shared_ptr<DataStoreDispatcher>, EvaluatorTranslator<QueryTypes>>;
 }
 
 TEST_SUITE("AsyncDataStore") {
   TEST_CASE("store_and_load") {
-    auto dataStore = DataStore(Initialize());
-    auto timeClient = IncrementalTimeClient();
-    auto sequence = Beam::Queries::Sequence(5);
-    auto entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
-      sequence);
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
+    auto data_store = DataStore(init());
+    auto sequence = Beam::Sequence(5);
+    auto entry_a = store(data_store, "hello", 100,
+      time_from_string("2016-07-30 04:12:55:12"), sequence);
+    sequence = increment(sequence);
+    auto entry_b = store(data_store, "hello", 200,
+      time_from_string("2016-07-30 04:12:55:15"), sequence);
+    sequence = increment(sequence);
+    auto entry_c = store(data_store, "hello", 300,
+      time_from_string("2016-07-30 04:12:55:18"), sequence);
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::UNLIMITED, {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(0), {});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(1), {entry_a});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(2), {entry_a, entry_b});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(3), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(4), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(0), {});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(1), {entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(2), {entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(3), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(4), {entry_a, entry_b, entry_c});
   }
 
   TEST_CASE("head_spanning_load") {
-    auto localDataStore = TestLocalDataStore();
-    auto dataStore = AsyncDataStore(&localDataStore);
-    auto timeClient = IncrementalTimeClient();
-    auto sequence = Beam::Queries::Sequence(5);
-    auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
-      sequence);
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 4),
-      {entryA, entryB, entryC, entryD});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit::Unlimited(), {entryA, entryB, entryC, entryD});
+    auto local_data_store = TestLocalDataStore();
+    auto data_store = AsyncDataStore(&local_data_store);
+    auto sequence = Beam::Sequence(5);
+    auto entry_a = store(local_data_store, "hello", 100,
+      time_from_string("2016-07-30 04:12:55:00"), sequence);
+    sequence = increment(sequence);
+    auto entry_b = store(local_data_store, "hello", 101,
+      time_from_string("2016-07-30 04:12:55:03"), sequence);
+    sequence = increment(sequence);
+    auto entry_c = store(data_store, "hello", 102,
+      time_from_string("2016-07-30 04:12:55:06"), sequence);
+    sequence = increment(sequence);
+    auto entry_d = store(data_store, "hello", 103,
+      time_from_string("2016-07-30 04:12:55:07"), sequence);
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(1), {entry_a});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(2), {entry_a, entry_b});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(3), {entry_a, entry_b, entry_c});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_head(4), {entry_a, entry_b, entry_c, entry_d});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::UNLIMITED, {entry_a, entry_b, entry_c, entry_d});
   }
 
   TEST_CASE("tail_spanning_load") {
-    auto localDataStore = TestLocalDataStore();
-    auto dataStore = AsyncDataStore(&localDataStore);
-    auto timeClient = IncrementalTimeClient();
-    auto sequence = Beam::Queries::Sequence(5);
-    auto entryA = StoreValue(localDataStore, "hello", 100, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryB = StoreValue(localDataStore, "hello", 101, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryC = StoreValue(dataStore, "hello", 102, timeClient.GetTime(),
-      sequence);
-    sequence = Increment(sequence);
-    auto entryD = StoreValue(dataStore, "hello", 103, timeClient.GetTime(),
-      sequence);
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryD});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryC, entryD});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryB, entryC, entryD});
-    TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 4),
-      {entryA, entryB, entryC, entryD});
+    auto local_data_store = TestLocalDataStore();
+    auto data_store = AsyncDataStore(&local_data_store);
+    auto sequence = Beam::Sequence(5);
+    auto entry_a = store(local_data_store, "hello", 100,
+      time_from_string("2016-07-30 04:12:55:44"), sequence);
+    sequence = increment(sequence);
+    auto entry_b = store(local_data_store, "hello", 101,
+      time_from_string("2016-07-30 04:12:55:48"), sequence);
+    sequence = increment(sequence);
+    auto entry_c = store(data_store, "hello", 102,
+      time_from_string("2016-07-30 04:12:55:50"), sequence);
+    sequence = increment(sequence);
+    auto entry_d = store(data_store, "hello", 103,
+      time_from_string("2016-07-30 04:12:55:51"), sequence);
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(1), {entry_d});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(2), {entry_c, entry_d});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(3), {entry_b, entry_c, entry_d});
+    test_query(data_store, "hello", Beam::Range::TOTAL,
+      SnapshotLimit::from_tail(4),
+      {entry_a, entry_b, entry_c, entry_d});
   }
 
   TEST_CASE("buffered_load") {
     auto dispatcher = std::make_shared<DataStoreDispatcher>();
-    auto dataStore = IntrusiveDataStore(dispatcher);
-    auto operations = std::make_shared<Queue<
-      std::shared_ptr<DataStoreDispatcher::Operation>>>();
-    dispatcher->GetOperationPublisher().Monitor(operations);
-    auto timeClient = IncrementalTimeClient();
-    auto entryA = SequencedIndexedTestEntry();
-    auto entryB = SequencedIndexedTestEntry();
-    auto entryC = SequencedIndexedTestEntry();
-    auto firstStoreOperation =
+    auto data_store = IntrusiveDataStore(dispatcher);
+    auto operations = std::make_shared<
+      Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
+    dispatcher->get_operation_publisher().monitor(operations);
+    auto entry_a = SequencedIndexedTestEntry();
+    auto entry_b = SequencedIndexedTestEntry();
+    auto entry_c = SequencedIndexedTestEntry();
+    auto first_store_operation =
       std::optional<DataStoreDispatcher::StoreOperation*>();
     {
-      auto handler = RoutineHandler(Spawn(
-        [&] {
-          auto operation = operations->Pop();
-          auto storeOperation = std::get_if<
-            DataStoreDispatcher::StoreOperation>(&*operation);
-          firstStoreOperation = storeOperation;
+      auto handler = RoutineHandler(spawn([&] {
+        auto operation = operations->pop();
+        auto store_operation =
+          std::get_if<DataStoreDispatcher::StoreOperation>(&*operation);
+        first_store_operation = store_operation;
       }));
-      auto sequence = Beam::Queries::Sequence(5);
-      entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
-        sequence);
-      sequence = Increment(sequence);
-      entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
-        sequence);
-      sequence = Increment(sequence);
-      entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
-        sequence);
+      auto sequence = Beam::Sequence(5);
+      entry_a = store(data_store, "hello", 100,
+        time_from_string("2016-07-30 04:12:55:21"), sequence);
+      sequence = increment(sequence);
+      entry_b = store(data_store, "hello", 200,
+        time_from_string("2016-07-30 04:12:55:22"), sequence);
+      sequence = increment(sequence);
+      entry_c = store(data_store, "hello", 300,
+        time_from_string("2016-07-30 04:12:55:23"), sequence);
     }
     {
-      auto handler = RoutineHandler(Spawn(
-        [&] {
-          for(auto i = 0; i != 11; ++i) {
-            auto operation = operations->Pop();
-            auto& loadOperation = std::get<DataStoreDispatcher::LoadOperation>(
-              *operation);
-            loadOperation.m_result.SetResult(std::vector<SequencedTestEntry>());
-          }
-        }));
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
+      auto handler = RoutineHandler(spawn([&] {
+        for(auto i = 0; i != 11; ++i) {
+          auto operation = operations->pop();
+          auto& load_operation =
+            std::get<DataStoreDispatcher::LoadOperation>(*operation);
+          load_operation.m_result.set(std::vector<SequencedTestEntry>());
+        }
+      }));
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::UNLIMITED, {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(0), {});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(1), {entry_a});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(2), {entry_a, entry_b});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(3), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(4), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(0), {});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(1), {entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(2), {entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(3), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(4), {entry_a, entry_b, entry_c});
     }
-    REQUIRE(firstStoreOperation.has_value());
-    auto entriesLeft = 3 - (*firstStoreOperation)->m_values.size();
-    (*firstStoreOperation)->m_result.SetResult();
-    while(entriesLeft != 0) {
-      auto operation = operations->Pop();
-      auto& storeOperation = std::get<DataStoreDispatcher::StoreOperation>(
-        *operation);
-      entriesLeft -= storeOperation.m_values.size();
-      storeOperation.m_result.SetResult();
+    REQUIRE(first_store_operation.has_value());
+    auto entries_left = 3 - (*first_store_operation)->m_values.size();
+    (*first_store_operation)->m_result.set();
+    while(entries_left != 0) {
+      auto operation = operations->pop();
+      auto& store_operation =
+        std::get<DataStoreDispatcher::StoreOperation>(*operation);
+      entries_left -= store_operation.m_values.size();
+      store_operation.m_result.set();
     }
   }
 
   TEST_CASE("flushed_load") {
-    auto localDataStore = TestLocalDataStore();
+    auto local_data_store = TestLocalDataStore();
     auto dispatcher = std::make_shared<DataStoreDispatcher>();
-    auto dataStore = IntrusiveDataStore(dispatcher);
+    auto data_store = IntrusiveDataStore(dispatcher);
     auto operations = std::make_shared<
       Queue<std::shared_ptr<DataStoreDispatcher::Operation>>>();
-    dispatcher->GetOperationPublisher().Monitor(operations);
-    auto timeClient = IncrementalTimeClient();
-    auto entryA = SequencedIndexedTestEntry();
-    auto entryB = SequencedIndexedTestEntry();
-    auto entryC = SequencedIndexedTestEntry();
+    dispatcher->get_operation_publisher().monitor(operations);
+    auto entry_a = SequencedIndexedTestEntry();
+    auto entry_b = SequencedIndexedTestEntry();
+    auto entry_c = SequencedIndexedTestEntry();
     {
-      auto handler = RoutineHandler(Spawn(
-        [&] {
-          for(auto i = 3; i != 0;) {
-            auto operation = operations->Pop();
-            auto& storeOperation = std::get<
-              DataStoreDispatcher::StoreOperation>(*operation);
-            i -= storeOperation.m_values.size();
-            localDataStore.Store(storeOperation.m_values);
-            storeOperation.m_result.SetResult();
-          }
-        }));
-      auto sequence = Beam::Queries::Sequence(5);
-      entryA = StoreValue(dataStore, "hello", 100, timeClient.GetTime(),
-        sequence);
-      sequence = Increment(sequence);
-      entryB = StoreValue(dataStore, "hello", 200, timeClient.GetTime(),
-        sequence);
-      sequence = Increment(sequence);
-      entryC = StoreValue(dataStore, "hello", 300, timeClient.GetTime(),
-        sequence);
+      auto handler = RoutineHandler(spawn([&] {
+        for(auto i = 3; i != 0;) {
+          auto operation = operations->pop();
+          auto& store_operation =
+            std::get<DataStoreDispatcher::StoreOperation>(*operation);
+          i -= store_operation.m_values.size();
+          local_data_store.store(store_operation.m_values);
+          store_operation.m_result.set();
+        }
+      }));
+      auto sequence = Beam::Sequence(5);
+      entry_a = store(data_store, "hello", 100,
+        time_from_string("2016-07-30 04:12:55:12"), sequence);
+      sequence = increment(sequence);
+      entry_b = store(data_store, "hello", 200,
+        time_from_string("2016-07-30 04:12:55:15"), sequence);
+      sequence = increment(sequence);
+      entry_c = store(data_store, "hello", 300,
+        time_from_string("2016-07-30 04:12:55:18"), sequence);
     }
     {
-      auto handler = RoutineHandler(Spawn(
-        [&] {
-          for(auto i = 0; i != 11; ++i) {
-            auto operation = operations->Pop();
-            auto& loadOperation = std::get<DataStoreDispatcher::LoadOperation>(
-              *operation);
-            auto values = localDataStore.Load(loadOperation.m_query);
-            loadOperation.m_result.SetResult(values);
-          }
-        }));
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit::Unlimited(), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 0), {});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 1), {entryA});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 2), {entryA, entryB});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 3), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::HEAD, 4), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 0), {});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 1), {entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 2), {entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 3), {entryA, entryB, entryC});
-      TestQuery(dataStore, "hello", Beam::Queries::Range::Total(),
-        SnapshotLimit(SnapshotLimit::Type::TAIL, 4), {entryA, entryB, entryC});
+      auto handler = RoutineHandler(spawn([&] {
+        for(auto i = 0; i != 11; ++i) {
+          auto operation = operations->pop();
+          auto& load_operation =
+            std::get<DataStoreDispatcher::LoadOperation>(*operation);
+          auto values = local_data_store.load(load_operation.m_query);
+          load_operation.m_result.set(values);
+        }
+      }));
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::UNLIMITED, {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(0), {});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(1), {entry_a});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(2), {entry_a, entry_b});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(3), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_head(4), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(0), {});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(1), {entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(2), {entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(3), {entry_a, entry_b, entry_c});
+      test_query(data_store, "hello", Beam::Range::TOTAL,
+        SnapshotLimit::from_tail(4), {entry_a, entry_b, entry_c});
     }
   }
 }

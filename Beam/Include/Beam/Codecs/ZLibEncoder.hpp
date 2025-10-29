@@ -1,98 +1,75 @@
 #ifndef BEAM_ZLIB_ENCODER_HPP
 #define BEAM_ZLIB_ENCODER_HPP
 #include <cassert>
+#include <limits>
 #include <boost/throw_exception.hpp>
 #include <zlib.h>
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Codecs/EncoderException.hpp"
-#include "Beam/IO/Buffer.hpp"
 
 namespace Beam {
-namespace Codecs {
+  class ZLibDecoder;
 
   /** Encodes using ZLib compression. */
   class ZLibEncoder {
     public:
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Encode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Encode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t encode(const S& source, Out<B> destination);
   };
 
   template<>
-  struct Inverse<ZLibEncoder> {
+  struct inverse<ZLibEncoder> {
     using type = ZLibDecoder;
   };
 
-  inline std::size_t ZLibEncoder::Encode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    auto stream = z_stream();
-    stream.zalloc = Z_NULL;
-    stream.zfree = Z_NULL;
-    stream.opaque = Z_NULL;
-    stream.avail_in = static_cast<uInt>(sourceSize);
-    stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
-    stream.avail_out = static_cast<uInt>(destinationSize);
-    stream.next_out = static_cast<Bytef*>(const_cast<void*>(destination));
-    auto result = deflateInit(&stream, Z_BEST_COMPRESSION);
-    if(result == Z_OK) {
-      result = deflate(&stream, Z_FINISH);
-      if(result == Z_STREAM_END) {
-        result = deflateEnd(&stream);
-      }
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t ZLibEncoder::encode(const S& source, Out<B> destination) {
+    auto input_size = source.get_size();
+    if(input_size > std::numeric_limits<uLong>::max()) {
+      boost::throw_with_location(EncoderException("Source size too large."));
     }
-    if(result != Z_OK) {
+    auto required_size = compressBound(static_cast<uLong>(input_size));
+    auto available_size = reserve(*destination, required_size);
+    if(available_size < required_size) {
+      boost::throw_with_location(EncoderException("Insufficient space."));
+    }
+    while(true) {
+      auto destination_size = std::min<uInt>(
+        destination->get_size(), std::numeric_limits<uInt>::max());
+      auto stream = z_stream();
+      stream.zalloc = Z_NULL;
+      stream.zfree = Z_NULL;
+      stream.opaque = Z_NULL;
+      stream.avail_in = static_cast<uInt>(input_size);
+      stream.next_in =
+        reinterpret_cast<Bytef*>(const_cast<char*>(source.get_data()));
+      stream.avail_out = static_cast<uInt>(destination_size);
+      stream.next_out = reinterpret_cast<Bytef*>(
+        const_cast<char*>(destination->get_mutable_data()));
+      auto result = deflateInit(&stream, Z_BEST_COMPRESSION);
+      if(result == Z_OK) {
+        result = deflate(&stream, Z_FINISH);
+        if(result == Z_STREAM_END) {
+          result = deflateEnd(&stream);
+        }
+      }
+      if(result == Z_OK) {
+        destination->shrink(destination->get_size() - stream.total_out);
+        return stream.total_out;
+      }
       if(result == Z_BUF_ERROR) {
-        BOOST_THROW_EXCEPTION(EncoderException(
-          "The buffer was not large enough to hold the compressed data."));
+        auto grow_by = std::max<std::size_t>(destination->get_size(), 1024);
+        auto available_size = destination->grow(grow_by);
+        if(available_size < grow_by) {
+          boost::throw_with_location(DecoderException("Insufficient space."));
+        }
       } else if(result == Z_MEM_ERROR) {
-        BOOST_THROW_EXCEPTION(EncoderException("Insufficient memory."));
+        boost::throw_with_location(EncoderException("Insufficient memory."));
       } else {
-        BOOST_THROW_EXCEPTION(EncoderException("Unknown error."));
+        boost::throw_with_location(EncoderException("Unknown error."));
       }
     }
-    return static_cast<std::size_t>(stream.total_out);
   }
-
-  template<typename Buffer>
-  std::size_t ZLibEncoder::Encode(const Buffer& source, void* destination,
-      std::size_t destinationSize) {
-    return Encode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename Buffer>
-  std::size_t ZLibEncoder::Encode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination) {
-    auto sizeEstimate = static_cast<std::size_t>(
-      deflateBound(nullptr, sourceSize));
-    destination->Reserve(sizeEstimate);
-    auto size = Encode(source, sourceSize, destination->GetMutableData(),
-      destination->GetSize());
-    destination->Shrink(destination->GetSize() - size);
-    return size;
-  }
-
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t ZLibEncoder::Encode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination) {
-    return Encode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<>
-  struct ImplementsConcept<Codecs::ZLibEncoder, Codecs::Encoder> :
-    std::true_type {};
 }
 
 #endif

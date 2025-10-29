@@ -14,7 +14,7 @@ namespace Details {
 
   /**
    * Implements a type caster for Python's Decimal.
-   * @param <T> The C++ type to convert a Python Decimal to.
+   * @tparam T The C++ type to convert a Python Decimal to.
    */
   template<typename T>
   struct DecimalTypeCaster : BasicTypeCaster<T> {

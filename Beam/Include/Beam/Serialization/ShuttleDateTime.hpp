@@ -5,226 +5,199 @@
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
-namespace Beam::Serialization {
+namespace Beam {
   template<>
-  struct IsStructure<boost::posix_time::time_duration> : std::false_type {};
+  constexpr auto is_structure<boost::posix_time::time_duration> = false;
 
   template<>
   struct Send<boost::posix_time::time_duration> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const boost::posix_time::time_duration& value) const {
-      shuttle.Shuttle(name, boost::posix_time::to_simple_string(value));
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
+        boost::posix_time::time_duration value) const {
+      sender.send(name, boost::posix_time::to_simple_string(value));
     }
   };
 
   template<>
   struct Receive<boost::posix_time::time_duration> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::posix_time::time_duration& value) const {
-      auto timeAsString = std::string();
-      shuttle.Shuttle(name, timeAsString);
-      if(timeAsString == "+infinity") {
+      auto time_as_string = receive<std::string>(receiver, name);
+      if(time_as_string == "+infinity") {
         value = boost::posix_time::pos_infin;
-      } else if(timeAsString == "-infinity") {
+      } else if(time_as_string == "-infinity") {
         value = boost::posix_time::neg_infin;
       } else {
-        value = boost::posix_time::duration_from_string(timeAsString);
+        value = boost::posix_time::duration_from_string(time_as_string);
       }
     }
   };
 
   template<>
-  struct IsStructure<boost::posix_time::ptime> : std::false_type {};
+  constexpr auto is_structure<boost::posix_time::ptime> = false;
 
   template<>
   struct Send<boost::posix_time::ptime> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        const boost::posix_time::ptime& value) const {
-      shuttle.Shuttle(name, boost::posix_time::to_iso_string(value));
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, boost::posix_time::ptime value) const {
+      sender.send(name, boost::posix_time::to_iso_string(value));
     }
   };
 
   template<>
   struct Receive<boost::posix_time::ptime> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        boost::posix_time::ptime& value) const {
-      auto timeAsString = std::string();
-      shuttle.Shuttle(name, timeAsString);
-      if(timeAsString == "+infinity") {
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, const char* name, boost::posix_time::ptime& value) const {
+      auto time_as_string = receive<std::string>(receiver, name);
+      if(time_as_string == "+infinity") {
         value = boost::posix_time::pos_infin;
-      } else if(timeAsString == "-infinity") {
+      } else if(time_as_string == "-infinity") {
         value = boost::posix_time::neg_infin;
-      } else if(timeAsString == "not-a-date-time") {
+      } else if(time_as_string == "not-a-date-time") {
         value = boost::posix_time::ptime();
       } else {
-        value = boost::posix_time::from_iso_string(timeAsString);
+        value = boost::posix_time::from_iso_string(time_as_string);
       }
     }
   };
 
   template<>
-  struct IsStructure<boost::gregorian::greg_weekday> : std::false_type {};
+  constexpr auto is_structure<boost::gregorian::greg_weekday> = false;
 
   template<>
-  struct IsDefaultConstructable<boost::gregorian::greg_weekday> :
-    std::false_type {};
-
-  template<>
-  inline boost::gregorian::greg_weekday DefaultConstruct<
-      boost::gregorian::greg_weekday>() {
+  inline boost::gregorian::greg_weekday
+      default_construct<boost::gregorian::greg_weekday>() {
     return 0;
   }
 
   template<>
   struct Send<boost::gregorian::greg_weekday> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
         boost::gregorian::greg_weekday value) const {
-      shuttle.Shuttle(name, static_cast<std::uint8_t>(value));
+      sender.send(name, static_cast<std::uint8_t>(value));
     }
   };
 
   template<>
   struct Receive<boost::gregorian::greg_weekday> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::gregorian::greg_weekday& value) const {
-      auto day = std::uint8_t();
-      shuttle.Shuttle(name, day);
-      value = day;
+      value = receive<std::uint8_t>(receiver, name);
     }
   };
 
   template<>
-  struct IsStructure<boost::gregorian::greg_day> : std::false_type {};
+  constexpr auto is_structure<boost::gregorian::greg_day> = false;
 
   template<>
-  struct IsDefaultConstructable<boost::gregorian::greg_day> :
-    std::false_type {};
-
-  template<>
-  inline boost::gregorian::greg_day DefaultConstruct<
-      boost::gregorian::greg_day>() {
-    return 0;
+  inline boost::gregorian::greg_day
+      default_construct<boost::gregorian::greg_day>() {
+    return 1;
   }
 
   template<>
   struct Send<boost::gregorian::greg_day> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
-        boost::gregorian::greg_day value) const {
-      shuttle.Shuttle(name, static_cast<std::uint8_t>(value));
+    template<IsSender S>
+    void operator ()(
+        S& sender, const char* name, boost::gregorian::greg_day value) const {
+      sender.send(name, static_cast<std::uint8_t>(value));
     }
   };
 
   template<>
   struct Receive<boost::gregorian::greg_day> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::gregorian::greg_day& value) const {
-      auto day = std::uint8_t();
-      shuttle.Shuttle(name, day);
-      value = day;
+      value = receive<std::uint8_t>(receiver, name);
     }
   };
 
   template<>
-  struct IsStructure<boost::gregorian::greg_month> : std::false_type {};
+  constexpr auto is_structure<boost::gregorian::greg_month> = false;
 
   template<>
-  struct IsDefaultConstructable<boost::gregorian::greg_month> :
-    std::false_type {};
-
-  template<>
-  inline boost::gregorian::greg_month DefaultConstruct<
-      boost::gregorian::greg_month>() {
-    return 0;
+  inline boost::gregorian::greg_month
+      default_construct<boost::gregorian::greg_month>() {
+    return 1;
   }
 
   template<>
   struct Send<boost::gregorian::greg_month> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
         boost::gregorian::greg_month value) const {
-      shuttle.Shuttle(name, static_cast<std::uint8_t>(value));
+      sender.send(name, static_cast<std::uint8_t>(value));
     }
   };
 
   template<>
   struct Receive<boost::gregorian::greg_month> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::gregorian::greg_month& value) const {
-      auto month = std::uint8_t();
-      shuttle.Shuttle(name, month);
-      value = month;
+      value = receive<std::uint8_t>(receiver, name);
     }
   };
 
   template<>
-  struct IsStructure<boost::gregorian::greg_year> : std::false_type {};
+  constexpr auto is_structure<boost::gregorian::greg_year> = false;
 
   template<>
-  struct IsDefaultConstructable<boost::gregorian::greg_year> :
-    std::false_type {};
-
-  template<>
-  inline boost::gregorian::greg_year DefaultConstruct<
-      boost::gregorian::greg_year>() {
+  inline boost::gregorian::greg_year
+      default_construct<boost::gregorian::greg_year>() {
     return 1900;
   }
 
   template<>
   struct Send<boost::gregorian::greg_year> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
         boost::gregorian::greg_year value) const {
-      shuttle.Shuttle(name, static_cast<std::uint16_t>(value));
+      sender.send(name, static_cast<std::uint16_t>(value));
     }
   };
 
   template<>
   struct Receive<boost::gregorian::greg_year> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::gregorian::greg_year& value) const {
-      auto year = std::uint16_t();
-      shuttle.Shuttle(name, year);
-      value = year;
+      value = receive<std::uint16_t>(receiver, name);
     }
   };
 
   template<>
-  struct IsStructure<boost::gregorian::date> : std::false_type {};
+  constexpr auto is_structure<boost::gregorian::date> = false;
 
   template<>
   struct Send<boost::gregorian::date> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
         const boost::gregorian::date& value) const {
-      shuttle.Shuttle(name, boost::gregorian::to_iso_string(value));
+      sender.send(name, boost::gregorian::to_iso_string(value));
     }
   };
 
   template<>
   struct Receive<boost::gregorian::date> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         boost::gregorian::date& value) const {
-      auto dateAsString = std::string();
-      shuttle.Shuttle(name, dateAsString);
-      if(dateAsString == "+infinity") {
+      auto date_as_string = receive<std::string>(receiver, name);
+      if(date_as_string == "+infinity") {
         value = boost::gregorian::date(boost::gregorian::pos_infin);
-      } else if(dateAsString == "-infinity") {
+      } else if(date_as_string == "-infinity") {
         value = boost::gregorian::date(boost::gregorian::neg_infin);
-      } else if(dateAsString == "not-a-date-time") {
+      } else if(date_as_string == "not-a-date-time") {
         value = boost::gregorian::date();
       } else {
-        value = boost::gregorian::from_undelimited_string(dateAsString);
+        value = boost::gregorian::from_undelimited_string(date_as_string);
       }
     }
   };

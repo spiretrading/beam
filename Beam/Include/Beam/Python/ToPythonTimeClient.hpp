@@ -1,19 +1,19 @@
 #ifndef BEAM_TO_PYTHON_TIME_CLIENT_HPP
 #define BEAM_TO_PYTHON_TIME_CLIENT_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
 
-namespace Beam::TimeService {
+namespace Beam::Python {
 
   /**
-   * Wraps a TimeClient for use with Python.
-   * @param <C> The type of TimeClient to wrap.
+   * Wraps a TimeClient for use within Python.
+   * @tparam C The type of TimeClient to wrap.
    */
-  template<typename C>
+  template<IsTimeClient C>
   class ToPythonTimeClient {
     public:
 
@@ -25,23 +25,30 @@ namespace Beam::TimeService {
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonTimeClient(Args&&... args);
-
-      ToPythonTimeClient(ToPythonTimeClient&&) = default;
+      explicit ToPythonTimeClient(Args&&... args);
 
       ~ToPythonTimeClient();
 
-      /** Returns the wrapped TimeClient. */
-      const Client& GetClient() const;
+      /** Returns a reference to the underlying client. */
+      Client& get();
 
-      /** Returns the wrapped TimeClient. */
-      Client& GetClient();
+      /** Returns a reference to the underlying client. */
+      const Client& get() const;
 
-      boost::posix_time::ptime GetTime();
+      /** Returns a reference to the underlying client. */
+      Client& operator *();
 
-      void Close();
+      /** Returns a reference to the underlying client. */
+      const Client& operator *() const;
 
-      ToPythonTimeClient& operator =(ToPythonTimeClient&&) = default;
+      /** Returns a pointer to the underlying client. */
+      Client* operator ->();
+
+      /** Returns a pointer to the underlying client. */
+      const Client* operator ->() const;
+
+      boost::posix_time::ptime get_time();
+      void close();
 
     private:
       boost::optional<Client> m_client;
@@ -52,41 +59,63 @@ namespace Beam::TimeService {
 
   template<typename TimeClient>
   ToPythonTimeClient(TimeClient&&) ->
-    ToPythonTimeClient<std::decay_t<TimeClient>>;
+    ToPythonTimeClient<std::remove_cvref_t<TimeClient>>;
 
-  template<typename C>
+  template<IsTimeClient C>
   template<typename... Args>
   ToPythonTimeClient<C>::ToPythonTimeClient(Args&&... args)
-    : m_client((Python::GilRelease(), boost::in_place_init),
-        std::forward<Args>(args)...) {}
+    : m_client(
+        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
 
-  template<typename C>
+  template<IsTimeClient C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_client.reset();
   }
 
-  template<typename C>
+  template<IsTimeClient C>
+  typename ToPythonTimeClient<C>::Client& ToPythonTimeClient<C>::get() {
+    return *m_client;
+  }
+
+  template<IsTimeClient C>
   const typename ToPythonTimeClient<C>::Client&
-      ToPythonTimeClient<C>::GetClient() const {
+      ToPythonTimeClient<C>::get() const {
     return *m_client;
   }
 
-  template<typename C>
-  typename ToPythonTimeClient<C>::Client& ToPythonTimeClient<C>::GetClient() {
+  template<IsTimeClient C>
+  typename ToPythonTimeClient<C>::Client& ToPythonTimeClient<C>::operator *() {
     return *m_client;
   }
 
-  template<typename C>
-  boost::posix_time::ptime ToPythonTimeClient<C>::GetTime() {
-    auto release = Python::GilRelease();
-    return m_client->GetTime();
+  template<IsTimeClient C>
+  const typename ToPythonTimeClient<C>::Client&
+      ToPythonTimeClient<C>::operator *() const {
+    return *m_client;
   }
 
-  template<typename C>
-  void ToPythonTimeClient<C>::Close() {
-    auto release = Python::GilRelease();
-    m_client->Close();
+  template<IsTimeClient C>
+  typename ToPythonTimeClient<C>::Client* ToPythonTimeClient<C>::operator ->() {
+    return m_client.get_ptr();
+  }
+
+  template<IsTimeClient C>
+  const typename ToPythonTimeClient<C>::Client*
+      ToPythonTimeClient<C>::operator ->() const {
+    return m_client.get_ptr();
+  }
+
+  template<IsTimeClient C>
+  boost::posix_time::ptime ToPythonTimeClient<C>::get_time() {
+    auto release = GilRelease();
+    return m_client->get_time();
+  }
+
+  template<IsTimeClient C>
+  void ToPythonTimeClient<C>::close() {
+    auto release = GilRelease();
+    m_client->close();
   }
 }
 

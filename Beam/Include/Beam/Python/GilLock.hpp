@@ -8,13 +8,13 @@ namespace Beam::Python {
   class GilLock {
     public:
 
-      /** Locks the GIL/ */
-      GilLock();
+      /** Locks the GIL. */
+      GilLock() noexcept;
 
       ~GilLock();
 
     private:
-      bool m_hasGil;
+      bool m_has_gil;
       PyGILState_STATE m_state;
 
       GilLock(const GilLock&) = delete;
@@ -25,19 +25,19 @@ namespace Beam::Python {
    * Returns <code>true</code> iff this thread has the global interpreter
    * lock.
    */
-  inline bool HasGil() {
+  inline bool has_gil() {
     return PyGILState_Check() != 0;
   }
 
-  inline GilLock::GilLock() {
-    m_hasGil = HasGil();
-    if(!m_hasGil) {
+  inline GilLock::GilLock() noexcept {
+    m_has_gil = has_gil();
+    if(!m_has_gil) {
       m_state = PyGILState_Ensure();
     }
   }
 
-  inline GilLock::~GilLock() {
-    if(!m_hasGil) {
+  inline GilLock::~GilLock() noexcept {
+    if(!m_has_gil) {
       PyGILState_Release(m_state);
     }
   }

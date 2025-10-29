@@ -1,14 +1,13 @@
 #ifndef BEAM_ENUM_ITERATOR_HPP
 #define BEAM_ENUM_ITERATOR_HPP
 #include <iterator>
-#include "Beam/Collections/Collections.hpp"
 #include "Beam/Collections/Enum.hpp"
 
 namespace Beam {
 
   /**
    * Provides the ability to iterate over an enum type.
-   * @param <T> The enum type to iterate over.
+   * @tparam T The enum type to iterate over.
    */
   template<typename T>
   class EnumIterator {
@@ -24,23 +23,17 @@ namespace Beam {
       using reference = Type&;
 
       /** Constructs an iterator to the first enumerated value. */
-      EnumIterator();
+      EnumIterator() noexcept;
 
       /**
        * Constructs an iterator to a specified enumerated value.
        * @param current The current value to iterate over.
        */
-      explicit EnumIterator(Type current);
+      explicit EnumIterator(Type current) noexcept;
 
-      /** Returns the current value. */
-      Type operator *() const;
-
-      /** Increments this iterator. */
-      void operator ++(int);
-
-      /** Increments this iterator. */
-      EnumIterator operator ++();
-
+      Type operator *() const noexcept;
+      EnumIterator operator ++(int) noexcept;
+      EnumIterator operator ++() noexcept;
       bool operator ==(const EnumIterator& i) const = default;
 
     private:
@@ -49,7 +42,7 @@ namespace Beam {
 
   /**
    * A sentinel class used to represent an enum range.
-   * @param <T> The enum type to iterate over.
+   * @tparam T The enum type to iterate over.
    */
   template<typename T>
   struct EnumRangeType {
@@ -60,7 +53,7 @@ namespace Beam {
 
   /** Constructs a range over an enum type. */
   template<typename T>
-  EnumRangeType<T> MakeRange() {
+  EnumRangeType<T> make_range() {
     return EnumRangeType<T>();
   }
 
@@ -71,7 +64,7 @@ namespace Beam {
    * @return An iterator to the beginning of the enum range.
    */
   template<typename T>
-  EnumIterator<T> begin(EnumRangeType<T> value) {
+  EnumIterator<T> begin(EnumRangeType<T> value) noexcept {
     return EnumIterator(static_cast<typename EnumIterator<T>::Type>(0));
   }
 
@@ -82,34 +75,35 @@ namespace Beam {
    * @return An iterator to the end of the enum range.
    */
   template<typename T>
-  EnumIterator<T> end(EnumRangeType<T> value) {
+  EnumIterator<T> end(EnumRangeType<T> value) noexcept {
     return EnumIterator(static_cast<typename EnumIterator<T>::Type>(
       EnumIterator<T>::Type::COUNT));
   }
 
   template<typename T>
-  EnumIterator<T>::EnumIterator()
+  EnumIterator<T>::EnumIterator() noexcept
     : m_current(static_cast<Type>(0)) {}
 
   template<typename T>
-  EnumIterator<T>::EnumIterator(Type current)
+  EnumIterator<T>::EnumIterator(Type current) noexcept
     : m_current(current) {}
 
   template<typename T>
-  typename EnumIterator<T>::Type EnumIterator<T>::operator *() const {
+  typename EnumIterator<T>::Type EnumIterator<T>::operator *() const noexcept {
     return m_current;
   }
 
   template<typename T>
-  void EnumIterator<T>::operator ++(int) {
-    m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
-  }
-
-  template<typename T>
-  EnumIterator<T> EnumIterator<T>::operator ++() {
+  EnumIterator<T> EnumIterator<T>::operator ++(int) noexcept {
     auto i = *this;
     m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
     return i;
+  }
+
+  template<typename T>
+  EnumIterator<T> EnumIterator<T>::operator ++() noexcept {
+    m_current = static_cast<Type>(static_cast<int>(m_current) + 1);
+    return *this;
   }
 }
 

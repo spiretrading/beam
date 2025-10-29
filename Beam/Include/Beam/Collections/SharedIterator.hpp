@@ -1,13 +1,12 @@
 #ifndef BEAM_SHARED_ITERATOR_HPP
 #define BEAM_SHARED_ITERATOR_HPP
 #include <memory>
-#include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
 
   /**
    * An iterator that shares ownership of its collection.
-   * @param <C> The type of collection this iterator shares ownership of.
+   * @tparam C The type of collection this iterator shares ownership of.
    */
   template<typename C>
   class SharedIterator {
@@ -43,8 +42,8 @@ namespace Beam {
        * @param collection The collection to make the SharedIterator over.
        * @param iterator The iterator into the collection.
        */
-      SharedIterator(std::shared_ptr<Collection> collection,
-        base_iterator iterator);
+      SharedIterator(
+        std::shared_ptr<Collection> collection, base_iterator iterator);
 
       /**
        * Returns a SharedIterator to an offset from this SharedIterator.
@@ -59,6 +58,9 @@ namespace Beam {
       /** Returns a pointer to the value. */
       pointer operator ->() const;
 
+      /** Returns the distance between two iterators. */
+      difference_type operator -(const SharedIterator& rhs) const;
+
       /**
        * Increments this iterator.
        * @return <code>*this</code>
@@ -70,6 +72,18 @@ namespace Beam {
        * @return <code>*this</code>
        */
       SharedIterator& operator --();
+
+      /**
+       * Advances this iterator.
+       * @param rhs The offset to advance by.
+       */
+      SharedIterator& operator +=(difference_type rhs);
+
+      /**
+       * Rewinds this iterator.
+       * @param rhs The offset to rewind by.
+       */
+      SharedIterator& operator -=(difference_type rhs);
 
       /** Tests two iterators for equality. */
       bool operator ==(const SharedIterator& rhs) const;
@@ -83,8 +97,8 @@ namespace Beam {
   };
 
   template<typename C>
-  SharedIterator<C>::SharedIterator(std::shared_ptr<Collection> collection,
-    base_iterator iterator)
+  SharedIterator<C>::SharedIterator(
+    std::shared_ptr<Collection> collection, base_iterator iterator)
     : m_collection(std::move(collection)),
       m_iterator(std::move(iterator)) {}
 
@@ -104,6 +118,12 @@ namespace Beam {
   }
 
   template<typename C>
+  typename SharedIterator<C>::difference_type SharedIterator<C>::operator -(
+      const SharedIterator& rhs) const {
+    return m_iterator - rhs.m_iterator;
+  }
+
+  template<typename C>
   SharedIterator<C>& SharedIterator<C>::operator ++() {
     ++m_iterator;
     return *this;
@@ -112,6 +132,18 @@ namespace Beam {
   template<typename C>
   SharedIterator<C>& SharedIterator<C>::operator --() {
     --m_iterator;
+    return *this;
+  }
+
+  template<typename C>
+  SharedIterator<C>& SharedIterator<C>::operator+=(difference_type rhs) {
+    m_iterator += rhs;
+    return *this;
+  }
+
+  template<typename C>
+  SharedIterator<C>& SharedIterator<C>::operator-=(difference_type rhs) {
+    m_iterator -= rhs;
     return *this;
   }
 

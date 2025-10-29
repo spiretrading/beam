@@ -2,12 +2,11 @@
 #define BEAM_JSON_VALUE_HPP
 #include <cmath>
 #include <cstdint>
+#include <ostream>
 #include <string>
 #include <vector>
-#include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/get.hpp>
 #include <boost/variant/variant.hpp>
-#include "Beam/Json/Json.hpp"
 #include "Beam/Utilities/VariantLambdaVisitor.hpp"
 
 namespace Beam {
@@ -20,8 +19,8 @@ namespace Beam {
   };
 
 namespace Details {
-  using JsonVariant = boost::variant<std::string, JsonNull, bool, double,
-    JsonObject, std::vector<JsonValue>>;
+  using JsonVariant = boost::variant<
+    std::string, JsonNull, bool, double, JsonObject, std::vector<JsonValue>>;
 }
 
   /** Wraps a boost::variant over all JSON types. */
@@ -29,7 +28,7 @@ namespace Details {
     public:
 
       /** Constructs a null value. */
-      JsonValue();
+      JsonValue() noexcept;
 
       /**
        * Constructs a JsonValue from a variant type.
@@ -47,31 +46,31 @@ namespace Details {
        * Constructs a null value.
        * @param value The value to represent.
        */
-      JsonValue(JsonNull value);
+      JsonValue(JsonNull value) noexcept;
 
       /**
        * Constructs a bool value.
        * @param value The value to represent.
        */
-      JsonValue(bool value);
+      JsonValue(bool value) noexcept;
 
       /**
        * Constructs an integer value.
        * @param value The value to represent.
        */
-      JsonValue(int value);
+      JsonValue(int value) noexcept;
 
       /**
        * Constructs an integer value.
        * @param value The value to represent.
        */
-      JsonValue(std::int64_t value);
+      JsonValue(std::int64_t value) noexcept;
 
       /**
        * Constructs a number value.
        * @param value The value to represent.
        */
-      JsonValue(double value);
+      JsonValue(double value) noexcept;
 
       /**
        * Constructs a string value.
@@ -96,6 +95,12 @@ namespace Details {
        * @param value The value to represent.
        */
       JsonValue(const std::vector<JsonValue>& value);
+
+      /**
+       * Saves <code>this</code> object to an output stream.
+       * @param sink The stream to save <code>this</code> object to.
+       */
+      void save(std::ostream& sink) const;
 
       /**
        * Tests if two JSON values are equal.
@@ -173,12 +178,6 @@ namespace Details {
        * @return <code>*this</code>
        */
       JsonValue& operator =(const std::vector<JsonValue>& value);
-
-      /**
-       * Saves <code>this</code> object to an output stream.
-       * @param sink The stream to save <code>this</code> object to.
-       */
-      void Save(std::ostream& sink) const;
   };
 
   /**
@@ -188,7 +187,7 @@ namespace Details {
    * @return <code>sink</code>
    */
   inline std::ostream& operator <<(std::ostream& sink, const JsonValue& value) {
-    value.Save(sink);
+    value.save(sink);
     return sink;
   }
 
@@ -199,7 +198,7 @@ namespace Details {
     JsonAssignmentVisitor(JsonValue* self)
       : m_self(self) {}
 
-    template <typename T>
+    template<typename T>
     void operator()(const T& value) const {
       *m_self = value;
     }
@@ -210,7 +209,7 @@ namespace Details {
     return true;
   }
 
-  inline JsonValue::JsonValue()
+  inline JsonValue::JsonValue() noexcept
     : Details::JsonVariant(JsonNull()) {}
 
   inline JsonValue::JsonValue(const Details::JsonVariant& variant)
@@ -220,19 +219,19 @@ namespace Details {
     *this = value;
   }
 
-  inline JsonValue::JsonValue(JsonNull value)
+  inline JsonValue::JsonValue(JsonNull value) noexcept
     : Details::JsonVariant(value) {}
 
-  inline JsonValue::JsonValue(bool value)
+  inline JsonValue::JsonValue(bool value) noexcept
     : Details::JsonVariant(value) {}
 
-  inline JsonValue::JsonValue(int value)
+  inline JsonValue::JsonValue(int value) noexcept
     : Details::JsonVariant(static_cast<double>(value)) {}
 
-  inline JsonValue::JsonValue(std::int64_t value)
+  inline JsonValue::JsonValue(std::int64_t value) noexcept
     : Details::JsonVariant(static_cast<double>(value)) {}
 
-  inline JsonValue::JsonValue(double value)
+  inline JsonValue::JsonValue(double value) noexcept
     : Details::JsonVariant(value) {}
 
   inline JsonValue::JsonValue(const std::string& value)
@@ -246,6 +245,44 @@ namespace Details {
 
   inline JsonValue::JsonValue(const std::vector<JsonValue>& value)
     : Details::JsonVariant(value) {}
+
+  inline void JsonValue::save(std::ostream& sink) const {
+    apply_variant_lambda_visitor(*this,
+      [&] (JsonNull value) {
+        sink << "null";
+      },
+      [&] (bool value) {
+        if(value) {
+          sink << "true";
+        } else {
+          sink << "false";
+        }
+      },
+      [&] (double value) {
+        auto temp = double();
+        if(std::modf(value, &temp) != 0) {
+          sink << std::to_string(value);
+        } else {
+          sink << static_cast<int>(value);
+        }
+      },
+      [&] (const std::string& value) {
+        sink << '\"' << value + '\"';
+      },
+      [&] (const JsonObject& value) {
+        value.save(sink);
+      },
+      [&] (const std::vector<JsonValue>& value) {
+        sink << '[';
+        for(auto i = value.begin(); i != value.end(); ++i) {
+          i->save(sink);
+          if(i != value.end() - 1) {
+            sink << ',';
+          }
+        }
+        sink << ']';
+      });
+  }
 
   inline bool JsonValue::operator ==(const JsonValue& value) const {
     return Details::JsonVariant::operator ==(
@@ -303,46 +340,6 @@ namespace Details {
   inline JsonValue& JsonValue::operator =(const std::vector<JsonValue>& value) {
     Details::JsonVariant::operator =(value);
     return *this;
-  }
-
-  inline void JsonValue::Save(std::ostream& sink) const {
-    auto visitor = MakeVariantLambdaVisitor<void>(
-      [&] (JsonNull value) {
-        sink << "null";
-      },
-      [&] (bool value) {
-        if(value) {
-          sink << "true";
-        } else {
-          sink << "false";
-        }
-      },
-      [&] (double value) {
-        auto temp = double();
-        if(std::modf(value, &temp) != 0) {
-          sink << std::to_string(value);
-        } else {
-          sink << static_cast<int>(value);
-        }
-      },
-      [&] (const std::string& value) {
-        sink << '\"' << value + '\"';
-      },
-      [&] (const JsonObject& value) {
-        value.Save(sink);
-      },
-      [&] (const std::vector<JsonValue>& value) {
-        sink << '[';
-        for(auto i = value.begin(); i != value.end(); ++i) {
-          i->Save(sink);
-          if(i != value.end() - 1) {
-            sink << ',';
-          }
-        }
-        sink << ']';
-      }
-    );
-    boost::apply_visitor(visitor, *this);
   }
 }
 

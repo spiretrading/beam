@@ -5,17 +5,16 @@
 #include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/ExpressionSubscriptions.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Keeps track of streaming subscriptions to expression based IndexQueries.
-   * @param <T> The type of data being input to the expression.
-   * @param <O> The type of data being output by the expression.
-   * @param <I> The type of index queried.
-   * @param <C> The type of ServiceProtocolClients subscribing to queries.
+   * @tparam T The type of data being input to the expression.
+   * @tparam O The type of data being output by the expression.
+   * @tparam I The type of index queried.
+   * @tparam C The type of ServiceProtocolClients subscribing to queries.
    */
   template<typename T, typename O, typename I, typename C>
   class IndexedExpressionSubscriptions {
@@ -43,26 +42,26 @@ namespace Beam::Queries {
        * @param id The id used by the client to identify this query.
        * @param range The Range of the query.
        * @param filter The filter to apply to published values.
-       * @param updatePolicy Specifies when updates should be published.
+       * @param update_policy Specifies when updates should be published.
        * @param expression The expression to apply to the query.
        */
-      void Initialize(const Index& index, ServiceProtocolClient& client, int id,
+      void init(const Index& index, ServiceProtocolClient& client, int id,
         const Range& range, std::unique_ptr<Evaluator> filter,
-        ExpressionQuery::UpdatePolicy updatePolicy,
+        ExpressionQuery::UpdatePolicy update_policy,
         std::unique_ptr<Evaluator> expression);
 
       /**
        * Commits a previously initialized subscription.
        * @param index The subscription's index.
        * @param client The client committing the subscription.
-       * @param snapshotLimit The limits used when calculating the snapshot.
+       * @param snapshot_limit The limits used when calculating the snapshot.
        * @param result The result of the query.
        * @param snapshot The snapshot used.
        * @param f The function to call with the result of the query.
        */
       template<typename F>
-      void Commit(const Index& index, const ServiceProtocolClient& client,
-        const SnapshotLimit& snapshotLimit,
+      void commit(const Index& index, const ServiceProtocolClient& client,
+        const SnapshotLimit& snapshot_limit,
         QueryResult<SequencedValue<Output>> result,
         std::vector<SequencedValue<Input>> snapshot, F&& f);
 
@@ -71,13 +70,13 @@ namespace Beam::Queries {
        * @param client The client ending the subscription.
        * @param id The query's id.
        */
-      void End(const ServiceProtocolClient& client, int id);
+      void end(const ServiceProtocolClient& client, int id);
 
       /**
        * Removes all of a client's subscriptions.
        * @param client The client whose subscriptions are to be removed.
        */
-      void RemoveAll(ServiceProtocolClient& client);
+      void remove_all(ServiceProtocolClient& client);
 
       /**
        * Publishes a value to all clients who subscribed to it.
@@ -86,12 +85,12 @@ namespace Beam::Queries {
        *        ServiceProtocolClient.
        */
       template<typename Sender>
-      void Publish(const SequencedValue<IndexedValue<Input, Index>>& value,
+      void publish(const SequencedValue<IndexedValue<Input, Index>>& value,
         const Sender& sender);
 
     private:
-      using BaseSubscriptions = ExpressionSubscriptions<Input, Output,
-        ServiceProtocolClient>;
+      using BaseSubscriptions =
+        ExpressionSubscriptions<Input, Output, ServiceProtocolClient>;
       SynchronizedUnorderedMap<Index, std::shared_ptr<BaseSubscriptions>>
         m_subscriptions;
       SynchronizedUnorderedMap<const ServiceProtocolClient*,
@@ -104,66 +103,65 @@ namespace Beam::Queries {
   };
 
   template<typename T, typename O, typename I, typename C>
-  void IndexedExpressionSubscriptions<T, O, I, C>::Initialize(
+  void IndexedExpressionSubscriptions<T, O, I, C>::init(
       const Index& index, ServiceProtocolClient& client, int id,
       const Range& range, std::unique_ptr<Evaluator> filter,
-      ExpressionQuery::UpdatePolicy updatePolicy,
+      ExpressionQuery::UpdatePolicy update_policy,
       std::unique_ptr<Evaluator> expression) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    m_indexes.Get(&client).Insert(id, index);
-    subscriptions.Initialize(client, id, range, std::move(filter), updatePolicy,
+    m_indexes.get(&client).insert(id, index);
+    subscriptions.init(client, id, range, std::move(filter), update_policy,
       std::move(expression));
   }
 
   template<typename T, typename O, typename I, typename C>
   template<typename F>
-  void IndexedExpressionSubscriptions<T, O, I, C>::Commit(const Index& index,
-      const ServiceProtocolClient& client, const SnapshotLimit& snapshotLimit,
+  void IndexedExpressionSubscriptions<T, O, I, C>::commit(const Index& index,
+      const ServiceProtocolClient& client, const SnapshotLimit& snapshot_limit,
       QueryResult<SequencedValue<Output>> result,
       std::vector<SequencedValue<Input>> snapshot, F&& f) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    return subscriptions.Commit(client, snapshotLimit, std::move(result),
+    return subscriptions.commit(client, snapshot_limit, std::move(result),
       std::move(snapshot), std::forward<F>(f));
   }
 
   template<typename T, typename O, typename I, typename C>
-  void IndexedExpressionSubscriptions<T, O, I, C>::End(
+  void IndexedExpressionSubscriptions<T, O, I, C>::end(
       const ServiceProtocolClient& client, int id) {
-    auto indexes = m_indexes.Find(&client);
+    auto indexes = m_indexes.find(&client);
     if(!indexes) {
       return;
     }
-    auto index = indexes->Find(id);
+    auto index = indexes->find(id);
     if(!index) {
       return;
     }
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
+    auto& subscriptions = *m_subscriptions.get_or_insert(
       *index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.End(client, id);
+    subscriptions.end(client, id);
   }
 
   template<typename T, typename O, typename I, typename C>
-  void IndexedExpressionSubscriptions<T, O, I, C>::RemoveAll(
+  void IndexedExpressionSubscriptions<T, O, I, C>::remove_all(
       ServiceProtocolClient& client) {
-    m_indexes.Erase(&client);
-    m_subscriptions.With([&] (auto& subscriptions) {
-      for(auto& baseSubscription :
-          subscriptions | boost::adaptors::map_values) {
-        baseSubscription->RemoveAll(client);
+    m_indexes.erase(&client);
+    m_subscriptions.with([&] (auto& subscriptions) {
+      for(auto& subscription : subscriptions | boost::adaptors::map_values) {
+        subscription->remove_all(client);
       }
     });
   }
 
   template<typename T, typename O, typename I, typename C>
   template<typename Sender>
-  void IndexedExpressionSubscriptions<T, O, I, C>::Publish(
+  void IndexedExpressionSubscriptions<T, O, I, C>::publish(
       const SequencedValue<IndexedValue<Input, Index>>& value,
       const Sender& sender) {
-    auto& subscriptions = *m_subscriptions.GetOrInsert(
-      value->GetIndex(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.Publish(value, sender);
+    auto& subscriptions = *m_subscriptions.get_or_insert(
+      value->get_index(), boost::factory<std::shared_ptr<BaseSubscriptions>>());
+    subscriptions.publish(value, sender);
   }
 }
 

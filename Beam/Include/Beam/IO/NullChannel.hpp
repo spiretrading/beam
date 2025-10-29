@@ -1,14 +1,12 @@
 #ifndef BEAM_NULL_CHANNEL_HPP
 #define BEAM_NULL_CHANNEL_HPP
 #include "Beam/IO/Channel.hpp"
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/NullConnection.hpp"
 #include "Beam/IO/NullReader.hpp"
 #include "Beam/IO/NullWriter.hpp"
 
 namespace Beam {
-namespace IO {
 
   /** Composes a NullConnection, NullReader and NullWriter into a Channel. */
   class NullChannel {
@@ -25,15 +23,12 @@ namespace IO {
        * Constructs a NullChannel with an identifier.
        * @param identifier The identifier to use.
        */
-      NullChannel(const NamedChannelIdentifier& identifier);
+      explicit NullChannel(NamedChannelIdentifier identifier) noexcept;
 
-      const Identifier& GetIdentifier() const;
-
-      Connection& GetConnection();
-
-      Reader& GetReader();
-
-      Writer& GetWriter();
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
 
     private:
       NamedChannelIdentifier m_identifier;
@@ -45,30 +40,24 @@ namespace IO {
       NullChannel& operator =(const NullChannel&) = delete;
   };
 
-  inline NullChannel::NullChannel(const NamedChannelIdentifier& identifier)
-    : m_identifier(identifier) {}
+  inline NullChannel::NullChannel(NamedChannelIdentifier identifier) noexcept
+    : m_identifier(std::move(identifier)) {}
 
-  inline const NullChannel::Identifier& NullChannel::GetIdentifier() const {
+  inline const NullChannel::Identifier& NullChannel::get_identifier() const {
     return m_identifier;
   }
 
-  inline NullChannel::Connection& NullChannel::GetConnection() {
+  inline NullChannel::Connection& NullChannel::get_connection() {
     return m_connection;
   }
 
-  inline NullChannel::Reader& NullChannel::GetReader() {
+  inline NullChannel::Reader& NullChannel::get_reader() {
     return m_reader;
   }
 
-  inline NullChannel::Writer& NullChannel::GetWriter() {
+  inline NullChannel::Writer& NullChannel::get_writer() {
     return m_writer;
   }
-}
-
-  template<>
-  struct ImplementsConcept<IO::NullChannel,
-    IO::Channel<IO::NamedChannelIdentifier, IO::NullConnection, IO::NullReader,
-      IO::NullWriter>> : std::true_type {};
 }
 
 #endif

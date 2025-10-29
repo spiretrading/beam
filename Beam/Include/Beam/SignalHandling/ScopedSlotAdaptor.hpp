@@ -4,44 +4,41 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-#include <boost/noncopyable.hpp>
-#include "Beam/SignalHandling/SignalHandling.hpp"
+#include <boost/throw_exception.hpp>
 #include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Threading/Sync.hpp"
 
-namespace Beam::SignalHandling {
+namespace Beam {
 namespace Details {
   template<typename F>
   struct ScopedSlot {
-    std::shared_ptr<Threading::Sync<bool, Threading::RecursiveMutex>> m_isAlive;
+    std::shared_ptr<Sync<bool, RecursiveMutex>> m_is_alive;
     F m_slot;
 
-    template<typename SlotForward>
-    ScopedSlot(std::shared_ptr<
-      Threading::Sync<bool, Threading::RecursiveMutex>> keepAlive,
-      SlotForward&& slot)
-      : m_isAlive(std::move(keepAlive)),
-        m_slot(std::forward<SlotForward>(slot)) {}
+    template<typename SF>
+    ScopedSlot(
+      std::shared_ptr<Sync<bool, RecursiveMutex>> keep_alive, SF&& slot)
+      : m_is_alive(std::move(keep_alive)),
+        m_slot(std::forward<SF>(slot)) {}
 
     template<typename... Args>
     decltype(auto) operator ()(Args&&... args) {
-      return Threading::With(*m_isAlive,
-        [&] (bool isAlive) {
-          if(isAlive) {
-            return m_slot(std::forward<Args>(args)...);
-          } else {
-            throw std::runtime_error("Slot expired.");
-          }
-        });
+      return with(*m_is_alive, [&] (auto is_alive) {
+        if(is_alive) {
+          return m_slot(std::forward<Args>(args)...);
+        } else {
+          boost::throw_with_location(std::runtime_error("Slot expired."));
+        }
+      });
     }
   };
 }
 
   /**
-   * Produces slots that only get invoked if the object that constructed it
-   * is in scope.
+   * Produces slots that only get invoked if the object that constructed it is
+   * in scope.
    */
-  class ScopedSlotAdaptor : private boost::noncopyable {
+  class ScopedSlotAdaptor {
     public:
 
       /** Constructs a ScopedSlotAdaptor. */
@@ -51,30 +48,27 @@ namespace Details {
 
       /**
        * Returns a slot whose scope is tied to this object.
-       *
-       * @param slot The slot to scopt.
+       * @param slot The slot to scope.
        */
       template<typename F>
-      Details::ScopedSlot<std::decay_t<F>> MakeSlot(F&& slot) const;
+      Details::ScopedSlot<std::remove_cvref_t<F>> make_slot(F&& slot) const;
 
     private:
-      std::shared_ptr<Threading::Sync<bool, Threading::RecursiveMutex>>
-        m_isAlive;
+      std::shared_ptr<Sync<bool, RecursiveMutex>> m_is_alive;
   };
 
   inline ScopedSlotAdaptor::ScopedSlotAdaptor()
-    : m_isAlive(std::make_shared<
-        Threading::Sync<bool, Threading::RecursiveMutex>>(true)) {}
+    : m_is_alive(std::make_shared<Sync<bool, RecursiveMutex>>(true)) {}
 
   inline ScopedSlotAdaptor::~ScopedSlotAdaptor() {
-    *m_isAlive = false;
+    *m_is_alive = false;
   }
 
   template<typename F>
-  Details::ScopedSlot<std::decay_t<F>> ScopedSlotAdaptor::MakeSlot(
+  Details::ScopedSlot<std::remove_cvref_t<F>> ScopedSlotAdaptor::make_slot(
       F&& slot) const {
-    return Details::ScopedSlot<std::decay_t<F>>(m_isAlive,
-      std::forward<F>(slot));
+    return Details::ScopedSlot<std::remove_cvref_t<F>>(
+      m_is_alive, std::forward<F>(slot));
   }
 }
 

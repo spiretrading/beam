@@ -1,56 +1,54 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
-#include "Beam/Queries/StandardValues.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
 
 TEST_SUITE("OrExpression") {
   TEST_CASE("constructor") {
     {
-      auto orExpression = OrExpression(ConstantExpression(true),
-        ConstantExpression(true));
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(true));
-      REQUIRE(rightValue == NativeValue(true));
+      auto or_expression =
+        OrExpression(ConstantExpression(true), ConstantExpression(true));
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(left_value);
+      REQUIRE(right_value);
     }
     {
-      auto orExpression = OrExpression(ConstantExpression(true),
-        ConstantExpression(false));
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(true));
-      REQUIRE(rightValue == NativeValue(false));
+      auto or_expression =
+        OrExpression(ConstantExpression(true), ConstantExpression(false));
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(left_value);
+      REQUIRE(!right_value);
     }
     {
-      auto orExpression = OrExpression(ConstantExpression(false),
-        ConstantExpression(true));
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(false));
-      REQUIRE(rightValue == NativeValue(true));
+      auto or_expression =
+        OrExpression(ConstantExpression(false), ConstantExpression(true));
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(!left_value);
+      REQUIRE(right_value);
     }
     {
-      auto orExpression = OrExpression(ConstantExpression(false),
-        ConstantExpression(false));
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(false));
-      REQUIRE(rightValue == NativeValue(false));
+      auto or_expression =
+        OrExpression(ConstantExpression(false), ConstantExpression(false));
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(!left_value);
+      REQUIRE(!right_value);
     }
   }
 
@@ -65,43 +63,31 @@ TEST_SUITE("OrExpression") {
 
   TEST_CASE("empty_make_or_expression") {
     auto subexpressions = std::vector<Expression>();
-    auto orExpression = MakeOrExpression(subexpressions.begin(),
-      subexpressions.end());
-    REQUIRE_NOTHROW(orExpression.DynamicCast<ConstantExpression>());
-    REQUIRE_NOTHROW(orExpression.StaticCast<
-      ConstantExpression>().GetType().DynamicCast<BoolType>());
-    REQUIRE(orExpression.StaticCast<
-      ConstantExpression>().GetValue()->GetValue<bool>() == false);
+    auto or_expression =
+      disjunction(subexpressions.begin(), subexpressions.end());
+    REQUIRE(!or_expression.as<ConstantExpression>().get_value().as<bool>());
   }
 
   TEST_CASE("single_make_or_expression") {
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(true));
-      auto orExpression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(orExpression.DynamicCast<ConstantExpression>());
-      REQUIRE_NOTHROW(orExpression.StaticCast<
-        ConstantExpression>().GetType().DynamicCast<BoolType>());
-      REQUIRE(orExpression.StaticCast<
-        ConstantExpression>().GetValue()->GetValue<bool>() == true);
+      auto or_expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      REQUIRE(or_expression.as<ConstantExpression>().get_value().as<bool>());
     }
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(false));
-      auto orExpression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(orExpression.DynamicCast<ConstantExpression>());
-      REQUIRE_NOTHROW(orExpression.StaticCast<
-        ConstantExpression>().GetType().DynamicCast<BoolType>());
-      REQUIRE(orExpression.StaticCast<
-        ConstantExpression>().GetValue()->GetValue<bool>() == false);
+      auto or_expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      REQUIRE(!or_expression.as<ConstantExpression>().get_value().as<bool>());
     }
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(0));
       REQUIRE_THROWS_AS(
-        MakeOrExpression(subexpressions.begin(), subexpressions.end()),
+        disjunction(subexpressions.begin(), subexpressions.end()),
         TypeCompatibilityException);
     }
   }
@@ -111,65 +97,61 @@ TEST_SUITE("OrExpression") {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(false));
       subexpressions.push_back(ConstantExpression(false));
-      auto expression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(expression.DynamicCast<OrExpression>());
-      auto orExpression = expression.StaticCast<OrExpression>();
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(false));
-      REQUIRE(rightValue == NativeValue(false));
+      auto expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      auto or_expression = expression.as<OrExpression>();
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(!left_value);
+      REQUIRE(!right_value);
     }
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(false));
       subexpressions.push_back(ConstantExpression(true));
-      auto expression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(expression.DynamicCast<OrExpression>());
-      auto orExpression = expression.StaticCast<OrExpression>();
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(false));
-      REQUIRE(rightValue == NativeValue(true));
+      auto expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      auto or_expression = expression.as<OrExpression>();
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(!left_value);
+      REQUIRE(right_value);
     }
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(true));
       subexpressions.push_back(ConstantExpression(false));
-      auto expression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(expression.DynamicCast<OrExpression>());
-      auto orExpression = expression.StaticCast<OrExpression>();
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(true));
-      REQUIRE(rightValue == NativeValue(false));
+      auto expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      auto or_expression = expression.as<OrExpression>();
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(left_value);
+      REQUIRE(!right_value);
     }
     {
       auto subexpressions = std::vector<Expression>();
       subexpressions.push_back(ConstantExpression(true));
       subexpressions.push_back(ConstantExpression(true));
-      auto expression = MakeOrExpression(subexpressions.begin(),
-        subexpressions.end());
-      REQUIRE_NOTHROW(expression.DynamicCast<OrExpression>());
-      auto orExpression = expression.StaticCast<OrExpression>();
-      REQUIRE(orExpression.GetType() == BoolType());
-      auto leftValue = orExpression.GetLeftExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      auto rightValue = orExpression.GetRightExpression().StaticCast<
-        ConstantExpression>().GetValue().StaticCast<BoolValue>();
-      REQUIRE(leftValue == NativeValue(true));
-      REQUIRE(rightValue == NativeValue(true));
+      auto expression =
+        disjunction(subexpressions.begin(), subexpressions.end());
+      auto or_expression = expression.as<OrExpression>();
+      REQUIRE(or_expression.get_type() == typeid(bool));
+      auto left_value = or_expression.get_left().as<ConstantExpression>().
+        get_value().as<bool>();
+      auto right_value = or_expression.get_right().as<ConstantExpression>().
+        get_value().as<bool>();
+      REQUIRE(left_value);
+      REQUIRE(right_value);
     }
   }
 
@@ -183,29 +165,43 @@ TEST_SUITE("OrExpression") {
           auto value = ((j & (1UL << k)) != 0);
           subexpressions.push_back(ConstantExpression(value));
         }
-        auto expression = MakeOrExpression(subexpressions.begin(),
-          subexpressions.end());
-        REQUIRE_NOTHROW(expression.DynamicCast<OrExpression>());
-        auto orExpression = expression.StaticCast<OrExpression>();
-        REQUIRE(orExpression.GetType() == BoolType());
-        auto traversal = static_cast<const VirtualExpression*>(&orExpression);
+        auto expression =
+          disjunction(subexpressions.begin(), subexpressions.end());
+        auto or_expression = expression.as<OrExpression>();
+        REQUIRE(or_expression.get_type() == typeid(bool));
+        auto traversal = static_cast<const VirtualExpression*>(&or_expression);
         for(auto k = std::size_t(0); k < i - 1; ++k) {
           auto value = ((j & (1UL << k)) != 0);
           auto expression = static_cast<const OrExpression*>(traversal);
-          REQUIRE_NOTHROW(
-            expression->GetLeftExpression().DynamicCast<ConstantExpression>());
-          auto leftValue = expression->GetLeftExpression().StaticCast<
-            ConstantExpression>().GetValue().StaticCast<BoolValue>();
-          REQUIRE(leftValue.GetValue<bool>() == value);
-          traversal = &expression->GetRightExpression().StaticCast<
-            VirtualExpression>();
+          auto left_value = expression->get_left().as<
+            ConstantExpression>().get_value().as<bool>();
+          REQUIRE(left_value == value);
+          traversal = &expression->get_right().as<VirtualExpression>();
         }
         auto value = ((j & (1UL << (i - 1))) != 0);
-        auto finalExpression = static_cast<const ConstantExpression*>(
-          traversal);
-        auto finalValue = finalExpression->GetValue().StaticCast<BoolValue>();
-        REQUIRE(finalValue.GetValue<bool>() == value);
+        auto final_expression =
+          static_cast<const ConstantExpression*>(traversal);
+        auto final_value = final_expression->get_value().as<bool>();
+        REQUIRE(final_value == value);
       }
+    }
+  }
+
+  TEST_CASE("stream") {
+    {
+      auto expression =
+        OrExpression(ConstantExpression(true), ConstantExpression(false));
+      auto ss = std::stringstream();
+      ss << expression;
+      REQUIRE(ss.str() == "(or true false)");
+    }
+    {
+      auto expression = OrExpression(
+        OrExpression(ConstantExpression(true), ConstantExpression(false)),
+        ConstantExpression(true));
+      auto ss = std::stringstream();
+      ss << expression;
+      REQUIRE(ss.str() == "(or (or true false) true)");
     }
   }
 }

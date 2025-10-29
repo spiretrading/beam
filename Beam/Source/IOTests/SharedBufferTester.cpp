@@ -1,113 +1,76 @@
-#include <cstring>
 #include <doctest/doctest.h>
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
-using namespace Beam::IO;
 
 TEST_SUITE("SharedBuffer") {
-  TEST_CASE("create_empty") {
+  TEST_CASE("default") {
     auto buffer = SharedBuffer();
-    REQUIRE(buffer.GetSize() == 0);
-    REQUIRE(buffer.GetData() == nullptr);
+    REQUIRE(buffer.get_size() == 0);
+    REQUIRE(!buffer.get_data());
   }
 
-  TEST_CASE("create_initial_size") {
-    auto buffer = SharedBuffer(1);
-    REQUIRE(buffer.GetSize() == 1);
-    REQUIRE(buffer.GetData() != nullptr);
+  TEST_CASE("initial_size") {
+    auto buffer = SharedBuffer(16);
+    REQUIRE(buffer.get_size() == 16);
+    REQUIRE(buffer.get_data());
+    REQUIRE(buffer.get_mutable_data());
   }
 
-  TEST_CASE("growing_empty_buffer") {
+  TEST_CASE("copy_data") {
+    auto source = std::string("hello");
+    auto buffer = SharedBuffer(source.data(), source.size());
+    REQUIRE(buffer == source);
+  }
+
+  TEST_CASE("copy_on_write") {
+    auto source = std::string("abcdef");
+    auto a = SharedBuffer(source.data(), source.size());
+    auto b = a;
+    auto ptr = b.get_mutable_data();
+    ptr[0] = 'X';
+    REQUIRE(a.get_data()[0] == 'a');
+    REQUIRE(b.get_data()[0] == 'X');
+  }
+
+  TEST_CASE("move") {
+    auto original = SharedBuffer("xyz", 3);
+    auto moved = SharedBuffer(std::move(original));
+    REQUIRE(moved == "xyz");
+    REQUIRE(original.get_size() == 0);
+  }
+
+  TEST_CASE("equality") {
+    auto a = SharedBuffer("same", 4);
+    auto b = SharedBuffer("same", 4);
+    auto c = SharedBuffer("diff", 4);
+    REQUIRE(a == b);
+    REQUIRE(a != c);
+  }
+
+  TEST_CASE("append_and_write") {
     auto buffer = SharedBuffer();
-    auto size = 0;
-    buffer.Grow(1);
-    size += 1;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(2);
-    size += 2;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(15);
-    size += 15;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(1);
-    size += 1;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(3141);
-    size += 3141;
-    REQUIRE(buffer.GetSize() == size);
+    append(buffer, "abc", 3);
+    REQUIRE(buffer == "abc");
+    buffer.write(1, "Z", 1);
+    REQUIRE(buffer == "aZc");
+    append(buffer, "d", 1);
+    REQUIRE(buffer == "aZcd");
   }
 
-  TEST_CASE("growing_initial_sized_buffer") {
-    auto buffer = SharedBuffer(1);
-    auto size = 1;
-    buffer.Grow(1);
-    size += 1;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(2);
-    size += 2;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(15);
-    size += 15;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(1);
-    size += 1;
-    REQUIRE(buffer.GetSize() == size);
-    buffer.Grow(3141);
-    size += 3141;
-    REQUIRE(buffer.GetSize() == size);
+  TEST_CASE("shrink") {
+    auto buffer = SharedBuffer("abcdef", 6);
+    buffer.shrink(2);
+    REQUIRE(buffer == "abcd");
   }
 
-  TEST_CASE("copy") {
-    auto message = "hello world";
-    auto messageSize = static_cast<int>(std::strlen(message));
-    auto buffer = SharedBuffer(messageSize);
-    std::strncpy(buffer.GetMutableData(), "hello world", messageSize);
-    auto copy = buffer;
-    REQUIRE(buffer.GetSize() == copy.GetSize());
-
-    // Test copy on write semantics.
-    REQUIRE(buffer.GetData() == copy.GetData());
-    copy.Append("a", 1);
-    REQUIRE(buffer.GetData() != copy.GetData());
-  }
-
-  TEST_CASE("append") {
+  TEST_CASE("reserve_and_grow") {
     auto buffer = SharedBuffer();
-    auto message = "hello world";
-    auto leftMessage = "hello";
-    auto rightMessage = " world";
-    auto leftMessageSize = static_cast<int>(std::strlen(leftMessage));
-    auto rightMessageSize = static_cast<int>(std::strlen(rightMessage));
-    buffer.Append(leftMessage, leftMessageSize);
-    REQUIRE(buffer.GetSize() == leftMessageSize);
-    REQUIRE(std::strncmp(buffer.GetData(), leftMessage, leftMessageSize) == 0);
-    buffer.Append(rightMessage, rightMessageSize);
-    REQUIRE(buffer.GetSize() == leftMessageSize + rightMessageSize);
-    REQUIRE(std::strncmp(buffer.GetData(), message,
-      leftMessageSize + rightMessageSize) == 0);
-  }
-
-  TEST_CASE("reset") {
-    auto buffer = SharedBuffer();
-    buffer.Append("a", 1);
-    buffer.Reset();
-    REQUIRE(buffer.GetSize() == 0);
-  }
-
-  TEST_CASE("copy_on_write_with_append_to_original") {
-    auto buffer = SharedBuffer();
-    buffer.Append("a", 1);
-    auto copy = buffer;
-    buffer.Append("b", 1);
-    REQUIRE(buffer.GetData() != copy.GetData());
-  }
-
-  TEST_CASE("copy_on_write_with_append_to_copy") {
-    auto buffer = SharedBuffer();
-    buffer.Append("a", 1);
-    auto copy = buffer;
-    copy.Append("b", 1);
-    REQUIRE(buffer.GetData() != copy.GetData());
+    reserve(buffer, 5);
+    REQUIRE(buffer.get_size() == 5);
+    REQUIRE(buffer.get_mutable_data());
+    auto before = buffer.get_size();
+    buffer.grow(3);
+    REQUIRE(buffer.get_size() == before + 3);
   }
 }

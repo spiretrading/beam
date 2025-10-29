@@ -1,43 +1,38 @@
-#ifndef BEAM_SHUTTLEUNORDEREDMAP_HPP
-#define BEAM_SHUTTLEUNORDEREDMAP_HPP
+#ifndef BEAM_SHUTTLE_UNORDERED_MAP_HPP
+#define BEAM_SHUTTLE_UNORDERED_MAP_HPP
 #include <unordered_map>
 #include "Beam/Serialization/ShuttlePair.hpp"
 
 namespace Beam {
-namespace Serialization {
   template<typename K, typename T, typename H, typename P, typename A>
-  struct IsStructure<std::unordered_map<K, T, H, P, A>> : std::false_type {};
+  constexpr auto is_structure<std::unordered_map<K, T, H, P, A>> = false;
 
   template<typename K, typename T, typename H, typename P, typename A>
   struct Send<std::unordered_map<K, T, H, P, A>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsSender S>
+    void operator ()(S& sender, const char* name,
         const std::unordered_map<K, T, H, P, A>& value) const {
-      shuttle.StartSequence(name, static_cast<int>(value.size()));
+      sender.start_sequence(name, static_cast<int>(value.size()));
       for(auto& i : value) {
-        shuttle.Shuttle(i);
+        sender.send(i);
       }
-      shuttle.EndSequence();
+      sender.end_sequence();
     }
   };
 
   template<typename K, typename T, typename H, typename P, typename A>
   struct Receive<std::unordered_map<K, T, H, P, A>> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, const char* name,
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name,
         std::unordered_map<K, T, H, P, A>& value) const {
-      value.clear();
-      int size;
-      shuttle.StartSequence(name, size);
+      auto size = int();
+      receiver.start_sequence(name, size);
       for(auto i = 0; i < size; ++i) {
-        std::pair<K, T> entry;
-        shuttle.Shuttle(entry);
-        value.insert(entry);
+        value.insert(receive<std::pair<K, T>>(receiver));
       }
-      shuttle.EndSequence();
+      receiver.end_sequence();
     }
   };
-}
 }
 
 #endif

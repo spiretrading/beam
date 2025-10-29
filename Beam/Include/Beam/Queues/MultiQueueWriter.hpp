@@ -1,14 +1,13 @@
 #ifndef BEAM_MULTI_QUEUE_WRITER_HPP
 #define BEAM_MULTI_QUEUE_WRITER_HPP
 #include "Beam/Queues/CallbackQueue.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/Queue.hpp"
 
 namespace Beam {
 
   /**
    * Implements a multiple writer, single reader AbstractQueue.
-   * @param <T> The type to push and pop.
+   * @tparam T The type to push and pop.
    */
   template<typename T>
   class MultiQueueWriter final : public AbstractQueue<T> {
@@ -20,19 +19,14 @@ namespace Beam {
       MultiQueueWriter() = default;
 
       /** Returns a QueueWriter for pushing values onto this queue. */
-      auto GetWriter();
+      auto get_writer();
 
-      Source Pop() override;
-
-      boost::optional<Source> TryPop() override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      void Push(const Target& value) override;
-
-      void Push(Target&& value) override;
-
-      using AbstractQueue<T>::Break;
+      Source pop() override;
+      boost::optional<Source> try_pop() override;
+      void close(const std::exception_ptr& e) override;
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      using AbstractQueue<T>::close;
 
     private:
       Queue<Source> m_queue;
@@ -40,38 +34,37 @@ namespace Beam {
   };
 
   template<typename T>
-  auto MultiQueueWriter<T>::GetWriter() {
-    return m_callbacks.GetSlot<Source>(
-      [this] (auto&& value) {
-        m_queue.Push(std::forward<decltype(value)>(value));
-      });
+  auto MultiQueueWriter<T>::get_writer() {
+    return m_callbacks.get_slot<Source>([this] (auto&& value) {
+      m_queue.push(std::forward<decltype(value)>(value));
+    });
   }
 
   template<typename T>
-  typename MultiQueueWriter<T>::Source MultiQueueWriter<T>::Pop()  {
-    return m_queue.Pop();
+  typename MultiQueueWriter<T>::Source MultiQueueWriter<T>::pop()  {
+    return m_queue.pop();
   }
 
   template<typename T>
   boost::optional<typename MultiQueueWriter<T>::Source>
-      MultiQueueWriter<T>::TryPop()  {
-    return m_queue.TryPop();
+      MultiQueueWriter<T>::try_pop()  {
+    return m_queue.try_pop();
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Break(const std::exception_ptr& e) {
-    m_callbacks.Break(e);
-    m_queue.Break(e);
+  void MultiQueueWriter<T>::close(const std::exception_ptr& e) {
+    m_callbacks.close(e);
+    m_queue.close(e);
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(const Target& value) {
-    m_queue.Push(value);
+  void MultiQueueWriter<T>::push(const Target& value) {
+    m_queue.push(value);
   }
 
   template<typename T>
-  void MultiQueueWriter<T>::Push(Target&& value) {
-    m_queue.Push(std::move(value));
+  void MultiQueueWriter<T>::push(Target&& value) {
+    m_queue.push(std::move(value));
   }
 }
 

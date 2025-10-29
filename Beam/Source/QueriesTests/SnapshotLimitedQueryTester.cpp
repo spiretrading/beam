@@ -1,38 +1,41 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 
 TEST_SUITE("SnapshotLimitedQuery") {
   TEST_CASE("default_constructor") {
     auto query = SnapshotLimitedQuery();
-    REQUIRE(query.GetSnapshotLimit() == SnapshotLimit::None());
+    REQUIRE(query.get_snapshot_limit() == SnapshotLimit::NONE);
   }
 
   TEST_CASE("snapshot_limit_constructor") {
-    auto unlimitedQuery = SnapshotLimitedQuery(SnapshotLimit::Unlimited());
-    REQUIRE(unlimitedQuery.GetSnapshotLimit() == SnapshotLimit::Unlimited());
-    auto headQuery = SnapshotLimitedQuery(
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 100));
-    REQUIRE(headQuery.GetSnapshotLimit() ==
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 100));
-    auto tailQuery = SnapshotLimitedQuery(
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 200));
-    REQUIRE(tailQuery.GetSnapshotLimit() ==
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 200));
+    auto unlimited_query = SnapshotLimitedQuery(SnapshotLimit::UNLIMITED);
+    REQUIRE(unlimited_query.get_snapshot_limit() == SnapshotLimit::UNLIMITED);
+    auto head_query = SnapshotLimitedQuery(SnapshotLimit::from_head(100));
+    REQUIRE(head_query.get_snapshot_limit() == SnapshotLimit::from_head(100));
+    auto tail_query = SnapshotLimitedQuery(SnapshotLimit::from_tail(200));
+    REQUIRE(tail_query.get_snapshot_limit() == SnapshotLimit::from_tail(200));
   }
 
   TEST_CASE("set_snapshot_limit") {
     auto query = SnapshotLimitedQuery();
-    REQUIRE(query.GetSnapshotLimit() != SnapshotLimit::Unlimited());
-    query.SetSnapshotLimit(SnapshotLimit::Unlimited());
-    REQUIRE(query.GetSnapshotLimit() == SnapshotLimit::Unlimited());
-    query.SetSnapshotLimit(SnapshotLimit(SnapshotLimit::Type::HEAD, 100));
-    REQUIRE(query.GetSnapshotLimit() ==
-      SnapshotLimit(SnapshotLimit::Type::HEAD, 100));
-    query.SetSnapshotLimit(SnapshotLimit(SnapshotLimit::Type::TAIL, 200));
-    REQUIRE(query.GetSnapshotLimit() ==
-      SnapshotLimit(SnapshotLimit::Type::TAIL, 200));
+    REQUIRE(query.get_snapshot_limit() != SnapshotLimit::UNLIMITED);
+    query.set_snapshot_limit(SnapshotLimit::UNLIMITED);
+    REQUIRE(query.get_snapshot_limit() == SnapshotLimit::UNLIMITED);
+    query.set_snapshot_limit(SnapshotLimit::from_head(100));
+    REQUIRE(query.get_snapshot_limit() == SnapshotLimit::from_head(100));
+    query.set_snapshot_limit(SnapshotLimit::from_tail(200));
+    REQUIRE(query.get_snapshot_limit() == SnapshotLimit::from_tail(200));
+  }
+
+  TEST_CASE("stream") {
+    auto query = SnapshotLimitedQuery(SnapshotLimit::from_head(50));
+    auto ss = std::stringstream();
+    ss << query;
+    REQUIRE(ss.str() == "(HEAD 50)");
+    test_round_trip_shuttle(query);
   }
 }

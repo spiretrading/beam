@@ -10,8 +10,8 @@ namespace Beam {
     public:
       using Type = T;
 
-      //! Returns the singleton instance.
-      static Type& GetInstance() {
+      /** Returns the singleton instance. */
+      static Type& get() {
         static auto singleton = Type();
         return singleton;
       }

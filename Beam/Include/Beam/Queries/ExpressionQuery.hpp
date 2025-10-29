@@ -3,10 +3,10 @@
 #include <ostream>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
+#include "Beam/Serialization/ShuttleUniquePtr.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Represents a query that applies an Expression to retrieved values. */
   class ExpressionQuery {
@@ -18,7 +18,7 @@ namespace Beam::Queries {
         /** Update on every value. */
         ALL,
 
-        //! Update when a change in value is produced.
+        /** Update when a change in value is produced. */
         CHANGE
       };
 
@@ -29,31 +29,31 @@ namespace Beam::Queries {
        * Constructs an ExpressionQuery with a specified Expression.
        * @param expression The Expression to apply.
        */
-      ExpressionQuery(const Expression& expression);
+      explicit ExpressionQuery(const Expression& expression);
 
       /** Returns the UpdatePolicy. */
-      UpdatePolicy GetUpdatePolicy() const;
+      UpdatePolicy get_update_policy() const;
 
       /** Sets the UpdatePolicy. */
-      void SetUpdatePolicy(UpdatePolicy policy);
+      void set_update_policy(UpdatePolicy policy);
 
       /** Returns the Expression. */
-      const Expression& GetExpression() const;
+      const Expression& get_expression() const;
 
       /**
        * Sets the Expression to apply.
        * @param expression The Expression to apply.
        */
-      void SetExpression(const Expression& expression);
+      void set_expression(const Expression& expression);
 
     private:
-      friend struct Serialization::Shuttle<ExpressionQuery>;
-      UpdatePolicy m_updatePolicy;
+      friend struct Shuttle<ExpressionQuery>;
+      UpdatePolicy m_update_policy;
       Expression m_expression;
   };
 
-  inline std::ostream& operator <<(std::ostream& out,
-      ExpressionQuery::UpdatePolicy value) {
+  inline std::ostream& operator <<(
+      std::ostream& out, ExpressionQuery::UpdatePolicy value) {
     if(value == ExpressionQuery::UpdatePolicy::ALL) {
       return out << "ALL";
     } else if(value == ExpressionQuery::UpdatePolicy::CHANGE) {
@@ -62,46 +62,44 @@ namespace Beam::Queries {
     return out << "NONE";
   }
 
-  inline std::ostream& operator <<(std::ostream& out,
-      const ExpressionQuery& query) {
-    return out << "(" << query.GetUpdatePolicy() << " " <<
-      query.GetExpression() << ")";
+  inline std::ostream& operator <<(
+      std::ostream& out, const ExpressionQuery& query) {
+    return out << '(' << query.get_update_policy() << ' ' <<
+      query.get_expression() << ')';
   }
 
   inline ExpressionQuery::ExpressionQuery()
-    : m_updatePolicy(UpdatePolicy::ALL),
+    : m_update_policy(UpdatePolicy::ALL),
       m_expression(ConstantExpression(true)) {}
 
   inline ExpressionQuery::ExpressionQuery(const Expression& expression)
-    : m_updatePolicy(UpdatePolicy::ALL),
+    : m_update_policy(UpdatePolicy::ALL),
       m_expression(expression) {}
 
-  inline ExpressionQuery::UpdatePolicy ExpressionQuery::
-      GetUpdatePolicy() const {
-    return m_updatePolicy;
+  inline ExpressionQuery::UpdatePolicy
+      ExpressionQuery::get_update_policy() const {
+    return m_update_policy;
   }
 
-  inline void ExpressionQuery::SetUpdatePolicy(UpdatePolicy policy) {
-    m_updatePolicy = policy;
+  inline void ExpressionQuery::set_update_policy(UpdatePolicy policy) {
+    m_update_policy = policy;
   }
 
-  inline const Expression& ExpressionQuery::GetExpression() const {
+  inline const Expression& ExpressionQuery::get_expression() const {
     return m_expression;
   }
 
-  inline void ExpressionQuery::SetExpression(const Expression& expression) {
+  inline void ExpressionQuery::set_expression(const Expression& expression) {
     m_expression = expression;
   }
-}
 
-namespace Beam::Serialization {
   template<>
-  struct Shuttle<Queries::ExpressionQuery> {
-    template<typename Shuttler>
-    void operator ()(Shuttler& shuttle, Queries::ExpressionQuery& value,
-        unsigned int version) {
-      shuttle.Shuttle("update_policy", value.m_updatePolicy);
-      shuttle.Shuttle("expression", value.m_expression);
+  struct Shuttle<ExpressionQuery> {
+    template<IsShuttle S>
+    void operator ()(
+        S& shuttle, ExpressionQuery& value, unsigned int version) const {
+      shuttle.shuttle("update_policy", value.m_update_policy);
+      shuttle.shuttle("expression", value.m_expression);
     }
   };
 }

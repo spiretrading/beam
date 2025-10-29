@@ -5,36 +5,35 @@
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
-#include "Beam/Threading/Threading.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /**
    * Type trait used to specify the preferred type of condition variable to use
    * with a mutex.
-   * @param <M> The type of mutex to select the condition variable on.
+   * @tparam M The type of mutex to select the condition variable on.
    */
   template<typename M>
-  struct PreferredConditionVariable {
+  struct preferred_condition_variable {
     using type = boost::condition_variable_any;
   };
 
   template<typename M>
-  using GetPreferredConditionVariable =
-    typename PreferredConditionVariable<M>::type;
+  using preferred_condition_variable_t =
+    typename preferred_condition_variable<M>::type;
 
   template<>
-  struct PreferredConditionVariable<boost::mutex> {
+  struct preferred_condition_variable<boost::mutex> {
     using type = boost::condition_variable;
   };
 
   template<>
-  struct PreferredConditionVariable<Mutex> {
+  struct preferred_condition_variable<Mutex> {
     using type = ConditionVariable;
   };
 
   template<>
-  struct PreferredConditionVariable<RecursiveMutex> {
+  struct preferred_condition_variable<RecursiveMutex> {
     using type = ConditionVariable;
   };
 }

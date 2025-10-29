@@ -8,15 +8,16 @@
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
+#include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Instantiates ServiceProtocolClients for a service.
-   * @param <B> The type used to build ServiceProtocolClients.
+   * @tparam B The type used to build ServiceProtocolClients.
    */
   template<typename B>
   class ServiceProtocolClientHandler {
@@ -33,163 +34,163 @@ namespace Beam::Services {
        * The type of function used to handle a reconnection event.
        * @param client The client used for the reconnection.
        */
-      using ReconnectHandler = std::function<
-        void (const std::shared_ptr<Client>& client)>;
+      using ReconnectHandler =
+        std::function<void (const std::shared_ptr<Client>& client)>;
 
       /**
        * Constructs a ServiceProtocolClientHandler.
        * @param builder Initializes the builder used for ServiceProtocolClients.
        */
-      template<typename BF>
+      template<Initializes<B> BF>
       explicit ServiceProtocolClientHandler(BF&& builder);
 
       /**
        * Constructs a ServiceProtocolClientHandler.
        * @param builder Initializes the builder used for ServiceProtocolClients.
-       * @param reconnectHandler The function to call to handle a reconnection
+       * @param reconnect_handler The function to call to handle a reconnection
        *        event;
        */
-      template<typename BF>
-      ServiceProtocolClientHandler(BF&& builder,
-        ReconnectHandler reconnectHandler);
+      template<Initializes<B> BF>
+      ServiceProtocolClientHandler(
+        BF&& builder, ReconnectHandler reconnect_handler);
 
       ~ServiceProtocolClientHandler();
 
       /** Returns the slots used by the ServiceProtocolClients. */
-      const ServiceSlots<Client>& GetSlots() const;
+      const ServiceSlots<Client>& get_slots() const;
 
       /** Returns the slots used by the ServiceProtocolClients. */
-      ServiceSlots<Client>& GetSlots();
+      ServiceSlots<Client>& get_slots();
 
       /** Returns the most recently instantiated client. */
-      std::shared_ptr<Client> GetClient();
+      std::shared_ptr<Client> get_client();
 
-      void Close();
+      void close();
 
     private:
-      Threading::RecursiveMutex m_mutex;
-      GetOptionalLocalPtr<B> m_builder;
+      RecursiveMutex m_mutex;
+      local_ptr_t<B> m_builder;
       ServiceSlots<Client> m_slots;
-      ReconnectHandler m_reconnectHandler;
+      ReconnectHandler m_reconnect_handler;
       std::shared_ptr<Client> m_client;
-      Routines::RoutineHandler m_messageHandler;
+      RoutineHandler m_message_handler;
       std::shared_ptr<typename ServiceProtocolClientBuilder::Timer>
-        m_reconnectTimer;
-      IO::OpenState m_openState;
+        m_reconnect_timer;
+      OpenState m_open_state;
 
       ServiceProtocolClientHandler(
         const ServiceProtocolClientHandler&) = delete;
       ServiceProtocolClientHandler& operator =(
         const ServiceProtocolClientHandler&) = delete;
-      void MessageLoop();
+      void message_loop();
   };
 
   template<typename B>
-  template<typename BF>
+  template<Initializes<B> BF>
   ServiceProtocolClientHandler<B>::ServiceProtocolClientHandler(BF&& builder)
     : ServiceProtocolClientHandler(std::forward<BF>(builder),
         [] (const std::shared_ptr<Client>&) {}) {}
 
   template<typename B>
-  template<typename BF>
-  ServiceProtocolClientHandler<B>::ServiceProtocolClientHandler(BF&& builder,
-      ReconnectHandler reconnectHandler)
+  template<Initializes<B> BF>
+  ServiceProtocolClientHandler<B>::ServiceProtocolClientHandler(
+      BF&& builder, ReconnectHandler reconnect_handler)
       : m_builder(std::forward<BF>(builder)),
-        m_reconnectHandler(std::move(reconnectHandler)),
-        m_client(m_builder->MakeClient(m_slots)) {
-    m_messageHandler = Routines::Spawn(
-      std::bind_front(&ServiceProtocolClientHandler::MessageLoop, this));
+        m_reconnect_handler(std::move(reconnect_handler)),
+        m_client(m_builder->make_client(m_slots)) {
+    m_message_handler =
+      spawn(std::bind_front(&ServiceProtocolClientHandler::message_loop, this));
   }
 
   template<typename B>
   ServiceProtocolClientHandler<B>::~ServiceProtocolClientHandler() {
-    Close();
+    close();
   }
 
   template<typename B>
   const ServiceSlots<typename ServiceProtocolClientHandler<B>::Client>&
-      ServiceProtocolClientHandler<B>::GetSlots() const {
+      ServiceProtocolClientHandler<B>::get_slots() const {
     return m_slots;
   }
 
   template<typename B>
   ServiceSlots<typename ServiceProtocolClientHandler<B>::Client>&
-      ServiceProtocolClientHandler<B>::GetSlots() {
+      ServiceProtocolClientHandler<B>::get_slots() {
     return m_slots;
   }
 
   template<typename B>
   std::shared_ptr<typename ServiceProtocolClientHandler<B>::Client>
-      ServiceProtocolClientHandler<B>::GetClient() {
+      ServiceProtocolClientHandler<B>::get_client() {
     while(true) {
       auto lock = boost::unique_lock(m_mutex);
       if(m_client) {
         return m_client;
       }
-      m_openState.EnsureOpen();
+      m_open_state.ensure_open();
       try {
         auto client = [&] {
-          auto release = Threading::Release(lock);
-          return m_builder->MakeClient(m_slots);
+          auto releaser = release(lock);
+          return m_builder->make_client(m_slots);
         }();
         if(m_client) {
           return m_client;
         }
         m_client = std::move(client);
         try {
-          m_reconnectHandler(m_client);
+          m_reconnect_handler(m_client);
         } catch(const std::exception&) {
           m_client = nullptr;
-          m_openState.Close();
-          BOOST_RETHROW;
+          m_open_state.close();
+          throw;
         }
         return m_client;
-      } catch(const IO::ConnectException&) {
-        auto reconnectTimer = std::shared_ptr(m_builder->MakeTimer());
-        m_reconnectTimer = reconnectTimer;
-        reconnectTimer->Start();
+      } catch(const ConnectException&) {
+        auto reconnect_timer = std::shared_ptr(m_builder->make_timer());
+        m_reconnect_timer = reconnect_timer;
+        reconnect_timer->start();
         {
-          auto release = Threading::Release(lock);
-          reconnectTimer->Wait();
+          auto releaser = release(lock);
+          reconnect_timer->wait();
         }
-        m_reconnectTimer = nullptr;
+        m_reconnect_timer = nullptr;
       } catch(const std::exception&) {
-        m_openState.Close();
-        BOOST_RETHROW;
+        m_open_state.close();
+        throw;
       }
     }
   }
 
   template<typename B>
-  void ServiceProtocolClientHandler<B>::Close() {
-    if(m_openState.SetClosing()) {
+  void ServiceProtocolClientHandler<B>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    auto [client, reconnectTimer] = [&] {
+    auto [client, reconnect_timer] = [&] {
       auto lock = boost::lock_guard(m_mutex);
       return std::tuple(std::exchange(m_client, nullptr),
-        std::exchange(m_reconnectTimer, nullptr));
+        std::exchange(m_reconnect_timer, nullptr));
     }();
     if(client) {
-      client->Close();
+      client->close();
     }
-    if(reconnectTimer) {
-      reconnectTimer->Cancel();
+    if(reconnect_timer) {
+      reconnect_timer->cancel();
     }
-    m_messageHandler.Wait();
-    m_openState.Close();
+    m_message_handler.wait();
+    m_open_state.close();
   }
 
   template<typename B>
-  void ServiceProtocolClientHandler<B>::MessageLoop() {
+  void ServiceProtocolClientHandler<B>::message_loop() {
     auto client = std::shared_ptr<Client>();
-    while(m_openState.IsOpen()) {
+    while(m_open_state.is_open()) {
       try {
-        client = GetClient();
+        client = get_client();
         while(true) {
-          auto message = client->ReadMessage();
-          if(auto slot = client->GetSlots().Find(*message)) {
-            message->EmitSignal(slot, Ref(*client));
+          auto message = client->read_message();
+          if(auto slot = client->get_slots().find(*message)) {
+            message->emit(slot, Ref(*client));
           }
         }
       } catch(const std::exception&) {

@@ -1,149 +1,103 @@
 #ifndef BEAM_SERVICE_HPP
 #define BEAM_SERVICE_HPP
+#include <concepts>
 #include <functional>
 #include <vector>
-#include <boost/call_traits.hpp>
-#include <boost/mpl/size.hpp>
-#include <boost/preprocessor/iteration/local.hpp>
-#include <boost/preprocessor/list/for_each.hpp>
-#include <boost/preprocessor/repetition/enum_params.hpp>
-#include <boost/preprocessor/repetition/repeat.hpp>
-#include <boost/preprocessor/tuple/to_list.hpp>
+#include <boost/pfr.hpp>
+#include <boost/preprocessor/cat.hpp>
+#include <boost/preprocessor/comparison/greater.hpp>
+#include <boost/preprocessor/control/iif.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/tuple/elem.hpp>
+#include <boost/preprocessor/tuple/enum.hpp>
+#include <boost/preprocessor/tuple/pop_front.hpp>
+#include <boost/preprocessor/tuple/size.hpp>
+#include <boost/preprocessor/variadic/to_seq.hpp>
+#include "Beam/Pointers/Out.hpp"
+#include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Serialization/ShuttleNullType.hpp"
 #include "Beam/Serialization/ShuttleRecord.hpp"
 #include "Beam/Services/Message.hpp"
 #include "Beam/Services/RequestToken.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
-#include "Beam/Services/ServiceSlot.hpp"
-#include "Beam/Utilities/Preprocessor.hpp"
+#include "Beam/Services/ServiceSlots.hpp"
 
-#define BEAM_DEFINE_SERVICE(Name, Uid, R, ...)                                 \
+#define BEAM_SERVICE_PARAMETERS_NAME(service)                                  \
+  BOOST_PP_CAT(BOOST_PP_TUPLE_ELEM(0, service), Parameters)
+
+#define BEAM_SERVICE_HAS_PARAMETERS(service)                                   \
+  BOOST_PP_GREATER(BOOST_PP_TUPLE_SIZE(service), 3)
+
+#define BEAM_DEFINE_EMPTY_SERVICE(service)                                     \
   namespace Details {                                                          \
-    BEAM_DEFINE_RECORD(Name##Parameters, __VA_ARGS__)                          \
-  }                                                                            \
-                                                                               \
-  using Name = ::Beam::Services::Service<R, Details::Name##Parameters>;
-
-#define BEAM_APPLY_SERVICE(z, n, q) BEAM_DEFINE_SERVICE q
-#define BEAM_GET_SERVICE_NAME(Name, ...) Name
-#define BEAM_GET_SERVICE_UID(Name, Uid, ...) Uid
-
-#define BEAM_REGISTER_SERVICE(z, n, q)                                         \
-  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q ::Request<C>>(\
-    BEAM_GET_SERVICE_UID q ".Request");                                        \
-  slots->GetRegistry().template Register<BEAM_GET_SERVICE_NAME q               \
-    ::Response<C>>(BEAM_GET_SERVICE_UID q ".Response");
-
-#define BEAM_DEFINE_SERVICES_(Name, ServiceList)                               \
-  BOOST_PP_LIST_FOR_EACH(BEAM_APPLY_SERVICE, BOOST_PP_EMPTY, ServiceList)      \
-                                                                               \
-  template<typename C>                                                         \
-  void Register##Name(::Beam::Out< ::Beam::Services::ServiceSlots<C>> slots) { \
-    BOOST_PP_LIST_FOR_EACH(BEAM_REGISTER_SERVICE, BOOST_PP_EMPTY, ServiceList) \
+    BEAM_DEFINE_RECORD(BEAM_SERVICE_PARAMETERS_NAME(service));                 \
   }
 
-#define BEAM_DEFINE_SERVICES(Name, ...)                                        \
-  BEAM_DEFINE_SERVICES_(Name, BOOST_PP_TUPLE_TO_LIST(PP_NARG(__VA_ARGS__),     \
-    (__VA_ARGS__)))
+#define BEAM_DEFINE_PARAMETRIC_SERVICE(service)                                \
+  namespace Details {                                                          \
+    BEAM_DEFINE_RECORD(BEAM_SERVICE_PARAMETERS_NAME(service),                  \
+      BOOST_PP_TUPLE_ENUM(                                                     \
+        BOOST_PP_TUPLE_POP_FRONT(                                              \
+          BOOST_PP_TUPLE_POP_FRONT(                                            \
+            BOOST_PP_TUPLE_POP_FRONT(service)))))                              \
+  }
 
-namespace Beam::Services {
+#define BEAM_DEFINE_SERVICE(r, data, service)                                  \
+  BOOST_PP_IIF(BEAM_SERVICE_HAS_PARAMETERS(service),                           \
+    BEAM_DEFINE_PARAMETRIC_SERVICE, BEAM_DEFINE_EMPTY_SERVICE)(service)        \
+                                                                               \
+  using BOOST_PP_TUPLE_ELEM(0, service) =                                      \
+    ::Beam::Service<BOOST_PP_TUPLE_ELEM(2, service),                           \
+      Details::BEAM_SERVICE_PARAMETERS_NAME(service)>;
+
+#define BEAM_REGISTER_SERVICE(r, data, service)                                \
+  slots->get_registry().template add<                                          \
+    BOOST_PP_TUPLE_ELEM(0, service)::Request<C>>(                              \
+      BOOST_PP_TUPLE_ELEM(1, service) ".Request");                             \
+  slots->get_registry().template add<                                          \
+    BOOST_PP_TUPLE_ELEM(0, service)::Response<C>>(                             \
+      BOOST_PP_TUPLE_ELEM(1, service) ".Response");
+
+#define BEAM_DEFINE_SERVICES(name, ...)                                        \
+  BOOST_PP_SEQ_FOR_EACH(                                                       \
+    BEAM_DEFINE_SERVICE, *, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))             \
+                                                                               \
+  template<typename C>                                                         \
+  void BOOST_PP_CAT(register_, name)(                                          \
+      ::Beam::Out<::Beam::ServiceSlots<C>> slots) {                            \
+    BOOST_PP_SEQ_FOR_EACH(                                                     \
+      BEAM_REGISTER_SERVICE, *, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))         \
+  }
+
+namespace Beam {
 namespace Details {
-  template<typename T, typename TypeList =
-    typename T::Service::Parameters::TypeList>
-  struct GetSlotType {};
+  template<typename, typename, typename>
+  struct request_to_function;
 
-  template<typename T, typename TypeList =
-    typename T::Service::Parameters::TypeList>
-  struct GetSlotWrapperType {};
-
-  template<typename T, typename TypeList =
-    typename T::Service::Parameters::TypeList>
-  struct InvokeSlot {};
-
-  template<typename T, typename S,
-    typename R = typename T::Service::Return,
-    typename TypeList = typename T::Service::Parameters::TypeList>
-  struct SlotWrapper {};
-
-  #define PASS_PARAMETER(z, n, q)                                              \
-    BOOST_PP_COMMA_IF(n) typename boost::call_traits<A##n>::param_type a##n
-
-  #define GET_PARAMETER(z, n, q)                                               \
-    BOOST_PP_COMMA_IF(n) parameters.template Get<n>()
-
-  #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
-  struct GetSlotType<T, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {      \
-    using type = std::function<void (T& BOOST_PP_COMMA_IF(n)                   \
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
-  };                                                                           \
-                                                                               \
-  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
-  struct GetSlotWrapperType<T,                                                 \
-      boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    using type = std::function<typename T::Service::Return (                   \
-      typename T::ServiceProtocolClient& BOOST_PP_COMMA_IF(n)                  \
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
-  };                                                                           \
-                                                                               \
-  template<typename T BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>\
-  struct InvokeSlot<T, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {       \
-    void operator ()(const typename GetSlotType<T>::type& slot, T& token,      \
-        const typename T::Service::Parameters& parameters) const {             \
-      slot(token BOOST_PP_COMMA_IF(n) BOOST_PP_REPEAT(n, GET_PARAMETER,        \
-        BOOST_PP_EMPTY));                                                      \
-    }                                                                          \
-  };                                                                           \
-                                                                               \
-  template<typename T, typename S                                              \
-    BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>                  \
-  struct SlotWrapper<T, S, void,                                               \
-      boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {                        \
-    typename GetSlotWrapperType<T>::type m_slot;                               \
-                                                                               \
-    SlotWrapper(typename GetSlotWrapperType<T>::type slot)                     \
-      : m_slot(slot) {}                                                        \
-                                                                               \
-    void operator ()(T& request BOOST_PP_COMMA_IF(n)                           \
-        BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY)) const {            \
-      try {                                                                    \
-        m_slot(request.GetClient() BOOST_PP_COMMA_IF(n)                        \
-          BOOST_PP_ENUM_PARAMS(n, a));                                         \
-        request.SetResult();                                                   \
-      } catch(const ServiceRequestException& e) {                              \
-        request.SetException(e);                                               \
-      } catch(const std::exception& e) {                                       \
-        request.SetException(ServiceRequestException(e.what()));               \
-      }                                                                        \
-    }                                                                          \
-  };                                                                           \
-                                                                               \
-  template<typename T, typename S, typename R                                  \
-    BOOST_PP_COMMA_IF(n) BOOST_PP_ENUM_PARAMS(n, typename A)>                  \
-  struct SlotWrapper<T, S, R, boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)>> {\
-    typename GetSlotWrapperType<T>::type m_slot;                               \
-                                                                               \
-    SlotWrapper(typename GetSlotWrapperType<T>::type slot)                     \
-      : m_slot(slot) {}                                                        \
-                                                                               \
-    void operator ()(T& request BOOST_PP_COMMA_IF(n)                           \
-        BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY)) const {            \
-      try {                                                                    \
-        request.SetResult(m_slot(request.GetClient() BOOST_PP_COMMA_IF(n)      \
-          BOOST_PP_ENUM_PARAMS(n, a)));                                        \
-      } catch(const ServiceRequestException& e) {                              \
-        request.SetException(e);                                               \
-      } catch(const std::exception& e) {                                       \
-        request.SetException(ServiceRequestException(e.what()));               \
-      }                                                                        \
-    }                                                                          \
+  template<typename R, typename F, typename... Args>
+  struct request_to_function<R, F, std::tuple<Args...>> {
+    using type = std::function<R (F&, Args...)>;
   };
 
-  #define BOOST_PP_LOCAL_LIMITS (0, BEAM_SERVICE_PARAMETERS)
-  #include BOOST_PP_LOCAL_ITERATE()
-  #undef GET_PARAMETER
-  #undef PASS_PARAMETER
+  template<typename C, typename S>
+  struct request_slot_type {
+    using type = typename request_to_function<void, RequestToken<C, S>,
+      decltype(boost::pfr::structure_to_tuple(
+        std::declval<typename S::Parameters>()))>::type;
+  };
+
+  template<typename C, typename S>
+  using request_slot_t = typename request_slot_type<C, S>::type;
+
+  template<typename C, typename S>
+  struct slot_type {
+    using type = typename request_to_function<typename S::Return, C,
+      decltype(boost::pfr::structure_to_tuple(
+        std::declval<typename S::Parameters>()))>::type;
+  };
+
+  template<typename C, typename S>
+  using slot_t = typename slot_type<C, S>::type;
 
   template<typename R>
   class ServiceRequestSlot : public ServiceSlot<R> {
@@ -151,8 +105,8 @@ namespace Details {
       using Request = R;
       using PreHook = typename ServiceSlot<Request>::PreHook;
 
-      virtual void Invoke(int requestId,
-        Ref<typename Request::ServiceProtocolClient> protocol,
+      virtual void invoke(
+        int id, Ref<typename Request::ServiceProtocolClient> client,
         const typename Request::Parameters& parameters) const = 0;
   };
 
@@ -165,53 +119,66 @@ namespace Details {
       using Request = typename Service::template Request<ServiceProtocolClient>;
       using Response =
         typename Service::template Response<ServiceProtocolClient>;
-      using Slot = typename GetSlotType<RequestToken<C, Service>>::type;
-      using PreHook = typename ServiceRequestSlot<
-        typename S::template Request<C>>::PreHook;
+      using Slot = request_slot_t<C, Service>;
+      using PreHook =
+        typename ServiceRequestSlot<typename S::template Request<C>>::PreHook;
 
-      template<typename L>
-      ServiceRequestSlotImplementation(L&& slot);
+      template<typename F>
+      explicit ServiceRequestSlotImplementation(F&& slot);
 
-      void Invoke(int requestId, Ref<ServiceProtocolClient> protocol,
+      void invoke(int id, Ref<ServiceProtocolClient> client,
         const typename Request::Parameters& parameters) const override;
-
-      void AddPreHook(const PreHook& hook) override;
+      void add_pre_hook(const PreHook& hook) override;
 
     private:
-      std::vector<PreHook> m_preHooks;
+      std::vector<PreHook> m_pre_hooks;
       Slot m_slot;
   };
 
   template<typename S, typename C>
-  template<typename L>
+  template<typename F>
   ServiceRequestSlotImplementation<S, C>::ServiceRequestSlotImplementation(
-    L&& slot)
-    : m_slot(std::forward<L>(slot)) {}
+    F&& slot)
+    : m_slot(std::forward<F>(slot)) {}
 
   template<typename S, typename C>
-  void ServiceRequestSlotImplementation<S, C>::Invoke(int requestId,
-      Ref<ServiceProtocolClient> protocol,
+  void ServiceRequestSlotImplementation<S, C>::invoke(
+      int id, Ref<ServiceProtocolClient> client,
       const typename Request::Parameters& parameters) const {
     try {
-      for(auto& preHook : m_preHooks) {
-        preHook(*protocol.Get());
+      for(auto& pre_hook : m_pre_hooks) {
+        pre_hook(*client.get());
       }
-      auto token = RequestToken<ServiceProtocolClient, Service>(Ref(protocol),
-        requestId);
-      InvokeSlot<RequestToken<ServiceProtocolClient, Service>>()(m_slot, token,
-        parameters);
+      auto token =
+        RequestToken<ServiceProtocolClient, Service>(Ref(client), id);
+      std::apply([&] (const auto&... args) {
+        m_slot(token, args...);
+      }, boost::pfr::structure_tie(parameters));
     } catch(const ServiceRequestException& e) {
-      protocol->Send(Response(requestId, protocol->CloneException(e)));
+      client->send(Response(id, client->clone_exception(e)));
     } catch(const std::exception& e) {
-      protocol->Send(Response(requestId, protocol->CloneException(
-        ServiceRequestException(e.what()))));
+      client->send(Response(
+        id, client->clone_exception(ServiceRequestException(e.what()))));
     }
   }
 
   template<typename S, typename C>
-  void ServiceRequestSlotImplementation<S, C>::AddPreHook(const PreHook& hook) {
-    m_preHooks.push_back(hook);
+  void ServiceRequestSlotImplementation<S, C>::add_pre_hook(
+      const PreHook& hook) {
+    m_pre_hooks.push_back(hook);
   }
+
+  template<typename T>
+  struct ResponseResult {
+    using Return = T;
+
+    Return m_result;
+  };
+
+  template<>
+  struct ResponseResult<void> {
+    using Return = void;
+  };
 }
 
   /** Base class for a Request or Response Message. */
@@ -220,22 +187,22 @@ namespace Details {
     public:
 
       /** Returns this Message's request id. */
-      virtual int GetRequestId() const = 0;
+      virtual int get_id() const = 0;
 
       /** Returns <code>true</code> iff this is a Response Message. */
-      virtual bool IsResponseMessage() const = 0;
+      virtual bool is_response() const = 0;
 
       /**
        * Sets the result of this Request/Response.
        * @param eval The Eval to receive the result of this Request/Response.
        */
-      virtual void SetEval(Routines::BaseEval& eval) const;
+      virtual void set_eval(BaseEval& eval) const;
   };
 
   /**
    * Represents a request and response message.
-   * @param <R> The type of value returned by the response.
-   * @param <P> The Record representing the request's parameters.
+   * @tparam R The type of value returned by the response.
+   * @tparam P The Record representing the request's parameters.
    */
   template<typename R, typename P>
   class Service {
@@ -249,27 +216,27 @@ namespace Details {
 
       /**
        * Adds a slot to be associated with a Service Request.
-       * @param <C> The type of ServiceProtocolClient receiving the Request.
+       * @tparam C The type of ServiceProtocolClient receiving the Request.
+       * @param service_slots The ServiceSlots to add the slot to.
        * @param slot The slot handling the Request.
        */
       template<typename C>
-      static void AddRequestSlot(Out<ServiceSlots<C>> serviceSlots,
-        const typename Details::GetSlotType<RequestToken<C, Service>>::type&
-        slot);
+      static void add_request_slot(Out<ServiceSlots<C>> service_slots,
+        const Details::request_slot_t<C, Service>& slot);
 
       /**
        * Adds a slot to be associated with a Service Request.
-       * @param <C> The type of ServiceProtocolClient receiving the Request.
+       * @tparam C The type of ServiceProtocolClient receiving the Request.
+       * @param service_slots The ServiceSlots to add the slot to.
        * @param slot The slot handling the Request.
        */
       template<typename C>
-      static void AddSlot(Out<ServiceSlots<C>> serviceSlots,
-        const typename Details::GetSlotWrapperType<
-        RequestToken<C, Service>>::type& slot);
+      static void add_slot(Out<ServiceSlots<C>> service_slots,
+        const Details::slot_t<C, Service>& slot);
 
       /**
        * Represents a request for a Service.
-       * @param <C> The type of ServiceProtocolClient this Request is used with.
+       * @tparam C The type of ServiceProtocolClient this Request is used with.
        */
       template<typename C>
       class Request : public ServiceMessage<C> {
@@ -289,34 +256,33 @@ namespace Details {
 
           /**
            * Constructs a Request.
-           * @param requestId The id identifying this Request.
+           * @param id The id identifying this Request.
            * @param parameters The Record containing the Parameters to send.
            */
-          Request(int requestId, const Parameters& parameters);
+          Request(int id, Parameters parameters);
 
-          int GetRequestId() const override;
-
-          bool IsResponseMessage() const override;
-
-          void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
+          int get_id() const override;
+          bool is_response() const override;
+          void emit(BaseServiceSlot<ServiceProtocolClient>* slot,
             Ref<ServiceProtocolClient> protocol) const override;
 
         private:
-          friend struct Serialization::DataShuttle;
-          int m_requestId;
+          friend struct Beam::DataShuttle;
+          int m_id;
           Parameters m_parameters;
 
           Request() = default;
-          template<typename Shuttler>
-          void Shuttle(Shuttler& shuttle, unsigned int version);
+          template<IsShuttle S>
+          void shuttle(S& shuttle, unsigned int version);
       };
 
       /**
        * Represents the response to a Service Request.
-       * @param <C> The type of ServiceProtocolClient this Request is used with.
+       * @tparam C The type of ServiceProtocolClient this Request is used with.
        */
       template<typename C>
-      class Response : public ServiceMessage<C> {
+      class Response : public ServiceMessage<C>,
+          private Details::ResponseResult<R> {
         public:
 
           /** The type of ServiceProtocolClient this Request is used with. */
@@ -324,165 +290,166 @@ namespace Details {
 
           /**
            * Constructs a Response.
-           * @param requestId The id of the request being responded to.
+           * @param id The id of the request being responded to.
            * @param result The result of the Service Request.
            */
           template<typename Q>
-          Response(int requestId, Q&& result, std::enable_if_t<
-            !std::is_same<Q, R>::value || !std::is_same<R, void>::value>* = 0);
+          Response(int id, Q&& result) requires(
+            !std::same_as<Q, R> || !std::same_as<R, void>);
 
           /**
            * Constructs a Response to a void Service.
-           * @param requestId The id of the request being responded to.
+           * @param id The id of the request being responded to.
            */
-          Response(int requestId);
+          explicit Response(int id);
 
           /**
            * Constructs a Response that failed with an exception.
-           * @param requestId The id of the request being responded to.
+           * @param id The id of the request being responded to.
            * @param e The ServiceRequestException that caused the Request to
            *          fail.
            */
-          Response(int requestId, std::unique_ptr<ServiceRequestException> e);
+          Response(int id, std::unique_ptr<ServiceRequestException> e);
 
-          int GetRequestId() const override;
-
-          bool IsResponseMessage() const override;
-
-          void SetEval(Routines::BaseEval& eval) const override;
-
-          void EmitSignal(BaseServiceSlot<ServiceProtocolClient>* slot,
+          int get_id() const override;
+          bool is_response() const override;
+          void set_eval(BaseEval& eval) const override;
+          void emit(BaseServiceSlot<ServiceProtocolClient>* slot,
             Ref<ServiceProtocolClient> protocol) const override;
 
         private:
-          friend struct Serialization::DataShuttle;
-          int m_requestId;
-          typename StorageType<R>::type m_result;
+          friend struct Beam::DataShuttle;
+          int m_id;
           std::unique_ptr<ServiceRequestException> m_exception;
 
           Response() = default;
-          template<typename Shuttler>
-          void Send(Shuttler& shuttle, unsigned int version) const;
-          template<typename Shuttler>
-          void Receive(Shuttler& shuttle, unsigned int version);
+          template<IsSender S>
+          void send(S& sender, unsigned int version) const;
+          template<IsReceiver S>
+          void receive(S& receiver, unsigned int version);
       };
   };
 
   template<typename C>
-  void ServiceMessage<C>::SetEval(Routines::BaseEval& eval) const {}
+  void ServiceMessage<C>::set_eval(BaseEval& eval) const {}
 
   template<typename R, typename P>
   template<typename C>
-  void Service<R, P>::AddRequestSlot(Out<ServiceSlots<C>> serviceSlots,
-      const typename Details::GetSlotType<
-      RequestToken<C, Service>>::type& slot) {
-    auto serviceSlot = std::unique_ptr<ServiceSlot<Request<C>>>(
-      std::make_unique<Details::ServiceRequestSlotImplementation<Service, C>>(
-      slot));
-    serviceSlots->Add(std::move(serviceSlot));
+  void Service<R, P>::add_request_slot(Out<ServiceSlots<C>> service_slots,
+      const Details::request_slot_t<C, Service>& slot) {
+    service_slots->add(std::make_unique<
+      Details::ServiceRequestSlotImplementation<Service, C>>(slot));
   }
 
   template<typename R, typename P>
   template<typename C>
-  void Service<R, P>::AddSlot(Out<ServiceSlots<C>> serviceSlots,
-      const typename Details::GetSlotWrapperType<
-      RequestToken<C, Service>>::type& slot) {
-    auto slotWrapper = Details::SlotWrapper<RequestToken<C, Service>,
-      typename Details::GetSlotWrapperType<RequestToken<C, Service>>::type>(
-      slot);
-    auto serviceSlot = std::unique_ptr<ServiceSlot<Request<C>>>(
-      std::make_unique<Details::ServiceRequestSlotImplementation<Service, C>>(
-      std::move(slotWrapper)));
-    serviceSlots->Add(std::move(serviceSlot));
+  void Service<R, P>::add_slot(Out<ServiceSlots<C>> service_slots,
+      const Details::slot_t<C, Service>& slot) {
+    add_request_slot(service_slots,
+      [slot] <typename T, typename... Args> (T& request, Args&&... args) {
+        try {
+          if constexpr(std::same_as<Return, void>) {
+            slot(request.get_client(), std::forward<Args>(args)...);
+            request.set();
+          } else {
+            request.set(
+              slot(request.get_client(), std::forward<Args>(args)...));
+          }
+        } catch(const ServiceRequestException& e) {
+          request.set_exception(e);
+        } catch(const std::exception& e) {
+          request.set_exception(ServiceRequestException(e.what()));
+        }
+      });
   }
 
   template<typename R, typename P>
   template<typename C>
-  Service<R, P>::Request<C>::Request(int requestId, const P& parameters)
-    : m_requestId(requestId),
-      m_parameters(parameters) {}
+  Service<R, P>::Request<C>::Request(int id, P parameters)
+    : m_id(id),
+      m_parameters(std::move(parameters)) {}
 
   template<typename R, typename P>
   template<typename C>
-  int Service<R, P>::Request<C>::GetRequestId() const {
-    return m_requestId;
+  int Service<R, P>::Request<C>::get_id() const {
+    return m_id;
   }
 
   template<typename R, typename P>
   template<typename C>
-  bool Service<R, P>::Request<C>::IsResponseMessage() const {
+  bool Service<R, P>::Request<C>::is_response() const {
     return false;
   }
 
   template<typename R, typename P>
   template<typename C>
-  void Service<R, P>::Request<C>::EmitSignal(
+  void Service<R, P>::Request<C>::emit(
       BaseServiceSlot<ServiceProtocolClient>* slot,
       Ref<ServiceProtocolClient> protocol) const {
-    static_cast<Slot*>(slot)->Invoke(m_requestId, Ref(protocol), m_parameters);
+    static_cast<Slot*>(slot)->invoke(m_id, Ref(protocol), m_parameters);
   }
 
   template<typename R, typename P>
   template<typename C>
-  template<typename Shuttler>
-  void Service<R, P>::Request<C>::Shuttle(Shuttler& shuttle,
-      unsigned int version) {
-    shuttle.Shuttle("request_id", m_requestId);
-    if(boost::mpl::size<typename Parameters::TypeList>::value != 0) {
-      shuttle.Shuttle("parameters", m_parameters);
+  template<IsShuttle S>
+  void Service<R, P>::Request<C>::shuttle(S& shuttle, unsigned int version) {
+    shuttle.shuttle("request_id", m_id);
+    if(!std::is_empty_v<Parameters>) {
+      shuttle.shuttle("parameters", m_parameters);
     }
   }
 
   template<typename R, typename P>
   template<typename C>
   template<typename Q>
-  Service<R, P>::Response<C>::Response(int requestId, Q&& result,
-    std::enable_if_t<!std::is_same<Q, R>::value ||
-      !std::is_same<R, void>::value>*)
-    : m_requestId(requestId),
-      m_result(std::forward<Q>(result)) {}
+  Service<R, P>::Response<C>::Response(int id, Q&& result) requires(
+      !std::same_as<Q, R> || !std::same_as<R, void>)
+    : Details::ResponseResult<R>(std::forward<Q>(result)),
+      m_id(id) {}
 
   template<typename R, typename P>
   template<typename C>
-  Service<R, P>::Response<C>::Response(int requestId)
-      : m_requestId(requestId) {
-    static_assert(std::is_same<R, void>::value,
-      "Constructor only valid for void return type.");
+  Service<R, P>::Response<C>::Response(int id)
+      : m_id(id) {
+    static_assert(
+      std::same_as<R, void>, "Constructor only valid for void return type.");
   }
 
   template<typename R, typename P>
   template<typename C>
-  Service<R, P>::Response<C>::Response(int requestId,
-    std::unique_ptr<ServiceRequestException> e)
-    : m_requestId(requestId),
+  Service<R, P>::Response<C>::Response(
+    int id, std::unique_ptr<ServiceRequestException> e)
+    : m_id(id),
       m_exception(std::move(e)) {}
 
   template<typename R, typename P>
   template<typename C>
-  int Service<R, P>::Response<C>::GetRequestId() const {
-    return m_requestId;
+  int Service<R, P>::Response<C>::get_id() const {
+    return m_id;
   }
 
   template<typename R, typename P>
   template<typename C>
-  bool Service<R, P>::Response<C>::IsResponseMessage() const {
+  bool Service<R, P>::Response<C>::is_response() const {
     return true;
   }
 
   template<typename R, typename P>
   template<typename C>
-  void Service<R, P>::Response<C>::SetEval(Routines::BaseEval& eval) const {
-    if(m_exception != nullptr) {
-      static_cast<Routines::Eval<R>&>(eval).SetException(
+  void Service<R, P>::Response<C>::set_eval(BaseEval& eval) const {
+    if(m_exception) {
+      static_cast<Eval<R>&>(eval).set_exception(
         std::make_exception_ptr(*m_exception));
+    } else if constexpr(std::same_as<Return, void>) {
+      static_cast<Eval<R>&>(eval).set();
     } else {
-      static_cast<Routines::Eval<R>&>(eval).SetResult(std::move(m_result));
+      static_cast<Eval<R>&>(eval).set(std::move(this->m_result));
     }
   }
 
   template<typename R, typename P>
   template<typename C>
-  void Service<R, P>::Response<C>::EmitSignal(
+  void Service<R, P>::Response<C>::emit(
       BaseServiceSlot<ServiceProtocolClient>* slot,
       Ref<ServiceProtocolClient> protocol) const {
     assert(false);
@@ -490,31 +457,27 @@ namespace Details {
 
   template<typename R, typename P>
   template<typename C>
-  template<typename Shuttler>
-  void Service<R, P>::Response<C>::Send(Shuttler& shuttle,
-      unsigned int version) const {
-    shuttle.Shuttle("request_id", m_requestId);
-    auto isException = (m_exception != nullptr);
-    shuttle.Shuttle("is_exception", isException);
-    if(isException) {
-      shuttle.Shuttle("result", m_exception);
-    } else {
-      shuttle.Shuttle("result", m_result);
+  template<IsSender S>
+  void Service<R, P>::Response<C>::send(S& sender, unsigned int version) const {
+    sender.send("request_id", m_id);
+    auto is_exception = (m_exception != nullptr);
+    sender.send("is_exception", is_exception);
+    if(is_exception) {
+      sender.send("result", m_exception);
+    } else if constexpr(!std::same_as<Return, void>) {
+      sender.send("result", this->m_result);
     }
   }
 
   template<typename R, typename P>
   template<typename C>
-  template<typename Shuttler>
-  void Service<R, P>::Response<C>::Receive(Shuttler& shuttle,
-      unsigned int version) {
-    shuttle.Shuttle("request_id", m_requestId);
-    auto isException = bool();
-    shuttle.Shuttle("is_exception", isException);
-    if(isException) {
-      shuttle.Shuttle("result", m_exception);
-    } else {
-      shuttle.Shuttle("result", m_result);
+  template<IsReceiver S>
+  void Service<R, P>::Response<C>::receive(S& receiver, unsigned int version) {
+    receiver.receive("request_id", m_id);
+    if(Beam::receive<bool>(receiver, "is_exception")) {
+      receiver.receive("result", m_exception);
+    } else if constexpr(!std::same_as<Return, void>) {
+      receiver.receive("result", this->m_result);
     }
   }
 }

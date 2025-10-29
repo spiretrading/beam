@@ -8,7 +8,7 @@ namespace Beam::Python {
 
   /**
    * Implements a type caster for Beam::Out types.
-   * @param <T> The type of Out to cast.
+   * @tparam T The type of Out to cast.
    */
   template<typename T>
   struct OutTypeCaster : BasicTypeCaster<T> {
@@ -38,8 +38,8 @@ namespace Beam::Python {
     if(!caster.load(source, convert)) {
       return false;
     }
-    m_value.emplace(Store(pybind11::detail::cast_op<typename Type::Type&&>(
-      std::move(caster))));
+    m_value.emplace(out(
+      pybind11::detail::cast_op<typename Type::Type&&>(std::move(caster))));
     return true;
   }
 }

@@ -1,12 +1,8 @@
 #ifndef BEAM_NAMED_CHANNEL_IDENTIFIER_HPP
 #define BEAM_NAMED_CHANNEL_IDENTIFIER_HPP
-#include <ostream>
-#include <string>
-#include "Beam/IO/Channel.hpp"
-#include "Beam/IO/IO.hpp"
+#include "Beam/IO/ChannelIdentifier.hpp"
 
 namespace Beam {
-namespace IO {
 
   /** Implements a ChannelIdentifier using just a name. */
   class NamedChannelIdentifier {
@@ -19,31 +15,27 @@ namespace IO {
        * Constructs a NamedChannelIdentifier.
        * @param name The name of this identifier.
        */
-      NamedChannelIdentifier(std::string name);
+      explicit NamedChannelIdentifier(std::string name) noexcept;
 
       /** Returns the name of this identifier. */
-      const std::string& GetName() const;
+      const std::string& get_name() const;
 
     private:
       std::string m_name;
   };
 
-  inline std::ostream& operator <<(std::ostream& out,
-      const NamedChannelIdentifier& identifier) {
-    return out << identifier.GetName();
+  inline std::ostream& operator <<(
+      std::ostream& out, const NamedChannelIdentifier& identifier) {
+    return out << identifier.get_name();
   }
 
-  inline NamedChannelIdentifier::NamedChannelIdentifier(std::string name)
+  inline NamedChannelIdentifier::NamedChannelIdentifier(
+    std::string name) noexcept
     : m_name(std::move(name)) {}
 
-  inline const std::string& NamedChannelIdentifier::GetName() const {
+  inline const std::string& NamedChannelIdentifier::get_name() const {
     return m_name;
   }
-}
-
-  template<>
-  struct ImplementsConcept<IO::NamedChannelIdentifier, IO::ChannelIdentifier>
-    : std::true_type {};
 }
 
 #endif

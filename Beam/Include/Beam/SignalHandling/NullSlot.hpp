@@ -1,22 +1,21 @@
-#ifndef BEAM_NULLSLOT_HPP
-#define BEAM_NULLSLOT_HPP
-#include "Beam/SignalHandling/SignalHandling.hpp"
+#ifndef BEAM_NULL_SLOT_HPP
+#define BEAM_NULL_SLOT_HPP
 
 namespace Beam {
-namespace SignalHandling {
 
-  /*! \struct NullSlot
-      \brief Defines a generic slot that does nothing.
-   */
+  /** A slot that does nothing. */
   struct NullSlot {
 
+    /**
+     * Invokes the slot.
+     * @param args The arguments to pass to the slot
+     */
     template<typename... Args>
-    void operator ()(Args&&... args) const;
+    constexpr void operator ()(Args&&... args) const noexcept;
   };
 
   template<typename... Args>
-  void NullSlot::operator ()(Args&&... args) const {}
-}
+  constexpr void NullSlot::operator ()(Args&&... args) const noexcept {}
 }
 
 #endif

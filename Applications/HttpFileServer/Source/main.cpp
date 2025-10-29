@@ -7,10 +7,6 @@
 #include "Version.hpp"
 
 using namespace Beam;
-using namespace Beam::HttpFileServer;
-using namespace Beam::IO;
-using namespace Beam::Network;
-using namespace Beam::WebServices;
 using namespace boost;
 using namespace boost::posix_time;
 
@@ -21,14 +17,14 @@ namespace {
 
 int main(int argc, const char** argv) {
   try {
-    auto config = ParseCommandLine(argc, argv,
-      "0.9-r" HTTP_FILE_SERVER_VERSION
-      "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto interface = Extract<IpAddress>(config, "interface");
-    auto server = HttpFileServletContainer(Initialize(), Initialize(interface));
-    WaitForKillEvent();
+    auto config =
+      parse_command_line(argc, argv, "1.0-r" HTTP_FILE_SERVER_VERSION
+        "\nCopyright (C) 2026 Spire Trading Inc.");
+    auto interface = extract<IpAddress>(config, "interface");
+    auto server = HttpFileServletContainer(init(), init(interface));
+    wait_for_kill_event();
   } catch(...) {
-    ReportCurrentException();
+    report_current_exception();
     return -1;
   }
   return 0;

@@ -1,44 +1,48 @@
 #ifndef BEAM_BLANK_PARSER_HPP
 #define BEAM_BLANK_PARSER_HPP
 #include <cctype>
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
-  /** Matches a blank character. */
+  /**
+   * Matches a single blank character (space or horizontal tab) from a stream.
+   */
   class BlankParser {
     public:
       using Result = char;
 
-      template<typename Stream>
-      bool Read(Stream& source, char& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, char& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
-  template<typename Stream>
-  bool BlankParser::Read(Stream& source, char& value) const {
-    if(!source.Read()) {
+  /** An instance of a BlankParser. */
+  inline const auto blank_p = BlankParser();
+
+  template<IsParserStream S>
+  bool BlankParser::read(S& source, char& value) const {
+    if(!source.read()) {
       return false;
     }
-    value = source.GetChar();
-    if(std::isblank(value)) {
+    value = source.peek();
+    if(std::isblank(static_cast<unsigned char>(value))) {
       return true;
     }
-    source.Undo();
+    source.undo();
     return false;
   }
 
-  template<typename Stream>
-  bool BlankParser::Read(Stream& source) const {
-    if(!source.Read()) {
+  template<IsParserStream S>
+  bool BlankParser::read(S& source) const {
+    if(!source.read()) {
       return false;
     }
-    if(std::isblank(source.GetChar())) {
+    if(std::isblank(static_cast<unsigned char>(source.peek()))) {
       return true;
     }
-    source.Undo();
+    source.undo();
     return false;
   }
 }

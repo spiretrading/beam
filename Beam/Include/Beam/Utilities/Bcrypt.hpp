@@ -1,10 +1,12 @@
 #ifndef BEAM_BCRYPT_HPP
 #define BEAM_BCRYPT_HPP
+#include <array>
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <cryptopp/osrng.h>
 #include "Beam/Utilities/BeamWorkaround.hpp"
 
@@ -14,19 +16,22 @@
 
 namespace Beam {
 namespace Details {
-  inline CryptoPP::AutoSeededRandomPool& GetRandomPool() {
-    static CryptoPP::AutoSeededRandomPool randomPool;
-    return randomPool;
+  inline CryptoPP::AutoSeededRandomPool& get_random_pool() {
+    static auto pool = CryptoPP::AutoSeededRandomPool();
+    return pool;
   }
+
   static const unsigned int SALT_LENGTH = 16;
-  inline std::string GenerateSalt() {
-    char randomBytes[SALT_LENGTH];
-    Details::GetRandomPool().GenerateBlock(reinterpret_cast<CryptoPP::byte*>(
-      randomBytes), SALT_LENGTH);
+
+  inline std::string generate_salt() {
+    auto random_bytes = std::array<char, SALT_LENGTH>();
+    Details::get_random_pool().GenerateBlock(
+      reinterpret_cast<CryptoPP::byte*>(random_bytes.data()), SALT_LENGTH);
     for(int i = 0; i < SALT_LENGTH; ++i) {
-      randomBytes[i] = (static_cast<unsigned char>(randomBytes[i]) % 26) + 'a';
+      random_bytes[i] =
+        (static_cast<unsigned char>(random_bytes[i]) % 26) + 'a';
     }
-    return std::string(randomBytes, SALT_LENGTH);
+    return std::string(random_bytes.data(), SALT_LENGTH);
   }
 
   //! Credit goes to http://hackage.haskell.org/package/haskell-bcrypt-0.3/src/
@@ -801,68 +806,70 @@ namespace Details {
   #undef BLFRND
 }
 
-  //! Hashes a value using a specified salt.
-  /*!
-    \param value The value to hash.
-    \param salt The salt to use.
-    \return The <i>value</i> hashed using the specified <i>salt</i>.
-  */
-  inline std::string BCrypt(const std::string& value, const std::string& salt) {
-    char output[128 + 1];
-    return Details::bcrypt(output, value.c_str(), salt.c_str());
+  /**
+   * Hashes a value using a specified salt.
+   * @param value The value to hash.
+   * @param salt The salt to use.
+   * @return The <i>value</i> hashed using the specified <i>salt</i>.
+   */
+  inline std::string bcrypt(std::string_view value, std::string_view salt) {
+    auto output = std::array<char, 128 + 1>{};
+    return Details::bcrypt(output.data(), value.data(), salt.data());
   }
 
-  //! Hashes a value.
-  /*!
-    \param value The value to hash.
-    \param logRounds The logarithm of the number of rounds to hash.
-    \return The hashed <i>value</i>.
-  */
-  inline std::string BCrypt(const std::string& value, int logRounds) {
-    char output[128 + 1] = {0};
-    auto seed = Details::GenerateSalt();
-    Details::bcrypt_gensalt(output, static_cast<std::uint8_t>(logRounds),
+  /**
+   * Hashes a value.
+   * @param value The value to hash.
+   * @param log_rounds The logarithm of the number of rounds to hash.
+   * @return The hashed <i>value</i>.
+   */
+  inline std::string bcrypt(std::string_view value, int log_rounds) {
+    auto output = std::array<char, 128 + 1>{};
+    auto seed = Details::generate_salt();
+    Details::bcrypt_gensalt(
+      output.data(), static_cast<std::uint8_t>(log_rounds),
       reinterpret_cast<const std::uint8_t*>(seed.c_str()));
-    return BCrypt(value, output);
+    return bcrypt(value, output.data());
   }
 
-  //! Hashes a value.
-  /*!
-    \param value The value to hash.
-    \return The hashed <i>value</i>.
-  */
-  inline std::string BCrypt(const std::string& value) {
-    return BCrypt(value, 10);
+  /**
+   * Hashes a value.
+   * @param value The value to hash.
+   * @return The hashed <i>value</i>.
+   */
+  inline std::string bcrypt(std::string_view value) {
+    return bcrypt(value, 10);
   }
 
-  //! Tests if a plain text value matches a hash.
-  /*!
-    \param plainText The plain text to match.
-    \param hash The hash to match.
-    \return <code>true</code> iff the <i>plainText</i> matches the <i>hash</i>.
-  */
-  inline bool BCryptMatches(const std::string& plainText,
-      const std::string& hash) {
+  /**
+   * Tests if a plain text value matches a hash.
+   * @param plain_text The plain text to match.
+   * @param hash The hash to match.
+   * @return <code>true</code> iff the <i>plain_text</i> matches the
+   *         <i>hash</i>.
+   */
+  inline bool bcrypt_matches(
+      std::string_view plain_text, std::string_view hash) {
     if(hash.size() <= 0) {
       return false;
     }
-    std::size_t hashStart = 0;
+    auto hash_start = std::size_t(0);
     if(hash[0] == '$') {
-      ++hashStart;
+      ++hash_start;
     }
-    hashStart = hash.find('$', hashStart);
-    if(hashStart == std::string::npos) {
+    hash_start = hash.find('$', hash_start);
+    if(hash_start == std::string::npos) {
       return false;
     }
-    ++hashStart;
-    hashStart = hash.find('$', hashStart);
-    if(hashStart == std::string::npos) {
+    ++hash_start;
+    hash_start = hash.find('$', hash_start);
+    if(hash_start == std::string::npos) {
       return false;
     }
-    ++hashStart;
-    auto salt = hash.substr(0, hashStart + 22);
-    auto trueHash = BCrypt(plainText, salt);
-    return trueHash == hash;
+    ++hash_start;
+    auto salt = hash.substr(0, hash_start + 22);
+    auto true_hash = bcrypt(plain_text, salt);
+    return true_hash == hash;
   }
 }
 

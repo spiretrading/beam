@@ -1,8 +1,10 @@
+#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Sequence.hpp"
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
@@ -10,27 +12,27 @@ using namespace boost::posix_time;
 TEST_SUITE("Sequence") {
   TEST_CASE("default_constructor") {
     auto sequence = Sequence();
-    REQUIRE(sequence.GetOrdinal() == 0);
+    REQUIRE(sequence.get_ordinal () == 0);
   }
 
   TEST_CASE("ordinal_constructor") {
-    auto sequenceA = Sequence(1);
-    REQUIRE(sequenceA.GetOrdinal() == 1);
-    auto sequenceB = Sequence(5);
-    REQUIRE(sequenceB.GetOrdinal() == 5);
-    auto sequenceC = Sequence(std::numeric_limits<std::uint64_t>::max());
-    REQUIRE(sequenceC.GetOrdinal() ==
-      std::numeric_limits<std::uint64_t>::max());
+    auto sequence_a = Sequence(1);
+    REQUIRE(sequence_a.get_ordinal () == 1);
+    auto sequence_b = Sequence(5);
+    REQUIRE(sequence_b.get_ordinal () == 5);
+    auto sequence_c = Sequence(std::numeric_limits<std::uint64_t>::max());
+    REQUIRE(
+      sequence_c.get_ordinal () == std::numeric_limits<std::uint64_t>::max());
   }
 
   TEST_CASE("first_sequence") {
-    auto first = Sequence::First();
-    REQUIRE(first.GetOrdinal() == 0);
+    auto first = Sequence::FIRST;
+    REQUIRE(first.get_ordinal () == 0);
   }
 
   TEST_CASE("last_sequence") {
-    auto last = Sequence::Last();
-    REQUIRE(last.GetOrdinal() == std::numeric_limits<std::uint64_t>::max());
+    auto last = Sequence::LAST;
+    REQUIRE(last.get_ordinal () == std::numeric_limits<std::uint64_t>::max());
   }
 
   TEST_CASE("less_than_operator") {
@@ -76,26 +78,33 @@ TEST_SUITE("Sequence") {
   }
 
   TEST_CASE("increment") {
-    REQUIRE(Increment(Sequence(0)) == Sequence(1));
-    REQUIRE(Increment(Sequence(1)) == Sequence(2));
-    REQUIRE(Increment(Sequence(2)) == Sequence(3));
-    REQUIRE(Increment(Sequence::Last()) == Sequence::Last());
+    REQUIRE(increment(Sequence(0)) == Sequence(1));
+    REQUIRE(increment(Sequence(1)) == Sequence(2));
+    REQUIRE(increment(Sequence(2)) == Sequence(3));
+    REQUIRE(increment(Sequence::LAST) == Sequence::LAST);
   }
 
   TEST_CASE("decrement") {
-    REQUIRE(Decrement(Sequence(1)) == Sequence(0));
-    REQUIRE(Decrement(Sequence(2)) == Sequence(1));
-    REQUIRE(Decrement(Sequence(3)) == Sequence(2));
-    REQUIRE(Decrement(Sequence::First()) == Sequence::First());
+    REQUIRE(decrement(Sequence(1)) == Sequence(0));
+    REQUIRE(decrement(Sequence(2)) == Sequence(1));
+    REQUIRE(decrement(Sequence(3)) == Sequence(2));
+    REQUIRE(decrement(Sequence::FIRST) == Sequence::FIRST);
   }
 
   TEST_CASE("encoding_timestamp") {
-    auto timestamp = ptime(date(1984, May, 6),
-      hours(12) + minutes(44) + seconds(53));
-    auto sequence = EncodeTimestamp(timestamp);
+    auto timestamp =
+      ptime(date(1984, May, 6), hours(12) + minutes(44) + seconds(53));
+    auto sequence = to_sequence(timestamp);
     auto encoding = static_cast<Sequence::Ordinal>(0b00111110000000101000110) <<
       (CHAR_BIT * sizeof(Sequence::Ordinal) - 23);
-    REQUIRE(encoding == sequence.GetOrdinal());
-    REQUIRE(DecodeTimestamp(Sequence{encoding}).date() == timestamp.date());
+    REQUIRE(encoding == sequence.get_ordinal ());
+    REQUIRE(decode_timestamp(Sequence(encoding)).date() == timestamp.date());
+  }
+
+  TEST_CASE("stream") {
+    auto ss = std::stringstream();
+    ss << Sequence(123);
+    REQUIRE(ss.str() == "123");
+    test_round_trip_shuttle(Sequence(543));
   }
 }

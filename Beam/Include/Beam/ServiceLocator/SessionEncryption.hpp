@@ -2,32 +2,27 @@
 #define BEAM_SESSION_ENCRYPTION_HPP
 #include <array>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <cryptopp/hex.h>
-#include <cryptopp/osrng.h>
 #include <cryptopp/sha.h>
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
+#include "Beam/Utilities/Bcrypt.hpp"
 
-namespace Beam::ServiceLocator {
-namespace Details {
-  inline CryptoPP::AutoSeededRandomPool& GetRandomPool() {
-    static auto randomPool = CryptoPP::AutoSeededRandomPool();
-    return randomPool;
-  }
-}
+namespace Beam {
 
   /** The length of a session id. */
   static constexpr auto SESSION_ID_LENGTH = 32U;
 
   /** Generates a session id. */
-  inline std::string GenerateSessionId() {
-    auto randomBytes = std::array<char, SESSION_ID_LENGTH>();
-    Details::GetRandomPool().GenerateBlock(reinterpret_cast<CryptoPP::byte*>(
-      randomBytes.data()), SESSION_ID_LENGTH);
+  inline std::string generate_session_id() {
+    auto random_bytes = std::array<char, SESSION_ID_LENGTH>();
+    Details::get_random_pool().GenerateBlock(reinterpret_cast<CryptoPP::byte*>(
+      random_bytes.data()), SESSION_ID_LENGTH);
     for(auto i = 0U; i < SESSION_ID_LENGTH; ++i) {
-      randomBytes[i] = (static_cast<unsigned char>(randomBytes[i]) % 26) + 'a';
+      random_bytes[i] =
+        (static_cast<unsigned char>(random_bytes[i]) % 26) + 'a';
     }
-    return std::string(randomBytes.data(), SESSION_ID_LENGTH);
+    return std::string(random_bytes.data(), SESSION_ID_LENGTH);
   }
 
   /**
@@ -35,11 +30,11 @@ namespace Details {
    * @param source The source string to hash.
    * @return An uppercase, hexadecimal SHA hash-code of the <i>source</i>.
    */
-  inline std::string ComputeSHA(const std::string& source) {
+  inline std::string compute_sha(std::string_view source) {
     auto sha = CryptoPP::SHA1();
     auto digest = std::array<CryptoPP::byte, CryptoPP::SHA1::DIGESTSIZE>();
     sha.CalculateDigest(digest.data(), reinterpret_cast<const CryptoPP::byte*>(
-      source.c_str()), source.length());
+      source.data()), source.length());
     auto encoder = CryptoPP::HexEncoder();
     auto output = std::string();
     encoder.Attach(new CryptoPP::StringSink(output));
@@ -49,11 +44,11 @@ namespace Details {
   }
 
   /** Generates an encryption key to use with a session id. */
-  inline unsigned int GenerateEncryptionKey() {
-    auto randomBytes = std::make_unsigned_t<int>();
-    Details::GetRandomPool().GenerateBlock(
-      reinterpret_cast<CryptoPP::byte*>(&randomBytes), sizeof(randomBytes));
-    return randomBytes;
+  inline unsigned int generate_encryption_key() {
+    auto random_bytes = std::make_unsigned_t<int>();
+    Details::get_random_pool().GenerateBlock(
+      reinterpret_cast<CryptoPP::byte*>(&random_bytes), sizeof(random_bytes));
+    return random_bytes;
   }
 }
 

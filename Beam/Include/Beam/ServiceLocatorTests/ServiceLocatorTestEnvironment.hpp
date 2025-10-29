@@ -10,16 +10,14 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
+#include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
-#include "Beam/ServiceLocatorTests/ServiceLocatorTests.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 
-namespace Beam::ServiceLocator::Tests {
+namespace Beam::Tests {
 
   /**
    * Wraps most components needed to run an instance of the ServiceLocator with
@@ -34,35 +32,32 @@ namespace Beam::ServiceLocator::Tests {
       ~ServiceLocatorTestEnvironment();
 
       /** Closes the servlet. */
-      void Close();
+      void close();
 
-      /** Returns a ServiceLocatorClientBox logged in as the root account. */
-      ServiceLocatorClientBox& GetRoot();
-
-      /** Makes a new ServiceLocatorClientBox. */
-      ServiceLocatorClientBox MakeClient(std::string username,
-        std::string password);
+      /** Returns a ServiceLocatorClient logged in as the root account. */
+      ServiceLocatorClient& get_root();
 
       /** Makes a new ServiceLocatorClient. */
-      ServiceLocatorClientBox MakeClient();
+      ServiceLocatorClient make_client(
+        std::string username, std::string password);
+
+      /** Makes a new ServiceLocatorClient. */
+      ServiceLocatorClient make_client();
 
     private:
-      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
-      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
       using ServiceProtocolServletContainer =
-        Services::ServiceProtocolServletContainer<
-        MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>,
-        ServerConnection*, Serialization::BinarySender<IO::SharedBuffer>,
-        Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
+        Beam::ServiceProtocolServletContainer<
+          MetaServiceLocatorServlet<LocalServiceLocatorDataStore*>,
+          LocalServerConnection*, BinarySender<SharedBuffer>, NullEncoder,
+          std::shared_ptr<TriggerTimer>>;
       using ServiceProtocolClientBuilder =
-        Services::ServiceProtocolClientBuilder<Services::MessageProtocol<
-        std::unique_ptr<ClientChannel>,
-        Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-        Threading::TriggerTimer>;
-      LocalServiceLocatorDataStore m_dataStore;
-      ServerConnection m_serverConnection;
+        Beam::ServiceProtocolClientBuilder<MessageProtocol<
+          std::unique_ptr<LocalClientChannel>, BinarySender<SharedBuffer>,
+          NullEncoder>, TriggerTimer>;
+      LocalServiceLocatorDataStore m_data_store;
+      LocalServerConnection m_server_connection;
       ServiceProtocolServletContainer m_container;
-      ServiceLocatorClientBox m_root;
+      ServiceLocatorClient m_root;
 
       ServiceLocatorTestEnvironment(
         const ServiceLocatorTestEnvironment&) = delete;
@@ -71,37 +66,37 @@ namespace Beam::ServiceLocator::Tests {
   };
 
   inline ServiceLocatorTestEnvironment::ServiceLocatorTestEnvironment()
-    : m_container(&m_dataStore, &m_serverConnection,
-        boost::factory<std::shared_ptr<Threading::TriggerTimer>>()),
-      m_root(MakeClient("root", "")) {}
+    : m_container(&m_data_store, &m_server_connection,
+        boost::factory<std::shared_ptr<TriggerTimer>>()),
+      m_root(make_client("root", "")) {}
 
   inline ServiceLocatorTestEnvironment::~ServiceLocatorTestEnvironment() {
-    Close();
+    close();
   }
 
-  inline void ServiceLocatorTestEnvironment::Close() {
-    m_root.Close();
-    m_container.Close();
+  inline void ServiceLocatorTestEnvironment::close() {
+    m_root.close();
+    m_container.close();
   }
 
-  inline ServiceLocatorClientBox& ServiceLocatorTestEnvironment::GetRoot() {
+  inline ServiceLocatorClient& ServiceLocatorTestEnvironment::get_root() {
     return m_root;
   }
 
-  inline ServiceLocatorClientBox ServiceLocatorTestEnvironment::MakeClient(
+  inline ServiceLocatorClient ServiceLocatorTestEnvironment::make_client(
       std::string username, std::string password) {
-    return ServiceLocatorClientBox(
-      std::in_place_type<ServiceLocatorClient<ServiceProtocolClientBuilder>>,
+    return ServiceLocatorClient(std::in_place_type<
+      ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>>,
       std::move(username), std::move(password), ServiceProtocolClientBuilder(
         std::bind_front(boost::factory<
           std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
-          "test_service_locator_client", std::ref(m_serverConnection)),
+          "test_service_locator_client", std::ref(m_server_connection)),
         boost::factory<
           std::unique_ptr<ServiceProtocolClientBuilder::Timer>>()));
   }
 
-  inline ServiceLocatorClientBox ServiceLocatorTestEnvironment::MakeClient() {
-    return MakeClient("root", "");
+  inline ServiceLocatorClient ServiceLocatorTestEnvironment::make_client() {
+    return make_client("root", "");
   }
 }
 

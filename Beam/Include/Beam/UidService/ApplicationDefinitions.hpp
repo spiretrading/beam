@@ -1,14 +1,13 @@
 #ifndef BEAM_UID_APPLICATION_DEFINITIONS_HPP
 #define BEAM_UID_APPLICATION_DEFINITIONS_HPP
 #include "Beam/Services/ApplicationDefinitions.hpp"
-#include "Beam/UidService/UidClient.hpp"
-#include "Beam/UidService/UidService.hpp"
+#include "Beam/UidService/ServiceUidClient.hpp"
 
-namespace Beam::UidService {
+namespace Beam {
 
   /** Encapsulates a standard UidClient used in an application. */
-  using ApplicationUidClient = Services::ApplicationClient<UidClient,
-    Services::ServiceName<SERVICE_NAME>>;
+  using ApplicationUidClient =
+    ApplicationClient<ServiceUidClient, ServiceName<UID_SERVICE_NAME>>;
 }
 
 #endif

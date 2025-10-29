@@ -10,7 +10,7 @@ TEST_SUITE("ScopedBaseQueue") {
     {
       auto s = ScopedBaseQueue(&q);
     }
-    REQUIRE(q.IsBroken());
+    REQUIRE(q.is_broken());
   }
 
   TEST_CASE("move") {
@@ -18,9 +18,9 @@ TEST_SUITE("ScopedBaseQueue") {
     {
       auto s1 = ScopedBaseQueue(&q);
       auto s2 = std::move(s1);
-      REQUIRE(!q.IsBroken());
+      REQUIRE(!q.is_broken());
     }
-    REQUIRE(q.IsBroken());
+    REQUIRE(q.is_broken());
   }
 
   TEST_CASE("assign") {
@@ -30,12 +30,12 @@ TEST_SUITE("ScopedBaseQueue") {
       auto s1 = ScopedBaseQueue(q1);
       auto s2 = ScopedBaseQueue(q2);
       std::swap(s1, s2);
-      REQUIRE(!q1->IsBroken());
-      REQUIRE(!q2->IsBroken());
+      REQUIRE(!q1->is_broken());
+      REQUIRE(!q2->is_broken());
       s1 = std::move(s2);
-      REQUIRE(q2->IsBroken());
-      REQUIRE(!q1->IsBroken());
+      REQUIRE(!q1->is_broken());
+      REQUIRE(q2->is_broken());
     }
-    REQUIRE(q1->IsBroken());
+    REQUIRE(q1->is_broken());
   }
 }

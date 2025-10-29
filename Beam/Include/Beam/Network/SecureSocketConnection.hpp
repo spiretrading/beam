@@ -12,20 +12,19 @@
 #include "Beam/Network/SecureSocketOptions.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Implements a Connection using an SSL socket over TCP. */
   class SecureSocketConnection {
     public:
       ~SecureSocketConnection();
 
-      void Close();
+      void close();
 
     private:
       friend class SecureSocketChannel;
       friend class SecureServerSocket;
       std::shared_ptr<Details::SecureSocketEntry> m_socket;
-      IO::OpenState m_openState;
+      OpenState m_open_state;
 
       SecureSocketConnection(
         std::shared_ptr<Details::SecureSocketEntry> socket);
@@ -43,21 +42,21 @@ namespace Network {
       SecureSocketConnection(const SecureSocketConnection&) = delete;
       SecureSocketConnection& operator =(
         const SecureSocketConnection&) = delete;
-      void Open(const SecureSocketOptions& options,
+      void open(const SecureSocketOptions& options,
         const std::vector<IpAddress>& addresses,
         const boost::optional<IpAddress>& interface);
   };
 
   inline SecureSocketConnection::~SecureSocketConnection() {
-    Close();
+    close();
   }
 
-  inline void SecureSocketConnection::Close() {
-    if(m_openState.SetClosing()) {
+  inline void SecureSocketConnection::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_socket->Close();
-    m_openState.Close();
+    m_socket->close();
+    m_open_state.close();
   }
 
   inline SecureSocketConnection::SecureSocketConnection(
@@ -67,22 +66,22 @@ namespace Network {
   inline SecureSocketConnection::SecureSocketConnection(
     std::shared_ptr<Details::SecureSocketEntry> socket,
     const SecureSocketOptions& options, const IpAddress& address)
-    : SecureSocketConnection(std::move(socket), options,
-        std::vector<IpAddress>{address}) {}
+    : SecureSocketConnection(
+        std::move(socket), options, std::vector{address}) {}
 
   inline SecureSocketConnection::SecureSocketConnection(
     std::shared_ptr<Details::SecureSocketEntry> socket,
     const SecureSocketOptions& options, const IpAddress& address,
     const IpAddress& interface)
-    : SecureSocketConnection(std::move(socket), options,
-        std::vector<IpAddress>{address}, interface) {}
+    : SecureSocketConnection(
+        std::move(socket), options, std::vector{address}, interface) {}
 
   inline SecureSocketConnection::SecureSocketConnection(
       std::shared_ptr<Details::SecureSocketEntry> socket,
       const SecureSocketOptions& options,
       const std::vector<IpAddress>& addresses)
       : m_socket(std::move(socket)) {
-    Open(options, addresses, boost::none);
+    open(options, addresses, boost::none);
   }
 
   inline SecureSocketConnection::SecureSocketConnection(
@@ -90,95 +89,90 @@ namespace Network {
       const SecureSocketOptions& options,
       const std::vector<IpAddress>& addresses, const IpAddress& interface)
       : m_socket(std::move(socket)) {
-    Open(options, addresses, interface);
+    open(options, addresses, interface);
   }
 
-  inline void SecureSocketConnection::Open(const SecureSocketOptions& options,
+  inline void SecureSocketConnection::open(const SecureSocketOptions& options,
       const std::vector<IpAddress>& addresses,
       const boost::optional<IpAddress>& interface) {
     try {
       m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);
-      auto errorCode =
+      auto error_code =
         boost::system::error_code(boost::asio::error::host_not_found);
       for(auto& address : addresses) {
-        errorCode.clear();
-        auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_ioContext);
-        auto endpoints = resolver.resolve(
-          address.GetHost(), std::to_string(address.GetPort()), errorCode);
-        if(errorCode) {
-          BOOST_THROW_EXCEPTION(
-            SocketException(errorCode.value(), errorCode.message()));
+        error_code.clear();
+        auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_io_context);
+        auto ends = resolver.resolve(
+          address.get_host(), std::to_string(address.get_port()), error_code);
+        if(error_code) {
+          boost::throw_with_location(
+            SocketException(error_code.value(), error_code.message()));
         }
-        errorCode = boost::asio::error::host_not_found;
-        for(auto& endpoint : endpoints) {
-          auto closeError = boost::system::error_code();
-          m_socket->m_socket.lowest_layer().close(closeError);
+        error_code = boost::asio::error::host_not_found;
+        for(auto& end : ends) {
+          auto close_error = boost::system::error_code();
+          m_socket->m_socket.lowest_layer().close(close_error);
           if(interface) {
-            auto localEndpoint = boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::make_address(interface->GetHost(), errorCode),
-              interface->GetPort());
-            if(errorCode) {
-              BOOST_THROW_EXCEPTION(
-                SocketException(errorCode.value(), errorCode.message()));
+            auto local_end = boost::asio::ip::tcp::endpoint(
+              boost::asio::ip::make_address(interface->get_host(), error_code),
+              interface->get_port());
+            if(error_code) {
+              boost::throw_with_location(
+                SocketException(error_code.value(), error_code.message()));
             }
             m_socket->m_socket.lowest_layer().open(
-              boost::asio::ip::tcp::v4(), errorCode);
-            if(errorCode) {
-              BOOST_THROW_EXCEPTION(
-                SocketException(errorCode.value(), errorCode.message()));
+              boost::asio::ip::tcp::v4(), error_code);
+            if(error_code) {
+              boost::throw_with_location(
+                SocketException(error_code.value(), error_code.message()));
             }
-            m_socket->m_socket.lowest_layer().bind(localEndpoint, errorCode);
-            if(errorCode) {
-              BOOST_THROW_EXCEPTION(
-                SocketException(errorCode.value(), errorCode.message()));
+            m_socket->m_socket.lowest_layer().bind(local_end, error_code);
+            if(error_code) {
+              boost::throw_with_location(
+                SocketException(error_code.value(), error_code.message()));
             }
           }
-          m_socket->m_socket.lowest_layer().connect(endpoint, errorCode);
-          if(!errorCode) {
+          m_socket->m_socket.lowest_layer().connect(end, error_code);
+          if(!error_code) {
             break;
           }
         }
-        if(!errorCode) {
+        if(!error_code) {
           break;
         }
       }
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
-      auto bufferSize =
-        boost::asio::socket_base::send_buffer_size(options.m_writeBufferSize);
-      m_socket->m_socket.lowest_layer().set_option(bufferSize, errorCode);
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+      auto buffer_size =
+        boost::asio::socket_base::send_buffer_size(options.m_write_buffer_size);
+      m_socket->m_socket.lowest_layer().set_option(buffer_size, error_code);
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
-      auto noDelay = boost::asio::ip::tcp::no_delay(options.m_noDelayEnabled);
-      m_socket->m_socket.lowest_layer().set_option(noDelay, errorCode);
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+      auto noDelay = boost::asio::ip::tcp::no_delay(options.m_no_delay_enabled);
+      m_socket->m_socket.lowest_layer().set_option(noDelay, error_code);
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
       m_socket->m_socket.handshake(
-        boost::asio::ssl::stream_base::client, errorCode);
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+        boost::asio::ssl::stream_base::client, error_code);
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
-    } catch(const IO::ConnectException&) {
-      Close();
-      BOOST_RETHROW;
+    } catch(const ConnectException&) {
+      close();
+      throw;
     } catch(const std::exception&) {
-      Close();
-      std::throw_with_nested(IO::ConnectException("Unable to open socket."));
+      close();
+      std::throw_with_nested(ConnectException("Unable to open socket."));
     }
-    m_socket->m_isOpen = true;
+    m_socket->m_is_open = true;
   }
-}
-
-  template<>
-  struct ImplementsConcept<Network::SecureSocketConnection, IO::Connection> :
-    std::true_type {};
 }
 
 #endif

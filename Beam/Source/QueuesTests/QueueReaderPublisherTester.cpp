@@ -10,7 +10,7 @@ TEST_SUITE("QueueReaderPublisher") {
     {
       auto publisher = QueueReaderPublisher(queue);
     }
-    REQUIRE(queue->IsBroken());
+    REQUIRE(queue->is_broken());
   }
 
   TEST_CASE("publish") {
@@ -18,10 +18,10 @@ TEST_SUITE("QueueReaderPublisher") {
     auto publisher = QueueReaderPublisher(source);
     auto destinationA = std::make_shared<Queue<int>>();
     auto destinationB = std::make_shared<Queue<int>>();
-    publisher.Monitor(destinationA);
-    publisher.Monitor(destinationB);
-    source->Push(123);
-    REQUIRE(destinationA->Pop() == 123);
-    REQUIRE(destinationB->Pop() == 123);
+    publisher.monitor(destinationA);
+    publisher.monitor(destinationB);
+    source->push(123);
+    REQUIRE(destinationA->pop() == 123);
+    REQUIRE(destinationB->pop() == 123);
   }
 }

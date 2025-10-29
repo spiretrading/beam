@@ -16,8 +16,8 @@ namespace pybind11::detail {
       pybind11::detail::concat(pybind11::detail::make_caster<T>::name...) +
       pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using Beam::Python::BasicTypeCaster<Type>::m_value;
   };
@@ -32,8 +32,8 @@ namespace pybind11::detail {
       [&] (auto&& unused) {
         using U = std::decay_t<decltype(unused)>;
         if(index == value.which()) {
-          policy = pybind11::detail::return_value_policy_override<U>::policy(
-            policy);
+          policy =
+            pybind11::detail::return_value_policy_override<U>::policy(policy);
           result = pybind11::detail::make_caster<U>::cast(
             boost::get<U>(std::forward<V>(value)), policy, parent);
         }
@@ -43,8 +43,8 @@ namespace pybind11::detail {
   }
 
   template<typename... T>
-  bool type_caster<boost::variant<T...>>::load(pybind11::handle source,
-      bool convert) {
+  bool type_caster<boost::variant<T...>>::load(
+      pybind11::handle source, bool convert) {
     auto is_converted = false;
     boost::mpl::for_each<typename boost::variant<T...>::types>(
       [&] (auto&& unused) {

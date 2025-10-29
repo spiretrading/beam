@@ -1,250 +1,123 @@
-#ifndef BEAM_STATICBUFFER_HPP
-#define BEAM_STATICBUFFER_HPP
+#ifndef BEAM_STATIC_BUFFER_HPP
+#define BEAM_STATIC_BUFFER_HPP
+#include <algorithm>
 #include <array>
-#include <cstring>
+#include <stdexcept>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
-#include "Beam/Utilities/AssertionException.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
 
 namespace Beam {
-namespace IO {
 
   /**
    * Implements the Buffer Concept using statically allocated memory.
-   * @param <N> The maximum size of the Buffer.
+   * @tparam N The maximum size of the Buffer.
    */
   template<std::size_t N>
   class StaticBuffer {
     public:
 
-      /** Constructs a StaticBuffer. */
-      StaticBuffer();
-
-      /**
-       * Copies a StaticBuffer.
-       * @param buffer The StaticBuffer to copy.
-       */
-      StaticBuffer(const StaticBuffer& buffer);
+      /** Constructs an empty StaticBuffer. */
+      StaticBuffer() noexcept;
 
       /**
        * Constructs a StaticBuffer from an existing buffer of raw data.
        * @param data The data to copy.
        * @param size The size of the data to copy.
        */
-      StaticBuffer(const void* data, std::size_t size);
+      StaticBuffer(const void* data, std::size_t size) noexcept;
 
       /**
-       * Copies a Buffer.
-       * @param buffer The Buffer to copy.
+       * Constructs a StaticBuffer by copying the contents of another Buffer.
+       * @param buffer The buffer to copy from.
        */
-      template<typename Buffer>
-      StaticBuffer(const Buffer& buffer);
+      StaticBuffer(const IsConstBuffer auto& buffer);
 
-      bool IsEmpty() const;
+      StaticBuffer(const StaticBuffer&) = default;
 
-      void Grow(std::size_t size);
-
-      void Shrink(std::size_t size);
-
-      void ShrinkFront(std::size_t size);
-
-      void Reserve(std::size_t size);
-
-      void Write(std::size_t index, const void* source, std::size_t size);
-
-      template<typename T>
-      void Write(std::size_t index, T value);
-
-      template<typename Buffer>
-      std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value> Append(
-        const Buffer& buffer);
-
-      void Append(const void* data, std::size_t size);
-
-      template<typename T>
-      std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value> Append(
-        T value);
-
-      void Reset();
-
-      const char* GetData() const;
-
-      char* GetMutableData();
-
-      std::size_t GetSize() const;
-
-      template<typename T>
-      void Extract(std::size_t index, Out<T> value) const;
-
-      template<typename T>
-      T Extract(std::size_t index) const;
-
-      StaticBuffer& operator =(const StaticBuffer& rhs);
-
-      template<typename Buffer>
-      StaticBuffer& operator =(const Buffer& rhs);
+      const char* get_data() const;
+      std::size_t get_size() const;
+      char* get_mutable_data();
+      std::size_t grow(std::size_t size);
+      std::size_t shrink(std::size_t size);
+      void write(std::size_t index, const void* source, std::size_t size);
+      StaticBuffer& operator =(const IsBuffer auto& rhs);
+      StaticBuffer& operator =(const StaticBuffer& rhs) = default;
 
     private:
       std::size_t m_size;
       std::array<char, N> m_data;
-      char* m_front;
   };
 
   template<std::size_t N>
-  StaticBuffer<N>::StaticBuffer()
-    : m_size(0),
-      m_front(&m_data[0]) {}
+  StaticBuffer<N>::StaticBuffer() noexcept
+    : m_size(0) {}
 
   template<std::size_t N>
-  StaticBuffer<N>::StaticBuffer(const StaticBuffer& buffer)
-    : m_size(buffer.m_size),
-      m_data(buffer.m_data),
-      m_front(&m_data[0]) {}
-
-  template<std::size_t N>
-  StaticBuffer<N>::StaticBuffer(const void* data, std::size_t size)
-      : m_size(0),
-        m_front(&m_data[0]) {
-    Append(data, size);
+  StaticBuffer<N>::StaticBuffer(const void* data, std::size_t size) noexcept
+      : m_size(std::min(size, N)) {
+    std::memcpy(m_data.data(), data, size);
   }
 
   template<std::size_t N>
-  template<typename Buffer>
-  StaticBuffer<N>::StaticBuffer(const Buffer& buffer)
-      : m_size(0),
-        m_front(&m_data[0]) {
-    Append(buffer);
-  }
+  StaticBuffer<N>::StaticBuffer(const IsConstBuffer auto& buffer)
+    : StaticBuffer(buffer.get_data(), buffer.get_size()) {}
 
   template<std::size_t N>
-  bool StaticBuffer<N>::IsEmpty() const {
-    return m_size == 0;
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::Grow(std::size_t size) {
-    if(size <= 0) {
-      return;
+  const char* StaticBuffer<N>::get_data() const {
+    if(m_size == 0) {
+      return nullptr;
     }
-    BEAM_ASSERT_MESSAGE(m_size + size <= N, "Invalid allocation.");
-    m_size += size;
+    return m_data.data();
   }
 
   template<std::size_t N>
-  void StaticBuffer<N>::Shrink(std::size_t size) {
-    if(size == m_size) {
-      m_size = 0;
-      m_front = &m_data[0];
-      return;
-    }
-    BEAM_ASSERT_MESSAGE(size <= m_size, "Invalid allocation.");
-    m_size -= size;
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::ShrinkFront(std::size_t size) {
-    BEAM_ASSERT_MESSAGE(size <= m_size, "Invalid allocation.");
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::Reserve(std::size_t size) {
-    Grow(size - m_size);
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::Write(std::size_t index, const void* source,
-      std::size_t size) {
-    BEAM_ASSERT_MESSAGE(m_size + size <= N, "Invalid allocation.");
-    std::memcpy(m_front + index, source, size);
-    m_size = std::max(index + size, m_size);
-  }
-
-  template<std::size_t N>
-  template<typename T>
-  void StaticBuffer<N>::Write(std::size_t index, T value) {
-    Write(index, &value, sizeof(T));
-  }
-
-  template<std::size_t N>
-  template<typename Buffer>
-  std::enable_if_t<ImplementsConcept<Buffer, IO::Buffer>::value>
-      StaticBuffer<N>::Append(const Buffer& buffer) {
-    Append(buffer.GetData(), buffer.GetSize());
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::Append(const void* data, std::size_t size) {
-    if(size == 0) {
-      return;
-    }
-    BEAM_ASSERT_MESSAGE(m_size + size <= N, "Invalid allocation.");
-    std::memcpy(m_front + m_size, data, size);
-    m_size += size;
-  }
-
-  template<std::size_t N>
-  template<typename T>
-  std::enable_if_t<!ImplementsConcept<T, IO::Buffer>::value>
-      StaticBuffer<N>::Append(T value) {
-    Append(&value, sizeof(T));
-  }
-
-  template<std::size_t N>
-  void StaticBuffer<N>::Reset() {
-    m_size = 0;
-    m_front = &m_data[0];
-  }
-
-  template<std::size_t N>
-  const char* StaticBuffer<N>::GetData() const {
-    return m_front;
-  }
-
-  template<std::size_t N>
-  char* StaticBuffer<N>::GetMutableData() {
-    return m_front;
-  }
-
-  template<std::size_t N>
-  std::size_t StaticBuffer<N>::GetSize() const {
+  std::size_t StaticBuffer<N>::get_size() const {
     return m_size;
   }
 
   template<std::size_t N>
-  template<typename T>
-  void StaticBuffer<N>::Extract(std::size_t index, Out<T> value) const {
-    std::memcpy(reinterpret_cast<char*>(&(*value)), m_front + index, sizeof(T));
-  }
-
-  template<std::size_t N>
-  template<typename T>
-  T StaticBuffer<N>::Extract(std::size_t index) const {
-    auto value = T();
-    std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
-    return value;
-  }
-
-  template<std::size_t N>
-  StaticBuffer<N>& StaticBuffer<N>::operator =(const StaticBuffer& rhs) {
-    if(this == &rhs) {
-      return *this;
+  char* StaticBuffer<N>::get_mutable_data() {
+    if(m_size == 0) {
+      return nullptr;
     }
-    Reset();
-    Append(rhs);
-    return *this;
+    return m_data.data();
   }
 
   template<std::size_t N>
-  template<typename Buffer>
-  StaticBuffer<N>& StaticBuffer<N>::operator =(const Buffer& rhs) {
-    Reset();
-    Append(rhs);
-    return *this;
+  std::size_t StaticBuffer<N>::grow(std::size_t size) {
+    auto available = std::min(size, N - m_size);
+    m_size += available;
+    return available;
   }
-}
 
   template<std::size_t N>
-  struct ImplementsConcept<IO::StaticBuffer<N>, IO::Buffer> : std::true_type {};
+  std::size_t StaticBuffer<N>::shrink(std::size_t size) {
+    auto available = std::min(size, m_size);
+    m_size -= available;
+    return available;
+  }
+
+  template<std::size_t N>
+  void StaticBuffer<N>::write(
+      std::size_t index, const void* source, std::size_t size) {
+    auto end_index = index + size;
+    if(end_index > N) {
+      boost::throw_with_location(std::out_of_range("Write out of range."));
+    }
+    if(size > 0) {
+      std::memcpy(m_data.data() + index, source, size);
+    }
+    if(end_index > m_size) {
+      m_size = end_index;
+    }
+  }
+
+  template<std::size_t N>
+  StaticBuffer<N>& StaticBuffer<N>::operator =(const IsBuffer auto& rhs) {
+    m_size = std::min(rhs.get_size(), N);
+    std::memcpy(m_data.data(), rhs.get_data(), m_size);
+    return *this;
+  }
 }
 
 #endif

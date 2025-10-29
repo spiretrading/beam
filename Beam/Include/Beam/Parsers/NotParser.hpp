@@ -3,18 +3,17 @@
 #include <utility>
 #include <boost/optional.hpp>
 #include "Beam/Parsers/Parser.hpp"
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/ParserTraits.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
-#include "Beam/Parsers/Traits.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
    * Parses the negation of a Parser, resulting in either the next character
    * in the Stream or none if the Stream has reached the end.
-   * @param <P> The Parser to negate.
+   * @tparam P The Parser to negate.
    */
-  template<typename P>
+  template<IsParser P>
   class NotParser {
     public:
       using SubParser = P;
@@ -22,57 +21,60 @@ namespace Beam::Parsers {
 
       /**
        * Constructs a NotParser.
-       * @param subParser The Parser to negate.
+       * @param sub_parser The Parser to negate.
        */
-      NotParser(SubParser subParser);
+      NotParser(SubParser sub_parser);
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
 
     private:
-      SubParser m_subParser;
+      SubParser m_sub_parser;
   };
 
   template<typename P>
   NotParser(P) -> NotParser<to_parser_t<P>>;
 
-  template<typename SubParser>
-  auto Not(SubParser subParser) {
-    return NotParser(subParser);
+  /**
+   * Constructs a NotParser.
+   * @param sub_parser The Parser to negate.
+   */
+  template<IsParser P>
+  auto operator !(P sub_parser) {
+    return NotParser(std::move(sub_parser));
   }
 
-  template<typename P>
-  NotParser<P>::NotParser(SubParser subParser)
-    : m_subParser(std::move(subParser)) {}
+  template<IsParser P>
+  NotParser<P>::NotParser(SubParser sub_parser)
+    : m_sub_parser(std::move(sub_parser)) {}
 
-  template<typename P>
-  template<typename Stream>
-  bool NotParser<P>::Read(Stream& source, Result& value) const {
+  template<IsParser P>
+  template<IsParserStream S>
+  bool NotParser<P>::read(S& source, Result& value) const {
     {
-      auto substream = SubParserStream<Stream>(source);
-      if(m_subParser.Read(substream)) {
+      auto substream = SubParserStream<S>(source);
+      if(m_sub_parser.read(substream)) {
         return false;
       }
     }
-    if(source.Read()) {
-      value = source.GetChar();
+    if(source.read()) {
+      value = source.peek();
     } else {
       value = boost::none;
     }
     return true;
   }
 
-  template<typename P>
-  template<typename Stream>
-  bool NotParser<P>::Read(Stream& source) const {
-    auto substream = SubParserStream<Stream>(source);
-    if(m_subParser.Read(substream)) {
+  template<IsParser P>
+  template<IsParserStream S>
+  bool NotParser<P>::read(S& source) const {
+    auto substream = SubParserStream<S>(source);
+    if(m_sub_parser.read(substream)) {
       return false;
     }
-    source.Read();
+    source.read();
     return true;
   }
 }

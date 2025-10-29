@@ -9,11 +9,11 @@ using namespace Beam::Python;
 using namespace boost;
 using namespace pybind11;
 
-void Beam::Python::ExportJson(module& module) {
-  ExportJsonObject(module);
+void Beam::Python::export_json(module& module) {
+  export_json_object(module);
 }
 
-void Beam::Python::ExportJsonObject(module& module) {
+void Beam::Python::export_json_object(module& module) {
   class_<JsonObject>(module, "JsonObject").
     def(init()).
     def("__getitem__",

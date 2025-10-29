@@ -1,287 +1,284 @@
 #ifndef BEAM_HTTP_REQUEST_PARSER_HPP
 #define BEAM_HTTP_REQUEST_PARSER_HPP
+#include <cstring>
 #include <deque>
+#include <string>
+#include <string_view>
+#include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/WebServices/HttpHeader.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/InvalidHttpRequestException.hpp"
 #include "Beam/WebServices/Uri.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
 namespace Beam {
-namespace WebServices {
 
-  /* Parses an HTTP request. */
+  /** Parses an HTTP request. */
   class HttpRequestParser {
     public:
 
       /** Constructs an HttpRequestParser. */
-      HttpRequestParser();
+      HttpRequestParser() noexcept;
 
       /**
        * Feeds the parser additional characters to parse.
-       * @param c The first character to feed.
-       * @param size The number of characters to feed.
+       * @param source The characters to feed to the parser.
        */
-      void Feed(const char* c, std::size_t size);
+      void feed(std::string_view source);
 
       /** Returns the next HttpRequest. */
-      boost::optional<HttpRequest> GetNextRequest();
+      boost::optional<HttpRequest> get_next_request();
 
     private:
       enum class ParserState {
-        METHOD,
-        HEADER,
+        REQUEST_LINE,
+        HEADERS,
         BODY,
         ERR
       };
-      ParserState m_parserState;
+      ParserState m_state;
+      std::string m_buffer;
       HttpMethod m_method;
       boost::optional<Uri> m_uri;
       HttpVersion m_version;
       std::vector<HttpHeader> m_headers;
-      SpecialHeaders m_specialHeaders;
+      SpecialHeaders m_special_headers;
       std::vector<Cookie> m_cookies;
-      IO::SharedBuffer m_body;
+      SharedBuffer m_body;
+      std::size_t m_body_bytes_read;
       std::deque<HttpRequest> m_requests;
-      IO::SharedBuffer m_buffer;
 
       HttpRequestParser(const HttpRequestParser&) = delete;
       HttpRequestParser(HttpRequestParser&&) = delete;
-      void ParseMethod(const char* c, std::size_t size);
-      void ParseHeader(const char* c, std::size_t size);
-      void ParseCookie(const char* source, int length);
-      void ParseCookies(const std::string& source);
-      void ParseBody(const char* c);
+      void parse();
+      void parse_request_line();
+      void parse_headers();
+      void parse_body();
+      void parse_cookie(std::string_view source);
+      void finalize_request();
+      void reset_parser();
+      std::size_t find_line_end() const;
   };
 
-  inline HttpRequestParser::HttpRequestParser()
-    : m_parserState(ParserState::METHOD) {}
+  inline HttpRequestParser::HttpRequestParser() noexcept
+    : m_state(ParserState::REQUEST_LINE),
+      m_body_bytes_read(0) {}
 
-  inline void HttpRequestParser::Feed(const char* c, std::size_t size) {
-    const auto LINE_LENGTH = 2;
-    if(m_parserState == ParserState::METHOD) {
-      auto end = static_cast<const char*>(std::memchr(c, '\r', size));
-      if(end == nullptr) {
-        m_buffer.Append(c, size);
-        return;
-      }
-      if(m_buffer.IsEmpty()) {
-        ParseMethod(c, (end - c));
-      } else {
-        m_buffer.Append(c, end - c);
-        ParseMethod(m_buffer.GetData(), m_buffer.GetSize());
-        m_buffer.Reset();
-      }
-      if(m_parserState == ParserState::ERR) {
-        return;
-      }
-      size -= (end - c) + 1;
-      c = end + 1;
-      m_parserState = ParserState::HEADER;
+  inline void HttpRequestParser::feed(std::string_view source) {
+    m_buffer.append(source);
+    parse();
+  }
+
+  inline boost::optional<HttpRequest> HttpRequestParser::get_next_request() {
+    if(!m_requests.empty()) {
+      auto request = std::move(m_requests.front());
+      m_requests.pop_front();
+      return request;
     }
-    while(m_parserState == ParserState::HEADER) {
-      if(size == 0) {
-        return;
-      }
-      auto end = static_cast<const char*>(std::memchr(c, '\r', size));
-      if(end == nullptr) {
-        m_buffer.Append(c, size);
-        return;
-      } else if(end == c + 1) {
-        ++c;
-        --size;
-        m_parserState = ParserState::BODY;
-        break;
-      }
-      if(m_buffer.IsEmpty()) {
-        ParseHeader(c, (end - c));
-      } else {
-        m_buffer.Append(c, end - c);
-        ParseHeader(m_buffer.GetData(), m_buffer.GetSize());
-        m_buffer.Reset();
-      }
-      if(m_parserState == ParserState::ERR) {
-        return;
-      }
-      size -= (end - c) + 1;
-      c = end + 1;
-      m_parserState = ParserState::HEADER;
+    if(m_state == ParserState::ERR) {
+      boost::throw_with_location(InvalidHttpRequestException());
     }
-    if(m_parserState == ParserState::BODY) {
-      if(size == 0) {
+    return boost::none;
+  }
+
+  inline void HttpRequestParser::parse() {
+    while(true) {
+      if(m_state == ParserState::REQUEST_LINE) {
+        parse_request_line();
+        if(m_state != ParserState::HEADERS) {
+          return;
+        }
+      }
+      if(m_state == ParserState::HEADERS) {
+        parse_headers();
+        if(m_state != ParserState::BODY) {
+          return;
+        }
+      }
+      if(m_state == ParserState::BODY) {
+        parse_body();
+        if(m_state != ParserState::REQUEST_LINE) {
+          return;
+        }
+      }
+      if(m_state == ParserState::ERR) {
         return;
-      }
-      if(m_buffer.GetSize() + size <
-          m_specialHeaders.m_contentLength + LINE_LENGTH) {
-        m_buffer.Append(c, size);
-        return;
-      }
-      if(m_buffer.IsEmpty()) {
-        ParseBody(c);
-        size -= m_specialHeaders.m_contentLength + LINE_LENGTH;
-        c += m_specialHeaders.m_contentLength + LINE_LENGTH;
-      } else {
-        auto length = (m_specialHeaders.m_contentLength + LINE_LENGTH) -
-          m_buffer.GetSize();
-        m_buffer.Append(c, length);
-        ParseBody(m_buffer.GetData());
-        m_buffer.Reset();
-        size -= length;
-        c += length;
-      }
-      if(m_parserState == ParserState::ERR) {
-        return;
-      }
-      m_requests.emplace_back(m_version, m_method, std::move(*m_uri),
-        std::move(m_headers), m_specialHeaders, std::move(m_cookies),
-        std::move(m_body));
-      m_uri.reset();
-      m_headers.clear();
-      m_cookies.clear();
-      m_body.Reset();
-      m_parserState = ParserState::METHOD;
-      if(size != 0) {
-        m_buffer.Append(c, size);
-        auto tempBuffer = std::move(m_buffer);
-        m_buffer = IO::SharedBuffer{};
-        Feed(tempBuffer.GetData(), tempBuffer.GetSize());
       }
     }
   }
 
-  inline boost::optional<HttpRequest> HttpRequestParser::GetNextRequest() {
-    if(m_requests.empty()) {
-      if(m_parserState == ParserState::ERR) {
-        BOOST_THROW_EXCEPTION(InvalidHttpRequestException{});
-      }
-      return boost::none;
-    }
-    auto request = std::move(m_requests.front());
-    m_requests.pop_front();
-    return std::move(request);
-  }
-
-  inline void HttpRequestParser::ParseMethod(const char* c, std::size_t size) {
-    static const auto HTTP_VERSION_SIZE = 8;
-    if(size >= 4 && std::memcmp(c, "GET ", 4) == 0) {
-      m_method = HttpMethod::GET;
-      c += 4;
-      size -= 4;
-    } else if(size >= 5 && std::memcmp(c, "POST ", 5) == 0) {
-      m_method = HttpMethod::POST;
-      c += 5;
-      size -= 5;
-    } else {
-      m_parserState = ParserState::ERR;
+  inline void HttpRequestParser::parse_request_line() {
+    auto line_end = find_line_end();
+    if(line_end == std::string::npos) {
       return;
     }
-    auto uriEnd = static_cast<const char*>(std::memchr(c, ' ', size));
-    if(uriEnd == nullptr) {
-      m_parserState = ParserState::ERR;
+    auto line = std::string_view(m_buffer.data(), line_end);
+    auto method_end = line.find(' ');
+    if(method_end == std::string_view::npos) {
+      m_state = ParserState::ERR;
       return;
     }
+    auto method = HttpMethod::from(line.substr(0, method_end));
+    if(method == HttpMethod::NONE) {
+      m_state = ParserState::ERR;
+      return;
+    }
+    m_method = method;
+    auto uri_start = method_end + 1;
+    auto uri_end = line.find(' ', uri_start);
+    if(uri_end == std::string_view::npos) {
+      m_state = ParserState::ERR;
+      return;
+    }
+    auto uri_text = line.substr(uri_start, uri_end - uri_start);
     try {
-      m_uri.emplace(c, uriEnd);
+      m_uri.emplace(uri_text);
     } catch(const MalformedUriException&) {
-      m_parserState = ParserState::ERR;
+      m_state = ParserState::ERR;
       return;
     }
-    size -= (uriEnd - c) + 1;
-    c = uriEnd + 1;
-    if(size != HTTP_VERSION_SIZE) {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    if(std::memcmp(c, "HTTP/1.0", HTTP_VERSION_SIZE) == 0) {
-      m_version = HttpVersion::Version1_0();
-    } else if(std::memcmp(c, "HTTP/1.1", HTTP_VERSION_SIZE) == 0) {
-      m_version = HttpVersion::Version1_1();
+    auto version_text = line.substr(uri_end + 1);
+    if(version_text == "HTTP/1.0") {
+      m_version = HttpVersion::version_1_0();
+    } else if(version_text == "HTTP/1.1") {
+      m_version = HttpVersion::version_1_1();
     } else {
-      m_parserState = ParserState::ERR;
+      m_state = ParserState::ERR;
+      return;
     }
-    m_specialHeaders = SpecialHeaders{m_version};
+    m_special_headers = SpecialHeaders(m_version);
+    m_buffer.erase(0, line_end + 2);
+    m_state = ParserState::HEADERS;
   }
 
-  inline void HttpRequestParser::ParseHeader(const char* c, std::size_t size) {
-    if(*c != '\n') {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    ++c;
-    --size;
-    auto nameEnd = static_cast<const char*>(std::memchr(c, ':', size));
-    if(nameEnd == nullptr) {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    auto nameLength = static_cast<unsigned int>(nameEnd - c);
-    std::string name{c, nameLength};
-    c += nameLength + 1;
-    size -= nameLength + 1;
-    if(*c != ' ') {
-      m_parserState = ParserState::ERR;
-      return;
-    }
-    ++c;
-    --size;
-    std::string value{c, size};
-    if(m_specialHeaders.m_contentLength == 0 &&
-        boost::iequals(name, "Content-Length")) {
-      m_specialHeaders.m_contentLength = std::stoul(value);
-    } else if(boost::iequals(name, "Connection")) {
-      m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
-      if(boost::ifind_first(value, "Upgrade")) {
-        m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
-      } else if(boost::ifind_first(value, "keep-alive")) {
-        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
+  inline void HttpRequestParser::parse_headers() {
+    while(true) {
+      auto line_end = find_line_end();
+      if(line_end == std::string::npos) {
+        return;
       }
-    } else {
-      if(m_cookies.empty() && boost::iequals(name, "Cookie")) {
-        ParseCookies(value);
+      if(line_end == 0) {
+        if(m_buffer.size() < 2) {
+          return;
+        }
+        m_buffer.erase(0, 2);
+        if(m_buffer.size() >= 2 && m_buffer[0] == '\r' && m_buffer[1] == '\n') {
+          m_buffer.erase(0, 2);
+        }
+        m_state = ParserState::BODY;
+        m_body_bytes_read = 0;
+        return;
+      }
+      auto line = std::string_view(m_buffer.data(), line_end);
+      auto colon_position = line.find(':');
+      if(colon_position == std::string_view::npos) {
+        m_state = ParserState::ERR;
+        return;
+      }
+      auto name = std::string(line.substr(0, colon_position));
+      auto value_start = colon_position + 1;
+      if(value_start >= line.size() || line[value_start] != ' ') {
+        m_state = ParserState::ERR;
+        return;
+      }
+      ++value_start;
+      auto value = std::string(line.substr(value_start));
+      if(boost::iequals(name, "Content-Length")) {
+        try {
+          m_special_headers.m_content_length = std::stoull(value);
+        } catch(...) {
+          m_state = ParserState::ERR;
+          return;
+        }
+      } else if(boost::iequals(name, "Connection")) {
+        if(boost::ifind_first(value, "Upgrade")) {
+          m_special_headers.m_connection = ConnectionHeader::UPGRADE;
+        } else if(boost::ifind_first(value, "keep-alive")) {
+          m_special_headers.m_connection = ConnectionHeader::KEEP_ALIVE;
+        } else {
+          m_special_headers.m_connection = ConnectionHeader::CLOSE;
+        }
+      } else if(boost::iequals(name, "Host")) {
+        m_special_headers.m_host = value;
+      } else if(boost::iequals(name, "Cookie")) {
+        auto cookie_start = std::size_t(0);
+        while(cookie_start < value.size()) {
+          auto cookie_end = value.find(';', cookie_start);
+          if(cookie_end == std::string::npos) {
+            cookie_end = value.size();
+          }
+          auto cookie_str = std::string_view(value).substr(
+            cookie_start, cookie_end - cookie_start);
+          parse_cookie(cookie_str);
+          cookie_start = cookie_end + 2;
+        }
       } else {
         m_headers.emplace_back(std::move(name), std::move(value));
       }
+      m_buffer.erase(0, line_end + 2);
     }
   }
 
-  inline void HttpRequestParser::ParseCookie(const char* source, int length) {
-    auto separator = static_cast<const char*>(std::memchr(source, '=', length));
-    if(separator == nullptr) {
-      m_cookies.emplace_back(std::string{},
-        std::string{source, static_cast<unsigned int>(length)});
-    } else {
-      m_cookies.emplace_back(std::string{source, separator},
-        std::string{separator + 1, static_cast<std::string::size_type>(length) -
-        (separator - source) - 1});
-    }
-  }
-
-  inline void HttpRequestParser::ParseCookies(const std::string& source) {
-    std::string::size_type front = 0;
-    while(front < source.size()) {
-      auto separator = source.find(';', front);
-      if(separator == std::string::npos) {
-        separator = source.size();
+  inline void HttpRequestParser::parse_body() {
+    auto bytes_needed = m_special_headers.m_content_length - m_body_bytes_read;
+    auto bytes_available = m_buffer.size();
+    if(bytes_available < bytes_needed) {
+      if(bytes_available > 0) {
+        append(m_body, m_buffer.data(), bytes_available);
+        m_body_bytes_read += bytes_available;
+        m_buffer.clear();
       }
-      ParseCookie(source.c_str() + front, separator - front);
-      front = separator + 2;
-    }
-  }
-
-  inline void HttpRequestParser::ParseBody(const char* c) {
-    auto size = m_specialHeaders.m_contentLength + 2;
-    if(*c != '\r' || *(c + 1) != '\n') {
-      m_parserState = ParserState::ERR;
       return;
     }
-    if(m_specialHeaders.m_contentLength != 0) {
-      m_body.Append(c + 2, m_specialHeaders.m_contentLength);
+    if(bytes_needed > 0) {
+      append(m_body, m_buffer.data(), bytes_needed);
+      m_buffer.erase(0, bytes_needed);
+    }
+    finalize_request();
+  }
+
+  inline void HttpRequestParser::parse_cookie(std::string_view source) {
+    auto equals_position = source.find('=');
+    if(equals_position == std::string_view::npos) {
+      m_cookies.emplace_back(std::string(), std::string(source));
+    } else {
+      auto name = std::string(source.substr(0, equals_position));
+      auto value = std::string(source.substr(equals_position + 1));
+      m_cookies.emplace_back(std::move(name), std::move(value));
     }
   }
-}
+
+  inline void HttpRequestParser::finalize_request() {
+    m_requests.emplace_back(m_version, m_method, std::move(*m_uri),
+      std::move(m_headers), m_special_headers, std::move(m_cookies),
+      std::move(m_body));
+    reset_parser();
+  }
+
+  inline void HttpRequestParser::reset_parser() {
+    m_state = ParserState::REQUEST_LINE;
+    m_uri.reset();
+    m_headers.clear();
+    m_cookies.clear();
+    m_body = SharedBuffer();
+    m_body_bytes_read = 0;
+  }
+
+  inline std::size_t HttpRequestParser::find_line_end() const {
+    if(m_buffer.size() < 2) {
+      return std::string::npos;
+    }
+    for(auto i = std::size_t(0); i < m_buffer.size() - 1; ++i) {
+      if(m_buffer[i] == '\r' && m_buffer[i + 1] == '\n') {
+        return i;
+      }
+    }
+    return std::string::npos;
+  }
 }
 
 #endif

@@ -2,13 +2,12 @@
 #define BEAM_READ_EVALUATOR_NODE_HPP
 #include <memory>
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Reads a value from a pointer.
-   * @param <T> The type of data to read.
+   * @tparam T The type of data to read.
    */
   template<typename T>
   class ReadEvaluatorNode : public EvaluatorNode<T> {
@@ -19,30 +18,34 @@ namespace Beam::Queries {
        * Constructs a ReadEvaluatorNode.
        * @param value The value to read.
        */
-      explicit ReadEvaluatorNode(Result* value);
+      explicit ReadEvaluatorNode(Result* value) noexcept;
 
-      Result Eval() override;
+      Result eval() override;
 
     private:
       Result* m_value;
   };
 
+  /**
+   * Translates a ReadExpression into a ReadEvaluatorNode.
+   * @tparam TypeList The list of types supported.
+   */
   template<typename TypeList>
   struct ReadEvaluatorNodeTranslator {
+    using type = TypeList;
+
     template<typename T>
-    static std::unique_ptr<BaseEvaluatorNode> Template(void* address) {
+    std::unique_ptr<BaseEvaluatorNode> operator ()(void* address) const {
       return std::make_unique<ReadEvaluatorNode<T>>(static_cast<T*>(address));
     }
-
-    using SupportedTypes = TypeList;
   };
 
   template<typename T>
-  ReadEvaluatorNode<T>::ReadEvaluatorNode(Result* value)
+  ReadEvaluatorNode<T>::ReadEvaluatorNode(Result* value) noexcept
     : m_value(value) {}
 
   template<typename T>
-  typename ReadEvaluatorNode<T>::Result ReadEvaluatorNode<T>::Eval() {
+  typename ReadEvaluatorNode<T>::Result ReadEvaluatorNode<T>::eval() {
     return *m_value;
   }
 }

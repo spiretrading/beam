@@ -1,33 +1,35 @@
+#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Queries/IndexedValue.hpp"
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 
 TEST_SUITE("IndexedValue") {
   TEST_CASE("default_constructor") {
-    auto intValue = IndexedValue<int, std::string>();
-    REQUIRE(intValue.GetIndex().empty());
-    REQUIRE(intValue.GetValue() == 0);
-    auto stringValue = IndexedValue<std::string, std::string>();
-    REQUIRE(stringValue.GetIndex().empty());
-    REQUIRE(stringValue.GetValue().empty());
+    auto int_value = IndexedValue<int, std::string>();
+    REQUIRE(int_value.get_index().empty());
+    REQUIRE(int_value.get_value() == 0);
+    auto string_value = IndexedValue<std::string, std::string>();
+    REQUIRE(string_value.get_index().empty());
+    REQUIRE(string_value.get_value().empty());
   }
 
   TEST_CASE("value_and_sequence_constructor") {
-    auto value = IndexedValue<std::string, std::string>("hello world",
-      "goodbye sky");
-    REQUIRE(value.GetValue() == "hello world");
-    REQUIRE(value.GetIndex() == "goodbye sky");
+    auto value =
+      IndexedValue<std::string, std::string>("hello world", "goodbye sky");
+    REQUIRE(value.get_value() == "hello world");
+    REQUIRE(value.get_index() == "goodbye sky");
   }
 
   TEST_CASE("dereference") {
-    auto intValue = IndexedValue<int, std::string>(123, "index");
-    REQUIRE(*intValue == 123);
-    auto stringValue = IndexedValue<std::string, std::string>(
-      "hello world", "index");
-    REQUIRE(*stringValue == "hello world");
+    auto int_value = IndexedValue<int, std::string>(123, "index");
+    REQUIRE(*int_value == 123);
+    auto string_value =
+      IndexedValue<std::string, std::string>("hello world", "index");
+    REQUIRE(*string_value == "hello world");
   }
 
   TEST_CASE("equals_operator") {
@@ -56,7 +58,20 @@ TEST_SUITE("IndexedValue") {
 
   TEST_CASE("make_indexed_value") {
     auto value = IndexedValue(321, std::string("hello world"));
-    REQUIRE(value.GetValue() == 321);
-    REQUIRE(value.GetIndex() == "hello world");
+    REQUIRE(value.get_value() == 321);
+    REQUIRE(value.get_index() == "hello world");
+  }
+
+  TEST_CASE("stream") {
+    auto buffer = std::stringstream();
+    buffer << IndexedValue(123, std::string("index"));
+    REQUIRE(buffer.str() == "(index 123)");
+    buffer.str("");
+    buffer << IndexedValue(std::string("hello world"), std::string("id"));
+    REQUIRE(buffer.str() == "(id hello world)");
+    buffer.str("");
+    buffer << IndexedValue<int, std::string>();
+    REQUIRE(buffer.str() == "( 0)");
+    test_round_trip_shuttle(IndexedValue(123, std::string("index")));
   }
 }

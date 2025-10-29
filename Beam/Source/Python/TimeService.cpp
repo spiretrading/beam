@@ -1,135 +1,199 @@
 #include "Beam/Python/TimeService.hpp"
+#include <Aspen/Conversions.hpp>
+#include <Aspen/Python/Box.hpp>
+#include <Aspen/Python/Reactor.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonTimeClient.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClientBox.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
+#include "Beam/TimeService/AlarmReactor.hpp"
+#include "Beam/TimeService/CurrentTimeReactor.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
-#include "Beam/TimeService/IncrementalTimeClient.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
+#include "Beam/TimeService/TimerReactor.hpp"
 #include "Beam/TimeService/ToLocalTime.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/TimeServiceTests/TestTimeClient.hpp"
-#include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 #include "Beam/TimeServiceTests/TestTimer.hpp"
+#include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
 
+using namespace Aspen;
 using namespace Beam;
-using namespace Beam::IO;
-using namespace Beam::Network;
 using namespace Beam::Python;
-using namespace Beam::ServiceLocator;
-using namespace Beam::Threading;
-using namespace Beam::TimeService;
-using namespace Beam::TimeService::Tests;
+using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::local_time;
 using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
-  auto timeClientBox = std::unique_ptr<class_<TimeClientBox>>();
+  auto time_client = std::unique_ptr<class_<TimeClient>>();
+  auto timer = std::unique_ptr<class_<Timer>>();
 }
 
-class_<TimeClientBox>& Beam::Python::GetExportedTimeClientBox() {
-  return *timeClientBox;
+class_<TimeClient>& Beam::Python::get_exported_time_client() {
+  return *time_client;
 }
 
-void Beam::Python::ExportTzDatabase(pybind11::module& module) {
-  class_<tz_database>(module, "TimeZoneDatabase");
+class_<Timer>& Beam::Python::get_exported_timer() {
+  return *timer;
 }
 
-void Beam::Python::ExportFixedTimeClient(pybind11::module& module) {
-  ExportTimeClient<ToPythonTimeClient<FixedTimeClient>>(module,
-    "FixedTimeClient").
-    def(init()).
-    def(init<ptime>()).
-    def("set_time", [] (ToPythonTimeClient<FixedTimeClient>& self, ptime time) {
-      self.GetClient().SetTime(time);
+void Beam::Python::export_alarm_reactor(pybind11::module& module) {
+  module.def("alarm", [] (SharedBox<ptime> expiry) {
+    return to_object(alarm_reactor(LocalTimeClient(),
+      [] (time_duration duration) {
+        return std::make_unique<LiveTimer>(duration);
+      }, std::move(expiry)));
+  });
+  module.def("alarm",
+    [] (TimeClient time_client,
+        std::function<Timer (time_duration)> timer_factory,
+        SharedBox<ptime> expiry) {
+      return to_object(alarm_reactor(std::move(time_client),
+        [=] (time_duration duration) {
+          return timer_factory(duration);
+        }, std::move(expiry)));
     });
 }
 
-void Beam::Python::ExportIncrementalTimeClient(pybind11::module& module) {
-  ExportTimeClient<ToPythonTimeClient<IncrementalTimeClient>>(module,
-    "IncrementalTimeClient").
-    def(init()).
-    def(init<ptime, time_duration>());
+void Beam::Python::export_current_time_reactor(pybind11::module& module) {
+  module.def("current_time", [] {
+    return to_object(current_time_reactor(LocalTimeClient()));
+  });
+  module.def("current_time", [] (TimeClient time_client) {
+    return to_object(current_time_reactor(std::move(time_client)));
+  });
+  module.def("current_time", [] (SharedBox<void> pulse) {
+    return to_object(current_time_reactor(LocalTimeClient(), std::move(pulse)));
+  });
+  module.def("current_time",
+    [] (TimeClient time_client, SharedBox<void> pulse) {
+      return to_object(
+        current_time_reactor(std::move(time_client), std::move(pulse)));
+    });
 }
 
-void Beam::Python::ExportLocalTimeClient(pybind11::module& module) {
-  ExportTimeClient<ToPythonTimeClient<LocalTimeClient>>(module,
-    "LocalTimeClient").
-    def(init());
+void Beam::Python::export_fixed_time_client(pybind11::module& module) {
+  export_time_client<ToPythonTimeClient<FixedTimeClient>>(
+    module, "FixedTimeClient").
+    def(pybind11::init()).
+    def(pybind11::init<ptime>()).
+    def("set", [] (ToPythonTimeClient<FixedTimeClient>& self, ptime time) {
+      self->set(time);
+    });
 }
 
-void Beam::Python::ExportNtpTimeClient(pybind11::module& module) {
+void Beam::Python::export_local_time_client(pybind11::module& module) {
+  export_time_client<ToPythonTimeClient<LocalTimeClient>>(
+    module, "LocalTimeClient").
+    def(pybind11::init());
+}
+
+void Beam::Python::export_ntp_time_client(pybind11::module& module) {
   module.def("NtpTimeClient",
-    [] (const std::vector<IpAddress>& ntpPool) {
-      return ToPythonTimeClient<TimeClientBox>(MakeLiveNtpTimeClient(ntpPool));
+    [] (const std::vector<IpAddress>& ntp_pool) {
+      return std::make_unique<ToPythonTimeClient<TimeClient>>(
+        make_live_ntp_time_client(ntp_pool));
     }, call_guard<GilRelease>());
   module.def("NtpTimeClient",
-    [] (const std::vector<IpAddress>& ntpPool, time_duration syncPeriod) {
-      return ToPythonTimeClient<TimeClientBox>(
-        MakeLiveNtpTimeClient(ntpPool, syncPeriod));
+    [] (const std::vector<IpAddress>& ntp_pool, time_duration sync_period) {
+      return std::make_unique<ToPythonTimeClient<TimeClient>>(
+        make_live_ntp_time_client(ntp_pool, sync_period));
     }, call_guard<GilRelease>());
-  module.def("NtpTimeClient",
-    [] (ServiceLocatorClientBox serviceLocatorClient) {
-      return ToPythonTimeClient<TimeClientBox>(
-        MakeLiveNtpTimeClientFromServiceLocator(serviceLocatorClient));
-    }, call_guard<GilRelease>());
+  module.def("NtpTimeClient", [] (ServiceLocatorClient service_locator_client) {
+    return std::make_unique<ToPythonTimeClient<TimeClient>>(
+      make_live_ntp_time_client(service_locator_client));
+  }, call_guard<GilRelease>());
 }
 
-void Beam::Python::ExportTestTimeClient(pybind11::module& module) {
-  ExportTimeClient<ToPythonTimeClient<TestTimeClient>>(module,
-    "TestTimeClient").
-    def(init<Ref<TimeServiceTestEnvironment>>(), call_guard<GilRelease>());
+void Beam::Python::export_live_timer(pybind11::module& module) {
+  export_timer<ToPythonTimer<LiveTimer>>(module, "LiveTimer").
+    def(pybind11::init<time_duration>());
 }
 
-void Beam::Python::ExportTestTimer(pybind11::module& module) {
-  ExportTimer<ToPythonTimer<TestTimer>>(module, "TestTimer").
-    def(init<time_duration, Ref<TimeServiceTestEnvironment>>());
+void Beam::Python::export_test_time_client(pybind11::module& module) {
+  export_time_client<ToPythonTimeClient<TestTimeClient>>(
+    module, "TestTimeClient").
+    def(pybind11::init<Ref<TimeServiceTestEnvironment>>(),
+      call_guard<GilRelease>());
 }
 
-void Beam::Python::ExportTimeService(pybind11::module& module) {
-  auto submodule = module.def_submodule("time_service");
-  ExportTzDatabase(submodule);
-  timeClientBox = std::make_unique<class_<TimeClientBox>>(
-    ExportTimeClient<TimeClientBox>(submodule, "TimeClient"));
-  ExportTimeClient<ToPythonTimeClient<TimeClientBox>>(submodule,
-    "TimeClientBox");
-  ExportFixedTimeClient(submodule);
-  ExportIncrementalTimeClient(submodule);
-  ExportLocalTimeClient(submodule);
-  ExportNtpTimeClient(submodule);
-  submodule.def("to_local_time", static_cast<ptime (*)(const ptime&)>(
-    &ToLocalTime));
-  submodule.def("to_utc_time", static_cast<ptime (*)(const ptime&)>(
-    &ToUtcTime));
-  submodule.def("to_local_time", static_cast<time_duration (*)(
-    const time_duration&)>(&ToLocalTime));
-  submodule.def("to_utc_time", static_cast<time_duration (*)(
-    const time_duration&)>(&ToUtcTime));
-  submodule.def("adjust_date_time", &AdjustDateTime);
-  auto test_module = submodule.def_submodule("tests");
-  ExportTestTimeClient(test_module);
-  ExportTestTimer(test_module);
-  ExportTimeServiceTestEnvironment(test_module);
-  register_exception<TimeServiceTestEnvironmentException>(test_module,
-    "TimeServiceTestEnvironmentException");
+void Beam::Python::export_test_timer(pybind11::module& module) {
+  export_timer<ToPythonTimer<TestTimer>>(module, "TestTimer").
+    def(pybind11::init<time_duration, Ref<TimeServiceTestEnvironment>>());
 }
 
-void Beam::Python::ExportTimeServiceTestEnvironment(pybind11::module& module) {
-  class_<TimeServiceTestEnvironment>(module, "TimeServiceTestEnvironment")
-    .def(init(), call_guard<GilRelease>())
-    .def(init<ptime>(), call_guard<GilRelease>())
-    .def("__del__",
-      [] (TimeServiceTestEnvironment& self) {
-        self.Close();
-      }, call_guard<GilRelease>())
-    .def("set_time", &TimeServiceTestEnvironment::SetTime,
-      call_guard<GilRelease>())
-    .def("advance_time", &TimeServiceTestEnvironment::AdvanceTime,
-      call_guard<GilRelease>())
-    .def("get_time", &TimeServiceTestEnvironment::GetTime,
-      call_guard<GilRelease>())
-    .def("close", &TimeServiceTestEnvironment::Close, call_guard<GilRelease>());
+void Beam::Python::export_time_service(pybind11::module& module) {
+  {
+    auto aspen = pybind11::module::import("aspen");
+    export_box<std::int64_t>(aspen, "Int64");
+    export_box<time_duration>(module, "TimeDuration");
+    export_box<ptime>(module, "PosixTime");
+  }
+  export_tz_database(module);
+  time_client = std::make_unique<class_<TimeClient>>(
+    export_time_client<TimeClient>(module, "TimeClient"));
+  timer = std::make_unique<class_<Timer>>(export_timer<Timer>(module, "Timer"));
+  export_alarm_reactor(module);
+  export_current_time_reactor(module);
+  export_fixed_time_client(module);
+  export_local_time_client(module);
+  export_ntp_time_client(module);
+  export_live_timer(module);
+  export_timer_reactor(module);
+  export_trigger_timer(module);
+  module.def("to_local_time", overload_cast<ptime>(&to_local_time));
+  module.def("to_utc_time", overload_cast<ptime>(&to_utc_time));
+  module.def("to_local_time", overload_cast<time_duration>(&to_local_time));
+  module.def("to_utc_time", overload_cast<time_duration>(&to_utc_time));
+  module.def("adjust_date_time", &adjust_date_time);
+  auto test_module = module.def_submodule("tests");
+  export_test_time_client(test_module);
+  export_test_timer(test_module);
+  export_time_service_test_environment(test_module);
+  register_exception<TimeServiceTestEnvironmentException>(
+    test_module, "TimeServiceTestEnvironmentException");
+}
+
+void Beam::Python::export_time_service_test_environment(
+    pybind11::module& module) {
+  class_<
+    TimeServiceTestEnvironment, std::shared_ptr<TimeServiceTestEnvironment>>(
+      module, "TimeServiceTestEnvironment").
+    def(pybind11::init(&make_python_shared<TimeServiceTestEnvironment>),
+      call_guard<GilRelease>()).
+    def(pybind11::init(&make_python_shared<TimeServiceTestEnvironment, ptime>),
+      call_guard<GilRelease>()).
+    def("set", &TimeServiceTestEnvironment::set, call_guard<GilRelease>()).
+    def("advance", &TimeServiceTestEnvironment::advance,
+      call_guard<GilRelease>()).
+    def("get_time", &TimeServiceTestEnvironment::get_time,
+      call_guard<GilRelease>()).
+    def("close", &TimeServiceTestEnvironment::close, call_guard<GilRelease>());
+}
+
+void Beam::Python::export_timer_reactor(pybind11::module& module) {
+  module.def("timer", [] (SharedBox<time_duration> period) {
+    return to_object(timer_reactor<std::int64_t>([] (time_duration duration) {
+      return std::make_unique<LiveTimer>(duration);
+    }, std::move(period)));
+  });
+  module.def("timer",
+    [] (std::function<std::shared_ptr<Timer> (time_duration)> timer_factory,
+        SharedBox<time_duration> period) {
+      return to_object(timer_reactor<std::int64_t>(
+        std::move(timer_factory), std::move(period)));
+    });
+}
+
+void Beam::Python::export_trigger_timer(pybind11::module& module) {
+  export_timer<ToPythonTimer<TriggerTimer>>(module, "TriggerTimer").
+    def(pybind11::init());
+}
+
+void Beam::Python::export_tz_database(pybind11::module& module) {
+  class_<tz_database>(module, "TimeZoneDatabase");
 }

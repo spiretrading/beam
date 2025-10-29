@@ -2,7 +2,7 @@
 #define BEAM_END_OF_FILE_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
 
-namespace Beam::IO {
+namespace Beam {
 
   /** Signals a file/resource has reached its end or has been closed. */
   class EndOfFileException : public IOException {
@@ -14,7 +14,7 @@ namespace Beam::IO {
   };
 
   inline EndOfFileException::EndOfFileException()
-    : IOException("End of file.") {}
+    : EndOfFileException("End of file.") {}
 }
 
 #endif

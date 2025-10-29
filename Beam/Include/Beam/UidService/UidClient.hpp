@@ -1,113 +1,96 @@
 #ifndef BEAM_UID_CLIENT_HPP
 #define BEAM_UID_CLIENT_HPP
-#include <boost/thread/mutex.hpp>
 #include <cstdint>
-#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/UidService/UidService.hpp"
-#include "Beam/UidService/UidServices.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/VirtualPtr.hpp"
 
-namespace Beam::UidService {
+namespace Beam {
 
-  /**
-   * Client used to generate unique identifiers.
-   * @param <B> The type used to build ServiceProtocolClients to the server.
-   */
-  template<typename B>
+  /** Concept for types that can be used as a UidClient. */
+  template<typename T>
+  concept IsUidClient = IsConnection<T> && requires(T& client) {
+    { client.load_next_uid() } -> std::same_as<std::uint64_t>;
+  };
+
+  /** Client used to generate unique identifiers. */
   class UidClient {
     public:
 
-      /** The type used to build ServiceProtocolClients to the server. */
-      using ServiceProtocolClientBuilder = GetTryDereferenceType<B>;
+      /**
+       * Constructs a UidClient of a specified type using emplacement.
+       * @tparam T The type of client to emplace.
+       * @param args The arguments to pass to the emplaced client.
+       */
+      template<IsUidClient T, typename... Args>
+      explicit UidClient(std::in_place_type_t<T>, Args&&... args);
 
       /**
-       * Constructs a UidClient.
-       * @param clientBuilder Initializes the ServiceProtocolClientBuilder.
+       * Constructs a UidClient by referencing an existing client.
+       * @param client The client to reference.
        */
-      template<typename BF>
-      explicit UidClient(BF&& clientBuilder);
+      template<DisableCopy<UidClient> T> requires IsUidClient<dereference_t<T>>
+      UidClient(T&& client);
 
-      ~UidClient();
+      UidClient(const UidClient&) = default;
 
       /** Returns the next available UID. */
-      std::uint64_t LoadNextUid();
+      std::uint64_t load_next_uid();
 
-      void Close();
+      void close();
 
     private:
-      using ServiceProtocolClient =
-        typename ServiceProtocolClientBuilder::Client;
-      std::uint64_t m_nextUid;
-      std::uint64_t m_lastUid;
-      std::uint64_t m_blockSize;
-      mutable boost::mutex m_mutex;
-      mutable Threading::ConditionVariable m_uidsAvailableCondition;
-      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
-      IO::OpenState m_openState;
+      struct VirtualUidClient {
+        virtual ~VirtualUidClient() = default;
+
+        virtual std::uint64_t load_next_uid() = 0;
+        virtual void close() = 0;
+      };
+      template<typename C>
+      struct WrappedUidClient final : VirtualUidClient {
+        using UidClient = C;
+        local_ptr_t<UidClient> m_client;
+
+        template<typename... Args>
+        WrappedUidClient(Args&&... args);
+
+        std::uint64_t load_next_uid() override;
+        void close() override;
+      };
+      VirtualPtr<VirtualUidClient> m_client;
   };
 
-  template<typename B>
-  template<typename BF>
-  UidClient<B>::UidClient(BF&& clientBuilder)
-      try : m_nextUid(1),
-            m_lastUid(0),
-            m_blockSize(10),
-            m_clientHandler(std::forward<BF>(clientBuilder)) {
-    RegisterUidServices(Store(m_clientHandler.GetSlots()));
-  } catch(const std::exception&) {
-    std::throw_with_nested(
-      IO::ConnectException("Failed to connect to the UID server."));
+  template<IsUidClient T, typename... Args>
+  UidClient::UidClient(std::in_place_type_t<T>, Args&&... args)
+    : m_client(
+        make_virtual_ptr<WrappedUidClient<T>>(std::forward<Args>(args)...)) {}
+
+  template<DisableCopy<UidClient> T> requires IsUidClient<dereference_t<T>>
+  UidClient::UidClient(T&& client)
+    : m_client(make_virtual_ptr<WrappedUidClient<std::remove_cvref_t<T>>>(
+        std::forward<T>(client))) {}
+
+  inline std::uint64_t UidClient::load_next_uid() {
+    return m_client->load_next_uid();
   }
 
-  template<typename B>
-  UidClient<B>::~UidClient() {
-    Close();
+  inline void UidClient::close() {
+    m_client->close();
   }
 
-  template<typename B>
-  std::uint64_t UidClient<B>::LoadNextUid() {
-    auto lock = boost::unique_lock(m_mutex);
-    while(m_nextUid > m_lastUid) {
-      if(m_nextUid == m_lastUid + 1) {
-        ++m_nextUid;
-        auto reserveResult = [&] {
-          try {
-            auto release = Threading::Release(lock);
-            return Services::ServiceOrThrowWithNested([&] {
-              auto client = m_clientHandler.GetClient();
-              return client->template SendRequest<ReserveUidsService>(
-                m_blockSize);
-            }, "Failed to load UIDs.");
-          } catch(const std::exception&) {
-            --m_nextUid;
-            m_uidsAvailableCondition.notify_one();
-            throw;
-          }
-        }();
-        m_nextUid = reserveResult;
-        m_lastUid = m_nextUid + m_blockSize - 1;
-        m_blockSize = 2 * m_blockSize;
-        m_uidsAvailableCondition.notify_all();
-      } else {
-        m_uidsAvailableCondition.wait(lock);
-      }
-    }
-    auto uid = m_nextUid;
-    ++m_nextUid;
-    return uid;
+  template<typename C>
+  template<typename... Args>
+  UidClient::WrappedUidClient<C>::WrappedUidClient(Args&&... args)
+    : m_client(std::forward<Args>(args)...) {}
+
+  template<typename C>
+  std::uint64_t UidClient::WrappedUidClient<C>::load_next_uid() {
+    return m_client->load_next_uid();
   }
 
-  template<typename B>
-  void UidClient<B>::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_clientHandler.Close();
-    m_openState.Close();
+  template<typename C>
+  void UidClient::WrappedUidClient<C>::close() {
+    m_client->close();
   }
 }
 

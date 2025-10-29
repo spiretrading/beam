@@ -6,14 +6,13 @@
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/Services.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Builds a ServiceProtocolClient and establishes a session.
-   * @param <P> The type of MessageProtocol used to send and receive messages.
-   * @param <T> The type of Timer used for heartbeats.
+   * @tparam P The type of MessageProtocol used to send and receive messages.
+   * @tparam T The type of Timer used for heartbeats.
    */
   template<typename P, typename T>
   class ServiceProtocolClientBuilder {
@@ -40,38 +39,43 @@ namespace Beam::Services {
 
       /**
        * Constructs a ServiceProtocolClientBuilder.
-       * @param channelBuilder Used to build new Channels.
-       * @param timerBuilder Used to build heartbeat Timers.
+       * @param channel_builder Used to build new Channels.
+       * @param timer_builder Used to build heartbeat Timers.
        */
-      ServiceProtocolClientBuilder(ChannelBuilder channelBuilder,
-        TimerBuilder timerBuilder);
+      ServiceProtocolClientBuilder(
+        ChannelBuilder channel_builder, TimerBuilder timer_builder);
 
-      std::unique_ptr<Client> MakeClient(const ServiceSlots<Client>& slots);
+      /**
+       * Constructs a ServiceProtocolClient.
+       * @param slots The ServiceSlots the client will use.
+       */
+      std::unique_ptr<Client> make_client(const ServiceSlots<Client>& slots);
 
-      std::unique_ptr<Timer> MakeTimer();
+      /** Constructs a heartbeat Timer. */
+      std::unique_ptr<Timer> make_timer();
 
     private:
-      ChannelBuilder m_channelBuilder;
-      TimerBuilder m_timerBuilder;
+      ChannelBuilder m_channel_builder;
+      TimerBuilder m_timer_builder;
   };
 
   template<typename P, typename T>
   ServiceProtocolClientBuilder<P, T>::ServiceProtocolClientBuilder(
-    ChannelBuilder channelBuilder, TimerBuilder timerBuilder)
-    : m_channelBuilder(std::move(channelBuilder)),
-      m_timerBuilder(std::move(timerBuilder)) {}
+    ChannelBuilder channel_builder, TimerBuilder timer_builder)
+    : m_channel_builder(std::move(channel_builder)),
+      m_timer_builder(std::move(timer_builder)) {}
 
   template<typename P, typename T>
   std::unique_ptr<typename ServiceProtocolClientBuilder<P, T>::Client>
-      ServiceProtocolClientBuilder<P, T>::MakeClient(
+      ServiceProtocolClientBuilder<P, T>::make_client(
         const ServiceSlots<Client>& slots) {
-    return std::make_unique<Client>(m_channelBuilder(), &slots, MakeTimer());
+    return std::make_unique<Client>(m_channel_builder(), &slots, make_timer());
   }
 
   template<typename P, typename T>
   std::unique_ptr<typename ServiceProtocolClientBuilder<P, T>::Timer>
-      ServiceProtocolClientBuilder<P, T>::MakeTimer() {
-    return m_timerBuilder();
+      ServiceProtocolClientBuilder<P, T>::make_timer() {
+    return m_timer_builder();
   }
 }
 

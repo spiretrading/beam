@@ -10,22 +10,12 @@
 #include "Beam/Queries/ParameterExpression.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
 #include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Queries/StandardValues.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 
-namespace Beam::Queries {
-  BEAM_REGISTER_TYPES(RegisterDataTypes,
-    (BoolType, "Beam.Queries.BoolType"),
-    (CharType, "Beam.Queries.CharType"),
-    (IntType, "Beam.Queries.IntType"),
-    (DecimalType, "Beam.Queries.DecimalType"),
-    (IdType, "Beam.Queries.IdType"),
-    (StringType, "Beam.Queries.StringType"),
-    (DateTimeType, "Beam.Queries.DateTimeType"));
-
-  BEAM_REGISTER_TYPES(RegisterValueTypes,
+namespace Beam {
+  BEAM_REGISTER_TYPES(register_value_types,
     (BoolValue, "Beam.Queries.BoolValue"),
     (CharValue, "Beam.Queries.CharValue"),
     (IntValue, "Beam.Queries.IntValue"),
@@ -34,7 +24,7 @@ namespace Beam::Queries {
     (StringValue, "Beam.Queries.StringValue"),
     (DateTimeValue, "Beam.Queries.DateTimeValue"));
 
-  BEAM_REGISTER_TYPES(RegisterExpressionTypes,
+  BEAM_REGISTER_TYPES(register_expression_types,
     (AndExpression, "Beam.Queries.AndExpression"),
     (ConstantExpression, "Beam.Queries.ConstantExpression"),
     (FunctionExpression, "Beam.Queries.FunctionExpression"),
@@ -48,12 +38,19 @@ namespace Beam::Queries {
     (SetVariableExpression, "Beam.Queries.SetVariableExpression"),
     (VariableExpression, "Beam.Queries.VariableExpression"));
 
-  template<typename SenderType>
-  void RegisterQueryTypes(
-      Out<Serialization::TypeRegistry<SenderType>> registry) {
-    RegisterDataTypes(Store(registry));
-    RegisterValueTypes(Store(registry));
-    RegisterExpressionTypes(Store(registry));
+  template<IsSender S>
+  void register_query_types(Out<TypeRegistry<S>> registry) {
+    registry->add(typeid(bool), "bool");
+    registry->add(typeid(char), "char");
+    registry->add(typeid(int), "int");
+    registry->add(typeid(double), "double");
+    registry->add(typeid(std::uint64_t), "uint64");
+    registry->add(typeid(std::string), "string");
+    registry->add(typeid(boost::posix_time::ptime), "boost.posix_time.ptime");
+    registry->add(typeid(boost::posix_time::time_duration),
+      "boost.posix_time.time_duration");
+    register_value_types(out(registry));
+    register_expression_types(out(registry));
   }
 }
 

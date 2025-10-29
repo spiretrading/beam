@@ -8,18 +8,17 @@
 #include "Beam/Collections/SynchronizedMap.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/QueryResult.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/Threading/Sync.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Keeps track of subscriptions to data streamed via a query.
-   * @param <V> The type of data published.
-   * @param <C> The type of ServiceProtocolClients subscribing to queries.
+   * @tparam V The type of data published.
+   * @tparam C The type of ServiceProtocolClients subscribing to queries.
    */
   template<typename V, typename C>
   class Subscriptions {
@@ -32,7 +31,7 @@ namespace Beam::Queries {
       using ServiceProtocolClient = C;
 
       /** Constructs a Subscriptions object. */
-      Subscriptions();
+      Subscriptions() noexcept;
 
       /**
        * Adds a subscription combining the initialization and commit.
@@ -41,7 +40,7 @@ namespace Beam::Queries {
        * @param filter The filter to apply to published values.
        * @return The query's unique id.
        */
-      int Add(ServiceProtocolClient& client, const Range& range,
+      int add(ServiceProtocolClient& client, const Range& range,
         std::unique_ptr<Evaluator> filter);
 
       /**
@@ -51,7 +50,7 @@ namespace Beam::Queries {
        * @param filter The filter to apply to published values.
        * @return The query's unique id.
        */
-      int Initialize(ServiceProtocolClient& client, const Range& range,
+      int init(ServiceProtocolClient& client, const Range& range,
         std::unique_ptr<Evaluator> filter);
 
       /**
@@ -59,31 +58,31 @@ namespace Beam::Queries {
        * @param result The result of the query.
        */
       template<typename F>
-      void Commit(QueryResult<Value> result, F&& f);
+      void commit(QueryResult<Value> result, F&& f);
 
       /**
        * Ends a subscription.
        * @param id The query's id.
        */
-      void End(int id);
+      void end(int id);
 
       /**
        * Removes all of a client's subscriptions.
        * @param client The client whose subscriptions are to be removed.
        */
-      void RemoveAll(ServiceProtocolClient& client);
+      void remove_all(ServiceProtocolClient& client);
 
       /**
        * Publishes a value to all clients who subscribed to it.
        * @param value The value to publish.
-       * @param clientFilter The function called to filter out clients to send
+       * @param client_filter The function called to filter out clients to send
        *        the value to.
        * @param sender The function called to send the value to the
        *        ServiceProtocolClient.
        */
       template<typename ClientFilter, typename Sender>
-      void Publish(const Value& value, ClientFilter&& clientFilter,
-        Sender&& sender);
+      void publish(
+        const Value& value, ClientFilter client_filter, Sender&& sender);
 
       /**
        * Publishes a value to all clients who subscribed to it.
@@ -92,7 +91,7 @@ namespace Beam::Queries {
        *        ServiceProtocolClient.
        */
       template<typename Sender>
-      void Publish(const Value& value, Sender&& sender);
+      void publish(const Value& value, Sender&& sender);
 
     private:
       struct SubscriptionEntry {
@@ -105,25 +104,25 @@ namespace Beam::Queries {
         ServiceProtocolClient* m_client;
         Range m_range;
         std::unique_ptr<Evaluator> m_filter;
-        std::vector<Value> m_writeLog;
+        std::vector<Value> m_write_log;
         boost::mutex m_mutex;
 
         SubscriptionEntry(int id, ServiceProtocolClient& client,
           const Range& range, std::unique_ptr<Evaluator> filter);
       };
-      std::atomic_int m_nextQueryId;
+      std::atomic_int m_next_query_id;
       SynchronizedVector<std::shared_ptr<SubscriptionEntry>> m_subscriptions;
-      std::vector<ServiceProtocolClient*> m_receivingClients;
+      std::vector<ServiceProtocolClient*> m_receiving_clients;
       Beam::SynchronizedUnorderedMap<int, std::shared_ptr<SubscriptionEntry>>
-        m_initializingSubscriptions;
+        m_initializing_subscriptions;
 
       Subscriptions(const Subscriptions&) = delete;
       Subscriptions& operator =(const Subscriptions&) = delete;
   };
 
   template<typename V, typename C>
-  Subscriptions<V, C>::SubscriptionEntry::SubscriptionEntry(int id,
-    ServiceProtocolClient& client, const Range& range,
+  Subscriptions<V, C>::SubscriptionEntry::SubscriptionEntry(
+    int id, ServiceProtocolClient& client, const Range& range,
     std::unique_ptr<Evaluator> filter)
     : m_state(State::INITIALIZING),
       m_id(id),
@@ -132,127 +131,121 @@ namespace Beam::Queries {
       m_filter(std::move(filter)) {}
 
   template<typename V, typename C>
-  Subscriptions<V, C>::Subscriptions()
-    : m_nextQueryId(0) {}
+  Subscriptions<V, C>::Subscriptions() noexcept
+    : m_next_query_id(0) {}
 
   template<typename V, typename C>
-  int Subscriptions<V, C>::Add(ServiceProtocolClient& client,
+  int Subscriptions<V, C>::add(ServiceProtocolClient& client,
       const Range& range, std::unique_ptr<Evaluator> filter) {
-    auto queryId = Initialize(client, range, std::move(filter));
+    auto id = init(client, range, std::move(filter));
     auto result = QueryResult<Value>();
-    result.m_queryId = queryId;
-    Commit(std::move(result), [] (const QueryResult<Value>&) {});
-    return queryId;
+    result.m_id = id;
+    commit(std::move(result), [] (const QueryResult<Value>&) {});
+    return id;
   }
 
   template<typename V, typename C>
-  int Subscriptions<V, C>::Initialize(ServiceProtocolClient& client,
+  int Subscriptions<V, C>::init(ServiceProtocolClient& client,
       const Range& range, std::unique_ptr<Evaluator> filter) {
-    if(range.GetEnd() != Beam::Queries::Sequence::Last()) {
+    if(range.get_end() != Beam::Sequence::LAST) {
       return -1;
     }
-    auto queryId = ++m_nextQueryId;
-    auto subscriptionEntry = std::make_shared<SubscriptionEntry>(queryId,
-      client, range, std::move(filter));
-    m_initializingSubscriptions.Insert(queryId, subscriptionEntry);
-    m_subscriptions.With([&] (auto& subscriptionList) {
-      auto insertIterator = std::lower_bound(subscriptionList.begin(),
-        subscriptionList.end(), subscriptionEntry,
-        [] (const auto& lhs, const auto& rhs) {
-          return lhs->m_client < rhs->m_client;
-        });
-      subscriptionList.insert(insertIterator, subscriptionEntry);
+    auto id = ++m_next_query_id;
+    auto entry =
+      std::make_shared<SubscriptionEntry>(id, client, range, std::move(filter));
+    m_initializing_subscriptions.insert(id, entry);
+    m_subscriptions.with([&] (auto& subscriptions) {
+      auto i =
+        std::lower_bound(subscriptions.begin(), subscriptions.end(), entry,
+          [] (const auto& lhs, const auto& rhs) {
+            return lhs->m_client < rhs->m_client;
+          });
+      subscriptions.insert(i, entry);
     });
-    return queryId;
+    return id;
   }
 
   template<typename V, typename C>
   template<typename F>
-  void Subscriptions<V, C>::Commit(QueryResult<Value> result, F&& f) {
-    if(result.m_queryId == -1) {
+  void Subscriptions<V, C>::commit(QueryResult<Value> result, F&& f) {
+    if(result.m_id == -1) {
       std::forward<F>(f)(std::move(result));
       return;
     }
-    auto subscriptionEntryLookup = m_initializingSubscriptions.FindValue(
-      result.m_queryId);
-    if(!subscriptionEntryLookup.is_initialized()) {
+    auto subscription = m_initializing_subscriptions.try_load(result.m_id);
+    if(!subscription) {
       return;
     }
-    auto& subscriptionEntry = **subscriptionEntryLookup;
-    m_initializingSubscriptions.Erase(result.m_queryId);
-    auto lock = boost::lock_guard(subscriptionEntry.m_mutex);
+    auto& entry = **subscription;
+    m_initializing_subscriptions.erase(result.m_id);
+    auto lock = boost::lock_guard(entry.m_mutex);
     if(result.m_snapshot.empty()) {
-      result.m_snapshot.swap(subscriptionEntry.m_writeLog);
+      result.m_snapshot.swap(entry.m_write_log);
     } else {
-      auto mergeIterator = std::find_if(subscriptionEntry.m_writeLog.begin(),
-        subscriptionEntry.m_writeLog.end(),
+      auto i = std::find_if(entry.m_write_log.begin(), entry.m_write_log.end(),
         [&] (const Value& value) {
-          return value.GetSequence() > result.m_snapshot.back().GetSequence();
+          return value.get_sequence() > result.m_snapshot.back().get_sequence();
         });
-      result.m_snapshot.insert(result.m_snapshot.end(), mergeIterator,
-        subscriptionEntry.m_writeLog.end());
-      subscriptionEntry.m_writeLog = {};
+      result.m_snapshot.insert(
+        result.m_snapshot.end(), i, entry.m_write_log.end());
+      entry.m_write_log = {};
     }
-    subscriptionEntry.m_state = SubscriptionEntry::State::COMMITTED;
+    entry.m_state = SubscriptionEntry::State::COMMITTED;
     std::forward<F>(f)(std::move(result));
   }
 
   template<typename V, typename C>
-  void Subscriptions<V, C>::End(int id) {
-    m_subscriptions.RemoveIf([&] (const auto& entry) {
+  void Subscriptions<V, C>::end(int id) {
+    m_subscriptions.erase_if([&] (const auto& entry) {
       return entry->m_id == id;
     });
   }
 
   template<typename V, typename C>
-  void Subscriptions<V, C>::RemoveAll(ServiceProtocolClient& client) {
-    m_subscriptions.RemoveIf([&] (const auto& entry) {
+  void Subscriptions<V, C>::remove_all(ServiceProtocolClient& client) {
+    m_subscriptions.erase_if([&] (const auto& entry) {
       return entry->m_client == &client;
     });
   }
 
   template<typename V, typename C>
   template<typename ClientFilter, typename Sender>
-  void Subscriptions<V, C>::Publish(const Value& value,
-      ClientFilter&& clientFilter, Sender&& sender) {
-    auto lastClient = static_cast<const ServiceProtocolClient*>(nullptr);
-    m_subscriptions.With([&] (const auto& subscriptionEntries) {
-      m_receivingClients.clear();
-      for(auto& subscriptionEntry : subscriptionEntries) {
-        if(subscriptionEntry->m_client == lastClient) {
+  void Subscriptions<V, C>::publish(const Value& value,
+      ClientFilter client_filter, Sender&& sender) {
+    auto last_client = static_cast<const ServiceProtocolClient*>(nullptr);
+    m_subscriptions.with([&] (const auto& subscriptions) {
+      m_receiving_clients.clear();
+      for(auto& entry : subscriptions) {
+        if(entry->m_client == last_client) {
           continue;
         }
-        if(!std::forward<ClientFilter>(clientFilter)(
-            *subscriptionEntry->m_client)) {
-          lastClient = subscriptionEntry->m_client;
+        if(!client_filter(*entry->m_client)) {
+          last_client = entry->m_client;
           continue;
         }
-        auto lock = boost::lock_guard(subscriptionEntry->m_mutex);
-        if((subscriptionEntry->m_range.GetStart() == Sequence::Present() ||
-            RangePointGreaterOrEqual(value,
-            subscriptionEntry->m_range.GetStart())) &&
-            RangePointLesserOrEqual(value,
-            subscriptionEntry->m_range.GetEnd()) &&
-            TestFilter(*subscriptionEntry->m_filter, *value)) {
-          lastClient = subscriptionEntry->m_client;
-          if(subscriptionEntry->m_state ==
-              SubscriptionEntry::State::INITIALIZING) {
-            subscriptionEntry->m_writeLog.push_back(value);
+        auto lock = boost::lock_guard(entry->m_mutex);
+        if((entry->m_range.get_start() == Sequence::PRESENT ||
+            range_point_greater_or_equal(value, entry->m_range.get_start())) &&
+              range_point_lesser_or_equal(value, entry->m_range.get_end()) &&
+                test_filter(*entry->m_filter, *value)) {
+          last_client = entry->m_client;
+          if(entry->m_state == SubscriptionEntry::State::INITIALIZING) {
+            entry->m_write_log.push_back(value);
           } else {
-            m_receivingClients.push_back(subscriptionEntry->m_client);
+            m_receiving_clients.push_back(entry->m_client);
           }
         }
       }
-      if(!m_receivingClients.empty()) {
-        std::forward<Sender>(sender)(m_receivingClients);
+      if(!m_receiving_clients.empty()) {
+        std::forward<Sender>(sender)(m_receiving_clients);
       }
     });
   }
 
   template<typename V, typename C>
   template<typename Sender>
-  void Subscriptions<V, C>::Publish(const Value& value, Sender&& sender) {
-    Publish(value, [] (ServiceProtocolClient&) { return true; },
+  void Subscriptions<V, C>::publish(const Value& value, Sender&& sender) {
+    publish(value, [] (ServiceProtocolClient&) { return true; },
       std::forward<Sender>(sender));
   }
 }

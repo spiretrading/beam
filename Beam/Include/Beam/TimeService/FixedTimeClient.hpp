@@ -1,11 +1,10 @@
 #ifndef BEAM_FIXED_TIME_CLIENT_HPP
 #define BEAM_FIXED_TIME_CLIENT_HPP
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include "Beam/IO/Connection.hpp"
+#include <atomic>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/TimeService/TimeService.hpp"
+#include "Beam/TimeService/TimeClient.hpp"
 
-namespace Beam::TimeService {
+namespace Beam {
 
   /** A TimeClient whose value is set programmatically. */
   class FixedTimeClient {
@@ -23,15 +22,14 @@ namespace Beam::TimeService {
       ~FixedTimeClient();
 
       /** Sets the time to use. */
-      void SetTime(boost::posix_time::ptime time);
+      void set(boost::posix_time::ptime time);
 
-      boost::posix_time::ptime GetTime();
-
-      void Close();
+      boost::posix_time::ptime get_time();
+      void close();
 
     private:
-      IO::OpenState m_openState;
-      boost::posix_time::ptime m_time;
+      OpenState m_open_state;
+      std::atomic<boost::posix_time::ptime> m_time;
 
       FixedTimeClient(const FixedTimeClient&) = delete;
       FixedTimeClient& operator =(const FixedTimeClient&) = delete;
@@ -41,19 +39,21 @@ namespace Beam::TimeService {
     : m_time(time) {}
 
   inline FixedTimeClient::~FixedTimeClient() {
-    Close();
+    close();
   }
 
-  inline void FixedTimeClient::SetTime(boost::posix_time::ptime time) {
-    m_time = time;
+  inline void FixedTimeClient::set(boost::posix_time::ptime time) {
+    m_open_state.ensure_open();
+    m_time.store(time);
   }
 
-  inline boost::posix_time::ptime FixedTimeClient::GetTime() {
-    return m_time;
+  inline boost::posix_time::ptime FixedTimeClient::get_time() {
+    m_open_state.ensure_open();
+    return m_time.load();
   }
 
-  inline void FixedTimeClient::Close() {
-    m_openState.Close();
+  inline void FixedTimeClient::close() {
+    m_open_state.close();
   }
 }
 

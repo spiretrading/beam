@@ -1,12 +1,11 @@
 #ifndef BEAM_SEQUENCER_HPP
 #define BEAM_SEQUENCER_HPP
 #include "Beam/Queries/IndexedValue.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Produces SequencedValues encoding the timestamp into the Sequence. */
   class Sequencer {
@@ -14,9 +13,9 @@ namespace Beam::Queries {
 
       /**
        * Constructs a Sequencer.
-       * @param initialSequence The Sequence to use on the first value.
+       * @param initial The Sequence to use on the first value.
        */
-      explicit Sequencer(Sequence initialSequence);
+      explicit Sequencer(Sequence initial) noexcept;
 
       /**
        * Makes a SequencedValue encoding the value's timestamp into the
@@ -27,7 +26,7 @@ namespace Beam::Queries {
        *         with a Sequence encoding the <i>value</i>'s timestamp.
        */
       template<typename Value, typename Index>
-      SequencedValue<IndexedValue<Value, Index>> MakeSequencedValue(
+      SequencedValue<IndexedValue<Value, Index>> make_sequenced_value(
         Value value, Index index);
 
       /**
@@ -35,10 +34,10 @@ namespace Beam::Queries {
        * @param timestamp The timestamp to translate into a Sequence.
        * @return The next Sequence to use for the specified <i>timestamp</i>.
        */
-      Sequence IncrementNextSequence(boost::posix_time::ptime timestamp);
+      Sequence increment_next_sequence(boost::posix_time::ptime timestamp);
 
     private:
-      Sequence m_nextSequence;
+      Sequence m_next_sequence;
       boost::posix_time::ptime m_partition;
 
       Sequencer(const Sequencer&) = delete;
@@ -52,7 +51,7 @@ namespace Beam::Queries {
    * @return A timestamp representing the partition that the <i>timestamp</i>
    *         belongs to, which is currently the date.
    */
-  inline boost::posix_time::ptime GetPartition(
+  inline boost::posix_time::ptime get_partition(
       boost::posix_time::ptime timestamp) {
     return boost::posix_time::ptime(timestamp.date());
   }
@@ -64,31 +63,41 @@ namespace Beam::Queries {
    * @return <code>true</code> iff the <i>timestamp</i> belongs to the partition
    *         represented by <i>partition</i>.
    */
-  inline bool IsSamePartition(boost::posix_time::ptime timestamp,
-      boost::posix_time::ptime partition) {
-    return GetPartition(timestamp) <= GetPartition(partition);
+  inline bool is_same_partition(
+      boost::posix_time::ptime timestamp, boost::posix_time::ptime partition) {
+    return get_partition(timestamp) <= get_partition(partition);
   }
 
-  inline Sequencer::Sequencer(Sequence initialSequence)
-    : m_nextSequence(initialSequence),
-      m_partition(DecodeTimestamp(m_nextSequence)) {}
+  /**
+   * Removes the index from a value containing both a sequence and an index.
+   * @param value The value whose index is to be removed.
+   */
+  template<typename Value, typename Index>
+  SequencedValue<Value> to_sequenced_value(
+      SequencedValue<IndexedValue<Value, Index>> value) {
+    return SequencedValue(**value, value.get_sequence());
+  }
+
+  inline Sequencer::Sequencer(Sequence initial) noexcept
+    : m_next_sequence(initial),
+      m_partition(decode_timestamp(m_next_sequence)) {}
 
   template<typename Value, typename Index>
   SequencedValue<IndexedValue<Value, Index>>
-      Sequencer::MakeSequencedValue(Value value, Index index) {
-    auto sequence = IncrementNextSequence(GetTimestamp(value));
+      Sequencer::make_sequenced_value(Value value, Index index) {
+    auto sequence = increment_next_sequence(get_timestamp(value));
     return SequencedValue(
       IndexedValue(std::move(value), std::move(index)), sequence);
   }
 
-  inline Sequence Sequencer::IncrementNextSequence(
+  inline Sequence Sequencer::increment_next_sequence(
       boost::posix_time::ptime timestamp) {
-    if(!IsSamePartition(timestamp, m_partition)) {
-      m_partition = GetPartition(timestamp);
-      m_nextSequence = EncodeTimestamp(timestamp);
+    if(!is_same_partition(timestamp, m_partition)) {
+      m_partition = get_partition(timestamp);
+      m_next_sequence = to_sequence(timestamp);
     }
-    auto sequence = m_nextSequence;
-    ++m_nextSequence;
+    auto sequence = m_next_sequence;
+    ++m_next_sequence;
     return sequence;
   }
 }

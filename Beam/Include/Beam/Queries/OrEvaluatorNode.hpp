@@ -2,9 +2,8 @@
 #define BEAM_OR_EVALUATOR_NODE_HPP
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Evaluates an or expression. */
   class OrEvaluatorNode : public EvaluatorNode<bool> {
@@ -19,7 +18,7 @@ namespace Beam::Queries {
       OrEvaluatorNode(std::unique_ptr<EvaluatorNode<bool>> left,
         std::unique_ptr<EvaluatorNode<bool>> right);
 
-      bool Eval() override;
+      bool eval() override;
 
     private:
       std::unique_ptr<EvaluatorNode<bool>> m_left;
@@ -32,8 +31,8 @@ namespace Beam::Queries {
     : m_left(std::move(left)),
       m_right(std::move(right)) {}
 
-  inline bool OrEvaluatorNode::Eval() {
-    return m_left->Eval() || m_right->Eval();
+  inline bool OrEvaluatorNode::eval() {
+    return m_left->eval() || m_right->eval();
   }
 }
 

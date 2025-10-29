@@ -1,396 +1,383 @@
 #include "Beam/Python/Queries.hpp"
 #include <sstream>
+#include <Aspen/Conversions.hpp>
+#include <Aspen/Python/Box.hpp>
+#include <Aspen/Python/Reactor.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
-#include "Beam/Python/Enum.hpp"
 #include "Beam/Python/Queues.hpp"
 #include "Beam/Python/Variant.hpp"
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionQuery.hpp"
 #include "Beam/Queries/ExpressionTranslationException.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
-#include "Beam/Queries/IndexListQuery.hpp"
 #include "Beam/Queries/InterruptableQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
 #include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/QueryInterruptedException.hpp"
+#include "Beam/Queries/QueryReactor.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
+#include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/StandardValues.hpp"
 #include "Beam/Queries/TypeCompatibilityException.hpp"
 
+using namespace Aspen;
 using namespace Beam;
 using namespace Beam::Python;
-using namespace Beam::Queries;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace pybind11;
 
-void Beam::Python::ExportAndExpression(pybind11::module& module) {
-  class_<AndExpression, VirtualExpression>(module, "AndExpression").
-    def(init<Expression, Expression>()).
-    def(init<const AndExpression&>()).
-    def_property_readonly("left_expression", &AndExpression::GetLeftExpression).
-    def_property_readonly("right_expression",
-      &AndExpression::GetRightExpression);
-  implicitly_convertible<AndExpression, Expression>();
+namespace {
+  auto value = std::unique_ptr<class_<Value>>();
+
+  struct FromPythonExpression : VirtualExpression {
+    const VirtualExpression* m_expression;
+
+    FromPythonExpression(const VirtualExpression& expression)
+      : m_expression(&expression) {
+    }
+
+    std::type_index get_type() const override {
+      return m_expression->get_type();
+    }
+
+    void apply(ExpressionVisitor& visitor) const override {
+      m_expression->apply(visitor);
+    }
+
+    std::ostream& to_stream(std::ostream& out) const override {
+      return (out << *m_expression);
+    }
+  };
 }
 
-void Beam::Python::ExportExpression(pybind11::module& module) {
-  class_<VirtualExpression>(module, "Expression").
-    def_property_readonly("data_type", &VirtualExpression::GetType).
-    def("apply", &VirtualExpression::Apply).
-    def(self < self).
-    def(self <= self).
-    def(self == self).
-    def(self != self).
-    def(self >= self).
-    def(self > self).
-    def(self + self).
-    def(self - self).
-    def(self * self).
-    def(self / self);
-  class_<Expression>(module, "CloneableExpression").
-    def(init<const VirtualExpression&>());
+class_<Value>& Beam::Python::get_exported_value() {
+  return *value;
+}
+
+void Beam::Python::export_and_expression(pybind11::module& module) {
+  class_<AndExpression, VirtualExpression>(module, "AndExpression").
+    def(pybind11::init<Expression, Expression>()).
+    def(pybind11::init<const AndExpression&>()).
+    def_property_readonly("left", &AndExpression::get_left).
+    def_property_readonly("right", &AndExpression::get_right);
+}
+
+void Beam::Python::export_constant_expression(pybind11::module& module) {
+  class_<ConstantExpression, VirtualExpression>(module, "ConstantExpression").
+    def(pybind11::init<const Value&>()).
+    def(pybind11::init<const ConstantExpression&>()).
+    def_property_readonly("value", &ConstantExpression::get_value);
+}
+
+void Beam::Python::export_expression(pybind11::module& module) {
+  auto virtual_expression =
+    class_<VirtualExpression>(module, "VirtualExpression").
+      def_property_readonly("data_type", &VirtualExpression::get_type).
+      def("apply", &VirtualExpression::apply).
+      def("__lt__", [] (const Expression& left, const Expression& right) {
+        return left < right;
+      }).
+      def("__le__", [] (const Expression& left, const Expression& right) {
+        return left <= right;
+      }).
+      def("__eq__", [] (const Expression& left, const Expression& right) {
+        return left == right;
+      }).
+      def("__ne__", [] (const Expression& left, const Expression& right) {
+        return left != right;
+      }).
+      def("__ge__", [] (const Expression& left, const Expression& right) {
+        return left >= right;
+      }).
+      def("__gt__", [] (const Expression& left, const Expression& right) {
+        return left > right;
+      }).
+      def("__add__", [] (const Expression& left, const Expression& right) {
+        return left + right;
+      }).
+      def("__sub__", [] (const Expression& left, const Expression& right) {
+        return left - right;
+      }).
+      def("__mul__", [] (const Expression& left, const Expression& right) {
+        return left * right;
+      }).
+      def("__truediv__", [] (const Expression& left, const Expression& right) {
+        return left / right;
+      });
+  export_default_methods(virtual_expression);
+  auto expression = class_<Expression>(module, "Expression").
+    def(pybind11::init([] (const VirtualExpression& expression) {
+      return Expression(FromPythonExpression(expression));
+    }), keep_alive<1, 2>()).
+    def_property_readonly("data_type", &Expression::get_type).
+    def("apply", &Expression::apply);
+  export_default_methods(expression);
   implicitly_convertible<VirtualExpression, Expression>();
 }
 
-void Beam::Python::ExportConstantExpression(pybind11::module& module) {
-  class_<ConstantExpression, VirtualExpression>(module, "ConstantExpression").
-    def(init<const Value&>()).
-    def_property_readonly("value", &ConstantExpression::GetValue);
-  implicitly_convertible<ConstantExpression, Expression>();
-}
-
-void Beam::Python::ExportDataType(pybind11::module& module) {
-  class_<VirtualDataType>(module, "DataType").
-    def("__eq__",
-      [] (const VirtualDataType& self, const VirtualDataType& rhs) {
-        return self == rhs;
-      }).
-    def("__ne__",
-      [] (const VirtualDataType& self, const VirtualDataType& rhs) {
-        return self != rhs;
-      });
-  class_<DataType>(module, "CloneableDataType").
-    def(init<const VirtualDataType&>());
-  implicitly_convertible<VirtualDataType, DataType>();
-  ExportNativeDataType<BoolType>(module, "BoolType");
-  ExportNativeDataType<CharType>(module, "CharType");
-  ExportNativeDataType<IntType>(module, "IntType");
-  ExportNativeDataType<DecimalType>(module, "DecimalType");
-  ExportNativeDataType<IdType>(module, "IdType");
-  ExportNativeDataType<StringType>(module, "StringType");
-  ExportNativeDataType<DateTimeType>(module, "DateTimeType");
-  ExportNativeDataType<DurationType>(module, "DurationType");
-}
-
-void Beam::Python::ExportExpressionQuery(module& module) {
+void Beam::Python::export_expression_query(module& module) {
   auto outer = class_<ExpressionQuery>(module, "ExpressionQuery").
-    def(init()).
-    def(init<const Expression&>()).
-    def(init<const ExpressionQuery&>()).
-    def_property("update_policy", &ExpressionQuery::GetUpdatePolicy,
-      &ExpressionQuery::SetUpdatePolicy).
-    def_property("expression", &ExpressionQuery::GetExpression,
-      &ExpressionQuery::SetExpression).
-    def("__str__", &lexical_cast<std::string, ExpressionQuery>);
+    def(pybind11::init<const Expression&>()).
+    def_property("update_policy", &ExpressionQuery::get_update_policy,
+      &ExpressionQuery::set_update_policy).
+    def_property("expression", &ExpressionQuery::get_expression,
+      &ExpressionQuery::set_expression);
+  export_default_methods(outer);
   enum_<ExpressionQuery::UpdatePolicy>(outer, "UpdatePolicy").
     value("ALL", ExpressionQuery::UpdatePolicy::ALL).
     value("CHANGE", ExpressionQuery::UpdatePolicy::CHANGE);
 }
 
-void Beam::Python::ExportFilteredQuery(pybind11::module& module) {
-  class_<FilteredQuery>(module, "FilteredQuery").
-    def(init()).
-    def(init<const FilteredQuery&>()).
-    def(init<const Expression&>()).
-    def_property("filter", &FilteredQuery::GetFilter,
-      &FilteredQuery::SetFilter).
-    def("__str__", &lexical_cast<std::string, FilteredQuery>);
+void Beam::Python::export_filtered_query(pybind11::module& module) {
+  auto query = class_<FilteredQuery>(module, "FilteredQuery").
+    def(pybind11::init<const Expression&>()).
+    def_property(
+      "filter", &FilteredQuery::get_filter, &FilteredQuery::set_filter);
+  export_default_methods(query);
 }
 
-void Beam::Python::ExportFunctionExpression(pybind11::module& module) {
+void Beam::Python::export_function_expression(pybind11::module& module) {
   class_<FunctionExpression, VirtualExpression>(module, "FunctionExpression").
-    def(init<std::string, const DataType&, std::vector<Expression>>()).
-    def_property_readonly("name", &FunctionExpression::GetName).
-    def_property_readonly("parameters", &FunctionExpression::GetParameters);
-  implicitly_convertible<FunctionExpression, Expression>();
+    def(
+      pybind11::init<std::string, std::type_index, std::vector<Expression>>()).
+    def_property_readonly("name", &FunctionExpression::get_name).
+    def_property_readonly("parameters", &FunctionExpression::get_parameters);
+  module.def("max", overload_cast<const Expression&, const Expression&>(&max));
+  module.def("min", overload_cast<const Expression&, const Expression&>(&min));
 }
 
-void Beam::Python::ExportIndexedValue(pybind11::module& module) {
+void Beam::Python::export_indexed_value(pybind11::module& module) {
   class_<IndexedValue<object, object>>(module, "IndexedValue").
-    def(init()).
-    def(init<const object&, const object&>()).
-    def(init<const IndexedValue<object, object>&>()).
-    def_property_readonly("value", static_cast<
-      const object& (IndexedValue<object, object>::*)() const>(
-      &IndexedValue<object, object>::GetValue)).
-    def_property_readonly("index", static_cast<
-      const object& (IndexedValue<object, object>::*)() const>(
-      &IndexedValue<object, object>::GetIndex)).
+    def(pybind11::init()).
+    def(pybind11::init<const object&, const object&>()).
+    def(pybind11::init<const IndexedValue<object, object>&>()).
+    def_property_readonly("value",
+      overload_cast<>(&IndexedValue<object, object>::get_value, const_)).
+    def_property_readonly("index",
+      overload_cast<>(&IndexedValue<object, object>::get_index, const_)).
     def("__eq__",
       [] (IndexedValue<object, object>& self,
           const IndexedValue<object, object>& other) {
-        return self.GetIndex().attr("__eq__")(other.GetIndex()).cast<bool>() &&
-          self.GetValue().attr("__eq__")(other.GetValue()).cast<bool>();
+        return self.get_index().attr("__eq__")(
+          other.get_index()).cast<bool>() &&
+            self.get_value().attr("__eq__")(other.get_value()).cast<bool>();
       }).
     def("__ne__",
       [] (IndexedValue<object, object>& self,
           const IndexedValue<object, object>& other) {
-        return self.GetIndex().attr("__ne__")(other.GetIndex()).cast<bool>() ||
-          self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
+        return self.get_index().attr("__ne__")(
+          other.get_index()).cast<bool>() ||
+            self.get_value().attr("__ne__")(other.get_value()).cast<bool>();
       }).
     def("__str__", &lexical_cast<std::string, IndexedValue<object, object>>);
 }
 
-void Beam::Python::ExportIndexListQuery(pybind11::module& module) {
-  class_<IndexListQuery, SnapshotLimitedQuery, FilteredQuery>(module,
-      "IndexListQuery").
-    def(init()).
-    def(init<const IndexListQuery&>()).
-    def("__str__", &lexical_cast<std::string, IndexListQuery>);
-}
-
-void Beam::Python::ExportInterruptableQuery(pybind11::module& module) {
-  class_<InterruptableQuery>(module, "InterruptableQuery").
-    def(init()).
-    def(init<const InterruptableQuery&>()).
-    def(init<InterruptionPolicy>()).
+void Beam::Python::export_interruptable_query(pybind11::module& module) {
+  auto query = class_<InterruptableQuery>(module, "InterruptableQuery").
+    def(pybind11::init<InterruptionPolicy>()).
     def_property("interruption_policy",
-      &InterruptableQuery::GetInterruptionPolicy,
-      &InterruptableQuery::SetInterruptionPolicy).
-    def("__str__", &lexical_cast<std::string, InterruptableQuery>);
+      &InterruptableQuery::get_interruption_policy,
+      &InterruptableQuery::set_interruption_policy);
+  export_default_methods(query);
 }
 
-void Beam::Python::ExportInterruptionPolicy(pybind11::module& module) {
-  enum_<InterruptionPolicy>(module, "InterruptionPolicy").
+void Beam::Python::export_interruption_policy(pybind11::module& module) {
+  enum_<InterruptionPolicy::Type>(module, "InterruptionPolicy").
     value("BREAK_QUERY", InterruptionPolicy::BREAK_QUERY).
     value("RECOVER_DATA", InterruptionPolicy::RECOVER_DATA).
     value("IGNORE_CONTINUE", InterruptionPolicy::IGNORE_CONTINUE);
 }
 
-void Beam::Python::ExportMemberAccessExpression(pybind11::module& module) {
-  class_<MemberAccessExpression, VirtualExpression>(module,
-    "MemberAccessExpression").
-    def(init<std::string, const DataType&, const Expression&>()).
-    def_property_readonly("name", &MemberAccessExpression::GetName).
-    def_property_readonly("expression",
-      &MemberAccessExpression::GetExpression);
-  implicitly_convertible<MemberAccessExpression, Expression>();
+void Beam::Python::export_member_access_expression(pybind11::module& module) {
+  class_<MemberAccessExpression, VirtualExpression>(
+    module, "MemberAccessExpression").
+    def(pybind11::init<std::string, std::type_index, const Expression&>()).
+    def_property_readonly("name", &MemberAccessExpression::get_name).
+    def_property_readonly(
+      "expression", &MemberAccessExpression::get_expression);
 }
 
-void Beam::Python::ExportNotExpression(pybind11::module& module) {
+void Beam::Python::export_not_expression(pybind11::module& module) {
   class_<NotExpression, VirtualExpression>(module, "NotExpression").
-    def(init<Expression>()).
-    def(init<const NotExpression&>()).
-    def_property_readonly("operand", &NotExpression::GetOperand);
-  implicitly_convertible<NotExpression, Expression>();
+    def(pybind11::init<Expression>()).
+    def(pybind11::init<const NotExpression&>()).
+    def_property_readonly("operand", &NotExpression::get_operand);
 }
 
-void Beam::Python::ExportOrExpression(pybind11::module& module) {
+void Beam::Python::export_or_expression(pybind11::module& module) {
   class_<OrExpression, VirtualExpression>(module, "OrExpression").
-    def(init<Expression, Expression>()).
-    def(init<const OrExpression&>()).
-    def_property_readonly("left_expression", &OrExpression::GetLeftExpression).
-    def_property_readonly("right_expression",
-      &OrExpression::GetRightExpression);
-  implicitly_convertible<OrExpression, Expression>();
+    def(pybind11::init<Expression, Expression>()).
+    def(pybind11::init<const OrExpression&>()).
+    def_property_readonly("left", &OrExpression::get_left).
+    def_property_readonly("right", &OrExpression::get_right);
 }
 
-void Beam::Python::ExportParameterExpression(pybind11::module& module) {
+void Beam::Python::export_parameter_expression(pybind11::module& module) {
   class_<ParameterExpression, VirtualExpression>(module, "ParameterExpression").
-    def(init<int, const DataType&>()).
-    def_property_readonly("index", &ParameterExpression::GetIndex);
-  implicitly_convertible<ParameterExpression, Expression>();
+    def(pybind11::init<int, std::type_index>()).
+    def_property_readonly("index", &ParameterExpression::get_index);
 }
 
-void Beam::Python::ExportQueries(pybind11::module& module) {
-  auto submodule = module.def_submodule("queries");
-  ExportExpression(submodule);
-  ExportConstantExpression(submodule);
-  ExportDataType(submodule);
-  ExportInterruptableQuery(submodule);
-  ExportInterruptionPolicy(submodule);
-  ExportExpressionQuery(submodule);
-  ExportFilteredQuery(submodule);
-  ExportFunctionExpression(submodule);
-  ExportIndexedQuery<object>(submodule, "IndexedQuery");
-  ExportIndexedValue(submodule);
-  ExportMemberAccessExpression(submodule);
-  ExportAndExpression(submodule);
-  ExportNotExpression(submodule);
-  ExportOrExpression(submodule);
-  ExportParameterExpression(submodule);
-  ExportRange(submodule);
-  ExportRangedQuery(submodule);
-  ExportSequence(submodule);
-  ExportSequencedValue(submodule);
-  ExportSnapshotLimit(submodule);
-  ExportSnapshotLimitedQuery(submodule);
-  ExportValue(submodule);
-  ExportIndexListQuery(submodule);
-  ExportBasicQuery<object>(submodule, "Query");
-  ExportPagedQuery<object, object>(submodule, "PagedQuery");
-  ExportQueueSuite<QueryVariant>(submodule, "QueryVariant");
-  ExportQueueSuite<bool>(submodule, "Bool");
-  ExportQueueSuite<char>(submodule, "Char");
-  ExportQueueSuite<int>(submodule, "Int");
-  ExportQueueSuite<double>(submodule, "Double");
-  ExportQueueSuite<std::uint64_t>(submodule, "UInt64");
-  ExportQueueSuite<std::string>(submodule, "String");
-  ExportQueueSuite<ptime>(submodule, "DateTime");
-  ExportQueueSuite<time_duration>(submodule, "TimeDuration");
-  submodule.def("make_current_query", &MakeCurrentQuery<object>);
-  submodule.def("make_latest_query", &MakeRealTimeQuery<object>);
-  submodule.def("make_real_time_query", &MakeRealTimeQuery<object>);
-  register_exception<ExpressionTranslationException>(submodule,
-    "ExpressionTranslationException");
-  register_exception<QueryInterruptedException>(submodule,
-    "QueryInterruptedException");
-  register_exception<TypeCompatibilityException>(submodule,
-    "TypeCompatibilityException");
+void Beam::Python::export_queries(pybind11::module& module) {
+  export_expression(module);
+  export_constant_expression(module);
+  export_interruptable_query(module);
+  export_interruption_policy(module);
+  export_expression_query(module);
+  export_filtered_query(module);
+  export_function_expression(module);
+  export_indexed_query<object>(module, "IndexedQuery");
+  export_indexed_value(module);
+  export_member_access_expression(module);
+  export_and_expression(module);
+  export_not_expression(module);
+  export_or_expression(module);
+  export_parameter_expression(module);
+  export_range(module);
+  export_ranged_query(module);
+  export_sequence(module);
+  export_sequenced_value(module);
+  export_snapshot_limit(module);
+  export_snapshot_limited_query(module);
+  export_value(module);
+  export_basic_query<object>(module, "Query");
+  export_paged_query<object, object>(module, "PagedQuery");
+  export_queue_suite<QueryVariant>(module, "QueryVariant");
+  export_queue_suite<bool>(module, "Bool");
+  export_queue_suite<char>(module, "Char");
+  export_queue_suite<int>(module, "Int");
+  export_queue_suite<double>(module, "Double");
+  export_queue_suite<std::uint64_t>(module, "UInt64");
+  export_queue_suite<std::string>(module, "String");
+  export_queue_suite<ptime>(module, "DateTime");
+  export_queue_suite<time_duration>(module, "TimeDuration");
+  module.def("make_current_query", &make_current_query<object>);
+  module.def("make_latest_query", &make_real_time_query<object>);
+  module.def("make_real_time_query", &make_real_time_query<object>);
+  register_exception<ExpressionTranslationException>(
+    module, "ExpressionTranslationException");
+  register_exception<QueryInterruptedException>(
+    module, "QueryInterruptedException");
+  register_exception<TypeCompatibilityException>(
+    module, "TypeCompatibilityException");
 }
 
-void Beam::Python::ExportRange(pybind11::module& module) {
-  class_<Range>(module, "Range").
-    def(init()).
-    def(init<const Range::Point&, const Range::Point&>()).
-    def_property_readonly_static("EMPTY",
-      [] (const object&) { return Range::Empty(); }).
-    def_property_readonly_static("HISTORICAL",
-      [] (const object&) { return Range::Historical(); }).
-    def_property_readonly_static("TOTAL",
-      [] (const object&) { return Range::Total(); }).
-    def_property_readonly_static("REAL_TIME",
-      [] (const object&) { return Range::RealTime(); }).
-    def_property_readonly("start", &Range::GetStart).
-    def_property_readonly("end", &Range::GetEnd).
-    def(self == self).
-    def(self != self).
-    def("__hash__", [] (Queries::Range self) {
-      return std::hash<Queries::Range>()(self);
-    }).
-    def("__str__", &lexical_cast<std::string, Range>);
+void Beam::Python::export_query_reactor(pybind11::module& module) {
+  module.def("query", [] (std::function<
+      void (const BasicQuery<object>&, std::shared_ptr<QueueWriter<object>>)>
+        submission_function, SharedBox<BasicQuery<object>> query) {
+      return shared_box(query_reactor<object>(
+        std::move(submission_function), std::move(query)));
+    });
 }
 
-void Beam::Python::ExportRangedQuery(pybind11::module& module) {
-  class_<RangedQuery>(module, "RangedQuery").
-    def(init()).
-    def(init<const RangedQuery&>()).
-    def_property("range", &RangedQuery::GetRange,
-      static_cast<void (RangedQuery::*)(const Range&)>(&RangedQuery::SetRange)).
-    def("set_range", static_cast<
-      void (RangedQuery::*)(const Range::Point&, const Range::Point&)>(
-      &RangedQuery::SetRange<const Range::Point&, const Range::Point&>)).
-    def("__str__", &lexical_cast<std::string, RangedQuery>);
+void Beam::Python::export_range(pybind11::module& module) {
+  auto range = class_<Range>(module, "Range").
+    def(pybind11::init<const Range::Point&, const Range::Point&>()).
+    def_readonly_static("EMPTY", &Range::EMPTY).
+    def_readonly_static("HISTORICAL", &Range::HISTORICAL).
+    def_readonly_static("TOTAL", &Range::TOTAL).
+    def_readonly_static("REAL_TIME", &Range::REAL_TIME).
+    def_property_readonly("start", &Range::get_start).
+    def_property_readonly("end", &Range::get_end);
+  export_default_methods(range);
 }
 
-void Beam::Python::ExportSequence(pybind11::module& module) {
-  class_<Queries::Sequence>(module, "Sequence").
-    def(init()).
-    def(init<Queries::Sequence::Ordinal>()).
-    def_property_readonly_static("FIRST",
-      [] (const object&) { return Queries::Sequence::First(); }).
-    def_property_readonly_static("LAST",
-      [] (const object&) { return Queries::Sequence::Last(); }).
-    def_property_readonly_static("PRESENT",
-      [] (const object&) { return Queries::Sequence::Present(); }).
-    def_property_readonly("ordinal", &Queries::Sequence::GetOrdinal).
-    def(self < self).
-    def(self <= self).
-    def(self == self).
-    def(self != self).
-    def(self >= self).
-    def(self > self).
-    def("__hash__", [] (Queries::Sequence self) {
-      return std::hash<Queries::Sequence>()(self);
-    }).
-    def("__str__", &lexical_cast<std::string, Queries::Sequence>);
-  module.def("increment", &Increment);
-  module.def("decrement", &Decrement);
+void Beam::Python::export_ranged_query(pybind11::module& module) {
+  auto query = class_<RangedQuery>(module, "RangedQuery").
+    def_property("range", &RangedQuery::get_range,
+      overload_cast<const Range&>(&RangedQuery::set_range)).
+    def("set_range", overload_cast<const Range::Point&, const Range::Point&>(
+      &RangedQuery::set_range));
+  export_default_methods(query);
 }
 
-void Beam::Python::ExportSequencedValue(pybind11::module& module) {
+void Beam::Python::export_sequence(pybind11::module& module) {
+  auto sequence = class_<Sequence>(module, "Sequence").
+    def(pybind11::init<Sequence::Ordinal>()).
+    def_readonly_static("FIRST", &Sequence::FIRST).
+    def_readonly_static("LAST", &Sequence::LAST).
+    def_readonly_static("PRESENT", &Sequence::PRESENT).
+    def_property_readonly("ordinal", &Sequence::get_ordinal);
+  export_default_methods(sequence);
+  module.def("increment", &increment);
+  module.def("decrement", &decrement);
+}
+
+void Beam::Python::export_sequenced_value(pybind11::module& module) {
   class_<SequencedValue<object>>(module, "SequencedValue").
-    def(init()).
-    def(init<object, Queries::Sequence>()).
-    def_property_readonly("value",
-      static_cast<const object& (SequencedValue<object>::*)() const>(
-      &SequencedValue<object>::GetValue)).
-    def_property_readonly("sequence", static_cast<Queries::Sequence (
-      SequencedValue<object>::*)() const>(
-        &SequencedValue<object>::GetSequence)).
+    def(pybind11::init()).
+    def(pybind11::init<object, Sequence>()).
+    def(pybind11::init<const SequencedValue<object>&>()).
+    def_property_readonly(
+      "value", overload_cast<>(&SequencedValue<object>::get_value, const_)).
+    def_property_readonly("sequence",
+      overload_cast<>(&SequencedValue<object>::get_sequence, const_)).
     def("__eq__",
-      [] (SequencedValue<object>& self,
-          const SequencedValue<object>& other) {
-        return self.GetSequence() == other.GetSequence() &&
-          self.GetValue().attr("__eq__")(other.GetValue()).cast<bool>();
+      [] (SequencedValue<object>& self, const SequencedValue<object>& other) {
+        return self.get_sequence() == other.get_sequence() &&
+          self.get_value().attr("__eq__")(other.get_value()).cast<bool>();
       }).
     def("__ne__",
       [] (SequencedValue<object>& self, const SequencedValue<object>& other) {
-        return self.GetSequence() != other.GetSequence() ||
-          self.GetValue().attr("__ne__")(other.GetValue()).cast<bool>();
+        return self.get_sequence() != other.get_sequence() ||
+          self.get_value().attr("__ne__")(other.get_value()).cast<bool>();
       }).
     def("__str__", &lexical_cast<std::string, SequencedValue<object>>);
 }
 
-void Beam::Python::ExportSnapshotLimit(pybind11::module& module) {
+void Beam::Python::export_snapshot_limit(pybind11::module& module) {
   auto outer = class_<SnapshotLimit>(module, "SnapshotLimit").
-    def(init()).
-    def(init<SnapshotLimit::Type, int>()).
-    def_property_readonly_static("NONE",
-      [] (const object&) { return SnapshotLimit::None(); }).
-    def_property_readonly_static("UNLIMITED",
-      [] (const object&) { return SnapshotLimit::Unlimited(); }).
-    def_property_readonly("type", &SnapshotLimit::GetType).
-    def_property_readonly("size", &SnapshotLimit::GetSize).
-    def_static("from_head", &SnapshotLimit::FromHead).
-    def_static("from_tail", &SnapshotLimit::FromTail).
-    def("__str__", &lexical_cast<std::string, SnapshotLimit>).
-    def(self == self).
-    def(self != self);
+    def(pybind11::init<SnapshotLimit::Type, int>()).
+    def_readonly_static("NONE", &SnapshotLimit::NONE).
+    def_readonly_static("UNLIMITED", &SnapshotLimit::UNLIMITED).
+    def_property_readonly("type", &SnapshotLimit::get_type).
+    def_property_readonly("size", &SnapshotLimit::get_size).
+    def_static("from_head", &SnapshotLimit::from_head).
+    def_static("from_tail", &SnapshotLimit::from_tail);
+  export_default_methods(outer);
   enum_<SnapshotLimit::Type>(outer, "Type").
     value("HEAD", SnapshotLimit::Type::HEAD).
     value("TAIL", SnapshotLimit::Type::TAIL);
 }
 
-void Beam::Python::ExportSnapshotLimitedQuery(pybind11::module& module) {
-  class_<SnapshotLimitedQuery>(module, "SnapshotLimitedQuery").
-    def(init()).
-    def(init<const SnapshotLimitedQuery&>()).
-    def(init<SnapshotLimit>()).
-    def_property("snapshot_limit", &SnapshotLimitedQuery::GetSnapshotLimit,
-      static_cast<void (SnapshotLimitedQuery::*)(const SnapshotLimit&)>(
-        &SnapshotLimitedQuery::SetSnapshotLimit)).
-    def("set_snapshot_limit", static_cast<
-      void (SnapshotLimitedQuery::*)(SnapshotLimit::Type, int)>(
-        &SnapshotLimitedQuery::SetSnapshotLimit)).
-    def("__str__", &lexical_cast<std::string, SnapshotLimitedQuery>);
+void Beam::Python::export_snapshot_limited_query(pybind11::module& module) {
+  auto query = class_<SnapshotLimitedQuery>(module, "SnapshotLimitedQuery").
+    def(pybind11::init<SnapshotLimit>()).
+    def_property("snapshot_limit", &SnapshotLimitedQuery::get_snapshot_limit,
+      overload_cast<const SnapshotLimit&>(
+        &SnapshotLimitedQuery::set_snapshot_limit)).
+    def("set_snapshot_limit", overload_cast<SnapshotLimit::Type, int>(
+      &SnapshotLimitedQuery::set_snapshot_limit));
+  export_default_methods(query);
 }
 
-void Beam::Python::ExportValue(pybind11::module& module) {
-  class_<VirtualValue>(module, "Value").
-    def_property_readonly("data_type", &VirtualValue::GetType);
-  class_<Value>(module, "CloneableValue").
-    def(init<const VirtualValue&>());
-  ExportNativeValue<BoolValue>(module, "BoolValue");
-  ExportNativeValue<CharValue>(module, "CharValue");
-  ExportNativeValue<IntValue>(module, "IntValue");
-  ExportNativeValue<DecimalValue>(module, "DecimalValue");
-  ExportNativeValue<IdValue>(module, "IdValue");
-  ExportNativeValue<StringValue>(module, "StringValue");
-  ExportNativeValue<DateTimeValue>(module, "DateTimeValue");
-  ExportNativeValue<DurationValue>(module, "DurationValue");
+void Beam::Python::export_value(pybind11::module& module) {
+  auto virtual_value = class_<VirtualValue>(module, "VirtualValue").
+    def_property_readonly("data_type", &VirtualValue::get_type);
+  export_default_methods(virtual_value);
+  value = std::make_unique<class_<Value>>(module, "Value");
+  value->def_property_readonly("data_type", &Value::get_type);
+  export_default_methods(*value);
+  export_native_value<BoolValue>(module, "BoolValue");
+  export_native_value<CharValue>(module, "CharValue");
+  export_native_value<IntValue>(module, "IntValue");
+  export_native_value<DecimalValue>(module, "DecimalValue");
+  export_native_value<IdValue>(module, "IdValue");
+  export_native_value<StringValue>(module, "StringValue");
+  export_native_value<DateTimeValue>(module, "DateTimeValue");
+  export_native_value<DurationValue>(module, "DurationValue");
 }

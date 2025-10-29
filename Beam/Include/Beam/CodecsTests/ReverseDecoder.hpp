@@ -1,78 +1,39 @@
-#ifndef BEAM_REVERSEDECODER_HPP
-#define BEAM_REVERSEDECODER_HPP
+#ifndef BEAM_REVERSE_DECODER_HPP
+#define BEAM_REVERSE_DECODER_HPP
 #include <algorithm>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
-#include "Beam/CodecsTests/CodecsTests.hpp"
 
-namespace Beam {
-namespace Codecs {
-namespace Tests {
+namespace Beam::Tests {
+  class ReverseEncoder;
 
-  /*! \class ReverseDecoder
-      \brief Reverses a data source.
-   */
+  /** Reverses a data source. */
   class ReverseDecoder {
     public:
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Decode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer T>
+      std::size_t decode(const S& source, Out<T> destination);
   };
 
-  inline std::size_t ReverseDecoder::Decode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    if(sourceSize == 0) {
-      return 0;
-    }
-    if(destinationSize < sourceSize) {
-      BOOST_THROW_EXCEPTION(DecoderException(
+  template<IsConstBuffer S, IsBuffer T>
+  std::size_t ReverseDecoder::decode(const S& source, Out<T> destination) {
+    auto available_size = reserve(*destination, source.get_size());
+    if(available_size < source.get_size()) {
+      boost::throw_with_location(DecoderException(
         "The destination was not large enough to hold the decoded data."));
     }
-    std::reverse_copy(static_cast<const char*>(source),
-      static_cast<const char*>(source) + sourceSize,
-      static_cast<char*>(destination));
-    return sourceSize;
-  }
-
-  template<typename Buffer>
-  std::size_t ReverseDecoder::Decode(const Buffer& source, void* destination,
-      std::size_t destinationSize) {
-    return Decode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename Buffer>
-  std::size_t ReverseDecoder::Decode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination) {
-    destination->Reserve(sourceSize);
-    return Decode(source, sourceSize, destination->GetMutableData(),
-      destination->GetSize());
-  }
-
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t ReverseDecoder::Decode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination) {
-    return Decode(source.GetData(), source.GetSize(), Store(destination));
+    std::reverse_copy(source.get_data(), source.get_data() + source.get_size(),
+      destination->get_mutable_data());
+    return source.get_size();
   }
 }
-}
 
+namespace Beam {
   template<>
-  struct ImplementsConcept<Codecs::Tests::ReverseDecoder, Codecs::Decoder> :
-    std::true_type {};
+  struct inverse<Tests::ReverseDecoder> {
+    using type = Tests::ReverseEncoder;
+  };
 }
 
 #endif

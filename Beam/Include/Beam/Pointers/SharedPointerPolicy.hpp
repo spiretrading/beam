@@ -1,7 +1,6 @@
 #ifndef BEAM_SHARED_POINTER_POLICY_HPP
 #define BEAM_SHARED_POINTER_POLICY_HPP
 #include <memory>
-#include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 

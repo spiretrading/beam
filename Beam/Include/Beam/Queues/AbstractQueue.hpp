@@ -2,17 +2,16 @@
 #define BEAM_ABSTRACT_QUEUE_HPP
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Queues/Queues.hpp"
 
 namespace Beam {
 
   /**
    * Base class for both the read and write side of a Queue.
-   * @param <T> The data to store in the Queue.
+   * @tparam T The data to store in the Queue.
    */
   template<typename T>
-  class AbstractQueue : public virtual QueueReader<T>,
-      public virtual QueueWriter<T> {
+  class AbstractQueue :
+      public virtual QueueReader<T>, public virtual QueueWriter<T> {
     public:
 
       /** The Reader side of the Queue. */

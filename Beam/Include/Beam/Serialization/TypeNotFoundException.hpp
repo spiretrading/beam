@@ -2,7 +2,7 @@
 #define BEAM_TYPE_NOT_FOUND_EXCEPTION_HPP
 #include "Beam/Serialization/SerializationException.hpp"
 
-namespace Beam::Serialization {
+namespace Beam {
 
   /** Signals that a polymorphic type was not registered. */
   class TypeNotFoundException : public SerializationException {
@@ -12,7 +12,7 @@ namespace Beam::Serialization {
        * Constructs a TypeNotFoundException.
        * @param name The name of the type not found.
        */
-      TypeNotFoundException(const std::string& name);
+      explicit TypeNotFoundException(const std::string& name);
   };
 
   inline TypeNotFoundException::TypeNotFoundException(const std::string& name)

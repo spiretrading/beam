@@ -1,71 +1,42 @@
-#ifndef BEAM_HTTPMETHOD_HPP
-#define BEAM_HTTPMETHOD_HPP
+#ifndef BEAM_HTTP_METHOD_HPP
+#define BEAM_HTTP_METHOD_HPP
 #include <ostream>
-#include "Beam/WebServices/WebServices.hpp"
+#include "Beam/Collections/Enum.hpp"
 #ifdef DELETE
   #undef DELETE
 #endif
 
 namespace Beam {
-namespace WebServices {
 
-  /*! \enum HttpMethod
-      \brief Enumerates HTTP methods.
-   */
-  enum class HttpMethod {
+  /** Enumerates HTTP methods. */
+  BEAM_ENUM(HttpMethod,
 
-    //! HEAD method.
+    /** HEAD method. */
     HEAD,
 
-    //! GET method.
+    /** GET method. */
     GET,
 
-    //! POST method.
+    /** POST method. */
     POST,
 
-    //! PUT method.
+    /** PUT method. */
     PUT,
 
-    //! DELETE method.
+    /** DELETE method. */
     DELETE,
 
-    //! TRACE method.
+    /** TRACE method. */
     TRACE,
 
-    //! OPTIONS method.
+    /** OPTIONS method. */
     OPTIONS,
 
-    //! CONNECT method.
+    /** CONNECT method. */
     CONNECT,
 
-    //! PATCH method.
-    PATCH
-  };
-
-  inline std::ostream& operator <<(std::ostream& sink, HttpMethod method) {
-    if(method == HttpMethod::HEAD) {
-      return (sink << "HEAD");
-    } else if(method == HttpMethod::GET) {
-      return (sink << "GET");
-    } else if(method == HttpMethod::POST) {
-      return (sink << "POST");
-    } else if(method == HttpMethod::PUT) {
-      return (sink << "PUT");
-    } else if(method == HttpMethod::DELETE) {
-      return (sink << "DELETE");
-    } else if(method == HttpMethod::TRACE) {
-      return (sink << "TRACE");
-    } else if(method == HttpMethod::OPTIONS) {
-      return (sink << "OPTIONS");
-    } else if(method == HttpMethod::CONNECT) {
-      return (sink << "CONNECT");
-    } else if(method == HttpMethod::PATCH) {
-      return (sink << "PATCH");
-    } else {
-      return (sink << "NONE");
-    }
-  }
-}
+    /** PATCH method. */
+    PATCH);
 }
 
 #endif

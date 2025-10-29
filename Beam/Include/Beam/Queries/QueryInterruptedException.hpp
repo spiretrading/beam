@@ -1,14 +1,11 @@
 #ifndef BEAM_QUERY_INTERRUPTED_EXCEPTION_HPP
 #define BEAM_QUERY_INTERRUPTED_EXCEPTION_HPP
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Signals that a query was interrupted. */
-  class QueryInterruptedException : public std::runtime_error,
-      public boost::exception {
+  class QueryInterruptedException : public std::runtime_error {
     public:
       using std::runtime_error::runtime_error;
 

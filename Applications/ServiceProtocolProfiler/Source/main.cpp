@@ -6,14 +6,13 @@
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
-#include "Beam/IO/NotConnectedException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
@@ -21,49 +20,37 @@
 #include "Version.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::IO;
-using namespace Beam::Network;
-using namespace Beam::Routines;
-using namespace Beam::Serialization;
-using namespace Beam::Services;
-using namespace Beam::Threading;
 using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
   using ServiceEncoder = SizeDeclarativeEncoder<ZLibEncoder>;
-  using ApplicationServerConnection = LocalServerConnection<SharedBuffer>;
-  using ServerChannel = ApplicationServerConnection::Channel;
   using ApplicationServerServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<std::unique_ptr<ServerChannel>, BinarySender<SharedBuffer>,
-    ServiceEncoder>, TriggerTimer>;
-  using ClientChannel = LocalClientChannel<SharedBuffer>;
+    MessageProtocol<std::unique_ptr<LocalServerChannel>,
+      BinarySender<SharedBuffer>, ServiceEncoder>, TriggerTimer>;
   using ApplicationClientServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<ClientChannel*, BinarySender<SharedBuffer>,
-    ServiceEncoder>, TriggerTimer>;
+    MessageProtocol<LocalClientChannel*, BinarySender<SharedBuffer>,
+      ServiceEncoder>, TriggerTimer>;
 
-  std::string OnEchoRequest(ApplicationServerServiceProtocolClient& client,
-      std::string message) {
+  std::string on_echo_request(
+      ApplicationServerServiceProtocolClient& client, std::string message) {
     return message;
   }
 
-  void ServerLoop(ApplicationServerConnection& server) {
+  void server_loop(LocalServerConnection& server) {
     auto routines = RoutineHandlerGroup();
     while(true) {
-      auto channel = server.Accept();
-      routines.Spawn([channel = std::move(channel)] () mutable {
-        auto client = ApplicationServerServiceProtocolClient(std::move(channel),
-          Initialize());
-        RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
-        RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
-        EchoService::AddSlot(Store(client.GetSlots()),
-          std::bind(OnEchoRequest, std::placeholders::_1,
-          std::placeholders::_2));
+      auto channel = server.accept();
+      routines.spawn([channel = std::move(channel)] () mutable {
+        auto client =
+          ApplicationServerServiceProtocolClient(std::move(channel), init());
+        register_service_protocol_profiler_services(out(client.get_slots()));
+        register_service_protocol_profiler_messages(out(client.get_slots()));
+        EchoService::add_slot(out(client.get_slots()), &on_echo_request);
         try {
           auto counter = 0;
           while(true) {
-            auto message = client.ReadMessage();
+            auto message = client.read_message();
             auto timestamp = microsec_clock::universal_time();
             ++counter;
             if(counter % 100000 == 0) {
@@ -72,54 +59,52 @@ namespace {
             }
           }
         } catch(const ServiceRequestException&) {
-        } catch(const NotConnectedException&) {
         }
       });
     }
   }
 
-  void ClientLoop(ApplicationServerConnection& server) {
-    auto channel = ClientChannel("client", server);
-    auto client = ApplicationClientServiceProtocolClient(&channel,
-      Initialize());
-    RegisterServiceProtocolProfilerServices(Store(client.GetSlots()));
-    RegisterServiceProtocolProfilerMessages(Store(client.GetSlots()));
+  void client_loop(LocalServerConnection& server) {
+    auto channel = LocalClientChannel("client", server);
+    auto client = ApplicationClientServiceProtocolClient(&channel, init());
+    register_service_protocol_profiler_services(out(client.get_slots()));
+    register_service_protocol_profiler_messages(out(client.get_slots()));
     auto counter = 0;
     while(true) {
       auto timestamp = microsec_clock::universal_time();
-      SendRecordMessage<EchoMessage>(client, timestamp, "hello world");
+      send_record_message<EchoMessage>(client, timestamp, "hello world");
       ++counter;
       if(counter % 100000 == 0) {
         std::cout <<
           boost::format("Client: %1% %2%\n") % &channel % timestamp <<
           std::flush;
       }
-      Defer();
+      defer();
     }
-    client.Close();
+    client.close();
   }
 }
 
 int main(int argc, const char** argv) {
   try {
-    auto config = ParseCommandLine(argc, argv,
-      "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
-      "\nCopyright (C) 2020 Spire Trading Inc.");
-    auto clientCount = Extract<int>(config, "clients",
+    auto config =
+      parse_command_line(argc, argv, "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
+        "\nCopyright (C) 2026 Spire Trading Inc.");
+    auto client_count = extract<int>(config, "clients",
       static_cast<int>(boost::thread::hardware_concurrency()));
-    auto server = ApplicationServerConnection();
+    auto server = LocalServerConnection();
     auto routines = RoutineHandlerGroup();
-    routines.Spawn([&] {
-      ServerLoop(server);
+    routines.spawn([&] {
+      server_loop(server);
     });
-    for(auto i = 0; i < clientCount; ++i) {
-      routines.Spawn([&] {
-        ClientLoop(server);
+    for(auto i = 0; i < client_count; ++i) {
+      routines.spawn([&] {
+        client_loop(server);
       });
     }
-    routines.Wait();
+    routines.wait();
   } catch(...) {
-    ReportCurrentException();
+    report_current_exception();
     return -1;
   }
   return 0;

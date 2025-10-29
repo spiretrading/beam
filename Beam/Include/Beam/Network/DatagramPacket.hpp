@@ -3,11 +3,12 @@
 #include <ostream>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Stores a single datagram packet. */
-  template<typename B>
+  template<IsConstBuffer B>
   class DatagramPacket {
     public:
 
@@ -26,51 +27,56 @@ namespace Beam::Network {
       DatagramPacket(BF&& data, IpAddress address);
 
       /** Returns the data stored by this packet. */
-      const Buffer& GetData() const;
+      const Buffer& get_data() const;
 
       /** Returns the data stored by this packet. */
-      Buffer& GetData();
+      Buffer& get_data() requires IsBuffer<B>;
 
       /** Returns the address that this packet was received from. */
-      const IpAddress& GetAddress() const;
+      const IpAddress& get_address() const;
 
       /** Returns the address that this packet was received from. */
-      IpAddress& GetAddress();
+      IpAddress& get_address();
 
     private:
       Buffer m_data;
       IpAddress m_address;
   };
 
-  template<typename Buffer>
-  std::ostream& operator <<(std::ostream& out,
-      const DatagramPacket<Buffer>& packet) {
-    return out << packet.GetAddress() << ':' << packet.GetData();
+  template<typename B>
+  DatagramPacket(B&&, IpAddress) -> DatagramPacket<std::remove_cvref_t<B>>;
+
+  template<IsBuffer B>
+  std::ostream& operator <<(
+      std::ostream& out, const DatagramPacket<B>& packet) {
+    return out << packet.get_address() << ':' << packet.get_data();
   }
 
-  template<typename B>
+  template<IsConstBuffer B>
   template<typename BF>
   DatagramPacket<B>::DatagramPacket(BF&& data, IpAddress address)
     : m_data(std::forward<BF>(data)),
       m_address(std::move(address)) {}
 
-  template<typename B>
-  const typename DatagramPacket<B>::Buffer& DatagramPacket<B>::GetData() const {
+  template<IsConstBuffer B>
+  const typename DatagramPacket<B>::Buffer&
+      DatagramPacket<B>::get_data() const {
     return m_data;
   }
 
-  template<typename B>
-  typename DatagramPacket<B>::Buffer& DatagramPacket<B>::GetData() {
+  template<IsConstBuffer B>
+  typename DatagramPacket<B>::Buffer& DatagramPacket<B>::get_data() requires
+      IsBuffer<B> {
     return m_data;
   }
 
-  template<typename B>
-  const IpAddress& DatagramPacket<B>::GetAddress() const {
+  template<IsConstBuffer B>
+  const IpAddress& DatagramPacket<B>::get_address() const {
     return m_address;
   }
 
-  template<typename B>
-  IpAddress& DatagramPacket<B>::GetAddress() {
+  template<IsConstBuffer B>
+  IpAddress& DatagramPacket<B>::get_address() {
     return m_address;
   }
 }

@@ -2,189 +2,213 @@
 #define BEAM_WRAPPER_CHANNEL_HPP
 #include <type_traits>
 #include "Beam/IO/Channel.hpp"
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/Reader.hpp"
-#include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
-namespace IO {
 namespace Details {
-  template<bool Selector>
-  struct Switch {
-    template<typename A, typename B>
-    B& operator()(A& a, B& b) const {
-      return b;
+  template<typename T, int>
+  struct ComponentHolder {
+    local_ptr_t<T> m_component;
+
+    ComponentHolder() = default;
+
+    template<Initializes<T> TF>
+    ComponentHolder(TF&& component)
+      : m_component(std::forward<TF>(component)) {}
+
+    T& get_component() {
+      return *m_component;
+    }
+
+    const T& get_component() const {
+      return *m_component;
     }
   };
 
-  template<>
-  struct Switch<true> {
-    template<typename A, typename B>
-    A& operator()(A& a, B& b) const {
-      return a;
-    }
+  template<int I>
+  struct ComponentHolder<void, I> {
+    ComponentHolder() = default;
   };
 }
 
-  template<typename C, typename CT1 = NullType, typename CT2 = NullType,
-    typename CT3 = NullType>
-  class WrapperChannel {
+  /**
+   * Implements a Channel by composing an existing Channel with up to three
+   * optional component types.
+   * @tparam C The type of Channel to wrap.
+   * @tparam CT1 The type of the first optional component to compose.
+   * @tparam CT2 The type of the second optional component to compose.
+   * @tparam CT3 The type of the third optional component to compose.
+   */
+  template<typename C, typename CT1 = void, typename CT2 = void,
+    typename CT3 = void>
+  class WrapperChannel :
+      private Details::ComponentHolder<C, 0>,
+      private Details::ComponentHolder<CT1, 1>,
+      private Details::ComponentHolder<CT2, 2>,
+      private Details::ComponentHolder<CT3, 3> {
     private:
-      using Component1 = GetTryDereferenceType<CT1>;
-      using Component2 = GetTryDereferenceType<CT2>;
-      using Component3 = GetTryDereferenceType<CT3>;
+      using Component1 = dereference_t<CT1>;
+      using Component2 = dereference_t<CT2>;
+      using Component3 = dereference_t<CT3>;
 
     public:
 
-      /** The type of Channel being wrapped. */
-      using Channel = GetTryDereferenceType<C>;
+      /** The type of Channel to wrap. */
+      using Channel = dereference_t<C>;
 
-      /** The type of Connection. */
-      using Connection = std::conditional_t<
-        ImplementsConcept<Component1, IO::Connection>::value, Component1,
-        std::conditional_t<ImplementsConcept<Component2, IO::Connection>::value,
-        Component2, std::conditional_t<ImplementsConcept<Component3,
-        IO::Connection>::value, Component3, typename Channel::Connection>>>;
-
-      /** The type of Reader. */
-      using Reader = std::conditional_t<
-        ImplementsConcept<Component1, IO::Reader>::value, Component1,
-        std::conditional_t<ImplementsConcept<Component2, IO::Reader>::value,
-        Component2, std::conditional_t<ImplementsConcept<Component3,
-        IO::Reader>::value, Component3, typename Channel::Reader>>>;
-
-      /** The type of Writer, determined based on Component3. */
-      using Writer = typename boost::mpl::if_c<IsWriter<Component1>::value,
-        Component1, typename boost::mpl::if_c<IsWriter<Component2>::value,
-        Component2, typename boost::mpl::if_c<IsWriter<Component3>::value,
-        Component3, typename Channel::Writer>::type>::type>::type;
-
-      /** The type of Identifier, taken directly from the Channel. */
       using Identifier = typename Channel::Identifier;
+      using Connection =
+        std::conditional_t<IsConnection<Component1>, Component1,
+          std::conditional_t<IsConnection<Component2>, Component2,
+            std::conditional_t<IsConnection<Component3>, Component3,
+              typename Channel::Connection>>>;
+      using Reader = std::conditional_t<IsReader<Component1>, Component1,
+        std::conditional_t<IsReader<Component2>, Component2,
+          std::conditional_t<IsReader<Component3>, Component3,
+            typename Channel::Reader>>>;
+      using Writer = std::conditional_t<IsWriter<Component1>, Component1,
+        std::conditional_t<IsWriter<Component2>, Component2,
+          std::conditional_t<IsWriter<Component3>, Component3,
+            typename Channel::Writer>>>;
 
       /**
-       * Constructs a WrapperChannel.
+       * Constructs a WrapperChannel that owns or references a channel.
        * @param channel The channel to wrap.
        */
-      template<typename CF>
+      template<Initializes<C> CF>
       explicit WrapperChannel(CF&& channel);
 
       /**
-       * Constructs a WrapperChannel wrapping a single component.
+       * Constructs a WrapperChannel with one overriding component.
        * @param channel The channel to wrap.
-       * @param component1 The component used as the wrapper.
+       * @param component1 The first component that may supply/override roles.
        */
-      template<typename CF, typename CF1>
+      template<Initializes<C> CF, Initializes<CT1> CF1>
       WrapperChannel(CF&& channel, CF1&& component1);
 
       /**
-       * Constructs a WrapperChannel wrapping two components.
+       * Constructs a WrapperChannel with two overriding components.
        * @param channel The channel to wrap.
-       * @param component1 One of the components used as a wrapper.
-       * @param component2 The other component used as a wrapper.
+       * @param component1 The first component that may supply/override roles.
+       * @param component2 The second component that may supply/override roles.
        */
-      template<typename CF, typename CF1, typename CF2>
+      template<Initializes<C> CF, Initializes<CT1> CF1, Initializes<CT2> CF2>
       WrapperChannel(CF&& channel, CF1&& component1, CF2&& component2);
 
       /**
-       * Constructs a WrapperChannel wrapping all components.
+       * Constructs a WrapperChannel with three overriding components.
        * @param channel The channel to wrap.
-       * @param component1 One of the components used as a wrapper.
-       * @param component2 The second component used as a wrapper.
-       * @param component3 The last component used as a wrapper.
+       * @param component1 The first component that may supply/override roles.
+       * @param component2 The second component that may supply/override roles.
+       * @param component3 The third component that may supply/override roles.
        */
-      template<typename CF, typename CF1, typename CF2, typename CF3>
-      WrapperChannel(CF&& channel, CF1&& component1, CF2&& component2,
-        CF3&& component3);
+      template<Initializes<C> CF, Initializes<CT1> CF1, Initializes<CT2> CF2,
+        Initializes<CT3> CF3>
+      WrapperChannel(
+        CF&& channel, CF1&& component1, CF2&& component2, CF3&& component3);
 
-      const Identifier& GetIdentifier() const;
-
-      Connection& GetConnection();
-
-      Reader& GetReader();
-
-      Writer& GetWriter();
-
-    private:
-      GetOptionalLocalPtr<C> m_channel;
-      GetOptionalLocalPtr<CT1> m_component1;
-      GetOptionalLocalPtr<CT2> m_component2;
-      GetOptionalLocalPtr<CT3> m_component3;
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
   };
 
-  template<typename C, typename CT1, typename CT2, typename CT3>
   template<typename CF>
+  WrapperChannel(CF&&) -> WrapperChannel<std::remove_cvref_t<CF>>;
+
+  template<typename CF, typename C1>
+  WrapperChannel(CF&&, C1&&) ->
+    WrapperChannel<std::remove_cvref_t<CF>, std::remove_cvref_t<C1>>;
+
+  template<typename CF, typename C1, typename C2>
+  WrapperChannel(CF&&, C1&&, C2&&) ->
+    WrapperChannel<std::remove_cvref_t<CF>, std::remove_cvref_t<C1>,
+      std::remove_cvref_t<C2>>;
+
+  template<typename CF, typename C1, typename C2, typename C3>
+  WrapperChannel(CF&&, C1&&, C2&&, C3&&) ->
+    WrapperChannel<std::remove_cvref_t<CF>, std::remove_cvref_t<C1>,
+      std::remove_cvref_t<C2>, std::remove_cvref_t<C3>>;
+
+  template<typename C, typename CT1, typename CT2, typename CT3>
+  template<Initializes<C> CF>
   WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(CF&& channel)
-    : m_channel(std::forward<CF>(channel)) {}
+    : Details::ComponentHolder<C, 0>(std::forward<CF>(channel)) {}
 
   template<typename C, typename CT1, typename CT2, typename CT3>
-  template<typename CF, typename CF1>
-  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(CF&& channel,
-    CF1&& component1)
-    : m_channel(std::forward<CF>(channel)),
-      m_component1(std::forward<CF1>(component1)) {}
+  template<Initializes<C> CF, Initializes<CT1> CF1>
+  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(
+    CF&& channel, CF1&& component1)
+    : Details::ComponentHolder<C, 0>(std::forward<CF>(channel)),
+      Details::ComponentHolder<CT1, 1>(std::forward<CF1>(component1)) {}
 
   template<typename C, typename CT1, typename CT2, typename CT3>
-  template<typename CF, typename CF1, typename CF2>
-  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(CF&& channel,
-    CF1&& component1, CF2&& component2)
-    : m_channel(std::forward<CF>(channel)),
-      m_component1(std::forward<CF1>(component1)),
-      m_component2(std::forward<CF2>(component2)) {}
+  template<Initializes<C> CF, Initializes<CT1> CF1, Initializes<CT2> CF2>
+  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(
+    CF&& channel, CF1&& component1, CF2&& component2)
+    : Details::ComponentHolder<C, 0>(std::forward<CF>(channel)),
+      Details::ComponentHolder<CT1, 1>(std::forward<CF1>(component1)),
+      Details::ComponentHolder<CT2, 2>(std::forward<CF2>(component2)) {}
 
   template<typename C, typename CT1, typename CT2, typename CT3>
-  template<typename CF, typename CF1, typename CF2, typename CF3>
-  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(CF&& channel,
-    CF1&& component1, CF2&& component2, CF3&& component3)
-    : m_channel(std::forward<CF>(channel)),
-      m_component1(std::forward<CF1>(component1)),
-      m_component2(std::forward<CF2>(component2)),
-      m_component3(std::forward<CF3>(component3)) {}
+  template<Initializes<C> CF, Initializes<CT1> CF1, Initializes<CT2> CF2,
+    Initializes<CT3> CF3>
+  WrapperChannel<C, CT1, CT2, CT3>::WrapperChannel(
+    CF&& channel, CF1&& component1, CF2&& component2, CF3&& component3)
+    : Details::ComponentHolder<C, 0>(std::forward<CF>(channel)),
+      Details::ComponentHolder<CT1, 1>(std::forward<CF1>(component1)),
+      Details::ComponentHolder<CT2, 2>(std::forward<CF2>(component2)),
+      Details::ComponentHolder<CT3, 3>(std::forward<CF3>(component3)) {}
 
   template<typename C, typename CT1, typename CT2, typename CT3>
   const typename WrapperChannel<C, CT1, CT2, CT3>::Identifier&
-      WrapperChannel<C, CT1, CT2, CT3>::GetIdentifier() const {
-    return m_channel->GetIdentifier();
+      WrapperChannel<C, CT1, CT2, CT3>::get_identifier() const {
+    return Details::ComponentHolder<C, 0>::get_component().get_identifier();
   }
 
   template<typename C, typename CT1, typename CT2, typename CT3>
   typename WrapperChannel<C, CT1, CT2, CT3>::Connection&
-      WrapperChannel<C, CT1, CT2, CT3>::GetConnection() {
-    return Details::Switch<std::is_same_v<Connection, Component1>>()(
-      *m_component1,
-      Details::Switch<std::is_same_v<Connection, Component2>>()(
-      *m_component2,
-      Details::Switch<std::is_same_v<Connection, Component3>>()(
-      *m_component3, m_channel->GetConnection())));
+      WrapperChannel<C, CT1, CT2, CT3>::get_connection() {
+    if constexpr(IsConnection<Component1>) {
+      return Details::ComponentHolder<CT1, 1>::get_component();
+    } else if constexpr(IsConnection<Component2>) {
+      return Details::ComponentHolder<CT2, 2>::get_component();
+    } else if constexpr(IsConnection<Component3>) {
+      return Details::ComponentHolder<CT3, 3>::get_component();
+    } else {
+      return Details::ComponentHolder<C, 0>::get_component().get_connection();
+    }
   }
 
   template<typename C, typename CT1, typename CT2, typename CT3>
   typename WrapperChannel<C, CT1, CT2, CT3>::Reader&
-      WrapperChannel<C, CT1, CT2, CT3>::GetReader() {
-    return Details::Switch<std::is_same_v<Reader, Component1>>()(
-      *m_component1, Details::Switch<std::is_same_v<Reader, Component2>>()(
-      *m_component2, Details::Switch<std::is_same_v<Reader, Component3>>()(
-      *m_component3, m_channel->GetReader())));
+      WrapperChannel<C, CT1, CT2, CT3>::get_reader() {
+    if constexpr(IsReader<Component1>) {
+      return Details::ComponentHolder<CT1, 1>::get_component();
+    } else if constexpr(IsReader<Component2>) {
+      return Details::ComponentHolder<CT2, 2>::get_component();
+    } else if constexpr(IsReader<Component3>) {
+      return Details::ComponentHolder<CT3, 3>::get_component();
+    } else {
+      return Details::ComponentHolder<C, 0>::get_component().get_reader();
+    }
   }
 
   template<typename C, typename CT1, typename CT2, typename CT3>
   typename WrapperChannel<C, CT1, CT2, CT3>::Writer&
-      WrapperChannel<C, CT1, CT2, CT3>::GetWriter() {
-    return Details::Switch<std::is_same_v<Writer, Component1>>()(
-      *m_component1, Details::Switch<std::is_same_v<Writer, Component2>>()(
-      *m_component2, Details::Switch<std::is_same_v<Writer, Component3>>()(
-      *m_component3, m_channel->GetWriter())));
+      WrapperChannel<C, CT1, CT2, CT3>::get_writer() {
+    if constexpr(IsWriter<Component1>) {
+      return Details::ComponentHolder<CT1, 1>::get_component();
+    } else if constexpr(IsWriter<Component2>) {
+      return Details::ComponentHolder<CT2, 2>::get_component();
+    } else if constexpr(IsWriter<Component3>) {
+      return Details::ComponentHolder<CT3, 3>::get_component();
+    } else {
+      return Details::ComponentHolder<C, 0>::get_component().get_writer();
+    }
   }
-}
-
-  template<typename C, typename CT1, typename CT2, typename CT3>
-  struct ImplementsConcept<IO::WrapperChannel<C, CT1, CT2, CT3>,
-    IO::Channel<typename IO::WrapperChannel<C, CT1, CT2, CT3>::Identifier,
-    typename IO::WrapperChannel<C, CT1, CT2, CT3>::Connection,
-    typename IO::WrapperChannel<C, CT1, CT2, CT3>::Reader,
-    typename IO::WrapperChannel<C, CT1, CT2, CT3>::Writer>> : std::true_type {};
 }
 
 #endif

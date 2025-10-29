@@ -5,9 +5,8 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
-#include "Beam/SerializationTests/SerializationTests.hpp"
 
-namespace Beam::Serialization {
+namespace Beam {
 namespace Tests {
 
   /** Struct with a free symmetric shuttle. */
@@ -16,8 +15,11 @@ namespace Tests {
     int m_b;
     double m_c;
 
-    bool operator ==(const StructWithFreeShuttle& rhs) const = default;
+    bool operator ==(const StructWithFreeShuttle&) const = default;
   };
+
+  std::ostream& operator <<(
+    std::ostream& out, const StructWithFreeShuttle& value);
 
   /** Class type with a symmetric shuttle method. */
   class ClassWithShuttleMethod {
@@ -34,21 +36,26 @@ namespace Tests {
        */
       ClassWithShuttleMethod(char a, int b, double c);
 
-      bool operator ==(const ClassWithShuttleMethod& rhs) const = default;
+      bool operator ==(const ClassWithShuttleMethod&) const = default;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend std::ostream& operator <<(
+        std::ostream& out, const ClassWithShuttleMethod& value);
+      friend struct Beam::DataShuttle;
       char m_a;
       int m_b;
       double m_c;
 
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version) {
-        shuttle.Shuttle("a", m_a);
-        shuttle.Shuttle("b", m_b);
-        shuttle.Shuttle("c", m_c);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version) {
+        shuttle.shuttle("a", m_a);
+        shuttle.shuttle("b", m_b);
+        shuttle.shuttle("c", m_c);
       }
   };
+
+  std::ostream& operator <<(
+    std::ostream& out, const ClassWithShuttleMethod& value);
 
   /** Class type with different methods for sending/receiving. */
   class ClassWithSendReceiveMethods {
@@ -65,36 +72,41 @@ namespace Tests {
        */
       ClassWithSendReceiveMethods(char a, int b, double c);
 
-      bool operator ==(const ClassWithSendReceiveMethods& rhs) const = default;
+      bool operator ==(const ClassWithSendReceiveMethods&) const = default;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend std::ostream& operator <<(
+        std::ostream& out, const ClassWithSendReceiveMethods& value);
+      friend struct Beam::DataShuttle;
       char m_a;
       int m_b;
       double m_c;
 
-      template<typename Shuttler>
-      void Send(Shuttler& shuttle, unsigned int version) const {
-        shuttle.Shuttle("a", m_a);
+      template<IsSender S>
+      void send(S& sender, unsigned int version) const {
+        sender.shuttle("a", m_a);
         auto b1 = m_b - 1;
-        shuttle.Shuttle("b1", b1);
+        sender.shuttle("b1", b1);
         auto b2 = m_b + 1;
-        shuttle.Shuttle("b2", b2);
-        shuttle.Shuttle("c", m_c);
+        sender.shuttle("b2", b2);
+        sender.shuttle("c", m_c);
       }
 
-      template<typename Shuttler>
-      void Receive(Shuttler& shuttle, unsigned int version) {
-        shuttle.Shuttle("a", m_a);
+      template<IsReceiver R>
+      void receive(R& receiver, unsigned int version) {
+        receiver.shuttle("a", m_a);
         auto b1 = int();
-        shuttle.Shuttle("b1", b1);
+        receiver.shuttle("b1", b1);
         auto b2 = int();
-        shuttle.Shuttle("b2", b2);
+        receiver.shuttle("b2", b2);
         m_b = b1 + 1;
         REQUIRE(b2 == m_b + 1);
-        shuttle.Shuttle("c", m_c);
+        receiver.shuttle("c", m_c);
       }
   };
+
+  std::ostream& operator <<(
+    std::ostream& out, const ClassWithSendReceiveMethods& value);
 
   /** Class type with versioning. */
   class ClassWithVersioning {
@@ -111,29 +123,34 @@ namespace Tests {
        */
       ClassWithVersioning(int v0, int v1, int v2);
 
-      bool operator ==(const ClassWithVersioning& rhs) const = default;
+      bool operator ==(const ClassWithVersioning&) const = default;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend std::ostream& operator <<(
+        std::ostream& out, const ClassWithVersioning& value);
+      friend struct Beam::DataShuttle;
       int m_v0;
       int m_v1;
       int m_v2;
 
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version) {
-        shuttle.Shuttle("v0", m_v0);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version) {
+        shuttle.shuttle("v0", m_v0);
         if(version >= 1) {
-          shuttle.Shuttle("v1", m_v1);
-        } else if(Serialization::IsReceiver<Shuttler>::value) {
+          shuttle.shuttle("v1", m_v1);
+        } else if(IsReceiver<S>) {
           m_v1 = 0;
         }
         if(version >= 2) {
-          shuttle.Shuttle("v2", m_v2);
-        } else if(Serialization::IsReceiver<Shuttler>::value) {
+          shuttle.shuttle("v2", m_v2);
+        } else if(IsReceiver<S>) {
           m_v2 = 0;
         }
       }
   };
+
+  std::ostream& operator <<(
+    std::ostream& out, const ClassWithVersioning& value);
 
   /** Base class of a polymorphic type. */
   class PolymorphicBaseClass {
@@ -141,7 +158,7 @@ namespace Tests {
       virtual ~PolymorphicBaseClass() = default;
 
       /** Returns an identifier for this class. */
-      virtual std::string ToString() const = 0;
+      virtual std::string to_string() const = 0;
   };
 
   /** Inherits PolymorphicBaseClass. */
@@ -151,13 +168,13 @@ namespace Tests {
       /** Constructs a PolymorphicDerivedClassA. */
       PolymorphicDerivedClassA() = default;
 
-      virtual std::string ToString() const override;
+      std::string to_string() const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct Beam::DataShuttle;
 
       template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version) {}
+      void shuttle(Shuttler& shuttle, unsigned int version) {}
   };
 
   /** Inherits PolymorphicBaseClass. */
@@ -167,13 +184,13 @@ namespace Tests {
       /** Constructs a PolymorphicDerivedClassB. */
       PolymorphicDerivedClassB() = default;
 
-      virtual std::string ToString() const override;
+      virtual std::string to_string() const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct Beam::DataShuttle;
 
       template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version) {}
+      void shuttle(Shuttler& shuttle, unsigned int version) {}
   };
 
   /** Tests shuttling via proxy functions. */
@@ -190,9 +207,9 @@ namespace Tests {
       explicit ProxiedFunctionType(const std::string& value);
 
       /** Returns the held value. */
-      std::string ToString() const;
+      std::string to_string() const;
 
-      bool operator ==(const ProxiedFunctionType& rhs) const = default;
+      bool operator ==(const ProxiedFunctionType&) const = default;
 
     private:
       std::string m_value;
@@ -212,22 +229,22 @@ namespace Tests {
       explicit ProxiedMethodType(const std::string& value);
 
       /** Returns the held value. */
-      std::string ToString() const;
+      std::string to_string() const;
 
-      bool operator ==(const ProxiedMethodType& rhs) const = default;
+      bool operator ==(const ProxiedMethodType&) const = default;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct Beam::DataShuttle;
       std::string m_value;
 
       template<typename Shuttler>
-      void Send(Shuttler& shuttle, const char* name) const {
-        shuttle.Send(name, m_value);
+      void send(Shuttler& shuttle, const char* name) const {
+        shuttle.send(name, m_value);
       }
 
       template<typename Shuttler>
-      void Receive(Shuttler& shuttle, const char* name) {
-        shuttle.Shuttle(name, m_value);
+      void receive(Shuttler& shuttle, const char* name) {
+        shuttle.receive(name, m_value);
       }
   };
 }
@@ -237,28 +254,27 @@ namespace Tests {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, Tests::StructWithFreeShuttle& value,
         unsigned int version) const {
-      shuttle.Shuttle("a", value.m_a);
-      shuttle.Shuttle("b", value.m_b);
-      shuttle.Shuttle("c", value.m_c);
+      shuttle.shuttle("a", value.m_a);
+      shuttle.shuttle("b", value.m_b);
+      shuttle.shuttle("c", value.m_c);
     }
   };
 
   template<>
-  struct Version<Tests::ClassWithVersioning> :
-    std::integral_constant<unsigned int, 2> {};
+  constexpr auto shuttle_version<Tests::ClassWithVersioning> = unsigned(2);
 
   template<>
-  struct IsStructure<Tests::ProxiedFunctionType> : std::false_type {};
+  constexpr auto is_structure<Tests::ProxiedFunctionType> = false;
 
   template<>
-  struct IsStructure<Tests::ProxiedMethodType> : std::false_type {};
+  constexpr auto is_structure<Tests::ProxiedMethodType> = false;
 
   template<>
   struct Send<Tests::ProxiedFunctionType> {
     template<typename Shuttler>
     void operator ()(Shuttler& shuttle, const char* name,
         const Tests::ProxiedFunctionType& value) const {
-      shuttle.Send(name, value.ToString());
+      shuttle.send(name, value.to_string());
     }
   };
 
@@ -268,7 +284,7 @@ namespace Tests {
     void operator ()(Shuttler& shuttle, const char* name,
         Tests::ProxiedFunctionType& value) const {
       auto proxy = std::string();
-      shuttle.Shuttle(name, proxy);
+      shuttle.receive(name, proxy);
       value = Tests::ProxiedFunctionType(proxy);
     }
   };

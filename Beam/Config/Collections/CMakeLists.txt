@@ -1,5 +1,5 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/CollectionsTests/*.cpp)
-add_executable(CollectionsTests ${header_files} ${source_files})
+add_executable(CollectionsTests ${source_files})
 if(UNIX)
   target_link_libraries(CollectionsTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

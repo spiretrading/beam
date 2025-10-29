@@ -1,57 +1,120 @@
 #ifndef BEAM_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_SERVICE_LOCATOR_CLIENT_HPP
+#include <concepts>
+#include <random>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
-#include <boost/lexical_cast.hpp>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/Connection.hpp"
-#include "Beam/IO/IOException.hpp"
-#include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/ConnectException.hpp"
+#include "Beam/Json/JsonObject.hpp"
+#include "Beam/Network/IpAddress.hpp"
+#include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/VirtualPtr.hpp"
+#include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
+#include "Beam/ServiceLocator/DirectoryEntry.hpp"
+#include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
-#include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Utilities/Expect.hpp"
+#include "Beam/Services/ServiceRequestException.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
-  /**
-   * Client used to locate services on a service network.
-   * @param <B> The type used to build ServiceProtocolClients to the server.
-   */
-  template<typename B>
+  /** Concept for types that can be used as a ServiceLocatorClient. */
+  template<typename T>
+  concept IsServiceLocatorClient = IsConnection<T> && requires(
+      T client, const T cclient) {
+    { cclient.get_account() } -> std::same_as<DirectoryEntry>;
+    { cclient.get_session_id() } -> std::same_as<std::string>;
+    { cclient.get_encrypted_session_id(std::declval<unsigned int>()) } ->
+        std::same_as<std::string>;
+    { client.authenticate_account(std::declval<const std::string&>(),
+        std::declval<const std::string&>()) } -> std::same_as<DirectoryEntry>;
+    { client.authenticate_session(std::declval<const std::string&>(),
+        std::declval<unsigned int>()) } -> std::same_as<DirectoryEntry>;
+    { client.locate(std::declval<const std::string&>()) } ->
+        std::same_as<std::vector<ServiceEntry>>;
+    { client.add(std::declval<const std::string&>(),
+        std::declval<const JsonObject&>()) } -> std::same_as<ServiceEntry>;
+    { client.remove(std::declval<const ServiceEntry&>()) } ->
+        std::same_as<void>;
+    { client.load_all_accounts() } -> std::same_as<std::vector<DirectoryEntry>>;
+    { client.find_account(std::declval<const std::string&>()) } ->
+        std::same_as<boost::optional<DirectoryEntry>>;
+    { client.make_account(std::declval<const std::string&>(),
+        std::declval<const std::string&>(),
+        std::declval<const DirectoryEntry&>()) } ->
+          std::same_as<DirectoryEntry>;
+    { client.make_directory(std::declval<const std::string&>(),
+        std::declval<const DirectoryEntry&>()) } ->
+          std::same_as<DirectoryEntry>;
+    { client.store_password(std::declval<const DirectoryEntry&>(),
+        std::declval<const std::string&>()) } -> std::same_as<void>;
+    { client.monitor(std::declval<ScopedQueueWriter<AccountUpdate>>()) } ->
+        std::same_as<void>;
+    { client.load_directory_entry(std::declval<const DirectoryEntry&>(),
+        std::declval<const std::string&>()) } -> std::same_as<DirectoryEntry>;
+    { client.load_directory_entry(std::declval<unsigned int>()) } ->
+        std::same_as<DirectoryEntry>;
+    { client.load_parents(std::declval<const DirectoryEntry&>()) } ->
+        std::same_as<std::vector<DirectoryEntry>>;
+    { client.load_children(std::declval<const DirectoryEntry&>()) } ->
+        std::same_as<std::vector<DirectoryEntry>>;
+    { client.remove(std::declval<const DirectoryEntry&>()) } ->
+        std::same_as<void>;
+    { client.associate(std::declval<const DirectoryEntry&>(),
+        std::declval<const DirectoryEntry&>()) } -> std::same_as<void>;
+    { client.detach(std::declval<const DirectoryEntry&>(),
+        std::declval<const DirectoryEntry&>()) } -> std::same_as<void>;
+    { client.has_permissions(std::declval<const DirectoryEntry&>(),
+        std::declval<const DirectoryEntry&>(), std::declval<Permissions>()) } ->
+          std::same_as<bool>;
+    { client.store(std::declval<const DirectoryEntry&>(),
+        std::declval<const DirectoryEntry&>(),
+        std::declval<Permissions>()) } -> std::same_as<void>;
+    { client.load_registration_time(std::declval<const DirectoryEntry&>()) } ->
+        std::same_as<boost::posix_time::ptime>;
+    { client.load_last_login_time(std::declval<const DirectoryEntry&>()) } ->
+        std::same_as<boost::posix_time::ptime>;
+    { client.rename(std::declval<const DirectoryEntry&>(),
+        std::declval<const std::string&>()) } -> std::same_as<DirectoryEntry>;
+    { client.close() } -> std::same_as<void>;
+  };
+
+  /** Client used to locate services on a service network. */
   class ServiceLocatorClient {
     public:
 
-      /** The type used to build ServiceProtocolClients to the server. */
-      using ServiceProtocolClientBuilder = GetTryDereferenceType<B>;
+      /**
+       * Constructs a ServiceLocatorClient of a specified type using
+       * emplacement.
+       * @tparam T The type of client to emplace.
+       * @param args The arguments to pass to the emplaced client.
+       */
+      template<IsServiceLocatorClient T, typename... Args>
+      explicit ServiceLocatorClient(std::in_place_type_t<T>, Args&&... args);
 
       /**
-       * Constructs a ServiceLocatorClient.
-       * @param username The username.
-       * @param password The password.
-       * @param clientBuilder Initializes the ServiceProtocolClientBuilder.
+       * Constructs a ServiceLocatorClient by referencing an existing client.
+       * @param client The client to reference.
        */
-      template<typename BF>
-      ServiceLocatorClient(std::string username, std::string password,
-        BF&& clientBuilder);
+      template<DisableCopy<ServiceLocatorClient> T> requires
+        IsServiceLocatorClient<dereference_t<T>>
+      ServiceLocatorClient(T&& client);
 
-      ~ServiceLocatorClient();
+      ServiceLocatorClient(const ServiceLocatorClient&) = default;
 
       /** Returns the DirectoryEntry of the account that's logged in. */
-      DirectoryEntry GetAccount() const;
+      DirectoryEntry get_account() const;
 
       /** Returns the raw session id. */
-      std::string GetSessionId() const;
+      std::string get_session_id() const;
 
       /**
        * Encrypts the session id.
@@ -59,7 +122,7 @@ namespace Beam::ServiceLocator {
        * @return The session id encrypted using the specified encryption
        *         <i>key</i>.
        */
-      std::string GetEncryptedSessionId(unsigned int key) const;
+      std::string get_encrypted_session_id(unsigned int key) const;
 
       /**
        * Authenticates an account.
@@ -68,8 +131,8 @@ namespace Beam::ServiceLocator {
        * @return DirectoryEntry The account's DirectoryEntry iff the username
        *         and password match.
        */
-      DirectoryEntry AuthenticateAccount(const std::string& username,
-        const std::string& password);
+      DirectoryEntry authenticate_account(
+        const std::string& username, const std::string& password);
 
       /**
        * Authenticates a session.
@@ -78,15 +141,15 @@ namespace Beam::ServiceLocator {
        * @return The DirectoryEntry of the account using the specified
        *        <i>sessionId</i>.
        */
-      DirectoryEntry AuthenticateSession(const std::string& sessionId,
-        unsigned int key);
+      DirectoryEntry authenticate_session(
+        const std::string& session_id, unsigned int key);
 
       /**
        * Locates a service.
        * @param name The name of the service to locate.
        * @return The list of services that were located.
        */
-      std::vector<ServiceEntry> Locate(const std::string& name);
+      std::vector<ServiceEntry> locate(const std::string& name);
 
       /**
        * Registers a service.
@@ -94,24 +157,23 @@ namespace Beam::ServiceLocator {
        * @param properties The service's properties.
        * @return The ServiceEntry corresponding to the registered service.
        */
-      ServiceEntry Register(const std::string& name,
-        const JsonObject& properties);
+      ServiceEntry add(const std::string& name, const JsonObject& properties);
 
       /**
        * Unregisters a service.
        * @param service The service to unregister.
        */
-      void Unregister(const ServiceEntry& service);
+      void remove(const ServiceEntry& service);
 
       /** Loads the list of all accounts this client is allowed to read. */
-      std::vector<DirectoryEntry> LoadAllAccounts();
+      std::vector<DirectoryEntry> load_all_accounts();
 
       /**
        * Finds an account with a specified name.
        * @param name The name of the account to find.
        * @return The DirectoryEntry of the account with the given <i>name</i>.
        */
-      boost::optional<DirectoryEntry> FindAccount(const std::string& name);
+      boost::optional<DirectoryEntry> find_account(const std::string& name);
 
       /**
        * Creates an account.
@@ -120,7 +182,7 @@ namespace Beam::ServiceLocator {
        * @param parent The parent to place the account in.
        * @return The DirectoryEntry of the account that was created.
        */
-      DirectoryEntry MakeAccount(const std::string& name,
+      DirectoryEntry make_account(const std::string& name,
         const std::string& password, const DirectoryEntry& parent);
 
       /**
@@ -129,22 +191,22 @@ namespace Beam::ServiceLocator {
        * @param parent The parent to place the directory in.
        * @return The DirectoryEntry of the directory that was created.
        */
-      DirectoryEntry MakeDirectory(const std::string& name,
-        const DirectoryEntry& parent);
+      DirectoryEntry make_directory(
+        const std::string& name, const DirectoryEntry& parent);
 
       /**
        * Sets an account's password.
        * @param account The account to set the password for.
        * @param password The password to set.
        */
-      void StorePassword(const DirectoryEntry& account,
-        const std::string& password);
+      void store_password(
+        const DirectoryEntry& account, const std::string& password);
 
       /**
        * Monitors new and deleted accounts and pushes them to a queue.
        * @param queue The queue to push to.
        */
-      void MonitorAccounts(ScopedQueueWriter<AccountUpdate> queue);
+      void monitor(ScopedQueueWriter<AccountUpdate> queue);
 
       /**
        * Loads a DirectoryEntry from a path.
@@ -153,49 +215,49 @@ namespace Beam::ServiceLocator {
        * @return The DirectoryEntry with the specified <i>path</i> from the
        *         <i>root</i>.
        */
-      DirectoryEntry LoadDirectoryEntry(const DirectoryEntry& root,
-        const std::string& path);
+      DirectoryEntry load_directory_entry(
+        const DirectoryEntry& root, const std::string& path);
 
       /**
        * Loads a DirectoryEntry from an id.
        * @param id The id of the DirectoryEntry to load.
        * @return The DirectoryEntry with the specified <i>id</i>.
        */
-      DirectoryEntry LoadDirectoryEntry(unsigned int id);
+      DirectoryEntry load_directory_entry(unsigned int id);
 
       /**
        * Loads all parents of a specified DirectoryEntry.
        * @param entry The DirectoryEntry whose parents are to be loaded.
        * @return The list of parents of the specified <i>entry</i>.
        */
-      std::vector<DirectoryEntry> LoadParents(const DirectoryEntry& entry);
+      std::vector<DirectoryEntry> load_parents(const DirectoryEntry& entry);
 
       /**
        * Loads all children of a specified DirectoryEntry.
        * @param entry The DirectoryEntry whose children are to be loaded.
        * @return The list of children of the specified <i>entry</i>.
        */
-      std::vector<DirectoryEntry> LoadChildren(const DirectoryEntry& entry);
+      std::vector<DirectoryEntry> load_children(const DirectoryEntry& entry);
 
       /**
        * Deletes a DirectoryEntry.
        * @param entry The DirectoryEntry to delete.
        */
-      void Delete(const DirectoryEntry& entry);
+      void remove(const DirectoryEntry& entry);
 
       /**
        * Associates a DirectoryEntry with a parent.
        * @param entry The DirectoryEntry to associate.
        * @param parent The parent to associate with the <i>entry</i>.
        */
-      void Associate(const DirectoryEntry& entry, const DirectoryEntry& parent);
+      void associate(const DirectoryEntry& entry, const DirectoryEntry& parent);
 
       /**
        * Detaches a DirectoryEntry from a parent.
        * @param entry The DirectoryEntry to detach.
        * @param parent The parent to detach from the <i>entry</i>.
        */
-      void Detach(const DirectoryEntry& entry, const DirectoryEntry& parent);
+      void detach(const DirectoryEntry& entry, const DirectoryEntry& parent);
 
       /**
        * Tests if an account has Permissions to a DirectoryEntry.
@@ -205,7 +267,7 @@ namespace Beam::ServiceLocator {
        * @return <code>true</code> iff the <i>account</i> has the specified
        *         <code>permissions</code> on the <i>target</i>.
        */
-      bool HasPermissions(const DirectoryEntry& account,
+      bool has_permissions(const DirectoryEntry& account,
         const DirectoryEntry& target, Permissions permissions);
 
       /**
@@ -215,15 +277,15 @@ namespace Beam::ServiceLocator {
        * @param permissions The Permissions to grant to the <i>source</i> over
        *        the <i>target</i>.
        */
-      void StorePermissions(const DirectoryEntry& source,
-        const DirectoryEntry& target, Permissions permissions);
+      void store(const DirectoryEntry& source, const DirectoryEntry& target,
+        Permissions permissions);
 
       /**
        * Loads an account's registration time.
        * @param account The account whose registration time is to be loaded.
        * @return The registration time of the <i>account</i>.
        */
-      boost::posix_time::ptime LoadRegistrationTime(
+      boost::posix_time::ptime load_registration_time(
         const DirectoryEntry& account);
 
       /**
@@ -231,7 +293,8 @@ namespace Beam::ServiceLocator {
        * @param account The account whose last login time is to be loaded.
        * @return The most recent login time of the <i>account</i>.
        */
-      boost::posix_time::ptime LoadLastLoginTime(const DirectoryEntry& account);
+      boost::posix_time::ptime load_last_login_time(
+        const DirectoryEntry& account);
 
       /**
        * Renames a DirectoryEntry.
@@ -239,399 +302,501 @@ namespace Beam::ServiceLocator {
        * @param name The name to assign to the DirectoryEntry.
        * @return The updated DirectoryEntry.
        */
-      DirectoryEntry Rename(const DirectoryEntry& entry,
-        const std::string& name);
+      DirectoryEntry rename(
+        const DirectoryEntry& entry, const std::string& name);
 
-      void Close();
+      void close();
 
     private:
-      using ServiceProtocolClient =
-        typename ServiceProtocolClientBuilder::Client;
-      mutable boost::mutex m_mutex;
-      std::string m_username;
-      std::string m_password;
-      Beam::Services::ServiceProtocolClientHandler<B> m_clientHandler;
-      std::string m_sessionId;
-      DirectoryEntry m_account;
-      std::vector<DirectoryEntry> m_accountUpdateSnapshot;
-      QueueWriterPublisher<AccountUpdate> m_accountUpdatePublisher;
-      Beam::SynchronizedVector<ServiceEntry> m_services;
-      RoutineTaskQueue m_tasks;
-      IO::OpenState m_openState;
+      struct VirtualServiceLocatorClient {
+        virtual ~VirtualServiceLocatorClient() = default;
 
-      ServiceLocatorClient(const ServiceLocatorClient&) = delete;
-      ServiceLocatorClient& operator =(const ServiceLocatorClient&) = delete;
-      void Login(ServiceProtocolClient& client);
-      void OnReconnect(const std::shared_ptr<ServiceProtocolClient>& client);
-      void OnAccountUpdate(ServiceProtocolClient& client,
-        const AccountUpdate& update);
+        virtual DirectoryEntry get_account() const = 0;
+        virtual std::string get_session_id() const = 0;
+        virtual std::string get_encrypted_session_id(unsigned int) const = 0;
+        virtual DirectoryEntry authenticate_account(
+          const std::string&, const std::string&) = 0;
+        virtual DirectoryEntry authenticate_session(
+          const std::string&, unsigned int) = 0;
+        virtual std::vector<ServiceEntry> locate(const std::string&) = 0;
+        virtual ServiceEntry add(const std::string&, const JsonObject&) = 0;
+        virtual void remove(const ServiceEntry&) = 0;
+        virtual std::vector<DirectoryEntry> load_all_accounts() = 0;
+        virtual boost::optional<DirectoryEntry> find_account(
+          const std::string&) = 0;
+        virtual DirectoryEntry make_account(
+          const std::string&, const std::string&, const DirectoryEntry&) = 0;
+        virtual DirectoryEntry make_directory(
+          const std::string&, const DirectoryEntry&) = 0;
+        virtual void store_password(
+          const DirectoryEntry&, const std::string&) = 0;
+        virtual void monitor(ScopedQueueWriter<AccountUpdate>) = 0;
+        virtual DirectoryEntry load_directory_entry(
+          const DirectoryEntry&, const std::string&) = 0;
+        virtual DirectoryEntry load_directory_entry(unsigned int) = 0;
+        virtual std::vector<DirectoryEntry> load_parents(
+          const DirectoryEntry&) = 0;
+        virtual std::vector<DirectoryEntry> load_children(
+          const DirectoryEntry&) = 0;
+        virtual void remove(const DirectoryEntry&) = 0;
+        virtual void associate(
+          const DirectoryEntry&, const DirectoryEntry&) = 0;
+        virtual void detach(const DirectoryEntry&, const DirectoryEntry&) = 0;
+        virtual bool has_permissions(
+          const DirectoryEntry&, const DirectoryEntry&, Permissions) = 0;
+        virtual void store(
+          const DirectoryEntry&, const DirectoryEntry&, Permissions) = 0;
+        virtual boost::posix_time::ptime load_registration_time(
+          const DirectoryEntry&) = 0;
+        virtual boost::posix_time::ptime load_last_login_time(
+          const DirectoryEntry&) = 0;
+        virtual DirectoryEntry rename(
+          const DirectoryEntry&, const std::string&) = 0;
+        virtual void close() = 0;
+      };
+      template<typename C>
+      struct WrappedServiceLocatorClient final : VirtualServiceLocatorClient {
+        using ServiceLocatorClient = C;
+        local_ptr_t<ServiceLocatorClient> m_client;
+
+        template<typename... Args>
+        WrappedServiceLocatorClient(Args&&... args);
+
+        DirectoryEntry get_account() const override;
+        std::string get_session_id() const override;
+        std::string get_encrypted_session_id(unsigned int key) const override;
+        DirectoryEntry authenticate_account(
+          const std::string& username, const std::string& password) override;
+        DirectoryEntry authenticate_session(
+          const std::string& session_id, unsigned int key) override;
+        std::vector<ServiceEntry> locate(const std::string& name) override;
+        ServiceEntry add(
+          const std::string& name, const JsonObject& properties) override;
+        void remove(const ServiceEntry& service) override;
+        std::vector<DirectoryEntry> load_all_accounts() override;
+        boost::optional<DirectoryEntry> find_account(
+          const std::string& name) override;
+        DirectoryEntry make_account(const std::string& name,
+          const std::string& password, const DirectoryEntry& parent) override;
+        DirectoryEntry make_directory(
+          const std::string& name, const DirectoryEntry& parent) override;
+        void store_password(
+          const DirectoryEntry& account, const std::string& password) override;
+        void monitor(ScopedQueueWriter<AccountUpdate> queue) override;
+        DirectoryEntry load_directory_entry(
+          const DirectoryEntry& root, const std::string& path) override;
+        DirectoryEntry load_directory_entry(unsigned int id) override;
+        std::vector<DirectoryEntry> load_parents(
+          const DirectoryEntry& entry) override;
+        std::vector<DirectoryEntry> load_children(
+          const DirectoryEntry& entry) override;
+        void remove(const DirectoryEntry& entry) override;
+        void associate(
+          const DirectoryEntry& entry, const DirectoryEntry& parent) override;
+        void detach(
+          const DirectoryEntry& entry, const DirectoryEntry& parent) override;
+        bool has_permissions(const DirectoryEntry& account,
+          const DirectoryEntry& target, Permissions permissions) override;
+        void store(const DirectoryEntry& source, const DirectoryEntry& target,
+          Permissions permissions) override;
+        boost::posix_time::ptime load_registration_time(
+          const DirectoryEntry& account) override;
+        boost::posix_time::ptime load_last_login_time(
+          const DirectoryEntry& account) override;
+        DirectoryEntry rename(
+          const DirectoryEntry& entry, const std::string& name) override;
+        void close() override;
+      };
+      VirtualPtr<VirtualServiceLocatorClient> m_client;
   };
 
-  template<typename B>
-  template<typename BF>
-  ServiceLocatorClient<B>::ServiceLocatorClient(std::string username,
-      std::string password, BF&& clientBuilder)
-      try : m_username(std::move(username)),
-            m_password(std::move(password)),
-            m_clientHandler(std::forward<BF>(clientBuilder),
-              std::bind_front(&ServiceLocatorClient::OnReconnect, this)) {
-    RegisterServiceLocatorServices(Store(m_clientHandler.GetSlots()));
-    RegisterServiceLocatorMessages(Store(m_clientHandler.GetSlots()));
-    Services::AddMessageSlot<AccountUpdateMessage>(
-      Store(m_clientHandler.GetSlots()),
-      std::bind_front(&ServiceLocatorClient::OnAccountUpdate, this));
+  /**
+   * Loads a directory, or creates it if it doesn't already exist.
+   * @param serviceLocatorClient The ServiceLocatorClient to use.
+   * @param name The name of the directory to load or create.
+   * @param parent The directory's parent.
+   * @return directory The directory that was loaded.
+   */
+  template<IsServiceLocatorClient C>
+  DirectoryEntry load_or_create_directory(
+      C& client, const std::string& name, const DirectoryEntry& parent) {
     try {
-      auto client = m_clientHandler.GetClient();
-      Login(*client);
-    } catch(const std::exception&) {
-      Close();
-      throw;
+      return client.load_directory_entry(parent, name);
+    } catch(const ServiceRequestException&) {
+      return client.make_directory(name, parent);
     }
-  } catch(const std::exception&) {
-    std::throw_with_nested(
-      IO::ConnectException("Failed to login to service locator."));
   }
 
-  template<typename B>
-  ServiceLocatorClient<B>::~ServiceLocatorClient() {
-    Close();
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::GetAccount() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return m_account;
-  }
-
-  template<typename B>
-  std::string ServiceLocatorClient<B>::GetSessionId() const {
-    auto lock = boost::lock_guard(m_mutex);
-    return m_sessionId;
-  }
-
-  template<typename B>
-  std::string ServiceLocatorClient<B>::GetEncryptedSessionId(
-      unsigned int key) const {
-    auto lock = boost::lock_guard(m_mutex);
-    return ComputeSHA(std::to_string(key) + m_sessionId);
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::AuthenticateAccount(
-      const std::string& username, const std::string& password) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<AuthenticateAccountService>(username,
-        password);
-    }, "Error authenticating account: " + username);
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::
-      AuthenticateSession(const std::string& sessionId, unsigned int key) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<SessionAuthenticationService>(
-        sessionId, key);
-    }, "Error authenticating session: (" + sessionId + ", " +
-      std::to_string(key) + ")");
-  }
-
-  template<typename B>
-  std::vector<ServiceEntry> ServiceLocatorClient<B>::Locate(
-      const std::string& name) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LocateService>(name);
-    }, "Error locating service: " + name);
-  }
-
-  template<typename B>
-  ServiceEntry ServiceLocatorClient<B>::Register(const std::string& name,
-      const JsonObject& properties) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      auto service = client->template SendRequest<RegisterService>(name,
-        properties);
-      m_services.PushBack(service);
-      return service;
-    }, "Error registering service: " + name);
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Unregister(const ServiceEntry& service) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<UnregisterService>(service.GetId());
-      m_services.RemoveIf([&] (const auto& s) {
-        return s.GetId() == service.GetId();
-      });
-    }, "Error unregistering service: " + service.GetName());
-  }
-
-  template<typename B>
-  std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadAllAccounts() {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadAllAccountsService>();
-    }, "Error loading all accounts.");
-  }
-
-  template<typename B>
-  boost::optional<DirectoryEntry> ServiceLocatorClient<B>::FindAccount(
-      const std::string& name) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<FindAccountService>(name);
-    }, "Error finding account: " + name);
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::MakeAccount(const std::string& name,
-      const std::string& password, const DirectoryEntry& parent) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<MakeAccountService>(name, password,
-        parent);
-    }, "Error making account: " + name);
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::MakeDirectory(const std::string& name,
-      const DirectoryEntry& parent) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<MakeDirectoryService>(name, parent);
-    }, "Error making directory: " + name);
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::StorePassword(const DirectoryEntry& account,
-      const std::string& password) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<StorePasswordService>(account, password);
-    }, "Error storing password for account: " +
-      boost::lexical_cast<std::string>(account));
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::MonitorAccounts(
-      ScopedQueueWriter<AccountUpdate> queue) {
-    m_tasks.Push([this, queue =
-        std::make_shared<ScopedQueueWriter<AccountUpdate>>(std::move(queue))] {
-      if(m_accountUpdatePublisher.GetSize() != 0) {
-        try {
-          for(auto& account : m_accountUpdateSnapshot) {
-            queue->Push(AccountUpdate{account, AccountUpdate::Type::ADDED});
-          }
-          m_accountUpdatePublisher.Monitor(std::move(*queue));
-        } catch(const PipeBrokenException&) {}
-        return;
-      }
-      try {
-        auto client = m_clientHandler.GetClient();
-        m_accountUpdateSnapshot =
-          client->template SendRequest<MonitorAccountsService>();
-      } catch(const std::exception&) {
-        queue->Break(Services::MakeNestedServiceException(
-          "Monitor accounts failed."));
-        return;
-      }
-      m_accountUpdatePublisher.Monitor(std::move(*queue));
-      for(auto& account : m_accountUpdateSnapshot) {
-        m_accountUpdatePublisher.Push(
-          AccountUpdate{account, AccountUpdate::Type::ADDED});
-      }
-    });
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::LoadDirectoryEntry(
-      const DirectoryEntry& root, const std::string& path) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadPathService>(root, path);
-    }, "Error loading directory entry path: " +
-      boost::lexical_cast<std::string>(root) + ", " + path);
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::LoadDirectoryEntry(unsigned int id) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadDirectoryEntryService>(id);
-    }, "Error loading directory entry: " + std::to_string(id));
-  }
-
-  template<typename B>
-  std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadParents(
-      const DirectoryEntry& entry) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadParentsService>(entry);
-    }, "Error loading parents: " + boost::lexical_cast<std::string>(entry));
-  }
-
-  template<typename B>
-  std::vector<DirectoryEntry> ServiceLocatorClient<B>::LoadChildren(
-      const DirectoryEntry& entry) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadChildrenService>(entry);
-    }, "Error loading children: " + boost::lexical_cast<std::string>(entry));
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Delete(const DirectoryEntry& entry) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<DeleteDirectoryEntryService>(entry);
-    }, "Error deleting: " + boost::lexical_cast<std::string>(entry));
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Associate(const DirectoryEntry& entry,
-      const DirectoryEntry& parent) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<AssociateService>(entry, parent);
-    }, "Error associating: " + boost::lexical_cast<std::string>(entry) + ", " +
-      boost::lexical_cast<std::string>(parent));
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Detach(const DirectoryEntry& entry,
-      const DirectoryEntry& parent) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<DetachService>(entry, parent);
-    }, "Error detaching: " + boost::lexical_cast<std::string>(entry) + ", " +
-      boost::lexical_cast<std::string>(parent));
-  }
-
-  template<typename B>
-  bool ServiceLocatorClient<B>::HasPermissions(const DirectoryEntry& account,
-      const DirectoryEntry& target, Permissions permissions) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<HasPermissionsService>(account,
-        target, permissions);
-    }, "Error checking permissions: " +
-      boost::lexical_cast<std::string>(account) + ", " +
-      boost::lexical_cast<std::string>(target));
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::StorePermissions(const DirectoryEntry& source,
-      const DirectoryEntry& target, Permissions permissions) {
-    Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      client->template SendRequest<StorePermissionsService>(source, target,
-        permissions);
-    }, "Error storing permissions: " +
-      boost::lexical_cast<std::string>(source) + ", " +
-      boost::lexical_cast<std::string>(target));
-  }
-
-  template<typename B>
-  boost::posix_time::ptime ServiceLocatorClient<B>::LoadRegistrationTime(
-      const DirectoryEntry& account) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadRegistrationTimeService>(account);
-    }, "Error loading registration time: " +
-      boost::lexical_cast<std::string>(account));
-  }
-
-  template<typename B>
-  boost::posix_time::ptime ServiceLocatorClient<B>::LoadLastLoginTime(
-      const DirectoryEntry& account) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<LoadLastLoginTimeService>(account);
-    }, "Error loading last login time: " +
-      boost::lexical_cast<std::string>(account));
-  }
-
-  template<typename B>
-  DirectoryEntry ServiceLocatorClient<B>::Rename(const DirectoryEntry& entry,
-      const std::string& name) {
-    return Services::ServiceOrThrowWithNested([&] {
-      auto client = m_clientHandler.GetClient();
-      return client->template SendRequest<RenameService>(entry, name);
-    }, "Error renaming: " + boost::lexical_cast<std::string>(entry) + ", " +
-      name);
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Close() {
-    if(m_openState.SetClosing()) {
-      return;
-    }
-    m_accountUpdatePublisher.Break();
-    m_tasks.Break();
-    m_tasks.Wait();
-    m_clientHandler.Close();
-    m_openState.Close();
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::Login(ServiceProtocolClient& client) {
-    auto loginResult = client.template SendRequest<LoginService>(m_username,
-      m_password);
-    auto lock = boost::lock_guard(m_mutex);
-    m_account = loginResult.account;
-    m_sessionId = loginResult.session_id;
-  }
-
-  template<typename B>
-  void ServiceLocatorClient<B>::OnReconnect(
-      const std::shared_ptr<ServiceProtocolClient>& client) {
-    Login(*client);
+  /**
+   * Locates the IP addresses of a service.
+   * @param client The ServiceLocatorClient used to locate the addresses.
+   * @param name The name of the service to locate.
+   * @param predicate A function to apply to a ServiceEntry to determine if it
+   *        matches some criteria.
+   * @return The list of IP addresses for the specified service.
+   */
+  template<IsServiceLocatorClient C, typename F>
+  std::vector<IpAddress> locate_service_addresses(
+      C& client, const std::string& name, F predicate) {
     auto services = std::vector<ServiceEntry>();
-    m_services.Swap(services);
-    m_tasks.Push([=, this] {
-      for(auto& service : services) {
-        Register(service.GetName(), service.GetProperties());
-      }
-      if(m_accountUpdatePublisher.GetSize() == 0) {
-        return;
-      }
-      auto client = m_clientHandler.GetClient();
-      auto accounts = client->template SendRequest<MonitorAccountsService>();
-      for(auto& account : accounts) {
-        auto i = std::find(m_accountUpdateSnapshot.begin(),
-          m_accountUpdateSnapshot.end(), account);
-        if(i == m_accountUpdateSnapshot.end()) {
-          m_accountUpdateSnapshot.push_back(account);
-          m_accountUpdatePublisher.Push(
-            AccountUpdate{account, AccountUpdate::Type::ADDED});
-        }
-      }
+    try {
+      services = client.locate(name);
+    } catch(const std::exception&) {
+      boost::throw_with_location(
+        ConnectException("No " + name + " services available."));
+    }
+    std::erase_if(services, [&] (const auto& entry) {
+      return !predicate(entry);
+    });
+    if(services.empty()) {
+      boost::throw_with_location(
+        ConnectException("No " + name + " services available."));
+    }
+    auto seed = std::random_device();
+    auto generator = std::mt19937(seed());
+    auto distribution =
+      std::uniform_int_distribution<std::size_t>(0, services.size() - 1);
+    auto& service = services[distribution(generator)];
+    auto addresses = parse<std::vector<IpAddress>>(
+      boost::get<std::string>(service.get_properties().at("addresses")));
+    return addresses;
+  }
+
+  /**
+   * Locates the IP addresses of a service.
+   * @param client The ServiceLocatorClient used to locate the addresses.
+   * @param name The name of the service to locate.
+   * @return The list of IP addresses for the specified service.
+   */
+  template<IsServiceLocatorClient C>
+  std::vector<IpAddress> locate_service_addresses(
+      C& client, const std::string& name) {
+    return locate_service_addresses(client, name, [] (auto&&) {
+      return true;
     });
   }
 
-  template<typename B>
-  void ServiceLocatorClient<B>::OnAccountUpdate(ServiceProtocolClient& client,
-      const AccountUpdate& update) {
-    m_tasks.Push([=, this] {
-      if(update.m_type == AccountUpdate::Type::ADDED) {
-        m_accountUpdateSnapshot.push_back(update.m_account);
-      } else {
-        auto i = std::find(m_accountUpdateSnapshot.begin(),
-          m_accountUpdateSnapshot.end(), update.m_account);
-        if(i != m_accountUpdateSnapshot.end()) {
-          m_accountUpdateSnapshot.erase(i);
-        }
-      }
-      m_accountUpdatePublisher.Push(update);
-      if(m_accountUpdatePublisher.GetSize() == 0) {
-        auto client = m_clientHandler.GetClient();
-        client->template SendRequest<UnmonitorAccountsService>();
-        m_accountUpdateSnapshot = {};
-      }
-    });
+  template<IsServiceLocatorClient T, typename... Args>
+  ServiceLocatorClient::ServiceLocatorClient(
+    std::in_place_type_t<T>, Args&&... args)
+    : m_client(make_virtual_ptr<WrappedServiceLocatorClient<T>>(
+        std::forward<Args>(args)...)) {}
+
+  template<DisableCopy<ServiceLocatorClient> T> requires
+    IsServiceLocatorClient<dereference_t<T>>
+  ServiceLocatorClient::ServiceLocatorClient(T&& client)
+    : m_client(make_virtual_ptr<WrappedServiceLocatorClient<
+        std::remove_cvref_t<T>>>(std::forward<T>(client))) {}
+
+  inline DirectoryEntry ServiceLocatorClient::get_account() const {
+    return m_client->get_account();
+  }
+
+  inline std::string ServiceLocatorClient::get_session_id() const {
+    return m_client->get_session_id();
+  }
+
+  inline std::string ServiceLocatorClient::get_encrypted_session_id(
+      unsigned int key) const {
+    return m_client->get_encrypted_session_id(key);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::authenticate_account(
+      const std::string& username, const std::string& password) {
+    return m_client->authenticate_account(username, password);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::authenticate_session(
+      const std::string& session_id, unsigned int key) {
+    return m_client->authenticate_session(session_id, key);
+  }
+
+  inline std::vector<ServiceEntry> ServiceLocatorClient::locate(
+      const std::string& name) {
+    return m_client->locate(name);
+  }
+
+  inline ServiceEntry ServiceLocatorClient::add(
+      const std::string& name, const JsonObject& properties) {
+    return m_client->add(name, properties);
+  }
+
+  inline void ServiceLocatorClient::remove(const ServiceEntry& service) {
+    m_client->remove(service);
+  }
+
+  inline std::vector<DirectoryEntry> ServiceLocatorClient::load_all_accounts() {
+    return m_client->load_all_accounts();
+  }
+
+  inline boost::optional<DirectoryEntry> ServiceLocatorClient::find_account(
+      const std::string& name) {
+    return m_client->find_account(name);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::make_account(
+      const std::string& name, const std::string& password,
+      const DirectoryEntry& parent) {
+    return m_client->make_account(name, password, parent);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::make_directory(
+      const std::string& name, const DirectoryEntry& parent) {
+    return m_client->make_directory(name, parent);
+  }
+
+  inline void ServiceLocatorClient::store_password(
+      const DirectoryEntry& account, const std::string& password) {
+    m_client->store_password(account, password);
+  }
+
+  inline void ServiceLocatorClient::monitor(
+      ScopedQueueWriter<AccountUpdate> queue) {
+    m_client->monitor(std::move(queue));
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::load_directory_entry(
+      const DirectoryEntry& root, const std::string& path) {
+    return m_client->load_directory_entry(root, path);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::load_directory_entry(
+      unsigned int id) {
+    return m_client->load_directory_entry(id);
+  }
+
+  inline std::vector<DirectoryEntry> ServiceLocatorClient::load_parents(
+      const DirectoryEntry& entry) {
+    return m_client->load_parents(entry);
+  }
+
+  inline std::vector<DirectoryEntry> ServiceLocatorClient::load_children(
+      const DirectoryEntry& entry) {
+    return m_client->load_children(entry);
+  }
+
+  inline void ServiceLocatorClient::remove(const DirectoryEntry& entry) {
+    m_client->remove(entry);
+  }
+
+  inline void ServiceLocatorClient::associate(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    m_client->associate(entry, parent);
+  }
+
+  inline void ServiceLocatorClient::detach(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    m_client->detach(entry, parent);
+  }
+
+  inline bool ServiceLocatorClient::has_permissions(
+      const DirectoryEntry& account, const DirectoryEntry& target,
+      Permissions permissions) {
+    return m_client->has_permissions(account, target, permissions);
+  }
+
+  inline void ServiceLocatorClient::store(const DirectoryEntry& source,
+      const DirectoryEntry& target, Permissions permissions) {
+    m_client->store(source, target, permissions);
+  }
+
+  inline boost::posix_time::ptime ServiceLocatorClient::load_registration_time(
+      const DirectoryEntry& account) {
+    return m_client->load_registration_time(account);
+  }
+
+  inline boost::posix_time::ptime ServiceLocatorClient::load_last_login_time(
+      const DirectoryEntry& account) {
+    return m_client->load_last_login_time(account);
+  }
+
+  inline DirectoryEntry ServiceLocatorClient::rename(
+      const DirectoryEntry& entry, const std::string& name) {
+    return m_client->rename(entry, name);
+  }
+
+  inline void ServiceLocatorClient::close() {
+    m_client->close();
+  }
+
+  template<typename C>
+  template<typename... Args>
+  ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+    WrappedServiceLocatorClient(Args&&... args)
+    : m_client(std::forward<Args>(args)...) {}
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      get_account() const {
+    return m_client->get_account();
+  }
+
+  template<typename C>
+  std::string ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      get_session_id() const {
+    return m_client->get_session_id();
+  }
+
+  template<typename C>
+  std::string ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      get_encrypted_session_id(unsigned int key) const {
+    return m_client->get_encrypted_session_id(key);
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      authenticate_account(const std::string& username,
+        const std::string& password) {
+    return m_client->authenticate_account(username, password);
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      authenticate_session(const std::string& session_id, unsigned int key) {
+    return m_client->authenticate_session(session_id, key);
+  }
+
+  template<typename C>
+  std::vector<ServiceEntry>
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::locate(
+        const std::string& name) {
+    return m_client->locate(name);
+  }
+
+  template<typename C>
+  ServiceEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::add(
+      const std::string& name, const JsonObject& properties) {
+    return m_client->add(name, properties);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::remove(
+      const ServiceEntry& service) {
+    m_client->remove(service);
+  }
+
+  template<typename C>
+  std::vector<DirectoryEntry>
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+        load_all_accounts() {
+    return m_client->load_all_accounts();
+  }
+
+  template<typename C>
+  boost::optional<DirectoryEntry>
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::find_account(
+        const std::string& name) {
+    return m_client->find_account(name);
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      make_account(const std::string& name, const std::string& password,
+        const DirectoryEntry& parent) {
+    return m_client->make_account(name, password, parent);
+  }
+
+  template<typename C>
+  DirectoryEntry
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::make_directory(
+        const std::string& name, const DirectoryEntry& parent) {
+    return m_client->make_directory(name, parent);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::store_password(
+      const DirectoryEntry& account, const std::string& password) {
+    m_client->store_password(account, password);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::monitor(
+      ScopedQueueWriter<AccountUpdate> queue) {
+    m_client->monitor(std::move(queue));
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      load_directory_entry(
+        const DirectoryEntry& root, const std::string& path) {
+    return m_client->load_directory_entry(root, path);
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+      load_directory_entry(unsigned int id) {
+    return m_client->load_directory_entry(id);
+  }
+
+  template<typename C>
+  std::vector<DirectoryEntry>
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::load_parents(
+        const DirectoryEntry& entry) {
+    return m_client->load_parents(entry);
+  }
+
+  template<typename C>
+  std::vector<DirectoryEntry>
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::load_children(
+        const DirectoryEntry& entry) {
+    return m_client->load_children(entry);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::remove(
+      const DirectoryEntry& entry) {
+    m_client->remove(entry);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::associate(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    m_client->associate(entry, parent);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::detach(
+      const DirectoryEntry& entry, const DirectoryEntry& parent) {
+    m_client->detach(entry, parent);
+  }
+
+  template<typename C>
+  bool ServiceLocatorClient::WrappedServiceLocatorClient<C>::has_permissions(
+      const DirectoryEntry& account, const DirectoryEntry& target,
+      Permissions permissions) {
+    return m_client->has_permissions(account, target, permissions);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::store(
+      const DirectoryEntry& source, const DirectoryEntry& target,
+      Permissions permissions) {
+    m_client->store(source, target, permissions);
+  }
+
+  template<typename C>
+  boost::posix_time::ptime
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+        load_registration_time(const DirectoryEntry& account) {
+    return m_client->load_registration_time(account);
+  }
+
+  template<typename C>
+  boost::posix_time::ptime
+      ServiceLocatorClient::WrappedServiceLocatorClient<C>::
+        load_last_login_time(const DirectoryEntry& account) {
+    return m_client->load_last_login_time(account);
+  }
+
+  template<typename C>
+  DirectoryEntry ServiceLocatorClient::WrappedServiceLocatorClient<C>::rename(
+      const DirectoryEntry& entry, const std::string& name) {
+    return m_client->rename(entry, name);
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::close() {
+    m_client->close();
   }
 }
 

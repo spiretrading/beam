@@ -1,86 +1,65 @@
-#ifndef BEAM_TESTSERVLET_HPP
-#define BEAM_TESTSERVLET_HPP
-#include <boost/noncopyable.hpp>
+#ifndef BEAM_TEST_SERVLET_HPP
+#define BEAM_TEST_SERVLET_HPP
 #include "Beam/Services/ServiceProtocolServlet.hpp"
-#include "Beam/ServicesTests/ServicesTests.hpp"
 #include "Beam/ServicesTests/TestServices.hpp"
 
-namespace Beam {
-namespace Services {
-namespace Tests {
+namespace Beam::Tests {
 
-  /*! \class TestServlet
-      \brief Implements a ServiceProtocolServlet for the test services.
-      \tparam ContainerType The type of ServiceProtocolServletContainer
-                            instantiating the Servlet.
+  /**
+   * Implements a ServiceProtocolServlet for the test services.
+   * @tparam C The type of ServiceProtocolServletContainer instantiating the
+   *        Servlet.
    */
-  template<typename ContainerType>
-  class TestServlet : private boost::noncopyable {
+  template<typename C>
+  class TestServlet {
     public:
-      using Container = ContainerType;
+      using Container = C;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
 
-      //! Constructs a TestServlet.
-      TestServlet();
-
-      void RegisterServices(Out<ServiceSlots<ServiceProtocolClient>> slots);
-
-      void HandleClientAccepted(ServiceProtocolClient& client);
-
-      void HandleClientClosed(ServiceProtocolClient& client);
-
-      void Close();
+      void register_services(Out<ServiceSlots<ServiceProtocolClient>> slots);
+      void handle_accept(ServiceProtocolClient& client);
+      void handle_closed(ServiceProtocolClient& client);
+      void close();
 
     private:
-      bool m_voidServiceRequested;
+      bool m_void_service_requested;
 
-      void OnVoidRequest(RequestToken<ServiceProtocolClient, VoidService>&
-        request, int n);
+      void on_void_request(
+        RequestToken<ServiceProtocolClient, VoidService>& request, int n);
   };
 
   struct MetaTestServlet {
-    using Session = NullType;
-    template<typename ContainerType>
+    using Session = NullSession;
+
+    template<typename C>
     struct apply {
-      using type = TestServlet<ContainerType>;
+      using type = TestServlet<C>;
     };
   };
 
-  template<typename ContainerType>
-  TestServlet<ContainerType>::TestServlet() {}
-
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::RegisterServices(Out<ServiceSlots<
-      ServiceProtocolClient>> slots) {
-    RegisterTestServices(Store(slots));
-    VoidService::AddRequestSlot(
-      Store(slots), std::bind_front(&TestServlet::OnVoidRequest, this));
+  template<typename C>
+  void TestServlet<C>::register_services(
+      Out<ServiceSlots<ServiceProtocolClient>> slots) {
+    register_test_services(out(slots));
+    VoidService::add_request_slot(
+      out(slots), std::bind_front(&TestServlet::on_void_request, this));
   }
 
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::HandleClientAccepted(
-    ServiceProtocolClient& client) {}
+  template<typename C>
+  void TestServlet<C>::handle_accept(ServiceProtocolClient& client) {}
 
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::HandleClientClosed(
-    ServiceProtocolClient& client) {}
+  template<typename C>
+  void TestServlet<C>::handle_closed(ServiceProtocolClient& client) {}
 
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::Close() {}
+  template<typename C>
+  void TestServlet<C>::close() {}
 
-  template<typename ContainerType>
-  void TestServlet<ContainerType>::OnVoidRequest(
+  template<typename C>
+  void TestServlet<C>::on_void_request(
       RequestToken<ServiceProtocolClient, VoidService>& request, int n) {
-    m_voidServiceRequested = true;
-    request.SetResult();
+    m_void_service_requested = true;
+    request.set();
   }
-}
-}
-
-  template<typename ServiceProtocolClientType>
-  struct ImplementsConcept<Services::Tests::TestServlet<
-    ServiceProtocolClientType>, Services::ServiceProtocolServlet<
-    ServiceProtocolClientType>> : std::true_type {};
 }
 
 #endif

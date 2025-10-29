@@ -1,21 +1,20 @@
 #ifndef BEAM_SERVICE_LOCATOR_DATA_STORE_EXCEPTION_HPP
 #define BEAM_SERVICE_LOCATOR_DATA_STORE_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
-#include "Beam/ServiceLocator/ServiceLocator.hpp"
 
-namespace Beam::ServiceLocator {
+namespace Beam {
 
   /** Exception to indicate an operation on a ServiceLocatorDataStore failed. */
-  class ServiceLocatorDataStoreException : public IO::IOException {
+  class ServiceLocatorDataStoreException : public IOException {
     public:
-      using IO::IOException::IOException;
+      using IOException::IOException;
 
       /** Constructs a ServiceLocatorDataStoreException. */
       ServiceLocatorDataStoreException();
   };
 
   inline ServiceLocatorDataStoreException::ServiceLocatorDataStoreException()
-    : IO::IOException("Operation failed") {}
+    : ServiceLocatorDataStoreException("Operation failed") {}
 }
 
 #endif

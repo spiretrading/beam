@@ -1,6 +1,5 @@
 #ifndef BEAM_TO_PYTHON_CHANNEL_HPP
 #define BEAM_TO_PYTHON_CHANNEL_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
@@ -10,47 +9,58 @@
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
 
-namespace Beam::IO {
+namespace Beam::Python {
 
   /**
    * Wraps a Channel for use within Python.
-   * @param <C> The type of Channel to wrap.
+   * @tparam C The type of Channel to wrap.
    */
-  template<typename C>
+  template<IsChannel C>
   class ToPythonChannel {
     public:
 
       /** The type of Channel to wrap. */
       using Channel = C;
-      using Identifier = ChannelIdentifierBox;
-      using Connection = ConnectionBox;
-      using Reader = ReaderBox;
-      using Writer = WriterBox;
+
+      using Identifier = typename Channel::Identifier;
+      using Connection = Beam::Connection;
+      using Reader = Beam::Reader;
+      using Writer = Beam::Writer;
 
       /**
        * Constructs a ToPythonChannel in-place.
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonChannel(Args&&... args);
-
-      ToPythonChannel(ToPythonChannel&&) = default;
+      explicit ToPythonChannel(Args&&... args);
 
       ~ToPythonChannel();
 
-      const Identifier& GetIdentifier() const;
+      /** Returns a reference to the underlying channel. */
+      Channel& get();
 
-      Connection& GetConnection();
+      /** Returns a reference to the underlying channel. */
+      const Channel& get() const;
 
-      Reader& GetReader();
+      /** Returns a reference to the underlying channel. */
+      Channel& operator *();
 
-      Writer& GetWriter();
+      /** Returns a reference to the underlying channel. */
+      const Channel& operator *() const;
 
-      ToPythonChannel& operator =(ToPythonChannel&&) = default;
+      /** Returns a pointer to the underlying channel. */
+      Channel* operator ->();
+
+      /** Returns a pointer to the underlying channel. */
+      const Channel* operator ->() const;
+
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
 
     private:
       boost::optional<Channel> m_channel;
-      boost::optional<Identifier> m_identifier;
       boost::optional<Connection> m_connection;
       boost::optional<Reader> m_reader;
       boost::optional<Writer> m_writer;
@@ -60,47 +70,82 @@ namespace Beam::IO {
   };
 
   template<typename Channel>
-  ToPythonChannel(Channel&&) -> ToPythonChannel<std::decay_t<Channel>>;
+  ToPythonChannel(Channel&&) -> ToPythonChannel<std::remove_cvref_t<Channel>>;
 
-  template<typename C>
+  template<IsChannel C>
   template<typename... Args>
   ToPythonChannel<C>::ToPythonChannel(Args&&... args)
-    : m_channel((Python::GilRelease(), boost::in_place_init),
-        std::forward<Args>(args)...),
-      m_identifier(&m_channel->GetIdentifier()),
-      m_connection(ToPythonConnection<ConnectionBox>(
-        &m_channel->GetConnection())),
-      m_reader(ToPythonReader<ReaderBox>(&m_channel->GetReader())),
-      m_writer(ToPythonWriter<WriterBox>(&m_channel->GetWriter())) {}
+    : m_channel(
+        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...),
+      m_connection(boost::in_place_init,
+        std::in_place_type<ToPythonConnection<Connection>>,
+        &m_channel->get_connection()),
+      m_reader(boost::in_place_init,
+        std::in_place_type<ToPythonReader<Reader>>, &m_channel->get_reader()),
+      m_writer(boost::in_place_init,
+        std::in_place_type<ToPythonWriter<Writer>>, &m_channel->get_writer()) {}
 
-  template<typename C>
+  template<IsChannel C>
   ToPythonChannel<C>::~ToPythonChannel() {
-    auto release = Beam::Python::GilRelease();
+    auto release = GilRelease();
     m_writer.reset();
     m_reader.reset();
     m_connection.reset();
-    m_identifier.reset();
     m_channel.reset();
   }
 
-  template<typename C>
-  const typename ToPythonChannel<C>::Identifier&
-      ToPythonChannel<C>::GetIdentifier() const {
-    return *m_identifier;
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Channel& ToPythonChannel<C>::get() {
+    return *m_channel;
   }
 
-  template<typename C>
-  typename ToPythonChannel<C>::Connection& ToPythonChannel<C>::GetConnection() {
+  template<IsChannel C>
+  const typename ToPythonChannel<C>::Channel& ToPythonChannel<C>::get()
+      const {
+    return *m_channel;
+  }
+
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Channel& ToPythonChannel<C>::operator *() {
+    return *m_channel;
+  }
+
+  template<IsChannel C>
+  const typename ToPythonChannel<C>::Channel&
+      ToPythonChannel<C>::operator *() const {
+    return *m_channel;
+  }
+
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Channel* ToPythonChannel<C>::operator ->() {
+    return m_channel.get_ptr();
+  }
+
+  template<IsChannel C>
+  const typename ToPythonChannel<C>::Channel*
+      ToPythonChannel<C>::operator ->() const {
+    return m_channel.get_ptr();
+  }
+
+  template<IsChannel C>
+  const typename ToPythonChannel<C>::Identifier&
+      ToPythonChannel<C>::get_identifier() const {
+    return m_channel->get_identifier();
+  }
+
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Connection&
+      ToPythonChannel<C>::get_connection() {
     return *m_connection;
   }
 
-  template<typename C>
-  typename ToPythonChannel<C>::Reader& ToPythonChannel<C>::GetReader() {
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Reader& ToPythonChannel<C>::get_reader() {
     return *m_reader;
   }
 
-  template<typename C>
-  typename ToPythonChannel<C>::Writer& ToPythonChannel<C>::GetWriter() {
+  template<IsChannel C>
+  typename ToPythonChannel<C>::Writer& ToPythonChannel<C>::get_writer() {
     return *m_writer;
   }
 }

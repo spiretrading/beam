@@ -84,8 +84,6 @@ def main():
   setup_application('ClientTemplate', arg_vars, 'local')
   setup_application_with_mysql('DataStoreProfiler', arg_vars)
   setup_application('HttpFileServer', arg_vars, 'local', 'world')
-  setup_application('RegistryServer', arg_vars, 'local', 'world', 'address',
-    'password')
   setup_service_locator(arg_vars)
   setup_application('ServiceProtocolProfiler', arg_vars, 'local')
   setup_application('ServletTemplate', arg_vars, 'local')

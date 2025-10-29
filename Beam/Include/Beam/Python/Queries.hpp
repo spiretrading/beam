@@ -1,247 +1,132 @@
 #ifndef BEAM_PYTHON_QUERIES_HPP
 #define BEAM_PYTHON_QUERIES_HPP
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Python/Optional.hpp"
+#include "Beam/Python/Utilities.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/IndexedQuery.hpp"
 #include "Beam/Queries/IndexedValue.hpp"
-#include "Beam/Queries/NativeDataType.hpp"
-#include "Beam/Queries/NativeValue.hpp"
 #include "Beam/Queries/PagedQuery.hpp"
 #include "Beam/Queries/SequencedValue.hpp"
 
 namespace Beam::Python {
 
-  /**
-   * Exports the AndExpression class.
-   * @param module The module to export to.
-   */
-  void ExportAndExpression(pybind11::module& module);
+  /** Returns the exported Value class. */
+  BEAM_EXPORT_DLL pybind11::class_<Value>& get_exported_value();
 
-  /**
-   * Exports the ConstantExpression class.
-   * @param module The module to export to.
-   */
-  void ExportConstantExpression(pybind11::module& module);
+  /** Exports the AndExpression class. */
+  void export_and_expression(pybind11::module& module);
 
-  /**
-   * Exports the DataType class.
-   * @param module The module to export to.
-   */
-  void ExportDataType(pybind11::module& module);
-
-  /**
-   * Exports the Expression class.
-   * @param module The module to export to.
-   */
-  void ExportExpression(pybind11::module& module);
-
-  /**
-   * Exports the ExpressionQuery class.
-   * @param module The module to export to.
-   */
-  void ExportExpressionQuery(pybind11::module& module);
-
-  /**
-   * Exports the FilteredQuery class.
-   * @param module The module to export to.
-   */
-  void ExportFilteredQuery(pybind11::module& module);
-
-  /**
-   * Exports the FunctionExpression class.
-   * @param module The module to export to.
-   */
-  void ExportFunctionExpression(pybind11::module& module);
-
-  /**
-   * Exports the IndexListQuery class.
-   * @param module The module to export to.
-   */
-  void ExportIndexListQuery(pybind11::module& module);
-
-  /**
-   * Exports the IndexedQuery class.
-   * @param module The module to export to.
-   * @param name The name of the BasicQuery class.
-   */
+  /** Exports a generic BasicQuery class. */
   template<typename T>
-  void ExportIndexedQuery(pybind11::module& module, const std::string& name) {
-    pybind11::class_<Queries::IndexedQuery<T>>(module, name.c_str()).
-      def(pybind11::init()).
+  void export_basic_query(pybind11::module& module, std::string_view name) {
+    auto query = pybind11::class_<BasicQuery<T>, IndexedQuery<T>, RangedQuery,
+      SnapshotLimitedQuery, InterruptableQuery, FilteredQuery>(
+        module, name.data());
+    export_default_methods(query);
+  }
+
+  /** Exports the ConstantExpression class. */
+  void export_constant_expression(pybind11::module& module);
+
+  /** Exports the Expression class. */
+  void export_expression(pybind11::module& module);
+
+  /** Exports the ExpressionQuery class. */
+  void export_expression_query(pybind11::module& module);
+
+  /** Exports the FilteredQuery class. */
+  void export_filtered_query(pybind11::module& module);
+
+  /** Exports the FunctionExpression class. */
+  void export_function_expression(pybind11::module& module);
+
+  /** Exports the IndexedQuery class. */
+  template<typename T>
+  void export_indexed_query(pybind11::module& module, std::string_view name) {
+    auto query = pybind11::class_<IndexedQuery<T>>(module, name.data()).
       def(pybind11::init<T>()).
-      def(pybind11::init<const Queries::IndexedQuery<T>&>()).
-      def_property("index", &Queries::IndexedQuery<T>::GetIndex,
-        &Queries::IndexedQuery<T>::SetIndex).
-      def("__str__",
-        &boost::lexical_cast<std::string, Queries::IndexedQuery<T>>);
+      def_property(
+        "index", &IndexedQuery<T>::get_index, &IndexedQuery<T>::set_index);
+    export_default_methods(query);
   }
 
-  /**
-   * Exports the IndexedValue class.
-   * @param module The module to export to.
-   */
-  void ExportIndexedValue(pybind11::module& module);
+  /** Exports the IndexedValue class. */
+  void export_indexed_value(pybind11::module& module);
 
-  /**
-   * Exports the InterruptableQuery class.
-   * @param module The module to export to.
-   */
-  void ExportInterruptableQuery(pybind11::module& module);
+  /** Exports the InterruptableQuery class. */
+  void export_interruptable_query(pybind11::module& module);
 
-  /**
-   * Exports the InterruptionPolicy enum.
-   * @param module The module to export to.
-   */
-  void ExportInterruptionPolicy(pybind11::module& module);
+  /** Exports the InterruptionPolicy enum. */
+  void export_interruption_policy(pybind11::module& module);
 
-  /**
-   * Exports the MemberAccessExpression class.
-   * @param module The module to export to.
-   */
-  void ExportMemberAccessExpression(pybind11::module& module);
+  /** Exports the MemberAccessExpression class. */
+  void export_member_access_expression(pybind11::module& module);
 
-  /**
-   * Exports the NotExpression class.
-   * @param module The module to export to.
-   */
-  void ExportNotExpression(pybind11::module& module);
-
-  /**
-   * Exports the OrExpression class.
-   * @param module The module to export to.
-   */
-  void ExportOrExpression(pybind11::module& module);
-
-  /**
-   * Exports the ParameterExpression class.
-   * @param module The module to export to.
-   */
-  void ExportParameterExpression(pybind11::module& module);
-
-  /**
-   * Exports the Queries namespace.
-   * @param module The module to export to.
-   */
-  void ExportQueries(pybind11::module& module);
-
-  /**
-   * Exports the Range class.
-   * @param module The module to export to.
-   */
-  void ExportRange(pybind11::module& module);
-
-  /**
-   * Exports the RangedQuery class.
-   * @param module The module to export to.
-   */
-  void ExportRangedQuery(pybind11::module& module);
-
-  /**
-   * Exports the Sequence class.
-   * @param module The module to export to.
-   */
-  void ExportSequence(pybind11::module& module);
-
-  /**
-   * Exports the SequencedValue class.
-   * @param module The module to export to.
-   */
-  void ExportSequencedValue(pybind11::module& module);
-
-  /**
-   * Exports the SnapshotLimit class.
-   * @param module The module to export to.
-   */
-  void ExportSnapshotLimit(pybind11::module& module);
-
-  /**
-   * Exports the SnapshotLimitedQuery class.
-   * @param module The module to export to.
-   */
-  void ExportSnapshotLimitedQuery(pybind11::module& module);
-
-  /**
-   * Exports the Value class.
-   * @param module The module to export to.
-   */
-  void ExportValue(pybind11::module& module);
-
-  /**
-   * Exports a generic BasicQuery class.
-   * @param module The module to export to.
-   * @param name The name of the BasicQuery class.
-   */
+  /** Exports the generic NativeValue class. */
   template<typename T>
-  void ExportBasicQuery(pybind11::module& module, const std::string& name) {
-    pybind11::class_<Queries::BasicQuery<T>, Queries::IndexedQuery<T>,
-      Queries::RangedQuery, Queries::SnapshotLimitedQuery,
-      Queries::InterruptableQuery, Queries::FilteredQuery>(module,
-        name.c_str()).
-      def(pybind11::init()).
-      def(pybind11::init<const Queries::BasicQuery<T>&>()).
-      def("__str__", &boost::lexical_cast<std::string, Queries::BasicQuery<T>>);
+  void export_native_value(pybind11::module& module, std::string_view name) {
+    pybind11::class_<T, VirtualValue>(module, name.data()).
+      def(pybind11::init<const typename T::Type&>());
+    get_exported_value().def(pybind11::init<const typename T::Type&>());
+    pybind11::implicitly_convertible<typename T::Type, Value>();
   }
 
-  /**
-   * Exports a generic PagedQuery class.
-   * @param module The module to export to.
-   * @param name The name of the PagedQuery class.
-   */
+  /** Exports the NotExpression class. */
+  void export_not_expression(pybind11::module& module);
+
+  /** Exports the OrExpression class. */
+  void export_or_expression(pybind11::module& module);
+
+  /** Exports a generic PagedQuery class. */
   template<typename I, typename A>
-  void ExportPagedQuery(pybind11::module& module, const std::string& name) {
-    pybind11::class_<Queries::PagedQuery<I, A>, Queries::IndexedQuery<I>,
-      Queries::SnapshotLimitedQuery, Queries::FilteredQuery>(module,
-        name.c_str()).
-      def(pybind11::init()).
-      def(pybind11::init<const Queries::PagedQuery<I, A>&>()).
-      def_property("anchor", &Queries::PagedQuery<I, A>::GetAnchor,
-        static_cast<void (Queries::PagedQuery<I, A>::*)(
-          const boost::optional<A>&)>(&Queries::PagedQuery<I, A>::SetAnchor)).
-      def("__str__",
-        &boost::lexical_cast<std::string, Queries::PagedQuery<I, A>>);
+  void export_paged_query(pybind11::module& module, std::string_view name) {
+    auto query = pybind11::class_<PagedQuery<I, A>, IndexedQuery<I>,
+      SnapshotLimitedQuery, FilteredQuery>(module, name.data()).
+      def_property("anchor", &PagedQuery<I, A>::get_anchor,
+        pybind11::overload_cast<const boost::optional<A>&>(
+          &PagedQuery<I, A>::set_anchor));
+    export_default_methods(query);
   }
 
-  /**
-   * Exports the generic NativeDataType class.
-   * @param module The module to export to.
-   * @param name The name of the type to export.
-   */
-  template<typename T>
-  void ExportNativeDataType(pybind11::module& module, const std::string& name) {
-    pybind11::class_<T, Queries::VirtualDataType>(module, name.c_str()).
-      def(pybind11::init());
-    pybind11::implicitly_convertible<T, Queries::DataType>();
-  }
+  /** Exports the ParameterExpression class. */
+  void export_parameter_expression(pybind11::module& module);
 
-  /**
-   * Exports the generic NativeValue class.
-   * @param module The module to export to.
-   * @param name The name of the type to export.
-   */
-  template<typename T>
-  void ExportNativeValue(pybind11::module& module, const std::string& name) {
-    pybind11::class_<T, Queries::VirtualValue>(module, name.c_str()).
-      def(pybind11::init()).
-      def(pybind11::init<typename T::Type::Type>()).
-      def(pybind11::self == pybind11::self).
-      def(pybind11::self != pybind11::self);
-    pybind11::implicitly_convertible<T, Queries::Value>();
-    module.def("make_value",
-      [] (const typename T::Type::Type& value) {
-        return Queries::NativeValue(value);
-      });
-  }
+  /** Exports the Queries namespace. */
+  void export_queries(pybind11::module& module);
 
-  /**
-   * Implements a type caster for BasicQuery types.
-   * @param <T> The type of BasicQuery to cast.
-   */
+  /** Exports the QueryReactor. */
+  void export_query_reactor(pybind11::module& module);
+
+  /** Exports the Range class. */
+  void export_range(pybind11::module& module);
+
+  /** Exports the RangedQuery class. */
+  void export_ranged_query(pybind11::module& module);
+
+  /** Exports the Sequence class. */
+  void export_sequence(pybind11::module& module);
+
+  /** Exports the SequencedValue class. */
+  void export_sequenced_value(pybind11::module& module);
+
+  /** Exports the SnapshotLimit class. */
+  void export_snapshot_limit(pybind11::module& module);
+
+  /** Exports the SnapshotLimitedQuery class. */
+  void export_snapshot_limited_query(pybind11::module& module);
+
+  /** Exports the Value class. */
+  void export_value(pybind11::module& module);
+
+  /** Implements a type caster for BasicQuery types. */
   template<typename T>
   struct BasicQueryTypeCaster : BasicTypeCaster<T> {
     using Type = T;
@@ -249,16 +134,13 @@ namespace Beam::Python {
     static constexpr auto name = pybind11::detail::_("BasicQuery[") +
       IndexConverter::name + pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
 
-  /**
-   * Implements a type caster for IndexedQuery types.
-   * @param <T> The type of IndexedQuery to cast.
-   */
+  /** Implements a type caster for IndexedQuery types. */
   template<typename T>
   struct IndexedQueryTypeCaster : BasicTypeCaster<T> {
     using Type = T;
@@ -266,16 +148,13 @@ namespace Beam::Python {
     static constexpr auto name = pybind11::detail::_("IndexedQuery[") +
       IndexConverter::name + pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
 
-  /**
-   * Implements a type caster for IndexedValue types.
-   * @param <T> The type of IndexedValue to cast.
-   */
+  /** Implements a type caster for IndexedValue types. */
   template<typename T>
   struct IndexedValueTypeCaster : BasicTypeCaster<T> {
     using Type = T;
@@ -285,16 +164,13 @@ namespace Beam::Python {
       IndexConverter::name + pybind11::detail::_(",") +
       ValueConverter::name + pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
 
-  /**
-   * Implements a type caster for PagedQuery types.
-   * @param <T> The type of PagedQuery to cast.
-   */
+  /** Implements a type caster for PagedQuery types. */
   template<typename T>
   struct PagedQueryTypeCaster : BasicTypeCaster<T> {
     using Type = T;
@@ -305,16 +181,13 @@ namespace Beam::Python {
       IndexConverter::name + pybind11::detail::_(",") + AnchorConverter::name +
       pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
 
-  /**
-   * Implements a type caster for SequencedValue types.
-   * @param <T> The type of SequencedValue to cast.
-   */
+  /** Implements a type caster for SequencedValue types. */
   template<typename T>
   struct SequencedValueTypeCaster : BasicTypeCaster<T> {
     using Type = T;
@@ -322,8 +195,8 @@ namespace Beam::Python {
     static constexpr auto name = pybind11::detail::_("SequencedValue[") +
       ValueConverter::name + pybind11::detail::_("]");
     template<typename V>
-    static pybind11::handle cast(V&& value,
-      pybind11::return_value_policy policy, pybind11::handle parent);
+    static pybind11::handle cast(
+      V&& value, pybind11::return_value_policy policy, pybind11::handle parent);
     bool load(pybind11::handle source, bool convert);
     using BasicTypeCaster<T>::m_value;
   };
@@ -334,33 +207,33 @@ namespace Beam::Python {
       pybind11::return_value_policy policy, pybind11::handle parent) {
     policy = pybind11::detail::return_value_policy_override<
       typename Type::Index>::policy(policy);
-    auto query = Queries::BasicQuery<pybind11::object>();
-    query.SetIndex(pybind11::reinterpret_steal<pybind11::object>(
-      IndexConverter::cast(std::forward<V>(value).GetIndex(), policy, parent)));
-    query.SetRange(std::forward<V>(value).GetRange());
-    query.SetSnapshotLimit(std::forward<V>(value).GetSnapshotLimit());
-    query.SetInterruptionPolicy(value.GetInterruptionPolicy());
-    query.SetFilter(std::forward<V>(value).GetFilter());
-    return pybind11::detail::make_caster<
-      Queries::BasicQuery<pybind11::object>>::cast(std::move(query), policy,
-      parent);
+    auto query = BasicQuery<pybind11::object>();
+    query.set_index(pybind11::reinterpret_steal<pybind11::object>(
+      IndexConverter::cast(std::forward<V>(value).get_index(), policy,
+        parent)));
+    query.set_range(std::forward<V>(value).get_range());
+    query.set_snapshot_limit(std::forward<V>(value).get_snapshot_limit());
+    query.set_interruption_policy(value.get_interruption_policy());
+    query.set_filter(std::forward<V>(value).get_filter());
+    return pybind11::detail::make_caster<BasicQuery<pybind11::object>>::cast(
+      std::move(query), policy, parent);
   }
 
   template<typename T>
   bool BasicQueryTypeCaster<T>::load(pybind11::handle source, bool convert) {
     try {
-      auto& query = source.cast<Queries::BasicQuery<pybind11::object>&>();
-      auto indexCaster = IndexConverter();
-      if(!indexCaster.load(query.GetIndex(), convert)) {
+      auto& query = source.cast<BasicQuery<pybind11::object>&>();
+      auto index_caster = IndexConverter();
+      if(!index_caster.load(query.get_index(), convert)) {
         return false;
       }
       m_value.emplace();
-      m_value->SetIndex(pybind11::detail::cast_op<typename Type::Index&&>(
-        std::move(indexCaster)));
-      m_value->SetRange(query.GetRange());
-      m_value->SetSnapshotLimit(query.GetSnapshotLimit());
-      m_value->SetInterruptionPolicy(query.GetInterruptionPolicy());
-      m_value->SetFilter(query.GetFilter());
+      m_value->set_index(pybind11::detail::cast_op<typename Type::Index&&>(
+        std::move(index_caster)));
+      m_value->set_range(query.get_range());
+      m_value->set_snapshot_limit(query.get_snapshot_limit());
+      m_value->set_interruption_policy(query.get_interruption_policy());
+      m_value->set_filter(query.get_filter());
     } catch(const pybind11::cast_error&) {
       return false;
     }
@@ -371,24 +244,24 @@ namespace Beam::Python {
   template<typename V>
   pybind11::handle IndexedQueryTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    policy = pybind11::detail::return_value_policy_override<
+    policy =pybind11::detail::return_value_policy_override<
       typename Type::Index>::policy(policy);
-    return pybind11::cast(Queries::IndexedQuery(
-      pybind11::reinterpret_steal<pybind11::object>(
-      IndexConverter::cast(std::forward<V>(value).GetIndex(), policy,
-      parent)))).release();
+    return pybind11::cast(
+      IndexedQuery(pybind11::reinterpret_steal<pybind11::object>(
+        IndexConverter::cast(std::forward<V>(value).get_index(), policy,
+          parent)))).release();
   }
 
   template<typename T>
   bool IndexedQueryTypeCaster<T>::load(pybind11::handle source, bool convert) {
     try {
-      auto& query = source.cast<Queries::IndexedQuery<pybind11::object>&>();
-      auto indexCaster = IndexConverter();
-      if(!indexCaster.load(query.GetIndex(), convert)) {
+      auto& query = source.cast<IndexedQuery<pybind11::object>&>();
+      auto index_caster = IndexConverter();
+      if(!index_caster.load(query.get_index(), convert)) {
         return false;
       }
       m_value.emplace(pybind11::detail::cast_op<typename Type::Index&&>(
-        std::move(indexCaster)));
+        std::move(index_caster)));
     } catch(const pybind11::cast_error&) {
       return false;
     }
@@ -399,37 +272,37 @@ namespace Beam::Python {
   template<typename V>
   pybind11::handle IndexedValueTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    auto valuePolicy = pybind11::detail::return_value_policy_override<
+    auto value_policy = pybind11::detail::return_value_policy_override<
       typename Type::Value>::policy(policy);
     auto object = pybind11::reinterpret_steal<pybind11::object>(
-      ValueConverter::cast(std::forward<V>(value).GetValue(), valuePolicy,
-      parent));
-    auto indexPolicy = pybind11::detail::return_value_policy_override<
+      ValueConverter::cast(
+        std::forward<V>(value).get_value(), value_policy, parent));
+    auto index_policy = pybind11::detail::return_value_policy_override<
       typename Type::Index>::policy(policy);
     auto index = pybind11::reinterpret_steal<pybind11::object>(
-      IndexConverter::cast(std::forward<V>(value).GetIndex(), indexPolicy,
-      parent));
-    return pybind11::cast(Queries::IndexedValue(std::move(object),
-      std::move(index))).release();
+      IndexConverter::cast(
+        std::forward<V>(value).get_index(), index_policy, parent));
+    return pybind11::cast(
+      IndexedValue(std::move(object), std::move(index))).release();
   }
 
   template<typename T>
   bool IndexedValueTypeCaster<T>::load(pybind11::handle source, bool convert) {
     try {
-      auto& indexedValue = source.cast<
-        Queries::IndexedValue<pybind11::object, pybind11::object>&>();
-      auto indexCaster = IndexConverter();
-      if(!indexCaster.load(indexedValue.GetIndex(), convert)) {
+      auto& indexed_value =
+        source.cast<IndexedValue<pybind11::object, pybind11::object>&>();
+      auto index_caster = IndexConverter();
+      if(!index_caster.load(indexed_value.get_index(), convert)) {
         return false;
       }
-      auto valueCaster = ValueConverter();
-      if(!valueCaster.load(indexedValue.GetValue(), convert)) {
+      auto value_caster = ValueConverter();
+      if(!value_caster.load(indexed_value.get_value(), convert)) {
         return false;
       }
       m_value.emplace(pybind11::detail::cast_op<typename Type::Value&&>(
-        std::move(valueCaster)),
+        std::move(value_caster)),
         pybind11::detail::cast_op<typename Type::Index&&>(
-        std::move(indexCaster)));
+        std::move(index_caster)));
     } catch(const pybind11::cast_error&) {
       return false;
     }
@@ -440,51 +313,51 @@ namespace Beam::Python {
   template<typename V>
   pybind11::handle PagedQueryTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    auto query = Queries::PagedQuery<pybind11::object, pybind11::object>();
-    auto indexPolicy = pybind11::detail::return_value_policy_override<
+    auto query = PagedQuery<pybind11::object, pybind11::object>();
+    auto index_policy = pybind11::detail::return_value_policy_override<
       typename Type::Index>::policy(policy);
-    query.SetIndex(pybind11::reinterpret_steal<pybind11::object>(
-      IndexConverter::cast(std::forward<V>(value).GetIndex(), indexPolicy,
-        parent)));
-    auto anchorPolicy = pybind11::detail::return_value_policy_override<
+    query.set_index(pybind11::reinterpret_steal<pybind11::object>(
+      IndexConverter::cast(
+        std::forward<V>(value).get_index(), index_policy, parent)));
+    auto anchor_policy = pybind11::detail::return_value_policy_override<
       typename Type::Anchor>::policy(policy);
     auto anchor = pybind11::reinterpret_steal<pybind11::object>(
-      AnchorConverter::cast(std::forward<V>(value).GetAnchor(), anchorPolicy,
-        parent));
+      AnchorConverter::cast(
+        std::forward<V>(value).get_anchor(), anchor_policy, parent));
     if(!anchor.is_none()) {
-      query.SetAnchor(std::move(anchor));
+      query.set_anchor(std::move(anchor));
     }
-    query.SetSnapshotLimit(std::forward<V>(value).GetSnapshotLimit());
-    query.SetFilter(std::forward<V>(value).GetFilter());
+    query.set_snapshot_limit(std::forward<V>(value).get_snapshot_limit());
+    query.set_filter(std::forward<V>(value).get_filter());
     return pybind11::detail::make_caster<
-      Queries::PagedQuery<pybind11::object, pybind11::object>>::cast(
+      PagedQuery<pybind11::object, pybind11::object>>::cast(
         std::move(query), policy, parent);
   }
 
   template<typename T>
   bool PagedQueryTypeCaster<T>::load(pybind11::handle source, bool convert) {
     try {
-      auto& query = source.cast<
-        Queries::PagedQuery<pybind11::object, pybind11::object>&>();
-      auto indexCaster = IndexConverter();
-      if(!indexCaster.load(query.GetIndex(), convert)) {
+      auto& query =
+        source.cast<PagedQuery<pybind11::object, pybind11::object>&>();
+      auto index_caster = IndexConverter();
+      if(!index_caster.load(query.get_index(), convert)) {
         return false;
       }
-      auto anchorCaster = AnchorConverter();
-      if(query.GetAnchor()) {
-        if(!anchorCaster.load(*query.GetAnchor(), convert)) {
+      auto anchor_caster = AnchorConverter();
+      if(query.get_anchor()) {
+        if(!anchor_caster.load(*query.get_anchor(), convert)) {
           return false;
         }
       }
       m_value.emplace();
-      m_value->SetIndex(pybind11::detail::cast_op<typename Type::Index&&>(
-        std::move(indexCaster)));
-      if(query.GetAnchor()) {
-        m_value->SetAnchor(pybind11::detail::cast_op<typename Type::Anchor&&>(
-          std::move(anchorCaster)));
+      m_value->set_index(pybind11::detail::cast_op<typename Type::Index&&>(
+        std::move(index_caster)));
+      if(query.get_anchor()) {
+        m_value->set_anchor(pybind11::detail::cast_op<typename Type::Anchor&&>(
+          std::move(anchor_caster)));
       }
-      m_value->SetSnapshotLimit(query.GetSnapshotLimit());
-      m_value->SetFilter(query.GetFilter());
+      m_value->set_snapshot_limit(query.get_snapshot_limit());
+      m_value->set_filter(query.get_filter());
     } catch(const pybind11::cast_error&) {
       return false;
     }
@@ -495,7 +368,7 @@ namespace Beam::Python {
   template<typename V>
   pybind11::handle SequencedValueTypeCaster<T>::cast(V&& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    auto valuePolicy = [&] {
+    auto value_policy = [&] {
       if constexpr(std::is_pointer_v<typename Type::Value>) {
         return pybind11::return_value_policy::reference;
       } else {
@@ -504,24 +377,23 @@ namespace Beam::Python {
       }
     }();
     auto object = pybind11::reinterpret_steal<pybind11::object>(
-      ValueConverter::cast(std::forward<V>(value).GetValue(), valuePolicy,
-      parent));
-    return pybind11::cast(Queries::SequencedValue(std::move(object),
-      std::forward<V>(value).GetSequence())).release();
+      ValueConverter::cast(
+        std::forward<V>(value).get_value(), value_policy, parent));
+    return pybind11::cast(SequencedValue(std::move(object),
+      std::forward<V>(value).get_sequence())).release();
   }
 
   template<typename T>
-  bool SequencedValueTypeCaster<T>::load(pybind11::handle source,
-      bool convert) {
+  bool SequencedValueTypeCaster<T>::load(
+      pybind11::handle source, bool convert) {
     try {
-      auto& sequencedValue = source.cast<
-        Queries::SequencedValue<pybind11::object>&>();
-      auto valueCaster = ValueConverter();
-      if(!valueCaster.load(sequencedValue.GetValue(), convert)) {
+      auto& sequenced_value = source.cast<SequencedValue<pybind11::object>&>();
+      auto value_caster = ValueConverter();
+      if(!value_caster.load(sequenced_value.get_value(), convert)) {
         return false;
       }
       m_value.emplace(pybind11::detail::cast_op<typename Type::Value&&>(
-        std::move(valueCaster)), sequencedValue.GetSequence());
+        std::move(value_caster)), sequenced_value.get_sequence());
     } catch(const pybind11::cast_error&) {
       return false;
     }
@@ -531,31 +403,31 @@ namespace Beam::Python {
 
 namespace pybind11::detail {
   template<typename T>
-  struct type_caster<Beam::Queries::BasicQuery<T>,
+  struct type_caster<Beam::BasicQuery<T>,
     std::enable_if_t<!std::is_same_v<T, object>>> :
-    Beam::Python::BasicQueryTypeCaster<Beam::Queries::BasicQuery<T>> {};
+      Beam::Python::BasicQueryTypeCaster<Beam::BasicQuery<T>> {};
 
   template<typename T>
-  struct type_caster<Beam::Queries::IndexedQuery<T>,
+  struct type_caster<Beam::IndexedQuery<T>,
     std::enable_if_t<!std::is_same_v<T, object>>> :
-    Beam::Python::IndexedQueryTypeCaster<Beam::Queries::IndexedQuery<T>> {};
+      Beam::Python::IndexedQueryTypeCaster<Beam::IndexedQuery<T>> {};
 
   template<typename V, typename I>
-  struct type_caster<Beam::Queries::IndexedValue<V, I>,
+  struct type_caster<Beam::IndexedValue<V, I>,
     std::enable_if_t<!std::is_same_v<V, object> &&
-      !std::is_same_v<I, object>>> : Beam::Python::IndexedValueTypeCaster<
-        Beam::Queries::IndexedValue<V, I>> {};
+      !std::is_same_v<I, object>>> :
+        Beam::Python::IndexedValueTypeCaster<Beam::IndexedValue<V, I>> {};
 
   template<typename T, typename U>
-  struct type_caster<Beam::Queries::PagedQuery<T, U>,
+  struct type_caster<Beam::PagedQuery<T, U>,
     std::enable_if_t<
       !std::is_same_v<T, object> && !std::is_same_v<U, object>>> :
-    Beam::Python::PagedQueryTypeCaster<Beam::Queries::PagedQuery<T, U>> {};
+        Beam::Python::PagedQueryTypeCaster<Beam::PagedQuery<T, U>> {};
 
   template<typename T>
-  struct type_caster<Beam::Queries::SequencedValue<T>,
+  struct type_caster<Beam::SequencedValue<T>,
     std::enable_if_t<!std::is_same_v<T, object>>> :
-    Beam::Python::SequencedValueTypeCaster<Beam::Queries::SequencedValue<T>> {};
+      Beam::Python::SequencedValueTypeCaster<Beam::SequencedValue<T>> {};
 }
 
 #endif

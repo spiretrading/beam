@@ -1,25 +1,30 @@
 #ifndef BEAM_RESOURCE_POOL_HPP
 #define BEAM_RESOURCE_POOL_HPP
 #include <algorithm>
+#include <concepts>
 #include <deque>
 #include <limits>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/thread/locks.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/TimedConditionVariable.hpp"
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  class ResourcePool;
 
   /**
    * Stores an object acquired from a ResourcePool.
-   * @param <T> The type of object stored.
-   * @param <B> The type of function used to construct the object.
+   * @tparam T The type of object stored.
+   * @tparam B The type of function used to construct the object.
    */
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   class ScopedResource {
     public:
 
@@ -27,21 +32,21 @@ namespace Beam {
       using Type = T;
 
       /** The type of builder used to construct the object. */
-      using Make = B;
+      using Builder = B;
 
       /**
        * Constructs a ScopedResource.
        * @param pool The ResourcePool the object belongs to.
-       * @parma object The pooled object to manage.
+       * @param object The pooled object to manage.
        */
-      ScopedResource(Ref<ResourcePool<Type, Make>> pool,
-        std::unique_ptr<Type> object);
+      ScopedResource(Ref<ResourcePool<Type, Builder>> pool,
+        std::unique_ptr<Type> object) noexcept;
 
       /**
        * Acquires a ScopedResource.
        * @param object The ScopedResource to acquire.
        */
-      ScopedResource(ScopedResource&& object);
+      ScopedResource(ScopedResource&& object) noexcept;
 
       ~ScopedResource();
 
@@ -52,7 +57,7 @@ namespace Beam {
       Type* operator ->() const;
 
     private:
-      ResourcePool<Type, Make>* m_pool;
+      ResourcePool<Type, Builder>* m_pool;
       std::unique_ptr<Type> m_object;
 
       ScopedResource(const ScopedResource&) = delete;
@@ -61,10 +66,11 @@ namespace Beam {
 
   /**
    * A resource pool.
-   * @param <T> The type of object to pool.
-   * @param <B> The type of function used to construct pooled objects.
+   * @tparam T The type of object to pool.
+   * @tparam B The type of function used to construct pooled objects.
    */
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   class ResourcePool {
     public:
 
@@ -72,95 +78,120 @@ namespace Beam {
       using Type = T;
 
       /** The type of function used to build objects. */
-      using Make = B;
+      using Builder = B;
+
+      /** The type of scoped resource returned by the pool. */
+      using ScopedResource = Beam::ScopedResource<Type, Builder>;
 
       /**
        * Constructs a ResourcePool.
        * @param timeout The amount of time to wait for an object before
        *        constructing a new one.
        * @param builder The function used to build objects.
-       * @param minObjectCount The minimum number of objects to build.
-       * @param maxObjectCount The maximum number of objects to build.
+       * @param min_count The minimum number of objects to build.
+       * @param max_count The maximum number of objects to build.
        */
-      template<typename BF>
-      ResourcePool(boost::posix_time::time_duration timeout,
-        BF&& objectBuilder, std::size_t minObjectCount = 1,
-        std::size_t maxObjectCount = std::numeric_limits<std::size_t>::max());
+      template<typename BF> requires std::constructible_from<B, BF>
+      ResourcePool(boost::posix_time::time_duration timeout, BF&& builder,
+        std::size_t min_count = 1,
+        std::size_t max_count = std::numeric_limits<std::size_t>::max());
 
       /**
        * Destroys all existing objects and rebuilds the minimum number of
        * objects.
        */
-      void Reset();
+      void reset();
 
       /** Acquires the next resource. */
-      ScopedResource<Type, Make> Acquire();
+      ScopedResource load();
 
       /** Returns a resource if one is available without blocking. */
-      boost::optional<ScopedResource<Type, Make>> TryAcquire();
+      boost::optional<ScopedResource> try_load();
 
     private:
-      template<typename, typename> friend class ScopedResource;
-      Threading::Mutex m_mutex;
+      friend class Beam::ScopedResource<Type, Builder>;
+      Mutex m_mutex;
       boost::posix_time::time_duration m_timeout;
-      Make m_builder;
-      std::size_t m_minObjectCount;
-      std::size_t m_maxObjectCount;
-      std::size_t m_currentObjectCount;
+      Builder m_builder;
+      std::size_t m_min_count;
+      std::size_t m_max_count;
+      std::size_t m_current_count;
       std::deque<std::unique_ptr<Type>> m_objects;
-      Threading::TimedConditionVariable m_objectAvailableCondition;
+      TimedConditionVariable m_is_available_condition;
 
       ResourcePool(const ResourcePool&) = delete;
       ResourcePool& operator =(const ResourcePool&) = delete;
-      void Add(std::unique_ptr<Type> object);
+      void add(std::unique_ptr<Type> object);
   };
 
-  template<typename T, typename B>
   template<typename BF>
+  ResourcePool(
+    boost::posix_time::time_duration, BF&&, std::size_t, std::size_t) ->
+      ResourcePool<std::remove_pointer_t<
+        typename std::invoke_result_t<std::remove_cvref_t<BF>>::element_type>,
+        std::remove_cvref_t<BF>>;
+
+  template<typename BF>
+  ResourcePool(boost::posix_time::time_duration, BF&&, std::size_t) ->
+    ResourcePool<std::remove_pointer_t<
+      typename std::invoke_result_t<std::remove_cvref_t<BF>>::element_type>,
+      std::remove_cvref_t<BF>>;
+
+  template<typename BF>
+  ResourcePool(boost::posix_time::time_duration, BF&&) ->
+    ResourcePool<std::remove_pointer_t<
+      typename std::invoke_result_t<std::remove_cvref_t<BF>>::element_type>,
+      std::remove_cvref_t<BF>>;
+
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  template<typename BF> requires std::constructible_from<B, BF>
   ResourcePool<T, B>::ResourcePool(boost::posix_time::time_duration timeout,
-      BF&& builder, std::size_t minObjectCount, std::size_t maxObjectCount)
+      BF&& builder, std::size_t min_count, std::size_t max_count)
       : m_timeout(timeout),
         m_builder(std::forward<BF>(builder)),
-        m_minObjectCount(std::max<std::size_t>(1, minObjectCount)),
-        m_maxObjectCount(std::max(m_minObjectCount, maxObjectCount)),
-        m_currentObjectCount(m_minObjectCount) {
-    for(auto i = std::size_t(0); i < m_currentObjectCount; ++i) {
+        m_min_count(std::max<std::size_t>(1, min_count)),
+        m_max_count(std::max(m_min_count, max_count)),
+        m_current_count(m_min_count) {
+    for(auto i = std::size_t(0); i < m_current_count; ++i) {
       m_objects.push_back(m_builder());
     }
   }
 
-  template<typename T, typename B>
-  void ResourcePool<T, B>::Reset() {
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  void ResourcePool<T, B>::reset() {
     auto lock = boost::unique_lock(m_mutex);
-    while(m_objects.size() != m_currentObjectCount) {
-      m_objectAvailableCondition.wait(lock);
+    while(m_objects.size() != m_current_count) {
+      m_is_available_condition.wait(lock);
     }
     m_objects.clear();
-    m_currentObjectCount = m_minObjectCount;
-    for(auto i = std::size_t(0); i < m_currentObjectCount; ++i) {
+    m_current_count = m_min_count;
+    for(auto i = std::size_t(0); i < m_current_count; ++i) {
       m_objects.push_back(m_builder());
     }
   }
 
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   ScopedResource<typename ResourcePool<T, B>::Type,
-      typename ResourcePool<T, B>::Make> ResourcePool<T, B>::Acquire() {
+      typename ResourcePool<T, B>::Builder> ResourcePool<T, B>::load() {
     auto lock = boost::unique_lock(m_mutex);
-    auto unconditionalWait = false;
+    auto is_unconditionally_waiting = false;
     while(m_objects.empty()) {
-      if(unconditionalWait || m_currentObjectCount >= m_maxObjectCount) {
-        m_objectAvailableCondition.wait(lock);
+      if(is_unconditionally_waiting || m_current_count >= m_max_count) {
+        m_is_available_condition.wait(lock);
       } else {
         try {
-          m_objectAvailableCondition.timed_wait(m_timeout, lock);
-        } catch(const Threading::TimeoutException&) {
-          if(m_objects.empty() && m_currentObjectCount < m_maxObjectCount) {
+          m_is_available_condition.timed_wait(m_timeout, lock);
+        } catch(const TimeoutException&) {
+          if(m_objects.empty() && m_current_count < m_max_count) {
             try {
-              auto scopedObject = ScopedResource(Ref(*this), m_builder());
-              ++m_currentObjectCount;
-              return scopedObject;
+              auto scoped_object = ScopedResource(Ref(*this), m_builder());
+              ++m_current_count;
+              return scoped_object;
             } catch(const std::exception&) {
-              unconditionalWait = true;
+              is_unconditionally_waiting = true;
             }
           }
         }
@@ -171,9 +202,10 @@ namespace Beam {
     return object;
   }
 
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   boost::optional<ScopedResource<typename ResourcePool<T, B>::Type,
-      typename ResourcePool<T, B>::Make>> ResourcePool<T, B>::TryAcquire() {
+      typename ResourcePool<T, B>::Builder>> ResourcePool<T, B>::try_load() {
     auto lock = boost::unique_lock(m_mutex);
     if(m_objects.empty()) {
       return boost::none;
@@ -183,38 +215,44 @@ namespace Beam {
     return object;
   }
 
-  template<typename T, typename B>
-  void ResourcePool<T, B>::Add(std::unique_ptr<Type> object) {
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  void ResourcePool<T, B>::add(std::unique_ptr<Type> object) {
     auto lock = boost::lock_guard(m_mutex);
     m_objects.push_back(std::move(object));
-    m_objectAvailableCondition.notify_one();
+    m_is_available_condition.notify_one();
   }
 
-  template<typename T, typename B>
-  ScopedResource<T, B>::ScopedResource(Ref<ResourcePool<Type, Make>> pool,
-    std::unique_ptr<Type> object)
-    : m_pool(pool.Get()),
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  ScopedResource<T, B>::ScopedResource(Ref<ResourcePool<Type, Builder>> pool,
+    std::unique_ptr<Type> object) noexcept
+    : m_pool(pool.get()),
       m_object(std::move(object)) {}
 
-  template<typename T, typename B>
-  ScopedResource<T, B>::ScopedResource(ScopedResource<T, B>&& object)
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
+  ScopedResource<T, B>::ScopedResource(ScopedResource<T, B>&& object) noexcept
     : m_pool(std::exchange(object.m_pool, nullptr)),
       m_object(std::move(object.m_object)) {}
 
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   ScopedResource<T, B>::~ScopedResource() {
     if(m_pool) {
-      m_pool->Add(std::move(m_object));
+      m_pool->add(std::move(m_object));
     }
   }
 
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   typename ScopedResource<T, B>::Type&
       ScopedResource<T, B>::operator *() const {
     return *m_object;
   }
 
-  template<typename T, typename B>
+  template<typename T, typename B> requires std::invocable<B> &&
+    std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   typename ScopedResource<T, B>::Type*
       ScopedResource<T, B>::operator ->() const {
     return m_object.get();

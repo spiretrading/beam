@@ -4,15 +4,11 @@
 #include <cstdint>
 #include <ostream>
 #include <string>
-#include "Beam/Network/Network.hpp"
-#include "Beam/Parsers/ConversionParser.hpp"
-#include "Beam/Parsers/NotParser.hpp"
-#include "Beam/Parsers/PlusParser.hpp"
-#include "Beam/Parsers/Types.hpp"
+#include <boost/endian.hpp>
+#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
-#include "Beam/Utilities/Endian.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Stores an IpAddress, consisting of a host and a port. */
   class IpAddress {
@@ -23,14 +19,14 @@ namespace Beam::Network {
        * @param ipAddress The IP address to convert, in integer form.
        * @return The string representation of the <i>ipAddress</i>.
        */
-      static std::string IntToString(std::uint32_t ipAddress);
+      static std::string int_to_string(std::uint32_t address);
 
       /**
        * Converts an IP address represented as a string to an int.
        * @param ipAddress The IP address to convert, in string form.
        * @return The int representation of the <i>ipAddress</i>.
        */
-      static std::uint32_t StringToInt(const std::string& ipAddress);
+      static std::uint32_t string_to_int(std::string_view address);
 
       /** Constructs an empty IpAddress. */
       IpAddress() = default;
@@ -40,81 +36,79 @@ namespace Beam::Network {
        * @param host The host.
        * @param port The port.
        */
-      IpAddress(std::string host, unsigned short port);
+      IpAddress(std::string host, unsigned short port) noexcept;
 
       /** Returns the host. */
-      const std::string& GetHost() const;
+      const std::string& get_host() const;
 
       /** Returns the port. */
-      unsigned short GetPort() const;
+      unsigned short get_port() const;
 
-      bool operator ==(const IpAddress& rhs) const = default;
+      bool operator ==(const IpAddress&) const = default;
 
     private:
       std::string m_host;
       unsigned short m_port;
   };
 
-  inline std::ostream& operator <<(std::ostream& out, const IpAddress& source) {
-    return out << source.GetHost() << ':' << source.GetPort();
-  }
-
   /** Parses an IpAddress. */
-  inline auto IpAddressParser() {
-    return Parsers::Convert(Parsers::PlusParser(Parsers::Not(':')) >> ':' >>
-      Parsers::int_p, [] (const auto& source) {
-        return IpAddress(std::get<0>(source),
-          static_cast<unsigned short>(std::get<1>(source)));
-      });
+  inline auto ip_address_parser() {
+    return convert(+(!(symbol(":"))) >> ':' >> int_p, [] (const auto& source) {
+      return IpAddress(std::get<0>(source),
+        static_cast<unsigned short>(std::get<1>(source)));
+    });
   }
 
-  inline std::string IpAddress::IntToString(std::uint32_t ipAddress) {
-    auto normalizedAddress = ToBigEndian(ipAddress);
-    constexpr auto OCTET_COUNT = 4;
+  /** A parser that matches an IpAddress. */
+  inline const auto ip_address_p = ip_address_parser();
+
+  template<>
+  inline const auto default_parser<IpAddress> = ip_address_p;
+
+  inline std::ostream& operator <<(std::ostream& out, const IpAddress& source) {
+    return out << source.get_host() << ':' << source.get_port();
+  }
+
+  inline std::string IpAddress::int_to_string(std::uint32_t address) {
+    address = boost::endian::native_to_big(address);
+    const auto OCTET_COUNT = 4;
     auto octets = std::array<unsigned int, OCTET_COUNT>();
     for(auto i = 0; i < OCTET_COUNT; ++i) {
-      octets[i] = (reinterpret_cast<const unsigned char*>(
-        &normalizedAddress))[i];
+      octets[i] = (reinterpret_cast<const unsigned char*>(&address))[i];
     }
-    constexpr auto BUFFER_SIZE = 16;
+    const auto BUFFER_SIZE = 16;
     auto buffer = std::array<char, BUFFER_SIZE>();
     std::sprintf(buffer.data(), "%-u.%-u.%-u.%-u", octets[0], octets[1],
       octets[2], octets[3]);
     return buffer.data();
   }
 
-  inline std::uint32_t IpAddress::StringToInt(const std::string& ipAddress) {
-    constexpr auto OCTET_COUNT = 4;
+  inline std::uint32_t IpAddress::string_to_int(std::string_view address) {
+    const auto OCTET_COUNT = 4;
     auto octets = std::array<unsigned int, OCTET_COUNT>();
     octets.fill(0);
-    auto result = std::sscanf(ipAddress.c_str(), "%u.%u.%u.%u", &octets[0],
+    auto result = std::sscanf(address.data(), "%u.%u.%u.%u", &octets[0],
       &octets[1], &octets[2], &octets[3]);
     BEAM_ASSERT(result == 4);
-    auto intAddress = std::uint32_t(0);
+    auto int_address = std::uint32_t(0);
     for(auto i = 0; i < OCTET_COUNT; ++i) {
-      reinterpret_cast<unsigned char*>(&intAddress)[i] =
+      reinterpret_cast<unsigned char*>(&int_address)[i] =
         static_cast<unsigned char>(octets[i]);
     }
-    return FromBigEndian(intAddress);
+    return boost::endian::native_to_big(int_address);
   }
 
-  inline IpAddress::IpAddress(std::string host, unsigned short port)
+  inline IpAddress::IpAddress(std::string host, unsigned short port) noexcept
     : m_host(std::move(host)),
       m_port(port) {}
 
-  inline const std::string& IpAddress::GetHost() const {
+  inline const std::string& IpAddress::get_host() const {
     return m_host;
   }
 
-  inline unsigned short IpAddress::GetPort() const {
+  inline unsigned short IpAddress::get_port() const {
     return m_port;
   }
-}
-
-namespace Beam::Parsers {
-  template<>
-  inline const auto default_parser<Beam::Network::IpAddress> =
-    Beam::Network::IpAddressParser();
 }
 
 #endif

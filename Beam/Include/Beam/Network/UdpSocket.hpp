@@ -3,10 +3,10 @@
 #include <string>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/UdpSocketReceiver.hpp"
@@ -15,7 +15,7 @@
 #include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Implements a UDP socket. */
   class UdpSocket {
@@ -25,7 +25,7 @@ namespace Beam::Network {
        * Constructs a UdpSocket.
        * @param address The address to send to.
        */
-      UdpSocket(const IpAddress& address);
+      explicit UdpSocket(const IpAddress& address);
 
       /**
        * Constructs a UdpSocket.
@@ -53,15 +53,15 @@ namespace Beam::Network {
       ~UdpSocket();
 
       /** Returns the IpAddress to send and receive from. */
-      const IpAddress& GetAddress() const;
+      const IpAddress& get_address() const;
 
       /** Returns the socket's receiver. */
-      UdpSocketReceiver& GetReceiver();
+      UdpSocketReceiver& get_receiver();
 
       /** Returns the socket's sender. */
-      UdpSocketSender& GetSender();
+      UdpSocketSender& get_sender();
 
-      void Close();
+      void close();
 
     private:
       friend class UdpSocketReader;
@@ -69,122 +69,121 @@ namespace Beam::Network {
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       boost::optional<UdpSocketReceiver> m_receiver;
       boost::optional<UdpSocketSender> m_sender;
-      IO::OpenState m_openState;
+      OpenState m_open_state;
 
       UdpSocket(const UdpSocket&) = delete;
       UdpSocket& operator =(const UdpSocket&) = delete;
-      void Open(boost::optional<IpAddress> interface,
-        const UdpSocketOptions& options);
+      void open(
+        boost::optional<IpAddress> interface, const UdpSocketOptions& options);
   };
 
   inline UdpSocket::UdpSocket(const IpAddress& address)
     : UdpSocket(address, UdpSocketOptions()) {}
 
-  inline UdpSocket::UdpSocket(const IpAddress& address,
-      const UdpSocketOptions& options)
+  inline UdpSocket::UdpSocket(
+      const IpAddress& address, const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          Threading::ServiceThreadPool::GetInstance().GetContext(),
-          Threading::ServiceThreadPool::GetInstance().GetContext(),
-          boost::asio::ip::udp::v4())) {
-    Open(boost::none, options);
+          ServiceThreadPool::get().get_context(),
+          ServiceThreadPool::get().get_context(), boost::asio::ip::udp::v4())) {
+    open(boost::none, options);
   }
 
-  inline UdpSocket::UdpSocket(const IpAddress& address,
-    const IpAddress& interface)
+  inline UdpSocket::UdpSocket(
+    const IpAddress& address, const IpAddress& interface)
     : UdpSocket(address, interface, UdpSocketOptions()) {}
 
   inline UdpSocket::UdpSocket(const IpAddress& address,
       const IpAddress& interface, const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
-          Threading::ServiceThreadPool::GetInstance().GetContext(),
-          Threading::ServiceThreadPool::GetInstance().GetContext(),
+          ServiceThreadPool::get().get_context(),
+          ServiceThreadPool::get().get_context(),
           boost::asio::ip::udp::v4())) {
-    Open(interface, options);
+    open(interface, options);
   }
 
   inline UdpSocket::~UdpSocket() {
-    Close();
+    close();
   }
 
-  inline const IpAddress& UdpSocket::GetAddress() const {
+  inline const IpAddress& UdpSocket::get_address() const {
     return m_address;
   }
 
-  inline UdpSocketReceiver& UdpSocket::GetReceiver() {
+  inline UdpSocketReceiver& UdpSocket::get_receiver() {
     return *m_receiver;
   }
 
-  inline UdpSocketSender& UdpSocket::GetSender() {
+  inline UdpSocketSender& UdpSocket::get_sender() {
     return *m_sender;
   }
 
-  inline void UdpSocket::Close() {
-    if(m_openState.SetClosing()) {
+  inline void UdpSocket::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_socket->Close();
-    m_openState.Close();
+    m_socket->close();
+    m_open_state.close();
   }
 
-  inline void UdpSocket::Open(boost::optional<IpAddress> interface,
-      const UdpSocketOptions& options) {
+  inline void UdpSocket::open(
+      boost::optional<IpAddress> interface, const UdpSocketOptions& options) {
     try {
-      auto errorCode = boost::system::error_code();
-      auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_ioContext);
-      auto endpoints = resolver.resolve(
-        m_address.GetHost(), std::to_string(m_address.GetPort()), errorCode);
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+      auto error_code = boost::system::error_code();
+      auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_io_context);
+      auto ends = resolver.resolve(
+        m_address.get_host(), std::to_string(m_address.get_port()), error_code);
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
-      auto isAddressResolved = false;
-      for(auto& endpoint : endpoints) {
-        auto address = endpoint.host_name();
+      auto is_address_resolved = false;
+      for(auto& end : ends) {
+        auto address = end.host_name();
         if(!address.empty()) {
-          auto ipAddresses = resolver.resolve(boost::asio::ip::udp::v4(),
-            address, std::to_string(m_address.GetPort()));
-          if(ipAddresses.empty()) {
-            m_address = IpAddress(address, m_address.GetPort());
+          auto ip_addresses = resolver.resolve(boost::asio::ip::udp::v4(),
+            address, std::to_string(m_address.get_port()));
+          if(ip_addresses.empty()) {
+            m_address = IpAddress(address, m_address.get_port());
           } else {
             m_address = IpAddress(
-              ipAddresses.begin()->endpoint().address().to_string(),
-              m_address.GetPort());
+              ip_addresses.begin()->endpoint().address().to_string(),
+              m_address.get_port());
           }
-          isAddressResolved = true;
+          is_address_resolved = true;
           break;
         }
       }
-      if(!isAddressResolved) {
-        BOOST_THROW_EXCEPTION(
-          IO::ConnectException("Unable to resolve IP address."));
+      if(!is_address_resolved) {
+        boost::throw_with_location(
+          ConnectException("Unable to resolve IP address."));
       }
       m_socket->m_socket.set_option(
-        boost::asio::ip::udp::socket::reuse_address(true), errorCode);
-      if(errorCode) {
-        BOOST_THROW_EXCEPTION(
-          SocketException(errorCode.value(), errorCode.message()));
+        boost::asio::ip::udp::socket::reuse_address(true), error_code);
+      if(error_code) {
+        boost::throw_with_location(
+          SocketException(error_code.value(), error_code.message()));
       }
       if(interface) {
         m_socket->m_socket.bind(boost::asio::ip::udp::endpoint(
-          boost::asio::ip::make_address_v4(interface->GetHost()),
-          interface->GetPort()), errorCode);
-        if(errorCode) {
-          BOOST_THROW_EXCEPTION(
-            SocketException(errorCode.value(), errorCode.message()));
+          boost::asio::ip::make_address_v4(interface->get_host()),
+          interface->get_port()), error_code);
+        if(error_code) {
+          boost::throw_with_location(
+            SocketException(error_code.value(), error_code.message()));
         }
       }
       m_receiver.emplace(options, m_socket);
       m_sender.emplace(options, m_socket);
-    } catch(const IO::ConnectException&) {
-      Close();
-      BOOST_RETHROW;
+    } catch(const ConnectException&) {
+      close();
+      throw;
     } catch(const std::exception&) {
-      Close();
-      std::throw_with_nested(IO::ConnectException("Unable to open socket."));
+      close();
+      std::throw_with_nested(ConnectException("Unable to open socket."));
     }
-    m_socket->m_isOpen = true;
+    m_socket->m_is_open = true;
   }
 }
 

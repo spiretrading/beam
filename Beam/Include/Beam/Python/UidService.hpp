@@ -2,52 +2,64 @@
 #define BEAM_PYTHON_UID_SERVICE_HPP
 #include <type_traits>
 #include <pybind11/pybind11.h>
-#include "Beam/UidService/UidClientBox.hpp"
+#include "Beam/UidService/UidClient.hpp"
+#include "Beam/UidService/UidDataStore.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Python {
 
-  /** Returns the exported UidClientBox. */
-  BEAM_EXPORT_DLL pybind11::class_<UidService::UidClientBox>&
-    GetExportedUidClientBox();
+  /** Returns the exported UidClient. */
+  BEAM_EXPORT_DLL pybind11::class_<UidClient>& get_exported_uid_client();
 
-  /**
-   * Exports the ApplicationUidClient class.
-   * @param module The module to export to.
-   */
-  void ExportApplicationUidClient(pybind11::module& module);
+  /** Returns the exported UidDataStore. */
+  BEAM_EXPORT_DLL pybind11::class_<UidDataStore>& get_exported_uid_data_store();
 
-  /**
-   * Exports the UidService namespace.
-   * @param module The module to export to.
-   */
-  void ExportUidService(pybind11::module& module);
+  /** Exports the LocalUidDataStore class. */
+  void export_local_uid_data_store(pybind11::module& module);
 
-  /**
-   * Exports the UidServiceTestEnvironment class.
-   * @param module The module to export to.
-   */
-  void ExportUidServiceTestEnvironment(pybind11::module& module);
+  /** Exports the MySqlUidDataStore class. */
+  void export_mysql_uid_data_store(pybind11::module& module);
 
-  /**
-   * Exports a UidClient class.
-   * @param <Client> The type of UidClient to export.
-   * @param module The module to export to.
-   * @param name The name of the class.
-   * @return The exported UidClient.
-   */
-  template<typename Client>
-  auto ExportUidClient(pybind11::module& module, const std::string& name) {
-    auto client = pybind11::class_<Client, std::shared_ptr<Client>>(module,
-      name.c_str()).
-      def("load_next_uid", &Client::LoadNextUid).
-      def("close", &Client::Close);
-    if constexpr(!std::is_same_v<Client, UidService::UidClientBox>) {
-      pybind11::implicitly_convertible<Client, UidService::UidClientBox>();
-      GetExportedUidClientBox().def(pybind11::init<std::shared_ptr<Client>>());
+  /** Exports the SqliteUidDataStore class. */
+  void export_sqlite_uid_data_store(pybind11::module& module);
+
+  /** Exports a UidClient class. */
+  template<IsUidClient T>
+  auto export_uid_client(pybind11::module& module, std::string_view name) {
+    auto client = pybind11::class_<T>(module, name.data()).
+      def("load_next_uid", &T::load_next_uid).
+      def("close", &T::close);
+    if constexpr(!std::is_same_v<T, UidClient>) {
+      pybind11::implicitly_convertible<T, UidClient>();
+      get_exported_uid_client().
+        def(pybind11::init<T*>(), pybind11::keep_alive<1, 2>());
     }
     return client;
   }
+
+  /** Exports a UidDataStore class. */
+  template<IsUidDataStore T>
+  auto export_uid_data_store(pybind11::module& module, std::string_view name) {
+    auto data_store = pybind11::class_<T>(module, name.data()).
+      def("get_next_uid", &T::get_next_uid).
+      def("reserve", &T::reserve).
+      def("close", &T::close);
+    if constexpr(!std::is_same_v<T, UidDataStore>) {
+      pybind11::implicitly_convertible<T, UidDataStore>();
+      get_exported_uid_data_store().
+        def(pybind11::init<T*>(), pybind11::keep_alive<1, 2>());
+    }
+    return data_store;
+  }
+
+  /** Exports the UidService namespace. */
+  void export_uid_service(pybind11::module& module);
+
+  /** Exports the application definitions. */
+  void export_uid_service_application_definitions(pybind11::module& module);
+
+  /** Exports the UidServiceTestEnvironment class. */
+  void export_uid_service_test_environment(pybind11::module& module);
 }
 
 #endif

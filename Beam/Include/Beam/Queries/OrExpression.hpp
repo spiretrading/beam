@@ -5,138 +5,135 @@
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Queries.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 #include "Beam/Queries/TypeCompatibilityException.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Represents a logical or expression. */
-  class OrExpression :
-      public VirtualExpression, public CloneableMixin<OrExpression> {
+  class OrExpression : public VirtualExpression {
     public:
 
       /**
        * Constructs an OrExpression.
-       * @param lhs The left hand side of the Expression.
-       * @param rhs The right hand side of the Expression.
+       * @param left The left hand side of the Expression.
+       * @param right The right hand side of the Expression.
        */
-      OrExpression(Expression lhs, Expression rhs);
-
-      /**
-       * Copies an OrExpression.
-       * @param expression The OrExpression to copy.
-       */
-      OrExpression(const OrExpression& expression) = default;
+      OrExpression(Expression left, Expression right);
 
       /** Returns the left hand side of the Expression. */
-      const Expression& GetLeftExpression() const;
+      const Expression& get_left() const;
 
       /** Returns the right hand side of the Expression. */
-      const Expression& GetRightExpression() const;
+      const Expression& get_right() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
       Expression m_left;
       Expression m_right;
 
       OrExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
   /**
+   * Constructs an OrExpression.
+   * @param left The left hand side of the Expression.
+   * @param right The right hand side of the Expression.
+   * @return An OrExpression.
+   */
+  inline OrExpression operator ||(
+      const Expression& left, const Expression& right) {
+    return OrExpression(left, right);
+  }
+
+  /**
    * Makes an Expression that represents the logical or over a sequence of
-   * sub-Expressions.
+   * sub-expressions.
    * @param first An iterator to the first Expression.
    * @param last An iterator to one past the last Expression.
    * @return An Expression that represents the logical or over the sequence of
-   *         sub-Expressions.
+   *         sub-expressions.
    */
-  template<typename ForwardIterator>
-  inline Expression MakeOrExpression(
-      ForwardIterator first, ForwardIterator last) {
+  template<std::forward_iterator I>
+  Expression disjunction(I first, I last) {
     if(first == last) {
       return ConstantExpression(false);
     }
-    if((*first)->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(
+    if(first->get_type() != typeid(bool)) {
+      boost::throw_with_location(
         TypeCompatibilityException("Expression must be bool."));
     }
     if(first + 1 == last) {
       return *first;
     } else {
-      auto right = MakeOrExpression(first + 1, last);
-      return OrExpression(*first, right);
+      return OrExpression(*first, disjunction(first + 1, last));
     }
   }
 
   inline OrExpression::OrExpression(Expression lhs, Expression rhs)
       : m_left(std::move(lhs)),
         m_right(std::move(rhs)) {
-    if(m_left->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(
+    if(m_left.get_type() != typeid(bool)) {
+      boost::throw_with_location(
         TypeCompatibilityException("Expression must be bool."));
     }
-    if(m_right->GetType()->GetNativeType() != typeid(bool)) {
-      BOOST_THROW_EXCEPTION(
+    if(m_right.get_type() != typeid(bool)) {
+      boost::throw_with_location(
         TypeCompatibilityException("Expression must be bool."));
     }
   }
 
-  inline const Expression& OrExpression::GetLeftExpression() const {
+  inline const Expression& OrExpression::get_left() const {
     return m_left;
   }
 
-  inline const Expression& OrExpression::GetRightExpression() const {
+  inline const Expression& OrExpression::get_right() const {
     return m_right;
   }
 
-  inline const DataType& OrExpression::GetType() const {
-    static auto value = DataType(BoolType::GetInstance());
-    return value;
+  inline std::type_index OrExpression::get_type() const {
+    return typeid(bool);
   }
 
-  inline void OrExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void OrExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& OrExpression::ToStream(std::ostream& out) const {
-    return out << "(or " << GetLeftExpression() << " " <<
-      GetRightExpression() << ")";
+  inline std::ostream& OrExpression::to_stream(std::ostream& out) const {
+    return out << "(or " << get_left() << " " << get_right() << ')';
   }
 
   inline OrExpression::OrExpression()
     : m_left(ConstantExpression(false)),
       m_right(ConstantExpression(false)) {}
 
-  template<typename Shuttler>
-  void OrExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("left", m_left);
-    shuttle.Shuttle("right", m_right);
-    if(Serialization::IsReceiver<Shuttler>::value) {
-      if(m_left->GetType()->GetNativeType() != typeid(bool)) {
-        BOOST_THROW_EXCEPTION(
-          Serialization::SerializationException("Incompatible types."));
+  template<IsShuttle S>
+  void OrExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("left", m_left);
+    shuttle.shuttle("right", m_right);
+    if(IsReceiver<S>) {
+      if(m_left.get_type() != typeid(bool)) {
+        boost::throw_with_location(
+          SerializationException("Incompatible types."));
       }
-      if(m_right->GetType()->GetNativeType() != typeid(bool)) {
-        BOOST_THROW_EXCEPTION(
-          Serialization::SerializationException("Incompatible types."));
+      if(m_right.get_type() != typeid(bool)) {
+        boost::throw_with_location(
+          SerializationException("Incompatible types."));
       }
     }
   }
 
-  inline void ExpressionVisitor::Visit(const OrExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+  inline void ExpressionVisitor::visit(const OrExpression& expression) {
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

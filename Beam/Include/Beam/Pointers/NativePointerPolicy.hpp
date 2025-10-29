@@ -1,6 +1,5 @@
 #ifndef BEAM_NATIVE_POINTER_POLICY_HPP
 #define BEAM_NATIVE_POINTER_POLICY_HPP
-#include "Beam/Pointers/Pointers.hpp"
 
 namespace Beam {
 

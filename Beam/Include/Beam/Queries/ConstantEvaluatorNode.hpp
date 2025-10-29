@@ -4,13 +4,12 @@
 #include <utility>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/EvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /**
    * Evaluates to a constant.
-   * @param <T> The type of constant to return.
+   * @tparam T The type of constant to return.
    */
   template<typename T>
   class ConstantEvaluatorNode : public EvaluatorNode<T> {
@@ -23,10 +22,24 @@ namespace Beam::Queries {
        */
       explicit ConstantEvaluatorNode(Result constant);
 
-      Result Eval() override;
+      Result eval() override;
 
     private:
       Result m_constant;
+  };
+
+  /**
+   * Translates a ConstantExpression into a ConstantEvaluatorNode.
+   * @tparam TypeList The list of types supported.
+   */
+  template<typename TypeList>
+  struct ConstantEvaluatorNodeTranslator {
+    using type = TypeList;
+
+    template<typename T>
+    BaseEvaluatorNode* operator ()(const ConstantExpression& expression) const {
+      return new ConstantEvaluatorNode(expression.get_value().as<T>());
+    }
   };
 
   template<typename T>
@@ -34,19 +47,9 @@ namespace Beam::Queries {
     : m_constant(std::move(constant)) {}
 
   template<typename T>
-  typename ConstantEvaluatorNode<T>::Result ConstantEvaluatorNode<T>::Eval() {
+  typename ConstantEvaluatorNode<T>::Result ConstantEvaluatorNode<T>::eval() {
     return m_constant;
   }
-
-  template<typename TypeList>
-  struct ConstantEvaluatorNodeTranslator {
-    template<typename T>
-    static BaseEvaluatorNode* Template(const ConstantExpression& expression) {
-      return new ConstantEvaluatorNode<T>(expression.GetValue()->GetValue<T>());
-    }
-
-    using SupportedTypes = TypeList;
-  };
 }
 
 #endif

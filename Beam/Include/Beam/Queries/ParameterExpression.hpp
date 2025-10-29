@@ -2,14 +2,11 @@
 #define BEAM_PARAMETER_EXPRESSION_HPP
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Queries.hpp"
-#include "Beam/Queries/StandardDataTypes.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Represents a variable/parameter used in an Expression. */
-  class ParameterExpression :
-      public VirtualExpression, public CloneableMixin<ParameterExpression> {
+  class ParameterExpression : public VirtualExpression {
     public:
 
       /**
@@ -17,60 +14,60 @@ namespace Beam::Queries {
        * @param index The parameter's index.
        * @param type The parameter's type.
        */
-      ParameterExpression(int index, DataType type);
+      ParameterExpression(int index, std::type_index type);
 
       /** Returns the parameter's index. */
-      int GetIndex() const;
+      int get_index() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Beam::Serialization::DataShuttle;
+      friend struct Beam::DataShuttle;
       int m_index;
-      DataType m_type;
+      std::type_index m_type;
 
       ParameterExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
-  inline ParameterExpression::ParameterExpression(int index, DataType type)
+  inline ParameterExpression::ParameterExpression(
+    int index, std::type_index type)
     : m_index(index),
-      m_type(std::move(type)) {}
+      m_type(type) {}
 
-  inline int ParameterExpression::GetIndex() const {
+  inline int ParameterExpression::get_index() const {
     return m_index;
   }
 
-  inline const DataType& ParameterExpression::GetType() const {
+  inline std::type_index ParameterExpression::get_type() const {
     return m_type;
   }
 
-  inline void ParameterExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void ParameterExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& ParameterExpression::ToStream(std::ostream& out) const {
-    return out << "(parameter " << m_index << ")";
+  inline std::ostream& ParameterExpression::to_stream(std::ostream& out) const {
+    return out << "(parameter " << m_index << ')';
   }
 
   inline ParameterExpression::ParameterExpression()
-    : ParameterExpression(0, BoolType()) {}
+    : ParameterExpression(0, typeid(bool)) {}
 
-  template<typename Shuttler>
-  void ParameterExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("index", m_index);
-    shuttle.Shuttle("type", m_type);
+  template<IsShuttle S>
+  void ParameterExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("index", m_index);
+    shuttle.shuttle("type", m_type);
   }
 
-  inline void ExpressionVisitor::Visit(const ParameterExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+  inline void ExpressionVisitor::visit(const ParameterExpression& expression) {
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

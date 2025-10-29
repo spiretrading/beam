@@ -9,14 +9,13 @@
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/UidService/LocalUidDataStore.hpp"
-#include "Beam/UidService/UidClient.hpp"
-#include "Beam/UidService/UidClientBox.hpp"
+#include "Beam/UidService/ServiceUidClient.hpp"
+#include "Beam/UidService/UidDataStore.hpp"
 #include "Beam/UidService/UidServlet.hpp"
-#include "Beam/UidServiceTests/UidServiceTests.hpp"
 
-namespace Beam::UidService::Tests {
+namespace Beam::Tests {
 
   /**
    * Wraps most components needed to run an instance of the UidService with
@@ -30,25 +29,23 @@ namespace Beam::UidService::Tests {
 
       ~UidServiceTestEnvironment();
 
-      UidClientBox MakeClient();
+      /** Makes a UidClient connected to the UidService. */
+      UidClient make_client();
 
-      void Close();
+      void close();
 
     private:
-      using ServerConnection = IO::LocalServerConnection<IO::SharedBuffer>;
-      using ClientChannel = IO::LocalClientChannel<IO::SharedBuffer>;
       using ServiceProtocolServletContainer =
-        Services::ServiceProtocolServletContainer<
-          MetaUidServlet<LocalUidDataStore*>, ServerConnection*,
-          Serialization::BinarySender<IO::SharedBuffer>,
-          Codecs::NullEncoder, std::shared_ptr<Threading::TriggerTimer>>;
+        Beam::ServiceProtocolServletContainer<
+          MetaUidServlet<LocalUidDataStore*>, LocalServerConnection*,
+          BinarySender<SharedBuffer>, NullEncoder,
+          std::shared_ptr<TriggerTimer>>;
       using ServiceProtocolClientBuilder =
-        Services::ServiceProtocolClientBuilder<
-          Services::MessageProtocol<std::unique_ptr<ClientChannel>,
-            Serialization::BinarySender<IO::SharedBuffer>, Codecs::NullEncoder>,
-          Threading::TriggerTimer>;
-      LocalUidDataStore m_dataStore;
-      ServerConnection m_serverConnection;
+        Beam::ServiceProtocolClientBuilder<
+          MessageProtocol<std::unique_ptr<LocalClientChannel>,
+            BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
+      LocalUidDataStore m_data_store;
+      LocalServerConnection m_server_connection;
       ServiceProtocolServletContainer m_container;
 
       UidServiceTestEnvironment(const UidServiceTestEnvironment&) = delete;
@@ -57,23 +54,23 @@ namespace Beam::UidService::Tests {
   };
 
   inline UidServiceTestEnvironment::UidServiceTestEnvironment()
-    : m_container(&m_dataStore, &m_serverConnection,
-        boost::factory<std::shared_ptr<Threading::TriggerTimer>>()) {}
+    : m_container(&m_data_store, &m_server_connection,
+        boost::factory<std::shared_ptr<TriggerTimer>>()) {}
 
   inline UidServiceTestEnvironment::~UidServiceTestEnvironment() {
-    Close();
+    close();
   }
 
-  inline void UidServiceTestEnvironment::Close() {
-    m_container.Close();
+  inline void UidServiceTestEnvironment::close() {
+    m_container.close();
   }
 
-  inline UidClientBox UidServiceTestEnvironment::MakeClient() {
-    return UidClientBox(
-      std::in_place_type<UidClient<ServiceProtocolClientBuilder>>,
+  inline UidClient UidServiceTestEnvironment::make_client() {
+    return UidClient(
+      std::in_place_type<ServiceUidClient<ServiceProtocolClientBuilder>>,
       ServiceProtocolClientBuilder(std::bind_front(boost::factory<
         std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
-        "test_uid_client", std::ref(m_serverConnection)), std::bind_front(
+        "test_uid_client", std::ref(m_server_connection)), std::bind_front(
           boost::factory<
             std::unique_ptr<ServiceProtocolClientBuilder::Timer>>())));
   }

@@ -1,16 +1,17 @@
 #ifndef BEAM_SENDER_MIXIN_HPP
 #define BEAM_SENDER_MIXIN_HPP
+#include <typeindex>
 #include <type_traits>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/TypeEntry.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 
-namespace Beam::Serialization {
+namespace Beam {
 
   /**
    * Provides default implementations of common Sender methods.
-   * @param <S> The Sender inheriting this mixin.
+   * @tparam S The Sender inheriting this mixin.
    */
   template<typename S>
   class SenderMixin {
@@ -20,159 +21,183 @@ namespace Beam::Serialization {
       using Sender = S;
 
       /** Constructs a SenderMixin with no polymorphic types. */
-      SenderMixin();
+      SenderMixin() noexcept;
 
       /**
        * Constructs a SenderMixin.
        * @param registry The TypeRegistry used for sending polymorphic types.
        */
-      SenderMixin(Ref<const TypeRegistry<Sender>> registry);
+      explicit SenderMixin(Ref<const TypeRegistry<Sender>> registry) noexcept;
 
       template<typename T>
-      void Shuttle(const T& value);
-
+      void shuttle(const char* name, const T& value);
       template<typename T>
-      void Shuttle(const char* name, const T& value);
-
+      void shuttle(const T& value);
       template<typename T>
-      void Send(const T& value);
-
+      void send(const T& value);
       template<typename T>
-      std::enable_if_t<std::is_enum_v<T>> Send(const char* name, T value,
-        void* dummy = nullptr);
-
+      void send_version(const T& value, unsigned int version);
+      void send(const char* name, std::type_index value);
+      template<typename T> requires std::is_enum_v<T>
+      void send(const char* name, T value);
       template<typename T>
-      std::enable_if_t<IsStructure<std::remove_pointer_t<T>>::value> Send(
-        const T& value, unsigned int version);
-
+      void send(const char* name, const T& value) requires(
+        std::is_class_v<T> && is_structure<T> && !IsConstBuffer<T>);
       template<typename T>
-      std::enable_if_t<IsStructure<std::remove_pointer_t<T>>::value &&
-        !ImplementsConcept<std::remove_pointer_t<T>, IO::Buffer>::value> Send(
-          const char* name, const T& value, void* dummy = nullptr);
-
+      void send_version(
+        const char* name, const T& value, unsigned int version) requires(
+          std::is_class_v<T> && is_structure<T> && !IsConstBuffer<T>);
       template<typename T>
-      std::enable_if_t<IsStructure<T>::value> Send(const char* name,
-        const T& value, unsigned int version);
-
+      void send(const char* name, const T& value) requires(
+        std::is_class_v<T> && is_sequence<T> && !IsConstBuffer<T>);
       template<typename T>
-      std::enable_if_t<IsSequence<T>::value> Send(const char* name,
-        const T& value, void* dummy = nullptr);
-
+      void send(const char* name, const T& value) requires(std::is_class_v<T> &&
+        !is_structure<T> && !is_sequence<T> && !IsConstBuffer<T>);
       template<typename T>
-      std::enable_if_t<std::is_class_v<T> && !IsStructure<T>::value &&
-        !IsSequence<T>::value> Send(const char* name, const T& value,
-          void* dummy = nullptr);
-
+      void send(const char* name, const T* value);
       template<typename T>
-      std::enable_if_t<IsStructure<T>::value> Send(const char* name,
-        T* const& value, unsigned int version);
-
+      void send(const char* name, const T* value) requires std::is_class_v<T>;
       template<typename T>
-      std::enable_if_t<IsStructure<T>::value> Send(const char* name,
-        const SerializedValue<T>& value, unsigned int version);
+      void send_version(const char* name, const T* value, unsigned int version);
+      template<typename T>
+      void send_version(const char* name, const T* value, unsigned int version)
+        requires std::is_class_v<T>;
+      template<typename T>
+      void send(const char* name, const SerializedValue<T>& value);
 
     private:
-      const TypeRegistry<Sender>* m_typeRegistry;
+      const TypeRegistry<Sender>* m_registry;
+
+      Sender& self();
   };
 
   template<typename S>
-  SenderMixin<S>::SenderMixin()
-    : m_typeRegistry(nullptr) {}
+  SenderMixin<S>::SenderMixin() noexcept
+    : m_registry(nullptr) {}
 
   template<typename S>
-  SenderMixin<S>::SenderMixin(Ref<const TypeRegistry<Sender>> registry)
-    : m_typeRegistry(registry.Get()) {}
+  SenderMixin<S>::SenderMixin(Ref<const TypeRegistry<Sender>> registry) noexcept
+    : m_registry(registry.get()) {}
 
   template<typename S>
   template<typename T>
-  void SenderMixin<S>::Shuttle(const T& value) {
-    static_cast<Sender*>(this)->Send(value);
+  void SenderMixin<S>::shuttle(const T& value) {
+    self().send(value);
   }
 
   template<typename S>
   template<typename T>
-  void SenderMixin<S>::Shuttle(const char* name, const T& value) {
-    static_cast<Sender*>(this)->Send(name, value);
+  void SenderMixin<S>::shuttle(const char* name, const T& value) {
+    self().send(name, value);
   }
 
   template<typename S>
   template<typename T>
-  void SenderMixin<S>::Send(const T& value) {
-    static_cast<Sender*>(this)->Send(nullptr, value);
+  void SenderMixin<S>::send(const T& value) {
+    self().send(nullptr, value);
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<std::is_enum_v<T>> SenderMixin<S>::Send(const char* name,
-      T value, void* dummy) {
-    static_cast<Sender*>(this)->Send(name, static_cast<int>(value));
+  void SenderMixin<S>::send_version(const T& value, unsigned int version) {
+    self().send_version(nullptr, value, version);
+  }
+
+  template<typename S>
+  void SenderMixin<S>::send(const char* name, std::type_index value) {
+    assert(m_registry != nullptr);
+    self().send(name, m_registry->get_type_name(value));
+  }
+
+  template<typename S>
+  template<typename T> requires std::is_enum_v<T>
+  void SenderMixin<S>::send(const char* name, T value) {
+    self().send(name, static_cast<std::int32_t>(value));
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsStructure<std::remove_pointer_t<T>>::value>
-      SenderMixin<S>::Send(const T& value, unsigned int version) {
-    static_cast<Sender*>(this)->Send(nullptr, value, version);
+  void SenderMixin<S>::send(const char* name, const T& value) requires(
+      std::is_class_v<T> && is_structure<T> && !IsConstBuffer<T>) {
+    self().send_version(name, value, shuttle_version<T>);
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsStructure<std::remove_pointer_t<T>>::value &&
-      !ImplementsConcept<std::remove_pointer_t<T>, IO::Buffer>::value>
-        SenderMixin<S>::Send(const char* name, const T& value, void* dummy) {
-    static_cast<Sender*>(this)->Send(name, value, Version<T>::value);
+  void SenderMixin<S>::send_version(
+      const char* name, const T& value, unsigned int version) requires(
+        std::is_class_v<T> && is_structure<T> && !IsConstBuffer<T>) {
+    self().start_structure(name);
+    self().send("__version", version);
+    Send<T>()(self(), value, version);
+    self().end_structure();
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsStructure<T>::value> SenderMixin<S>::Send(const char* name,
-      const T& value, unsigned int version) {
-    static_cast<Sender*>(this)->StartStructure(name);
-    static_cast<Sender*>(this)->Send("__version", version);
-    Serialization::Send<T>()(*static_cast<Sender*>(this), value, version);
-    static_cast<Sender*>(this)->EndStructure();
+  void SenderMixin<S>::send(const char* name, const T& value) requires(
+      std::is_class_v<T> && is_sequence<T> && !IsConstBuffer<T>) {
+    self().start_sequence(name);
+    Send<T>()(self(), value);
+    self().end_sequence();
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsSequence<T>::value> SenderMixin<S>::Send(const char* name,
-      const T& value, void* dummy) {
-    static_cast<Sender*>(this)->StartSequence(name);
-    Serialization::Send<T>()(*static_cast<Sender*>(this), value);
-    static_cast<Sender*>(this)->EndSequence();
+  void SenderMixin<S>::send(const char* name, const T& value) requires(
+      std::is_class_v<T> && !is_structure<T> && !is_sequence<T> &&
+        !IsConstBuffer<T>) {
+    Send<T>()(self(), name, value);
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<std::is_class_v<T> && !IsStructure<T>::value &&
-      !IsSequence<T>::value> SenderMixin<S>::Send(const char* name,
-        const T& value, void* dummy) {
-    Serialization::Send<T>()(*static_cast<Sender*>(this), name, value);
+  void SenderMixin<S>::send(const char* name, const T* value) {
+    self().send(name, *value);
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsStructure<T>::value> SenderMixin<S>::Send(const char* name,
-      T* const& value, unsigned int version) {
-    assert(m_typeRegistry != nullptr);
-    static_cast<Sender*>(this)->StartStructure(name);
+  void SenderMixin<S>::send(const char* name, const T* value)
+      requires std::is_class_v<T> {
+    self().send_version(name, value, shuttle_version<T>);
+  }
+
+  template<typename S>
+  template<typename T>
+  void SenderMixin<S>::send_version(
+      const char* name, const T* value, unsigned int version) {
+    self().send_version(name, *value, version);
+  }
+
+  template<typename S>
+  template<typename T>
+  void SenderMixin<S>::send_version(
+      const char* name, const T* value, unsigned int version)
+        requires std::is_class_v<T> {
+    assert(m_registry != nullptr);
+    self().start_structure(name);
     if(value) {
-      auto& entry = m_typeRegistry->GetEntry(*value);
-      static_cast<Sender*>(this)->Send("__type", entry.GetName(), 0);
-      static_cast<Sender*>(this)->Send("__version", version);
-      entry.Send(*static_cast<Sender*>(this), value, version);
+      auto& entry = m_registry->get_entry(*value);
+      self().send("__type", entry.get_name());
+      self().send("__version", version);
+      entry.send(self(), value, version);
     } else {
       static const auto NULL_TYPE_NAME = std::string("__null");
-      static_cast<Sender*>(this)->Send("__type", NULL_TYPE_NAME, 0);
+      self().send("__type", NULL_TYPE_NAME);
     }
-    static_cast<Sender*>(this)->EndStructure();
+    self().end_structure();
   }
 
   template<typename S>
   template<typename T>
-  std::enable_if_t<IsStructure<T>::value> SenderMixin<S>::Send(const char* name,
-      const SerializedValue<T>& value, unsigned int version) {
-    Send(*value);
+  void SenderMixin<S>::send(const char* name, const SerializedValue<T>& value) {
+    send(*value);
+  }
+
+  template<typename S>
+  typename SenderMixin<S>::Sender& SenderMixin<S>::self() {
+    return *static_cast<Sender*>(this);
   }
 }
 

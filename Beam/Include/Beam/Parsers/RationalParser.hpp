@@ -2,14 +2,14 @@
 #define BEAM_RATIONAL_PARSER_HPP
 #include <cctype>
 #include <boost/rational.hpp>
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
    * Matches a rational value.
-   * @param <I> The integral type used for the numerator/denominator.
+   * @tparam I The integral type used for the numerator/denominator.
    */
   template<typename I>
   class RationalParser {
@@ -17,16 +17,18 @@ namespace Beam::Parsers {
       using Integral = I;
       using Result = boost::rational<Integral>;
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
+  /** The default parser for boost::rational<int>. */
+  inline const auto rational_p = RationalParser<int>();
+
   template<typename I>
-  template<typename Stream>
-  bool RationalParser<I>::Read(Stream& source, Result& value) const {
+  template<IsParserStream S>
+  bool RationalParser<I>::read(S& source, Result& value) const {
     enum {
       START,
       TERMINAL,
@@ -34,57 +36,57 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream<Stream>(source);
+    auto context = SubParserStream<S>(source);
     auto numerator = Integral(0);
     auto denominator = Integral(0);
     auto sign = Integral();
     auto count = std::size_t(1);
-    if(!context.Read()) {
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == '-') {
+    if(context.peek() == '-') {
       sign = -1;
-      if(!context.Read()) {
+      if(!context.read()) {
         return false;
       }
     } else {
       sign = 1;
     }
-    if(std::isdigit(context.GetChar())) {
-      numerator = context.GetChar() - '0';
+    if(std::isdigit(context.peek())) {
+      numerator = context.peek() - '0';
       state = INTEGER_DIGITS;
     } else {
       return false;
     }
     while(state != TERMINAL) {
-      if(!context.Read()) {
+      if(!context.read()) {
         state = TERMINAL;
         continue;
       }
       if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
-          numerator = 10 * numerator + (context.GetChar() - '0');
-        } else if(context.GetChar() == '.') {
+        if(std::isdigit(context.peek())) {
+          numerator = 10 * numerator + (context.peek() - '0');
+        } else if(context.peek() == '.') {
           state = START_DECIMAL;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
       } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.GetChar())) {
-          denominator = (context.GetChar() - '0');
+        if(std::isdigit(context.peek())) {
+          denominator = (context.peek() - '0');
           count = 10;
           state = DECIMAL_DIGITS;
         } else {
           break;
         }
       } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
-          denominator = 10 * denominator + (context.GetChar() - '0');
+        if(std::isdigit(context.peek())) {
+          denominator = 10 * denominator + (context.peek() - '0');
           count *= 10;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
@@ -93,18 +95,18 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
-    auto parsedNumerator = sign * (count * numerator + denominator);
-    auto parsedDenominator = count;
-    auto divisor = boost::gcd(parsedNumerator, parsedDenominator);
-    value.assign(static_cast<Integral>(parsedNumerator / divisor),
-      static_cast<Integral>(parsedDenominator / divisor));
+    context.accept();
+    auto parsed_numerator = sign * (count * numerator + denominator);
+    auto parsed_denominator = count;
+    auto divisor = boost::gcd(parsed_numerator, parsed_denominator);
+    value.assign(static_cast<Integral>(parsed_numerator / divisor),
+      static_cast<Integral>(parsed_denominator / divisor));
     return true;
   }
 
   template<typename I>
-  template<typename Stream>
-  bool RationalParser<I>::Read(Stream& source) const {
+  template<IsParserStream S>
+  bool RationalParser<I>::read(S& source) const {
     enum {
       START,
       TERMINAL,
@@ -113,49 +115,49 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == '-') {
-      if(!context.Read()) {
+    if(context.peek() == '-') {
+      if(!context.read()) {
         return false;
       }
     }
-    if(std::isdigit(context.GetChar())) {
+    if(std::isdigit(context.peek())) {
       state = INTEGER_DIGITS;
     } else {
       return false;
     }
-    while(context.Read()) {
+    while(context.read()) {
       if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           continue;
-        } else if(context.GetChar() == '.') {
+        } else if(context.peek() == '.') {
           state = START_DECIMAL;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
       } else if(state == END_INTEGER) {
-        if(context.GetChar() == '.') {
+        if(context.peek() == '.') {
           state = START_DECIMAL;
         } else {
           state = TERMINAL;
           break;
         }
       } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           state = DECIMAL_DIGITS;
         } else {
           break;
         }
       } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           continue;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
@@ -164,7 +166,7 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
+    context.accept();
     return true;
   }
 }

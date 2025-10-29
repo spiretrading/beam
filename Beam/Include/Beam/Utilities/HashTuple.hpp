@@ -2,7 +2,6 @@
 #define BEAM_HASH_TUPLE_HPP
 #include <tuple>
 #include <boost/functional/hash/hash.hpp>
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 namespace Details {

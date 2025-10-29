@@ -2,79 +2,42 @@
 #define BEAM_NULL_DECODER_HPP
 #include <cstring>
 #include <boost/throw_exception.hpp>
-#include "Beam/Codecs/Codecs.hpp"
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
 #include "Beam/IO/Buffer.hpp"
 
 namespace Beam {
-namespace Codecs {
+  class NullEncoder;
 
-  /** A Decoder that leaves the data 'as-is'. */
+  /** A Decoder that leaves the data as-is. */
   class NullDecoder {
     public:
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Decode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer T>
+      std::size_t decode(const S& source, Out<T> destination);
   };
 
   template<>
-  struct InPlaceSupport<NullDecoder> : std::true_type {};
+  struct in_place_support<NullDecoder> : std::true_type {};
 
   template<>
-  struct Inverse<NullDecoder> {
+  struct inverse<NullDecoder> {
     using type = NullEncoder;
   };
 
-  inline std::size_t NullDecoder::Decode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    if(source == destination) {
-      return sourceSize;
+  template<IsConstBuffer S, IsBuffer T>
+  std::size_t NullDecoder::decode(const S& source, Out<T> destination) {
+    if(source.get_data() == destination->get_data()) {
+      return source.get_size();
     }
-    if(destinationSize < sourceSize) {
-      BOOST_THROW_EXCEPTION(DecoderException(
+    auto available_size = reserve(*destination, source.get_size());
+    if(available_size < source.get_size()) {
+      boost::throw_with_location(DecoderException(
         "The destination was not large enough to hold the decoded data."));
     }
-    std::memcpy(destination, source, sourceSize);
-    return sourceSize;
+    std::memcpy(
+      destination->get_mutable_data(), source.get_data(), source.get_size());
+    return source.get_size();
   }
-
-  template<typename Buffer>
-  std::size_t NullDecoder::Decode(const Buffer& source, void* destination,
-      std::size_t destinationSize) {
-    return Decode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename Buffer>
-  std::size_t NullDecoder::Decode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination) {
-    destination->Reserve(sourceSize);
-    return Decode(source, sourceSize, destination->GetMutableData(),
-      destination->GetSize());
-  }
-
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t NullDecoder::Decode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination) {
-    return Decode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<>
-  struct ImplementsConcept<Codecs::NullDecoder, Codecs::Decoder> :
-    std::true_type {};
 }
 
 #endif

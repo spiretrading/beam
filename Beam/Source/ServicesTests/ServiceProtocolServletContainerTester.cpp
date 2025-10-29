@@ -12,45 +12,35 @@
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
 #include "Beam/ServicesTests/TestServlet.hpp"
-#include "Beam/Threading/TriggerTimer.hpp"
+#include "Beam/TimeService/TriggerTimer.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::IO;
-using namespace Beam::Routines;
-using namespace Beam::Serialization;
-using namespace Beam::Services;
-using namespace Beam::Services::Tests;
-using namespace Beam::Threading;
+using namespace Beam::Tests;
 using namespace boost;
 
 namespace {
-  using TestServerConnection = LocalServerConnection<SharedBuffer>;
-  using TestClientChannel = LocalClientChannel<SharedBuffer>;
   using TestServiceProtocolServletContainer = ServiceProtocolServletContainer<
-    MetaTestServlet, TestServerConnection*, BinarySender<SharedBuffer>,
+    MetaTestServlet, LocalServerConnection*, BinarySender<SharedBuffer>,
     NullEncoder, std::shared_ptr<TriggerTimer>>;
-  using ClientServiceProtocolClient = ServiceProtocolClient<
-    MessageProtocol<TestClientChannel, BinarySender<SharedBuffer>, NullEncoder>,
-    TriggerTimer>;
+  using ClientServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
+    LocalClientChannel, BinarySender<SharedBuffer>, NullEncoder>, TriggerTimer>;
 
   struct Fixture {
-    TestServerConnection m_serverConnection;
+    LocalServerConnection m_server_connection;
     TestServiceProtocolServletContainer m_container;
-    ClientServiceProtocolClient m_clientProtocol;
+    ClientServiceProtocolClient m_client_protocol;
 
     Fixture()
-        : m_container(Initialize(), &m_serverConnection,
+        : m_container(init(), &m_server_connection,
             factory<std::shared_ptr<TriggerTimer>>()),
-          m_clientProtocol(Initialize("test", m_serverConnection),
-            Initialize()) {
-      RegisterTestServices(Store(m_clientProtocol.GetSlots()));
+          m_client_protocol(init("test", m_server_connection), init()) {
+      register_test_services(out(m_client_protocol.get_slots()));
     }
   };
 }
 
 TEST_SUITE("ServiceProtocolServletContainer") {
   TEST_CASE_FIXTURE(Fixture, "void_return_type") {
-    m_clientProtocol.SendRequest<VoidService>(123);
+    m_client_protocol.send_request<VoidService>(123);
   }
 }

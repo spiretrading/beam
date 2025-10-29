@@ -1,12 +1,10 @@
 #ifndef BEAM_SCOPED_BASE_QUEUE_HPP
 #define BEAM_SCOPED_BASE_QUEUE_HPP
 #include <memory>
-#include <type_traits>
-#include <utility>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
@@ -19,43 +17,36 @@ namespace Beam {
     public:
 
       /** The type of BaseQueue being handled. */
-      using BaseQueue = GetTryDereferenceType<Q>;
+      using BaseQueue = dereference_t<Q>;
 
       /**
        * Constructs a ScopedBaseQueue.
        * @param queue The BaseQueue to manage.
        */
-      template<typename QF, typename = std::enable_if_t<
-        !std::is_base_of_v<ScopedBaseQueue, std::decay_t<QF>>>>
+      template<Initializes<Q> QF,
+        typename = disable_copy_constructor_t<ScopedBaseQueue, QF>>
       ScopedBaseQueue(QF&& queue);
 
       template<typename U>
       ScopedBaseQueue(ScopedBaseQueue<U>&& queue);
-
-      ScopedBaseQueue(ScopedBaseQueue&& queue);
-
       ~ScopedBaseQueue() override;
 
-      void Break(const std::exception_ptr& e) override;
-
-      ScopedBaseQueue& operator =(ScopedBaseQueue&& queue);
-
+      void close(const std::exception_ptr& e) override;
       template<typename U>
       ScopedBaseQueue& operator =(ScopedBaseQueue<U>&& queue);
-
-      using Beam::BaseQueue::Break;
+      using Beam::BaseQueue::close;
 
     private:
       template<typename> friend class ScopedBaseQueue;
-      GetOptionalLocalPtr<Q> m_queue;
+      local_ptr_t<Q> m_queue;
   };
 
-  template<typename Q, typename = std::enable_if_t<
-    !std::is_base_of_v<ScopedBaseQueue<std::decay_t<Q>>, std::decay_t<Q>>>>
-  ScopedBaseQueue(Q&&) -> ScopedBaseQueue<std::decay_t<Q>>;
+  template<typename Q, typename = disable_copy_constructor_t<
+    ScopedBaseQueue<std::remove_cvref_t<Q>>, Q>>
+  ScopedBaseQueue(Q&&) -> ScopedBaseQueue<std::remove_cvref_t<Q>>;
 
   template<typename Q>
-  template<typename QF, typename>
+  template<Initializes<Q> QF, typename>
   ScopedBaseQueue<Q>::ScopedBaseQueue(QF&& queue)
     : m_queue(std::forward<QF>(queue)) {}
 
@@ -65,35 +56,24 @@ namespace Beam {
     : m_queue(std::move(queue.m_queue)) {}
 
   template<typename Q>
-  ScopedBaseQueue<Q>::ScopedBaseQueue(ScopedBaseQueue&& queue)
-    : m_queue(std::move(queue.m_queue)) {}
-
-  template<typename Q>
   ScopedBaseQueue<Q>::~ScopedBaseQueue() {
     if(m_queue) {
-      m_queue->Break();
+      m_queue->close();
     }
   }
 
   template<typename Q>
-  void ScopedBaseQueue<Q>::Break(const std::exception_ptr& e) {
+  void ScopedBaseQueue<Q>::close(const std::exception_ptr& e) {
     if(m_queue) {
-      m_queue->Break(e);
+      m_queue->close(e);
     }
-  }
-
-  template<typename Q>
-  ScopedBaseQueue<Q>& ScopedBaseQueue<Q>::operator =(ScopedBaseQueue&& queue) {
-    Break();
-    m_queue = std::move(queue.m_queue);
-    return *this;
   }
 
   template<typename Q>
   template<typename U>
   ScopedBaseQueue<Q>& ScopedBaseQueue<Q>::operator =(
       ScopedBaseQueue<U>&& queue) {
-    Break();
+    close();
     m_queue = std::move(queue.m_queue);
     return *this;
   }

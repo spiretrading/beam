@@ -1,79 +1,81 @@
 #ifndef BEAM_PYTHON_THREADING_HPP
 #define BEAM_PYTHON_THREADING_HPP
+#include <string_view>
 #include <type_traits>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
-#include "Beam/Threading/TimerBox.hpp"
-#include "Beam/Utilities/DllExport.hpp"
+#include "Beam/Python/GilRelease.hpp"
+#include "Beam/Threading/Sync.hpp"
 
 namespace Beam::Python {
-
-  /** Returns the exported TimerBox. */
-  BEAM_EXPORT_DLL pybind11::class_<Threading::TimerBox>& GetExportedTimerBox();
 
   /**
    * Exports the ConditionVariable class.
    * @param module The module to export to.
    */
-  void ExportConditionVariable(pybind11::module& module);
-
-  /**
-   * Exports the LiveTimer class.
-   * @param module The module to export to.
-   */
-  void ExportLiveTimer(pybind11::module& module);
+  void export_condition_variable(pybind11::module& module);
 
   /**
    * Exports the Mutex class.
    * @param module The module to export to.
    */
-  void ExportMutex(pybind11::module& module);
+  void export_mutex(pybind11::module& module);
 
   /**
    * Exports the RecursiveMutex class.
    * @param module The module to export to.
    */
-  void ExportRecursiveMutex(pybind11::module& module);
+  void export_recursive_mutex(pybind11::module& module);
+
+  /**
+   * Exports the Sync template.
+   * @param module The module to export to.
+   * @param name The name of the class to export.
+   */
+  template<typename T>
+  void export_sync(pybind11::module& module, std::string_view name) {
+    pybind11::class_<Sync<T>>(module, name.data()).
+      def(pybind11::init()).
+      def(pybind11::init<const T&>()).
+      def("load", &Sync<T>::load).
+      def("apply",
+        [] (Sync<T>& self, const std::function<pybind11::object (T&)>& f) {
+          return self.with(f);
+        }, pybind11::call_guard<GilRelease>());
+    module.def("apply",
+      [] (Sync<T>& sync, const std::function<pybind11::object (T&)>& f) {
+        return with(sync, f);
+      }, pybind11::call_guard<GilRelease>());
+    module.def("apply",
+      [] (const Sync<T>& sync,
+          const std::function<pybind11::object (const T&)>& f) {
+        return with(sync, f);
+      }, pybind11::call_guard<GilRelease>());
+  }
+
+  /**
+   * Exports the TaskRunner class.
+   * @param module The module to export to.
+   */
+  void export_task_runner(pybind11::module& module);
+
+  /**
+   * Exports the ThreadPool class.
+   * @param module The module to export to.
+   */
+  void export_thread_pool(pybind11::module& module);
+
+  /**
+   * Exports the TimedConditionVariable class.
+   * @param module The module to export to.
+   */
+  void export_timed_condition_variable(pybind11::module& module);
 
   /**
    * Exports the Threading namespace.
    * @param module The module to export to.
    */
-  void ExportThreading(pybind11::module& module);
-
-  /**
-   * Exports the TriggerTimer class.
-   * @param module The module to export to.
-   */
-  void ExportTriggerTimer(pybind11::module& module);
-
-  /**
-   * Exports a Timer class.
-   * @param <Timer> The type of Timer to export.
-   * @param module The module to export to.
-   * @param name The name of the class.
-   * @return The exported Timer.
-   */
-  template<typename Timer>
-  auto ExportTimer(pybind11::module& module, const std::string& name) {
-    auto timer = pybind11::class_<Timer, std::shared_ptr<Timer>>(module,
-      name.c_str()).
-      def("start", &Timer::Start).
-      def("cancel", &Timer::Cancel).
-      def("wait", &Timer::Wait).
-      def("get_publisher", &Timer::GetPublisher,
-        pybind11::return_value_policy::reference_internal);
-    if constexpr(!std::is_same_v<Timer, Threading::TimerBox>) {
-      pybind11::implicitly_convertible<Timer, Threading::TimerBox>();
-      GetExportedTimerBox().def(pybind11::init<std::shared_ptr<Timer>>());
-    } else {
-      pybind11::enum_<Threading::Timer::Result::Type>(timer, "Result").
-        value("NONE", Threading::Timer::Result::NONE).
-        value("EXPIRED", Threading::Timer::Result::EXPIRED).
-        value("CANCELED", Threading::Timer::Result::CANCELED).
-        value("FAIL", Threading::Timer::Result::FAIL);
-    }
-    return timer;
-  }
+  void export_threading(pybind11::module& module);
 }
 
 #endif

@@ -2,17 +2,14 @@
 #define BEAM_QUERIES_SET_VARIABLE_EXPRESSION_HPP
 #include <string>
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/DataType.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Sets the value of a variable. */
-  class SetVariableExpression :
-      public VirtualExpression, public CloneableMixin<SetVariableExpression> {
+  class SetVariableExpression : public VirtualExpression {
     public:
 
       /**
@@ -22,74 +19,67 @@ namespace Beam::Queries {
        */
       SetVariableExpression(std::string name, Expression value);
 
-      /**
-       * Copies a SetVariableExpression.
-       * @param expression The SetVariableExpression to copy.
-       */
-      SetVariableExpression(const SetVariableExpression& expression) = default;
-
       /** Returns the name of the variable to set. */
-      const std::string& GetName() const;
+      const std::string& get_name() const;
 
       /** Returns the value to set the variable to. */
-      const Expression& GetValue() const;
+      const Expression& get_value() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
+      friend struct DataShuttle;
       std::string m_name;
       Expression m_value;
 
       SetVariableExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
-  inline SetVariableExpression::SetVariableExpression(std::string name,
-    Expression value)
+  inline SetVariableExpression::SetVariableExpression(
+    std::string name, Expression value)
     : m_name(std::move(name)),
       m_value(std::move(value)) {}
 
-  inline const std::string& SetVariableExpression::GetName() const {
+  inline const std::string& SetVariableExpression::get_name() const {
     return m_name;
   }
 
-  inline const Expression& SetVariableExpression::GetValue() const {
+  inline const Expression& SetVariableExpression::get_value() const {
     return m_value;
   }
 
-  inline const DataType& SetVariableExpression::GetType() const {
-    return m_value->GetType();
+  inline std::type_index SetVariableExpression::get_type() const {
+    return m_value.get_type();
   }
 
-  inline void SetVariableExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void SetVariableExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& SetVariableExpression::ToStream(
+  inline std::ostream& SetVariableExpression::to_stream(
       std::ostream& out) const {
-    return out << "(set " << m_name << " " << *m_value << ")";
+    return out << "(set " << m_name << ' ' << m_value << ')';
   }
 
   inline SetVariableExpression::SetVariableExpression()
     : m_value(ConstantExpression(false)) {}
 
-  template<typename Shuttler>
-  void SetVariableExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("name", m_name);
-    shuttle.Shuttle("value", m_value);
+  template<IsShuttle S>
+  void SetVariableExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("name", m_name);
+    shuttle.shuttle("value", m_value);
   }
 
-  inline void ExpressionVisitor::Visit(
+  inline void ExpressionVisitor::visit(
       const SetVariableExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

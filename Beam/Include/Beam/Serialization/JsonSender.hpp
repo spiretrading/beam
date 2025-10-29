@@ -6,11 +6,11 @@
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
+#include "Beam/Utilities/FixedString.hpp"
 
 namespace Beam {
-namespace Serialization {
 namespace Details {
-  inline std::string JsonEscape(const std::string& source) {
+  inline std::string escape_json(const std::string& source) {
     auto result = std::string();
     for(auto c : source) {
       if(c == '\\') {
@@ -34,16 +34,15 @@ namespace Details {
     return result;
   }
 }
+  template<IsConstBuffer> class JsonReceiver;
 
   /**
    * Implements a Sender using JSON.
-   * @param <S> The type of Buffer to send the data to.
+   * @tparam S The type of Buffer to send the data to.
    */
-  template<typename S>
+  template<IsBuffer S>
   class JsonSender : public SenderMixin<JsonSender<S>> {
     public:
-      static_assert(ImplementsConcept<S, IO::Buffer>::value,
-        "Sink must implement the Buffer Concept.");
       using Sink = S;
 
       /** Constructs a JsonSender. */
@@ -55,231 +54,207 @@ namespace Details {
        */
       JsonSender(Ref<const TypeRegistry<JsonSender>> registry);
 
-      void SetSink(Ref<Sink> sink);
-
-      void Send(const char* name, const unsigned char& value);
-
-      void Send(const char* name, const signed char& value);
-
-      void Send(const char* name, const char& value);
-
-      void Send(const char* name, const bool& value);
-
-      template<typename T>
-      std::enable_if_t<std::is_fundamental_v<T>> Send(
-        const char* name, const T& value);
-
-      template<typename T>
-      std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> Send(
-        const char* name, const T& value);
-
-      void Send(const char* name, const std::string& value,
-        unsigned int version);
-
+      void set(Ref<Sink> sink);
+      void send(const char* name, const unsigned char& value);
+      void send(const char* name, const signed char& value);
+      void send(const char* name, const char& value);
+      void send(const char* name, const bool& value);
+      template<typename T> requires std::is_fundamental_v<T>
+      void send(const char* name, const T& value);
+      template<IsConstBuffer T>
+      void send(const char* name, const T& value);
+      void send(const char* name, const std::string& value);
       template<std::size_t N>
-      void Send(const char* name, const FixedString<N>& value,
-        unsigned int version);
+      void send(
+        const char* name, const FixedString<N>& value, unsigned int version);
+      void start_structure(const char* name);
+      void end_structure();
+      void start_sequence(const char* name, const int& size);
+      void start_sequence(const char* name);
+      void end_sequence();
+      using SenderMixin<JsonSender>::shuttle;
+      using SenderMixin<JsonSender>::send;
 
-      void StartStructure(const char* name);
-
-      void EndStructure();
-
-      void StartSequence(const char* name, const int& size);
-
-      void StartSequence(const char* name);
-
-      void EndSequence();
-
-      using SenderMixin<JsonSender>::Send;
-      using SenderMixin<JsonSender>::Shuttle;
     private:
       Sink* m_sink;
-      bool m_appendComma;
+      bool m_append_comma;
+  };
+
+  template<typename S>
+  struct inverse<JsonSender<S>> {
+    using type = JsonReceiver<S>;
   };
 
   /** Converts an object to its JSON representation. */
   template<typename T>
-  std::string ToJson(const T& object) {
-    auto sender = JsonSender<IO::SharedBuffer>();
-    auto buffer = IO::SharedBuffer();
-    sender.SetSink(Ref(buffer));
-    sender.Send(object);
-    return std::string(buffer.GetData(), buffer.GetSize());
+  std::string to_json(const T& object) {
+    auto sender = JsonSender<SharedBuffer>();
+    auto buffer = SharedBuffer();
+    sender.set(Ref(buffer));
+    sender.send(object);
+    return std::string(buffer.get_data(), buffer.get_size());
   }
 
-  template<typename S>
+  template<IsBuffer S>
   JsonSender<S>::JsonSender()
-    : m_appendComma(false) {}
+    : m_append_comma(false) {}
 
-  template<typename S>
+  template<IsBuffer S>
   JsonSender<S>::JsonSender(Ref<const TypeRegistry<JsonSender>> registry)
     : SenderMixin<JsonSender>(Ref(registry)),
-      m_appendComma(false) {}
+      m_append_comma(false) {}
 
-  template<typename S>
-  void JsonSender<S>::SetSink(Ref<Sink> sink) {
-    m_appendComma = false;
-    m_sink = sink.Get();
+  template<IsBuffer S>
+  void JsonSender<S>::set(Ref<Sink> sink) {
+    m_append_comma = false;
+    m_sink = sink.get();
   }
 
-  template<typename S>
-  void JsonSender<S>::Send(const char* name, const unsigned char& value) {
-    Send(name, static_cast<int>(value));
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const unsigned char& value) {
+    send(name, static_cast<int>(value));
   }
 
-  template<typename S>
-  void JsonSender<S>::Send(const char* name, const signed char& value) {
-    Send(name, static_cast<int>(value));
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const signed char& value) {
+    send(name, static_cast<int>(value));
   }
 
-  template<typename S>
-  void JsonSender<S>::Send(const char* name, const char& value) {
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const char& value) {
     if(value == '\0') {
-      Send(name, static_cast<int>(value));
+      send(name, static_cast<int>(value));
       return;
     }
-    if(m_appendComma) {
-      m_sink->Append(',');
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
-    m_sink->Append('\"');
-    m_sink->Append(value);
-    m_sink->Append('\"');
-    m_appendComma = true;
+    append(*m_sink, '\"');
+    append(*m_sink, value);
+    append(*m_sink, '\"');
+    m_append_comma = true;
   }
 
-  template<typename S>
-  void JsonSender<S>::Send(const char* name, const bool& value) {
-    if(m_appendComma) {
-      m_sink->Append(',');
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const bool& value) {
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
     if(value) {
-      m_sink->Append("true", 4);
+      append(*m_sink, "true", 4);
     } else {
-      m_sink->Append("false", 5);
+      append(*m_sink, "false", 5);
     }
-    m_appendComma = true;
+    m_append_comma = true;
   }
 
-  template<typename S>
-  template<typename T>
-  std::enable_if_t<std::is_fundamental_v<T>> JsonSender<S>::Send(
-      const char* name, const T& value) {
-    if(m_appendComma) {
-      m_sink->Append(',');
+  template<IsBuffer S>
+  template<typename T> requires std::is_fundamental_v<T>
+  void JsonSender<S>::send(const char* name, const T& value) {
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
     auto v = std::to_string(value);
-    m_sink->Append(v.c_str(), v.size());
-    m_appendComma = true;
+    append(*m_sink, v.c_str(), v.size());
+    m_append_comma = true;
   }
 
-  template<typename S>
-  template<typename T>
-  std::enable_if_t<ImplementsConcept<T, IO::Buffer>::value> JsonSender<S>::Send(
-      const char* name, const T& value) {
-    auto base64String = IO::Base64Encode(value);
-    Send(name, base64String);
+  template<IsBuffer S>
+  template<IsConstBuffer T>
+  void JsonSender<S>::send(const char* name, const T& value) {
+    auto base64 = encode_base64(value);
+    send(name, base64);
   }
 
-  template<typename S>
-  void JsonSender<S>::Send(const char* name, const std::string& value,
-      unsigned int version) {
-    if(m_appendComma) {
-      m_sink->Append(',');
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const std::string& value) {
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
-    m_sink->Append('\"');
-    auto escapedValue = Details::JsonEscape(value);
-    m_sink->Append(escapedValue.c_str(), escapedValue.size());
-    m_sink->Append('\"');
-    m_appendComma = true;
+    append(*m_sink, '\"');
+    auto escaped_value = Details::escape_json(value);
+    append(*m_sink, escaped_value.c_str(), escaped_value.size());
+    append(*m_sink, '\"');
+    m_append_comma = true;
   }
 
-  template<typename S>
+  template<IsBuffer S>
   template<std::size_t N>
-  void JsonSender<S>::Send(const char* name, const FixedString<N>& value,
-      unsigned int version) {
-    Send(name, std::string(value.GetData()));
+  void JsonSender<S>::send(
+      const char* name, const FixedString<N>& value, unsigned int version) {
+    send(name, std::string(value.get_data()));
   }
 
-  template<typename S>
-  void JsonSender<S>::StartStructure(const char* name) {
-    if(m_appendComma) {
-      m_sink->Append(',');
+  template<IsBuffer S>
+  void JsonSender<S>::start_structure(const char* name) {
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
-    m_sink->Append('{');
-    m_appendComma = false;
+    append(*m_sink, '{');
+    m_append_comma = false;
   }
 
-  template<typename S>
-  void JsonSender<S>::EndStructure() {
-    m_sink->Append('}');
-    m_appendComma = true;
+  template<IsBuffer S>
+  void JsonSender<S>::end_structure() {
+    append(*m_sink, '}');
+    m_append_comma = true;
   }
 
-  template<typename S>
-  void JsonSender<S>::StartSequence(const char* name, const int& size) {
-    StartSequence(name);
+  template<IsBuffer S>
+  void JsonSender<S>::start_sequence(const char* name, const int& size) {
+    start_sequence(name);
   }
 
-  template<typename S>
-  void JsonSender<S>::StartSequence(const char* name) {
-    if(m_appendComma) {
-      m_sink->Append(',');
+  template<IsBuffer S>
+  void JsonSender<S>::start_sequence(const char* name) {
+    if(m_append_comma) {
+      append(*m_sink, ',');
     }
     if(name) {
-      m_sink->Append('\"');
-      m_sink->Append(name, std::strlen(name));
-      m_sink->Append('\"');
-      m_sink->Append(':');
+      append(*m_sink, '\"');
+      append(*m_sink, name, std::strlen(name));
+      append(*m_sink, '\"');
+      append(*m_sink, ':');
     }
-    m_sink->Append('[');
-    m_appendComma = false;
+    append(*m_sink, '[');
+    m_append_comma = false;
   }
 
-  template<typename S>
-  void JsonSender<S>::EndSequence() {
-    m_sink->Append(']');
-    m_appendComma = true;
+  template<IsBuffer S>
+  void JsonSender<S>::end_sequence() {
+    append(*m_sink, ']');
+    m_append_comma = true;
   }
-
-  template<typename S>
-  struct Inverse<JsonSender<S>> {
-    using type = JsonReceiver<S>;
-  };
-}
-
-  template<typename S>
-  struct ImplementsConcept<Serialization::JsonSender<S>,
-    Serialization::Sender<S>> : std::true_type {};
 }
 
 #endif

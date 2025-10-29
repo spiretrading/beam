@@ -1,17 +1,19 @@
 #ifndef BEAM_SERVICE_SLOTS_HPP
 #define BEAM_SERVICE_SLOTS_HPP
+#include <concepts>
 #include <memory>
 #include <unordered_map>
 #include "Beam/Serialization/TypeNotFoundException.hpp"
+#include "Beam/Serialization/TypeRegistry.hpp"
+#include "Beam/Services/HeartbeatMessage.hpp"
 #include "Beam/Services/RequestToken.hpp"
-#include "Beam/Services/Services.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /**
    * Stores the slots to call/dispatch to when receiving messages.
-   * @param <C> The type of ServiceProtocolClient receiving the messages to
+   * @tparam C The type of ServiceProtocolClient receiving the messages to
    *        dispatch on.
    */
   template<typename C>
@@ -24,17 +26,16 @@ namespace Beam::Services {
       /** Constructs a ServiceSlots. */
       ServiceSlots();
 
-      /** Moves a ServiceSlots. */
-      ServiceSlots(ServiceSlots&& slots);
+      ServiceSlots(ServiceSlots&& slots) = default;
 
       /** Returns the TypeRegistry containing all service types. */
-      Serialization::TypeRegistry<
-        typename ServiceProtocolClient::MessageProtocol::Sender>& GetRegistry();
+      TypeRegistry<typename ServiceProtocolClient::MessageProtocol::Sender>&
+        get_registry();
 
       /** Returns the TypeRegistry containing all service types. */
-      const Serialization::TypeRegistry<
+      const TypeRegistry<
         typename ServiceProtocolClient::MessageProtocol::Sender>&
-          GetRegistry() const;
+          get_registry() const;
 
       /**
        * Returns the slot associated with a Message.
@@ -42,43 +43,42 @@ namespace Beam::Services {
        * @return The slot associated with the type of <i>message</i> or nullptr
        *         iff no such slot exists.
        */
-      BaseServiceSlot<ServiceProtocolClient>* Find(
+      BaseServiceSlot<ServiceProtocolClient>* find(
         const Message<ServiceProtocolClient>& message) const;
 
       /**
        * Adds a slot to be associated with a Message.
-       * @param <MessageType> The type of Message to associate the slot with.
+       * @tparam MessageType The type of Message to associate the slot with.
        * @param slot The slot to associate with the Message.
        */
       template<typename Slot>
-      void Add(std::unique_ptr<Slot> slot);
+      void add(std::unique_ptr<Slot> slot);
 
       /**
        * Adds all slots stored in another ServiceSlots instance.
        * @param slots The ServiceSlots to acquire.
        */
-      void Add(ServiceSlots&& slots);
+      void add(ServiceSlots&& slots);
 
       /**
        * Adds a slot to be associated with a Message.
-       * @param <MessageType> The type of Message to associate the slot with.
+       * @tparam MessageType The type of Message to associate the slot with.
        * @param slot The slot to associate with the Message.
        */
       template<typename MessageType, typename SlotForward>
-      void Add(SlotForward&& slot);
+      void add(SlotForward&& slot);
 
       /**
        * Applies a function to all ServiceSlots.
        * @param f The function to apply.
        */
-      template<typename F>
-      void Apply(F&& f);
+      template<std::invocable<const std::string&, BaseServiceSlot<C>&> F>
+      void apply(F f);
 
-      /** Moves a ServiceSlots. */
-      ServiceSlots& operator =(ServiceSlots&& slots);
+      ServiceSlots& operator =(ServiceSlots&& slots) = default;
 
     private:
-      Serialization::TypeRegistry<
+      TypeRegistry<
         typename ServiceProtocolClient::MessageProtocol::Sender> m_registry;
       std::unordered_map<std::string,
         std::unique_ptr<BaseServiceSlot<ServiceProtocolClient>>> m_slots;
@@ -89,83 +89,71 @@ namespace Beam::Services {
 
   template<typename C>
   ServiceSlots<C>::ServiceSlots() {
-    m_registry.template Register<ServiceRequestException>(
+    m_registry.template add<ServiceRequestException>(
       "Beam.Services.ServiceRequestException");
-    m_registry.template Register<HeartbeatMessage<ServiceProtocolClient>>(
+    m_registry.template add<HeartbeatMessage<ServiceProtocolClient>>(
       "Beam.Services.HeartbeatMessage");
   }
 
   template<typename C>
-  ServiceSlots<C>::ServiceSlots(ServiceSlots&& slots)
-    : m_registry(std::move(slots.m_registry)),
-      m_slots(std::move(slots.m_slots)) {}
-
-  template<typename C>
-  Serialization::TypeRegistry<
-      typename ServiceSlots<C>::ServiceProtocolClient::MessageProtocol::Sender>&
-      ServiceSlots<C>::GetRegistry() {
+  TypeRegistry<
+    typename ServiceSlots<C>::ServiceProtocolClient::MessageProtocol::Sender>&
+      ServiceSlots<C>::get_registry() {
     return m_registry;
   }
 
   template<typename C>
-  const Serialization::TypeRegistry<
-      typename ServiceSlots<C>::ServiceProtocolClient::MessageProtocol::Sender>&
-      ServiceSlots<C>::GetRegistry() const {
+  const TypeRegistry<
+    typename ServiceSlots<C>::ServiceProtocolClient::MessageProtocol::Sender>&
+      ServiceSlots<C>::get_registry() const {
     return m_registry;
   }
 
   template<typename C>
   BaseServiceSlot<typename ServiceSlots<C>::ServiceProtocolClient>*
-      ServiceSlots<C>::Find(
+    ServiceSlots<C>::find(
       const Message<ServiceProtocolClient>& message) const {
     try {
-      auto& entry = m_registry.GetEntry(message);
-      auto slotIterator = m_slots.find(entry.GetName());
-      if(slotIterator == m_slots.end()) {
+      auto& entry = m_registry.get_entry(message);
+      auto i = m_slots.find(entry.get_name());
+      if(i == m_slots.end()) {
         return nullptr;
       }
-      return slotIterator->second.get();
-    } catch(const Serialization::TypeNotFoundException&) {
+      return i->second.get();
+    } catch(const TypeNotFoundException&) {
       return nullptr;
     }
   }
 
   template<typename C>
   template<typename Slot>
-  void ServiceSlots<C>::Add(std::unique_ptr<Slot> slot) {
-    auto& entry = m_registry.template GetEntry<typename Slot::Message>();
-    m_slots.insert(std::pair(entry.GetName(), std::move(slot)));
+  void ServiceSlots<C>::add(std::unique_ptr<Slot> slot) {
+    auto& entry = m_registry.template get_entry<typename Slot::Message>();
+    m_slots.insert(std::pair(entry.get_name(), std::move(slot)));
   }
 
   template<typename C>
-  void ServiceSlots<C>::Add(ServiceSlots&& slots) {
+  void ServiceSlots<C>::add(ServiceSlots&& slots) {
     for(auto& slot : slots.m_slots) {
       m_slots.insert(std::pair(slot.first, std::move(slot.second)));
     }
-    m_registry.Add(slots.m_registry);
+    m_registry.add(slots.m_registry);
     slots.m_slots.clear();
   }
 
   template<typename C>
   template<typename MessageType, typename SlotForward>
-  void ServiceSlots<C>::Add(SlotForward&& slot) {
-    return Add(std::make_unique<typename MessageType::Slot>(
+  void ServiceSlots<C>::add(SlotForward&& slot) {
+    return add(std::make_unique<typename MessageType::Slot>(
       std::forward<SlotForward>(slot)));
   }
 
   template<typename C>
-  template<typename F>
-  void ServiceSlots<C>::Apply(F&& f) {
+  template<std::invocable<const std::string&, BaseServiceSlot<C>&> F>
+  void ServiceSlots<C>::apply(F f) {
     for(auto& slot : m_slots) {
       f(slot.first, *slot.second);
     }
-  }
-
-  template<typename C>
-  ServiceSlots<C>& ServiceSlots<C>::operator =(ServiceSlots&& slots) {
-    m_registry = std::move(slots.m_registry);
-    m_slots = std::move(slots.m_slots);
-    return *this;
   }
 }
 

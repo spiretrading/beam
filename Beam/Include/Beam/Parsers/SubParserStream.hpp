@@ -1,86 +1,81 @@
 #ifndef BEAM_SUB_PARSER_STREAM_HPP
 #define BEAM_SUB_PARSER_STREAM_HPP
-#include "Beam/Parsers/Parsers.hpp"
 #include "Beam/Parsers/ParserStream.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
-   * Implements a ParserStream that wraps an existing ParserStream, useful
-   * mostly as a way to implement backtracking.
-   * @param <P> The ParserStream to wrap.
+   * Wraps an existing ParserStream to provide a local view suitable for
+   * backtracking.
+   * @tparam P The ParserStream type to wrap.
    */
-  template<typename P>
+  template<IsParserStream P>
   class SubParserStream {
     public:
 
-      /** The ParserStream to wrap. */
+      /** The type of ParserStream being wrapped. */
       using ParserStream = P;
 
       /**
-       * Constructs a SubParserStream.
+       * Constructs a SubParserStream that wraps the specified parser stream.
        * @param stream The ParserStream to wrap.
        */
-      SubParserStream(ParserStream& stream);
+      explicit SubParserStream(ParserStream& stream);
 
       ~SubParserStream();
 
-      char GetChar() const;
-
-      bool Read();
-
-      void Undo();
-
-      void Undo(std::size_t count);
-
-      void Accept();
+      char peek() const;
+      bool read();
+      void undo();
+      void undo(std::size_t count);
+      void accept();
 
     private:
       ParserStream* m_stream;
-      std::size_t m_sizeRead;
+      std::size_t m_count;
 
       SubParserStream(const SubParserStream&) = delete;
-      SubParserStream(SubParserStream&) = delete;
+      SubParserStream& operator =(const SubParserStream&) = delete;
   };
 
-  template<typename P>
+  template<IsParserStream P>
   SubParserStream<P>::SubParserStream(ParserStream& stream)
     : m_stream(&stream),
-      m_sizeRead(0) {}
+      m_count(0) {}
 
-  template<typename P>
+  template<IsParserStream P>
   SubParserStream<P>::~SubParserStream() {
-    m_stream->Undo(m_sizeRead);
+    m_stream->undo(m_count);
   }
 
-  template<typename P>
-  char SubParserStream<P>::GetChar() const {
-    return m_stream->GetChar();
+  template<IsParserStream P>
+  char SubParserStream<P>::peek() const {
+    return m_stream->peek();
   }
 
-  template<typename P>
-  bool SubParserStream<P>::Read() {
-    if(!m_stream->Read()) {
+  template<IsParserStream P>
+  bool SubParserStream<P>::read() {
+    if(!m_stream->read()) {
       return false;
     }
-    ++m_sizeRead;
+    ++m_count;
     return true;
   }
 
-  template<typename P>
-  void SubParserStream<P>::Undo() {
-    Undo(1);
+  template<IsParserStream P>
+  void SubParserStream<P>::undo() {
+    undo(1);
   }
 
-  template<typename P>
-  void SubParserStream<P>::Undo(std::size_t count) {
-    m_sizeRead -= count;
-    m_stream->Undo(count);
+  template<IsParserStream P>
+  void SubParserStream<P>::undo(std::size_t count) {
+    m_count -= count;
+    m_stream->undo(count);
   }
 
-  template<typename P>
-  void SubParserStream<P>::Accept() {
-    m_sizeRead = 0;
+  template<IsParserStream P>
+  void SubParserStream<P>::accept() {
+    m_count = 0;
   }
 }
 

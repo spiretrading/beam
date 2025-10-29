@@ -1,13 +1,12 @@
 #ifndef BEAM_SOCKET_EXCEPTION_HPP
 #define BEAM_SOCKET_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
-#include "Beam/Network/Network.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
 
-namespace Beam::Network {
+namespace Beam {
 
   /** Indicates that an operation on a socket failed. */
-  class SocketException : public IO::IOException {
+  class SocketException : public IOException {
     public:
 
       /**
@@ -19,7 +18,7 @@ namespace Beam::Network {
       SocketException(int code, const std::string& message);
 
       /** Returns the error code. */
-      int GetCode() const;
+      int get_code() const;
 
     private:
       int m_code;
@@ -29,7 +28,7 @@ namespace Beam::Network {
     : IOException(message),
       m_code(code) {}
 
-  inline int SocketException::GetCode() const {
+  inline int SocketException::get_code() const {
     return m_code;
   }
 }

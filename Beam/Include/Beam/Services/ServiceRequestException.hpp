@@ -1,16 +1,15 @@
 #ifndef BEAM_SERVICE_REQUEST_EXCEPTION_HPP
 #define BEAM_SERVICE_REQUEST_EXCEPTION_HPP
+#include <concepts>
 #include <stdexcept>
-#include <boost/exception/exception.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/IOException.hpp"
-#include "Beam/Serialization/Serialization.hpp"
-#include "Beam/Services/Services.hpp"
+#include "Beam/Serialization/DataShuttle.hpp"
 
-namespace Beam::Services {
+namespace Beam {
 
   /** Indicates a general failure to service a request. */
-  class ServiceRequestException : public std::runtime_error,
-      public boost::exception {
+  class ServiceRequestException : public std::runtime_error {
     public:
 
       /** Constructs a ServiceRequestException. */
@@ -20,17 +19,21 @@ namespace Beam::Services {
        * Constructs a ServiceRequestException.
        * @param message The reason for the exception.
        */
-      ServiceRequestException(const std::string& message);
+      explicit ServiceRequestException(const std::string& message);
 
-      virtual void Throw() const;
+      /**
+       * Throws this exception.
+       * @throws ServiceRequestException Always.
+       */
+      virtual void raise() const;
 
       const char* what() const noexcept override;
 
     protected:
-      friend struct Serialization::DataShuttle;
+      friend struct Beam::DataShuttle;
 
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
 
     private:
       std::string m_message;
@@ -41,13 +44,13 @@ namespace Beam::Services {
    * service, rethrows an appropriate nested exception with a specified message.
    * @param message The message to include in the nested exception.
    */
-  inline void RethrowNestedServiceException(const std::string& message) {
+  inline void rethrow_nested_service_exception(const std::string& message) {
     try {
       std::rethrow_exception(std::current_exception());
-    } catch(const IO::IOException&) {
-      std::throw_with_nested(IO::IOException(message));
-    } catch(const Services::ServiceRequestException&) {
-      std::throw_with_nested(Services::ServiceRequestException(message));
+    } catch(const IOException&) {
+      std::throw_with_nested(IOException(message));
+    } catch(const ServiceRequestException&) {
+      std::throw_with_nested(ServiceRequestException(message));
     } catch(const std::exception&) {
       std::throw_with_nested(std::runtime_error(message));
     }
@@ -59,10 +62,10 @@ namespace Beam::Services {
    * @param message The message to include in the nested exception.
    * @return A nested exception with the specified message.
    */
-  inline std::exception_ptr MakeNestedServiceException(
+  inline std::exception_ptr make_nested_service_exception(
       const std::string& message) {
     try {
-      RethrowNestedServiceException(message);
+      rethrow_nested_service_exception(message);
       return nullptr;
     } catch(...) {
       return std::current_exception();
@@ -76,12 +79,13 @@ namespace Beam::Services {
    * @param message The message to include in the nested exception.
    * @return The result of calling <i>f</i>.
    */
-  template<typename F>
-  decltype(auto) ServiceOrThrowWithNested(F&& f, const std::string& message) {
+  template<std::invocable<> F>
+  decltype(auto) service_or_throw_with_nested(
+      F&& f, const std::string& message) {
     try {
-      return f();
+      return std::forward<F>(f)();
     } catch(const std::exception&) {
-      RethrowNestedServiceException(message);
+      rethrow_nested_service_exception(message);
       throw;
     }
   }
@@ -94,19 +98,18 @@ namespace Beam::Services {
     : std::runtime_error(message),
       m_message(message) {}
 
-  inline void ServiceRequestException::Throw() const {
-    throw *this;
+  inline void ServiceRequestException::raise() const {
+    boost::throw_with_location(*this);
   }
 
   inline const char* ServiceRequestException::what() const noexcept {
     return m_message.c_str();
   }
 
-  template<typename Shuttler>
-  void ServiceRequestException::Shuttle(Shuttler& shuttle,
-      unsigned int version) {
+  template<IsShuttle S>
+  void ServiceRequestException::shuttle(S& shuttle, unsigned int version) {
     if(version == 0) {
-      shuttle.Shuttle("message", m_message);
+      shuttle.shuttle("message", m_message);
     }
   }
 }

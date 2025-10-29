@@ -1,15 +1,15 @@
 #ifndef BEAM_WEB_SERVICES_SQL_DEFINITIONS_HPP
 #define BEAM_WEB_SERVICES_SQL_DEFINITIONS_HPP
-#include <cstddef>
-#include <cstring>
 #include <string>
-#include <vector>
+#include <boost/throw_exception.hpp>
 #include <Viper/Row.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/WebServices/SessionDataStoreException.hpp"
-#include "Beam/WebServices/WebServices.hpp"
+#include "Beam/Serialization/Receiver.hpp"
+#include "Beam/Serialization/Sender.hpp"
+#include "Beam/Sql/Conversions.hpp"
+#include "Beam/WebServices/WebSessionDataStoreException.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /** Represents a session stored in SQL. */
   struct SqlSession {
@@ -18,11 +18,11 @@ namespace Beam::WebServices {
     std::string m_id;
 
     /** The session data. */
-    IO::SharedBuffer m_session;
+    SharedBuffer m_session;
   };
 
-  //! Returns a row representing the web sessions.
-  inline const auto& GetWebSessionsRow() {
+  /** Returns a row representing the web sessions. */
+  inline const auto& get_web_sessions_row() {
     static auto ROW = Viper::Row<SqlSession>().
       add_column("id", Viper::varchar(64), &SqlSession::m_id).
       add_column("session", &SqlSession::m_session).
@@ -30,30 +30,30 @@ namespace Beam::WebServices {
     return ROW;
   }
 
-  template<typename Session, typename Receiver>
-  auto FromRow(const SqlSession& sqlSession, Receiver& receiver) {
-    receiver.SetSource(Ref(sqlSession.m_session));
+  template<typename Session, IsReceiver R>
+  auto from_row(const SqlSession& sql_session, R& receiver) {
+    receiver.set(Ref(sql_session.m_session));
     auto session = std::make_unique<Session>();
     try {
-      receiver.Shuttle(*session);
-    } catch(const Serialization::SerializationException&) {
-      BOOST_THROW_EXCEPTION(SessionDataStoreException{
-        "Unable to load session."});
+      receiver.receive(*session);
+    } catch(const SerializationException&) {
+      boost::throw_with_location(
+        WebSessionDataStoreException("Unable to load session."));
     }
     return session;
   }
 
-  template<typename Session, typename Sender>
-  auto ToRow(const Session& session, Sender& sender) {
-    auto buffer = typename Sender::Buffer();
-    sender.SetSink(Ref(buffer));
+  template<typename Session, IsSender S>
+  auto to_row(const Session& session, S& sender) {
+    auto buffer = SharedBuffer();
+    sender.set(Ref(buffer));
     try {
-      sender.Shuttle(session);
-    } catch(const Serialization::SerializationException&) {
-      BOOST_THROW_EXCEPTION(SessionDataStoreException(
-        "Unable to store session."));
+      sender.send(session);
+    } catch(const SerializationException&) {
+      boost::throw_with_location(
+        WebSessionDataStoreException("Unable to store session."));
     }
-    return SqlSession{session.GetId(), std::move(buffer)};
+    return SqlSession(session.get_id(), std::move(buffer));
   }
 }
 

@@ -7,8 +7,8 @@
 namespace Beam::Python {
 namespace Details {
   inline auto PyFraction() {
-    static auto fraction = pybind11::module::import(
-      "fractions").attr("Fraction");
+    static auto fraction =
+      pybind11::module::import("fractions").attr("Fraction");
     return fraction;
   }
 }
@@ -26,8 +26,8 @@ namespace Details {
   template<typename T>
   pybind11::handle RationalTypeCaster<T>::cast(const Type& value,
       pybind11::return_value_policy policy, pybind11::handle parent) {
-    return Details::PyFraction()(value.numerator(),
-      value.denominator()).release();
+    return Details::PyFraction()(
+      value.numerator(), value.denominator()).release();
   }
 
   template<typename T>
@@ -43,8 +43,8 @@ namespace Details {
 
 namespace pybind11::detail {
   template<typename T>
-  struct type_caster<boost::rational<T>> : Beam::Python::RationalTypeCaster<
-    boost::rational<T>> {};
+  struct type_caster<boost::rational<T>> :
+    Beam::Python::RationalTypeCaster<boost::rational<T>> {};
 }
 
 #endif

@@ -1,14 +1,17 @@
 #ifndef BEAM_FIXED_STRING_HPP
 #define BEAM_FIXED_STRING_HPP
+#include <algorithm>
+#include <array>
+#include <compare>
 #include <cstring>
-#include <utility>
-#include "Beam/Utilities/Utilities.hpp"
+#include <ostream>
+#include <string_view>
 
 namespace Beam {
 
   /**
    * String class used to store small strings using a fixed buffer.
-   * @param <N> The size of the fixed buffer.
+   * @tparam N The size of the fixed buffer.
    */
   template<std::size_t N>
   class FixedString {
@@ -16,298 +19,284 @@ namespace Beam {
       static constexpr auto SIZE = N;
 
       /** Constructs an empty string. */
-      FixedString();
+      FixedString() noexcept;
 
       /**
        * Copies a FixedString up to a maximum of N bytes.
-       * @param fixedString The FixedString to copy.
+       * @param value The FixedString to copy.
        */
       template<std::size_t Q>
-      FixedString(const FixedString<Q>& fixedString);
-
-      /**
-       * Copies a C string up to a maximum of N bytes.
-       * @param data The data to copy.
-       */
-      FixedString(const char* data);
-
-      /**
-       * Copies a raw buffer up to a maximum of N bytes.
-       * @param data The data to copy.
-       * @param size The size of the data to copy.
-       */
-      FixedString(const char* data, std::size_t size);
+      FixedString(const FixedString<Q>& value) noexcept;
 
       /**
        * Copies a string up to a maximum of N bytes.
-       * @param data The data to copy.
+       * @param value The value to copy.
        */
-      FixedString(const std::string& data);
+      FixedString(const char* value) noexcept;
+
+      /**
+       * Copies a string up to a maximum of N bytes.
+       * @param value The value to copy.
+       */
+      FixedString(const std::string& value) noexcept;
+
+      /**
+       * Copies a string up to a maximum of N bytes.
+       * @param value The value to copy.
+       */
+      FixedString(std::string_view value) noexcept;
+
+      /** Returns the raw character buffer storing the data. */
+      const char* get_data() const;
+
+      /** Returns <code>true</code> iff this FixedString is empty. */
+      bool is_empty() const;
+
+      /** Resets to the empty string. */
+      void reset();
 
       /**
        * Assigns from a FixedString up to a maximum of N bytes.
-       * @param fixedString The FixedString to assign from.
+       * @param value The FixedString to assign from.
        */
       template<std::size_t Q>
-      FixedString& operator =(const FixedString<Q>& fixedString);
-
-      /**
-       * Assigns from a C string up to a maximum of N bytes.
-       * @param data The data to assign from.
-       */
-      FixedString& operator =(const char* data);
+      FixedString& operator =(const FixedString<Q>& value) noexcept;
 
       /**
        * Assigns from a string up to a maximum of N bytes.
-       * @param data The data to assign from.
+       * @param value The value to assign from.
        */
-      FixedString& operator =(const std::string& data);
+      FixedString& operator =(const char* value) noexcept;
 
-      /** Returns the raw character buffer storing the data. */
-      const char* GetData() const;
+      /**
+       * Assigns from a string up to a maximum of N bytes.
+       * @param value The value to assign from.
+       */
+      FixedString& operator =(const std::string& value) noexcept;
 
-      /** Returns <code>true</code> iff this FixedString is empty. */
-      bool IsEmpty() const;
-
-      /** Resets to the empty string. */
-      void Reset();
+      /**
+       * Assigns from a string up to a maximum of N bytes.
+       * @param value The value to assign from.
+       */
+      FixedString& operator =(std::string_view value) noexcept;
 
     private:
-      char m_data[N + 1];
+      std::array<char, N + 1> m_data;
   };
 
   template<std::size_t N>
   std::ostream& operator <<(std::ostream& sink, const FixedString<N>& value) {
-    return (sink << value.GetData());
+    return sink << value.get_data();
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator ==(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return std::strcmp(lhs.GetData(), rhs.GetData()) == 0;
-  }
-
-  template<std::size_t N>
-  bool operator ==(const FixedString<N>& lhs, const std::string& rhs) {
-    return lhs.GetData() == rhs;
-  }
-
-  template<std::size_t N>
-  bool operator ==(const std::string& lhs, const FixedString<N>& rhs) {
-    return lhs == rhs.GetData();
-  }
-
-  template<std::size_t N>
-  bool operator ==(const FixedString<N>& lhs, const char* rhs) {
-    return std::strcmp(lhs.GetData(), rhs) == 0;
-  }
-
-  template<std::size_t N>
-  bool operator ==(const char* lhs, const FixedString<N>& rhs) {
-    return std::strcmp(lhs, rhs.GetData()) == 0;
+  auto operator <=>(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    auto result = std::strcmp(lhs.get_data(), rhs.get_data());
+    if(result < 0) {
+      return std::strong_ordering::less;
+    } else if(result > 0) {
+      return std::strong_ordering::greater;
+    }
+    return std::strong_ordering::equal;
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator !=(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return !(lhs == rhs);
-  }
-
-  template<std::size_t N>
-  bool operator !=(const FixedString<N>& lhs, const std::string& rhs) {
-    return !(lhs == rhs);
-  }
-
-  template<std::size_t N>
-  bool operator !=(const std::string& lhs, const FixedString<N>& rhs) {
-    return !(lhs == rhs);
-  }
-
-  template<std::size_t N>
-  bool operator !=(const FixedString<N>& lhs, const char* rhs) {
-    return !(lhs == rhs);
-  }
-
-  template<std::size_t N>
-  bool operator !=(const char* lhs, const FixedString<N>& rhs) {
-    return !(lhs == rhs);
+  bool operator <(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::less;
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator <(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return std::strcmp(lhs.GetData(), rhs.GetData()) < 0;
-  }
-
-  template<std::size_t N>
-  bool operator <(const FixedString<N>& lhs, const std::string& rhs) {
-    return lhs.GetData() < rhs;
-  }
-
-  template<std::size_t N>
-  bool operator <(const std::string& lhs, const FixedString<N>& rhs) {
-    return lhs < rhs.GetData();
-  }
-
-  template<std::size_t N>
-  bool operator <(const FixedString<N>& lhs, const char* rhs) {
-    return std::strcmp(lhs.GetData(), rhs) < 0;
-  }
-
-  template<std::size_t N>
-  bool operator <(const char* lhs, const FixedString<N>& rhs) {
-    return std::strcmp(lhs, rhs.GetData()) < 0;
+  bool operator <=(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::less ||
+      order == std::strong_ordering::equal;
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator <=(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return std::strcmp(lhs.GetData(), rhs.GetData()) <= 0;
-  }
-
-  template<std::size_t N>
-  bool operator <=(const FixedString<N>& lhs, const std::string& rhs) {
-    return lhs.GetData() <= rhs;
-  }
-
-  template<std::size_t N>
-  bool operator <=(const std::string& lhs, const FixedString<N>& rhs) {
-    return lhs <= rhs.GetData();
-  }
-
-  template<std::size_t N>
-  bool operator <=(const FixedString<N>& lhs, const char* rhs) {
-    return std::strcmp(lhs.GetData(), rhs) <= 0;
-  }
-
-  template<std::size_t N>
-  bool operator <=(const char* lhs, const FixedString<N>& rhs) {
-    return std::strcmp(lhs, rhs.GetData()) <= 0;
+  bool operator ==(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::equal;
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator >=(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return std::strcmp(lhs.GetData(), rhs.GetData()) >= 0;
-  }
-
-  template<std::size_t N>
-  bool operator >=(const FixedString<N>& lhs, const std::string& rhs) {
-    return lhs.GetData() >= rhs;
-  }
-
-  template<std::size_t N>
-  bool operator >=(const std::string& lhs, const FixedString<N>& rhs) {
-    return lhs >= rhs.GetData();
-  }
-
-  template<std::size_t N>
-  bool operator >=(const FixedString<N>& lhs, const char* rhs) {
-    return std::strcmp(lhs.GetData(), rhs) >= 0;
-  }
-
-  template<std::size_t N>
-  bool operator >=(const char* lhs, const FixedString<N>& rhs) {
-    return std::strcmp(lhs, rhs.GetData()) >= 0;
+  bool operator !=(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    return (lhs <=> rhs) != std::strong_ordering::equal;
   }
 
   template<std::size_t L, std::size_t R>
-  bool operator >(const FixedString<L>& lhs, const FixedString<R>& rhs) {
-    return std::strcmp(lhs.GetData(), rhs.GetData()) > 0;
+  bool operator >=(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::greater ||
+      order == std::strong_ordering::equal;
+  }
+
+  template<std::size_t L, std::size_t R>
+  bool operator >(
+      const FixedString<L>& lhs, const FixedString<R>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::greater;
   }
 
   template<std::size_t N>
-  bool operator >(const FixedString<N>& lhs, const std::string& rhs) {
-    return lhs.GetData() > rhs;
+  auto operator<=>(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    return std::string_view(lhs.get_data()) <=> rhs;
   }
 
   template<std::size_t N>
-  bool operator >(const std::string& lhs, const FixedString<N>& rhs) {
-    return lhs > rhs.GetData();
+  bool operator <(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::less;
   }
 
   template<std::size_t N>
-  bool operator >(const FixedString<N>& lhs, const char* rhs) {
-    return std::strcmp(lhs.GetData(), rhs) > 0;
+  bool operator <=(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::less ||
+      order == std::strong_ordering::equal;
   }
 
   template<std::size_t N>
-  bool operator >(const char* lhs, const FixedString<N>& rhs) {
-    return std::strcmp(lhs, rhs.GetData()) > 0;
+  bool operator ==(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator !=(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    return (lhs <=> rhs) != std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator >=(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::greater ||
+      order == std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator >(const FixedString<N>& lhs, std::string_view rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::greater;
+  }
+
+  template<std::size_t N>
+  auto operator<=>(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    return lhs <=> std::string_view(rhs.get_data());
+  }
+
+  template<std::size_t N>
+  bool operator <(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::less;
+  }
+
+  template<std::size_t N>
+  bool operator <=(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::less ||
+      order == std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator ==(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator !=(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    return (lhs <=> rhs) != std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator >=(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    auto order = (lhs <=> rhs);
+    return order == std::strong_ordering::greater ||
+      order == std::strong_ordering::equal;
+  }
+
+  template<std::size_t N>
+  bool operator >(std::string_view lhs, const FixedString<N>& rhs) noexcept {
+    return (lhs <=> rhs) == std::strong_ordering::greater;
   }
 
   template<std::size_t N>
   std::size_t hash_value(const FixedString<N>& value) {
-    std::size_t h = 0;
-    for(const unsigned char* p = reinterpret_cast<const unsigned char*>(
-        value.GetData()); *p != '\0'; ++p) {
-      h = 37 * h + *p;
+    auto hash = std::size_t(0);
+    for(auto p = reinterpret_cast<const unsigned char*>(value.get_data());
+        *p != '\0'; ++p) {
+      hash = 37 * hash + *p;
     }
-    return h;
+    return hash;
   }
 
   template<std::size_t N>
-  FixedString<N>::FixedString() {
+  FixedString<N>::FixedString() noexcept {
     m_data[0] = '\0';
   }
 
   template<std::size_t N>
   template<std::size_t Q>
-  FixedString<N>::FixedString(const FixedString<Q>& fixedString) {
-    *this = fixedString;
+  FixedString<N>::FixedString(const FixedString<Q>& value) noexcept {
+    *this = value;
   }
 
   template<std::size_t N>
-  FixedString<N>::FixedString(const char* data) {
-    *this = data;
+  FixedString<N>::FixedString(const char* value) noexcept {
+    *this = value;
   }
 
   template<std::size_t N>
-  FixedString<N>::FixedString(const char* data, std::size_t size) {
-    std::strncpy(m_data, data, N);
-    m_data[N] = '\0';
+  FixedString<N>::FixedString(const std::string& value) noexcept {
+    *this = value;
   }
 
   template<std::size_t N>
-  FixedString<N>::FixedString(const std::string& data) {
-    *this = data;
+  FixedString<N>::FixedString(std::string_view value) noexcept {
+    *this = value;
+  }
+
+  template<std::size_t N>
+  const char* FixedString<N>::get_data() const {
+    return m_data.data();
+  }
+
+  template<std::size_t N>
+  bool FixedString<N>::is_empty() const {
+    return m_data[0] == '\0';
+  }
+
+  template<std::size_t N>
+  void FixedString<N>::reset() {
+    m_data[0] = '\0';
   }
 
   template<std::size_t N>
   template<std::size_t Q>
   FixedString<N>& FixedString<N>::operator =(
-      const FixedString<Q>& fixedString) {
-    std::memcpy(m_data, fixedString.GetData(), std::min(N + 1, Q + 1));
-    if(N < Q) {
-      m_data[N] = '\0';
-    } else if(N > Q) {
-      m_data[Q] = '\0';
-    }
+      const FixedString<Q>& value) noexcept {
+    auto length = std::min(N, Q);
+    std::memcpy(m_data.data(), value.get_data(), length);
+    m_data[length] = '\0';
     return *this;
   }
 
   template<std::size_t N>
-  FixedString<N>& FixedString<N>::operator =(const char* data) {
-    std::strncpy(m_data, data, N);
-    m_data[N] = '\0';
+  FixedString<N>& FixedString<N>::operator =(const char* value) noexcept {
+    return *this = std::string_view(value);
+  }
+
+  template<std::size_t N>
+  FixedString<N>& FixedString<N>::operator =(
+      const std::string& value) noexcept {
+    return *this = std::string_view(value);
+  }
+
+  template<std::size_t N>
+  FixedString<N>& FixedString<N>::operator =(std::string_view value) noexcept {
+    auto length = std::min(value.size(), N);
+    std::memcpy(m_data.data(), value.data(), length);
+    m_data[length] = '\0';
     return *this;
-  }
-
-  template<std::size_t N>
-  FixedString<N>& FixedString<N>::operator =(const std::string& data) {
-    std::strncpy(m_data, data.c_str(), N);
-    m_data[N] = '\0';
-    return *this;
-  }
-
-  template<std::size_t N>
-  const char* FixedString<N>::GetData() const {
-    return m_data;
-  }
-
-  template<std::size_t N>
-  bool FixedString<N>::IsEmpty() const {
-    return m_data[0] == '\0';
-  }
-
-  template<std::size_t N>
-  void FixedString<N>::Reset() {
-    m_data[0] = '\0';
   }
 }
 

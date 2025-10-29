@@ -6,7 +6,6 @@
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queries/Sequence.hpp"
-#include "Beam/Sql/Sql.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 
 namespace Viper {
@@ -15,19 +14,19 @@ namespace Viper {
     big_int;
 
   template<>
-  inline const auto native_to_data_type_v<Beam::Queries::Sequence> =
-    native_to_data_type_v<Beam::Queries::Sequence::Ordinal>;
+  inline const auto native_to_data_type_v<Beam::Sequence> =
+    native_to_data_type_v<Beam::Sequence::Ordinal>;
 
   template<typename T, std::size_t N>
   inline const auto native_to_data_type_v<Beam::Enum<T, N>> = integer;
 
   template<>
-  inline const auto native_to_data_type_v<Beam::IO::SharedBuffer> = blob();
+  inline const auto native_to_data_type_v<Beam::SharedBuffer> = blob();
 
   template<>
   struct ToSql<boost::posix_time::time_duration> {
-    void operator ()(boost::posix_time::time_duration value,
-        std::string& column) const {
+    void operator ()(
+        boost::posix_time::time_duration value, std::string& column) const {
       to_sql(static_cast<std::int64_t>(value.total_microseconds()), column);
     }
   };
@@ -41,18 +40,16 @@ namespace Viper {
   };
 
   template<>
-  struct ToSql<Beam::Queries::Sequence> {
-    void operator ()(Beam::Queries::Sequence value,
-        std::string& column) const {
-      to_sql(value.GetOrdinal(), column);
+  struct ToSql<Beam::Sequence> {
+    void operator ()(Beam::Sequence value, std::string& column) const {
+      to_sql(value.get_ordinal(), column);
     }
   };
 
   template<>
-  struct FromSql<Beam::Queries::Sequence> {
-    Beam::Queries::Sequence operator ()(const RawColumn& column) const {
-      return Beam::Queries::Sequence(from_sql<Beam::Queries::Sequence::Ordinal>(
-        column));
+  struct FromSql<Beam::Sequence> {
+    Beam::Sequence operator ()(const RawColumn& column) const {
+      return Beam::Sequence(from_sql<Beam::Sequence::Ordinal>(column));
     }
   };
 
@@ -73,31 +70,32 @@ namespace Viper {
   template<std::size_t N>
   struct ToSql<Beam::FixedString<N>> {
     void operator ()(Beam::FixedString<N> value, std::string& column) const {
-      to_sql(std::string(value.GetData()), column);
+      to_sql(std::string(value.get_data()), column);
     }
   };
 
   template<std::size_t N>
   struct FromSql<Beam::FixedString<N>> {
     auto operator ()(const RawColumn& column) const {
-      return Beam::FixedString<N>(column.m_data, column.m_size);
+      return Beam::FixedString<N>(
+        std::string_view(column.m_data, std::strlen(column.m_data)));
     }
   };
 
   template<>
-  struct ToSql<Beam::IO::SharedBuffer> {
-    void operator ()(const Beam::IO::SharedBuffer& value,
-        std::string& column) const {
-      auto blob = std::vector<std::byte>(value.GetSize());
-      std::memcpy(blob.data(), value.GetData(), value.GetSize());
+  struct ToSql<Beam::SharedBuffer> {
+    void operator ()(
+        const Beam::SharedBuffer& value, std::string& column) const {
+      auto blob = std::vector<std::byte>(value.get_size());
+      std::memcpy(blob.data(), value.get_data(), value.get_size());
       to_sql(blob, column);
     }
   };
 
   template<>
-  struct FromSql<Beam::IO::SharedBuffer> {
+  struct FromSql<Beam::SharedBuffer> {
     auto operator ()(const RawColumn& column) const {
-      return Beam::IO::SharedBuffer(column.m_data, column.m_size);
+      return Beam::SharedBuffer(column.m_data, column.m_size);
     }
   };
 }

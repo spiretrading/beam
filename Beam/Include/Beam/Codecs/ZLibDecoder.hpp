@@ -1,93 +1,55 @@
 #ifndef BEAM_ZLIB_DECODER_HPP
 #define BEAM_ZLIB_DECODER_HPP
-#include <zlib.h>
+#include <limits>
 #include <boost/throw_exception.hpp>
+#include <zlib.h>
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
 #include "Beam/IO/Buffer.hpp"
 
 namespace Beam {
-namespace Codecs {
+  class ZLibEncoder;
 
   /** Decodes ZLib compressed data. */
   class ZLibDecoder {
     public:
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        void* destination, std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const Buffer& source, void* destination,
-        std::size_t destinationSize);
-
-      template<typename Buffer>
-      std::size_t Decode(const void* source, std::size_t sourceSize,
-        Out<Buffer> destination);
-
-      template<typename SourceBuffer, typename DestinationBuffer>
-      std::size_t Decode(const SourceBuffer& source,
-        Out<DestinationBuffer> destination);
+      template<IsConstBuffer S, IsBuffer B>
+      std::size_t decode(const S source, Out<B> destination);
   };
 
   template<>
-  struct Inverse<ZLibDecoder> {
+  struct inverse<ZLibDecoder> {
     using type = ZLibEncoder;
   };
 
-  inline std::size_t ZLibDecoder::Decode(const void* source,
-      std::size_t sourceSize, void* destination, std::size_t destinationSize) {
-    auto stream = z_stream();
-    stream.zalloc = Z_NULL;
-    stream.zfree = Z_NULL;
-    stream.opaque = Z_NULL;
-    stream.avail_in = static_cast<uInt>(sourceSize);
-    stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
-    stream.avail_out = static_cast<uInt>(destinationSize);
-    stream.next_out = static_cast<Bytef*>(destination);
-    auto result = inflateInit(&stream);
-    if(result == Z_OK) {
-      result = inflate(&stream, Z_FINISH);
-      if(result == Z_STREAM_END) {
-        result = inflateEnd(&stream);
-      }
+  template<IsConstBuffer S, IsBuffer B>
+  std::size_t ZLibDecoder::decode(const S source, Out<B> destination) {
+    auto source_size = source.get_size();
+    if(source_size == 0) {
+      reset(*destination);
+      return 0;
+    } else if(source_size > std::numeric_limits<uInt>::max()) {
+      boost::throw_with_location(
+        DecoderException("Source size too large for zlib."));
     }
-    if(result != Z_OK) {
-      if(result == Z_BUF_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException(
-          "The buffer was not large enough to hold the uncompressed data."));
-      } else if(result == Z_MEM_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException("Insufficient memory."));
-      } else if(result == Z_DATA_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException(
-          "The compressed data was corrupted."));
-      } else {
-        BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
-      }
+    const auto MAX_FACTOR = std::size_t(1032);
+    reserve(*destination, 10 * source_size);
+    if(destination->get_size() < 10 * source_size) {
+      boost::throw_with_location(DecoderException("Insufficient space."));
     }
-    return static_cast<std::size_t>(stream.total_out);
-  }
-
-  template<typename Buffer>
-  std::size_t ZLibDecoder::Decode(const Buffer& source, void* destination,
-      std::size_t destinationSize) {
-    return Decode(source.GetData(), source.GetSize(), destination,
-      destinationSize);
-  }
-
-  template<typename Buffer>
-  std::size_t ZLibDecoder::Decode(const void* source, std::size_t sourceSize,
-      Out<Buffer> destination) {
-    constexpr auto MAX_FACTOR = 1032;
-    destination->Reserve(10 * sourceSize);
-    while(destination->GetSize() < MAX_FACTOR * sourceSize) {
-      auto destinationSize = destination->GetSize();
+    while(destination->get_size() < MAX_FACTOR * source_size) {
+      auto destination_size = destination->get_size();
       auto stream = z_stream();
       stream.zalloc = Z_NULL;
       stream.zfree = Z_NULL;
       stream.opaque = Z_NULL;
-      stream.avail_in = static_cast<uInt>(sourceSize);
-      stream.next_in = static_cast<Bytef*>(const_cast<void*>(source));
-      stream.avail_out = static_cast<uInt>(destinationSize);
-      stream.next_out = reinterpret_cast<Bytef*>(destination->GetMutableData());
+      stream.avail_in = static_cast<uInt>(source_size);
+      stream.avail_out = static_cast<uInt>(std::min<std::size_t>(
+        destination_size, std::numeric_limits<uInt>::max()));
+      stream.next_in =
+        const_cast<Bytef*>(reinterpret_cast<const Bytef*>(source.get_data()));
+      stream.next_out =
+        reinterpret_cast<Bytef*>(destination->get_mutable_data());
       auto result = inflateInit(&stream);
       if(result == Z_OK) {
         result = inflate(&stream, Z_FINISH);
@@ -96,34 +58,27 @@ namespace Codecs {
         }
       }
       if(result == Z_OK) {
-        auto size = static_cast<std::size_t>(stream.total_out);
-        destination->Shrink(destination->GetSize() - size);
-        return size;
+        auto produced = static_cast<std::size_t>(stream.total_out);
+        destination->shrink(destination->get_size() - produced);
+        return produced;
       }
       if(result == Z_BUF_ERROR) {
-        destination->Reserve(2 * destination->GetSize());
+        auto grow_by = std::max<std::size_t>(destination->get_size(), 1024u);
+        auto available_size = destination->grow(grow_by);
+        if(available_size < grow_by) {
+          boost::throw_with_location(DecoderException("Insufficient space."));
+        }
       } else if(result == Z_MEM_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException("Insufficient memory."));
+        boost::throw_with_location(DecoderException("Insufficient memory."));
       } else if(result == Z_DATA_ERROR) {
-        BOOST_THROW_EXCEPTION(DecoderException(
-          "The compressed data was corrupted."));
+        boost::throw_with_location(
+          DecoderException("The compressed data was corrupted."));
       } else {
-        BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
+        boost::throw_with_location(DecoderException("Unknown error."));
       }
     }
-    BOOST_THROW_EXCEPTION(DecoderException("Unknown error."));
+    boost::throw_with_location(DecoderException("Unknown error."));
   }
-
-  template<typename SourceBuffer, typename DestinationBuffer>
-  std::size_t ZLibDecoder::Decode(const SourceBuffer& source,
-      Out<DestinationBuffer> destination) {
-    return Decode(source.GetData(), source.GetSize(), Store(destination));
-  }
-}
-
-  template<>
-  struct ImplementsConcept<Codecs::ZLibDecoder, Codecs::Decoder> :
-    std::true_type {};
 }
 
 #endif

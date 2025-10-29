@@ -3,119 +3,113 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/NativeValue.hpp"
-#include "Beam/Queries/Queries.hpp"
 #include "Beam/Queries/TypeCompatibilityException.hpp"
 #include "Beam/Queries/Value.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Consolidates a series of data into a singular value. */
-  class ReduceExpression :
-      public VirtualExpression, public CloneableMixin<ReduceExpression> {
+  class ReduceExpression : public VirtualExpression {
     public:
 
       /**
        * Constructs a ReduceExpression.
-       * @param reduceExpression The expression used to perform the reduction.
-       * @param seriesExpression The expression to apply the reduction to.
-       * @param initialValue The initial value.
+       * @param reducer The expression used to perform the reduction.
+       * @param series The expression to apply the reduction to.
+       * @param initial_value The initial value.
        */
-      ReduceExpression(Expression reduceExpression, Expression seriesExpression,
-        Value initialValue);
+      ReduceExpression(
+        Expression reducer, Expression series, Value initial_value);
 
       /** Returns the reduce expression. */
-      const Expression& GetReduceExpression() const;
+      const Expression& get_reducer() const;
 
       /** Returns the series expression. */
-      const Expression& GetSeriesExpression() const;
+      const Expression& get_series() const;
 
       /** Returns the initial value. */
-      const Value& GetInitialValue() const;
+      const Value& get_initial_value() const;
 
-      const DataType& GetType() const override;
-
-      void Apply(ExpressionVisitor& visitor) const override;
+      std::type_index get_type() const override;
+      void apply(ExpressionVisitor& visitor) const override;
 
     protected:
-      std::ostream& ToStream(std::ostream& out) const override;
+      std::ostream& to_stream(std::ostream& out) const override;
 
     private:
-      friend struct Serialization::DataShuttle;
-      Expression m_reduceExpresssion;
-      Expression m_seriesExpresssion;
-      Value m_initialValue;
+      friend struct DataShuttle;
+      Expression m_reducer;
+      Expression m_series;
+      Value m_initial_value;
 
       ReduceExpression();
-      template<typename Shuttler>
-      void Shuttle(Shuttler& shuttle, unsigned int version);
+      template<IsShuttle S>
+      void shuttle(S& shuttle, unsigned int version);
   };
 
-  inline ReduceExpression::ReduceExpression(Expression reduceExpression,
-      Expression seriesExpression, Value initialValue)
-      : m_reduceExpresssion(std::move(reduceExpression)),
-        m_seriesExpresssion(std::move(seriesExpression)),
-        m_initialValue(std::move(initialValue)) {
-    if(m_initialValue->GetType() != m_reduceExpresssion->GetType()) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException());
+  inline ReduceExpression::ReduceExpression(
+      Expression reducer, Expression series, Value initial_value)
+      : m_reducer(std::move(reducer)),
+        m_series(std::move(series)),
+        m_initial_value(std::move(initial_value)) {
+    if(m_initial_value.get_type() != m_reducer.get_type()) {
+      boost::throw_with_location(TypeCompatibilityException());
     }
-    if(m_seriesExpresssion->GetType() != m_reduceExpresssion->GetType()) {
-      BOOST_THROW_EXCEPTION(TypeCompatibilityException());
+    if(m_series.get_type() != m_reducer.get_type()) {
+      boost::throw_with_location(TypeCompatibilityException());
     }
   }
 
-  inline const Expression& ReduceExpression::GetReduceExpression() const {
-    return m_reduceExpresssion;
+  inline const Expression& ReduceExpression::get_reducer() const {
+    return m_reducer;
   }
 
-  inline const Expression& ReduceExpression::GetSeriesExpression() const {
-    return m_seriesExpresssion;
+  inline const Expression& ReduceExpression::get_series() const {
+    return m_series;
   }
 
-  inline const Value& ReduceExpression::GetInitialValue() const {
-    return m_initialValue;
+  inline const Value& ReduceExpression::get_initial_value() const {
+    return m_initial_value;
   }
 
-  inline const DataType& ReduceExpression::GetType() const {
-    return m_initialValue->GetType();
+  inline std::type_index ReduceExpression::get_type() const {
+    return m_initial_value.get_type();
   }
 
-  inline void ReduceExpression::Apply(ExpressionVisitor& visitor) const {
-    visitor.Visit(*this);
+  inline void ReduceExpression::apply(ExpressionVisitor& visitor) const {
+    visitor.visit(*this);
   }
 
-  inline std::ostream& ReduceExpression::ToStream(std::ostream& out) const {
-    return out << "(reduce " << *m_reduceExpresssion << " " <<
-      *m_seriesExpresssion << " " << *m_initialValue << ")";
+  inline std::ostream& ReduceExpression::to_stream(std::ostream& out) const {
+    return out << "(reduce " << m_reducer << ' ' << m_series << ' ' <<
+      m_initial_value << ')';
   }
 
   inline ReduceExpression::ReduceExpression()
-    : m_reduceExpresssion(ConstantExpression(0)),
-      m_seriesExpresssion(ConstantExpression(0)),
-      m_initialValue(NativeValue(0)) {}
+    : m_reducer(ConstantExpression(0)),
+      m_series(ConstantExpression(0)),
+      m_initial_value(0) {}
 
-  template<typename Shuttler>
-  void ReduceExpression::Shuttle(Shuttler& shuttle, unsigned int version) {
-    VirtualExpression::Shuttle(shuttle, version);
-    shuttle.Shuttle("reduce_expression", m_reduceExpresssion);
-    shuttle.Shuttle("series_expression", m_seriesExpresssion);
-    shuttle.Shuttle("initial_value", m_initialValue);
-    if(Serialization::IsReceiver<Shuttler>::value) {
-      if(m_initialValue->GetType()->GetNativeType() !=
-          m_reduceExpresssion->GetType()->GetNativeType()) {
-        BOOST_THROW_EXCEPTION(
-          Serialization::SerializationException("Incompatible types."));
+  template<IsShuttle S>
+  void ReduceExpression::shuttle(S& shuttle, unsigned int version) {
+    VirtualExpression::shuttle(shuttle, version);
+    shuttle.shuttle("reducer", m_reducer);
+    shuttle.shuttle("series", m_series);
+    shuttle.shuttle("initial_value", m_initial_value);
+    if(IsReceiver<S>) {
+      if(m_initial_value.get_type() != m_reducer.get_type()) {
+        boost::throw_with_location(
+          SerializationException("Incompatible types."));
       }
-      if(m_seriesExpresssion->GetType()->GetNativeType() !=
-          m_reduceExpresssion->GetType()->GetNativeType()) {
-        BOOST_THROW_EXCEPTION(
-          Serialization::SerializationException("Incompatible types."));
+      if(m_series.get_type() != m_reducer.get_type()) {
+        boost::throw_with_location(
+          SerializationException("Incompatible types."));
       }
     }
   }
 
-  inline void ExpressionVisitor::Visit(const ReduceExpression& expression) {
-    Visit(static_cast<const VirtualExpression&>(expression));
+  inline void ExpressionVisitor::visit(const ReduceExpression& expression) {
+    visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 

@@ -3,16 +3,16 @@
 #include <iosfwd>
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/stream.hpp>
-#include "Beam/IO/IO.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Ref.hpp"
 
-namespace Beam::IO {
+namespace Beam {
 
   /**
    * Allows a Buffer to manipulated as an std::ostream.
-   * @param <B> The type of Buffer to manipulate.
+   * @tparam B The type of Buffer to manipulate.
    */
-  template<typename B>
+  template<IsBuffer B>
   class BaseBufferOutputStream {
     public:
 
@@ -25,7 +25,7 @@ namespace Beam::IO {
        * Constructs a BufferOutputStream.
        * @param buffer The Buffer to adapt into an std::ostream.
        */
-      BaseBufferOutputStream(Ref<Buffer> buffer);
+      explicit BaseBufferOutputStream(Ref<Buffer> buffer);
 
       std::streamsize write(const char_type* s, std::streamsize n);
 
@@ -33,18 +33,20 @@ namespace Beam::IO {
       Buffer* m_buffer;
   };
 
-  template<typename B>
+  template<IsBuffer B>
   using BufferOutputStream =
     boost::iostreams::stream<BaseBufferOutputStream<B>>;
 
-  template<typename B>
-  BaseBufferOutputStream<B>::BaseBufferOutputStream(Ref<Buffer> buffer)
-    : m_buffer(buffer.Get()) {}
+  using SharedBufferOutputStream = BufferOutputStream<SharedBuffer>;
 
-  template<typename B>
-  std::streamsize BaseBufferOutputStream<B>::write(const char_type* s,
-      std::streamsize n) {
-    m_buffer->Append(s, static_cast<std::size_t>(n));
+  template<IsBuffer B>
+  BaseBufferOutputStream<B>::BaseBufferOutputStream(Ref<Buffer> buffer)
+    : m_buffer(buffer.get()) {}
+
+  template<IsBuffer B>
+  std::streamsize BaseBufferOutputStream<B>::write(
+      const char_type* s, std::streamsize n) {
+    append(*m_buffer, s, static_cast<std::size_t>(n));
     return n;
   }
 }

@@ -7,7 +7,7 @@
 #include "Beam/Services/Service.hpp"
 
 namespace Beam {
-  BEAM_DEFINE_SERVICES(ServiceProtocolProfilerServices,
+  BEAM_DEFINE_SERVICES(service_protocol_profiler_services,
 
     /**
      * Submits a request to echo a message.
@@ -15,16 +15,16 @@ namespace Beam {
      * @return The message received.
      */
     (EchoService, "Beam.ServiceProtocolProfiler.EchoService", std::string,
-      std::string, message));
+      (std::string, message)));
 
-  BEAM_DEFINE_MESSAGES(ServiceProtocolProfilerMessages,
+  BEAM_DEFINE_MESSAGES(service_protocol_profiler_messages,
 
     /**
      * Sends a message.
      * @param message The message to send.
      */
     (EchoMessage, "Beam.ServiceProtocolProfiler.EchoMessage",
-      boost::posix_time::ptime, timestamp, std::string, message));
+      (boost::posix_time::ptime, timestamp), (std::string, message)));
 }
 
 #endif

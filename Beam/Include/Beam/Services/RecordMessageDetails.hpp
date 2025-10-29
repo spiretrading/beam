@@ -2,109 +2,78 @@
 #define BEAM_RECORD_MESSAGE_DETAILS_HPP
 #include <functional>
 #include <iostream>
+#include <tuple>
+#include <utility>
 #include <vector>
-#include <boost/call_traits.hpp>
-#include <boost/mpl/size.hpp>
-#include <boost/mpl/vector.hpp>
-#include <boost/preprocessor/comma_if.hpp>
-#include <boost/preprocessor/empty.hpp>
-#include <boost/preprocessor/enum_params.hpp>
-#include <boost/preprocessor/repeat.hpp>
-#include <boost/preprocessor/iteration/local.hpp>
+#include <boost/pfr.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Services/Message.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
-namespace Beam::Services::Details {
-  template<typename ServiceProtocolClientType, typename RecordType>
-  struct GetRecordMessageSlotType {};
+namespace Beam::Details {
+  template<typename, typename>
+  struct message_to_function;
 
-  #define PASS_PARAMETER(z, n, a)                                              \
-    BOOST_PP_COMMA_IF(n) typename boost::call_traits<A##n>::param_type
-
-  #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<typename ServiceProtocolClientType BOOST_PP_COMMA_IF(n)             \
-    BOOST_PP_ENUM_PARAMS(n, typename A)>                                       \
-  struct GetRecordMessageSlotType<ServiceProtocolClientType,                   \
-      boost::mpl::vector<BOOST_PP_ENUM_PARAMS(n, A)> > {                       \
-    using type = std::function<void (                                          \
-      ServiceProtocolClientType& BOOST_PP_COMMA_IF(n)                          \
-      BOOST_PP_REPEAT(n, PASS_PARAMETER, BOOST_PP_EMPTY))>;                    \
+  template<typename F, typename... Args>
+  struct message_to_function<F, std::tuple<Args...>> {
+    using type = std::function<void (F&, Args...)>;
   };
 
-  #define BOOST_PP_LOCAL_LIMITS (0, BEAM_SERVICE_PARAMETERS)
-  #include BOOST_PP_LOCAL_ITERATE()
-  #undef PASS_PARAMETER
-
-  template<typename SlotType, typename RecordMessageType, int I =
-    boost::mpl::size<typename RecordMessageType::Record::TypeList>::value>
-  struct InvokeRecordMessageSlot {};
-
-  #define GET_RECORD_MEMBER(z, n, a)                                           \
-    BOOST_PP_COMMA_IF(n) record.template Get<n>()
-
-  #define BOOST_PP_LOCAL_MACRO(n)                                              \
-  template<typename SlotType, typename RecordMessageType>                      \
-  struct InvokeRecordMessageSlot<SlotType, RecordMessageType, n> {             \
-    void operator()(const SlotType& slot,                                      \
-        typename RecordMessageType::ServiceProtocolClient&                     \
-        serviceProtocolClient, const typename RecordMessageType::Record&       \
-        record) const {                                                        \
-      slot(serviceProtocolClient BOOST_PP_COMMA_IF(n)                          \
-        BOOST_PP_REPEAT(n, GET_RECORD_MEMBER, BOOST_PP_EMPTY));                \
-    }                                                                          \
+  template<typename M>
+  struct record_message_slot_type {
+    using type =
+      typename message_to_function<typename M::ServiceProtocolClient&,
+        decltype(boost::pfr::structure_to_tuple(
+          std::declval<typename M::Record>()))>::type;
   };
 
-  #define BOOST_PP_LOCAL_LIMITS (0, BEAM_SERVICE_PARAMETERS)
-  #include BOOST_PP_LOCAL_ITERATE()
-  #undef GET_RECORD_MEMBER
+  template<typename M>
+  using record_message_slot_t = typename record_message_slot_type<M>::type;
 
-  template<typename RecordMessageType>
-  class RecordMessageSlot : public ServiceSlot<RecordMessageType> {
+  template<typename M>
+  class RecordMessageSlot : public ServiceSlot<M> {
     public:
-      using RecordMessage = RecordMessageType;
+      using RecordMessage = M;
       using PreHook = typename ServiceSlot<RecordMessage>::PreHook;
-      using Slot = typename GetRecordMessageSlotType<
-        typename RecordMessage::ServiceProtocolClient,
-        typename RecordMessage::Record::TypeList>::type;
+      using Slot = record_message_slot_t<RecordMessage>;
 
-      template<typename SlotForward>
-      RecordMessageSlot(SlotForward&& slot);
+      template<typename SF>
+      explicit RecordMessageSlot(SF&& slot);
 
-      void Invoke(Ref<typename RecordMessage::ServiceProtocolClient> protocol,
+      void invoke(Ref<typename RecordMessage::ServiceProtocolClient> client,
         const typename RecordMessage::Record& record) const;
-
-      void AddPreHook(const PreHook& hook) override;
+      void add_pre_hook(const PreHook& hook) override;
 
     private:
-      std::vector<PreHook> m_preHooks;
+      std::vector<PreHook> m_pre_hooks;
       Slot m_slot;
   };
 
-  template<typename RecordMessageType>
-  template<typename SlotForward>
-  RecordMessageSlot<RecordMessageType>::RecordMessageSlot(SlotForward&& slot)
-    : m_slot(std::forward<SlotForward>(slot)) {}
+  template<typename M>
+  template<typename SF>
+  RecordMessageSlot<M>::RecordMessageSlot(SF&& slot)
+    : m_slot(std::forward<SF>(slot)) {}
 
-  template<typename RecordMessageType>
-  void RecordMessageSlot<RecordMessageType>::Invoke(
-      Ref<typename RecordMessageType::ServiceProtocolClient> protocol,
-      const typename RecordMessageType::Record& record) const {
+  template<typename M>
+  void RecordMessageSlot<M>::add_pre_hook(const PreHook& hook) {
+    m_pre_hooks.push_back(hook);
+  }
+
+  template<typename M>
+  void RecordMessageSlot<M>::invoke(
+      Ref<typename RecordMessage::ServiceProtocolClient> client,
+      const typename RecordMessage::Record& record) const {
     try {
-      for(auto& preHook : m_preHooks) {
-        preHook(*protocol.Get());
+      for(auto& pre_hook : m_pre_hooks) {
+        pre_hook(*client.get());
       }
-      InvokeRecordMessageSlot<Slot, RecordMessageType>()(m_slot,
-        *protocol.Get(), record);
+      std::apply([&] (const auto&... args) {
+        m_slot(*client.get(), args...);
+      }, boost::pfr::structure_tie(record));
     } catch(...) {
       std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
     }
-  }
-
-  template<typename RecordMessageType>
-  void RecordMessageSlot<RecordMessageType>::AddPreHook(const PreHook& hook) {
-    m_preHooks.push_back(hook);
   }
 }
 

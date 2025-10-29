@@ -1,67 +1,62 @@
 #include <doctest/doctest.h>
-#include "Beam/Parsers/Operators.hpp"
+#include "Beam/Parsers/AnyParser.hpp"
+#include "Beam/Parsers/ConcatenateParser.hpp"
+#include "Beam/Parsers/EpsilonParser.hpp"
+#include "Beam/Parsers/IntegralParser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
-#include "Beam/Parsers/Types.hpp"
 
 using namespace Beam;
-using namespace Beam::Parsers;
 
 TEST_SUITE("ConcatenateParser") {
   TEST_CASE("void_parsers") {
-    auto parser = eps_p >> 'a' >> 'b' >> 'c';
-    auto source = ParserStreamFromString("");
-    auto result = parser.Read(source);
+    auto parser = eps_p >> 'a' >> 'b';
+    auto source = to_parser_stream("");
+    auto result = parser.read(source);
     REQUIRE(!result);
-    source = ParserStreamFromString("a");
-    result = parser.Read(source);
+    source = to_parser_stream("a");
+    result = parser.read(source);
     REQUIRE(!result);
-    source = ParserStreamFromString("ab");
-    result = parser.Read(source);
-    REQUIRE(!result);
-    source = ParserStreamFromString("abc");
-    result = parser.Read(source);
+    source = to_parser_stream("ab");
+    result = parser.read(source);
     REQUIRE(result);
-    source = ParserStreamFromString("abcd");
-    result = parser.Read(source);
-    REQUIRE(result);
-    source = ParserStreamFromString("dabc");
-    result = parser.Read(source);
+    source = to_parser_stream("dabc");
+    result = parser.read(source);
     REQUIRE(!result);
   }
 
   TEST_CASE("left_void_parsers") {
     auto parser = 'a' >> int_p;
-    auto source = ParserStreamFromString("");
+    auto source = to_parser_stream("");
     auto value = int();
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("a");
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("a5");
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("a");
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("a5");
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == 5);
   }
 
   TEST_CASE("right_void_parsers") {
     auto parser = int_p >> 'a';
-    auto source = ParserStreamFromString("");
+    auto source = to_parser_stream("");
     auto value = int();
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("a");
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("2a");
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("a");
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("2a");
+    REQUIRE(parser.read(source, value));
     REQUIRE(value == 2);
   }
 
   TEST_CASE("no_void_parsers") {
     auto parser = int_p >> any_p;
-    auto source = ParserStreamFromString("");
+    auto source = to_parser_stream("");
     auto value = std::tuple<int, char>();
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("a");
-    REQUIRE(!parser.Read(source, value));
-    source = ParserStreamFromString("24a");
-    REQUIRE(parser.Read(source, value));
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("a");
+    REQUIRE(!parser.read(source, value));
+    source = to_parser_stream("24a");
+    REQUIRE(parser.read(source, value));
     REQUIRE(std::get<0>(value) == 24);
     REQUIRE(std::get<1>(value) == 'a');
   }

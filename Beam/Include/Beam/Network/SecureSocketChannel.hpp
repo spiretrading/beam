@@ -2,7 +2,6 @@
 #define BEAM_SECURE_SOCKET_CHANNEL_HPP
 #include <boost/asio/ip/tcp.hpp>
 #include "Beam/IO/Channel.hpp"
-#include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SecureSocketConnection.hpp"
 #include "Beam/Network/SecureSocketOptions.hpp"
@@ -13,7 +12,6 @@
 #include "Beam/Threading/ServiceThreadPool.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Implements the Channel interface using an SSL socket over TCP. */
   class SecureSocketChannel {
@@ -27,15 +25,15 @@ namespace Network {
        * Constructs a SecureSocketChannel.
        * @param address The IP address to connect to.
        */
-      SecureSocketChannel(const IpAddress& address);
+      explicit SecureSocketChannel(const IpAddress& address);
 
       /**
        * Constructs a SecureSocketChannel.
        * @param address The IP address to connect to.
        * @param options The options to apply to the socket.
        */
-      SecureSocketChannel(const IpAddress& address,
-        const SecureSocketOptions& options);
+      SecureSocketChannel(
+        const IpAddress& address, const SecureSocketOptions& options);
 
       /**
        * Constructs a SecureSocketChannel.
@@ -57,7 +55,7 @@ namespace Network {
        * Constructs a SecureSocketChannel.
        * @param addresses The list of IP addresses to try to connect to.
        */
-      SecureSocketChannel(const std::vector<IpAddress>& addresses);
+      explicit SecureSocketChannel(const std::vector<IpAddress>& addresses);
 
       /**
        * Constructs a SecureSocketChannel.
@@ -72,8 +70,8 @@ namespace Network {
        * @param addresses The list of IP addresses to try to connect to.
        * @param interface The interface to bind to.
        */
-      SecureSocketChannel(const std::vector<IpAddress>& addresses,
-        const IpAddress& interface);
+      SecureSocketChannel(
+        const std::vector<IpAddress>& addresses, const IpAddress& interface);
 
       /**
        * Constructs a SecureSocketChannel.
@@ -84,13 +82,10 @@ namespace Network {
       SecureSocketChannel(const std::vector<IpAddress>& addresses,
         const IpAddress& interface, const SecureSocketOptions& options);
 
-      const Identifier& GetIdentifier() const;
-
-      Connection& GetConnection();
-
-      Reader& GetReader();
-
-      Writer& GetWriter();
+      const Identifier& get_identifier() const;
+      Connection& get_connection();
+      Reader& get_reader();
+      Writer& get_writer();
 
     private:
       friend class SecureServerSocket;
@@ -103,24 +98,23 @@ namespace Network {
       SecureSocketChannel();
       SecureSocketChannel(const SecureSocketChannel&) = delete;
       SecureSocketChannel& operator =(const SecureSocketChannel&) = delete;
-      void SetAddress(const IpAddress& address);
+      void set_address(const IpAddress& address);
   };
 
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address)
     : SecureSocketChannel(address, SecureSocketOptions()) {}
 
-  inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    const SecureSocketOptions& options)
-    : SecureSocketChannel(std::vector<IpAddress>{address}, options) {}
+  inline SecureSocketChannel::SecureSocketChannel(
+    const IpAddress& address, const SecureSocketOptions& options)
+    : SecureSocketChannel(std::vector{address}, options) {}
 
-  inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
-    const IpAddress& interface)
+  inline SecureSocketChannel::SecureSocketChannel(
+    const IpAddress& address, const IpAddress& interface)
     : SecureSocketChannel(address, interface, SecureSocketOptions()) {}
 
   inline SecureSocketChannel::SecureSocketChannel(const IpAddress& address,
     const IpAddress& interface, const SecureSocketOptions& options)
-    : SecureSocketChannel(std::vector<IpAddress>{address}, interface,
-        options) {}
+    : SecureSocketChannel(std::vector{address}, interface, options) {}
 
   inline SecureSocketChannel::SecureSocketChannel(
     const std::vector<IpAddress>& addresses)
@@ -129,8 +123,8 @@ namespace Network {
   inline SecureSocketChannel::SecureSocketChannel(
     const std::vector<IpAddress>& addresses, const SecureSocketOptions& options)
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetContext(),
-        Threading::ServiceThreadPool::GetInstance().GetContext())),
+        ServiceThreadPool::get().get_context(),
+        ServiceThreadPool::get().get_context())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses),
       m_reader(m_socket),
@@ -144,49 +138,42 @@ namespace Network {
     const std::vector<IpAddress>& addresses, const IpAddress& interface,
     const SecureSocketOptions& options)
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetContext(),
-        Threading::ServiceThreadPool::GetInstance().GetContext())),
+        ServiceThreadPool::get().get_context(),
+        ServiceThreadPool::get().get_context())),
       m_identifier(addresses.front()),
       m_connection(m_socket, options, addresses, interface),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
   inline const SecureSocketChannel::Identifier&
-      SecureSocketChannel::GetIdentifier() const {
+      SecureSocketChannel::get_identifier() const {
     return m_identifier;
   }
 
-  inline SecureSocketChannel::Connection& SecureSocketChannel::GetConnection() {
+  inline SecureSocketChannel::Connection&
+      SecureSocketChannel::get_connection() {
     return m_connection;
   }
 
-  inline SecureSocketChannel::Reader& SecureSocketChannel::GetReader() {
+  inline SecureSocketChannel::Reader& SecureSocketChannel::get_reader() {
     return m_reader;
   }
 
-  inline SecureSocketChannel::Writer& SecureSocketChannel::GetWriter() {
+  inline SecureSocketChannel::Writer& SecureSocketChannel::get_writer() {
     return m_writer;
   }
 
   inline SecureSocketChannel::SecureSocketChannel()
     : m_socket(std::make_shared<Details::SecureSocketEntry>(
-        Threading::ServiceThreadPool::GetInstance().GetContext(),
-        Threading::ServiceThreadPool::GetInstance().GetContext())),
+        ServiceThreadPool::get().get_context(),
+        ServiceThreadPool::get().get_context())),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
-  inline void SecureSocketChannel::SetAddress(const IpAddress& address) {
+  inline void SecureSocketChannel::set_address(const IpAddress& address) {
     m_identifier = SocketIdentifier(address);
   }
-}
-
-  template<>
-  struct ImplementsConcept<Network::SecureSocketChannel, IO::Channel<
-    Network::SecureSocketChannel::Identifier,
-    Network::SecureSocketChannel::Connection,
-    Network::SecureSocketChannel::Reader,
-    Network::SecureSocketChannel::Writer>> : std::true_type {};
 }
 
 #endif

@@ -5,20 +5,13 @@
 #include "Beam/Network/UdpSocketReceiver.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Implements the Reader interface for a UdpReceiver. */
   class UdpSocketReader {
     public:
-      bool IsDataAvailable() const;
-
-      template<typename Buffer>
-      std::size_t Read(Out<Buffer> destination);
-
-      std::size_t Read(char* destination, std::size_t size);
-
-      template<typename Buffer>
-      std::size_t Read(Out<Buffer> destination, std::size_t size);
+      bool poll() const;
+      template<IsBuffer R>
+      std::size_t read(Out<R> destination, std::size_t size = -1);
 
     private:
       friend class UdpSocketChannel;
@@ -29,42 +22,28 @@ namespace Network {
       UdpSocketReader& operator =(const UdpSocketReader&) = delete;
   };
 
-  inline bool UdpSocketReader::IsDataAvailable() const {
+  inline bool UdpSocketReader::poll() const {
     auto command = boost::asio::socket_base::bytes_readable(true);
     {
       auto lock = boost::lock_guard(m_socket->m_socket->m_mutex);
-      m_socket->m_socket->m_socket.io_control(command);
+      try {
+        m_socket->m_socket->m_socket.io_control(command);
+      } catch(const std::exception&) {
+        return false;
+      }
     }
     return command.get() > 0;
   }
 
-  template<typename Buffer>
-  std::size_t UdpSocketReader::Read(Out<Buffer> destination) {
-    auto address = m_socket->GetAddress();
-    return m_socket->GetReceiver().Receive(Store(destination), Store(address));
-  }
-
-  inline std::size_t UdpSocketReader::Read(char* destination,
-      std::size_t size) {
-    auto address = m_socket->GetAddress();
-    return m_socket->GetReceiver().Receive(destination, size,
-      Store(address));
-  }
-
-  template<typename Buffer>
-  std::size_t UdpSocketReader::Read(Out<Buffer> destination, std::size_t size) {
-    auto address = m_socket->GetAddress();
-    return m_socket->GetReceiver().Receive(Store(destination), size,
-      Store(address));
+  template<IsBuffer R>
+  std::size_t UdpSocketReader::read(Out<R> destination, std::size_t size) {
+    auto address = m_socket->get_address();
+    return m_socket->get_receiver().receive(
+      out(destination), size, out(address));
   }
 
   inline UdpSocketReader::UdpSocketReader(std::shared_ptr<UdpSocket> socket)
     : m_socket(std::move(socket)) {}
-}
-
-  template<>
-  struct ImplementsConcept<Network::UdpSocketReader, IO::Reader> :
-    std::true_type {};
 }
 
 #endif

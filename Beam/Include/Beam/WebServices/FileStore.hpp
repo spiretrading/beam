@@ -2,16 +2,16 @@
 #define BEAM_FILE_STORE_HPP
 #include <filesystem>
 #include <fstream>
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/ContentTypePatterns.hpp"
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
-  /** brief Handles an HTTP request to serve a file. */
+  /** Handles an HTTP request to serve a file. */
   class FileStore {
     public:
 
@@ -24,134 +24,135 @@ namespace Beam::WebServices {
       /**
        * Constructs a FileStore with a specified path.
        * @param root The root of the file system.
-       * @param contentTypePatterns The set of patterns to use for content
+       * @param patterns The set of patterns to use for content
        *        types.
        */
-      FileStore(
-        std::filesystem::path root, ContentTypePatterns contentTypePatterns);
+      FileStore(std::filesystem::path root, ContentTypePatterns patterns);
 
       /**
        * Serves a file from a specified path.
        * @param path The path to the file to serve.
        * @return The HTTP response containing the file contents.
        */
-      HttpResponse Serve(const std::filesystem::path& path);
+      HttpResponse serve(const std::filesystem::path& path);
 
       /**
        * Serves a file from an HTTP request.
        * @param request The HTTP request to serve.
        * @return The HTTP response containing the file contents.
        */
-      HttpResponse Serve(const HttpRequest& request);
+      HttpResponse serve(const HttpRequest& request);
 
       /**
-       * Serves a file from an HTTP request.
+       * Serves a file from a specified path.
        * @param path The path to the file to serve.
        * @param response Stores the HTTP response containing the file contents.
        */
-      void Serve(const std::filesystem::path& path, Out<HttpResponse> response);
+      void serve(const std::filesystem::path& path, Out<HttpResponse> response);
 
       /**
        * Serves a file from an HTTP request.
        * @param request The HTTP request to serve.
        * @param response Stores the HTTP response containing the file contents.
        */
-      void Serve(const HttpRequest& request, Out<HttpResponse> response);
+      void serve(const HttpRequest& request, Out<HttpResponse> response);
 
     private:
       std::filesystem::path m_root;
-      ContentTypePatterns m_contentTypePatterns;
+      ContentTypePatterns m_patterns;
 
       FileStore(const FileStore&) = delete;
       FileStore& operator =(const FileStore&) = delete;
-      static void Populate(std::ostream& out, const std::string& name);
-      static std::string MakeDisplayPath(const std::filesystem::path& path);
-      std::string MakeDirectoryListing(
+      static void populate(std::ostream& out, const std::string& name);
+      static std::string make_display_path(const std::filesystem::path& path);
+      std::string make_directory_listing(
         const std::filesystem::path& target) const;
-      bool IsSubdirectory(const std::filesystem::path& target) const;
+      bool is_subdirectory(const std::filesystem::path& target) const;
   };
 
   /**
    * Returns an HttpRequestSlot to serve index.html.
-   * @param fileStore The FileStore serving the index.html file.
+   * @param file_store The FileStore serving the index.html file.
    * @return An HttpRequestSlot that serves index.html.
    */
-  inline HttpRequestSlot ServeIndex(FileStore& fileStore) {
-    return {[] (const HttpRequest& request) {
-      return (request.GetUri().GetPath() == "/" ||
-        request.GetUri().GetPath() == "") &&
-        request.GetMethod() == HttpMethod::GET;
-    },
-    [&] (const HttpRequest& request) {
-      auto response = HttpResponse();
-      fileStore.Serve("index.html", Store(response));
-      return response;
-    }};
+  inline HttpRequestSlot serve_index(FileStore& file_store) {
+    return {
+      [] (const HttpRequest& request) {
+        return (request.get_uri().get_path() == "/" ||
+          request.get_uri().get_path().empty()) &&
+            request.get_method() == HttpMethod::GET;
+      },
+      [&] (const HttpRequest& request) {
+        auto response = HttpResponse();
+        file_store.serve("index.html", out(response));
+        return response;
+      }
+    };
   }
 
   inline FileStore::FileStore(std::filesystem::path root)
-    : FileStore(std::move(root), ContentTypePatterns::GetDefaultPatterns()) {}
+    : FileStore(std::move(root), ContentTypePatterns::get_default_patterns()) {}
 
   inline FileStore::FileStore(
-    std::filesystem::path root, ContentTypePatterns contentTypePatterns)
+    std::filesystem::path root, ContentTypePatterns patterns)
     : m_root(std::filesystem::canonical(std::filesystem::absolute(root))),
-      m_contentTypePatterns(std::move(contentTypePatterns)) {}
+      m_patterns(std::move(patterns)) {}
 
-  inline HttpResponse FileStore::Serve(const std::filesystem::path& path) {
+  inline HttpResponse FileStore::serve(const std::filesystem::path& path) {
     auto response = HttpResponse();
-    Serve(path, Store(response));
+    serve(path, out(response));
     return response;
   }
 
-  inline HttpResponse FileStore::Serve(const HttpRequest& request) {
-    if(!request.GetUri().GetPath().empty() &&
-        request.GetUri().GetPath()[0] == '/') {
-      return Serve(request.GetUri().GetPath().substr(1));
+  inline HttpResponse FileStore::serve(const HttpRequest& request) {
+    auto path = request.get_uri().get_path();
+    if(!path.empty() && path[0] == '/') {
+      return serve(path.substr(1));
     } else {
-      return Serve(request.GetUri().GetPath());
+      return serve(path);
     }
   }
 
-  inline void FileStore::Serve(
+  inline void FileStore::serve(
       const std::filesystem::path& path, Out<HttpResponse> response) {
-    auto errorCode = std::error_code();
-    auto fullPath = std::filesystem::canonical(m_root / path, errorCode);
-    if(errorCode || !IsSubdirectory(fullPath)) {
-      response->SetStatusCode(HttpStatusCode::NOT_FOUND);
+    auto error_code = std::error_code();
+    auto full_path = std::filesystem::canonical(m_root / path, error_code);
+    if(error_code || !is_subdirectory(full_path)) {
+      response->set_status_code(HttpStatusCode::NOT_FOUND);
       return;
     }
-    auto buffer = IO::SharedBuffer();
-    if(std::filesystem::is_directory(fullPath)) {
-      auto listing = MakeDirectoryListing(fullPath);
-      buffer.Append(listing.c_str(), listing.size());
-      response->SetHeader({"Content-Type", "text/html"});
+    auto buffer = SharedBuffer();
+    if(std::filesystem::is_directory(full_path)) {
+      auto listing = make_directory_listing(full_path);
+      append(buffer, listing.c_str(), listing.size());
+      response->set_header(HttpHeader("Content-Type", "text/html"));
     } else {
-      auto file = std::ifstream(fullPath, std::ios::in | std::ios::binary);
+      auto file = std::ifstream(full_path, std::ios::in | std::ios::binary);
       if(!file) {
-        response->SetStatusCode(HttpStatusCode::NOT_FOUND);
+        response->set_status_code(HttpStatusCode::NOT_FOUND);
         return;
       }
-      buffer.Grow(
-        static_cast<std::size_t>(std::filesystem::file_size(fullPath)));
-      file.read(buffer.GetMutableData(), buffer.GetSize());
-      auto& contentType = m_contentTypePatterns.GetContentType(fullPath);
-      if(!contentType.empty()) {
-        response->SetHeader({"Content-Type", contentType});
+      buffer.grow(
+        static_cast<std::size_t>(std::filesystem::file_size(full_path)));
+      file.read(buffer.get_mutable_data(), buffer.get_size());
+      auto& content_type = m_patterns.get_content_type(full_path);
+      if(!content_type.empty()) {
+        response->set_header(HttpHeader("Content-Type", content_type));
       }
     }
-    response->SetBody(std::move(buffer));
+    response->set_body(buffer);
   }
 
-  inline void FileStore::Serve(
+  inline void FileStore::serve(
       const HttpRequest& request, Out<HttpResponse> response) {
-    Serve(request.GetUri().GetPath(), Store(response));
+    serve(request.get_uri().get_path(), out(response));
   }
 
-  inline void FileStore::Populate(std::ostream& out, const std::string& name) {
+  inline void FileStore::populate(std::ostream& out, const std::string& name) {
     out << "<a href=\"" << name << "\">" << name << "</a>\n";
   }
 
-  inline std::string FileStore::MakeDisplayPath(
+  inline std::string FileStore::make_display_path(
       const std::filesystem::path& path) {
     auto out = std::string();
     for(auto i = path.begin(); i != path.end(); ++i) {
@@ -163,14 +164,14 @@ namespace Beam::WebServices {
     return out;
   }
 
-  inline std::string FileStore::MakeDirectoryListing(
+  inline std::string FileStore::make_directory_listing(
       const std::filesystem::path& target) const {
     auto relative_path = std::filesystem::relative(target, m_root);
     auto display_path = [&] {
       if(target == m_root) {
         return std::string("/");
       } else {
-        return "/" + MakeDisplayPath(relative_path);
+        return "/" + make_display_path(relative_path);
       }
     }();
     auto out = std::ostringstream();
@@ -193,17 +194,17 @@ namespace Beam::WebServices {
     }
     std::sort(directories.begin(), directories.end());
     for(auto& directory : directories) {
-      Populate(out, directory);
+      populate(out, directory);
     }
     std::sort(files.begin(), files.end());
     for(auto& file : files) {
-      Populate(out, file);
+      populate(out, file);
     }
     out << "</pre>\n<hr>\n</body>\n</html>";
     return out.str();
   }
 
-  inline bool FileStore::IsSubdirectory(
+  inline bool FileStore::is_subdirectory(
       const std::filesystem::path& target) const {
     return std::mismatch(m_root.begin(), m_root.end(), target.begin()).first ==
       m_root.end();

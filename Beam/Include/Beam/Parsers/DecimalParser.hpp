@@ -3,30 +3,35 @@
 #include <array>
 #include <cctype>
 #include <cstdlib>
-#include "Beam/Parsers/Parsers.hpp"
+#include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
-namespace Beam::Parsers {
+namespace Beam {
 
   /**
    * Matches a decimal value.
-   * @param <F> The floating point data type to store the value in.
+   * @tparam F The floating point data type to store the value in.
    */
   template<typename F>
   class DecimalParser {
     public:
       using Result = F;
 
-      template<typename Stream>
-      bool Read(Stream& source, Result& value) const;
-
-      template<typename Stream>
-      bool Read(Stream& source) const;
+      template<IsParserStream S>
+      bool read(S& source, Result& value) const;
+      template<IsParserStream S>
+      bool read(S& source) const;
   };
 
+  /** A parser that matches a float value. */
+  inline const auto float_p = DecimalParser<float>();
+
+  /** A parser that matches a decimal value. */
+  inline const auto double_p = DecimalParser<double>();
+
   template<typename F>
-  template<typename Stream>
-  bool DecimalParser<F>::Read(Stream& source, Result& value) const {
+  template<IsParserStream S>
+  bool DecimalParser<F>::read(S& source, Result& value) const {
     enum {
       START,
       TERMINAL,
@@ -34,58 +39,58 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream<Stream>(source);
-    auto decimalBuffer = std::array<char, 64>();
+    auto context = SubParserStream<S>(source);
+    auto decimal_buffer = std::array<char, 64>();
     auto count = std::size_t(0);
-    if(!context.Read()) {
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == '-') {
-      decimalBuffer[count] = '-';
+    if(context.peek() == '-') {
+      decimal_buffer[count] = '-';
       ++count;
-      if(!context.Read()) {
+      if(!context.read()) {
         return false;
       }
     }
-    if(std::isdigit(context.GetChar())) {
-      decimalBuffer[count] = context.GetChar();
+    if(std::isdigit(context.peek())) {
+      decimal_buffer[count] = context.peek();
       ++count;
       state = INTEGER_DIGITS;
     } else {
       return false;
     }
     while(state != TERMINAL) {
-      if(!context.Read()) {
+      if(!context.read()) {
         state = TERMINAL;
         continue;
       }
       if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
-          decimalBuffer[count] = context.GetChar();
+        if(std::isdigit(context.peek())) {
+          decimal_buffer[count] = context.peek();
           ++count;
-        } else if(context.GetChar() == '.') {
-          decimalBuffer[count] = '.';
+        } else if(context.peek() == '.') {
+          decimal_buffer[count] = '.';
           ++count;
           state = START_DECIMAL;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
       } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.GetChar())) {
-          decimalBuffer[count] = context.GetChar();
+        if(std::isdigit(context.peek())) {
+          decimal_buffer[count] = context.peek();
           ++count;
           state = DECIMAL_DIGITS;
         } else {
           break;
         }
       } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
-          decimalBuffer[count] = context.GetChar();
+        if(std::isdigit(context.peek())) {
+          decimal_buffer[count] = context.peek();
           ++count;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
@@ -94,15 +99,15 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
-    decimalBuffer[count] = '\0';
-    value = std::strtod(decimalBuffer.data(), nullptr);
+    context.accept();
+    decimal_buffer[count] = '\0';
+    value = std::strtod(decimal_buffer.data(), nullptr);
     return true;
   }
 
   template<typename F>
-  template<typename Stream>
-  bool DecimalParser<F>::Read(Stream& source) const {
+  template<IsParserStream S>
+  bool DecimalParser<F>::read(S& source) const {
     enum {
       START,
       TERMINAL,
@@ -110,25 +115,25 @@ namespace Beam::Parsers {
       START_DECIMAL,
       DECIMAL_DIGITS
     } state = START;
-    auto context = SubParserStream<Stream>(source);
-    if(!context.Read()) {
+    auto context = SubParserStream<S>(source);
+    if(!context.read()) {
       return false;
     }
-    if(context.GetChar() == '-') {
-      if(!context.Read()) {
+    if(context.peek() == '-') {
+      if(!context.read()) {
         return false;
       }
     }
-    if(std::isdigit(context.GetChar())) {
+    if(std::isdigit(context.peek())) {
       state = INTEGER_DIGITS;
     } else {
       return false;
     }
-    while(context.Read()) {
+    while(context.read()) {
       if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           continue;
-        } else if(context.GetChar() == '.') {
+        } else if(context.peek() == '.') {
           state = START_DECIMAL;
         } else {
           context.Undo();
@@ -136,16 +141,16 @@ namespace Beam::Parsers {
           break;
         }
       } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           state = DECIMAL_DIGITS;
         } else {
           break;
         }
       } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.GetChar())) {
+        if(std::isdigit(context.peek())) {
           continue;
         } else {
-          context.Undo();
+          context.undo();
           state = TERMINAL;
           break;
         }
@@ -154,7 +159,7 @@ namespace Beam::Parsers {
     if(state != TERMINAL) {
       return false;
     }
-    context.Accept();
+    context.accept();
     return true;
   }
 }

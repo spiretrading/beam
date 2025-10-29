@@ -4,14 +4,13 @@
 #include "Beam/Network/UdpSocket.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Provides a Connection interface for a UdpSocket. */
   class UdpSocketConnection {
     public:
       ~UdpSocketConnection();
 
-      void Close();
+      void close();
 
     private:
       friend class UdpSocketChannel;
@@ -23,21 +22,16 @@ namespace Network {
   };
 
   inline UdpSocketConnection::~UdpSocketConnection() {
-    Close();
+    close();
   }
 
-  inline void UdpSocketConnection::Close() {
-    m_socket->Close();
+  inline void UdpSocketConnection::close() {
+    m_socket->close();
   }
 
   inline UdpSocketConnection::UdpSocketConnection(
     std::shared_ptr<UdpSocket> socket)
     : m_socket(std::move(socket)) {}
-}
-
-  template<>
-  struct ImplementsConcept<Network::UdpSocketConnection, IO::Connection> :
-    std::true_type {};
 }
 
 #endif

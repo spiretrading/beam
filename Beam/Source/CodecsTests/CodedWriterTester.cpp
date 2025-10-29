@@ -6,56 +6,50 @@
 #include "Beam/IO/SharedBuffer.hpp"
 
 using namespace Beam;
-using namespace Beam::Codecs;
-using namespace Beam::Codecs::Tests;
-using namespace Beam::IO;
+using namespace Beam::Tests;
 
 TEST_SUITE("CodedWriter") {
   TEST_CASE("single_byte") {
-    auto pipedReader = PipedReader<SharedBuffer>();
-    auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
-    auto codedWriter = CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder>(
-      &pipedWriter, ReverseEncoder());
+    auto piped_reader = PipedReader();
+    auto piped_writer = PipedWriter(Ref(piped_reader));
+    auto coded_writer = CodedWriter(&piped_writer, ReverseEncoder());
     {
-      codedWriter.Write(BufferFromString<SharedBuffer>("a"));
-      auto readBuffer = SharedBuffer();
-      REQUIRE(pipedReader.Read(Store(readBuffer)) == 1);
-      REQUIRE(readBuffer.GetSize() == 1);
-      REQUIRE(std::string(readBuffer.GetData(), readBuffer.GetSize()) == "a");
+      coded_writer.write(from<SharedBuffer>("a"));
+      auto read_buffer = SharedBuffer();
+      REQUIRE(piped_reader.read(out(read_buffer)) == 1);
+      REQUIRE(read_buffer.get_size() == 1);
+      REQUIRE(read_buffer == "a");
     }
     {
-      codedWriter.Write(BufferFromString<SharedBuffer>("b"));
-      auto readBuffer = SharedBuffer();
-      REQUIRE(pipedReader.Read(Store(readBuffer)) == 1);
-      REQUIRE(readBuffer.GetSize() == 1);
-      REQUIRE(std::string(readBuffer.GetData(), readBuffer.GetSize()) == "b");
+      coded_writer.write(from<SharedBuffer>("b"));
+      auto read_buffer = SharedBuffer();
+      REQUIRE(piped_reader.read(out(read_buffer)) == 1);
+      REQUIRE(read_buffer.get_size() == 1);
+      REQUIRE(read_buffer == "b");
     }
   }
 
   TEST_CASE("write") {
-    auto pipedReader = PipedReader<SharedBuffer>();
-    auto pipedWriter = PipedWriter<SharedBuffer>(Ref(pipedReader));
-    auto codedWriter = CodedWriter<PipedWriter<SharedBuffer>*, ReverseEncoder>(
-      &pipedWriter, ReverseEncoder());
+    auto piped_reader = PipedReader();
+    auto piped_writer = PipedWriter(Ref(piped_reader));
+    auto coded_writer = CodedWriter(&piped_writer, ReverseEncoder());
     {
       auto message = std::string("hello");
-      auto reversedMessage = std::string(message.rbegin(), message.rend());
-      codedWriter.Write(BufferFromString<SharedBuffer>(message));
-      auto readBuffer = SharedBuffer();
-      REQUIRE(pipedReader.Read(Store(readBuffer)) == reversedMessage.size());
-      REQUIRE(readBuffer.GetSize() == reversedMessage.size());
-      REQUIRE(std::string(readBuffer.GetData(), readBuffer.GetSize()) ==
-        reversedMessage);
+      auto reversed_message = std::string(message.rbegin(), message.rend());
+      coded_writer.write(from<SharedBuffer>(message));
+      auto read_buffer = SharedBuffer();
+      REQUIRE(piped_reader.read(out(read_buffer)) == reversed_message.size());
+      REQUIRE(read_buffer.get_size() == reversed_message.size());
+      REQUIRE(read_buffer == reversed_message);
     }
     {
       auto message = std::string("world");
-      auto reversedMessage = std::string(message.rbegin(), message.rend());
-      codedWriter.Write(BufferFromString<SharedBuffer>(message));
-      auto readBuffer = SharedBuffer();
-      REQUIRE(pipedReader.Read(Store(readBuffer)) == reversedMessage.size());
-      REQUIRE(readBuffer.GetSize() == reversedMessage.size());
-      REQUIRE(std::string(readBuffer.GetData(), readBuffer.GetSize()) ==
-        reversedMessage);
+      auto reversed_message = std::string(message.rbegin(), message.rend());
+      coded_writer.write(from<SharedBuffer>(message));
+      auto read_buffer = SharedBuffer();
+      REQUIRE(piped_reader.read(out(read_buffer)) == reversed_message.size());
+      REQUIRE(read_buffer.get_size() == reversed_message.size());
+      REQUIRE(read_buffer == reversed_message);
     }
   }
 }

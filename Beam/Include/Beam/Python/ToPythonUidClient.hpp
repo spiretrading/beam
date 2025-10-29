@@ -1,19 +1,18 @@
 #ifndef BEAM_TO_PYTHON_UID_CLIENT_HPP
 #define BEAM_TO_PYTHON_UID_CLIENT_HPP
-#include <memory>
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/Python/GilRelease.hpp"
-#include "Beam/UidService/UidClientBox.hpp"
+#include "Beam/UidService/UidClient.hpp"
 
-namespace Beam::UidService {
+namespace Beam::Python {
 
   /**
    * Wraps a UidClient for use with Python.
-   * @param C The type of UidClient to wrap.
+   * @tparam C The type of UidClient to wrap.
    */
-  template<typename C>
+  template<IsUidClient C>
   class ToPythonUidClient {
     public:
 
@@ -25,23 +24,30 @@ namespace Beam::UidService {
        * @param args The arguments to forward to the constructor.
        */
       template<typename... Args>
-      ToPythonUidClient(Args&&... args);
-
-      ToPythonUidClient(ToPythonUidClient&&) = default;
+      explicit ToPythonUidClient(Args&&... args);
 
       ~ToPythonUidClient();
 
-      /** Returns the wrapped UidClient. */
-      const Client& GetClient() const;
+      /** Returns a reference to the underlying client. */
+      Client& get();
 
-      /** Returns the wrapped UidClient. */
-      Client& GetClient();
+      /** Returns a reference to the underlying client. */
+      const Client& get() const;
 
-      std::uint64_t LoadNextUid();
+      /** Returns a reference to the underlying client. */
+      Client& operator *();
 
-      void Close();
+      /** Returns a reference to the underlying client. */
+      const Client& operator *() const;
 
-      ToPythonUidClient& operator =(ToPythonUidClient&&) = default;
+      /** Returns a pointer to the underlying client. */
+      Client* operator ->();
+
+      /** Returns a pointer to the underlying client. */
+      const Client* operator ->() const;
+
+      std::uint64_t load_next_uid();
+      void close();
 
     private:
       boost::optional<Client> m_client;
@@ -51,41 +57,64 @@ namespace Beam::UidService {
   };
 
   template<typename UidClient>
-  ToPythonUidClient(UidClient&&) -> ToPythonUidClient<std::decay_t<UidClient>>;
+  ToPythonUidClient(UidClient&&) ->
+    ToPythonUidClient<std::remove_cvref_t<UidClient>>;
 
-  template<typename C>
+  template<IsUidClient C>
   template<typename... Args>
   ToPythonUidClient<C>::ToPythonUidClient(Args&&... args)
-    : m_client((Python::GilRelease(), boost::in_place_init),
-        std::forward<Args>(args)...) {}
+    : m_client(
+        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
 
-  template<typename C>
+  template<IsUidClient C>
   ToPythonUidClient<C>::~ToPythonUidClient() {
-    auto release = Python::GilRelease();
+    auto release = GilRelease();
     m_client.reset();
   }
 
-  template<typename C>
+  template<IsUidClient C>
+  typename ToPythonUidClient<C>::Client& ToPythonUidClient<C>::get() {
+    return *m_client;
+  }
+
+  template<IsUidClient C>
   const typename ToPythonUidClient<C>::Client&
-      ToPythonUidClient<C>::GetClient() const {
+      ToPythonUidClient<C>::get() const {
     return *m_client;
   }
 
-  template<typename C>
-  typename ToPythonUidClient<C>::Client& ToPythonUidClient<C>::GetClient() {
+  template<IsUidClient C>
+  typename ToPythonUidClient<C>::Client& ToPythonUidClient<C>::operator *() {
     return *m_client;
   }
 
-  template<typename C>
-  std::uint64_t ToPythonUidClient<C>::LoadNextUid() {
-    auto release = Python::GilRelease();
-    return m_client->LoadNextUid();
+  template<IsUidClient C>
+  const typename ToPythonUidClient<C>::Client&
+      ToPythonUidClient<C>::operator *() const {
+    return *m_client;
   }
 
-  template<typename C>
-  void ToPythonUidClient<C>::Close() {
-    auto release = Python::GilRelease();
-    m_client->Close();
+  template<IsUidClient C>
+  typename ToPythonUidClient<C>::Client* ToPythonUidClient<C>::operator ->() {
+    return m_client.get_ptr();
+  }
+
+  template<IsUidClient C>
+  const typename ToPythonUidClient<C>::Client*
+      ToPythonUidClient<C>::operator ->() const {
+    return m_client.get_ptr();
+  }
+
+  template<IsUidClient C>
+  std::uint64_t ToPythonUidClient<C>::load_next_uid() {
+    auto release = GilRelease();
+    return m_client->load_next_uid();
+  }
+
+  template<IsUidClient C>
+  void ToPythonUidClient<C>::close() {
+    auto release = GilRelease();
+    m_client->close();
   }
 }
 

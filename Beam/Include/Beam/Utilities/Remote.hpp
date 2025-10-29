@@ -1,18 +1,19 @@
 #ifndef BEAM_REMOTE_HPP
 #define BEAM_REMOTE_HPP
 #include <atomic>
+#include <exception>
 #include <functional>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/mutex.hpp>
+#include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/PreferredConditionVariable.hpp"
-#include "Beam/Utilities/Utilities.hpp"
 
 namespace Beam {
 
   /**
    * Represents a value that must be loaded remotely using blocking calls.
-   * @param <T> The type of value to load.
-   * @param <M> The type of mutex used to synchronize the initialization.
+   * @tparam T The type of value to load.
+   * @tparam M The type of mutex used to synchronize the initialization.
    */
   template<typename T, typename M = boost::mutex>
   class Remote {
@@ -28,28 +29,32 @@ namespace Beam {
        * Defines the function used to initialize the Remote value.
        * @param value The value to initialize.
        */
-      using InitializationFunction =
-        std::function<void (boost::optional<Type>& value)>;
+      using Initializer = std::function<void (boost::optional<Type>& value)>;
 
       /** Constructs a Remote object. */
-      Remote();
+      Remote() noexcept;
 
       /**
        * Constructs a Remote object.
        * @param initializer The function used to initialize this object.
        */
-      explicit Remote(const InitializationFunction& initializer);
-
-      /**
-       * Sets the function used to initialize the Remote value.
-       * @param initialize The function used to initialize this object.
-       */
-      void SetInitializationFunction(const InitializationFunction& initializer);
+      explicit Remote(Initializer initializer) noexcept;
 
       /**
        * Returns <code>true</code> iff the object was loaded and is available.
        */
-      bool IsAvailable() const;
+      explicit operator bool() const;
+
+      /**
+       * Sets the function used to initialize the Remote value.
+       * @param initializer The function used to initialize this object.
+       */
+      void set_initializer(const Initializer& initializer);
+
+      /**
+       * Returns <code>true</code> iff the object was loaded and is available.
+       */
+      bool is_available() const;
 
       /** Returns the Remote value, initializing it if needed. */
       Type& operator *() const;
@@ -59,57 +64,70 @@ namespace Beam {
 
     private:
       mutable Mutex m_mutex;
-      InitializationFunction m_initialize;
+      Initializer m_initializer;
       mutable boost::optional<Type> m_value;
-      mutable std::atomic_bool m_isAvailable;
-      mutable bool m_isLoading;
-      mutable typename Threading::PreferredConditionVariable<Mutex>::type
-        m_isAvailableCondition;
+      mutable std::exception_ptr m_initialization_exception;
+      mutable std::atomic_bool m_is_available;
+      mutable bool m_is_loading;
+      mutable preferred_condition_variable_t<Mutex> m_is_available_condition;
 
       Remote(const Remote&) = delete;
       Remote& operator =(const Remote&) = delete;
   };
 
   template<typename T, typename M>
-  Remote<T, M>::Remote()
-    : m_isAvailable(false),
-      m_isLoading(false) {}
+  Remote<T, M>::Remote() noexcept
+    : m_is_available(false),
+      m_is_loading(false) {}
 
   template<typename T, typename M>
-  Remote<T, M>::Remote(const InitializationFunction& initializer)
-    : m_isAvailable(false),
-      m_isLoading(false),
-      m_initialize(initializer) {}
+  Remote<T, M>::Remote(Initializer initializer) noexcept
+    : m_is_available(false),
+      m_is_loading(false),
+      m_initializer(std::move(initializer)) {}
 
   template<typename T, typename M>
-  void Remote<T, M>::SetInitializationFunction(
-      const InitializationFunction& initializer) {
-    m_initialize = initializer;
+  Remote<T, M>::operator bool() const {
+    return is_available();
   }
 
   template<typename T, typename M>
-  bool Remote<T, M>::IsAvailable() const {
-    return m_isAvailable;
+  void Remote<T, M>::set_initializer(const Initializer& initializer) {
+    m_initializer = initializer;
+  }
+
+  template<typename T, typename M>
+  bool Remote<T, M>::is_available() const {
+    return m_is_available;
   }
 
   template<typename T, typename M>
   typename Remote<T, M>::Type& Remote<T, M>::operator *() const {
-    if(m_isAvailable) {
+    if(m_is_available) {
       return *m_value;
     }
     auto lock = boost::unique_lock(m_mutex);
-    if(!m_isAvailable && !m_isLoading) {
-      m_isLoading = true;
-      {
-        auto release = Threading::Release(lock);
-        m_initialize(m_value);
+    if(!m_is_available && !m_is_loading) {
+      m_is_loading = true;
+      m_initialization_exception = nullptr;
+      try {
+        auto releaser = release(lock);
+        m_initializer(m_value);
+      } catch(...) {
+        m_initialization_exception = std::current_exception();
+        m_is_loading = false;
+        m_is_available_condition.notify_all();
+        throw;
       }
-      m_isLoading = false;
-      m_isAvailable = true;
-      m_isAvailableCondition.notify_all();
+      m_is_loading = false;
+      m_is_available = true;
+      m_is_available_condition.notify_all();
     }
-    while(!m_isAvailable) {
-      m_isAvailableCondition.wait(lock);
+    while(!m_is_available && m_is_loading) {
+      m_is_available_condition.wait(lock);
+    }
+    if(m_initialization_exception) {
+      std::rethrow_exception(m_initialization_exception);
     }
     return *m_value;
   }

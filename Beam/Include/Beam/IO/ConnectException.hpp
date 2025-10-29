@@ -2,7 +2,7 @@
 #define BEAM_CONNECT_EXCEPTION_HPP
 #include "Beam/IO/IOException.hpp"
 
-namespace Beam::IO {
+namespace Beam {
 
   /** Signals that a connect operation failed. */
   class ConnectException : public IOException {
@@ -14,7 +14,7 @@ namespace Beam::IO {
   };
 
   inline ConnectException::ConnectException()
-    : IOException("Unable to connect.") {}
+    : ConnectException("Unable to connect.") {}
 }
 
 #endif

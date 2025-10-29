@@ -4,42 +4,39 @@
 #include "Beam/Routines/RoutineHandler.hpp"
 
 using namespace Beam;
-using namespace Beam::Routines;
 
 TEST_SUITE("StateQueue") {
   TEST_CASE("break") {
     auto q = StateQueue<int>();
-    auto exceptionCount = std::atomic_int(0);
-    auto r1 = RoutineHandler(Spawn(
-      [&] {
-        try {
-          q.Pop();
-        } catch(const PipeBrokenException&) {
-          ++exceptionCount;
-        }
-      }));
-    auto r2 = RoutineHandler(Spawn(
-      [&] {
-        try {
-          q.Pop();
-        } catch(const PipeBrokenException&) {
-          ++exceptionCount;
-        }
-      }));
-    q.Break();
-    r1.Wait();
-    r2.Wait();
-    REQUIRE(exceptionCount == 2);
+    auto exception_count = std::atomic_int(0);
+    auto r1 = RoutineHandler(spawn([&] {
+      try {
+        q.pop();
+      } catch(const PipeBrokenException&) {
+        ++exception_count;
+      }
+    }));
+    auto r2 = RoutineHandler(spawn([&] {
+      try {
+        q.pop();
+      } catch(const PipeBrokenException&) {
+        ++exception_count;
+      }
+    }));
+    q.close();
+    r1.wait();
+    r2.wait();
+    REQUIRE(exception_count == 2);
   }
 
   TEST_CASE("peek") {
     auto q = StateQueue<int>();
-    q.Push(123);
-    q.Push(456);
-    REQUIRE(q.Peek() == 456);
-    REQUIRE(q.Peek() == 456);
-    REQUIRE(q.Pop() == 456);
-    q.Break();
-    REQUIRE_THROWS_AS(q.Peek(), PipeBrokenException);
+    q.push(123);
+    q.push(456);
+    REQUIRE(q.peek() == 456);
+    REQUIRE(q.peek() == 456);
+    REQUIRE(q.pop() == 456);
+    q.close();
+    REQUIRE_THROWS_AS(q.peek(), PipeBrokenException);
   }
 }

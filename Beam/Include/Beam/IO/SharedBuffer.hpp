@@ -1,291 +1,194 @@
 #ifndef BEAM_SHARED_BUFFER_HPP
 #define BEAM_SHARED_BUFFER_HPP
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
 #include <cstring>
-#include <new>
-#include <boost/shared_array.hpp>
+#include <memory>
+#include <stdexcept>
 #include <boost/throw_exception.hpp>
-#include "Beam/IO/BufferView.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
+#include "Beam/IO/Buffer.hpp"
 
 namespace Beam {
-namespace IO {
-namespace Details {
-  inline std::size_t FindNextPowerOfTwo(std::size_t current) {
-    auto nextPowerOfTwo = std::size_t(1);
-    auto lastPowerOfTwo = nextPowerOfTwo;
-    while(nextPowerOfTwo < current) {
-      nextPowerOfTwo *= 2;
-      if(nextPowerOfTwo < lastPowerOfTwo) {
-        BOOST_THROW_EXCEPTION(std::bad_alloc());
-      }
-      lastPowerOfTwo = nextPowerOfTwo;
-    }
-    return nextPowerOfTwo;
-  }
-}
 
   /** Implements the Buffer Concept using copy-on-write data. */
   class SharedBuffer {
     public:
 
-      /** Constructs a SharedBuffer. */
-      SharedBuffer();
+      /** Constructs an empty SharedBuffer. */
+      SharedBuffer() noexcept;
 
       /**
        * Constructs a SharedBuffer with a pre-allocated initial size.
-       * @param initialSize The initial size to pre-allocate.
+       * @param initial_size The initial size to pre-allocate.
        */
-      SharedBuffer(std::size_t initialSize);
+      explicit SharedBuffer(std::size_t initial_size);
 
+      /**
+       * Constructs a SharedBuffer whose contents are a copy of the provided
+       * data.
+       * @param data The source data to copy from.
+       * @param size The size, in bytes, of the source data.
+       */
       SharedBuffer(const void* data, std::size_t size);
 
-      SharedBuffer(const SharedBuffer& buffer);
+      /**
+       * Constructs a SharedBuffer by copying the contents of another Buffer.
+       * @param buffer The buffer to copy from.
+       */
+      SharedBuffer(const IsConstBuffer auto& buffer);
 
-      template<typename B, typename = std::enable_if_t<IsBufferView<B>>>
-      SharedBuffer(const B& buffer);
+      SharedBuffer(const SharedBuffer&) = default;
+      SharedBuffer(SharedBuffer&& buffer) noexcept;
 
-      SharedBuffer(SharedBuffer&& buffer);
-
-      bool IsEmpty() const;
-
-      void Grow(std::size_t size);
-
-      void Shrink(std::size_t size);
-
-      void ShrinkFront(std::size_t size);
-
-      void Reserve(std::size_t size);
-
-      void Write(std::size_t index, const void* source, std::size_t size);
-
-      template<typename T>
-      void Write(std::size_t index, T value);
-
-      void Append(const SharedBuffer& buffer);
-
-      template<typename Buffer>
-      std::enable_if_t<IsBufferView<Buffer>> Append(const Buffer& buffer);
-
-      void Append(const void* data, std::size_t size);
-
-      template<typename T>
-      std::enable_if_t<!IsBufferView<T>> Append(T value);
-
-      void Reset();
-
-      const char* GetData() const;
-
-      char* GetMutableData();
-
-      std::size_t GetSize() const;
-
-      template<typename T>
-      void Extract(std::size_t index, Out<T> value) const;
-
-      template<typename T>
-      T Extract(std::size_t index) const;
-
-      SharedBuffer& operator =(const SharedBuffer& rhs);
-
-      template<typename Buffer>
-      SharedBuffer& operator =(const Buffer& rhs);
-
-      SharedBuffer& operator =(SharedBuffer&& rhs);
+      const char* get_data() const;
+      std::size_t get_size() const;
+      char* get_mutable_data();
+      std::size_t grow(std::size_t size);
+      std::size_t shrink(std::size_t size);
+      void write(std::size_t index, const void* source, std::size_t size);
+      SharedBuffer& operator =(const IsBuffer auto& rhs);
+      SharedBuffer& operator =(const SharedBuffer&) = default;
+      SharedBuffer& operator =(SharedBuffer&& rhs) noexcept;
 
     private:
       std::size_t m_size;
-      std::size_t m_availableSize;
-      boost::shared_array<char> m_data;
-      char* m_front;
+      std::size_t m_capacity;
+      std::shared_ptr<char> m_data;
 
-      void Reallocate();
+      static std::size_t next_power_of_two(std::size_t n);
+      static std::size_t ceil_power_of_two(std::size_t n);
+      void reallocate(std::size_t size);
   };
 
-  inline SharedBuffer::SharedBuffer()
+  inline SharedBuffer::SharedBuffer() noexcept
     : m_size(0),
-      m_availableSize(0),
-      m_front(nullptr) {}
+      m_capacity(0) {}
 
-  inline SharedBuffer::SharedBuffer(std::size_t initialSize)
-    : m_size(initialSize),
-      m_availableSize(Details::FindNextPowerOfTwo(initialSize)),
-      m_data(new char[m_availableSize]),
-      m_front(m_data.get()) {}
+  inline SharedBuffer::SharedBuffer(std::size_t initial_size)
+      : m_size(initial_size),
+        m_capacity(ceil_power_of_two(initial_size)) {
+    if(m_capacity == 0) {
+      return;
+    }
+    m_data.reset(static_cast<char*>(std::malloc(m_capacity)), &std::free);
+    if(!m_data) {
+      boost::throw_with_location(std::bad_alloc());
+    }
+  }
 
   inline SharedBuffer::SharedBuffer(const void* data, std::size_t size)
-      : m_size(0),
-        m_availableSize(0),
-        m_front(nullptr) {
-    Append(data, size);
+    : m_size(0),
+      m_capacity(0) {
+    append(*this, data, size);
   }
 
-  inline SharedBuffer::SharedBuffer(const SharedBuffer& buffer)
-    : m_size(buffer.m_size),
-      m_availableSize(buffer.m_availableSize),
-      m_data(buffer.m_data),
-      m_front(buffer.m_front) {}
-
-  template<typename B, typename>
-  SharedBuffer::SharedBuffer(const B& buffer)
-      : m_size(0),
-        m_availableSize(0),
-        m_front(nullptr) {
-    Append(buffer);
+  inline SharedBuffer::SharedBuffer(const IsConstBuffer auto& buffer)
+    : m_size(0),
+      m_capacity(0) {
+    append(*this, buffer);
   }
 
-  inline SharedBuffer::SharedBuffer(SharedBuffer&& buffer)
-    : m_size(std::move(buffer.m_size)),
-      m_availableSize(std::move(buffer.m_availableSize)),
-      m_data(std::move(buffer.m_data)),
-      m_front(std::move(buffer.m_front)) {}
-
-  inline bool SharedBuffer::IsEmpty() const {
-    return m_size == 0;
+  inline SharedBuffer::SharedBuffer(SharedBuffer&& buffer) noexcept
+      : m_size(buffer.m_size),
+        m_capacity(buffer.m_capacity),
+        m_data(std::move(buffer.m_data)) {
+    buffer.m_size = 0;
+    buffer.m_capacity = 0;
   }
 
-  inline void SharedBuffer::Grow(std::size_t size) {
-    if(m_size + size > m_availableSize) {
-      m_availableSize = Details::FindNextPowerOfTwo(m_size + size);
-      Reallocate();
-    }
-    m_size += size;
+  inline const char* SharedBuffer::get_data() const {
+    return m_data.get();
   }
 
-  inline void SharedBuffer::Shrink(std::size_t size) {
-    if(size >= m_size) {
-      m_size = 0;
-      m_front = m_data.get();
-      return;
-    }
-    m_size -= size;
-  }
-
-  inline void SharedBuffer::ShrinkFront(std::size_t size) {
-    assert(size >= 0);
-    auto data = boost::shared_array<char>{new char[m_availableSize]};
-    std::memcpy(data.get(), m_data.get() + size, m_size - size);
-    data.swap(m_data);
-    m_size -= size;
-    m_front = m_data.get();
-  }
-
-  inline void SharedBuffer::Reserve(std::size_t size) {
-    Grow(size - m_size);
-  }
-
-  inline void SharedBuffer::Write(std::size_t index, const void* source,
-      std::size_t size) {
-    assert(index <= m_size);
-    if(m_availableSize < index + size) {
-      m_availableSize = Details::FindNextPowerOfTwo(index + size);
-      Reallocate();
-    } else if(!m_data.unique()) {
-      Reallocate();
-    }
-    std::memcpy(m_front + index, source, size);
-    m_size = std::max(index + size, m_size);
-  }
-
-  template<typename T>
-  void SharedBuffer::Write(std::size_t index, T value) {
-    Write(index, &value, sizeof(T));
-  }
-
-  inline void SharedBuffer::Append(const SharedBuffer& buffer) {
-    if(m_size == 0) {
-      *this = buffer;
-      return;
-    }
-    Append(buffer.GetData(), buffer.GetSize());
-  }
-
-  template<typename Buffer>
-  std::enable_if_t<IsBufferView<Buffer>> SharedBuffer::Append(
-      const Buffer& buffer) {
-    Append(buffer.GetData(), buffer.GetSize());
-  }
-
-  inline void SharedBuffer::Append(const void* data, std::size_t size) {
-    if(m_availableSize < m_size + size) {
-      m_availableSize = Details::FindNextPowerOfTwo(m_size + size);
-      Reallocate();
-    } else if(!m_data.unique()) {
-      Reallocate();
-    }
-    std::memcpy(m_front + m_size, data, size);
-    m_size += size;
-  }
-
-  template<typename T>
-  std::enable_if_t<!IsBufferView<T>> SharedBuffer::Append(T value) {
-    Append(&value, sizeof(T));
-  }
-
-  inline void SharedBuffer::Reset() {
-    m_size = 0;
-    m_front = m_data.get();
-  }
-
-  inline const char* SharedBuffer::GetData() const {
-    return m_front;
-  }
-
-  inline char* SharedBuffer::GetMutableData() {
-    if(!m_data.unique()) {
-      Reallocate();
-    }
-    return m_front;
-  }
-
-  inline std::size_t SharedBuffer::GetSize() const {
+  inline std::size_t SharedBuffer::get_size() const {
     return m_size;
   }
 
-  template<typename T>
-  void SharedBuffer::Extract(std::size_t index, Out<T> value) const {
-    std::memcpy(reinterpret_cast<char*>(&*value), m_front + index, sizeof(T));
+  inline char* SharedBuffer::get_mutable_data() {
+    if(m_data.use_count() > 1) {
+      reallocate(m_capacity);
+    }
+    return m_data.get();
   }
 
-  template<typename T>
-  T SharedBuffer::Extract(std::size_t index) const {
-    auto value = T();
-    std::memcpy(reinterpret_cast<char*>(&value), m_front + index, sizeof(T));
-    return value;
+  inline std::size_t SharedBuffer::grow(std::size_t size) {
+    if(m_size + size > m_capacity) {
+      reallocate(ceil_power_of_two(m_size + size));
+    }
+    m_size += size;
+    return size;
   }
 
-  inline SharedBuffer& SharedBuffer::operator =(const SharedBuffer& rhs) {
+  inline std::size_t SharedBuffer::shrink(std::size_t size) {
+    if(size >= m_size) {
+      return std::exchange(m_size, 0);
+    }
+    m_size -= size;
+    return size;
+  }
+
+  inline void SharedBuffer::write(
+      std::size_t index, const void* source, std::size_t size) {
+    assert(index <= m_size);
+    if(m_capacity < index + size) {
+      reallocate(ceil_power_of_two(index + size));
+    } else if(m_data.use_count() > 1) {
+      reallocate(m_capacity);
+    }
+    std::memcpy(m_data.get() + index, source, size);
+    m_size = std::max(index + size, m_size);
+  }
+
+  inline SharedBuffer& SharedBuffer::operator =(const IsBuffer auto& rhs) {
+    m_size = 0;
+    append(*this, rhs.get_data(), rhs.get_size());
+    return *this;
+  }
+
+  inline SharedBuffer& SharedBuffer::operator =(SharedBuffer&& rhs) noexcept {
     m_size = rhs.m_size;
-    m_availableSize = rhs.m_availableSize;
-    m_data = rhs.m_data;
-    m_front = rhs.m_front;
-    return *this;
-  }
-
-  template<typename Buffer>
-  SharedBuffer& SharedBuffer::operator =(const Buffer& rhs) {
-    Reset();
-    Append(rhs);
-    return *this;
-  }
-
-  inline SharedBuffer& SharedBuffer::operator =(SharedBuffer&& rhs) {
-    m_size = std::move(rhs.m_size);
-    m_availableSize = std::move(rhs.m_availableSize);
+    m_capacity = rhs.m_capacity;
     m_data = std::move(rhs.m_data);
-    m_front = std::move(rhs.m_front);
+    rhs.m_size = 0;
+    rhs.m_capacity = 0;
     return *this;
   }
 
-  inline void SharedBuffer::Reallocate() {
-    auto oldData = std::move(m_data);
-    m_data.reset(new char[m_availableSize]);
-    std::memcpy(m_data.get(), oldData.get(), m_size);
-    m_front = m_data.get() + (m_front - oldData.get());
+  inline std::size_t SharedBuffer::next_power_of_two(std::size_t n) {
+    auto next = std::size_t(1);
+    auto last = next;
+    while(next < n) {
+      next *= 2;
+      if(next < last) {
+        boost::throw_with_location(std::bad_alloc());
+      }
+      last = next;
+    }
+    return next;
   }
-}
 
-  template<>
-  struct ImplementsConcept<IO::SharedBuffer, IO::Buffer> : std::true_type {};
+  inline std::size_t SharedBuffer::ceil_power_of_two(std::size_t n) {
+    if((n & (n - 1)) == 0) {
+      return n;
+    }
+    return next_power_of_two(n);
+  }
+
+  inline void SharedBuffer::reallocate(std::size_t size) {
+    if(size == 0) {
+      m_data.reset();
+      m_capacity = 0;
+      return;
+    }
+    auto new_data = static_cast<char*>(std::malloc(size));
+    if(!new_data) {
+      boost::throw_with_location(std::bad_alloc());
+    }
+    std::memcpy(new_data, m_data.get(), m_size);
+    m_data.reset(new_data, &std::free);
+    m_capacity = size;
+  }
 }
 
 #endif

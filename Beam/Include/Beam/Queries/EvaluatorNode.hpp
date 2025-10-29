@@ -1,9 +1,8 @@
 #ifndef BEAM_EVALUATOR_NODE_HPP
 #define BEAM_EVALUATOR_NODE_HPP
-#include <typeinfo>
-#include "Beam/Queries/Queries.hpp"
+#include <typeindex>
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Base class for an EvaluatorNode. */
   class BaseEvaluatorNode {
@@ -11,30 +10,29 @@ namespace Beam::Queries {
       virtual ~BaseEvaluatorNode() = default;
 
       /** Returns the type evaluated by this node. */
-      virtual const std::type_info& GetResultType() const = 0;
+      virtual std::type_index get_type() const = 0;
  };
 
   /**
    * Evaluates an Expression.
    * @param R The type of the result.
    */
-  template<typename T>
+  template<typename R>
   class EvaluatorNode : public BaseEvaluatorNode {
     public:
 
       /** The result of an evaluation. */
-      using Result = T;
-
-      /** Returns the type evaluated by this node. */
-      const std::type_info& GetResultType() const override;
+      using Result = R;
 
       /** Evaluates the expression. */
-      virtual Result Eval() = 0;
+      virtual Result eval() = 0;
+
+      std::type_index get_type() const override;
   };
 
-  template<typename T>
-  const std::type_info& EvaluatorNode<T>::GetResultType() const {
-    return typeid(Result);
+  template<typename R>
+  std::type_index EvaluatorNode<R>::get_type() const {
+    return std::type_index(typeid(Result));
   }
 }
 

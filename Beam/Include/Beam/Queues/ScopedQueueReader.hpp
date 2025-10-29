@@ -2,121 +2,107 @@
 #define BEAM_SCOPED_QUEUE_READER_HPP
 #include <memory>
 #include <type_traits>
-#include <utility>
+#include <boost/throw_exception.hpp>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/QueueReader.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
   /**
    * Stores a handle to a QueueReader that breaks when the object goes out of
    * scope.
-   * @param <T> The type of data to read from the QueueReader.
-   * @param <Q> The type of QueueReader to handle.
+   * @tparam T The type of data to read from the QueueReader.
+   * @tparam Q The type of QueueReader to handle.
    */
   template<typename T, typename Q = std::shared_ptr<QueueReader<T>>>
   class ScopedQueueReader : public QueueReader<T> {
     public:
 
       /** The type of QueueReader to handle. */
-      using QueueReader = GetTryDereferenceType<Q>;
+      using QueueReader = dereference_t<Q>;
       using Source = typename Beam::QueueReader<T>::Source;
 
       /**
        * Constructs a ScopedQueueReader.
        * @param queue The QueueReader to manage.
        */
-      template<typename QF, typename = std::enable_if_t<
-        !std::is_base_of_v<ScopedQueueReader, std::decay_t<QF>> &&
-        std::is_same_v<typename GetTryDereferenceType<QF>::Source,
-        typename QueueReader::Source>>>
-      ScopedQueueReader(QF&& queue);
+      template<Initializes<Q> QF,
+        typename = disable_copy_constructor_t<ScopedQueueReader, QF>>
+      ScopedQueueReader(QF&& queue) noexcept(
+        std::is_nothrow_constructible_v<local_ptr_t<Q>, QF&&>);
 
       template<typename U>
-      ScopedQueueReader(ScopedQueueReader<Source, U>&& queue);
-
-      ScopedQueueReader(ScopedQueueReader&& queue);
-
+      ScopedQueueReader(ScopedQueueReader<Source, U>&& queue) noexcept(
+        std::is_nothrow_constructible_v<local_ptr_t<Q>, local_ptr_t<U>&&>);
       ~ScopedQueueReader() override;
 
-      Source Pop() override;
-
-      boost::optional<Source> TryPop() override;
-
-      void Break(const std::exception_ptr& e) override;
-
-      ScopedQueueReader& operator =(ScopedQueueReader&& queue);
-
+      Source pop() override;
+      boost::optional<Source> try_pop() override;
+      void close(const std::exception_ptr& e) override;
       template<typename U>
-      ScopedQueueReader& operator =(ScopedQueueReader<Source, U>&& queue);
-
-      using Beam::QueueReader<T>::Break;
+      ScopedQueueReader& operator =(
+        ScopedQueueReader<Source, U>&& queue) noexcept(
+          std::is_nothrow_assignable_v<local_ptr_t<Q>&, local_ptr_t<U>&&>);
+      using Beam::QueueReader<T>::close;
 
     private:
-      GetOptionalLocalPtr<Q> m_queue;
+      local_ptr_t<Q> m_queue;
   };
 
-  template<typename Q, typename = std::enable_if_t<!std::is_base_of_v<
-    ScopedQueueReader<typename GetTryDereferenceType<Q>::Source,
-    std::decay_t<Q>>, std::decay_t<Q>>>>
+  template<typename Q>
   ScopedQueueReader(Q&&) -> ScopedQueueReader<
-    typename GetTryDereferenceType<Q>::Source, std::decay_t<Q>>;
+    typename dereference_t<Q>::Source, std::remove_cvref_t<Q>>;
 
   template<typename T, typename Q>
-  template<typename QF, typename>
-  ScopedQueueReader<T, Q>::ScopedQueueReader(QF&& queue)
+  template<Initializes<Q> QF, typename>
+  ScopedQueueReader<T, Q>::ScopedQueueReader(QF&& queue) noexcept(
+    std::is_nothrow_constructible_v<local_ptr_t<Q>, QF&&>)
     : m_queue(std::forward<QF>(queue)) {}
 
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueReader<T, Q>::ScopedQueueReader(
-    ScopedQueueReader<Source, U>&& queue)
-    : m_queue(std::move(queue.m_queue)) {}
-
-  template<typename T, typename Q>
-  ScopedQueueReader<T, Q>::ScopedQueueReader(ScopedQueueReader&& queue)
+    ScopedQueueReader<Source, U>&& queue) noexcept(
+      std::is_nothrow_constructible_v<local_ptr_t<Q>, local_ptr_t<U>&&>)
     : m_queue(std::move(queue.m_queue)) {}
 
   template<typename T, typename Q>
   ScopedQueueReader<T, Q>::~ScopedQueueReader() {
-    if(m_queue) {
-      m_queue->Break();
-    }
+    close();
   }
 
   template<typename T, typename Q>
-  typename ScopedQueueReader<T, Q>::Source ScopedQueueReader<T, Q>::Pop() {
-    return m_queue->Pop();
+  typename ScopedQueueReader<T, Q>::Source ScopedQueueReader<T, Q>::pop() {
+    if(m_queue) {
+      return m_queue->pop();
+    }
+    boost::throw_with_location(PipeBrokenException());
   }
 
   template<typename T, typename Q>
   boost::optional<typename ScopedQueueReader<T, Q>::Source>
-      ScopedQueueReader<T, Q>::TryPop() {
-    return m_queue->TryPop();
-  }
-
-  template<typename T, typename Q>
-  void ScopedQueueReader<T, Q>::Break(const std::exception_ptr& e) {
+      ScopedQueueReader<T, Q>::try_pop() {
     if(m_queue) {
-      m_queue->Break(e);
+      return m_queue->try_pop();
     }
+    return boost::none;
   }
 
   template<typename T, typename Q>
-  ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
-      ScopedQueueReader&& queue) {
-    Break();
-    m_queue = std::move(queue.m_queue);
-    return *this;
+  void ScopedQueueReader<T, Q>::close(const std::exception_ptr& e) {
+    if(m_queue) {
+      m_queue->close(e);
+    }
   }
 
   template<typename T, typename Q>
   template<typename U>
   ScopedQueueReader<T, Q>& ScopedQueueReader<T, Q>::operator =(
-      ScopedQueueReader<Source, U>&& queue) {
-    Break();
+      ScopedQueueReader<Source, U>&& queue) noexcept(
+        std::is_nothrow_assignable_v<local_ptr_t<Q>&, local_ptr_t<U>&&>) {
+    close();
     m_queue = std::move(queue.m_queue);
     return *this;
   }

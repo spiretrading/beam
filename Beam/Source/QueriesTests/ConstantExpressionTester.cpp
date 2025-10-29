@@ -1,44 +1,42 @@
+#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/NativeDataType.hpp"
-#include "Beam/Queries/NativeValue.hpp"
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
-using namespace Beam::Queries;
+using namespace Beam::Tests;
 
 TEST_SUITE("ConstantExpression") {
-  TEST_CASE("make_constant_expression") {
-    auto intExpression = ConstantExpression(123);
-    REQUIRE(intExpression.GetValue()->GetValue<int>() == 123);
-    auto stringExpression = ConstantExpression(std::string("hello world"));
-    REQUIRE(stringExpression.GetValue()->GetValue<std::string>() ==
-      "hello world");
+  TEST_CASE("construct_from_int") {
+    auto expression = ConstantExpression(42);
+    REQUIRE(expression.get_type() == typeid(int));
+    REQUIRE(expression.get_value().as<int>() == 42);
   }
 
-  TEST_CASE("int") {
-    auto constantExpression = ConstantExpression(NativeValue(123));
-    REQUIRE(constantExpression.GetType() == NativeDataType<int>());
-    REQUIRE(constantExpression.GetValue() == NativeValue(123));
-    auto expression = Expression(constantExpression);
-    REQUIRE(expression->GetType() == NativeDataType<int>());
+  TEST_CASE("construct_from_string") {
+    auto expression = ConstantExpression("hello");
+    REQUIRE(expression.get_type() == typeid(std::string));
+    REQUIRE(expression.get_value() == "hello");
   }
 
-  TEST_CASE("decimal") {
-    auto constantExpression = ConstantExpression(NativeValue(3.14));
-    REQUIRE(constantExpression.GetType() == NativeDataType<double>());
-    REQUIRE(constantExpression.GetValue() == NativeValue(3.14));
-    auto expression = Expression(constantExpression);
-    REQUIRE(expression->GetType() == NativeDataType<double>());
+  TEST_CASE("copy") {
+    auto original = ConstantExpression("world");
+    auto copy = original;
+    REQUIRE(copy.get_type() == typeid(std::string));
+    REQUIRE(copy.get_value() == "world");
+    REQUIRE(original.get_value() == "world");
   }
 
-  TEST_CASE("string") {
-    auto constantExpression = ConstantExpression(NativeValue(
-      std::string("hello world")));
-    REQUIRE(constantExpression.GetType() == NativeDataType<std::string>());
-    REQUIRE(constantExpression.GetValue() == NativeValue(
-      std::string("hello world")));
-    auto expression = Expression(constantExpression);
-    REQUIRE(expression->GetType() == NativeDataType<std::string>());
+  TEST_CASE("stream") {
+    auto expression = ConstantExpression(123);
+    auto stream = std::stringstream();
+    stream << expression;
+    REQUIRE(stream.str() == "123");
+  }
+
+  TEST_CASE("bad_cast") {
+    auto expression = ConstantExpression(100);
+    REQUIRE_THROWS_AS(expression.get_value().as<double>(), std::bad_cast);
   }
 }

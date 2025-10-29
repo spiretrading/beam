@@ -1,96 +1,106 @@
-#ifndef BEAM_CACHEDVALUE_HPP
-#define BEAM_CACHEDVALUE_HPP
+#ifndef BEAM_CACHED_VALUE_HPP
+#define BEAM_CACHED_VALUE_HPP
 #include <functional>
-#include <boost/noncopyable.hpp>
-#include "Beam/Utilities/Utilities.hpp"
+#include <type_traits>
 
 namespace Beam {
 
-  /*! \class CachedValue
-      \brief Caches the result of a computation.
+  /**
+   * Caches the result of a computation.
+   * @tparam T The type of the cached value.
    */
   template<typename T>
-  class CachedValue : private boost::noncopyable {
+  class CachedValue {
     public:
 
-      //! Constructs a CachedValue.
-      CachedValue();
+      /** The type of the cached value. */
+      using Type = T;
 
-      //! Constructs a CachedValue.
-      /*!
-        \param computation The computation to cache.
-      */
-      CachedValue(const std::function<T ()>& computation);
+      /** The type of function used to compute the value. */
+      using Computation = std::function<Type ()>;
 
-      //! Sets the computation to cache.
-      /*!
-        \param computer The computation to cache.
-      */
-      void SetComputation(const std::function<T ()>& computation);
+      /** Constructs a CachedValue. */
+      CachedValue() noexcept(std::is_nothrow_default_constructible_v<Type>);
 
-      //! Invalidates this cache.
-      void Invalidate();
+      /**
+       * Constructs a CachedValue.
+       * @param computation The computation to cache.
+       */
+      CachedValue(Computation computation);
 
-      //! Returns a reference to the value.
+      /** Returns a reference to the value. */
       T& operator *() const;
 
-      //! Returns a pointer to the value.
+      /** Returns a pointer to the value. */
       T* operator ->() const;
 
-      //! Returns the value.
-      T* Get() const;
+      /**
+       * Sets the computation to cache.
+       * @param computer The computation to cache.
+       */
+      void set_computation(const Computation& computation);
+
+      /** Returns the value. */
+      T* get() const;
+
+      /** Invalidates this cache. */
+      void invalidate();
 
     private:
-      mutable T m_value;
-      mutable bool m_isValid;
-      std::function<T ()> m_computation;
+      mutable Type m_value;
+      mutable bool m_is_valid;
+      Computation m_computation;
   };
 
-  template<typename T>
-  CachedValue<T>::CachedValue()
-      : m_isValid(false) {}
+  template<typename F>
+  CachedValue(F) -> CachedValue<std::remove_cvref_t<std::invoke_result_t<F>>>;
 
   template<typename T>
-  CachedValue<T>::CachedValue(const std::function<T ()>& computation)
-      : m_isValid(false),
-        m_computation(computation) {}
+  CachedValue<T>::CachedValue() noexcept(
+    std::is_nothrow_default_constructible_v<Type>)
+    : m_is_valid(false) {}
 
   template<typename T>
-  void CachedValue<T>::SetComputation(const std::function<T ()>& computation) {
-    m_isValid = false;
-    m_computation = computation;
-  }
+  CachedValue<T>::CachedValue(Computation computation)
+    : m_is_valid(false),
+      m_computation(std::move(computation)) {}
 
   template<typename T>
-  void CachedValue<T>::Invalidate() {
-    m_isValid = false;
-  }
-
-  template<typename T>
-  T& CachedValue<T>::operator *() const {
-    if(!m_isValid) {
+  typename CachedValue<T>::Type& CachedValue<T>::operator *() const {
+    if(!m_is_valid) {
       m_value = m_computation();
-      m_isValid = true;
+      m_is_valid = true;
     }
     return m_value;
   }
 
   template<typename T>
-  T* CachedValue<T>::operator ->() const {
-    if(!m_isValid) {
+  typename CachedValue<T>::Type* CachedValue<T>::operator ->() const {
+    if(!m_is_valid) {
       m_value = m_computation();
-      m_isValid = true;
+      m_is_valid = true;
     }
     return &m_value;
   }
 
   template<typename T>
-  T* CachedValue<T>::Get() const {
-    if(!m_isValid) {
+  void CachedValue<T>::set_computation(const Computation& computation) {
+    m_is_valid = false;
+    m_computation = computation;
+  }
+
+  template<typename T>
+  typename CachedValue<T>::Type* CachedValue<T>::get() const {
+    if(!m_is_valid) {
       m_value = m_computation();
-      m_isValid = true;
+      m_is_valid = true;
     }
     return &m_value;
+  }
+
+  template<typename T>
+  void CachedValue<T>::invalidate() {
+    m_is_valid = false;
   }
 }
 

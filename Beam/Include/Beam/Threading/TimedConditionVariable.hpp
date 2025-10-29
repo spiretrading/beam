@@ -2,18 +2,18 @@
 #define BEAM_TIMED_CONDITION_VARIABLE_HPP
 #include <atomic>
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/Sync.hpp"
-#include "Beam/Threading/Threading.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
+#include "Beam/TimeService/LiveTimer.hpp"
 
-namespace Beam::Threading {
+namespace Beam {
 
   /**
    * Implements a condition variable that can wait for a specified time period.
    */
-  class TimedConditionVariable : private boost::noncopyable {
+  class TimedConditionVariable {
     public:
 
       /** Constructs a TimedConditionVariable. */
@@ -32,8 +32,8 @@ namespace Beam::Threading {
        * @param lock The lock synchronizing the notification event.
        */
       template<typename... Lock>
-      void timed_wait(boost::posix_time::time_duration duration,
-        Lock&... lock);
+      void timed_wait(
+        boost::posix_time::time_duration duration, Lock&... lock);
 
       /** Triggers a notification event for a single suspended Routine. */
       void notify_one();
@@ -43,109 +43,110 @@ namespace Beam::Threading {
 
     private:
       struct WaitEntry {
-        std::atomic_bool m_isWaiting;
-        std::atomic_bool m_isTimerStarted;
+        std::atomic_bool m_is_waiting;
+        std::atomic_bool m_is_timer_started;
         LiveTimer m_timer;
-        Routines::Async<void> m_timerResult;
+        Async<void> m_timer_result;
         ConditionVariable m_condition;
 
         WaitEntry();
         WaitEntry(boost::posix_time::time_duration duration);
       };
-      Sync<std::deque<WaitEntry*>> m_waitEntries;
+      Sync<std::deque<WaitEntry*>> m_wait_entries;
 
       TimedConditionVariable(const TimedConditionVariable&) = delete;
       TimedConditionVariable& operator =(
         const TimedConditionVariable&) = delete;
-      void NotifyWaitEntry(WaitEntry& waitEntry);
+      void notify_wait_entry(WaitEntry& wait_entry);
   };
 
   inline TimedConditionVariable::WaitEntry::WaitEntry()
-    : m_isWaiting(true),
-      m_isTimerStarted(false),
+    : m_is_waiting(true),
+      m_is_timer_started(false),
       m_timer(boost::posix_time::seconds(0)) {}
 
   inline TimedConditionVariable::WaitEntry::WaitEntry(
     boost::posix_time::time_duration duration)
-    : m_isWaiting(true),
-      m_isTimerStarted(false),
+    : m_is_waiting(true),
+      m_is_timer_started(false),
       m_timer(duration) {}
 
   template<typename... Lock>
   void TimedConditionVariable::wait(Lock&... lock) {
-    auto waitEntry = WaitEntry();
-    m_waitEntries.With([&] (auto& waitEntries) {
-      waitEntries.push_back(&waitEntry);
+    auto wait_entry = WaitEntry();
+    m_wait_entries.with([&] (auto& wait_entries) {
+      wait_entries.push_back(&wait_entry);
     });
-    waitEntry.m_condition.wait(lock...);
+    wait_entry.m_condition.wait(lock...);
   }
+
   template<typename... Lock>
   void TimedConditionVariable::timed_wait(
       boost::posix_time::time_duration duration, Lock&... lock) {
-    auto waitEntry = WaitEntry(duration);
-    m_waitEntries.With([&] (auto& waitEntries) {
-      waitEntries.push_back(&waitEntry);
+    auto wait_entry = WaitEntry(duration);
+    m_wait_entries.with([&] (auto& wait_entries) {
+      wait_entries.push_back(&wait_entry);
     });
-    auto waitRoutine = Routines::Spawn([&] {
-      waitEntry.m_timer.Start();
-      auto isTimerStarted = waitEntry.m_isTimerStarted.exchange(true);
-      if(isTimerStarted) {
-        waitEntry.m_timer.Cancel();
+    auto wait_routine = spawn([&] {
+      wait_entry.m_timer.start();
+      auto is_timer_started = wait_entry.m_is_timer_started.exchange(true);
+      if(is_timer_started) {
+        wait_entry.m_timer.cancel();
         return;
       }
-      waitEntry.m_timer.Wait();
-      auto isWaiting = waitEntry.m_isWaiting.exchange(false);
-      if(isWaiting) {
-        m_waitEntries.With([&] (auto& waitEntries) {
-          auto entryIterator = std::find(waitEntries.begin(),
-            waitEntries.end(), &waitEntry);
-          if(entryIterator != waitEntries.end()) {
-            waitEntries.erase(entryIterator);
+      wait_entry.m_timer.wait();
+      auto is_waiting = wait_entry.m_is_waiting.exchange(false);
+      if(is_waiting) {
+        m_wait_entries.with([&] (auto& wait_entries) {
+          auto i =
+            std::find(wait_entries.begin(), wait_entries.end(), &wait_entry);
+          if(i != wait_entries.end()) {
+            wait_entries.erase(i);
           }
         });
-        waitEntry.m_timerResult.GetEval().SetException(TimeoutException());
-        waitEntry.m_condition.notify_one();
+        wait_entry.m_timer_result.get_eval().set_exception(TimeoutException());
+        wait_entry.m_condition.notify_one();
       }
     });
-    waitEntry.m_condition.wait(lock...);
-    Routines::Wait(waitRoutine);
-    waitEntry.m_timerResult.Get();
+    wait_entry.m_condition.wait(lock...);
+    Beam::wait(wait_routine);
+    wait_entry.m_timer_result.get();
   }
 
   inline void TimedConditionVariable::notify_one() {
-    auto waitEntry = static_cast<WaitEntry*>(nullptr);
-    m_waitEntries.With([&] (auto& waitEntries) {
-      if(waitEntries.empty()) {
-        waitEntry = nullptr;
+    auto wait_entry = static_cast<WaitEntry*>(nullptr);
+    m_wait_entries.with([&] (auto& wait_entries) {
+      if(wait_entries.empty()) {
+        wait_entry = nullptr;
       } else {
-        waitEntry = waitEntries.front();
-        waitEntries.pop_front();
+        wait_entry = wait_entries.front();
+        wait_entries.pop_front();
       }
     });
-    if(waitEntry != nullptr) {
-      NotifyWaitEntry(*waitEntry);
+    if(wait_entry) {
+      notify_wait_entry(*wait_entry);
     }
   }
 
   inline void TimedConditionVariable::notify_all() {
-    auto pendingWaitEntries = std::deque<WaitEntry*>();
-    m_waitEntries.With([&] (auto& waitEntries) {
-      waitEntries.swap(pendingWaitEntries);
+    auto pending_wait_entries = std::deque<WaitEntry*>();
+    m_wait_entries.with([&] (auto& wait_entries) {
+      wait_entries.swap(pending_wait_entries);
     });
-    for(auto waitEntry : pendingWaitEntries) {
-      NotifyWaitEntry(*waitEntry);
+    for(auto wait_entry : pending_wait_entries) {
+      notify_wait_entry(*wait_entry);
     }
   }
 
-  inline void TimedConditionVariable::NotifyWaitEntry(WaitEntry& waitEntry) {
-    auto isTimerStarted = waitEntry.m_isTimerStarted.exchange(true);
-    auto isWaiting = waitEntry.m_isWaiting.exchange(false);
-    if(isTimerStarted) {
-      waitEntry.m_timer.Cancel();
+  inline void TimedConditionVariable::notify_wait_entry(WaitEntry& wait_entry) {
+    auto is_timer_started = wait_entry.m_is_timer_started.exchange(true);
+    auto is_waiting = wait_entry.m_is_waiting.exchange(false);
+    if(is_timer_started) {
+      wait_entry.m_timer.cancel();
     }
-    if(isWaiting) {
-      waitEntry.m_timerResult.GetEval().SetResult();
-      waitEntry.m_condition.notify_one();
+    if(is_waiting) {
+      wait_entry.m_timer_result.get_eval().set();
+      wait_entry.m_condition.notify_one();
     }
   }
 }

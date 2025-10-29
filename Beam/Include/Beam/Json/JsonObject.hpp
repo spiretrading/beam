@@ -1,12 +1,13 @@
 #ifndef BEAM_JSON_OBJECT_HPP
 #define BEAM_JSON_OBJECT_HPP
+#include <memory>
 #include <ostream>
 #include <string>
 #include <unordered_map>
 #include <boost/optional/optional.hpp>
-#include "Beam/Json/Json.hpp"
 
 namespace Beam {
+  class JsonValue;
 
   /** Encapsulates an object represented using JSON. */
   class JsonObject {
@@ -22,6 +23,33 @@ namespace Beam {
        * @return The member with the specified <i>name</i>.
        */
       JsonValue& operator [](const std::string& name);
+
+      /**
+       * Returns a member of <code>this</code> JSON object.
+       * @param name The name of the member to return.
+       * @return The member with the specified <i>name</i>.
+       */
+      const JsonValue& at(const std::string& name) const;
+
+      /**
+       * Returns a member of <code>this</code> JSON object.
+       * @param name The name of the member to return.
+       * @return The member with the specified <i>name</i>.
+       */
+      boost::optional<const JsonValue&> get(const std::string& name) const;
+
+      /**
+       * Sets the value of a member.
+       * @param name The name of the member to set.
+       * @param value The value of the member.
+       */
+      void set(const std::string& name, const JsonValue& value);
+
+      /**
+       * Saves <code>this</code> object to an output stream.
+       * @param sink The stream to save <code>this</code> object to.
+       */
+      void save(std::ostream& sink) const;
 
       /**
        * Returns <code>true</code> iff <code>this</code> JSON object is equal
@@ -40,33 +68,6 @@ namespace Beam {
        */
       bool operator !=(const JsonObject& object) const;
 
-      /**
-       * Returns a member of <code>this</code> JSON object.
-       * @param name The name of the member to return.
-       * @return The member with the specified <i>name</i>.
-       */
-      const JsonValue& At(const std::string& name) const;
-
-      /**
-       * Returns a member of <code>this</code> JSON object.
-       * @param name The name of the member to return.
-       * @return The member with the specified <i>name</i>.
-       */
-      boost::optional<const JsonValue&> Get(const std::string& name) const;
-
-      /**
-       * Sets the value of a member.
-       * @param name The name of the member to set.
-       * @param value The value of the member.
-       */
-      void Set(const std::string& name, const JsonValue& value);
-
-      /**
-       * Saves <code>this</code> object to an output stream.
-       * @param sink The stream to save <code>this</code> object to.
-       */
-      void Save(std::ostream& sink) const;
-
     private:
       std::unordered_map<std::string, std::shared_ptr<JsonValue>> m_members;
   };
@@ -77,9 +78,9 @@ namespace Beam {
    * @param object The JSON object to save.
    * @return <code>sink</code>
    */
-  inline std::ostream& operator <<(std::ostream& sink,
-      const JsonObject& object) {
-    object.Save(sink);
+  inline std::ostream& operator <<(
+      std::ostream& sink, const JsonObject& object) {
+    object.save(sink);
     return sink;
   }
 }
@@ -88,20 +89,56 @@ namespace Beam {
 
 namespace Beam {
   inline JsonValue& JsonObject::operator [](const std::string& name) {
-    auto memberIterator = m_members.find(name);
-    if(memberIterator == m_members.end()) {
-      memberIterator = m_members.insert(
+    auto i = m_members.find(name);
+    if(i == m_members.end()) {
+      i = m_members.insert(
         std::pair(name, std::make_shared<JsonValue>())).first;
     }
-    return *memberIterator->second;
+    return *i->second;
+  }
+
+  inline const JsonValue& JsonObject::at(const std::string& name) const {
+    return *m_members.at(name);
+  }
+
+  inline boost::optional<const JsonValue&> JsonObject::get(
+      const std::string& name) const {
+    auto i = m_members.find(name);
+    if(i == m_members.end()) {
+      return boost::none;
+    }
+    return *i->second;
+  }
+
+  inline void JsonObject::set(const std::string& name, const JsonValue& value) {
+    auto& self = m_members[name];
+    if(self) {
+      *self = value;
+    } else {
+      self = std::make_shared<JsonValue>(value);
+    }
+  }
+
+  inline void JsonObject::save(std::ostream& sink) const {
+    sink << '{';
+    auto is_first_member = true;
+    for(auto& member : m_members) {
+      if(!is_first_member) {
+        sink << ',';
+      }
+      is_first_member = false;
+      sink << '\"' << member.first << "\":";
+      member.second->save(sink);
+    }
+    sink << '}';
   }
 
   inline bool JsonObject::operator ==(const JsonObject& object) const {
     if(m_members.size() != object.m_members.size()) {
       return false;
     }
-    for(const auto& member : m_members) {
-      auto value = object.Get(member.first);
+    for(auto& member : m_members) {
+      auto value = object.get(member.first);
       if(!value || !(*value == *member.second)) {
         return false;
       }
@@ -111,42 +148,6 @@ namespace Beam {
 
   inline bool JsonObject::operator !=(const JsonObject& object) const {
     return !(*this == object);
-  }
-
-  inline const JsonValue& JsonObject::At(const std::string& name) const {
-    return *m_members.at(name);
-  }
-
-  inline boost::optional<const JsonValue&> JsonObject::Get(
-      const std::string& name) const {
-    auto memberIterator = m_members.find(name);
-    if(memberIterator == m_members.end()) {
-      return boost::none;
-    }
-    return *memberIterator->second;
-  }
-
-  inline void JsonObject::Set(const std::string& name, const JsonValue& value) {
-    auto& self = m_members[name];
-    if(self) {
-      *self = value;
-    } else {
-      self = std::make_shared<JsonValue>(value);
-    }
-  }
-
-  inline void JsonObject::Save(std::ostream& sink) const {
-    sink << '{';
-    auto isFirstMember = true;
-    for(auto& member : m_members) {
-      if(!isFirstMember) {
-        sink << ',';
-      }
-      isFirstMember = false;
-      sink << '\"' << member.first << "\":";
-      member.second->Save(sink);
-    }
-    sink << '}';
   }
 }
 

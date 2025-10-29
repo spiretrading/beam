@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <boost/chrono/system_clocks.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/endian.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/Connection.hpp"
@@ -13,17 +13,17 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/UdpSocketChannel.hpp"
 #include "Beam/Parsers/Parse.hpp"
+#include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
-#include "Beam/TimeService/TimeService.hpp"
-#include "Beam/Threading/LiveTimer.hpp"
 #include "Beam/Threading/Sync.hpp"
-#include "Beam/Threading/Timer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/ReportException.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
-namespace Beam::TimeService {
+namespace Beam {
 
   /** The size of an NTP packet. */
   static constexpr auto NTP_PACKET_SIZE = 48 * sizeof(std::uint8_t);
@@ -40,24 +40,21 @@ namespace Beam::TimeService {
   /** Specifies the type of array used to encode an NTP packet. */
   using NtpPacket = std::array<std::uint8_t, NTP_PACKET_SIZE>;
 
-  /** An NtpTimeClient that uses a live UDP Socket and timer. */
-  using LiveNtpTimeClient = NtpTimeClient<Network::UdpSocketChannel,
-    Threading::LiveTimer>;
-
   /**
    * Implements a TimeClient using the NTP protocol.
    * @param C The type of Channel used to synchronize with the NTP server.
    * @param T The type of Timer used to specify the synchronization period.
    */
-  template<typename C, typename T>
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
   class NtpTimeClient {
     public:
 
       /** The type of Channel used to synchronize with the NTP server. */
-      using Channel = GetTryDereferenceType<C>;
+      using Channel = dereference_t<C>;
 
       /** The type of Timer used to specify the synchronization period. */
-      using Timer = GetTryDereferenceType<T>;
+      using Timer = dereference_t<T>;
 
       /**
        * Constructs an NtpTimeClient.
@@ -65,57 +62,55 @@ namespace Beam::TimeService {
        * @param timer Initializes the Timer used to specify the synchronization
        *        period.
        */
-      template<typename TF>
+      template<Initializes<T> TF>
       NtpTimeClient(std::vector<std::unique_ptr<Channel>> sources, TF&& timer);
 
       ~NtpTimeClient();
 
-      boost::posix_time::ptime GetTime();
-
-      void Close();
+      boost::posix_time::ptime get_time();
+      void close();
 
     private:
       struct Origin {
-        boost::posix_time::ptime m_startTime;
-        boost::chrono::steady_clock::time_point m_startPoint;
+        boost::posix_time::ptime m_start_time;
+        boost::chrono::steady_clock::time_point m_start;
       };
       std::vector<std::unique_ptr<Channel>> m_sources;
-      GetOptionalLocalPtr<T> m_timer;
-      Threading::Sync<Origin> m_origin;
-      IO::OpenState m_openState;
+      local_ptr_t<T> m_timer;
+      Sync<Origin> m_origin;
+      OpenState m_open_state;
       RoutineTaskQueue m_tasks;
 
       NtpTimeClient(const NtpTimeClient&) = delete;
       NtpTimeClient& operator =(const NtpTimeClient&) = delete;
-      void Synchronize();
-      void OnTimerExpired(Threading::Timer::Result result);
+      void synchronize();
+      void on_timer_expired(Beam::Timer::Result result);
   };
+
+  /** An NtpTimeClient that uses a live UDP Socket and timer. */
+  using LiveNtpTimeClient = NtpTimeClient<UdpSocketChannel, LiveTimer>;
 
   /**
    * Converts an NTP timestamp to a POSIX timestamp.
    * @param source The first byte in the NTP timestamp.
    * @return The POSIX timestamp representation of the <i>source</i>.
    */
-  inline boost::posix_time::ptime PosixTimeFromNtpTime(
+  inline boost::posix_time::ptime posix_time_from_ntp_time(
       const std::uint8_t* source) {
-    auto iPart =
-      static_cast<std::uint32_t>(source[0]) << 24 |
-      static_cast<std::uint32_t>(source[1]) << 16 |
-      static_cast<std::uint32_t>(source[2]) << 8 |
-      static_cast<std::uint32_t>(source[3]);
-    auto fPart =
-      static_cast<std::uint32_t>(source[4]) << 24 |
-      static_cast<std::uint32_t>(source[5]) << 16 |
-      static_cast<std::uint32_t>(source[6]) << 8 |
-      static_cast<std::uint32_t>(source[7]);
-    if(iPart == 0 && fPart == 0) {
+    auto integer_part = std::uint32_t(0);
+    auto fractional_part = std::uint32_t(0);
+    std::memcpy(&integer_part, source, sizeof(integer_part));
+    std::memcpy(&fractional_part, source + 4, sizeof(fractional_part));
+    boost::endian::big_to_native_inplace(integer_part);
+    boost::endian::big_to_native_inplace(fractional_part);
+    if(integer_part == 0 && fractional_part == 0) {
       return boost::posix_time::not_a_date_time;
     }
-    auto posixTime = boost::posix_time::ptime(
+    auto timestamp = boost::posix_time::ptime(
       boost::gregorian::date(1900, 1, 1),
       boost::posix_time::milliseconds(static_cast<std::uint64_t>(
-      iPart * 1.0E3 + fPart * 1.0E3 / 0x100000000ULL)));
-    return posixTime;
+        integer_part * 1.0E3 + fractional_part * 1.0E3 / 0x100000000ULL)));
+    return timestamp;
   }
 
   /**
@@ -123,50 +118,46 @@ namespace Beam::TimeService {
    * @param timestamp The NTP timestamp to convert.
    * @return The NTP timestamp representation.
    */
-  inline std::uint64_t NtpTimeFromPosixTime(
-      const boost::posix_time::ptime& timestamp) {
-    auto epochTime = timestamp - boost::posix_time::ptime{
-      boost::gregorian::date{1900, 1, 1}, boost::posix_time::seconds(0)};
-    auto iPart = epochTime.total_seconds();
-    auto fPart = static_cast<std::uint32_t>((0x100000000ULL *
-      static_cast<std::uint64_t>(epochTime.fractional_seconds())) /
-      boost::posix_time::time_duration::ticks_per_second());
-    const auto MASK = std::uint32_t(static_cast<unsigned char>(~0));
+  inline std::uint64_t ntp_time_from_posix_time(
+      boost::posix_time::ptime timestamp) {
+    auto epoch_time = timestamp - boost::posix_time::ptime(
+      boost::gregorian::date(1900, 1, 1), boost::posix_time::seconds(0));
+    auto integer_part = static_cast<std::uint32_t>(epoch_time.total_seconds());
+    auto fractional_part = static_cast<std::uint32_t>((0x100000000ULL *
+      static_cast<std::uint64_t>(epoch_time.fractional_seconds())) /
+        boost::posix_time::time_duration::ticks_per_second());
+    auto big_endian_integer = boost::endian::native_to_big(integer_part);
+    auto big_endian_fractional = boost::endian::native_to_big(fractional_part);
     auto result = std::uint64_t(0);
-    auto token = reinterpret_cast<std::uint8_t*>(&result);
-    token[0] = static_cast<char>((iPart & (MASK << 24)) >> 24);
-    token[1] = static_cast<char>((iPart & (MASK << 16)) >> 16);
-    token[2] = static_cast<char>((iPart & (MASK << 8)) >> 8);
-    token[3] = static_cast<char>(iPart & MASK);
-    token[4] = static_cast<char>((fPart & (MASK << 24)) >> 24);
-    token[5] = static_cast<char>((fPart & (MASK << 16)) >> 16);
-    token[6] = static_cast<char>((fPart & (MASK << 8)) >> 8);
-    token[7] = static_cast<char>(fPart & MASK);
+    std::memcpy(&result, &big_endian_integer, sizeof(big_endian_integer));
+    std::memcpy(
+      reinterpret_cast<std::uint8_t*>(&result) + sizeof(big_endian_integer),
+      &big_endian_fractional, sizeof(big_endian_fractional));
     return result;
   }
 
   /**
    * Returns a LiveNtpTimeClient using a list of NTP server addresses.
    * @param sources The list of NTP server addresses.
-   * @param syncPeriod The amount of time to wait before synchronizing the time.
+   * @param sync_period The amount of time to wait before synchronizing the
+   *        time.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
-  inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
-      const std::vector<Network::IpAddress>& sources,
-      boost::posix_time::time_duration syncPeriod) {
-    auto channels = TryOrNest([&] {
-      auto channels = std::vector<std::unique_ptr<Network::UdpSocketChannel>>();
-      auto options = Network::UdpSocketOptions();
+  inline std::unique_ptr<LiveNtpTimeClient> make_live_ntp_time_client(
+      const std::vector<IpAddress>& sources,
+      boost::posix_time::time_duration sync_period) {
+    auto channels = try_or_nest([&] {
+      auto channels = std::vector<std::unique_ptr<UdpSocketChannel>>();
+      auto options = UdpSocketOptions();
       options.m_timeout = boost::posix_time::seconds(1);
       for(auto& source : sources) {
-        auto channel = std::make_unique<Network::UdpSocketChannel>(source,
-          options);
+        auto channel = std::make_unique<UdpSocketChannel>(source, options);
         channels.push_back(std::move(channel));
       }
       return channels;
-    }, IO::ConnectException("Unable to connect to NTP service."));
-    return std::make_unique<LiveNtpTimeClient>(std::move(channels),
-      Initialize(syncPeriod));
+    }, ConnectException("Unable to connect to NTP service."));
+    return std::make_unique<LiveNtpTimeClient>(
+      std::move(channels), init(sync_period));
   }
 
   /**
@@ -174,148 +165,158 @@ namespace Beam::TimeService {
    * @param sources The list of NTP server addresses.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
-  inline std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClient(
-      const std::vector<Network::IpAddress>& sources) {
-    return MakeLiveNtpTimeClient(sources, boost::posix_time::minutes(30));
+  inline std::unique_ptr<LiveNtpTimeClient> make_live_ntp_time_client(
+      const std::vector<IpAddress>& sources) {
+    return make_live_ntp_time_client(sources, boost::posix_time::minutes(30));
   }
 
   /**
    * Returns a LiveNtpTimeClient by checking the ServiceLocatorClient for a list
    * of NTP servers.
-   * @param serviceLocatorClient The ServiceLocatorClient used to locate NTP
-   *        servers.
+   * @param client The ServiceLocatorClient used to locate NTP servers.
    * @return A LiveNtpTimeClient using the specified list of <i>sources</i>.
    */
-  template<typename ServiceLocatorClient>
-  std::unique_ptr<LiveNtpTimeClient> MakeLiveNtpTimeClientFromServiceLocator(
-      ServiceLocatorClient& serviceLocatorClient) {
-    auto ntpPool = TryOrNest([&] {
-      auto timeServices = serviceLocatorClient.Locate(SERVICE_NAME);
-      if(timeServices.empty()) {
-        throw std::runtime_error("No time services available.");
+  template<IsServiceLocatorClient T>
+  std::unique_ptr<LiveNtpTimeClient> make_live_ntp_time_client(T& client) {
+    auto ntp_pool = try_or_nest([&] {
+      auto services = client.locate(TIME_SERVICE_NAME);
+      if(services.empty()) {
+        boost::throw_with_location(
+          std::runtime_error("No time services available."));
       }
-      auto& timeService = timeServices.front();
-      return Parsers::Parse<std::vector<Network::IpAddress>>(
-        boost::get<std::string>(timeService.GetProperties().At("addresses")));
-    }, IO::ConnectException("Unable to connect to NTP service."));
-    return MakeLiveNtpTimeClient(ntpPool);
+      auto& service = services.front();
+      return parse<std::vector<IpAddress>>(
+        boost::get<std::string>(service.get_properties().at("addresses")));
+    }, ConnectException("Unable to connect to NTP service."));
+    return make_live_ntp_time_client(ntp_pool);
   }
 
-  template<typename C, typename T>
-  template<typename TF>
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
+  template<Initializes<T> TF>
   NtpTimeClient<C, T>::NtpTimeClient(
       std::vector<std::unique_ptr<Channel>> sources, TF&& timer)
       try : m_sources(std::move(sources)),
             m_timer(std::forward<TF>(timer)) {
     try {
-      Synchronize();
-      m_timer->GetPublisher().Monitor(m_tasks.GetSlot<Threading::Timer::Result>(
-        std::bind_front(&NtpTimeClient::OnTimerExpired, this)));
-      m_timer->Start();
+      synchronize();
+      m_timer->get_publisher().monitor(m_tasks.get_slot<Beam::Timer::Result>(
+        std::bind_front(&NtpTimeClient::on_timer_expired, this)));
+      m_timer->start();
     } catch(const std::exception&) {
-      Close();
-      BOOST_RETHROW;
+      close();
+      throw;
     }
   } catch(const std::exception&) {
-    std::throw_with_nested(IO::ConnectException("Unable to open NTP service."));
+    std::throw_with_nested(ConnectException("Unable to open NTP service."));
   }
 
-  template<typename C, typename T>
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
   NtpTimeClient<C, T>::~NtpTimeClient() {
-    Close();
+    close();
   }
 
-  template<typename C, typename T>
-  boost::posix_time::ptime NtpTimeClient<C, T>::GetTime() {
-    auto time = Threading::With(m_origin,
-      [&] (const auto& origin) {
-        return origin.m_startTime + boost::posix_time::microseconds(
-          (boost::chrono::steady_clock::now().time_since_epoch() -
-          origin.m_startPoint.time_since_epoch()).count() / 1000);
-      });
-    return Truncate(time, boost::posix_time::milliseconds(1));
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
+  boost::posix_time::ptime NtpTimeClient<C, T>::get_time() {
+    m_open_state.ensure_open();
+    auto time = with(m_origin, [&] (const auto& origin) {
+      return origin.m_start_time + boost::posix_time::microseconds(
+        (boost::chrono::steady_clock::now().time_since_epoch() -
+        origin.m_start.time_since_epoch()).count() / 1000);
+    });
+    return truncate(time, boost::posix_time::milliseconds(1));
   }
 
-  template<typename C, typename T>
-  void NtpTimeClient<C, T>::Close() {
-    if(m_openState.SetClosing()) {
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
+  void NtpTimeClient<C, T>::close() {
+    if(m_open_state.set_closing()) {
       return;
     }
-    m_timer->Cancel();
-    m_tasks.Break();
-    m_tasks.Wait();
-    m_openState.Close();
+    m_timer->cancel();
+    m_tasks.close();
+    m_tasks.wait();
+    m_open_state.close();
   }
 
-  template<typename C, typename T>
-  void NtpTimeClient<C, T>::Synchronize() {
-    auto averageOffset = boost::posix_time::time_duration(
-      boost::posix_time::seconds(0));
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
+  void NtpTimeClient<C, T>::synchronize() {
+    auto average_offset =
+      boost::posix_time::time_duration(boost::posix_time::seconds(0));
     auto count = 0;
     for(auto& source : m_sources) {
-      auto requestPacket = NtpPacket();
-      requestPacket.fill(0);
-      requestPacket[0] = 0x1B;
-      auto readBuffer = IO::SharedBuffer();
-      auto clientTransmissionTimestamp =
+      auto request_packet = NtpPacket();
+      request_packet.fill(0);
+      request_packet[0] = 0x1B;
+      auto read_buffer = SharedBuffer();
+      auto client_transmission_timestamp =
         boost::posix_time::microsec_clock::universal_time();
-      auto encodedClientTransmissionTimestamp = NtpTimeFromPosixTime(
-        clientTransmissionTimestamp);
-      std::memcpy(requestPacket.data() + ORIGIN_TIMESTAMP_OFFSET,
-        &encodedClientTransmissionTimestamp,
-        sizeof(encodedClientTransmissionTimestamp));
+      auto encoded_client_transmission_timestamp =
+        ntp_time_from_posix_time(client_transmission_timestamp);
+      std::memcpy(request_packet.data() + TRANSMIT_TIMESTAMP_OFFSET,
+        &encoded_client_transmission_timestamp,
+        sizeof(encoded_client_transmission_timestamp));
       try {
-        source->GetWriter().Write(requestPacket.data(), requestPacket.size());
-        source->GetReader().Read(Store(readBuffer));
-      } catch(const IO::IOException&) {
+        write(source->get_writer(), request_packet);
+        source->get_reader().read(out(read_buffer));
+      } catch(const IOException&) {
         continue;
       }
-      auto clientResponseTimestamp =
+      auto client_response_timestamp =
         boost::posix_time::microsec_clock::universal_time();
-      if(readBuffer.GetSize() != NTP_PACKET_SIZE) {
+      if(read_buffer.get_size() != NTP_PACKET_SIZE) {
         continue;
       }
-      auto responsePacket = NtpPacket();
-      std::memcpy(responsePacket.data(), readBuffer.GetData(), NTP_PACKET_SIZE);
-      auto serverReceiveTimestamp = PosixTimeFromNtpTime(
-        responsePacket.data() + RECEIVE_TIMESTAMP_OFFSET);
-      auto serverTransmitTimestamp = PosixTimeFromNtpTime(
-        responsePacket.data() + TRANSMIT_TIMESTAMP_OFFSET);
-      if(serverReceiveTimestamp == boost::posix_time::not_a_date_time ||
-          serverTransmitTimestamp == boost::posix_time::not_a_date_time) {
+      auto response_packet = NtpPacket();
+      std::memcpy(
+        response_packet.data(), read_buffer.get_data(), NTP_PACKET_SIZE);
+      auto server_receive_timestamp = posix_time_from_ntp_time(
+        response_packet.data() + RECEIVE_TIMESTAMP_OFFSET);
+      auto server_transmit_timestamp = posix_time_from_ntp_time(
+        response_packet.data() + TRANSMIT_TIMESTAMP_OFFSET);
+      if(server_receive_timestamp == boost::posix_time::not_a_date_time ||
+          server_transmit_timestamp == boost::posix_time::not_a_date_time) {
         continue;
       }
-      auto roundTripDelay =
-        (clientResponseTimestamp - clientTransmissionTimestamp) -
-        (serverTransmitTimestamp - serverReceiveTimestamp);
-      auto offset = ((serverReceiveTimestamp - clientTransmissionTimestamp) +
-        (serverTransmitTimestamp - clientResponseTimestamp)) / 2;
-      averageOffset += offset;
+      auto round_trip_delay =
+        (client_response_timestamp - client_transmission_timestamp) -
+        (server_transmit_timestamp - server_receive_timestamp);
+      if(round_trip_delay.total_milliseconds() >= 1000 ||
+          round_trip_delay.is_negative()) {
+        continue;
+      }
+      auto offset =
+        ((server_receive_timestamp - client_transmission_timestamp) +
+        (server_transmit_timestamp - client_response_timestamp)) / 2;
+      average_offset += offset;
       ++count;
     }
     if(count == 0) {
-      BOOST_THROW_EXCEPTION(IO::IOException("Unable to query NTP time."));
+      boost::throw_with_location(IOException("Unable to query NTP time."));
     }
-    averageOffset = averageOffset / count;
-    Threading::With(m_origin, [&] (auto& origin) {
-      origin.m_startTime =
-        boost::posix_time::microsec_clock::universal_time() + averageOffset;
-      origin.m_startPoint = boost::chrono::steady_clock::now();
+    average_offset = average_offset / count;
+    with(m_origin, [&] (auto& origin) {
+      origin.m_start_time =
+        boost::posix_time::microsec_clock::universal_time() + average_offset;
+      origin.m_start = boost::chrono::steady_clock::now();
     });
   }
 
-  template<typename C, typename T>
-  void NtpTimeClient<C, T>::OnTimerExpired(
-      Threading::Timer::Result result) {
-    if(result != Threading::Timer::Result::EXPIRED) {
+  template<typename C, typename T> requires
+    IsChannel<dereference_t<C>> && IsTimer<dereference_t<T>>
+  void NtpTimeClient<C, T>::on_timer_expired(Beam::Timer::Result result) {
+    if(result != Beam::Timer::Result::EXPIRED || !m_open_state.is_open()) {
       return;
     }
     try {
-      Synchronize();
+      synchronize();
     } catch(const std::exception&) {
       std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
     }
-    m_timer->Start();
+    m_timer->start();
   }
 }
 

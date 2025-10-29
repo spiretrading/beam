@@ -3,77 +3,60 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/Writer.hpp"
-#include "Beam/Network/Network.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/TaskRunner.hpp"
 
 namespace Beam {
-namespace Network {
 
   /** Writes to an SSL socket. */
   class SecureSocketWriter {
     public:
-      using Buffer = IO::SharedBuffer;
-
-      void Write(const void* data, std::size_t size);
-
-      template<typename BufferType>
-      void Write(const BufferType& data);
+      template<IsConstBuffer T>
+      void write(const T& data);
 
     private:
       friend class SecureSocketChannel;
       std::shared_ptr<Details::SecureSocketEntry> m_socket;
-      Threading::TaskRunner m_tasks;
+      TaskRunner m_tasks;
 
       SecureSocketWriter(std::shared_ptr<Details::SecureSocketEntry> socket);
       SecureSocketWriter(const SecureSocketWriter&) = delete;
       SecureSocketWriter& operator =(const SecureSocketWriter&) = delete;
   };
 
-  inline void SecureSocketWriter::Write(const void* data, std::size_t size) {
-    auto writeResult = Routines::Async<void>();
-    m_socket->BeginWriteOperation();
-    m_tasks.Add(
-      [&] {
-        auto lock = std::lock_guard(m_socket->m_mutex);
-        boost::asio::async_write(m_socket->m_socket,
-          boost::asio::buffer(data, size),
-          [&] (const auto& error, auto writeSize) {
-            if(error) {
-              writeResult.GetEval().SetException(SocketException(
-                error.value(), error.message()));
-            } else {
-              writeResult.GetEval().SetResult();
-            }
-          });
-      });
+  template<IsConstBuffer T>
+  void SecureSocketWriter::write(const T& data) {
+    auto write_result = Async<void>();
+    m_socket->begin_write_operation();
+    m_tasks.add([&] {
+      auto lock = std::lock_guard(m_socket->m_mutex);
+      boost::asio::async_write(m_socket->m_socket,
+        boost::asio::buffer(data.get_data(), data.get_size()),
+        [&] (const auto& error, auto write_size) {
+          if(error) {
+            write_result.get_eval().set_exception(
+              SocketException(error.value(), error.message()));
+          } else {
+            write_result.get_eval().set();
+          }
+        });
+    });
     try {
-      writeResult.Get();
-      m_socket->EndWriteOperation();
+      write_result.get();
+      m_socket->end_write_operation();
     } catch(const std::exception&) {
-      m_socket->EndWriteOperation();
-      std::throw_with_nested(IO::EndOfFileException());
+      m_socket->end_write_operation();
+      std::throw_with_nested(EndOfFileException());
     }
-  }
-
-  template<typename BufferType>
-  void SecureSocketWriter::Write(const BufferType& data) {
-    Write(data.GetData(), data.GetSize());
   }
 
   inline SecureSocketWriter::SecureSocketWriter(
     std::shared_ptr<Details::SecureSocketEntry> socket)
     : m_socket(std::move(socket)) {}
-}
-
-  template<typename BufferType>
-  struct ImplementsConcept<Network::SecureSocketWriter,
-    IO::Writer<BufferType>> : std::true_type {};
 }
 
 #endif

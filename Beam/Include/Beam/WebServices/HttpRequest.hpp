@@ -6,6 +6,7 @@
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/WebServices/Cookie.hpp"
@@ -13,9 +14,8 @@
 #include "Beam/WebServices/HttpMethod.hpp"
 #include "Beam/WebServices/HttpVersion.hpp"
 #include "Beam/WebServices/Uri.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /** The set of acceptable Connection header values. */
   enum class ConnectionHeader {
@@ -37,19 +37,19 @@ namespace Beam::WebServices {
     std::string m_host;
 
     /** The size of the body. */
-    std::size_t m_contentLength;
+    std::size_t m_content_length;
 
     /** Whether to keep the connection open. */
     ConnectionHeader m_connection;
 
     /** Constructs a default SpecialHeaders field. */
-    SpecialHeaders();
+    SpecialHeaders() noexcept;
 
     /**
      * Constructs a default SpecialHeaders field for a specified HTTP version.
      * @param version The HTTP version to get the default headers for.
      */
-    SpecialHeaders(const HttpVersion& version);
+    explicit SpecialHeaders(HttpVersion version) noexcept;
   };
 
   /** Represents an HTTP request. */
@@ -60,7 +60,7 @@ namespace Beam::WebServices {
        * Constructs an HTTP/1.1 GET request.
        * @param uri The URI to request.
        */
-      HttpRequest(Uri uri);
+      explicit HttpRequest(Uri uri);
 
       /**
        * Constructs an HTTP/1.1 request.
@@ -75,13 +75,13 @@ namespace Beam::WebServices {
        * @param uri The URI to request.
        * @param body The body.
        */
-      HttpRequest(HttpMethod method, Uri uri, IO::SharedBuffer body);
+      HttpRequest(HttpMethod method, Uri uri, SharedBuffer body);
 
       /**
        * Constructs an HttpRequest.
        * @param version The HTTP version in major/minor format.
        * @param method The HTTP method.
-       * @param uri The URI to perform the <i>method</i> on.
+       * @param uri The URI to perform the method on.
        */
       HttpRequest(HttpVersion version, HttpMethod method, Uri uri);
 
@@ -89,44 +89,44 @@ namespace Beam::WebServices {
        * Constructs an HttpRequest.
        * @param version The HTTP version in major/minor format.
        * @param method The HTTP method.
-       * @param uri The URI to perform the <i>method</i> on.
+       * @param uri The URI to perform the method on.
        * @param headers The request headers.
-       * @param specialHeaders The set of specially designated headers.
+       * @param special_headers The set of specially designated headers.
        * @param cookies The Cookies.
        * @param body The message body.
        */
       HttpRequest(HttpVersion version, HttpMethod method, Uri uri,
-        std::vector<HttpHeader> headers, const SpecialHeaders& specialHeaders,
-        std::vector<Cookie> cookies, IO::SharedBuffer body);
+        std::vector<HttpHeader> headers, SpecialHeaders special_headers,
+        std::vector<Cookie> cookies, SharedBuffer body);
 
       /** Returns the HTTP version. */
-      const HttpVersion& GetVersion() const;
+      HttpVersion get_version() const;
 
       /** Returns the HttpMethod to perform. */
-      HttpMethod GetMethod() const;
+      HttpMethod get_method() const;
 
       /** Returns the URI. */
-      const Uri& GetUri() const;
+      const Uri& get_uri() const;
 
       /**
        * Returns the value of a header.
        * @param name The name of the header.
-       * @return The value of the header with the specified <i>name</i>.
+       * @return The value of the header with the specified name.
        */
-      boost::optional<const std::string&> GetHeader(
-        const std::string& name) const;
+      boost::optional<const std::string&>
+        get_header(const std::string& name) const;
 
       /** Returns all headers. */
-      const std::vector<HttpHeader>& GetHeaders() const;
+      const std::vector<HttpHeader>& get_headers() const;
 
       /** Returns the special headers. */
-      const SpecialHeaders& GetSpecialHeaders() const;
+      const SpecialHeaders& get_special_headers() const;
 
       /**
        * Adds a header.
        * @param header The header to add.
        */
-      void Add(HttpHeader header);
+      void add(HttpHeader header);
 
       /**
        * Returns a Cookie with a specified name.
@@ -134,43 +134,43 @@ namespace Beam::WebServices {
        * @return The Cookie with the specified name or an empty Cookie if the
        *         Cookie was not found.
        */
-      boost::optional<const Cookie&> GetCookie(const std::string& name) const;
+      boost::optional<const Cookie&> get_cookie(const std::string& name) const;
 
       /** Returns all Cookies. */
-      const std::vector<Cookie>& GetCookies() const;
+      const std::vector<Cookie>& get_cookies() const;
 
       /**
        * Adds a Cookie.
        * @param cookie The Cookie to add.
        */
-      void Add(Cookie cookie);
+      void add(Cookie cookie);
 
       /** Returns the message body. */
-      const IO::SharedBuffer& GetBody() const;
+      const SharedBuffer& get_body() const;
 
       /**
        * Outputs this response into a Buffer.
        * @param buffer The Buffer to output this response to.
        */
-      template<typename Buffer>
-      void Encode(Out<Buffer> buffer) const;
+      template<IsBuffer B>
+      void encode(Out<B> buffer) const;
 
     private:
       HttpVersion m_version;
       HttpMethod m_method;
       Uri m_uri;
       std::vector<HttpHeader> m_headers;
-      SpecialHeaders m_specialHeaders;
+      SpecialHeaders m_special_headers;
       std::vector<Cookie> m_cookies;
-      IO::SharedBuffer m_body;
-      mutable Threading::Sync<std::string> m_contentLength;
+      SharedBuffer m_body;
+      mutable Sync<std::string> m_content_length;
   };
 
-  inline std::ostream& operator <<(std::ostream& sink,
-      ConnectionHeader connectionHeader) {
-    if(connectionHeader == ConnectionHeader::CLOSE) {
+  inline std::ostream& operator <<(
+      std::ostream& sink, ConnectionHeader connection_header) {
+    if(connection_header == ConnectionHeader::CLOSE) {
       sink << "close";
-    } else if(connectionHeader == ConnectionHeader::KEEP_ALIVE) {
+    } else if(connection_header == ConnectionHeader::KEEP_ALIVE) {
       sink << "keep-alive";
     } else {
       sink << "Upgrade";
@@ -178,56 +178,56 @@ namespace Beam::WebServices {
     return sink;
   }
 
-  inline std::ostream& operator <<(std::ostream& sink,
-      const HttpRequest& request) {
-    sink << request.GetMethod() << ' ';
-    if(request.GetUri().GetPath().empty()) {
+  inline std::ostream& operator <<(
+      std::ostream& sink, const HttpRequest& request) {
+    sink << request.get_method() << ' ';
+    if(request.get_uri().get_path().empty()) {
       sink << '/';
     } else {
-      sink << request.GetUri().GetPath();
+      sink << request.get_uri().get_path();
     }
-    if(request.GetMethod() == HttpMethod::GET &&
-        !request.GetUri().GetQuery().empty()) {
-      sink << '?' << request.GetUri().GetQuery();
+    if(request.get_method() == HttpMethod::GET &&
+        !request.get_uri().get_query().empty()) {
+      sink << '?' << request.get_uri().get_query();
     }
     sink << ' ';
-    sink << request.GetVersion() << "\r\n";
-    for(auto& header : request.GetHeaders()) {
-      sink << header.GetName() << ": " << header.GetValue() << "\r\n";
+    sink << request.get_version() << "\r\n";
+    for(auto& header : request.get_headers()) {
+      sink << header.get_name() << ": " << header.get_value() << "\r\n";
     }
-    if(!request.GetCookies().empty()) {
+    if(!request.get_cookies().empty()) {
       sink << "Cookie: ";
-      auto isFirst = true;
-      for(auto& cookie : request.GetCookies()) {
-        if(!isFirst) {
+      auto is_first = true;
+      for(auto& cookie : request.get_cookies()) {
+        if(!is_first) {
           sink << "; ";
         } else {
-          isFirst = false;
+          is_first = false;
         }
-        sink << cookie.GetName() << '=' << cookie.GetValue();
+        sink << cookie.get_name() << '=' << cookie.get_value();
       }
       sink << "\r\n";
     }
-    sink << "Host: " << request.GetSpecialHeaders().m_host << "\r\n";
-    sink << "Content-Length: " << request.GetSpecialHeaders().m_contentLength <<
-      "\r\n";
-    sink << "Connection: " << request.GetSpecialHeaders().m_connection <<
+    sink << "Host: " << request.get_special_headers().m_host << "\r\n";
+    sink << "Content-Length: " <<
+      request.get_special_headers().m_content_length << "\r\n";
+    sink << "Connection: " << request.get_special_headers().m_connection <<
       "\r\n";
     sink << "\r\n";
-    sink << request.GetBody();
+    sink << request.get_body();
     return sink;
   }
 
-  inline SpecialHeaders::SpecialHeaders()
-    : m_contentLength(0),
+  inline SpecialHeaders::SpecialHeaders() noexcept
+    : m_content_length(0),
       m_connection(ConnectionHeader::KEEP_ALIVE) {}
 
-  inline SpecialHeaders::SpecialHeaders(const HttpVersion& version) {
-    if(version == HttpVersion::Version1_1()) {
-      m_contentLength = 0;
+  inline SpecialHeaders::SpecialHeaders(HttpVersion version) noexcept {
+    if(version == HttpVersion::version_1_1()) {
+      m_content_length = 0;
       m_connection = ConnectionHeader::KEEP_ALIVE;
     } else {
-      m_contentLength = 0;
+      m_content_length = 0;
       m_connection = ConnectionHeader::CLOSE;
     }
   }
@@ -236,134 +236,134 @@ namespace Beam::WebServices {
     : HttpRequest(HttpMethod::GET, std::move(uri)) {}
 
   inline HttpRequest::HttpRequest(HttpMethod method, Uri uri)
-    : HttpRequest(HttpVersion::Version1_1(), method, std::move(uri)) {}
+    : HttpRequest(HttpVersion::version_1_1(), method, std::move(uri)) {}
 
   inline HttpRequest::HttpRequest(
-      HttpMethod method, Uri uri, IO::SharedBuffer body)
-    : HttpRequest(HttpVersion::Version1_1(), method, std::move(uri), {}, {},
+    HttpMethod method, Uri uri, SharedBuffer body)
+    : HttpRequest(HttpVersion::version_1_1(), method, std::move(uri), {}, {},
         {}, std::move(body)) {}
 
   inline HttpRequest::HttpRequest(
-      HttpVersion version, HttpMethod method, Uri uri)
-    : HttpRequest(version, method, std::move(uri), {}, {}, {}, {}) {}
+    HttpVersion version, HttpMethod method, Uri uri)
+    : HttpRequest(version, method, std::move(uri), {}, SpecialHeaders(version),
+        {}, {}) {}
 
   inline HttpRequest::HttpRequest(HttpVersion version, HttpMethod method,
-      Uri uri, std::vector<HttpHeader> headers,
-      const SpecialHeaders& specialHeaders, std::vector<Cookie> cookies,
-      IO::SharedBuffer body)
-      : m_version(std::move(version)),
-        m_method(std::move(method)),
+      Uri uri, std::vector<HttpHeader> headers, SpecialHeaders special_headers,
+      std::vector<Cookie> cookies, SharedBuffer body)
+      : m_version(version),
+        m_method(method),
         m_uri(std::move(uri)),
         m_headers(std::move(headers)),
-        m_specialHeaders(specialHeaders),
+        m_special_headers(std::move(special_headers)),
         m_cookies(std::move(cookies)),
         m_body(std::move(body)) {
-    if(m_specialHeaders.m_host.empty()) {
-      m_specialHeaders.m_host = m_uri.GetHostname();
-      if(m_uri.GetPort() != 0 &&
-          !((m_uri.GetScheme() == "http" || m_uri.GetScheme() == "ws") &&
-          m_uri.GetPort() == 80) &&
-          !((m_uri.GetScheme() == "https" || m_uri.GetScheme() == "wss") &&
-          m_uri.GetPort() == 443)) {
-        m_specialHeaders.m_host += ":" + std::to_string(m_uri.GetPort());
+    if(m_special_headers.m_host.empty()) {
+      m_special_headers.m_host = m_uri.get_hostname();
+      if(m_uri.get_port() != 0 &&
+          !((m_uri.get_scheme() == "http" || m_uri.get_scheme() == "ws") &&
+            m_uri.get_port() == 80) &&
+          !((m_uri.get_scheme() == "https" || m_uri.get_scheme() == "wss") &&
+            m_uri.get_port() == 443)) {
+        m_special_headers.m_host += ":" + std::to_string(m_uri.get_port());
       }
     }
-    if(m_method == HttpMethod::POST && !m_uri.GetQuery().empty()) {
-      m_specialHeaders.m_contentLength = m_uri.GetQuery().size();
-      m_body.Reset();
-      m_body.Append(m_uri.GetQuery().c_str(), m_uri.GetQuery().size());
-      Add(HttpHeader("Content-Type", "application/x-www-form-urlencoded"));
+    if(m_method == HttpMethod::POST && !m_uri.get_query().empty()) {
+      m_special_headers.m_content_length = m_uri.get_query().size();
+      reset(m_body);
+      append(m_body, m_uri.get_query().c_str(), m_uri.get_query().size());
+      add(HttpHeader("Content-Type", "application/x-www-form-urlencoded"));
     }
-    if(!m_uri.GetUsername().empty() || !m_uri.GetPassword().empty()) {
-      auto authentication = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(
-        m_uri.GetUsername() + ":" + m_uri.GetPassword()));
-      Add(HttpHeader("Authorization", "Basic " + authentication));
+    if(!m_uri.get_username().empty() || !m_uri.get_password().empty()) {
+      auto authentication = encode_base64(from<SharedBuffer>(
+        m_uri.get_username() + ":" + m_uri.get_password()));
+      add(HttpHeader("Authorization", "Basic " + authentication));
     }
-    m_specialHeaders.m_contentLength = m_body.GetSize();
+    m_special_headers.m_content_length = m_body.get_size();
   }
 
-  inline const HttpVersion& HttpRequest::GetVersion() const {
+  inline HttpVersion HttpRequest::get_version() const {
     return m_version;
   }
 
-  inline HttpMethod HttpRequest::GetMethod() const {
+  inline HttpMethod HttpRequest::get_method() const {
     return m_method;
   }
 
-  inline const Uri& HttpRequest::GetUri() const {
+  inline const Uri& HttpRequest::get_uri() const {
     return m_uri;
   }
 
-  inline boost::optional<const std::string&> HttpRequest::GetHeader(
-      const std::string& name) const {
-    auto header = std::find_if(m_headers.begin(), m_headers.end(),
-      [&] (const HttpHeader& value) {
-        return value.GetName() == name;
+  inline boost::optional<const std::string&>
+      HttpRequest::get_header(const std::string& name) const {
+    auto header = std::find_if(
+      m_headers.begin(), m_headers.end(), [&] (const auto& value) {
+        return value.get_name() == name;
       });
     if(header == m_headers.end()) {
       if(name == "Host") {
-        return m_specialHeaders.m_host;
+        return m_special_headers.m_host;
       } else if(name == "Content-Length") {
-        return Threading::With(m_contentLength,
-          [&] (auto& contentLength) -> auto& {
-            if(contentLength.empty()) {
-              contentLength = std::to_string(m_specialHeaders.m_contentLength);
-            }
-            return contentLength;
-          });
+        return with(m_content_length, [&] (auto& content_length) -> auto& {
+          if(content_length.empty()) {
+            content_length = std::to_string(m_special_headers.m_content_length);
+          }
+          return content_length;
+        });
       } else if(name == "Connection") {
-        if(m_specialHeaders.m_connection == ConnectionHeader::KEEP_ALIVE) {
-          static const std::string VALUE = "keep-alive";
+        if(m_special_headers.m_connection == ConnectionHeader::KEEP_ALIVE) {
+          static const auto VALUE = std::string("keep-alive");
           return VALUE;
-        } else if(m_specialHeaders.m_connection == ConnectionHeader::CLOSE) {
-          static const std::string VALUE = "close";
+        } else if(m_special_headers.m_connection == ConnectionHeader::CLOSE) {
+          static const auto VALUE = std::string("close");
           return VALUE;
         } else {
-          static const std::string VALUE = "Upgrade";
+          static const auto VALUE = std::string("Upgrade");
           return VALUE;
         }
       } else {
         return boost::none;
       }
     }
-    return header->GetValue();
+    return header->get_value();
   }
 
-  inline const std::vector<HttpHeader>& HttpRequest::GetHeaders() const {
+  inline const std::vector<HttpHeader>& HttpRequest::get_headers() const {
     return m_headers;
   }
 
-  inline const SpecialHeaders& HttpRequest::GetSpecialHeaders() const {
-    return m_specialHeaders;
+  inline const SpecialHeaders& HttpRequest::get_special_headers() const {
+    return m_special_headers;
   }
 
-  inline void HttpRequest::Add(HttpHeader header) {
-    if(header.GetName() == "Host") {
-      m_specialHeaders.m_host = header.GetValue();
-    } else if(header.GetName() == "Content-Length") {
-      m_specialHeaders.m_contentLength = static_cast<std::size_t>(
-        std::stoull(header.GetValue()));
-      m_contentLength = std::string{};
-    } else if(header.GetName() == "Connection") {
-      if(header.GetValue() == "keep-alive") {
-        m_specialHeaders.m_connection = ConnectionHeader::KEEP_ALIVE;
-      } else if(header.GetValue() == "close") {
-        m_specialHeaders.m_connection = ConnectionHeader::CLOSE;
-      } else if(header.GetValue() == "Upgrade") {
-        m_specialHeaders.m_connection = ConnectionHeader::UPGRADE;
+  inline void HttpRequest::add(HttpHeader header) {
+    if(header.get_name() == "Host") {
+      m_special_headers.m_host = header.get_value();
+    } else if(header.get_name() == "Content-Length") {
+      m_special_headers.m_content_length =
+        static_cast<std::size_t>(std::stoull(header.get_value()));
+      m_content_length = std::string();
+    } else if(header.get_name() == "Connection") {
+      if(header.get_value() == "keep-alive") {
+        m_special_headers.m_connection = ConnectionHeader::KEEP_ALIVE;
+      } else if(header.get_value() == "close") {
+        m_special_headers.m_connection = ConnectionHeader::CLOSE;
+      } else if(header.get_value() == "Upgrade") {
+        m_special_headers.m_connection = ConnectionHeader::UPGRADE;
       } else {
-        BOOST_THROW_EXCEPTION(std::runtime_error("Invalid Connection header."));
+        boost::throw_with_location(
+          std::runtime_error("Invalid Connection header."));
       }
     } else {
       m_headers.push_back(std::move(header));
     }
   }
 
-  inline boost::optional<const Cookie&> HttpRequest::GetCookie(
-      const std::string& name) const {
+  inline boost::optional<const Cookie&>
+      HttpRequest::get_cookie(const std::string& name) const {
     auto cookie = std::find_if(m_cookies.begin(), m_cookies.end(),
-      [&] (const Cookie& value) {
-        return value.GetName() == name;
+      [&] (const auto& value) {
+        return value.get_name() == name;
       });
     if(cookie == m_cookies.end()) {
       return boost::none;
@@ -371,24 +371,24 @@ namespace Beam::WebServices {
     return *cookie;
   }
 
-  inline const std::vector<Cookie>& HttpRequest::GetCookies() const {
+  inline const std::vector<Cookie>& HttpRequest::get_cookies() const {
     return m_cookies;
   }
 
-  inline void HttpRequest::Add(Cookie cookie) {
+  inline void HttpRequest::add(Cookie cookie) {
     m_cookies.push_back(std::move(cookie));
   }
 
-  inline const IO::SharedBuffer& HttpRequest::GetBody() const {
+  inline const SharedBuffer& HttpRequest::get_body() const {
     return m_body;
   }
 
-  template<typename Buffer>
-  void HttpRequest::Encode(Out<Buffer> buffer) const {
+  template<IsBuffer B>
+  void HttpRequest::encode(Out<B> buffer) const {
     auto ss = std::stringstream();
     ss << *this;
     auto str = ss.str();
-    buffer->Append(str.c_str(), str.size());
+    append(*buffer, str.c_str(), str.size());
   }
 }
 

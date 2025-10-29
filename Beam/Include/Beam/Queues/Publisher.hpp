@@ -1,11 +1,11 @@
 #ifndef BEAM_PUBLISHER_HPP
 #define BEAM_PUBLISHER_HPP
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <type_traits>
 #include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Queues/Queues.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 
 namespace Beam {
@@ -19,15 +19,14 @@ namespace Beam {
        * Synchronizes access to this publisher.
        * @param f The synchronized action to perform.
        */
-      template<typename F, typename = std::enable_if_t<
-        !std::is_same_v<std::invoke_result_t<F>, void>>>
-      decltype(auto) With(F&&) const;
+      template<std::invocable<> F>
+      decltype(auto) with(F&&) const;
 
       /**
        * Synchronizes access to this publisher.
        * @param f The synchronized action to perform.
        */
-      virtual void With(const std::function<void ()>& f) const = 0;
+      virtual void with(const std::function<void ()>& f) const = 0;
 
     protected:
 
@@ -37,7 +36,7 @@ namespace Beam {
 
   /**
    * Interface for an object that publishes data to Queues.
-   * @param <T> The type of data being published.
+   * @tparam T The type of data being published.
    */
   template<typename T>
   class Publisher : public BasePublisher {
@@ -50,7 +49,7 @@ namespace Beam {
        * Monitors updates to this Publisher.
        * @param monitor The monitor to publish updates to.
        */
-      virtual void Monitor(ScopedQueueWriter<Type> monitor) const = 0;
+      virtual void monitor(ScopedQueueWriter<Type> monitor) const = 0;
 
     protected:
 
@@ -60,29 +59,33 @@ namespace Beam {
 
   /**
    * Specifies the type of values a Publisher produces.
-   * @param <P> The type of Publisher to inspect.
+   * @tparam P The type of Publisher to inspect.
    */
   template<typename P>
-  struct PublisherType {
-    using type = typename GetTryDereferenceType<P>::Type;
+  struct publisher_type {
+    using type = typename dereference_t<P>::Type;
   };
 
   template<typename P>
-  using GetPublisherType = typename PublisherType<P>::type;
+  using publisher_type_t = typename publisher_type<P>::type;
 
-  template<typename F, typename>
-  decltype(auto) BasePublisher::With(F&& f) const {
+  template<std::invocable<> F>
+  decltype(auto) BasePublisher::with(F&& f) const {
     using R = std::invoke_result_t<F>;
+    using BaseWith =
+      void (BasePublisher::*)(const std::function<void ()>&) const;
     if constexpr(std::is_reference_v<R>) {
       auto result = static_cast<std::remove_reference_t<R>*>(nullptr);
-      With([&] {
-        result = &f();
+      (this->*static_cast<BaseWith>(&BasePublisher::with))([&] {
+        result = &(std::forward<F>(f)());
       });
       return *result;
+    } else if constexpr(std::is_void_v<R>) {
+      (this->*static_cast<BaseWith>(&BasePublisher::with))(std::forward<F>(f));
     } else {
       auto result = boost::optional<R>();
-      With([&] {
-        result.emplace(f());
+      (this->*static_cast<BaseWith>(&BasePublisher::with))([&] {
+        result.emplace(std::forward<F>(f)());
       });
       return R(std::move(*result));
     }

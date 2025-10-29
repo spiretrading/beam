@@ -2,26 +2,23 @@
 #define BEAM_CHANNEL_ADAPTER_SERVER_CONNECTION_HPP
 #include <functional>
 #include <type_traits>
-#include "Beam/IO/IO.hpp"
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 
 namespace Beam {
-namespace IO {
 
   /**
    * Adapter class for a ServerConnection requiring a specific Channel.
-   * @param <S> A pointer to the type of ServerConnection to accept connections
-   *        from.
-   * @param <C> The type of Channel to adapt to.
+   * @tparam S The type of ServerConnection to accept connections from.
+   * @tparam C The type of Channel to adapt to.
    */
-  template<typename S, typename C>
+  template<IsServerConnection S, IsChannel C>
   class ChannelAdapterServerConnection {
     public:
 
       /** The type of ServerConnection to accept from. */
-      using ServerConnection = std::decay_t<S>;
+      using ServerConnection = S;
 
       /** The type of Channel to adapt from. */
       using SourceChannel = typename ServerConnection::Channel;
@@ -34,25 +31,24 @@ namespace IO {
        * @param source The Channel to adapt.
        * @return The adapted Channel.
        */
-      using Adapter = std::function<std::unique_ptr<Channel>(
-        std::unique_ptr<SourceChannel> source)>;
+      using Adapter = std::function<
+        std::unique_ptr<Channel> (std::unique_ptr<SourceChannel> source)>;
 
       /**
        * Constructs a ChannelAdapterServerConnection.
        * @param connection The ServerConnection to adapt the Channel's from.
        * @param adapter The Adapter used to convert incoming Channels.
        */
-      template<typename SF>
+      template<Initializes<S> SF>
       ChannelAdapterServerConnection(SF&& connection, const Adapter& adapter);
 
       ~ChannelAdapterServerConnection();
 
-      std::unique_ptr<Channel> Accept();
-
-      void Close();
+      std::unique_ptr<Channel> accept();
+      void close();
 
     private:
-      GetOptionalLocalPtr<S> m_connection;
+      local_ptr_t<S> m_connection;
       Adapter m_adapter;
 
       ChannelAdapterServerConnection(
@@ -61,37 +57,32 @@ namespace IO {
         const ChannelAdapterServerConnection&) = delete;
   };
 
-  template<typename S, typename C>
-  template<typename SF>
+  template<IsServerConnection S, IsChannel C>
+  template<Initializes<S> SF>
   ChannelAdapterServerConnection<S, C>::ChannelAdapterServerConnection(
     SF&& connection, const Adapter& adapter)
     : m_connection(std::forward<SF>(connection)),
       m_adapter(adapter) {}
 
-  template<typename S, typename C>
+  template<IsServerConnection S, IsChannel C>
   ChannelAdapterServerConnection<S, C>::~ChannelAdapterServerConnection() {
-    Close();
+    close();
   }
 
-  template<typename S, typename C>
+  template<IsServerConnection S, IsChannel C>
   std::unique_ptr<typename ChannelAdapterServerConnection<S, C>::Channel>
-      ChannelAdapterServerConnection<S, C>::Accept() {
+      ChannelAdapterServerConnection<S, C>::accept() {
     try {
-      return m_adapter(m_connection->Accept());
+      return m_adapter(m_connection->accept());
     } catch(const std::exception&) {
       std::throw_with_nested(IOException());
     }
   }
 
-  template<typename S, typename C>
-  void ChannelAdapterServerConnection<S, C>::Close() {
-    m_connection->Close();
+  template<IsServerConnection S, IsChannel C>
+  void ChannelAdapterServerConnection<S, C>::close() {
+    m_connection->close();
   }
-}
-
-  template<typename S, typename C>
-  struct ImplementsConcept<IO::ChannelAdapterServerConnection<S, C>,
-    IO::ServerConnection<C>> : std::true_type {};
 }
 
 #endif

@@ -1,36 +1,41 @@
 #ifndef BEAM_SMTP_EMAIL_CLIENT_HPP
 #define BEAM_SMTP_EMAIL_CLIENT_HPP
 #include <functional>
-#include <boost/noncopyable.hpp>
+#include <sstream>
+#include <string>
+#include <type_traits>
 #include <boost/optional/optional.hpp>
+#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/Channel.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Pointers/Out.hpp"
 #include "Beam/WebServices/Email.hpp"
 #include "Beam/WebServices/EmailClient.hpp"
-#include "Beam/WebServices/WebServices.hpp"
 
-namespace Beam::WebServices {
+namespace Beam {
 
   /**
    * Implements an email client using the SMTP protocol.
-   * @param <C> The type of Channel connecting to the SMTP server.
+   * @tparam C The type of Channel connecting to the SMTP server.
    */
-  template<typename C>
-  class SmtpEmailClient : private boost::noncopyable {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  class SmtpEmailClient {
     public:
 
       /** The type of Channel connecting to the SMTP server. */
-      using Channel = GetTryDereferenceType<C>;
+      using Channel = dereference_t<C>;
 
       /** The type used to build Channels to the SMTP server. */
       using ChannelBuilder = std::function<C ()>;
 
       /**
        * Constructs an SmtpEmailClient.
-       * @param channelBuilder The ChannelBuilder to use.
+       * @param channel_builder The ChannelBuilder to use.
        */
-      SmtpEmailClient(ChannelBuilder channelBuilder);
+      explicit SmtpEmailClient(ChannelBuilder channel_builder);
 
       ~SmtpEmailClient();
 
@@ -39,80 +44,85 @@ namespace Beam::WebServices {
        * @param username The username.
        * @param password The password.
        */
-      void SetCredentials(const std::string& username,
-        const std::string& password);
+      void set_credentials(
+        const std::string& username, const std::string& password);
 
-      void Send(const Email& email);
-
-      void Close();
+      void send(const Email& email);
+      void close();
 
     private:
-      ChannelBuilder m_channelBuilder;
+      ChannelBuilder m_channel_builder;
       boost::optional<std::string> m_username;
       boost::optional<std::string> m_password;
-      IO::OpenState m_openState;
+      OpenState m_open_state;
+
+      SmtpEmailClient(const SmtpEmailClient&) = delete;
+      SmtpEmailClient& operator =(const SmtpEmailClient&) = delete;
   };
 
-  template<typename C>
-  SmtpEmailClient<C>::SmtpEmailClient(ChannelBuilder channelBuilder)
-    : m_channelBuilder(std::move(channelBuilder)) {}
+  template<typename F>
+  SmtpEmailClient(F) -> SmtpEmailClient<std::invoke_result_t<F>>;
 
-  template<typename C>
+  template<typename C> requires IsChannel<dereference_t<C>>
+  SmtpEmailClient<C>::SmtpEmailClient(ChannelBuilder channel_builder)
+    : m_channel_builder(std::move(channel_builder)) {}
+
+  template<typename C> requires IsChannel<dereference_t<C>>
   SmtpEmailClient<C>::~SmtpEmailClient() {
-    Close();
+    close();
   }
 
-  template<typename C>
-  void SmtpEmailClient<C>::SetCredentials(const std::string& username,
-      const std::string& password) {
-    m_username = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(username));
-    m_password = Base64Encode(IO::BufferFromString<IO::SharedBuffer>(password));
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void SmtpEmailClient<C>::set_credentials(
+      const std::string& username, const std::string& password) {
+    m_username = encode_base64(from<SharedBuffer>(username));
+    m_password = encode_base64(from<SharedBuffer>(password));
   }
 
-  template<typename C>
-  void SmtpEmailClient<C>::Send(const Email& email) {
-    if(email.GetTo().empty()) {
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void SmtpEmailClient<C>::send(const Email& email) {
+    if(email.get_to().empty()) {
       return;
     }
-    auto channel = m_channelBuilder();
-    using Channel = typename std::decay<decltype(*channel)>::type;
+    auto channel = m_channel_builder();
     auto ss = std::stringstream();
-    auto reply = typename Channel::Reader::Buffer();
-    auto WriteCommand = [&] {
-      reply.Reset();
+    auto reply = SharedBuffer();
+    channel->get_reader().read(out(reply));
+    auto write_command = [&] {
+      reset(reply);
       auto command = ss.str();
-      ss.str({});
-      channel->GetWriter().Write(command.c_str(), command.size());
-      channel->GetReader().Read(Store(reply));
+      ss.str(std::string());
+      channel->get_writer().write(from<SharedBuffer>(command));
+      channel->get_reader().read(out(reply));
     };
     ss << "EHLO\r\n";
-    WriteCommand();
-    if(m_username.is_initialized()) {
+    write_command();
+    if(m_username) {
       ss << "AUTH LOGIN\r\n";
-      WriteCommand();
+      write_command();
       ss << *m_username << "\r\n";
-      WriteCommand();
+      write_command();
       ss << *m_password << "\r\n";
-      WriteCommand();
+      write_command();
     }
-    ss << "MAIL FROM:<" << email.GetFrom().GetAddress() << ">\r\n";
-    WriteCommand();
-    for(auto& recipient : email.GetTo()) {
-      ss << "RCPT TO:<" << recipient.GetAddress() << ">\r\n";
-      WriteCommand();
+    ss << "MAIL FROM:<" << email.get_from().get_address() << ">\r\n";
+    write_command();
+    for(auto& recipient : email.get_to()) {
+      ss << "RCPT TO:<" << recipient.get_address() << ">\r\n";
+      write_command();
     }
     ss << "DATA\r\n";
-    WriteCommand();
+    write_command();
     ss << email;
-    WriteCommand();
+    write_command();
     ss << "QUIT\r\n";
-    WriteCommand();
-    channel->GetConnection().Close();
+    write_command();
+    channel->get_connection().close();
   }
 
-  template<typename C>
-  void SmtpEmailClient<C>::Close() {
-    m_openState.Close();
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void SmtpEmailClient<C>::close() {
+    m_open_state.close();
   }
 }
 

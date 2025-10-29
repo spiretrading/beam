@@ -8,7 +8,7 @@ namespace Beam::Python {
 
   /**
    * Implements a type caster for Beam::Ref types.
-   * @param <T> The type of Ref to cast.
+   * @tparam T The type of Ref to cast.
    */
   template<typename T>
   struct RefTypeCaster : BasicTypeCaster<T> {

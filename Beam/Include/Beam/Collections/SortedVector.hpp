@@ -3,15 +3,14 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
-#include "Beam/Collections/Collections.hpp"
 
 namespace Beam {
 
   /**
    * Wraps a standard vector whose elements are in sorted order.
-   * @param <T> The type of element stored.
-   * @param <C> The type of comparator to use.
-   * @param <A> The type of allocator to use.
+   * @tparam T The type of element stored.
+   * @tparam C The type of comparator to use.
+   * @tparam A The type of allocator to use.
    */
   template<typename T, typename C = std::less<T>,
     typename A = std::allocator<T>>
@@ -172,17 +171,17 @@ namespace Beam {
   template<typename T, typename C, typename A>
   typename SortedVector<T, C, A>::iterator SortedVector<T, C, A>::insert(
       const value_type& value) {
-    auto insertIterator = std::lower_bound(m_vector.begin(), m_vector.end(),
-      value, Comparator());
-    return m_vector.insert(insertIterator, value);
+    auto i =
+      std::lower_bound(m_vector.begin(), m_vector.end(), value, Comparator());
+    return m_vector.insert(i, value);
   }
 
   template<typename T, typename C, typename A>
   typename SortedVector<T, C, A>::iterator SortedVector<T, C, A>::insert(
       value_type&& value) {
-    auto insertIterator = std::lower_bound(m_vector.begin(), m_vector.end(),
-      value, Comparator());
-    return m_vector.insert(insertIterator, std::move(value));
+    auto i =
+      std::lower_bound(m_vector.begin(), m_vector.end(), value, Comparator());
+    return m_vector.insert(i, std::move(value));
   }
 }
 

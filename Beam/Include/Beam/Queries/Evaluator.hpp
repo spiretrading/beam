@@ -3,13 +3,9 @@
 #include <array>
 #include <memory>
 #include <vector>
-#include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ParameterEvaluatorNode.hpp"
-#include "Beam/Queries/Queries.hpp"
 
-namespace Beam::Queries {
+namespace Beam {
 
   /** Evaluates an Expression. */
   class Evaluator {
@@ -28,7 +24,7 @@ namespace Beam::Queries {
        * @return The result of the evaluation.
        */
       template<typename Result>
-      Result Eval();
+      Result eval();
 
       /**
        * Evaluates the Expression.
@@ -36,7 +32,7 @@ namespace Beam::Queries {
        * @return The result of the evaluation.
        */
       template<typename Result, typename Parameter>
-      Result Eval(const Parameter& parameter);
+      Result eval(const Parameter& parameter);
 
       /**
        * Evaluates the Expression.
@@ -45,7 +41,7 @@ namespace Beam::Queries {
        * @return The result of the evaluation.
        */
       template<typename Result, typename P1, typename P2>
-      Result Eval(const P1& p1, const P2& p2);
+      Result eval(const P1& p1, const P2& p2);
 
     private:
       std::unique_ptr<BaseEvaluatorNode> m_evaluator;
@@ -62,12 +58,11 @@ namespace Beam::Queries {
    * @return An Evaluator representing the translated <i>expression</i>.
    */
   template<typename Translator>
-  std::unique_ptr<Evaluator> Translate(const Expression& expression,
-      Translator& translator) {
-    translator.Translate(expression);
-    auto evaluator = std::make_unique<Evaluator>(
-      std::move(translator.GetEvaluator()), translator.GetParameters());
-    return evaluator;
+  std::unique_ptr<Evaluator> translate(
+      const Expression& expression, Translator& translator) {
+    translator.translate(expression);
+    return std::make_unique<Evaluator>(
+      translator.get_evaluator(), translator.get_parameters());
   }
 
   /**
@@ -77,10 +72,10 @@ namespace Beam::Queries {
    */
   template<typename Translator = EvaluatorTranslator<QueryTypes>,
     typename... Args>
-  std::unique_ptr<Evaluator> Translate(const Expression& expression,
+  std::unique_ptr<Evaluator> translate(const Expression& expression,
       Args&&... args) {
     auto translator = Translator(std::forward<Args>(args)...);
-    return Translate(expression, translator);
+    return translate(expression, translator);
   }
 
   inline Evaluator::Evaluator(std::unique_ptr<BaseEvaluatorNode> evaluator,
@@ -88,58 +83,43 @@ namespace Beam::Queries {
       : m_evaluator(std::move(evaluator)) {
     m_parameters.fill(nullptr);
     for(auto& node : parameters) {
-      node->SetParameter(&m_parameters[node->GetIndex()]);
+      node->set_parameter(&m_parameters[node->get_index()]);
     }
   }
 
   template<typename Result>
-  Result Evaluator::Eval() {
-    return static_cast<EvaluatorNode<Result>*>(m_evaluator.get())->Eval();
+  Result Evaluator::eval() {
+    return static_cast<EvaluatorNode<Result>*>(m_evaluator.get())->eval();
   }
 
   template<typename Result, typename Parameter>
-  Result Evaluator::Eval(const Parameter& parameter) {
+  Result Evaluator::eval(const Parameter& parameter) {
     m_parameters[0] = &parameter;
-    return this->Eval<Result>();
+    return this->eval<Result>();
   }
 
   template<typename Result, typename P1, typename P2>
-  Result Evaluator::Eval(const P1& p1, const P2& p2) {
+  Result Evaluator::eval(const P1& p1, const P2& p2) {
     m_parameters[0] = &p1;
     m_parameters[1] = &p2;
-    return this->Eval<Result>();
+    return this->eval<Result>();
   }
 
-  template<typename TypeList>
-  struct ReduceEvaluatorNodeTranslator {
-    template<typename T>
-    static BaseEvaluatorNode* Template(std::unique_ptr<Evaluator> reducer,
-        std::unique_ptr<BaseEvaluatorNode> series, const Value& initialValue) {
-      return new ReduceEvaluatorNode(std::move(reducer),
-        StaticCast<std::unique_ptr<EvaluatorNode<T>>>(std::move(series)),
-        initialValue->GetValue<T>());
-    }
-
-    using SupportedTypes = TypeList;
-  };
-
   template<typename T>
-  typename ReduceEvaluatorNode<T>::Result ReduceEvaluatorNode<T>::Eval() {
-    m_value = m_reducer->template Eval<Result>(m_value, m_series->Eval());
+  typename ReduceEvaluatorNode<T>::Result ReduceEvaluatorNode<T>::eval() {
+    m_value = m_reducer->template eval<Result>(m_value, m_series->eval());
     return m_value;
   }
 
   template<typename QueryTypes>
-  void EvaluatorTranslator<QueryTypes>::Visit(
+  void EvaluatorTranslator<QueryTypes>::visit(
       const ReduceExpression& expression) {
-    auto translator = NewTranslator();
-    auto evaluator =
-      Queries::Translate(expression.GetReduceExpression(), *translator);
-    expression.GetSeriesExpression()->Apply(*this);
-    m_evaluator.reset(Instantiate<ReduceEvaluatorNodeTranslator<NativeTypes>>(
-      expression.GetReduceExpression()->GetType()->GetNativeType())(
-        std::move(evaluator), std::move(std::move(m_evaluator)),
-        expression.GetInitialValue()));
+    auto translator = make_translator();
+    auto evaluator = Beam::translate(expression.get_reducer(), *translator);
+    expression.get_series().apply(*this);
+    m_evaluator.reset(instantiate<ReduceEvaluatorNodeTranslator<NativeTypes>>(
+      expression.get_reducer().get_type())(std::move(evaluator),
+        std::move(std::move(m_evaluator)), expression.get_initial_value()));
   }
 }
 

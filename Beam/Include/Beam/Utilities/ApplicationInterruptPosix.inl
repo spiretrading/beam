@@ -47,7 +47,8 @@ namespace Details {
     auto pipe_fds = get_signal_pipe();
     if(pipe_fds[1] != -1) {
       auto byte = char(1);
-      (void)::write(pipe_fds[1], &byte, 1);
+      auto result = ::write(pipe_fds[1], &byte, 1);
+      (void)result;
     }
   }
 

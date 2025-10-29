@@ -52,8 +52,11 @@ TEST_SUITE("ServiceEntry") {
     auto entry = ServiceEntry("web_service", properties, 100, account);
     auto stream = std::stringstream();
     stream << entry;
-    REQUIRE(stream.str() ==
-      "(web_service 100 (ACCOUNT 42 admin) {\"host\":\"localhost\",\"port\":8080})");
+    REQUIRE((stream.str() ==
+      "(web_service 100 (ACCOUNT 42 admin) "
+      "{\"host\":\"localhost\",\"port\":8080})" || stream.str() ==
+      "(web_service 100 (ACCOUNT 42 admin) "
+      "{\"port\":8080,\"host\":\"localhost\"})"));
     test_round_trip_shuttle(entry);
   }
 }

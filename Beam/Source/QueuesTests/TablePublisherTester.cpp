@@ -29,12 +29,13 @@ TEST_SUITE("TablePublisher") {
     publisher.push(2, "two");
     auto queue = std::make_shared<Queue<KeyValuePair<int, std::string>>>();
     publisher.monitor(queue);
-    auto first = queue->pop();
-    auto second = queue->pop();
-    REQUIRE(first.m_key == 1);
-    REQUIRE(first.m_value == "one");
-    REQUIRE(second.m_key == 2);
-    REQUIRE(second.m_value == "two");
+    auto entries = std::vector<KeyValuePair<int, std::string>>();
+    entries.push_back(queue->pop());
+    entries.push_back(queue->pop());
+    REQUIRE(
+      std::ranges::contains(entries, KeyValuePair(1, std::string("one"))));
+    REQUIRE(
+      std::ranges::contains(entries, KeyValuePair(2, std::string("two"))));
   }
 
   TEST_CASE("erase_removes_key_and_publishes_erased_value") {

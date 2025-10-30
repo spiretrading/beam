@@ -1,6 +1,6 @@
-#include <sstream>
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
+#include <Beam/Utilities/ToString.hpp>
 #include "Beam/WebServices/HttpRequest.hpp"
 
 using namespace Beam;
@@ -176,9 +176,7 @@ TEST_SUITE("HttpRequest") {
 
   TEST_CASE("stream_basic") {
     auto request = HttpRequest("http://example.com/path");
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("GET /path HTTP/1.1\r\n") != std::string::npos);
     REQUIRE(output.find("Host: example.com\r\n") != std::string::npos);
     REQUIRE(output.find("Content-Length: 0\r\n") != std::string::npos);
@@ -187,18 +185,14 @@ TEST_SUITE("HttpRequest") {
 
   TEST_CASE("stream_with_query") {
     auto request = HttpRequest("http://example.com/search?q=test");
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("GET /search?q=test HTTP/1.1\r\n") !=
       std::string::npos);
   }
 
   TEST_CASE("stream_root_path") {
     auto request = HttpRequest("http://example.com");
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("GET / HTTP/1.1\r\n") != std::string::npos);
   }
 
@@ -206,9 +200,7 @@ TEST_SUITE("HttpRequest") {
     auto request = HttpRequest("http://example.com");
     request.add(HttpHeader("Accept", "application/json"));
     request.add(HttpHeader("User-Agent", "TestClient"));
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("Accept: application/json\r\n") != std::string::npos);
     REQUIRE(output.find("User-Agent: TestClient\r\n") != std::string::npos);
   }
@@ -217,9 +209,7 @@ TEST_SUITE("HttpRequest") {
     auto request = HttpRequest("http://example.com");
     request.add(Cookie("session", "abc"));
     request.add(Cookie("token", "xyz"));
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("Cookie: session=abc; token=xyz\r\n") !=
       std::string::npos);
   }
@@ -228,23 +218,15 @@ TEST_SUITE("HttpRequest") {
     auto body = SharedBuffer("data", 4);
     auto request =
       HttpRequest(HttpMethod::POST, "http://example.com", std::move(body));
-    auto ss = std::stringstream();
-    ss << request;
-    auto output = ss.str();
+    auto output = to_string(request);
     REQUIRE(output.find("POST / HTTP/1.1\r\n") != std::string::npos);
     REQUIRE(output.find("Content-Length: 4\r\n") != std::string::npos);
   }
 
   TEST_CASE("stream_connection_header") {
-    auto ss1 = std::stringstream();
-    ss1 << ConnectionHeader::CLOSE;
-    REQUIRE(ss1.str() == "close");
-    auto ss2 = std::stringstream();
-    ss2 << ConnectionHeader::KEEP_ALIVE;
-    REQUIRE(ss2.str() == "keep-alive");
-    auto ss3 = std::stringstream();
-    ss3 << ConnectionHeader::UPGRADE;
-    REQUIRE(ss3.str() == "Upgrade");
+    REQUIRE(to_string(ConnectionHeader::CLOSE) == "close");
+    REQUIRE(to_string(ConnectionHeader::KEEP_ALIVE) == "keep-alive");
+    REQUIRE(to_string(ConnectionHeader::UPGRADE) == "Upgrade");
   }
 
   TEST_CASE("special_headers_default") {

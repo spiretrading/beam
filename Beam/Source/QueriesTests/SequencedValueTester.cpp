@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/SequencedValue.hpp"
 #include "Beam/QueriesTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -52,9 +53,7 @@ TEST_SUITE("SequencedValue") {
 
   TEST_CASE("stream") {
     auto value = SequencedValue(std::string("hello world"), Sequence(1));
-    auto ss = std::stringstream();
-    ss << value;
-    REQUIRE(ss.str() == "(hello world 1)");
+    REQUIRE(to_string(value) == "(hello world 1)");
     test_round_trip_shuttle(value);
   }
 }

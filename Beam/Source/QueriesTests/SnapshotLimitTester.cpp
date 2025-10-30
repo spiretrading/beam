@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -107,19 +107,11 @@ TEST_SUITE("SnapshotLimit") {
 
   TEST_CASE("stream") {
     auto head_limit = SnapshotLimit::from_head(123);
-    auto ss = std::stringstream();
-    ss << head_limit;
-    REQUIRE(ss.str() == "(HEAD 123)");
+    REQUIRE(to_string(head_limit) == "(HEAD 123)");
     auto tail_limit = SnapshotLimit::from_tail(123);
-    ss = std::stringstream();
-    ss << tail_limit;
-    REQUIRE(ss.str() == "(TAIL 123)");
-    ss = std::stringstream();
-    ss << SnapshotLimit::NONE;
-    REQUIRE(ss.str() == "None");
-    ss = std::stringstream();
-    ss << SnapshotLimit::UNLIMITED;
-    REQUIRE(ss.str() == "Unlimited");
+    REQUIRE(to_string(tail_limit) == "(TAIL 123)");
+    REQUIRE(to_string(SnapshotLimit::NONE) == "None");
+    REQUIRE(to_string(SnapshotLimit::UNLIMITED) == "Unlimited");
     test_round_trip_shuttle(head_limit);
     test_round_trip_shuttle(tail_limit);
     test_round_trip_shuttle(SnapshotLimit::Type::HEAD);

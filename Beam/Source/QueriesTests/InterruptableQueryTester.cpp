@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/InterruptableQuery.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -40,10 +40,8 @@ TEST_SUITE("InterruptableQuery") {
   }
 
   TEST_CASE("stream") {
-    auto ss = std::stringstream();
     auto query = InterruptableQuery(InterruptionPolicy::BREAK_QUERY);
-    ss << query;
-    REQUIRE(ss.str() == "BREAK_QUERY");
+    REQUIRE(to_string(query) == "BREAK_QUERY");
     test_round_trip_shuttle(query);
   }
 }

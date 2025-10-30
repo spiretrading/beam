@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -50,11 +51,9 @@ TEST_SUITE("ServiceEntry") {
     properties.set("port", 8080);
     auto account = DirectoryEntry::make_account(42, "admin");
     auto entry = ServiceEntry("web_service", properties, 100, account);
-    auto stream = std::stringstream();
-    stream << entry;
-    REQUIRE((stream.str() ==
+    REQUIRE((to_string(entry) ==
       "(web_service 100 (ACCOUNT 42 admin) "
-      "{\"host\":\"localhost\",\"port\":8080})" || stream.str() ==
+      "{\"host\":\"localhost\",\"port\":8080})" || to_string(entry) ==
       "(web_service 100 (ACCOUNT 42 admin) "
       "{\"port\":8080,\"host\":\"localhost\"})"));
     test_round_trip_shuttle(entry);

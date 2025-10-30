@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -35,9 +35,7 @@ TEST_SUITE("RangedQuery") {
 
   TEST_CASE("stream") {
     auto query = RangedQuery(Range::TOTAL);
-    auto ss = std::stringstream();
-    ss << query;
-    REQUIRE(ss.str() == "Total");
+    REQUIRE(to_string(query) == "Total");
     test_round_trip_shuttle(query);
   }
 }

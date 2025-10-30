@@ -1,8 +1,8 @@
-#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -63,15 +63,12 @@ TEST_SUITE("IndexedValue") {
   }
 
   TEST_CASE("stream") {
-    auto buffer = std::stringstream();
-    buffer << IndexedValue(123, std::string("index"));
-    REQUIRE(buffer.str() == "(index 123)");
-    buffer.str("");
-    buffer << IndexedValue(std::string("hello world"), std::string("id"));
-    REQUIRE(buffer.str() == "(id hello world)");
-    buffer.str("");
-    buffer << IndexedValue<int, std::string>();
-    REQUIRE(buffer.str() == "( 0)");
+    REQUIRE(
+      to_string(IndexedValue(123, std::string("index"))) == "(index 123)");
+    REQUIRE(to_string(
+      IndexedValue(std::string("hello world"), std::string("id"))) ==
+        "(id hello world)");
+    REQUIRE(to_string(IndexedValue<int, std::string>()) == "( 0)");
     test_round_trip_shuttle(IndexedValue(123, std::string("index")));
   }
 }

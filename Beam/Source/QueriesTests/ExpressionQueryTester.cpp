@@ -1,8 +1,8 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionQuery.hpp"
 #include "Beam/QueriesTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -34,20 +34,14 @@ TEST_SUITE("ExpressionQuery") {
   }
 
   TEST_CASE("stream_update_policy") {
-    auto ss = std::stringstream();
-    ss << ExpressionQuery::UpdatePolicy::ALL;
-    REQUIRE(ss.str() == "ALL");
-    ss.str("");
-    ss << ExpressionQuery::UpdatePolicy::CHANGE;
-    REQUIRE(ss.str() == "CHANGE");
+    REQUIRE(to_string(ExpressionQuery::UpdatePolicy::ALL) == "ALL");
+    REQUIRE(to_string(ExpressionQuery::UpdatePolicy::CHANGE) == "CHANGE");
   }
 
   TEST_CASE("stream") {
     auto query = ExpressionQuery(ConstantExpression(123));
     query.set_update_policy(ExpressionQuery::UpdatePolicy::CHANGE);
-    auto ss = std::stringstream();
-    ss << query;
-    REQUIRE(ss.str() == "(CHANGE 123)");
+    REQUIRE(to_string(query) == "(CHANGE 123)");
     test_query_round_trip_shuttle(query, [&] (auto&& received) {
       REQUIRE(received.get_update_policy() == query.get_update_policy());
       REQUIRE((received.get_expression().

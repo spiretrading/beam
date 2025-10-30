@@ -1,8 +1,8 @@
-#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -35,9 +35,7 @@ TEST_SUITE("KeyValuePair") {
 
   TEST_CASE("stream") {
     auto pair = KeyValuePair(5, std::string("value"));
-    auto ss = std::stringstream();
-    ss << pair;
-    REQUIRE(ss.str() == "(5 value)");
+    REQUIRE(to_string(pair) == "(5 value)");
     test_round_trip_shuttle(pair);
   }
 }

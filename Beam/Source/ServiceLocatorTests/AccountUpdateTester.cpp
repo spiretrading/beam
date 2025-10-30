@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/ServiceLocator/AccountUpdate.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -44,20 +44,14 @@ TEST_SUITE("AccountUpdate") {
   }
 
   TEST_CASE("stream_type") {
-    auto ss = std::stringstream();
-    ss << AccountUpdate::Type::ADDED;
-    REQUIRE(ss.str() == "ADDED");
-    ss.str("");
-    ss << AccountUpdate::Type::DELETED;
-    REQUIRE(ss.str() == "DELETED");
+    REQUIRE(to_string(AccountUpdate::Type::ADDED) == "ADDED");
+    REQUIRE(to_string(AccountUpdate::Type::DELETED) == "DELETED");
   }
 
   TEST_CASE("stream") {
     auto account = DirectoryEntry::make_account(42, "test_user");
     auto update = AccountUpdate::add(account);
-    auto ss = std::stringstream();
-    ss << update;
-    REQUIRE(ss.str() == "((ACCOUNT 42 test_user) ADDED)");
+    REQUIRE(to_string(update) == "((ACCOUNT 42 test_user) ADDED)");
     test_round_trip_shuttle(update);
   }
 }

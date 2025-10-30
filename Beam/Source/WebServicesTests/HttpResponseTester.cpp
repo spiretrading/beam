@@ -1,6 +1,6 @@
-#include <sstream>
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
 
 using namespace Beam;
@@ -344,9 +344,7 @@ TEST_SUITE("HttpResponse") {
 
   TEST_CASE("stream_operator") {
     auto response = HttpResponse(HttpStatusCode::OK);
-    auto stream = std::stringstream();
-    stream << response;
-    auto output = stream.str();
+    auto output = to_string(response);
     REQUIRE(output.find("HTTP/1.1") != std::string::npos);
     REQUIRE(output.find("200") != std::string::npos);
   }

@@ -1,8 +1,8 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Evaluator.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -33,9 +33,7 @@ TEST_SUITE("FilteredQuery") {
 
   TEST_CASE("stream") {
     auto query = FilteredQuery();
-    auto ss = std::stringstream();
-    ss << query;
-    REQUIRE(ss.str() == "true");
+    REQUIRE(to_string(query) == "true");
   }
 
   TEST_CASE("test_filter") {

@@ -1,9 +1,9 @@
-#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/Queries/Value.hpp"
 #include "Beam/QueriesTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -47,9 +47,7 @@ TEST_SUITE("Value") {
 
   TEST_CASE("stream") {
     auto value = Value(123);
-    auto stream = std::stringstream();
-    stream << value;
-    REQUIRE(stream.str() == "123");
+    REQUIRE(to_string(value) == "123");
     test_query_round_trip_shuttle(value);
   }
 }

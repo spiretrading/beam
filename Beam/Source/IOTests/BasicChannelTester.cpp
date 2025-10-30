@@ -5,6 +5,7 @@
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/BufferWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -14,9 +15,7 @@ TEST_SUITE("BasicChannel") {
     auto channel = BasicChannel(NamedChannelIdentifier("channel"),
       NullConnection(), BufferReader(from<SharedBuffer>("hello")),
       std::make_unique<BufferWriter<SharedBuffer>>(Ref(write_buffer)));
-    auto ss = std::stringstream();
-    ss << channel.get_identifier();
-    REQUIRE(ss.str() == "channel");
+    REQUIRE(to_string(channel.get_identifier()) == "channel");
     auto read_buffer = SharedBuffer();
     auto read_count = channel.get_reader().read(out(read_buffer));
     REQUIRE(read_buffer == "hello");

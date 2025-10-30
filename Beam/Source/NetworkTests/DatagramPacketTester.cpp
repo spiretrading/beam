@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -23,17 +23,13 @@ TEST_SUITE("DatagramPacket") {
     auto buffer = from<SharedBuffer>("payload");
     auto address = IpAddress("127.0.0.1", 9999);
     auto packet = DatagramPacket(std::move(buffer), address);
-    auto out = std::stringstream();
-    out << packet;
-    REQUIRE(out.str() == "127.0.0.1:9999:payload");
+    REQUIRE(to_string(packet) == "127.0.0.1:9999:payload");
   }
 
   TEST_CASE("empty_payload_streaming") {
     auto buffer = SharedBuffer();
     auto address = IpAddress("127.0.0.1", 80);
     auto packet = DatagramPacket(std::move(buffer), address);
-    auto out = std::stringstream();
-    out << packet;
-    REQUIRE(out.str() == "127.0.0.1:80:");
+    REQUIRE(to_string(packet) == "127.0.0.1:80:");
   }
 }

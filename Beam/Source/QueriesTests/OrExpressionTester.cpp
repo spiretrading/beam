@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -191,17 +192,13 @@ TEST_SUITE("OrExpression") {
     {
       auto expression =
         OrExpression(ConstantExpression(true), ConstantExpression(false));
-      auto ss = std::stringstream();
-      ss << expression;
-      REQUIRE(ss.str() == "(or true false)");
+      REQUIRE(to_string(expression) == "(or true false)");
     }
     {
       auto expression = OrExpression(
         OrExpression(ConstantExpression(true), ConstantExpression(false)),
         ConstantExpression(true));
-      auto ss = std::stringstream();
-      ss << expression;
-      REQUIRE(ss.str() == "(or (or true false) true)");
+      REQUIRE(to_string(expression) == "(or (or true false) true)");
     }
   }
 }

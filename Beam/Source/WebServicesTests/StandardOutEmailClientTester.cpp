@@ -1,4 +1,3 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/WebServices/StandardOutEmailClient.hpp"
 
@@ -96,7 +95,7 @@ TEST_SUITE("StandardOutEmailClient") {
     {
       auto client = StandardOutEmailClient();
       auto email = Email(EmailAddress("sender@example.com"),
-      EmailAddress("recipient@example.com"));
+        EmailAddress("recipient@example.com"));
       email.set_subject("Test");
       email.add_body("Body");
       client.send(email);
@@ -108,8 +107,8 @@ TEST_SUITE("StandardOutEmailClient") {
   TEST_CASE("email_with_sender") {
     auto redirect = CoutRedirect();
     auto client = StandardOutEmailClient();
-    auto email = Email(EmailAddress("from@example.com"),
-      EmailAddress("to@example.com"));
+    auto email =
+      Email(EmailAddress("from@example.com"), EmailAddress("to@example.com"));
     email.set_sender(EmailAddress("sender@example.com"));
     email.set_subject("Email with Sender");
     email.add_body("Test Body");

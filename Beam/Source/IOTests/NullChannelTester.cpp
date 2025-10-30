@@ -1,23 +1,19 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/IO/NullChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
 TEST_SUITE("NullChannel") {
   TEST_CASE("default_constructor") {
     auto channel = NullChannel();
-    auto ss = std::stringstream();
-    ss << channel.get_identifier();
-    REQUIRE(ss.str().empty());
+    REQUIRE(to_string(channel.get_identifier()).empty());
   }
 
   TEST_CASE("constructor") {
     auto channel = NullChannel(NamedChannelIdentifier("null-id"));
-    auto ss = std::stringstream();
-    ss << channel.get_identifier();
-    REQUIRE(ss.str() == "null-id");
+    REQUIRE(to_string(channel.get_identifier()) == "null-id");
   }
 
   TEST_CASE("getters") {

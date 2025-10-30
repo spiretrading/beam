@@ -1,4 +1,3 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/QueryResult.hpp"
 #include "Beam/QueriesTests/ValueShuttleTests.hpp"
@@ -21,7 +20,6 @@ TEST_SUITE("QueryResult") {
   }
 
   TEST_CASE("stream") {
-    auto ss = std::stringstream();
     auto query = QueryResult(5, std::vector{10, 20, 30});
     test_round_trip_shuttle(query);
   }

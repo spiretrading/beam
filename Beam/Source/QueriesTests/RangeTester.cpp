@@ -1,8 +1,8 @@
-#include <sstream>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Range.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -183,18 +183,13 @@ TEST_SUITE("Range") {
   }
 
   TEST_CASE("stream") {
-    auto buffer = std::stringstream();
-    buffer << Range::EMPTY;
-    REQUIRE(buffer.str() == "Empty");
-    buffer.str("");
-    buffer << Range::TOTAL;
-    REQUIRE(buffer.str() == "Total");
-    buffer.str("");
-    buffer << Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6)));
-    REQUIRE(buffer.str() == "(1984-May-06 00:00:00 2014-May-06 00:00:00)");
-    buffer.str("");
-    buffer << Range(Beam::Sequence::FIRST, Beam::Sequence(5555));
-    REQUIRE(buffer.str() == "(0 5555)");
+    REQUIRE(to_string(Range::EMPTY) == "Empty");
+    REQUIRE(to_string(Range::TOTAL) == "Total");
+    REQUIRE(to_string(
+      Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6)))) ==
+        "(1984-May-06 00:00:00 2014-May-06 00:00:00)");
+    REQUIRE(to_string(Range(Beam::Sequence::FIRST, Beam::Sequence(5555))) ==
+      "(0 5555)");
     test_round_trip_shuttle(
       Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6))));
   }

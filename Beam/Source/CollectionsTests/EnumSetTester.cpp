@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Collections/EnumSet.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -73,11 +73,9 @@ TEST_SUITE("EnumSet") {
     auto set = EnumSet<Color>();
     set.set(Color::Type::RED);
     set.set(Color::Type::BLUE);
-    auto out = std::stringstream();
-    out << set;
     auto expected =
       std::bitset<Color::COUNT>(static_cast<unsigned long>(0b101)).to_string();
-    REQUIRE(out.str() == expected);
+    REQUIRE(to_string(set) == expected);
     test_round_trip_shuttle(set);
   }
 }

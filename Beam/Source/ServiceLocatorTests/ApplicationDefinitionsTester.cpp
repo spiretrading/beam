@@ -1,4 +1,3 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include <yaml-cpp/yaml.h>
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"

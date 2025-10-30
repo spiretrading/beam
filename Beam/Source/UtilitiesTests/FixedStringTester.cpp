@@ -1,9 +1,9 @@
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <doctest/doctest.h>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/Utilities/FixedString.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -315,9 +315,7 @@ TEST_SUITE("FixedString") {
 
   TEST_CASE("stream") {
     auto str = FixedString<10>("output");
-    auto ss = std::stringstream();
-    ss << str;
-    REQUIRE(ss.str() == "output");
+    REQUIRE(to_string(str) == "output");
     test_round_trip_shuttle(str);
   }
 }

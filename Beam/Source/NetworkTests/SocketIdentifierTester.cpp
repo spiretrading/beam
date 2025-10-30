@@ -1,24 +1,20 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Network/SocketIdentifier.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
 TEST_SUITE("SocketIdentifier") {
   TEST_CASE("default_constructor") {
     auto identifier = SocketIdentifier();
-    auto ss = std::stringstream();
-    ss << identifier;
-    REQUIRE(ss.str() == ":0");
+    REQUIRE(to_string(identifier) == ":0");
     REQUIRE(identifier.get_address() == IpAddress());
   }
 
   TEST_CASE("constructor") {
     auto address = IpAddress("127.0.0.1", 8080);
     auto identifier = SocketIdentifier(std::move(address));
-    auto ss = std::stringstream();
-    ss << identifier;
-    REQUIRE(ss.str() == "127.0.0.1:8080");
+    REQUIRE(to_string(identifier) == "127.0.0.1:8080");
   }
 
   TEST_CASE("get_address") {

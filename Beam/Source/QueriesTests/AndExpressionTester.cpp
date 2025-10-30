@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -190,16 +191,12 @@ TEST_SUITE("AndExpression") {
     {
       auto expression =
         AndExpression(ConstantExpression(true), ConstantExpression(false));
-      auto ss = std::stringstream();
-      ss << expression;
-      REQUIRE(ss.str() == "(and true false)");
+      REQUIRE(to_string(expression) == "(and true false)");
     }
     {
       auto expression = AndExpression(ConstantExpression(true),
         AndExpression(ConstantExpression(false), ConstantExpression(true)));
-      auto ss = std::stringstream();
-      ss << expression;
-      REQUIRE(ss.str() == "(and true (and false true))");
+      REQUIRE(to_string(expression) == "(and true (and false true))");
     }
   }
 }

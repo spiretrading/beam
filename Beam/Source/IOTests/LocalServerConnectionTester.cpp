@@ -10,6 +10,7 @@
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -22,12 +23,8 @@ TEST_SUITE("LocalServerConnection") {
     auto client = std::make_unique<LocalClientChannel>("test", server);
     auto server_channel = server_channel_future.get();
     REQUIRE(server_channel);
-    auto oss1 = std::stringstream();
-    oss1 << server_channel->get_identifier();
-    REQUIRE(oss1.str() == "test");
-    auto oss2 = std::stringstream();
-    oss2 << client->get_identifier();
-    REQUIRE(oss2.str() == "client@test");
+    REQUIRE(to_string(server_channel->get_identifier()) == "test");
+    REQUIRE(to_string(client->get_identifier()) == "client@test");
     auto message = from<SharedBuffer>("hello");
     server_channel->get_writer().write(message);
     auto read_buffer = SharedBuffer();
@@ -49,12 +46,8 @@ TEST_SUITE("LocalServerConnection") {
     REQUIRE(server_channel);
     auto client = client_future.get();
     REQUIRE(client);
-    auto oss_server = std::stringstream();
-    oss_server << server_channel->get_identifier();
-    REQUIRE(oss_server.str() == "svc");
-    auto oss_client = std::stringstream();
-    oss_client << client->get_identifier();
-    REQUIRE(oss_client.str() == "client@svc");
+    REQUIRE(to_string(server_channel->get_identifier()) == "svc");
+    REQUIRE(to_string(client->get_identifier()) == "client@svc");
   }
 
   TEST_CASE("multiple_clients") {
@@ -76,12 +69,8 @@ TEST_SUITE("LocalServerConnection") {
       auto client = client_futures[i].get();
       REQUIRE(client);
       auto expected_name = std::string("svc") + std::to_string(i);
-      auto oss_server = std::stringstream();
-      oss_server << server_channels[i]->get_identifier();
-      REQUIRE(oss_server.str() == expected_name);
-      auto oss_client = std::stringstream();
-      oss_client << client->get_identifier();
-      REQUIRE(oss_client.str() == std::string("client@") + expected_name);
+      REQUIRE(to_string(server_channels[i]->get_identifier()) == expected_name);
+      REQUIRE(to_string(client->get_identifier()) == "client@" + expected_name);
     }
   }
 

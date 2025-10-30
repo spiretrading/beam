@@ -1,8 +1,8 @@
-#include <sstream>
 #include <unordered_set>
 #include <doctest/doctest.h>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -115,16 +115,12 @@ TEST_SUITE("DirectoryEntry") {
 
   TEST_CASE("stream") {
     auto account = DirectoryEntry::make_account(42, "alice");
-    auto ss = std::stringstream();
-    ss << account;
-    REQUIRE(ss.str() == "(ACCOUNT 42 alice)");
+    REQUIRE(to_string(account) == "(ACCOUNT 42 alice)");
     test_round_trip_shuttle(account);
   }
 
   TEST_CASE("stream_none") {
     auto entry = DirectoryEntry(DirectoryEntry::Type::NONE, 0, "test");
-    auto ss = std::stringstream();
-    ss << entry;
-    REQUIRE(ss.str() == "NONE");
+    REQUIRE(to_string(entry) == "NONE");
   }
 }

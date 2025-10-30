@@ -1,5 +1,5 @@
-#include <sstream>
 #include <doctest/doctest.h>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/EmailAddress.hpp"
 
 using namespace Beam;
@@ -41,16 +41,12 @@ TEST_SUITE("EmailAddress") {
 
   TEST_CASE("stream_without_display_name") {
     auto email = EmailAddress("test@example.com");
-    auto ss = std::stringstream();
-    ss << email;
-    REQUIRE(ss.str() == "test@example.com");
+    REQUIRE(to_string(email) == "test@example.com");
   }
 
   TEST_CASE("stream_with_display_name") {
     auto email = EmailAddress("contact@company.com", "Contact Us");
-    auto ss = std::stringstream();
-    ss << email;
-    REQUIRE(ss.str() == "Contact Us <contact@company.com>");
+    REQUIRE(to_string(email) == "Contact Us <contact@company.com>");
   }
 
   TEST_CASE("empty_address") {

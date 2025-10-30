@@ -1,8 +1,8 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/QueriesTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -48,9 +48,7 @@ TEST_SUITE("BasicQuery") {
   TEST_CASE("stream") {
     auto query = BasicQuery<int>();
     query.set_index(7);
-    auto ss = std::stringstream();
-    ss << query;
-    auto output = ss.str();
+    auto output = to_string(query);
     test_query_round_trip_shuttle(query, [&] (auto&& received) {
       REQUIRE(received.get_index() == 7);
       REQUIRE(received.get_range() == Range::EMPTY);

@@ -1,6 +1,6 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/IndexedQuery.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -30,13 +30,8 @@ TEST_SUITE("IndexedQuery") {
 
   TEST_CASE("stream") {
     auto int_index = IndexedQuery(123);
-    auto ss = std::stringstream();
-    ss << int_index;
-    REQUIRE(ss.str() == "123");
-    ss.str("");
+    REQUIRE(to_string(int_index) == "123");
     auto string_index = IndexedQuery(std::string("hello world"));
-    ss = std::stringstream();
-    ss << string_index;
-    REQUIRE(ss.str() == "hello world");
+    REQUIRE(to_string(string_index) == "hello world");
   }
 }

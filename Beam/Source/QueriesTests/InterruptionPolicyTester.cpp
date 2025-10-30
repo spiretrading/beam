@@ -1,25 +1,17 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/InterruptionPolicy.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("InterruptionPolicy") {
   TEST_CASE("stream") {
-    auto ss = std::stringstream();
-    ss << InterruptionPolicy::BREAK_QUERY;
-    REQUIRE(ss.str() == "BREAK_QUERY");
-    ss.str("");
-    ss << InterruptionPolicy::RECOVER_DATA;
-    REQUIRE(ss.str() == "RECOVER_DATA");
-    ss.str("");
-    ss << InterruptionPolicy::IGNORE_CONTINUE;
-    REQUIRE(ss.str() == "IGNORE_CONTINUE");
-    ss.str("");
-    ss << static_cast<InterruptionPolicy>(-1);
-    REQUIRE(ss.str() == "NONE");
+    REQUIRE(to_string(InterruptionPolicy::BREAK_QUERY) == "BREAK_QUERY");
+    REQUIRE(to_string(InterruptionPolicy::RECOVER_DATA) == "RECOVER_DATA");
+    REQUIRE(to_string(InterruptionPolicy::IGNORE_CONTINUE) == "IGNORE_CONTINUE");
+    REQUIRE(to_string(static_cast<InterruptionPolicy>(-1)) == "NONE");
     test_round_trip_shuttle(InterruptionPolicy::BREAK_QUERY);
   }
 

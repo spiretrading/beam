@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ReduceExpression.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -52,8 +53,6 @@ TEST_SUITE("ReduceExpression") {
     auto series = ConstantExpression(2);
     auto initial_value = Value(3);
     auto reduce = ReduceExpression(reducer, series, initial_value);
-    auto ss = std::stringstream();
-    ss << reduce;
-    REQUIRE(ss.str() == "(reduce 1 2 3)");
+    REQUIRE(to_string(reduce) == "(reduce 1 2 3)");
   }
 }

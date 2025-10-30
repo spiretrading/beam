@@ -1,5 +1,5 @@
-#include <doctest/doctest.h>
 #include <sstream>
+#include <doctest/doctest.h>
 #include "Beam/IO/BasicIStreamReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 

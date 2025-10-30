@@ -1,6 +1,6 @@
-#include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/Cookie.hpp"
 
 using namespace Beam;
@@ -57,51 +57,39 @@ TEST_SUITE("Cookie") {
 
   TEST_CASE("stream_basic") {
     auto cookie = Cookie("name", "value");
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() == "name=value; Path=/");
+    REQUIRE(to_string(cookie) == "name=value; Path=/");
   }
 
   TEST_CASE("stream_with_domain") {
     auto cookie = Cookie("id", "abc");
     cookie.set_domain("test.com");
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() == "id=abc; Domain=test.com; Path=/");
+    REQUIRE(to_string(cookie) == "id=abc; Domain=test.com; Path=/");
   }
 
   TEST_CASE("stream_with_custom_path") {
     auto cookie = Cookie("token", "xyz");
     cookie.set_path("/secure");
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() == "token=xyz; Path=/secure");
+    REQUIRE(to_string(cookie) == "token=xyz; Path=/secure");
   }
 
   TEST_CASE("stream_with_expiration") {
     auto cookie = Cookie("session", "data");
     auto expiration = time_from_string("2025-02-20 14:05:30");
     cookie.set_expiration(expiration);
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() ==
+    REQUIRE(to_string(cookie) ==
       "session=data; Path=/; Expires=Thu, 20 Feb 2025 14:05:30 GMT");
   }
 
   TEST_CASE("stream_with_secure") {
     auto cookie = Cookie("secure_token", "secret");
     cookie.set_secure(true);
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() == "secure_token=secret; Path=/; Secure");
+    REQUIRE(to_string(cookie) == "secure_token=secret; Path=/; Secure");
   }
 
   TEST_CASE("stream_with_http_only") {
     auto cookie = Cookie("http_token", "data");
     cookie.set_http_only(true);
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() == "http_token=data; Path=/; HttpOnly");
+    REQUIRE(to_string(cookie) == "http_token=data; Path=/; HttpOnly");
   }
 
   TEST_CASE("stream_with_all_attributes") {
@@ -112,9 +100,7 @@ TEST_SUITE("Cookie") {
     cookie.set_expiration(expiration);
     cookie.set_secure(true);
     cookie.set_http_only(true);
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() ==
+    REQUIRE(to_string(cookie) ==
       "full=complete; Domain=secure.example.com; Path=/api/v1; "
       "Expires=Wed, 31 Dec 2025 23:59:59 GMT; Secure; HttpOnly");
   }
@@ -123,9 +109,7 @@ TEST_SUITE("Cookie") {
     auto cookie = Cookie("early", "morning");
     auto expiration = time_from_string("2025-03-10 03:07:02");
     cookie.set_expiration(expiration);
-    auto ss = std::stringstream();
-    ss << cookie;
-    REQUIRE(ss.str() ==
+    REQUIRE(to_string(cookie) ==
       "early=morning; Path=/; Expires=Mon, 10 Mar 2025 03:07:02 GMT");
   }
 }

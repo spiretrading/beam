@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -53,18 +54,10 @@ TEST_SUITE("EnumTester") {
   }
 
   TEST_CASE("streaming") {
-    auto out = std::stringstream();
-    out << Fruit::NONE;
-    REQUIRE(out.str() == "NONE");
-    out.str("");
-    out << Fruit(Fruit::NONE);
-    REQUIRE(out.str() == "NONE");
-    out.str("");
-    out << Fruit::APPLE;
-    REQUIRE(out.str() == "APPLE");
-    out.str("");
-    out << Fruit(Fruit::APPLE);
-    REQUIRE(out.str() == "APPLE");
+    REQUIRE(to_string(Fruit::NONE) == "NONE");
+    REQUIRE(to_string(Fruit(Fruit::NONE)) == "NONE");
+    REQUIRE(to_string(Fruit::APPLE) == "APPLE");
+    REQUIRE(to_string(Fruit(Fruit::APPLE)) == "APPLE");
     test_round_trip_shuttle(Fruit::NONE);
     test_round_trip_shuttle(Fruit(Fruit::NONE));
     test_round_trip_shuttle(Fruit::APPLE);

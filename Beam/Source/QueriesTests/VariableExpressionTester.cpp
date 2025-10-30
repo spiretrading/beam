@@ -1,6 +1,6 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/VariableExpression.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -12,9 +12,7 @@ TEST_SUITE("VariableExpression") {
   }
 
   TEST_CASE("stream") {
-    auto buffer = std::stringstream();
     auto expression = VariableExpression("count", typeid(bool));
-    buffer << expression;
-    REQUIRE(buffer.str() == "count");
+    REQUIRE(to_string(expression) == "count");
   }
 }

@@ -1,6 +1,6 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Network/IpAddress.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -25,9 +25,7 @@ TEST_SUITE("IpAddressTester.cpp") {
 
   TEST_CASE("ostream_output") {
     auto address = IpAddress("1.2.3.4", 42);
-    auto out = std::stringstream();
-    out << address;
-    REQUIRE(out.str() == "1.2.3.4:42");
+    REQUIRE(to_string(address) == "1.2.3.4:42");
   }
 
   TEST_CASE("zero_address") {

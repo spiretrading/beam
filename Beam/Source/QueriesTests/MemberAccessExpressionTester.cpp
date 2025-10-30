@@ -1,7 +1,7 @@
-#include <sstream>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Queries/MemberAccessExpression.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -16,8 +16,6 @@ TEST_SUITE("MemberAccessExpression") {
   TEST_CASE("stream") {
     auto expression =
       MemberAccessExpression("x", typeid(int), ConstantExpression(1));
-    auto ss = std::stringstream();
-    ss << expression;
-    REQUIRE(ss.str() == "1.x");
+    REQUIRE(to_string(expression) == "1.x");
   }
 }

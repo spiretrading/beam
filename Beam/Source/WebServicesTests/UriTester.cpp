@@ -1,5 +1,5 @@
-#include <sstream>
 #include <doctest/doctest.h>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
@@ -116,51 +116,37 @@ TEST_SUITE("Uri") {
 
   TEST_CASE("stream_simple") {
     auto uri = Uri("http://example.com");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://example.com");
+    REQUIRE(to_string(uri) == "http://example.com");
   }
 
   TEST_CASE("stream_with_port") {
     auto uri = Uri("http://example.com:8080");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://example.com:8080");
+    REQUIRE(to_string(uri) == "http://example.com:8080");
   }
 
   TEST_CASE("stream_with_path") {
     auto uri = Uri("http://example.com/path");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://example.com/path");
+    REQUIRE(to_string(uri) == "http://example.com/path");
   }
 
   TEST_CASE("stream_with_query") {
     auto uri = Uri("http://example.com/search?q=test");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://example.com/search?q=test");
+    REQUIRE(to_string(uri) == "http://example.com/search?q=test");
   }
 
   TEST_CASE("stream_with_fragment") {
     auto uri = Uri("http://example.com/page#section");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://example.com/page#section");
+    REQUIRE(to_string(uri) == "http://example.com/page#section");
   }
 
   TEST_CASE("stream_with_credentials") {
     auto uri = Uri("http://user:pass@example.com");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "http://user:pass@example.com");
+    REQUIRE(to_string(uri) == "http://user:pass@example.com");
   }
 
   TEST_CASE("stream_complete") {
     auto uri = Uri("https://user:pass@example.com:8443/path?query=value#fragment");
-    auto ss = std::stringstream();
-    ss << uri;
-    REQUIRE(ss.str() == "https://user:pass@example.com:8443/path?query=value#fragment");
+    REQUIRE(to_string(uri) == "https://user:pass@example.com:8443/path?query=value#fragment");
   }
 
   TEST_CASE("relative_path") {

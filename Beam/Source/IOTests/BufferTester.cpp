@@ -1,6 +1,6 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -48,9 +48,8 @@ TEST_SUITE("Buffer") {
 
   TEST_CASE("ostream_and_equality") {
     auto buffer = Buffer(std::in_place_type_t<SharedBuffer>(), "emit", 4);
-    auto os = std::stringstream();
-    os << buffer;
-    REQUIRE(os.str() == std::string(buffer.get_data(), buffer.get_size()));
+    REQUIRE(
+      to_string(buffer) == std::string(buffer.get_data(), buffer.get_size()));
     REQUIRE(buffer == "emit");
   }
 

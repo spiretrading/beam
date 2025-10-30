@@ -1,7 +1,7 @@
-#include <sstream>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -102,9 +102,7 @@ TEST_SUITE("Sequence") {
   }
 
   TEST_CASE("stream") {
-    auto ss = std::stringstream();
-    ss << Sequence(123);
-    REQUIRE(ss.str() == "123");
+    REQUIRE(to_string(Sequence(123)) == "123");
     test_round_trip_shuttle(Sequence(543));
   }
 }

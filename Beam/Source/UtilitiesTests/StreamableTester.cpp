@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 #include "Beam/Utilities/Streamable.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
@@ -22,9 +23,7 @@ namespace {
 TEST_SUITE("Streamable") {
   TEST_CASE("streamable_to_stream") {
     auto object = TestStreamable("test");
-    auto ss = std::stringstream();
-    ss << object;
-    REQUIRE(ss.str() == "TestStreamable(test)");
+    REQUIRE(to_string(object) == "TestStreamable(test)");
   }
 
   TEST_CASE("streamable_to_string") {
@@ -42,107 +41,79 @@ TEST_SUITE("Streamable") {
   TEST_CASE("stream_vector") {
     SUBCASE("empty_vector") {
       auto vector = std::vector<int>();
-      auto ss = std::stringstream();
-      ss << Stream(vector);
-      REQUIRE(ss.str() == "[]");
+      REQUIRE(to_string(Stream(vector)) == "[]");
     }
 
     SUBCASE("single_element") {
       auto vector = std::vector<int>{42};
-      auto ss = std::stringstream();
-      ss << Stream(vector);
-      REQUIRE(ss.str() == "[42]");
+      REQUIRE(to_string(Stream(vector)) == "[42]");
     }
 
     SUBCASE("multiple_elements") {
       auto vector = std::vector<int>{1, 2, 3, 4, 5};
-      auto ss = std::stringstream();
-      ss << Stream(vector);
-      REQUIRE(ss.str() == "[1, 2, 3, 4, 5]");
+      REQUIRE(to_string(Stream(vector)) == "[1, 2, 3, 4, 5]");
     }
 
     SUBCASE("string_vector") {
       auto vector = std::vector<std::string>{"hello", "world"};
-      auto ss = std::stringstream();
-      ss << Stream(vector);
-      REQUIRE(ss.str() == "[hello, world]");
+      REQUIRE(to_string(Stream(vector)) == "[hello, world]");
     }
   }
 
   TEST_CASE("stream_map") {
     SUBCASE("empty_map") {
       auto map = std::map<int, std::string>();
-      auto ss = std::stringstream();
-      ss << Stream(map);
-      REQUIRE(ss.str() == "{}");
+      REQUIRE(to_string(Stream(map)) == "{}");
     }
 
     SUBCASE("single_entry") {
       auto map = std::map<int, std::string>{{1, "one"}};
-      auto ss = std::stringstream();
-      ss << Stream(map);
-      REQUIRE(ss.str() == "{1: one}");
+      REQUIRE(to_string(Stream(map)) == "{1: one}");
     }
 
     SUBCASE("multiple_entries") {
       auto map =
         std::map<int, std::string>{{1, "one"}, {2, "two"}, {3, "three"}};
-      auto ss = std::stringstream();
-      ss << Stream(map);
-      REQUIRE(ss.str() == "{1: one, 2: two, 3: three}");
+      REQUIRE(to_string(Stream(map)) == "{1: one, 2: two, 3: three}");
     }
 
     SUBCASE("string_keys") {
       auto map = std::map<std::string, int>{{"a", 1}, {"b", 2}};
-      auto ss = std::stringstream();
-      ss << Stream(map);
-      REQUIRE(ss.str() == "{a: 1, b: 2}");
+      REQUIRE(to_string(Stream(map)) == "{a: 1, b: 2}");
     }
   }
 
   TEST_CASE("stream_set") {
     SUBCASE("empty_set") {
       auto set = std::set<int>();
-      auto ss = std::stringstream();
-      ss << Stream(set);
-      REQUIRE(ss.str() == "{}");
+      REQUIRE(to_string(Stream(set)) == "{}");
     }
 
     SUBCASE("single_element") {
       auto set = std::set<int>{42};
-      auto ss = std::stringstream();
-      ss << Stream(set);
-      REQUIRE(ss.str() == "{42}");
+      REQUIRE(to_string(Stream(set)) == "{42}");
     }
 
     SUBCASE("multiple_elements") {
       auto set = std::set<int>{1, 2, 3, 4, 5};
-      auto ss = std::stringstream();
-      ss << Stream(set);
-      REQUIRE(ss.str() == "{1, 2, 3, 4, 5}");
+      REQUIRE(to_string(Stream(set)) == "{1, 2, 3, 4, 5}");
     }
 
     SUBCASE("string_set") {
       auto set = std::set<std::string>{"apple", "banana", "cherry"};
-      auto ss = std::stringstream();
-      ss << Stream(set);
-      REQUIRE(ss.str() == "{apple, banana, cherry}");
+      REQUIRE(to_string(Stream(set)) == "{apple, banana, cherry}");
     }
   }
 
   TEST_CASE("stream_nested_containers") {
     SUBCASE("vector_of_vectors") {
       auto nested = std::vector<std::vector<int>>{{1, 2}, {3, 4}, {5}};
-      auto ss = std::stringstream();
-      ss << Stream(nested);
-      REQUIRE(ss.str() == "[[1, 2], [3, 4], [5]]");
+      REQUIRE(to_string(Stream(nested)) == "[[1, 2], [3, 4], [5]]");
     }
 
     SUBCASE("map_of_vectors") {
       auto map = std::map<int, std::vector<int>>{{1, {10, 20}}, {2, {30}}};
-      auto ss = std::stringstream();
-      ss << Stream(map);
-      REQUIRE(ss.str() == "{1: [10, 20], 2: [30]}");
+      REQUIRE(to_string(Stream(map)) == "{1: [10, 20], 2: [30]}");
     }
   }
 }

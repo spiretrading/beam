@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 #include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
@@ -33,9 +34,7 @@ TEST_SUITE("SnapshotLimitedQuery") {
 
   TEST_CASE("stream") {
     auto query = SnapshotLimitedQuery(SnapshotLimit::from_head(50));
-    auto ss = std::stringstream();
-    ss << query;
-    REQUIRE(ss.str() == "(HEAD 50)");
+    REQUIRE(to_string(query) == "(HEAD 50)");
     test_round_trip_shuttle(query);
   }
 }

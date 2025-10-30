@@ -16,6 +16,20 @@
 
 #define BEAM_ENUM_STRINGIZE_EACH(r, data, elem) BOOST_PP_STRINGIZE(elem)
 
+#define BEAM_BASIC_ENUM(name, ...)                                             \
+  struct BOOST_PP_CAT(name, EnumMembers) {                                     \
+    enum Type : int {                                                          \
+      NONE = -1,                                                               \
+      __VA_ARGS__                                                              \
+    };                                                                         \
+                                                                               \
+    auto operator <=>(const BOOST_PP_CAT(name, EnumMembers)& rhs) const =      \
+      default;                                                                 \
+  };                                                                           \
+                                                                               \
+  using name = ::Beam::Enum<BOOST_PP_CAT(name, EnumMembers),                   \
+    BOOST_PP_VARIADIC_SIZE(__VA_ARGS__)>;
+
 #define BEAM_ENUM(name, ...)                                                   \
   struct BOOST_PP_CAT(name, EnumMembers) {                                     \
     enum Type : int {                                                          \

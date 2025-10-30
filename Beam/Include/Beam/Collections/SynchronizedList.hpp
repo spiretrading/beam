@@ -67,18 +67,15 @@ namespace Beam {
        * Removes all values matching a predicate.
        * @param f The predicate to match.
        */
-      template<std::predicate<const Value&> F>
-      void erase_if(F f) {
-        auto lock = boost::lock_guard(m_mutex);
-        std::erase_if(m_list, std::move(f));
-      }
+      template<std::predicate<typename T::value_type&> F>
+      void erase_if(F f);
 
       /** Performs an action on each element of this list. */
-      template<typename F>
+      template<std::invocable<typename T::value_type&> F>
       void for_each(F f);
 
       /** Performs an action on each element of this list. */
-      template<typename F>
+      template<std::invocable<const typename T::value_type&> F>
       void for_each(F f) const;
 
       /** Clears the contents of this list. */
@@ -94,14 +91,14 @@ namespace Beam {
        * Performs a synchronized action with the list.
        * @param f The action to perform on the list.
        */
-      template<typename F>
+      template<std::invocable<T&> F>
       decltype(auto) with(F&& f);
 
       /**
        * Performs a synchronized action with the list.
        * @param f The action to perform on the list.
        */
-      template<typename F>
+      template<std::invocable<const T&> F>
       decltype(auto) with(F&& f) const;
 
     private:
@@ -163,14 +160,21 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename F>
+  template<std::predicate<typename T::value_type&> F>
+  void SynchronizedList<T, M>::erase_if(F f) {
+    auto lock = boost::lock_guard(m_mutex);
+    std::erase_if(m_list, std::move(f));
+  }
+
+  template<typename T, typename M>
+  template<std::invocable<typename T::value_type&> F>
   void SynchronizedList<T, M>::for_each(F f) {
     auto lock = boost::lock_guard(m_mutex);
     std::for_each(m_list.begin(), m_list.end(), std::move(f));
   }
 
   template<typename T, typename M>
-  template<typename F>
+  template<std::invocable<const typename T::value_type&> F>
   void SynchronizedList<T, M>::for_each(F f) const {
     auto lock = boost::lock_guard(m_mutex);
     std::for_each(m_list.begin(), m_list.end(), std::move(f));
@@ -192,14 +196,14 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename F>
+  template<std::invocable<T&> F>
   decltype(auto) SynchronizedList<T, M>::with(F&& f) {
     auto lock = boost::lock_guard(m_mutex);
     return std::forward<F>(f)(m_list);
   }
 
   template<typename T, typename M>
-  template<typename F>
+  template<std::invocable<const T&> F>
   decltype(auto) SynchronizedList<T, M>::with(F&& f) const {
     auto lock = boost::lock_guard(m_mutex);
     return std::forward<F>(f)(m_list);

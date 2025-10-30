@@ -155,18 +155,15 @@ namespace Beam::Tests {
       client->set(time);
     });
     auto expired_timers = std::vector<TestTimer*>();
-    m_timers.with([&] (auto& timers) {
-      timers.erase(std::remove_if(timers.begin(), timers.end(),
-        [&] (auto& timer) {
-          timer.m_time_remaining -= delta;
-          if(timer.m_time_remaining <= boost::posix_time::seconds(0)) {
-            expired_timers.push_back(timer.m_timer);
-            return true;
-          } else {
-            m_next_trigger = std::min(m_next_trigger, timer.m_time_remaining);
-            return false;
-          }
-        }), timers.end());
+    m_timers.erase_if([&] (auto& timer) {
+      timer.m_time_remaining -= delta;
+      if(timer.m_time_remaining <= boost::posix_time::seconds(0)) {
+        expired_timers.push_back(timer.m_timer);
+        return true;
+      } else {
+        m_next_trigger = std::min(m_next_trigger, timer.m_time_remaining);
+        return false;
+      }
     });
     {
       auto releaser = release(lock);

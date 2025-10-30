@@ -1,17 +1,13 @@
 #ifndef BEAM_TEST_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_TEST_SERVICE_LOCATOR_CLIENT_HPP
 #include <variant>
-#include <boost/optional.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Collections/SynchronizedSet.hpp"
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/OpenState.hpp"
+#include <boost/optional.hpp>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/ServicesTests/ServiceResult.hpp"
+#include "Beam/ServicesTests/TestServiceClientOperationQueue.hpp"
 
 namespace Beam::Tests {
 
@@ -360,18 +356,11 @@ namespace Beam::Tests {
     private:
       DirectoryEntry m_account;
       std::string m_session_id;
-      ScopedQueueWriter<std::shared_ptr<Operation>> m_operations;
-      SynchronizedVector<std::weak_ptr<BaseQueue>> m_queues;
-      SynchronizedUnorderedSet<BaseServiceResult*> m_pending_results;
-      OpenState m_open_state;
+      TestServiceClientOperationQueue<Operation> m_operations;
 
       TestServiceLocatorClient(const TestServiceLocatorClient&) = delete;
       TestServiceLocatorClient& operator =(
         const TestServiceLocatorClient&) = delete;
-      template<typename T>
-      void append_queue(std::shared_ptr<Operation> operation);
-      template<typename T, typename R, typename... Args>
-      R append_result(Args&&... args);
   };
 
   inline TestServiceLocatorClient::TestServiceLocatorClient(
@@ -400,189 +389,142 @@ namespace Beam::Tests {
 
   inline DirectoryEntry TestServiceLocatorClient::authenticate_account(
       const std::string& username, const std::string& password) {
-    return append_result<AuthenticateAccountOperation, DirectoryEntry>(
-      username, password);
+    return m_operations.append_result<
+      AuthenticateAccountOperation, DirectoryEntry>(username, password);
   }
 
   inline DirectoryEntry TestServiceLocatorClient::authenticate_session(
       const std::string& session_id, unsigned int key) {
-    return append_result<AuthenticateSessionOperation, DirectoryEntry>(
-      session_id, key);
+    return m_operations.append_result<
+      AuthenticateSessionOperation, DirectoryEntry>(session_id, key);
   }
 
   inline std::vector<ServiceEntry> TestServiceLocatorClient::locate(
       const std::string& name) {
-    return append_result<LocateOperation, std::vector<ServiceEntry>>(name);
+    return m_operations.append_result<
+      LocateOperation, std::vector<ServiceEntry>>(name);
   }
 
   inline ServiceEntry TestServiceLocatorClient::add(
       const std::string& name, const JsonObject& properties) {
-    return append_result<AddOperation, ServiceEntry>(name, properties);
+    return m_operations.append_result<AddOperation, ServiceEntry>(
+      name, properties);
   }
 
   inline void TestServiceLocatorClient::remove(const ServiceEntry& service) {
-    append_result<RemoveServiceOperation, void>(service);
+    m_operations.append_result<RemoveServiceOperation, void>(service);
   }
 
   inline std::vector<DirectoryEntry>
       TestServiceLocatorClient::load_all_accounts() {
-    return append_result<
+    return m_operations.append_result<
       LoadAllAccountsOperation, std::vector<DirectoryEntry>>();
   }
 
   inline boost::optional<DirectoryEntry> TestServiceLocatorClient::find_account(
       const std::string& name) {
-    return append_result<
+    return m_operations.append_result<
       FindAccountOperation, boost::optional<DirectoryEntry>>(name);
   }
 
   inline DirectoryEntry TestServiceLocatorClient::make_account(
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent) {
-    return append_result<MakeAccountOperation, DirectoryEntry>(
-      name, password, parent);
+    return m_operations.append_result<
+      MakeAccountOperation, DirectoryEntry>(name, password, parent);
   }
 
   inline DirectoryEntry TestServiceLocatorClient::make_directory(
       const std::string& name, const DirectoryEntry& parent) {
-    return append_result<MakeDirectoryOperation, DirectoryEntry>(name, parent);
+    return m_operations.append_result<
+      MakeDirectoryOperation, DirectoryEntry>(name, parent);
   }
 
   inline void TestServiceLocatorClient::store_password(
       const DirectoryEntry& account, const std::string& password) {
-    append_result<StorePasswordOperation, void>(account, password);
+    m_operations.append_result<StorePasswordOperation, void>(
+      account, password);
   }
 
   inline void TestServiceLocatorClient::monitor(
       ScopedQueueWriter<AccountUpdate> queue) {
-    append_queue<MonitorOperation>(std::make_shared<Operation>(
+    m_operations.append_queue<MonitorOperation>(std::make_shared<Operation>(
       MonitorOperation(std::move(queue))));
   }
 
   inline DirectoryEntry TestServiceLocatorClient::load_directory_entry(
       const DirectoryEntry& root, const std::string& path) {
-    return append_result<
+    return m_operations.append_result<
       LoadDirectoryEntryByPathOperation, DirectoryEntry>(root, path);
   }
 
   inline DirectoryEntry TestServiceLocatorClient::load_directory_entry(
       unsigned int id) {
-    return append_result<LoadDirectoryEntryByIdOperation, DirectoryEntry>(id);
+    return m_operations.append_result<
+      LoadDirectoryEntryByIdOperation, DirectoryEntry>(id);
   }
 
   inline std::vector<DirectoryEntry> TestServiceLocatorClient::load_parents(
       const DirectoryEntry& entry) {
-    return append_result<
+    return m_operations.append_result<
       LoadParentsOperation, std::vector<DirectoryEntry>>(entry);
   }
 
   inline std::vector<DirectoryEntry> TestServiceLocatorClient::load_children(
       const DirectoryEntry& entry) {
-    return append_result<
+    return m_operations.append_result<
       LoadChildrenOperation, std::vector<DirectoryEntry>>(entry);
   }
 
   inline void TestServiceLocatorClient::remove(const DirectoryEntry& entry) {
-    append_result<RemoveDirectoryEntryOperation, void>(entry);
+    m_operations.append_result<RemoveDirectoryEntryOperation, void>(entry);
   }
 
   inline void TestServiceLocatorClient::associate(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    append_result<AssociateOperation, void>(entry, parent);
+    m_operations.append_result<AssociateOperation, void>(entry, parent);
   }
 
   inline void TestServiceLocatorClient::detach(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    append_result<DetachOperation, void>(entry, parent);
+    m_operations.append_result<DetachOperation, void>(entry, parent);
   }
 
   inline bool TestServiceLocatorClient::has_permissions(
       const DirectoryEntry& account, const DirectoryEntry& target,
       Permissions permissions) {
-    return append_result<HasPermissionsOperation, bool>(
+    return m_operations.append_result<HasPermissionsOperation, bool>(
       account, target, permissions);
   }
 
   inline void TestServiceLocatorClient::store(const DirectoryEntry& source,
       const DirectoryEntry& target, Permissions permissions) {
-    append_result<StorePermissionsOperation, void>(
+    m_operations.append_result<StorePermissionsOperation, void>(
       source, target, permissions);
   }
 
   inline boost::posix_time::ptime
       TestServiceLocatorClient::load_registration_time(
         const DirectoryEntry& account) {
-    return append_result<
+    return m_operations.append_result<
       LoadRegistrationTimeOperation, boost::posix_time::ptime>(account);
   }
 
   inline boost::posix_time::ptime
       TestServiceLocatorClient::load_last_login_time(
         const DirectoryEntry& account) {
-    return append_result<
+    return m_operations.append_result<
       LoadLastLoginTimeOperation, boost::posix_time::ptime>(account);
   }
 
   inline DirectoryEntry TestServiceLocatorClient::rename(
       const DirectoryEntry& entry, const std::string& name) {
-    return append_result<RenameOperation, DirectoryEntry>(entry, name);
+    return m_operations.append_result<RenameOperation, DirectoryEntry>(
+      entry, name);
   }
 
   inline void TestServiceLocatorClient::close() {
-    if(m_open_state.set_closing()) {
-      m_queues.for_each([] (const auto& queue) {
-        if(auto q = queue.lock()) {
-          q->close();
-        }
-      });
-      m_queues.clear();
-      m_pending_results.with([] (auto& results) {
-        for(auto& result : results) {
-          result->set(std::make_exception_ptr(EndOfFileException()));
-        }
-      });
-      m_pending_results.clear();
-    }
-    m_open_state.close();
-  }
-
-  template<typename T>
-  void TestServiceLocatorClient::append_queue(
-      std::shared_ptr<Operation> operation) {
-    auto queue =
-      std::shared_ptr<BaseQueue>(operation, &std::get<T>(*operation).m_queue);
-    m_queues.push_back(queue);
-    if(!m_open_state.is_open()) {
-      m_queues.erase_if([&] (const auto& weak_queue) {
-        auto q = weak_queue.lock();
-        return !q || q == queue;
-      });
-      queue->close();
-      return;
-    }
-    m_operations.push(operation);
-  }
-
-  template<typename T, typename R, typename... Args>
-  R TestServiceLocatorClient::append_result(Args&&... args) {
-    auto async = Async<R>();
-    auto operation = std::make_shared<Operation>(
-      std::in_place_type<T>, std::forward<Args>(args)..., async.get_eval());
-    m_pending_results.insert(&std::get<T>(*operation).m_result);
-    if(!m_open_state.is_open()) {
-      m_pending_results.erase(&std::get<T>(*operation).m_result);
-      boost::throw_with_location(EndOfFileException());
-    }
-    m_operations.push(operation);
-    if constexpr(std::same_as<R, void>) {
-      async.get();
-      m_pending_results.erase(&std::get<T>(*operation).m_result);
-      return;
-    } else {
-      auto result = std::move(async.get());
-      m_pending_results.erase(&std::get<T>(*operation).m_result);
-      return result;
-    }
+    m_operations.close();
   }
 }
 

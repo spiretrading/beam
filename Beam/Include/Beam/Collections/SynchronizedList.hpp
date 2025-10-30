@@ -5,6 +5,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Utilities/Algorithm.hpp"
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
@@ -91,15 +92,8 @@ namespace Beam {
        * Performs a synchronized action with the list.
        * @param f The action to perform on the list.
        */
-      template<std::invocable<T&> F>
-      decltype(auto) with(F&& f);
-
-      /**
-       * Performs a synchronized action with the list.
-       * @param f The action to perform on the list.
-       */
-      template<std::invocable<const T&> F>
-      decltype(auto) with(F&& f) const;
+      template<typename Self, IsInvocableLike<Self, T> F>
+      decltype(auto) with(this Self&& self, F&& f);
 
     private:
       mutable Mutex m_mutex;
@@ -196,17 +190,10 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<std::invocable<T&> F>
-  decltype(auto) SynchronizedList<T, M>::with(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
-    return std::forward<F>(f)(m_list);
-  }
-
-  template<typename T, typename M>
-  template<std::invocable<const T&> F>
-  decltype(auto) SynchronizedList<T, M>::with(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
-    return std::forward<F>(f)(m_list);
+  template<typename Self, IsInvocableLike<Self, T> F>
+  decltype(auto) SynchronizedList<T, M>::with(this Self&& self, F&& f) {
+    auto lock = boost::lock_guard(self.m_mutex);
+    return std::forward<F>(f)(std::forward<Self>(self).m_list);
   }
 
   template<typename T, typename M>

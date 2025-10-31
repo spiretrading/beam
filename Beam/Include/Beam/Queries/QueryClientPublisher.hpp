@@ -213,15 +213,13 @@ namespace Beam {
       ServiceProtocolClient& client) {
     auto disconnected_publishers =
       std::vector<std::tuple<PublisherList*, std::shared_ptr<Publisher>>>();
-    m_publishers.with([&] (auto& publishers) {
-      for(auto& publisher_list : publishers | boost::adaptors::map_values) {
-        publisher_list.for_each([&] (const auto& publisher) {
-          if(publisher->get_id() != -1) {
-            disconnected_publishers.push_back(
-              std::tuple(&publisher_list, publisher));
-          }
-        });
-      }
+    m_publishers.for_each_value([&] (auto& publisher_list) {
+      publisher_list.for_each([&] (const auto& publisher) {
+        if(publisher->get_id() != -1) {
+          disconnected_publishers.push_back(
+            std::tuple(&publisher_list, publisher));
+        }
+      });
     });
     for(auto& disconnected_publisher : disconnected_publishers) {
       auto& publisher_list = *std::get<0>(disconnected_publisher);
@@ -262,12 +260,10 @@ namespace Beam {
     if(!break_exception) {
       return;
     }
-    m_publishers.with([&] (auto& publishers) {
-      for(auto& publisher : publishers | boost::adaptors::map_values) {
-        publisher.for_each([&] (auto& disconnected_publisher) {
-          disconnected_publisher->close(break_exception);
-        });
-      }
+    m_publishers.for_each_value([&] (auto& publisher) {
+      publisher.for_each([&] (auto& disconnected_publisher) {
+        disconnected_publisher->close(break_exception);
+      });
     });
   }
 }

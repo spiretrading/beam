@@ -142,10 +142,8 @@ namespace Beam::Tests {
       }
     });
     m_queues.clear();
-    m_pending_results.with([] (auto& results) {
-      for(auto& result : results) {
-        result->set(std::make_exception_ptr(EndOfFileException()));
-      }
+    m_pending_results.for_each([] (auto& result) {
+      result->set(std::make_exception_ptr(EndOfFileException()));
     });
     m_pending_results.clear();
     m_open_state.close();

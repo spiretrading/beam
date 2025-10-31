@@ -1,7 +1,9 @@
 #ifndef BEAM_SYNCHRONIZED_LIST_HPP
 #define BEAM_SYNCHRONIZED_LIST_HPP
 #include <concepts>
+#include <deque>
 #include <vector>
+#include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Utilities/Algorithm.hpp"
@@ -32,10 +34,18 @@ namespace Beam {
       SynchronizedList() = default;
 
       /**
+       * Constructs a list from a range.
+       * @param range The range to copy.
+       */
+      template<std::ranges::input_range R> requires std::convertible_to<
+        std::ranges::range_reference_t<R>, typename T::value_type>
+      explicit SynchronizedList(R&& range);
+
+      /**
        * Copies a list.
        * @param list The list to copy.
        */
-      template<typename U, typename V>
+      template<std::constructible_from<typename T::value_type> U, typename V>
       SynchronizedList(const SynchronizedList<U, V>& list);
 
       SynchronizedList(const SynchronizedList& list);
@@ -48,15 +58,14 @@ namespace Beam {
        * Adds a value at the end of the list.
        * @param value The value to insert.
        */
-      template<typename V>
+      template<std::constructible_from<typename T::value_type> V>
       void push_back(V&& value);
 
       /**
-       * Appends a container to the end of the list.
-       * @param container The container to append.
+       * Removes and returns the first element from the list.
+       * @return The first element, or boost::none if the list is empty.
        */
-      template<typename C>
-      void append(const C& container);
+      boost::optional<Value> pop_front();
 
       /**
        * Removes a value from the list.
@@ -72,12 +81,8 @@ namespace Beam {
       void erase_if(F f);
 
       /** Performs an action on each element of this list. */
-      template<std::invocable<typename T::value_type&> F>
-      void for_each(F f);
-
-      /** Performs an action on each element of this list. */
-      template<std::invocable<const typename T::value_type&> F>
-      void for_each(F f) const;
+      template<typename Self, IsInvocableLike<Self, typename T::value_type> F>
+      void for_each(this Self&& self, F f);
 
       /** Clears the contents of this list. */
       void clear();
@@ -100,6 +105,10 @@ namespace Beam {
       List m_list;
   };
 
+  template<std::ranges::input_range R>
+  SynchronizedList(R&&) ->
+    SynchronizedList<std::vector<std::ranges::range_value_t<R>>>;
+
   /**
    * A SynchronizedList using an std::vector.
    * @tparam V The type of value.
@@ -108,8 +117,24 @@ namespace Beam {
   template<typename ValueType, typename M = boost::mutex>
   using SynchronizedVector = SynchronizedList<std::vector<ValueType>, M>;
 
+  /**
+   * A SynchronizedList using an std::deque.
+   * @tparam V The type of value.
+   * @tparam M The type of mutex used to synchronized this container.
+   */
+  template<typename ValueType, typename M = boost::mutex>
+  using SynchronizedDeque = SynchronizedList<std::deque<ValueType>, M>;
+
   template<typename T, typename M>
-  template<typename U, typename V>
+  template<std::ranges::input_range R> requires std::convertible_to<
+    std::ranges::range_reference_t<R>, typename T::value_type>
+  SynchronizedList<T, M>::SynchronizedList(R&& range) {
+    m_list.insert(
+      m_list.end(), std::ranges::begin(range), std::ranges::end(range));
+  }
+
+  template<typename T, typename M>
+  template<std::constructible_from<typename T::value_type> U, typename V>
   SynchronizedList<T, M>::SynchronizedList(const SynchronizedList<U, V>& list) {
     auto lock = boost::lock_guard(list.m_mutex);
     m_list.insert(m_list.end(), list.m_list.begin(), list.m_list.end());
@@ -134,17 +159,28 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename V>
+  template<std::constructible_from<typename T::value_type> V>
   void SynchronizedList<T, M>::push_back(V&& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_list.push_back(std::forward<V>(value));
   }
 
   template<typename T, typename M>
-  template<typename C>
-  void SynchronizedList<T, M>::append(const C& container) {
+  boost::optional<typename SynchronizedList<T, M>::Value>
+      SynchronizedList<T, M>::pop_front() {
     auto lock = boost::lock_guard(m_mutex);
-    m_list.insert(m_list.end(), container.begin(), container.end());
+    if(m_list.empty()) {
+      return boost::none;
+    }
+    if constexpr(requires { m_list.pop_front(); }) {
+      auto value = std::move(m_list.front());
+      m_list.pop_front();
+      return value;
+    } else {
+      auto value = std::move(m_list.front());
+      m_list.erase(m_list.begin());
+      return value;
+    }
   }
 
   template<typename T, typename M>
@@ -161,17 +197,19 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<std::invocable<typename T::value_type&> F>
-  void SynchronizedList<T, M>::for_each(F f) {
-    auto lock = boost::lock_guard(m_mutex);
-    std::for_each(m_list.begin(), m_list.end(), std::move(f));
-  }
-
-  template<typename T, typename M>
-  template<std::invocable<const typename T::value_type&> F>
-  void SynchronizedList<T, M>::for_each(F f) const {
-    auto lock = boost::lock_guard(m_mutex);
-    std::for_each(m_list.begin(), m_list.end(), std::move(f));
+  template<typename Self, IsInvocableLike<Self, typename T::value_type> F>
+  void SynchronizedList<T, M>::for_each(this Self&& self, F f) {
+    auto lock = boost::lock_guard(self.m_mutex);
+    if constexpr(std::is_const_v<std::remove_reference_t<Self>> ||
+        std::is_lvalue_reference_v<Self>) {
+      for(auto& value : self.m_list) {
+        f(value);
+      }
+    } else {
+      for(auto&& value : self.m_list) {
+        f(std::move(value));
+      }
+    }
   }
 
   template<typename T, typename M>

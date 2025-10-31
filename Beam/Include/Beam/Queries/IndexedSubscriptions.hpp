@@ -147,10 +147,8 @@ namespace Beam {
   template<typename V, typename I, typename C>
   void IndexedSubscriptions<V, I, C>::remove_all(
       ServiceProtocolClient& client) {
-    m_subscriptions.with([&] (auto& subscriptions) {
-      for(auto& subscription : subscriptions | boost::adaptors::map_values) {
-        subscription->remove_all(client);
-      }
+    m_subscriptions.for_each_value([&] (auto& subscription) {
+      subscription->remove_all(client);
     });
   }
 

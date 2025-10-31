@@ -102,15 +102,14 @@ namespace Beam {
   /**
    * Checks if a callable can be invoked with a type that has cv-ref
    * qualifications applied from another type.
+   * @tparam F The callable type to check.
    * @tparam Self The type whose cv-ref qualifications are applied.
    * @tparam T The type to which the qualifications are applied.
-   * @tparam F The callable type to check.
    */
-  template<typename Self, typename T, typename F>
+  template<typename F, typename Self, typename T>
   concept IsInvocableLike = std::invocable<
     F, std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>,
-      std::conditional_t<std::is_lvalue_reference_v<Self>, const T&, const T&&>,
-      std::conditional_t<std::is_lvalue_reference_v<Self>, T&, T&&>>>;
+      const T&, std::conditional_t<std::is_lvalue_reference_v<Self>, T&, T&&>>>;
 }
 
 #endif

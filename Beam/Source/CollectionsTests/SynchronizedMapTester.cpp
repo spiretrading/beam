@@ -153,4 +153,45 @@ TEST_SUITE("SynchronizedMap") {
     REQUIRE(from_moved.has_value());
     REQUIRE(*from_moved == 11);
   }
+
+  TEST_CASE("for_each_iterates_entries") {
+    auto map = SynchronizedUnorderedMap<std::string, int>();
+    map.insert(std::string("a"), 1);
+    map.insert(std::string("b"), 2);
+    map.insert(std::string("c"), 3);
+    auto sum = 0;
+    auto count = 0;
+    map.for_each([&](const auto& entry) {
+      sum += entry.second;
+      count++;
+    });
+    REQUIRE(count == 3);
+    REQUIRE(sum == 6);
+    auto const& const_map = map;
+    auto const_sum = 0;
+    const_map.for_each([&](const auto& entry) {
+      const_sum += entry.second;
+    });
+    REQUIRE(const_sum == 6);
+  }
+
+  TEST_CASE("for_each_value_iterates_values") {
+    auto map = SynchronizedUnorderedMap<std::string, int>();
+    map.insert(std::string("x"), 10);
+    map.insert(std::string("y"), 20);
+    map.insert(std::string("z"), 30);
+    auto total = 0;
+    map.for_each_value([&](const auto& value) {
+      total += value;
+    });
+    REQUIRE(total == 60);
+    map.for_each_value([](auto& value) {
+      value *= 2;
+    });
+    auto doubled_total = 0;
+    map.for_each_value([&](const auto& value) {
+      doubled_total += value;
+    });
+    REQUIRE(doubled_total == 120);
+  }
 }

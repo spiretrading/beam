@@ -1,5 +1,5 @@
-#include <vector>
 #include <memory>
+#include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Collections/SynchronizedList.hpp"
 
@@ -16,10 +16,8 @@ TEST_SUITE("SynchronizedList") {
     REQUIRE(snapshot[1] == 20);
   }
 
-  TEST_CASE("append_and_clear") {
-    auto list = SynchronizedVector<int>();
-    auto container = std::vector{1, 2, 3};
-    list.append(container);
+  TEST_CASE("clear") {
+    auto list = SynchronizedVector<int>(std::vector{1, 2, 3});
     auto snapshot = list.load();
     REQUIRE(snapshot.size() == 3);
     list.clear();
@@ -27,8 +25,7 @@ TEST_SUITE("SynchronizedList") {
   }
 
   TEST_CASE("erase_and_erase_if") {
-    auto list = SynchronizedVector<int>();
-    list.append(std::vector{1, 2, 3, 2});
+    auto list = SynchronizedVector<int>(std::vector{1, 2, 3, 2});
     list.erase(2);
     auto snapshot = list.load();
     REQUIRE(snapshot.size() == 2);
@@ -41,8 +38,7 @@ TEST_SUITE("SynchronizedList") {
   }
 
   TEST_CASE("for_each_and_const_for_each") {
-    auto list = SynchronizedVector<int>();
-    list.append(std::vector{1, 2, 3});
+    auto list = SynchronizedVector<int>(std::vector{1, 2, 3});
     auto sum = 0;
     list.for_each([&] (auto& value) {
       sum += value;
@@ -58,8 +54,7 @@ TEST_SUITE("SynchronizedList") {
   }
 
   TEST_CASE("copy_and_move_construction") {
-    auto source = SynchronizedVector<int>();
-    source.append(std::vector{4, 5});
+    auto source = SynchronizedVector<int>(std::vector{4, 5});
     auto copy = SynchronizedVector<int>(source);
     REQUIRE(copy.load().size() == 2);
     REQUIRE(copy.load()[0] == 4);
@@ -71,8 +66,7 @@ TEST_SUITE("SynchronizedList") {
   }
 
   TEST_CASE("swap_with_external_list_and_with_method") {
-    auto list = SynchronizedVector<int>();
-    list.append(std::vector{7, 8});
+    auto list = SynchronizedVector<int>(std::vector{7, 8});
     auto external = std::vector{1, 2};
     list.swap(external);
     REQUIRE(external.size() == 2);
@@ -88,5 +82,36 @@ TEST_SUITE("SynchronizedList") {
     });
     REQUIRE(result == 3);
     REQUIRE(list.load().back() == 99);
+  }
+
+  TEST_CASE("pop_front_with_vector") {
+    auto list = SynchronizedVector<int>(std::vector{1, 2, 3});
+    auto value = list.pop_front();
+    REQUIRE(value);
+    REQUIRE(*value == 1);
+    REQUIRE(list.load().size() == 2);
+    REQUIRE(list.load()[0] == 2);
+    REQUIRE(list.load()[1] == 3);
+    list.pop_front();
+    list.pop_front();
+    auto empty = list.pop_front();
+    REQUIRE(!empty);
+  }
+
+  TEST_CASE("pop_front_with_deque") {
+    auto list = SynchronizedDeque<int>(std::vector{10, 20, 30, 40});
+    auto value = list.pop_front();
+    REQUIRE(value);
+    REQUIRE(*value == 10);
+    REQUIRE(list.load().size() == 3);
+    auto snapshot = list.load();
+    REQUIRE(snapshot[0] == 20);
+    REQUIRE(snapshot[1] == 30);
+    REQUIRE(snapshot[2] == 40);
+    list.pop_front();
+    list.pop_front();
+    list.pop_front();
+    auto empty = list.pop_front();
+    REQUIRE(!empty);
   }
 }

@@ -47,4 +47,10 @@ namespace Beam::Tests {
       (int, a), (int, b)));
 }
 
+#define REQUIRE_NO_THROW(expression) \
+  [&] { \
+    REQUIRE_NOTHROW(return (expression)); \
+    throw 0; \
+  }()
+
 #endif

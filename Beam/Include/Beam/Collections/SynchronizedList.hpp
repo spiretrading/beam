@@ -45,7 +45,7 @@ namespace Beam {
        * Copies a list.
        * @param list The list to copy.
        */
-      template<std::constructible_from<typename T::value_type> U, typename V>
+      template<IsConstructibleTo<typename T::value_type> U, typename V>
       SynchronizedList(const SynchronizedList<U, V>& list);
 
       SynchronizedList(const SynchronizedList& list);
@@ -58,7 +58,7 @@ namespace Beam {
        * Adds a value at the end of the list.
        * @param value The value to insert.
        */
-      template<std::constructible_from<typename T::value_type> V>
+      template<IsConstructibleTo<typename T::value_type> V>
       void push_back(V&& value);
 
       /**
@@ -134,7 +134,7 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<std::constructible_from<typename T::value_type> U, typename V>
+  template<IsConstructibleTo<typename T::value_type> U, typename V>
   SynchronizedList<T, M>::SynchronizedList(const SynchronizedList<U, V>& list) {
     auto lock = boost::lock_guard(list.m_mutex);
     m_list.insert(m_list.end(), list.m_list.begin(), list.m_list.end());
@@ -159,7 +159,7 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<std::constructible_from<typename T::value_type> V>
+  template<IsConstructibleTo<typename T::value_type> V>
   void SynchronizedList<T, M>::push_back(V&& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_list.push_back(std::forward<V>(value));

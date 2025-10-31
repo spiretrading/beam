@@ -61,8 +61,7 @@ namespace Beam {
        * Inserts a value into the set.
        * @param value The value to insert.
        */
-      template<typename V> requires
-        std::constructible_from<typename T::value_type, V>
+      template<IsConstructibleTo<typename T::value_type> V>
       bool insert(V&& value);
 
       /**
@@ -175,8 +174,7 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename V> requires
-    std::constructible_from<typename T::value_type, V>
+  template<IsConstructibleTo<typename T::value_type> V>
   bool SynchronizedSet<T, M>::insert(V&& value) {
     auto lock = boost::lock_guard(m_mutex);
     return m_set.emplace(std::forward<V>(value)).second;

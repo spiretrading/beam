@@ -110,6 +110,10 @@ namespace Beam {
   concept IsInvocableLike = std::invocable<
     F, std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>,
       const T&, std::conditional_t<std::is_lvalue_reference_v<Self>, T&, T&&>>>;
+
+  template<typename T, typename V>
+  concept IsConstructibleTo = std::constructible_from<V, const T&> ||
+    std::constructible_from<V, T&&>;
 }
 
 #endif

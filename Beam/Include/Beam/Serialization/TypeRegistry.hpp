@@ -22,7 +22,7 @@
   registry->template add<BEAM_GET_TYPE_NAME q>(BEAM_GET_TYPE_UID q);
 
 #define BEAM_REGISTER_TYPES_(Name, TypeList)                                   \
-  template<IsSender S>                                                         \
+  template<Beam::IsSender S>                                                   \
   void Name(::Beam::Out< ::Beam::TypeRegistry<S>> registry) {                  \
     BOOST_PP_LIST_FOR_EACH(BEAM_REGISTER_TYPE, BOOST_PP_EMPTY, TypeList);      \
   }

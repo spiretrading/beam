@@ -27,8 +27,8 @@ TEST_SUITE("TestDataStore") {
     auto store_routine = RoutineHandler(spawn([&] {
       try {
         data_store.store(SequencedValue(IndexedValue(
-          TestEntry(123, ptime(date(2018, 5, 3))), std::string("hello")),
-          Beam::Sequence(110)));
+          TestEntry(123, time_from_string("2018-05-03 00:00:00")),
+          std::string("hello")), Beam::Sequence(110)));
         result.get_eval().set();
       } catch(const std::exception&) {
         result.get_eval().set_exception(std::current_exception());
@@ -50,8 +50,8 @@ TEST_SUITE("TestDataStore") {
     auto store_routine = RoutineHandler(spawn([&] {
       try {
         data_store.store(SequencedValue(IndexedValue(
-          TestEntry(123, ptime(date(2018, 5, 3))), std::string("hello")),
-          Beam::Sequence(110)));
+          TestEntry(123, time_from_string("2018-05-03 00:00:00")),
+          std::string("hello")), Beam::Sequence(110)));
         result.get_eval().set();
       } catch(const std::exception&) {
         result.get_eval().set_exception(std::current_exception());

@@ -1,10 +1,12 @@
 #ifndef BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #define BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
+#include <concepts>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/mp11.hpp>
+#include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 
 namespace Beam {
@@ -105,6 +107,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing addition.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing addition.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator +(const Expression& left, const T& right) {
+    return left + ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing addition.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing addition.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator +(const T& left, const Expression& right) {
+    return ConstantExpression(left) + right;
+  }
+
+  /**
    * Translates addition expressions.
    * @tparam ValueTypes The list of types that support addition.
    */
@@ -143,6 +167,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing subtraction.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing subtraction.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator -(const Expression& left, const T& right) {
+    return left - ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing subtraction.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing subtraction.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator -(const T& left, const Expression& right) {
+    return ConstantExpression(left) - right;
+  }
+
+  /**
    * Translates subtraction expressions.
    * @tparam ValueTypes The list of types that support subtraction.
    */
@@ -178,6 +224,28 @@ namespace Details {
       return left.get_type();
     }();
     return FunctionExpression(MULTIPLICATION_NAME, type, {left, right});
+  }
+
+  /**
+   * Constructs a FunctionExpression representing multiplication.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing multiplication.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator *(const Expression& left, const T& right) {
+    return left * ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing multiplication.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing multiplication.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator *(const T& left, const Expression& right) {
+    return ConstantExpression(left) * right;
   }
 
   /**
@@ -221,6 +289,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing division.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing division.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator /(const Expression& left, const T& right) {
+    return left / ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing division.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing division.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator /(const T& left, const Expression& right) {
+    return ConstantExpression(left) / right;
+  }
+
+  /**
    * Translates division expressions.
    * @tparam ValueTypes The list of types that support division.
    */
@@ -254,6 +344,28 @@ namespace Details {
   inline FunctionExpression operator <(
       const Expression& left, const Expression& right) {
     return FunctionExpression(LESS_NAME, typeid(bool), {left, right});
+  }
+
+  /**
+   * Constructs a FunctionExpression representing less.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing less.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator <(const Expression& left, const T& right) {
+    return left < ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing less.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing less.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator <(const T& left, const Expression& right) {
+    return ConstantExpression(left) < right;
   }
 
   /**
@@ -291,6 +403,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing less than or equals.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing less than or equals.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator <=(const Expression& left, const T& right) {
+    return left <= ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing less than or equals.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing less than or equals.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator <=(const T& left, const Expression& right) {
+    return ConstantExpression(left) <= right;
+  }
+
+  /**
    * Translates less than or equal expressions.
    * @tparam ValueTypes The list of types that support less than or equal.
    */
@@ -322,6 +456,28 @@ namespace Details {
   inline FunctionExpression operator ==(
       const Expression& left, const Expression& right) {
     return FunctionExpression(EQUALS_NAME, typeid(bool), {left, right});
+  }
+
+  /**
+   * Constructs a FunctionExpression representing equality.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing equality.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator ==(const Expression& left, const T& right) {
+    return left == ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing equality.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing equality.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator ==(const T& left, const Expression& right) {
+    return ConstantExpression(left) == right;
   }
 
   /**
@@ -358,6 +514,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing inequality.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing inequality.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator !=(const Expression& left, const T& right) {
+    return left != ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing inequality.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing inequality.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator !=(const T& left, const Expression& right) {
+    return ConstantExpression(left) != right;
+  }
+
+  /**
    * Translates not equals expressions.
    * @tparam ValueTypes The list of types that support not equals.
    */
@@ -388,6 +566,28 @@ namespace Details {
   inline FunctionExpression operator >=(
       const Expression& left, const Expression& right) {
     return FunctionExpression(GREATER_EQUALS_NAME, typeid(bool), {left, right});
+  }
+
+  /**
+   * Constructs a FunctionExpression representing greater or equals.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing greater or equals.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator >=(const Expression& left, const T& right) {
+    return left >= ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing greater or equals.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing greater or equals.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator >=(const T& left, const Expression& right) {
+    return ConstantExpression(left) >= right;
   }
 
   /**
@@ -425,6 +625,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing greater.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing greater.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator >(const Expression& left, const T& right) {
+    return left > ConstantExpression(right);
+  }
+
+  /**
+   * Constructs a FunctionExpression representing greater.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing greater.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression operator >(const T& left, const Expression& right) {
+    return ConstantExpression(left) > right;
+  }
+
+  /**
    * Translates greater than expressions.
    * @tparam ValueTypes The list of types that support greater than.
    */
@@ -459,6 +681,28 @@ namespace Details {
   }
 
   /**
+   * Constructs a FunctionExpression representing the max function.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing the max function.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression max(const Expression& left, const T& right) {
+    return max(left, ConstantExpression(right));
+  }
+
+  /**
+   * Constructs a FunctionExpression representing the max function.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing the max function.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression max(const T& left, const Expression& right) {
+    return max(ConstantExpression(left), right);
+  }
+
+  /**
    * Translates max expressions.
    * @tparam ValueTypes The list of types that support max.
    */
@@ -487,6 +731,28 @@ namespace Details {
   inline FunctionExpression min(
       const Expression& left, const Expression& right) {
     return FunctionExpression(MIN_NAME, left.get_type(), {left, right});
+  }
+
+  /**
+   * Constructs a FunctionExpression representing the min function.
+   * @param left The left hand side of the expression.
+   * @param right The right hand side value.
+   * @return A FunctionExpression representing the min function.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression min(const Expression& left, const T& right) {
+    return min(left, ConstantExpression(right));
+  }
+
+  /**
+   * Constructs a FunctionExpression representing the min function.
+   * @param left The left hand side value.
+   * @param right The right hand side of the expression.
+   * @return A FunctionExpression representing the min function.
+   */
+  template<typename T> requires(!std::derived_from<T, VirtualExpression>)
+  FunctionExpression min(const T& left, const Expression& right) {
+    return min(ConstantExpression(left), right);
   }
 
   /**

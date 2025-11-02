@@ -32,7 +32,7 @@ namespace Details {
 namespace std {
   template<typename... T>
   struct hash<std::tuple<T...>> {
-    std::size_t operator ()(const std::tuple<T...>& value) const {
+    std::size_t operator ()(const std::tuple<T...>& value) const noexcept {
       auto seed = std::size_t(0);
       Beam::Details::hash_combine<std::tuple<T...>, sizeof...(T) - 1>()(
         seed, value);

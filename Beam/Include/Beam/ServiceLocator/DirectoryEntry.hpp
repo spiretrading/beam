@@ -184,7 +184,7 @@ namespace Details {
 namespace std {
   template <>
   struct hash<Beam::DirectoryEntry> {
-    size_t operator()(const Beam::DirectoryEntry& value) const {
+    size_t operator()(const Beam::DirectoryEntry& value) const noexcept {
       return hash_value(value);
     }
   };

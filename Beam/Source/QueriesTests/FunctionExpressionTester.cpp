@@ -77,4 +77,55 @@ TEST_SUITE("FunctionExpression") {
     require_standard_function(ConstantExpression(30) > ConstantExpression(40),
       GREATER_NAME, typeid(bool), std::vector{30, 40});
   }
+
+  TEST_CASE("mixed_operators") {
+    require_standard_function(
+      ConstantExpression(1) + 2, ADDITION_NAME, typeid(int), std::vector{1, 2});
+    require_standard_function(
+      3 + ConstantExpression(4), ADDITION_NAME, typeid(int), std::vector{3, 4});
+    require_standard_function(ConstantExpression(5.0) - 6.0,
+      SUBTRACTION_NAME, typeid(double), std::vector{5.0, 6.0});
+    require_standard_function(7.0 - ConstantExpression(8.0),
+      SUBTRACTION_NAME, typeid(double), std::vector{7.0, 8.0});
+    require_standard_function(ConstantExpression(9) * 10,
+      MULTIPLICATION_NAME, typeid(int), std::vector{9, 10});
+    require_standard_function(11 * ConstantExpression(12),
+      MULTIPLICATION_NAME, typeid(int), std::vector{11, 12});
+    require_standard_function(ConstantExpression(13) / 14,
+      DIVISION_NAME, typeid(int), std::vector{13, 14});
+    require_standard_function(15 / ConstantExpression(16),
+      DIVISION_NAME, typeid(int), std::vector{15, 16});
+    require_standard_function(ConstantExpression(17) < 18,
+      LESS_NAME, typeid(bool), std::vector{17, 18});
+    require_standard_function(19 < ConstantExpression(20),
+      LESS_NAME, typeid(bool), std::vector{19, 20});
+    require_standard_function(ConstantExpression(21) <= 22,
+      LESS_EQUALS_NAME, typeid(bool), std::vector{21, 22});
+    require_standard_function(23 <= ConstantExpression(24),
+      LESS_EQUALS_NAME, typeid(bool), std::vector{23, 24});
+    require_standard_function(ConstantExpression(25) == 26,
+      EQUALS_NAME, typeid(bool), std::vector{25, 26});
+    require_standard_function(27 == ConstantExpression(28),
+      EQUALS_NAME, typeid(bool), std::vector{27, 28});
+    require_standard_function(ConstantExpression(29) != 30,
+      NOT_EQUALS_NAME, typeid(bool), std::vector{29, 30});
+    require_standard_function(31 != ConstantExpression(32),
+      NOT_EQUALS_NAME, typeid(bool), std::vector{31, 32});
+    require_standard_function(ConstantExpression(33) >= 34,
+      GREATER_EQUALS_NAME, typeid(bool), std::vector{33, 34});
+    require_standard_function(35 >= ConstantExpression(36),
+      GREATER_EQUALS_NAME, typeid(bool), std::vector{35, 36});
+    require_standard_function(ConstantExpression(37) > 38,
+      GREATER_NAME, typeid(bool), std::vector{37, 38});
+    require_standard_function(39 > ConstantExpression(40),
+      GREATER_NAME, typeid(bool), std::vector{39, 40});
+    require_standard_function(max(ConstantExpression(41), 42),
+      MAX_NAME, typeid(int), std::vector{41, 42});
+    require_standard_function(max(43, ConstantExpression(44)),
+      MAX_NAME, typeid(int), std::vector{43, 44});
+    require_standard_function(min(ConstantExpression(45), 46),
+      MIN_NAME, typeid(int), std::vector{45, 46});
+    require_standard_function(min(47, ConstantExpression(48)),
+      MIN_NAME, typeid(int), std::vector{47, 48});
+  }
 }

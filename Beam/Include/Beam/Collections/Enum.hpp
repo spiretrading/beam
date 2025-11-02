@@ -215,7 +215,7 @@ namespace Beam {
 namespace std {
   template<typename T, std::size_t N>
   struct hash<Beam::Enum<T, N>> {
-    std::size_t operator ()(Beam::Enum<T, N> value) const {
+    std::size_t operator ()(Beam::Enum<T, N> value) const noexcept {
       return Beam::hash_value(value);
     }
   };

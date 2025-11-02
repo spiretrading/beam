@@ -155,8 +155,12 @@ void Beam::Python::export_function_expression(pybind11::module& module) {
       pybind11::init<std::string, std::type_index, std::vector<Expression>>()).
     def_property_readonly("name", &FunctionExpression::get_name).
     def_property_readonly("parameters", &FunctionExpression::get_parameters);
-  module.def("max", overload_cast<const Expression&, const Expression&>(&max));
-  module.def("min", overload_cast<const Expression&, const Expression&>(&min));
+  module.def("max", [] (const Expression& left, const Expression& right) {
+    return max(left, right);
+  });
+  module.def("min", [] (const Expression& left, const Expression& right) {
+    return min(left, right);
+  });
 }
 
 void Beam::Python::export_indexed_value(pybind11::module& module) {

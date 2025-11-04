@@ -44,6 +44,7 @@ namespace Beam {
       ParserStream(T&& parser_stream);
 
       ParserStream(const ParserStream&) = default;
+      ParserStream(ParserStream&&) = default;
 
       /** Returns the last character read from the stream. */
       char peek() const;

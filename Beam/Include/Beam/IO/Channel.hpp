@@ -61,6 +61,7 @@ namespace Beam {
       Channel(T&& channel);
 
       Channel(const Channel&) = default;
+      Channel(Channel&&) = default;
 
       /** Returns the Channel's identifier. */
       const Identifier& get_identifier() const;

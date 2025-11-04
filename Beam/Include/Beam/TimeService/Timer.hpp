@@ -55,6 +55,7 @@ namespace Details {
       Timer(T&& timer);
 
       Timer(const Timer&) = default;
+      Timer(Timer&&) = default;
 
       /** Starts the Timer. */
       void start();

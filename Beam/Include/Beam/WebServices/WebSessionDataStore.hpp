@@ -47,6 +47,7 @@ namespace Beam {
       WebSessionDataStore(T&& data_store);
 
       WebSessionDataStore(const WebSessionDataStore&) = default;
+      WebSessionDataStore(WebSessionDataStore&&) = default;
 
       /**
        * Loads a session with a specified id.

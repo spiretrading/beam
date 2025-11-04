@@ -42,6 +42,7 @@ namespace Beam {
       UidDataStore(T&& data_store);
 
       UidDataStore(const UidDataStore&) = default;
+      UidDataStore(UidDataStore&&) = default;
 
       /** Returns the next available UID. */
       std::uint64_t get_next_uid();

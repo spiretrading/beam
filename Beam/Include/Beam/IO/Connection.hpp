@@ -36,6 +36,7 @@ namespace Beam {
       Connection(T&& connection);
 
       Connection(const Connection&) = default;
+      Connection(Connection&&) = default;
 
       /** Closes the Connection. */
       void close();

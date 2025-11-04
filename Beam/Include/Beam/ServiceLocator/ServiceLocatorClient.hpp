@@ -109,6 +109,7 @@ namespace Beam {
       ServiceLocatorClient(T&& client);
 
       ServiceLocatorClient(const ServiceLocatorClient&) = default;
+      ServiceLocatorClient(ServiceLocatorClient&&) = default;
 
       /** Returns the DirectoryEntry of the account that's logged in. */
       DirectoryEntry get_account() const;

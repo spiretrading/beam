@@ -35,6 +35,7 @@ namespace Beam {
       EmailClient(T&& client);
 
       EmailClient(const EmailClient&) = default;
+      EmailClient(EmailClient&&) = default;
 
       /**
        * Sends an email.

@@ -38,6 +38,7 @@ namespace Beam {
       Encoder(T&& encoder);
 
       Encoder(const Encoder&) = default;
+      Encoder(Encoder&&) = default;
 
       /**
        * Encodes data to a specified destination.

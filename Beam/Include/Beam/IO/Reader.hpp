@@ -42,6 +42,7 @@ namespace Beam {
       Reader(T&& reader);
 
       Reader(const Reader&) = default;
+      Reader(Reader&&) = default;
 
       /** Returns true if data is immediately available for reading. */
       bool poll() const;

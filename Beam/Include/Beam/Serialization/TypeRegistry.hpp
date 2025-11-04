@@ -212,6 +212,9 @@ namespace Details {
 
   template<typename S>
   void TypeRegistry<S>::add(const TypeRegistry& registry) {
+    for(auto& type_index : registry.m_type_indexes) {
+      add(type_index.second, type_index.first);
+    }
     for(auto& type_entry : registry.m_type_names) {
       auto entry = TypeEntry(type_entry.second->second);
       auto type = entry.get_type();

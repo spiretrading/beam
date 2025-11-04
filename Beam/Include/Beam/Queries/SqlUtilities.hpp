@@ -46,7 +46,7 @@ namespace Beam {
       auto timestamp =
         boost::get<boost::posix_time::ptime>(query.get_range().get_start());
       auto sequence = std::optional<std::uint64_t>();
-      auto connection = connection_pool.acquire();
+      auto connection = connection_pool.load();
       connection->execute(Viper::select(
         Viper::min<std::uint64_t>("query_sequence"), table,
         index && Viper::sym("timestamp") >= timestamp, &sequence));
@@ -62,7 +62,7 @@ namespace Beam {
       auto timestamp =
         boost::get<boost::posix_time::ptime>(query.get_range().get_end());
       auto sequence = std::optional<std::uint64_t>();
-      auto connection = connection_pool.acquire();
+      auto connection = connection_pool.load();
       connection->execute(Viper::select(
         Viper::max<std::uint64_t>("query_sequence"), table,
         index && Viper::sym("timestamp") <= timestamp, &sequence));
@@ -88,7 +88,7 @@ namespace Beam {
       const std::string& table,
       DatabaseConnectionPool<C>& connection_pool) {
     using Type = typename Row::Type;
-    auto connection = connection_pool.acquire();
+    auto connection = connection_pool.load();
     auto rows = std::vector<Type>();
     connection->execute(Viper::select(row, table, expression,
       Viper::order_by("query_sequence", Viper::Order::ASC),
@@ -132,7 +132,7 @@ namespace Beam {
         auto range = make_range_expression(subset_query.get_range());
         auto limit = std::min(
           MAX_READS_PER_QUERY, subset_query.get_snapshot_limit().get_size());
-        auto connection = connection_pool.acquire();
+        auto connection = connection_pool.load();
         auto partition = std::vector<Type>();
         connection->execute(Viper::select(row,
           Viper::select({"*"}, table, index && range && filter,
@@ -165,7 +165,7 @@ namespace Beam {
         auto range = make_range_expression(subset_query.get_range());
         auto limit = std::min(
           MAX_READS_PER_QUERY, subset_query.get_snapshot_limit().get_size());
-        auto connection = connection_pool.acquire();
+        auto connection = connection_pool.load();
         auto partition = std::vector<Type>();
         connection->execute(Viper::select(row, table, index && range && filter,
           Viper::order_by("query_sequence", Viper::Order::ASC),

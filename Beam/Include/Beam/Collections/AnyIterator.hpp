@@ -199,7 +199,12 @@ namespace Details {
   template<typename I>
   typename AnyIterator<T>::value_type&
       AnyIterator<T>::WrappedIterator<I>::dereference() {
-    return *m_iterator;
+    if constexpr(
+        std::is_const_v<std::remove_reference_t<decltype(*m_iterator)>>) {
+      return const_cast<value_type&>(*m_iterator);
+    } else {
+      return *m_iterator;
+    }
   }
 
   template<typename T>

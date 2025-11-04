@@ -99,7 +99,14 @@ namespace Beam {
   template<typename R> requires IsReader<dereference_t<R>>
   void ReaderParserStream<R>::undo(std::size_t count) {
     m_size_remaining += count;
-    m_position -= count;
+    if(!m_position) {
+      if(count != 0) {
+        m_position =
+          m_buffer.get_data() + m_buffer.get_size() - m_size_remaining - 1;
+      }
+    } else {
+      m_position -= count;
+    }
   }
 
   template<typename R> requires IsReader<dereference_t<R>>

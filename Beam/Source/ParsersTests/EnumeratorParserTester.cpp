@@ -23,4 +23,12 @@ TEST_SUITE("EnumeratorParser") {
     source = to_parser_stream("CAT");
     REQUIRE(!parser.read(source, value));
   }
+
+  TEST_CASE("partial_match") {
+    auto parser =
+      EnumeratorParser(begin(make_range<Fruit>()), end(make_range<Fruit>()));
+    auto source = to_parser_stream("PE");
+    auto value = Fruit();
+    REQUIRE_FALSE(parser.read(source, value));
+  }
 }

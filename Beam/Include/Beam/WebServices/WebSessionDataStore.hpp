@@ -116,15 +116,15 @@ namespace Beam {
 
   template<IsWebSessionDataStore T, typename... Args>
   WebSessionDataStore::WebSessionDataStore(
-      std::in_place_type_t<T>, Args&&... args)
-      : m_data_store(make_virtual_ptr<WrappedDataStore<T>>(
-          std::forward<Args>(args)...)) {}
+    std::in_place_type_t<T>, Args&&... args)
+    : m_data_store(
+        make_virtual_ptr<WrappedDataStore<T>>(std::forward<Args>(args)...)) {}
 
   template<DisableCopy<WebSessionDataStore> T> requires
     IsWebSessionDataStore<dereference_t<T>>
   WebSessionDataStore::WebSessionDataStore(T&& data_store)
-      : m_data_store(make_virtual_ptr<WrappedDataStore<
-          std::remove_cvref_t<T>>>(std::forward<T>(data_store))) {}
+    : m_data_store(make_virtual_ptr<WrappedDataStore<std::remove_cvref_t<T>>>(
+        std::forward<T>(data_store))) {}
 
   template<std::derived_from<WebSession> S>
   std::unique_ptr<S> WebSessionDataStore::load(const std::string& id) {

@@ -46,6 +46,14 @@ namespace Beam {
        */
       void erase(const Key& key);
 
+      /**
+       * Removes a key/value pair from the table.
+       * @param key The key to delete.
+       * @param value The value to publish indicating the value is being
+       *        deleted.
+       */
+      void erase(const Key& key, const Value& value);
+
       void with(const std::function<void (boost::optional<const Snapshot&>)>& f)
         const override;
       void monitor(ScopedQueueWriter<Type> queue,
@@ -78,6 +86,17 @@ namespace Beam {
       return;
     }
     auto value = std::move(i->second);
+    m_table.erase(i);
+    m_publisher.push(Type(key, value));
+  }
+
+  template<typename K, typename V>
+  void TablePublisher<K, V>::erase(const Key& key, const Value& value) {
+    auto lock = boost::lock_guard(m_mutex);
+    auto i = m_table.find(key);
+    if(i == m_table.end()) {
+      return;
+    }
     m_table.erase(i);
     m_publisher.push(Type(key, value));
   }

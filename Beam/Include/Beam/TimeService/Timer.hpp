@@ -96,8 +96,7 @@ namespace Details {
 
   template<IsTimer T, typename... Args>
   Timer::Timer(std::in_place_type_t<T>, Args&&... args)
-    : m_timer(
-        make_virtual_ptr<WrappedTimer<T>>(std::forward<Args>(args)...)) {}
+    : m_timer(make_virtual_ptr<WrappedTimer<T>>(std::forward<Args>(args)...)) {}
 
   template<DisableCopy<Timer> T> requires IsTimer<dereference_t<T>>
   Timer::Timer(T&& timer)

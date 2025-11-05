@@ -92,8 +92,8 @@ namespace Beam {
 
   template<IsUidDataStore T, typename... Args>
   UidDataStore::UidDataStore(std::in_place_type_t<T>, Args&&... args)
-    : m_data_store(make_virtual_ptr<WrappedDataStore<T>>(
-        std::forward<Args>(args)...)) {}
+    : m_data_store(
+        make_virtual_ptr<WrappedDataStore<T>>(std::forward<Args>(args)...)) {}
 
   template<DisableCopy<UidDataStore> T> requires
     IsUidDataStore<dereference_t<T>>

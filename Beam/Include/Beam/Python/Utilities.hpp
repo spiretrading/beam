@@ -382,6 +382,17 @@ namespace Details {
   }
 
   /**
+   * Exports default methods and operators for a pybind11 class if they exist.
+   * @param class_binding The pybind11::class_ object to export methods to.
+   * @return The modified class binding for chaining.
+   */
+  template<typename C, typename... Options>
+  auto& export_default_methods(
+      pybind11::class_<C, Options...>&& class_binding) {
+    return export_default_methods<C, Options...>(class_binding);
+  }
+
+  /**
    * Exports the KeyValuePair class.
    * @param module The module to export to.
    */

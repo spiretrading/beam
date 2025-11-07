@@ -14,7 +14,8 @@
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace pybind11 {
-  std::ostream& operator <<(std::ostream& out, const object& value);
+  BEAM_EXPORT_DLL std::ostream& operator <<(
+    std::ostream& out, const object& value);
 }
 
 namespace Beam {

@@ -5,6 +5,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/tuple/elem.hpp>
 #include <boost/preprocessor/variadic/to_seq.hpp>
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/ShuttleRecord.hpp"
 #include "Beam/Services/RecordMessageDetails.hpp"

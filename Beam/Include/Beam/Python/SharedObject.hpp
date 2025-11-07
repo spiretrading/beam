@@ -3,13 +3,14 @@
 #include <memory>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam::Python {
 
   /**
    * Stores a Python object in a way that it can be safely shared and deleted.
    */
-  class SharedObject {
+  class BEAM_EXPORT_DLL SharedObject {
     public:
 
       /**

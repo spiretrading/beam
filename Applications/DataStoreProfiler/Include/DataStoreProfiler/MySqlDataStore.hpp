@@ -74,7 +74,7 @@ namespace Beam {
   }
 
   inline void MySqlProfileDataStore::clear() {
-    auto connection = m_writer_pool.acquire();
+    auto connection = m_writer_pool.load();
     connection->execute(Viper::truncate("entries"));
   }
 

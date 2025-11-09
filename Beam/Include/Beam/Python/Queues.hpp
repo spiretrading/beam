@@ -209,8 +209,9 @@ namespace Beam::Python {
       return;
     }
     export_publisher<T>(module, prefix);
-    pybind11::class_<SnapshotPublisher<T, S>, Publisher<T>>(
-        module, name.c_str(), pybind11::multiple_inheritance()).
+    pybind11::class_<SnapshotPublisher<T, S>,
+        std::shared_ptr<SnapshotPublisher<T, S>>, Publisher<T>>(
+          module, name.c_str(), pybind11::multiple_inheritance()).
       def("snapshot_monitor",
         [] (SnapshotPublisher<T, S>& self, ScopedQueueWriter<T> writer) {
           auto snapshot = boost::optional<S>();

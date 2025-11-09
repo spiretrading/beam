@@ -29,9 +29,3 @@
   }
 
 #define DOCTEST_MAIN() DOCTEST_MAIN_TIMEOUT(600)
-
-#define REQUIRE_NO_THROW(expression) \
-  [&] { \
-    REQUIRE_NOTHROW(return (expression)); \
-    throw 0; \
-  }()

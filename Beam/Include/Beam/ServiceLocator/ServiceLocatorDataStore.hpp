@@ -96,6 +96,8 @@ namespace Beam {
       ServiceLocatorDataStore(T&& data_store);
 
       ServiceLocatorDataStore(const ServiceLocatorDataStore&) = default;
+      ServiceLocatorDataStore(ServiceLocatorDataStore&&) = default;
+
 
       /**
        * Loads all parents of a DirectoryEntry.

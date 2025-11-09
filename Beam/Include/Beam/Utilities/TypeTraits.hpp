@@ -98,6 +98,22 @@ namespace Beam {
   concept IsSubclass = requires(T* t) {
     [] <typename... Args>(B<Args...>*){}(t);
   };
+
+  /**
+   * Checks if a callable can be invoked with a type that has cv-ref
+   * qualifications applied from another type.
+   * @tparam F The callable type to check.
+   * @tparam Self The type whose cv-ref qualifications are applied.
+   * @tparam T The type to which the qualifications are applied.
+   */
+  template<typename F, typename Self, typename T>
+  concept IsInvocableLike = std::invocable<
+    F, std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>,
+      const T&, std::conditional_t<std::is_lvalue_reference_v<Self>, T&, T&&>>>;
+
+  template<typename T, typename V>
+  concept IsConstructibleTo = std::constructible_from<V, const T&> ||
+    std::constructible_from<V, T&&>;
 }
 
 #endif

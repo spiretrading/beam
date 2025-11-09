@@ -39,6 +39,7 @@ namespace Beam {
       TimeClient(T&& client);
 
       TimeClient(const TimeClient&) = default;
+      TimeClient(TimeClient&&) = default;
 
       /** Returns the current time in UTC. */
       boost::posix_time::ptime get_time();

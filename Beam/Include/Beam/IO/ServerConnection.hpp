@@ -45,6 +45,7 @@ namespace Beam {
       ServerConnection(T&& connection);
 
       ServerConnection(const ServerConnection&) = default;
+      ServerConnection(ServerConnection&&) = default;
 
       /**
        * Accepts a new Channel.

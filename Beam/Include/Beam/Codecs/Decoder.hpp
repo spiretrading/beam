@@ -39,6 +39,7 @@ namespace Beam {
       Decoder(T&& decoder);
 
       Decoder(const Decoder&) = default;
+      Decoder(Decoder&&) = default;
 
       /**
        * Decodes data to a specified destination.

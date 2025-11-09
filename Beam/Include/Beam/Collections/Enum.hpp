@@ -2,6 +2,7 @@
 #define BEAM_ENUM_HPP
 #include <array>
 #include <cstdint>
+#include <ostream>
 #include <string_view>
 #include <type_traits>
 #include <boost/preprocessor/cat.hpp>
@@ -69,10 +70,6 @@
       return out << BOOST_PP_CAT(name, EnumMembers)::NAMES[i];                 \
     }                                                                          \
     return out << "NONE";                                                      \
-  }                                                                            \
-                                                                               \
-  inline std::ostream& operator <<(std::ostream& out, name value) {            \
-    return out << static_cast<name::Type>(value);                              \
   }
 
 namespace Beam {
@@ -146,6 +143,15 @@ namespace Beam {
       Type m_value;
   };
 
+  template<typename T, std::size_t N> requires requires {
+    { std::declval<std::ostream&>() <<
+        std::declval<const typename T::Type&>()
+    } -> std::same_as<std::ostream&>;
+  }
+  std::ostream& operator <<(std::ostream& out, Enum<T, N> value) {
+    return out << static_cast<typename Enum<T, N>::Type>(value);
+  }
+
   template<typename T, std::size_t N>
   Enum<T, N>::Enum() noexcept
     : m_value(Type::NONE) {}
@@ -209,7 +215,7 @@ namespace Beam {
 namespace std {
   template<typename T, std::size_t N>
   struct hash<Beam::Enum<T, N>> {
-    std::size_t operator ()(Beam::Enum<T, N> value) const {
+    std::size_t operator ()(Beam::Enum<T, N> value) const noexcept {
       return Beam::hash_value(value);
     }
   };

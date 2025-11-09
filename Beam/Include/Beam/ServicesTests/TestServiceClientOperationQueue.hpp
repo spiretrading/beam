@@ -37,6 +37,12 @@ namespace Beam::Tests {
       ~TestServiceClientOperationQueue();
 
       /**
+       * Pushes an operation onto the dispatcher.
+       * @param operation The operation to push.
+       */
+      void push(const std::shared_ptr<Operation>& operation);
+
+      /**
        * Appends a queue-based operation to the dispatcher.
        * @tparam T The specific operation type from the variant.
        * @param operation The operation to append.
@@ -78,6 +84,12 @@ namespace Beam::Tests {
   template<typename V>
   TestServiceClientOperationQueue<V>::~TestServiceClientOperationQueue() {
     close();
+  }
+
+  template<typename V>
+  void TestServiceClientOperationQueue<V>::push(
+      const std::shared_ptr<Operation>& operation) {
+    m_operations.push(operation);
   }
 
   template<typename V>
@@ -142,10 +154,8 @@ namespace Beam::Tests {
       }
     });
     m_queues.clear();
-    m_pending_results.with([] (auto& results) {
-      for(auto& result : results) {
-        result->set(std::make_exception_ptr(EndOfFileException()));
-      }
+    m_pending_results.for_each([] (auto& result) {
+      result->set(std::make_exception_ptr(EndOfFileException()));
     });
     m_pending_results.clear();
     m_open_state.close();

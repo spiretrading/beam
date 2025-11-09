@@ -303,7 +303,7 @@ namespace Beam {
 namespace std {
   template<std::size_t N>
   struct hash<Beam::FixedString<N>> {
-    std::size_t operator ()(const Beam::FixedString<N>& value) const {
+    std::size_t operator ()(const Beam::FixedString<N>& value) const noexcept {
       return Beam::hash_value(value);
     }
   };

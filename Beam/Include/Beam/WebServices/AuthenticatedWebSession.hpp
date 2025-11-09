@@ -77,7 +77,7 @@ namespace Beam {
     shuttle.shuttle("account", m_account);
   }
 
-  AuthenticatedWebSession::AuthenticatedWebSession() noexcept
+  inline AuthenticatedWebSession::AuthenticatedWebSession() noexcept
     : WebSession("") {}
 }
 

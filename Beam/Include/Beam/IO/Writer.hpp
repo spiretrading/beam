@@ -38,6 +38,7 @@ namespace Beam {
       Writer(T&& writer);
 
       Writer(const Writer&) = default;
+      Writer(Writer&&) = default;
 
       /**
        * Writes data to the resource.

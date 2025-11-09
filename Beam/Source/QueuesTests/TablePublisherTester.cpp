@@ -56,6 +56,24 @@ TEST_SUITE("TablePublisher") {
     REQUIRE(snapshot->count(2) == 1);
   }
 
+  TEST_CASE("erase_with_custom_value") {
+    auto publisher = TablePublisher<int, std::string>();
+    auto queue = std::make_shared<Queue<KeyValuePair<int, std::string>>>();
+    publisher.monitor(queue);
+    publisher.push(1, "one");
+    publisher.push(2, "two");
+    queue->pop();
+    queue->pop();
+    publisher.erase(1, "deleted");
+    auto erased = queue->pop();
+    REQUIRE(erased.m_key == 1);
+    REQUIRE(erased.m_value == "deleted");
+    auto snapshot = publisher.get_snapshot();
+    REQUIRE(snapshot.has_value());
+    REQUIRE(snapshot->count(1) == 0);
+    REQUIRE(snapshot->count(2) == 1);
+  }
+
   TEST_CASE("push_rvalue_overload") {
     auto publisher = TablePublisher<int, std::string>();
     auto queue = std::make_shared<Queue<KeyValuePair<int, std::string>>>();

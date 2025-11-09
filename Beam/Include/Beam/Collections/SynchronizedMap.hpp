@@ -7,6 +7,7 @@
 #include <boost/optional/optional.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
@@ -38,7 +39,8 @@ namespace Beam {
        * Copies a map.
        * @param map The map to copy.
        */
-      template<typename U, typename V>
+      template<typename U, typename V> requires std::constructible_from<
+        typename T::mapped_type, const typename U::mapped_type&>
       SynchronizedMap(const SynchronizedMap<U, V>& map);
 
       SynchronizedMap(const SynchronizedMap& map);
@@ -104,7 +106,8 @@ namespace Beam {
        * @return <code>true</code> iff the value was inserted, otherwise a value
        *         with the specified key already exists.
        */
-      template<typename V>
+      template<typename V> requires
+        std::constructible_from<typename T::mapped_type, V>
       bool insert(const Key& key, V&& value);
 
       /**
@@ -112,16 +115,17 @@ namespace Beam {
        * @param key The key to update.
        * @param value The updated value to associate with the <i>key</i>.
        */
-      template<typename V>
+      template<typename V> requires
+        std::constructible_from<typename T::mapped_type, V>
       void update(const Key& key, V&& value);
 
       /** Performs an action on each element of this map. */
-      template<typename F>
-      void for_each(F f);
+      template<typename Self, IsInvocableLike<Self, typename T::value_type> F>
+      void for_each(this Self&& self, F f);
 
-      /** Performs an action on each element of this map. */
-      template<typename F>
-      void for_each(F f) const;
+      /** Performs an action on each value in this map. */
+      template<typename Self, IsInvocableLike<Self, typename T::mapped_type> F>
+      void for_each_value(this Self&& self, F f);
 
       /** Clears the contents of this map. */
       void clear();
@@ -142,15 +146,8 @@ namespace Beam {
        * Performs a synchronized action with the map.
        * @param f The action to perform on the map.
        */
-      template<typename F>
-      decltype(auto) with(F&& f);
-
-      /**
-       * Performs a synchronized action with the map.
-       * @param f The action to perform on the map.
-       */
-      template<typename F>
-      decltype(auto) with(F&& f) const;
+      template<typename Self, IsInvocableLike<Self, T> F>
+      decltype(auto) with(this Self&& self, F&& f);
 
     private:
       mutable Mutex m_mutex;
@@ -168,6 +165,8 @@ namespace Beam {
 
   template<typename T, typename M>
   template<typename U, typename V>
+    requires std::constructible_from<typename T::mapped_type,
+      const typename U::mapped_type&>
   SynchronizedMap<T, M>::SynchronizedMap(const SynchronizedMap<U, V>& map) {
     auto lock = boost::lock_guard(map.m_mutex);
     m_map.insert(m_map.end(), map.m_map.begin(), map.m_map.end());
@@ -257,7 +256,8 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename V>
+  template<typename V> requires
+    std::constructible_from<typename T::mapped_type, V>
   bool SynchronizedMap<T, M>::insert(const Key& key, V&& value) {
     auto lock = boost::lock_guard(m_mutex);
     auto [i, inserted] = m_map.try_emplace(key, std::forward<V>(value));
@@ -265,7 +265,8 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename V>
+  template<typename V> requires
+    std::constructible_from<typename T::mapped_type, V>
   void SynchronizedMap<T, M>::update(const Key& key, V&& value) {
     auto lock = boost::lock_guard(m_mutex);
     m_map.insert_or_assign(key, std::forward<V>(value));
@@ -293,17 +294,42 @@ namespace Beam {
   }
 
   template<typename T, typename M>
-  template<typename F>
-  decltype(auto) SynchronizedMap<T, M>::with(F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
-    return std::forward<F>(f)(m_map);
+  template<typename Self, IsInvocableLike<Self, T> F>
+  decltype(auto) SynchronizedMap<T, M>::with(this Self&& self, F&& f) {
+    auto lock = boost::lock_guard(self.m_mutex);
+    return std::forward<F>(f)(std::forward<Self>(self).m_map);
   }
 
   template<typename T, typename M>
-  template<typename F>
-  decltype(auto) SynchronizedMap<T, M>::with(F&& f) const {
-    auto lock = boost::lock_guard(m_mutex);
-    return std::forward<F>(f)(m_map);
+  template<typename Self, IsInvocableLike<Self, typename T::value_type> F>
+  void SynchronizedMap<T, M>::for_each(this Self&& self, F f) {
+    auto lock = boost::lock_guard(self.m_mutex);
+    if constexpr(std::is_const_v<std::remove_reference_t<Self>> ||
+        std::is_lvalue_reference_v<Self>) {
+      for(auto& entry : self.m_map) {
+        f(entry);
+      }
+    } else {
+      for(auto&& entry : self.m_map) {
+        f(std::move(entry));
+      }
+    }
+  }
+
+  template<typename T, typename M>
+  template<typename Self, IsInvocableLike<Self, typename T::mapped_type> F>
+  void SynchronizedMap<T, M>::for_each_value(this Self&& self, F f) {
+    auto lock = boost::lock_guard(self.m_mutex);
+    if constexpr(std::is_const_v<std::remove_reference_t<Self>> ||
+        std::is_lvalue_reference_v<Self>) {
+      for(auto& entry : self.m_map) {
+        f(entry.second);
+      }
+    } else {
+      for(auto&& entry : self.m_map) {
+        f(std::move(entry.second));
+      }
+    }
   }
 }
 

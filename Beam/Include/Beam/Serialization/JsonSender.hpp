@@ -65,8 +65,7 @@ namespace Details {
       void send(const char* name, const T& value);
       void send(const char* name, const std::string& value);
       template<std::size_t N>
-      void send(
-        const char* name, const FixedString<N>& value, unsigned int version);
+      void send(const char* name, const FixedString<N>& value);
       void start_structure(const char* name);
       void end_structure();
       void start_sequence(const char* name, const int& size);
@@ -204,8 +203,7 @@ namespace Details {
 
   template<IsBuffer S>
   template<std::size_t N>
-  void JsonSender<S>::send(
-      const char* name, const FixedString<N>& value, unsigned int version) {
+  void JsonSender<S>::send(const char* name, const FixedString<N>& value) {
     send(name, std::string(value.get_data()));
   }
 

@@ -34,7 +34,7 @@ namespace Beam {
       ~DatabaseConnectionPool();
 
       /** Acquires a database connection. */
-      ScopedDatabaseConnection<Connection> acquire();
+      ScopedDatabaseConnection<Connection> load();
 
       /** Closes all database connections. */
       void close();
@@ -67,7 +67,7 @@ namespace Beam {
 
   template<typename C>
   ScopedDatabaseConnection<typename DatabaseConnectionPool<C>::Connection>
-      DatabaseConnectionPool<C>::acquire() {
+      DatabaseConnectionPool<C>::load() {
     auto lock = boost::unique_lock(m_mutex);
     while(m_connections.empty()) {
       m_connection_available_condition.wait(lock);

@@ -198,6 +198,15 @@ namespace Beam {
    * @param buffer The Buffer to write to.
    * @param value The object to write.
    */
+  inline void append(IsBuffer auto& buffer, std::string_view value) {
+    append(buffer, value.data(), value.size());
+  }
+
+  /**
+   * Writes an object to the end of a Buffer.
+   * @param buffer The Buffer to write to.
+   * @param value The object to write.
+   */
   template<typename T> requires(!IsConstBuffer<T>)
   void append(IsBuffer auto& buffer, const T& value) {
     append(buffer, &value, sizeof(T));

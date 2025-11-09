@@ -14,7 +14,8 @@
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace pybind11 {
-  std::ostream& operator <<(std::ostream& out, const object& value);
+  BEAM_EXPORT_DLL std::ostream& operator <<(
+    std::ostream& out, const object& value);
 }
 
 namespace Beam {
@@ -379,6 +380,17 @@ namespace Details {
       class_binding.def("__hash__", std::hash<Type>());
     }
     return class_binding;
+  }
+
+  /**
+   * Exports default methods and operators for a pybind11 class if they exist.
+   * @param class_binding The pybind11::class_ object to export methods to.
+   * @return The modified class binding for chaining.
+   */
+  template<typename C, typename... Options>
+  auto& export_default_methods(
+      pybind11::class_<C, Options...>&& class_binding) {
+    return export_default_methods<C, Options...>(class_binding);
   }
 
   /**

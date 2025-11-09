@@ -7,13 +7,10 @@
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironmentException.hpp"
+#include "Beam/TimeServiceTests/TestTimeClient.hpp"
+#include "Beam/TimeServiceTests/TestTimer.hpp"
 
 namespace Beam::Tests {
-  class TestTimeClient;
-  class TestTimer;
-
-  void fail(TestTimer& timer);
-  void trigger(TestTimer& timer);
 
   /** Simulates the passing of time. */
   class TimeServiceTestEnvironment {
@@ -123,7 +120,7 @@ namespace Beam::Tests {
     }
     auto pending_timers = m_timers.load();
     for(auto& pending_timer : pending_timers) {
-      fail(*pending_timer.m_timer);
+      pending_timer.m_timer->fail();;
     }
     m_open_state.close();
     flush_pending_routines();
@@ -168,20 +165,130 @@ namespace Beam::Tests {
     {
       auto releaser = release(lock);
       for(auto& expired_timer : expired_timers) {
-        trigger(*expired_timer);
+        expired_timer->trigger();
       }
       flush_pending_routines();
     }
+  }
+
+  inline void TimeServiceTestEnvironment::add(TestTimeClient* time_client) {
+    m_time_clients.with([&] (auto& time_clients) {
+      time_clients.push_back(time_client);
+      if(m_current_time != boost::posix_time::not_a_date_time) {
+        time_client->set(m_current_time);
+      }
+    });
   }
 
   inline void TimeServiceTestEnvironment::remove(TestTimeClient* client) {
     m_time_clients.erase(client);
   }
 
+  inline void TimeServiceTestEnvironment::add(TestTimer* timer) {
+    if(timer->m_interval <= boost::posix_time::seconds(0)) {
+      timer->m_timer.trigger();
+      return;
+    }
+    auto entry = TimerEntry(timer, timer->m_interval);
+    auto lock = boost::lock_guard(m_mutex);
+    m_timers.push_back(entry);
+    m_next_trigger = std::min(m_next_trigger, timer->m_interval);
+  }
+
   inline void TimeServiceTestEnvironment::remove(TestTimer* timer) {
     m_timers.erase_if([&] (auto& entry) {
       return entry.m_timer == timer;
     });
+  }
+
+  inline TestTimer::TestTimer(boost::posix_time::time_duration interval,
+    Ref<TimeServiceTestEnvironment> environment)
+    : m_interval(interval),
+      m_environment(environment.get()),
+      m_has_started(false) {}
+
+  inline TestTimer::~TestTimer() {
+    cancel();
+  }
+
+  inline void TestTimer::start() {
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      if(m_has_started) {
+        return;
+      }
+      m_has_started = true;
+    }
+    m_timer.start();
+    m_environment->add(this);
+  }
+
+  inline void TestTimer::cancel() {
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      if(!m_has_started) {
+        return;
+      }
+      m_has_started = false;
+    }
+    m_environment->remove(this);
+    m_timer.cancel();
+  }
+
+  inline void TestTimer::wait() {
+    m_timer.wait();
+  }
+
+  inline const Publisher<Timer::Result>& TestTimer::get_publisher() const {
+    return m_timer.get_publisher();
+  }
+
+  inline void TestTimer::trigger() {
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      m_has_started = false;
+    }
+    m_timer.trigger();
+  }
+
+  inline void TestTimer::fail() {
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      m_has_started = false;
+    }
+    m_timer.fail();
+  }
+
+  inline TestTimeClient::TestTimeClient(
+      Ref<TimeServiceTestEnvironment> environment)
+      : m_environment(environment.get()) {
+    try {
+      m_environment->add(this);
+    } catch(const std::exception&) {
+      close();
+      throw;
+    }
+  }
+
+  inline TestTimeClient::~TestTimeClient() {
+    close();
+  }
+
+  inline boost::posix_time::ptime TestTimeClient::get_time() {
+    return m_time_client.get_time();
+  }
+
+  inline void TestTimeClient::close() {
+    if(m_open_state.set_closing()) {
+      return;
+    }
+    m_time_client.close();
+    m_environment->remove(this);
+    m_open_state.close();
+  }
+
+  inline void TestTimeClient::set(boost::posix_time::ptime time) {
+    m_time_client.set(time);
   }
 }
 

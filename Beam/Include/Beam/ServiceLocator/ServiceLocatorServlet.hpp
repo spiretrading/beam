@@ -44,7 +44,7 @@ namespace Beam {
       explicit ServiceLocatorServlet(DF&& data_store);
 
       void register_services(Out<ServiceSlots<ServiceProtocolClient>> slots);
-      void handle_client_closed(ServiceProtocolClient& client);
+      void handle_close(ServiceProtocolClient& client);
       void close();
 
     private:
@@ -246,7 +246,7 @@ namespace Beam {
 
   template<typename C, typename D> requires
     IsServiceLocatorDataStore<dereference_t<D>>
-  void ServiceLocatorServlet<C, D>::handle_client_closed(
+  void ServiceLocatorServlet<C, D>::handle_close(
       ServiceProtocolClient& client) {
     auto& session = client.get_session();
     auto registered_services = session.get_registered_services();

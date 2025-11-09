@@ -187,10 +187,10 @@ namespace Beam {
     timestamp_index.push_back("timestamp");
     m_row = m_row.add_index("timestamp_index", std::move(timestamp_index));
     if(connection_option == SqlConnectionOption::CREATE) {
-      auto connection = m_writer_pool->acquire();
+      auto connection = m_writer_pool->load();
       connection->execute(create_if_not_exists(m_row, m_table));
     } else if(connection_option == SqlConnectionOption::ENSURE) {
-      auto connection = m_writer_pool->acquire();
+      auto connection = m_writer_pool->load();
       if(!connection->has_table(m_table)) {
         boost::throw_with_location(
           ConnectException("Table " + m_table + " doesn't exist."));
@@ -241,14 +241,14 @@ namespace Beam {
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::store(const IndexedValue& value) {
-    auto connection = m_writer_pool->acquire();
+    auto connection = m_writer_pool->load();
     connection->execute(Viper::insert(m_row, m_table, &value));
   }
 
   template<typename C, typename V, typename I, typename T>
   void SqlDataStore<C, V, I, T>::store(
       const std::vector<IndexedValue>& values) {
-    auto connection = m_writer_pool->acquire();
+    auto connection = m_writer_pool->load();
     connection->execute(
       Viper::insert(m_row, m_table, values.begin(), values.end()));
   }

@@ -40,7 +40,7 @@ namespace Beam::Details {
   struct Name {                                                                \
     __VA_OPT__(BEAM_PP_FOR_EACH_PAIRS(BEAM_DECLARE_MEMBER, Name, __VA_ARGS__)) \
                                                                                \
-    template<IsShuttle S>                                                      \
+    template<Beam::IsShuttle S>                                                \
     void shuttle(S& shuttle, unsigned int version) {                           \
       static constexpr auto fields = std::tuple{                               \
         __VA_OPT__(BEAM_PP_FOR_EACH_PAIRS(BEAM_MAKE_ENTRY, Name, __VA_ARGS__)) \

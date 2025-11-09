@@ -1,10 +1,10 @@
 #ifndef BEAM_TIMED_CONDITION_VARIABLE_HPP
 #define BEAM_TIMED_CONDITION_VARIABLE_HPP
 #include <atomic>
+#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/TimeoutException.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 
@@ -52,7 +52,7 @@ namespace Beam {
         WaitEntry();
         WaitEntry(boost::posix_time::time_duration duration);
       };
-      Sync<std::deque<WaitEntry*>> m_wait_entries;
+      SynchronizedDeque<WaitEntry*> m_wait_entries;
 
       TimedConditionVariable(const TimedConditionVariable&) = delete;
       TimedConditionVariable& operator =(
@@ -74,9 +74,7 @@ namespace Beam {
   template<typename... Lock>
   void TimedConditionVariable::wait(Lock&... lock) {
     auto wait_entry = WaitEntry();
-    m_wait_entries.with([&] (auto& wait_entries) {
-      wait_entries.push_back(&wait_entry);
-    });
+    m_wait_entries.push_back(&wait_entry);
     wait_entry.m_condition.wait(lock...);
   }
 
@@ -84,9 +82,7 @@ namespace Beam {
   void TimedConditionVariable::timed_wait(
       boost::posix_time::time_duration duration, Lock&... lock) {
     auto wait_entry = WaitEntry(duration);
-    m_wait_entries.with([&] (auto& wait_entries) {
-      wait_entries.push_back(&wait_entry);
-    });
+    m_wait_entries.push_back(&wait_entry);
     auto wait_routine = spawn([&] {
       wait_entry.m_timer.start();
       auto is_timer_started = wait_entry.m_is_timer_started.exchange(true);
@@ -97,13 +93,7 @@ namespace Beam {
       wait_entry.m_timer.wait();
       auto is_waiting = wait_entry.m_is_waiting.exchange(false);
       if(is_waiting) {
-        m_wait_entries.with([&] (auto& wait_entries) {
-          auto i =
-            std::find(wait_entries.begin(), wait_entries.end(), &wait_entry);
-          if(i != wait_entries.end()) {
-            wait_entries.erase(i);
-          }
-        });
+        m_wait_entries.erase(&wait_entry);
         wait_entry.m_timer_result.get_eval().set_exception(TimeoutException());
         wait_entry.m_condition.notify_one();
       }
@@ -114,25 +104,14 @@ namespace Beam {
   }
 
   inline void TimedConditionVariable::notify_one() {
-    auto wait_entry = static_cast<WaitEntry*>(nullptr);
-    m_wait_entries.with([&] (auto& wait_entries) {
-      if(wait_entries.empty()) {
-        wait_entry = nullptr;
-      } else {
-        wait_entry = wait_entries.front();
-        wait_entries.pop_front();
-      }
-    });
-    if(wait_entry) {
-      notify_wait_entry(*wait_entry);
+    if(auto wait_entry = m_wait_entries.pop_front()) {
+      notify_wait_entry(**wait_entry);
     }
   }
 
   inline void TimedConditionVariable::notify_all() {
     auto pending_wait_entries = std::deque<WaitEntry*>();
-    m_wait_entries.with([&] (auto& wait_entries) {
-      wait_entries.swap(pending_wait_entries);
-    });
+    m_wait_entries.swap(pending_wait_entries);
     for(auto wait_entry : pending_wait_entries) {
       notify_wait_entry(*wait_entry);
     }

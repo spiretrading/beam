@@ -68,7 +68,6 @@ void Beam::Python::export_uid_service(module& module) {
   export_local_uid_data_store(module);
   export_mysql_uid_data_store(module);
   export_sqlite_uid_data_store(module);
-  export_uid_client<ToPythonUidClient<UidClient>>(module, "UidClientBox");
   export_uid_service_application_definitions(module);
   auto test_module = module.def_submodule("tests");
   export_uid_service_test_environment(test_module);

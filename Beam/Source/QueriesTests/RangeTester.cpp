@@ -56,18 +56,21 @@ TEST_SUITE("Range") {
     REQUIRE(sequence_range.get_start() == Beam::Sequence(5));
     REQUIRE(sequence_range.get_end() == Beam::Sequence(4));
     auto out_of_order_date_range =
-      Range(ptime(date(2000, Jan, 13)), ptime(date(1999, Jan, 13)));
-    REQUIRE(out_of_order_date_range.get_start() == ptime(date(2000, Jan, 13)));
-    REQUIRE(out_of_order_date_range.get_end() == ptime(date(1999, Jan, 13)));
+      Range(time_from_string("2000-01-13 00:00:00"),
+        time_from_string("1999-01-13 00:00:00"));
+    REQUIRE(out_of_order_date_range.get_start() ==
+      time_from_string("2000-01-13 00:00:00"));
+    REQUIRE(out_of_order_date_range.get_end() ==
+      time_from_string("1999-01-13 00:00:00"));
     auto out_of_order_infinite_range =
-      Range(pos_infin, ptime(date(1999, Jan, 13)));
+      Range(pos_infin, time_from_string("1999-01-13 00:00:00"));
     REQUIRE(out_of_order_infinite_range.get_start() == Beam::Sequence::LAST);
-    REQUIRE(
-      out_of_order_infinite_range.get_end() == ptime(date(1999, Jan, 13)));
+    REQUIRE(out_of_order_infinite_range.get_end() ==
+      time_from_string("1999-01-13 00:00:00"));
     auto out_of_order_negative_range =
-      Range(ptime(date(1999, Jan, 13)), neg_infin);
-    REQUIRE(
-      out_of_order_negative_range.get_start() == ptime(date(1999, Jan, 13)));
+      Range(time_from_string("1999-01-13 00:00:00"), neg_infin);
+    REQUIRE(out_of_order_negative_range.get_start() ==
+      time_from_string("1999-01-13 00:00:00"));
     REQUIRE(out_of_order_negative_range.get_end() == Beam::Sequence::FIRST);
   }
 
@@ -88,31 +91,37 @@ TEST_SUITE("Range") {
   }
 
   TEST_CASE("date_constructors") {
-    auto single_range =
-      Range(ptime(date(1984, May, 6)), ptime(date(1984, May, 6)));
-    REQUIRE(single_range.get_start() == ptime(date(1984, May, 6)));
-    REQUIRE(single_range.get_end() == ptime(date(1984, May, 6)));
-    auto open_range =
-      Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6)));
-    REQUIRE(open_range.get_start() == ptime(date(1984, May, 6)));
-    REQUIRE(open_range.get_end() == ptime(date(2014, May, 6)));
-    auto snapshot_real_time_range = Range(ptime(date(2014, May, 6)), pos_infin);
-    REQUIRE(snapshot_real_time_range.get_start() == ptime(date(2014, May, 6)));
+    auto single_range = Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("1984-05-06 00:00:00"));
+    REQUIRE(
+      single_range.get_start() == time_from_string("1984-05-06 00:00:00"));
+    REQUIRE(single_range.get_end() == time_from_string("1984-05-06 00:00:00"));
+    auto open_range = Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("2014-05-06 00:00:00"));
+    REQUIRE(open_range.get_start() == time_from_string("1984-05-06 00:00:00"));
+    REQUIRE(open_range.get_end() == time_from_string("2014-05-06 00:00:00"));
+    auto snapshot_real_time_range =
+      Range(time_from_string("2014-05-06 00:00:00"), pos_infin);
+    REQUIRE(snapshot_real_time_range.get_start() ==
+      time_from_string("2014-05-06 00:00:00"));
     REQUIRE(snapshot_real_time_range.get_end() == Beam::Sequence::LAST);
-    auto snapshot_range = Range(neg_infin, ptime(date(2014, May, 6)));
+    auto snapshot_range =
+      Range(neg_infin, time_from_string("2014-05-06 00:00:00"));
     REQUIRE(snapshot_range.get_start() == Beam::Sequence::FIRST);
-    REQUIRE(snapshot_range.get_end() == ptime(date(2014, May, 6)));
+    REQUIRE(snapshot_range.get_end() == time_from_string("2014-05-06 00:00:00"));
   }
 
   TEST_CASE("mixed_constructors") {
     auto date_sequence_range =
-      Range(ptime(date(1984, May, 6)), Beam::Sequence(5));
-    REQUIRE(date_sequence_range.get_start() == ptime(date(1984, May, 6)));
+      Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(5));
+    REQUIRE(date_sequence_range.get_start() ==
+      time_from_string("1984-05-06 00:00:00"));
     REQUIRE(date_sequence_range.get_end() == Beam::Sequence(5));
     auto sequence_date_range =
-      Range(Beam::Sequence(5), ptime(date(1984, May, 6)));
+      Range(Beam::Sequence(5), time_from_string("1984-05-06 00:00:00"));
     REQUIRE(sequence_date_range.get_start() == Beam::Sequence(5));
-    REQUIRE(sequence_date_range.get_end() == ptime(date(1984, May, 6)));
+    REQUIRE(sequence_date_range.get_end() ==
+      time_from_string("1984-05-06 00:00:00"));
     auto sequence_date_snapshot_real_time_range =
       Range(Beam::Sequence(5), pos_infin);
     REQUIRE(
@@ -120,16 +129,16 @@ TEST_SUITE("Range") {
     REQUIRE(
       sequence_date_snapshot_real_time_range.get_end() == Beam::Sequence::LAST);
     auto date_sequence_snapshot_real_time_range =
-      Range(ptime(date(1984, May, 6)), Beam::Sequence::LAST);
+      Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence::LAST);
     REQUIRE(date_sequence_snapshot_real_time_range.get_start() ==
-      ptime(date(1984, May, 6)));
+      time_from_string("1984-05-06 00:00:00"));
     REQUIRE(
       date_sequence_snapshot_real_time_range.get_end() == Beam::Sequence::LAST);
     auto sequence_date_snapshot_range =
-      Range(Beam::Sequence::FIRST, ptime(date(1984, May, 6)));
+      Range(Beam::Sequence::FIRST, time_from_string("1984-05-06 00:00:00"));
     REQUIRE(sequence_date_snapshot_range.get_start() == Beam::Sequence::FIRST);
-    REQUIRE(
-      sequence_date_snapshot_range.get_end() == ptime(date(1984, May, 6)));
+    REQUIRE(sequence_date_snapshot_range.get_end() ==
+      time_from_string("1984-05-06 00:00:00"));
     auto date_sequence_snapshot_range = Range(neg_infin, Beam::Sequence(5));
     REQUIRE(date_sequence_snapshot_range.get_start() == Beam::Sequence::FIRST);
     REQUIRE(date_sequence_snapshot_range.get_end() == Beam::Sequence(5));
@@ -157,14 +166,19 @@ TEST_SUITE("Range") {
       Range(Beam::Sequence(2), Beam::Sequence(1))));
     REQUIRE(Range(Beam::Sequence::FIRST, Beam::Sequence(1)) ==
       Range(neg_infin, Beam::Sequence(1)));
-    REQUIRE(Range(ptime(date(1984, May, 6)), Beam::Sequence(2)) ==
-      Range(ptime(date(1984, May, 6)), Beam::Sequence(2)));
-    REQUIRE(!(Range(ptime(date(1984, May, 6)), Beam::Sequence(2)) ==
-      Range(Beam::Sequence(2), ptime(date(1984, May, 6)))));
-    REQUIRE(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) ==
-      Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))));
-    REQUIRE(!(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) ==
-      Range(ptime(date(1985, May, 6)), ptime(date(1985, May, 6)))));
+    REQUIRE(Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2)) ==
+      Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2)));
+    REQUIRE(
+      !(Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2)) ==
+        Range(Beam::Sequence(2), time_from_string("1984-05-06 00:00:00"))));
+    REQUIRE(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("1985-05-06 00:00:00")) ==
+        Range(time_from_string("1984-05-06 00:00:00"),
+          time_from_string("1985-05-06 00:00:00")));
+    REQUIRE(!(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("1985-05-06 00:00:00")) ==
+        Range(time_from_string("1985-05-06 00:00:00"),
+          time_from_string("1985-05-06 00:00:00"))));
   }
 
   TEST_CASE("not_equals_operator") {
@@ -172,25 +186,30 @@ TEST_SUITE("Range") {
       Range(Beam::Sequence(1), Beam::Sequence(2))));
     REQUIRE(!(Range(Beam::Sequence::FIRST, Beam::Sequence(1)) !=
       Range(neg_infin, Beam::Sequence(1))));
-    REQUIRE(!(Range(ptime(date(1984, May, 6)), Beam::Sequence(2)) !=
-      Range(ptime(date(1984, May, 6)), Beam::Sequence(2))));
-    REQUIRE(Range(ptime(date(1984, May, 6)), Beam::Sequence(2)) !=
-      Range(Beam::Sequence(2), ptime(date(1984, May, 6))));
-    REQUIRE(!(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) !=
-      Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6)))));
-    REQUIRE(Range(ptime(date(1984, May, 6)), ptime(date(1985, May, 6))) !=
-      Range(ptime(date(1985, May, 6)), ptime(date(1985, May, 6))));
+    REQUIRE(
+      !(Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2)) !=
+        Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2))));
+    REQUIRE(Range(time_from_string("1984-05-06 00:00:00"), Beam::Sequence(2)) !=
+      Range(Beam::Sequence(2), time_from_string("1984-05-06 00:00:00")));
+    REQUIRE(!(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("1985-05-06 00:00:00")) !=
+        Range(time_from_string("1984-05-06 00:00:00"),
+          time_from_string("1985-05-06 00:00:00"))));
+    REQUIRE(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("1985-05-06 00:00:00")) !=
+        Range(time_from_string("1985-05-06 00:00:00"),
+          time_from_string("1985-05-06 00:00:00")));
   }
 
   TEST_CASE("stream") {
     REQUIRE(to_string(Range::EMPTY) == "Empty");
     REQUIRE(to_string(Range::TOTAL) == "Total");
-    REQUIRE(to_string(
-      Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6)))) ==
+    REQUIRE(to_string(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("2014-05-06 00:00:00"))) ==
         "(1984-May-06 00:00:00 2014-May-06 00:00:00)");
     REQUIRE(to_string(Range(Beam::Sequence::FIRST, Beam::Sequence(5555))) ==
       "(0 5555)");
-    test_round_trip_shuttle(
-      Range(ptime(date(1984, May, 6)), ptime(date(2014, May, 6))));
+    test_round_trip_shuttle(Range(time_from_string("1984-05-06 00:00:00"),
+      time_from_string("2014-05-06 00:00:00")));
   }
 }

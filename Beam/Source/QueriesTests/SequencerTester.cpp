@@ -15,22 +15,22 @@ namespace {
 
 TEST_SUITE("Sequencer") {
   TEST_CASE("increment_next_sequence_same_partition") {
-    auto timestamp = ptime(date(2020, Jan, 1), hours(1));
+    auto timestamp = time_from_string("2020-01-01 01:00:00");
     auto initial = to_sequence(timestamp);
     auto sequencer = Sequencer(initial);
-    auto sequence_a =
-      sequencer.increment_next_sequence(ptime(date(2020, Jan, 1), hours(12)));
+    auto sequence_a = sequencer.increment_next_sequence(
+      time_from_string("2020-01-01 12:00:00"));
     REQUIRE(sequence_a.get_ordinal() == initial.get_ordinal());
-    auto sequence_b =
-      sequencer.increment_next_sequence(ptime(date(2020, Jan, 1), hours(13)));
+    auto sequence_b = sequencer.increment_next_sequence(
+      time_from_string("2020-01-01 13:00:00"));
     REQUIRE(sequence_b.get_ordinal() == initial.get_ordinal() + 1);
   }
 
   TEST_CASE("increment_next_sequence_new_partition") {
-    auto initial_timestamp = ptime(date(2020, Jan, 1), hours(0));
+    auto initial_timestamp = time_from_string("2020-01-01 00:00:00");
     auto initial = to_sequence(initial_timestamp);
     auto sequencer = Sequencer(initial);
-    auto new_timestamp = ptime(date(2020, Jan, 2), hours(0));
+    auto new_timestamp = time_from_string("2020-01-02 00:00:00");
     auto sequence = sequencer.increment_next_sequence(new_timestamp);
     REQUIRE(sequence.get_ordinal() == to_sequence(new_timestamp).get_ordinal());
     auto next_sequence  = sequencer.increment_next_sequence(new_timestamp);
@@ -39,7 +39,7 @@ TEST_SUITE("Sequencer") {
   }
 
   TEST_CASE("make_sequenced_value_encodes_timestamp_and_preserves_index") {
-    auto timestamp = ptime(date(2021, May, 3), hours(8));
+    auto timestamp = time_from_string("2021-05-03 08:00:00");
     auto initial = to_sequence(timestamp);
     auto sequencer = Sequencer(initial);
     auto value = Simple(timestamp, 99);
@@ -51,7 +51,7 @@ TEST_SUITE("Sequencer") {
   }
 
   TEST_CASE("to_sequenced_value_removes_index") {
-    auto timestamp = ptime(date(2021, May, 3), hours(8));
+    auto timestamp = time_from_string("2021-05-03 08:00:00");
     auto initial = to_sequence(timestamp);
     auto sequencer = Sequencer(initial);
     auto value = Simple(timestamp, 42);

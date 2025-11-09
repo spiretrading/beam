@@ -58,6 +58,7 @@ namespace Beam {
       Parser(P&& parser);
 
       Parser(const Parser&) = default;
+      Parser(Parser&&) = default;
 
       /**
        * Parses the next value from a stream.

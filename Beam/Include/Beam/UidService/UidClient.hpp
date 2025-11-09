@@ -33,6 +33,7 @@ namespace Beam {
       UidClient(T&& client);
 
       UidClient(const UidClient&) = default;
+      UidClient(UidClient&&) = default;
 
       /** Returns the next available UID. */
       std::uint64_t load_next_uid();

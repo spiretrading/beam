@@ -16,6 +16,13 @@ namespace Beam {
       /** The type of the parameter. */
       using Type = T;
 
+      /**
+       * Constructs an Out from an Out of a convertible type.
+       * @param other The Out to convert from.
+       */
+      template<typename U> requires std::convertible_to<U*, T*>
+      Out(const Out<U>& other) noexcept;
+
       /** Returns a pointer to the result. */
       Type* get();
 
@@ -37,9 +44,10 @@ namespace Beam {
     private:
       template<typename U> friend Out<U> out(U& result);
       template<typename U> friend Out<U> out(Out<U>& result);
+      template<typename U> friend class Out;
       Type* m_result;
 
-      Out(Type& result) noexcept;
+      explicit Out(Type& result) noexcept;
   };
 
   /**
@@ -61,6 +69,11 @@ namespace Beam {
   Out<T> out(Out<T>& result) {
     return Out(*result.get());
   }
+
+  template<typename T>
+  template<typename U> requires std::convertible_to<U*, T*>
+  Out<T>::Out(const Out<U>& other) noexcept
+    : m_result(other.m_result) {}
 
   template<typename T>
   typename Out<T>::Type* Out<T>::get() {

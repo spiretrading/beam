@@ -16,6 +16,23 @@
 namespace Beam {
 
   /**
+   * Returns an iterator to the first element whose dereferenced value matches.
+   * @param range The range to search.
+   * @param value The value to search for.
+   * @return An iterator to the first pointer in the specified <i>range</i>
+   *         whose dereferenced value equals <i>value</i>, or the end iterator
+   *         if not found.
+   */
+  template<std::ranges::input_range R, typename T> requires
+    IsManagedPointer<typename R::value_type>
+  auto find(const R& range, const T& value) {
+    return std::ranges::find_if(
+      range, [&] (typename R::const_reference pointer) {
+        return pointer.get() == &value;
+      });
+  }
+
+  /**
    * Returns the first element in a range that matches a predicate.
    * @param range The range to search.
    * @param f The predicate to apply.

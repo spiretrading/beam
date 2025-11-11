@@ -17,8 +17,7 @@ namespace Beam {
   class ConverterQueueReader :
       public QueueReader<std::invoke_result_t<C, T&&>> {
     public:
-      using Source =
-        typename QueueReader<std::invoke_result_t<C, const T&>>::Source;
+      using Source = typename QueueReader<std::invoke_result_t<C, T&&>>::Source;
 
       /**
        * The type of function performing the conversion.
@@ -57,14 +56,11 @@ namespace Beam {
    * @param source The QueueReader to convert.
    * @param converter The conversion function to use.
    */
-  template<typename Q,
-    std::invocable<typename dereference_t<Q>::Source> C>
-  auto convert(Q&& source, C&& converter) requires
-      IsSubclass<dereference_t<Q>, QueueReader> {
-    using Source = typename dereference_t<Q>::Source;
-    return std::make_shared<
-      ConverterQueueReader<Source, std::remove_cvref_t<C>>>(
-        std::forward<Q>(source), std::forward<C>(converter));
+  template<typename T, std::invocable<typename dereference_t<T>::Source&&> C>
+  auto convert(T&& source, C&& converter) {
+    return std::make_shared<ConverterQueueReader<
+      typename dereference_t<T>::Source, std::remove_cvref_t<C>>>(
+        std::forward<T>(source), std::forward<C>(converter));
   }
 
   template<typename T, std::invocable<T&&> C>

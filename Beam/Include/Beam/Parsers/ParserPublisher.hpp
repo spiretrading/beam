@@ -4,6 +4,7 @@
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Parsers/Parser.hpp"
+#include "Beam/Parsers/ParserTraits.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/Publisher.hpp"

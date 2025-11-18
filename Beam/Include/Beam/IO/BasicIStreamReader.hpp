@@ -65,15 +65,25 @@ namespace Beam {
   template<IsBuffer R>
   std::size_t BasicIStreamReader<S>::read(
       Out<R> destination, std::size_t size) {
-    auto available_size = destination->grow(std::min(DEFAULT_READ_SIZE, size));
-    m_source->read(get_mutable_suffix(*destination, available_size),
-      static_cast<std::streamsize>(available_size));
-    auto count = m_source->gcount();
-    destination->shrink(available_size - count);
-    if(count == 0) {
-      boost::throw_with_location(EndOfFileException());
+    auto size_read = std::size_t(0);
+    while(size > 0) {
+      auto available_size =
+        destination->grow(std::min(DEFAULT_READ_SIZE, size));
+      m_source->read(get_mutable_suffix(*destination, available_size),
+        static_cast<std::streamsize>(available_size));
+      auto count = m_source->gcount();
+      size_read += count;
+      size -= count;
+      destination->shrink(available_size - count);
+      if(count == 0) {
+        if(size_read == 0) {
+          boost::throw_with_location(EndOfFileException());
+        } else {
+          break;
+        }
+      }
     }
-    return static_cast<std::size_t>(count);
+    return size_read;
   }
 }
 

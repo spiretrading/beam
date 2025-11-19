@@ -43,6 +43,9 @@ namespace Details {
 
   /** Waits for a shutdown event. */
   inline void wait_for_kill_event() {
+    if(!is_running()) {
+      return;
+    }
     auto lock = std::unique_lock(Details::is_running_mutex);
     Details::is_running_condition.wait(lock, [] {
       return !Details::is_running;

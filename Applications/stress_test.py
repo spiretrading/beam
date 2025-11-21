@@ -1,5 +1,8 @@
+import argparse
+import multiprocessing
 import os
 import platform
+import signal
 import subprocess
 import sys
 import threading
@@ -19,11 +22,10 @@ def is_executable(path):
 
 def discover_executables(target):
     if os.path.isfile(target):
-        if is_executable(target):
-            return [os.path.abspath(target)]
-        else:
+        if not is_executable(target):
             raise ValueError(f"File is not executable: {target}")
-    elif os.path.isdir(target):
+        return [os.path.abspath(target)]
+    if os.path.isdir(target):
         execs = []
         for entry in os.listdir(target):
             full = os.path.join(target, entry)
@@ -35,34 +37,42 @@ def discover_executables(target):
     raise ValueError(f"Invalid path: {target}")
 
 
-def stress_test_binary(binary, parallel):
+def start_stress(executables, thread_count):
     stop = False
     stop_lock = threading.Lock()
-
+    def handle_sigint(signum, frame):
+        nonlocal stop
+        with stop_lock:
+            stop = True
+    signal.signal(signal.SIGINT, handle_sigint)
     def worker(idx):
         nonlocal stop
         iteration = 0
+        exe_index = 0
         while True:
             with stop_lock:
                 if stop:
                     return
+            exe = executables[exe_index]
+            exe_index = (exe_index + 1) % len(executables)
             try:
-                result = subprocess.run([binary], stdout=subprocess.PIPE,
+                result = subprocess.run([exe], stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE, text=True)
             except Exception as e:
                 with stop_lock:
                     if not stop:
                         stop = True
-                        print(f"[{os.path.basename(binary)}][worker {idx}] "
-                              "crash at iteration {iteration}")
+                        print(f"[worker {idx}] crash at iteration {iteration}")
+                        print(f"Executable: {exe}")
                         print(f"Exception: {e}")
                 return
             if result.returncode != 0:
                 with stop_lock:
                     if not stop:
                         stop = True
-                        print(f"[{os.path.basename(binary)}][worker {idx}] "
-                              "failure at iteration {iteration}")
+                        print(
+                            f"[worker {idx}] failure at iteration {iteration}")
+                        print(f"Executable: {exe}")
                         print(f"Exit code: {result.returncode}")
                         print("\n--- STDOUT ---\n")
                         print(result.stdout)
@@ -70,8 +80,8 @@ def stress_test_binary(binary, parallel):
                         print(result.stderr)
                 return
             iteration += 1
-    threads = [
-        threading.Thread(target=worker, args=(i,)) for i in range(parallel)]
+    threads = [threading.Thread(target=worker, args=(i,))
+        for i in range(thread_count)]
     for t in threads:
         t.start()
     for t in threads:
@@ -79,24 +89,21 @@ def stress_test_binary(binary, parallel):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python stress.py <binary_or_folder> <parallel>")
-        sys.exit(1)
-    target = sys.argv[1]
-    parallel = int(sys.argv[2])
+    cpu_count = multiprocessing.cpu_count()
+    default_threads = max(cpu_count - 1, 1)
+    parser = argparse.ArgumentParser(description="Parallel stress tester.")
+    parser.add_argument("--target", "-t", required=True,
+        help="Path to a test executable or a folder of executables.")
+    parser.add_argument("--threads", "-j", type=int, default=default_threads,
+        help=f"Number of worker threads "
+            "(default: CPU cores - 1 = {default_threads})")
+    args = parser.parse_args()
     try:
-        executables = discover_executables(target)
+        executables = discover_executables(args.target)
     except ValueError as e:
         print(e)
         sys.exit(1)
-    print("Executables to test:")
-    for e in executables:
-        print("  ", e)
-    print()
-    for exe in executables:
-        print(f"=== Stress testing: {exe} ===")
-        stress_test_binary(exe, parallel)
-        print()
+    start_stress(executables, args.threads)
 
 
 if __name__ == "__main__":

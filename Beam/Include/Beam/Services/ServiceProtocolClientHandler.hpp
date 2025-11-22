@@ -146,6 +146,7 @@ namespace Beam {
         }
         return m_client;
       } catch(const ConnectException&) {
+        m_open_state.ensure_open();
         auto reconnect_timer = std::shared_ptr(m_builder->make_timer());
         m_reconnect_timer = reconnect_timer;
         reconnect_timer->start();

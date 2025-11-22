@@ -55,14 +55,16 @@ namespace Beam {
   template<typename T>
   void QueueWriterPublisher<T>::push(const Target& value) {
     auto lock = boost::lock_guard(m_mutex);
-    std::erase_if(m_queues, [&] (auto& queue) {
+    auto i = m_queues.begin();
+    while(i != m_queues.end()) {
+      auto& queue = *i;
       try {
         queue.push(value);
-        return false;
+        ++i;
       } catch(const std::exception&) {
-        return true;
+        i = m_queues.erase(i);
       }
-    });
+    }
   }
 
   template<typename T>

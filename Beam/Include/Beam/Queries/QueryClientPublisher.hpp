@@ -69,6 +69,8 @@ namespace Beam {
       explicit QueryClientPublisher(
         Ref<ServiceProtocolClientHandler> client_handler);
 
+      ~QueryClientPublisher();
+
       /**
        * Submits a query.
        * @param query The query to submit.
@@ -126,6 +128,12 @@ namespace Beam {
   QueryClientPublisher<V, Q, E, C, S, M>::QueryClientPublisher(
     Ref<ServiceProtocolClientHandler> client_handler)
     : m_client_handler(client_handler.get()) {}
+
+  template<typename V, typename Q, typename E, typename C, typename S,
+    typename M>
+  QueryClientPublisher<V, Q, E, C, S, M>::~QueryClientPublisher() {
+    close();
+  }
 
   template<typename V, typename Q, typename E, typename C, typename S,
     typename M>

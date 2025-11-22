@@ -361,3 +361,6 @@ package-lock.json
 .vscode/
 WebApi/library/
 node_modules/
+
+#Dependencies
+**/Dependencies/

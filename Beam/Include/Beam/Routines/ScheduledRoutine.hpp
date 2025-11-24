@@ -1,6 +1,7 @@
 #ifndef BEAM_SCHEDULED_ROUTINE_HPP
 #define BEAM_SCHEDULED_ROUTINE_HPP
 #include <iostream>
+#include <stacktrace>
 #ifdef WIN32
   #define BOOST_USE_WINFIB
 #endif
@@ -57,6 +58,11 @@ namespace Details {
       std::size_t m_context_id;
       boost::context::continuation m_continuation;
       boost::context::continuation m_parent;
+      #ifdef BEAM_ENABLE_STACK_PRINT
+      #ifndef NDEBUG
+      std::string m_call_stack;
+      #endif
+      #endif
 
       bool is_pending_resume() const;
       void set_pending_resume(bool value);
@@ -99,6 +105,11 @@ namespace Details {
   BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::defer() {
     Details::CurrentRoutineGlobal::get() = nullptr;
+#ifdef BEAM_ENABLE_STACK_PRINT
+#ifndef NDEBUG
+    m_call_stack = std::to_string(std::stacktrace::current());
+#endif
+#endif
     m_parent = m_parent.resume();
   }
 
@@ -109,6 +120,11 @@ namespace Details {
   inline void ScheduledRoutine::suspend() {
     Details::CurrentRoutineGlobal::get() = nullptr;
     set(State::PENDING_SUSPEND);
+#ifdef BEAM_ENABLE_STACK_PRINT
+#ifndef NDEBUG
+    m_call_stack = std::to_string(std::stacktrace::current());
+#endif
+#endif
     m_parent = m_parent.resume();
   }
 

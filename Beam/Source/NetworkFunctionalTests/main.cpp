@@ -97,7 +97,7 @@ TEST_SUITE("UdpSocket") {
       auto position = received.find("sequence:");
       if(position != std::string::npos) {
         try {
-          auto num = std::stoi(received.substr(position + 4));
+          auto num = std::stoi(received.substr(position + 9));
           received_indices.insert(num);
         } catch(...) {
         }

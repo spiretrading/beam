@@ -147,6 +147,7 @@ namespace Beam {
 
     private:
       mutable boost::mutex m_mutex;
+      Mutex m_read_mutex;
       typename P::template apply<ServiceSlots>::type m_slots;
       MessageProtocol m_protocol;
       local_ptr_t<T> m_timer;
@@ -369,7 +370,10 @@ namespace Beam {
       return;
     }
     shutdown();
-    m_read_loop.wait();
+    {
+      auto lock = boost::lock_guard(m_read_mutex);
+      m_read_loop.wait();
+    }
     m_message_handler.wait();
     m_timer_loop.wait();
     m_open_state.close();
@@ -384,6 +388,7 @@ namespace Beam {
     m_timer->start();
     m_timer_loop =
       spawn(std::bind_front(&ServiceProtocolClient::timer_loop, this));
+    auto lock = boost::lock_guard(m_read_mutex);
     m_read_loop =
       spawn(std::bind_front(&ServiceProtocolClient::read_loop, this));
   }
@@ -391,6 +396,7 @@ namespace Beam {
   template<typename M, typename T, typename P, typename S, bool V> requires
     IsTimer<dereference_t<T>>
   void ServiceProtocolClient<M, T, P, S, V>::shutdown() {
+    m_is_reading = true;
     m_protocol.close();
     m_messages.close(EndOfFileException());
     m_timer->cancel();

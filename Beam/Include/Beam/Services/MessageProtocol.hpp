@@ -173,6 +173,7 @@ namespace Beam {
     IsChannel<dereference_t<C>>
   template<typename M> requires(!IsBuffer<M>)
   void MessageProtocol<C, S, E>::send(const M& message) {
+    m_open_state.ensure_open();
     auto sender_buffer = SharedBuffer();
     auto encoder_buffer = SharedBuffer();
     if(in_place_support_v<Encoder>) {
@@ -206,6 +207,7 @@ namespace Beam {
     IsChannel<dereference_t<C>>
   template<IsConstBuffer B>
   void MessageProtocol<C, S, E>::send(const B& buffer) {
+    m_open_state.ensure_open();
     m_writer.write(buffer);
   }
 

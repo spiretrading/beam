@@ -194,7 +194,7 @@ TEST_SUITE("ServiceProtocolClient") {
     register_test_services(out(client.get_slots()));
     client.close();
     REQUIRE_THROWS_AS(
-      client.send_request<VoidService>(123), ServiceRequestException);
+      client.send_request<VoidService>(123), EndOfFileException);
     client.close();
     server_task.wait();
   }

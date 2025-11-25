@@ -26,7 +26,7 @@ namespace {
   struct SingleClientFixture {
     LocalServerConnection m_server;
     std::unique_ptr<LocalServerChannel> m_server_channel;
-    Routine::Id m_accept_routine;
+    RoutineHandler m_accept_routine;
     TestServiceProtocolClient m_client;
     TestSubscriptions m_subscriptions;
 

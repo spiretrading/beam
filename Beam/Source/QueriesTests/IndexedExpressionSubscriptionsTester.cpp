@@ -137,16 +137,18 @@ TEST_SUITE("IndexedExpressionSubscriptions") {
   TEST_CASE("multiple_clients_same_index") {
     auto server1 = LocalServerConnection();
     auto server_channel1 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    auto accept_routine = RoutineHandler(spawn([&] {
       server_channel1 = server1.accept();
-    });
+    }));
     auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    accept_routine.wait();
     auto server2 = LocalServerConnection();
     auto server_channel2 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    accept_routine = RoutineHandler(spawn([&] {
       server_channel2 = server2.accept();
-    });
+    }));
     auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    accept_routine.wait();
     auto subscriptions = TestSubscriptions();
     auto index = std::string("SharedIndex");
     auto filter1 = translate<TestTranslator>(ConstantExpression(true));
@@ -198,16 +200,18 @@ TEST_SUITE("IndexedExpressionSubscriptions") {
   TEST_CASE("mixed_indexes_and_clients") {
     auto server1 = LocalServerConnection();
     auto server_channel1 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    auto accept_routine = RoutineHandler(spawn([&] {
       server_channel1 = server1.accept();
-    });
+    }));
     auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    accept_routine.wait();
     auto server2 = LocalServerConnection();
     auto server_channel2 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    accept_routine = RoutineHandler(spawn([&] {
       server_channel2 = server2.accept();
-    });
+    }));
     auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    accept_routine.wait();
     auto subscriptions = TestSubscriptions();
     auto index_a = std::string("IndexA");
     auto filter1 = translate<TestTranslator>(ConstantExpression(true));

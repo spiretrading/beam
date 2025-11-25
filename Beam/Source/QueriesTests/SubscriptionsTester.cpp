@@ -103,16 +103,18 @@ TEST_SUITE("Subscriptions") {
   TEST_CASE("multiple_clients") {
     auto server1 = LocalServerConnection();
     auto server_channel1 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    auto accept_routine = RoutineHandler(spawn([&] {
       server_channel1 = server1.accept();
-    });
+    }));
     auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    accept_routine.wait();
     auto server2 = LocalServerConnection();
     auto server_channel2 = std::unique_ptr<LocalServerChannel>();
-    spawn([&] {
+    accept_routine = RoutineHandler(spawn([&] {
       server_channel2 = server2.accept();
-    });
+    }));
     auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    accept_routine.wait();
     auto subscriptions = TestSubscriptions();
     auto filter1 = translate(ConstantExpression(true));
     auto query_id1 =

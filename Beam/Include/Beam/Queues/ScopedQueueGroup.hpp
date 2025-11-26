@@ -47,7 +47,7 @@ namespace Beam {
       ScopedQueueGroup(ScopedQueueGroup&&) = delete;
   };
 
-  ScopedQueueGroup::~ScopedQueueGroup() {
+  inline ScopedQueueGroup::~ScopedQueueGroup() {
     close();
   }
 

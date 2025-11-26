@@ -18,6 +18,19 @@ namespace {
       register_service_locator_messages(out(m_server.get_slots()));
     }
 
+    void close_server_side(TestServiceLocatorClient& client) {
+      auto close_token = Async<void>();
+      on_request<LocateService>([&] (auto& request, const std::string&) {
+        request.set(std::vector<ServiceEntry>());
+        request.get_client().close();
+        close_token.get_eval().set();
+      });
+      try {
+        client.locate("");
+      } catch(const std::exception&) {}
+      close_token.get();
+    }
+
     std::unique_ptr<TestServiceLocatorClient> make_client(
         std::string username, std::string password) {
       return ServiceClientFixture::make_client<TestServiceLocatorClient>(
@@ -973,15 +986,12 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
       DirectoryEntry::make_account(123, "account_a"),
       DirectoryEntry::make_account(124, "account_b"),
       DirectoryEntry::make_account(125, "account_c")};
-    auto server_client = static_cast<
-      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
     fixture.on_request<LoginService>(
       [&] (auto& request, const std::string& username,
           const std::string& password) {
         auto account = DirectoryEntry::make_account(1, username);
         auto session_id = std::string("session");
         ++reconnect_count;
-        server_client = &request.get_client();
         request.set(LoginServiceResult(account, session_id));
       });
     fixture.on_request<MonitorAccountsService>([&] (auto& request) {
@@ -1000,7 +1010,7 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     for(auto i = std::size_t(0); i != test_accounts.size(); ++i) {
       queue->pop();
     }
-    server_client->close();
+    fixture.close_server_side(*client);
     auto update = queue->pop();
     REQUIRE(update.m_account.m_id == 135);
     REQUIRE(update.m_account.m_name == "account_d");
@@ -1014,15 +1024,12 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     auto reconnect_count = 0;
     auto next_id = 1;
     auto registered_services = std::vector<ServiceEntry>();
-    auto server_client = static_cast<
-      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
     fixture.on_request<LoginService>(
       [&] (auto& request, const std::string& username,
           const std::string& password) {
         auto account = DirectoryEntry::make_account(1, username);
         auto session_id = std::string("session");
         ++reconnect_count;
-        server_client = &request.get_client();
         request.set(LoginServiceResult(account, session_id));
       });
     auto recovery_token = Async<void>();
@@ -1049,7 +1056,7 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     auto service_two = client->add("service_two", properties_two);
     auto original_count = registered_services.size();
     registered_services.clear();
-    server_client->close();
+    fixture.close_server_side(*client);
     REQUIRE_NOTHROW(recovery_token.get());
     REQUIRE(reconnect_count == 2);
     REQUIRE(registered_services.size() == 2);

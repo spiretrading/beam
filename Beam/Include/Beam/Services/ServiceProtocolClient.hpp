@@ -147,6 +147,7 @@ namespace Beam {
 
     private:
       mutable boost::mutex m_mutex;
+      Mutex m_open_mutex;
       Mutex m_read_mutex;
       typename P::template apply<ServiceSlots>::type m_slots;
       MessageProtocol m_protocol;
@@ -382,24 +383,33 @@ namespace Beam {
   template<typename M, typename T, typename P, typename S, bool V> requires
     IsTimer<dereference_t<T>>
   void ServiceProtocolClient<M, T, P, S, V>::open() {
+    if(m_is_reading) {
+      return;
+    }
+    auto lock = boost::lock_guard(m_open_mutex);
     if(m_is_reading.exchange(true)) {
       return;
     }
     m_timer->start();
     m_timer_loop =
       spawn(std::bind_front(&ServiceProtocolClient::timer_loop, this));
-    auto lock = boost::lock_guard(m_read_mutex);
-    m_read_loop =
-      spawn(std::bind_front(&ServiceProtocolClient::read_loop, this));
+    {
+      auto lock = boost::lock_guard(m_read_mutex);
+      m_read_loop =
+        spawn(std::bind_front(&ServiceProtocolClient::read_loop, this));
+    }
   }
 
   template<typename M, typename T, typename P, typename S, bool V> requires
     IsTimer<dereference_t<T>>
   void ServiceProtocolClient<M, T, P, S, V>::shutdown() {
-    m_is_reading = true;
-    m_protocol.close();
-    m_messages.close(EndOfFileException());
-    m_timer->cancel();
+    {
+      auto lock = boost::lock_guard(m_open_mutex);
+      m_is_reading = true;
+      m_protocol.close();
+      m_messages.close(EndOfFileException());
+      m_timer->cancel();
+    }
     auto pending_requests = std::unordered_map<int, BaseEval*>();
     {
       auto lock = boost::lock_guard(m_mutex);

@@ -61,7 +61,14 @@ IF NOT EXIST node_modules (
 ) ELSE IF NOT EXIST mod_time.txt (
   SET UPDATE_NODE=1
 ) ELSE (
-  FOR /F "delims=" %%r IN ('powershell -NoProfile -Command "$mod = (Get-Item 'mod_time.txt').LastWriteTime.Ticks; $pkg = (Get-Item '!DIRECTORY!package.json').LastWriteTime.Ticks; if ($pkg -gt $mod) { 'YES' } else { 'NO' }"') DO SET NEEDS_NODE_UPDATE=%%r
+  SET CHECK_PKG_COMMAND=powershell -NoProfile -Command "& {" ^
+    "$mod = (Get-Item 'mod_time.txt').LastWriteTime.Ticks;" ^
+    "$pkg = (Get-Item '!DIRECTORY!package.json').LastWriteTime.Ticks;" ^
+    "if ($pkg -gt $mod) { 'YES' } else { 'NO' }" ^
+  "}"
+  FOR /F "delims=" %%r IN ('CALL !CHECK_PKG_COMMAND!') DO (
+    SET NEEDS_NODE_UPDATE=%%r
+  )
   IF "!NEEDS_NODE_UPDATE!" == "YES" (
     SET UPDATE_NODE=1
   )
@@ -75,7 +82,27 @@ IF NOT EXIST library (
 ) ELSE IF NOT EXIST mod_time.txt (
   SET UPDATE_BUILD=1
 ) ELSE (
-  FOR /F "tokens=2" %%r IN ('powershell -NoProfile -Command "$mod = (Get-Item 'mod_time.txt').LastWriteTime.Ticks; $tsconfig = Get-Item '!DIRECTORY!tsconfig.json'; $sourceFiles = Get-ChildItem -Path '!DIRECTORY!source' -Recurse -File -ErrorAction SilentlyContinue; $files = @($tsconfig) + $sourceFiles; if ($files) { $newest = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if ($newest.LastWriteTime.Ticks -gt $mod) { 'Result: YES' } else { 'Result: NO' } } else { 'Result: NO' }"') DO SET NEEDS_BUILD=%%r
+  SET CHECK_BUILD_COMMAND=powershell -NoProfile -Command "& {" ^
+    "$mod = (Get-Item 'mod_time.txt').LastWriteTime.Ticks;" ^
+    "$tsconfig = Get-Item '!DIRECTORY!tsconfig.json';" ^
+    "$sourceFiles = Get-ChildItem -Path '!DIRECTORY!source'" ^
+    "  -Recurse -File -ErrorAction SilentlyContinue;" ^
+    "$files = @($tsconfig) + $sourceFiles;" ^
+    "if ($files) {" ^
+    "  $newest = $files | Sort-Object LastWriteTime -Descending |" ^
+    "    Select-Object -First 1;" ^
+    "  if ($newest.LastWriteTime.Ticks -gt $mod) {" ^
+    "    'Result: YES'" ^
+    "  } else {" ^
+    "    'Result: NO'" ^
+    "  }" ^
+    "} else {" ^
+    "  'Result: NO'" ^
+    "}" ^
+  "}"
+  FOR /F "tokens=2" %%r IN ('CALL !CHECK_BUILD_COMMAND!') DO (
+    SET NEEDS_BUILD=%%r
+  )
   IF "!NEEDS_BUILD!" == "YES" (
     SET UPDATE_BUILD=1
   )

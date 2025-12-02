@@ -16,6 +16,7 @@
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
 #include "Beam/Threading/Sync.hpp"

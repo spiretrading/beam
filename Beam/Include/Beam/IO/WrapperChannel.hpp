@@ -18,11 +18,11 @@ namespace Details {
     ComponentHolder(TF&& component)
       : m_component(std::forward<TF>(component)) {}
 
-    T& get_component() {
+    auto& get_component() {
       return *m_component;
     }
 
-    const T& get_component() const {
+    const auto& get_component() const {
       return *m_component;
     }
   };

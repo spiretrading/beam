@@ -359,6 +359,7 @@ ASALocalRun/
 # Web Artifacts
 package-lock.json
 .vscode/
+mod_time.txt
 WebApi/library/
 node_modules/
 

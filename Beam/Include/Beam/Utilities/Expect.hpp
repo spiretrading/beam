@@ -155,25 +155,6 @@ namespace Beam {
   }
 
   /**
-   * Calls a function and calls terminate if the function throws an exception.
-   * @param f The function to call.
-   * @param args The arguments to pass to f.
-   * @return The result of f.
-   */
-  template<typename F, typename... Args> requires std::invocable<F, Args&&...>
-  decltype(auto) require(F&& f, Args&&... args) noexcept {
-    try {
-      return std::forward<F>(f)(std::forward<Args>(args)...);
-    } catch(const std::exception& e) {
-      std::cerr << e.what();
-    } catch(...) {
-      std::cerr << "Unknown error.";
-    }
-    std::exit(-1);
-    return f(std::forward<Args>(args)...);
-  }
-
-  /**
    * Calls a function and if it throws an exception, nests the exception within
    * another.
    * @param f The function to call.

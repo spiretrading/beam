@@ -89,7 +89,7 @@ namespace Beam {
         "c", "config", "Configuration file", false, "config.yml", "path");
       cmd.add(config_arg);
       cmd.parse(argc, argv);
-      return require(load_file, config_arg.getValue());
+      return load_file(config_arg.getValue());
     } catch(const TCLAP::ArgException& e) {
       boost::throw_with_location(
         std::runtime_error("Error parsing command line: " + e.error() +

@@ -4,6 +4,7 @@
 #include <Aspen/Python/Reactor.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
@@ -24,7 +25,7 @@ void Beam::Python::export_base_publisher(pybind11::module& module) {
     module, "BasePublisher").
     def("apply", static_cast<void (BasePublisher::*)(
       const std::function<void ()>&) const>(&BasePublisher::with),
-      call_guard<gil_scoped_release>());
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::export_base_queue(pybind11::module& module) {
@@ -57,7 +58,7 @@ void Beam::Python::export_queues(pybind11::module& module) {
     try {
       while(true) {
         auto value = [&] {
-          auto release = gil_scoped_release();
+          auto release = GilRelease();
           return queue.pop();
         }();
         l.append(std::move(value));
@@ -83,7 +84,7 @@ void Beam::Python::export_routine_task_queue(pybind11::module& module) {
         return make_to_python_queue_writer(
           self.get_slot<SharedObject>(slot, break_slot));
       }).
-    def("wait", &RoutineTaskQueue::wait, call_guard<gil_scoped_release>());
+    def("wait", &RoutineTaskQueue::wait, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_task_queue(pybind11::module& module) {
@@ -101,7 +102,7 @@ void Beam::Python::export_task_queue(pybind11::module& module) {
         auto queue = self.get_slot(std::move(slot), std::move(break_slot));
         return make_to_python_queue_writer(std::move(queue));
       }).
-    def("pop", &TaskQueue::pop, call_guard<gil_scoped_release>());
+    def("pop", &TaskQueue::pop, call_guard<GilRelease>());
   module.def("flush", [] (TaskQueue& queue) {
     flush(queue);
   });

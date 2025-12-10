@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Threading/Sync.hpp"
 
 namespace Beam::Python {
@@ -40,16 +41,16 @@ namespace Beam::Python {
       def("apply",
         [] (Sync<T>& self, const std::function<pybind11::object (T&)>& f) {
           return self.with(f);
-        }, pybind11::call_guard<pybind11::gil_scoped_release>());
+        }, pybind11::call_guard<GilRelease>());
     module.def("apply",
       [] (Sync<T>& sync, const std::function<pybind11::object (T&)>& f) {
         return with(sync, f);
-      }, pybind11::call_guard<pybind11::gil_scoped_release>());
+      }, pybind11::call_guard<GilRelease>());
     module.def("apply",
       [] (const Sync<T>& sync,
           const std::function<pybind11::object (const T&)>& f) {
         return with(sync, f);
-      }, pybind11::call_guard<pybind11::gil_scoped_release>());
+      }, pybind11::call_guard<GilRelease>());
   }
 
   /**

@@ -32,9 +32,9 @@
 #include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
 #include "Beam/Network/UdpSocketWriter.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/Out.hpp"
-#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/ToPythonChannel.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
@@ -75,20 +75,20 @@ void Beam::Python::export_multicast_socket(module& module) {
   class_<MulticastSocket, std::shared_ptr<MulticastSocket>>(
       module, "MulticastSocket").
     def(pybind11::init(&make_python_shared<MulticastSocket, const IpAddress&>),
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<MulticastSocket, const IpAddress&,
-      const MulticastSocketOptions&>), call_guard<gil_scoped_release>()).
+      const MulticastSocketOptions&>), call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<MulticastSocket, const IpAddress&,
-      const IpAddress&>), call_guard<gil_scoped_release>()).
+      const IpAddress&>), call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<MulticastSocket, const IpAddress&,
       const IpAddress&, const MulticastSocketOptions&>),
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
     def_property_readonly("group", &MulticastSocket::get_group).
     def_property_readonly("receiver", &MulticastSocket::get_receiver,
       return_value_policy::reference_internal).
     def_property_readonly("sender", &MulticastSocket::get_sender,
       return_value_policy::reference_internal).
-    def("close", &MulticastSocket::close, call_guard<gil_scoped_release>());
+    def("close", &MulticastSocket::close, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_multicast_socket_channel(module& module) {
@@ -247,14 +247,13 @@ void Beam::Python::export_tcp_socket_writer(module& module) {
 void Beam::Python::export_udp_socket(module& module) {
   class_<UdpSocket, std::shared_ptr<UdpSocket>>(module, "UdpSocket").
     def(pybind11::init(&make_python_shared<UdpSocket, const IpAddress&>),
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<UdpSocket, const IpAddress&,
-      const UdpSocketOptions&>), call_guard<gil_scoped_release>()).
+      const UdpSocketOptions&>), call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<UdpSocket, const IpAddress&,
-      const IpAddress&>), call_guard<gil_scoped_release>()).
+      const IpAddress&>), call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<UdpSocket, const IpAddress&,
-      const IpAddress&, const UdpSocketOptions&>),
-      call_guard<gil_scoped_release>()).
+      const IpAddress&, const UdpSocketOptions&>), call_guard<GilRelease>()).
     def_property_readonly("address", &UdpSocket::get_address).
     def_property_readonly("receiver", &UdpSocket::get_receiver,
       return_value_policy::reference_internal).
@@ -298,25 +297,24 @@ void Beam::Python::export_udp_socket_receiver(module& module) {
     def("receive", [] (UdpSocketReceiver& self,
         Out<DatagramPacket<SharedBuffer>> packet) {
       return self.receive(out(packet));
-    }, call_guard<gil_scoped_release>()).
+    }, call_guard<GilRelease>()).
     def("receive", [] (UdpSocketReceiver& self,
         Out<DatagramPacket<SharedBuffer>> packet, std::size_t size) {
       return self.receive(out(packet), size);
-    }, call_guard<gil_scoped_release>()).
+    }, call_guard<GilRelease>()).
     def("receive", [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer,
         Out<IpAddress> address) {
       return self.receive(out(buffer), -1, out(address));
-    }, call_guard<gil_scoped_release>()).
+    }, call_guard<GilRelease>()).
     def("receive", [] (UdpSocketReceiver& self, Out<SharedBuffer> buffer,
         std::size_t size, Out<IpAddress> address) {
       return self.receive(out(buffer), size, out(address));
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_udp_socket_sender(module& module) {
   class_<UdpSocketSender>(module, "UdpSocketSender").
-    def("send", &UdpSocketSender::send<SharedBuffer>,
-      call_guard<gil_scoped_release>());
+    def("send", &UdpSocketSender::send<SharedBuffer>, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_udp_socket_writer(module& module) {

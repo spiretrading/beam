@@ -97,10 +97,10 @@ void Beam::Python::export_local_service_locator_data_store(module& module) {
         ptime created, ptime last_modified) {
       self.get().store(
         std::move(entry), std::move(name), created, last_modified);
-    }, call_guard<gil_scoped_release>()).
+    }, call_guard<GilRelease>()).
     def("store", [] (DataStore& self, DirectoryEntry entry) {
       self.get().store(std::move(entry));
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_mysql_service_locator_data_store(module& module) {
@@ -113,7 +113,7 @@ void Beam::Python::export_mysql_service_locator_data_store(module& module) {
       return std::make_unique<DataStore>(
         std::make_unique<SqlConnection<Viper::MySql::Connection>>(
           Viper::MySql::Connection(host, port, username, password, database)));
-    }), call_guard<gil_scoped_release>());
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::export_permissions(module& module) {
@@ -186,8 +186,7 @@ void Beam::Python::export_service_locator_application_definitions(
     ToPythonServiceLocatorClient<ApplicationServiceLocatorClient>>(
       module, "ApplicationServiceLocatorClient").
     def(pybind11::init<std::string, std::string, IpAddress>());
-  module.def(
-    "add", &add<ServiceLocatorClient>, call_guard<gil_scoped_release>());
+  module.def("add", &add<ServiceLocatorClient>, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_sqlite_service_locator_data_store(module& module) {
@@ -199,16 +198,16 @@ void Beam::Python::export_sqlite_service_locator_data_store(module& module) {
       return std::make_unique<DataStore>(
         std::make_unique<SqlConnection<Viper::Sqlite3::Connection>>(
           Viper::Sqlite3::Connection(path)));
-      }), call_guard<gil_scoped_release>());
+      }), call_guard<GilRelease>());
 }
 
 void Beam::Python::export_service_locator_test_environment(module& module) {
   class_<ServiceLocatorTestEnvironment, std::shared_ptr<ServiceLocatorTestEnvironment>>(
     module, "ServiceLocatorTestEnvironment").
     def(pybind11::init(&make_python_shared<ServiceLocatorTestEnvironment>),
-      call_guard<gil_scoped_release>()).
-    def("close", &ServiceLocatorTestEnvironment::close,
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
+    def(
+      "close", &ServiceLocatorTestEnvironment::close, call_guard<GilRelease>()).
     def("get_root", &ServiceLocatorTestEnvironment::get_root,
       return_value_policy::reference_internal).
     def("make_client",
@@ -216,8 +215,8 @@ void Beam::Python::export_service_locator_test_environment(module& module) {
           std::string password) {
         return ToPythonServiceLocatorClient(
           self.make_client(std::move(username), std::move(password)));
-      }, call_guard<gil_scoped_release>()).
+      }, call_guard<GilRelease>()).
     def("make_client", [] (ServiceLocatorTestEnvironment& self) {
       return ToPythonServiceLocatorClient(self.make_client());
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
 }

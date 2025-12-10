@@ -1,4 +1,5 @@
 #include "Beam/Python/SharedObject.hpp"
+#include "Beam/Python/GilLock.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;
@@ -7,7 +8,7 @@ using namespace pybind11;
 namespace {
   struct ObjectDeleter {
     void operator ()(object* object) const {
-      auto lock = gil_scoped_acquire();
+      auto lock = GilLock();
       delete object;
     }
   };

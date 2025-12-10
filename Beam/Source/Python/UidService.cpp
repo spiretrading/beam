@@ -3,6 +3,7 @@
 #include <Viper/MySql/Connection.hpp>
 #include <Viper/Sqlite3/Connection.hpp>
 #include "Beam/Python/Beam.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/ToPythonServiceLocatorClient.hpp"
 #include "Beam/Python/ToPythonUidClient.hpp"
 #include "Beam/Python/ToPythonUidDataStore.hpp"
@@ -45,7 +46,7 @@ void Beam::Python::export_mysql_uid_data_store(module& module) {
       return std::make_unique<DataStore>(
         std::make_unique<SqlConnection<Viper::MySql::Connection>>(
           Viper::MySql::Connection(host, port, username, password, database)));
-    }), call_guard<gil_scoped_release>());
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::export_sqlite_uid_data_store(module& module) {
@@ -56,7 +57,7 @@ void Beam::Python::export_sqlite_uid_data_store(module& module) {
       return std::make_unique<DataStore>(
         std::make_unique<SqlConnection<Viper::Sqlite3::Connection>>(
           Viper::Sqlite3::Connection(path)));
-    }), call_guard<gil_scoped_release>());
+    }), call_guard<GilRelease>());
 }
 
 void Beam::Python::export_uid_service(module& module) {
@@ -86,10 +87,9 @@ void Beam::Python::export_uid_service_test_environment(module& module) {
   class_<UidServiceTestEnvironment, std::shared_ptr<UidServiceTestEnvironment>>(
       module, "UidServiceTestEnvironment").
     def(pybind11::init(&make_python_shared<UidServiceTestEnvironment>),
-      call_guard<gil_scoped_release>()).
-    def("close", &UidServiceTestEnvironment::close,
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
+    def("close", &UidServiceTestEnvironment::close, call_guard<GilRelease>()).
     def("make_client", [] (UidServiceTestEnvironment& self) {
       return ToPythonUidClient(self.make_client());
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
 }

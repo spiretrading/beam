@@ -97,16 +97,16 @@ void Beam::Python::export_ntp_time_client(pybind11::module& module) {
     [] (const std::vector<IpAddress>& ntp_pool) {
       return std::make_unique<ToPythonTimeClient<TimeClient>>(
         make_live_ntp_time_client(ntp_pool));
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
   module.def("NtpTimeClient",
     [] (const std::vector<IpAddress>& ntp_pool, time_duration sync_period) {
       return std::make_unique<ToPythonTimeClient<TimeClient>>(
         make_live_ntp_time_client(ntp_pool, sync_period));
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
   module.def("NtpTimeClient", [] (ServiceLocatorClient service_locator_client) {
     return std::make_unique<ToPythonTimeClient<TimeClient>>(
       make_live_ntp_time_client(service_locator_client));
-  }, call_guard<gil_scoped_release>());
+  }, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_live_timer(pybind11::module& module) {
@@ -118,7 +118,7 @@ void Beam::Python::export_test_time_client(pybind11::module& module) {
   export_time_client<ToPythonTimeClient<TestTimeClient>>(
     module, "TestTimeClient").
     def(pybind11::init<Ref<TimeServiceTestEnvironment>>(),
-      call_guard<gil_scoped_release>());
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::export_test_timer(pybind11::module& module) {
@@ -164,17 +164,15 @@ void Beam::Python::export_time_service_test_environment(
     TimeServiceTestEnvironment, std::shared_ptr<TimeServiceTestEnvironment>>(
       module, "TimeServiceTestEnvironment").
     def(pybind11::init(&make_python_shared<TimeServiceTestEnvironment>),
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
     def(pybind11::init(&make_python_shared<TimeServiceTestEnvironment, ptime>),
-      call_guard<gil_scoped_release>()).
-    def("set", &TimeServiceTestEnvironment::set,
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
+    def("set", &TimeServiceTestEnvironment::set, call_guard<GilRelease>()).
     def("advance", &TimeServiceTestEnvironment::advance,
-      call_guard<gil_scoped_release>()).
+      call_guard<GilRelease>()).
     def("get_time", &TimeServiceTestEnvironment::get_time,
-      call_guard<gil_scoped_release>()).
-    def("close", &TimeServiceTestEnvironment::close,
-      call_guard<gil_scoped_release>());
+      call_guard<GilRelease>()).
+    def("close", &TimeServiceTestEnvironment::close, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_timer_reactor(pybind11::module& module) {

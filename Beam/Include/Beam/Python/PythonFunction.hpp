@@ -2,6 +2,7 @@
 #define BEAM_PYTHON_PYTHON_FUNCTION_HPP
 #include <utility>
 #include <pybind11/pybind11.h>
+#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/SharedObject.hpp"
 
 namespace Beam::Python {
@@ -46,13 +47,13 @@ namespace Beam::Python {
 
   template<typename R, typename... Args>
   PythonFunction<R (Args...)>::operator bool() const {
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = GilLock();
     return !m_callable->is_none();
   }
 
   template<typename R, typename... Args>
   R PythonFunction<R (Args...)>::operator ()(Args... args) const {
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = GilLock();
     if constexpr(std::is_void_v<R>) {
       (*m_callable)(std::forward<Args>(args)...);
     } else {
@@ -89,7 +90,7 @@ namespace Beam::Python {
       if(!source) {
         return pybind11::none().release();
       }
-      auto lock = pybind11::gil_scoped_acquire();
+      auto lock = GilLock();
       return (*source.m_callable).inc_ref();
     }
 

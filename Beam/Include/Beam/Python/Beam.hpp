@@ -6,6 +6,8 @@
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Decimal.hpp"
+#include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/IO.hpp"
 #include "Beam/Python/Json.hpp"
 #include "Beam/Python/Network.hpp"

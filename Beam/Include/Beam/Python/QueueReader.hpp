@@ -2,6 +2,7 @@
 #define BEAM_PYTHON_QUEUE_READER_HPP
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/Optional.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Queues/ScopedQueueReader.hpp"
@@ -93,7 +94,7 @@ namespace Beam::Python {
 
   template<typename T>
   FromPythonQueueReader<T>::~FromPythonQueueReader() {
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = GilLock();
     m_source.reset();
   }
 
@@ -109,10 +110,10 @@ namespace Beam::Python {
       return std::move(*value);
     }
     auto value = [&] {
-      auto release = pybind11::gil_scoped_release();
+      auto release = GilRelease();
       return m_source->pop();
     }();
-    auto lock = pybind11::gil_scoped_acquire();
+    auto lock = GilLock();
     return value.template cast<Source>();
   }
 
@@ -120,7 +121,7 @@ namespace Beam::Python {
   boost::optional<typename FromPythonQueueReader<T>::Source>
       FromPythonQueueReader<T>::try_pop() {
     if(auto value = m_source->try_pop()) {
-      auto lock = pybind11::gil_scoped_acquire();
+      auto lock = GilLock();
       return value->template cast<Source>();
     }
     return boost::none;

@@ -30,21 +30,6 @@ namespace Beam::Python {
   };
 
   /**
-   * Creates a shared_ptr with a custom deleter that releases the GIL during
-   * destruction.
-   * @param args The arguments to forward to T's constructor.
-   * @return A shared_ptr to T with a GIL-releasing deleter.
-   */
-  template<typename T, typename... Args>
-  auto make_python_shared(Args&&... args) {
-    return std::shared_ptr<T>(
-      new T(std::forward<Args>(args)...), [] (auto* object) {
-        auto release = pybind11::gil_scoped_release();
-        delete object;
-      });
-  }
-
-  /**
    * Implements a type caster for a SharedObject.
    */
   struct SharedObjectTypeCaster : BasicTypeCaster<SharedObject> {

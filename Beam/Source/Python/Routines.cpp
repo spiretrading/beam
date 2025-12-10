@@ -2,6 +2,7 @@
 #include <boost/throw_exception.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/SharedObject.hpp"
 #include "Beam/Routines/Routine.hpp"
@@ -53,9 +54,9 @@ void Beam::Python::export_routine_handler(module& module) {
     def(pybind11::init(&make_python_shared<RoutineHandler, Routine::Id>)).
     def_property_readonly("id", &RoutineHandler::get_id).
     def("detach", &RoutineHandler::detach).
-    def("wait", &RoutineHandler::wait, call_guard<gil_scoped_release>());
+    def("wait", &RoutineHandler::wait, call_guard<GilRelease>());
   module.def("flush_pending_routines", &flush_pending_routines,
-    call_guard<gil_scoped_release>());
+    call_guard<GilRelease>());
 }
 
 void Beam::Python::export_routine_handler_group(module& module) {
@@ -70,7 +71,7 @@ void Beam::Python::export_routine_handler_group(module& module) {
       [] (RoutineHandlerGroup& self, const PythonFunction<void ()>& callable) {
         return self.spawn(callable);
       }).
-    def("wait", &RoutineHandlerGroup::wait, call_guard<gil_scoped_release>());
+    def("wait", &RoutineHandlerGroup::wait, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_routines(module& module) {
@@ -83,7 +84,7 @@ void Beam::Python::export_routines(module& module) {
   module.def("spawn", [] (const PythonFunction<void ()>& callable) {
     return spawn(callable);
   });
-  module.def("defer", &defer, call_guard<gil_scoped_release>());
-  module.def("wait", &wait, call_guard<gil_scoped_release>());
+  module.def("defer", &defer, call_guard<GilRelease>());
+  module.def("wait", &wait, call_guard<GilRelease>());
   register_exception<RoutineException>(module, "RoutineException");
 }

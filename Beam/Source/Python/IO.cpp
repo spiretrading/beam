@@ -27,6 +27,7 @@
 #include "Beam/IO/SizeDeclarativeWriter.hpp"
 #include "Beam/IO/StaticBuffer.hpp"
 #include "Beam/IO/SuffixBuffer.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/ToPythonChannel.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
@@ -215,7 +216,7 @@ void Beam::Python::export_piped_writer(module& module) {
     def(pybind11::init<Ref<PipedReader>>()).
     def("close", [] (ToPythonWriter<PipedWriter>& self) {
       self.get().close();
-    }, call_guard<gil_scoped_release>());
+    }, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_queued_reader(module& module) {

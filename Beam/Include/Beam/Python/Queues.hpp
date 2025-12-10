@@ -3,6 +3,8 @@
 #include <string>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/AbstractQueue.hpp"
+#include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/QueueReader.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -62,8 +64,8 @@ namespace Beam::Python {
     }
     pybind11::class_<Publisher<T>, std::shared_ptr<Publisher<T>>,
       BasePublisher>(module, name.c_str(), pybind11::multiple_inheritance()).
-      def("monitor", &Publisher<T>::monitor,
-        pybind11::call_guard<pybind11::gil_scoped_release>());
+      def(
+        "monitor", &Publisher<T>::monitor, pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -86,7 +88,7 @@ namespace Beam::Python {
     pybind11::class_<T, std::shared_ptr<T>, AbstractQueue<typename T::Target>>(
       module, name.c_str(), pybind11::multiple_inheritance()).
       def(pybind11::init()).
-      def("pop", &T::pop, pybind11::call_guard<pybind11::gil_scoped_release>());
+      def("pop", &T::pop, pybind11::call_guard<GilRelease>());
   }
 
   /**
@@ -214,7 +216,7 @@ namespace Beam::Python {
         [] (SnapshotPublisher<T, S>& self, ScopedQueueWriter<T> writer) {
           auto snapshot = boost::optional<S>();
           {
-            auto release = pybind11::gil_scoped_release();
+            auto release = GilRelease();
             self.monitor(std::move(writer), out(snapshot));
           }
           if(snapshot) {
@@ -224,7 +226,7 @@ namespace Beam::Python {
         }).
       def("get_snapshot", [] (SnapshotPublisher<T, S>& self) {
         auto snapshot = [&] {
-          auto release = pybind11::gil_scoped_release();
+          auto release = GilRelease();
           return self.get_snapshot();
         }();
         if(snapshot) {

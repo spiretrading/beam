@@ -123,7 +123,7 @@ void Beam::Python::export_http_client(module& module) {
     def(pybind11::init([] (const IpAddress& interface) {
       return make_python_shared<HttpClient>(TcpSocketChannelFactory(interface));
     })).
-    def("send", &HttpClient::send, call_guard<gil_scoped_release>());
+    def("send", &HttpClient::send, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_http_header(module& module) {
@@ -417,12 +417,11 @@ void Beam::Python::export_web_socket(pybind11::module& module) {
   class_<WebSocket, std::shared_ptr<WebSocket>>(module, "WebSocket").
     def(pybind11::init([] (const WebSocketConfig& config) {
       return make_python_shared<WebSocket>(config, TcpSocketChannelFactory());
-    }), call_guard<gil_scoped_release>()).
+    }), call_guard<GilRelease>()).
     def_property_readonly("uri", &WebSocket::get_uri).
-    def("read", &WebSocket::read, call_guard<gil_scoped_release>()).
-    def("write", &WebSocket::write<SharedBuffer>,
-      call_guard<gil_scoped_release>()).
-    def("close", &WebSocket::close, call_guard<gil_scoped_release>());
+    def("read", &WebSocket::read, call_guard<GilRelease>()).
+    def("write", &WebSocket::write<SharedBuffer>, call_guard<GilRelease>()).
+    def("close", &WebSocket::close, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_web_socket_channel(pybind11::module& module) {
@@ -432,7 +431,7 @@ void Beam::Python::export_web_socket_channel(pybind11::module& module) {
     def(pybind11::init([] (const WebSocketConfig& config) {
       return std::make_unique<ToPythonChannel<WebSocketChannel<
         std::unique_ptr<Channel>>>>(config, TcpSocketChannelFactory());
-    }), call_guard<gil_scoped_release>()).
+    }), call_guard<GilRelease>()).
     def("get_socket", [] (
         ToPythonChannel<WebSocketChannel<std::unique_ptr<Channel>>>& self) ->
           WebSocket& {

@@ -214,8 +214,8 @@ void Beam::Python::export_piped_writer(module& module) {
   export_writer<ToPythonWriter<PipedWriter>>(module, "PipedWriter").
     def(pybind11::init<Ref<PipedReader>>()).
     def("close", [] (ToPythonWriter<PipedWriter>& self) {
-      self->close();
-    }, call_guard<GilRelease>());
+      self.get().close();
+    }, call_guard<gil_scoped_release>());
 }
 
 void Beam::Python::export_queued_reader(module& module) {

@@ -4,7 +4,6 @@
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/optional/optional.hpp>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
 
 namespace Beam::Python {
@@ -35,18 +34,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying client. */
       const Client& get() const;
 
-      /** Returns a reference to the underlying client. */
-      Client& operator *();
-
-      /** Returns a reference to the underlying client. */
-      const Client& operator *() const;
-
-      /** Returns a pointer to the underlying client. */
-      Client* operator ->();
-
-      /** Returns a pointer to the underlying client. */
-      const Client* operator ->() const;
-
       boost::posix_time::ptime get_time();
       void close();
 
@@ -64,12 +51,12 @@ namespace Beam::Python {
   template<IsTimeClient C>
   template<typename... Args>
   ToPythonTimeClient<C>::ToPythonTimeClient(Args&&... args)
-    : m_client(
-        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
+    : m_client((pybind11::gil_scoped_release(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<IsTimeClient C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client.reset();
   }
 
@@ -85,36 +72,14 @@ namespace Beam::Python {
   }
 
   template<IsTimeClient C>
-  typename ToPythonTimeClient<C>::Client& ToPythonTimeClient<C>::operator *() {
-    return *m_client;
-  }
-
-  template<IsTimeClient C>
-  const typename ToPythonTimeClient<C>::Client&
-      ToPythonTimeClient<C>::operator *() const {
-    return *m_client;
-  }
-
-  template<IsTimeClient C>
-  typename ToPythonTimeClient<C>::Client* ToPythonTimeClient<C>::operator ->() {
-    return m_client.get_ptr();
-  }
-
-  template<IsTimeClient C>
-  const typename ToPythonTimeClient<C>::Client*
-      ToPythonTimeClient<C>::operator ->() const {
-    return m_client.get_ptr();
-  }
-
-  template<IsTimeClient C>
   boost::posix_time::ptime ToPythonTimeClient<C>::get_time() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->get_time();
   }
 
   template<IsTimeClient C>
   void ToPythonTimeClient<C>::close() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->close();
   }
 }

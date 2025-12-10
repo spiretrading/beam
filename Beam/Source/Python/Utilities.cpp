@@ -1,7 +1,6 @@
 #include "Beam/Python/Utilities.hpp"
 #include <fstream>
 #include <pybind11/operators.h>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
@@ -32,8 +31,8 @@ void Beam::Python::export_utilities(module& module) {
   export_yaml(module);
   module.def("is_running", &is_running);
   module.def("received_kill_event", &received_kill_event);
-  module.def(
-    "wait_for_kill_event", &wait_for_kill_event, call_guard<GilRelease>());
+  module.def("wait_for_kill_event", &wait_for_kill_event,
+    call_guard<gil_scoped_release>());
 }
 
 void Beam::Python::export_yaml(pybind11::module& module) {

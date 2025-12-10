@@ -63,12 +63,12 @@ namespace Details {
     if(pybind11::hasattr(module, name.c_str())) {
       return;
     }
-    pybind11::class_<Expect<T>>(module, name.c_str())
-      .def(pybind11::init())
-      .def(pybind11::init<const T&>())
-      .def_property_readonly("is_value", &Expect<T>::is_value)
-      .def_property_readonly("is_exception", &Expect<T>::is_exception)
-      .def_property_readonly("value", [] (const Expect<T>& self) -> const T& {
+    pybind11::class_<Expect<T>>(module, name.c_str()).
+      def(pybind11::init()).
+      def(pybind11::init<const T&>()).
+      def_property_readonly("is_value", &Expect<T>::is_value).
+      def_property_readonly("is_exception", &Expect<T>::is_exception).
+      def_property_readonly("value", [] (const Expect<T>& self) -> const T& {
         return self.get();
       });
     if(!std::is_same_v<T, pybind11::object>) {

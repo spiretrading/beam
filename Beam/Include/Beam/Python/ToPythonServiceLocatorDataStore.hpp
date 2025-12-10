@@ -3,7 +3,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include <pybind11/pybind11.h>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 
 namespace Beam::Python {
@@ -33,18 +32,6 @@ namespace Beam::Python {
 
       /** Returns a reference to the underlying data store. */
       const DataStore& get() const;
-
-      /** Returns a reference to the underlying data store. */
-      DataStore& operator *();
-
-      /** Returns a reference to the underlying data store. */
-      const DataStore& operator *() const;
-
-      /** Returns a pointer to the underlying data store. */
-      DataStore* operator ->();
-
-      /** Returns a pointer to the underlying data store. */
-      const DataStore* operator ->() const;
 
       std::vector<DirectoryEntry> load_parents(const DirectoryEntry& entry);
       std::vector<DirectoryEntry>
@@ -98,12 +85,12 @@ namespace Beam::Python {
   template<typename... Args>
   ToPythonServiceLocatorDataStore<D>::ToPythonServiceLocatorDataStore(
     Args&&... args)
-    : m_data_store(
-        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
+    : m_data_store((pybind11::gil_scoped_release(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<IsServiceLocatorDataStore D>
   ToPythonServiceLocatorDataStore<D>::~ToPythonServiceLocatorDataStore() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store.reset();
   }
 
@@ -120,68 +107,44 @@ namespace Beam::Python {
   }
 
   template<IsServiceLocatorDataStore D>
-  typename ToPythonServiceLocatorDataStore<D>::DataStore&
-      ToPythonServiceLocatorDataStore<D>::operator *() {
-    return *m_data_store;
-  }
-
-  template<IsServiceLocatorDataStore D>
-  const typename ToPythonServiceLocatorDataStore<D>::DataStore&
-      ToPythonServiceLocatorDataStore<D>::operator *() const {
-    return *m_data_store;
-  }
-
-  template<IsServiceLocatorDataStore D>
-  typename ToPythonServiceLocatorDataStore<D>::DataStore*
-      ToPythonServiceLocatorDataStore<D>::operator ->() {
-    return m_data_store.get_ptr();
-  }
-
-  template<IsServiceLocatorDataStore D>
-  const typename ToPythonServiceLocatorDataStore<D>::DataStore*
-      ToPythonServiceLocatorDataStore<D>::operator ->() const {
-    return m_data_store.get_ptr();
-  }
-
-  template<IsServiceLocatorDataStore D>
   std::vector<DirectoryEntry> ToPythonServiceLocatorDataStore<D>::load_parents(
       const DirectoryEntry& entry) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_parents(entry);
   }
 
   template<IsServiceLocatorDataStore D>
   std::vector<DirectoryEntry> ToPythonServiceLocatorDataStore<D>::load_children(
       const DirectoryEntry& directory) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_children(directory);
   }
 
   template<IsServiceLocatorDataStore D>
   DirectoryEntry ToPythonServiceLocatorDataStore<D>::load_directory_entry(
       unsigned int id) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_directory_entry(id);
   }
 
   template<IsServiceLocatorDataStore D>
   std::vector<DirectoryEntry>
       ToPythonServiceLocatorDataStore<D>::load_all_accounts() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_all_accounts();
   }
 
   template<IsServiceLocatorDataStore D>
   std::vector<DirectoryEntry>
       ToPythonServiceLocatorDataStore<D>::load_all_directories() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_all_directories();
   }
 
   template<IsServiceLocatorDataStore D>
   DirectoryEntry ToPythonServiceLocatorDataStore<D>::load_account(
       const std::string& name) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_account(name);
   }
 
@@ -190,7 +153,7 @@ namespace Beam::Python {
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent,
       boost::posix_time::ptime registration_time) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->make_account(
       name, password, parent, registration_time);
   }
@@ -198,49 +161,49 @@ namespace Beam::Python {
   template<IsServiceLocatorDataStore D>
   DirectoryEntry ToPythonServiceLocatorDataStore<D>::make_directory(
       const std::string& name, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->make_directory(name, parent);
   }
 
   template<IsServiceLocatorDataStore D>
   void ToPythonServiceLocatorDataStore<D>::remove(
       const DirectoryEntry& entry) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->remove(entry);
   }
 
   template<IsServiceLocatorDataStore D>
   bool ToPythonServiceLocatorDataStore<D>::associate(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->associate(entry, parent);
   }
 
   template<IsServiceLocatorDataStore D>
   bool ToPythonServiceLocatorDataStore<D>::detach(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->detach(entry, parent);
   }
 
   template<IsServiceLocatorDataStore D>
   std::string ToPythonServiceLocatorDataStore<D>::load_password(
       const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_password(account);
   }
 
   template<IsServiceLocatorDataStore D>
   void ToPythonServiceLocatorDataStore<D>::set_password(
       const DirectoryEntry& account, const std::string& password) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->set_password(account, password);
   }
 
   template<IsServiceLocatorDataStore D>
   Permissions ToPythonServiceLocatorDataStore<D>::load_permissions(
       const DirectoryEntry& source, const DirectoryEntry& target) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_permissions(source, target);
   }
 
@@ -248,7 +211,7 @@ namespace Beam::Python {
   std::vector<std::tuple<DirectoryEntry, Permissions>>
       ToPythonServiceLocatorDataStore<D>::load_all_permissions(
         const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_all_permissions(account);
   }
 
@@ -256,7 +219,7 @@ namespace Beam::Python {
   void ToPythonServiceLocatorDataStore<D>::set_permissions(
       const DirectoryEntry& source, const DirectoryEntry& target,
       Permissions permissions) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->set_permissions(source, target, permissions);
   }
 
@@ -264,7 +227,7 @@ namespace Beam::Python {
   boost::posix_time::ptime
       ToPythonServiceLocatorDataStore<D>::load_registration_time(
         const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_registration_time(account);
   }
 
@@ -272,21 +235,21 @@ namespace Beam::Python {
   boost::posix_time::ptime
       ToPythonServiceLocatorDataStore<D>::load_last_login_time(
         const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->load_last_login_time(account);
   }
 
   template<IsServiceLocatorDataStore D>
   void ToPythonServiceLocatorDataStore<D>::store_last_login_time(
       const DirectoryEntry& account, boost::posix_time::ptime login_time) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->store_last_login_time(account, login_time);
   }
 
   template<IsServiceLocatorDataStore D>
   void ToPythonServiceLocatorDataStore<D>::rename(
       const DirectoryEntry& entry, const std::string& name) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->rename(entry, name);
   }
 
@@ -294,13 +257,13 @@ namespace Beam::Python {
   template<std::invocable<> F>
   decltype(auto) ToPythonServiceLocatorDataStore<D>::with_transaction(
       F&& transaction) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->with_transaction(std::forward<F>(transaction));
   }
 
   template<IsServiceLocatorDataStore D>
   void ToPythonServiceLocatorDataStore<D>::close() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->close();
   }
 }

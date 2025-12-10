@@ -1,7 +1,6 @@
 #ifndef BEAM_PYTHON_ROUTINES_HPP
 #define BEAM_PYTHON_ROUTINES_HPP
 #include <pybind11/pybind11.h>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Routines/Async.hpp"
 
 namespace Beam::Python {
@@ -47,7 +46,8 @@ namespace Beam::Python {
     pybind11::class_<Async<T>, BaseAsync>(module, name.c_str()).
       def(pybind11::init()).
       def("get_eval", &Async<T>::get_eval).
-      def("get", &Async<T>::get, pybind11::call_guard<GilRelease>()).
+      def("get", &Async<T>::get,
+        pybind11::call_guard<pybind11::gil_scoped_release>()).
       def_property_readonly("exception", &Async<T>::get_exception).
       def_property_readonly("state", &Async<T>::get_state).
       def("reset", &Async<T>::reset);

@@ -51,7 +51,7 @@ namespace pybind11::detail {
   template<unsigned D, typename E, typename A>
   struct type_caster<boost::multiprecision::cpp_dec_float<D, E, A>> :
     Beam::Python::DecimalTypeCaster<
-    boost::multiprecision::cpp_dec_float<D, E, A>> {};
+      boost::multiprecision::cpp_dec_float<D, E, A>> {};
 }
 
 #endif

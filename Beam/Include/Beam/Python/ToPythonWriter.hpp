@@ -4,7 +4,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Writer.hpp"
-#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -34,18 +33,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying writer. */
       const Writer& get() const;
 
-      /** Returns a reference to the underlying writer. */
-      Writer& operator *();
-
-      /** Returns a reference to the underlying writer. */
-      const Writer& operator *() const;
-
-      /** Returns a pointer to the underlying writer. */
-      Writer* operator ->();
-
-      /** Returns a pointer to the underlying writer. */
-      const Writer* operator ->() const;
-
       template<IsConstBuffer B>
       void write(const B& data);
 
@@ -62,12 +49,12 @@ namespace Beam::Python {
   template<IsWriter W>
   template<typename... Args>
   ToPythonWriter<W>::ToPythonWriter(Args&&... args)
-    : m_writer((GilRelease(), boost::in_place_init),
+    : m_writer((pybind11::gil_scoped_release(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsWriter W>
   ToPythonWriter<W>::~ToPythonWriter() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_writer.reset();
   }
 
@@ -82,31 +69,9 @@ namespace Beam::Python {
   }
 
   template<IsWriter W>
-  typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::operator *() {
-    return *m_writer;
-  }
-
-  template<IsWriter W>
-  const typename ToPythonWriter<W>::Writer& ToPythonWriter<W>::operator *()
-      const {
-    return *m_writer;
-  }
-
-  template<IsWriter W>
-  typename ToPythonWriter<W>::Writer* ToPythonWriter<W>::operator ->() {
-    return m_writer.get_ptr();
-  }
-
-  template<IsWriter W>
-  const typename ToPythonWriter<W>::Writer* ToPythonWriter<W>::operator ->()
-      const {
-    return m_writer.get_ptr();
-  }
-
-  template<IsWriter W>
   template<IsConstBuffer B>
   void ToPythonWriter<W>::write(const B& data) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_writer->write(data);
   }
 }

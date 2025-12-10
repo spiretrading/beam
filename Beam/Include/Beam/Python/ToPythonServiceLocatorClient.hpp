@@ -3,7 +3,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include <pybind11/pybind11.h>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 
 namespace Beam::Python {
@@ -33,18 +32,6 @@ namespace Beam::Python {
 
       /** Returns a reference to the underlying client. */
       const Client& get() const;
-
-      /** Returns a reference to the underlying client. */
-      Client& operator *();
-
-      /** Returns a reference to the underlying client. */
-      const Client& operator *() const;
-
-      /** Returns a pointer to the underlying client. */
-      Client* operator ->();
-
-      /** Returns a pointer to the underlying client. */
-      const Client* operator ->() const;
 
       DirectoryEntry get_account() const;
       std::string get_session_id() const;
@@ -102,12 +89,12 @@ namespace Beam::Python {
   template<IsServiceLocatorClient C>
   template<typename... Args>
   ToPythonServiceLocatorClient<C>::ToPythonServiceLocatorClient(Args&&... args)
-    : m_client(
-        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
+    : m_client((pybind11::gil_scoped_release(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<IsServiceLocatorClient C>
   ToPythonServiceLocatorClient<C>::~ToPythonServiceLocatorClient() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client.reset();
   }
 
@@ -124,93 +111,69 @@ namespace Beam::Python {
   }
 
   template<IsServiceLocatorClient C>
-  typename ToPythonServiceLocatorClient<C>::Client&
-      ToPythonServiceLocatorClient<C>::operator *() {
-    return *m_client;
-  }
-
-  template<IsServiceLocatorClient C>
-  const typename ToPythonServiceLocatorClient<C>::Client&
-      ToPythonServiceLocatorClient<C>::operator *() const {
-    return *m_client;
-  }
-
-  template<IsServiceLocatorClient C>
-  typename ToPythonServiceLocatorClient<C>::Client*
-      ToPythonServiceLocatorClient<C>::operator ->() {
-    return m_client.get_ptr();
-  }
-
-  template<IsServiceLocatorClient C>
-  const typename ToPythonServiceLocatorClient<C>::Client*
-      ToPythonServiceLocatorClient<C>::operator ->() const {
-    return m_client.get_ptr();
-  }
-
-  template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::get_account() const {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->get_account();
   }
 
   template<IsServiceLocatorClient C>
   std::string ToPythonServiceLocatorClient<C>::get_session_id() const {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->get_session_id();
   }
 
   template<IsServiceLocatorClient C>
   std::string ToPythonServiceLocatorClient<C>::get_encrypted_session_id(
       unsigned int key) const {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->get_encrypted_session_id(key);
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::authenticate_account(
       const std::string& username, const std::string& password) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->authenticate_account(username, password);
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::authenticate_session(
       const std::string& session_id, unsigned int key) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->authenticate_session(session_id, key);
   }
 
   template<IsServiceLocatorClient C>
   std::vector<ServiceEntry> ToPythonServiceLocatorClient<C>::locate(
       const std::string& name) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->locate(name);
   }
 
   template<IsServiceLocatorClient C>
   ServiceEntry ToPythonServiceLocatorClient<C>::add(
       const std::string& name, const JsonObject& properties) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->add(name, properties);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::remove(const ServiceEntry& service) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->remove(service);
   }
 
   template<IsServiceLocatorClient C>
   std::vector<DirectoryEntry>
       ToPythonServiceLocatorClient<C>::load_all_accounts() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_all_accounts();
   }
 
   template<IsServiceLocatorClient C>
   boost::optional<DirectoryEntry> ToPythonServiceLocatorClient<C>::find_account(
       const std::string& name) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->find_account(name);
   }
 
@@ -218,76 +181,76 @@ namespace Beam::Python {
   DirectoryEntry ToPythonServiceLocatorClient<C>::make_account(
       const std::string& name, const std::string& password,
       const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->make_account(name, password, parent);
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::make_directory(
       const std::string& name, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->make_directory(name, parent);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::store_password(
       const DirectoryEntry& account, const std::string& password) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->store_password(account, password);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::monitor(
       ScopedQueueWriter<AccountUpdate> queue) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->monitor(std::move(queue));
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::load_directory_entry(
       const DirectoryEntry& root, const std::string& path) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_directory_entry(root, path);
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::load_directory_entry(
       unsigned int id) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_directory_entry(id);
   }
 
   template<IsServiceLocatorClient C>
   std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::load_parents(
       const DirectoryEntry& entry) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_parents(entry);
   }
 
   template<IsServiceLocatorClient C>
   std::vector<DirectoryEntry> ToPythonServiceLocatorClient<C>::load_children(
       const DirectoryEntry& entry) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_children(entry);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::remove(const DirectoryEntry& entry) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->remove(entry);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::associate(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->associate(entry, parent);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::detach(
       const DirectoryEntry& entry, const DirectoryEntry& parent) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->detach(entry, parent);
   }
 
@@ -295,14 +258,14 @@ namespace Beam::Python {
   bool ToPythonServiceLocatorClient<C>::has_permissions(
       const DirectoryEntry& account, const DirectoryEntry& target,
       Permissions permissions) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->has_permissions(account, target, permissions);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::store(const DirectoryEntry& source,
       const DirectoryEntry& target, Permissions permissions) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->store(source, target, permissions);
   }
 
@@ -310,7 +273,7 @@ namespace Beam::Python {
   boost::posix_time::ptime
       ToPythonServiceLocatorClient<C>::load_registration_time(
         const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_registration_time(account);
   }
 
@@ -318,20 +281,20 @@ namespace Beam::Python {
   boost::posix_time::ptime
       ToPythonServiceLocatorClient<C>::load_last_login_time(
         const DirectoryEntry& account) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->load_last_login_time(account);
   }
 
   template<IsServiceLocatorClient C>
   DirectoryEntry ToPythonServiceLocatorClient<C>::rename(
       const DirectoryEntry& entry, const std::string& name) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_client->rename(entry, name);
   }
 
   template<IsServiceLocatorClient C>
   void ToPythonServiceLocatorClient<C>::close() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_client->close();
   }
 }

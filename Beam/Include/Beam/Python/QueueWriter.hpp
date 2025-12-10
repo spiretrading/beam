@@ -4,7 +4,6 @@
 #include <boost/throw_exception.hpp>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
-#include "Beam/Python/GilLock.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/Queues/WeakQueueWriter.hpp"
 
@@ -155,7 +154,7 @@ namespace Details {
 
   template<typename T>
   FromPythonQueueWriter<T>::~FromPythonQueueWriter() {
-    auto lock = GilLock();
+    auto lock = pybind11::gil_scoped_acquire();
     m_target.reset();
   }
 
@@ -167,7 +166,7 @@ namespace Details {
 
   template<typename T>
   void FromPythonQueueWriter<T>::push(const Target& value) {
-    auto lock = GilLock();
+    auto lock = pybind11::gil_scoped_acquire();
     if(!m_target) {
       boost::throw_with_location(PipeBrokenException());
     }
@@ -182,7 +181,7 @@ namespace Details {
 
   template<typename T>
   void FromPythonQueueWriter<T>::push(Target&& value) {
-    auto lock = GilLock();
+    auto lock = pybind11::gil_scoped_acquire();
     if(!m_target) {
       boost::throw_with_location(PipeBrokenException());
     }
@@ -197,7 +196,7 @@ namespace Details {
 
   template<typename T>
   void FromPythonQueueWriter<T>::close(const std::exception_ptr& e) {
-    auto lock = GilLock();
+    auto lock = pybind11::gil_scoped_acquire();
     if(!m_target) {
       return;
     }

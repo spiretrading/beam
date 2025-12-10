@@ -123,7 +123,7 @@ void Beam::Python::export_http_client(module& module) {
     def(pybind11::init([] (const IpAddress& interface) {
       return make_python_shared<HttpClient>(TcpSocketChannelFactory(interface));
     })).
-    def("send", &HttpClient::send, call_guard<GilRelease>());
+    def("send", &HttpClient::send, call_guard<gil_scoped_release>());
 }
 
 void Beam::Python::export_http_header(module& module) {
@@ -322,7 +322,7 @@ void Beam::Python::export_smtp_email_client(pybind11::module& module) {
       })).
     def("set_credentials", [] (ToPythonEmailClient<SmtpEmailClient>& self,
         const std::string& username, const std::string& password) {
-      return self->set_credentials(username, password);
+      return self.get().set_credentials(username, password);
     }).
     def("send", &ToPythonEmailClient<SmtpEmailClient>::send).
     def("close", &ToPythonEmailClient<SmtpEmailClient>::close);
@@ -417,11 +417,12 @@ void Beam::Python::export_web_socket(pybind11::module& module) {
   class_<WebSocket, std::shared_ptr<WebSocket>>(module, "WebSocket").
     def(pybind11::init([] (const WebSocketConfig& config) {
       return make_python_shared<WebSocket>(config, TcpSocketChannelFactory());
-    }), call_guard<GilRelease>()).
+    }), call_guard<gil_scoped_release>()).
     def_property_readonly("uri", &WebSocket::get_uri).
-    def("read", &WebSocket::read, call_guard<GilRelease>()).
-    def("write", &WebSocket::write<SharedBuffer>, call_guard<GilRelease>()).
-    def("close", &WebSocket::close, call_guard<GilRelease>());
+    def("read", &WebSocket::read, call_guard<gil_scoped_release>()).
+    def("write", &WebSocket::write<SharedBuffer>,
+      call_guard<gil_scoped_release>()).
+    def("close", &WebSocket::close, call_guard<gil_scoped_release>());
 }
 
 void Beam::Python::export_web_socket_channel(pybind11::module& module) {
@@ -431,11 +432,11 @@ void Beam::Python::export_web_socket_channel(pybind11::module& module) {
     def(pybind11::init([] (const WebSocketConfig& config) {
       return std::make_unique<ToPythonChannel<WebSocketChannel<
         std::unique_ptr<Channel>>>>(config, TcpSocketChannelFactory());
-    }), call_guard<GilRelease>()).
+    }), call_guard<gil_scoped_release>()).
     def("get_socket", [] (
         ToPythonChannel<WebSocketChannel<std::unique_ptr<Channel>>>& self) ->
           WebSocket& {
-      return self->get_socket();
+      return self.get().get_socket();
     }, return_value_policy::reference_internal);
 }
 

@@ -84,7 +84,7 @@ namespace Beam {
     struct OwnerTag {};
     struct Storage {
       alignas(alignof(std::max_align_t)) Buffer m_buffer;
-     void (*m_move)(Buffer& self, Buffer& source) = nullptr;
+      void (*m_move)(Buffer& self, Buffer& source) = nullptr;
     };
     union {
       Storage m_storage;

@@ -4,7 +4,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Reader.hpp"
-#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -34,18 +33,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying reader. */
       const Reader& get() const;
 
-      /** Returns a reference to the underlying reader. */
-      Reader& operator *();
-
-      /** Returns a reference to the underlying reader. */
-      const Reader& operator *() const;
-
-      /** Returns a pointer to the underlying reader. */
-      Reader* operator ->();
-
-      /** Returns a pointer to the underlying reader. */
-      const Reader* operator ->() const;
-
       bool poll() const;
       template<IsBuffer B>
       std::size_t read(Out<B> destination, std::size_t size = -1);
@@ -63,12 +50,12 @@ namespace Beam::Python {
   template<IsReader R>
   template<typename... Args>
   ToPythonReader<R>::ToPythonReader(Args&&... args)
-    : m_reader((GilRelease(), boost::in_place_init),
+    : m_reader((pybind11::gil_scoped_release(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsReader R>
   ToPythonReader<R>::~ToPythonReader() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_reader.reset();
   }
 
@@ -83,37 +70,15 @@ namespace Beam::Python {
   }
 
   template<IsReader R>
-  typename ToPythonReader<R>::Reader& ToPythonReader<R>::operator *() {
-    return *m_reader;
-  }
-
-  template<IsReader R>
-  const typename ToPythonReader<R>::Reader& ToPythonReader<R>::operator *()
-      const {
-    return *m_reader;
-  }
-
-  template<IsReader R>
-  typename ToPythonReader<R>::Reader* ToPythonReader<R>::operator ->() {
-    return m_reader.get_ptr();
-  }
-
-  template<IsReader R>
-  const typename ToPythonReader<R>::Reader* ToPythonReader<R>::operator ->()
-      const {
-    return m_reader.get_ptr();
-  }
-
-  template<IsReader R>
   bool ToPythonReader<R>::poll() const {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_reader->poll();
   }
 
   template<IsReader R>
   template<IsBuffer B>
   std::size_t ToPythonReader<R>::read(Out<B> destination, std::size_t size) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_reader->read(out(destination), size);
   }
 }

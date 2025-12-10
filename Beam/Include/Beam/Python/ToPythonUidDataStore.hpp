@@ -3,7 +3,6 @@
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
 namespace Beam::Python {
@@ -34,18 +33,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying data store. */
       const DataStore& get() const;
 
-      /** Returns a reference to the underlying data store. */
-      DataStore& operator *();
-
-      /** Returns a reference to the underlying data store. */
-      const DataStore& operator *() const;
-
-      /** Returns a pointer to the underlying data store. */
-      DataStore* operator ->();
-
-      /** Returns a pointer to the underlying data store. */
-      const DataStore* operator ->() const;
-
       std::uint64_t get_next_uid();
       std::uint64_t reserve(std::uint64_t size);
       template<std::invocable<> F>
@@ -66,12 +53,12 @@ namespace Beam::Python {
   template<IsUidDataStore D>
   template<typename... Args>
   ToPythonUidDataStore<D>::ToPythonUidDataStore(Args&&... args)
-    : m_data_store(
-        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...) {}
+    : m_data_store((pybind11::gil_scoped_release(), boost::in_place_init),
+        std::forward<Args>(args)...) {}
 
   template<IsUidDataStore D>
   ToPythonUidDataStore<D>::~ToPythonUidDataStore() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store.reset();
   }
 
@@ -88,51 +75,27 @@ namespace Beam::Python {
   }
 
   template<IsUidDataStore D>
-  typename ToPythonUidDataStore<D>::DataStore&
-      ToPythonUidDataStore<D>::operator *() {
-    return *m_data_store;
-  }
-
-  template<IsUidDataStore D>
-  const typename ToPythonUidDataStore<D>::DataStore&
-      ToPythonUidDataStore<D>::operator *() const {
-    return *m_data_store;
-  }
-
-  template<IsUidDataStore D>
-  typename ToPythonUidDataStore<D>::DataStore*
-      ToPythonUidDataStore<D>::operator ->() {
-    return m_data_store.get_ptr();
-  }
-
-  template<IsUidDataStore D>
-  const typename ToPythonUidDataStore<D>::DataStore*
-      ToPythonUidDataStore<D>::operator ->() const {
-    return m_data_store.get_ptr();
-  }
-
-  template<IsUidDataStore D>
   std::uint64_t ToPythonUidDataStore<D>::get_next_uid() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->get_next_uid();
   }
 
   template<IsUidDataStore D>
   std::uint64_t ToPythonUidDataStore<D>::reserve(std::uint64_t size) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->reserve(size);
   }
 
   template<IsUidDataStore D>
   template<std::invocable<> F>
   decltype(auto) ToPythonUidDataStore<D>::with_transaction(F&& transaction) {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     return m_data_store->with_transaction(std::forward<F>(transaction));
   }
 
   template<IsUidDataStore D>
   void ToPythonUidDataStore<D>::close() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_data_store->close();
   }
 }

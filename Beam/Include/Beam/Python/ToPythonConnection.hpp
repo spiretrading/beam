@@ -4,7 +4,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Connection.hpp"
-#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -34,18 +33,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying connection. */
       const Connection& get() const;
 
-      /** Returns a reference to the underlying connection. */
-      Connection& operator *();
-
-      /** Returns a reference to the underlying connection. */
-      const Connection& operator *() const;
-
-      /** Returns a pointer to the underlying connection. */
-      Connection* operator ->();
-
-      /** Returns a pointer to the underlying connection. */
-      const Connection* operator ->() const;
-
       void close();
 
     private:
@@ -62,12 +49,12 @@ namespace Beam::Python {
   template<IsConnection C>
   template<typename... Args>
   ToPythonConnection<C>::ToPythonConnection(Args&&... args)
-    : m_connection((GilRelease(), boost::in_place_init),
+    : m_connection((pybind11::gil_scoped_release(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsConnection C>
   ToPythonConnection<C>::~ToPythonConnection() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_connection.reset();
   }
 
@@ -83,32 +70,8 @@ namespace Beam::Python {
   }
 
   template<IsConnection C>
-  typename ToPythonConnection<C>::Connection&
-      ToPythonConnection<C>::operator *() {
-    return *m_connection;
-  }
-
-  template<IsConnection C>
-  const typename ToPythonConnection<C>::Connection&
-      ToPythonConnection<C>::operator *() const {
-    return *m_connection;
-  }
-
-  template<IsConnection C>
-  typename ToPythonConnection<C>::Connection*
-      ToPythonConnection<C>::operator ->() {
-    return m_connection.get_ptr();
-  }
-
-  template<IsConnection C>
-  const typename ToPythonConnection<C>::Connection*
-      ToPythonConnection<C>::operator ->() const {
-    return m_connection.get_ptr();
-  }
-
-  template<IsConnection C>
   void ToPythonConnection<C>::close() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_connection->close();
   }
 }

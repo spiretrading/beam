@@ -4,7 +4,6 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Channel.hpp"
-#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
@@ -42,18 +41,6 @@ namespace Beam::Python {
       /** Returns a reference to the underlying channel. */
       const Channel& get() const;
 
-      /** Returns a reference to the underlying channel. */
-      Channel& operator *();
-
-      /** Returns a reference to the underlying channel. */
-      const Channel& operator *() const;
-
-      /** Returns a pointer to the underlying channel. */
-      Channel* operator ->();
-
-      /** Returns a pointer to the underlying channel. */
-      const Channel* operator ->() const;
-
       const Identifier& get_identifier() const;
       Connection& get_connection();
       Reader& get_reader();
@@ -75,8 +62,8 @@ namespace Beam::Python {
   template<IsChannel C>
   template<typename... Args>
   ToPythonChannel<C>::ToPythonChannel(Args&&... args)
-    : m_channel(
-        (GilRelease(), boost::in_place_init), std::forward<Args>(args)...),
+    : m_channel((pybind11::gil_scoped_release(), boost::in_place_init),
+        std::forward<Args>(args)...),
       m_connection(boost::in_place_init,
         std::in_place_type<ToPythonConnection<Connection>>,
         &m_channel->get_connection()),
@@ -87,7 +74,7 @@ namespace Beam::Python {
 
   template<IsChannel C>
   ToPythonChannel<C>::~ToPythonChannel() {
-    auto release = GilRelease();
+    auto release = pybind11::gil_scoped_release();
     m_writer.reset();
     m_reader.reset();
     m_connection.reset();
@@ -103,28 +90,6 @@ namespace Beam::Python {
   const typename ToPythonChannel<C>::Channel& ToPythonChannel<C>::get()
       const {
     return *m_channel;
-  }
-
-  template<IsChannel C>
-  typename ToPythonChannel<C>::Channel& ToPythonChannel<C>::operator *() {
-    return *m_channel;
-  }
-
-  template<IsChannel C>
-  const typename ToPythonChannel<C>::Channel&
-      ToPythonChannel<C>::operator *() const {
-    return *m_channel;
-  }
-
-  template<IsChannel C>
-  typename ToPythonChannel<C>::Channel* ToPythonChannel<C>::operator ->() {
-    return m_channel.get_ptr();
-  }
-
-  template<IsChannel C>
-  const typename ToPythonChannel<C>::Channel*
-      ToPythonChannel<C>::operator ->() const {
-    return m_channel.get_ptr();
   }
 
   template<IsChannel C>

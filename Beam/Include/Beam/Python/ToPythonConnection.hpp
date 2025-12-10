@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Connection.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -49,12 +50,12 @@ namespace Beam::Python {
   template<IsConnection C>
   template<typename... Args>
   ToPythonConnection<C>::ToPythonConnection(Args&&... args)
-    : m_connection((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_connection((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsConnection C>
   ToPythonConnection<C>::~ToPythonConnection() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_connection.reset();
   }
 
@@ -71,7 +72,7 @@ namespace Beam::Python {
 
   template<IsConnection C>
   void ToPythonConnection<C>::close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_connection->close();
   }
 }

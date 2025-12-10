@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/WebServices/EmailClient.hpp"
 
 namespace Beam::Python {
@@ -50,12 +51,12 @@ namespace Beam::Python {
   template<IsEmailClient C>
   template<typename... Args>
   ToPythonEmailClient<C>::ToPythonEmailClient(Args&&... args)
-    : m_client((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_client((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsEmailClient C>
   ToPythonEmailClient<C>::~ToPythonEmailClient() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client.reset();
   }
 
@@ -73,13 +74,13 @@ namespace Beam::Python {
 
   template<IsEmailClient C>
   void ToPythonEmailClient<C>::send(const Email& email) {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->send(email);
   }
 
   template<IsEmailClient C>
   void ToPythonEmailClient<C>::close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->close();
   }
 }

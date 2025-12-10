@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/UidService/UidClient.hpp"
 
 namespace Beam::Python {
@@ -50,12 +51,12 @@ namespace Beam::Python {
   template<IsUidClient C>
   template<typename... Args>
   ToPythonUidClient<C>::ToPythonUidClient(Args&&... args)
-    : m_client((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_client((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsUidClient C>
   ToPythonUidClient<C>::~ToPythonUidClient() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client.reset();
   }
 
@@ -72,13 +73,13 @@ namespace Beam::Python {
 
   template<IsUidClient C>
   std::uint64_t ToPythonUidClient<C>::load_next_uid() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_client->load_next_uid();
   }
 
   template<IsUidClient C>
   void ToPythonUidClient<C>::close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->close();
   }
 }

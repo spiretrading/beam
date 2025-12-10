@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Channel.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
@@ -62,7 +63,7 @@ namespace Beam::Python {
   template<IsChannel C>
   template<typename... Args>
   ToPythonChannel<C>::ToPythonChannel(Args&&... args)
-    : m_channel((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_channel((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...),
       m_connection(boost::in_place_init,
         std::in_place_type<ToPythonConnection<Connection>>,
@@ -74,7 +75,7 @@ namespace Beam::Python {
 
   template<IsChannel C>
   ToPythonChannel<C>::~ToPythonChannel() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_writer.reset();
     m_reader.reset();
     m_connection.reset();

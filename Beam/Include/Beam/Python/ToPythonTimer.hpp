@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <utility>
 #include <boost/optional/optional.hpp>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/Timer.hpp"
 
 namespace Beam::Python {
@@ -53,12 +54,12 @@ namespace Beam::Python {
   template<IsTimer T>
   template<typename... Args>
   ToPythonTimer<T>::ToPythonTimer(Args&&... args)
-    : m_timer((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_timer((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsTimer T>
   ToPythonTimer<T>::~ToPythonTimer() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer.reset();
   }
 
@@ -74,19 +75,19 @@ namespace Beam::Python {
 
   template<IsTimer T>
   void ToPythonTimer<T>::start() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->start();
   }
 
   template<IsTimer T>
   void ToPythonTimer<T>::cancel() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->cancel();
   }
 
   template<IsTimer T>
   void ToPythonTimer<T>::wait() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_timer->wait();
   }
 

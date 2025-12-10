@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/optional/optional.hpp>
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/TimeService/TimeClient.hpp"
 
 namespace Beam::Python {
@@ -51,12 +52,12 @@ namespace Beam::Python {
   template<IsTimeClient C>
   template<typename... Args>
   ToPythonTimeClient<C>::ToPythonTimeClient(Args&&... args)
-    : m_client((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_client((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsTimeClient C>
   ToPythonTimeClient<C>::~ToPythonTimeClient() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client.reset();
   }
 
@@ -73,13 +74,13 @@ namespace Beam::Python {
 
   template<IsTimeClient C>
   boost::posix_time::ptime ToPythonTimeClient<C>::get_time() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_client->get_time();
   }
 
   template<IsTimeClient C>
   void ToPythonTimeClient<C>::close() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_client->close();
   }
 }

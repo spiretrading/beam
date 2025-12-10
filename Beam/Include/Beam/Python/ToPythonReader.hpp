@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Reader.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -50,12 +51,12 @@ namespace Beam::Python {
   template<IsReader R>
   template<typename... Args>
   ToPythonReader<R>::ToPythonReader(Args&&... args)
-    : m_reader((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_reader((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsReader R>
   ToPythonReader<R>::~ToPythonReader() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_reader.reset();
   }
 
@@ -71,14 +72,14 @@ namespace Beam::Python {
 
   template<IsReader R>
   bool ToPythonReader<R>::poll() const {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_reader->poll();
   }
 
   template<IsReader R>
   template<IsBuffer B>
   std::size_t ToPythonReader<R>::read(Out<B> destination, std::size_t size) {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     return m_reader->read(out(destination), size);
   }
 }

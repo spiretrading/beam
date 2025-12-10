@@ -4,6 +4,7 @@
 #include <utility>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/Writer.hpp"
+#include "Beam/Python/GilRelease.hpp"
 
 namespace Beam::Python {
 
@@ -49,12 +50,12 @@ namespace Beam::Python {
   template<IsWriter W>
   template<typename... Args>
   ToPythonWriter<W>::ToPythonWriter(Args&&... args)
-    : m_writer((pybind11::gil_scoped_release(), boost::in_place_init),
+    : m_writer((GilRelease(), boost::in_place_init),
         std::forward<Args>(args)...) {}
 
   template<IsWriter W>
   ToPythonWriter<W>::~ToPythonWriter() {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_writer.reset();
   }
 
@@ -71,7 +72,7 @@ namespace Beam::Python {
   template<IsWriter W>
   template<IsConstBuffer B>
   void ToPythonWriter<W>::write(const B& data) {
-    auto release = pybind11::gil_scoped_release();
+    auto release = GilRelease();
     m_writer->write(data);
   }
 }

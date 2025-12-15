@@ -353,8 +353,6 @@ namespace Details {
             request.set(
               slot(request.get_client(), std::forward<Args>(args)...));
           }
-        } catch(const ServiceRequestException& e) {
-          request.set_exception(e);
         } catch(const std::exception& e) {
           request.set_exception(ServiceRequestException(e.what()));
         }

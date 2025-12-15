@@ -154,8 +154,6 @@ namespace Details {
       std::apply([&] (const auto&... args) {
         m_slot(token, args...);
       }, boost::pfr::structure_tie(parameters));
-    } catch(const ServiceRequestException& e) {
-      client->send(Response(id, client->clone_exception(e)));
     } catch(const std::exception& e) {
       client->send(Response(
         id, client->clone_exception(ServiceRequestException(e.what()))));

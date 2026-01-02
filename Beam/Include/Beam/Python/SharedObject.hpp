@@ -32,7 +32,8 @@ namespace Beam::Python {
   /**
    * Implements a type caster for a SharedObject.
    */
-  struct SharedObjectTypeCaster : BasicTypeCaster<SharedObject> {
+  struct BEAM_EXPORT_DLL SharedObjectTypeCaster :
+      BasicTypeCaster<SharedObject> {
     static constexpr auto name = pybind11::detail::_("SharedObject");
     static pybind11::handle cast(const SharedObject& value,
       pybind11::return_value_policy policy, pybind11::handle parent);

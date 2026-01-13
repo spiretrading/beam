@@ -25,10 +25,10 @@ FOR /F "usebackq delims=" %%i IN (` ^
   )
 )
 CALL :DownloadAndExtract "Strawberry" ^
-  "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54001_64bit_UCRT/strawberry-perl-5.40.0.1-64bit-portable.zip"
+  "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="b58d2598a91a694b26d053cd4b8ddf3a5ed50e08"
+SET ASPEN_COMMIT="27f66a115baf6d1226ae2cb4540afb05db7c994a"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (
@@ -86,10 +86,10 @@ IF %BUILD_NEEDED%==1 (
   POPD
   POPD
 )
-CALL :DownloadAndExtract "mariadb-connector-c-3.4.3" ^
-  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.3.zip"
+CALL :DownloadAndExtract "mariadb-connector-c-3.4.8" ^
+  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.8.zip"
 IF %BUILD_NEEDED%==1 (
-  PUSHD mariadb-connector-c-3.4.3
+  PUSHD mariadb-connector-c-3.4.8
   cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb .
   PUSHD libmariadb
   powershell -Command "(Get-Content mariadbclient.vcxproj) -replace " ^
@@ -109,23 +109,23 @@ IF %BUILD_NEEDED%==1 (
   cmake --build . --target mariadbclient --config Release
   POPD
 )
-CALL :DownloadAndExtract "openssl-3.4.0" ^
-  "https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz"
+CALL :DownloadAndExtract "openssl-3.6.0" ^
+  "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.6.0.zip"
 IF %BUILD_NEEDED%==1 (
-  MOVE openssl-3.4.0 openssl-3.4.0-build
-  PUSHD openssl-3.4.0-build
+  MOVE openssl-3.6.0 openssl-3.6.0-build
+  PUSHD openssl-3.6.0-build
   perl Configure VC-WIN64A no-asm no-shared no-tests ^
-    --prefix="!ROOT!\openssl-3.4.0" --openssldir="!ROOT!\openssl-3.4.0"
+    --prefix="!ROOT!\openssl-3.6.0" --openssldir="!ROOT!\openssl-3.6.0"
   SET CL=/MP
   nmake
   nmake install
   POPD
-  RD /S /Q openssl-3.4.0-build
+  RD /S /Q openssl-3.6.0-build
 )
-CALL :DownloadAndExtract "sqlite-amalgamation-3480000" ^
-  "https://www.sqlite.org/2025/sqlite-amalgamation-3480000.zip"
+CALL :DownloadAndExtract "sqlite-amalgamation-3510200" ^
+  "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip"
 IF %BUILD_NEEDED%==1 (
-  PUSHD sqlite-amalgamation-3480000
+  PUSHD sqlite-amalgamation-3510200
   cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c
   lib sqlite3.obj
   COPY sqlite3.lib sqlite3d.lib
@@ -170,10 +170,10 @@ IF %BUILD_NEEDED%==1 (
   POPD
   POPD
 )
-CALL :DownloadAndExtract "zlib-1.3.1" ^
-  "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.zip"
+CALL :DownloadAndExtract "zlib-1.3.1.2" ^
+  "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip"
 IF %BUILD_NEEDED%==1 (
-  PUSHD zlib-1.3.1\contrib\vstudio\vc17
+  PUSHD zlib-1.3.1.2\contrib\vstudio\vc17
   powershell -Command "(Get-Content zlibstat.vcxproj) -replace " ^
     "'ZLIB_WINAPI;', '' -replace " ^
     "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
@@ -192,14 +192,14 @@ IF "%NUMBER_OF_PROCESSORS%" == "" (
 ) ELSE (
   SET BJAM_PROCESSORS="-j%NUMBER_OF_PROCESSORS%"
 )
-CALL :DownloadAndExtract "boost_1_86_0" ^
-  "https://archives.boost.io/release/1.86.0/source/boost_1_86_0.zip"
+CALL :DownloadAndExtract "boost_1_90_0" ^
+  "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.zip"
 IF %BUILD_NEEDED%==1 (
-  PUSHD boost_1_86_0
+  PUSHD boost_1_90_0
   PUSHD tools\build
   CALL bootstrap.bat vc143
   POPD
-  tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_86_0" ^
+  tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_90_0" ^
     --build-type=complete address-model=64 context-impl=winfib ^
     toolset=msvc-14.3 link=static runtime-link=shared install
   POPD

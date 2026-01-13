@@ -1,6 +1,6 @@
 #ifndef BEAM_LIVE_TIMER_HPP
 #define BEAM_LIVE_TIMER_HPP
-#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
@@ -31,7 +31,7 @@ namespace Beam {
     private:
       mutable Mutex m_mutex;
       boost::posix_time::time_duration m_interval;
-      boost::asio::deadline_timer m_deadline_timer;
+      boost::asio::steady_timer m_deadline_timer;
       bool m_is_pending;
       QueueWriterPublisher<Timer::Result> m_publisher;
       ConditionVariable m_trigger;
@@ -55,7 +55,8 @@ namespace Beam {
       return;
     }
     m_is_pending = true;
-    m_deadline_timer.expires_from_now(m_interval);
+    m_deadline_timer.expires_after(
+      std::chrono::microseconds(m_interval.total_microseconds()));
     m_deadline_timer.async_wait([this] (const auto& error) {
       auto lock = boost::lock_guard(m_mutex);
       if(error) {

@@ -150,7 +150,7 @@ namespace Beam {
         boost::asio::ip::udp::v4(), m_group.get_port()), error_code);
 #else
       m_socket->m_socket.bind(boost::asio::ip::udp::endpoint(
-        boost::asio::ip::address::from_string(m_group.get_host()),
+        boost::asio::ip::make_address_v4(m_group.get_host()),
         m_group.get_port()), error_code);
 #endif
       if(error_code) {

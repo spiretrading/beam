@@ -4,9 +4,9 @@ set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
 set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.so")
 set(BOOST_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/include/")
-set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/lib")
-set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_86_0/lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/include/")
+set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/lib")
+set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/lib")
 set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
 set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")
@@ -17,9 +17,6 @@ set(BOOST_DATE_TIME_LIBRARY_DEBUG_PATH
   "${BOOST_DEBUG_PATH}/libboost_date_time.a")
 set(BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_date_time.a")
-set(BOOST_SYSTEM_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_system.a")
-set(BOOST_SYSTEM_LIBRARY_OPTIMIZED_PATH
-  "${BOOST_OPTIMIZED_PATH}/libboost_system.a")
 set(BOOST_THREAD_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_thread.a")
 set(BOOST_THREAD_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_thread.a")
@@ -30,35 +27,35 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/lib/libcryptopp.a")
 set(MYSQL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/libmariadb/libmariadbclient.a")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.3/libmariadb/libmariadbclient.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/libmariadb/libmariadbclient.a")
 set(OPEN_SSL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libcrypto.a")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libcrypto.a")
 set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.4.0/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libssl.a")
 set(SQLITE_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200")
 set(SQLITE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3.lib")
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3480000/sqlite3.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3.lib")
 set(YAML_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/include")
 set(YAML_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/build/libyaml-cpp.a")
 set(YAML_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/build/libyaml-cpp.a")
-set(ZLIB_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.2.13/include")
+set(ZLIB_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/include")
 set(ZLIB_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1/libz.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/libz.a")
 set(ZLIB_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1/libz.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/libz.a")

@@ -61,7 +61,7 @@ namespace Beam::Python {
   /** Exports a Timer class. */
   template<IsTimer T>
   auto export_timer(pybind11::module& module, std::string_view name) {
-    auto timer = pybind11::class_<T>(module, name.data()).
+    auto timer = pybind11::class_<T, std::shared_ptr<T>>(module, name.data()).
       def("start", &T::start).
       def("cancel", &T::cancel).
       def("wait", &T::wait).

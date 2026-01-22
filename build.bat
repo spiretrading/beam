@@ -12,11 +12,11 @@ IF NOT EXIST build.bat (
   >>build.bat ECHO CALL "%~dp0build.bat" %%*
 )
 SET ARGS=%*
-CALL:build Beam
+CALL:build Beam %*
 IF !EXIT_STATUS! NEQ 0 (
   EXIT /B !EXIT_STATUS!
 )
-CALL:build WebApi
+CALL:build WebApi %*
 IF !EXIT_STATUS! NEQ 0 (
   EXIT /B !EXIT_STATUS!
 )
@@ -62,7 +62,7 @@ IF NOT EXIST "!PROJECT!" (
   MD "!PROJECT!"
 )
 PUSHD "!PROJECT!"
-CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS!
+CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
 IF ERRORLEVEL 1 SET EXIT_STATUS=1
 POPD
 EXIT /B 0

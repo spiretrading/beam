@@ -21,7 +21,7 @@ CALL :DownloadAndExtract "Strawberry" ^
   "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71"
 SET PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin
 SET BUILD_ASPEN=
-SET ASPEN_COMMIT="27f66a115baf6d1226ae2cb4540afb05db7c994a"
+SET ASPEN_COMMIT="fa0573bf1df7cfb896c67bc09efbd1de0da94ba8"
 IF NOT EXIST aspen (
   git clone https://www.github.com/spiretrading/aspen
   IF !ERRORLEVEL! EQU 0 (

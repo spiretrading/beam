@@ -12,6 +12,10 @@ IF NOT EXIST build.bat (
   >>build.bat ECHO CALL "%~dp0build.bat" %%*
 )
 SET ARGS=%*
+SET FIRST_ARG=%~1
+SET PARALLEL=1
+IF "!FIRST_ARG!" == "clean" SET PARALLEL=0
+IF "!FIRST_ARG!" == "reset" SET PARALLEL=0
 CALL:build Beam %*
 IF !EXIT_STATUS! NEQ 0 (
   EXIT /B !EXIT_STATUS!
@@ -20,21 +24,26 @@ CALL:build WebApi %*
 IF !EXIT_STATUS! NEQ 0 (
   EXIT /B !EXIT_STATUS!
 )
-SET BUILD_TEMP=!ROOT!\_build_tmp
-IF EXIST "!BUILD_TEMP!" RD /S /Q "!BUILD_TEMP!"
-MD "!BUILD_TEMP!"
-CALL:build_parallel Applications\AdminClient
-CALL:build_parallel Applications\ClientTemplate
-CALL:build_parallel Applications\DataStoreProfiler
-CALL:build_parallel Applications\HttpFileServer
-CALL:build_parallel Applications\QueryStressTest
-CALL:build_parallel Applications\QueueStressTest
-CALL:build_parallel Applications\Scratch
-CALL:build_parallel Applications\ServiceLocator
-CALL:build_parallel Applications\ServiceProtocolProfiler
-CALL:build_parallel Applications\ServletTemplate
-CALL:build_parallel Applications\UidServer
-CALL:build_parallel Applications\WebSocketEchoServer
+IF !PARALLEL! EQU 1 (
+  SET BUILD_TEMP=!ROOT!\_build_tmp
+  IF EXIST "!BUILD_TEMP!" RD /S /Q "!BUILD_TEMP!"
+  MD "!BUILD_TEMP!"
+)
+CALL:build_app Applications\AdminClient %*
+CALL:build_app Applications\ClientTemplate %*
+CALL:build_app Applications\DataStoreProfiler %*
+CALL:build_app Applications\HttpFileServer %*
+CALL:build_app Applications\QueryStressTest %*
+CALL:build_app Applications\QueueStressTest %*
+CALL:build_app Applications\Scratch %*
+CALL:build_app Applications\ServiceLocator %*
+CALL:build_app Applications\ServiceProtocolProfiler %*
+CALL:build_app Applications\ServletTemplate %*
+CALL:build_app Applications\UidServer %*
+CALL:build_app Applications\WebSocketEchoServer %*
+IF !PARALLEL! EQU 0 (
+  EXIT /B !EXIT_STATUS!
+)
 :wait_loop
 SET RUNNING=0
 FOR %%F IN ("!BUILD_TEMP!\*.running") DO SET RUNNING=1
@@ -43,11 +52,13 @@ IF !RUNNING! EQU 1 (
   GOTO wait_loop
 )
 FOR %%F IN ("!BUILD_TEMP!\*.log") DO (
-  ECHO.
-  ECHO ============================================================
-  ECHO %%~nF
-  ECHO ============================================================
-  TYPE "%%F"
+  IF %%~zF GTR 0 (
+    ECHO.
+    ECHO ============================================================
+    ECHO %%~nF
+    ECHO ============================================================
+    TYPE "%%F"
+  )
 )
 FOR %%F IN ("!BUILD_TEMP!\*.failed") DO (
   SET EXIT_STATUS=1
@@ -67,7 +78,11 @@ IF ERRORLEVEL 1 SET EXIT_STATUS=1
 POPD
 EXIT /B 0
 
-:build_parallel
+:build_app
+IF !PARALLEL! EQU 0 (
+  CALL:build %*
+  EXIT /B 0
+)
 SET PROJECT=%~1
 SET PROJECT_NAME=%~n1
 IF NOT EXIST "!PROJECT!" (

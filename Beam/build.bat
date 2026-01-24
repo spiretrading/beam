@@ -3,7 +3,6 @@ SETLOCAL EnableDelayedExpansion
 SET "DIRECTORY=%~dp0"
 SET "ROOT=%cd%"
 CALL :ParseArgs %*
-IF DEFINED SOURCE_DIRECTORY SET "DIRECTORY=!SOURCE_DIRECTORY!"
 IF /I "!CONFIG!"=="clean" (
   CALL :CleanBuild "clean"
   EXIT /B !ERRORLEVEL!
@@ -19,15 +18,30 @@ ENDLOCAL
 
 :ParseArgs
 SET "DEPENDENCIES="
-SET "SOURCE_DIRECTORY="
+SET "IS_DEPENDENCY="
+SET "IS_DIRECTORY="
 SET "CONFIG="
 :ParseArgsLoop
 SET "ARG=%~1"
-IF NOT "!ARG!"=="" (
+IF "!IS_DEPENDENCY!"=="1" (
+  SET "DEPENDENCIES=!ARG!"
+  SET "IS_DEPENDENCY="
+  SHIFT
+  GOTO ParseArgsLoop
+) ELSE IF "!IS_DIRECTORY!"=="1" (
+  SET "DIRECTORY=!ARG!"
+  SET "IS_DIRECTORY="
+  SHIFT
+  GOTO ParseArgsLoop
+) ELSE IF NOT "!ARG!"=="" (
   IF "!ARG:~0,4!"=="-DD=" (
     SET "DEPENDENCIES=!ARG:~4!"
-  ) ELSE IF "!ARG:~0,4!"=="-DS=" (
-    SET "SOURCE_DIRECTORY=!ARG:~4!"
+  ) ELSE IF "!ARG!"=="-DD" (
+    SET "IS_DEPENDENCY=1"
+  ) ELSE IF "!ARG:~0,3!"=="-D=" (
+    SET "DIRECTORY=!ARG:~3!"
+  ) ELSE IF "!ARG!"=="-D" (
+    SET "IS_DIRECTORY=1"
   ) ELSE (
     SET "CONFIG=!ARG!"
   )

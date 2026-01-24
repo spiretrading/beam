@@ -6,7 +6,8 @@ CALL :CreateForwardingScripts
 CALL :ParseArgs %*
 CALL :SetupDependencies || EXIT /B 1
 CALL :CheckHashes || EXIT /B 1
-CALL :RunCMake
+CALL :RunCMake || EXIT /B 1
+IF EXIST "!DIRECTORY!version.bat" CALL "!DIRECTORY!version.bat"
 EXIT /B !ERRORLEVEL!
 ENDLOCAL
 
@@ -24,6 +25,7 @@ EXIT /B 0
 :ParseArgs
 SET "DEPENDENCIES="
 SET "IS_DEPENDENCY="
+SET "IS_DIRECTORY="
 :ParseArgsLoop
 SET "ARG=%~1"
 IF "!IS_DEPENDENCY!"=="1" (
@@ -31,11 +33,20 @@ IF "!IS_DEPENDENCY!"=="1" (
   SET "IS_DEPENDENCY="
   SHIFT
   GOTO ParseArgsLoop
+) ELSE IF "!IS_DIRECTORY!"=="1" (
+  SET "DIRECTORY=!ARG!"
+  SET "IS_DIRECTORY="
+  SHIFT
+  GOTO ParseArgsLoop
 ) ELSE IF NOT "!ARG!"=="" (
   IF "!ARG:~0,4!"=="-DD=" (
     SET "DEPENDENCIES=!ARG:~4!"
   ) ELSE IF "!ARG!"=="-DD" (
     SET "IS_DEPENDENCY=1"
+  ) ELSE IF "!ARG:~0,3!"=="-D=" (
+    SET "DIRECTORY=!ARG:~3!"
+  ) ELSE IF "!ARG!"=="-D" (
+    SET "IS_DIRECTORY=1"
   )
   SHIFT
   GOTO ParseArgsLoop
@@ -50,7 +61,7 @@ IF NOT EXIST "!DEPENDENCIES!" (
   MD "!DEPENDENCIES!" || EXIT /B 1
 )
 PUSHD "!DEPENDENCIES!"
-CALL "!DIRECTORY!setup.bat" || (POPD & EXIT /B 1)
+CALL "%~dp0setup.bat" || (POPD & EXIT /B 1)
 POPD
 IF NOT "!DEPENDENCIES!"=="!ROOT!\Dependencies" (
   IF EXIST Dependencies (
@@ -68,17 +79,23 @@ IF NOT EXIST CMakeFiles (
 )
 SET "TEMP_FILE=!ROOT!\temp_%RANDOM%%RANDOM%.txt"
 TYPE "!DIRECTORY!CMakeLists.txt" > "!TEMP_FILE!"
-FOR %%F IN ("!DIRECTORY!Config\*.cmake") DO TYPE "%%F" >> "!TEMP_FILE!"
-PUSHD "!DIRECTORY!Config"
-FOR /R %%F IN (*) DO (
-  IF "%%~nxF"=="CMakeLists.txt" TYPE "%%F" >> "!TEMP_FILE!"
+IF EXIST "!DIRECTORY!Config" (
+  FOR %%F IN ("!DIRECTORY!Config\*.cmake") DO TYPE "%%F" >> "!TEMP_FILE!"
+  PUSHD "!DIRECTORY!Config"
+  FOR /R %%F IN (*) DO (
+    IF "%%~nxF"=="CMakeLists.txt" TYPE "%%F" >> "!TEMP_FILE!"
+  )
+  POPD
 )
-POPD
 CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\cmake_hash.txt"
-DIR /a-d /b /s "!DIRECTORY!Include\*" > "!TEMP_FILE!"
-CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\hpp_hash.txt"
-DIR /a-d /b /s "!DIRECTORY!Source\*" > "!TEMP_FILE!"
-CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\cpp_hash.txt"
+IF EXIST "!DIRECTORY!Include" (
+  DIR /a-d /b /s "!DIRECTORY!Include\*" > "!TEMP_FILE!"
+  CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\hpp_hash.txt"
+)
+IF EXIST "!DIRECTORY!Source" (
+  DIR /a-d /b /s "!DIRECTORY!Source\*" > "!TEMP_FILE!"
+  CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\cpp_hash.txt"
+)
 EXIT /B 0
 
 :CheckFileHash

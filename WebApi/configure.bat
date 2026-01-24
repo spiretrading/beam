@@ -10,9 +10,7 @@ IF NOT EXIST configure.bat (
   ECHO CALL "%~dp0configure.bat" %%* >> configure.bat
 )
 IF NOT "%~dp0" == "%ROOT%\" (
-  IF EXIST source (
-    RMDIR source /S /Q
-  )
+  RD /S /Q source 2>NUL
   mklink /j source "%~dp0source" >NUL
 )
 ENDLOCAL

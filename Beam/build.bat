@@ -57,9 +57,7 @@ IF "%~1"=="reset" (
   git clean -ffxd || SET "CLEAN_ERROR=1"
 ) ELSE (
   git clean -ffxd -e "*Dependencies*" || SET "CLEAN_ERROR=1"
-  IF EXIST "Dependencies\cache_files\beam.txt" (
-    DEL "Dependencies\cache_files\beam.txt" || SET "CLEAN_ERROR=1"
-  )
+  DEL "Dependencies\cache_files\beam.txt" >NUL 2>&1
 )
 EXIT /B !CLEAN_ERROR!
 

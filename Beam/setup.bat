@@ -40,7 +40,7 @@ CALL :AddDependency "boost_1_90_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "9ec33ec45ff91ac42b3ea5f1754ae1eabe53d62b" ^
+  "af98b37f3b76f31a7813a6555e5aade97340a5b7" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^

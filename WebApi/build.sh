@@ -47,8 +47,8 @@ clean_build() {
   rm -rf library
   rm -f mod_time.txt
   if [[ "$mode" == "reset" ]]; then
+    rm -rf Dependencies
     rm -rf node_modules
-    rm -f package-lock.json
   fi
 }
 

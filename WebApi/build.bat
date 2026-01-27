@@ -46,6 +46,7 @@ EXIT /B 0
 RD /S /Q library 2>NUL
 DEL mod_time.txt >NUL 2>&1
 IF "%~1"=="reset" (
+  RD /S /Q Dependencies 2>NUL
   RD /S /Q node_modules 2>NUL
   IF NOT "!DIRECTORY!"=="!ROOT!\" (
     DEL package.json >NUL 2>&1

@@ -3,6 +3,7 @@ set -o errexit
 set -o pipefail
 ROOT=""
 DIRECTORY=""
+SCRIPT_DIR=""
 DEPENDENCIES=""
 CONFIG=""
 RUN_CMAKE=""
@@ -14,9 +15,7 @@ main() {
   setup_dependencies || return 1
   check_hashes || return 1
   run_cmake || return 1
-  if [[ -f "$DIRECTORY/version.sh" ]]; then
-    "$DIRECTORY/version.sh"
-  fi
+  run_version
 }
 
 resolve_paths() {
@@ -26,7 +25,8 @@ resolve_paths() {
     source="$(readlink "$source")"
     [[ $source != /* ]] && source="$dir/$source"
   done
-  DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  SCRIPT_DIR="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  DIRECTORY="$SCRIPT_DIR"
   ROOT="$(pwd -P)"
 }
 
@@ -60,7 +60,7 @@ setup_dependencies() {
     mkdir -p "$DEPENDENCIES" || return 1
   fi
   pushd "$DEPENDENCIES" > /dev/null
-  "$DIRECTORY/setup.sh" || { popd > /dev/null; return 1; }
+  "$SCRIPT_DIR/setup.sh" || { popd > /dev/null; return 1; }
   popd > /dev/null
   if [[ "$DEPENDENCIES" != "$ROOT/Dependencies" ]]; then
     if [[ -e "Dependencies" ]]; then
@@ -161,7 +161,18 @@ check_directory_hash() {
 
 run_cmake() {
   if [[ "$RUN_CMAKE" == "1" ]]; then
-    cmake -S "$DIRECTORY" -DCMAKE_BUILD_TYPE="$CONFIG" -DD="$DEPENDENCIES" || return 1
+    cmake -S "$DIRECTORY" -DCMAKE_BUILD_TYPE="$CONFIG" -DD="$DEPENDENCIES" ||
+      return 1
+  fi
+}
+
+run_version() {
+  if [[ -f "$DIRECTORY/version.sh" ]]; then
+    local dir_version
+    dir_version=$(cd -P "$DIRECTORY" && pwd -P)/version.sh
+    if [[ "$dir_version" != "$SCRIPT_DIR/version.sh" ]]; then
+      "$DIRECTORY/version.sh"
+    fi
   fi
 }
 

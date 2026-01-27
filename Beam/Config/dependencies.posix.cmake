@@ -35,13 +35,13 @@ set(MYSQL_LIBRARY_OPTIMIZED_PATH
 set(OPEN_SSL_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib64/libcrypto.a")
 set(OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libcrypto.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib64/libcrypto.a")
 set(OPEN_SSL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib64/libssl.a")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/libssl.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib64/libssl.a")
 set(SQLITE_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200")
 set(SQLITE_LIBRARY_DEBUG_PATH
@@ -49,11 +49,11 @@ set(SQLITE_LIBRARY_DEBUG_PATH
 set(SQLITE_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3.lib")
 set(YAML_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/include")
 set(YAML_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/build/libyaml-cpp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/libyaml-cpp.a")
 set(YAML_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp-0.6.2/build/libyaml-cpp.a")
+  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/libyaml-cpp.a")
 set(ZLIB_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/include")
 set(ZLIB_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/libz.a")

@@ -1,20 +1,26 @@
 #!/bin/bash
 set -o errexit
 set -o pipefail
-source="${BASH_SOURCE[0]}"
-while [ -h "$source" ]; do
-  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-  source="$(readlink "$source")"
-  [[ $source != /* ]] && source="$dir/$source"
-done
-directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-if [ ! -f Version.hpp ]; then
-  touch Version.hpp
-fi
-version=$(git --git-dir="$directory/../../.git" rev-list --count --first-parent HEAD)
-if ! grep -q $version < Version.hpp; then
-  printf "#define ADMIN_CLIENT_VERSION \""> Version.hpp
-  printf $version >> Version.hpp
-  printf \" >> Version.hpp
-  printf "\n" >> Version.hpp
-fi
+DIRECTORY=""
+
+main() {
+  resolve_paths
+  local version
+  version=$(git --git-dir="$DIRECTORY/../../.git" \
+    rev-list --count --first-parent HEAD)
+  if [[ ! -f "Version.hpp" ]] || ! grep -q "$version" "Version.hpp"; then
+    echo "#define ADMIN_CLIENT_VERSION \"$version\"" > "Version.hpp"
+  fi
+}
+
+resolve_paths() {
+  local source="${BASH_SOURCE[0]}"
+  while [[ -h "$source" ]]; do
+    local dir="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$dir/$source"
+  done
+  DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+}
+
+main "$@"

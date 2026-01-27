@@ -1,38 +1,62 @@
 #!/bin/bash
-source="${BASH_SOURCE[0]}"
-while [ -h "$source" ]; do
-  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-  source="$(readlink "$source")"
-  [[ $source != /* ]] && source="$dir/$source"
-done
-directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-root="$(pwd -P)"
-if [ ! -f "configure.sh" ]; then
-  ln -s "$directory/configure.sh" configure.sh
-fi
-if [ ! -f "build.sh" ]; then
-  ln -s "$directory/build.sh" build.sh
-fi
-targets="Beam"
-targets+=" WebApi"
-targets+=" Applications/AdminClient"
-targets+=" Applications/ClientTemplate"
-targets+=" Applications/DataStoreProfiler"
-targets+=" Applications/HttpFileServer"
-targets+=" Applications/QueryStressTest"
-targets+=" Applications/QueueStressTest"
-targets+=" Applications/Scratch"
-targets+=" Applications/ServiceLocator"
-targets+=" Applications/ServiceProtocolProfiler"
-targets+=" Applications/ServletTemplate"
-targets+=" Applications/UidServer"
-targets+=" Applications/WebSocketEchoServer"
+set -o errexit
+set -o pipefail
+DIRECTORY=""
+ROOT=""
 
-for i in $targets; do
-  if [ ! -d "$i" ]; then
-    mkdir -p "$i"
+main() {
+  resolve_paths
+  create_forwarding_scripts
+  local targets=(
+    "Beam"
+    "WebApi"
+    "Applications/AdminClient"
+    "Applications/ClientTemplate"
+    "Applications/DataStoreProfiler"
+    "Applications/HttpFileServer"
+    "Applications/QueryStressTest"
+    "Applications/QueueStressTest"
+    "Applications/Scratch"
+    "Applications/ServiceLocator"
+    "Applications/ServiceProtocolProfiler"
+    "Applications/ServletTemplate"
+    "Applications/UidServer"
+    "Applications/WebSocketEchoServer"
+  )
+  for target in "${targets[@]}"; do
+    configure_target "$target" "$@"
+  done
+}
+
+resolve_paths() {
+  local source="${BASH_SOURCE[0]}"
+  while [[ -h "$source" ]]; do
+    local dir="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$dir/$source"
+  done
+  DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  ROOT="$(pwd -P)"
+}
+
+create_forwarding_scripts() {
+  if [[ ! -f "configure.sh" ]]; then
+    ln -s "$DIRECTORY/configure.sh" configure.sh
   fi
-  pushd "$i"
-  "$directory/$i/configure.sh" -DD="$root/Beam/Dependencies" "$@"
-  popd
-done
+  if [[ ! -f "build.sh" ]]; then
+    ln -s "$DIRECTORY/build.sh" build.sh
+  fi
+}
+
+configure_target() {
+  local target="$1"
+  shift
+  if [[ ! -d "$target" ]]; then
+    mkdir -p "$target"
+  fi
+  pushd "$target" > /dev/null
+  "$DIRECTORY/$target/configure.sh" -DD="$ROOT/Beam/Dependencies" "$@"
+  popd > /dev/null
+}
+
+main "$@"

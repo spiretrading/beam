@@ -1,81 +1,121 @@
 #!/bin/bash
-source="${BASH_SOURCE[0]}"
-while [ -h "$source" ]; do
-  dir="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-  source="$(readlink "$source")"
-  [[ $source != /* ]] && source="$dir/$source"
-done
-directory="$(cd -P "$(dirname "$source")" >/dev/null 2>&1 && pwd -P)"
-root=$(pwd -P)
-for i in "$@"; do
-  case $i in
-    -DD=*)
-      dependencies="${i#*=}"
-      shift
-      ;;
-    *)
-      config="$i"
-      shift
-      ;;
-  esac
-done
-if [ "$(uname -s)" = "Darwin" ]; then
-  STAT='stat -x -t "%Y%m%d%H%M%S"'
-else
-  STAT='stat'
-fi
-if [ "$config" = "clean" ]; then
+set -o errexit
+set -o pipefail
+ROOT=""
+DIRECTORY=""
+UPDATE_NODE=""
+UPDATE_BUILD=""
+
+main() {
+  resolve_paths
+  parse_args "$@"
+  "$DIRECTORY/configure.sh"
+  check_node_modules
+  check_build
+  run_build
+}
+
+resolve_paths() {
+  local source="${BASH_SOURCE[0]}"
+  while [[ -h "$source" ]]; do
+    local dir="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+    source="$(readlink "$source")"
+    [[ $source != /* ]] && source="$dir/$source"
+  done
+  DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  ROOT="$(pwd -P)"
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      clean)
+        clean_build "clean"
+        exit 0
+        ;;
+      reset)
+        clean_build "reset"
+        exit 0
+        ;;
+    esac
+    shift
+  done
+}
+
+clean_build() {
+  local mode="$1"
   rm -rf library
   rm -f mod_time.txt
-  exit 0
-fi
-if [ "$config" = "reset" ]; then
-  rm -rf library
-  rm -f mod_time.txt
-  rm -rf node_modules
-  rm -f package-lock.json
-  exit 0
-fi
-"$directory/configure.sh"
-if [ ! -d "node_modules" ]; then
-  UPDATE_NODE=1
-else
-  if [ ! -f "mod_time.txt" ]; then
-    UPDATE_NODE=1
+  if [[ "$mode" == "reset" ]]; then
+    rm -rf node_modules
+    rm -f package-lock.json
+  fi
+}
+
+md5hash() {
+  if command -v md5sum >/dev/null; then
+    md5sum | cut -d" " -f1
   else
-    pt="$($STAT $directory/package.json | grep Modify | awk '{print $2 $3}')"
-    mt="$($STAT mod_time.txt | grep Modify | awk '{print $2 $3}')"
-    if [ "$pt" \> "$mt" ]; then
+    md5 | cut -d" " -f4
+  fi
+}
+
+check_node_modules() {
+  if [[ ! -d "node_modules" ]]; then
+    UPDATE_NODE=1
+    return
+  fi
+  local current_hash cached_hash
+  current_hash=$(md5hash < "$DIRECTORY/package.json")
+  if [[ -f "mod_time.txt" ]]; then
+    cached_hash=$(cat "mod_time.txt")
+    if [[ "$cached_hash" != "$current_hash" ]]; then
       UPDATE_NODE=1
     fi
+  else
+    UPDATE_NODE=1
   fi
-fi
-if [ "$UPDATE_NODE" = "1" ]; then
-  UPDATE_BUILD=1
-  npm install
-fi
-if [ ! -d "library" ]; then
-  UPDATE_BUILD=1
-else
-  st="$(find source/ -type f | xargs $STAT | grep Modify | awk '{print $2 $3}' | sort -r | head -1)"
-  lt="$(find library/ -type f | xargs $STAT | grep Modify | awk '{print $2 $3}' | sort -r | head -1)"
-  if [ "$st" \> "$lt" ]; then
+}
+
+check_build() {
+  if [[ ! -d "library" ]]; then
+    UPDATE_BUILD=1
+    return
+  fi
+  local source_hash cached_hash
+  source_hash=$(find "$DIRECTORY/source" -type f -print0 | sort -z |
+    xargs -0 cat | md5hash)
+  source_hash+=$(md5hash < "$DIRECTORY/tsconfig.json")
+  if [[ -f ".build_hash.txt" ]]; then
+    cached_hash=$(cat ".build_hash.txt")
+    if [[ "$cached_hash" != "$source_hash" ]]; then
+      UPDATE_BUILD=1
+    fi
+  else
     UPDATE_BUILD=1
   fi
-fi
-if [ ! -f "mod_time.txt" ]; then
-  UPDATE_BUILD=1
-else
-  pt="$($STAT $directory/tsconfig.json | grep Modify | awk '{print $2 $3}')"
-  mt="$($STAT mod_time.txt | grep Modify | awk '{print $2 $3}')"
-  if [ "$pt" \> "$mt" ]; then
-    UPDATE_BUILD=1
+  if [[ "$UPDATE_BUILD" == "1" ]]; then
+    echo "$source_hash" > ".build_hash.txt"
   fi
-fi
-if [ "$UPDATE_BUILD" = "1" ]; then
-  if [ -d library ]; then
+}
+
+run_build() {
+  if [[ "$UPDATE_NODE" == "1" ]]; then
+    UPDATE_BUILD=1
+    npm install || return 1
+    local package_hash
+    package_hash=$(md5hash < "$DIRECTORY/package.json")
+    echo "$package_hash" > "mod_time.txt"
+  fi
+  if [[ "$UPDATE_BUILD" == "1" ]]; then
     rm -rf library
+    npm run build || return 1
+    local source_hash
+    source_hash=$(find "$DIRECTORY/source" -type f -print0 | sort -z |
+      xargs -0 cat | md5hash)
+    source_hash+=$(md5hash < "$DIRECTORY/tsconfig.json")
+    echo "$source_hash" > ".build_hash.txt"
   fi
-  npm run build
-  echo "timestamp" > mod_time.txt
-fi
+}
+
+main "$@"

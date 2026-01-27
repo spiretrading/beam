@@ -1,11 +1,3 @@
 @ECHO OFF
-SETLOCAL EnableDelayedExpansion
-IF NOT EXIST Version.hpp (
-  COPY NUL Version.hpp >NUL
-)
-FOR /F "usebackq tokens=*" %%a IN (`git --git-dir=%~dp0..\..\.git rev-list --count --first-parent HEAD`) DO SET VERSION=%%a
-FINDSTR "!VERSION!" Version.hpp >NUL
-IF ERRORLEVEL 1 (
-  >Version.hpp ECHO #define UID_SERVER_VERSION "!VERSION!"
-)
-EXIT /B 0
+CALL "%~dp0..\..\Beam\version.bat" UID_SERVER
+EXIT /B %ERRORLEVEL%

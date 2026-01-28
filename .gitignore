@@ -19,7 +19,6 @@
 Version.hpp
 
 ## Ignore CMake files
-
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
@@ -359,9 +358,12 @@ ASALocalRun/
 # Web Artifacts
 package-lock.json
 .vscode/
+.build_hash.txt
 mod_time.txt
 WebApi/library/
 node_modules/
 
-#Dependencies
+# Build outputs
 **/Dependencies/
+Applications/*/Application/
+Beam/Config/*/*Tests

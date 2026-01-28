@@ -68,7 +68,7 @@ check_node_modules() {
   local current_hash cached_hash
   current_hash=$(md5hash < "$DIRECTORY/package.json")
   if [[ -f "mod_time.txt" ]]; then
-    cached_hash=$(cat "mod_time.txt")
+    cached_hash=$(< "mod_time.txt")
     if [[ "$cached_hash" != "$current_hash" ]]; then
       UPDATE_NODE=1
     fi
@@ -87,7 +87,7 @@ check_build() {
     xargs -0 cat | md5hash)
   source_hash+=$(md5hash < "$DIRECTORY/tsconfig.json")
   if [[ -f ".build_hash.txt" ]]; then
-    cached_hash=$(cat ".build_hash.txt")
+    cached_hash=$(< ".build_hash.txt")
     if [[ "$cached_hash" != "$source_hash" ]]; then
       UPDATE_BUILD=1
     fi

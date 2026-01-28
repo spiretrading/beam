@@ -364,6 +364,20 @@ WebApi/library/
 node_modules/
 
 # Build outputs
-**/Dependencies/
+**/Dependencies
 Applications/*/Application/
 Beam/Config/*/*Tests
+
+# Application executables (Linux/macOS builds without extension)
+Applications/AdminClient/AdminClient
+Applications/ClientTemplate/ClientTemplate
+Applications/DataStoreProfiler/DataStoreProfiler
+Applications/HttpFileServer/HttpFileServer
+Applications/QueryStressTest/QueryStressTest
+Applications/QueueStressTest/QueueStressTest
+Applications/Scratch/Scratch
+Applications/ServiceLocator/ServiceLocator
+Applications/ServiceProtocolProfiler/ServiceProtocolProfiler
+Applications/ServletTemplate/ServletTemplate
+Applications/UidServer/UidServer
+Applications/WebSocketEchoServer/WebSocketEchoServer

@@ -149,7 +149,7 @@ void Beam::Python::export_time_service(pybind11::module& module) {
   module.def("to_utc_time", overload_cast<ptime>(&to_utc_time));
   module.def("to_local_time", overload_cast<time_duration>(&to_local_time));
   module.def("to_utc_time", overload_cast<time_duration>(&to_utc_time));
-  module.def("adjust_date_time", &adjust_date_time);
+  module.def("to_timezone", &to_timezone);
   auto test_module = module.def_submodule("tests");
   export_test_time_client(test_module);
   export_test_timer(test_module);

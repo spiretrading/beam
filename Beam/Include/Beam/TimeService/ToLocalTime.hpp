@@ -83,17 +83,18 @@ namespace Beam {
   }
 
   /**
-   * Adjusts a date/time from one time zone to another.
-   * @param time The time to adjust.
-   * @param source The time zone the <i>time</i> is in.
-   * @param target The time zone to convert the <i>time</i> to.
-   * @param time_zone_database The time zone database used.
-   * @return The result of converting <i>time</i> from time zone <i>source</i>
-   *         to time zone <i>target</i>.
+   * Converts a timestamp from one timezone to another.
+   * @param time The time to convert.
+   * @param source The source timezone region (e.g., "America/New_York").
+   * @param target The target timezone region (e.g., "America/Los_Angeles").
+   * @param time_zone_database The timezone database containing region
+   *        definitions.
+   * @return The time converted to the target timezone, or not_a_date_time if
+   *         the source or target timezone is invalid, or if the conversion
+   *         fails.
    */
-  inline boost::posix_time::ptime adjust_date_time(
-      boost::posix_time::ptime time, const std::string& source,
-      const std::string& target,
+  inline boost::posix_time::ptime to_timezone(boost::posix_time::ptime time,
+      const std::string& source, const std::string& target,
       const boost::local_time::tz_database& time_zone_database) {
     if(time.is_special()) {
       return time;

@@ -3,6 +3,7 @@
 #include <string>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
+#include <openssl/ssl.h>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -99,6 +100,7 @@ namespace Beam {
       m_socket->m_socket.set_verify_mode(boost::asio::ssl::verify_none);
       auto error_code =
         boost::system::error_code(boost::asio::error::host_not_found);
+      auto hostname = std::string();
       for(auto& address : addresses) {
         error_code.clear();
         auto resolver = boost::asio::ip::tcp::resolver(*m_socket->m_io_context);
@@ -134,6 +136,7 @@ namespace Beam {
           }
           m_socket->m_socket.lowest_layer().connect(end, error_code);
           if(!error_code) {
+            hostname = address.get_host();
             break;
           }
         }
@@ -158,6 +161,8 @@ namespace Beam {
         boost::throw_with_location(
           SocketException(error_code.value(), error_code.message()));
       }
+      SSL_set_tlsext_host_name(
+        m_socket->m_socket.native_handle(), hostname.c_str());
       m_socket->m_socket.handshake(
         boost::asio::ssl::stream_base::client, error_code);
       if(error_code) {

@@ -1,6 +1,7 @@
 #ifndef BEAM_HTTP_RESPONSE_HPP
 #define BEAM_HTTP_RESPONSE_HPP
 #include <vector>
+#include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
 #include "Beam/IO/BufferOutputStream.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -154,7 +155,7 @@ namespace Beam {
       HttpResponse::get_header(const std::string& name) const {
     auto header = std::find_if(m_headers.begin(), m_headers.end(),
       [&] (const auto& value) {
-        return value.get_name() == name;
+        return boost::iequals(value.get_name(), name);
       });
     if(header == m_headers.end()) {
       return boost::none;
@@ -169,7 +170,7 @@ namespace Beam {
   inline void HttpResponse::set_header(HttpHeader header) {
     auto h = std::find_if(m_headers.begin(), m_headers.end(),
       [&] (const auto& value) {
-        return value.get_name() == header.get_name();
+        return boost::iequals(value.get_name(), header.get_name());
       });
     if(h == m_headers.end()) {
       m_headers.push_back(std::move(header));

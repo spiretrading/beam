@@ -294,4 +294,115 @@ TEST_SUITE("WebSocket") {
     auto received_message = client_task.get();
     REQUIRE(received_message.get_size() == 0);
   }
+
+  TEST_CASE("send_ping_and_pong") {
+    auto server = LocalServerConnection();
+    auto config = WebSocketConfig();
+    config.set_uri("ws://example.com/ping");
+    auto client_task = std::async(std::launch::async, [&] {
+      auto socket = WebSocket(std::move(config), [&] (const auto& uri) {
+        return std::make_unique<LocalClientChannel>("ws", server);
+      });
+      socket.send_ping();
+      socket.send_pong();
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    auto request_text = std::string(buffer.get_data(), buffer.get_size());
+    auto key_position = request_text.find("Sec-WebSocket-Key: ");
+    auto key_end = request_text.find("\r\n", key_position);
+    auto key =
+      request_text.substr(key_position + 19, key_end - key_position - 19);
+    auto accept_key =
+      encode_base64(from<SharedBuffer>(Details::compute_sha_digest(
+        key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 101 Switching Protocols\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: Upgrade\r\n"
+      "Sec-WebSocket-Accept: ") + accept_key + "\r\n\r\n";
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    reset(buffer);
+    channel->get_reader().read(out(buffer));
+    REQUIRE(buffer.get_size() >= 6);
+    auto ping_header = buffer.get_data();
+    auto ping_final = (ping_header[0] & 0x80) != 0;
+    auto ping_opcode = ping_header[0] & 0x0F;
+    auto ping_masked = (ping_header[1] & 0x80) != 0;
+    auto ping_payload_length = ping_header[1] & 0x7F;
+    REQUIRE(ping_final);
+    REQUIRE(ping_opcode == 9);
+    REQUIRE(ping_masked);
+    REQUIRE(ping_payload_length == 0);
+    reset(buffer);
+    channel->get_reader().read(out(buffer));
+    REQUIRE(buffer.get_size() >= 6);
+    auto pong_header = buffer.get_data();
+    auto pong_final = (pong_header[0] & 0x80) != 0;
+    auto pong_opcode = pong_header[0] & 0x0F;
+    auto pong_masked = (pong_header[1] & 0x80) != 0;
+    auto pong_payload_length = pong_header[1] & 0x7F;
+    REQUIRE(pong_final);
+    REQUIRE(pong_opcode == 10);
+    REQUIRE(pong_masked);
+    REQUIRE(pong_payload_length == 0);
+    client_task.get();
+  }
+
+  TEST_CASE("read_responds_to_ping") {
+    auto server = LocalServerConnection();
+    auto config = WebSocketConfig();
+    config.set_uri("ws://example.com/ping-read");
+    auto client_task = std::async(std::launch::async, [&] {
+      auto socket = WebSocket(std::move(config), [&] (const auto& uri) {
+        return std::make_unique<LocalClientChannel>("ws", server);
+      });
+      return socket.read();
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    auto request_text = std::string(buffer.get_data(), buffer.get_size());
+    auto key_pos = request_text.find("Sec-WebSocket-Key: ");
+    auto key_end = request_text.find("\r\n", key_pos);
+    auto key = request_text.substr(key_pos + 19, key_end - key_pos - 19);
+    auto accept_key =
+      encode_base64(from<SharedBuffer>(Details::compute_sha_digest(
+        key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 101 Switching Protocols\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: Upgrade\r\n"
+      "Sec-WebSocket-Accept: ") + accept_key + "\r\n\r\n";
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    auto ping_frame = SharedBuffer();
+    append(ping_frame, std::uint8_t(0x89));
+    append(ping_frame, std::uint8_t(0));
+    channel->get_writer().write(ping_frame);
+    reset(buffer);
+    channel->get_reader().read(out(buffer));
+    REQUIRE(buffer.get_size() >= 6);
+    auto pong_header = buffer.get_data();
+    auto pong_final = (pong_header[0] & 0x80) != 0;
+    auto pong_opcode = pong_header[0] & 0x0F;
+    auto pong_masked = (pong_header[1] & 0x80) != 0;
+    auto pong_payload_length = pong_header[1] & 0x7F;
+    REQUIRE(pong_final);
+    REQUIRE(pong_opcode == 10);
+    REQUIRE(pong_masked);
+    REQUIRE(pong_payload_length == 0);
+    reset(buffer);
+    auto response_frame = SharedBuffer();
+    append(response_frame, std::uint8_t(0x81));
+    append(response_frame, std::uint8_t(5));
+    append(response_frame, "PONG!", 5);
+    channel->get_writer().write(response_frame);
+    auto received_message = client_task.get();
+    auto received_text =
+      std::string(received_message.get_data(), received_message.get_size());
+    REQUIRE(received_text == "PONG!");
+  }
 }

@@ -119,6 +119,12 @@ namespace Details {
       /** Returns the Uri this socket connects to. */
       const Uri& get_uri() const;
 
+      /** Sends a ping frame over the web socket. */
+      void send_ping();
+
+      /** Sends a pong frame over the web socket. */
+      void send_pong();
+
       /** Reads the next frame from the web socket. */
       SharedBuffer read();
 
@@ -216,6 +222,38 @@ namespace Details {
   }
 
   template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::send_ping() {
+    auto frame = SharedBuffer();
+    append(frame, std::uint8_t((1 << 7) | 9));
+    auto payload_length = std::uint8_t(0);
+    if(!m_is_server_mode) {
+      payload_length |= (1 << 7);
+    }
+    append(frame, payload_length);
+    if(!m_is_server_mode) {
+      auto masking_key = std::uint32_t(m_random_engine());
+      append(frame, masking_key);
+    }
+    m_channel->get_writer().write(frame);
+  }
+
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::send_pong() {
+    auto frame = SharedBuffer();
+    append(frame, std::uint8_t((1 << 7) | 10));
+    auto payload_length = std::uint8_t(0);
+    if(!m_is_server_mode) {
+      payload_length |= (1 << 7);
+    }
+    append(frame, payload_length);
+    if(!m_is_server_mode) {
+      auto masking_key = std::uint32_t(m_random_engine());
+      append(frame, masking_key);
+    }
+    m_channel->get_writer().write(frame);
+  }
+
+  template<typename C> requires IsChannel<dereference_t<C>>
   SharedBuffer WebSocket<C>::read() {
     auto payload = SharedBuffer();
     while(true) {
@@ -237,6 +275,22 @@ namespace Details {
       }
       if(has_mask) {
         Beam::read(m_channel->get_reader(), out(masking_key));
+      }
+      if(op_code == 9) {
+        auto ping_payload = SharedBuffer();
+        if(payload_length != 0) {
+          m_channel->get_reader().read(out(ping_payload), payload_length);
+        }
+        if(has_mask) {
+          for(auto i = std::size_t(0); i < payload_length; ++i) {
+            ping_payload.get_mutable_data()[i] =
+              ping_payload.get_mutable_data()[i] ^
+                (reinterpret_cast<unsigned char*>(&masking_key)[
+                  i % sizeof(masking_key)]);
+          }
+        }
+        send_pong();
+        continue;
       }
       auto cursor = payload.get_size();
       if(payload_length != 0) {

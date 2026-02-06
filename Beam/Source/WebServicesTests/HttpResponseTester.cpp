@@ -91,11 +91,11 @@ TEST_SUITE("HttpResponse") {
     REQUIRE(response.get_header("Cache-Control"));
   }
 
-  TEST_CASE("header_case_sensitive") {
+  TEST_CASE("header_case_insensitive") {
     auto response = HttpResponse();
     response.set_header(HttpHeader("X-Custom", "value"));
     REQUIRE(response.get_header("X-Custom"));
-    REQUIRE(!response.get_header("x-custom"));
+    REQUIRE(response.get_header("x-custom"));
   }
 
   TEST_CASE("header_value_with_special_characters") {

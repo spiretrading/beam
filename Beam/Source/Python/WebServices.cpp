@@ -30,7 +30,7 @@
 #include "Beam/WebServices/SmtpEmailClient.hpp"
 #include "Beam/WebServices/SocketChannelFactory.hpp"
 #include "Beam/WebServices/StandardOutEmailClient.hpp"
-#include "Beam/WebServices/TcpChannelFactory.hpp"
+#include "Beam/WebServices/TcpSocketChannelFactory.hpp"
 #include "Beam/WebServices/TransferEncoding.hpp"
 #include "Beam/WebServices/WebSessionDataStoreException.hpp"
 #include "Beam/WebServices/WebSocket.hpp"

@@ -13,6 +13,17 @@ export class DateTime {
   /** Represents no date/time. */
   public static readonly NOT_A_DATE_TIME = new DateTime(Date.NOT_A_DATE);
 
+  /** Constructs a DateTime from a JavaScript Date. */
+  public static fromDate(value: globalThis.Date): DateTime {
+    const date = Date.fromDate(value);
+    const ticks = Duration.TICKS_PER_SECOND *
+      (Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR *
+        value.getHours() +
+      Duration.SECONDS_PER_MINUTE * value.getMinutes() +
+      value.getSeconds()) + value.getMilliseconds();
+    return new DateTime(date, new Duration(ticks));
+  }
+
   /** Constructs a date/time from a JSON object. */
   public static fromJson(value: any): DateTime {
     if(value === '+infinity') {
@@ -57,6 +68,18 @@ export class DateTime {
   /** Returns the time of day. */
   public get timeOfDay(): Duration {
     return this._timeOfDay;
+  }
+
+  /** Compares this date/time with another.
+   * @return A negative value if this < other, 0 if equal, positive if
+   *         this > other.
+   */
+  public compare(other: DateTime): number {
+    const dateComparison = this._date.compare(other._date);
+    if(dateComparison !== 0) {
+      return dateComparison;
+    }
+    return this._timeOfDay.compare(other._timeOfDay);
   }
 
   /** Tests if two date/times represent the same point in time. */

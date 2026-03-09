@@ -30,6 +30,11 @@ export class Duration {
   public static readonly HOUR = new Duration(Duration.TICKS_PER_SECOND *
     Duration.SECONDS_PER_MINUTE * Duration.MINUTES_PER_HOUR);
 
+  /** Constructs a Duration from a number of milliseconds. */
+  public static fromMilliseconds(milliseconds: number): Duration {
+    return new Duration(milliseconds);
+  }
+
   /** Constructs a time duration from a JSON object. */
   public static fromJson(value: any): Duration {
     if(value === '+infinity') {
@@ -118,14 +123,32 @@ export class Duration {
     return this._ticks;
   }
 
+  /** Returns this duration in milliseconds. */
+  public toMilliseconds(): number {
+    return this._ticks;
+  }
+
   /** Adds two durations together. */
   public add(other: Duration): Duration {
     return new Duration(this._ticks + other._ticks);
   }
 
+  /** Subtracts another duration from this one. */
+  public subtract(other: Duration): Duration {
+    return new Duration(this._ticks - other._ticks);
+  }
+
   /** Multiplies this duration by a scalar. */
   public multiply(other: number): Duration {
     return new Duration(other * this._ticks);
+  }
+
+  /** Compares this duration with another.
+   * @return A negative value if this < other, 0 if equal, positive if
+   *         this > other.
+   */
+  public compare(other: Duration): number {
+    return this._ticks - other._ticks;
   }
 
   /** Tests if two time durations are equal. */

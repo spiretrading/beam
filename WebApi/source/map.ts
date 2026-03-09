@@ -27,6 +27,11 @@ export class Map<Key, Value> {
     this._collection = new Collections.FastMap([], equals, hash);
   }
 
+  /** Returns the number of entries in this map. */
+  public get size(): number {
+    return this._collection.length;
+  }
+
   /** Returns the value associated with a key.
    * @param key - The key used as an index to the value.
    * @return The value associated with the key, or undefined if no such key
@@ -34,6 +39,14 @@ export class Map<Key, Value> {
    */
   public get(key: Key): Value {
     return this._collection.get(key);
+  }
+
+  /** Tests if a key exists in this map.
+   * @param key - The key to test.
+   * @return true iff the key exists in this map.
+   */
+  public has(key: Key): boolean {
+    return this._collection.has(key);
   }
 
   /** Associates a key with a value.
@@ -44,11 +57,41 @@ export class Map<Key, Value> {
     this._collection.set(key, value);
   }
 
-  /** Removes a key from this set.
+  /** Removes a key from this map.
    * @param key - The key to remove.
    */
   public remove(key: Key): void {
     this._collection.delete(key);
+  }
+
+  /** Removes a key from this map.
+   * @param key - The key to remove.
+   * @return true if the key was in the map.
+   */
+  public delete(key: Key): boolean {
+    if(this._collection.has(key)) {
+      this._collection.delete(key);
+      return true;
+    }
+    return false;
+  }
+
+  /** Calls a function for each entry in the map.
+   * @param callback - The function to call for each entry.
+   */
+  public forEach(callback: (value: Value, key: Key) => void): void {
+    for(const [key, value] of this) {
+      callback(value, key);
+    }
+  }
+
+  /** Returns a shallow copy of this map. */
+  public clone(): Map<Key, Value> {
+    const clone = new Map<Key, Value>();
+    for(const [key, value] of this) {
+      clone.set(key, value);
+    }
+    return clone;
   }
 
   /** Converts this object to JSON. */

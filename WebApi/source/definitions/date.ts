@@ -10,6 +10,12 @@ export class Date {
   /** Represents no date. */
   public static readonly NOT_A_DATE = new Date(-1, 1, 1);
 
+  /** Constructs a Date from a JavaScript Date. */
+  public static fromDate(value: globalThis.Date): Date {
+    return new Date(value.getFullYear(),
+      value.getMonth() + 1 as Date.Month, value.getDate());
+  }
+
   /** Constructs a Date from a JSON object. */
   public static fromJson(value: any): Date {
     if(value === '+infinity') {
@@ -52,6 +58,20 @@ export class Date {
   /** Returns the day. */
   public get day(): number {
     return this._day;
+  }
+
+  /** Compares this date with another.
+   * @return A negative value if this < other, 0 if equal, positive if
+   *         this > other.
+   */
+  public compare(other: Date): number {
+    if(this._year !== other._year) {
+      return this._year - other._year;
+    }
+    if(this._month !== other._month) {
+      return this._month - other._month;
+    }
+    return this._day - other._day;
   }
 
   /** Tests if two dates are equal. */

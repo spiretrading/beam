@@ -221,8 +221,17 @@ export class Duration {
       }
       return '';
     })();
+    const secondComponent = (() => {
+      if(seconds === 0) {
+        return '00';
+      } else if(seconds < 10) {
+        return '0' + seconds.toString();
+      } else {
+        return seconds.toString();
+      }
+    })();
     return sign.concat(hourComponent).concat(':').concat(minuteComponent).
-      concat(':').concat(seconds.toString());
+      concat(':').concat(secondComponent);
   }
 
   public toString(): string {

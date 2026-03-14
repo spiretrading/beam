@@ -13,6 +13,11 @@ export class DateTime {
   /** Represents no date/time. */
   public static readonly NOT_A_DATE_TIME = new DateTime(Date.NOT_A_DATE);
 
+  /** Returns the current date and time. */
+  public static now(): DateTime {
+    return DateTime.fromDate(new globalThis.Date());
+  }
+
   /** Constructs a DateTime from a JavaScript Date. */
   public static fromDate(value: globalThis.Date): DateTime {
     const date = Date.fromDate(value);

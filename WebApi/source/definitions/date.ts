@@ -10,6 +10,11 @@ export class Date {
   /** Represents no date. */
   public static readonly NOT_A_DATE = new Date(-1, 1, 1);
 
+  /** Returns today's date. */
+  public static today(): Date {
+    return Date.fromDate(new globalThis.Date());
+  }
+
   /** Constructs a Date from a JavaScript Date. */
   public static fromDate(value: globalThis.Date): Date {
     return new Date(value.getFullYear(),

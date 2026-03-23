@@ -1,5 +1,3 @@
-declare function require(name:string): any;
-const Collections = require('collections/fast-set');
 import { equals, hash } from './comparators';
 import { fromJson, toJson } from './serialization';
 
@@ -19,14 +17,15 @@ export class Set<Key> {
     return result;
   }
 
-  /** Constructs an empty map. */
+  /** Constructs an empty set. */
   constructor() {
-    this._collection = new Collections.FastSet([], equals, hash);
+    this._buckets = new globalThis.Map<string, Key[]>();
+    this._size = 0;
   }
 
   /** Returns the number of elements in this set. */
   public get size(): number {
-    return this._collection.length;
+    return this._size;
   }
 
   /** Tests if a value is a member of this set.
@@ -34,7 +33,7 @@ export class Set<Key> {
    * @return true iff the value is a member of this set.
    */
   public test(key: Key): boolean {
-    return this._collection.has(key);
+    return this.has(key);
   }
 
   /** Tests if a value is a member of this set.
@@ -42,21 +41,41 @@ export class Set<Key> {
    * @return true iff the value is a member of this set.
    */
   public has(key: Key): boolean {
-    return this._collection.has(key);
+    const bucket = this._buckets.get(hash(key));
+    if(bucket) {
+      for(const k of bucket) {
+        if(equals(k, key)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** Adds a value to this set.
    * @param value - The value to add.
    */
   public add(value: Key): void {
-    this._collection.add(value);
+    const h = hash(value);
+    const bucket = this._buckets.get(h);
+    if(bucket) {
+      for(const k of bucket) {
+        if(equals(k, value)) {
+          return;
+        }
+      }
+      bucket.push(value);
+    } else {
+      this._buckets.set(h, [value]);
+    }
+    ++this._size;
   }
 
   /** Removes a value from this set.
    * @param value - The value to remove.
    */
   public remove(value: Key): void {
-    this._collection.delete(value);
+    this.delete(value);
   }
 
   /** Removes a value from this set.
@@ -64,9 +83,19 @@ export class Set<Key> {
    * @return true if the value was in the set.
    */
   public delete(value: Key): boolean {
-    if(this._collection.has(value)) {
-      this._collection.delete(value);
-      return true;
+    const h = hash(value);
+    const bucket = this._buckets.get(h);
+    if(bucket) {
+      for(let i = 0; i < bucket.length; ++i) {
+        if(equals(bucket[i], value)) {
+          bucket.splice(i, 1);
+          if(bucket.length === 0) {
+            this._buckets.delete(h);
+          }
+          --this._size;
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -98,9 +127,14 @@ export class Set<Key> {
     return value;
   }
 
-  [Symbol.iterator]() {
-    return this._collection.iterator() as Iterator<Key>;
+  *[Symbol.iterator](): Iterator<Key> {
+    for(const bucket of this._buckets.values()) {
+      for(const entry of bucket) {
+        yield entry;
+      }
+    }
   }
 
-  private _collection: any;
+  private _buckets: globalThis.Map<string, Key[]>;
+  private _size: number;
 }

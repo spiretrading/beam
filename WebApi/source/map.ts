@@ -1,5 +1,3 @@
-declare function require(name:string): any;
-const Collections = require('collections/fast-map');
 import { equals, hash } from './comparators';
 import { fromJson, toJson } from './serialization';
 
@@ -24,12 +22,13 @@ export class Map<Key, Value> {
 
   /** Constructs an empty map. */
   constructor() {
-    this._collection = new Collections.FastMap([], equals, hash);
+    this._buckets = new globalThis.Map<string, [Key, Value][]>();
+    this._size = 0;
   }
 
   /** Returns the number of entries in this map. */
   public get size(): number {
-    return this._collection.length;
+    return this._size;
   }
 
   /** Returns the value associated with a key.
@@ -38,7 +37,15 @@ export class Map<Key, Value> {
    *         exists.
    */
   public get(key: Key): Value {
-    return this._collection.get(key);
+    const bucket = this._buckets.get(hash(key));
+    if(bucket) {
+      for(const [k, v] of bucket) {
+        if(equals(k, key)) {
+          return v;
+        }
+      }
+    }
+    return undefined;
   }
 
   /** Tests if a key exists in this map.
@@ -46,7 +53,15 @@ export class Map<Key, Value> {
    * @return true iff the key exists in this map.
    */
   public has(key: Key): boolean {
-    return this._collection.has(key);
+    const bucket = this._buckets.get(hash(key));
+    if(bucket) {
+      for(const [k] of bucket) {
+        if(equals(k, key)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** Associates a key with a value.
@@ -54,14 +69,27 @@ export class Map<Key, Value> {
    * @param value - The value to associate with the key.
    */
   public set(key: Key, value: Value): void {
-    this._collection.set(key, value);
+    const h = hash(key);
+    const bucket = this._buckets.get(h);
+    if(bucket) {
+      for(let i = 0; i < bucket.length; ++i) {
+        if(equals(bucket[i][0], key)) {
+          bucket[i] = [key, value];
+          return;
+        }
+      }
+      bucket.push([key, value]);
+    } else {
+      this._buckets.set(h, [[key, value]]);
+    }
+    ++this._size;
   }
 
   /** Removes a key from this map.
    * @param key - The key to remove.
    */
   public remove(key: Key): void {
-    this._collection.delete(key);
+    this.delete(key);
   }
 
   /** Removes a key from this map.
@@ -69,9 +97,19 @@ export class Map<Key, Value> {
    * @return true if the key was in the map.
    */
   public delete(key: Key): boolean {
-    if(this._collection.has(key)) {
-      this._collection.delete(key);
-      return true;
+    const h = hash(key);
+    const bucket = this._buckets.get(h);
+    if(bucket) {
+      for(let i = 0; i < bucket.length; ++i) {
+        if(equals(bucket[i][0], key)) {
+          bucket.splice(i, 1);
+          if(bucket.length === 0) {
+            this._buckets.delete(h);
+          }
+          --this._size;
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -103,9 +141,14 @@ export class Map<Key, Value> {
     return value;
   }
 
-  [Symbol.iterator]() {
-    return this._collection.entries() as Iterator<[Key, Value]>;
+  *[Symbol.iterator](): Iterator<[Key, Value]> {
+    for(const bucket of this._buckets.values()) {
+      for(const entry of bucket) {
+        yield entry;
+      }
+    }
   }
 
-  private _collection: any;
+  private _buckets: globalThis.Map<string, [Key, Value][]>;
+  private _size: number;
 }

@@ -11,8 +11,5 @@
   },
   "devDependencies": {
     "typescript": "4.5.2"
-  },
-  "dependencies": {
-    "collections": "5.1.12"
   }
 }

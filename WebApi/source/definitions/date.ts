@@ -87,6 +87,9 @@ export class Date {
 
   /** Converts this Date to a JavaScript Date. */
   public toDate(): globalThis.Date {
+    if(this.equals(Date.NOT_A_DATE)) {
+      return new globalThis.Date(NaN);
+    }
     return new globalThis.Date(this.year, this.month - 1, this.day);
   }
 

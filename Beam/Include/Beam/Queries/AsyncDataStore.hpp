@@ -1,6 +1,7 @@
 #ifndef BEAM_ASYNC_DATA_STORE_HPP
 #define BEAM_ASYNC_DATA_STORE_HPP
 #include <array>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <boost/thread/locks.hpp>
@@ -120,11 +121,25 @@ namespace Details {
       using EvaluatorTranslatorFilter = E;
 
       /**
+       * The type of callback invoked when a flush to the destination data store
+       * fails. The failed data is retained and retried on the next flush.
+       */
+      using ExceptionHandler = std::function<void (const std::exception_ptr&)>;
+
+      /**
        * Constructs an AsyncDataStore.
        * @param data_store Initializes the data store to buffer data to.
        */
       template<Initializes<D> DS>
       explicit AsyncDataStore(DS&& data_store);
+
+      /**
+       * Constructs an AsyncDataStore.
+       * @param data_store Initializes the data store to buffer data to.
+       * @param exception_handler The callback invoked when a flush fails.
+       */
+      template<Initializes<D> DS>
+      AsyncDataStore(DS&& data_store, ExceptionHandler exception_handler);
 
       ~AsyncDataStore();
 
@@ -138,6 +153,7 @@ namespace Details {
         LocalDataStore<Query, Value, EvaluatorTranslatorFilter>;
       mutable boost::mutex m_mutex;
       local_ptr_t<D> m_data_store;
+      ExceptionHandler m_exception_handler;
       std::shared_ptr<ReserveDataStore> m_current_data_store;
       std::shared_ptr<ReserveDataStore> m_flushed_data_store;
       bool m_is_flushing;
@@ -153,10 +169,21 @@ namespace Details {
   template<typename DS>
   AsyncDataStore(DS&& data_store) -> AsyncDataStore<std::remove_cvref_t<DS>>;
 
+  template<typename DS, typename F>
+  AsyncDataStore(DS&& data_store, F&&) ->
+    AsyncDataStore<std::remove_cvref_t<DS>>;
+
   template<typename D, typename E>
   template<Initializes<D> DS>
   AsyncDataStore<D, E>::AsyncDataStore(DS&& data_store)
+    : AsyncDataStore(std::forward<DS>(data_store), ExceptionHandler()) {}
+
+  template<typename D, typename E>
+  template<Initializes<D> DS>
+  AsyncDataStore<D, E>::AsyncDataStore(
+    DS&& data_store, ExceptionHandler exception_handler)
     : m_data_store(std::forward<DS>(data_store)),
+      m_exception_handler(std::move(exception_handler)),
       m_current_data_store(std::make_shared<ReserveDataStore>()),
       m_flushed_data_store(std::make_shared<ReserveDataStore>()),
       m_is_flushing(false) {}
@@ -227,8 +254,17 @@ namespace Details {
     }
     try {
       m_data_store->store(m_flushed_data_store->load_all());
-    } catch(const std::exception&) {
-      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+    } catch(...) {
+      {
+        auto failed = m_flushed_data_store->load_all();
+        auto lock = boost::lock_guard(m_mutex);
+        m_current_data_store->store(failed);
+      }
+      if(m_exception_handler) {
+        m_exception_handler(std::current_exception());
+      } else {
+        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      }
     }
     auto new_data_store = std::make_shared<ReserveDataStore>();
     {

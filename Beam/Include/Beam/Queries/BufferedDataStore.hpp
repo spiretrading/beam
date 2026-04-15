@@ -1,6 +1,8 @@
 #ifndef BEAM_BUFFERED_DATA_STORE_HPP
 #define BEAM_BUFFERED_DATA_STORE_HPP
 #include <algorithm>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <vector>
 #include <boost/thread/locks.hpp>
@@ -13,6 +15,7 @@
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Utilities/Algorithm.hpp"
+#include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam {
 
@@ -48,6 +51,12 @@ namespace Beam {
       using EvaluatorTranslatorFilter = E;
 
       /**
+       * The type of callback invoked when a flush to the destination data store
+       * fails. The failed data is retained and retried on the next flush.
+       */
+      using ExceptionHandler = std::function<void (const std::exception_ptr&)>;
+
+      /**
        * Constructs a BufferedDataStore.
        * @param data_size Initializes the data store to buffer data to.
        * @param buffer_size The number of messages to buffer before committing
@@ -55,6 +64,17 @@ namespace Beam {
        */
       template<Initializes<D> DS>
       BufferedDataStore(DS&& data_size, std::size_t buffer_size);
+
+      /**
+       * Constructs a BufferedDataStore.
+       * @param data_size Initializes the data store to buffer data to.
+       * @param buffer_size The number of messages to buffer before committing
+       *        to the <i>data_size</i>.
+       * @param exception_handler The callback invoked when a flush fails.
+       */
+      template<Initializes<D> DS>
+      BufferedDataStore(DS&& data_size, std::size_t buffer_size,
+        ExceptionHandler exception_handler);
 
       ~BufferedDataStore();
 
@@ -68,6 +88,7 @@ namespace Beam {
         LocalDataStore<Query, Value, EvaluatorTranslatorFilter>;
       mutable boost::mutex m_mutex;
       local_ptr_t<D> m_data_store;
+      ExceptionHandler m_exception_handler;
       std::size_t m_buffer_size;
       std::size_t m_buffer_count;
       std::shared_ptr<ReserveDataStore> m_data_store_buffer;
@@ -89,7 +110,15 @@ namespace Beam {
   template<Initializes<D> DS>
   BufferedDataStore<D, E>::BufferedDataStore(
     DS&& data_size, std::size_t buffer_size)
+    : BufferedDataStore(
+        std::forward<DS>(data_size), buffer_size, ExceptionHandler()) {}
+
+  template<typename D, typename E>
+  template<Initializes<D> DS>
+  BufferedDataStore<D, E>::BufferedDataStore(
+    DS&& data_size, std::size_t buffer_size, ExceptionHandler exception_handler)
     : m_data_store(std::forward<DS>(data_size)),
+      m_exception_handler(std::move(exception_handler)),
       m_buffer_size(buffer_size),
       m_buffer_count(0),
       m_data_store_buffer(std::make_shared<ReserveDataStore>()),
@@ -187,7 +216,20 @@ namespace Beam {
       auto lock = boost::lock_guard(m_mutex);
       data_size.swap(m_data_store_buffer);
     }
-    m_data_store->store(data_size->load_all());
+    try {
+      m_data_store->store(data_size->load_all());
+    } catch(...) {
+      {
+        auto failed = data_size->load_all();
+        auto lock = boost::lock_guard(m_mutex);
+        m_data_store_buffer->store(failed);
+      }
+      if(m_exception_handler) {
+        m_exception_handler(std::current_exception());
+      } else {
+        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      }
+    }
     {
       auto lock = boost::lock_guard(m_mutex);
       m_flushed_data_store = m_data_store_buffer;

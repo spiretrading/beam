@@ -249,8 +249,10 @@ namespace Beam {
   void SqlDataStore<C, V, I, T>::store(
       const std::vector<IndexedValue>& values) {
     auto connection = m_writer_pool->load();
-    connection->execute(
-      Viper::insert(m_row, m_table, values.begin(), values.end()));
+    Viper::transaction(*connection, [&] {
+      connection->execute(
+        Viper::insert(m_row, m_table, values.begin(), values.end()));
+    });
   }
 
   template<typename C, typename V, typename I, typename T>

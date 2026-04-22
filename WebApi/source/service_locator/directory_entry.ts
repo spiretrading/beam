@@ -73,7 +73,7 @@ export class DirectoryEntry {
   private _name: string;
 }
 
-export module DirectoryEntry {
+export namespace DirectoryEntry {
 
   /** Enumerates the types of directory entries. */
   export enum Type {

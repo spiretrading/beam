@@ -10,8 +10,8 @@ import { fromJson, toJson } from './serialization';
 export class Map<Key, Value> {
 
   /** Parses a Map from JSON. */
-  public static fromJson<Key, Value>(keyType: any, valueType: any,
-      value: any): Map<Key, Value> {
+  public static fromJson<Key, Value>(keyType: any, valueType: any, value: any):
+      Map<Key, Value> {
     value = value as [];
     const result = new Map<Key, Value>();
     for(let entry of value) {

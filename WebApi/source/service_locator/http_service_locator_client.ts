@@ -46,7 +46,7 @@ export class HttpServiceLocatorClient extends ServiceLocatorClient {
         });
       this._account = DirectoryEntry.fromJson(response);
       return this._account;
-    } catch(e) {
+    } catch(e: any) {
       if(e.code === 401) {
         throw new Services.ServiceError('Incorrect username or password.');
       }

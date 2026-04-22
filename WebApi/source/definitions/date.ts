@@ -128,7 +128,7 @@ export class Date {
   private _day: number;
 }
 
-export module Date {
+export namespace Date {
 
   /** Enumerates the months of the year. */
   export enum Month {

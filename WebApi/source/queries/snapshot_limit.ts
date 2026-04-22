@@ -61,7 +61,7 @@ export class SnapshotLimit {
   private _size: number;
 }
 
-export module SnapshotLimit {
+export namespace SnapshotLimit {
 
   /** The direction to load from. */
   export enum Type {

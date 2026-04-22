@@ -69,7 +69,7 @@ describe('Message', () => {
       value: 42,
       label: 'hello'
     };
-    const message = Message.fromJson(TestMessage, json);
+    const message = Message.deserialize(TestMessage, json);
     assert.ok(message instanceof TestMessage);
     assert.strictEqual(message.value, 42);
     assert.strictEqual(message.label, 'hello');
@@ -83,7 +83,7 @@ describe('Message', () => {
       value: 99,
       label: 'stripped'
     };
-    const message = Message.fromJson(TestMessage, json);
+    const message = Message.deserialize(TestMessage, json);
     assert.strictEqual(message.value, 99);
     assert.strictEqual(message.label, 'stripped');
   });
@@ -94,7 +94,7 @@ describe('Message', () => {
       __version: 2,
       name: 'test'
     };
-    const message = Message.fromJson(VersionedMessage, json);
+    const message = Message.deserialize(VersionedMessage, json);
     assert.ok(message instanceof VersionedMessage);
     assert.strictEqual(message.name, 'test');
     assert.strictEqual(message.version, 2);
@@ -103,7 +103,7 @@ describe('Message', () => {
   it('round_trip', () => {
     const original = new TestMessage(42, 'hello');
     const json = original.toJson();
-    const restored = Message.fromJson(TestMessage, json);
+    const restored = Message.deserialize(TestMessage, json);
     assert.strictEqual(restored.value, original.value);
     assert.strictEqual(restored.label, original.label);
     assert.strictEqual(restored.type, original.type);
@@ -113,7 +113,7 @@ describe('Message', () => {
   it('round_trip_versioned', () => {
     const original = new VersionedMessage('test');
     const json = original.toJson();
-    const restored = Message.fromJson(VersionedMessage, json);
+    const restored = Message.deserialize(VersionedMessage, json);
     assert.strictEqual(restored.name, original.name);
     assert.strictEqual(restored.type, original.type);
     assert.strictEqual(restored.version, original.version);

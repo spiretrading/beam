@@ -1,0 +1,153 @@
+import { PipeBrokenError } from '../queues/pipe_broken_error';
+import { Queue } from '../queues/queue';
+import { QueueWriter } from '../queues/queue_writer';
+import { Message, MessageType } from './message';
+import { RequestMessage } from './request_message';
+import { ResponseMessage } from './response_message';
+import { ServiceError } from './service_error';
+import { ServiceRequest } from './service_request';
+
+/** Implements a client using the Beam service protocol over WebSocket. */
+export class ServiceProtocolClient {
+
+  /**
+   * Constructs a ServiceProtocolClient.
+   * @param url - The WebSocket endpoint URL.
+   */
+  public constructor(url: URL) {
+    this._url = url;
+    this._socket = null;
+    this._nextId = 1;
+    this._pendingRequests = new Map();
+    this._monitors = new Map();
+    this._messages = new Queue<Message>();
+  }
+
+  /** Opens the WebSocket connection. */
+  public open(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this._socket = new WebSocket(this._url.toString());
+      this._socket.onopen = () => {
+        resolve();
+      };
+      this._socket.onerror = () => {
+        reject(new ServiceError('Failed to connect.'));
+      };
+      this._socket.onclose = () => {
+        this.onClose();
+      };
+      this._socket.onmessage = (event) => {
+        this.onMessage(event.data);
+      };
+    });
+  }
+
+  /**
+   * Closes the connection, rejects pending requests, closes all monitors,
+   * and closes the message queue.
+   */
+  public close(): void {
+    if(this._socket) {
+      this._socket.onclose = null;
+      this._socket.close();
+      this._socket = null;
+    }
+    this.onClose();
+  }
+
+  /**
+   * Sends a typed request and waits for the response.
+   * @param request - The service request.
+   * @returns The deserialized response.
+   */
+  public async sendRequest<R>(request: ServiceRequest<R>): Promise<R> {
+    const id = this._nextId;
+    ++this._nextId;
+    const message = new RequestMessage(request.service, id, request.toJson());
+    this._socket.send(JSON.stringify(message.toJson()));
+    const response = await new Promise<ResponseMessage>((resolve, reject) => {
+      this._pendingRequests.set(id, { resolve, reject });
+    });
+    if(response.isException) {
+      throw new ServiceError(response.result);
+    }
+    return request.parseResponse(response.result);
+  }
+
+  /**
+   * Sends a one-way message.
+   * @param message - The message to send.
+   */
+  public sendMessage(message: Message): void {
+    this._socket.send(JSON.stringify(message.toJson()));
+  }
+
+  /**
+   * Registers a queue to receive pushed messages of a specific type.
+   * @param messageType - The Message subclass to monitor.
+   * @param queue - The queue to push deserialized messages onto.
+   */
+  public monitor<T extends Message>(
+      messageType: MessageType<T>, queue: QueueWriter<T>): void {
+    this._monitors.set(messageType.TYPE, {
+      deserialize: messageType.fromJson,
+      queue
+    });
+  }
+
+  /**
+   * Returns the next unhandled pushed message, waiting until one is
+   * available.
+   * @returns The received message.
+   */
+  public readMessage(): Promise<Message> {
+    return this._messages.pop();
+  }
+
+  private onMessage(data: string): void {
+    const json = JSON.parse(data);
+    const { __type, __version, ...payload } = json;
+    if(payload.request_id !== undefined && payload.is_exception !== undefined) {
+      const pending = this._pendingRequests.get(payload.request_id);
+      if(pending) {
+        this._pendingRequests.delete(payload.request_id);
+        pending.resolve(
+          new ResponseMessage(__type, payload.request_id, payload.result,
+            payload.is_exception));
+      }
+    } else {
+      const monitor = this._monitors.get(__type);
+      if(monitor) {
+        monitor.queue.push(monitor.deserialize(payload));
+      } else {
+        this._messages.push(Message.parse(json));
+      }
+    }
+  }
+
+  private onClose(): void {
+    const error = new PipeBrokenError();
+    for(const pending of this._pendingRequests.values()) {
+      pending.reject(error);
+    }
+    this._pendingRequests.clear();
+    for(const monitor of this._monitors.values()) {
+      monitor.queue.close(error);
+    }
+    this._monitors.clear();
+    this._messages.close(error);
+  }
+
+  private _url: URL;
+  private _socket: WebSocket;
+  private _nextId: number;
+  private _pendingRequests: Map<number, {
+    resolve: (response: ResponseMessage) => void;
+    reject: (error: Error) => void;
+  }>;
+  private _monitors: Map<string, {
+    deserialize: (data: any) => any;
+    queue: QueueWriter<any>;
+  }>;
+  private _messages: Queue<Message>;
+}

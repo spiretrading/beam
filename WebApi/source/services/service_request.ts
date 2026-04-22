@@ -4,12 +4,12 @@
  */
 export interface ServiceRequest<R> {
 
-  /** The service name used in the wire protocol. */
+  /** The service type name. */
   readonly service: string;
 
   /** Serializes the request parameters to JSON. */
   toJson(): any;
 
-  /** Deserializes the response from JSON. */
+  /** Deserializes the response result from JSON. */
   parseResponse(value: any): R;
 }

@@ -2,11 +2,10 @@
 export class SnapshotLimit {
 
   /** A SnapshotLimit that returns no results. */
-  public static readonly NONE = new SnapshotLimit(SnapshotLimit.Type.HEAD, 0);
+  public static readonly NONE: SnapshotLimit;
 
   /** A SnapshotLimit that returns all results. */
-  public static readonly UNLIMITED = new SnapshotLimit(
-    SnapshotLimit.Type.HEAD, 2147483647);
+  public static readonly UNLIMITED: SnapshotLimit;
 
   /** Constructs a SnapshotLimit from a JSON object. */
   public static fromJson(value: any): SnapshotLimit {
@@ -70,3 +69,7 @@ export module SnapshotLimit {
     TAIL
   }
 }
+
+(SnapshotLimit as any).NONE = new SnapshotLimit(SnapshotLimit.Type.HEAD, 0);
+(SnapshotLimit as any).UNLIMITED =
+  new SnapshotLimit(SnapshotLimit.Type.HEAD, 2147483647);

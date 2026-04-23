@@ -2,6 +2,7 @@
 #define BEAM_SERVICE_PROTOCOL_SERVER_HPP
 #include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/NativePointerPolicy.hpp"

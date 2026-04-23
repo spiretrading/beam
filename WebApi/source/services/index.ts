@@ -1,3 +1,4 @@
+export * from './heartbeat_message';
 export * from './service_error';
 export * from './message';
 export * from './request_message';

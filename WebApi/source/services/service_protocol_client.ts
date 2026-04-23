@@ -1,11 +1,15 @@
 import { PipeBrokenError } from '../queues/pipe_broken_error';
 import { Queue } from '../queues/queue';
 import { QueueWriter } from '../queues/queue_writer';
+import { HeartbeatMessage } from './heartbeat_message';
 import { Message, MessageType } from './message';
 import { RequestMessage } from './request_message';
 import { ResponseMessage } from './response_message';
 import { ServiceError } from './service_error';
 import { ServiceRequest } from './service_request';
+
+/** The default heartbeat interval in milliseconds. */
+const HEARTBEAT_INTERVAL_MS = 30000;
 
 /** Implements a client using the Beam service protocol over WebSocket. */
 export class ServiceProtocolClient {
@@ -13,10 +17,14 @@ export class ServiceProtocolClient {
   /**
    * Constructs a ServiceProtocolClient.
    * @param url - The WebSocket endpoint URL.
+   * @param heartbeatInterval - The heartbeat interval in milliseconds.
    */
-  public constructor(url: URL) {
+  public constructor(
+      url: URL, heartbeatInterval: number = HEARTBEAT_INTERVAL_MS) {
     this._url = url;
+    this._heartbeatInterval = heartbeatInterval;
     this._socket = null;
+    this._heartbeatTimer = null;
     this._nextId = 1;
     this._pendingRequests = new Map();
     this._monitors = new Map();
@@ -28,6 +36,7 @@ export class ServiceProtocolClient {
     return new Promise((resolve, reject) => {
       this._socket = new WebSocket(this._url.toString());
       this._socket.onopen = () => {
+        this.startHeartbeat();
         resolve();
       };
       this._socket.onerror = () => {
@@ -104,9 +113,25 @@ export class ServiceProtocolClient {
     return this._messages.pop();
   }
 
+  private startHeartbeat(): void {
+    this._heartbeatTimer = setInterval(() => {
+      this.sendMessage(new HeartbeatMessage());
+    }, this._heartbeatInterval);
+  }
+
+  private stopHeartbeat(): void {
+    if(this._heartbeatTimer !== null) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+  }
+
   private onMessage(data: string): void {
     const json = JSON.parse(data);
     const { __type, __version, ...payload } = json;
+    if(__type === HeartbeatMessage.TYPE) {
+      return;
+    }
     if(payload.request_id !== undefined && payload.is_exception !== undefined) {
       const pending = this._pendingRequests.get(payload.request_id);
       if(pending) {
@@ -126,6 +151,7 @@ export class ServiceProtocolClient {
   }
 
   private onClose(): void {
+    this.stopHeartbeat();
     const error = new PipeBrokenError();
     for(const pending of this._pendingRequests.values()) {
       pending.reject(error);
@@ -139,7 +165,9 @@ export class ServiceProtocolClient {
   }
 
   private _url: URL;
+  private _heartbeatInterval: number;
   private _socket: WebSocket;
+  private _heartbeatTimer: any;
   private _nextId: number;
   private _pendingRequests: Map<number, {
     resolve: (response: ResponseMessage) => void;

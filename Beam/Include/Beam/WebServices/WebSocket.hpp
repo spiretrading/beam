@@ -119,6 +119,12 @@ namespace Details {
       /** Returns the Uri this socket connects to. */
       const Uri& get_uri() const;
 
+      /** Sets the write mode to text frames. */
+      void set_text_mode();
+
+      /** Sets the write mode to binary frames. */
+      void set_binary_mode();
+
       /** Sends a ping frame over the web socket. */
       void send_ping();
 
@@ -149,6 +155,9 @@ namespace Details {
       HttpResponseParser m_parser;
       local_ptr_t<C> m_channel;
       std::mt19937 m_random_engine;
+      static constexpr auto TEXT_OPCODE = std::uint8_t(1);
+      static constexpr auto BINARY_OPCODE = std::uint8_t(2);
+      std::uint8_t m_opcode;
       SharedBuffer m_frame_buffer;
       OpenState m_open_state;
 
@@ -194,7 +203,8 @@ namespace Details {
         m_extensions(std::move(config.m_extensions)),
         m_version(std::move(config.m_version)),
         m_channel_builder(std::move(channel_builder)),
-        m_random_engine(static_cast<unsigned int>(std::time(nullptr))) {
+        m_random_engine(static_cast<unsigned int>(std::time(nullptr))),
+        m_opcode(TEXT_OPCODE) {
     if(m_uri.get_port() == 0) {
       if(m_uri.get_scheme() == "http" || m_uri.get_scheme() == "ws") {
         m_uri.set_port(80);
@@ -209,7 +219,8 @@ namespace Details {
   template<Initializes<C> CF>
   WebSocket<C>::WebSocket(CF&& channel, ServerTag)
     : m_is_server_mode(true),
-      m_channel(std::forward<CF>(channel)) {}
+      m_channel(std::forward<CF>(channel)),
+      m_opcode(TEXT_OPCODE) {}
 
   template<typename C> requires IsChannel<dereference_t<C>>
   WebSocket<C>::~WebSocket() {
@@ -219,6 +230,16 @@ namespace Details {
   template<typename C> requires IsChannel<dereference_t<C>>
   const Uri& WebSocket<C>::get_uri() const {
     return m_uri;
+  }
+
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::set_text_mode() {
+    m_opcode = TEXT_OPCODE;
+  }
+
+  template<typename C> requires IsChannel<dereference_t<C>>
+  void WebSocket<C>::set_binary_mode() {
+    m_opcode = BINARY_OPCODE;
   }
 
   template<typename C> requires IsChannel<dereference_t<C>>
@@ -318,7 +339,7 @@ namespace Details {
     auto size = buffer.get_size();
     auto data = buffer.get_data();
     auto frame = SharedBuffer();
-    append(frame, std::uint8_t((1 << 7) | 1));
+    append(frame, std::uint8_t((1 << 7) | m_opcode));
     auto payload_length = [&] {
       if(size <= MAX_PAYLOAD_LENGTH) {
         return static_cast<std::uint8_t>(size);

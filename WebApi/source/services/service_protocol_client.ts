@@ -35,6 +35,7 @@ export class ServiceProtocolClient {
   public open(): Promise<void> {
     return new Promise((resolve, reject) => {
       this._socket = new WebSocket(this._url.toString());
+      this._socket.binaryType = 'arraybuffer';
       this._socket.onopen = () => {
         this.startHeartbeat();
         resolve();
@@ -46,7 +47,8 @@ export class ServiceProtocolClient {
         this.onClose();
       };
       this._socket.onmessage = (event) => {
-        this.onMessage((event.data as string).substring(4));
+        const buffer = event.data as ArrayBuffer;
+        this.onMessage(new TextDecoder().decode(buffer.slice(4)));
       };
     });
   }
@@ -73,14 +75,15 @@ export class ServiceProtocolClient {
     const id = this._nextId;
     ++this._nextId;
     const message = new RequestMessage(request.service, id, request.toJson());
-    this.send(message);
-    const response = await new Promise<ResponseMessage>((resolve, reject) => {
+    const response = new Promise<ResponseMessage>((resolve, reject) => {
       this._pendingRequests.set(id, { resolve, reject });
     });
-    if(response.isException) {
-      throw new ServiceError(response.result);
+    this.send(message);
+    const result = await response;
+    if(result.isException) {
+      throw new ServiceError(result.result);
     }
-    return request.parseResponse(response.result);
+    return request.parseResponse(result.result);
   }
 
   /**
@@ -114,12 +117,11 @@ export class ServiceProtocolClient {
   }
 
   private send(message: Message): void {
-    const json = JSON.stringify(message.toJson());
-    const length = json.length;
-    const prefix = String.fromCharCode(
-      length & 0xFF, (length >> 8) & 0xFF,
-      (length >> 16) & 0xFF, (length >> 24) & 0xFF);
-    this._socket.send(prefix + json);
+    const encoded = new TextEncoder().encode(JSON.stringify(message.toJson()));
+    const buffer = new ArrayBuffer(4 + encoded.byteLength);
+    new DataView(buffer).setUint32(0, encoded.byteLength, true);
+    new Uint8Array(buffer, 4).set(encoded);
+    this._socket.send(buffer);
   }
 
   private startHeartbeat(): void {

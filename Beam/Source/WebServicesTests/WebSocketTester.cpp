@@ -74,6 +74,66 @@ TEST_SUITE("WebSocket") {
     REQUIRE(received_text == "Hello, Client!");
   }
 
+  TEST_CASE("send_binary_frame") {
+    auto server = LocalServerConnection();
+    auto config = WebSocketConfig();
+    config.set_uri("ws://example.com/binary");
+    auto client_task = std::async(std::launch::async, [&] {
+      auto socket = WebSocket(std::move(config), [&] (const auto& uri) {
+        return std::make_unique<LocalClientChannel>("ws", server);
+      });
+      socket.set_binary_mode();
+      socket.write(from<SharedBuffer>("binary data"));
+      return socket.read();
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    auto request_text = std::string(buffer.get_data(), buffer.get_size());
+    auto key_pos = request_text.find("Sec-WebSocket-Key: ");
+    auto key_end = request_text.find("\r\n", key_pos);
+    auto key = request_text.substr(key_pos + 19, key_end - key_pos - 19);
+    auto accept_key = encode_base64(from<SharedBuffer>(
+      Details::compute_sha_digest(
+        key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 101 Switching Protocols\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: Upgrade\r\n"
+      "Sec-WebSocket-Accept: ") + accept_key + "\r\n\r\n";
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    reset(buffer);
+    channel->get_reader().read(out(buffer));
+    REQUIRE(buffer.get_size() >= 2);
+    auto frame_header = buffer.get_data();
+    auto is_final = (frame_header[0] & 0x80) != 0;
+    auto opcode = frame_header[0] & 0x0F;
+    auto is_masked = (frame_header[1] & 0x80) != 0;
+    auto payload_length = frame_header[1] & 0x7F;
+    REQUIRE(is_final);
+    REQUIRE(opcode == 2);
+    REQUIRE(is_masked);
+    REQUIRE(payload_length == 11);
+    auto masking_key = std::array<unsigned char, 4>();
+    std::memcpy(masking_key.data(), buffer.get_data() + 2, 4);
+    auto payload = std::string(11, '\0');
+    for(auto i = std::size_t(0); i < 11; ++i) {
+      payload[i] = buffer.get_data()[6 + i] ^ masking_key[i % 4];
+    }
+    REQUIRE(payload == "binary data");
+    reset(buffer);
+    auto response_frame = SharedBuffer();
+    append(response_frame, std::uint8_t(0x82));
+    append(response_frame, std::uint8_t(8));
+    append(response_frame, "response", 8);
+    channel->get_writer().write(response_frame);
+    auto received_message = client_task.get();
+    auto received_text = std::string(
+      received_message.get_data(), received_message.get_size());
+    REQUIRE(received_text == "response");
+  }
+
   TEST_CASE("connect_with_custom_protocols") {
     auto server = LocalServerConnection();
     auto config = WebSocketConfig();

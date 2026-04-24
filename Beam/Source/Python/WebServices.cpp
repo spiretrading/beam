@@ -421,6 +421,8 @@ void Beam::Python::export_web_socket(pybind11::module& module) {
     def_property_readonly("uri", &WebSocket::get_uri).
     def("read", &WebSocket::read, call_guard<GilRelease>()).
     def("write", &WebSocket::write<SharedBuffer>, call_guard<GilRelease>()).
+    def("set_text_mode", &WebSocket::set_text_mode).
+    def("set_binary_mode", &WebSocket::set_binary_mode).
     def("close", &WebSocket::close, call_guard<GilRelease>());
 }
 

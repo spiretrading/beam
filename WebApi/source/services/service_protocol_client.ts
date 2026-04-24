@@ -46,7 +46,7 @@ export class ServiceProtocolClient {
         this.onClose();
       };
       this._socket.onmessage = (event) => {
-        this.onMessage(event.data);
+        this.onMessage((event.data as string).substring(4));
       };
     });
   }
@@ -73,7 +73,7 @@ export class ServiceProtocolClient {
     const id = this._nextId;
     ++this._nextId;
     const message = new RequestMessage(request.service, id, request.toJson());
-    this._socket.send(JSON.stringify(message.toJson()));
+    this.send(message);
     const response = await new Promise<ResponseMessage>((resolve, reject) => {
       this._pendingRequests.set(id, { resolve, reject });
     });
@@ -88,7 +88,7 @@ export class ServiceProtocolClient {
    * @param message - The message to send.
    */
   public sendMessage(message: Message): void {
-    this._socket.send(JSON.stringify(message.toJson()));
+    this.send(message);
   }
 
   /**
@@ -111,6 +111,15 @@ export class ServiceProtocolClient {
    */
   public readMessage(): Promise<Message> {
     return this._messages.pop();
+  }
+
+  private send(message: Message): void {
+    const json = JSON.stringify(message.toJson());
+    const length = json.length;
+    const prefix = String.fromCharCode(
+      length & 0xFF, (length >> 8) & 0xFF,
+      (length >> 16) & 0xFF, (length >> 24) & 0xFF);
+    this._socket.send(prefix + json);
   }
 
   private startHeartbeat(): void {

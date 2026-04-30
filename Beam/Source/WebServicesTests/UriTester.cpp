@@ -163,3 +163,157 @@ TEST_SUITE("Uri") {
     REQUIRE(uri.get_path() == "path/without/slash");
   }
 }
+
+TEST_SUITE("uri_encode") {
+  TEST_CASE("empty_string") {
+    REQUIRE(uri_encode("") == "");
+  }
+
+  TEST_CASE("unreserved_characters") {
+    REQUIRE(uri_encode("ABCxyz012-_.~") == "ABCxyz012-_.~");
+  }
+
+  TEST_CASE("space") {
+    REQUIRE(uri_encode("hello world") == "hello%20world");
+  }
+
+  TEST_CASE("special_characters") {
+    REQUIRE(uri_encode("!@#$%") == "%21%40%23%24%25");
+  }
+
+  TEST_CASE("slash_and_colon") {
+    REQUIRE(uri_encode("/account/profile") == "%2Faccount%2Fprofile");
+  }
+
+  TEST_CASE("query_characters") {
+    REQUIRE(uri_encode("key=value&other=123") == "key%3Dvalue%26other%3D123");
+  }
+}
+
+TEST_SUITE("uri_decode") {
+  TEST_CASE("empty_string") {
+    REQUIRE(uri_decode("") == "");
+  }
+
+  TEST_CASE("no_encoding") {
+    REQUIRE(uri_decode("hello") == "hello");
+  }
+
+  TEST_CASE("plus_to_space") {
+    REQUIRE(uri_decode("hello+world") == "hello world");
+  }
+
+  TEST_CASE("percent_encoded_space") {
+    REQUIRE(uri_decode("hello%20world") == "hello world");
+  }
+
+  TEST_CASE("percent_encoded_special_characters") {
+    REQUIRE(uri_decode("%21%40%23%24%25") == "!@#$%");
+  }
+
+  TEST_CASE("mixed_encoding") {
+    REQUIRE(uri_decode("a+b%20c") == "a b c");
+  }
+
+  TEST_CASE("lowercase_hex") {
+    REQUIRE(uri_decode("%2f%3a") == "/:");
+  }
+
+  TEST_CASE("uppercase_hex") {
+    REQUIRE(uri_decode("%2F%3A") == "/:");
+  }
+
+  TEST_CASE("incomplete_percent_at_end") {
+    REQUIRE(uri_decode("hello%2") == "hello%2");
+  }
+
+  TEST_CASE("percent_followed_by_non_hex") {
+    REQUIRE(uri_decode("hello%GG") == "hello%GG");
+  }
+
+  TEST_CASE("path_with_query") {
+    REQUIRE(uri_decode("%2Faccount%2Fprofile%3Fid%3D123") ==
+      "/account/profile?id=123");
+  }
+
+  TEST_CASE("unreserved_characters_unchanged") {
+    REQUIRE(uri_decode("ABCxyz012-_.~") == "ABCxyz012-_.~");
+  }
+
+  TEST_CASE("roundtrip") {
+    auto original = std::string("/path?key=hello world&x=a+b");
+    REQUIRE(uri_decode(uri_encode(original)) == original);
+  }
+}
+
+TEST_SUITE("parse_query") {
+  TEST_CASE("empty_string") {
+    auto parameters = parse_query("");
+    REQUIRE(parameters.empty());
+  }
+
+  TEST_CASE("single_parameter") {
+    auto parameters = parse_query("key=value");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("key")->second == "value");
+  }
+
+  TEST_CASE("multiple_parameters") {
+    auto parameters = parse_query("a=1&b=2&c=3");
+    REQUIRE(parameters.size() == 3);
+    REQUIRE(parameters.find("a")->second == "1");
+    REQUIRE(parameters.find("b")->second == "2");
+    REQUIRE(parameters.find("c")->second == "3");
+  }
+
+  TEST_CASE("empty_value") {
+    auto parameters = parse_query("key=");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("key")->second == "");
+  }
+
+  TEST_CASE("no_value") {
+    auto parameters = parse_query("key");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("key")->second == "");
+  }
+
+  TEST_CASE("encoded_key_and_value") {
+    auto parameters = parse_query("hello%20world=foo%26bar");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("hello world")->second == "foo&bar");
+  }
+
+  TEST_CASE("plus_in_value") {
+    auto parameters = parse_query("q=hello+world");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("q")->second == "hello world");
+  }
+
+  TEST_CASE("duplicate_keys") {
+    auto parameters = parse_query("id=1&id=2&id=3");
+    REQUIRE(parameters.size() == 3);
+    REQUIRE(parameters.count("id") == 3);
+  }
+
+  TEST_CASE("trailing_ampersand") {
+    auto parameters = parse_query("a=1&b=2&");
+    REQUIRE(parameters.size() == 2);
+    REQUIRE(parameters.find("a")->second == "1");
+    REQUIRE(parameters.find("b")->second == "2");
+  }
+
+  TEST_CASE("leading_ampersand") {
+    auto parameters = parse_query("&a=1");
+    REQUIRE(parameters.size() == 1);
+    REQUIRE(parameters.find("a")->second == "1");
+  }
+
+  TEST_CASE("from_uri") {
+    auto uri = Uri("http://example.com/search?q=test&page=1");
+    auto parameters = parse_query(uri);
+    REQUIRE(parameters.size() == 2);
+    REQUIRE(parameters.find("q")->second == "test");
+    REQUIRE(parameters.find("page")->second == "1");
+  }
+}

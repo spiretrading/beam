@@ -1,5 +1,7 @@
 #ifndef BEAM_URI_HPP
 #define BEAM_URI_HPP
+#include <array>
+#include <cctype>
 #include <cstdint>
 #include <limits>
 #include <ostream>
@@ -7,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <boost/throw_exception.hpp>
 
 namespace Beam {
@@ -88,6 +91,118 @@ namespace Beam {
        */
       explicit MalformedUriException(const std::string& message);
   };
+
+  /**
+   * URI-encodes a string.
+   * @param source The string to encode.
+   * @return The URI-encoded string.
+   */
+  inline std::string uri_encode(std::string_view source) {
+    static constexpr auto HEX_DIGITS = "0123456789ABCDEF";
+    auto result = std::string();
+    result.reserve(source.size());
+    for(auto c : source) {
+      if(std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' ||
+          c == '.' || c == '~') {
+        result += c;
+      } else {
+        auto byte = static_cast<unsigned char>(c);
+        result += '%';
+        result += HEX_DIGITS[byte >> 4];
+        result += HEX_DIGITS[byte & 0x0F];
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Decodes a URI-encoded string.
+   * @param source The URI-encoded string.
+   * @return The decoded string.
+   */
+  inline std::string uri_decode(std::string_view source) {
+    static constexpr auto HEX_VALUES = [] {
+      auto table = std::array<int, 256>();
+      table.fill(-1);
+      for(auto i = 0; i <= 9; ++i) {
+        table['0' + i] = i;
+      }
+      for(auto i = 0; i < 6; ++i) {
+        table['A' + i] = 10 + i;
+        table['a' + i] = 10 + i;
+      }
+      return table;
+    }();
+    auto result = std::string();
+    result.reserve(source.size());
+    for(auto i = std::size_t(0); i < source.size(); ++i) {
+      if(source[i] == '%' && i + 2 < source.size()) {
+        auto high = HEX_VALUES[static_cast<unsigned char>(source[i + 1])];
+        auto low = HEX_VALUES[static_cast<unsigned char>(source[i + 2])];
+        if(high >= 0 && low >= 0) {
+          result += static_cast<char>(high << 4 | low);
+          i += 2;
+          continue;
+        }
+      }
+      if(source[i] == '+') {
+        result += ' ';
+      } else {
+        result += source[i];
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Parses query parameters from a raw query string.
+   * @param query The raw query string (without the leading '?').
+   * @return A multimap of decoded parameter names to decoded values.
+   */
+  inline std::unordered_multimap<std::string, std::string> parse_query(
+      std::string_view query) {
+    auto parameters = std::unordered_multimap<std::string, std::string>();
+    auto position = std::string_view::size_type(0);
+    while(position < query.size()) {
+      auto separator = query.find('&', position);
+      if(separator == std::string_view::npos) {
+        separator = query.size();
+      }
+      auto pair = query.substr(position, separator - position);
+      if(!pair.empty()) {
+        auto equals = pair.find('=');
+        if(equals == std::string_view::npos) {
+          parameters.emplace(uri_decode(pair), std::string());
+        } else {
+          parameters.emplace(
+            uri_decode(pair.substr(0, equals)),
+            uri_decode(pair.substr(equals + 1)));
+        }
+      }
+      position = separator + 1;
+    }
+    return parameters;
+  }
+
+  /**
+   * Parses query parameters from a raw query string.
+   * @param query The raw query string (without the leading '?').
+   * @return A multimap of decoded parameter names to decoded values.
+   */
+  inline std::unordered_multimap<std::string, std::string> parse_query(
+      const char* query) {
+    return parse_query(std::string_view(query));
+  }
+
+  /**
+   * Parses query parameters from a URI.
+   * @param uri The URI to extract query parameters from.
+   * @return A multimap of decoded parameter names to decoded values.
+   */
+  inline std::unordered_multimap<std::string, std::string> parse_query(
+      const Uri& uri) {
+    return parse_query(uri.get_query());
+  }
 
   inline std::ostream& operator <<(std::ostream& sink, const Uri& uri) {
     if(!uri.get_scheme().empty()) {

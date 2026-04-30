@@ -74,18 +74,21 @@ namespace Beam {
       ServiceLocatorServlet(const ServiceLocatorServlet&) = delete;
       ServiceLocatorServlet& operator =(const ServiceLocatorServlet&) = delete;
       void remove(const DirectoryEntry& entry);
+      DirectoryEntry find_session_account(
+        const std::string& session_id, unsigned int key);
+      LoginServiceResult login(
+        ServiceProtocolClient& client, const DirectoryEntry& account);
       LoginServiceResult on_login_request(ServiceProtocolClient& client,
         const std::string& username, const std::string& password);
       ServiceEntry on_register_request(ServiceProtocolClient& client,
         const std::string& name, const JsonObject& properties);
-      void on_unregister_request(ServiceProtocolClient& client,
-        int service_id);
-      std::vector<ServiceEntry> on_locate_request(ServiceProtocolClient& client,
-        const std::string& name);
+      void on_unregister_request(ServiceProtocolClient& client, int service_id);
+      std::vector<ServiceEntry> on_locate_request(
+        ServiceProtocolClient& client, const std::string& name);
       std::vector<ServiceEntry> on_subscribe_request(
         ServiceProtocolClient& client, const std::string& service_name);
-      void on_unsubscribe_request(ServiceProtocolClient& client,
-        const std::string& service_name);
+      void on_unsubscribe_request(
+        ServiceProtocolClient& client, const std::string& service_name);
       std::vector<DirectoryEntry> on_monitor_directory_entry_request(
         ServiceProtocolClient& client, const DirectoryEntry& entry);
       DirectoryEntry on_load_path(ServiceProtocolClient& client,
@@ -93,8 +96,8 @@ namespace Beam {
       std::vector<DirectoryEntry> on_monitor_accounts(
         ServiceProtocolClient& client);
       void on_unmonitor_accounts(ServiceProtocolClient& client);
-      DirectoryEntry on_load_directory_entry(ServiceProtocolClient& client,
-        unsigned int id);
+      DirectoryEntry on_load_directory_entry(
+        ServiceProtocolClient& client, unsigned int id);
       std::vector<DirectoryEntry> on_load_parents_request(
         ServiceProtocolClient& client, const DirectoryEntry& entry);
       std::vector<DirectoryEntry> on_load_children_request(
@@ -103,25 +106,25 @@ namespace Beam {
         ServiceProtocolClient& client);
       boost::optional<DirectoryEntry> on_find_account_request(
         ServiceProtocolClient& client, const std::string& name);
-      DirectoryEntry on_make_account_request(ServiceProtocolClient& client,
-        const std::string& name, const std::string& password,
-        const DirectoryEntry& parent);
+      DirectoryEntry on_make_account_request(
+        ServiceProtocolClient& client, const std::string& name,
+        const std::string& password, const DirectoryEntry& parent);
       DirectoryEntry on_make_directory_request(ServiceProtocolClient& client,
         const std::string& name, const DirectoryEntry& parent);
-      void on_delete_directory_entry_request(ServiceProtocolClient& client,
-        const DirectoryEntry& entry);
+      void on_delete_directory_entry_request(
+        ServiceProtocolClient& client, const DirectoryEntry& entry);
       void on_associate_request(ServiceProtocolClient& client,
         const DirectoryEntry& entry, const DirectoryEntry& parent);
       void on_detach_request(ServiceProtocolClient& client,
         const DirectoryEntry& entry, const DirectoryEntry& parent);
       void on_store_password_request(ServiceProtocolClient& client,
         const DirectoryEntry& account, const std::string& password);
-      bool on_has_permissions_request(ServiceProtocolClient& client,
-        const DirectoryEntry& account, const DirectoryEntry& target,
-        Permissions permissions);
-      void on_store_permissions_request(ServiceProtocolClient& client,
-        const DirectoryEntry& source, const DirectoryEntry& target,
-        Permissions permissions);
+      bool on_has_permissions_request(
+        ServiceProtocolClient& client, const DirectoryEntry& account,
+        const DirectoryEntry& target, Permissions permissions);
+      void on_store_permissions_request(
+        ServiceProtocolClient& client, const DirectoryEntry& source,
+        const DirectoryEntry& target, Permissions permissions);
       boost::posix_time::ptime on_load_registration_time_request(
         ServiceProtocolClient& client, const DirectoryEntry& account);
       boost::posix_time::ptime on_load_last_login_time_request(
@@ -134,6 +137,9 @@ namespace Beam {
       DirectoryEntry on_session_authentication_request(
         ServiceProtocolClient& client, const std::string& session_id,
         unsigned int salt_id);
+      LoginServiceResult on_login_from_session_request(
+        ServiceProtocolClient& client, const std::string& session_id,
+        unsigned int key);
   };
 
   template<typename D>
@@ -242,6 +248,9 @@ namespace Beam {
     ServiceLocatorServices::SessionAuthenticationService::add_slot(
       out(slots), std::bind_front(
         &ServiceLocatorServlet::on_session_authentication_request, this));
+    ServiceLocatorServices::LoginFromSessionService::add_slot(
+      out(slots), std::bind_front(
+        &ServiceLocatorServlet::on_login_from_session_request, this));
   }
 
   template<typename C, typename D> requires
@@ -327,6 +336,38 @@ namespace Beam {
 
   template<typename C, typename D> requires
     IsServiceLocatorDataStore<dereference_t<D>>
+  DirectoryEntry ServiceLocatorServlet<C, D>::find_session_account(
+      const std::string& session_id, unsigned int key) {
+    auto salt = std::to_string(key);
+    auto upper_case_session_id = boost::to_upper_copy(session_id);
+    return with(m_sessions, [&] (auto& sessions) {
+      for(auto& [stored_session_id, stored_client] : sessions) {
+        auto encoded_session_id = compute_sha(salt + stored_session_id);
+        if(encoded_session_id == upper_case_session_id) {
+          return stored_client->get_session().get_account();
+        }
+      }
+      boost::throw_with_location(ServiceRequestException("Session not found."));
+    });
+  }
+
+  template<typename C, typename D> requires
+    IsServiceLocatorDataStore<dereference_t<D>>
+  LoginServiceResult ServiceLocatorServlet<C, D>::login(
+      ServiceProtocolClient& client, const DirectoryEntry& account) {
+    auto session_id = std::string();
+    with(m_sessions, [&] (auto& sessions) {
+      do {
+        session_id = generate_session_id();
+      } while(sessions.find(session_id) != sessions.end());
+      sessions.insert(std::make_pair(session_id, &client));
+    });
+    client.get_session().set_session_id(account, session_id);
+    return LoginServiceResult(account, session_id);
+  }
+
+  template<typename C, typename D> requires
+    IsServiceLocatorDataStore<dereference_t<D>>
   LoginServiceResult ServiceLocatorServlet<C, D>::on_login_request(
       ServiceProtocolClient& client, const std::string& username,
       const std::string& password) {
@@ -362,15 +403,7 @@ namespace Beam {
       session.reset_login();
       throw;
     }
-    auto session_id = std::string();
-    with(m_sessions, [&] (auto& sessions) {
-      do {
-        session_id = generate_session_id();
-      } while(sessions.find(session_id) != sessions.end());
-      sessions.insert(std::make_pair(session_id, &client));
-    });
-    session.set_session_id(account, session_id);
-    return LoginServiceResult(account, session_id);
+    return login(client, account);
   }
 
   template<typename C, typename D> requires
@@ -1000,17 +1033,28 @@ namespace Beam {
     if(!session.is_logged_in()) {
       boost::throw_with_location(ServiceRequestException("Not logged in."));
     }
-    auto salt = std::to_string(salt_id);
-    auto upper_case_session_id = boost::to_upper_copy(session_id);
-    return with(m_sessions, [&] (auto& sessions) {
-      for(auto& session : sessions) {
-        auto encoded_session_id = compute_sha(salt + session.first);
-        if(encoded_session_id == upper_case_session_id) {
-          return session.second->get_session().get_account();
-        }
+    return find_session_account(session_id, salt_id);
+  }
+
+  template<typename C, typename D> requires
+    IsServiceLocatorDataStore<dereference_t<D>>
+  LoginServiceResult ServiceLocatorServlet<C, D>::on_login_from_session_request(
+      ServiceProtocolClient& client, const std::string& session_id,
+      unsigned int key) {
+    auto& session = client.get_session();
+    if(!session.try_login()) {
+      boost::throw_with_location(
+        ServiceRequestException("Account is already logged in."));
+    }
+    auto account = [&] {
+      try {
+        return find_session_account(session_id, key);
+      } catch(...) {
+        session.reset_login();
+        throw;
       }
-      boost::throw_with_location(ServiceRequestException("Session not found."));
-    });
+    }();
+    return login(client, account);
   }
 }
 

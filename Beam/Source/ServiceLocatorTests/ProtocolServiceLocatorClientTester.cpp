@@ -47,6 +47,12 @@ namespace {
         });
       return make_client("test_user", "test_password");
     }
+
+    std::unique_ptr<TestServiceLocatorClient> make_session_client(
+        const std::string& session_id, unsigned int key) {
+      return ServiceClientFixture::make_client<TestServiceLocatorClient>(
+        session_id, key);
+    }
   };
 }
 
@@ -1068,5 +1074,65 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     REQUIRE(registered_services[1].get_name() == service_two.get_name());
     REQUIRE(
       registered_services[1].get_properties() == service_two.get_properties());
+  }
+
+  TEST_CASE("login_from_session_rejected") {
+    auto fixture = Fixture();
+    auto login_attempted = false;
+    auto session_id = std::string("invalid_session");
+    auto key = 12345u;
+    fixture.on_request<LoginFromSessionService>(
+      [&] (auto& request, const std::string& session,
+          unsigned int encryption_key) {
+        REQUIRE(session == session_id);
+        REQUIRE(encryption_key == key);
+        login_attempted = true;
+        request.set_exception(ServiceRequestException("Session not found."));
+      });
+    REQUIRE_THROWS_AS(
+      fixture.make_session_client(session_id, key), ConnectException);
+    REQUIRE(login_attempted);
+  }
+
+  TEST_CASE("login_from_session_successful") {
+    auto fixture = Fixture();
+    auto login_attempted = false;
+    auto session_id = std::string("encrypted_session");
+    auto key = 67890u;
+    auto expected_account = DirectoryEntry::make_account(100, "session_user");
+    auto expected_session_id = std::string("new_session_12345");
+    fixture.on_request<LoginFromSessionService>(
+      [&] (auto& request, const std::string& session,
+          unsigned int encryption_key) {
+        REQUIRE(session == session_id);
+        REQUIRE(encryption_key == key);
+        login_attempted = true;
+        request.set(LoginServiceResult(expected_account, expected_session_id));
+      });
+    auto client = fixture.make_session_client(session_id, key);
+    REQUIRE(login_attempted);
+    REQUIRE(client->get_account() == expected_account);
+    REQUIRE(client->get_session_id() == expected_session_id);
+  }
+
+  TEST_CASE("login_from_session_can_use_services") {
+    auto fixture = Fixture();
+    auto expected_account = DirectoryEntry::make_account(100, "session_user");
+    fixture.on_request<LoginFromSessionService>(
+      [&] (auto& request, const std::string& session,
+          unsigned int encryption_key) {
+        request.set(LoginServiceResult(expected_account, "new_session"));
+      });
+    auto client = fixture.make_session_client("encrypted_session", 12345u);
+    auto locate_attempted = false;
+    fixture.on_request<LocateService>(
+      [&] (auto& request, const std::string& name) {
+        REQUIRE(name == "test_service");
+        locate_attempted = true;
+        request.set(std::vector<ServiceEntry>());
+      });
+    auto result = client->locate("test_service");
+    REQUIRE(locate_attempted);
+    REQUIRE(result.empty());
   }
 }

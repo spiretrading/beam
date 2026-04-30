@@ -185,7 +185,8 @@ void Beam::Python::export_service_locator_application_definitions(
   export_service_locator_client<
     ToPythonServiceLocatorClient<ApplicationServiceLocatorClient>>(
       module, "ApplicationServiceLocatorClient").
-    def(pybind11::init<std::string, std::string, IpAddress>());
+    def(pybind11::init<std::string, std::string, IpAddress>()).
+    def(pybind11::init<std::string, unsigned int, IpAddress>());
   module.def("add", &add<ServiceLocatorClient>, call_guard<GilRelease>());
 }
 
@@ -215,6 +216,11 @@ void Beam::Python::export_service_locator_test_environment(module& module) {
           std::string password) {
         return ToPythonServiceLocatorClient(
           self.make_client(std::move(username), std::move(password)));
+      }, call_guard<GilRelease>()).
+    def("make_client",
+      [] (ServiceLocatorTestEnvironment& self, const std::string& session_id,
+          unsigned int key) {
+        return ToPythonServiceLocatorClient(self.make_client(session_id, key));
       }, call_guard<GilRelease>()).
     def("make_client", [] (ServiceLocatorTestEnvironment& self) {
       return ToPythonServiceLocatorClient(self.make_client());

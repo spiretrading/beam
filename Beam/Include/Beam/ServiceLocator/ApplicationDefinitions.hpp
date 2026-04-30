@@ -79,6 +79,15 @@ namespace Beam {
         const std::string& password, const IpAddress& address);
 
       /**
+       * Constructs an ApplicationServiceLocatorClient from an existing session.
+       * @param session_id The encrypted session id.
+       * @param key The encryption key used to encode the session id.
+       * @param address The address of the ServiceLocator.
+       */
+      ApplicationServiceLocatorClient(const std::string& session_id,
+        unsigned int key, const IpAddress& address);
+
+      /**
        * Constructs an ApplicationServiceLocatorClient from a configuration.
        * @param config The configuration to use.
        */
@@ -125,6 +134,17 @@ namespace Beam {
     const IpAddress& address)
     : ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>(
         username, password, ServiceProtocolClientBuilder(
+          [=] {
+            return std::make_unique<TcpSocketChannel>(address);
+          },
+          [] {
+            return std::make_unique<LiveTimer>(boost::posix_time::seconds(10));
+          })) {}
+
+  inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
+    const std::string& session_id, unsigned int key, const IpAddress& address)
+    : ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>(
+        session_id, key, ServiceProtocolClientBuilder(
           [=] {
             return std::make_unique<TcpSocketChannel>(address);
           },

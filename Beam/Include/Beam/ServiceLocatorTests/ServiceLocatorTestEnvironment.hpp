@@ -41,6 +41,10 @@ namespace Beam::Tests {
       ServiceLocatorClient make_client(
         std::string username, std::string password);
 
+      /** Makes a new ServiceLocatorClient from an existing session. */
+      ServiceLocatorClient make_client(
+        const std::string& session_id, unsigned int key);
+
       /** Makes a new ServiceLocatorClient. */
       ServiceLocatorClient make_client();
 
@@ -88,6 +92,18 @@ namespace Beam::Tests {
     return ServiceLocatorClient(std::in_place_type<
       ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>>,
       std::move(username), std::move(password), ServiceProtocolClientBuilder(
+        std::bind_front(boost::factory<
+          std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
+          "test_service_locator_client", std::ref(m_server_connection)),
+        boost::factory<
+          std::unique_ptr<ServiceProtocolClientBuilder::Timer>>()));
+  }
+
+  inline ServiceLocatorClient ServiceLocatorTestEnvironment::make_client(
+      const std::string& session_id, unsigned int key) {
+    return ServiceLocatorClient(std::in_place_type<
+      ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>>,
+      session_id, key, ServiceProtocolClientBuilder(
         std::bind_front(boost::factory<
           std::unique_ptr<ServiceProtocolClientBuilder::Channel>>(),
           "test_service_locator_client", std::ref(m_server_connection)),

@@ -35,6 +35,16 @@ namespace Beam {
       ProtocolServiceLocatorClient(
         std::string username, std::string password, BF&& client_builder);
 
+      /**
+       * Constructs a ProtocolServiceLocatorClient from an existing session.
+       * @param session_id The encrypted session id.
+       * @param key The encryption key used to encode the session id.
+       * @param client_builder Initializes the ServiceProtocolClientBuilder.
+       */
+      template<Initializes<B> BF>
+      ProtocolServiceLocatorClient(
+        const std::string& session_id, unsigned int key, BF&& client_builder);
+
       ~ProtocolServiceLocatorClient();
 
       DirectoryEntry get_account() const;
@@ -96,6 +106,8 @@ namespace Beam {
       ProtocolServiceLocatorClient& operator =(
         const ProtocolServiceLocatorClient&) = delete;
       void login(ServiceProtocolClient& client);
+      void login_from_session(ServiceProtocolClient& client,
+        const std::string& session_id, unsigned int key);
       void on_reconnect(const std::shared_ptr<ServiceProtocolClient>& client);
       void on_account_update(
         ServiceProtocolClient& client, const AccountUpdate& update);
@@ -119,6 +131,32 @@ namespace Beam {
     try {
       auto client = m_client_handler.get_client();
       login(*client);
+    } catch(const std::exception&) {
+      close();
+      throw;
+    }
+  } catch(const std::exception&) {
+    std::throw_with_nested(
+      ConnectException("Failed to login to service locator."));
+  }
+
+  template<typename B>
+  template<Initializes<B> BF>
+  ProtocolServiceLocatorClient<B>::ProtocolServiceLocatorClient(
+      const std::string& session_id, unsigned int key, BF&& client_builder)
+      try : m_client_handler(std::forward<BF>(client_builder),
+              std::bind_front(
+                &ProtocolServiceLocatorClient::on_reconnect, this)) {
+    ServiceLocatorServices::register_service_locator_services(
+      out(m_client_handler.get_slots()));
+    ServiceLocatorServices::register_service_locator_messages(
+      out(m_client_handler.get_slots()));
+    add_message_slot<ServiceLocatorServices::AccountUpdateMessage>(
+      out(m_client_handler.get_slots()),
+      std::bind_front(&ProtocolServiceLocatorClient::on_account_update, this));
+    try {
+      auto client = m_client_handler.get_client();
+      login_from_session(*client, session_id, key);
     } catch(const std::exception&) {
       close();
       throw;
@@ -438,6 +476,17 @@ namespace Beam {
   void ProtocolServiceLocatorClient<B>::login(ServiceProtocolClient& client) {
     auto result = client.template send_request<
       ServiceLocatorServices::LoginService>(m_username, m_password);
+    auto lock = boost::lock_guard(m_mutex);
+    m_account = result.account;
+    m_session_id = result.session_id;
+  }
+
+  template<typename B>
+  void ProtocolServiceLocatorClient<B>::login_from_session(
+      ServiceProtocolClient& client, const std::string& session_id,
+      unsigned int key) {
+    auto result = client.template send_request<
+      ServiceLocatorServices::LoginFromSessionService>(session_id, key);
     auto lock = boost::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;

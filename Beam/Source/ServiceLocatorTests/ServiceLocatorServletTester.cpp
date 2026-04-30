@@ -85,31 +85,98 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto username = std::string("user1");
     auto password = std::string("password");
     create_user(username, password);
-    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginService>(username,
-      "1234"), ServiceRequestException);
+    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginService>(
+      username, "1234"), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "valid_login") {
     auto username = std::string("user1");
     auto password = std::string("password");
     create_user(username, password);
-    auto loginResult = m_client_protocol->send_request<LoginService>(username,
-      password);
+    auto loginResult =
+      m_client_protocol->send_request<LoginService>(username, password);
     REQUIRE(loginResult.account.m_name == username);
     REQUIRE(loginResult.session_id.size() == SESSION_ID_LENGTH);
-
-    // Test logging in again, duplicate login.
-    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginService>(username,
-      password), ServiceRequestException);
+    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginService>(
+      username, password), ServiceRequestException);
   }
 
-#if 0
+  TEST_CASE_FIXTURE(Fixture, "login_from_session_without_login") {
+    REQUIRE_THROWS_AS(
+      m_client_protocol->send_request<LoginFromSessionService>("", 0),
+      ServiceRequestException);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "login_from_session_with_invalid_session") {
+    auto source_client = std::optional<ClientServiceProtocolClient>();
+    source_client.emplace(init("test", m_server_connection), init());
+    register_service_locator_services(out(source_client->get_slots()));
+    create_user("user1", "password");
+    auto login_result =
+      source_client->send_request<LoginService>("user1", "password");
+    auto key = generate_encryption_key();
+    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginFromSessionService>(
+      "invalid_session", key), ServiceRequestException);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "valid_login_from_session") {
+    auto source_client = std::optional<ClientServiceProtocolClient>();
+    source_client.emplace(init("test", m_server_connection), init());
+    register_service_locator_services(out(source_client->get_slots()));
+    create_user("user1", "password");
+    auto login_result =
+      source_client->send_request<LoginService>("user1", "password");
+    auto key = generate_encryption_key();
+    auto encrypted_session_id =
+      compute_sha(std::to_string(key) + login_result.session_id);
+    auto result = m_client_protocol->send_request<LoginFromSessionService>(
+      encrypted_session_id, key);
+    REQUIRE(result.account == login_result.account);
+    REQUIRE(result.session_id.size() == SESSION_ID_LENGTH);
+    REQUIRE(result.session_id != login_result.session_id);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "login_from_session_duplicate_login") {
+    auto source_client = std::optional<ClientServiceProtocolClient>();
+    source_client.emplace(init("test", m_server_connection), init());
+    register_service_locator_services(out(source_client->get_slots()));
+    create_user("user1", "password");
+    auto login_result =
+      source_client->send_request<LoginService>("user1", "password");
+    auto key = generate_encryption_key();
+    auto encrypted_session_id =
+      compute_sha(std::to_string(key) + login_result.session_id);
+    m_client_protocol->send_request<LoginFromSessionService>(
+      encrypted_session_id, key);
+    REQUIRE_THROWS_AS(m_client_protocol->send_request<LoginFromSessionService>(
+      encrypted_session_id, key), ServiceRequestException);
+  }
+
+  TEST_CASE_FIXTURE(Fixture, "login_from_session_is_independent") {
+    auto source_client = std::optional<ClientServiceProtocolClient>();
+    source_client.emplace(init("test", m_server_connection), init());
+    register_service_locator_services(out(source_client->get_slots()));
+    create_user("user1", "password");
+    auto login_result =
+      source_client->send_request<LoginService>("user1", "password");
+    auto key = generate_encryption_key();
+    auto encrypted_session_id =
+      compute_sha(std::to_string(key) + login_result.session_id);
+    auto result = m_client_protocol->send_request<LoginFromSessionService>(
+      encrypted_session_id, key);
+    m_data_store.set_permissions(
+      result.account, DirectoryEntry::STAR_DIRECTORY, Permission::READ);
+    auto children = m_client_protocol->send_request<LoadChildrenService>(
+      DirectoryEntry::STAR_DIRECTORY);
+    REQUIRE_FALSE(children.empty());
+  }
+
   TEST_CASE_FIXTURE(Fixture, "authenticate_account_without_login") {
     auto username = std::string("user1");
     auto password = std::string("password");
     auto account = create_user(username, password);
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<
       AuthenticateAccountService>("invalid_user", "password"),
       ServiceRequestException);
@@ -119,10 +186,10 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto username = std::string("user1");
     auto password = std::string("password");
     auto account = create_user(username, password);
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto loginResult = m_client_protocol->send_request<LoginService>(
-      username, password);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto login_result =
+      m_client_protocol->send_request<LoginService>(username, password);
     auto result = m_client_protocol->send_request<AuthenticateAccountService>(
       "invalid_user", "password");
     REQUIRE((result.m_type == DirectoryEntry::Type::NONE));
@@ -134,10 +201,10 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto username = std::string("user1");
     auto password = std::string("password");
     auto account = create_user(username, password);
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto loginResult = m_client_protocol->send_request<LoginService>(
-      username, password);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto login_result =
+      m_client_protocol->send_request<LoginService>(username, password);
     auto result = m_client_protocol->send_request<AuthenticateAccountService>(
       "user1", "invalid_password");
     REQUIRE((result.m_type == DirectoryEntry::Type::NONE));
@@ -149,8 +216,8 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto username = std::string("user1");
     auto password = std::string("password");
     auto account = create_user(username, password);
-    auto loginResult = m_client_protocol->send_request<LoginService>(
-      username, password);
+    auto login_result =
+      m_client_protocol->send_request<LoginService>(username, password);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<
       AuthenticateAccountService>("user1", "password"),
       ServiceRequestException);
@@ -160,15 +227,15 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto username = std::string("user1");
     auto password = std::string("password");
     auto account = create_user(username, password);
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto loginResult = m_client_protocol->send_request<LoginService>(
-      username, password);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto login_result =
+      m_client_protocol->send_request<LoginService>(username, password);
     auto result = m_client_protocol->send_request<AuthenticateAccountService>(
       "user1", "password");
     REQUIRE((result.m_type == DirectoryEntry::Type::ACCOUNT));
-    REQUIRE(result.m_id == loginResult.account.m_id);
-    REQUIRE(result.m_name == loginResult.account.m_name);
+    REQUIRE(result.m_id == login_result.account.m_id);
+    REQUIRE(result.m_name == login_result.account.m_name);
   }
 
   TEST_CASE_FIXTURE(Fixture, "session_authentication_without_login") {
@@ -179,7 +246,7 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "session_authentication_with_invalid_session_id") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     REQUIRE_THROWS_AS(m_client_protocol->send_request<
       SessionAuthenticationService>("", 0), ServiceRequestException);
   }
@@ -187,11 +254,11 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "valid_session_authentication") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     auto key = 0U;
-    auto encodedSessionId = ComputeSHA("0" + session_id);
+    auto encrypted_session_id = compute_sha("0" + session_id);
     auto result = m_client_protocol->send_request<SessionAuthenticationService>(
-      encodedSessionId, key);
+      encrypted_session_id, key);
     REQUIRE(result == account);
   }
 
@@ -199,8 +266,8 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto service = "service";
     auto properties = JsonObject();
     properties["hostname"] = "tcp://localhost";
-    REQUIRE_THROWS_AS(m_client_protocol->send_request<RegisterService>(service,
-      properties), ServiceRequestException);
+    REQUIRE_THROWS_AS(m_client_protocol->send_request<RegisterService>(
+      service, properties), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "register_service") {
@@ -209,11 +276,11 @@ TEST_SUITE("ServiceLocatorServlet") {
     properties["hostname"] = "tcp://localhost";
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto result = m_client_protocol->send_request<RegisterService>(service,
-      properties);
-    REQUIRE(result.GetName() == service);
-    REQUIRE(result.GetProperties() == properties);
+    create_account_and_login(out(account), out(session_id));
+    auto result =
+      m_client_protocol->send_request<RegisterService>(service, properties);
+    REQUIRE(result.get_name() == service);
+    REQUIRE(result.get_properties() == properties);
   }
 
   TEST_CASE_FIXTURE(Fixture, "unregister_service_without_login") {
@@ -224,7 +291,7 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "unregister_invalid_service") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     REQUIRE_THROWS_AS(m_client_protocol->send_request<UnregisterService>(1),
       ServiceRequestException);
   }
@@ -233,25 +300,20 @@ TEST_SUITE("ServiceLocatorServlet") {
     auto service = "service";
     auto properties = JsonObject();
     properties["hostname"] = "tcp://localhost";
-  
-    // Login and register the service.
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto registerResult = m_client_protocol->send_request<RegisterService>(
-      service, properties);
-    REQUIRE(registerResult.GetName() == service);
-    REQUIRE(registerResult.GetProperties() == properties);
-  
-    // Unregister the service.
-    m_client_protocol->send_request<UnregisterService>(registerResult.GetId());
-  
-    // Re-register the service.
-    auto reregisterResult = m_client_protocol->send_request<RegisterService>(
-      service, properties);
-    REQUIRE(reregisterResult.GetName() == service);
-    REQUIRE(reregisterResult.GetProperties() == properties);
-    REQUIRE(reregisterResult.GetId() != registerResult.GetId());
+    create_account_and_login(out(account), out(session_id));
+    auto register_result =
+      m_client_protocol->send_request<RegisterService>(service, properties);
+    REQUIRE(register_result.get_name() == service);
+    REQUIRE(register_result.get_properties() == properties);
+    m_client_protocol->send_request<UnregisterService>(
+      register_result.get_id());
+    auto reregister_result =
+      m_client_protocol->send_request<RegisterService>(service, properties);
+    REQUIRE(reregister_result.get_name() == service);
+    REQUIRE(reregister_result.get_properties() == properties);
+    REQUIRE(reregister_result.get_id() != register_result.get_id());
   }
 
   TEST_CASE_FIXTURE(Fixture, "locating_without_login") {
@@ -262,7 +324,7 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "locating_non_existing_service") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     auto result = m_client_protocol->send_request<LocateService>("");
     REQUIRE(result.empty());
   }
@@ -270,34 +332,27 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "locating_single_provider_service") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto providerService = std::optional<ClientServiceProtocolClient>();
+    create_account_and_login(out(account), out(session_id));
+    auto provider_service = std::optional<ClientServiceProtocolClient>();
     auto provider = DirectoryEntry();
-    auto providerSession = std::string();
-    create_additional_client("user2", "password", Store(provider),
-      Store(providerSession), Store(providerService));
-  
-    // Register the service using the mock provider.
+    auto provider_session = std::string();
+    create_additional_client("user2", "password", out(provider),
+      out(provider_session), out(provider_service));
     auto properties = JsonObject();
     properties["hostname"] = "tcp://localhost";
-    auto registerResult = providerService->send_request<RegisterService>(
-      "service", properties);
-  
-    // Locate the service using the mock client.
-    auto locateResult = m_client_protocol->send_request<LocateService>("service");
-    REQUIRE(locateResult.size() == 1);
-    auto& replyService = locateResult.front();
-    REQUIRE(replyService.GetName() == "service");
-    REQUIRE(replyService.GetAccount().m_name == provider.m_name);
-    REQUIRE(replyService.GetAccount().m_id == provider.m_id);
-  
-    // Unregister the service.
-    providerService->send_request<UnregisterService>(replyService.GetId());
-  
-    // Redo the locate.
-    auto relocateResult = m_client_protocol->send_request<LocateService>(
-      "service");
-    REQUIRE(relocateResult.empty());
+    auto register_result =
+      provider_service->send_request<RegisterService>("service", properties);
+    auto locate_result =
+      m_client_protocol->send_request<LocateService>("service");
+    REQUIRE(locate_result.size() == 1);
+    auto& reply_service = locate_result.front();
+    REQUIRE(reply_service.get_name() == "service");
+    REQUIRE(reply_service.get_account().m_name == provider.m_name);
+    REQUIRE(reply_service.get_account().m_id == provider.m_id);
+    provider_service->send_request<UnregisterService>(reply_service.get_id());
+    auto relocate_result =
+      m_client_protocol->send_request<LocateService>("service");
+    REQUIRE(relocate_result.empty());
   }
 
   TEST_CASE_FIXTURE(Fixture, "locating_multiple_provider_service") {
@@ -306,178 +361,163 @@ TEST_SUITE("ServiceLocatorServlet") {
     properties["hostname"] = "tcp://localhost";
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto providerService = std::optional<ClientServiceProtocolClient>();
-    auto firstProvider = DirectoryEntry();
-    auto firstProviderSession = std::string();
-    create_additional_client("user2", "password", Store(firstProvider),
-      Store(firstProviderSession), Store(providerService));
-  
-    // Register the service using the first provider.
-    auto firstServiceId = 1;
-    auto secondServiceId = 2;
-    auto registerResult = providerService->send_request<RegisterService>(service,
-      properties);
-    REQUIRE(registerResult.GetName() == service);
-    REQUIRE(registerResult.GetProperties() == properties);
-  
-    // Register the service using the second provider.
-    auto secondaryProviderService =
+    create_account_and_login(out(account), out(session_id));
+    auto provider_service = std::optional<ClientServiceProtocolClient>();
+    auto first_provider = DirectoryEntry();
+    auto first_provider_session = std::string();
+    create_additional_client("user2", "password", out(first_provider),
+      out(first_provider_session), out(provider_service));
+    auto register_result =
+      provider_service->send_request<RegisterService>(service, properties);
+    REQUIRE(register_result.get_name() == service);
+    REQUIRE(register_result.get_properties() == properties);
+    auto secondary_provider_service =
       std::optional<ClientServiceProtocolClient>();
-    auto secondProvider = DirectoryEntry();
-    auto secondProviderSession = std::string();
-    create_additional_client("user3", "password", Store(secondProvider),
-      Store(secondProviderSession), Store(secondaryProviderService));
-    auto secondRegisterResult =
-      secondaryProviderService->send_request<RegisterService>(service,
-      properties);
-    REQUIRE(secondRegisterResult.GetName() == service);
-    REQUIRE(secondRegisterResult.GetProperties() == properties);
-  
-    // Locate the service using the mock client.
+    auto second_provider = DirectoryEntry();
+    auto second_provider_session = std::string();
+    create_additional_client("user3", "password", out(second_provider),
+      out(second_provider_session), out(secondary_provider_service));
+    auto second_register_result =
+      secondary_provider_service->send_request<RegisterService>(
+        service, properties);
+    REQUIRE(second_register_result.get_name() == service);
+    REQUIRE(second_register_result.get_properties() == properties);
     auto services = m_client_protocol->send_request<LocateService>("service");
     REQUIRE(services.size() == 2);
-    REQUIRE(services[0].GetAccount().m_id != services[1].GetAccount().m_id);
-    auto replyService = services[0];
-    REQUIRE(replyService.GetName() == service);
-    REQUIRE(replyService.GetProperties() == properties);
-    REQUIRE((replyService.GetAccount().m_id == firstProvider.m_id ||
-      replyService.GetAccount().m_id == secondProvider.m_id));
-    if(replyService.GetAccount().m_id == firstProvider.m_id) {
-      REQUIRE(replyService.GetAccount().m_name == firstProvider.m_name);
-    } else if(replyService.GetAccount().m_id == secondProvider.m_id) {
-      REQUIRE(replyService.GetAccount().m_name == secondProvider.m_name);
+    REQUIRE(services[0].get_account().m_id != services[1].get_account().m_id);
+    auto reply_service = services[0];
+    REQUIRE(reply_service.get_name() == service);
+    REQUIRE(reply_service.get_properties() == properties);
+    REQUIRE((reply_service.get_account().m_id == first_provider.m_id ||
+      reply_service.get_account().m_id == second_provider.m_id));
+    if(reply_service.get_account().m_id == first_provider.m_id) {
+      REQUIRE(reply_service.get_account().m_name == first_provider.m_name);
+    } else if(reply_service.get_account().m_id == second_provider.m_id) {
+      REQUIRE(reply_service.get_account().m_name == second_provider.m_name);
     }
-    replyService = services[1];
-    REQUIRE(replyService.GetName() == service);
-    REQUIRE(replyService.GetProperties() == properties);
-    REQUIRE((replyService.GetAccount().m_id == firstProvider.m_id ||
-      replyService.GetAccount().m_id == secondProvider.m_id));
-    if(replyService.GetAccount().m_id == firstProvider.m_id) {
-      REQUIRE(replyService.GetAccount().m_name == firstProvider.m_name);
-    } else if(replyService.GetAccount().m_id == secondProvider.m_id) {
-      REQUIRE(replyService.GetAccount().m_name == secondProvider.m_name);
+    reply_service = services[1];
+    REQUIRE(reply_service.get_name() == service);
+    REQUIRE(reply_service.get_properties() == properties);
+    REQUIRE((reply_service.get_account().m_id == first_provider.m_id ||
+      reply_service.get_account().m_id == second_provider.m_id));
+    if(reply_service.get_account().m_id == first_provider.m_id) {
+      REQUIRE(reply_service.get_account().m_name == first_provider.m_name);
+    } else if(reply_service.get_account().m_id == second_provider.m_id) {
+      REQUIRE(reply_service.get_account().m_name == second_provider.m_name);
     }
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_account_without_login") {
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeAccountService>(
-      "new_account", "", DirectoryEntry::get_star_directory()),
+      "new_account", "", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_account_without_permissions") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeAccountService>(
-      "new_account", "", DirectoryEntry::get_star_directory()),
+      "new_account", "", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
-  
-    // Check that read only permission also results in an error.
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::READ);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::READ);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeAccountService>(
-      "new_account", "", DirectoryEntry::get_star_directory()),
+      "new_account", "", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_account_unavailable_name") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto unavailableName = "unavailable";
-    m_data_store.make_account(unavailableName, "",
-      DirectoryEntry::get_star_directory(), second_clock::universal_time());
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto unavailable_name = "unavailable";
+    m_data_store.make_account(unavailable_name, "",
+      DirectoryEntry::STAR_DIRECTORY, second_clock::universal_time());
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeAccountService>(
-      unavailableName, "", DirectoryEntry::get_star_directory()),
+      unavailable_name, "", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_account_empty_name") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto accountName = "";
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto account_name = "";
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeAccountService>(
-      accountName, "", DirectoryEntry::get_star_directory()),
+      account_name, "", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "valid_create_account") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto accountName = "account";
-    m_client_protocol->send_request<MakeAccountService>(accountName, "",
-      DirectoryEntry::get_star_directory());
-    auto createdAccount = m_data_store.LoadAccount(accountName);
-    REQUIRE((createdAccount.m_type == DirectoryEntry::Type::ACCOUNT));
-    REQUIRE(createdAccount.m_name == accountName);
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto account_name = "account";
+    m_client_protocol->send_request<MakeAccountService>(
+      account_name, "", DirectoryEntry::STAR_DIRECTORY);
+    auto created_account = m_data_store.load_account(account_name);
+    REQUIRE((created_account.m_type == DirectoryEntry::Type::ACCOUNT));
+    REQUIRE(created_account.m_name == account_name);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_directory_without_login") {
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeDirectoryService>(
-      "directory", DirectoryEntry::get_star_directory()),
+      "directory", DirectoryEntry::STAR_DIRECTORY),
       ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_directory_without_permissions") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeDirectoryService>(
-      "directory", DirectoryEntry::get_star_directory()),
-      ServiceRequestException);
-  
-    // Check that read only permission also results in an error.
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::READ);
+      "directory", DirectoryEntry::STAR_DIRECTORY), ServiceRequestException);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::READ);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeDirectoryService>(
-      "directory", DirectoryEntry::get_star_directory()),
-      ServiceRequestException);
+      "directory", DirectoryEntry::STAR_DIRECTORY), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "create_directory_empty_name") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto directoryName = "";
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto directory_name = "";
     REQUIRE_THROWS_AS(m_client_protocol->send_request<MakeDirectoryService>(
-      directoryName, DirectoryEntry::get_star_directory()),
-      ServiceRequestException);
+      directory_name, DirectoryEntry::STAR_DIRECTORY), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "valid_create_directory") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto directoryName = "directory";
-    m_client_protocol->send_request<MakeDirectoryService>(directoryName,
-      DirectoryEntry::get_star_directory());
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto directory_name = "directory";
+    m_client_protocol->send_request<MakeDirectoryService>(
+      directory_name, DirectoryEntry::STAR_DIRECTORY);
   }
 
   TEST_CASE_FIXTURE(Fixture, "delete_entry_without_login") {
     REQUIRE_THROWS_AS(
       m_client_protocol->send_request<DeleteDirectoryEntryService>(
-      DirectoryEntry::get_star_directory()), ServiceRequestException);
+        DirectoryEntry::STAR_DIRECTORY), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "delete_non_existing_entry") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto entry = DirectoryEntry::MakeDirectory(1000, "");
+    create_account_and_login(out(account), out(session_id));
+    auto entry = DirectoryEntry::make_directory(1000, "");
     REQUIRE_THROWS_AS(
       m_client_protocol->send_request<DeleteDirectoryEntryService>(entry),
       ServiceRequestException);
@@ -486,73 +526,75 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "delete_account_without_permissions") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto deletedAccount = DirectoryEntry::make_account(0, "deleted_account");
-    deletedAccount = m_data_store.make_account(deletedAccount.m_name, "",
-      DirectoryEntry::get_star_directory(), second_clock::universal_time());
+    create_account_and_login(out(account), out(session_id));
+    auto deleted_account = DirectoryEntry::make_account(0, "deleted_account");
+    deleted_account = m_data_store.make_account(deleted_account.m_name, "",
+      DirectoryEntry::STAR_DIRECTORY, second_clock::universal_time());
     REQUIRE_THROWS_AS(
       m_client_protocol->send_request<DeleteDirectoryEntryService>(
-      deletedAccount), ServiceRequestException);
-    REQUIRE(m_data_store.LoadAccount(deletedAccount.m_name) == deletedAccount);
+        deleted_account), ServiceRequestException);
+    REQUIRE(
+      m_data_store.load_account(deleted_account.m_name) == deleted_account);
   }
 
   TEST_CASE_FIXTURE(Fixture, "delete_account") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto deletedAccount = DirectoryEntry::make_account(0, "deleted_account");
-    deletedAccount = m_data_store.make_account(deletedAccount.m_name, "",
-      DirectoryEntry::get_star_directory(), second_clock::universal_time());
-    m_client_protocol->send_request<DeleteDirectoryEntryService>(deletedAccount);
-    REQUIRE_THROWS_AS(m_data_store.LoadAccount(deletedAccount.m_name),
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto deleted_account = DirectoryEntry::make_account(0, "deleted_account");
+    deleted_account = m_data_store.make_account(deleted_account.m_name, "",
+      DirectoryEntry::STAR_DIRECTORY, second_clock::universal_time());
+    m_client_protocol->send_request<DeleteDirectoryEntryService>(
+      deleted_account);
+    REQUIRE_THROWS_AS(m_data_store.load_account(deleted_account.m_name),
       ServiceLocatorDataStoreException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "delete_directory_without_permissions") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    auto deletedDirectory = DirectoryEntry::MakeDirectory(0,
-      "deleted_directory");
-    deletedDirectory = m_data_store.MakeDirectory(deletedDirectory.m_name,
-      DirectoryEntry::get_star_directory());
+    create_account_and_login(out(account), out(session_id));
+    auto deleted_directory =
+      DirectoryEntry::make_directory(0, "deleted_directory");
+    deleted_directory = m_data_store.make_directory(
+      deleted_directory.m_name, DirectoryEntry::STAR_DIRECTORY);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<
-      DeleteDirectoryEntryService>(deletedDirectory), ServiceRequestException);
+      DeleteDirectoryEntryService>(deleted_directory), ServiceRequestException);
   }
 
   TEST_CASE_FIXTURE(Fixture, "delete_directory") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::ADMINISTRATE);
-    auto deletedDirectory = DirectoryEntry::MakeDirectory(0,
-      "deleted_directory");
-    deletedDirectory = m_data_store.MakeDirectory(deletedDirectory.m_name,
-      DirectoryEntry::get_star_directory());
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::ADMINISTRATE);
+    auto deleted_directory =
+      DirectoryEntry::make_directory(0, "deleted_directory");
+    deleted_directory = m_data_store.make_directory(
+      deleted_directory.m_name, DirectoryEntry::STAR_DIRECTORY);
     m_client_protocol->send_request<DeleteDirectoryEntryService>(
-      deletedDirectory);
+      deleted_directory);
   }
 
   TEST_CASE_FIXTURE(Fixture, "load_directory_entry_from_path") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      Permission::READ);
-    auto a = m_data_store.MakeDirectory("a", DirectoryEntry::get_star_directory());
-    auto b = m_data_store.MakeDirectory("b", a);
-    auto c = m_data_store.MakeDirectory("c", b);
+    create_account_and_login(out(account), out(session_id));
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, Permission::READ);
+    auto a = m_data_store.make_directory("a", DirectoryEntry::STAR_DIRECTORY);
+    auto b = m_data_store.make_directory("b", a);
+    auto c = m_data_store.make_directory("c", b);
     auto result = m_client_protocol->send_request<LoadPathService>(
-      DirectoryEntry::get_star_directory(), "a");
+      DirectoryEntry::STAR_DIRECTORY, "a");
     REQUIRE(a == result);
     result = m_client_protocol->send_request<LoadPathService>(
-      DirectoryEntry::get_star_directory(), "a/b");
+      DirectoryEntry::STAR_DIRECTORY, "a/b");
     REQUIRE(b == result);
     result = m_client_protocol->send_request<LoadPathService>(
-      DirectoryEntry::get_star_directory(), "a/b/c");
+      DirectoryEntry::STAR_DIRECTORY, "a/b/c");
     REQUIRE(c == result);
     result = m_client_protocol->send_request<LoadPathService>(a, "b");
     REQUIRE(b == result);
@@ -563,9 +605,9 @@ TEST_SUITE("ServiceLocatorServlet") {
     REQUIRE_THROWS_AS(m_client_protocol->send_request<LoadPathService>(a, "c"),
       ServiceRequestException);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<LoadPathService>(
-      DirectoryEntry::get_star_directory(), "c"), ServiceRequestException);
+      DirectoryEntry::STAR_DIRECTORY, "c"), ServiceRequestException);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<LoadPathService>(
-      DirectoryEntry::get_star_directory(), "phantom"), ServiceRequestException);
+      DirectoryEntry::STAR_DIRECTORY, "phantom"), ServiceRequestException);
     REQUIRE_THROWS_AS(m_client_protocol->send_request<LoadPathService>(c, ""),
       ServiceRequestException);
   }
@@ -573,39 +615,38 @@ TEST_SUITE("ServiceLocatorServlet") {
   TEST_CASE_FIXTURE(Fixture, "monitor_all_accounts") {
     auto account = DirectoryEntry();
     auto session_id = std::string();
-    create_account_and_login(Store(account), Store(session_id));
+    create_account_and_login(out(account), out(session_id));
     auto permissions = Permissions();
-    permissions.Set(Permission::ADMINISTRATE);
-    permissions.Set(Permission::READ);
-    m_data_store.SetPermissions(account, DirectoryEntry::get_star_directory(),
-      permissions);
+    permissions.set(Permission::ADMINISTRATE);
+    permissions.set(Permission::READ);
+    m_data_store.set_permissions(
+      account, DirectoryEntry::STAR_DIRECTORY, permissions);
     auto a = create_user("a", "");
     auto b = create_user("b", "");
     auto c = create_user("c", "");
     auto accounts = m_client_protocol->send_request<MonitorAccountsService>();
-    auto expectedAccounts = std::vector<DirectoryEntry>();
-    expectedAccounts.push_back(DirectoryEntry::GetRootAccount());
-    expectedAccounts.push_back(account);
-    expectedAccounts.push_back(a);
-    expectedAccounts.push_back(b);
-    expectedAccounts.push_back(c);
+    auto expected_accounts = std::vector<DirectoryEntry>();
+    expected_accounts.push_back(DirectoryEntry::ROOT_ACCOUNT);
+    expected_accounts.push_back(account);
+    expected_accounts.push_back(a);
+    expected_accounts.push_back(b);
+    expected_accounts.push_back(c);
     REQUIRE(std::is_permutation(accounts.begin(), accounts.end(),
-      expectedAccounts.begin(), expectedAccounts.end()));
-    auto d = m_client_protocol->send_request<MakeAccountService>("d", "",
-      DirectoryEntry::get_star_directory());
-    auto updateMessage = std::dynamic_pointer_cast<RecordMessage<
+      expected_accounts.begin(), expected_accounts.end()));
+    auto d = m_client_protocol->send_request<MakeAccountService>(
+      "d", "", DirectoryEntry::STAR_DIRECTORY);
+    auto update_message = std::dynamic_pointer_cast<RecordMessage<
       AccountUpdateMessage, Fixture::ClientServiceProtocolClient>>(
-      m_client_protocol->ReadMessage());
-    REQUIRE(updateMessage);
-    REQUIRE(updateMessage->GetRecord().Get<0>() ==
-      AccountUpdate{d, AccountUpdate::Type::ADDED});
+      m_client_protocol->read_message());
+    REQUIRE(update_message);
+    REQUIRE(update_message->get_record().get<0>() ==
+      AccountUpdate(d, AccountUpdate::Type::ADDED));
     m_client_protocol->send_request<DeleteDirectoryEntryService>(b);
-    updateMessage = std::dynamic_pointer_cast<RecordMessage<
+    update_message = std::dynamic_pointer_cast<RecordMessage<
       AccountUpdateMessage, Fixture::ClientServiceProtocolClient>>(
-      m_client_protocol->ReadMessage());
-    REQUIRE(updateMessage);
-    REQUIRE(updateMessage->GetRecord().Get<0>() ==
-      AccountUpdate{b, AccountUpdate::Type::DELETED});
+        m_client_protocol->read_message());
+    REQUIRE(update_message);
+    REQUIRE(update_message->get_record().get<0>() ==
+      AccountUpdate(b, AccountUpdate::Type::DELETED));
   }
-#endif
 }

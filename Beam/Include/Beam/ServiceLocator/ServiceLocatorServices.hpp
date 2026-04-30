@@ -275,6 +275,19 @@ namespace ServiceLocatorServices {
      */
     (SessionAuthenticationService,
       "Beam.ServiceLocator.SessionAuthenticationService", DirectoryEntry,
+      (std::string, session_id), (unsigned int, key)),
+
+    /**
+     * Logs into the ServiceLocator using an existing session's credentials.
+     * @param session_id The encrypted session id to login from.
+     * @param key The encryption key used to encode the session id.
+     * @return A record as follows:
+     *         account: The DirectoryEntry identifying the account that logged
+     *                  in.
+     *         session_id: The login's session id.
+     */
+    (LoginFromSessionService,
+      "Beam.ServiceLocator.LoginFromSessionService", LoginServiceResult,
       (std::string, session_id), (unsigned int, key)));
 
   BEAM_DEFINE_MESSAGES(service_locator_messages,

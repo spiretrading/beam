@@ -132,7 +132,7 @@ build_boost() {
   cores=$(get_core_count)
   export BOOST_BUILD_PATH=$(pwd -P)
   ./bootstrap.sh || return 1
-  ./b2 -j"$cores" --prefix="$ROOT/boost_1_90_0" \
+  ./b2 -j"$cores" --prefix="$ROOT/boost_1_91_0" \
     cxxflags="-std=c++20 -fPIC" install || return 1
   unset BOOST_BUILD_PATH
 }

@@ -39,9 +39,9 @@ main() {
     "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip" \
     "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" \
     "build_zlib"
-  add_dependency "boost_1_90_0" \
-    "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.zip" \
-    "bdc79f179d1a4a60c10fe764172946d0eeafad65e576a8703c4d89d49949973c" \
+  add_dependency "boost_1_91_0" \
+    "https://archives.boost.io/release/1.91.0/source/boost_1_91_0.zip" \
+    "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" \
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \

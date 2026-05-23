@@ -60,6 +60,7 @@ file(GLOB_RECURSE header_files
   ${PROJECT_BINARY_DIR}/*.hpp Include/HttpFileServer/*.hpp)
 file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(HttpFileServer ${header_files} ${source_files})
+target_compile_definitions(HttpFileServer PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(HttpFileServer
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}

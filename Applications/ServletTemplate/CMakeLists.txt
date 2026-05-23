@@ -61,6 +61,7 @@ file(GLOB_RECURSE header_files ${PROJECT_BINARY_DIR}/*.hpp
   Include/ServletTemplate/*.hpp)
 file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(ServletTemplate ${header_files} ${source_files})
+target_compile_definitions(ServletTemplate PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(ServletTemplate
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}

@@ -9,165 +9,123 @@
 
 namespace Beam {
 
-  /**
-   * Delays the allocation/initialization of a serializable value.
-   * @tparam T The type of the value.
-   */
-  template<typename T>
-  class SerializedValue {
+    /**
+     * Delays the allocation/initialization of a serializable value.
+     * @tparam T The type of the value.
+     */
+    template<typename T>
+    class SerializedValue {
     public:
 
-      /** The type of the value. */
-      using Type = T;
+        /** The type of the value. */
+        using Type = T;
 
-      /** Constructs an uninitialized SerializedValue. */
-      SerializedValue() noexcept;
+        /** Constructs an uninitialized SerializedValue. */
+        SerializedValue() noexcept
+            : m_is_initialized(false) {
+        }
 
-      ~SerializedValue();
+        ~SerializedValue() {
+            reset();
+        }
 
-      /** Tests if this SerializedValue is initialized. */
-      explicit operator bool() const;
+        /** Tests if this SerializedValue is initialized. */
+        explicit operator bool() const {
+            return is_initialized();
+        }
 
-      /** Returns a reference to the value. */
-      Type& operator *() const;
+        /** Returns a reference to the value. */
+        Type& operator *() const {
+            return get();
+        }
 
-      /** Returns a pointer to the value. */
-      Type* operator ->() const;
+        /** Returns a pointer to the value. */
+        Type* operator ->() const {
+            assert(m_is_initialized);
+            return std::launder(reinterpret_cast<T*>(m_storage));
+        }
 
-      /** Returns <code>true</code> iff this is initialized. */
-      bool is_initialized() const;
+        /** Returns <code>true</code> iff this is initialized. */
+        bool is_initialized() const {
+            return m_is_initialized;
+        }
 
-      /** Initializes the value. */
-      void initialize();
+        /** Initializes the value. */
+        void initialize() {
+            reset();
+            BEAM_SUPPRESS_POD_INITIALIZER()
+                new(m_storage) T(DataShuttle::make<T>());
+            BEAM_UNSUPPRESS_POD_INITIALIZER()
+                m_is_initialized = true;
+        }
 
-      /** Returns the value. */
-      Type& get() const;
+        /** Returns the value. */
+        Type& get() const {
+            assert(m_is_initialized);
+            return *std::launder(
+                const_cast<T*>(reinterpret_cast<const T*>(m_storage)));
+        }
 
-      /** Resets the value. */
-      void reset();
+        /** Resets the value. */
+        void reset() {
+            if (!m_is_initialized) {
+                return;
+            }
+            get().~T();
+            m_is_initialized = false;
+        }
 
     private:
-      friend struct DataShuttle;
-      bool m_is_initialized;
-      alignas(Type) unsigned char m_storage[sizeof(Type)];
+        friend struct DataShuttle;
+        bool m_is_initialized;
+        alignas(Type) unsigned char m_storage[sizeof(Type)];
 
-      SerializedValue(const SerializedValue&) = delete;
-      SerializedValue& operator =(const SerializedValue&) = delete;
-  };
+        SerializedValue(const SerializedValue&) = delete;
+        SerializedValue& operator =(const SerializedValue&) = delete;
+    };
 
-  template<typename T>
-  SerializedValue<T>::SerializedValue() noexcept
-    : m_is_initialized(false) {}
-
-  template<typename T>
-  SerializedValue<T>::~SerializedValue() {
-    reset();
-  }
-
-  template<typename T>
-  SerializedValue<T>::operator bool() const {
-    return is_initialized();
-  }
-
-  template<typename T>
-  typename SerializedValue<T>::Type& SerializedValue<T>::operator *() const {
-    return get();
-  }
-
-  template<typename T>
-  typename SerializedValue<T>::Type* SerializedValue<T>::operator ->() const {
-    assert(m_is_initialized);
-    return std::launder(reinterpret_cast<T*>(m_storage));
-  }
-
-  template<typename T>
-  bool SerializedValue<T>::is_initialized() const {
-    return m_is_initialized;
-  }
-
-  template<typename T>
-  void SerializedValue<T>::initialize() {
-    reset();
-    BEAM_SUPPRESS_POD_INITIALIZER()
-    new(m_storage) T(DataShuttle::make<T>());
-    BEAM_UNSUPPRESS_POD_INITIALIZER()
-    m_is_initialized = true;
-  }
-
-  template<typename T>
-  typename SerializedValue<T>::Type& SerializedValue<T>::get() const {
-    assert(m_is_initialized);
-    return *std::launder(const_cast<T*>(reinterpret_cast<const T*>(m_storage)));
-  }
-
-  template<typename T>
-  void SerializedValue<T>::reset() {
-    if(!m_is_initialized) {
-      return;
-    }
-    get().~T();
-    m_is_initialized = false;
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  class SerializedValue<T> {
+    template<typename T> requires DataShuttle::is_default_constructible<T>
+    class SerializedValue<T> {
     public:
-      using Type = T;
+        using Type = T;
 
-      SerializedValue();
+        SerializedValue()
+            : m_value(DataShuttle::make<Type>()) {
+        }
 
-      explicit operator bool() const;
-      Type& operator *() const;
-      Type* operator ->() const;
-      bool is_initialized() const;
-      void initialize();
-      Type& get() const;
-      void reset();
+        explicit operator bool() const {
+            return is_initialized();
+        }
+
+        Type& operator *() const {
+            return get();
+        }
+
+        Type* operator ->() const {
+            return &m_value;
+        }
+
+        bool is_initialized() const {
+            return true;
+        }
+
+        void initialize() {}
+
+        Type& get() const {
+            return m_value;
+        }
+
+        void reset() {
+            m_value.~T();
+            std::construct_at(std::addressof(m_value));
+        }
 
     private:
-      mutable Type m_value;
+        mutable Type m_value;
 
-      SerializedValue(const SerializedValue&) = delete;
-      SerializedValue& operator =(const SerializedValue&) = delete;
-  };
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  SerializedValue<T>::SerializedValue()
-    : m_value(DataShuttle::make<Type>()) {}
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  SerializedValue<T>::operator bool() const {
-    return is_initialized();
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  typename SerializedValue<T>::Type& SerializedValue<T>::operator *() const {
-    return get();
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  typename SerializedValue<T>::Type* SerializedValue<T>::operator ->() const {
-    return &m_value;
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  bool SerializedValue<T>::is_initialized() const {
-    return true;
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  void SerializedValue<T>::initialize() {}
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  typename SerializedValue<T>::Type& SerializedValue<T>::get() const {
-    return m_value;
-  }
-
-  template<typename T> requires DataShuttle::is_default_constructible<T>
-  void SerializedValue<T>::reset() {
-    m_value.~T();
-    std::construct_at(std::addressof(m_value));
-  }
+        SerializedValue(const SerializedValue&) = delete;
+        SerializedValue& operator =(const SerializedValue&) = delete;
+    };
 }
 
 #endif

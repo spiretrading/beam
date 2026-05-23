@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/UtilitiesTests/*.cpp)
 add_executable(UtilitiesTests ${source_files})
+target_compile_definitions(UtilitiesTests PRIVATE YAML_CPP_STATIC_DEFINE)
 target_link_libraries(UtilitiesTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

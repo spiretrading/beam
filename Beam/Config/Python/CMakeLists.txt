@@ -6,7 +6,8 @@ add_library(Python SHARED ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Python PROPERTIES OUTPUT_NAME beam)
 target_compile_definitions(
-  Python PRIVATE ASPEN_USE_DLL BEAM_BUILD_DLL BEAM_ENABLE_STACK_PRINT)
+  Python PRIVATE ASPEN_USE_DLL BEAM_BUILD_DLL BEAM_ENABLE_STACK_PRINT
+  YAML_CPP_STATIC_DEFINE)
 set_target_properties(Python PROPERTIES CXX_VISIBILITY_PRESET default
   VISIBILITY_INLINES_HIDDEN 0)
 if(MSVC)

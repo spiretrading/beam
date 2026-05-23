@@ -4,9 +4,9 @@ set(ASPEN_PYTHON_LIBRARY_DEBUG_PATH
 set(ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/aspen/Libraries/Release/aspen.lib")
 set(BOOST_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/include/boost-1_90")
-set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/lib")
-set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_90_0/lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/include/boost-1_91")
+set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/lib")
+set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/lib")
 set(CRYPTOPP_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/include")
 set(CRYPTOPP_LIBRARY_DEBUG_PATH
@@ -37,9 +37,9 @@ set(SQLITE_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3.lib")
 set(YAML_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/include")
 set(YAML_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Debug/libyaml-cppmdd.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Debug/yaml-cppd.lib")
 set(YAML_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Release/libyaml-cppmd.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Release/yaml-cpp.lib")
 set(ZLIB_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2")
 set(ZLIB_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/zlib-1.3.1.2/contrib/vstudio/vc17/x64/ZlibStatDebug/zlibstat.lib")

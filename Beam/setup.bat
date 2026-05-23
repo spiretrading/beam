@@ -8,8 +8,8 @@ CALL :AddDependency "Strawberry" ^
   "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip" ^
   "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71"
 CALL :AddDependency "cryptopp890" ^
-  "https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip" ^
-  "b885403cb13d490bebe90f25fad7150b88857f7acf3bd8b9ca1cec04c9ec8a51" ^
+  "https://github.com/weidai11/cryptopp/archive/b524266.zip" ^
+  "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" ^
   ":BuildCryptopp"
 CALL :AddDependency "mariadb-connector-c-3.4.8" ^
   "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.8.zip" ^
@@ -27,20 +27,20 @@ CALL :AddDependency "tclap-1.2.5" ^
   "https://github.com/mirror/tclap/archive/v1.2.5.zip" ^
   "95ec0d0904464cb14009b408a62c50a195c1f24ef0921079b8bd034fdd489e28"
 CALL :AddDependency "yaml-cpp" ^
-  "https://github.com/jbeder/yaml-cpp/archive/0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79.zip" ^
-  "ff55e0cc373295b8503faf52a5e9569b950d8ec3e704508a62fe9159c37185bc" ^
+  "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.zip" ^
+  "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" ^
   ":BuildYamlCpp"
 CALL :AddDependency "zlib-1.3.1.2" ^
   "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip" ^
   "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" ^
   ":BuildZlib"
-CALL :AddDependency "boost_1_90_0" ^
-  "https://archives.boost.io/release/1.90.0/source/boost_1_90_0.zip" ^
-  "bdc79f179d1a4a60c10fe764172946d0eeafad65e576a8703c4d89d49949973c" ^
+CALL :AddDependency "boost_1_91_0" ^
+  "https://archives.boost.io/release/1.91.0/source/boost_1_91_0.zip" ^
+  "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "113c03e182f8b9a17269a589f5857198b077976c" ^
+  "34eab6b3f3cf1eff8a4198884350f4c9b34dd21b" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
@@ -63,9 +63,9 @@ powershell -Command "(Get-Content cryptlib.vcxproj) -replace " ^
   "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
   "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
   "Set-Content cryptlib.vcxproj" || EXIT /B 1
-msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 ^
+msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v145 /p:Platform=x64 ^
   /p:Configuration=Debug cryptlib.vcxproj || EXIT /B 1
-msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v143 /p:Platform=x64 ^
+msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v145 /p:Platform=x64 ^
   /p:Configuration=Release cryptlib.vcxproj || EXIT /B 1
 MD include
 PUSHD include
@@ -120,7 +120,7 @@ EXIT /B 0
 :BuildYamlCpp
 MD build
 PUSHD build
-cmake .. || (POPD & EXIT /B 1)
+cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. || (POPD & EXIT /B 1)
 cmake --build . --target ALL_BUILD --config Debug
 cmake --build . --target ALL_BUILD --config Release
 POPD
@@ -135,9 +135,9 @@ powershell -Command "(Get-Content zlibstat.vcxproj) -replace " ^
   "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
   "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
   "Set-Content zlibstat.vcxproj" || (POPD & EXIT /B 1)
-msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 ^
+msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v145 ^
   /p:Platform=x64 /p:Configuration=Debug || (POPD & EXIT /B 1)
-msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v143 ^
+msbuild zlibstat.vcxproj /p:UseEnv=True /p:PlatformToolset=v145 ^
   /p:Platform=x64 /p:Configuration=ReleaseWithoutAsm || (POPD & EXIT /B 1)
 POPD
 EXIT /B 0
@@ -149,11 +149,11 @@ IF "%NUMBER_OF_PROCESSORS%"=="" (
   SET "BJAM_PROCESSORS=-j%NUMBER_OF_PROCESSORS%"
 )
 PUSHD tools\build
-CALL bootstrap.bat vc143 || (POPD & EXIT /B 1)
+CALL bootstrap.bat vc145 || (POPD & EXIT /B 1)
 POPD
-tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_90_0" ^
+tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_91_0" ^
   --build-type=complete address-model=64 context-impl=winfib ^
-  toolset=msvc-14.3 link=static runtime-link=shared install || EXIT /B 1
+  toolset=msvc-14.5 link=static runtime-link=shared install || EXIT /B 1
 EXIT /B 0
 
 :BuildAspen

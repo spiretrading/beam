@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <future>
 #include <memory>
 #include <thread>
@@ -65,6 +66,11 @@ TEST_SUITE("LocalServerConnection") {
     for(auto i = 0; i < count; ++i) {
       server_channels.push_back(server.accept());
     }
+    std::sort(server_channels.begin(), server_channels.end(),
+      [](const auto& a, const auto& b) {
+        return to_string(a->get_identifier()) <
+          to_string(b->get_identifier());
+      });
     for(auto i = 0; i < count; ++i) {
       auto client = client_futures[i].get();
       REQUIRE(client);

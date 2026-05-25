@@ -8,6 +8,8 @@
 #include "Beam/WebServices/HttpRequest.hpp"
 #include "Beam/WebServices/HttpRequestSlot.hpp"
 #include "Beam/WebServices/HttpResponse.hpp"
+#include "Beam/WebServices/HtmlUtilities.hpp"
+#include "Beam/WebServices/Uri.hpp"
 
 namespace Beam {
 
@@ -24,8 +26,7 @@ namespace Beam {
       /**
        * Constructs a FileStore with a specified path.
        * @param root The root of the file system.
-       * @param patterns The set of patterns to use for content
-       *        types.
+       * @param patterns The set of patterns to use for content types.
        */
       FileStore(std::filesystem::path root, ContentTypePatterns patterns);
 
@@ -105,7 +106,7 @@ namespace Beam {
   }
 
   inline HttpResponse FileStore::serve(const HttpRequest& request) {
-    auto path = request.get_uri().get_path();
+    auto path = uri_decode(request.get_uri().get_path());
     if(!path.empty() && path[0] == '/') {
       return serve(path.substr(1));
     } else {
@@ -123,6 +124,18 @@ namespace Beam {
     }
     auto buffer = SharedBuffer();
     if(std::filesystem::is_directory(full_path)) {
+      if(path.generic_string().empty() || path.generic_string().back() != '/') {
+        auto relative_path = std::filesystem::relative(full_path, m_root);
+        auto location = std::string();
+        for(auto& segment : relative_path) {
+          location += '/';
+          location += uri_encode(segment.string());
+        }
+        location += '/';
+        response->set_status_code(HttpStatusCode::MOVED_PERMANENTLY);
+        response->set_header(HttpHeader("Location", location));
+        return;
+      }
       auto listing = make_directory_listing(full_path);
       append(buffer, listing.c_str(), listing.size());
       response->set_header(HttpHeader("Content-Type", "text/html"));
@@ -145,11 +158,22 @@ namespace Beam {
 
   inline void FileStore::serve(
       const HttpRequest& request, Out<HttpResponse> response) {
-    serve(request.get_uri().get_path(), out(response));
+    auto path = uri_decode(request.get_uri().get_path());
+    if(!path.empty() && path[0] == '/') {
+      serve(path.substr(1), out(response));
+    } else {
+      serve(path, out(response));
+    }
   }
 
   inline void FileStore::populate(std::ostream& out, const std::string& name) {
-    out << "<a href=\"" << name << "\">" << name << "</a>\n";
+    auto href = std::string();
+    if(!name.empty() && name.back() == '/') {
+      href = uri_encode(name.substr(0, name.size() - 1)) + '/';
+    } else {
+      href = uri_encode(name);
+    }
+    out << "<a href=\"" << href << "\">" << escape_html(name) << "</a>\n";
   }
 
   inline std::string FileStore::make_display_path(
@@ -175,10 +199,11 @@ namespace Beam {
       }
     }();
     auto out = std::ostringstream();
+    auto escaped_display_path = escape_html(display_path);
     out << "<!DOCTYPE html>\n";
-    out << "<html>\n<head>\n<title>Index of " << display_path <<
+    out << "<html>\n<head>\n<title>Index of " << escaped_display_path <<
       "</title>\n</head>\n<body>\n";
-    out << "<h1>Index of " << display_path << "</h1>\n";
+    out << "<h1>Index of " << escaped_display_path << "</h1>\n";
     out << "<hr>\n<pre>\n";
     if(target != m_root) {
       out << "<a href=\"../\">..</a>\n";

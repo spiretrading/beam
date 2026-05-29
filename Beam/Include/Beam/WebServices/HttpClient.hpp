@@ -1,9 +1,12 @@
 #ifndef BEAM_HTTP_CLIENT_HPP
 #define BEAM_HTTP_CLIENT_HPP
 #include <functional>
+#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
+#include <boost/throw_exception.hpp>
+#include <zlib.h>
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
@@ -57,6 +60,7 @@ namespace Beam {
       ChannelBuilder m_channel_builder;
       boost::optional<ChannelEntry> m_channel;
 
+      static SharedBuffer decompress(const SharedBuffer& body, int window_bits);
       HttpClient(const HttpClient&) = delete;
       HttpClient& operator =(const HttpClient&) = delete;
   };
@@ -79,16 +83,19 @@ namespace Beam {
       IpAddress(request.get_uri().get_hostname(), request.get_uri().get_port());
     auto is_new_channel = false;
     auto& host_cookies = m_cookies[request.get_uri().get_hostname()];
-    auto cookie_request = boost::optional<HttpRequest>();
+    auto modified_request = boost::optional<HttpRequest>();
     auto& proper_request = [&] () -> const HttpRequest& {
-      if(host_cookies.empty()) {
-        return request;
+      if(!request.get_header("Accept-Encoding") || !host_cookies.empty()) {
+        modified_request.emplace(request);
+        if(!request.get_header("Accept-Encoding")) {
+          modified_request->add(HttpHeader("Accept-Encoding", "gzip, deflate"));
+        }
+        for(auto& host_cookie : host_cookies) {
+          modified_request->add(host_cookie);
+        }
+        return *modified_request;
       }
-      cookie_request.emplace(request);
-      for(auto& host_cookie : host_cookies) {
-        cookie_request->add(host_cookie);
-      }
-      return *cookie_request;
+      return request;
     }();
     if(!m_channel || m_channel->m_end != end) {
       m_channel.reset();
@@ -123,6 +130,13 @@ namespace Beam {
         std::string_view(read_buffer.get_data(), read_buffer.get_size()));
       response = parser.get_next_response();
     }
+    if(auto encoding = response->get_header("Content-Encoding")) {
+      if(boost::iequals(*encoding, "gzip")) {
+        response->set_body(decompress(response->get_body(), 16 + MAX_WBITS));
+      } else if(boost::iequals(*encoding, "deflate")) {
+        response->set_body(decompress(response->get_body(), -MAX_WBITS));
+      }
+    }
     if(auto connection_header = response->get_header("Connection")) {
       if(!boost::iequals(*connection_header, "keep-alive")) {
         m_channel->m_channel->get_connection().close();
@@ -147,6 +161,42 @@ namespace Beam {
       }
     }
     return *response;
+  }
+
+  template<typename C> requires IsChannel<dereference_t<C>>
+  SharedBuffer HttpClient<C>::decompress(
+      const SharedBuffer& body, int window_bits) {
+    auto stream = z_stream();
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+    stream.avail_in = static_cast<uInt>(body.get_size());
+    stream.next_in =
+      reinterpret_cast<Bytef*>(const_cast<char*>(body.get_data()));
+    if(inflateInit2(&stream, window_bits) != Z_OK) {
+      boost::throw_with_location(
+        std::runtime_error("Failed to initialize decompression."));
+    }
+    auto output = SharedBuffer();
+    auto chunk = std::array<char, 16384>();
+    auto status = 0;
+    do {
+      stream.avail_out = static_cast<uInt>(chunk.size());
+      stream.next_out = reinterpret_cast<Bytef*>(chunk.data());
+      status = inflate(&stream, Z_NO_FLUSH);
+      if(status == Z_STREAM_ERROR || status == Z_DATA_ERROR ||
+          status == Z_MEM_ERROR) {
+        inflateEnd(&stream);
+        boost::throw_with_location(
+          std::runtime_error("Failed to decompress response body."));
+      }
+      auto have = chunk.size() - stream.avail_out;
+      if(have > 0) {
+        append(output, chunk.data(), have);
+      }
+    } while(status != Z_STREAM_END);
+    inflateEnd(&stream);
+    return output;
   }
 }
 

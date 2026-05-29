@@ -1,7 +1,9 @@
+#include <array>
 #include <future>
 #include <string>
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
+#include <zlib.h>
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -235,5 +237,175 @@ TEST_SUITE("HttpClient") {
     REQUIRE(cookies[0].get_value() == "xyz789");
     REQUIRE(cookies[1].get_name() == "token");
     REQUIRE(cookies[1].get_value() == "secret");
+  }
+
+  TEST_CASE("accept_encoding_header_added") {
+    auto server = LocalServerConnection();
+    auto client = HttpClient([&] (const auto& uri) {
+      return std::make_unique<LocalClientChannel>("http", server);
+    });
+    auto request = HttpRequest("http://example.com/test");
+    auto client_task = std::async(std::launch::async, [&] {
+      return client.send(request);
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    auto request_text = std::string(buffer.get_data(), buffer.get_size());
+    REQUIRE(
+      request_text.find("Accept-Encoding: gzip, deflate") != std::string::npos);
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n");
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    client_task.get();
+  }
+
+  TEST_CASE("accept_encoding_header_not_overridden") {
+    auto server = LocalServerConnection();
+    auto client = HttpClient([&] (const auto& uri) {
+      return std::make_unique<LocalClientChannel>("http", server);
+    });
+    auto request = HttpRequest("http://example.com/test");
+    request.add(HttpHeader("Accept-Encoding", "identity"));
+    auto client_task = std::async(std::launch::async, [&] {
+      return client.send(request);
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    auto request_text = std::string(buffer.get_data(), buffer.get_size());
+    REQUIRE(
+      request_text.find("Accept-Encoding: identity") != std::string::npos);
+    REQUIRE(request_text.find("Accept-Encoding: gzip") == std::string::npos);
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Length: 0\r\n"
+      "\r\n");
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    client_task.get();
+  }
+
+  TEST_CASE("decompress_gzip_response") {
+    auto plain = std::string("Hello, compressed world!");
+    auto compressed = std::string();
+    {
+      auto stream = z_stream();
+      stream.zalloc = Z_NULL;
+      stream.zfree = Z_NULL;
+      stream.opaque = Z_NULL;
+      deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 16 + MAX_WBITS,
+        8, Z_DEFAULT_STRATEGY);
+      auto chunk = std::array<char, 256>();
+      stream.avail_in = static_cast<uInt>(plain.size());
+      stream.next_in = reinterpret_cast<Bytef*>(plain.data());
+      stream.avail_out = static_cast<uInt>(chunk.size());
+      stream.next_out = reinterpret_cast<Bytef*>(chunk.data());
+      deflate(&stream, Z_FINISH);
+      compressed.assign(chunk.data(), chunk.size() - stream.avail_out);
+      deflateEnd(&stream);
+    }
+    auto server = LocalServerConnection();
+    auto client = HttpClient([&] (const auto& uri) {
+      return std::make_unique<LocalClientChannel>("http", server);
+    });
+    auto request = HttpRequest("http://example.com/data");
+    auto client_task = std::async(std::launch::async, [&] {
+      return client.send(request);
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    reset(buffer);
+    auto header = std::string(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Encoding: gzip\r\n"
+      "Content-Length: " + std::to_string(compressed.size()) + "\r\n"
+      "\r\n");
+    auto response_buffer = SharedBuffer();
+    append(response_buffer, header.data(), header.size());
+    append(response_buffer, compressed.data(), compressed.size());
+    channel->get_writer().write(response_buffer);
+    auto response = client_task.get();
+    REQUIRE(response.get_status_code() == HttpStatusCode::OK);
+    auto body = std::string(
+      response.get_body().get_data(), response.get_body().get_size());
+    REQUIRE(body == plain);
+  }
+
+  TEST_CASE("decompress_deflate_response") {
+    auto plain = std::string("Hello, deflated world!");
+    auto compressed = std::string();
+    {
+      auto stream = z_stream();
+      stream.zalloc = Z_NULL;
+      stream.zfree = Z_NULL;
+      stream.opaque = Z_NULL;
+      deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -MAX_WBITS, 8,
+        Z_DEFAULT_STRATEGY);
+      auto chunk = std::array<char, 256>();
+      stream.avail_in = static_cast<uInt>(plain.size());
+      stream.next_in = reinterpret_cast<Bytef*>(plain.data());
+      stream.avail_out = static_cast<uInt>(chunk.size());
+      stream.next_out = reinterpret_cast<Bytef*>(chunk.data());
+      deflate(&stream, Z_FINISH);
+      compressed.assign(chunk.data(), chunk.size() - stream.avail_out);
+      deflateEnd(&stream);
+    }
+    auto server = LocalServerConnection();
+    auto client = HttpClient([&] (const auto& uri) {
+      return std::make_unique<LocalClientChannel>("http", server);
+    });
+    auto request = HttpRequest("http://example.com/data");
+    auto client_task = std::async(std::launch::async, [&] {
+      return client.send(request);
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    reset(buffer);
+    auto header = std::string(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Encoding: deflate\r\n"
+      "Content-Length: " + std::to_string(compressed.size()) + "\r\n"
+      "\r\n");
+    auto response_buffer = SharedBuffer();
+    append(response_buffer, header.data(), header.size());
+    append(response_buffer, compressed.data(), compressed.size());
+    channel->get_writer().write(response_buffer);
+    auto response = client_task.get();
+    REQUIRE(response.get_status_code() == HttpStatusCode::OK);
+    auto body = std::string(
+      response.get_body().get_data(), response.get_body().get_size());
+    REQUIRE(body == plain);
+  }
+
+  TEST_CASE("uncompressed_response_unchanged") {
+    auto server = LocalServerConnection();
+    auto client = HttpClient([&] (const auto& uri) {
+      return std::make_unique<LocalClientChannel>("http", server);
+    });
+    auto request = HttpRequest("http://example.com/plain");
+    auto client_task = std::async(std::launch::async, [&] {
+      return client.send(request);
+    });
+    auto channel = server.accept();
+    auto buffer = SharedBuffer();
+    channel->get_reader().read(out(buffer));
+    reset(buffer);
+    auto response_text = std::string(
+      "HTTP/1.1 200 OK\r\n"
+      "Content-Length: 5\r\n"
+      "\r\n"
+      "plain");
+    channel->get_writer().write(from<SharedBuffer>(response_text));
+    auto response = client_task.get();
+    REQUIRE(response.get_status_code() == HttpStatusCode::OK);
+    auto body = std::string(
+      response.get_body().get_data(), response.get_body().get_size());
+    REQUIRE(body == "plain");
   }
 }

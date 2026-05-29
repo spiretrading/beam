@@ -8,7 +8,9 @@ target_link_libraries(WebServicesTests
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH})
+  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
+  debug ${ZLIB_LIBRARY_DEBUG_PATH}
+  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)
   target_link_libraries(WebServicesTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

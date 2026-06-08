@@ -118,7 +118,7 @@ namespace Beam {
       inline static std::mutex m_mutex;
       inline static std::ostream* m_stream = &std::cerr;
       inline static std::atomic_uint64_t m_next_id = 0;
-      inline static Options m_default_options;
+      static Options m_default_options;
       std::uint64_t m_id;
       std::string_view m_scope;
       Options m_options;
@@ -132,6 +132,8 @@ namespace Beam {
         std::chrono::system_clock::time_point wall_clock,
         std::string_view body);
   };
+
+  inline Tracer::Options Tracer::m_default_options;
 
   inline void Tracer::set_default_options(const Options& options) {
     auto lock = std::lock_guard(m_mutex);

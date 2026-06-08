@@ -112,7 +112,11 @@ namespace Beam {
        * @param tracer The Tracer to emit from.
        * @param value The first value of the line.
        */
-      friend Event operator <<(Tracer& tracer, const IsStreamable auto& value);
+      friend Event operator <<(Tracer& tracer, const IsStreamable auto& value) {
+        auto event = tracer.line();
+        event << value;
+        return event;
+      }
 
     private:
       inline static std::mutex m_mutex;
@@ -268,12 +272,6 @@ namespace Beam {
       m_body << value;
     }
     return *this;
-  }
-
-  Tracer::Event operator <<(Tracer& tracer, const IsStreamable auto& value) {
-    auto event = tracer.line();
-    event << value;
-    return event;
   }
 }
 

@@ -137,6 +137,7 @@ void Beam::Python::export_time_service(pybind11::module& module) {
   time_client = std::make_unique<class_<TimeClient>>(
     export_time_client<TimeClient>(module, "TimeClient"));
   timer = std::make_unique<class_<Timer>>(export_timer<Timer>(module, "Timer"));
+  export_queue_suite<Timer::Result>(module, "TimerResult");
   export_alarm_reactor(module);
   export_current_time_reactor(module);
   export_fixed_time_client(module);

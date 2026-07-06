@@ -5,6 +5,7 @@
 #include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
+#include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam {
 
@@ -46,9 +47,12 @@ namespace Beam {
   /** Waits for all pending Routines to complete. */
   inline void flush_pending_routines() {
     auto& scheduler = Details::Scheduler::get();
+    auto& thread_pool = ThreadPool::get();
     auto thread_count_mutex = Mutex();
     auto thread_count_condition = ConditionVariable();
     while(true) {
+      thread_pool.wait_until_idle();
+      auto queued_count = thread_pool.get_queued_count();
       auto thread_count = scheduler.get_thread_count();
       auto routines = std::vector<RoutineHandler>();
       auto is_complete = std::atomic_bool(true);
@@ -72,7 +76,8 @@ namespace Beam {
         }, Details::Scheduler::DEFAULT_STACK_SIZE, i));
       }
       routines.clear();
-      if(is_complete) {
+      if(is_complete && thread_pool.is_idle() &&
+          thread_pool.get_queued_count() == queued_count) {
         break;
       }
     }

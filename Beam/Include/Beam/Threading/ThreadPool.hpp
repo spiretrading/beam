@@ -1,6 +1,8 @@
 #ifndef BEAM_THREAD_POOL_HPP
 #define BEAM_THREAD_POOL_HPP
+#include <algorithm>
 #include <concepts>
+#include <cstdint>
 #include <deque>
 #include <iostream>
 #include <type_traits>
@@ -8,7 +10,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
@@ -20,6 +21,12 @@ namespace Beam {
     public:
       ~ThreadPool();
 
+      /** Returns the total number of tasks ever queued. */
+      std::uint64_t get_queued_count() const;
+
+      /** Returns <code>true</code> iff no task is running or waiting to run. */
+      bool is_idle() const;
+
       /**
        * Queues a function to be run within an allocated thread.
        * @param function The function execute.
@@ -28,6 +35,9 @@ namespace Beam {
       template<std::invocable<> F, typename R> requires
         std::convertible_to<std::invoke_result_t<F>, R>
       void queue(F&& function, Eval<R> result);
+
+      /** Blocks until no task is running or waiting to run. */
+      void wait_until_idle();
 
     private:
       friend class Singleton<ThreadPool>;
@@ -72,11 +82,12 @@ namespace Beam {
       };
       static constexpr auto LOWER_BOUND_WAIT_TIME = 30;
       static constexpr auto UPPER_BOUND_WAIT_TIME = 60;
-      boost::mutex m_mutex;
+      mutable boost::mutex m_mutex;
       std::size_t m_max_thread_count;
       bool m_is_waiting_for_completion;
       std::size_t m_running_threads;
       std::size_t m_active_threads;
+      std::uint64_t m_queued_count;
       std::deque<TaskThread*> m_threads;
       std::deque<BaseTask*> m_tasks;
       boost::condition_variable m_threads_finished_condition;
@@ -223,7 +234,18 @@ namespace Beam {
     : m_max_thread_count(boost::thread::hardware_concurrency()),
       m_running_threads(0),
       m_active_threads(0),
+      m_queued_count(0),
       m_is_waiting_for_completion(false) {}
+
+  inline std::uint64_t ThreadPool::get_queued_count() const {
+    auto lock = boost::lock_guard(m_mutex);
+    return m_queued_count;
+  }
+
+  inline bool ThreadPool::is_idle() const {
+    auto lock = boost::lock_guard(m_mutex);
+    return m_active_threads == 0 && m_tasks.empty();
+  }
 
   template<std::invocable<> F, typename R> requires
     std::convertible_to<std::invoke_result_t<F>, R>
@@ -232,8 +254,16 @@ namespace Beam {
     queue(*task);
   }
 
+  inline void ThreadPool::wait_until_idle() {
+    auto lock = boost::unique_lock(m_mutex);
+    while(m_active_threads != 0 || !m_tasks.empty()) {
+      m_threads_finished_condition.wait(lock);
+    }
+  }
+
   inline void ThreadPool::queue(BaseTask& task) {
     auto lock = boost::lock_guard(m_mutex);
+    ++m_queued_count;
     auto is_thread_found = false;
     while(!is_thread_found) {
       if(m_threads.empty() && m_running_threads < m_max_thread_count) {
@@ -268,7 +298,7 @@ namespace Beam {
     if(m_tasks.empty()) {
       m_threads.push_back(&task_thread);
       --m_active_threads;
-      if(m_is_waiting_for_completion && m_active_threads == 0) {
+      if(m_active_threads == 0) {
         m_threads_finished_condition.notify_all();
       }
       return true;
@@ -286,7 +316,11 @@ namespace Beam {
   inline void ThreadPool::remove(TaskThread& task_thread) {
     auto lock = boost::lock_guard(m_mutex);
     --m_running_threads;
-    remove_first(m_threads, &task_thread);
+    auto i = std::find(m_threads.begin(), m_threads.end(), &task_thread);
+    if(i != m_threads.end()) {
+      *i = m_threads.back();
+      m_threads.pop_back();
+    }
   }
 }
 

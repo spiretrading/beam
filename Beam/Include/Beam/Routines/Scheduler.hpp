@@ -25,7 +25,7 @@ namespace Beam {
 namespace Details {
 
   /** Schedules the execution of Routines across multiple threads. */
-  class Scheduler : public Singleton<Scheduler> {
+  class BEAM_EXPORT_DLL Scheduler : public Singleton<Scheduler> {
     public:
 
       /** The default size of a Routine's stack. */

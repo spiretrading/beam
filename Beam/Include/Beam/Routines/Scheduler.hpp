@@ -1,10 +1,12 @@
 #ifndef BEAM_SCHEDULER_HPP
 #define BEAM_SCHEDULER_HPP
+#include <atomic>
 #include <deque>
 #include <iostream>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -49,6 +51,19 @@ namespace Details {
        */
       bool has_pending_routines(std::size_t context_id) const;
 
+      /** Returns <code>true</code> iff no Routine is pending or running. */
+      bool is_idle() const;
+
+      /** Returns the number of Routines that are pending or running. */
+      std::size_t get_busy_count() const;
+
+      /**
+       * Registers a callback for when no Routine is pending or running.
+       * @param idle The Eval to set once no Routine is pending or running,
+       *        set immediately if that is already the case.
+       */
+      void notify_when_idle(Eval<void> idle);
+
       /**
        * Waits for a Routine to complete.
        * @param id The id of the Routine to wait for.
@@ -89,11 +104,15 @@ namespace Details {
       std::unique_ptr<boost::thread[]> m_threads;
       Sync<RoutineIds> m_routine_ids;
       std::unique_ptr<Context[]> m_contexts;
+      std::atomic_size_t m_busy_count;
+      boost::mutex m_idle_mutex;
+      std::vector<Eval<void>> m_idle_evals;
 
       void queue(ScheduledRoutine& routine);
       void suspend(ScheduledRoutine& routine);
       void resume(ScheduledRoutine& routine);
       void run(Context& context);
+      void decrement_busy_count();
   };
 
   inline Scheduler::Context::Context()
@@ -102,7 +121,8 @@ namespace Details {
   inline Scheduler::Scheduler()
       : m_thread_count(boost::thread::hardware_concurrency()),
         m_threads(std::make_unique<boost::thread[]>(m_thread_count)),
-        m_contexts(std::make_unique<Context[]>(m_thread_count)) {
+        m_contexts(std::make_unique<Context[]>(m_thread_count)),
+        m_busy_count(0) {
     for(auto i = std::size_t(0); i < m_thread_count; ++i) {
       m_threads[i] = boost::thread([=, this] {
         run(m_contexts[i]);
@@ -122,6 +142,25 @@ namespace Details {
     auto& context = m_contexts[context_id];
     auto lock = boost::lock_guard(context.m_mutex);
     return !context.m_pending_routines.empty();
+  }
+
+  inline bool Scheduler::is_idle() const {
+    return m_busy_count == 0;
+  }
+
+  inline std::size_t Scheduler::get_busy_count() const {
+    return m_busy_count;
+  }
+
+  inline void Scheduler::notify_when_idle(Eval<void> idle) {
+    {
+      auto lock = boost::lock_guard(m_idle_mutex);
+      if(m_busy_count != 0) {
+        m_idle_evals.push_back(std::move(idle));
+        return;
+      }
+    }
+    idle.set();
   }
 
   inline void Scheduler::wait(Routine::Id id) {
@@ -150,6 +189,7 @@ namespace Details {
     with(m_routine_ids, [&] (auto& ids) {
       ids.insert(std::pair(id, routine));
     });
+    ++m_busy_count;
     queue(*routine);
     return id;
   }
@@ -165,15 +205,18 @@ namespace Details {
 
   inline void Scheduler::suspend(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.get_context_id()];
-    auto lock = boost::lock_guard(context.m_mutex);
-    routine.set(Routine::State::SUSPENDED);
-    if(routine.is_pending_resume()) {
-      routine.set_pending_resume(false);
-      context.m_pending_routines.push_back(&routine);
-      context.m_pending_routines_available_condition.notify_all();
-      return;
+    {
+      auto lock = boost::lock_guard(context.m_mutex);
+      routine.set(Routine::State::SUSPENDED);
+      if(routine.is_pending_resume()) {
+        routine.set_pending_resume(false);
+        context.m_pending_routines.push_back(&routine);
+        context.m_pending_routines_available_condition.notify_all();
+        return;
+      }
+      context.m_suspended_routines.insert(&routine);
     }
-    context.m_suspended_routines.insert(&routine);
+    decrement_busy_count();
   }
 
   inline void Scheduler::resume(ScheduledRoutine& routine) {
@@ -185,6 +228,7 @@ namespace Details {
       return;
     }
     context.m_suspended_routines.erase(i);
+    ++m_busy_count;
     context.m_pending_routines.push_back(&routine);
     context.m_pending_routines_available_condition.notify_all();
   }
@@ -226,11 +270,26 @@ namespace Details {
           ids.erase(routine->get_id());
         });
         delete routine;
+        decrement_busy_count();
       } else if(routine->get_state() == Routine::State::PENDING_SUSPEND) {
         suspend(*routine);
       } else {
         queue(*routine);
       }
+    }
+  }
+
+  inline void Scheduler::decrement_busy_count() {
+    if(--m_busy_count != 0) {
+      return;
+    }
+    auto idle_evals = std::vector<Eval<void>>();
+    {
+      auto lock = boost::lock_guard(m_idle_mutex);
+      idle_evals.swap(m_idle_evals);
+    }
+    for(auto& idle : idle_evals) {
+      idle.set();
     }
   }
 }

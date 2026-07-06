@@ -8,6 +8,14 @@
 #include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam {
+namespace Details {
+  struct BEAM_EXPORT_DLL FlushMutex {
+    static Mutex& get() {
+      static auto mutex = Mutex();
+      return mutex;
+    }
+  };
+}
 
   /** Used to spawn a Routine and wait for its completion. */
   class RoutineHandler {
@@ -44,41 +52,31 @@ namespace Beam {
       RoutineHandler& operator =(const RoutineHandler&) = delete;
   };
 
-  /** Waits for all pending Routines to complete. */
+  /**
+   * Waits for all pending Routines to complete, including Routines suspended
+   * on blocking tasks parked in the ThreadPool.
+   */
   inline void flush_pending_routines() {
     auto& scheduler = Details::Scheduler::get();
     auto& thread_pool = ThreadPool::get();
-    auto thread_count_mutex = Mutex();
-    auto thread_count_condition = ConditionVariable();
-    while(true) {
-      thread_pool.wait_until_idle();
-      auto queued_count = thread_pool.get_queued_count();
-      auto thread_count = scheduler.get_thread_count();
-      auto routines = std::vector<RoutineHandler>();
-      auto is_complete = std::atomic_bool(true);
-      for(auto i = std::size_t(0); i < scheduler.get_thread_count(); ++i) {
-        routines.emplace_back(spawn([&] {
-          auto& routine = static_cast<ScheduledRoutine&>(get_current_routine());
-          {
-            auto lock = boost::unique_lock(thread_count_mutex);
-            --thread_count;
-            if(thread_count == 0) {
-              thread_count_condition.notify_all();
-            } else {
-              while(thread_count != 0) {
-                thread_count_condition.wait(lock);
-              }
-            }
-          }
-          if(scheduler.has_pending_routines(routine.get_context_id())) {
-            is_complete = false;
-          }
-        }, Details::Scheduler::DEFAULT_STACK_SIZE, i));
+    auto lock = boost::lock_guard(Details::FlushMutex::get());
+    auto target = [] {
+      if(dynamic_cast<ScheduledRoutine*>(Details::CurrentRoutineGlobal::get())) {
+        return 1;
       }
-      routines.clear();
-      if(is_complete && thread_pool.is_idle() &&
+      return 0;
+    }();
+    while(true) {
+      auto queued_count = thread_pool.get_queued_count();
+      thread_pool.wait_until_idle();
+      if(scheduler.get_busy_count() == target && thread_pool.is_idle() &&
           thread_pool.get_queued_count() == queued_count) {
         break;
+      }
+      if(scheduler.get_busy_count() != target) {
+        auto idle = Async<void>();
+        scheduler.notify_when_idle(idle.get_eval());
+        idle.get();
       }
     }
   }

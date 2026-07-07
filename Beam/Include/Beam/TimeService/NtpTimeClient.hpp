@@ -252,7 +252,6 @@ namespace Beam {
       auto request_packet = NtpPacket();
       request_packet.fill(0);
       request_packet[0] = 0x1B;
-      auto read_buffer = SharedBuffer();
       auto client_transmission_timestamp =
         boost::posix_time::microsec_clock::universal_time();
       auto encoded_client_transmission_timestamp =
@@ -260,20 +259,30 @@ namespace Beam {
       std::memcpy(request_packet.data() + TRANSMIT_TIMESTAMP_OFFSET,
         &encoded_client_transmission_timestamp,
         sizeof(encoded_client_transmission_timestamp));
+      auto response_packet = NtpPacket();
+      auto client_response_timestamp = boost::posix_time::ptime();
       try {
         write(source->get_writer(), request_packet);
-        source->get_reader().read(out(read_buffer));
+        while(true) {
+          auto read_buffer = SharedBuffer();
+          source->get_reader().read(out(read_buffer));
+          client_response_timestamp =
+            boost::posix_time::microsec_clock::universal_time();
+          if(read_buffer.get_size() != NTP_PACKET_SIZE) {
+            boost::throw_with_location(
+              IOException("Invalid NTP packet size."));
+          }
+          std::memcpy(
+            response_packet.data(), read_buffer.get_data(), NTP_PACKET_SIZE);
+          if(std::memcmp(response_packet.data() + ORIGIN_TIMESTAMP_OFFSET,
+              &encoded_client_transmission_timestamp,
+              sizeof(encoded_client_transmission_timestamp)) == 0) {
+            break;
+          }
+        }
       } catch(const IOException&) {
         continue;
       }
-      auto client_response_timestamp =
-        boost::posix_time::microsec_clock::universal_time();
-      if(read_buffer.get_size() != NTP_PACKET_SIZE) {
-        continue;
-      }
-      auto response_packet = NtpPacket();
-      std::memcpy(
-        response_packet.data(), read_buffer.get_data(), NTP_PACKET_SIZE);
       auto server_receive_timestamp = posix_time_from_ntp_time(
         response_packet.data() + RECEIVE_TIMESTAMP_OFFSET);
       auto server_transmit_timestamp = posix_time_from_ntp_time(

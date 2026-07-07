@@ -3,6 +3,14 @@ file(GLOB_RECURSE
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/TimeServiceTests/*.cpp)
 add_executable(TimeServiceTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+target_link_libraries(TimeServiceTests
+  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
+  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
+  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH})
+if(WIN32)
+  target_link_libraries(TimeServiceTests crypt32)
+endif()
 if(UNIX)
   target_link_libraries(TimeServiceTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

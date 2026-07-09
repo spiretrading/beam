@@ -352,23 +352,23 @@ namespace Details {
           container[index] = value;
         });
     }
-    if constexpr(std::convertible_to<Type, bool>) {
+    if constexpr(std::constructible_from<bool, Type>) {
       class_binding.def("__bool__", [] (const Type& self) {
         return static_cast<bool>(self);
       });
     }
-    if constexpr(std::convertible_to<Type, int>) {
+    if constexpr(std::constructible_from<int, Type>) {
       class_binding.def("__int__", [] (const Type& self) {
         return static_cast<int>(self);
       });
     }
-    if constexpr(std::convertible_to<Type, float>) {
-      class_binding.def("__float__", [] (const Type& self) {
-        return static_cast<float>(self);
-      });
-    } else if constexpr(std::convertible_to<Type, double>) {
+    if constexpr(std::constructible_from<double, Type>) {
       class_binding.def("__float__", [] (const Type& self) {
         return static_cast<double>(self);
+      });
+    } else if constexpr(std::constructible_from<float, Type>) {
+      class_binding.def("__float__", [] (const Type& self) {
+        return static_cast<float>(self);
       });
     }
     if constexpr(requires(std::ostream& out, const Type& value) {

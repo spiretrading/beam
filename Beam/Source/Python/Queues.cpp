@@ -30,6 +30,21 @@ void Beam::Python::export_base_publisher(pybind11::module& module) {
 
 void Beam::Python::export_base_queue(pybind11::module& module) {
   class_<BaseQueue, std::shared_ptr<BaseQueue>>(module, "BaseQueue").
+    def("close", [] (BaseQueue& self, const object& exception) {
+      if(!PyExceptionInstance_Check(exception.ptr())) {
+        throw pybind11::type_error("close() requires an exception instance.");
+      }
+      PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(exception.ptr())),
+        exception.ptr());
+      auto e = [] {
+        try {
+          throw pybind11::error_already_set();
+        } catch(...) {
+          return std::current_exception();
+        }
+      }();
+      self.close(e);
+    }).
     def("close", static_cast<void (BaseQueue::*)(const std::exception_ptr&)>(
       &BaseQueue::close)).
     def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::close));

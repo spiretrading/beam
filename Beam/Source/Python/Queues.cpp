@@ -4,6 +4,7 @@
 #include <Aspen/Python/Reactor.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
+#include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/QueueWriter.hpp"
@@ -19,6 +20,27 @@ using namespace Aspen;
 using namespace Beam;
 using namespace Beam::Python;
 using namespace pybind11;
+
+namespace {
+  auto pipe_broken_exception = static_cast<object*>(nullptr);
+
+  object to_python_exception(const std::exception_ptr& e) {
+    if(!e) {
+      return reinterpret_borrow<object>(PyExc_RuntimeError)("Broken.");
+    }
+    try {
+      std::rethrow_exception(e);
+    } catch(const error_already_set& error) {
+      return error.value();
+    } catch(const PipeBrokenException& error) {
+      return (*pipe_broken_exception)(error.what());
+    } catch(const std::exception& error) {
+      return reinterpret_borrow<object>(PyExc_RuntimeError)(error.what());
+    } catch(...) {
+      return reinterpret_borrow<object>(PyExc_RuntimeError)("Unknown error.");
+    }
+  }
+}
 
 void Beam::Python::export_base_publisher(pybind11::module& module) {
   class_<BasePublisher, std::shared_ptr<BasePublisher>>(
@@ -80,7 +102,8 @@ void Beam::Python::export_queues(pybind11::module& module) {
       }
     } catch(const std::exception&) {}
   });
-  register_exception<PipeBrokenException>(module, "PipeBrokenException");
+  pipe_broken_exception = new object(
+    register_exception<PipeBrokenException>(module, "PipeBrokenException"));
 }
 
 void Beam::Python::export_routine_task_queue(pybind11::module& module) {
@@ -95,9 +118,12 @@ void Beam::Python::export_routine_task_queue(pybind11::module& module) {
     def("get_slot",
       [] (RoutineTaskQueue& self,
           const PythonFunction<void (const SharedObject&)>& slot,
-          const PythonFunction<void (const std::exception_ptr&)>& break_slot) {
-        return make_to_python_queue_writer(
-          self.get_slot<SharedObject>(slot, break_slot));
+          const PythonFunction<void (const object&)>& break_slot) {
+        return make_to_python_queue_writer(self.get_slot<SharedObject>(slot,
+          [=] (const std::exception_ptr& e) {
+            auto lock = GilLock();
+            break_slot(to_python_exception(e));
+          }));
       }).
     def("wait", &RoutineTaskQueue::wait, call_guard<GilRelease>());
 }
@@ -113,8 +139,14 @@ void Beam::Python::export_task_queue(pybind11::module& module) {
       }).
     def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
-          std::function<void (const std::exception_ptr&)> break_slot) {
-        auto queue = self.get_slot(std::move(slot), std::move(break_slot));
+          std::function<void (const object&)> break_slot) {
+        auto queue = self.get_slot(std::move(slot),
+          std::function<void (const std::exception_ptr&)>(
+            [break_slot = std::move(break_slot)] (
+                const std::exception_ptr& e) {
+              auto lock = GilLock();
+              break_slot(to_python_exception(e));
+            }));
         return make_to_python_queue_writer(std::move(queue));
       }).
     def("pop", &TaskQueue::pop, call_guard<GilRelease>());

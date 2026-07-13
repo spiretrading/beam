@@ -113,17 +113,19 @@ void Beam::Python::export_routine_task_queue(pybind11::module& module) {
     def("get_slot",
       [] (RoutineTaskQueue& self,
           const PythonFunction<void (const SharedObject&)>& slot) {
-        return make_to_python_queue_writer(self.get_slot<SharedObject>(slot));
+        return make_strong_to_python_queue_writer(
+          self.get_slot<SharedObject>(slot));
       }).
     def("get_slot",
       [] (RoutineTaskQueue& self,
           const PythonFunction<void (const SharedObject&)>& slot,
           const PythonFunction<void (const object&)>& break_slot) {
-        return make_to_python_queue_writer(self.get_slot<SharedObject>(slot,
-          [=] (const std::exception_ptr& e) {
-            auto lock = GilLock();
-            break_slot(to_python_exception(e));
-          }));
+        return make_strong_to_python_queue_writer(
+          self.get_slot<SharedObject>(slot,
+            [=] (const std::exception_ptr& e) {
+              auto lock = GilLock();
+              break_slot(to_python_exception(e));
+            }));
       }).
     def("wait", &RoutineTaskQueue::wait, call_guard<GilRelease>());
 }
@@ -135,7 +137,7 @@ void Beam::Python::export_task_queue(pybind11::module& module) {
     def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot) {
         auto queue = self.get_slot(std::move(slot));
-        return make_to_python_queue_writer(std::move(queue));
+        return make_strong_to_python_queue_writer(std::move(queue));
       }).
     def("get_slot",
       [] (TaskQueue& self, std::function<void (const object&)> slot,
@@ -147,7 +149,7 @@ void Beam::Python::export_task_queue(pybind11::module& module) {
               auto lock = GilLock();
               break_slot(to_python_exception(e));
             }));
-        return make_to_python_queue_writer(std::move(queue));
+        return make_strong_to_python_queue_writer(std::move(queue));
       }).
     def("pop", &TaskQueue::pop, call_guard<GilRelease>());
   module.def("flush", [] (TaskQueue& queue) {

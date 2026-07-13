@@ -133,6 +133,55 @@ namespace Details {
   }
 
   /**
+   * Wraps a QueueWriter of type T to a QueueWriter of Python objects that
+   * keeps itself alive until it is closed, used for slots whose lifetime is
+   * tied to the queue they feed rather than to the Python reference to them.
+   * @tparam T The type of data to push onto the queue.
+   */
+  template<typename T>
+  class StrongToPythonQueueWriter final :
+      public QueueWriter<pybind11::object> {
+    private:
+      struct Guard {};
+
+    public:
+      using Target = typename QueueWriter<pybind11::object>::Target;
+      using Type = T;
+
+      /**
+       * Constructs a StrongToPythonQueueWriter.
+       * @param target The QueueWriter to wrap.
+       */
+      StrongToPythonQueueWriter(ScopedQueueWriter<Type> target, Guard);
+
+      void push(const Target& value) override;
+      void push(Target&& value) override;
+      void close(const std::exception_ptr& e) override;
+
+    private:
+      template<typename U, typename Q>
+      friend std::shared_ptr<QueueWriter<pybind11::object>>
+        make_strong_to_python_queue_writer(ScopedQueueWriter<U, Q> target);
+      std::shared_ptr<void> m_self;
+      ScopedQueueWriter<Type> m_target;
+
+      void bind(std::shared_ptr<void> self);
+  };
+
+  /**
+   * Returns a QueueWriter that converts Python objects into objects of an
+   * underlying QueueWriter's type and keeps itself alive until it's closed.
+   */
+  template<typename T, typename Q>
+  std::shared_ptr<QueueWriter<pybind11::object>>
+      make_strong_to_python_queue_writer(ScopedQueueWriter<T, Q> target) {
+    auto queue = std::make_shared<StrongToPythonQueueWriter<T>>(
+      std::move(target), typename StrongToPythonQueueWriter<T>::Guard());
+    queue->bind(queue);
+    return std::static_pointer_cast<QueueWriter<pybind11::object>>(queue);
+  }
+
+  /**
    * Provides a caster from a std::shared_ptr<QueueWriter<T>> to a
    * ScopedQueueWriter<T>.
    */
@@ -228,6 +277,42 @@ namespace Details {
   template<typename T>
   void ToPythonQueueWriter<T>::close(const std::exception_ptr& e) {
     m_target.close(e);
+  }
+
+  template<typename T>
+  StrongToPythonQueueWriter<T>::StrongToPythonQueueWriter(
+    ScopedQueueWriter<Type> target, Guard)
+    : m_target(std::move(target)) {}
+
+  template<typename T>
+  void StrongToPythonQueueWriter<T>::push(const Target& value) {
+    try {
+      m_target.push(Details::Extractor<Type>()(value));
+    } catch(const std::exception&) {
+      m_self.reset();
+      throw;
+    }
+  }
+
+  template<typename T>
+  void StrongToPythonQueueWriter<T>::push(Target&& value) {
+    try {
+      m_target.push(Details::Extractor<Type>()(std::move(value)));
+    } catch(const std::exception&) {
+      m_self.reset();
+      throw;
+    }
+  }
+
+  template<typename T>
+  void StrongToPythonQueueWriter<T>::close(const std::exception_ptr& e) {
+    m_target.close(e);
+    m_self.reset();
+  }
+
+  template<typename T>
+  void StrongToPythonQueueWriter<T>::bind(std::shared_ptr<void> self) {
+    m_self = std::move(self);
   }
 
   template<typename T>

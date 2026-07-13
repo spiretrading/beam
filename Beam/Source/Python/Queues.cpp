@@ -65,11 +65,13 @@ void Beam::Python::export_base_queue(pybind11::module& module) {
           return std::current_exception();
         }
       }();
+      auto release = GilRelease();
       self.close(e);
     }).
     def("close", static_cast<void (BaseQueue::*)(const std::exception_ptr&)>(
-      &BaseQueue::close)).
-    def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::close));
+      &BaseQueue::close), call_guard<GilRelease>()).
+    def("close", static_cast<void (BaseQueue::*)()>(&BaseQueue::close),
+      call_guard<GilRelease>());
 }
 
 void Beam::Python::export_publisher_reactor(pybind11::module& module) {

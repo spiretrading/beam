@@ -48,6 +48,9 @@ if(UNIX)
     optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH})
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_libraries(Python debug stdc++exp)
+  endif()
 endif()
 if(WIN32)
   target_link_libraries(Python bcrypt crypt32 Secur32 shlwapi Ws2_32)

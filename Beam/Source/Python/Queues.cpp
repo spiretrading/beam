@@ -7,6 +7,7 @@
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/PythonFunction.hpp"
+#include "Beam/Python/PythonRoutineTaskQueue.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/Publisher.hpp"
@@ -109,17 +110,17 @@ void Beam::Python::export_queues(pybind11::module& module) {
 }
 
 void Beam::Python::export_routine_task_queue(pybind11::module& module) {
-  class_<RoutineTaskQueue, std::shared_ptr<RoutineTaskQueue>,
+  class_<PythonRoutineTaskQueue, std::shared_ptr<PythonRoutineTaskQueue>,
     QueueWriter<std::function<void ()>>>(module, "RoutineTaskQueue").
-    def(pybind11::init(&make_python_shared<RoutineTaskQueue>)).
+    def(pybind11::init(&make_python_shared<PythonRoutineTaskQueue>)).
     def("get_slot",
-      [] (RoutineTaskQueue& self,
+      [] (PythonRoutineTaskQueue& self,
           const PythonFunction<void (const SharedObject&)>& slot) {
         return make_strong_to_python_queue_writer(
           self.get_slot<SharedObject>(slot));
       }).
     def("get_slot",
-      [] (RoutineTaskQueue& self,
+      [] (PythonRoutineTaskQueue& self,
           const PythonFunction<void (const SharedObject&)>& slot,
           const PythonFunction<void (const object&)>& break_slot) {
         return make_strong_to_python_queue_writer(
@@ -129,7 +130,7 @@ void Beam::Python::export_routine_task_queue(pybind11::module& module) {
               break_slot(to_python_exception(e));
             }));
       }).
-    def("wait", &RoutineTaskQueue::wait, call_guard<GilRelease>());
+    def("wait", &PythonRoutineTaskQueue::wait, call_guard<GilRelease>());
 }
 
 void Beam::Python::export_task_queue(pybind11::module& module) {

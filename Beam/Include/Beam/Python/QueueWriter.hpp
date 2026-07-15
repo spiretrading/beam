@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Python/GilLock.hpp"
+#include "Beam/Python/GilRelease.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/Queues/WeakQueueWriter.hpp"
 
@@ -114,6 +115,8 @@ namespace Details {
        */
       explicit ToPythonQueueWriter(ScopedQueueWriter<Type> target);
 
+      ~ToPythonQueueWriter() override;
+
       void push(const Target& value) override;
       void push(Target&& value) override;
       void close(const std::exception_ptr& e) override;
@@ -153,6 +156,8 @@ namespace Details {
        * @param target The QueueWriter to wrap.
        */
       StrongToPythonQueueWriter(ScopedQueueWriter<Type> target, Guard);
+
+      ~StrongToPythonQueueWriter() override;
 
       void push(const Target& value) override;
       void push(Target&& value) override;
@@ -265,17 +270,34 @@ namespace Details {
     : m_target(std::move(target)) {}
 
   template<typename T>
+  ToPythonQueueWriter<T>::~ToPythonQueueWriter() {
+    auto release = GilRelease();
+    auto target = std::move(m_target);
+  }
+
+  template<typename T>
   void ToPythonQueueWriter<T>::push(const Target& value) {
-    m_target.push(Details::Extractor<Type>()(value));
+    auto converted = [&] {
+      auto lock = GilLock();
+      return Details::Extractor<Type>()(value);
+    }();
+    auto release = GilRelease();
+    m_target.push(std::move(converted));
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::push(Target&& value) {
-    m_target.push(Details::Extractor<Type>()(std::move(value)));
+    auto converted = [&] {
+      auto lock = GilLock();
+      return Details::Extractor<Type>()(std::move(value));
+    }();
+    auto release = GilRelease();
+    m_target.push(std::move(converted));
   }
 
   template<typename T>
   void ToPythonQueueWriter<T>::close(const std::exception_ptr& e) {
+    auto release = GilRelease();
     m_target.close(e);
   }
 
@@ -285,9 +307,20 @@ namespace Details {
     : m_target(std::move(target)) {}
 
   template<typename T>
+  StrongToPythonQueueWriter<T>::~StrongToPythonQueueWriter() {
+    auto release = GilRelease();
+    auto target = std::move(m_target);
+  }
+
+  template<typename T>
   void StrongToPythonQueueWriter<T>::push(const Target& value) {
+    auto converted = [&] {
+      auto lock = GilLock();
+      return Details::Extractor<Type>()(value);
+    }();
+    auto release = GilRelease();
     try {
-      m_target.push(Details::Extractor<Type>()(value));
+      m_target.push(std::move(converted));
     } catch(const std::exception&) {
       m_self.reset();
       throw;
@@ -296,8 +329,13 @@ namespace Details {
 
   template<typename T>
   void StrongToPythonQueueWriter<T>::push(Target&& value) {
+    auto converted = [&] {
+      auto lock = GilLock();
+      return Details::Extractor<Type>()(std::move(value));
+    }();
+    auto release = GilRelease();
     try {
-      m_target.push(Details::Extractor<Type>()(std::move(value)));
+      m_target.push(std::move(converted));
     } catch(const std::exception&) {
       m_self.reset();
       throw;
@@ -306,6 +344,7 @@ namespace Details {
 
   template<typename T>
   void StrongToPythonQueueWriter<T>::close(const std::exception_ptr& e) {
+    auto release = GilRelease();
     m_target.close(e);
     m_self.reset();
   }
@@ -321,7 +360,7 @@ namespace Details {
     policy = pybind11::detail::return_value_policy_override<
       std::shared_ptr<QueueWriter<typename Type::Target>>>::policy(policy);
     return Converter::cast(std::shared_ptr<QueueWriter<typename Type::Target>>(
-      std::make_shared<Type>(std::move(value))), policy, parent);
+      make_python_shared<Type>(std::move(value))), policy, parent);
   }
 
   template<typename T>

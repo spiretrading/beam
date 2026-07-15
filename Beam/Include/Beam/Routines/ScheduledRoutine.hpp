@@ -16,6 +16,7 @@
 #endif
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam {
@@ -34,7 +35,7 @@ namespace Details {
        * Continues execution of this Routine from its last defer point or from
        * the beginning if it has not yet executed.
        */
-      void advance();
+      BEAM_EXPORT_DLL void advance();
 
     protected:
 
@@ -46,9 +47,9 @@ namespace Details {
        */
       ScheduledRoutine(std::size_t stack_size, std::size_t context_id) noexcept;
 
-      void defer() override;
+      BEAM_EXPORT_DLL void defer() override;
       void pending_suspend() override;
-      void suspend() override;
+      BEAM_EXPORT_DLL void suspend() override;
       void resume() override;
 
     private:
@@ -66,7 +67,7 @@ namespace Details {
 
       bool is_pending_resume() const;
       void set_pending_resume(bool value);
-      boost::context::continuation initialize(
+      BEAM_EXPORT_DLL boost::context::continuation initialize(
         boost::context::continuation&& parent);
   };
 
@@ -74,6 +75,7 @@ namespace Details {
     return m_context_id;
   }
 
+#ifndef BEAM_USE_DLL
   inline void ScheduledRoutine::advance() {
     Details::CurrentRoutineGlobal::get() = this;
     m_is_pending_resume = false;
@@ -90,6 +92,7 @@ namespace Details {
     }
     Details::CurrentRoutineGlobal::get() = nullptr;
   }
+#endif
 
   inline ScheduledRoutine::ScheduledRoutine(
       std::size_t stack_size, std::size_t context_id) noexcept
@@ -102,6 +105,7 @@ namespace Details {
     }
   }
 
+#ifndef BEAM_USE_DLL
   BEAM_DISABLE_OPTIMIZATIONS
   inline void ScheduledRoutine::defer() {
     Details::CurrentRoutineGlobal::get() = nullptr;
@@ -112,11 +116,13 @@ namespace Details {
 #endif
     m_parent = m_parent.resume();
   }
+#endif
 
   inline void ScheduledRoutine::pending_suspend() {
     set(State::PENDING_SUSPEND);
   }
 
+#ifndef BEAM_USE_DLL
   inline void ScheduledRoutine::suspend() {
     Details::CurrentRoutineGlobal::get() = nullptr;
     set(State::PENDING_SUSPEND);
@@ -127,6 +133,7 @@ namespace Details {
 #endif
     m_parent = m_parent.resume();
   }
+#endif
 
   inline bool ScheduledRoutine::is_pending_resume() const {
     return m_is_pending_resume;
@@ -136,6 +143,7 @@ namespace Details {
     m_is_pending_resume = value;
   }
 
+#ifndef BEAM_USE_DLL
   inline boost::context::continuation ScheduledRoutine::initialize(
       boost::context::continuation&& parent) {
     m_parent = std::move(parent);
@@ -149,6 +157,7 @@ namespace Details {
     set(State::COMPLETE);
     return std::move(m_parent);
   }
+#endif
 }
 
 #endif

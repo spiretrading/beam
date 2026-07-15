@@ -10,11 +10,15 @@
 namespace Beam {
 namespace Details {
   struct BEAM_EXPORT_DLL FlushMutex {
-    static Mutex& get() {
-      static auto mutex = Mutex();
-      return mutex;
-    }
+    static Mutex& get();
   };
+
+#ifndef BEAM_USE_DLL
+  inline Mutex& FlushMutex::get() {
+    static auto mutex = Mutex();
+    return mutex;
+  }
+#endif
 }
 
   /** Used to spawn a Routine and wait for its completion. */

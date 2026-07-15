@@ -16,18 +16,24 @@
 namespace Beam {
 namespace Details {
   struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
-    static Routine*& get() {
-      static thread_local auto value = static_cast<Routine*>(nullptr);
-      return value;
-    }
+    static Routine*& get();
   };
 
   struct BEAM_EXPORT_DLL NextId {
-    static std::atomic_uint64_t& get() {
-      static auto m_value = std::atomic_uint64_t();
-      return m_value;
-    }
+    static std::atomic_uint64_t& get();
   };
+
+#ifndef BEAM_USE_DLL
+  inline Routine*& CurrentRoutineGlobal::get() {
+    static thread_local auto value = static_cast<Routine*>(nullptr);
+    return value;
+  }
+
+  inline std::atomic_uint64_t& NextId::get() {
+    static auto m_value = std::atomic_uint64_t();
+    return m_value;
+  }
+#endif
 }
 
   /** Encapsulates a single sub-routine spawned by a Scheduler. */

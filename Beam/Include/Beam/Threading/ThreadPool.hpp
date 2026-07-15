@@ -11,13 +11,14 @@
 #include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
+#include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
 namespace Beam {
 
   /** Implements a thread pool for running Tasks. */
-  class ThreadPool : public Singleton<ThreadPool> {
+  class BEAM_EXPORT_DLL ThreadPool : public Singleton<ThreadPool> {
     public:
       ~ThreadPool();
 

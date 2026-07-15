@@ -11,10 +11,7 @@ namespace Beam {
       using Type = T;
 
       /** Returns the singleton instance. */
-      static Type& get() {
-        static auto singleton = Type();
-        return singleton;
-      }
+      static Type& get();
 
     protected:
       Singleton() = default;
@@ -23,6 +20,14 @@ namespace Beam {
       Singleton(const Singleton&) = delete;
       Singleton& operator =(const Singleton&) = delete;
   };
+
+#ifndef BEAM_USE_DLL
+  template<typename T>
+  typename Singleton<T>::Type& Singleton<T>::get() {
+    static auto singleton = Type();
+    return singleton;
+  }
+#endif
 }
 
 #endif

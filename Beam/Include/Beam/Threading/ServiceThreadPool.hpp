@@ -3,6 +3,7 @@
 #include <memory>
 #include <boost/asio/io_context.hpp>
 #include <boost/thread/thread.hpp>
+#include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
 namespace Beam {
@@ -13,7 +14,8 @@ namespace Beam {
   class UdpSocket;
 
   /** Wraps a list of ASIO worker threads. */
-  class ServiceThreadPool : public Singleton<ServiceThreadPool> {
+  class BEAM_EXPORT_DLL ServiceThreadPool :
+      public Singleton<ServiceThreadPool> {
     public:
       ~ServiceThreadPool();
 

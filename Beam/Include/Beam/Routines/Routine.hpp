@@ -24,12 +24,12 @@ namespace Details {
   };
 
 #ifndef BEAM_USE_DLL
-  inline Routine*& CurrentRoutineGlobal::get() {
+  BEAM_EMIT_DLL inline Routine*& CurrentRoutineGlobal::get() {
     static thread_local auto value = static_cast<Routine*>(nullptr);
     return value;
   }
 
-  inline std::atomic_uint64_t& NextId::get() {
+  BEAM_EMIT_DLL inline std::atomic_uint64_t& NextId::get() {
     static auto m_value = std::atomic_uint64_t();
     return m_value;
   }

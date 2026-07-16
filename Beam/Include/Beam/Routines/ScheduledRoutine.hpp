@@ -25,7 +25,7 @@ namespace Details {
 }
 
   /* Implements a Routine that executes within a Scheduler. */
-  class ScheduledRoutine : public Routine {
+  class BEAM_EXPORT_CLASS ScheduledRoutine : public Routine {
     public:
 
       /** Returns the id of the context this Routine is running in. */
@@ -76,7 +76,7 @@ namespace Details {
   }
 
 #ifndef BEAM_USE_DLL
-  inline void ScheduledRoutine::advance() {
+  BEAM_EMIT_DLL inline void ScheduledRoutine::advance() {
     Details::CurrentRoutineGlobal::get() = this;
     m_is_pending_resume = false;
     if(get_state() == State::PENDING) {
@@ -107,7 +107,7 @@ namespace Details {
 
 #ifndef BEAM_USE_DLL
   BEAM_DISABLE_OPTIMIZATIONS
-  inline void ScheduledRoutine::defer() {
+  BEAM_EMIT_DLL inline void ScheduledRoutine::defer() {
     Details::CurrentRoutineGlobal::get() = nullptr;
 #ifdef BEAM_ENABLE_STACK_PRINT
 #ifndef NDEBUG
@@ -123,7 +123,7 @@ namespace Details {
   }
 
 #ifndef BEAM_USE_DLL
-  inline void ScheduledRoutine::suspend() {
+  BEAM_EMIT_DLL inline void ScheduledRoutine::suspend() {
     Details::CurrentRoutineGlobal::get() = nullptr;
     set(State::PENDING_SUSPEND);
 #ifdef BEAM_ENABLE_STACK_PRINT
@@ -144,6 +144,7 @@ namespace Details {
   }
 
 #ifndef BEAM_USE_DLL
+  BEAM_EMIT_DLL
   inline boost::context::continuation ScheduledRoutine::initialize(
       boost::context::continuation&& parent) {
     m_parent = std::move(parent);

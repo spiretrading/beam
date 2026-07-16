@@ -14,7 +14,7 @@ namespace Details {
   };
 
 #ifndef BEAM_USE_DLL
-  inline Mutex& FlushMutex::get() {
+  BEAM_EMIT_DLL inline Mutex& FlushMutex::get() {
     static auto mutex = Mutex();
     return mutex;
   }

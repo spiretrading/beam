@@ -23,7 +23,7 @@ namespace Beam {
 
 #ifndef BEAM_USE_DLL
   template<typename T>
-  typename Singleton<T>::Type& Singleton<T>::get() {
+  BEAM_EMIT_DLL typename Singleton<T>::Type& Singleton<T>::get() {
     static auto singleton = Type();
     return singleton;
   }

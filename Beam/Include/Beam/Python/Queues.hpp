@@ -9,6 +9,7 @@
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
+#include "Beam/Queues/SequencePublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 
 namespace Beam::Python {
@@ -234,6 +235,26 @@ namespace Beam::Python {
         }
         return pybind11::object();
       });
+  }
+
+  /**
+   * Exports the generic SequencePublisher class.
+   * @param module The module to export to.
+   * @param prefix The prefix used when forming the type name.
+   */
+  template<typename T, typename S = std::vector<T>>
+  void export_sequence_publisher(
+      pybind11::module& module, const std::string& prefix) {
+    auto name = prefix + "SequencePublisher";
+    if(pybind11::hasattr(module, name.c_str())) {
+      return;
+    }
+    export_snapshot_publisher<T, S>(module, prefix);
+    export_queue_writer<QueueWriter<T>>(module, prefix);
+    pybind11::class_<SequencePublisher<T, S>,
+        std::shared_ptr<SequencePublisher<T, S>>, SnapshotPublisher<T, S>,
+        QueueWriter<T>>(module, name.c_str(), pybind11::multiple_inheritance()).
+      def(pybind11::init());
   }
 
   /**

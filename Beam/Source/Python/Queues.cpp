@@ -92,6 +92,7 @@ void Beam::Python::export_queues(pybind11::module& module) {
   export_publisher_reactor(module);
   export_queue_suite<object>(module, "");
   export_queue_suite<std::function<void ()>>(module, "VoidFunction");
+  export_sequence_publisher<object>(module, "");
   export_routine_task_queue(module);
   export_task_queue(module);
   module.def("flush", [] (QueueReader<object>& queue, list l) {

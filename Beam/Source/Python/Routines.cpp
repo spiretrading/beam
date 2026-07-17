@@ -87,4 +87,7 @@ void Beam::Python::export_routines(module& module) {
   module.def("defer", &defer, call_guard<GilRelease>());
   module.def("wait", &wait, call_guard<GilRelease>());
   register_exception<RoutineException>(module, "RoutineException");
+  module_::import("atexit").attr("register")(cpp_function([] {
+    flush_pending_routines();
+  }, call_guard<GilRelease>()));
 }

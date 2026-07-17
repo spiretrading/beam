@@ -6,6 +6,7 @@
 #include <pybind11/stl.h>
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/PythonException.hpp"
 #include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/PythonRoutineTaskQueue.hpp"
 #include "Beam/Python/QueueWriter.hpp"
@@ -33,6 +34,8 @@ namespace {
       std::rethrow_exception(e);
     } catch(const error_already_set& error) {
       return error.value();
+    } catch(const PythonException& error) {
+      return error.to_python();
     } catch(const PipeBrokenException& error) {
       return (*pipe_broken_exception)(error.what());
     } catch(const std::exception& error) {
@@ -57,15 +60,7 @@ void Beam::Python::export_base_queue(pybind11::module& module) {
       if(!PyExceptionInstance_Check(exception.ptr())) {
         throw pybind11::type_error("close() requires an exception instance.");
       }
-      PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(exception.ptr())),
-        exception.ptr());
-      auto e = [] {
-        try {
-          throw pybind11::error_already_set();
-        } catch(...) {
-          return std::current_exception();
-        }
-      }();
+      auto e = std::make_exception_ptr(PythonException(exception));
       auto release = GilRelease();
       self.close(e);
     }).
@@ -108,6 +103,17 @@ void Beam::Python::export_queues(pybind11::module& module) {
   });
   pipe_broken_exception = new object(
     register_exception<PipeBrokenException>(module, "PipeBrokenException"));
+  register_exception_translator([] (std::exception_ptr e) {
+    try {
+      if(e) {
+        std::rethrow_exception(e);
+      }
+    } catch(const PythonException& exception) {
+      auto instance = exception.to_python();
+      PyErr_SetObject(
+        reinterpret_cast<PyObject*>(Py_TYPE(instance.ptr())), instance.ptr());
+    }
+  });
 }
 
 void Beam::Python::export_routine_task_queue(pybind11::module& module) {

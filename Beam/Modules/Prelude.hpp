@@ -139,10 +139,8 @@
 #include "Beam/Pointers/VirtualPtr.hpp"
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/EvaluatorNode.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/FunctionEvaluatorNode.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
 #include "Beam/Queries/MemberAccessExpression.hpp"
@@ -193,14 +191,9 @@
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/InterruptionPolicy.hpp"
-#include "Beam/Queries/SnapshotLimit.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Serialization/ShuttleArray.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 #include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 #include <boost/algorithm/string/case_conv.hpp>
@@ -243,8 +236,11 @@
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/tuple/tuple.hpp>
 #include "Beam/Queries/TypeCompatibilityException.hpp"
-#include "Beam/Utilities/NotSupportedException.hpp"
 #include <boost/iterator/iterator_facade.hpp>
+#include "Beam/Utilities/Instantiate.hpp"
+#include <boost/callable_traits.hpp>
+#include <boost/mp11.hpp>
+#include <boost/variant/variant.hpp>
 #ifdef DELETE
   #undef DELETE
 #endif

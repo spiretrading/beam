@@ -6,6 +6,7 @@ export module Beam:SessionCachedDataStore;
 import :IndexedValue;
 import :SessionCachedDataStoreEntry;
 import :SynchronizedMap;
+import :Evaluator;
 
 export namespace Beam {
 

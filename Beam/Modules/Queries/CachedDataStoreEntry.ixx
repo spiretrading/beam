@@ -4,8 +4,10 @@ module;
 export module Beam:CachedDataStoreEntry;
 
 import :CallOnce;
+import :Evaluator;
 import :IndexedValue;
 import :LocalDataStoreEntry;
+import :SnapshotLimit;
 
 export namespace Beam {
 

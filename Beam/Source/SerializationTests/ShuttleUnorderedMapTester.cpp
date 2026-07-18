@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <string>
 #include <unordered_map>
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

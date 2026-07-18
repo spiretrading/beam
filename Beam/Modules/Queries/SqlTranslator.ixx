@@ -3,6 +3,8 @@ module;
 
 export module Beam:SqlTranslator;
 
+import :Evaluator;
+
 export namespace Beam {
 
   /** Translates a query expression into an SQL expression. */

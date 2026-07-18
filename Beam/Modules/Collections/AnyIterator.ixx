@@ -3,6 +3,8 @@ module;
 
 export module Beam:AnyIterator;
 
+import :NotSupportedException;
+
 export namespace Beam {
 namespace Details {
   template<typename T>

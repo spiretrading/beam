@@ -3,6 +3,8 @@ module;
 
 export module Beam:MemberAccessEvaluatorNode;
 
+import :Evaluator;
+
 export namespace Beam {
 
   /**

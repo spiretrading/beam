@@ -1,9 +1,9 @@
-#ifndef BEAM_INTERRUPTION_POLICY_HPP
-#define BEAM_INTERRUPTION_POLICY_HPP
-#include <boost/throw_exception.hpp>
-#include "Beam/Collections/Enum.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:InterruptionPolicy;
+
+export namespace Beam {
 
   /** Enumerates the ways to recover from a Query being interrupted. */
   BEAM_ENUM(InterruptionPolicy,
@@ -45,4 +45,3 @@ namespace Beam {
   };
 }
 
-#endif

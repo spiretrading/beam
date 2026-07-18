@@ -5,7 +5,6 @@ module;
 #include <atomic>
 #include <stdexcept>
 #include <vector>
-#include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 

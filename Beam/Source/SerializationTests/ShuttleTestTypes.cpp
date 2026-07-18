@@ -1,4 +1,8 @@
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

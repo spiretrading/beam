@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <memory>
 #include "Beam/Serialization/ShuttleUniquePtr.hpp"
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

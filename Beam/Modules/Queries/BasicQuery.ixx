@@ -6,7 +6,9 @@ export module Beam:BasicQuery;
 import :FilteredQuery;
 import :IndexedQuery;
 import :InterruptableQuery;
+import :InterruptionPolicy;
 import :RangedQuery;
+import :SnapshotLimit;
 import :SnapshotLimitedQuery;
 
 export namespace Beam {

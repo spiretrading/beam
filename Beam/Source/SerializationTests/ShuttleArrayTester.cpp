@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <array>
 #include <string>
-#include "Beam/Serialization/ShuttleArray.hpp"
 
 module Beam;
 

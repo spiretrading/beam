@@ -3,6 +3,8 @@ module;
 
 export module Beam:SnapshotLimitedQuery;
 
+import :SnapshotLimit;
+
 export namespace Beam {
 
   /** Queries for a snapshot with a specified limit. */

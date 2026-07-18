@@ -1,6 +1,9 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/ReadEvaluatorNode.hpp"
+#include <string>
+
+module Beam;
 
 using namespace Beam;
 

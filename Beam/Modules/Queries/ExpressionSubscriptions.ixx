@@ -3,8 +3,10 @@ module;
 
 export module Beam:ExpressionSubscriptions;
 
+import :Evaluator;
 import :ExpressionQuery;
 import :QueryResult;
+import :SnapshotLimit;
 import :SynchronizedMap;
 
 export namespace Beam {

@@ -1,12 +1,9 @@
-#ifndef BEAM_SHUTTLE_TEST_TYPES_HPP
-#define BEAM_SHUTTLE_TEST_TYPES_HPP
-#include <string>
-#include <doctest/doctest.h>
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/Receiver.hpp"
-#include "Beam/Serialization/Sender.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ShuttleTestTypes;
+
+export namespace Beam {
 namespace Tests {
 
   /** Struct with a free symmetric shuttle. */
@@ -290,4 +287,3 @@ namespace Tests {
   };
 }
 
-#endif

@@ -3,6 +3,7 @@ module;
 
 export module Beam:Subscriptions;
 
+import :Evaluator;
 import :QueryResult;
 import :SynchronizedMap;
 

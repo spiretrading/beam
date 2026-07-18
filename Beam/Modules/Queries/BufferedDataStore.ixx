@@ -3,8 +3,10 @@ module;
 
 export module Beam:BufferedDataStore;
 
+import :Evaluator;
 import :IndexedValue;
 import :LocalDataStore;
+import :SnapshotLimit;
 
 export namespace Beam {
 

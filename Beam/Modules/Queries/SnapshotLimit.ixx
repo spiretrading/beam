@@ -1,13 +1,9 @@
-#ifndef BEAM_SNAPSHOT_LIMIT_HPP
-#define BEAM_SNAPSHOT_LIMIT_HPP
-#include <algorithm>
-#include <limits>
-#include <ostream>
-#include <boost/throw_exception.hpp>
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/SerializationException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SnapshotLimit;
+
+export namespace Beam {
 
   /**
    * Specifies a limit on the number of items to return in a Query's snapshot.
@@ -162,4 +158,3 @@ namespace Beam {
   };
 }
 
-#endif

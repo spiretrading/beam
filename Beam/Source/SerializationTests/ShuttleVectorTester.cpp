@@ -4,7 +4,6 @@ module;
 #include <string>
 #include <vector>
 #include "Beam/Serialization/ShuttleVector.hpp"
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

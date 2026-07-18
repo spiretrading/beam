@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <deque>
 #include <string>
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

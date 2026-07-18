@@ -1,8 +1,9 @@
-#ifndef BEAM_NOT_SUPPORTED_EXCEPTION_HPP
-#define BEAM_NOT_SUPPORTED_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:NotSupportedException;
+
+export namespace Beam {
 
   /** Indicates that an optional virtual method is not supported. */
   class NotSupportedException : public std::runtime_error {
@@ -11,4 +12,3 @@ namespace Beam {
   };
 }
 
-#endif

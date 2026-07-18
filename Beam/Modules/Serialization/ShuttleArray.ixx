@@ -1,11 +1,9 @@
-#ifndef BEAM_SHUTTLE_ARRAY_HPP
-#define BEAM_SHUTTLE_ARRAY_HPP
-#include <array>
-#include <boost/throw_exception.hpp>
-#include "Beam/Serialization/Receiver.hpp"
-#include "Beam/Serialization/Sender.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ShuttleArray;
+
+export namespace Beam {
   template<typename T, std::size_t N>
   constexpr auto is_structure<std::array<T, N>> = false;
 
@@ -41,4 +39,3 @@ namespace Beam {
   };
 }
 
-#endif

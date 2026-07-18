@@ -3,10 +3,12 @@ module;
 
 export module Beam:IndexedExpressionSubscriptions;
 
+import :Evaluator;
 import :ExpressionQuery;
 import :ExpressionSubscriptions;
 import :IndexedValue;
 import :QueryResult;
+import :SnapshotLimit;
 import :Subscriptions;
 import :SynchronizedMap;
 

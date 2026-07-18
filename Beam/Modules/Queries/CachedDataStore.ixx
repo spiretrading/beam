@@ -6,6 +6,7 @@ export module Beam:CachedDataStore;
 import :CachedDataStoreEntry;
 import :IndexedValue;
 import :SynchronizedMap;
+import :Evaluator;
 
 export namespace Beam {
 

@@ -1,10 +1,11 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/SerializationTests/ShuttleTestSuite.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
 module Beam;
+
+#include "Beam/SerializationTests/ShuttleTestSuite.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;

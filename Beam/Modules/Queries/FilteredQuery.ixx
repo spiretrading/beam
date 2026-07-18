@@ -3,6 +3,8 @@ module;
 
 export module Beam:FilteredQuery;
 
+import :Evaluator;
+
 export namespace Beam {
 
   /** Filters what values should be returned in a Query. */

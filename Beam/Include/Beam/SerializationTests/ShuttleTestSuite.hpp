@@ -1,8 +1,6 @@
 #ifndef BEAM_SHUTTLE_TEST_SUITE_HPP
 #define BEAM_SHUTTLE_TEST_SUITE_HPP
 #include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleArray.hpp"
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 namespace Beam::Tests {
 

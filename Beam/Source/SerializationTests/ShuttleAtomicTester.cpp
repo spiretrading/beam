@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <atomic>
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

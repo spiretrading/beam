@@ -1,9 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/ConstantEvaluatorNode.hpp"
-#include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/ParameterExpression.hpp"
-#include "Beam/Queries/ReduceEvaluatorNode.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
+
+module Beam;
 
 using namespace Beam;
 

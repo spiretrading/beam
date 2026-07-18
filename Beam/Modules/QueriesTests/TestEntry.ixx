@@ -4,7 +4,9 @@ module;
 export module Beam:TestEntry;
 
 import :BasicQuery;
+import :Evaluator;
 import :IndexedValue;
+import :SnapshotLimit;
 
 namespace Beam::Tests {
 

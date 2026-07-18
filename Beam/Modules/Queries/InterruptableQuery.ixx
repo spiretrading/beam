@@ -3,6 +3,8 @@ module;
 
 export module Beam:InterruptableQuery;
 
+import :InterruptionPolicy;
+
 export namespace Beam {
 
   /** A Query with a policy for recovering from an interruption or failure. */

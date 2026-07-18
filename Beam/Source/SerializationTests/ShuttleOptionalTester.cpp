@@ -4,7 +4,6 @@ module;
 #include <boost/optional/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include "Beam/Serialization/ShuttleOptional.hpp"
-#include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 
 module Beam;
 

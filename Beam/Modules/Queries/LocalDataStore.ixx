@@ -6,6 +6,7 @@ export module Beam:LocalDataStore;
 import :IndexedValue;
 import :LocalDataStoreEntry;
 import :SynchronizedMap;
+import :Evaluator;
 
 export namespace Beam {
 

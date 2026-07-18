@@ -3,6 +3,8 @@ module;
 
 export module Beam:SequencedValuePublisher;
 
+import :Evaluator;
+import :InterruptionPolicy;
 import :QueryInterruptedException;
 
 export namespace Beam {

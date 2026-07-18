@@ -3,7 +3,6 @@ module;
 #include <cmath>
 #include <thread>
 #include <Viper/MySql/Connection.hpp>
-#include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"

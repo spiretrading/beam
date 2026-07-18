@@ -11,10 +11,11 @@ module;
 #include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
-#include "ServletTemplate/Servlet.hpp"
 #include "Version.hpp"
 
 module Beam;
+
+#include "ServletTemplate/Servlet.hpp"
 
 using namespace Beam;
 using namespace boost;

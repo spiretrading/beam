@@ -108,7 +108,6 @@
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/IOException.hpp"
-#include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -186,7 +185,6 @@
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Mutex.hpp"
@@ -230,25 +228,25 @@
 #include "Beam/Serialization/ShuttleVector.hpp"
 #include "Beam/Serialization/TypeRegistry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/Services/ServiceProtocolServer.hpp"
 #include "Beam/Threading/TaskRunner.hpp"
 #include "Beam/Utilities/HashTuple.hpp"
 #include <Viper/Expressions/Expressions.hpp>
 #include "Beam/Json/JsonParser.hpp"
 #include "Beam/Network/TcpSocketOptions.hpp"
-#include "Beam/Network/UdpSocketOptions.hpp"
 #include "Beam/Queries/Value.hpp"
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
-#include "Beam/IO/LocalConnection.hpp"
-#include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <cassert>
+#include "Beam/IO/ChannelIdentifier.hpp"
+#include "Beam/Pointers/NativePointerPolicy.hpp"
+#include "Beam/Services/NullSession.hpp"
+#include "Beam/Services/ServiceSlots.hpp"
 #ifdef DELETE
   #undef DELETE
 #endif

@@ -3,6 +3,9 @@ module;
 
 export module Beam:UdpSocketSender;
 
+import :DatagramPacket;
+import :UdpSocketOptions;
+
 export namespace Beam {
 
   /** Sends datagrams via a UDP socket. */

@@ -3,6 +3,7 @@ module;
 
 export module Beam:MulticastSocketWriter;
 
+import :DatagramPacket;
 import :MulticastSocket;
 
 export namespace Beam {

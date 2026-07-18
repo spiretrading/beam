@@ -3,6 +3,7 @@ module;
 
 export module Beam:NullChannel;
 
+import :NamedChannelIdentifier;
 import :NullConnection;
 import :NullReader;
 import :NullWriter;

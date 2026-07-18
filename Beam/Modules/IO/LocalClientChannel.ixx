@@ -3,6 +3,9 @@ module;
 
 export module Beam:LocalClientChannel;
 
+import :LocalConnection;
+import :NamedChannelIdentifier;
+
 export namespace Beam {
   class LocalServerConnection;
   class LocalClientChannel;

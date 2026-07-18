@@ -1,12 +1,9 @@
-#ifndef BEAM_LOCAL_CONNECTION_HPP
-#define BEAM_LOCAL_CONNECTION_HPP
-#include <atomic>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/IO/PipedWriter.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalConnection;
+
+export namespace Beam {
 
   /** Implements a local Connection. */
   class LocalConnection {
@@ -52,4 +49,3 @@ namespace Beam {
   }
 }
 
-#endif

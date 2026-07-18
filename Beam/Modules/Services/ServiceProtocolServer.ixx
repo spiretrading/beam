@@ -1,23 +1,9 @@
-#ifndef BEAM_SERVICE_PROTOCOL_SERVER_HPP
-#define BEAM_SERVICE_PROTOCOL_SERVER_HPP
-#include "Beam/Collections/SynchronizedSet.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/IO/ServerConnection.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/NativePointerPolicy.hpp"
-#include "Beam/Routines/RoutineHandler.hpp"
-#include "Beam/Routines/RoutineHandlerGroup.hpp"
-#include "Beam/Services/NullSession.hpp"
-#include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceSlots.hpp"
-#include "Beam/TimeService/Timer.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
-#include "Beam/Utilities/HashTuple.hpp"
-#include "Beam/Utilities/ReportException.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceProtocolServer;
+
+export namespace Beam {
 
   /**
    * A server accepting ServiceProtocolClients.
@@ -196,4 +182,3 @@ namespace Beam {
   }
 }
 
-#endif

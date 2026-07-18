@@ -3,6 +3,7 @@ module;
 
 export module Beam:UdpSocketWriter;
 
+import :DatagramPacket;
 import :UdpSocket;
 import :UdpSocketSender;
 

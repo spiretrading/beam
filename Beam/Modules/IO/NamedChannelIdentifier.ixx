@@ -1,8 +1,9 @@
-#ifndef BEAM_NAMED_CHANNEL_IDENTIFIER_HPP
-#define BEAM_NAMED_CHANNEL_IDENTIFIER_HPP
-#include "Beam/IO/ChannelIdentifier.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:NamedChannelIdentifier;
+
+export namespace Beam {
 
   /** Implements a ChannelIdentifier using just a name. */
   class NamedChannelIdentifier {
@@ -38,4 +39,3 @@ namespace Beam {
   }
 }
 
-#endif

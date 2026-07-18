@@ -3,6 +3,8 @@ module;
 
 export module Beam:AuthenticatedSession;
 
+import :ServiceProtocolServlet;
+
 export namespace Beam {
 
   /** Stores authentication info for a ServiceProtocolServlet Session. */

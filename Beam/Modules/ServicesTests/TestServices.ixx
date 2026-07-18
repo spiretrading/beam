@@ -6,6 +6,7 @@ export module Beam:TestServices;
 import :AuthenticationServletAdapter;
 import :LocalClientChannel;
 import :LocalServerConnection;
+import :ServiceProtocolServer;
 import :ServiceProtocolServletContainer;
 import :TriggerTimer;
 

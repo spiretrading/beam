@@ -3,6 +3,9 @@ module;
 
 export module Beam:ServiceProtocolServletContainer;
 
+import :ServiceProtocolServer;
+import :ServiceProtocolServlet;
+
 export namespace Beam {
 
   /**

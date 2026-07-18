@@ -10,7 +10,6 @@ module;
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceProtocolServer.hpp"
 
 module Beam;
 

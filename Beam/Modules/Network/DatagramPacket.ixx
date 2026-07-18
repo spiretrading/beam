@@ -1,11 +1,9 @@
-#ifndef BEAM_DATAGRAM_PACKET_HPP
-#define BEAM_DATAGRAM_PACKET_HPP
-#include <ostream>
-#include "Beam/IO/Buffer.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:DatagramPacket;
+
+export namespace Beam {
 
   /** Stores a single datagram packet. */
   template<IsConstBuffer B>
@@ -81,4 +79,3 @@ namespace Beam {
   }
 }
 
-#endif

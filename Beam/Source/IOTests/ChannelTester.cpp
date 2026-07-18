@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/IO/Channel.hpp"
-#include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 

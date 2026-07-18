@@ -6,8 +6,6 @@ module;
 #include <memory>
 #include <thread>
 #include <vector>
-#include "Beam/IO/LocalConnection.hpp"
-#include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 

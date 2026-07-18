@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <string>
-#include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"

@@ -1,8 +1,9 @@
-#ifndef BEAM_NETWORK_UDP_SOCKET_OPTIONS_HPP
-#define BEAM_NETWORK_UDP_SOCKET_OPTIONS_HPP
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketOptions;
+
+export namespace Beam {
 
   /** Stores the various options that can be applied to a UdpSocket. */
   struct UdpSocketOptions {
@@ -33,4 +34,3 @@ namespace Beam {
       m_receive_buffer_size(8 * 1024) {}
 }
 
-#endif

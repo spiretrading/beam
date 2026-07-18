@@ -3,6 +3,7 @@ module;
 
 export module Beam:TestServlet;
 
+import :ServiceProtocolServlet;
 import :ServiceProtocolServletContainer;
 import :TestServices;
 

@@ -1,8 +1,9 @@
-#ifndef BEAM_SERVICE_PROTOCOL_SERVLET_HPP
-#define BEAM_SERVICE_PROTOCOL_SERVLET_HPP
-#include "Beam/Serialization/TypeRegistry.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceProtocolServlet;
+
+export namespace Beam {
 
   /** Determines whether a type is a valid ServiceProtocolServlet. */
   template<typename T>
@@ -53,4 +54,3 @@ namespace Beam {
   };
 }
 
-#endif

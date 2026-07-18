@@ -3,10 +3,11 @@ module;
 
 export module Beam:LocalDataStore;
 
+import :Evaluator;
 import :IndexedValue;
 import :LocalDataStoreEntry;
+import :SequencedValue;
 import :SynchronizedMap;
-import :Evaluator;
 
 export namespace Beam {
 

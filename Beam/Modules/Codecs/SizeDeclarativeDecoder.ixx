@@ -1,16 +1,9 @@
-#ifndef BEAM_SIZE_DECLARATIVE_DECODER_HPP
-#define BEAM_SIZE_DECLARATIVE_DECODER_HPP
-#include <cstdint>
-#include <boost/endian.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/Codecs/Decoder.hpp"
-#include "Beam/Codecs/DecoderException.hpp"
-#include "Beam/IO/Buffer.hpp"
-#include "Beam/IO/SuffixBuffer.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SizeDeclarativeDecoder;
+
+export namespace Beam {
   template<typename E> requires IsEncoder<dereference_t<E>>
   class SizeDeclarativeEncoder;
 
@@ -76,4 +69,3 @@ namespace Beam {
   }
 }
 
-#endif

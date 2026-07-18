@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceClientFixture;
 
+import :Casts;
 import :LocalServerConnection;
 import :TestServices;
 import :TriggerTimer;

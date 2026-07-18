@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/SequencedValue.hpp"
 
 module Beam;
 

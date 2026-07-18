@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceLocatorServlet;
 
+import :ServiceLocatorDataStore;
 import :ServiceLocatorSession;
 
 export namespace Beam {

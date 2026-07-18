@@ -7,6 +7,7 @@ import :Evaluator;
 import :IndexedQuery;
 import :IndexedValue;
 import :QueryResult;
+import :SequencedValue;
 import :Subscriptions;
 import :SynchronizedMap;
 

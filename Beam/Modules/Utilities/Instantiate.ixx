@@ -1,15 +1,9 @@
-#ifndef BEAM_INSTANTIATE_HPP
-#define BEAM_INSTANTIATE_HPP
-#include <functional>
-#include <stdexcept>
-#include <tuple>
-#include <typeindex>
-#include <utility>
-#include <boost/callable_traits/return_type.hpp>
-#include <boost/mp11.hpp>
-#include <boost/throw_exception.hpp>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Instantiate;
+
+export namespace Beam {
 namespace Details {
   template<typename MetaClass, typename TypeList, std::size_t Index = 0>
   decltype(auto) instantiate_1d(std::type_index type, auto&&... args) {
@@ -107,4 +101,3 @@ namespace Details {
   }
 }
 
-#endif

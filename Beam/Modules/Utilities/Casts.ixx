@@ -1,9 +1,9 @@
-#ifndef BEAM_CASTS_HPP
-#define BEAM_CASTS_HPP
-#include <memory>
-#include <utility>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Casts;
+
+export namespace Beam {
 
   /**
    * Casts a std::unique_ptr<U> to a std::unique_ptr<T> using static_cast.
@@ -16,4 +16,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -2,7 +2,6 @@
 #define BEAM_SERVICE_LOCATOR_DATA_STORE_TEST_SUITE_HPP
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
-#include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
 
 namespace Beam::Tests {
   TEST_CASE_TEMPLATE_DEFINE(

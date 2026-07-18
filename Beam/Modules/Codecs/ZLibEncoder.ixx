@@ -1,13 +1,9 @@
-#ifndef BEAM_ZLIB_ENCODER_HPP
-#define BEAM_ZLIB_ENCODER_HPP
-#include <cassert>
-#include <limits>
-#include <boost/throw_exception.hpp>
-#include <zlib.h>
-#include "Beam/Codecs/Encoder.hpp"
-#include "Beam/Codecs/EncoderException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ZLibEncoder;
+
+export namespace Beam {
   class ZLibDecoder;
 
   /** Encodes using ZLib compression. */
@@ -72,4 +68,3 @@ namespace Beam {
   }
 }
 
-#endif

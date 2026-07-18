@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/NotExpression.hpp"
+
+module Beam;
 
 using namespace Beam;
 

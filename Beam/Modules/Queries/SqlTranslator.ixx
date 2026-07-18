@@ -3,7 +3,12 @@ module;
 
 export module Beam:SqlTranslator;
 
+import :AndExpression;
 import :Evaluator;
+import :ExpressionTranslationException;
+import :NotExpression;
+import :OrExpression;
+import :ParameterExpression;
 
 export namespace Beam {
 

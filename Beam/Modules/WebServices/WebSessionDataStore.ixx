@@ -3,6 +3,7 @@ module;
 
 export module Beam:WebSessionDataStore;
 
+import :Casts;
 import :WebSession;
 
 export namespace Beam {

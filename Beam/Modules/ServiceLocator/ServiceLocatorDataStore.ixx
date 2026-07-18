@@ -1,22 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_DATA_STORE_HPP
-#define BEAM_SERVICE_LOCATOR_DATA_STORE_HPP
-#include <concepts>
-#include <string>
-#include <unordered_set>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/VirtualPtr.hpp"
-#include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/ServiceLocator/Permissions.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
-#include "Beam/Utilities/Bcrypt.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorDataStore;
+
+export namespace Beam {
 
   /** Concept for types that can be used as a ServiceLocator data store. */
   template<typename T>
@@ -769,4 +756,3 @@ namespace Beam {
   }
 }
 
-#endif

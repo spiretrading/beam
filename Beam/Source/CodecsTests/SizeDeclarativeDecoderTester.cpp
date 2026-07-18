@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 
 module Beam;

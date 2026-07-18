@@ -6,6 +6,7 @@ export module Beam:ExpressionSubscriptions;
 import :Evaluator;
 import :ExpressionQuery;
 import :QueryResult;
+import :SequencedValue;
 import :SnapshotLimit;
 import :SynchronizedMap;
 

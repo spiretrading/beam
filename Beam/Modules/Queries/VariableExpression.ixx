@@ -1,11 +1,9 @@
-#ifndef BEAM_QUERIES_VARIABLE_EXPRESSION_HPP
-#define BEAM_QUERIES_VARIABLE_EXPRESSION_HPP
-#include <string>
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:VariableExpression;
+
+export namespace Beam {
 
   /** Evaluates to the current value of a variable. */
   class VariableExpression : public VirtualExpression {
@@ -73,4 +71,3 @@ namespace Beam {
   }
 }
 
-#endif

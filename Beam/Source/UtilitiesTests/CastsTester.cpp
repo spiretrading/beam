@@ -1,6 +1,9 @@
-#include <memory>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Utilities/Casts.hpp"
+#include <memory>
+
+module Beam;
 
 using namespace Beam;
 

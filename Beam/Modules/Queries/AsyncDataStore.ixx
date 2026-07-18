@@ -6,6 +6,7 @@ export module Beam:AsyncDataStore;
 import :Evaluator;
 import :IndexedValue;
 import :LocalDataStore;
+import :SequencedValue;
 import :SnapshotLimit;
 
 export namespace Beam {

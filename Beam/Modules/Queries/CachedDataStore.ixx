@@ -4,9 +4,10 @@ module;
 export module Beam:CachedDataStore;
 
 import :CachedDataStoreEntry;
-import :IndexedValue;
-import :SynchronizedMap;
 import :Evaluator;
+import :IndexedValue;
+import :SequencedValue;
+import :SynchronizedMap;
 
 export namespace Beam {
 

@@ -3,7 +3,16 @@ module;
 
 export module Beam:ShuttleQueryTypes;
 
+import :AndExpression;
+import :GlobalVariableDeclarationExpression;
+import :MemberAccessExpression;
+import :NotExpression;
+import :OrExpression;
+import :ParameterExpression;
+import :ReduceExpression;
+import :SetVariableExpression;
 import :StandardValues;
+import :VariableExpression;
 
 export namespace Beam {
   BEAM_REGISTER_TYPES(register_value_types,

@@ -1,10 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <boost/functional/factory.hpp>
-#include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
-#include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
-#include "Beam/Codecs/ZLibDecoder.hpp"
-#include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"

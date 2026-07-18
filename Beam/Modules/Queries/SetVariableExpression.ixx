@@ -1,12 +1,9 @@
-#ifndef BEAM_QUERIES_SET_VARIABLE_EXPRESSION_HPP
-#define BEAM_QUERIES_SET_VARIABLE_EXPRESSION_HPP
-#include <string>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SetVariableExpression;
+
+export namespace Beam {
 
   /** Sets the value of a variable. */
   class SetVariableExpression : public VirtualExpression {
@@ -83,4 +80,3 @@ namespace Beam {
   }
 }
 
-#endif

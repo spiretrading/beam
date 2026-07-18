@@ -4,6 +4,7 @@ module;
 export module Beam:LocalDataStoreEntry;
 
 import :Evaluator;
+import :SequencedValue;
 import :SnapshotLimit;
 
 export namespace Beam {

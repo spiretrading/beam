@@ -4,6 +4,7 @@ module;
 export module Beam:TestDataStore;
 
 import :IndexedValue;
+import :SequencedValue;
 
 export namespace Beam::Tests {
 

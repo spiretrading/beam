@@ -4,10 +4,6 @@ module;
 #include <iostream>
 #include <boost/functional/factory.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
-#include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
-#include "Beam/Codecs/ZLibDecoder.hpp"
-#include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"

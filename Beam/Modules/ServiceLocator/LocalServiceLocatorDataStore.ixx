@@ -3,6 +3,8 @@ module;
 
 export module Beam:LocalServiceLocatorDataStore;
 
+import :ServiceLocatorDataStore;
+
 export namespace Beam {
 
   /** Implements the ServiceLocatorDataStore using local memory. */

@@ -8,6 +8,7 @@ import :ExpressionQuery;
 import :ExpressionSubscriptions;
 import :IndexedValue;
 import :QueryResult;
+import :SequencedValue;
 import :SnapshotLimit;
 import :Subscriptions;
 import :SynchronizedMap;

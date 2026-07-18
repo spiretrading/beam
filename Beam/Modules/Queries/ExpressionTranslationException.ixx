@@ -1,8 +1,9 @@
-#ifndef BEAM_EXPRESSION_TRANSLATION_EXCEPTION_HPP
-#define BEAM_EXPRESSION_TRANSLATION_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ExpressionTranslationException;
+
+export namespace Beam {
 
   /** Signals that an error occurred while translating an Expression. */
   class ExpressionTranslationException : public std::runtime_error {
@@ -11,4 +12,3 @@ namespace Beam {
   };
 }
 
-#endif

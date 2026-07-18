@@ -1,13 +1,9 @@
-#ifndef BEAM_AUTHENTICATED_SERVICE_PROTOCOL_CLIENT_BUILDER_HPP
-#define BEAM_AUTHENTICATED_SERVICE_PROTOCOL_CLIENT_BUILDER_HPP
-#include <utility>
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/SessionAuthenticator.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:AuthenticatedServiceProtocolClientBuilder;
+
+export namespace Beam {
 
   /**
    * A ServiceProtocolClientBuilder that authenticates its session.
@@ -93,4 +89,3 @@ namespace Beam {
   }
 }
 
-#endif

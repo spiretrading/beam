@@ -4,6 +4,7 @@ module;
 export module Beam:Sequencer;
 
 import :IndexedValue;
+import :SequencedValue;
 
 export namespace Beam {
 

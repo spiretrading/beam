@@ -3,6 +3,16 @@ module;
 
 export module Beam:TraversalExpressionVisitor;
 
+import :AndExpression;
+import :GlobalVariableDeclarationExpression;
+import :MemberAccessExpression;
+import :NotExpression;
+import :OrExpression;
+import :ParameterExpression;
+import :ReduceExpression;
+import :SetVariableExpression;
+import :VariableExpression;
+
 export namespace Beam {
 
   /** An ExpressionVisitor that traverses all of its children. */

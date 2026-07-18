@@ -5,6 +5,7 @@ export module Beam:Subscriptions;
 
 import :Evaluator;
 import :QueryResult;
+import :SequencedValue;
 import :SynchronizedMap;
 
 export namespace Beam {

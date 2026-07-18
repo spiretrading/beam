@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
-#include "Beam/Queries/StandardFunctionExpressions.hpp"
+
+module Beam;
 
 using namespace Beam;
 

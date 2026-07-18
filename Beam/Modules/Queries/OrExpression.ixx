@@ -1,24 +1,20 @@
-#ifndef BEAM_QUERIES_AND_EXPRESSION_HPP
-#define BEAM_QUERIES_AND_EXPRESSION_HPP
-#include <utility>
-#include <boost/throw_exception.hpp>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/TypeCompatibilityException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:OrExpression;
 
-  /** Represents a logical and expression. */
-  class AndExpression : public VirtualExpression {
+export namespace Beam {
+
+  /** Represents a logical or expression. */
+  class OrExpression : public VirtualExpression {
     public:
 
       /**
-       * Constructs an AndExpression.
-       * @param lhs The left hand side of the Expression.
-       * @param rhs The right hand side of the Expression.
+       * Constructs an OrExpression.
+       * @param left The left hand side of the Expression.
+       * @param right The right hand side of the Expression.
        */
-      AndExpression(Expression lhs, Expression rhs);
+      OrExpression(Expression left, Expression right);
 
       /** Returns the left hand side of the Expression. */
       const Expression& get_left() const;
@@ -37,32 +33,32 @@ namespace Beam {
       Expression m_left;
       Expression m_right;
 
-      AndExpression();
+      OrExpression();
       template<IsShuttle S>
       void shuttle(S& shuttle, unsigned int version);
   };
 
   /**
-   * Constructs an AndExpression.
+   * Constructs an OrExpression.
    * @param left The left hand side of the Expression.
    * @param right The right hand side of the Expression.
-   * @return An AndExpression.
+   * @return An OrExpression.
    */
-  inline AndExpression operator &&(
+  inline OrExpression operator ||(
       const Expression& left, const Expression& right) {
-    return AndExpression(left, right);
+    return OrExpression(left, right);
   }
 
   /**
-   * Makes an Expression that represents the logical and over a sequence of
-   * sub-Expressions.
+   * Makes an Expression that represents the logical or over a sequence of
+   * sub-expressions.
    * @param first An iterator to the first Expression.
    * @param last An iterator to one past the last Expression.
-   * @return An Expression that represents the logical and over the sequence of
-   *         sub-Expressions.
+   * @return An Expression that represents the logical or over the sequence of
+   *         sub-expressions.
    */
   template<std::forward_iterator I>
-  Expression conjunction(I first, I last) {
+  Expression disjunction(I first, I last) {
     if(first == last) {
       return ConstantExpression(false);
     }
@@ -73,11 +69,11 @@ namespace Beam {
     if(first + 1 == last) {
       return *first;
     } else {
-      return AndExpression(*first, conjunction(first + 1, last));
+      return OrExpression(*first, disjunction(first + 1, last));
     }
   }
 
-  inline AndExpression::AndExpression(Expression lhs, Expression rhs)
+  inline OrExpression::OrExpression(Expression lhs, Expression rhs)
       : m_left(std::move(lhs)),
         m_right(std::move(rhs)) {
     if(m_left.get_type() != typeid(bool)) {
@@ -90,32 +86,32 @@ namespace Beam {
     }
   }
 
-  inline const Expression& AndExpression::get_left() const {
+  inline const Expression& OrExpression::get_left() const {
     return m_left;
   }
 
-  inline const Expression& AndExpression::get_right() const {
+  inline const Expression& OrExpression::get_right() const {
     return m_right;
   }
 
-  inline std::type_index AndExpression::get_type() const {
+  inline std::type_index OrExpression::get_type() const {
     return typeid(bool);
   }
 
-  inline void AndExpression::apply(ExpressionVisitor& visitor) const {
+  inline void OrExpression::apply(ExpressionVisitor& visitor) const {
     visitor.visit(*this);
   }
 
-  inline std::ostream& AndExpression::to_stream(std::ostream& out) const {
-    return out << "(and " << get_left() << ' ' << get_right() << ')';
+  inline std::ostream& OrExpression::to_stream(std::ostream& out) const {
+    return out << "(or " << get_left() << " " << get_right() << ')';
   }
 
-  inline AndExpression::AndExpression()
+  inline OrExpression::OrExpression()
     : m_left(ConstantExpression(false)),
       m_right(ConstantExpression(false)) {}
 
   template<IsShuttle S>
-  void AndExpression::shuttle(S& shuttle, unsigned int version) {
+  void OrExpression::shuttle(S& shuttle, unsigned int version) {
     VirtualExpression::shuttle(shuttle, version);
     shuttle.shuttle("left", m_left);
     shuttle.shuttle("right", m_right);
@@ -131,9 +127,8 @@ namespace Beam {
     }
   }
 
-  inline void ExpressionVisitor::visit(const AndExpression& expression) {
+  inline void ExpressionVisitor::visit(const OrExpression& expression) {
     visit(static_cast<const VirtualExpression&>(expression));
   }
 }
 
-#endif

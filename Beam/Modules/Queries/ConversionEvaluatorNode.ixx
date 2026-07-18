@@ -3,6 +3,8 @@ module;
 
 export module Beam:ConversionEvaluatorNode;
 
+import :EvaluatorNode;
+
 export namespace Beam {
 
   /**

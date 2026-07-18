@@ -1,8 +1,9 @@
-#ifndef BEAM_EVALUATOR_NODE_HPP
-#define BEAM_EVALUATOR_NODE_HPP
-#include <typeindex>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:EvaluatorNode;
+
+export namespace Beam {
 
   /** Base class for an EvaluatorNode. */
   class BaseEvaluatorNode {
@@ -36,4 +37,3 @@ namespace Beam {
   }
 }
 
-#endif

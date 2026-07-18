@@ -4,6 +4,7 @@ module;
 export module Beam:MemberAccessEvaluatorNode;
 
 import :Evaluator;
+import :EvaluatorNode;
 
 export namespace Beam {
 

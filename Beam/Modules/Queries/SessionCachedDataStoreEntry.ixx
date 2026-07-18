@@ -7,6 +7,7 @@ import :CallOnce;
 import :Evaluator;
 import :IndexedValue;
 import :LocalDataStoreEntry;
+import :SequencedValue;
 import :SnapshotLimit;
 
 export namespace Beam {

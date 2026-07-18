@@ -1,12 +1,9 @@
-#ifndef BEAM_REDUCE_EXPRESSION_HPP
-#define BEAM_REDUCE_EXPRESSION_HPP
-#include <boost/throw_exception.hpp>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/TypeCompatibilityException.hpp"
-#include "Beam/Queries/Value.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ReduceExpression;
+
+export namespace Beam {
 
   /** Consolidates a series of data into a singular value. */
   class ReduceExpression : public VirtualExpression {
@@ -113,4 +110,3 @@ namespace Beam {
   }
 }
 
-#endif

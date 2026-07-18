@@ -1,11 +1,9 @@
-#ifndef BEAM_SEQUENCED_VALUE_HPP
-#define BEAM_SEQUENCED_VALUE_HPP
-#include <type_traits>
-#include "Beam/Queries/Range.hpp"
-#include "Beam/Queries/Sequence.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SequencedValue;
+
+export namespace Beam {
 
   /**
    * Stores a value that is part of a Sequence.
@@ -191,4 +189,3 @@ namespace Beam {
   };
 }
 
-#endif

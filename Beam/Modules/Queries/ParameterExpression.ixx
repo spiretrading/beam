@@ -1,9 +1,9 @@
-#ifndef BEAM_PARAMETER_EXPRESSION_HPP
-#define BEAM_PARAMETER_EXPRESSION_HPP
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ParameterExpression;
+
+export namespace Beam {
 
   /** Represents a variable/parameter used in an Expression. */
   class ParameterExpression : public VirtualExpression {
@@ -71,4 +71,3 @@ namespace Beam {
   }
 }
 
-#endif

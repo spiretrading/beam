@@ -1,12 +1,9 @@
-#ifndef BEAM_QUERIES_GLOBAL_VARIABLE_DECLARATION_EXPRESSION_HPP
-#define BEAM_QUERIES_GLOBAL_VARIABLE_DECLARATION_EXPRESSION_HPP
-#include <string>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:GlobalVariableDeclarationExpression;
+
+export namespace Beam {
 
   /** Declares a global variable and evaluates an expression. */
   class GlobalVariableDeclarationExpression : public VirtualExpression {
@@ -104,4 +101,3 @@ namespace Beam {
   }
 }
 
-#endif

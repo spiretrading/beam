@@ -1,7 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Codecs/ZLibDecoder.hpp"
-#include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace Beam;
 

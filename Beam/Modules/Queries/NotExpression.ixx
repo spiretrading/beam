@@ -1,14 +1,9 @@
-#ifndef BEAM_QUERIES_NOT_EXPRESSION_HPP
-#define BEAM_QUERIES_NOT_EXPRESSION_HPP
-#include <utility>
-#include <boost/throw_exception.hpp>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/TypeCompatibilityException.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:NotExpression;
+
+export namespace Beam {
 
   /** Represents a logical not expression. */
   class NotExpression : public VirtualExpression {
@@ -91,4 +86,3 @@ namespace Beam {
   }
 }
 
-#endif

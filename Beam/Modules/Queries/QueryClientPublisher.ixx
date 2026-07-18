@@ -3,10 +3,11 @@ module;
 
 export module Beam:QueryClientPublisher;
 
+import :Evaluator;
 import :IndexedValue;
+import :SequencedValue;
 import :SequencedValuePublisher;
 import :SynchronizedMap;
-import :Evaluator;
 
 export namespace Beam {
 

@@ -6,6 +6,7 @@ export module Beam:SequencedValuePublisher;
 import :Evaluator;
 import :InterruptionPolicy;
 import :QueryInterruptedException;
+import :SequencedValue;
 
 export namespace Beam {
 

@@ -6,6 +6,7 @@ export module Beam:SqlDataStore;
 import :BasicQuery;
 import :DatabaseConnectionPool;
 import :IndexedValue;
+import :SequencedValue;
 import :SqlTranslator;
 
 export namespace Beam {

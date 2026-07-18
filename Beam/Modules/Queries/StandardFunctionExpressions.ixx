@@ -1,15 +1,9 @@
-#ifndef BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
-#define BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
-#include <concepts>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/mp11.hpp>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/FunctionExpression.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:StandardFunctionExpressions;
+
+export namespace Beam {
 namespace Details {
   template<class T>
   struct has_less : std::bool_constant<requires (const T& a) {
@@ -772,4 +766,3 @@ namespace Details {
   };
 }
 
-#endif

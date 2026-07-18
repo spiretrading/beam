@@ -1,12 +1,9 @@
-#ifndef BEAM_MEMBER_ACCESS_EXPRESSION_HPP
-#define BEAM_MEMBER_ACCESS_EXPRESSION_HPP
-#include <string>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:MemberAccessExpression;
+
+export namespace Beam {
 
   /** An Expression used to access an object's data member. */
   class MemberAccessExpression : public VirtualExpression {
@@ -88,4 +85,3 @@ namespace Beam {
   }
 }
 
-#endif

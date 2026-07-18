@@ -3,6 +3,7 @@ module;
 
 export module Beam:SqlServiceLocatorDataStore;
 
+import :ServiceLocatorDataStore;
 import :ServiceLocatorSqlDefinitions;
 
 export namespace Beam {

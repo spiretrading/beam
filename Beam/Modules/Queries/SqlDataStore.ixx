@@ -4,6 +4,7 @@ module;
 export module Beam:SqlDataStore;
 
 import :BasicQuery;
+import :ConnectException;
 import :DatabaseConnectionPool;
 import :Expression;
 import :Range;

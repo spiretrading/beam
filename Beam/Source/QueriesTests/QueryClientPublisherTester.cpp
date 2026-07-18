@@ -6,7 +6,6 @@ module;
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 
 
 module Beam;

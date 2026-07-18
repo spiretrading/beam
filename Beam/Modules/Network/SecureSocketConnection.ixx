@@ -3,8 +3,11 @@ module;
 
 export module Beam:SecureSocketConnection;
 
+import :ConnectException;
 import :SecureSocketOptions;
+import :SocketException;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

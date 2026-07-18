@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceProtocolServletContainer;
 
+import :ConnectException;
 import :ServerConnection;
 import :ServiceProtocolServer;
 import :ServiceProtocolServlet;

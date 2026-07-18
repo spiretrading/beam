@@ -3,6 +3,10 @@ module;
 
 export module Beam:ServiceLocatorServices;
 
+import :AccountUpdate;
+import :Permissions;
+import :ServiceEntry;
+
 export namespace Beam {
   BEAM_DEFINE_RECORD(
     LoginServiceResult, (DirectoryEntry, account), (std::string, session_id));

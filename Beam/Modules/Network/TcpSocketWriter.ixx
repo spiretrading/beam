@@ -3,6 +3,9 @@ module;
 
 export module Beam:TcpSocketWriter;
 
+import :SocketException;
+import :NetworkDetails;
+
 export namespace Beam {
 
   /** Writes to a TCP socket. */

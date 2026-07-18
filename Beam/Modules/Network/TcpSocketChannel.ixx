@@ -5,8 +5,10 @@ export module Beam:TcpSocketChannel;
 
 import :ServiceThreadPool;
 import :TcpSocketConnection;
+import :TcpSocketOptions;
 import :TcpSocketReader;
 import :TcpSocketWriter;
+import :NetworkDetails;
 
 export namespace Beam {
 

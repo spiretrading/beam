@@ -3,11 +3,14 @@ module;
 
 export module Beam:MulticastSocket;
 
+import :ConnectException;
 import :MulticastSocketOptions;
 import :ServiceThreadPool;
+import :SocketException;
 import :UdpSocketReceiver;
 import :UdpSocketSender;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

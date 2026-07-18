@@ -3,6 +3,7 @@ module;
 
 export module Beam:WebSocket;
 
+import :ConnectException;
 import :HttpHeader;
 import :HttpMethod;
 import :HttpRequest;

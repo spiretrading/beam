@@ -3,6 +3,11 @@ module;
 
 export module Beam:TcpSocketConnection;
 
+import :ConnectException;
+import :SocketException;
+import :TcpSocketOptions;
+import :NetworkDetails;
+
 export namespace Beam {
 
   /** Implements a Connection using a TCP socket. */

@@ -3,7 +3,9 @@ module;
 
 export module Beam:SecureSocketReader;
 
+import :SocketException;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

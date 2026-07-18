@@ -3,7 +3,9 @@ module;
 
 export module Beam:SecureSocketWriter;
 
+import :SocketException;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

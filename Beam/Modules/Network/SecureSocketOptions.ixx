@@ -3,6 +3,8 @@ module;
 
 export module Beam:SecureSocketOptions;
 
+import :TcpSocketOptions;
+
 export namespace Beam {
 
   /**

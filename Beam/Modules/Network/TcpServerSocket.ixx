@@ -3,8 +3,11 @@ module;
 
 export module Beam:TcpServerSocket;
 
+import :ConnectException;
 import :ServiceThreadPool;
+import :SocketException;
 import :TcpSocketChannel;
+import :TcpSocketOptions;
 import :Value;
 
 export namespace Beam {

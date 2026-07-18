@@ -9,7 +9,6 @@ module;
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Version.hpp"
 
 module Beam;

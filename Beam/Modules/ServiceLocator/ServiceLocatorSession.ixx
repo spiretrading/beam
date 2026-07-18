@@ -4,6 +4,7 @@ module;
 export module Beam:ServiceLocatorSession;
 
 import :AuthenticatedSession;
+import :ServiceEntry;
 
 export namespace Beam {
 

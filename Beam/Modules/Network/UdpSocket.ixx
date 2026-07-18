@@ -3,11 +3,14 @@ module;
 
 export module Beam:UdpSocket;
 
+import :ConnectException;
 import :ServiceThreadPool;
+import :SocketException;
 import :UdpSocketOptions;
 import :UdpSocketReceiver;
 import :UdpSocketSender;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

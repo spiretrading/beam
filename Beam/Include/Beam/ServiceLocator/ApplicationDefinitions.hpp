@@ -5,7 +5,6 @@
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Services/MessageProtocol.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
 namespace Beam {

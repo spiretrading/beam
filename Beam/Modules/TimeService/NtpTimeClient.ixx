@@ -3,6 +3,7 @@ module;
 
 export module Beam:NtpTimeClient;
 
+import :ConnectException;
 import :Expect;
 import :LiveTimer;
 import :ServiceLocatorClient;

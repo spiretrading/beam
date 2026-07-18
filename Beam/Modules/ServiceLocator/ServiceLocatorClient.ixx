@@ -3,6 +3,11 @@ module;
 
 export module Beam:ServiceLocatorClient;
 
+import :AccountUpdate;
+import :ConnectException;
+import :Permissions;
+import :ServiceEntry;
+
 export namespace Beam {
 
   /** Concept for types that can be used as a ServiceLocatorClient. */

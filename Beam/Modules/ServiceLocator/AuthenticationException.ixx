@@ -3,6 +3,8 @@ module;
 
 export module Beam:AuthenticationException;
 
+import :ConnectException;
+
 export namespace Beam {
 
   /** Signals an authentication error during a connect operation. */

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceUidClient;
 
+import :ConnectException;
+import :ServiceProtocolClientBuilder;
 import :ServiceProtocolClientHandler;
 import :UidServices;
 

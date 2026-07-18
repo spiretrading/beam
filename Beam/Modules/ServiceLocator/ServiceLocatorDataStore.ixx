@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceLocatorDataStore;
 
+import :Bcrypt;
+import :Permissions;
 import :ServiceLocatorClient;
 import :ServiceLocatorDataStoreException;
 import :SessionEncryption;

@@ -3,6 +3,9 @@ module;
 
 export module Beam:ServiceProtocolClientHandler;
 
+import :ConnectException;
+import :ServiceProtocolClientBuilder;
+
 export namespace Beam {
 
   /**

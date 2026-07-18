@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <boost/date_time/posix_time/ptime.hpp>
-#include "Beam/IO/ConnectException.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 

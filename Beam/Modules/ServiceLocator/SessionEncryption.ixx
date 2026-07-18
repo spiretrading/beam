@@ -3,6 +3,8 @@ module;
 
 export module Beam:SessionEncryption;
 
+import :Bcrypt;
+
 export namespace Beam {
 
   /** The length of a session id. */

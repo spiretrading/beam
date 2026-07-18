@@ -3,11 +3,14 @@ module;
 
 export module Beam:TestServiceLocatorClient;
 
+import :AccountUpdate;
+import :Permissions;
+import :ServiceEntry;
 import :ServiceLocatorClient;
 import :ServiceResult;
+import :SessionEncryption;
 import :TestServiceClientOperationQueue;
 import :Value;
-import :SessionEncryption;
 
 export namespace Beam::Tests {
 

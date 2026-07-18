@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceLocatorSqlDefinitions;
 
+import :Permissions;
 
 export namespace Beam {
 

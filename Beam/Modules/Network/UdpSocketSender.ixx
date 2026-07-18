@@ -4,8 +4,10 @@ module;
 export module Beam:UdpSocketSender;
 
 import :DatagramPacket;
+import :SocketException;
 import :UdpSocketOptions;
 import :Value;
+import :NetworkDetails;
 
 export namespace Beam {
 

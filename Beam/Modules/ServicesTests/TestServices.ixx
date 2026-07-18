@@ -8,6 +8,7 @@ import :Expression;
 import :LocalClientChannel;
 import :LocalServerConnection;
 import :ServiceLocatorClient;
+import :ServiceProtocolClientBuilder;
 import :ServiceProtocolServer;
 import :ServiceProtocolServletContainer;
 import :TriggerTimer;

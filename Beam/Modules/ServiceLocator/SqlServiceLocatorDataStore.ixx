@@ -3,6 +3,7 @@ module;
 
 export module Beam:SqlServiceLocatorDataStore;
 
+import :Permissions;
 import :ServiceLocatorDataStore;
 import :ServiceLocatorDataStoreException;
 import :ServiceLocatorSqlDefinitions;

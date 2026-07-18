@@ -1,5 +1,8 @@
-﻿#include <doctest/doctest.h>
-#include "Beam/Utilities/Bcrypt.hpp"
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 

@@ -3,6 +3,7 @@ module;
 
 export module Beam:LocalServerConnection;
 
+import :ConnectException;
 import :LocalClientChannel;
 import :LocalServerChannel;
 import :ServerConnection;

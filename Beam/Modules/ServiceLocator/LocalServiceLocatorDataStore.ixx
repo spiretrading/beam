@@ -3,6 +3,7 @@ module;
 
 export module Beam:LocalServiceLocatorDataStore;
 
+import :Permissions;
 import :ServiceLocatorDataStore;
 import :ServiceLocatorDataStoreException;
 

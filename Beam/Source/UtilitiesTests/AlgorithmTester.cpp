@@ -1,10 +1,13 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/Algorithm.hpp"
+
+module Beam;
 
 using namespace Beam;
 

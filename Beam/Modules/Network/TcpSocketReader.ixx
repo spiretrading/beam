@@ -3,6 +3,9 @@ module;
 
 export module Beam:TcpSocketReader;
 
+import :SocketException;
+import :NetworkDetails;
+
 export namespace Beam {
 
   /** Reads from a TCP socket. */

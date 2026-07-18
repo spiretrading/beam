@@ -1,5 +1,12 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/UtilitiesTests/*.cpp)
 add_executable(UtilitiesTests ${source_files})
+if(MSVC)
+  target_precompile_headers(UtilitiesTests PRIVATE <doctest/doctest.h>
+    <Beam/SerializationTests/SerializationTests.hpp>
+    <Beam/Utilities/Utilities.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/UtilitiesTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_compile_definitions(UtilitiesTests PRIVATE YAML_CPP_STATIC_DEFINE)
 target_link_libraries(UtilitiesTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}

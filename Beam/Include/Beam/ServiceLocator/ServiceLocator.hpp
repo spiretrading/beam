@@ -1,0 +1,28 @@
+#ifndef BEAM_SERVICE_LOCATOR_HPP
+#define BEAM_SERVICE_LOCATOR_HPP
+#include "Beam/ServiceLocator/AccountUpdate.hpp"
+#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
+#include "Beam/ServiceLocator/AuthenticatedSession.hpp"
+#include "Beam/ServiceLocator/AuthenticationException.hpp"
+#include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
+#include "Beam/ServiceLocator/Authenticator.hpp"
+#include "Beam/ServiceLocator/CachedServiceLocatorDataStore.hpp"
+#include "Beam/ServiceLocator/DirectoryEntry.hpp"
+#include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
+#include "Beam/ServiceLocator/NotLoggedInException.hpp"
+#include "Beam/ServiceLocator/NullAuthenticator.hpp"
+#include "Beam/ServiceLocator/Permissions.hpp"
+#include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ServiceEntry.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
+#include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
+#include "Beam/ServiceLocator/SessionAuthenticator.hpp"
+#include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include "Beam/ServiceLocator/SqlDefinitions.hpp"
+#include "Beam/ServiceLocator/SqlServiceLocatorDataStore.hpp"
+
+#endif

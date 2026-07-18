@@ -10,6 +10,7 @@ using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::mp11;
 using namespace boost::posix_time;
+using Beam::Sequence;
 
 namespace {
   using DataStore = LocalDataStore<

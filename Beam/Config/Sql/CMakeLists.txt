@@ -1,6 +1,12 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/SqlTests/*.cpp)
 add_executable(SqlTests ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(SqlTests PRIVATE <doctest/doctest.h>
+    <Beam/Sql/Sql.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/SqlTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(SqlTests
   debug ${SQLITE_LIBRARY_DEBUG_PATH}
   optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH})

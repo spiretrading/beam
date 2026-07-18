@@ -30,6 +30,16 @@ endif()
 include(../../Beam/Config/dependencies.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
+include_directories(SYSTEM ${ASPEN_INCLUDE_PATH})
+include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
+include_directories(SYSTEM ${LUA_INCLUDE_PATH})
+include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
+include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
+include_directories(SYSTEM ${SQLITE_INCLUDE_PATH})
+include_directories(SYSTEM ${TCLAP_INCLUDE_PATH})
+include_directories(SYSTEM ${VIPER_INCLUDE_PATH})
+include_directories(SYSTEM ${YAML_INCLUDE_PATH})
+include_directories(SYSTEM ${ZLIB_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
 if(MSVC)
@@ -57,6 +67,18 @@ file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(QueryStressTest ${header_files} ${source_files})
 target_compile_definitions(QueryStressTest PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(QueryStressTest PRIVATE <Beam/Codecs/Codecs.hpp>
+    <Beam/Collections/Collections.hpp> <Beam/IO/IO.hpp>
+    <Beam/Queries/Queries.hpp> <Beam/Routines/Routines.hpp>
+    <Beam/Serialization/Serialization.hpp> <Beam/Services/Services.hpp>
+    <Beam/TimeService/TimeService.hpp> <Beam/Utilities/Utilities.hpp>)
+  target_link_libraries(QueryStressTest
+    debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
+    optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
+    debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+    optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH} crypt32)
+endif()
 if(UNIX)
   target_link_libraries(QueryStressTest
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

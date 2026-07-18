@@ -27,7 +27,8 @@ TEST_SUITE("FilteredQueueReader") {
   TEST_CASE("break_on_destroy") {
     auto source = std::make_shared<Queue<int>>();
     {
-      auto f = filter(source, [] (auto) {
+      auto f = filter(std::static_pointer_cast<QueueReader<int>>(source),
+        [] (auto) {
         return false;
       });
     }

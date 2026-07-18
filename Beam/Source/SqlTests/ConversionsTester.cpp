@@ -23,11 +23,11 @@ TEST_SUITE("SqlConversions") {
   }
 
   TEST_CASE("sequence_round_trip") {
-    auto sequence = Sequence(42);
+    auto sequence = Beam::Sequence(42);
     auto column = std::string();
-    ToSql<Sequence>()(sequence, column);
+    ToSql<Beam::Sequence>()(sequence, column);
     auto raw = RawColumn(column.c_str(), column.size());
-    auto result = FromSql<Sequence>()(raw);
+    auto result = FromSql<Beam::Sequence>()(raw);
     REQUIRE(result.get_ordinal() == sequence.get_ordinal());
   }
 

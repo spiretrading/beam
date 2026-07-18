@@ -12,6 +12,7 @@ using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
+using Beam::Sequence;
 
 namespace {
   using DataStore = TestDataStore<BasicQuery<std::string>, TestEntry>;

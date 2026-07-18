@@ -9,6 +9,7 @@ using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
+using Beam::Sequence;
 
 TEST_SUITE("Range") {
   TEST_CASE("default_constructor") {

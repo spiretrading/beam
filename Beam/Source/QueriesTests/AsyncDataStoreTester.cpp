@@ -16,6 +16,7 @@ using namespace Beam;
 using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::posix_time;
+using Beam::Sequence;
 
 namespace {
   using TestLocalDataStore = LocalDataStore<

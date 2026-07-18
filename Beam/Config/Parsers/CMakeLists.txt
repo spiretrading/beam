@@ -1,5 +1,12 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ParsersTests/*.cpp)
 add_executable(ParsersTests ${header_files} ${source_files})
+if(MSVC)
+  target_precompile_headers(ParsersTests PRIVATE <doctest/doctest.h>
+    <Beam/Collections/Collections.hpp> <Beam/IO/IO.hpp>
+    <Beam/Parsers/Parsers.hpp> <Beam/Queues/Queues.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/ParsersTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 if(UNIX)
   target_link_libraries(ParsersTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

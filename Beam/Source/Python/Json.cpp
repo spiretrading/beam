@@ -15,10 +15,10 @@ void Beam::Python::export_json(module& module) {
 
 void Beam::Python::export_json_object(module& module) {
   class_<JsonObject>(module, "JsonObject").
-    def(init()).
+    def(pybind11::init()).
     def("__getitem__",
       [] (JsonObject& self, const std::string& key) -> decltype(auto) {
-        return static_cast<Details::JsonVariant&>(self[key]);
+        return static_cast<Beam::Details::JsonVariant&>(self[key]);
       }, return_value_policy::reference_internal).
     def("__setitem__",
       [] (JsonObject& self, const std::string& key, int value) {
@@ -26,7 +26,7 @@ void Beam::Python::export_json_object(module& module) {
       }).
     def("__setitem__",
       [] (JsonObject& self, const std::string& key,
-          const Details::JsonVariant& value) {
+          const Beam::Details::JsonVariant& value) {
         self[key] = value;
       }).
     def("__str__", &lexical_cast<std::string, JsonObject>).

@@ -1,5 +1,12 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/QueuesTests/*.cpp)
 add_executable(QueuesTests ${header_files} ${source_files})
+if(MSVC)
+  target_precompile_headers(QueuesTests PRIVATE <doctest/doctest.h>
+    <Beam/Pointers/Pointers.hpp> <Beam/Queues/Queues.hpp>
+    <Beam/Routines/Routines.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/QueuesTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 if(UNIX)
   target_link_libraries(QueuesTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

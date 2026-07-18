@@ -1,5 +1,12 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/IOTests/*.cpp)
 add_executable(IOTests ${source_files})
+if(MSVC)
+  target_precompile_headers(IOTests PRIVATE <doctest/doctest.h>
+    <Beam/IO/IO.hpp> <Beam/Routines/Routines.hpp>
+    <Beam/Utilities/Utilities.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/IOTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 if(UNIX)
   target_link_libraries(IOTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

@@ -4,6 +4,19 @@ file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ServiceLocatorTests/*.cpp)
 add_executable(ServiceLocatorTests ${header_files} ${source_files})
 target_compile_definitions(ServiceLocatorTests PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(ServiceLocatorTests PRIVATE <doctest/doctest.h>
+    <Beam/Codecs/Codecs.hpp> <Beam/IO/IO.hpp> <Beam/Queues/Queues.hpp>
+    <Beam/Serialization/Serialization.hpp>
+    <Beam/SerializationTests/SerializationTests.hpp>
+    <Beam/ServiceLocator/ServiceLocator.hpp>
+    <Beam/ServiceLocatorTests/ServiceLocatorTests.hpp>
+    <Beam/Services/Services.hpp> <Beam/ServicesTests/ServicesTests.hpp>
+    <Beam/SignalHandling/SignalHandling.hpp> <Beam/Sql/Sql.hpp>
+    <Beam/TimeService/TimeService.hpp> <Beam/Utilities/Utilities.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/ServiceLocatorTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(ServiceLocatorTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

@@ -28,7 +28,9 @@ TEST_SUITE("FilteredQueueWriter") {
   TEST_CASE("break_on_destroy") {
     auto destination = std::make_shared<Queue<std::string>>();
     {
-      auto f = filter(destination, [] (auto) {
+      auto f = filter(
+        std::static_pointer_cast<QueueWriter<std::string>>(destination),
+        [] (auto) {
         return false;
       });
     }

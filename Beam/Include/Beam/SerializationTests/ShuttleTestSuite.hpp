@@ -1,6 +1,8 @@
 #ifndef BEAM_SHUTTLE_TEST_SUITE_HPP
 #define BEAM_SHUTTLE_TEST_SUITE_HPP
 #include <doctest/doctest.h>
+#include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/ShuttleArray.hpp"
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 

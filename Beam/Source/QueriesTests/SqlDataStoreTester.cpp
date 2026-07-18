@@ -10,6 +10,7 @@ using namespace Beam::Tests;
 using namespace boost;
 using namespace boost::posix_time;
 using namespace Viper;
+using Beam::Sequence;
 
 namespace {
   using DataStore = SqlDataStore<

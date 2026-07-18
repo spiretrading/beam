@@ -1,5 +1,11 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/SignalHandlingTests/*.cpp)
 add_executable(SignalHandlingTests ${source_files})
+if(MSVC)
+  target_precompile_headers(SignalHandlingTests PRIVATE <doctest/doctest.h>
+    <Beam/SignalHandling/SignalHandling.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/SignalHandlingTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(SignalHandlingTests
   debug ${SQLITE_LIBRARY_DEBUG_PATH}
   optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH})

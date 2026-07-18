@@ -42,7 +42,7 @@ void Beam::Python::export_eval<void>(
     return;
   }
   class_<Eval<void>, BaseEval>(module, name.c_str()).
-    def(init()).
+    def(pybind11::init()).
     def_property_readonly("is_empty", &Eval<void>::is_empty).
     def("set", &Eval<void>::set);
 }

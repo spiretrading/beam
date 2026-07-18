@@ -1,5 +1,11 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/RoutinesTests/*.cpp)
 add_executable(RoutinesTests ${source_files})
+if(MSVC)
+  target_precompile_headers(RoutinesTests PRIVATE <doctest/doctest.h>
+    <Beam/Routines/Routines.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/RoutinesTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(RoutinesTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})

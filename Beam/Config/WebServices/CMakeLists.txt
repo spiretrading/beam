@@ -1,5 +1,13 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/WebServicesTests/*.cpp)
 add_executable(WebServicesTests ${source_files})
+if(MSVC)
+  target_precompile_headers(WebServicesTests PRIVATE <doctest/doctest.h>
+    <Beam/IO/IO.hpp> <Beam/Pointers/Pointers.hpp>
+    <Beam/SerializationTests/SerializationTests.hpp> <Beam/Sql/Sql.hpp>
+    <Beam/Utilities/Utilities.hpp> <Beam/WebServices/WebServices.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/WebServicesTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(WebServicesTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

@@ -35,6 +35,11 @@ include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
 include_directories(SYSTEM ${TCLAP_INCLUDE_PATH})
 include_directories(SYSTEM ${YAML_INCLUDE_PATH})
 include_directories(SYSTEM ${ZLIB_INCLUDE_PATH})
+include_directories(SYSTEM ${ASPEN_INCLUDE_PATH})
+include_directories(SYSTEM ${LUA_INCLUDE_PATH})
+include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
+include_directories(SYSTEM ${SQLITE_INCLUDE_PATH})
+include_directories(SYSTEM ${VIPER_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
 if(MSVC)
@@ -63,6 +68,11 @@ file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(WebSocketEchoServer ${header_files} ${source_files})
 target_compile_definitions(WebSocketEchoServer PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(WebSocketEchoServer PRIVATE
+    <Beam/Network/Network.hpp> <Beam/Utilities/Utilities.hpp>
+    <Beam/WebServices/WebServices.hpp>)
+endif()
 target_link_libraries(WebSocketEchoServer
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

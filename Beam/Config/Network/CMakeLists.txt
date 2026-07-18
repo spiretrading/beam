@@ -1,5 +1,16 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/NetworkTests/*.cpp)
 add_executable(NetworkTests ${source_files})
+if(MSVC)
+  target_precompile_headers(NetworkTests PRIVATE <doctest/doctest.h>
+    <Beam/IO/IO.hpp> <Beam/Network/Network.hpp> <Beam/Utilities/Utilities.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/NetworkTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+  target_link_libraries(NetworkTests
+    debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
+    optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
+    debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+    optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH} crypt32)
+endif()
 if(UNIX)
   target_link_libraries(NetworkTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

@@ -24,7 +24,7 @@ using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
-  using ApplicationClient = ServiceProtocolClient<
+  using Client = ServiceProtocolClient<
     MessageProtocol<TcpSocketChannel, BinarySender<SharedBuffer>,
     SizeDeclarativeEncoder<ZLibEncoder>>, LiveTimer>;
 
@@ -67,7 +67,7 @@ int main(int argc, const char** argv) {
     auto addresses = parse_address(config);
     auto message = extract<std::string>(config, "message");
     auto rate = extract<int>(config, "rate");
-    auto client = ApplicationClient(init(addresses), init(seconds(10)));
+    auto client = Client(init(addresses), init(seconds(10)));
     register_servlet_template_services(out(client.get_slots()));
     register_servlet_template_messages(out(client.get_slots()));
     auto result = client.send_request<EchoService>(message, rate);
@@ -76,7 +76,7 @@ int main(int argc, const char** argv) {
     while(!received_kill_event()) {
       try {
         if(auto message = std::dynamic_pointer_cast<
-            RecordMessage<EchoMessage, ApplicationClient>>(
+            RecordMessage<EchoMessage, Client>>(
               client.read_message())) {
           ++counter;
           if(counter % rate == 0) {

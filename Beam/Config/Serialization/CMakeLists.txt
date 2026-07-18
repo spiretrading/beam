@@ -3,6 +3,13 @@ file(GLOB_RECURSE
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/SerializationTests/*.cpp)
 add_executable(SerializationTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(SerializationTests PRIVATE <doctest/doctest.h>
+    <Beam/IO/IO.hpp> <Beam/Serialization/Serialization.hpp>
+    <Beam/SerializationTests/SerializationTests.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/SerializationTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 if(UNIX)
   target_link_libraries(SerializationTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

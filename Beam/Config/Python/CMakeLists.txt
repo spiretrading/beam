@@ -4,6 +4,9 @@ include_directories(SYSTEM ${PYBIND11_INCLUDE_PATH})
 include_directories(SYSTEM ${PYTHON_INCLUDE_PATH})
 add_library(Python SHARED ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(Python PRIVATE <Beam/Python/Beam.hpp>)
+endif()
 set_target_properties(Python PROPERTIES OUTPUT_NAME beam)
 target_compile_definitions(
   Python PRIVATE ASPEN_USE_DLL BEAM_BUILD_DLL BEAM_ENABLE_STACK_PRINT

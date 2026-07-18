@@ -3,6 +3,16 @@ file(GLOB_RECURSE
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/TimeServiceTests/*.cpp)
 add_executable(TimeServiceTests ${header_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(TimeServiceTests PRIVATE <doctest/doctest.h>
+    <Beam/Collections/Collections.hpp> <Beam/IO/IO.hpp>
+    <Beam/Pointers/Pointers.hpp> <Beam/Queues/Queues.hpp>
+    <Beam/Routines/Routines.hpp> <Beam/Threading/Threading.hpp>
+    <Beam/TimeService/TimeService.hpp>
+    <Beam/TimeServiceTests/TimeServiceTests.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/TimeServiceTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 target_link_libraries(TimeServiceTests
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}

@@ -90,7 +90,7 @@ void Beam::Python::export_queues(pybind11::module& module) {
   export_sequence_publisher<object>(module, "");
   export_routine_task_queue(module);
   export_task_queue(module);
-  module.def("flush", [] (QueueReader<object>& queue, list l) {
+  module.def("flush", [] (QueueReader<object>& queue, pybind11::list l) {
     try {
       while(true) {
         auto value = [&] {

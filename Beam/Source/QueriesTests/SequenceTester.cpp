@@ -5,7 +5,6 @@
 
 using namespace Beam;
 using namespace Beam::Tests;
-using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 

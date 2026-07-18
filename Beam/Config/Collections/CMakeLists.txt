@@ -1,5 +1,13 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/CollectionsTests/*.cpp)
 add_executable(CollectionsTests ${source_files})
+if(MSVC)
+  target_precompile_headers(CollectionsTests PRIVATE <doctest/doctest.h>
+    <Beam/Collections/Collections.hpp>
+    <Beam/SerializationTests/SerializationTests.hpp>
+    <Beam/Utilities/Utilities.hpp>)
+  set_source_files_properties(${BEAM_SOURCE_PATH}/CollectionsTests/main.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()
 if(UNIX)
   target_link_libraries(CollectionsTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

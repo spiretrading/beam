@@ -21,14 +21,18 @@
       _Pragma("GCC diagnostic pop")
   #endif
 #elif defined _MSC_VER
-  #define BEAM_SUPPRESS_THIS_INITIALIZER() __pragma(warning(disable: 4355))
-  #define BEAM_UNSUPPRESS_THIS_INITIALIZER() __pragma(warning(default: 4355))
-  #define BEAM_SUPPRESS_POD_INITIALIZER() __pragma(warning(disable: 4345))
-  #define BEAM_UNSUPPRESS_POD_INITIALIZER() __pragma(warning(default: 4345))
-  #define BEAM_SUPPRESS_RECURSIVE_OVERFLOW() __pragma(warning(disable: 4717))
-  #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW() __pragma(warning(default: 4717))
-  #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS() __pragma(warning(disable: 4521))
-  #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS() __pragma(warning(default: 4521))
+  #define BEAM_SUPPRESS_THIS_INITIALIZER()                                     \
+    __pragma(warning(push)) __pragma(warning(disable: 4355))
+  #define BEAM_UNSUPPRESS_THIS_INITIALIZER() __pragma(warning(pop))
+  #define BEAM_SUPPRESS_POD_INITIALIZER()                                      \
+    __pragma(warning(push)) __pragma(warning(disable: 4345))
+  #define BEAM_UNSUPPRESS_POD_INITIALIZER() __pragma(warning(pop))
+  #define BEAM_SUPPRESS_RECURSIVE_OVERFLOW()                                   \
+    __pragma(warning(push)) __pragma(warning(disable: 4717))
+  #define BEAM_UNSUPPRESS_RECURSIVE_OVERFLOW() __pragma(warning(pop))
+  #define BEAM_SUPPRESS_MULTIPLE_CONSTRUCTORS()                                \
+    __pragma(warning(push)) __pragma(warning(disable: 4521))
+  #define BEAM_UNSUPPRESS_MULTIPLE_CONSTRUCTORS() __pragma(warning(pop))
   #define BEAM_SUPPRESS_FORMAT_TRUNCATION()
   #define BEAM_UNSUPPRESS_FORMAT_TRUNCATION()
 #else

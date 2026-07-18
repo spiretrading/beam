@@ -35,6 +35,11 @@ include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
 include_directories(SYSTEM ${TCLAP_INCLUDE_PATH})
 include_directories(SYSTEM ${YAML_INCLUDE_PATH})
 include_directories(SYSTEM ${ZLIB_INCLUDE_PATH})
+include_directories(SYSTEM ${ASPEN_INCLUDE_PATH})
+include_directories(SYSTEM ${LUA_INCLUDE_PATH})
+include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
+include_directories(SYSTEM ${SQLITE_INCLUDE_PATH})
+include_directories(SYSTEM ${VIPER_INCLUDE_PATH})
 link_directories(${BOOST_DEBUG_PATH})
 link_directories(${BOOST_OPTIMIZED_PATH})
 if(MSVC)
@@ -63,6 +68,12 @@ file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(ServletTemplate ${header_files} ${source_files})
 target_compile_definitions(ServletTemplate PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+if(MSVC)
+  target_precompile_headers(ServletTemplate PRIVATE <Beam/Codecs/Codecs.hpp>
+    <Beam/IO/IO.hpp> <Beam/Network/Network.hpp>
+    <Beam/Serialization/Serialization.hpp> <Beam/Services/Services.hpp>
+    <Beam/TimeService/TimeService.hpp> <Beam/Utilities/Utilities.hpp>)
+endif()
 target_link_libraries(ServletTemplate
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

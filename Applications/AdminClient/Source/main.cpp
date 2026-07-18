@@ -1,3 +1,5 @@
+module;
+#include "Prelude.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -5,10 +7,11 @@
 #include <boost/lexical_cast.hpp>
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

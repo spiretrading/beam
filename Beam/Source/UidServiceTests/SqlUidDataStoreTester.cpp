@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include "Beam/UidServiceTests/UidDataStoreTestSuite.hpp"
 #include <Viper/Sqlite3/Connection.hpp>
-#include "Beam/Sql/SqlConnection.hpp"
 
 module Beam;
 

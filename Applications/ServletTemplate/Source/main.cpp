@@ -1,3 +1,5 @@
+module;
+#include "Prelude.hpp"
 #include <boost/functional/factory.hpp>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
@@ -14,6 +16,8 @@
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServletTemplate/Servlet.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

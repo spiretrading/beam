@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/NetworkTests/*.cpp)
 add_executable(NetworkTests ${source_files})
+target_link_libraries(NetworkTests Beam aspen)
 if(UNIX)
   target_link_libraries(NetworkTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
@@ -23,6 +24,7 @@ install(TARGETS NetworkTests CONFIGURATIONS Release RelWithDebInfo
 file(GLOB_RECURSE
   functional_source_files ${BEAM_SOURCE_PATH}/NetworkFunctionalTests/*.cpp)
 add_executable(NetworkFunctionalTests ${functional_source_files})
+target_link_libraries(NetworkFunctionalTests Beam aspen)
 target_link_libraries(NetworkFunctionalTests
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
   optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}

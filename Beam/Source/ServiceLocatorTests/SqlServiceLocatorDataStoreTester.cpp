@@ -1,8 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <Viper/Sqlite3/Connection.hpp>
-#include "Beam/Sql/SqlConnection.hpp"
-#include "Beam/ServiceLocator/SqlServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocatorTests/ServiceLocatorDataStoreTestSuite.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

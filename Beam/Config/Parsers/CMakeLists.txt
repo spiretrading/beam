@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ParsersTests/*.cpp)
 add_executable(ParsersTests ${header_files} ${source_files})
+target_link_libraries(ParsersTests Beam aspen)
 if(UNIX)
   target_link_libraries(ParsersTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

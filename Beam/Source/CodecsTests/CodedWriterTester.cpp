@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Codecs/CodedWriter.hpp"
 #include "Beam/CodecsTests/ReverseEncoder.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

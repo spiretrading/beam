@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <memory>
 #include <string>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/ResourcePool.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

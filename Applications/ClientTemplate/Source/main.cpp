@@ -1,3 +1,5 @@
+module;
+#include "Prelude.hpp"
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
@@ -18,6 +20,8 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

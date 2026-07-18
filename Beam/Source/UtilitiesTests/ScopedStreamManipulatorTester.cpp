@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/ScopedStreamManipulator.hpp"
+
+module Beam;
 
 using namespace Beam;
 

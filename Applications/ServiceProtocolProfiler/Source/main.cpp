@@ -1,3 +1,5 @@
+module;
+#include "Prelude.hpp"
 #include <iostream>
 #include <boost/format.hpp>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
@@ -18,6 +20,8 @@
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServiceProtocolProfiler/Services.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

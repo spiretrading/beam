@@ -8,7 +8,6 @@ module;
 #include "Beam/Queries/QueryResult.hpp"
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
-#include "Beam/Utilities/ApplicationInterrupt.hpp"
 
 module Beam;
 

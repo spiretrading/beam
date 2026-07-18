@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <vector>
 #include "Beam/Collections/Enum.hpp"
-#include "Beam/Collections/EnumIterator.hpp"
+
+module Beam;
 
 using namespace Beam;
 

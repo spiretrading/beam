@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <atomic>
 #include <stdexcept>
 #include <string>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/CachedValue.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -5,7 +5,6 @@ module;
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
-#include "Beam/Sql/SqlConnection.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"

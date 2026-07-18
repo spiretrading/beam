@@ -1,11 +1,10 @@
+module;
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include <future>
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Network/MulticastSocketChannel.hpp"
-#include "Beam/Network/TcpServerSocket.hpp"
-#include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Network/UdpSocketChannel.hpp"
+#include <future>
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

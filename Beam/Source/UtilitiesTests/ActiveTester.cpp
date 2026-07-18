@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <atomic>
 #include <string>
 #include <thread>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/Active.hpp"
+
+module Beam;
 
 using namespace Beam;
 

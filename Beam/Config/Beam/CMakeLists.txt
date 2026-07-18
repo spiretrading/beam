@@ -77,6 +77,9 @@ source_group(TREE "${BEAM_MODULES_PATH}" PREFIX "Modules"
 add_library(Beam ${header_files} ${beam_module_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Beam PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME Beam)
+if(MSVC)
+  target_compile_options(Beam PRIVATE $<$<CONFIG:Release>:/GL->)
+endif()
 target_link_libraries(Beam aspen
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

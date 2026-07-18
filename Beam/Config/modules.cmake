@@ -12,6 +12,9 @@ file(GLOB_RECURSE beam_module_files "${BEAM_MODULES_PATH}/*.ixx"
 list(FILTER beam_module_files EXCLUDE REGEX "/Python/")
 add_library(Beam STATIC ${beam_module_files})
 set_target_properties(Beam PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME Beam)
+if(MSVC)
+  target_compile_options(Beam PRIVATE $<$<CONFIG:Release>:/GL->)
+endif()
 target_link_libraries(Beam aspen
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}

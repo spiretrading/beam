@@ -1,3 +1,5 @@
+module;
+#include "Prelude.hpp"
 #include <boost/functional/factory.hpp>
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
@@ -17,6 +19,8 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

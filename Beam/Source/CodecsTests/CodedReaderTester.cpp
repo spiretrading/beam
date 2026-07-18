@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Codecs/CodedReader.hpp"
 #include "Beam/CodecsTests/ReverseDecoder.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

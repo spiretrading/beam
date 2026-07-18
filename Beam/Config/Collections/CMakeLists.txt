@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/CollectionsTests/*.cpp)
 add_executable(CollectionsTests ${source_files})
+target_link_libraries(CollectionsTests Beam aspen)
 if(UNIX)
   target_link_libraries(CollectionsTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

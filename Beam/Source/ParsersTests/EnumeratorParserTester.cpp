@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Collections/EnumIterator.hpp"
 #include "Beam/Parsers/EnumeratorParser.hpp"
 #include "Beam/Parsers/ReaderParserStream.hpp"
+
+module Beam;
 
 using namespace Beam;
 

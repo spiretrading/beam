@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 #include <boost/optional/optional_io.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/Remote.hpp"
+
+module Beam;
 
 using namespace Beam;
 

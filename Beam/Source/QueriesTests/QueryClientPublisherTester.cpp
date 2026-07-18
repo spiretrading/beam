@@ -7,8 +7,6 @@ module;
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/QueryResult.hpp"
-#include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"

@@ -3,6 +3,9 @@ module;
 
 export module Beam:Subscriptions;
 
+import :QueryResult;
+import :SynchronizedMap;
+
 export namespace Beam {
 
   /**

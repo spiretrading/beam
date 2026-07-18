@@ -3,6 +3,8 @@ module;
 
 export module Beam:TestServiceLocatorClient;
 
+import :TestServiceClientOperationQueue;
+
 export namespace Beam::Tests {
 
   /**

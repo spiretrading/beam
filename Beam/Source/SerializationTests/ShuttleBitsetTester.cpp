@@ -1,7 +1,10 @@
-#include <bitset>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <bitset>
 #include "Beam/Serialization/ShuttleBitset.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

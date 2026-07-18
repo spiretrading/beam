@@ -1,8 +1,9 @@
-#ifndef BEAM_TIME_SERVICE_TEST_ENVIRONMENT_EXCEPTION_HPP
-#define BEAM_TIME_SERVICE_TEST_ENVIRONMENT_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam::Tests {
+export module Beam:TimeServiceTestEnvironmentException;
+
+export namespace Beam::Tests {
 
   /** Signals an invalid operation performed on a TimeServiceTestEnvironment. */
   class TimeServiceTestEnvironmentException : public std::runtime_error {
@@ -18,4 +19,3 @@ namespace Beam::Tests {
     : TimeServiceTestEnvironmentException("Invalid operation performed.") {}
 }
 
-#endif

@@ -1,18 +1,21 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <boost/functional/factory.hpp>
 #include <boost/optional.hpp>
-#include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
-#include "Beam/ServicesTests/TestServices.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServer.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

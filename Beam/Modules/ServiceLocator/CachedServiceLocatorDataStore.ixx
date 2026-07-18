@@ -3,6 +3,8 @@ module;
 
 export module Beam:CachedServiceLocatorDataStore;
 
+import :LocalServiceLocatorDataStore;
+
 export namespace Beam {
 
   /**

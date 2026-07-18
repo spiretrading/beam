@@ -1,6 +1,9 @@
-#include <boost/date_time/posix_time/posix_time.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/TimeService/FixedTimeClient.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

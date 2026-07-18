@@ -1,11 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_WRITER_HPP
-#define BEAM_UDP_SOCKET_WRITER_HPP
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/IO/Writer.hpp"
-#include "Beam/Network/UdpSocket.hpp"
-#include "Beam/Network/UdpSocketSender.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketWriter;
+
+export namespace Beam {
 
   /** Provides the Writer interface to a UdpSocketSender. */
   class UdpSocketWriter {
@@ -31,4 +29,3 @@ namespace Beam {
     : m_socket(std::move(socket)) {}
 }
 
-#endif

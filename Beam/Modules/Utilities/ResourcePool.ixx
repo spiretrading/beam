@@ -4,6 +4,7 @@ module;
 export module Beam:ResourcePool;
 
 import :TimedConditionVariable;
+import :TimeoutException;
 
 export namespace Beam {
   template<typename T, typename B> requires std::invocable<B> &&

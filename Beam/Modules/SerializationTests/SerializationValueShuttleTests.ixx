@@ -1,14 +1,9 @@
-#ifndef BEAM_VALUE_SHUTTLE_TESTS_HPP
-#define BEAM_VALUE_SHUTTLE_TESTS_HPP
-#include <concepts>
-#include <doctest/doctest.h>
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/Serialization/JsonReceiver.hpp"
-#include "Beam/Serialization/JsonSender.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam::Tests {
+export module Beam:SerializationValueShuttleTests;
+
+export namespace Beam::Tests {
 
   /**
    * Tests that a value can be round-tripped through a shuttle.
@@ -103,4 +98,3 @@ namespace Beam::Tests {
   }
 }
 
-#endif

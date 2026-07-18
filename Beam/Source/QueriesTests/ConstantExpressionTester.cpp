@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <string>
 #include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

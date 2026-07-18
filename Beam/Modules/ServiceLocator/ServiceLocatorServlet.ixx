@@ -1,24 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_SERVLET_HPP
-#define BEAM_SERVICE_LOCATOR_SERVLET_HPP
-#include <algorithm>
-#include <atomic>
-#include <random>
-#include <string>
-#include <unordered_map>
-#include <boost/algorithm/string/case_conv.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/Services/ServiceProtocolServlet.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/Sync.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorServlet;
+
+export namespace Beam {
 
   /**
    * Handles ServiceLocator service requests.
@@ -1058,4 +1043,3 @@ namespace Beam {
   }
 }
 
-#endif

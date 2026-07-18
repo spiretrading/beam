@@ -5,9 +5,7 @@ module;
 #include <boost/functional/factory.hpp>
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
-#include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/ServiceLocator/SessionAuthenticator.hpp"
 
 module Beam;

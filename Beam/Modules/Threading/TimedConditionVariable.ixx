@@ -3,6 +3,8 @@ module;
 
 export module Beam:TimedConditionVariable;
 
+import :TimeoutException;
+
 export namespace Beam {
 
   /**

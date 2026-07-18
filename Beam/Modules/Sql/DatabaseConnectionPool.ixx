@@ -1,14 +1,9 @@
-#ifndef BEAM_DATABASE_CONNECTION_POOL_HPP
-#define BEAM_DATABASE_CONNECTION_POOL_HPP
-#include <concepts>
-#include <deque>
-#include <memory>
-#include <boost/thread/locks.hpp>
-#include "Beam/Sql/ScopedDatabaseConnection.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:DatabaseConnectionPool;
+
+export namespace Beam {
 
   /**
    * Provides a pool of SQL database connections for use in a multithreaded
@@ -123,4 +118,3 @@ namespace Beam {
   }
 }
 
-#endif

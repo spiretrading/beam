@@ -1,5 +1,7 @@
-#include <boost/functional/factory.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <boost/functional/factory.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
@@ -7,12 +9,12 @@
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::ServiceLocatorServices;

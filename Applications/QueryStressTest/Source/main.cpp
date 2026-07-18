@@ -5,8 +5,6 @@ module;
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/QueryResult.hpp"
-#include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 
 module Beam;

@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <atomic>
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

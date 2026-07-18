@@ -1,9 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_CONNECTION_HPP
-#define BEAM_UDP_SOCKET_CONNECTION_HPP
-#include "Beam/IO/Connection.hpp"
-#include "Beam/Network/UdpSocket.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketConnection;
+
+export namespace Beam {
 
   /** Provides a Connection interface for a UdpSocket. */
   class UdpSocketConnection {
@@ -34,4 +34,3 @@ namespace Beam {
     : m_socket(std::move(socket)) {}
 }
 
-#endif

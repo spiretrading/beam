@@ -1,23 +1,9 @@
-#ifndef BEAM_SQL_TRANSLATOR_HPP
-#define BEAM_SQL_TRANSLATOR_HPP
-#include <string>
-#include <boost/lexical_cast.hpp>
-#include <boost/throw_exception.hpp>
-#include <Viper/Expressions/Expressions.hpp>
-#include "Beam/Queries/AndExpression.hpp"
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/ExpressionTranslationException.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
-#include "Beam/Queries/NotExpression.hpp"
-#include "Beam/Queries/OrExpression.hpp"
-#include "Beam/Queries/ParameterExpression.hpp"
-#include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Queries/StandardFunctionExpressions.hpp"
-#include "Beam/Queries/VariableExpression.hpp"
-#include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SqlTranslator;
+
+export namespace Beam {
 
   /** Translates a query expression into an SQL expression. */
   class SqlTranslator : protected ExpressionVisitor {
@@ -201,4 +187,3 @@ namespace Beam {
   }
 }
 
-#endif

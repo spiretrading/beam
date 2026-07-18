@@ -1,18 +1,9 @@
-#ifndef BEAM_SECURE_SOCKET_CONNECTION_HPP
-#define BEAM_SECURE_SOCKET_CONNECTION_HPP
-#include <string>
-#include <boost/optional/optional.hpp>
-#include <boost/throw_exception.hpp>
-#include <openssl/ssl.h>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/SecureSocketOptions.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SecureSocketConnection;
+
+export namespace Beam {
 
   /** Implements a Connection using an SSL socket over TCP. */
   class SecureSocketConnection {
@@ -180,4 +171,3 @@ namespace Beam {
   }
 }
 
-#endif

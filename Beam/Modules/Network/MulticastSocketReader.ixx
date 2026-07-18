@@ -3,6 +3,8 @@ module;
 
 export module Beam:MulticastSocketReader;
 
+import :MulticastSocket;
+
 export namespace Beam {
 
   /** Implements the Reader interface for a MulticastSocketReceiver. */

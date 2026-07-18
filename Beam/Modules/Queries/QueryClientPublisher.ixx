@@ -4,6 +4,7 @@ module;
 export module Beam:QueryClientPublisher;
 
 import :SequencedValuePublisher;
+import :SynchronizedMap;
 
 export namespace Beam {
 

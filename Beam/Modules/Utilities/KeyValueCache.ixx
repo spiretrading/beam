@@ -3,6 +3,8 @@ module;
 
 export module Beam:KeyValueCache;
 
+import :SynchronizedMap;
+
 export namespace Beam {
 
   /**

@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <string>
 #include <unordered_set>
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

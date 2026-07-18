@@ -1,20 +1,9 @@
-#ifndef BEAM_SHUTTLE_QUERY_TYPES_HPP
-#define BEAM_SHUTTLE_QUERY_TYPES_HPP
-#include "Beam/Queries/AndExpression.hpp"
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/FunctionExpression.hpp"
-#include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
-#include "Beam/Queries/MemberAccessExpression.hpp"
-#include "Beam/Queries/NotExpression.hpp"
-#include "Beam/Queries/OrExpression.hpp"
-#include "Beam/Queries/ParameterExpression.hpp"
-#include "Beam/Queries/ReduceExpression.hpp"
-#include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Queries/StandardValues.hpp"
-#include "Beam/Queries/VariableExpression.hpp"
-#include "Beam/Serialization/TypeRegistry.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ShuttleQueryTypes;
+
+export namespace Beam {
   BEAM_REGISTER_TYPES(register_value_types,
     (BoolValue, "Beam.Queries.BoolValue"),
     (CharValue, "Beam.Queries.CharValue"),
@@ -54,4 +43,3 @@ namespace Beam {
   }
 }
 
-#endif

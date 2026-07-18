@@ -7,7 +7,6 @@ module;
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"

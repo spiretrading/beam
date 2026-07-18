@@ -3,6 +3,8 @@ module;
 
 export module Beam:ValueShuttleTests;
 
+import :ShuttleQueryTypes;
+
 export namespace Beam::Tests {
   template<typename T, std::invocable<T&&> F>
   void test_query_round_trip_shuttle(const T& value, F&& f) {

@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <unordered_set>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

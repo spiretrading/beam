@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/InterruptionPolicy.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

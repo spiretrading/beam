@@ -1,8 +1,9 @@
-#ifndef BEAM_QUERY_INTERRUPTED_EXCEPTION_HPP
-#define BEAM_QUERY_INTERRUPTED_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:QueryInterruptedException;
+
+export namespace Beam {
 
   /** Signals that a query was interrupted. */
   class QueryInterruptedException : public std::runtime_error {
@@ -17,4 +18,3 @@ namespace Beam {
     : QueryInterruptedException("Query interrupted.") {}
 }
 
-#endif

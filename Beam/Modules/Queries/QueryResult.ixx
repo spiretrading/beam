@@ -1,10 +1,9 @@
-#ifndef BEAM_QUERY_RESULT_HPP
-#define BEAM_QUERY_RESULT_HPP
-#include <vector>
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/ShuttleVector.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:QueryResult;
+
+export namespace Beam {
 
   /**
    * Stores the result of a query.
@@ -55,4 +54,3 @@ namespace Beam {
   };
 }
 
-#endif

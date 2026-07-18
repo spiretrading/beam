@@ -8,6 +8,7 @@ import :HttpResponse;
 import :NullWebSessionDataStore;
 import :WebSession;
 import :WebSessionDataStore;
+import :SynchronizedMap;
 
 export namespace Beam {
 

@@ -1,13 +1,9 @@
-#ifndef BEAM_SECURE_SOCKET_READER_HPP
-#define BEAM_SECURE_SOCKET_READER_HPP
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/Reader.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Routines/Async.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SecureSocketReader;
+
+export namespace Beam {
 
   /** Reads from an SSL socket. */
   class SecureSocketReader {
@@ -76,4 +72,3 @@ namespace Beam {
     : m_socket(std::move(socket)) {}
 }
 
-#endif

@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include "Beam/Queries/Range.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

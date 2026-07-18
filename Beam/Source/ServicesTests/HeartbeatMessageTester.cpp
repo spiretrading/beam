@@ -6,7 +6,6 @@ module;
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/Services/HeartbeatMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"

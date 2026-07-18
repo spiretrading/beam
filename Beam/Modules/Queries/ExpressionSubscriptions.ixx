@@ -3,6 +3,10 @@ module;
 
 export module Beam:ExpressionSubscriptions;
 
+import :ExpressionQuery;
+import :QueryResult;
+import :SynchronizedMap;
+
 export namespace Beam {
 
   /**

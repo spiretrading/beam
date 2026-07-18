@@ -1,8 +1,11 @@
-#include <variant>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <variant>
 #include <boost/variant/variant.hpp>
 #include "Beam/Serialization/ShuttleVariant.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

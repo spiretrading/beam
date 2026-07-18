@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <boost/optional/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include "Beam/Serialization/ShuttleOptional.hpp"
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

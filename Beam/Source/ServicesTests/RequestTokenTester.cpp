@@ -8,7 +8,6 @@ module;
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/RequestToken.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/ServicesTests/TestServices.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
 
 module Beam;

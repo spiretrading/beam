@@ -4,7 +4,6 @@ module;
 #include <string>
 #include <tuple>
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 module Beam;
 

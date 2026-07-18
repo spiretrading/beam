@@ -3,6 +3,8 @@ module;
 
 export module Beam:TestServlet;
 
+import :TestServices;
+
 export namespace Beam::Tests {
 
   /**

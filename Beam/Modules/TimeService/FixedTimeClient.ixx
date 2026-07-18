@@ -1,10 +1,9 @@
-#ifndef BEAM_FIXED_TIME_CLIENT_HPP
-#define BEAM_FIXED_TIME_CLIENT_HPP
-#include <atomic>
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/TimeService/TimeClient.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:FixedTimeClient;
+
+export namespace Beam {
 
   /** A TimeClient whose value is set programmatically. */
   class FixedTimeClient {
@@ -57,4 +56,3 @@ namespace Beam {
   }
 }
 
-#endif

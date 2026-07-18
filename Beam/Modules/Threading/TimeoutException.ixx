@@ -1,8 +1,9 @@
-#ifndef BEAM_TIMEOUT_EXCEPTION_HPP
-#define BEAM_TIMEOUT_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TimeoutException;
+
+export namespace Beam {
 
   /** Signals that an operation timed out. */
   class TimeoutException : public std::runtime_error {
@@ -17,4 +18,3 @@ namespace Beam {
     : TimeoutException("Operation timed out.") {}
 }
 
-#endif

@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ThreadingTests/*.cpp)
 add_executable(ThreadingTests ${header_files} ${source_files})
+target_link_libraries(ThreadingTests Beam aspen)
 target_link_libraries(ThreadingTests
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH})

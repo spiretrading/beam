@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/ShuttleQueryTypes.hpp"
 
 module Beam;
 

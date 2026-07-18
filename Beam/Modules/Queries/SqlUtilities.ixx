@@ -3,6 +3,8 @@ module;
 
 export module Beam:SqlUtilities;
 
+import :DatabaseConnectionPool;
+
 export namespace Beam {
 
   /**

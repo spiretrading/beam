@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceClientFixture;
 
+import :TestServices;
+
 export namespace Beam::Tests {
 
   /**

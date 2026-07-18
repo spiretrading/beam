@@ -1,8 +1,11 @@
-#include <memory>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <memory>
 #include "Beam/Serialization/ShuttleSharedPtr.hpp"
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

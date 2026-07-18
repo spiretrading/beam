@@ -4,6 +4,7 @@ module;
 export module Beam:CachedDataStore;
 
 import :CachedDataStoreEntry;
+import :SynchronizedMap;
 
 export namespace Beam {
 

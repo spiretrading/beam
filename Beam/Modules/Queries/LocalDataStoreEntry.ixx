@@ -1,21 +1,9 @@
-#ifndef BEAM_LOCAL_DATA_STORE_ENTRY_HPP
-#define BEAM_LOCAL_DATA_STORE_ENTRY_HPP
-#include <algorithm>
-#include <functional>
-#include <iostream>
-#include <vector>
-#include <boost/date_time/posix_time/ptime.hpp>
-#include <boost/range/adaptor/reversed.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Queries/Evaluator.hpp"
-#include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/Range.hpp"
-#include "Beam/Queries/RangedQuery.hpp"
-#include "Beam/Queries/SequencedValue.hpp"
-#include "Beam/Queries/SnapshotLimit.hpp"
-#include "Beam/Queries/SnapshotLimitedQuery.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalDataStoreEntry;
+
+export namespace Beam {
 
   /**
    * Loads and stores SequencedValue's in memory.
@@ -173,4 +161,3 @@ namespace Beam {
   }
 }
 
-#endif

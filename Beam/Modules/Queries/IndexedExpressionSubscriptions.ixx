@@ -3,8 +3,11 @@ module;
 
 export module Beam:IndexedExpressionSubscriptions;
 
+import :ExpressionQuery;
 import :ExpressionSubscriptions;
+import :QueryResult;
 import :Subscriptions;
+import :SynchronizedMap;
 
 export namespace Beam {
 

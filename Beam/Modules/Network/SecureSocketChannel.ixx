@@ -3,6 +3,10 @@ module;
 
 export module Beam:SecureSocketChannel;
 
+import :SecureSocketConnection;
+import :SecureSocketReader;
+import :SecureSocketWriter;
+
 export namespace Beam {
 
   /** Implements the Channel interface using an SSL socket over TCP. */

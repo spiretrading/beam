@@ -3,6 +3,9 @@ module;
 
 export module Beam:TimeServiceTestEnvironment;
 
+import :FixedTimeClient;
+import :TimeServiceTestEnvironmentException;
+
 export namespace Beam::Tests {
   class TimeServiceTestEnvironment;
 

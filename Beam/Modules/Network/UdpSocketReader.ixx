@@ -1,10 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_READER_HPP
-#define BEAM_UDP_SOCKET_READER_HPP
-#include "Beam/IO/Reader.hpp"
-#include "Beam/Network/UdpSocket.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketReader;
+
+export namespace Beam {
 
   /** Implements the Reader interface for a UdpReceiver. */
   class UdpSocketReader {
@@ -46,4 +45,3 @@ namespace Beam {
     : m_socket(std::move(socket)) {}
 }
 
-#endif

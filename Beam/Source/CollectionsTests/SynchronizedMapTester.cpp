@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Collections/SynchronizedMap.hpp"
+
+module Beam;
 
 using namespace Beam;
 

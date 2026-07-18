@@ -3,6 +3,8 @@ module;
 
 export module Beam:MulticastSocketConnection;
 
+import :MulticastSocket;
+
 export namespace Beam {
 
   /** Provides a Connection interface for a MulticastSocket. */

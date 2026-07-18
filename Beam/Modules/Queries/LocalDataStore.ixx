@@ -3,6 +3,9 @@ module;
 
 export module Beam:LocalDataStore;
 
+import :LocalDataStoreEntry;
+import :SynchronizedMap;
+
 export namespace Beam {
 
   /**

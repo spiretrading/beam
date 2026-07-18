@@ -1,15 +1,9 @@
-#ifndef BEAM_SYNCHRONIZED_MAP_HPP
-#define BEAM_SYNCHRONIZED_MAP_HPP
-#include <concepts>
-#include <tuple>
-#include <unordered_map>
-#include <utility>
-#include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SynchronizedMap;
+
+export namespace Beam {
 
   /**
    * Wraps a map container allowing for atomic operations to be performed on it.
@@ -333,4 +327,3 @@ namespace Beam {
   }
 }
 
-#endif

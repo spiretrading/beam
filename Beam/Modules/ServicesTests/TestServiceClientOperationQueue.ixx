@@ -1,19 +1,9 @@
-#ifndef BEAM_TEST_SERVICE_CLIENT_OPERATION_QUEUE_HPP
-#define BEAM_TEST_SERVICE_CLIENT_OPERATION_QUEUE_HPP
-#include <concepts>
-#include <memory>
-#include <variant>
-#include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Collections/SynchronizedSet.hpp"
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/ServicesTests/ServiceResult.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam::Tests {
+export module Beam:TestServiceClientOperationQueue;
+
+export namespace Beam::Tests {
 
   /**
    * Queues operations for test service clients, managing their lifecycle and
@@ -162,4 +152,3 @@ namespace Beam::Tests {
   }
 }
 
-#endif

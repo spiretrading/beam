@@ -1,12 +1,9 @@
-#ifndef BEAM_EXPRESSION_QUERY_HPP
-#define BEAM_EXPRESSION_QUERY_HPP
-#include <ostream>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/ShuttleUniquePtr.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ExpressionQuery;
+
+export namespace Beam {
 
   /** Represents a query that applies an Expression to retrieved values. */
   class ExpressionQuery {
@@ -104,4 +101,3 @@ namespace Beam {
   };
 }
 
-#endif

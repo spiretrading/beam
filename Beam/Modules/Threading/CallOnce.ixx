@@ -1,10 +1,9 @@
-#ifndef BEAM_CALL_ONCE_HPP
-#define BEAM_CALL_ONCE_HPP
-#include <atomic>
-#include <concepts>
-#include <boost/thread/locks.hpp>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:CallOnce;
+
+export namespace Beam {
 
   /**
    * Calls a function only once, blocking all other threads until the function
@@ -61,4 +60,3 @@ namespace Beam {
   }
 }
 
-#endif

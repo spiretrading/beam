@@ -3,6 +3,8 @@ module;
 
 export module Beam:MulticastSocketWriter;
 
+import :MulticastSocket;
+
 export namespace Beam {
 
   /** Provides the Writer interface to a MulticastSocketSender. */

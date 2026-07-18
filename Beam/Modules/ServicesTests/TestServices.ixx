@@ -1,23 +1,9 @@
-#ifndef BEAM_TEST_SERVICES_HPP
-#define BEAM_TEST_SERVICES_HPP
-#include <memory>
-#include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Pointers/LocalPointerPolicy.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/Services/Service.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Services/ServiceProtocolServer.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
-#include "Beam/TimeService/TriggerTimer.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam::Tests {
+export module Beam:TestServices;
+
+export namespace Beam::Tests {
 
   /** The type of ServiceProtocolClient used in tests. */
   using TestServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
@@ -65,4 +51,3 @@ namespace Beam::Tests {
     throw 0; \
   }()
 
-#endif

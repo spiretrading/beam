@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <string>
 #include "Beam/Serialization/ShuttleRecord.hpp"
-#include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

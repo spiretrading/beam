@@ -1,10 +1,13 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <atomic>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Threading/CallOnce.hpp"
+
+module Beam;
 
 using namespace Beam;
 

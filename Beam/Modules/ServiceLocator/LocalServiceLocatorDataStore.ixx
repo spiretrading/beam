@@ -1,16 +1,9 @@
-#ifndef BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
-#define BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
-#include <tuple>
-#include <unordered_map>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorDataStore.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Utilities/HashTuple.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalServiceLocatorDataStore;
+
+export namespace Beam {
 
   /** Implements the ServiceLocatorDataStore using local memory. */
   class LocalServiceLocatorDataStore {
@@ -460,4 +453,3 @@ namespace Beam {
   }
 }
 
-#endif

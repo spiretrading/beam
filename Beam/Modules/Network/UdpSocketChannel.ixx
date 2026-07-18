@@ -3,6 +3,10 @@ module;
 
 export module Beam:UdpSocketChannel;
 
+import :UdpSocketConnection;
+import :UdpSocketReader;
+import :UdpSocketWriter;
+
 export namespace Beam {
 
   /** Implements the Channel interface using a UDP socket. */

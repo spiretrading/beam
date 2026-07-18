@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceLocatorDataStore;
 
+import :ServiceLocatorDataStoreException;
+
 export namespace Beam {
 
   /** Concept for types that can be used as a ServiceLocator data store. */

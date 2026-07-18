@@ -4,8 +4,10 @@ module;
 export module Beam:SqlTranslator;
 
 import :AndExpression;
+import :ConstantExpression;
 import :Evaluator;
 import :ExpressionTranslationException;
+import :FunctionExpression;
 import :NotExpression;
 import :OrExpression;
 import :ParameterExpression;

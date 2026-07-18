@@ -4,6 +4,8 @@ module;
 export module Beam:TraversalExpressionVisitor;
 
 import :AndExpression;
+import :ConstantExpression;
+import :FunctionExpression;
 import :GlobalVariableDeclarationExpression;
 import :MemberAccessExpression;
 import :NotExpression;

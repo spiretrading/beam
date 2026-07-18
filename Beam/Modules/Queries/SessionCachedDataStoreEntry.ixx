@@ -5,9 +5,8 @@ export module Beam:SessionCachedDataStoreEntry;
 
 import :CallOnce;
 import :Evaluator;
-import :IndexedValue;
 import :LocalDataStoreEntry;
-import :SequencedValue;
+import :Range;
 import :SnapshotLimit;
 
 export namespace Beam {

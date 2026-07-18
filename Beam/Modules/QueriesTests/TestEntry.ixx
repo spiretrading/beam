@@ -5,9 +5,8 @@ export module Beam:TestEntry;
 
 import :BasicQuery;
 import :Evaluator;
-import :IndexedValue;
 import :MemberAccessExpression;
-import :SequencedValue;
+import :Range;
 import :SnapshotLimit;
 
 namespace Beam::Tests {

@@ -3,6 +3,9 @@ module;
 
 export module Beam:StandardFunctionExpressions;
 
+import :ConstantExpression;
+import :FunctionExpression;
+
 export namespace Beam {
 namespace Details {
   template<class T>

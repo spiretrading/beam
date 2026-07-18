@@ -4,7 +4,7 @@ module;
 export module Beam:SqlUtilities;
 
 import :DatabaseConnectionPool;
-import :SequencedValue;
+import :Range;
 import :SnapshotLimit;
 
 export namespace Beam {

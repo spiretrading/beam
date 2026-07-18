@@ -3,8 +3,7 @@ module;
 
 export module Beam:TestDataStore;
 
-import :IndexedValue;
-import :SequencedValue;
+import :Range;
 
 export namespace Beam::Tests {
 

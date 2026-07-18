@@ -1,8 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/FunctionExpression.hpp"
 
 module Beam;
 

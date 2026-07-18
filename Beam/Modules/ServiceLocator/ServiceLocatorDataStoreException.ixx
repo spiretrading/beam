@@ -1,8 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_DATA_STORE_EXCEPTION_HPP
-#define BEAM_SERVICE_LOCATOR_DATA_STORE_EXCEPTION_HPP
-#include "Beam/IO/IOException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorDataStoreException;
+
+export namespace Beam {
 
   /** Exception to indicate an operation on a ServiceLocatorDataStore failed. */
   class ServiceLocatorDataStoreException : public IOException {
@@ -17,4 +18,3 @@ namespace Beam {
     : ServiceLocatorDataStoreException("Operation failed") {}
 }
 
-#endif

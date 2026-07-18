@@ -3,6 +3,9 @@ module;
 
 export module Beam:AndExpression;
 
+import :ConstantExpression;
+import :TypeCompatibilityException;
+
 export namespace Beam {
 
   /** Represents a logical and expression. */

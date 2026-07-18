@@ -2,13 +2,13 @@ module;
 #include "Prelude.hpp"
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
-#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
 module Beam;
+
+#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 
 using namespace Beam;
 using namespace boost;

@@ -4,6 +4,7 @@ module;
 export module Beam:View;
 
 import :AnyIterator;
+import :Range;
 import :SharedIterator;
 
 export namespace Beam {

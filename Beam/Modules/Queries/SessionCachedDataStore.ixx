@@ -4,8 +4,7 @@ module;
 export module Beam:SessionCachedDataStore;
 
 import :Evaluator;
-import :IndexedValue;
-import :SequencedValue;
+import :Range;
 import :SessionCachedDataStoreEntry;
 import :SynchronizedMap;
 

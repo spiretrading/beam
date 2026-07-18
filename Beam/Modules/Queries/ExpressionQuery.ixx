@@ -3,6 +3,8 @@ module;
 
 export module Beam:ExpressionQuery;
 
+import :ConstantExpression;
+
 export namespace Beam {
 
   /** Represents a query that applies an Expression to retrieved values. */

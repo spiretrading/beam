@@ -5,8 +5,6 @@ module;
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"

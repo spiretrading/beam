@@ -5,15 +5,17 @@ export module Beam:Evaluator;
 
 import :AndExpression;
 import :Casts;
+import :ConstantExpression;
 import :EvaluatorNode;
 import :ExpressionTranslationException;
+import :FunctionExpression;
 import :GlobalVariableDeclarationExpression;
 import :Instantiate;
 import :NotExpression;
 import :OrExpression;
 import :ParameterExpression;
 import :ReduceExpression;
-import :SequencedValue;
+import :Range;
 import :SetVariableExpression;
 import :StandardFunctionExpressions;
 import :VariableExpression;

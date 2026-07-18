@@ -1,14 +1,9 @@
-#ifndef BEAM_SESSION_AUTHENTICATOR_HPP
-#define BEAM_SESSION_AUTHENTICATOR_HPP
-#include <type_traits>
-#include <cryptopp/osrng.h>
-#include "Beam/Pointers/Ref.hpp"
-#include "Beam/ServiceLocator/Authenticator.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/Services/ServiceProtocolClient.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SessionAuthenticator;
+
+export namespace Beam {
 
   /**
    * Used to authenticate a ServiceProtocolClient's session.
@@ -56,4 +51,3 @@ namespace Beam {
   }
 }
 
-#endif

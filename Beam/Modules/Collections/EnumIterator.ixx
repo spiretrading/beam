@@ -3,6 +3,8 @@ module;
 
 export module Beam:EnumIterator;
 
+import :Range;
+
 export namespace Beam {
 
   /**

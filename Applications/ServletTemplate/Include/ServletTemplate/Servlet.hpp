@@ -3,7 +3,6 @@
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
-#include "Beam/TimeService/LiveTimer.hpp"
 #include "ServletTemplate/Services.hpp"
 
 namespace Beam {

@@ -5,8 +5,6 @@ module;
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/MessageProtocol.hpp"
 
 module Beam;

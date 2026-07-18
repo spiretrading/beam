@@ -5,9 +5,8 @@ export module Beam:IndexedSubscriptions;
 
 import :Evaluator;
 import :IndexedQuery;
-import :IndexedValue;
 import :QueryResult;
-import :SequencedValue;
+import :Range;
 import :Subscriptions;
 import :SynchronizedMap;
 

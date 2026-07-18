@@ -1,18 +1,9 @@
-#ifndef BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
-#define BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
-#include <boost/lexical_cast.hpp>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Services/ServiceRequestException.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ProtocolServiceLocatorClient;
+
+export namespace Beam {
 
   /**
    * Implements a ServiceLocatorClient using Beam services.
@@ -543,4 +534,3 @@ namespace Beam {
   }
 }
 
-#endif

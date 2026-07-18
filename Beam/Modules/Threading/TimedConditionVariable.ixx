@@ -3,6 +3,7 @@ module;
 
 export module Beam:TimedConditionVariable;
 
+import :LiveTimer;
 import :TimeoutException;
 
 export namespace Beam {

@@ -3,6 +3,9 @@ module;
 
 export module Beam:ReduceExpression;
 
+import :ConstantExpression;
+import :TypeCompatibilityException;
+
 export namespace Beam {
 
   /** Consolidates a series of data into a singular value. */

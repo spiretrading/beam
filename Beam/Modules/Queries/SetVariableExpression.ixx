@@ -3,6 +3,8 @@ module;
 
 export module Beam:SetVariableExpression;
 
+import :ConstantExpression;
+
 export namespace Beam {
 
   /** Sets the value of a variable. */

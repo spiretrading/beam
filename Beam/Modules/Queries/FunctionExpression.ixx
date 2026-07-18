@@ -1,14 +1,9 @@
-#ifndef BEAM_QUERIES_FUNCTION_EXPRESSION_HPP
-#define BEAM_QUERIES_FUNCTION_EXPRESSION_HPP
-#include <string>
-#include <utility>
-#include <vector>
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/ShuttleVector.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:FunctionExpression;
+
+export namespace Beam {
 
   /** An Expression representing a native function. */
   class FunctionExpression : public VirtualExpression {
@@ -93,4 +88,3 @@ namespace Beam {
   }
 }
 
-#endif

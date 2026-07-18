@@ -5,8 +5,7 @@ export module Beam:CachedDataStore;
 
 import :CachedDataStoreEntry;
 import :Evaluator;
-import :IndexedValue;
-import :SequencedValue;
+import :Range;
 import :SynchronizedMap;
 
 export namespace Beam {

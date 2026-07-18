@@ -3,6 +3,8 @@ module;
 
 export module Beam:Span;
 
+import :Range;
+
 export namespace Beam {
 
   /** Implements a Buffer on top of a raw pointer. */

@@ -33,14 +33,20 @@ namespace Details {
 
     bool operator ()(boost::posix_time::ptime expiry, Aspen::State expiry_state,
         Beam::Timer::Result timer_result) {
-      if(expiry != m_expiry) {
+      auto is_same = [&] {
+        if(expiry.is_special() || m_expiry.is_special()) {
+          return expiry.is_not_a_date_time() && m_expiry.is_not_a_date_time();
+        }
+        return (expiry - m_expiry).ticks() == 0;
+      }();
+      if(!is_same) {
         auto has_timer = m_timer.has_value();
         if(has_timer) {
           (*m_timer)->cancel();
           m_timer = std::nullopt;
         }
         auto current_time = m_time_client->get_time();
-        if(expiry <= current_time) {
+        if(!expiry.is_special() && (expiry - current_time).ticks() <= 0) {
           if(Aspen::is_complete(expiry_state)) {
             m_expiry_queue->close();
           }

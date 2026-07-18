@@ -3,6 +3,8 @@ module;
 
 export module Beam:HttpStatusCode;
 
+import :Range;
+
 export namespace Beam {
 
   /** Enumerates HTTP status codes. */

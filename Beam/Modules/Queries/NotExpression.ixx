@@ -3,6 +3,9 @@ module;
 
 export module Beam:NotExpression;
 
+import :ConstantExpression;
+import :TypeCompatibilityException;
+
 export namespace Beam {
 
   /** Represents a logical not expression. */

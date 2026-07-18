@@ -4,6 +4,8 @@ module;
 export module Beam:ShuttleQueryTypes;
 
 import :AndExpression;
+import :ConstantExpression;
+import :FunctionExpression;
 import :GlobalVariableDeclarationExpression;
 import :MemberAccessExpression;
 import :NotExpression;

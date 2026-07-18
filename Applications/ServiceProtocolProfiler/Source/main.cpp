@@ -4,8 +4,6 @@ module;
 #include <boost/format.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"

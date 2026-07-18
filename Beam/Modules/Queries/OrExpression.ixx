@@ -3,6 +3,9 @@ module;
 
 export module Beam:OrExpression;
 
+import :ConstantExpression;
+import :TypeCompatibilityException;
+
 export namespace Beam {
 
   /** Represents a logical or expression. */

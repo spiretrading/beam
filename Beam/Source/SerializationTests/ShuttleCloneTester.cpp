@@ -2,8 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Serialization/ShuttleClone.hpp"
 
 module Beam;

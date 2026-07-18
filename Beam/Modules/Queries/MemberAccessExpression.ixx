@@ -3,6 +3,8 @@ module;
 
 export module Beam:MemberAccessExpression;
 
+import :ConstantExpression;
+
 export namespace Beam {
 
   /** An Expression used to access an object's data member. */

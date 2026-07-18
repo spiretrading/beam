@@ -3,6 +3,8 @@ module;
 
 export module Beam:TcpServerSocket;
 
+import :TcpSocketChannel;
+
 export namespace Beam {
 
   /** Implements a TCP server socket. */

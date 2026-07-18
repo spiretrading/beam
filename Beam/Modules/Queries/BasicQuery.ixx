@@ -7,6 +7,7 @@ import :FilteredQuery;
 import :IndexedQuery;
 import :InterruptableQuery;
 import :InterruptionPolicy;
+import :Range;
 import :RangedQuery;
 import :SnapshotLimit;
 import :SnapshotLimitedQuery;

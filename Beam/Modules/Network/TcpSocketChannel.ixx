@@ -1,17 +1,9 @@
-#ifndef BEAM_TCP_SOCKET_CHANNEL_HPP
-#define BEAM_TCP_SOCKET_CHANNEL_HPP
-#include <boost/asio/ip/tcp.hpp>
-#include "Beam/IO/Channel.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketIdentifier.hpp"
-#include "Beam/Network/TcpSocketConnection.hpp"
-#include "Beam/Network/TcpSocketOptions.hpp"
-#include "Beam/Network/TcpSocketReader.hpp"
-#include "Beam/Network/TcpSocketWriter.hpp"
-#include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/ServiceThreadPool.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TcpSocketChannel;
+
+export namespace Beam {
 
   /** Implements the Channel interface using a TCP socket. */
   class TcpSocketChannel {
@@ -175,4 +167,3 @@ namespace Beam {
   }
 }
 
-#endif

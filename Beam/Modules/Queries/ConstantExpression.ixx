@@ -1,12 +1,9 @@
-#ifndef BEAM_QUERIES_CONSTANT_EXPRESSION_HPP
-#define BEAM_QUERIES_CONSTANT_EXPRESSION_HPP
-#include <utility>
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/Value.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ConstantExpression;
+
+export namespace Beam {
 
   /** An Expression that evaluates to a constant. */
   class ConstantExpression : public VirtualExpression {
@@ -71,4 +68,3 @@ namespace Beam {
   }
 }
 
-#endif

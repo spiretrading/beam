@@ -3,8 +3,7 @@ module;
 
 export module Beam:Sequencer;
 
-import :IndexedValue;
-import :SequencedValue;
+import :Range;
 
 export namespace Beam {
 

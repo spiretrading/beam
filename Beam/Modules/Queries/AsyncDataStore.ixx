@@ -4,9 +4,8 @@ module;
 export module Beam:AsyncDataStore;
 
 import :Evaluator;
-import :IndexedValue;
+import :Range;
 import :LocalDataStore;
-import :SequencedValue;
 import :SnapshotLimit;
 
 export namespace Beam {

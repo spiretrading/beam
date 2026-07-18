@@ -5,13 +5,14 @@ module;
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
-#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
 module Beam;
+
+#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 
 using namespace Beam;
 using namespace boost;

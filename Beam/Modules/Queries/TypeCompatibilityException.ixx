@@ -1,8 +1,9 @@
-#ifndef BEAM_TYPE_COMPATIBILITY_EXCEPTION_HPP
-#define BEAM_TYPE_COMPATIBILITY_EXCEPTION_HPP
-#include <stdexcept>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TypeCompatibilityException;
+
+export namespace Beam {
 
   /**
    * Indicates that an Expression was constructed with incompatible DataTypes.
@@ -19,4 +20,3 @@ namespace Beam {
     : TypeCompatibilityException("Incompatible types.") {}
 }
 
-#endif

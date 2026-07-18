@@ -114,7 +114,6 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/SocketIdentifier.hpp"
-#include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Parsers/Parse.hpp"
 #include "Beam/Pointers/LocalPointerPolicy.hpp"
 #include "Beam/Pointers/Out.hpp"
@@ -123,7 +122,6 @@
 #include "Beam/ServiceLocator/Authenticator.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Sql/Conversions.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
@@ -135,10 +133,7 @@
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/VirtualPtr.hpp"
-#include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/ExpressionVisitor.hpp"
-#include "Beam/Queries/FunctionExpression.hpp"
-#include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
@@ -170,7 +165,6 @@
 #include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
-#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/TimeService/Timer.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
@@ -181,7 +175,6 @@
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
-#include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -220,17 +213,24 @@
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "Beam/Queries/TypeCompatibilityException.hpp"
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/callable_traits.hpp>
 #include <boost/mp11.hpp>
 #include <boost/variant/variant.hpp>
 #include "Beam/IO/SuffixBuffer.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
-#include "Beam/ServiceLocator/SessionAuthenticator.hpp"
 #include "Beam/Utilities/Bcrypt.hpp"
 #include <boost/callable_traits/return_type.hpp>
 #include <typeindex>
+#include "Beam/Network/TcpSocketConnection.hpp"
+#include "Beam/Network/TcpSocketReader.hpp"
+#include "Beam/Network/TcpSocketWriter.hpp"
+#include "Beam/Serialization/ShuttleVariant.hpp"
+#include "Beam/Utilities/HashPosixTimeTypes.hpp"
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/functional/hash.hpp>
+#include <boost/system/system_error.hpp>
+#include <boost/variant.hpp>
 #ifdef DELETE
   #undef DELETE
 #endif

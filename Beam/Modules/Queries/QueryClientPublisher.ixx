@@ -4,8 +4,7 @@ module;
 export module Beam:QueryClientPublisher;
 
 import :Evaluator;
-import :IndexedValue;
-import :SequencedValue;
+import :Range;
 import :SequencedValuePublisher;
 import :SynchronizedMap;
 

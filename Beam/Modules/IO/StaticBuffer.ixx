@@ -3,6 +3,8 @@ module;
 
 export module Beam:StaticBuffer;
 
+import :Range;
+
 export namespace Beam {
 
   /**

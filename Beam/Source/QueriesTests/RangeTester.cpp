@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <boost/date_time/gregorian/gregorian.hpp>
-#include "Beam/Queries/Range.hpp"
 
 module Beam;
 

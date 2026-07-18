@@ -3,6 +3,8 @@ module;
 
 export module Beam:AuthenticatedServiceProtocolClientBuilder;
 
+import :SessionAuthenticator;
+
 export namespace Beam {
 
   /**

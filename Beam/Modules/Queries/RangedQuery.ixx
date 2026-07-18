@@ -3,6 +3,8 @@ module;
 
 export module Beam:RangedQuery;
 
+import :Range;
+
 export namespace Beam {
 
   /** Queries for data over a specified Range. */

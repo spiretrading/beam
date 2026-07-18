@@ -1,14 +1,9 @@
-#ifndef BEAM_LIVE_TIMER_HPP
-#define BEAM_LIVE_TIMER_HPP
-#include <boost/asio/steady_timer.hpp>
-#include <boost/system/system_error.hpp>
-#include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/ServiceThreadPool.hpp"
-#include "Beam/TimeService/Timer.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LiveTimer;
+
+export namespace Beam {
 
   /** Implements a Timer using a live timer. */
   class LiveTimer {
@@ -91,4 +86,3 @@ namespace Beam {
   }
 }
 
-#endif

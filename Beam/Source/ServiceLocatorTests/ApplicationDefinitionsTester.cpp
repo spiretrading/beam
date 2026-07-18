@@ -1,5 +1,11 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <yaml-cpp/yaml.h>
+#include "Beam/Utilities/YamlConfig.hpp"
+
+module Beam;
+
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 
 using namespace Beam;

@@ -3,6 +3,8 @@ module;
 
 export module Beam:GlobalVariableDeclarationExpression;
 
+import :ConstantExpression;
+
 export namespace Beam {
 
   /** Declares a global variable and evaluates an expression. */

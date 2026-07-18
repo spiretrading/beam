@@ -3,6 +3,7 @@ module;
 
 export module Beam:SocketChannelFactory;
 
+import :TcpSocketChannel;
 import :Uri;
 
 export namespace Beam {

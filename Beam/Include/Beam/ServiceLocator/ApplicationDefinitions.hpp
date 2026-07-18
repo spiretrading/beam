@@ -4,13 +4,8 @@
 #include <boost/lexical_cast.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 #include "Beam/Services/MessageProtocol.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"

@@ -5,13 +5,9 @@ module;
 #include <boost/functional/factory.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Network/TcpSocketChannel.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"

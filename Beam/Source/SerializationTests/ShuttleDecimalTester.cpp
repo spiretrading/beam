@@ -1,7 +1,10 @@
-#include <boost/multiprecision/cpp_dec_float.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleDecimal.hpp"
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace boost;
 using namespace boost::multiprecision;

@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/FilteredQueueWriter.hpp"
+#include <string>
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace Beam;
 
@@ -28,7 +31,7 @@ TEST_SUITE("FilteredQueueWriter") {
   TEST_CASE("break_on_destroy") {
     auto destination = std::make_shared<Queue<std::string>>();
     {
-      auto f = filter(destination, [] (auto) {
+      auto f = filter(ScopedQueueWriter<std::string>(destination), [] (auto) {
         return false;
       });
     }

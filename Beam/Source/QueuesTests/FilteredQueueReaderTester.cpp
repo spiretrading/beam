@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/FilteredQueueReader.hpp"
+#include <string>
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace Beam;
 
@@ -27,7 +30,7 @@ TEST_SUITE("FilteredQueueReader") {
   TEST_CASE("break_on_destroy") {
     auto source = std::make_shared<Queue<int>>();
     {
-      auto f = filter(source, [] (auto) {
+      auto f = filter(ScopedQueueReader<int>(source), [] (auto) {
         return false;
       });
     }

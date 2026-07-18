@@ -1,5 +1,8 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/AggregateQueueReader.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleUuid.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

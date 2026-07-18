@@ -1,7 +1,10 @@
-#include <array>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <array>
 #include "Beam/IO/BufferReader.hpp"
-#include "Beam/IO/QueuedReader.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,7 +1,10 @@
-#include <filesystem>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleFileSystemPath.hpp"
+#include <filesystem>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

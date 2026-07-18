@@ -1,7 +1,10 @@
-#include <boost/rational.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleRational.hpp"
+#include <boost/rational.hpp>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

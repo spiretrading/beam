@@ -1,7 +1,9 @@
-#include <array>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/IO/BufferWriter.hpp"
-#include "Beam/IO/SizeDeclarativeWriter.hpp"
+#include <array>
+
+module Beam;
 
 using namespace boost;
 using namespace boost::endian;

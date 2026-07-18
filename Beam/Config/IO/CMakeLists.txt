@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/IOTests/*.cpp)
 add_executable(IOTests ${source_files})
+target_link_libraries(IOTests Beam aspen)
 if(UNIX)
   target_link_libraries(IOTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

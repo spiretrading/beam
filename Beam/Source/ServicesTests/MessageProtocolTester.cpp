@@ -1,8 +1,9 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <string>
 #include "Beam/CodecsTests/ReverseDecoder.hpp"
 #include "Beam/CodecsTests/ReverseEncoder.hpp"
-#include "Beam/IO/BasicChannel.hpp"
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/NullConnection.hpp"
 #include "Beam/IO/PipedReader.hpp"
@@ -11,6 +12,8 @@
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/MessageProtocol.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

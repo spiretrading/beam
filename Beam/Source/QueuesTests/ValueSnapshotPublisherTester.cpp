@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/ValueSnapshotPublisher.hpp"
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace boost;
 using namespace Beam;

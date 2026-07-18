@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/QueueReaderPublisher.hpp"
 #include "Beam/Queues/SequencePublisher.hpp"
+
+module Beam;
 
 using namespace boost;
 using namespace Beam;

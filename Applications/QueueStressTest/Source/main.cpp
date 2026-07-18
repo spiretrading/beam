@@ -1,5 +1,8 @@
-#include "Beam/Queues/StateQueue.hpp"
+module;
+#include "Prelude.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
+
+module Beam;
 
 using namespace Beam;
 

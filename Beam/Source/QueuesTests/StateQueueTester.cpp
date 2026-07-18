@@ -1,7 +1,10 @@
-#include <atomic>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/StateQueue.hpp"
+#include <atomic>
 #include "Beam/Routines/RoutineHandler.hpp"
+
+module Beam;
 
 using namespace Beam;
 

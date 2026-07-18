@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <set>
 #include <string>
-#include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleSet.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

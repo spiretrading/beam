@@ -1,10 +1,11 @@
-#include <type_traits>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <type_traits>
 #include "Beam/IO/BufferReader.hpp"
-#include "Beam/IO/BufferWriter.hpp"
-#include "Beam/IO/NullChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/IO/WrapperChannel.hpp"
+
+module Beam;
 
 using namespace Beam;
 

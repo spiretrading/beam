@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <unordered_set>
-#include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleUnorderedSet.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

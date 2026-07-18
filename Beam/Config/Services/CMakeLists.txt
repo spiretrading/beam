@@ -1,6 +1,7 @@
 file(GLOB_RECURSE header_files ${BEAM_INCLUDE_PATH}/Beam/ServicesTests/*.hpp)
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ServicesTests/*.cpp)
 add_executable(ServicesTests ${header_files} ${source_files})
+target_link_libraries(ServicesTests Beam aspen)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 if(UNIX)
   target_link_libraries(ServicesTests

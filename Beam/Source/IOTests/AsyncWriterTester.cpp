@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/IO/AsyncWriter.hpp"
-#include "Beam/IO/BufferWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace Beam;
 

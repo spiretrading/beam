@@ -1,10 +1,13 @@
-#include <boost/endian.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <boost/endian.hpp>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
-#include "Beam/IO/SizeDeclarativeReader.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
+
+module Beam;
 
 using namespace boost;
 using namespace boost::endian;

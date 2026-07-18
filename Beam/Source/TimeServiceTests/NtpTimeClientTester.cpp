@@ -1,18 +1,20 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/IO/NullChannel.hpp"
 #include "Beam/IO/NullConnection.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

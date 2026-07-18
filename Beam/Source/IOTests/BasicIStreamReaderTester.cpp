@@ -1,7 +1,10 @@
-#include <sstream>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/IO/BasicIStreamReader.hpp"
+#include <sstream>
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace Beam;
 

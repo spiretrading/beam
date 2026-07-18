@@ -7,7 +7,6 @@ module;
 #include <cstring>
 #include <memory>
 #include <vector>
-#include "Beam/IO/NullConnection.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"

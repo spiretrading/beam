@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/IO/BufferOutputStream.hpp"
+#include <string>
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,13 +1,16 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/functional/factory.hpp>
-#include <doctest/doctest.h>
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/ServiceLocator/SessionAuthenticator.hpp"
-#include "Beam/ServicesTests/TestServlet.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "Beam/Utilities/ToString.hpp"
 #include <doctest/doctest.h>
 
 module Beam;

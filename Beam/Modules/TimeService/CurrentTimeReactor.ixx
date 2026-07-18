@@ -4,6 +4,9 @@ module;
 
 export module Beam:CurrentTimeReactor;
 
+import :LocalTimeClient;
+import :SharedCallable;
+
 import Aspen;
 
 export namespace Beam {

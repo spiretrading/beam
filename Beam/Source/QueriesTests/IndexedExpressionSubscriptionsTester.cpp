@@ -6,7 +6,6 @@ module;
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
@@ -22,17 +21,17 @@ using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
-  using TestServiceProtocolClient = ServiceProtocolClient<
+  using TestProtocolClient = ServiceProtocolClient<
     MessageProtocol<LocalClientChannel, BinarySender<SharedBuffer>,
       NullEncoder>, TriggerTimer>;
   using TestSubscriptions = IndexedExpressionSubscriptions<TestEntry, int,
-    std::string, TestServiceProtocolClient>;
+    std::string, TestProtocolClient>;
 
   struct SingleClientFixture {
     LocalServerConnection m_server;
     std::unique_ptr<LocalServerChannel> m_server_channel;
     RoutineHandler m_accept_routine;
-    TestServiceProtocolClient m_client;
+    TestProtocolClient m_client;
     TestSubscriptions m_subscriptions;
 
     SingleClientFixture()
@@ -145,14 +144,14 @@ TEST_SUITE("IndexedExpressionSubscriptions") {
     auto accept_routine = RoutineHandler(spawn([&] {
       server_channel1 = server1.accept();
     }));
-    auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    auto client1 = TestProtocolClient(init("test1", server1), init());
     accept_routine.wait();
     auto server2 = LocalServerConnection();
     auto server_channel2 = std::unique_ptr<LocalServerChannel>();
     accept_routine = RoutineHandler(spawn([&] {
       server_channel2 = server2.accept();
     }));
-    auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    auto client2 = TestProtocolClient(init("test2", server2), init());
     accept_routine.wait();
     auto subscriptions = TestSubscriptions();
     auto index = std::string("SharedIndex");
@@ -208,14 +207,14 @@ TEST_SUITE("IndexedExpressionSubscriptions") {
     auto accept_routine = RoutineHandler(spawn([&] {
       server_channel1 = server1.accept();
     }));
-    auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    auto client1 = TestProtocolClient(init("test1", server1), init());
     accept_routine.wait();
     auto server2 = LocalServerConnection();
     auto server_channel2 = std::unique_ptr<LocalServerChannel>();
     accept_routine = RoutineHandler(spawn([&] {
       server_channel2 = server2.accept();
     }));
-    auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    auto client2 = TestProtocolClient(init("test2", server2), init());
     accept_routine.wait();
     auto subscriptions = TestSubscriptions();
     auto index_a = std::string("IndexA");

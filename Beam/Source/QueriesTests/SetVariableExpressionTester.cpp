@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/SetVariableExpression.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 

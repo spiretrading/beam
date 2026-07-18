@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <unordered_map>
-#include <doctest/doctest.h>
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/Utilities/FixedString.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

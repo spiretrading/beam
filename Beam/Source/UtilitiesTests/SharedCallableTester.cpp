@@ -1,9 +1,12 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/SharedCallable.hpp"
+
+module Beam;
 
 using namespace Beam;
 

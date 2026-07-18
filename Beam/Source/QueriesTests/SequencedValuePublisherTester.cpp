@@ -1,8 +1,11 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <string>
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/SequencedValuePublisher.hpp"
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace Beam;
 

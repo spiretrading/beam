@@ -4,7 +4,6 @@ module;
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/CodecsTests/ReverseDecoder.hpp"
 
 module Beam;
 

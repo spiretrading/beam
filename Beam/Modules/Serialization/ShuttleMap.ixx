@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleMap;
 
+import :ShuttlePair;
+
 export namespace Beam {
   template<typename K, typename T, typename C, typename A>
   constexpr auto is_structure<std::map<K, T, C, A>> = false;

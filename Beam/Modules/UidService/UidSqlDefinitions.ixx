@@ -3,6 +3,7 @@ module;
 
 export module Beam:UidSqlDefinitions;
 
+
 export namespace Beam {
 
   /** Returns a row representing the next UID. */

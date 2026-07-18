@@ -3,6 +3,8 @@ module;
 
 export module Beam:Remote;
 
+import :PreferredConditionVariable;
+
 export namespace Beam {
 
   /**

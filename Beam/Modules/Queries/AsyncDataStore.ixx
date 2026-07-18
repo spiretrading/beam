@@ -3,6 +3,8 @@ module;
 
 export module Beam:AsyncDataStore;
 
+import :LocalDataStore;
+
 export namespace Beam {
 namespace Details {
   template<SnapshotLimit::Type D, typename C>

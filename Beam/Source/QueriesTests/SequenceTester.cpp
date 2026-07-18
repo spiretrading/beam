@@ -1,11 +1,13 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;
-using namespace boost;
 using namespace boost::gregorian;
 using namespace boost::posix_time;
 

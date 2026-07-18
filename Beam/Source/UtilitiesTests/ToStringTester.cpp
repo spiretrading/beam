@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <sstream>
 #include <string>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 

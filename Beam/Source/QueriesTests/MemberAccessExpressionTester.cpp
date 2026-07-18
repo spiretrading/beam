@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <string>
 #include "Beam/Queries/MemberAccessExpression.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 

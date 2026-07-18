@@ -7,9 +7,6 @@ module;
 #include <vector>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/LocalDataStore.hpp"
-#include "Beam/QueriesTests/TestDataStore.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
 

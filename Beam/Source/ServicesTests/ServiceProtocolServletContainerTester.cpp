@@ -1,5 +1,7 @@
-#include <boost/functional/factory.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <boost/functional/factory.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
@@ -11,8 +13,9 @@
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
-#include "Beam/ServicesTests/TestServlet.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

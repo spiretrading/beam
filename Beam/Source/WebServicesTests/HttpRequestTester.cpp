@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <boost/optional/optional_io.hpp>
-#include <Beam/Utilities/ToString.hpp>
 #include <doctest/doctest.h>
 
 module Beam;

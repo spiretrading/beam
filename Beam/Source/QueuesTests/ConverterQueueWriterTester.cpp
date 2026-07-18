@@ -1,7 +1,10 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/ConverterQueueWriter.hpp"
+#include <string>
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace Beam;
 

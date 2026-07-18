@@ -19,7 +19,7 @@ using namespace Beam::Tests;
 using namespace boost;
 
 namespace {
-  using TestServiceProtocolServer =
+  using TestProtocolServer =
     ServiceProtocolServer<LocalServerConnection*,
       BinarySender<SharedBuffer>, NullEncoder, std::shared_ptr<TriggerTimer>>;
   using ClientServiceProtocolClient = ServiceProtocolClient<MessageProtocol<
@@ -27,7 +27,7 @@ namespace {
 
   struct Fixture {
     LocalServerConnection m_server_connection;
-    TestServiceProtocolServer m_protocol_server;
+    TestProtocolServer m_protocol_server;
     ClientServiceProtocolClient m_client_protocol;
 
     Fixture()
@@ -41,14 +41,14 @@ namespace {
   };
 
   void on_void_request(RequestToken<
-      TestServiceProtocolServer::ServiceProtocolClient, VoidService>& request,
+      TestProtocolServer::ServiceProtocolClient, VoidService>& request,
       int n, bool* callback_triggered) {
     *callback_triggered = true;
     request.set();
   }
 
   void on_identity_request(RequestToken<
-      TestServiceProtocolServer::ServiceProtocolClient, IdentityService>&
+      TestProtocolServer::ServiceProtocolClient, IdentityService>&
         request, int n) {
     if(n == 0) {
       throw ServiceRequestException("Exception.");

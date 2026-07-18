@@ -10,7 +10,6 @@ module;
 #include "Beam/Queries/QueryResult.hpp"
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"

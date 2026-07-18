@@ -1,8 +1,8 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include <Viper/Sqlite3/Connection.hpp>
 #include "Beam/ServiceLocatorTests/ServiceLocatorDataStoreTestSuite.hpp"
+#include <Viper/Sqlite3/Connection.hpp>
 
 module Beam;
 

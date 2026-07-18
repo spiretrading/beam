@@ -3,6 +3,10 @@ module;
 
 export module Beam:MulticastSocketChannel;
 
+import :MulticastSocketConnection;
+import :MulticastSocketReader;
+import :MulticastSocketWriter;
+
 export namespace Beam {
 
   /** Implements the Channel interface using a multicast socket. */

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleUnorderedMap;
 
+import :ShuttlePair;
+
 export namespace Beam {
   template<typename K, typename T, typename H, typename P, typename A>
   constexpr auto is_structure<std::unordered_map<K, T, H, P, A>> = false;

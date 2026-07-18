@@ -1,11 +1,13 @@
-#include <boost/date_time/posix_time/ptime.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <boost/date_time/posix_time/ptime.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/QueriesTests/TestDataStore.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

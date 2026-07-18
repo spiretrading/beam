@@ -3,6 +3,10 @@ module;
 
 export module Beam:NullChannel;
 
+import :NullConnection;
+import :NullReader;
+import :NullWriter;
+
 export namespace Beam {
 
   /** Composes a NullConnection, NullReader and NullWriter into a Channel. */

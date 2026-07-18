@@ -4,8 +4,6 @@ module;
 #include <vector>
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/LocalDataStore.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 
 module Beam;
 

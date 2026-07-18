@@ -3,6 +3,7 @@ module;
 
 export module Beam:SecureSocketChannelFactory;
 
+import :SecureSocketChannel;
 import :Uri;
 
 export namespace Beam {

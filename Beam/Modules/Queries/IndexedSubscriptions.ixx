@@ -3,6 +3,8 @@ module;
 
 export module Beam:IndexedSubscriptions;
 
+import :Subscriptions;
+
 export namespace Beam {
 
   /**

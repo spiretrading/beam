@@ -3,6 +3,8 @@ module;
 
 export module Beam:QueryClientPublisher;
 
+import :SequencedValuePublisher;
+
 export namespace Beam {
 
   /**

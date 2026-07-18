@@ -1,8 +1,11 @@
-#include <atomic>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Serialization/ShuttleAtomic.hpp"
+#include <atomic>
 #include "Beam/SerializationTests/ShuttleTestTypes.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

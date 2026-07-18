@@ -1,6 +1,5 @@
 module;
 #include "Prelude.hpp"
-#include "Beam/Utilities/ToString.hpp"
 #include <doctest/doctest.h>
 
 module Beam;

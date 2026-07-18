@@ -1,9 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <algorithm>
 #include <future>
 #include <memory>
 #include <thread>
 #include <vector>
-#include <doctest/doctest.h>
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalConnection.hpp"
 #include "Beam/IO/LocalServerChannel.hpp"
@@ -11,7 +13,8 @@
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,6 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocatorTests/ServiceLocatorDataStoreTestSuite.hpp"
+#include "Beam/ServiceLocator/LocalServiceLocatorDataStore.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

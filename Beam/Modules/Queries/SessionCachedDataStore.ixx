@@ -3,6 +3,8 @@ module;
 
 export module Beam:SessionCachedDataStore;
 
+import :SessionCachedDataStoreEntry;
+
 export namespace Beam {
 
   /**

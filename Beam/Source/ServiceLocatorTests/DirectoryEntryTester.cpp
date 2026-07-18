@@ -1,8 +1,11 @@
-#include <unordered_set>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <unordered_set>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

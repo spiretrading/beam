@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/ServicesTests/ServiceClientFixture.hpp"
 #include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::ServiceLocatorServices;

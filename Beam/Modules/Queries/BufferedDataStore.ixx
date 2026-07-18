@@ -3,6 +3,8 @@ module;
 
 export module Beam:BufferedDataStore;
 
+import :LocalDataStore;
+
 export namespace Beam {
 
   /**

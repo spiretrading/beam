@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/JsonTests/*.cpp)
 add_executable(JsonTests ${source_files})
+target_link_libraries(JsonTests Beam aspen)
 if(UNIX)
   target_link_libraries(JsonTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

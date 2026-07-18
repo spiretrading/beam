@@ -1,6 +1,9 @@
-#include <future>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/ServiceLocatorTests/TestServiceLocatorClient.hpp"
+#include <future>
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

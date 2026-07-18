@@ -1,8 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Sql/Conversions.hpp"
+
+module Beam;
 
 using namespace Beam;
-using namespace boost;
 using namespace boost::posix_time;
 using namespace Viper;
 

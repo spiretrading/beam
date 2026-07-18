@@ -4,7 +4,6 @@ module;
 #include <vector>
 #include <Viper/Sqlite3/Sqlite3.hpp>
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/QueriesTests/TestEntry.hpp"
 
 module Beam;
 

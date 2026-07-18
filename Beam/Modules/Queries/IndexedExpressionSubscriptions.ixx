@@ -3,6 +3,9 @@ module;
 
 export module Beam:IndexedExpressionSubscriptions;
 
+import :ExpressionSubscriptions;
+import :Subscriptions;
+
 export namespace Beam {
 
   /**

@@ -1,9 +1,11 @@
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <string>
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/Queries/Value.hpp"
-#include "Beam/QueriesTests/ValueShuttleTests.hpp"
-#include "Beam/Utilities/ToString.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

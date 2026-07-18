@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
-#include "Beam/CodecsTests/ReverseEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+
+module Beam;
 
 using namespace boost;
 using namespace boost::endian;

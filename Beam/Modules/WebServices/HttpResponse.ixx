@@ -3,6 +3,7 @@ module;
 
 export module Beam:HttpResponse;
 
+import :BufferOutputStream;
 import :Cookie;
 import :HttpHeader;
 import :HttpStatusCode;

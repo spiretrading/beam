@@ -4,6 +4,10 @@ module;
 
 export module Beam:TimerReactor;
 
+import :MultiQueueWriter;
+import :QueueReactor;
+import :SharedCallable;
+
 import Aspen;
 import :QueueReactor;
 

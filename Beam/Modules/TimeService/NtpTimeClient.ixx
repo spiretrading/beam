@@ -3,6 +3,8 @@ module;
 
 export module Beam:NtpTimeClient;
 
+import :UdpSocketChannel;
+
 export namespace Beam {
 
   /** The size of an NTP packet. */

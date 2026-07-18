@@ -3,6 +3,7 @@ module;
 
 export module Beam:SqlDataStore;
 
+
 export namespace Beam {
 
   /** Specifies whether to create the table on connection. */

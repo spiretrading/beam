@@ -4,6 +4,10 @@ module;
 
 export module Beam:AlarmReactor;
 
+import :MultiQueueWriter;
+import :QueueReactor;
+import :SharedCallable;
+
 import Aspen;
 import :QueueReactor;
 

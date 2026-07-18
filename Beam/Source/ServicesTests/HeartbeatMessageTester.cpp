@@ -17,7 +17,7 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 namespace {
-  using TestServiceProtocolClient = ServiceProtocolClient<
+  using TestProtocolClient = ServiceProtocolClient<
     MessageProtocol<std::unique_ptr<NullChannel>, BinarySender<SharedBuffer>,
       NullEncoder>, TriggerTimer>;
 }
@@ -25,15 +25,15 @@ namespace {
 TEST_SUITE("HeartbeatMessage") {
   TEST_CASE("emit") {
     auto client =
-      TestServiceProtocolClient(std::make_unique<NullChannel>(), init());
-    auto message = HeartbeatMessage<TestServiceProtocolClient>();
+      TestProtocolClient(std::make_unique<NullChannel>(), init());
+    auto message = HeartbeatMessage<TestProtocolClient>();
     REQUIRE_NOTHROW(message.emit(nullptr, Ref(client)));
   }
 
   TEST_CASE("stream") {
     auto client =
-      TestServiceProtocolClient(std::make_unique<NullChannel>(), init());
-    auto message = HeartbeatMessage<TestServiceProtocolClient>();
+      TestProtocolClient(std::make_unique<NullChannel>(), init());
+    auto message = HeartbeatMessage<TestProtocolClient>();
     test_round_trip_shuttle(message, [&] (auto&& received) {
     });
   }

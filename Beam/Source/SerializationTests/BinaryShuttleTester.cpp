@@ -1,8 +1,12 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include "Beam/SerializationTests/ShuttleTestSuite.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/SerializationTests/ShuttleTestSuite.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

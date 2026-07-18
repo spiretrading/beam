@@ -3,6 +3,8 @@ module;
 
 export module Beam:Tracer;
 
+import :ToString;
+
 export namespace Beam {
 
   /** A timestamped logging utility that allows tracing through a code path. */

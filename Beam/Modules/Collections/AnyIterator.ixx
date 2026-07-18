@@ -1,13 +1,9 @@
-#ifndef BEAM_ANY_ITERATOR_HPP
-#define BEAM_ANY_ITERATOR_HPP
-#include <iterator>
-#include <memory>
-#include <type_traits>
-#include <boost/iterator/iterator_facade.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/Utilities/NotSupportedException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:AnyIterator;
+
+export namespace Beam {
 namespace Details {
   template<typename T>
   void decrement(T& iterator, std::bidirectional_iterator_tag) {
@@ -235,4 +231,3 @@ namespace Details {
   }
 }
 
-#endif

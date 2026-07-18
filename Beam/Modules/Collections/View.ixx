@@ -3,6 +3,9 @@ module;
 
 export module Beam:View;
 
+import :AnyIterator;
+import :SharedIterator;
+
 export namespace Beam {
 
   /**

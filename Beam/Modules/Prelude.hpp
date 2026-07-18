@@ -165,7 +165,6 @@
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
@@ -195,11 +194,8 @@
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
-#include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/SnapshotLimit.hpp"
-#include "Beam/Queries/SnapshotLimitedQuery.hpp"
 #include "Beam/Queues/QueueReader.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Serialization/ShuttleArray.hpp"
@@ -240,17 +236,15 @@
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Services/NullSession.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
-#include "Beam/Collections/AnyIterator.hpp"
-#include "Beam/Collections/SharedIterator.hpp"
-#include "Beam/Queries/IndexedQuery.hpp"
-#include "Beam/Queries/InterruptableQuery.hpp"
-#include "Beam/Queues/WeakQueueWriter.hpp"
 #include "Beam/Serialization/ShuttleOptional.hpp"
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/tuple/tuple.hpp>
+#include "Beam/Queries/TypeCompatibilityException.hpp"
+#include "Beam/Utilities/NotSupportedException.hpp"
+#include <boost/iterator/iterator_facade.hpp>
 #ifdef DELETE
   #undef DELETE
 #endif

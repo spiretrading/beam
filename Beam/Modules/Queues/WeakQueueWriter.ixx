@@ -1,14 +1,9 @@
-#ifndef BEAM_WEAK_QUEUE_WRITER_HPP
-#define BEAM_WEAK_QUEUE_WRITER_HPP
-#include <memory>
-#include <mutex>
-#include <utility>
-#include <boost/throw_exception.hpp>
-#include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:WeakQueueWriter;
+
+export namespace Beam {
 
   /**
    * Wraps a shared_ptr<QueueWriter<T>> using a weak pointer.
@@ -101,4 +96,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 

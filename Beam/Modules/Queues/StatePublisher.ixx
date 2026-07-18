@@ -3,6 +3,8 @@ module;
 
 export module Beam:StatePublisher;
 
+import :SnapshotPublisher;
+
 export namespace Beam {
 
   /**

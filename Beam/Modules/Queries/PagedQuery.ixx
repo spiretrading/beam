@@ -3,6 +3,10 @@ module;
 
 export module Beam:PagedQuery;
 
+import :FilteredQuery;
+import :IndexedQuery;
+import :SnapshotLimitedQuery;
+
 export namespace Beam {
 
   /**

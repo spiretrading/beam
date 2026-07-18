@@ -1,10 +1,9 @@
-#ifndef BEAM_SNAPSHOT_LIMITED_QUERY_HPP
-#define BEAM_SNAPSHOT_LIMITED_QUERY_HPP
-#include <ostream>
-#include "Beam/Queries/SnapshotLimit.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SnapshotLimitedQuery;
+
+export namespace Beam {
 
   /** Queries for a snapshot with a specified limit. */
   class SnapshotLimitedQuery {
@@ -72,4 +71,3 @@ namespace Beam {
   };
 }
 
-#endif

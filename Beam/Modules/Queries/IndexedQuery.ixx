@@ -1,9 +1,9 @@
-#ifndef BEAM_INDEXED_QUERY_HPP
-#define BEAM_INDEXED_QUERY_HPP
-#include <ostream>
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:IndexedQuery;
+
+export namespace Beam {
 
   /**
    * Queries over a value used as an index.
@@ -69,4 +69,3 @@ namespace Beam {
   };
 }
 
-#endif

@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/WeakQueueWriter.hpp"
+
+module Beam;
 
 using namespace Beam;
 

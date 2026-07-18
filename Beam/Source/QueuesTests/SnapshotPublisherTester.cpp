@@ -1,10 +1,13 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <boost/optional/optional.hpp>
 #include <boost/optional/optional_io.hpp>
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/Queue.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

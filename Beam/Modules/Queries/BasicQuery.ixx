@@ -3,6 +3,12 @@ module;
 
 export module Beam:BasicQuery;
 
+import :FilteredQuery;
+import :IndexedQuery;
+import :InterruptableQuery;
+import :RangedQuery;
+import :SnapshotLimitedQuery;
+
 export namespace Beam {
 
   /**

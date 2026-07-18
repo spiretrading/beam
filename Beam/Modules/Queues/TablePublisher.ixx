@@ -4,6 +4,7 @@ module;
 export module Beam:TablePublisher;
 
 import :KeyValuePair;
+import :SnapshotPublisher;
 
 export namespace Beam {
 

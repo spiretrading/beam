@@ -1,16 +1,9 @@
-#ifndef BEAM_FILTERED_QUERY_HPP
-#define BEAM_FILTERED_QUERY_HPP
-#include <ostream>
-#include <boost/throw_exception.hpp>
-#include "Beam/Queries/ConstantExpression.hpp"
-#include "Beam/Queries/Evaluator.hpp"
-#include "Beam/Queries/Expression.hpp"
-#include "Beam/Queries/TypeCompatibilityException.hpp"
-#include "Beam/Queries/Value.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/SerializationException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:FilteredQuery;
+
+export namespace Beam {
 
   /** Filters what values should be returned in a Query. */
   class FilteredQuery {
@@ -96,4 +89,3 @@ namespace Beam {
   };
 }
 
-#endif

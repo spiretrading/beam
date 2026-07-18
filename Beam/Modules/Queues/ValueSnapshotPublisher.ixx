@@ -3,6 +3,8 @@ module;
 
 export module Beam:ValueSnapshotPublisher;
 
+import :SnapshotPublisher;
+
 export namespace Beam {
 
   /**

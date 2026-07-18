@@ -1,11 +1,9 @@
-#ifndef BEAM_RANGED_QUERY_HPP
-#define BEAM_RANGED_QUERY_HPP
-#include <ostream>
-#include <utility>
-#include "Beam/Queries/Range.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:RangedQuery;
+
+export namespace Beam {
 
   /** Queries for data over a specified Range. */
   class RangedQuery {
@@ -71,4 +69,3 @@ namespace Beam {
   };
 }
 
-#endif

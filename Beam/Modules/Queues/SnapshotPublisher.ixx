@@ -1,12 +1,9 @@
-#ifndef BEAM_SNAPSHOT_PUBLISHER_HPP
-#define BEAM_SNAPSHOT_PUBLISHER_HPP
-#include <concepts>
-#include <type_traits>
-#include <boost/optional/optional.hpp>
-#include "Beam/Pointers/Out.hpp"
-#include "Beam/Queues/Publisher.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SnapshotPublisher;
+
+export namespace Beam {
 
   /**
    * Interface for a Publisher that has a snapshot.
@@ -94,4 +91,3 @@ namespace Beam {
   }
 }
 
-#endif

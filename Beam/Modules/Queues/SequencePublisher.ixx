@@ -3,6 +3,8 @@ module;
 
 export module Beam:SequencePublisher;
 
+import :SnapshotPublisher;
+
 export namespace Beam {
 
   /**

@@ -1,10 +1,9 @@
-#ifndef BEAM_INTERRUPTABLE_QUERY_HPP
-#define BEAM_INTERRUPTABLE_QUERY_HPP
-#include <ostream>
-#include "Beam/Queries/InterruptionPolicy.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:InterruptableQuery;
+
+export namespace Beam {
 
   /** A Query with a policy for recovering from an interruption or failure. */
   class InterruptableQuery {
@@ -66,4 +65,3 @@ namespace Beam {
   };
 }
 
-#endif

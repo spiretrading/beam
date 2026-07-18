@@ -3,6 +3,7 @@ module;
 
 export module Beam:IndexedSubscriptions;
 
+import :IndexedQuery;
 import :IndexedValue;
 import :QueryResult;
 import :Subscriptions;

@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <memory>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Collections/SharedIterator.hpp"
+
+module Beam;
 
 using namespace Beam;
 

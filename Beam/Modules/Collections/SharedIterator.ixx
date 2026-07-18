@@ -1,8 +1,9 @@
-#ifndef BEAM_SHARED_ITERATOR_HPP
-#define BEAM_SHARED_ITERATOR_HPP
-#include <memory>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SharedIterator;
+
+export namespace Beam {
 
   /**
    * An iterator that shares ownership of its collection.
@@ -158,4 +159,3 @@ namespace Beam {
   }
 }
 
-#endif

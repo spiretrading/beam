@@ -6,7 +6,6 @@ module;
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"

@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <boost/date_time.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 

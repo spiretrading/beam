@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <future>
 #include <string>
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include <doctest/doctest.h>
 

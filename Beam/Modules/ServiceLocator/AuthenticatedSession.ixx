@@ -1,11 +1,9 @@
-#ifndef BEAM_AUTHENTICATED_SESSION_HPP
-#define BEAM_AUTHENTICATED_SESSION_HPP
-#include <cassert>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/ServiceLocator/DirectoryEntry.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:AuthenticatedSession;
+
+export namespace Beam {
 
   /** Stores authentication info for a ServiceProtocolServlet Session. */
   class AuthenticatedSession {
@@ -90,4 +88,3 @@ namespace Beam {
   }
 }
 
-#endif

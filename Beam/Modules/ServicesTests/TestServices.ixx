@@ -4,7 +4,9 @@ module;
 export module Beam:TestServices;
 
 import :AuthenticationServletAdapter;
+import :LocalClientChannel;
 import :LocalServerConnection;
+import :ServiceProtocolServletContainer;
 import :TriggerTimer;
 
 export namespace Beam::Tests {

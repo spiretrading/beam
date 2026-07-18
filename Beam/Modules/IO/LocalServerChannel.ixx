@@ -1,13 +1,9 @@
-#ifndef BEAM_LOCAL_SERVER_CHANNEL_HPP
-#define BEAM_LOCAL_SERVER_CHANNEL_HPP
-#include "Beam/IO/Channel.hpp"
-#include "Beam/IO/LocalConnection.hpp"
-#include "Beam/IO/NamedChannelIdentifier.hpp"
-#include "Beam/IO/PipedReader.hpp"
-#include "Beam/IO/PipedWriter.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalServerChannel;
+
+export namespace Beam {
 
   /** Implements the server side of a local Channel. */
   class LocalServerChannel {
@@ -68,4 +64,3 @@ namespace Beam {
   }
 }
 
-#endif

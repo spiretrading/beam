@@ -5,7 +5,6 @@ module;
 #include <string>
 #include <boost/optional/optional_io.hpp>
 #include <zlib.h>
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include <doctest/doctest.h>
 

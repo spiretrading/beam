@@ -3,6 +3,8 @@ module;
 
 export module Beam:AuthenticationServletAdapter;
 
+import :AuthenticatedSession;
+
 export namespace Beam {
 
   /**

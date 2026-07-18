@@ -8,7 +8,6 @@ module;
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"

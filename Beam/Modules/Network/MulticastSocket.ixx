@@ -4,6 +4,8 @@ module;
 export module Beam:MulticastSocket;
 
 import :MulticastSocketOptions;
+import :UdpSocketReceiver;
+import :UdpSocketSender;
 
 export namespace Beam {
 

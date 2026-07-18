@@ -4,13 +4,11 @@ module;
 #include <boost/functional/factory.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 
 module Beam;
 

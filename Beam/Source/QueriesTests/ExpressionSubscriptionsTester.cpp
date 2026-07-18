@@ -3,13 +3,13 @@ module;
 #include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 
 module Beam;
+#pragma warning(disable: 4355)
 
 using namespace Beam;
 using namespace Beam::Tests;

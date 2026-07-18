@@ -136,7 +136,6 @@
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 #include "Beam/Utilities/ReportException.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
@@ -188,7 +187,6 @@
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Mutex.hpp"
@@ -205,8 +203,6 @@
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
-#include "Beam/Network/UdpSocketSender.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/FilteredQuery.hpp"
 #include "Beam/Queries/InterruptionPolicy.hpp"
@@ -238,7 +234,6 @@
 #include "Beam/Threading/TaskRunner.hpp"
 #include "Beam/Utilities/HashTuple.hpp"
 #include <Viper/Expressions/Expressions.hpp>
-#include "Beam/IO/LocalServerChannel.hpp"
 #include "Beam/Json/JsonParser.hpp"
 #include "Beam/Network/TcpSocketOptions.hpp"
 #include "Beam/Network/UdpSocketOptions.hpp"
@@ -246,9 +241,14 @@
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
-#include "Beam/ServiceLocator/AuthenticatedSession.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
+#include "Beam/IO/LocalConnection.hpp"
+#include "Beam/Network/DatagramPacket.hpp"
+#include "Beam/Utilities/BeamWorkaround.hpp"
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <cassert>
 #ifdef DELETE
   #undef DELETE
 #endif

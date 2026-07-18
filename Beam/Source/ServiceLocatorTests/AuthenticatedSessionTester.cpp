@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <thread>
 #include <vector>
-#include "Beam/ServiceLocator/AuthenticatedSession.hpp"
+
+module Beam;
 
 using namespace Beam;
 

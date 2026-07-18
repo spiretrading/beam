@@ -3,6 +3,9 @@ module;
 
 export module Beam:LocalServerConnection;
 
+import :LocalClientChannel;
+import :LocalServerChannel;
+
 export namespace Beam {
 namespace Details {
   void connect(LocalServerConnection&, LocalClientChannel&, const std::string&);

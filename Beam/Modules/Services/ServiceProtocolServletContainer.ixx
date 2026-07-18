@@ -1,16 +1,9 @@
-#ifndef BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_HPP
-#define BEAM_SERVICE_PROTOCOL_SERVLET_CONTAINER_HPP
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/ServerConnection.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPointerPolicy.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Serialization/Sender.hpp"
-#include "Beam/Services/ServiceProtocolServer.hpp"
-#include "Beam/Services/ServiceProtocolServlet.hpp"
-#include "Beam/Utilities/BeamWorkaround.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceProtocolServletContainer;
+
+export namespace Beam {
 
   /**
    * Executes and manages a ServiceProtocolServlet.
@@ -138,4 +131,3 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
   }
 }
 
-#endif

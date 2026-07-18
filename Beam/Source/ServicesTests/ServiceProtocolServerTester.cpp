@@ -5,7 +5,6 @@ module;
 #include <boost/optional.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"

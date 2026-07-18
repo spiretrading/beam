@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -13,9 +12,9 @@ module;
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
 
-#pragma warning(disable: 4355)
 
 module Beam;
+#pragma warning(disable: 4355)
 
 using namespace Beam;
 using namespace Beam::Tests;

@@ -1,18 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_RECEIVER_HPP
-#define BEAM_UDP_SOCKET_RECEIVER_HPP
-#include <boost/asio/ip/udp.hpp>
-#include <boost/asio/steady_timer.hpp>
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/Network/DatagramPacket.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketOptions.hpp"
-#include "Beam/Pointers/Out.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketReceiver;
+
+export namespace Beam {
 
   /** Receives UDP datagrams. */
   class UdpSocketReceiver {
@@ -167,4 +158,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -1,16 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_SENDER_HPP
-#define BEAM_UDP_SOCKET_SENDER_HPP
-#include <boost/asio/ip/address.hpp>
-#include <boost/asio/ip/udp.hpp>
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/Network/DatagramPacket.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketOptions.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/TaskRunner.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocketSender;
+
+export namespace Beam {
 
   /** Sends datagrams via a UDP socket. */
   class UdpSocketSender {
@@ -71,4 +64,3 @@ namespace Beam {
   }
 }
 
-#endif

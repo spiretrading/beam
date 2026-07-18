@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceLocatorSession;
 
+import :AuthenticatedSession;
+
 export namespace Beam {
 
   /** Stores session info for a ServiceLocatorServlet Channel. */

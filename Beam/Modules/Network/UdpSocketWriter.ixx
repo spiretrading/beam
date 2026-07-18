@@ -4,6 +4,7 @@ module;
 export module Beam:UdpSocketWriter;
 
 import :UdpSocket;
+import :UdpSocketSender;
 
 export namespace Beam {
 

@@ -3,6 +3,9 @@ module;
 
 export module Beam:UdpSocket;
 
+import :UdpSocketReceiver;
+import :UdpSocketSender;
+
 export namespace Beam {
 
   /** Implements a UDP socket. */

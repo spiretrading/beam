@@ -1,13 +1,9 @@
-#ifndef BEAM_LOCAL_CLIENT_CHANNEL_HPP
-#define BEAM_LOCAL_CLIENT_CHANNEL_HPP
-#include <boost/optional/optional.hpp>
-#include "Beam/IO/Channel.hpp"
-#include "Beam/IO/LocalConnection.hpp"
-#include "Beam/IO/NamedChannelIdentifier.hpp"
-#include "Beam/IO/PipedReader.hpp"
-#include "Beam/IO/PipedWriter.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalClientChannel;
+
+export namespace Beam {
   class LocalServerConnection;
   class LocalClientChannel;
 
@@ -71,4 +67,3 @@ namespace Details {
   }
 }
 
-#endif

@@ -100,7 +100,6 @@
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Collections/SynchronizedList.hpp"
-#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/Channel.hpp"

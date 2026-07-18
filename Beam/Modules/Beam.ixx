@@ -73,6 +73,7 @@ export import :InvalidHttpRequestException;
 export import :HttpRequestParser;
 export import :HttpUpgradeSlot;
 export import :JsonSender;
+export import :SynchronizedSet;
 export import :WebSocket;
 export import :WebSocketConnection;
 export import :WebSocketReader;

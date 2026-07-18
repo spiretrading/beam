@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <doctest/doctest.h>
-#include "Beam/Collections/SynchronizedSet.hpp"
+
+module Beam;
 
 using namespace Beam;
 

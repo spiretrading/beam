@@ -1,14 +1,9 @@
-#ifndef BEAM_SYNCHRONIZED_SET_HPP
-#define BEAM_SYNCHRONIZED_SET_HPP
-#include <concepts>
-#include <unordered_set>
-#include <utility>
-#include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SynchronizedSet;
+
+export namespace Beam {
 
   /**
    * Wraps a set container allowing for atomic operations to be performed on it.
@@ -277,4 +272,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -9,6 +9,7 @@ import :HttpResponse;
 import :HttpUpgradeSlot;
 import :JsonSender;
 import :WebSocketChannel;
+import :SynchronizedSet;
 
 export namespace Beam {
 namespace Details {

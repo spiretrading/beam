@@ -9,6 +9,7 @@ import :NullWebSessionDataStore;
 import :WebSession;
 import :WebSessionDataStore;
 import :SynchronizedMap;
+import :SynchronizedSet;
 
 export namespace Beam {
 

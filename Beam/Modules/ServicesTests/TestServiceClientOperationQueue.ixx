@@ -4,6 +4,7 @@ module;
 export module Beam:TestServiceClientOperationQueue;
 
 import :ServiceResult;
+import :SynchronizedSet;
 
 export namespace Beam::Tests {
 

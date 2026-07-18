@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceResult;
 
+import :Value;
+
 export namespace Beam::Tests {
 
   /** Abstract base for capturing the result of a service invocation. */

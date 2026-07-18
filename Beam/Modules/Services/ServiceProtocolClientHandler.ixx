@@ -1,19 +1,9 @@
-#ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
-#define BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
-#include <utility>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Routines/RoutineHandler.hpp"
-#include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Services/ServiceSlots.hpp"
-#include "Beam/Threading/LockRelease.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceProtocolClientHandler;
+
+export namespace Beam {
 
   /**
    * Instantiates ServiceProtocolClients for a service.
@@ -204,4 +194,3 @@ namespace Beam {
   }
 }
 
-#endif

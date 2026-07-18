@@ -4,6 +4,7 @@ module;
 export module Beam:Email;
 
 import :EmailAddress;
+import :Value;
 
 export namespace Beam {
 namespace Details {

@@ -3,6 +3,7 @@ module;
 
 export module Beam:Range;
 
+import :Value;
 
 export namespace Beam {
 

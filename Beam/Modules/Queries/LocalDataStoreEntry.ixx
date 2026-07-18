@@ -4,8 +4,11 @@ module;
 export module Beam:LocalDataStoreEntry;
 
 import :Evaluator;
+import :Expression;
 import :Range;
 import :SnapshotLimit;
+import :Value;
+import :SynchronizedList;
 
 export namespace Beam {
 

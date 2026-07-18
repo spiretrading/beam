@@ -3,6 +3,8 @@ module;
 
 export module Beam:SharedIterator;
 
+import :Value;
+
 export namespace Beam {
 
   /**

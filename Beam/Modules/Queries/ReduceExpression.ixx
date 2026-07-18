@@ -4,7 +4,10 @@ module;
 export module Beam:ReduceExpression;
 
 import :ConstantExpression;
+import :Expression;
+import :ExpressionVisitor;
 import :TypeCompatibilityException;
+import :Value;
 
 export namespace Beam {
 

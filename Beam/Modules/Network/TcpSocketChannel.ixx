@@ -3,6 +3,11 @@ module;
 
 export module Beam:TcpSocketChannel;
 
+import :ServiceThreadPool;
+import :TcpSocketConnection;
+import :TcpSocketReader;
+import :TcpSocketWriter;
+
 export namespace Beam {
 
   /** Implements the Channel interface using a TCP socket. */

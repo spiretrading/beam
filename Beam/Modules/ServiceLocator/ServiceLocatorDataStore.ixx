@@ -3,7 +3,9 @@ module;
 
 export module Beam:ServiceLocatorDataStore;
 
+import :ServiceLocatorClient;
 import :ServiceLocatorDataStoreException;
+import :SessionEncryption;
 
 export namespace Beam {
 

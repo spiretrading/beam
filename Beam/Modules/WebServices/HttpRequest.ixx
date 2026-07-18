@@ -8,6 +8,7 @@ import :HttpHeader;
 import :HttpMethod;
 import :HttpVersion;
 import :Uri;
+import :Value;
 
 export namespace Beam {
 

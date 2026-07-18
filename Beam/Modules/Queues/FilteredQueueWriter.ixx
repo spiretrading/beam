@@ -3,6 +3,8 @@ module;
 
 export module Beam:FilteredQueueWriter;
 
+import :Value;
+
 export namespace Beam {
 
   /**

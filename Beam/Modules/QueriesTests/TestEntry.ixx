@@ -5,9 +5,11 @@ export module Beam:TestEntry;
 
 import :BasicQuery;
 import :Evaluator;
+import :Expression;
 import :MemberAccessExpression;
 import :Range;
 import :SnapshotLimit;
+import :Value;
 
 namespace Beam::Tests {
 

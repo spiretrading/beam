@@ -3,6 +3,8 @@ module;
 
 export module Beam:TypeCompatibilityException;
 
+import :Expression;
+
 export namespace Beam {
 
   /**

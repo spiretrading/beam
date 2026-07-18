@@ -3,6 +3,8 @@ module;
 
 export module Beam:EvaluatorNode;
 
+import :Expression;
+
 export namespace Beam {
 
   /** Base class for an EvaluatorNode. */

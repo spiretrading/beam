@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceUidClient;
 
+import :ServiceProtocolClientHandler;
 import :UidServices;
 
 export namespace Beam {

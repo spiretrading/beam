@@ -5,8 +5,10 @@ export module Beam:SqlDataStore;
 
 import :BasicQuery;
 import :DatabaseConnectionPool;
+import :Expression;
 import :Range;
 import :SqlTranslator;
+import :Value;
 
 export namespace Beam {
 

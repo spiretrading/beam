@@ -3,6 +3,8 @@ module;
 
 export module Beam:ToString;
 
+import :Value;
+
 export namespace Beam {
 
   /** Concept satisfied by types that support operator<< with std::ostream. */

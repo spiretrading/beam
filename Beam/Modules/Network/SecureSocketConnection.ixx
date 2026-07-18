@@ -4,6 +4,7 @@ module;
 export module Beam:SecureSocketConnection;
 
 import :SecureSocketOptions;
+import :Value;
 
 export namespace Beam {
 

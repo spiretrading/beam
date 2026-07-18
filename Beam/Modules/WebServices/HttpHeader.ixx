@@ -3,6 +3,8 @@ module;
 
 export module Beam:HttpHeader;
 
+import :Value;
+
 export namespace Beam {
 
   /** Stores an HTTP header. */

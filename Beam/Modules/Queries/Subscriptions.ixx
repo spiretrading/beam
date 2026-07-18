@@ -7,6 +7,8 @@ import :Evaluator;
 import :QueryResult;
 import :Range;
 import :SynchronizedMap;
+import :Value;
+import :SynchronizedList;
 
 export namespace Beam {
 

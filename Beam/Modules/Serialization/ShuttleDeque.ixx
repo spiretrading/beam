@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleDeque;
 
+import :Value;
+
 export namespace Beam {
   template<typename T, typename A>
   constexpr auto is_structure<std::deque<T, A>> = false;

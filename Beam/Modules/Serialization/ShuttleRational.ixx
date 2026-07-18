@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleRational;
 
+import :Value;
+
 export namespace Beam {
   template<typename T>
   struct Send<boost::rational<T>> {

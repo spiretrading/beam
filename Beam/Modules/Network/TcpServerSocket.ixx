@@ -3,7 +3,9 @@ module;
 
 export module Beam:TcpServerSocket;
 
+import :ServiceThreadPool;
 import :TcpSocketChannel;
+import :Value;
 
 export namespace Beam {
 

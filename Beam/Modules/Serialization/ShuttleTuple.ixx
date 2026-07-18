@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleTuple;
 
+import :Value;
+
 export namespace Beam {
   template<typename... Args>
   constexpr auto is_structure<std::tuple<Args...>> = false;

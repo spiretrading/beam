@@ -1,5 +1,7 @@
 module;
 #include "Prelude.hpp"
+#include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <iostream>
 #include <boost/functional/factory.hpp>
@@ -8,11 +10,10 @@ module;
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
 module Beam;
+#include "Beam/Utilities/YamlConfig.hpp"
 
 using namespace Beam;
 using namespace boost;

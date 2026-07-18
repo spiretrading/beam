@@ -3,6 +3,8 @@ module;
 
 export module Beam:IndexedQuery;
 
+import :Value;
+
 export namespace Beam {
 
   /**

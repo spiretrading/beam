@@ -6,11 +6,14 @@ export module Beam:SqlTranslator;
 import :AndExpression;
 import :ConstantExpression;
 import :Evaluator;
+import :Expression;
 import :ExpressionTranslationException;
+import :ExpressionVisitor;
 import :FunctionExpression;
 import :NotExpression;
 import :OrExpression;
 import :ParameterExpression;
+import :Value;
 
 export namespace Beam {
 

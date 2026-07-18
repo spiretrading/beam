@@ -7,6 +7,7 @@ import :Evaluator;
 import :InterruptionPolicy;
 import :QueryInterruptedException;
 import :Range;
+import :Value;
 
 export namespace Beam {
 

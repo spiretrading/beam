@@ -5,7 +5,10 @@ export module Beam:ServiceLocatorServlet;
 
 import :ServiceLocatorDataStore;
 import :ServiceLocatorDataStoreException;
+import :ServiceLocatorServices;
 import :ServiceLocatorSession;
+import :SynchronizedList;
+import :SessionEncryption;
 
 export namespace Beam {
 

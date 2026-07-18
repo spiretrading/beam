@@ -3,6 +3,8 @@ module;
 
 export module Beam:CodedReader;
 
+import :Expect;
+
 export namespace Beam {
 
   /**

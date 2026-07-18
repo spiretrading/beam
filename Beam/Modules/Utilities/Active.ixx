@@ -3,6 +3,8 @@ module;
 
 export module Beam:Active;
 
+import :Value;
+
 export namespace Beam {
 
   /**

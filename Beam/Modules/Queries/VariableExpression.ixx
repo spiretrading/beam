@@ -3,6 +3,10 @@ module;
 
 export module Beam:VariableExpression;
 
+import :Expression;
+import :ExpressionVisitor;
+import :Value;
+
 export namespace Beam {
 
   /** Evaluates to the current value of a variable. */

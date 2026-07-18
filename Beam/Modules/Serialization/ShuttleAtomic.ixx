@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleAtomic;
 
+import :Value;
+
 export namespace Beam {
   template<typename T>
   constexpr auto is_structure<std::atomic<T>> = false;

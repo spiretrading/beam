@@ -3,6 +3,8 @@ module;
 
 export module Beam:CachedValue;
 
+import :Value;
+
 export namespace Beam {
 
   /**

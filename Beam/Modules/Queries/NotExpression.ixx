@@ -4,6 +4,8 @@ module;
 export module Beam:NotExpression;
 
 import :ConstantExpression;
+import :Expression;
+import :ExpressionVisitor;
 import :TypeCompatibilityException;
 
 export namespace Beam {

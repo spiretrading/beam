@@ -1,30 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_CLIENT_HPP
-#define BEAM_SERVICE_LOCATOR_CLIENT_HPP
-#include <concepts>
-#include <random>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <vector>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/optional/optional.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/Json/JsonObject.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Parsers/Parse.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/VirtualPtr.hpp"
-#include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/ServiceLocator/AccountUpdate.hpp"
-#include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/ServiceLocator/Permissions.hpp"
-#include "Beam/ServiceLocator/ServiceEntry.hpp"
-#include "Beam/Services/ServiceRequestException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorClient;
+
+export namespace Beam {
 
   /** Concept for types that can be used as a ServiceLocatorClient. */
   template<typename T>
@@ -801,4 +780,3 @@ namespace Beam {
   }
 }
 
-#endif

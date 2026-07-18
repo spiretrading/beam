@@ -4,6 +4,7 @@ module;
 export module Beam:ConversionEvaluatorNode;
 
 import :EvaluatorNode;
+import :Value;
 
 export namespace Beam {
 

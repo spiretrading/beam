@@ -6,7 +6,10 @@ export module Beam:QueryClientPublisher;
 import :Evaluator;
 import :Range;
 import :SequencedValuePublisher;
+import :ServiceProtocolClientHandler;
 import :SynchronizedMap;
+import :Value;
+import :SynchronizedList;
 
 export namespace Beam {
 

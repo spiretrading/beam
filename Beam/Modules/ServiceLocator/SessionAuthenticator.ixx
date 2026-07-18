@@ -3,6 +3,9 @@ module;
 
 export module Beam:SessionAuthenticator;
 
+import :ServiceLocatorClient;
+import :ServiceLocatorServices;
+
 export namespace Beam {
 
   /**

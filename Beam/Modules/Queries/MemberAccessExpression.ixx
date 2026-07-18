@@ -4,6 +4,8 @@ module;
 export module Beam:MemberAccessExpression;
 
 import :ConstantExpression;
+import :Expression;
+import :ExpressionVisitor;
 
 export namespace Beam {
 

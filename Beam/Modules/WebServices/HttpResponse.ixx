@@ -8,6 +8,7 @@ import :Cookie;
 import :HttpHeader;
 import :HttpStatusCode;
 import :HttpVersion;
+import :Value;
 
 export namespace Beam {
 

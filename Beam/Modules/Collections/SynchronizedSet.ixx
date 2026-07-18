@@ -3,6 +3,8 @@ module;
 
 export module Beam:SynchronizedSet;
 
+import :Value;
+
 export namespace Beam {
 
   /**

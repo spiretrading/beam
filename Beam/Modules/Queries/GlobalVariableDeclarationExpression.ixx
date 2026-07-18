@@ -4,6 +4,9 @@ module;
 export module Beam:GlobalVariableDeclarationExpression;
 
 import :ConstantExpression;
+import :Expression;
+import :ExpressionVisitor;
+import :Value;
 
 export namespace Beam {
 

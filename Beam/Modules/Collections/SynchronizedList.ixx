@@ -1,15 +1,9 @@
-#ifndef BEAM_SYNCHRONIZED_LIST_HPP
-#define BEAM_SYNCHRONIZED_LIST_HPP
-#include <concepts>
-#include <deque>
-#include <vector>
-#include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/Utilities/Algorithm.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SynchronizedList;
+
+export namespace Beam {
 
   /**
    * Wraps a list container allowing for atomic operations to be performed on
@@ -240,4 +234,3 @@ namespace Beam {
   }
 }
 
-#endif

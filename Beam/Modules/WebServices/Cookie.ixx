@@ -3,6 +3,8 @@ module;
 
 export module Beam:Cookie;
 
+import :Value;
+
 export namespace Beam {
 namespace Details {
   inline std::string format_expiration(boost::posix_time::ptime date) {

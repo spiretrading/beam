@@ -4,6 +4,9 @@ module;
 
 export module Beam:QueryReactor;
 
+import :QueueReactor;
+import :Value;
+
 import Aspen;
 import :QueueReactor;
 

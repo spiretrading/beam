@@ -7,6 +7,7 @@ import :Evaluator;
 import :Range;
 import :SessionCachedDataStoreEntry;
 import :SynchronizedMap;
+import :Value;
 
 export namespace Beam {
 

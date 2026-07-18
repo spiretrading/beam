@@ -4,6 +4,7 @@ module;
 export module Beam:ConverterQueueReader;
 
 import :ScopedQueueReader;
+import :Value;
 
 export namespace Beam {
 

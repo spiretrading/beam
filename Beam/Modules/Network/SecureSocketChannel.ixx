@@ -7,6 +7,7 @@ import :SecureSocketConnection;
 import :SecureSocketOptions;
 import :SecureSocketReader;
 import :SecureSocketWriter;
+import :ServiceThreadPool;
 
 export namespace Beam {
 

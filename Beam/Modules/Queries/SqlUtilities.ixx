@@ -4,6 +4,7 @@ module;
 export module Beam:SqlUtilities;
 
 import :DatabaseConnectionPool;
+import :Expression;
 import :Range;
 import :SnapshotLimit;
 

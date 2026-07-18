@@ -1,16 +1,17 @@
 module;
 #include "Prelude.hpp"
+#include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
 module Beam;
+#include "Beam/Utilities/YamlConfig.hpp"
 
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 

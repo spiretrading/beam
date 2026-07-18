@@ -3,6 +3,8 @@ module;
 
 export module Beam:InterruptionPolicy;
 
+import :Value;
+
 export namespace Beam {
 
   /** Enumerates the ways to recover from a Query being interrupted. */

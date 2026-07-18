@@ -5,6 +5,7 @@ export module Beam:UdpSocketSender;
 
 import :DatagramPacket;
 import :UdpSocketOptions;
+import :Value;
 
 export namespace Beam {
 

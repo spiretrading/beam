@@ -4,6 +4,7 @@ module;
 export module Beam:InterruptableQuery;
 
 import :InterruptionPolicy;
+import :Value;
 
 export namespace Beam {
 

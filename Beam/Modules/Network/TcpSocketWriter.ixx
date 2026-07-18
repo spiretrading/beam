@@ -1,16 +1,9 @@
-#ifndef BEAM_TCP_SOCKET_WRITER_HPP
-#define BEAM_TCP_SOCKET_WRITER_HPP
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/write.hpp>
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/IO/Writer.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/TaskRunner.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TcpSocketWriter;
+
+export namespace Beam {
 
   /** Writes to a TCP socket. */
   class TcpSocketWriter {
@@ -59,4 +52,3 @@ namespace Beam {
     : m_socket(std::move(socket)) {}
 }
 
-#endif

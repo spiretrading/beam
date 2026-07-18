@@ -1,17 +1,12 @@
-#ifndef BEAM_SESSION_ENCRYPTION_HPP
-#define BEAM_SESSION_ENCRYPTION_HPP
-#include <array>
-#include <string>
-#include <string_view>
-#include <type_traits>
-#include <cryptopp/hex.h>
-#include <cryptopp/sha.h>
-#include "Beam/Utilities/Bcrypt.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SessionEncryption;
+
+export namespace Beam {
 
   /** The length of a session id. */
-  static constexpr auto SESSION_ID_LENGTH = 32U;
+  inline constexpr auto SESSION_ID_LENGTH = 32U;
 
   /** Generates a session id. */
   inline std::string generate_session_id() {
@@ -52,4 +47,3 @@ namespace Beam {
   }
 }
 
-#endif

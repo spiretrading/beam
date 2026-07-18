@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleSet;
 
+import :Value;
+
 export namespace Beam {
   template<typename K, typename C, typename A>
   constexpr auto is_structure<std::set<K, C, A>> = false;

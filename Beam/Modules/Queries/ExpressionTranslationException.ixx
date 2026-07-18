@@ -3,6 +3,8 @@ module;
 
 export module Beam:ExpressionTranslationException;
 
+import :Expression;
+
 export namespace Beam {
 
   /** Signals that an error occurred while translating an Expression. */

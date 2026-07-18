@@ -1,4 +1,11 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
+
+module Beam;
+
 #include "Beam/Utilities/YamlConfig.hpp"
 
 using namespace Beam;

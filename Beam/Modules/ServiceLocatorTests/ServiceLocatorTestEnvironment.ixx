@@ -3,6 +3,8 @@ module;
 
 export module Beam:ServiceLocatorTestEnvironment;
 
+import :ServiceLocatorClient;
+
 export namespace Beam::Tests {
 
   /**

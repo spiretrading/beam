@@ -11,6 +11,7 @@ import :Range;
 import :RangedQuery;
 import :SnapshotLimit;
 import :SnapshotLimitedQuery;
+import :Value;
 
 export namespace Beam {
 

@@ -1,13 +1,9 @@
-#ifndef BEAM_EXPECT_HPP
-#define BEAM_EXPECT_HPP
-#include <concepts>
-#include <exception>
-#include <iostream>
-#include <type_traits>
-#include <utility>
-#include <variant>
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Expect;
+
+export namespace Beam {
 
   /**
    * Stores a value that could potentially result in an exception.
@@ -332,4 +328,3 @@ namespace Beam {
   }
 }
 
-#endif

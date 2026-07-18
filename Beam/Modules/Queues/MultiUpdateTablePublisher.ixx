@@ -5,6 +5,7 @@ export module Beam:MultiUpdateTablePublisher;
 
 import :KeyValuePair;
 import :SnapshotPublisher;
+import :Value;
 
 export namespace Beam {
 

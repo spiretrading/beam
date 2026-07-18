@@ -4,6 +4,7 @@ module;
 export module Beam:Remote;
 
 import :PreferredConditionVariable;
+import :Value;
 
 export namespace Beam {
 

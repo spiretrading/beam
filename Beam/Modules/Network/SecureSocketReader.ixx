@@ -3,6 +3,8 @@ module;
 
 export module Beam:SecureSocketReader;
 
+import :Value;
+
 export namespace Beam {
 
   /** Reads from an SSL socket. */

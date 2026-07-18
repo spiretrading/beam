@@ -3,6 +3,8 @@ module;
 
 export module Beam:Instantiate;
 
+import :Value;
+
 export namespace Beam {
 namespace Details {
   template<typename MetaClass, typename TypeList, std::size_t Index = 0>

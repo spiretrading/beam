@@ -8,6 +8,7 @@ import :HttpRequest;
 import :HttpVersion;
 import :InvalidHttpRequestException;
 import :Uri;
+import :Value;
 
 export namespace Beam {
 

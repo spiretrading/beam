@@ -4,6 +4,7 @@ module;
 export module Beam:SequencePublisher;
 
 import :SnapshotPublisher;
+import :Value;
 
 export namespace Beam {
 

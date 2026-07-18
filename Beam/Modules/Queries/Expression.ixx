@@ -1,10 +1,9 @@
-#ifndef BEAM_QUERIES_EXPRESSION_HPP
-#define BEAM_QUERIES_EXPRESSION_HPP
-#include <typeindex>
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Utilities/Streamable.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Expression;
+
+export namespace Beam {
   class ExpressionVisitor;
   class VirtualExpression;
 
@@ -115,4 +114,3 @@ namespace Beam {
   void VirtualExpression::shuttle(S& shuttle, unsigned int version) {}
 }
 
-#endif

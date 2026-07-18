@@ -4,6 +4,7 @@ module;
 export module Beam:JsonReceiver;
 
 import :Range;
+import :Value;
 
 export namespace Beam {
   template<IsBuffer> class JsonSender;

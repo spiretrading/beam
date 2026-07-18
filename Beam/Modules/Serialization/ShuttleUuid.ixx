@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleUuid;
 
+import :Value;
+
 export namespace Beam {
   template<>
   constexpr auto is_structure<boost::uuids::uuid> = false;

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ScopedStreamManipulator;
 
+import :Expression;
+
 export namespace Beam {
 
   /**

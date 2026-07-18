@@ -6,8 +6,6 @@
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Services/MessageProtocol.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
 namespace Beam {

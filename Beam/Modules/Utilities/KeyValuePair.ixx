@@ -3,6 +3,8 @@ module;
 
 export module Beam:KeyValuePair;
 
+import :Value;
+
 export namespace Beam {
 
   /**

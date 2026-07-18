@@ -4,6 +4,7 @@ module;
 export module Beam:ValueShuttleTests;
 
 import :ShuttleQueryTypes;
+import :Value;
 
 export namespace Beam::Tests {
   template<typename T, std::invocable<T&&> F>

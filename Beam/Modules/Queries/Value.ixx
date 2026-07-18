@@ -1,13 +1,9 @@
-#ifndef BEAM_QUERIES_VALUE_HPP
-#define BEAM_QUERIES_VALUE_HPP
-#include <memory>
-#include <typeindex>
-#include <boost/throw_exception.hpp>
-#include "Beam/Serialization/ShuttleSharedPtr.hpp"
-#include "Beam/Utilities/Streamable.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Value;
+
+export namespace Beam {
   class VirtualValue;
 
   /** Encapsulates a value used in a Query. */
@@ -209,4 +205,3 @@ namespace Beam {
   }
 }
 
-#endif

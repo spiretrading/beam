@@ -4,6 +4,8 @@ module;
 export module Beam:AuthenticationServletAdapter;
 
 import :AuthenticatedSession;
+import :ServiceLocatorClient;
+import :ServiceLocatorServices;
 
 export namespace Beam {
 

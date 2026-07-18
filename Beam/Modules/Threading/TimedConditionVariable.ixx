@@ -5,6 +5,7 @@ export module Beam:TimedConditionVariable;
 
 import :LiveTimer;
 import :TimeoutException;
+import :SynchronizedList;
 
 export namespace Beam {
 

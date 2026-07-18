@@ -3,6 +3,8 @@ module;
 
 export module Beam:QueryResult;
 
+import :Value;
+
 export namespace Beam {
 
   /**

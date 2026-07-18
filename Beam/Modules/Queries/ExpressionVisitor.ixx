@@ -1,7 +1,9 @@
-#ifndef BEAM_QUERY_EXPRESSION_VISITOR_HPP
-#define BEAM_QUERY_EXPRESSION_VISITOR_HPP
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ExpressionVisitor;
+
+export namespace Beam {
   class AndExpression;
   class ConstantExpression;
   class FunctionExpression;
@@ -69,4 +71,3 @@ namespace Beam {
   inline void ExpressionVisitor::visit(const VirtualExpression& expression) {}
 }
 
-#endif

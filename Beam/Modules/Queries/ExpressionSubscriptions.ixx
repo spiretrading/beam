@@ -4,11 +4,14 @@ module;
 export module Beam:ExpressionSubscriptions;
 
 import :Evaluator;
+import :Expression;
 import :ExpressionQuery;
 import :QueryResult;
 import :Range;
 import :SnapshotLimit;
 import :SynchronizedMap;
+import :Value;
+import :SynchronizedList;
 
 export namespace Beam {
 

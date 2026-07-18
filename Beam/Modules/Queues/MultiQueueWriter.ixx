@@ -3,6 +3,8 @@ module;
 
 export module Beam:MultiQueueWriter;
 
+import :Value;
+
 export namespace Beam {
 
   /**

@@ -10,6 +10,7 @@ import :HttpStatusCode;
 import :HttpVersion;
 import :InvalidHttpResponseException;
 import :TransferEncoding;
+import :Value;
 
 export namespace Beam {
 

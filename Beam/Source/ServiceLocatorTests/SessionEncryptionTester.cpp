@@ -1,6 +1,9 @@
-#include <unordered_set>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include <unordered_set>
+
+module Beam;
 
 using namespace Beam;
 

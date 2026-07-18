@@ -3,6 +3,9 @@ module;
 
 export module Beam:ParameterExpression;
 
+import :Expression;
+import :ExpressionVisitor;
+
 export namespace Beam {
 
   /** Represents a variable/parameter used in an Expression. */

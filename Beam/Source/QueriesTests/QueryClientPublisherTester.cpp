@@ -7,7 +7,6 @@ module;
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
-#include "Beam/Services/ServiceProtocolClientHandler.hpp"
 
 
 module Beam;

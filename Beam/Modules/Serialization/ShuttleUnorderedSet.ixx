@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleUnorderedSet;
 
+import :Value;
+
 export namespace Beam {
   template<typename K, typename H, typename P, typename A>
   constexpr auto is_structure<std::unordered_set<K, H, P, A>> = false;

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleArray;
 
+import :Value;
+
 export namespace Beam {
   template<typename T, std::size_t N>
   constexpr auto is_structure<std::array<T, N>> = false;

@@ -1,17 +1,9 @@
-#ifndef BEAM_TCP_SOCKET_CONNECTION_HPP
-#define BEAM_TCP_SOCKET_CONNECTION_HPP
-#include <string>
-#include <boost/optional/optional.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/TcpSocketOptions.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TcpSocketConnection;
+
+export namespace Beam {
 
   /** Implements a Connection using a TCP socket. */
   class TcpSocketConnection {
@@ -169,4 +161,3 @@ namespace Beam {
   }
 }
 
-#endif

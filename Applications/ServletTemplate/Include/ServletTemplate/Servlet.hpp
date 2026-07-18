@@ -1,6 +1,5 @@
 #ifndef BEAM_SERVLET_TEMPLATE_SERVLET_HPP
 #define BEAM_SERVLET_TEMPLATE_SERVLET_HPP
-#include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "ServletTemplate/Services.hpp"

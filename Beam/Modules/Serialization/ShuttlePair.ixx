@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttlePair;
 
+import :Value;
+
 export namespace Beam {
   template<typename T1, typename T2>
   constexpr auto is_structure<std::pair<T1, T2>> = false;

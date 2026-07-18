@@ -3,6 +3,9 @@ module;
 
 export module Beam:FunctionExpression;
 
+import :Expression;
+import :ExpressionVisitor;
+
 export namespace Beam {
 
   /** An Expression representing a native function. */

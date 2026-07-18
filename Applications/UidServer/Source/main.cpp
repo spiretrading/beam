@@ -1,12 +1,14 @@
 module;
 #include "Prelude.hpp"
+#include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Sql/MySqlConfig.hpp"
-#include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
 module Beam;
+#include "Beam/Utilities/YamlConfig.hpp"
+#include "Beam/Sql/MySqlConfig.hpp"
 
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 

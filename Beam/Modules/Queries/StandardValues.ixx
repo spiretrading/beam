@@ -3,6 +3,8 @@ module;
 
 export module Beam:StandardValues;
 
+import :Value;
+
 export namespace Beam {
   using BoolValue = NativeValue<bool>;
   using CharValue = NativeValue<char>;

@@ -3,6 +3,12 @@ module;
 
 export module Beam:ProtocolServiceLocatorClient;
 
+import :ServiceLocatorClient;
+import :ServiceLocatorServices;
+import :ServiceProtocolClientHandler;
+import :SynchronizedList;
+import :SessionEncryption;
+
 export namespace Beam {
 
   /**

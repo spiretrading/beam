@@ -4,6 +4,7 @@ module;
 export module Beam:FixedTimeClient;
 
 import :TimeClient;
+import :Value;
 
 export namespace Beam {
 

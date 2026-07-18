@@ -1,12 +1,9 @@
-#ifndef BEAM_SERVICE_THREAD_POOL_HPP
-#define BEAM_SERVICE_THREAD_POOL_HPP
-#include <memory>
-#include <boost/asio/io_context.hpp>
-#include <boost/thread/thread.hpp>
-#include "Beam/Utilities/DllExport.hpp"
-#include "Beam/Utilities/Singleton.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceThreadPool;
+
+export namespace Beam {
   class MulticastSocket;
   class SecureSocketChannel;
   class TcpServerSocket;
@@ -62,4 +59,3 @@ namespace Beam {
   }
 }
 
-#endif

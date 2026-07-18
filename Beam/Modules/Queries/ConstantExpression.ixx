@@ -3,6 +3,10 @@ module;
 
 export module Beam:ConstantExpression;
 
+import :Expression;
+import :ExpressionVisitor;
+import :Value;
+
 export namespace Beam {
 
   /** An Expression that evaluates to a constant. */

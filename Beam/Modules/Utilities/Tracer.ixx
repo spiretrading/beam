@@ -4,6 +4,7 @@ module;
 export module Beam:Tracer;
 
 import :ToString;
+import :Value;
 
 export namespace Beam {
 

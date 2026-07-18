@@ -3,6 +3,8 @@ module;
 
 export module Beam:ConverterQueueWriter;
 
+import :Value;
+
 export namespace Beam {
 
   /**

@@ -4,6 +4,7 @@ module;
 export module Beam:SerializationValueShuttleTests;
 
 import :JsonSender;
+import :Value;
 
 export namespace Beam::Tests {
 

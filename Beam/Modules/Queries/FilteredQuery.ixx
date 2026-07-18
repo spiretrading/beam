@@ -5,7 +5,9 @@ export module Beam:FilteredQuery;
 
 import :ConstantExpression;
 import :Evaluator;
+import :Expression;
 import :TypeCompatibilityException;
+import :Value;
 
 export namespace Beam {
 

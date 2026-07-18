@@ -3,6 +3,8 @@ module;
 
 export module Beam:SortedVector;
 
+import :Value;
+
 export namespace Beam {
 
   /**

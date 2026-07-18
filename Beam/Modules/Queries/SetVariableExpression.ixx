@@ -4,6 +4,9 @@ module;
 export module Beam:SetVariableExpression;
 
 import :ConstantExpression;
+import :Expression;
+import :ExpressionVisitor;
+import :Value;
 
 export namespace Beam {
 

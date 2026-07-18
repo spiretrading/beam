@@ -6,6 +6,7 @@ export module Beam:PagedQuery;
 import :FilteredQuery;
 import :IndexedQuery;
 import :SnapshotLimitedQuery;
+import :Value;
 
 export namespace Beam {
 

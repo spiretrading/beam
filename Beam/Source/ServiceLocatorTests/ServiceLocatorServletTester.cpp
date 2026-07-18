@@ -5,7 +5,6 @@ module;
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 
 module Beam;

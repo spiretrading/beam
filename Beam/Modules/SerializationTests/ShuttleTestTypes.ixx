@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleTestTypes;
 
+import :Value;
+
 export namespace Beam {
 namespace Tests {
 

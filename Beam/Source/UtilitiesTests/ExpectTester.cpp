@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <stdexcept>
 #include <string>
-#include <doctest/doctest.h>
-#include "Beam/Utilities/Expect.hpp"
+
+module Beam;
 
 using namespace Beam;
 

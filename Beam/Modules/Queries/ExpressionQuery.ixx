@@ -4,6 +4,8 @@ module;
 export module Beam:ExpressionQuery;
 
 import :ConstantExpression;
+import :Expression;
+import :Value;
 
 export namespace Beam {
 

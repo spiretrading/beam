@@ -7,6 +7,7 @@ import :FixedTimeClient;
 import :TimeClient;
 import :TimeServiceTestEnvironmentException;
 import :TriggerTimer;
+import :SynchronizedList;
 
 export namespace Beam::Tests {
   class TimeServiceTestEnvironment;

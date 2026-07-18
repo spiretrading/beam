@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <memory>
 #include <boost/optional/optional_io.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Collections/SynchronizedList.hpp"
+
+module Beam;
 
 using namespace Beam;
 

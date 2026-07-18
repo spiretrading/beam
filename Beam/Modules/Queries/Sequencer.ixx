@@ -4,6 +4,7 @@ module;
 export module Beam:Sequencer;
 
 import :Range;
+import :Value;
 
 export namespace Beam {
 

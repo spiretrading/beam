@@ -3,6 +3,8 @@ module;
 
 export module Beam:SecureSocketWriter;
 
+import :Value;
+
 export namespace Beam {
 
   /** Writes to an SSL socket. */

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleDecimal;
 
+import :Value;
+
 export namespace Beam {
   template<unsigned Digits10, typename ExponentType, typename Allocator>
   constexpr auto is_structure<

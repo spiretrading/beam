@@ -1,10 +1,11 @@
 module;
 #include "Prelude.hpp"
-#include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/YamlConfig.hpp"
+#include <tclap/CmdLine.h>
+#include <yaml-cpp/yaml.h>
 #include "Version.hpp"
 
 module Beam;
+#include "Beam/Utilities/YamlConfig.hpp"
 
 using namespace Beam;
 using namespace boost;

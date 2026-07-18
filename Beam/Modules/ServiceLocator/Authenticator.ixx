@@ -1,9 +1,9 @@
-#ifndef BEAM_AUTHENTICATOR_HPP
-#define BEAM_AUTHENTICATOR_HPP
-#include <concepts>
-#include "Beam/Services/ServiceProtocolClient.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:Authenticator;
+
+export namespace Beam {
 namespace Details {
   template<typename T>
   struct is_service_protocol_client : std::false_type {};
@@ -50,4 +50,3 @@ namespace Details {
   }
 }
 
-#endif

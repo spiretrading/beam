@@ -4,6 +4,7 @@ module;
 export module Beam:SnapshotLimitedQuery;
 
 import :SnapshotLimit;
+import :Value;
 
 export namespace Beam {
 

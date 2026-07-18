@@ -4,6 +4,7 @@ module;
 export module Beam:TestDataStore;
 
 import :Range;
+import :Value;
 
 export namespace Beam::Tests {
 

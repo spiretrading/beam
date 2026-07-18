@@ -7,6 +7,7 @@ export module Beam:CurrentTimeReactor;
 import :LocalTimeClient;
 import :SharedCallable;
 import :TimeClient;
+import :Value;
 
 import Aspen;
 

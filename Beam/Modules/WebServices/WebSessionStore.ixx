@@ -10,6 +10,7 @@ import :WebSession;
 import :WebSessionDataStore;
 import :SynchronizedMap;
 import :SynchronizedSet;
+import :SessionEncryption;
 
 export namespace Beam {
 

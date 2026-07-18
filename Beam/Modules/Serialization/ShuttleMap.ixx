@@ -4,6 +4,7 @@ module;
 export module Beam:ShuttleMap;
 
 import :ShuttlePair;
+import :Value;
 
 export namespace Beam {
   template<typename K, typename T, typename C, typename A>

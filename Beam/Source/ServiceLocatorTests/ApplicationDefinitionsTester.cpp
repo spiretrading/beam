@@ -1,10 +1,11 @@
 module;
 #include "Prelude.hpp"
+#include <tclap/CmdLine.h>
 #include <doctest/doctest.h>
 #include <yaml-cpp/yaml.h>
-#include "Beam/Utilities/YamlConfig.hpp"
 
 module Beam;
+#include "Beam/Utilities/YamlConfig.hpp"
 
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 

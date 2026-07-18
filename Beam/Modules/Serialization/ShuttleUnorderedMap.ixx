@@ -4,6 +4,7 @@ module;
 export module Beam:ShuttleUnorderedMap;
 
 import :ShuttlePair;
+import :Value;
 
 export namespace Beam {
   template<typename K, typename T, typename H, typename P, typename A>

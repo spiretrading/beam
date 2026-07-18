@@ -1,18 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_SERVICES_HPP
-#define BEAM_SERVICE_LOCATOR_SERVICES_HPP
-#include <boost/optional.hpp>
-#include "Beam/Serialization/ShuttleBitset.hpp"
-#include "Beam/Serialization/ShuttleDateTime.hpp"
-#include "Beam/Serialization/ShuttleOptional.hpp"
-#include "Beam/Serialization/ShuttleVector.hpp"
-#include "Beam/ServiceLocator/AccountUpdate.hpp"
-#include "Beam/ServiceLocator/DirectoryEntry.hpp"
-#include "Beam/ServiceLocator/Permissions.hpp"
-#include "Beam/ServiceLocator/ServiceEntry.hpp"
-#include "Beam/Services/RecordMessage.hpp"
-#include "Beam/Services/Service.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorServices;
+
+export namespace Beam {
   BEAM_DEFINE_RECORD(
     LoginServiceResult, (DirectoryEntry, account), (std::string, session_id));
 
@@ -329,4 +320,3 @@ namespace ServiceLocatorServices {
 }
 }
 
-#endif

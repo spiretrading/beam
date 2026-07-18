@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleFileSystemPath;
 
+import :Value;
+
 export namespace Beam {
   template<>
   constexpr auto is_structure<std::filesystem::path> = false;

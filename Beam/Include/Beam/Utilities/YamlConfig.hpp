@@ -24,7 +24,6 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SerializedValue.hpp"
 #include "Beam/Utilities/AssertionException.hpp"
-#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 

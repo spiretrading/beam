@@ -3,6 +3,8 @@ module;
 
 export module Beam:LiveTimer;
 
+import :ServiceThreadPool;
+
 export namespace Beam {
 
   /** Implements a Timer using a live timer. */

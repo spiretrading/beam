@@ -3,6 +3,8 @@ module;
 
 export module Beam:StateQueue;
 
+import :Value;
+
 export namespace Beam {
 
   /**

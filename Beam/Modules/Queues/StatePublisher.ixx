@@ -4,6 +4,7 @@ module;
 export module Beam:StatePublisher;
 
 import :SnapshotPublisher;
+import :Value;
 
 export namespace Beam {
 

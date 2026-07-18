@@ -4,6 +4,7 @@ module;
 export module Beam:ValueSnapshotPublisher;
 
 import :SnapshotPublisher;
+import :Value;
 
 export namespace Beam {
 

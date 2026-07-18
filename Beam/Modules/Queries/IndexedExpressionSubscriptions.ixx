@@ -4,6 +4,7 @@ module;
 export module Beam:IndexedExpressionSubscriptions;
 
 import :Evaluator;
+import :Expression;
 import :ExpressionQuery;
 import :ExpressionSubscriptions;
 import :QueryResult;
@@ -11,6 +12,7 @@ import :Range;
 import :SnapshotLimit;
 import :Subscriptions;
 import :SynchronizedMap;
+import :Value;
 
 export namespace Beam {
 

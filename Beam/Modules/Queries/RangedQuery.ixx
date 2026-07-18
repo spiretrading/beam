@@ -4,6 +4,7 @@ module;
 export module Beam:RangedQuery;
 
 import :Range;
+import :Value;
 
 export namespace Beam {
 

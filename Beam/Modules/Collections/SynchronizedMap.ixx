@@ -3,6 +3,8 @@ module;
 
 export module Beam:SynchronizedMap;
 
+import :Value;
+
 export namespace Beam {
 
   /**

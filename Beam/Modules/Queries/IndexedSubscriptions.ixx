@@ -9,6 +9,7 @@ import :QueryResult;
 import :Range;
 import :Subscriptions;
 import :SynchronizedMap;
+import :Value;
 
 export namespace Beam {
 

@@ -3,6 +3,8 @@ module;
 
 export module Beam:ScopedQueueGroup;
 
+import :SynchronizedList;
+
 export namespace Beam {
 
   /**

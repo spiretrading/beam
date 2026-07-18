@@ -3,6 +3,8 @@ module;
 
 export module Beam:SnapshotLimit;
 
+import :Value;
+
 export namespace Beam {
 
   /**

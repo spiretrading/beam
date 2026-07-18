@@ -4,7 +4,9 @@ module;
 export module Beam:StandardFunctionExpressions;
 
 import :ConstantExpression;
+import :Expression;
 import :FunctionExpression;
+import :Value;
 
 export namespace Beam {
 namespace Details {

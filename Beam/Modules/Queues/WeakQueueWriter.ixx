@@ -3,6 +3,8 @@ module;
 
 export module Beam:WeakQueueWriter;
 
+import :Value;
+
 export namespace Beam {
 
   /**

@@ -8,6 +8,7 @@ import :Evaluator;
 import :LocalDataStoreEntry;
 import :Range;
 import :SnapshotLimit;
+import :Value;
 
 export namespace Beam {
 

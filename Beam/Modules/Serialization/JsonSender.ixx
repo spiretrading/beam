@@ -3,6 +3,8 @@ module;
 
 export module Beam:JsonSender;
 
+import :Value;
+
 export namespace Beam {
 namespace Details {
   inline std::string escape_json(const std::string& source) {

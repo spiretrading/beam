@@ -1,17 +1,9 @@
-#ifndef BEAM_LOCAL_SERVER_CONNECTION_HPP
-#define BEAM_LOCAL_SERVER_CONNECTION_HPP
-#include <memory>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerChannel.hpp"
-#include "Beam/IO/ServerConnection.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Queues/Queue.hpp"
-#include "Beam/Routines/Async.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:LocalServerConnection;
+
+export namespace Beam {
 namespace Details {
   void connect(LocalServerConnection&, LocalClientChannel&, const std::string&);
 }
@@ -94,4 +86,3 @@ namespace Details {
 }
 }
 
-#endif

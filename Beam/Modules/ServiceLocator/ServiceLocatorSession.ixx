@@ -1,13 +1,9 @@
-#ifndef BEAM_SERVICE_LOCATOR_SESSION_HPP
-#define BEAM_SERVICE_LOCATOR_SESSION_HPP
-#include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/ServiceLocator/AuthenticatedSession.hpp"
-#include "Beam/ServiceLocator/ServiceEntry.hpp"
-#include "Beam/Utilities/Algorithm.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServiceLocatorSession;
+
+export namespace Beam {
 
   /** Stores session info for a ServiceLocatorServlet Channel. */
   class ServiceLocatorSession : public AuthenticatedSession {
@@ -204,4 +200,3 @@ namespace Beam {
   }
 }
 
-#endif

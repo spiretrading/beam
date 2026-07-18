@@ -3,6 +3,8 @@ module;
 
 export module Beam:TestServiceClientOperationQueue;
 
+import :ServiceResult;
+
 export namespace Beam::Tests {
 
   /**

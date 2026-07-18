@@ -3,7 +3,9 @@ module;
 
 export module Beam:ServiceClientFixture;
 
+import :LocalServerConnection;
 import :TestServices;
+import :TriggerTimer;
 
 export namespace Beam::Tests {
 

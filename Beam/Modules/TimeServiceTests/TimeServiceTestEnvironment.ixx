@@ -5,6 +5,7 @@ export module Beam:TimeServiceTestEnvironment;
 
 import :FixedTimeClient;
 import :TimeServiceTestEnvironmentException;
+import :TriggerTimer;
 
 export namespace Beam::Tests {
   class TimeServiceTestEnvironment;

@@ -1,11 +1,9 @@
-#ifndef BEAM_TRIGGER_TIMER_HPP
-#define BEAM_TRIGGER_TIMER_HPP
-#include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/TimeService/Timer.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TriggerTimer;
+
+export namespace Beam {
 
   /** A Timer that expires when explicitly triggered. */
   class TriggerTimer {
@@ -106,4 +104,3 @@ namespace Beam {
   }
 }
 
-#endif

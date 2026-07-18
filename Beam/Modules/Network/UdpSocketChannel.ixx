@@ -3,6 +3,7 @@ module;
 
 export module Beam:UdpSocketChannel;
 
+import :UdpSocket;
 import :UdpSocketConnection;
 import :UdpSocketReader;
 import :UdpSocketWriter;

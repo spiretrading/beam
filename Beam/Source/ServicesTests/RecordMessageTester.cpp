@@ -3,14 +3,12 @@ module;
 #include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/RecordMessage.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
-#include "Beam/TimeService/TriggerTimer.hpp"
 
 module Beam;
 

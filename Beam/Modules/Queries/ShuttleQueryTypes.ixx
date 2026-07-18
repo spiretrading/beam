@@ -3,6 +3,8 @@ module;
 
 export module Beam:ShuttleQueryTypes;
 
+import :StandardValues;
+
 export namespace Beam {
   BEAM_REGISTER_TYPES(register_value_types,
     (BoolValue, "Beam.Queries.BoolValue"),

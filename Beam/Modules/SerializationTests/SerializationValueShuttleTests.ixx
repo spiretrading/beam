@@ -3,6 +3,8 @@ module;
 
 export module Beam:SerializationValueShuttleTests;
 
+import :JsonSender;
+
 export namespace Beam::Tests {
 
   /**

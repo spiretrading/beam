@@ -3,8 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include "Beam/SerializationTests/ShuttleTestSuite.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Serialization/JsonReceiver.hpp"
-#include "Beam/Serialization/JsonSender.hpp"
 
 module Beam;
 

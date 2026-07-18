@@ -4,6 +4,7 @@ module;
 export module Beam:SecureSocketChannel;
 
 import :SecureSocketConnection;
+import :SecureSocketOptions;
 import :SecureSocketReader;
 import :SecureSocketWriter;
 

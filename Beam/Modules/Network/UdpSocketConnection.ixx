@@ -3,6 +3,8 @@ module;
 
 export module Beam:UdpSocketConnection;
 
+import :UdpSocket;
+
 export namespace Beam {
 
   /** Provides a Connection interface for a UdpSocket. */

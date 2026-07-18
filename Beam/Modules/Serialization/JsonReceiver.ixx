@@ -1,17 +1,9 @@
-#ifndef BEAM_JSON_RECEIVER_HPP
-#define BEAM_JSON_RECEIVER_HPP
-#include <cstdint>
-#include <cstring>
-#include <deque>
-#include <type_traits>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/Buffer.hpp"
-#include "Beam/Json/JsonParser.hpp"
-#include "Beam/Serialization/ReceiverMixin.hpp"
-#include "Beam/Serialization/SerializationException.hpp"
-#include "Beam/Utilities/FixedString.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:JsonReceiver;
+
+export namespace Beam {
   template<IsBuffer> class JsonSender;
 
   /**
@@ -252,4 +244,3 @@ namespace Beam {
   }
 }
 
-#endif

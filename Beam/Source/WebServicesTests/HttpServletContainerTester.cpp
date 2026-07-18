@@ -1,7 +1,6 @@
 module;
 #include "Prelude.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include <doctest/doctest.h>
 

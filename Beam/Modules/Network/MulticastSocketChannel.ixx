@@ -5,6 +5,7 @@ export module Beam:MulticastSocketChannel;
 
 import :MulticastSocket;
 import :MulticastSocketConnection;
+import :MulticastSocketOptions;
 import :MulticastSocketReader;
 import :MulticastSocketWriter;
 

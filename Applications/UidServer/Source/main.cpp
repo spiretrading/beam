@@ -3,7 +3,6 @@ module;
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
-#include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"

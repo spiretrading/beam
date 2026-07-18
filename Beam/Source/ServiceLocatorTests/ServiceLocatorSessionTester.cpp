@@ -1,6 +1,9 @@
-#include <ranges>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/ServiceLocator/ServiceLocatorSession.hpp"
+#include <ranges>
+
+module Beam;
 
 using namespace Beam;
 

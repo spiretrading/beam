@@ -1,21 +1,9 @@
-#ifndef BEAM_UDP_SOCKET_HPP
-#define BEAM_UDP_SOCKET_HPP
-#include <string>
-#include <boost/asio/ip/udp.hpp>
-#include <boost/optional/optional.hpp>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/ConnectException.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Network/IpAddress.hpp"
-#include "Beam/Network/NetworkDetails.hpp"
-#include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
-#include "Beam/Network/UdpSocketSender.hpp"
-#include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/ServiceThreadPool.hpp"
-#include "Beam/Utilities/ReportException.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:UdpSocket;
+
+export namespace Beam {
 
   /** Implements a UDP socket. */
   class UdpSocket {
@@ -187,4 +175,3 @@ namespace Beam {
   }
 }
 
-#endif

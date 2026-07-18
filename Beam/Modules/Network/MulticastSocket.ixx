@@ -3,6 +3,8 @@ module;
 
 export module Beam:MulticastSocket;
 
+import :MulticastSocketOptions;
+
 export namespace Beam {
 
   /** Implements a UDP socket used to join a multicast group. */

@@ -1,8 +1,9 @@
-#ifndef BEAM_MULTICAST_SOCKET_OPTIONS_HPP
-#define BEAM_MULTICAST_SOCKET_OPTIONS_HPP
-#include "Beam/Network/UdpSocketOptions.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:MulticastSocketOptions;
+
+export namespace Beam {
 
   /** Stores the various options that can be applied to a MulticastSocket. */
   struct MulticastSocketOptions : UdpSocketOptions {
@@ -10,4 +11,3 @@ namespace Beam {
   };
 }
 
-#endif

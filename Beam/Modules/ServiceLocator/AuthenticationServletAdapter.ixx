@@ -1,20 +1,9 @@
-#ifndef BEAM_AUTHENTICATION_SERVLET_ADAPTER_HPP
-#define BEAM_AUTHENTICATION_SERVLET_ADAPTER_HPP
-#include <type_traits>
-#include <boost/throw_exception.hpp>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/IO/OpenState.hpp"
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/LocalPointerPolicy.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
-#include "Beam/Services/ServiceRequestException.hpp"
-#include "Beam/ServiceLocator/AuthenticatedSession.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:AuthenticationServletAdapter;
+
+export namespace Beam {
 
   /**
    * Augments a Servlet to support authenticating with a ServiceLocator.
@@ -174,4 +163,3 @@ namespace Beam {
   }
 }
 
-#endif

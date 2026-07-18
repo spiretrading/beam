@@ -3,7 +3,6 @@ module;
 #include <boost/date_time.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
 

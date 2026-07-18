@@ -3,6 +3,10 @@ module;
 
 export module Beam:TestServices;
 
+import :AuthenticationServletAdapter;
+import :LocalServerConnection;
+import :TriggerTimer;
+
 export namespace Beam::Tests {
 
   /** The type of ServiceProtocolClient used in tests. */

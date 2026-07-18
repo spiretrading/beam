@@ -7,6 +7,7 @@ import :HttpRequestParser;
 import :HttpRequestSlot;
 import :HttpResponse;
 import :HttpUpgradeSlot;
+import :JsonSender;
 import :WebSocketChannel;
 
 export namespace Beam {

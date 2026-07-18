@@ -1,8 +1,9 @@
-#ifndef BEAM_NETWORK_SECURE_SOCKET_OPTIONS_HPP
-#define BEAM_NETWORK_SECURE_SOCKET_OPTIONS_HPP
-#include "Beam/Network/TcpSocketOptions.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SecureSocketOptions;
+
+export namespace Beam {
 
   /**
    * Stores the various options that can be applied to a SecureSocketChannel.
@@ -12,4 +13,3 @@ namespace Beam {
   };
 }
 
-#endif

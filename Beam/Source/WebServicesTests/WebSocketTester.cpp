@@ -3,7 +3,6 @@ module;
 #include <future>
 #include <string>
 #include "Beam/IO/LocalClientChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
 #include <doctest/doctest.h>
 
 module Beam;

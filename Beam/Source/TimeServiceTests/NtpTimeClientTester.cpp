@@ -10,7 +10,6 @@ module;
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/TimeService/TriggerTimer.hpp"
 
 module Beam;
 

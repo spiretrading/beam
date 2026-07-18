@@ -1,11 +1,9 @@
-#ifndef BEAM_SERVICE_RESULT_HPP
-#define BEAM_SERVICE_RESULT_HPP
-#include <exception>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
-#include "Beam/Routines/Async.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam::Tests {
+export module Beam:ServiceResult;
+
+export namespace Beam::Tests {
 
   /** Abstract base for capturing the result of a service invocation. */
   class BaseServiceResult {
@@ -136,4 +134,3 @@ namespace Beam::Tests {
   }
 }
 
-#endif

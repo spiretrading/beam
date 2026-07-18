@@ -9,7 +9,6 @@ module;
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalConnection.hpp"
 #include "Beam/IO/LocalServerChannel.hpp"
-#include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/NamedChannelIdentifier.hpp"
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"

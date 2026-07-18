@@ -3,6 +3,8 @@ module;
 
 export module Beam:SqlWebSessionDataStore;
 
+import :JsonReceiver;
+import :JsonSender;
 import :WebServicesSqlDefinitions;
 import :WebSessionDataStore;
 

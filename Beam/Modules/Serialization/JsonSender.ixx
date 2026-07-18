@@ -1,14 +1,9 @@
-#ifndef BEAM_JSON_SENDER_HPP
-#define BEAM_JSON_SENDER_HPP
-#include <cstring>
-#include <string>
-#include <type_traits>
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/SenderMixin.hpp"
-#include "Beam/Utilities/FixedString.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:JsonSender;
+
+export namespace Beam {
 namespace Details {
   inline std::string escape_json(const std::string& source) {
     auto result = std::string();
@@ -265,4 +260,3 @@ namespace Details {
   }
 }
 
-#endif

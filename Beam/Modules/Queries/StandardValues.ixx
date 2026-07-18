@@ -1,12 +1,9 @@
-#ifndef BEAM_QUERY_STANDARD_VALUES_HPP
-#define BEAM_QUERY_STANDARD_VALUES_HPP
-#include <cstdint>
-#include <string>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include "Beam/Queries/Value.hpp"
-#include "Beam/Serialization/ShuttleDateTime.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:StandardValues;
+
+export namespace Beam {
   using BoolValue = NativeValue<bool>;
   using CharValue = NativeValue<char>;
   using IntValue = NativeValue<int>;
@@ -17,4 +14,3 @@ namespace Beam {
   using DurationValue = NativeValue<boost::posix_time::time_duration>;
 }
 
-#endif

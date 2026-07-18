@@ -3,6 +3,8 @@ module;
 
 export module Beam:UdpSocketWriter;
 
+import :UdpSocket;
+
 export namespace Beam {
 
   /** Provides the Writer interface to a UdpSocketSender. */

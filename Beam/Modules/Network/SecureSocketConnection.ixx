@@ -3,6 +3,8 @@ module;
 
 export module Beam:SecureSocketConnection;
 
+import :SecureSocketOptions;
+
 export namespace Beam {
 
   /** Implements a Connection using an SSL socket over TCP. */

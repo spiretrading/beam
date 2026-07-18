@@ -3,6 +3,8 @@ module;
 
 export module Beam:UdpSocketReader;
 
+import :UdpSocket;
+
 export namespace Beam {
 
   /** Implements the Reader interface for a UdpReceiver. */

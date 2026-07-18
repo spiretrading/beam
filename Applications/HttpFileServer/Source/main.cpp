@@ -1,16 +1,62 @@
+module;
+#include "Prelude.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
-#include "Beam/WebServices/HttpServletContainer.hpp"
-#include "HttpFileServer/HttpFileServlet.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
+
+  /** Implements a web servlet for static files. */
+  class HttpFileServlet {
+    public:
+
+      /** Constructs a HttpFileServlet. */
+      HttpFileServlet();
+
+      ~HttpFileServlet();
+
+      std::vector<HttpRequestSlot> get_slots();
+      void close();
+
+    private:
+      FileStore m_file_store;
+      OpenState m_open_state;
+
+      HttpFileServlet(const HttpFileServlet&) = delete;
+      HttpFileServlet& operator =(const HttpFileServlet&) = delete;
+      HttpResponse on_serve_file(const HttpRequest& request);
+  };
+
+  HttpFileServlet::HttpFileServlet()
+    : m_file_store("web_app") {}
+
+  HttpFileServlet::~HttpFileServlet() {
+    close();
+  }
+
+  std::vector<HttpRequestSlot> HttpFileServlet::get_slots() {
+    auto slots = std::vector<HttpRequestSlot>();
+    slots.emplace_back(match_any(HttpMethod::GET),
+      std::bind_front(&HttpFileServlet::on_serve_file, this));
+    return slots;
+  }
+
+  void HttpFileServlet::close() {
+    m_open_state.close();
+  }
+
+  HttpResponse HttpFileServlet::on_serve_file(const HttpRequest& request) {
+    return m_file_store.serve(request);
+  }
+
   using HttpFileServletContainer =
     HttpServletContainer<HttpFileServlet, TcpServerSocket>;
 }

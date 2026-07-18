@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <string>
 #include <doctest/doctest.h>
-#include "Beam/SignalHandling/NullSlot.hpp"
+
+module Beam;
 
 using namespace Beam;
 

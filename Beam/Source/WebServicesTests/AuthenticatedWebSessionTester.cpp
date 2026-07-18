@@ -1,6 +1,9 @@
-#include <doctest/doctest.h>
+module;
+#include "Prelude.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
-#include "Beam/WebServices/AuthenticatedWebSession.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

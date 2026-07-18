@@ -1,23 +1,23 @@
+module;
 #include "Beam/Python/TimeService.hpp"
-#include <Aspen/Conversions.hpp>
-#include <Aspen/Python/Box.hpp>
-#include <Aspen/Python/Reactor.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include "Beam/Python/Beam.hpp"
 #include "Beam/Python/ToPythonTimeClient.hpp"
 #include "Beam/Python/ToPythonTimer.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
-#include "Beam/TimeService/AlarmReactor.hpp"
-#include "Beam/TimeService/CurrentTimeReactor.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
 #include "Beam/TimeService/LocalTimeClient.hpp"
 #include "Beam/TimeService/NtpTimeClient.hpp"
-#include "Beam/TimeService/TimerReactor.hpp"
 #include "Beam/TimeService/ToLocalTime.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/TimeServiceTests/TestTimeClient.hpp"
 #include "Beam/TimeServiceTests/TestTimer.hpp"
 #include "Beam/TimeServiceTests/TimeServiceTestEnvironment.hpp"
+
+module Beam;
+
+import Aspen;
+import Aspen.Python;
 
 using namespace Aspen;
 using namespace Beam;

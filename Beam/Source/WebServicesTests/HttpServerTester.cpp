@@ -1,10 +1,13 @@
+module;
+#include "Prelude.hpp"
 #include <future>
 #include <string>
-#include <doctest/doctest.h>
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/WebServices/HttpServer.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 

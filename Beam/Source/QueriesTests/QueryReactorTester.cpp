@@ -1,11 +1,10 @@
-#include <string>
-#include <Aspen/Constant.hpp>
-#include <Aspen/Queue.hpp>
-#include <Aspen/Trigger.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/QueryReactor.hpp"
-#include "Beam/Queues/Queue.hpp"
+
+module Beam;
+
+import Aspen;
 
 using namespace Aspen;
 using namespace Beam;

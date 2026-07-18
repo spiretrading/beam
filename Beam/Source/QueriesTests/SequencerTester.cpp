@@ -1,5 +1,8 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queries/Sequencer.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

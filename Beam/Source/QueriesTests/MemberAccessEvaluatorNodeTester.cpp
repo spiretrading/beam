@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"
-#include "Beam/Queries/MemberAccessEvaluatorNode.hpp"
+
+module Beam;
 
 using namespace Beam;
 

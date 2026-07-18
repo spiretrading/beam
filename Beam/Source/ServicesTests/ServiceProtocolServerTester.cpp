@@ -12,7 +12,6 @@
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServer.hpp"
-#include "Beam/SignalHandling/NullSlot.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
 
 using namespace Beam;
@@ -33,7 +32,8 @@ namespace {
 
     Fixture()
       : m_protocol_server(&m_server_connection,
-          factory<std::shared_ptr<TriggerTimer>>(), NullSlot(), NullSlot()),
+          factory<std::shared_ptr<TriggerTimer>>(), [] (auto&&...) {},
+          [] (auto&&...) {}),
         m_client_protocol(init("test", m_server_connection), init()) {
       register_test_services(out(m_protocol_server.get_slots()));
       register_test_services(out(m_client_protocol.get_slots()));

@@ -1,10 +1,13 @@
-#include <vector>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include <vector>
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/CachedDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/QueriesTests/TestEntry.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

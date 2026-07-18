@@ -1,8 +1,11 @@
-#include <doctest/doctest.h>
+module;
+#include "Prelude.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/WebServices/HttpServletContainer.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 

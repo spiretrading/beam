@@ -5,7 +5,6 @@
 #include <boost/functional/factory.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/ServicesTests/TestServices.hpp"
-#include "Beam/SignalHandling/NullSlot.hpp"
 
 namespace Beam::Tests {
 
@@ -49,8 +48,8 @@ namespace Beam::Tests {
   inline ServiceClientFixture::ServiceClientFixture()
     : m_server_connection(std::make_shared<LocalServerConnection>()),
       m_server(m_server_connection,
-        boost::factory<std::unique_ptr<TriggerTimer>>(), NullSlot(),
-        NullSlot()) {}
+        boost::factory<std::unique_ptr<TriggerTimer>>(),
+        [] (auto&&...) {}, [] (auto&&...) {}) {}
 
   template<typename T, typename... Args>
   std::unique_ptr<T> ServiceClientFixture::make_client(Args&&... args) {

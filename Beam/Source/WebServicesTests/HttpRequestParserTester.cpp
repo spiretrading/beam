@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
-#include "Beam/WebServices/HttpRequestParser.hpp"
+
+module Beam;
 
 using namespace Beam;
 

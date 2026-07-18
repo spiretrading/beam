@@ -1,8 +1,6 @@
+module;
 #include "Beam/Python/Queries.hpp"
 #include <sstream>
-#include <Aspen/Conversions.hpp>
-#include <Aspen/Python/Box.hpp>
-#include <Aspen/Python/Reactor.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include "Beam/Python/Collections.hpp"
@@ -22,7 +20,6 @@
 #include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
 #include "Beam/Queries/QueryInterruptedException.hpp"
-#include "Beam/Queries/QueryReactor.hpp"
 #include "Beam/Queries/Range.hpp"
 #include "Beam/Queries/RangedQuery.hpp"
 #include "Beam/Queries/Sequence.hpp"
@@ -31,6 +28,11 @@
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/StandardValues.hpp"
 #include "Beam/Queries/TypeCompatibilityException.hpp"
+
+module Beam;
+
+import Aspen;
+import Aspen.Python;
 
 using namespace Aspen;
 using namespace Beam;

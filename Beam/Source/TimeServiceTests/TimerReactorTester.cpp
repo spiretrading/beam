@@ -1,7 +1,11 @@
-#include <Aspen/Trigger.hpp>
+module;
+#include "Prelude.hpp"
+#include "Beam/TimeService/FixedTimeClient.hpp"
 #include <doctest/doctest.h>
-#include "Beam/TimeService/TimerReactor.hpp"
-#include "Beam/TimeService/TriggerTimer.hpp"
+
+module Beam;
+
+import Aspen;
 
 using namespace Aspen;
 using namespace Beam;

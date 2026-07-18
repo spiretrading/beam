@@ -1,7 +1,5 @@
+module;
 #include "Beam/Python/Queues.hpp"
-#include <Aspen/Conversions.hpp>
-#include <Aspen/Python/Box.hpp>
-#include <Aspen/Python/Reactor.hpp>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "Beam/Python/GilLock.hpp"
@@ -11,11 +9,14 @@
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/BaseQueue.hpp"
 #include "Beam/Queues/Publisher.hpp"
-#include "Beam/Queues/PublisherReactor.hpp"
-#include "Beam/Queues/QueueReactor.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/TaskQueue.hpp"
+
+module Beam;
+
+import Aspen;
+import Aspen.Python;
 
 using namespace Aspen;
 using namespace Beam;

@@ -1,9 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <atomic>
 #include <stdexcept>
 #include <vector>
-#include <doctest/doctest.h>
 #include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/BufferedDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
@@ -11,6 +12,8 @@
 #include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"
 #include "Beam/Routines/Scheduler.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

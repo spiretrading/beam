@@ -1,31 +1,16 @@
-#include <atomic>
-#include <cstdlib>
-#include <iostream>
-#include <random>
-#include <string>
+module;
+#include "Prelude.hpp"
 #include <boost/date_time.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/Collections/SynchronizedSet.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Queries/BasicQuery.hpp"
-#include "Beam/Queries/LocalDataStore.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
-#include "Beam/Queries/IndexedSubscriptions.hpp"
-#include "Beam/Queries/QueryClientPublisher.hpp"
 #include "Beam/Queries/QueryResult.hpp"
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
-#include "Beam/Routines/RoutineHandlerGroup.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/Services/RecordMessage.hpp"
-#include "Beam/Services/Service.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
-#include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

@@ -1,11 +1,11 @@
-#include <Aspen/Constant.hpp>
-#include <Aspen/Queue.hpp>
-#include <Aspen/Shared.hpp>
-#include <Aspen/Trigger.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Queues/Queue.hpp"
-#include "Beam/TimeService/CurrentTimeReactor.hpp"
+module;
+#include "Prelude.hpp"
 #include "Beam/TimeService/FixedTimeClient.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
+
+import Aspen;
 
 using namespace Aspen;
 using namespace Beam;

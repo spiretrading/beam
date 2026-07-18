@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/QueuesTests/*.cpp)
 add_executable(QueuesTests ${header_files} ${source_files})
+target_link_libraries(QueuesTests Beam aspen)
 if(UNIX)
   target_link_libraries(QueuesTests
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}

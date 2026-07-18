@@ -69,6 +69,23 @@ file(GLOB header_files ${codecs_header_files} ${collections_header_files}
   ${stomp_header_files} ${threading_header_files} ${time_service_header_files}
   ${uid_service_header_files} ${utilities_header_files}
   ${web_services_header_files})
-add_library(Beam ${header_files} ${source_files})
+file(GLOB_RECURSE beam_module_files "${BEAM_MODULES_PATH}/*.ixx"
+  "${BEAM_MODULES_PATH}/*.cpp")
+list(FILTER beam_module_files EXCLUDE REGEX "/Python/")
+source_group(TREE "${BEAM_MODULES_PATH}" PREFIX "Modules"
+  FILES ${beam_module_files})
+add_library(Beam ${header_files} ${beam_module_files} ${source_files})
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Beam PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME Beam)
+target_link_libraries(Beam aspen
+  debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
+  optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
+  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
+  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
+  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
+  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
+  debug ${ZLIB_LIBRARY_DEBUG_PATH}
+  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
+if(WIN32)
+  target_link_libraries(Beam bcrypt crypt32 Secur32 shlwapi Ws2_32)
+endif()

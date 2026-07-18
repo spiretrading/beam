@@ -1,6 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include "Beam/QueriesTests/TestEntry.hpp"
 #include <boost/date_time/posix_time/posix_time_io.hpp>
-#include "Beam/Queries/MemberAccessEvaluatorNode.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

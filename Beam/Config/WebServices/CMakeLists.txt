@@ -1,6 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/WebServicesTests/*.cpp)
 add_executable(WebServicesTests ${source_files})
-target_link_libraries(WebServicesTests
+target_link_libraries(WebServicesTests Beam aspen
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug ${SQLITE_LIBRARY_DEBUG_PATH}

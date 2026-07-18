@@ -1,8 +1,9 @@
-#include <boost/functional/factory.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/ServicesTests/TestServices.hpp"
-#include "Beam/UidService/LocalUidDataStore.hpp"
-#include "Beam/UidService/UidServlet.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

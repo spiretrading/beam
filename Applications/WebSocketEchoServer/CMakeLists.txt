@@ -28,7 +28,7 @@ if(NOT configure_result EQUAL 0)
   message(FATAL_ERROR "Configuration script failed with error:\n${configure_error}\nOutput:\n${configure_output}")
 endif()
 include(../../Beam/Config/dependencies.cmake)
-include_directories(${BEAM_INCLUDE_PATH})
+include_directories(SYSTEM ${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
 include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
 include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
@@ -55,6 +55,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
   add_compile_options($<$<CONFIG:Release>:-pthreads>)
 endif()
+include(../../Beam/Config/modules.cmake)
 include_directories(Include)
 include_directories(${PROJECT_BINARY_DIR})
 file(GLOB_RECURSE header_files ${PROJECT_BINARY_DIR}/*.hpp
@@ -63,7 +64,7 @@ file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(WebSocketEchoServer ${header_files} ${source_files})
 target_compile_definitions(WebSocketEchoServer PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(WebSocketEchoServer
+target_link_libraries(WebSocketEchoServer Beam aspen
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}

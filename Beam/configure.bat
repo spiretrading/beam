@@ -116,6 +116,10 @@ IF EXIST "!DIRECTORY!Include" (
   DIR /a-d /b /s "!DIRECTORY!Include\*" > "!TEMP_FILE!"
   CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\hpp_hash.txt"
 )
+IF EXIST "!DIRECTORY!Modules" (
+  DIR /a-d /b /s "!DIRECTORY!Modules\*" > "!TEMP_FILE!"
+  CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\ixx_hash.txt"
+)
 IF EXIST "!DIRECTORY!Source" (
   DIR /a-d /b /s "!DIRECTORY!Source\*" > "!TEMP_FILE!"
   CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\cpp_hash.txt"

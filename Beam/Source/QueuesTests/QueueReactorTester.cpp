@@ -1,7 +1,10 @@
-#include <Aspen/Trigger.hpp>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Queues/Queue.hpp"
-#include "Beam/Queues/QueueReactor.hpp"
+
+module Beam;
+
+import Aspen;
 
 using namespace Aspen;
 using namespace Beam;

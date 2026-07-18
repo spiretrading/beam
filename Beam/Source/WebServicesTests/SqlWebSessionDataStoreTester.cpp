@@ -1,8 +1,10 @@
-#include <doctest/doctest.h>
+module;
+#include "Prelude.hpp"
 #include <Viper/Sqlite3/Connection.hpp>
 #include "Beam/Sql/SqlConnection.hpp"
-#include "Beam/WebServices/SqlWebSessionDataStore.hpp"
-#include "Beam/WebServices/WebSession.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 using namespace Viper;

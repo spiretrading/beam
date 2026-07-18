@@ -1,15 +1,20 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/LocalClientChannel.hpp"
 #include "Beam/IO/LocalServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Queries/IndexedSubscriptions.hpp"
 #include "Beam/QueriesTests/TestEntry.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
+
+#pragma warning(disable: 4355)
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

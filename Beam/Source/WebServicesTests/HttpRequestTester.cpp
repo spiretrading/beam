@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <boost/optional/optional_io.hpp>
-#include <doctest/doctest.h>
 #include <Beam/Utilities/ToString.hpp>
-#include "Beam/WebServices/HttpRequest.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 

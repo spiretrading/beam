@@ -1,8 +1,11 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
+#include "Beam/UidServiceTests/UidDataStoreTestSuite.hpp"
 #include <Viper/Sqlite3/Connection.hpp>
 #include "Beam/Sql/SqlConnection.hpp"
-#include "Beam/UidService/SqlUidDataStore.hpp"
-#include "Beam/UidServiceTests/UidDataStoreTestSuite.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

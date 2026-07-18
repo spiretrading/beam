@@ -1,6 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/SignalHandlingTests/*.cpp)
 add_executable(SignalHandlingTests ${source_files})
-target_link_libraries(SignalHandlingTests
+target_link_libraries(SignalHandlingTests Beam aspen
   debug ${SQLITE_LIBRARY_DEBUG_PATH}
   optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)

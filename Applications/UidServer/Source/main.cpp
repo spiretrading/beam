@@ -1,22 +1,18 @@
-#include <boost/functional/factory.hpp>
+module;
+#include "Prelude.hpp"
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
-#include "Beam/Codecs/NullEncoder.hpp"
-#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
-#include "Beam/Serialization/BinaryReceiver.hpp"
-#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
-#include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Sql/SqlConnection.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
-#include "Beam/UidService/SqlUidDataStore.hpp"
-#include "Beam/UidService/UidServlet.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace boost;

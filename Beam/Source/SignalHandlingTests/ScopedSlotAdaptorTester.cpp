@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
 #include <functional>
 #include <stdexcept>
 #include <doctest/doctest.h>
-#include "Beam/SignalHandling/ScopedSlotAdaptor.hpp"
+
+module Beam;
 
 using namespace Beam;
 

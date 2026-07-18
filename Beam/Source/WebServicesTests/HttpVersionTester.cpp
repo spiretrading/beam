@@ -1,6 +1,9 @@
-#include <doctest/doctest.h>
+module;
+#include "Prelude.hpp"
 #include "Beam/Utilities/ToString.hpp"
-#include "Beam/WebServices/HttpVersion.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,9 +1,11 @@
-#include <vector>
-#include <Aspen/Trigger.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Queues/PublisherReactor.hpp"
-#include "Beam/Queues/Queue.hpp"
+module;
+#include "Prelude.hpp"
 #include "Beam/Queues/SequencePublisher.hpp"
+#include <doctest/doctest.h>
+
+module Beam;
+
+import Aspen;
 
 using namespace Aspen;
 using namespace Beam;

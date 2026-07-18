@@ -28,7 +28,7 @@ if(NOT configure_result EQUAL 0)
   message(FATAL_ERROR "Configuration script failed with error:\n${configure_error}\nOutput:\n${configure_output}")
 endif()
 include(../../Beam/Config/dependencies.cmake)
-include_directories(${BEAM_INCLUDE_PATH})
+include_directories(SYSTEM ${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
 include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
 include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
@@ -58,6 +58,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
   add_compile_options($<$<CONFIG:Release>:-pthreads>)
 endif()
 include_directories(Include)
+include(../../Beam/Config/modules.cmake)
 include_directories(${PROJECT_BINARY_DIR})
 file(GLOB_RECURSE header_files ${PROJECT_BINARY_DIR}/*.hpp
   Include/DataStoreProfiler/*.hpp)
@@ -65,7 +66,7 @@ file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(DataStoreProfiler ${header_files} ${source_files})
 target_compile_definitions(DataStoreProfiler PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(DataStoreProfiler
+target_link_libraries(DataStoreProfiler Beam aspen
   debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
   optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
   debug ${MYSQL_LIBRARY_DEBUG_PATH}
@@ -79,7 +80,7 @@ target_link_libraries(DataStoreProfiler
   debug ${ZLIB_LIBRARY_DEBUG_PATH}
   optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
 if(UNIX)
-  target_link_libraries(DataStoreProfiler
+  target_link_libraries(DataStoreProfiler Beam aspen
     debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}

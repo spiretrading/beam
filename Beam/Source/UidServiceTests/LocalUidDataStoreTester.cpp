@@ -1,6 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/UidService/LocalUidDataStore.hpp"
 #include "Beam/UidServiceTests/UidDataStoreTestSuite.hpp"
+
+module Beam;
 
 using namespace Beam;
 using namespace Beam::Tests;

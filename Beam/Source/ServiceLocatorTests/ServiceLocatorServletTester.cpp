@@ -12,7 +12,6 @@
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
 #include "Beam/Services/ServiceProtocolClient.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
-#include "Beam/SignalHandling/NullSlot.hpp"
 #include "Beam/TimeService/TriggerTimer.hpp"
 
 using namespace Beam;

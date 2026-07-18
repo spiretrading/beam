@@ -1,7 +1,7 @@
 #ifndef BEAM_UID_DATA_STORE_TEST_SUITE_HPP
 #define BEAM_UID_DATA_STORE_TEST_SUITE_HPP
+#include <cstdint>
 #include <doctest/doctest.h>
-#include "Beam/UidService/UidDataStore.hpp"
 
 namespace Beam::Tests {
   TEST_CASE_TEMPLATE_DEFINE("UidDataStore", T, UidDataStoreTestSuite) {

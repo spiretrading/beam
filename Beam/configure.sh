@@ -112,6 +112,9 @@ check_hashes() {
   if [[ -d "$DIRECTORY/Include" ]]; then
     check_directory_hash "$DIRECTORY/Include" "CMakeFiles/hpp_hash.txt"
   fi
+  if [[ -d "$DIRECTORY/Modules" ]]; then
+    check_directory_hash "$DIRECTORY/Modules" "CMakeFiles/ixx_hash.txt"
+  fi
   if [[ -d "$DIRECTORY/Source" ]]; then
     check_directory_hash "$DIRECTORY/Source" "CMakeFiles/cpp_hash.txt"
   fi

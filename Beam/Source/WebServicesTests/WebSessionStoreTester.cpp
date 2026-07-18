@@ -1,8 +1,9 @@
+module;
+#include "Prelude.hpp"
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
-#include "Beam/WebServices/NullWebSessionDataStore.hpp"
-#include "Beam/WebServices/WebSession.hpp"
-#include "Beam/WebServices/WebSessionStore.hpp"
+
+module Beam;
 
 using namespace Beam;
 

@@ -1,10 +1,9 @@
-#ifndef BEAM_KEY_VALUE_PAIR_HPP
-#define BEAM_KEY_VALUE_PAIR_HPP
-#include <ostream>
-#include <utility>
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:KeyValuePair;
+
+export namespace Beam {
 
   /**
    * Stores a key/value pair.
@@ -45,4 +44,3 @@ namespace Beam {
   };
 }
 
-#endif

@@ -110,7 +110,6 @@
 #include "Beam/IO/PipedReader.hpp"
 #include "Beam/IO/PipedWriter.hpp"
 #include "Beam/IO/Reader.hpp"
-#include "Beam/IO/ServerConnection.hpp"
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/SocketException.hpp"
@@ -132,7 +131,6 @@
 #include "Beam/Utilities/Algorithm.hpp"
 #include "Beam/Utilities/Casts.hpp"
 #include "Beam/Utilities/Expect.hpp"
-#include "Beam/Utilities/KeyValuePair.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
@@ -140,7 +138,6 @@
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Pointers/VirtualPtr.hpp"
 #include "Beam/Queries/AndExpression.hpp"
-#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Evaluator.hpp"
 #include "Beam/Queries/EvaluatorNode.hpp"
@@ -148,7 +145,6 @@
 #include "Beam/Queries/FunctionEvaluatorNode.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/GlobalVariableDeclarationExpression.hpp"
-#include "Beam/Queries/IndexedValue.hpp"
 #include "Beam/Queries/MemberAccessExpression.hpp"
 #include "Beam/Queries/NotExpression.hpp"
 #include "Beam/Queries/OrExpression.hpp"
@@ -168,7 +164,6 @@
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/RoutineTaskQueue.hpp"
-#include "Beam/Queues/ScopedQueueReader.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Routines/Routine.hpp"
@@ -192,7 +187,6 @@
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 #include "Beam/TimeService/LiveTimer.hpp"
-#include "Beam/TimeService/TimeClient.hpp"
 #include "Beam/TimeService/Timer.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
@@ -246,6 +240,17 @@
 #include "Beam/Pointers/NativePointerPolicy.hpp"
 #include "Beam/Services/NullSession.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
+#include "Beam/Collections/AnyIterator.hpp"
+#include "Beam/Collections/SharedIterator.hpp"
+#include "Beam/Queries/IndexedQuery.hpp"
+#include "Beam/Queries/InterruptableQuery.hpp"
+#include "Beam/Queues/WeakQueueWriter.hpp"
+#include "Beam/Serialization/ShuttleOptional.hpp"
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/iterator/counting_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/tuple/tuple.hpp>
 #ifdef DELETE
   #undef DELETE
 #endif

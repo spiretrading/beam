@@ -3,6 +3,8 @@ module;
 
 export module Beam:ChannelAdapterServerConnection;
 
+import :ServerConnection;
+
 export namespace Beam {
 
   /**

@@ -1,13 +1,9 @@
-#ifndef BEAM_TIME_CLIENT_HPP
-#define BEAM_TIME_CLIENT_HPP
-#include <string>
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include "Beam/IO/Connection.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/VirtualPtr.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:TimeClient;
+
+export namespace Beam {
 
   /** Standard name for the time service. */
   inline const auto TIME_SERVICE_NAME = std::string("time_service");
@@ -113,4 +109,3 @@ namespace Beam {
   }
 }
 
-#endif

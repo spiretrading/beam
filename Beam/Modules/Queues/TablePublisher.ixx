@@ -3,6 +3,8 @@ module;
 
 export module Beam:TablePublisher;
 
+import :KeyValuePair;
+
 export namespace Beam {
 
   /**

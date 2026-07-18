@@ -3,6 +3,8 @@ module;
 
 export module Beam:LocalTimeClient;
 
+import :TimeClient;
+
 export namespace Beam {
 
   /** A TimeClient that uses the local computer's clock. */

@@ -1,14 +1,9 @@
-#ifndef BEAM_PAGED_QUERY_HPP
-#define BEAM_PAGED_QUERY_HPP
-#include <ostream>
-#include <boost/optional/optional.hpp>
-#include "Beam/Queries/FilteredQuery.hpp"
-#include "Beam/Queries/IndexedQuery.hpp"
-#include "Beam/Queries/SnapshotLimitedQuery.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/ShuttleOptional.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:PagedQuery;
+
+export namespace Beam {
 
   /**
    * Composes various queries into a query whose results are returned in pages.
@@ -80,4 +75,3 @@ namespace Beam {
   }
 }
 
-#endif

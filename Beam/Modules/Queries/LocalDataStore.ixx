@@ -3,6 +3,7 @@ module;
 
 export module Beam:LocalDataStore;
 
+import :IndexedValue;
 import :LocalDataStoreEntry;
 import :SynchronizedMap;
 

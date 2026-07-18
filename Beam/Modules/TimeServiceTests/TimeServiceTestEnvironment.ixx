@@ -4,6 +4,7 @@ module;
 export module Beam:TimeServiceTestEnvironment;
 
 import :FixedTimeClient;
+import :TimeClient;
 import :TimeServiceTestEnvironmentException;
 import :TriggerTimer;
 

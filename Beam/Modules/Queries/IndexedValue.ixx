@@ -1,11 +1,9 @@
-#ifndef BEAM_INDEXED_VALUE_HPP
-#define BEAM_INDEXED_VALUE_HPP
-#include <ostream>
-#include <utility>
-#include "Beam/Queries/Range.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:IndexedValue;
+
+export namespace Beam {
 
   /**
    * Stores a value and its index.
@@ -189,4 +187,3 @@ namespace Beam {
   };
 }
 
-#endif

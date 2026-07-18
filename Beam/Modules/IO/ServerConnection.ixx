@@ -1,15 +1,9 @@
-#ifndef BEAM_SERVER_CONNECTION_HPP
-#define BEAM_SERVER_CONNECTION_HPP
-#include <concepts>
-#include <memory>
-#include <utility>
-#include "Beam/IO/Channel.hpp"
-#include "Beam/IO/Connection.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Pointers/VirtualPtr.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ServerConnection;
+
+export namespace Beam {
 
   /**
    * Concept satisfied by types that implement the ServerConnection interface.
@@ -118,4 +112,3 @@ namespace Beam {
   }
 }
 
-#endif

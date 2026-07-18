@@ -1,14 +1,9 @@
-#ifndef BEAM_SCOPED_QUEUE_READER_HPP
-#define BEAM_SCOPED_QUEUE_READER_HPP
-#include <memory>
-#include <type_traits>
-#include <boost/throw_exception.hpp>
-#include "Beam/Pointers/Dereference.hpp"
-#include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Queues/QueueReader.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:ScopedQueueReader;
+
+export namespace Beam {
 
   /**
    * Stores a handle to a QueueReader that breaks when the object goes out of
@@ -108,4 +103,3 @@ namespace Beam {
   }
 }
 
-#endif

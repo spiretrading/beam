@@ -3,6 +3,7 @@ module;
 
 export module Beam:IndexedSubscriptions;
 
+import :IndexedValue;
 import :QueryResult;
 import :Subscriptions;
 import :SynchronizedMap;

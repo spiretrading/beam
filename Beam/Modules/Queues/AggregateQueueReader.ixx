@@ -3,6 +3,8 @@ module;
 
 export module Beam:AggregateQueueReader;
 
+import :ScopedQueueReader;
+
 export namespace Beam {
 
   /**

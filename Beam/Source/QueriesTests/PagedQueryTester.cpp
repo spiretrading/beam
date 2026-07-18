@@ -1,7 +1,10 @@
+module;
+#include "Prelude.hpp"
+#include <doctest/doctest.h>
 #include <string>
 #include <boost/optional/optional_io.hpp>
-#include <doctest/doctest.h>
-#include "Beam/Queries/PagedQuery.hpp"
+
+module Beam;
 
 using namespace Beam;
 

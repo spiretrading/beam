@@ -5,6 +5,7 @@ export module Beam:IndexedExpressionSubscriptions;
 
 import :ExpressionQuery;
 import :ExpressionSubscriptions;
+import :IndexedValue;
 import :QueryResult;
 import :Subscriptions;
 import :SynchronizedMap;

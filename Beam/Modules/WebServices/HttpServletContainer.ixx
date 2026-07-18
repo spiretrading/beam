@@ -4,6 +4,7 @@ module;
 export module Beam:HttpServletContainer;
 
 import :HttpServer;
+import :ServerConnection;
 
 export namespace Beam {
 namespace Details {

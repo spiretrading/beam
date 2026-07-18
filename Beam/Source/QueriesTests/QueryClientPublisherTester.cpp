@@ -4,7 +4,6 @@ module;
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
-#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"

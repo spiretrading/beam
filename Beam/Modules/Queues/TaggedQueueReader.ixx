@@ -3,6 +3,8 @@ module;
 
 export module Beam:TaggedQueueReader;
 
+import :KeyValuePair;
+
 export namespace Beam {
 
   /**

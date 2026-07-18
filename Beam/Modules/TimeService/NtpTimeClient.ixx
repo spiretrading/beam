@@ -3,6 +3,7 @@ module;
 
 export module Beam:NtpTimeClient;
 
+import :TimeClient;
 import :UdpSocketChannel;
 
 export namespace Beam {

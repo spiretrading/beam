@@ -3,6 +3,7 @@ module;
 
 export module Beam:SessionCachedDataStore;
 
+import :IndexedValue;
 import :SessionCachedDataStoreEntry;
 import :SynchronizedMap;
 

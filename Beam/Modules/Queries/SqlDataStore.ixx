@@ -3,7 +3,9 @@ module;
 
 export module Beam:SqlDataStore;
 
+import :BasicQuery;
 import :DatabaseConnectionPool;
+import :IndexedValue;
 import :SqlTranslator;
 
 export namespace Beam {

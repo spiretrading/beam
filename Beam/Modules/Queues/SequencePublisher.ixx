@@ -1,14 +1,9 @@
-#ifndef BEAM_SEQUENCE_PUBLISHER_HPP
-#define BEAM_SEQUENCE_PUBLISHER_HPP
-#include <vector>
-#include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Queues/SnapshotPublisher.hpp"
-#include "Beam/Queues/WeakQueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:SequencePublisher;
+
+export namespace Beam {
 
   /**
    * Publishes a sequence of data.
@@ -134,4 +129,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -3,6 +3,7 @@ module;
 
 export module Beam:BufferedDataStore;
 
+import :IndexedValue;
 import :LocalDataStore;
 
 export namespace Beam {

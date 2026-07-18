@@ -4,7 +4,6 @@ module;
 #include <atomic>
 #include <stdexcept>
 #include <vector>
-#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Routines/RoutineHandler.hpp"

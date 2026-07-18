@@ -1,6 +1,5 @@
 module;
 #include "Prelude.hpp"
-#include "Beam/Queues/SequencePublisher.hpp"
 #include <doctest/doctest.h>
 
 module Beam;

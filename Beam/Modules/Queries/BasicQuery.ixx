@@ -1,14 +1,9 @@
-#ifndef BEAM_BASIC_QUERY_HPP
-#define BEAM_BASIC_QUERY_HPP
-#include <ostream>
-#include "Beam/Queries/FilteredQuery.hpp"
-#include "Beam/Queries/IndexedQuery.hpp"
-#include "Beam/Queries/InterruptableQuery.hpp"
-#include "Beam/Queries/RangedQuery.hpp"
-#include "Beam/Queries/SnapshotLimitedQuery.hpp"
-#include "Beam/Serialization/DataShuttle.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:BasicQuery;
+
+export namespace Beam {
 
   /**
    * Composes various standard query types into a query with common and basic
@@ -84,4 +79,3 @@ namespace Beam {
   }
 }
 
-#endif

@@ -3,6 +3,7 @@ module;
 
 export module Beam:AsyncDataStore;
 
+import :IndexedValue;
 import :LocalDataStore;
 
 export namespace Beam {

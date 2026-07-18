@@ -3,6 +3,7 @@ module;
 
 export module Beam:ServiceProtocolServer;
 
+import :ServerConnection;
 import :SynchronizedSet;
 
 export namespace Beam {

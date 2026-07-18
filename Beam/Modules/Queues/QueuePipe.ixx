@@ -5,6 +5,8 @@ module;
 
 export module Beam:QueuePipe;
 
+import :ScopedQueueReader;
+
 export namespace Beam {
 
   /**

@@ -1,6 +1,9 @@
-#include <vector>
+module;
+#include "Prelude.hpp"
 #include <doctest/doctest.h>
-#include "Beam/Collections/View.hpp"
+#include <vector>
+
+module Beam;
 
 using namespace Beam;
 

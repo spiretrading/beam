@@ -3,6 +3,8 @@ module;
 
 export module Beam:FilteredQueueReader;
 
+import :ScopedQueueReader;
+
 export namespace Beam {
 
   /**

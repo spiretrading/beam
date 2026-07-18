@@ -3,6 +3,9 @@ module;
 
 export module Beam:TestEntry;
 
+import :BasicQuery;
+import :IndexedValue;
+
 namespace Beam::Tests {
 
   /** Represents a data store entry used for testing purposes. */

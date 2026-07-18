@@ -3,6 +3,8 @@ module;
 
 export module Beam:FixedTimeClient;
 
+import :TimeClient;
+
 export namespace Beam {
 
   /** A TimeClient whose value is set programmatically. */

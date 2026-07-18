@@ -4,6 +4,8 @@ module;
 
 export module Beam:QueueReactor;
 
+import :ScopedQueueReader;
+
 import Aspen;
 
 export namespace Beam {

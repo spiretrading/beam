@@ -3,6 +3,8 @@ module;
 
 export module Beam:Sequencer;
 
+import :IndexedValue;
+
 export namespace Beam {
 
   /** Produces SequencedValues encoding the timestamp into the Sequence. */

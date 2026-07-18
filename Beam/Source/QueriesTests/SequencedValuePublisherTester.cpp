@@ -2,7 +2,6 @@ module;
 #include "Prelude.hpp"
 #include <doctest/doctest.h>
 #include <string>
-#include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queues/Queue.hpp"
 
 module Beam;

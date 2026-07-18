@@ -3,7 +3,6 @@ module;
 #include <doctest/doctest.h>
 #include <vector>
 #include <Viper/Sqlite3/Sqlite3.hpp>
-#include "Beam/Queries/BasicQuery.hpp"
 
 module Beam;
 

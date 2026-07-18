@@ -1,17 +1,9 @@
-#ifndef BEAM_VIEW_HPP
-#define BEAM_VIEW_HPP
-#include <concepts>
-#include <iterator>
-#include <memory>
-#include <boost/iterator/counting_iterator.hpp>
-#include <boost/iterator/transform_iterator.hpp>
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/tuple/tuple.hpp>
-#include "Beam/Collections/AnyIterator.hpp"
-#include "Beam/Collections/SharedIterator.hpp"
-#include "Beam/Utilities/TypeTraits.hpp"
+module;
+#include "Prelude.hpp"
 
-namespace Beam {
+export module Beam:View;
+
+export namespace Beam {
 
   /**
    * Provides a shallow view over a collection or pair of iterators.
@@ -278,4 +270,3 @@ namespace Beam {
   }
 }
 
-#endif

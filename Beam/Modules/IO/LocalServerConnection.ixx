@@ -5,6 +5,7 @@ export module Beam:LocalServerConnection;
 
 import :LocalClientChannel;
 import :LocalServerChannel;
+import :ServerConnection;
 
 export namespace Beam {
 namespace Details {

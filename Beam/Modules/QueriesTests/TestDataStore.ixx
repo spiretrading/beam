@@ -3,6 +3,8 @@ module;
 
 export module Beam:TestDataStore;
 
+import :IndexedValue;
+
 export namespace Beam::Tests {
 
   /**

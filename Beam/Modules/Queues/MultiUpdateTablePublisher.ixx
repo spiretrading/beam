@@ -3,6 +3,8 @@ module;
 
 export module Beam:MultiUpdateTablePublisher;
 
+import :KeyValuePair;
+
 export namespace Beam {
 
   /**

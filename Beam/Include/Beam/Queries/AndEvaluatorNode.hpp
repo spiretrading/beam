@@ -1,5 +1,6 @@
 #ifndef BEAM_AND_EVALUATOR_NODE_HPP
 #define BEAM_AND_EVALUATOR_NODE_HPP
+#include <memory>
 #include <utility>
 #include "Beam/Queries/EvaluatorNode.hpp"
 

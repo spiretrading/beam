@@ -78,6 +78,8 @@ namespace Details {
 
   /**
    * Exports default methods and operators for a pybind11 class if they exist.
+   * In place operators are excluded, they let arithmetic through one name
+   * mutate every other name for the same object.
    * @param class_binding The pybind11::class_ object to export methods to.
    * @return The modified class binding for chaining.
    */
@@ -262,46 +264,6 @@ namespace Details {
     if constexpr(requires(double left, const Type& right) {
         { left / right } -> std::convertible_to<Type>; }) {
       class_binding.def(double() / self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left += right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self += self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left -= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self -= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left *= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self *= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left /= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self /= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left %= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self %= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left &= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self &= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left |= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self |= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left ^= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self ^= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left <<= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self <<= self);
-    }
-    if constexpr(requires(Type& left, const Type& right) {
-        { left >>= right } -> std::convertible_to<Type&>; }) {
-      class_binding.def(self >>= self);
     }
     if constexpr(requires(const Type& value) {
         { value.size() } -> std::convertible_to<std::size_t>; }) {

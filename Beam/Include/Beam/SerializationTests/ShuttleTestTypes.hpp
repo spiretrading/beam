@@ -261,7 +261,8 @@ namespace Tests {
   };
 
   template<>
-  constexpr auto shuttle_version<Tests::ClassWithVersioning> = unsigned(2);
+  inline constexpr auto shuttle_version<Tests::ClassWithVersioning> =
+    unsigned(2);
 
   template<>
   inline constexpr auto is_structure<Tests::ProxiedFunctionType> = false;

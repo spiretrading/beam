@@ -31,8 +31,8 @@ main() {
     "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" \
     "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
   add_dependency "yaml-cpp" \
-    "https://github.com/jbeder/yaml-cpp/archive/0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79.zip" \
-    "ff55e0cc373295b8503faf52a5e9569b950d8ec3e704508a62fe9159c37185bc" \
+    "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.zip" \
+    "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" \
     "build_yaml_cpp"
   add_dependency "zlib-1.3.1.2" \
     "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip" \

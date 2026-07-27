@@ -11,9 +11,9 @@ CALL :AddDependency "cryptopp890" ^
   "https://github.com/weidai11/cryptopp/archive/b524266.zip" ^
   "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" ^
   ":BuildCryptopp"
-CALL :AddDependency "mariadb-connector-c-3.4.8" ^
-  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.8.zip" ^
-  "d8d91088ff33bbfe0d469f0ad50f472a39a2a1d9c9d975aa31c0dbbf504e425f" ^
+CALL :AddDependency "mariadb-connector-c-3.4.9" ^
+  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.9.zip" ^
+  "2342f6e58907f7431b5ccafb8b8e744b6b0e64174d72395d2330576b8a535fb6" ^
   ":BuildMariaDB"
 CALL :AddDependency "openssl-3.6.0" ^
   "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.6.0.zip" ^

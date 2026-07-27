@@ -19,9 +19,9 @@ main() {
     "https://github.com/openssl/openssl/releases/download/openssl-3.6.0/openssl-3.6.0.tar.gz" \
     "b6a5f44b7eb69e3fa35dbf15524405b44837a481d43d81daddde3ff21fcbb8e9" \
     "build_openssl"
-  add_dependency "mariadb-connector-c-3.4.8" \
-    "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.8.zip" \
-    "d8d91088ff33bbfe0d469f0ad50f472a39a2a1d9c9d975aa31c0dbbf504e425f" \
+  add_dependency "mariadb-connector-c-3.4.9" \
+    "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.9.zip" \
+    "2342f6e58907f7431b5ccafb8b8e744b6b0e64174d72395d2330576b8a535fb6" \
     "build_mariadb"
   add_dependency "sqlite-amalgamation-3510200" \
     "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip" \

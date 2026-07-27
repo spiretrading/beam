@@ -14,11 +14,11 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/x64/Output/Release/cryptlib.lib")
 set(MYSQL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/include")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/include")
 set(MYSQL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/libmariadb/Debug/mariadbclient.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/libmariadb/Debug/mariadbclient.lib")
 set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.8/libmariadb/Release/mariadbclient.lib")
+  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/libmariadb/Release/mariadbclient.lib")
 set(OPEN_SSL_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH

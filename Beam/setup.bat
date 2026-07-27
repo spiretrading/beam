@@ -44,7 +44,7 @@ CALL :AddRepo "aspen" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "c5adf4c8101d30077fc0fa35cfb1b7b96bf2d1fe"
+  "4a05efbe7fb41e207e09c1b5cf4e41791edc86ff"
 SET "PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin"
 CALL :InstallDependencies || EXIT /B 1
 CALL :InstallRepos || EXIT /B 1

@@ -1,5 +1,6 @@
 #ifndef BEAM_SHUTTLE_DATE_TIME_HPP
 #define BEAM_SHUTTLE_DATE_TIME_HPP
+#include <cstdint>
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Beam/Serialization/Receiver.hpp"
@@ -7,7 +8,7 @@
 
 namespace Beam {
   template<>
-  constexpr auto is_structure<boost::posix_time::time_duration> = false;
+  inline constexpr auto is_structure<boost::posix_time::time_duration> = false;
 
   template<>
   struct Send<boost::posix_time::time_duration> {
@@ -35,7 +36,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::posix_time::ptime> = false;
+  inline constexpr auto is_structure<boost::posix_time::ptime> = false;
 
   template<>
   struct Send<boost::posix_time::ptime> {
@@ -65,7 +66,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::gregorian::greg_weekday> = false;
+  inline constexpr auto is_structure<boost::gregorian::greg_weekday> = false;
 
   template<>
   inline boost::gregorian::greg_weekday
@@ -92,7 +93,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::gregorian::greg_day> = false;
+  inline constexpr auto is_structure<boost::gregorian::greg_day> = false;
 
   template<>
   inline boost::gregorian::greg_day
@@ -119,7 +120,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::gregorian::greg_month> = false;
+  inline constexpr auto is_structure<boost::gregorian::greg_month> = false;
 
   template<>
   inline boost::gregorian::greg_month
@@ -146,7 +147,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::gregorian::greg_year> = false;
+  inline constexpr auto is_structure<boost::gregorian::greg_year> = false;
 
   template<>
   inline boost::gregorian::greg_year
@@ -173,7 +174,7 @@ namespace Beam {
   };
 
   template<>
-  constexpr auto is_structure<boost::gregorian::date> = false;
+  inline constexpr auto is_structure<boost::gregorian::date> = false;
 
   template<>
   struct Send<boost::gregorian::date> {

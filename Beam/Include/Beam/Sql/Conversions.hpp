@@ -1,5 +1,6 @@
 #ifndef BEAM_SQL_CONVERSIONS_HPP
 #define BEAM_SQL_CONVERSIONS_HPP
+#include <cstdint>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Viper/Conversions.hpp>
 #include <Viper/DataTypes/NativeToDataType.hpp>

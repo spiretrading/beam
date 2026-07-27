@@ -1,6 +1,7 @@
 #ifndef BEAM_EVALUATOR_TRANSLATOR_HPP
 #define BEAM_EVALUATOR_TRANSLATOR_HPP
 #include <array>
+#include <cstdint>
 #include <exception>
 #include <memory>
 #include <unordered_map>

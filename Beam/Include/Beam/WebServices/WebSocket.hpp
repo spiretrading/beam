@@ -1,6 +1,7 @@
 #ifndef BEAM_WEB_SOCKET_HPP
 #define BEAM_WEB_SOCKET_HPP
 #include <array>
+#include <cstdint>
 #include <ctime>
 #include <functional>
 #include <random>

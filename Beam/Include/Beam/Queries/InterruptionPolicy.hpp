@@ -19,7 +19,7 @@ namespace Beam {
   );
 
   template<>
-  constexpr auto is_structure<InterruptionPolicy> = false;
+  inline constexpr auto is_structure<InterruptionPolicy> = false;
 
   template<>
   struct Send<InterruptionPolicy> {

@@ -37,7 +37,7 @@ namespace Beam {
   inline const auto default_parser<JsonValue> = json_p;
 
   template<>
-  constexpr auto is_structure<JsonObject> = false;
+  inline constexpr auto is_structure<JsonObject> = false;
 
   template<>
   struct Send<JsonObject> {

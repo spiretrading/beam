@@ -264,10 +264,10 @@ namespace Tests {
   constexpr auto shuttle_version<Tests::ClassWithVersioning> = unsigned(2);
 
   template<>
-  constexpr auto is_structure<Tests::ProxiedFunctionType> = false;
+  inline constexpr auto is_structure<Tests::ProxiedFunctionType> = false;
 
   template<>
-  constexpr auto is_structure<Tests::ProxiedMethodType> = false;
+  inline constexpr auto is_structure<Tests::ProxiedMethodType> = false;
 
   template<>
   struct Send<Tests::ProxiedFunctionType> {

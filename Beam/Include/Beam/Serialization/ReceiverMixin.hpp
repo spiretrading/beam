@@ -1,5 +1,6 @@
 #ifndef BEAM_RECEIVER_MIXIN_HPP
 #define BEAM_RECEIVER_MIXIN_HPP
+#include <cstdint>
 #include <typeindex>
 #include <type_traits>
 #include "Beam/Pointers/Ref.hpp"

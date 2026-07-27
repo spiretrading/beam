@@ -1,5 +1,6 @@
 #ifndef BEAM_SQL_TRANSLATOR_HPP
 #define BEAM_SQL_TRANSLATOR_HPP
+#include <cstdint>
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <boost/throw_exception.hpp>

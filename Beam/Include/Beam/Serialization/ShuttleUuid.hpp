@@ -9,7 +9,7 @@
 
 namespace Beam {
   template<>
-  constexpr auto is_structure<boost::uuids::uuid> = false;
+  inline constexpr auto is_structure<boost::uuids::uuid> = false;
 
   template<>
   struct Send<boost::uuids::uuid> {

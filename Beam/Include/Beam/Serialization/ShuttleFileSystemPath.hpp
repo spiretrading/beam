@@ -6,7 +6,7 @@
 
 namespace Beam {
   template<>
-  constexpr auto is_structure<std::filesystem::path> = false;
+  inline constexpr auto is_structure<std::filesystem::path> = false;
 
   template<>
   struct Send<std::filesystem::path> {

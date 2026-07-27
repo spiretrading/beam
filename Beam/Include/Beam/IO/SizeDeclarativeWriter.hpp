@@ -1,5 +1,6 @@
 #ifndef BEAM_SIZE_DECLARATIVE_WRITER_HPP
 #define BEAM_SIZE_DECLARATIVE_WRITER_HPP
+#include <cstdint>
 #include <type_traits>
 #include <boost/endian.hpp>
 #include "Beam/IO/IOException.hpp"

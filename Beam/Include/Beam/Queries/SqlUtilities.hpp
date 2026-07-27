@@ -1,5 +1,6 @@
 #ifndef BEAM_QUERIES_SQL_UTILITIES_HPP
 #define BEAM_QUERIES_SQL_UTILITIES_HPP
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>

@@ -1,6 +1,7 @@
 #ifndef BEAM_INTEGRAL_PARSER_HPP
 #define BEAM_INTEGRAL_PARSER_HPP
 #include <cctype>
+#include <cstdint>
 #include "Beam/Parsers/SubParserStream.hpp"
 
 namespace Beam {

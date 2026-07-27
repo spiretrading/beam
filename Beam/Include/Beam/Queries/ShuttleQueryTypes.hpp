@@ -1,5 +1,6 @@
 #ifndef BEAM_SHUTTLE_QUERY_TYPES_HPP
 #define BEAM_SHUTTLE_QUERY_TYPES_HPP
+#include <cstdint>
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"

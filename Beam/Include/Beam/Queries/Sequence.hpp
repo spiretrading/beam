@@ -205,7 +205,7 @@ namespace Beam {
   }
 
   template<>
-  constexpr auto is_structure<Sequence> = false;
+  inline constexpr auto is_structure<Sequence> = false;
 
   template<>
   struct Send<Sequence> {

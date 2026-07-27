@@ -1,5 +1,6 @@
 #ifndef BEAM_SERVICE_LOCATOR_SQL_DEFINITIONS_HPP
 #define BEAM_SERVICE_LOCATOR_SQL_DEFINITIONS_HPP
+#include <cstdint>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <Viper/Row.hpp>
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"

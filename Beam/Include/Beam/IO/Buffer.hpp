@@ -2,6 +2,7 @@
 #define BEAM_BUFFER_BOX_HPP
 #include <array>
 #include <concepts>
+#include <cstdint>
 #include <ostream>
 #include <string_view>
 #include <type_traits>

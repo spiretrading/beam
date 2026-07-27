@@ -1,6 +1,7 @@
 #ifndef BEAM_ENUM_SET_HPP
 #define BEAM_ENUM_SET_HPP
 #include <bitset>
+#include <cstdint>
 #include <type_traits>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/Serialization/Receiver.hpp"

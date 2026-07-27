@@ -1,5 +1,6 @@
 #ifndef BEAM_MESSAGE_PROTOCOL_HPP
 #define BEAM_MESSAGE_PROTOCOL_HPP
+#include <cstdint>
 #include <utility>
 #include <boost/endian.hpp>
 #include <boost/thread/mutex.hpp>

@@ -27,10 +27,9 @@ main() {
     "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip" \
     "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec" \
     "build_sqlite"
-  add_dependency "tclap-1.2.5" \
-    "https://github.com/mirror/tclap/archive/v1.2.5.zip" \
-    "95ec0d0904464cb14009b408a62c50a195c1f24ef0921079b8bd034fdd489e28" \
-    "build_tclap"
+  add_dependency "tclap-1.4.0-rc2" \
+    "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" \
+    "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
   add_dependency "yaml-cpp" \
     "https://github.com/jbeder/yaml-cpp/archive/0f9a586ca1dc29c2ecb8dd715a315b93e3f40f79.zip" \
     "ff55e0cc373295b8503faf52a5e9569b950d8ec3e704508a62fe9159c37185bc" \
@@ -93,14 +92,6 @@ build_mariadb() {
 
 build_sqlite() {
   gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c || return 1
-}
-
-build_tclap() {
-  local cores
-  cores=$(get_core_count)
-  ./autotools.sh || return 1
-  ./configure || return 1
-  make -j "$cores" || return 1
 }
 
 build_yaml_cpp() {

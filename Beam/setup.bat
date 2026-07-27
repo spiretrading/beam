@@ -23,9 +23,9 @@ CALL :AddDependency "sqlite-amalgamation-3510200" ^
   "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip" ^
   "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec" ^
   ":BuildSQLite"
-CALL :AddDependency "tclap-1.2.5" ^
-  "https://github.com/mirror/tclap/archive/v1.2.5.zip" ^
-  "95ec0d0904464cb14009b408a62c50a195c1f24ef0921079b8bd034fdd489e28"
+CALL :AddDependency "tclap-1.4.0-rc2" ^
+  "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" ^
+  "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
 CALL :AddDependency "yaml-cpp" ^
   "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.zip" ^
   "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" ^

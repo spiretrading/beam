@@ -6,5 +6,6 @@ endif()
 include("${PROJECT_BINARY_DIR}/Dependencies/aspen/Config/dependencies.cmake")
 set(BEAM_INCLUDE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Include")
 set(BEAM_SOURCE_PATH "${CMAKE_CURRENT_LIST_DIR}/../Source")
-set(TCLAP_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/tclap-1.2.5/include")
+set(TCLAP_INCLUDE_PATH
+  "${PROJECT_BINARY_DIR}/Dependencies/tclap-1.4.0-rc2/include")
 set(VIPER_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/viper/Include")

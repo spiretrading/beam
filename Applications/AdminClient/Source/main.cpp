@@ -1,5 +1,7 @@
+#include <cctype>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
@@ -51,6 +53,39 @@ namespace {
       current_directory, path);
   }
 
+  Permissions parse_permissions(std::string_view source) {
+    if(source.empty()) {
+      throw std::runtime_error("No permissions specified.");
+    }
+    auto permissions = Permissions();
+    auto is_addition = true;
+    for(auto character : source) {
+      if(character == '+') {
+        is_addition = true;
+      } else if(character == '-') {
+        is_addition = false;
+      } else {
+        auto permission = [&] {
+          auto letter = std::toupper(static_cast<unsigned char>(character));
+          if(letter == 'R') {
+            return Permission::READ;
+          } else if(letter == 'M') {
+            return Permission::MOVE;
+          } else if(letter == 'A') {
+            return Permission::ADMINISTRATE;
+          }
+          throw std::runtime_error("Invalid permission.");
+        }();
+        if(is_addition) {
+          permissions.set(permission);
+        } else {
+          permissions.reset(permission);
+        }
+      }
+    }
+    return permissions;
+  }
+
   void print_help() {
     std::cout << "Available commands:\n\n";
     std::cout << "  mkacc <name> <password>\n";
@@ -60,7 +95,9 @@ namespace {
     std::cout << "  mkdir <name>\n";
     std::cout << "    Create a new directory in the current directory\n\n";
     std::cout << "  chmod <account> <path> <permissions>\n";
-    std::cout << "    Set permissions for an account on a path\n\n";
+    std::cout << "    Set permissions for an account on a path, given as\n";
+    std::cout << "    the letters R (read), M (move) and A (administrate)\n";
+    std::cout << "    preceded by + or -\n\n";
     std::cout << "  associate <account>\n";
     std::cout << "    Associate an account with the current directory\n\n";
     std::cout << "  detach <path>\n";
@@ -105,85 +142,90 @@ int main(int argc, const char** argv) {
       auto tokens = tokenize(input);
       if(tokens.empty()) {
         continue;
-      } else if(tokens[0] == "mkacc") {
-        service_locator_client.make_account(
-          tokens.at(1), tokens.at(2), current_directory);
-      } else if(tokens[0] == "password") {
-        auto source =
-          load_path(service_locator_client, current_directory, tokens.at(1));
-        if(source.m_type != DirectoryEntry::Type::ACCOUNT) {
-          throw std::runtime_error("Not an account.");
+      }
+      try {
+        if(tokens[0] == "mkacc") {
+          service_locator_client.make_account(
+            tokens.at(1), tokens.at(2), current_directory);
+        } else if(tokens[0] == "password") {
+          auto source =
+            load_path(service_locator_client, current_directory, tokens.at(1));
+          if(source.m_type != DirectoryEntry::Type::ACCOUNT) {
+            throw std::runtime_error("Not an account.");
+          }
+          service_locator_client.store_password(source, tokens.at(2));
+        } else if(tokens[0] == "mkdir") {
+          service_locator_client.make_directory(
+            tokens.at(1), current_directory);
+        } else if(tokens[0] == "chmod") {
+          auto source = load_account(service_locator_client, tokens.at(1));
+          auto target =
+            load_path(service_locator_client, current_directory, tokens.at(2));
+          service_locator_client.store(
+            source, target, parse_permissions(tokens.at(3)));
+        } else if(tokens[0] == "associate") {
+          auto entry = load_account(service_locator_client, tokens.at(1));
+          service_locator_client.associate(entry, current_directory);
+        } else if(tokens[0] == "detach") {
+          auto child =
+            load_path(service_locator_client, current_directory, tokens.at(1));
+          service_locator_client.detach(child, current_directory);
+        } else if(tokens[0] == "cd") {
+          auto new_directory =
+            load_path(service_locator_client, current_directory, tokens.at(1));
+          if(new_directory.m_type != DirectoryEntry::Type::DIRECTORY) {
+            throw std::runtime_error("Not a directory.");
+          }
+          current_directory = new_directory;
+          parents = service_locator_client.load_parents(current_directory);
+          children = service_locator_client.load_children(current_directory);
+        } else if(tokens[0] == "lch") {
+          children = service_locator_client.load_children(current_directory);
+          for(auto& child : children) {
+            auto type = [&] {
+              if(child.m_type == DirectoryEntry::Type::DIRECTORY) {
+                return "<DIR>";
+              } else {
+                return "";
+              }
+            }();
+            std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
+              child.m_name << std::endl;
+          }
+        } else if(tokens[0] == "lpr") {
+          parents = service_locator_client.load_parents(current_directory);
+          for(auto& parent : parents) {
+            auto type = [&] {
+              if(parent.m_type == DirectoryEntry::Type::DIRECTORY) {
+                return "<DIR>";
+              } else {
+                return "";
+              }
+            }();
+            std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
+              parent.m_name << std::endl;
+          }
+        } else if(tokens[0] == "del") {
+          auto path =
+            load_path(service_locator_client, current_directory, tokens.at(1));
+          service_locator_client.remove(path);
+        } else if(tokens[0] == "locate") {
+          for(auto& service : service_locator_client.locate(tokens.at(1))) {
+            std::cout << service.get_name() << " " << service.get_id() << "\n";
+            std::cout << service.get_account().m_name << " " <<
+              service.get_account().m_id << "\n";
+            service.get_properties().save(std::cout);
+            std::cout << std::endl;
+          }
+        } else if(tokens[0] == "help") {
+          print_help();
+        } else if(tokens[0] == "exit") {
+          break;
+        } else {
+          std::cout << "Unknown command." << std::endl;
         }
-        service_locator_client.store_password(source, tokens.at(2));
-      } else if(tokens[0] == "mkdir") {
-        service_locator_client.make_directory(tokens.at(1), current_directory);
-      } else if(tokens[0] == "chmod") {
-        auto source = load_account(service_locator_client, tokens.at(1));
-        auto target =
-          load_path(service_locator_client, current_directory, tokens.at(2));
-        auto permissions =
-          Permissions::from_bitmask(lexical_cast<int>(tokens.at(3)));
-        service_locator_client.store(source, target, permissions);
-      } else if(tokens[0] == "associate") {
-        auto entry = load_account(service_locator_client, tokens.at(1));
-        service_locator_client.associate(entry, current_directory);
-      } else if(tokens[0] == "detach") {
-        auto child =
-          load_path(service_locator_client, current_directory, tokens.at(1));
-        service_locator_client.detach(child, current_directory);
-      } else if(tokens[0] == "cd") {
-        auto new_directory =
-          load_path(service_locator_client, current_directory, tokens.at(1));
-        if(new_directory.m_type != DirectoryEntry::Type::DIRECTORY) {
-          throw std::runtime_error("Not a directory.");
-        }
-        current_directory = new_directory;
-        parents = service_locator_client.load_parents(current_directory);
-        children = service_locator_client.load_children(current_directory);
-      } else if(tokens[0] == "lch") {
-        children = service_locator_client.load_children(current_directory);
-        for(auto& child : children) {
-          auto type = [&] {
-            if(child.m_type == DirectoryEntry::Type::DIRECTORY) {
-              return "<DIR>";
-            } else {
-              return "";
-            }
-          }();
-          std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
-            child.m_name << std::endl;
-        }
-      } else if(tokens[0] == "lpr") {
-        parents = service_locator_client.load_parents(current_directory);
-        for(auto& parent : parents) {
-          auto type = [&] {
-            if(parent.m_type == DirectoryEntry::Type::DIRECTORY) {
-              return "<DIR>";
-            } else {
-              return "";
-            }
-          }();
-          std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
-            parent.m_name << std::endl;
-        }
-      } else if(tokens[0] == "del") {
-        auto path =
-          load_path(service_locator_client, current_directory, tokens.at(1));
-        service_locator_client.remove(path);
-      } else if(tokens[0] == "locate") {
-        for(auto& service : service_locator_client.locate(tokens.at(1))) {
-          std::cout << service.get_name() << " " << service.get_id() << "\n";
-          std::cout << service.get_account().m_name << " " <<
-            service.get_account().m_id << "\n";
-          service.get_properties().save(std::cout);
-          std::cout << std::endl;
-        }
-      } else if(tokens[0] == "help") {
-        print_help();
-      } else if(tokens[0] == "exit") {
-        break;
-      } else {
-        std::cout << "Unknown command." << std::endl;
+      } catch(const std::exception&) {
+        report_current_exception();
       }
     }
   } catch(const std::exception&) {

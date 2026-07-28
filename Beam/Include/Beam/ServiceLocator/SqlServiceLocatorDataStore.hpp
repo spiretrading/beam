@@ -1,5 +1,6 @@
 #ifndef BEAM_SQL_SERVICE_LOCATOR_DATA_STORE_HPP
 #define BEAM_SQL_SERVICE_LOCATOR_DATA_STORE_HPP
+#include <algorithm>
 #include <boost/throw_exception.hpp>
 #include <Viper/Viper.hpp>
 #include "Beam/IO/OpenState.hpp"
@@ -246,6 +247,7 @@ namespace Beam {
       boost::throw_with_location(ServiceLocatorDataStoreException(
         "An account with the specified name exists."));
     }
+    ensure_available_name(*this, parent, name);
     auto entry = DirectoryEntry::make_account(load_next_entry_id(), name);
     auto row = AccountsRow(entry, hash_password(entry, password),
       registration_time, boost::posix_time::neg_infin);
@@ -266,18 +268,7 @@ namespace Beam {
       boost::throw_with_location(
         ServiceLocatorDataStoreException("Parent must be a directory."));
     }
-    auto account_exists = [&] {
-      try {
-        load_account(name);
-        return true;
-      } catch(const ServiceLocatorDataStoreException&) {
-        return false;
-      }
-    }();
-    if(account_exists) {
-      boost::throw_with_location(ServiceLocatorDataStoreException(
-        "An account with the specified name exists."));
-    }
+    ensure_available_name(*this, parent, name);
     auto entry = DirectoryEntry::make_directory(load_next_entry_id(), name);
     try {
       m_connection->execute(
@@ -342,6 +333,7 @@ namespace Beam {
     if(std::ranges::contains(parents, validated_parent)) {
       return false;
     }
+    ensure_available_name(*this, validated_parent, entry, entry.m_name);
     try {
       auto parents_row = ParentsRow(entry.m_id, validated_parent.m_id);
       m_connection->execute(
@@ -519,6 +511,20 @@ namespace Beam {
   template<typename C>
   void SqlServiceLocatorDataStore<C>::rename(
       const DirectoryEntry& entry, const std::string& name) {
+    auto is_existing_account = [&] {
+      try {
+        return load_account(name) != entry;
+      } catch(const ServiceLocatorDataStoreException&) {
+        return false;
+      }
+    }();
+    if(is_existing_account) {
+      boost::throw_with_location(ServiceLocatorDataStoreException(
+        "An account with the specified name exists."));
+    }
+    for(auto& parent : load_parents(entry)) {
+      ensure_available_name(*this, parent, entry, name);
+    }
     try {
       m_connection->execute(Viper::update(
         "accounts", {"name", name}, Viper::sym("id") == entry.m_id));

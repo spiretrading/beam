@@ -1,5 +1,6 @@
 #ifndef BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
 #define BEAM_LOCAL_SERVICE_LOCATOR_DATA_STORE_HPP
+#include <algorithm>
 #include <tuple>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
@@ -220,6 +221,7 @@ namespace Beam {
       boost::throw_with_location(ServiceLocatorDataStoreException(
         "An account with the specified name exists."));
     }
+    ensure_available_name(*this, parent, name);
     auto new_entry = DirectoryEntry::make_account(m_next_id, name);
     store(new_entry, hash_password(new_entry, password), registration_time,
       boost::posix_time::neg_infin);
@@ -230,18 +232,7 @@ namespace Beam {
   inline DirectoryEntry LocalServiceLocatorDataStore::make_directory(
       const std::string& name, const DirectoryEntry& parent) {
     m_open_state.ensure_open();
-    auto exists = [&] {
-      try {
-        load_account(name);
-        return true;
-      } catch(const ServiceLocatorDataStoreException&) {
-        return false;
-      }
-    }();
-    if(exists) {
-      boost::throw_with_location(ServiceLocatorDataStoreException(
-        "An account with the specified name exists."));
-    }
+    ensure_available_name(*this, parent, name);
     auto new_entry = DirectoryEntry::make_directory(m_next_id, name);
     store(new_entry);
     associate(new_entry, parent);
@@ -291,6 +282,7 @@ namespace Beam {
     if(parent == entry) {
       return false;
     }
+    ensure_available_name(*this, parent, entry, entry.m_name);
     auto& parents = m_parents[entry];
     if(std::find(parents.begin(), parents.end(), parent) == parents.end()) {
       parents.push_back(parent);
@@ -411,6 +403,20 @@ namespace Beam {
   inline void LocalServiceLocatorDataStore::rename(const DirectoryEntry& entry,
       const std::string& name) {
     m_open_state.ensure_open();
+    auto is_existing_account = [&] {
+      try {
+        return load_account(name) != entry;
+      } catch(const ServiceLocatorDataStoreException&) {
+        return false;
+      }
+    }();
+    if(is_existing_account) {
+      boost::throw_with_location(ServiceLocatorDataStoreException(
+        "An account with the specified name exists."));
+    }
+    for(auto& parent : load_parents(entry)) {
+      ensure_available_name(*this, parent, entry, name);
+    }
     auto account_id = m_id_to_accounts.find(entry.m_id);
     if(account_id != m_id_to_accounts.end()) {
       m_name_to_accounts.erase(account_id->second->m_entry.m_name);

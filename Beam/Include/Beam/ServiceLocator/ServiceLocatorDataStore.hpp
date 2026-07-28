@@ -1,5 +1,6 @@
 #ifndef BEAM_SERVICE_LOCATOR_DATA_STORE_HPP
 #define BEAM_SERVICE_LOCATOR_DATA_STORE_HPP
+#include <algorithm>
 #include <concepts>
 #include <string>
 #include <unordered_set>
@@ -357,6 +358,75 @@ namespace Beam {
       };
       VirtualPtr<VirtualDataStore> m_data_store;
   };
+
+  /**
+   * Returns <code>true</code> if a directory contains an entry with a given
+   * name.
+   * @param data_store The ServiceLocatorDataStore to search.
+   * @param parent The directory whose children are searched.
+   * @param name The name to search for.
+   * @return <code>true</code> iff the <i>parent</i> contains an entry named
+   *         <i>name</i>.
+   */
+  template<typename D>
+  bool has_child(
+      D& data_store, const DirectoryEntry& parent, const std::string& name) {
+    return std::ranges::any_of(
+      data_store.load_children(parent), [&] (const auto& child) {
+        return child.m_name == name;
+      });
+  }
+
+  /**
+   * Returns <code>true</code> if a directory contains an entry with a given
+   * name, disregarding a specified entry.
+   * @param data_store The ServiceLocatorDataStore to search.
+   * @param parent The directory whose children are searched.
+   * @param entry The entry to disregard.
+   * @param name The name to search for.
+   * @return <code>true</code> iff the <i>parent</i> contains an entry named
+   *         <i>name</i> other than the <i>entry</i>.
+   */
+  template<typename D>
+  bool has_name_conflict(D& data_store, const DirectoryEntry& parent,
+      const DirectoryEntry& entry, const std::string& name) {
+    return std::ranges::any_of(
+      data_store.load_children(parent), [&] (const auto& child) {
+        return child.m_name == name && child != entry;
+      });
+  }
+
+  /**
+   * Throws an exception if a directory contains an entry with a given name.
+   * @param data_store The ServiceLocatorDataStore to search.
+   * @param parent The directory whose children are searched.
+   * @param name The name to search for.
+   */
+  template<typename D>
+  void ensure_available_name(
+      D& data_store, const DirectoryEntry& parent, const std::string& name) {
+    if(has_child(data_store, parent, name)) {
+      boost::throw_with_location(ServiceLocatorDataStoreException(
+        "A directory entry with the specified name exists."));
+    }
+  }
+
+  /**
+   * Throws an exception if a directory contains an entry with a given name,
+   * disregarding a specified entry.
+   * @param data_store The ServiceLocatorDataStore to search.
+   * @param parent The directory whose children are searched.
+   * @param entry The entry to disregard.
+   * @param name The name to search for.
+   */
+  template<typename D>
+  void ensure_available_name(D& data_store, const DirectoryEntry& parent,
+      const DirectoryEntry& entry, const std::string& name) {
+    if(has_name_conflict(data_store, parent, entry, name)) {
+      boost::throw_with_location(ServiceLocatorDataStoreException(
+        "A directory entry with the specified name exists."));
+    }
+  }
 
   /**
    * Returns <code>true</code> if a DirectoryEntry has a given permission.

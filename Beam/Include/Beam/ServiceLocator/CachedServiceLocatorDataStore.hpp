@@ -350,8 +350,8 @@ namespace Beam {
   template<typename D> requires IsServiceLocatorDataStore<dereference_t<D>>
   void CachedServiceLocatorDataStore<D>::rename(
       const DirectoryEntry& entry, const std::string& name) {
-    m_cache.rename(entry, name);
     m_data_store->rename(entry, name);
+    m_cache.rename(entry, name);
   }
 
   template<typename D> requires IsServiceLocatorDataStore<dereference_t<D>>

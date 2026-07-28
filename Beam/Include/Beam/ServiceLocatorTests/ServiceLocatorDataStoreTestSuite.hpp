@@ -78,6 +78,43 @@ namespace Beam::Tests {
       REQUIRE(loaded == directory);
     }
 
+    SUBCASE("make_duplicate_directory") {
+      data_store.make_directory("duplicate", DirectoryEntry::STAR_DIRECTORY);
+      REQUIRE_THROWS(
+        data_store.make_directory("duplicate", DirectoryEntry::STAR_DIRECTORY));
+    }
+
+    SUBCASE("make_directory_in_separate_directories") {
+      auto left =
+        data_store.make_directory("left", DirectoryEntry::STAR_DIRECTORY);
+      auto right =
+        data_store.make_directory("right", DirectoryEntry::STAR_DIRECTORY);
+      auto left_child = data_store.make_directory("shared", left);
+      auto right_child = data_store.make_directory("shared", right);
+      REQUIRE(left_child.m_id != right_child.m_id);
+      REQUIRE(load_directory_entry(data_store, left, "shared") == left_child);
+      REQUIRE(load_directory_entry(data_store, right, "shared") == right_child);
+    }
+
+    SUBCASE("make_directory_named_after_account") {
+      auto time = time_from_string("2024-01-01 12:00:00");
+      auto directory =
+        data_store.make_directory("group", DirectoryEntry::STAR_DIRECTORY);
+      data_store.make_account(
+        "trader", "password", DirectoryEntry::STAR_DIRECTORY, time);
+      REQUIRE_THROWS(
+        data_store.make_directory("trader", DirectoryEntry::STAR_DIRECTORY));
+      auto nested = data_store.make_directory("trader", directory);
+      REQUIRE(nested.m_type == DirectoryEntry::Type::DIRECTORY);
+    }
+
+    SUBCASE("make_account_named_after_directory") {
+      auto time = time_from_string("2024-01-01 12:00:00");
+      data_store.make_directory("reserved", DirectoryEntry::STAR_DIRECTORY);
+      REQUIRE_THROWS(data_store.make_account(
+        "reserved", "password", DirectoryEntry::STAR_DIRECTORY, time));
+    }
+
     SUBCASE("associate_and_load_parents") {
       auto time = time_from_string("2024-01-01 12:00:00");
       auto parent =
@@ -101,6 +138,15 @@ namespace Beam::Tests {
       data_store.associate(child, parent);
       auto associated = data_store.associate(child, parent);
       REQUIRE(!associated);
+    }
+
+    SUBCASE("associate_conflicting_name") {
+      auto parent =
+        data_store.make_directory("group", DirectoryEntry::STAR_DIRECTORY);
+      data_store.make_directory("shared", parent);
+      auto entry =
+        data_store.make_directory("shared", DirectoryEntry::STAR_DIRECTORY);
+      REQUIRE_THROWS(data_store.associate(entry, parent));
     }
 
     SUBCASE("associate_with_invalid_parent") {
@@ -271,6 +317,32 @@ namespace Beam::Tests {
       data_store.rename(directory, "new_dir_name");
       auto loaded = data_store.load_directory_entry(directory.m_id);
       REQUIRE(loaded.m_name == "new_dir_name");
+    }
+
+    SUBCASE("rename_to_existing_account") {
+      auto time = time_from_string("2024-01-01 12:00:00");
+      data_store.make_account(
+        "taken", "password", DirectoryEntry::STAR_DIRECTORY, time);
+      auto directory =
+        data_store.make_directory("renamed", DirectoryEntry::STAR_DIRECTORY);
+      REQUIRE_THROWS(data_store.rename(directory, "taken"));
+    }
+
+    SUBCASE("rename_to_sibling_name") {
+      auto parent =
+        data_store.make_directory("group", DirectoryEntry::STAR_DIRECTORY);
+      data_store.make_directory("first", parent);
+      auto second = data_store.make_directory("second", parent);
+      REQUIRE_THROWS(data_store.rename(second, "first"));
+    }
+
+    SUBCASE("rename_to_same_name") {
+      auto time = time_from_string("2024-01-01 12:00:00");
+      auto account = data_store.make_account(
+        "unchanged", "password", DirectoryEntry::STAR_DIRECTORY, time);
+      data_store.rename(account, "unchanged");
+      auto loaded = data_store.load_account("unchanged");
+      REQUIRE(loaded.m_id == account.m_id);
     }
 
     SUBCASE("load_all_accounts") {

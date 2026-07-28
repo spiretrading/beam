@@ -970,18 +970,6 @@ namespace Beam {
         boost::throw_with_location(
           ServiceRequestException("Insufficient permissions."));
       }
-      auto is_existing_account = [&] {
-        try {
-          m_data_store->load_account(name);
-          return true;
-        } catch(const ServiceLocatorDataStoreException&) {
-          return false;
-        }
-      }();
-      if(is_existing_account) {
-        boost::throw_with_location(ServiceRequestException(
-          "An account with the specified name exists."));
-      }
       m_data_store->rename(validated_entry, name);
       validated_entry.m_name = name;
       return validated_entry;

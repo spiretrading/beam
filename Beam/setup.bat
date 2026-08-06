@@ -75,7 +75,8 @@ POPD
 EXIT /B 0
 
 :BuildMariaDB
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb . || EXIT /B 1
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb ^
+  -DCLIENT_PLUGIN_CACHING_SHA2_PASSWORD=STATIC . || EXIT /B 1
 PUSHD libmariadb
 powershell -Command "(Get-Content mariadbclient.vcxproj) -replace " ^
   "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^

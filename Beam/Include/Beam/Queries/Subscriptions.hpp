@@ -213,14 +213,17 @@ namespace Beam {
   void Subscriptions<V, C>::publish(const Value& value,
       ClientFilter client_filter, Sender&& sender) {
     auto last_client = static_cast<const ServiceProtocolClient*>(nullptr);
+    auto is_excluded = false;
+    auto is_receiving = false;
     m_subscriptions.with([&] (const auto& subscriptions) {
       m_receiving_clients.clear();
       for(auto& entry : subscriptions) {
-        if(entry->m_client == last_client) {
-          continue;
-        }
-        if(!client_filter(*entry->m_client)) {
+        if(entry->m_client != last_client) {
           last_client = entry->m_client;
+          is_excluded = !client_filter(*entry->m_client);
+          is_receiving = false;
+        }
+        if(is_excluded) {
           continue;
         }
         auto lock = boost::lock_guard(entry->m_mutex);
@@ -228,10 +231,10 @@ namespace Beam {
             range_point_greater_or_equal(value, entry->m_range.get_start())) &&
               range_point_lesser_or_equal(value, entry->m_range.get_end()) &&
                 test_filter(*entry->m_filter, *value)) {
-          last_client = entry->m_client;
           if(entry->m_state == SubscriptionEntry::State::INITIALIZING) {
             entry->m_write_log.push_back(value);
-          } else {
+          } else if(!is_receiving) {
+            is_receiving = true;
             m_receiving_clients.push_back(entry->m_client);
           }
         }

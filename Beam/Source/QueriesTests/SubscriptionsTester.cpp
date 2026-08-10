@@ -100,6 +100,58 @@ TEST_SUITE("Subscriptions") {
     REQUIRE(publish_count == 1);
   }
 
+  TEST_CASE("publish_while_second_subscription_initializes") {
+    auto fixture = SingleClientFixture();
+    auto [client, subscriptions] =
+      std::tie(fixture.m_client, fixture.m_subscriptions);
+    auto filter1 = translate(ConstantExpression(true));
+    auto query_id1 =
+      subscriptions.init(client, Range::TOTAL, std::move(filter1));
+    auto snapshot1 = QueryResult<SequencedTestEntry>();
+    snapshot1.m_id = query_id1;
+    subscriptions.commit(
+      snapshot1, [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id1);
+      });
+    auto filter2 = translate(ConstantExpression(true));
+    auto query_id2 =
+      subscriptions.init(client, Range::TOTAL, std::move(filter2));
+    auto publish_count = 0;
+    subscriptions.publish(
+      SequencedValue(TestEntry(100, time_from_string("2024-01-15 10:30:00")),
+        Beam::Sequence(1)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(receiving_clients.size() == 1);
+        REQUIRE(receiving_clients.front() == &client);
+        ++publish_count;
+      });
+    REQUIRE(publish_count == 1);
+    auto snapshot2 = QueryResult<SequencedTestEntry>();
+    snapshot2.m_id = query_id2;
+    auto is_committed = false;
+    subscriptions.commit(
+      snapshot2, [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id2);
+        REQUIRE(committed_snapshot.m_snapshot.size() == 1);
+        REQUIRE(
+          committed_snapshot.m_snapshot.front().get_value().m_value == 100);
+        REQUIRE(committed_snapshot.m_snapshot.front().get_sequence() ==
+          Beam::Sequence(1));
+        is_committed = true;
+      });
+    REQUIRE(is_committed);
+    publish_count = 0;
+    subscriptions.publish(
+      SequencedValue(TestEntry(200, time_from_string("2024-01-15 10:30:01")),
+        Beam::Sequence(2)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(receiving_clients.size() == 1);
+        REQUIRE(receiving_clients.front() == &client);
+        ++publish_count;
+      });
+    REQUIRE(publish_count == 1);
+  }
+
   TEST_CASE("multiple_clients") {
     auto server1 = LocalServerConnection();
     auto server_channel1 = std::unique_ptr<LocalServerChannel>();

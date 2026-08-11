@@ -329,4 +329,21 @@ TEST_SUITE("Subscriptions") {
       });
     REQUIRE(received);
   }
+
+  TEST_CASE("commit_after_remove_all") {
+    auto fixture = SingleClientFixture();
+    auto [client, subscriptions] =
+      std::tie(fixture.m_client, fixture.m_subscriptions);
+    auto filter = translate(ConstantExpression(true));
+    auto query_id = subscriptions.init(client, Range::TOTAL, std::move(filter));
+    subscriptions.remove_all(client);
+    auto snapshot = QueryResult<SequencedTestEntry>();
+    snapshot.m_id = query_id;
+    auto is_committed = false;
+    subscriptions.commit(
+      snapshot, [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        is_committed = true;
+      });
+    REQUIRE(!is_committed);
+  }
 }

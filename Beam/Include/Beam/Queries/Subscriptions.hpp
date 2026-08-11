@@ -203,6 +203,15 @@ namespace Beam {
 
   template<typename V, typename C>
   void Subscriptions<V, C>::remove_all(ServiceProtocolClient& client) {
+    auto ids = std::vector<int>();
+    m_initializing_subscriptions.for_each([&] (const auto& entry) {
+      if(entry.second->m_client == &client) {
+        ids.push_back(entry.first);
+      }
+    });
+    for(auto id : ids) {
+      m_initializing_subscriptions.erase(id);
+    }
     m_subscriptions.erase_if([&] (const auto& entry) {
       return entry->m_client == &client;
     });

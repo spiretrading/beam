@@ -235,6 +235,57 @@ TEST_SUITE("IndexedSubscriptions") {
     REQUIRE(publish_count_b == 1);
   }
 
+  TEST_CASE("end_foreign_subscription") {
+    auto server1 = LocalServerConnection();
+    auto server_channel1 = std::unique_ptr<LocalServerChannel>();
+    auto accept_routine = RoutineHandler(spawn([&] {
+      server_channel1 = server1.accept();
+    }));
+    auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    accept_routine.wait();
+    auto server2 = LocalServerConnection();
+    auto server_channel2 = std::unique_ptr<LocalServerChannel>();
+    accept_routine = RoutineHandler(spawn([&] {
+      server_channel2 = server2.accept();
+    }));
+    auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    accept_routine.wait();
+    auto subscriptions = TestSubscriptions();
+    auto index = std::string("SharedIndex");
+    auto filter1 = translate(ConstantExpression(true));
+    auto query_id1 =
+      subscriptions.init(index, client1, Range::TOTAL, std::move(filter1));
+    auto filter2 = translate(ConstantExpression(true));
+    auto query_id2 =
+      subscriptions.init(index, client2, Range::TOTAL, std::move(filter2));
+    auto snapshot1 = QueryResult<SequencedTestEntry>();
+    snapshot1.m_id = query_id1;
+    subscriptions.commit(index, snapshot1,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id1);
+      });
+    auto snapshot2 = QueryResult<SequencedTestEntry>();
+    snapshot2.m_id = query_id2;
+    subscriptions.commit(index, snapshot2,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id2);
+      });
+    subscriptions.end(index, client1, query_id2);
+    auto received = false;
+    subscriptions.publish(SequencedValue(IndexedValue(
+      TestEntry(50, time_from_string("2024-01-15 10:30:00")), index),
+      Beam::Sequence(1)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(receiving_clients.size() == 2);
+        REQUIRE(std::find(receiving_clients.begin(), receiving_clients.end(),
+          &client1) != receiving_clients.end());
+        REQUIRE(std::find(receiving_clients.begin(), receiving_clients.end(),
+          &client2) != receiving_clients.end());
+        received = true;
+      });
+    REQUIRE(received);
+  }
+
   TEST_CASE("end_subscription_by_index") {
     auto fixture = SingleClientFixture();
     auto [client, subscriptions] =
@@ -259,7 +310,7 @@ TEST_SUITE("IndexedSubscriptions") {
       [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
         REQUIRE(committed_snapshot.m_id == snapshot_b.m_id);
       });
-    subscriptions.end(index_a, query_id_a);
+    subscriptions.end(index_a, client, query_id_a);
     subscriptions.publish(SequencedValue(IndexedValue(
       TestEntry(50, time_from_string("2024-01-15 10:30:00")), index_a),
       Beam::Sequence(1)),

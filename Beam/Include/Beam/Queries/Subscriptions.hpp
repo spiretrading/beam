@@ -62,9 +62,10 @@ namespace Beam {
 
       /**
        * Ends a subscription.
+       * @param client The client ending the subscription.
        * @param id The query's id.
        */
-      void end(int id);
+      void end(const ServiceProtocolClient& client, int id);
 
       /**
        * Removes all of a client's subscriptions.
@@ -195,9 +196,9 @@ namespace Beam {
   }
 
   template<typename V, typename C>
-  void Subscriptions<V, C>::end(int id) {
+  void Subscriptions<V, C>::end(const ServiceProtocolClient& client, int id) {
     m_subscriptions.erase_if([&] (const auto& entry) {
-      return entry->m_id == id;
+      return entry->m_client == &client && entry->m_id == id;
     });
   }
 

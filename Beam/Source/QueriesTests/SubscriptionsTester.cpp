@@ -57,7 +57,7 @@ TEST_SUITE("Subscriptions") {
         REQUIRE(receiving_clients.size() == 1);
         REQUIRE(receiving_clients.front() == &client);
       });
-    subscriptions.end(query_id);
+    subscriptions.end(client, query_id);
     subscriptions.publish(
       SequencedValue(TestEntry(221, time_from_string("2024-01-15 10:30:01")),
         Beam::Sequence(6)),
@@ -325,6 +325,56 @@ TEST_SUITE("Subscriptions") {
       [&] (auto& receiving_clients) {
         REQUIRE(receiving_clients.size() == 1);
         REQUIRE(receiving_clients.front() == &client);
+        received = true;
+      });
+    REQUIRE(received);
+  }
+
+  TEST_CASE("end_foreign_subscription") {
+    auto server1 = LocalServerConnection();
+    auto server_channel1 = std::unique_ptr<LocalServerChannel>();
+    auto accept_routine = RoutineHandler(spawn([&] {
+      server_channel1 = server1.accept();
+    }));
+    auto client1 = TestServiceProtocolClient(init("test1", server1), init());
+    accept_routine.wait();
+    auto server2 = LocalServerConnection();
+    auto server_channel2 = std::unique_ptr<LocalServerChannel>();
+    accept_routine = RoutineHandler(spawn([&] {
+      server_channel2 = server2.accept();
+    }));
+    auto client2 = TestServiceProtocolClient(init("test2", server2), init());
+    accept_routine.wait();
+    auto subscriptions = TestSubscriptions();
+    auto filter1 = translate(ConstantExpression(true));
+    auto query_id1 =
+      subscriptions.init(client1, Range::TOTAL, std::move(filter1));
+    auto filter2 = translate(ConstantExpression(true));
+    auto query_id2 =
+      subscriptions.init(client2, Range::TOTAL, std::move(filter2));
+    auto snapshot1 = QueryResult<SequencedTestEntry>();
+    snapshot1.m_id = query_id1;
+    subscriptions.commit(snapshot1,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id1);
+      });
+    auto snapshot2 = QueryResult<SequencedTestEntry>();
+    snapshot2.m_id = query_id2;
+    subscriptions.commit(snapshot2,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == query_id2);
+      });
+    subscriptions.end(client1, query_id2);
+    auto received = false;
+    subscriptions.publish(
+      SequencedValue(TestEntry(400, time_from_string("2024-01-15 10:30:00")),
+        Beam::Sequence(1)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(receiving_clients.size() == 2);
+        REQUIRE(std::ranges::find(receiving_clients, &client1) !=
+          receiving_clients.end());
+        REQUIRE(std::ranges::find(receiving_clients, &client2) !=
+          receiving_clients.end());
         received = true;
       });
     REQUIRE(received);

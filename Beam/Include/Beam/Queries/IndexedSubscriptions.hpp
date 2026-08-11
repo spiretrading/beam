@@ -70,9 +70,11 @@ namespace Beam {
       /**
        * Ends a subscription.
        * @param index The query's index.
+       * @param client The client ending the subscription.
        * @param id The query's id.
        */
-      void end(const Index& index, int id);
+      void end(const Index& index, const ServiceProtocolClient& client,
+        int id);
 
       /**
        * Removes all of a client's subscriptions.
@@ -138,10 +140,11 @@ namespace Beam {
   }
 
   template<typename V, typename I, typename C>
-  void IndexedSubscriptions<V, I, C>::end(const Index& index, int id) {
+  void IndexedSubscriptions<V, I, C>::end(
+      const Index& index, const ServiceProtocolClient& client, int id) {
     auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
-    subscriptions.end(id);
+    subscriptions.end(client, id);
   }
 
   template<typename V, typename I, typename C>

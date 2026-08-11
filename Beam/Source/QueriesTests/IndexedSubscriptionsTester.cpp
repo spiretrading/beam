@@ -235,6 +235,31 @@ TEST_SUITE("IndexedSubscriptions") {
     REQUIRE(publish_count_b == 1);
   }
 
+  TEST_CASE("discard_initializing_subscription") {
+    auto fixture = SingleClientFixture();
+    auto [client, subscriptions] =
+      std::tie(fixture.m_client, fixture.m_subscriptions);
+    auto index = std::string("IndexA");
+    auto filter = translate(ConstantExpression(true));
+    auto query_id =
+      subscriptions.init(index, client, Range::TOTAL, std::move(filter));
+    subscriptions.discard(index, client, query_id);
+    subscriptions.publish(SequencedValue(IndexedValue(
+      TestEntry(500, time_from_string("2024-01-15 10:30:00")), index),
+      Beam::Sequence(1)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(false);
+      });
+    auto snapshot = QueryResult<SequencedTestEntry>();
+    snapshot.m_id = query_id;
+    auto is_committed = false;
+    subscriptions.commit(index, snapshot,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        is_committed = true;
+      });
+    REQUIRE(!is_committed);
+  }
+
   TEST_CASE("end_foreign_subscription") {
     auto server1 = LocalServerConnection();
     auto server_channel1 = std::unique_ptr<LocalServerChannel>();

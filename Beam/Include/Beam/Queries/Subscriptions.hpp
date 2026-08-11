@@ -68,6 +68,13 @@ namespace Beam {
       void end(const ServiceProtocolClient& client, int id);
 
       /**
+       * Discards an initialized subscription that will not be committed.
+       * @param client The client whose subscription is to be discarded.
+       * @param id The query's id.
+       */
+      void discard(const ServiceProtocolClient& client, int id);
+
+      /**
        * Removes all of a client's subscriptions.
        * @param client The client whose subscriptions are to be removed.
        */
@@ -197,6 +204,18 @@ namespace Beam {
 
   template<typename V, typename C>
   void Subscriptions<V, C>::end(const ServiceProtocolClient& client, int id) {
+    m_subscriptions.erase_if([&] (const auto& entry) {
+      return entry->m_client == &client && entry->m_id == id;
+    });
+  }
+
+  template<typename V, typename C>
+  void Subscriptions<V, C>::discard(
+      const ServiceProtocolClient& client, int id) {
+    if(auto subscription = m_initializing_subscriptions.try_load(id);
+        subscription && (*subscription)->m_client == &client) {
+      m_initializing_subscriptions.erase(id);
+    }
     m_subscriptions.erase_if([&] (const auto& entry) {
       return entry->m_client == &client && entry->m_id == id;
     });

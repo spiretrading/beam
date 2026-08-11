@@ -380,6 +380,49 @@ TEST_SUITE("Subscriptions") {
     REQUIRE(received);
   }
 
+  TEST_CASE("discard_initializing_subscription") {
+    auto fixture = SingleClientFixture();
+    auto [client, subscriptions] =
+      std::tie(fixture.m_client, fixture.m_subscriptions);
+    auto filter = translate(ConstantExpression(true));
+    auto query_id = subscriptions.init(client, Range::TOTAL, std::move(filter));
+    subscriptions.discard(client, query_id);
+    subscriptions.publish(
+      SequencedValue(TestEntry(500, time_from_string("2024-01-15 10:30:00")),
+        Beam::Sequence(1)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(false);
+      });
+    auto snapshot = QueryResult<SequencedTestEntry>();
+    snapshot.m_id = query_id;
+    auto is_committed = false;
+    subscriptions.commit(
+      snapshot, [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        is_committed = true;
+      });
+    REQUIRE(!is_committed);
+    auto replacement_filter = translate(ConstantExpression(true));
+    auto replacement_id =
+      subscriptions.init(client, Range::TOTAL, std::move(replacement_filter));
+    auto replacement_snapshot = QueryResult<SequencedTestEntry>();
+    replacement_snapshot.m_id = replacement_id;
+    subscriptions.commit(replacement_snapshot,
+      [&] (QueryResult<SequencedTestEntry> committed_snapshot) {
+        REQUIRE(committed_snapshot.m_id == replacement_id);
+        REQUIRE(committed_snapshot.m_snapshot.empty());
+      });
+    auto received = false;
+    subscriptions.publish(
+      SequencedValue(TestEntry(600, time_from_string("2024-01-15 10:30:01")),
+        Beam::Sequence(2)),
+      [&] (auto& receiving_clients) {
+        REQUIRE(receiving_clients.size() == 1);
+        REQUIRE(receiving_clients.front() == &client);
+        received = true;
+      });
+    REQUIRE(received);
+  }
+
   TEST_CASE("commit_after_remove_all") {
     auto fixture = SingleClientFixture();
     auto [client, subscriptions] =

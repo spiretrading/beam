@@ -77,6 +77,15 @@ namespace Beam {
         int id);
 
       /**
+       * Discards an initialized subscription that will not be committed.
+       * @param index The query's index.
+       * @param client The client whose subscription is to be discarded.
+       * @param id The query's id.
+       */
+      void discard(const Index& index, const ServiceProtocolClient& client,
+        int id);
+
+      /**
        * Removes all of a client's subscriptions.
        * @param client The client whose subscriptions are to be removed.
        */
@@ -145,6 +154,14 @@ namespace Beam {
     auto& subscriptions = *m_subscriptions.get_or_insert(
       index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
     subscriptions.end(client, id);
+  }
+
+  template<typename V, typename I, typename C>
+  void IndexedSubscriptions<V, I, C>::discard(
+      const Index& index, const ServiceProtocolClient& client, int id) {
+    auto& subscriptions = *m_subscriptions.get_or_insert(
+      index, boost::factory<std::shared_ptr<BaseSubscriptions>>());
+    subscriptions.discard(client, id);
   }
 
   template<typename V, typename I, typename C>

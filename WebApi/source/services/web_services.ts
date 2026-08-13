@@ -1,5 +1,22 @@
 import { ServiceError } from './service_error';
 
+function toErrorMessage(xhr: XMLHttpRequest): string {
+  if(xhr.responseText.length === 0) {
+    return xhr.statusText;
+  }
+  try {
+    const body = JSON.parse(xhr.responseText);
+    if(typeof body === 'string') {
+      return body;
+    } else if(body !== null && typeof body.message === 'string') {
+      return body.message;
+    }
+  } catch(error) {
+    return xhr.responseText;
+  }
+  return xhr.statusText;
+}
+
 /** Submits a POST request to a web service.
  * @param url - The URL to submit the request to.
  * @param parameters - The object to encode as a JSON parameter.
@@ -20,7 +37,7 @@ export async function post(url: string, parameters?: any): Promise<any> {
           resolve(JSON.parse(xhr.responseText));
         }
       } else {
-        reject(new ServiceError(xhr.statusText, xhr.status));
+        reject(new ServiceError(toErrorMessage(xhr), xhr.status));
       }
     };
     if(parameters !== undefined) {

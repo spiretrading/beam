@@ -1,12 +1,15 @@
 #ifndef BEAM_JSON_RECEIVER_HPP
 #define BEAM_JSON_RECEIVER_HPP
+#include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <system_error>
 #include <type_traits>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Json/JsonParser.hpp"
+#include "Beam/Serialization/JsonSender.hpp"
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/Utilities/FixedString.hpp"
@@ -123,9 +126,29 @@ namespace Beam {
   template<IsConstBuffer S>
   template<typename T> requires std::is_integral_v<T>
   void JsonReceiver<S>::receive(const char* name, T& value) {
-    auto raw_value = double();
-    receive(name, raw_value);
-    value = static_cast<T>(raw_value);
+    if constexpr(is_wide_integer<T>) {
+      auto storage = boost::optional<JsonValue>();
+      auto& json_value = extract(name, storage);
+      if(auto s = boost::get<std::string>(&json_value)) {
+        auto result = T();
+        auto end = s->data() + s->size();
+        auto conversion = std::from_chars(s->data(), end, result);
+        if(conversion.ec != std::errc() || conversion.ptr != end) {
+          boost::throw_with_location(
+            SerializationException("Value out of range."));
+        }
+        value = result;
+      } else if(auto number = boost::get<double>(&json_value)) {
+        value = static_cast<T>(*number);
+      } else {
+        boost::throw_with_location(
+          SerializationException("JSON type mismatch."));
+      }
+    } else {
+      auto raw_value = double();
+      receive(name, raw_value);
+      value = static_cast<T>(raw_value);
+    }
   }
 
   template<IsConstBuffer S>

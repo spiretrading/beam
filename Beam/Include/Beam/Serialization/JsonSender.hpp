@@ -1,5 +1,6 @@
 #ifndef BEAM_JSON_SENDER_HPP
 #define BEAM_JSON_SENDER_HPP
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <type_traits>
@@ -35,6 +36,15 @@ namespace Details {
   }
 }
   template<IsConstBuffer> class JsonReceiver;
+
+  /**
+   * Whether an integer is too wide for a JSON number to represent exactly, in
+   * which case it is encoded as a JSON string.
+   * @tparam T The type to test.
+   */
+  template<typename T>
+  constexpr auto is_wide_integer =
+    std::is_integral_v<T> && sizeof(T) > sizeof(std::int32_t);
 
   /**
    * Implements a Sender using JSON.
@@ -174,7 +184,13 @@ namespace Details {
       append(*m_sink, ':');
     }
     auto v = std::to_string(value);
-    append(*m_sink, v.c_str(), v.size());
+    if constexpr(is_wide_integer<T>) {
+      append(*m_sink, '\"');
+      append(*m_sink, v.c_str(), v.size());
+      append(*m_sink, '\"');
+    } else {
+      append(*m_sink, v.c_str(), v.size());
+    }
     m_append_comma = true;
   }
 

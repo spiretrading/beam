@@ -21,7 +21,8 @@ describe('RangedQuery', () => {
   });
 
   it('round_trip', () => {
-    const query = new RangedQuery(new Range(new Sequence(1), new Sequence(9)));
+    const query =
+      new RangedQuery(new Range(new Sequence(1n), new Sequence(9n)));
     const json = query.toJson();
     assert.deepStrictEqual(json.range, query.range.toJson());
     assert.ok(RangedQuery.fromJson(json).equals(query));

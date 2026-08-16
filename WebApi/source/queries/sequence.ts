@@ -2,29 +2,29 @@
 export class Sequence {
 
   /** Represents the first possible Sequence. */
-  public static readonly FIRST = new Sequence(0);
+  public static readonly FIRST = new Sequence(0n);
 
   /** Represents the last possible Sequence. */
-  public static readonly LAST = new Sequence(18446744073709551615);
+  public static readonly LAST = new Sequence(18446744073709551615n);
 
   /** Represents the 'present' in a query. */
   public static readonly PRESENT = Sequence.LAST.decrement();
 
   /** Constructs a Sequence from a JSON object. */
   public static fromJson(value: any): Sequence {
-    return new Sequence(value);
+    return new Sequence(BigInt(value));
   }
 
   /**
    * Constructs a Sequence.
    * @param ordinal - The Sequence's ordinal.
    */
-  constructor(ordinal: number = 0) {
+  constructor(ordinal: bigint = 0n) {
     this._ordinal = ordinal;
   }
 
   /** Returns the ordinal. */
-  public get ordinal(): number {
+  public get ordinal(): bigint {
     return this._ordinal;
   }
 
@@ -33,15 +33,15 @@ export class Sequence {
     if(this._ordinal === Sequence.LAST._ordinal) {
       return this;
     }
-    return new Sequence(this._ordinal + 1);
+    return new Sequence(this._ordinal + 1n);
   }
 
   /** Returns the immediately preceding Sequence. */
   public decrement(): Sequence {
-    if(this._ordinal === 0) {
+    if(this._ordinal === 0n) {
       return this;
     }
-    return new Sequence(this._ordinal - 1);
+    return new Sequence(this._ordinal - 1n);
   }
 
   /** Compares this Sequence with another.
@@ -68,8 +68,8 @@ export class Sequence {
 
   /** Converts this object to JSON. */
   public toJson(): any {
-    return this._ordinal;
+    return this._ordinal.toString();
   }
 
-  private _ordinal: number;
+  private _ordinal: bigint;
 }

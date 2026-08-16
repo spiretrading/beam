@@ -14,6 +14,8 @@ describe('Range', () => {
     assert.ok((Range.TOTAL.end as Sequence).equals(Sequence.LAST));
     assert.ok((Range.REAL_TIME.start as Sequence).equals(Sequence.PRESENT));
     assert.ok((Range.HISTORICAL.end as Sequence).equals(Sequence.PRESENT));
+    assert.ok(!Range.HISTORICAL.equals(Range.TOTAL));
+    assert.ok(!Range.REAL_TIME.equals(Range.TOTAL));
   });
 
   it('invalid_point', () => {
@@ -30,15 +32,23 @@ describe('Range', () => {
     assert.strictEqual(Range.EMPTY.toString(), 'Empty');
     assert.strictEqual(Range.TOTAL.toString(), 'Total');
     assert.strictEqual(
-      new Range(new Sequence(1), new Sequence(5)).toString(), '(1 5)');
+      new Range(new Sequence(1n), new Sequence(5n)).toString(), '(1 5)');
   });
 
   it('round_trip_sequence', () => {
-    const range = new Range(new Sequence(10), new Sequence(20));
+    const range = new Range(new Sequence(10n), new Sequence(20n));
     const json = range.toJson();
-    assert.deepStrictEqual(json.start, {which: 0, value: 10});
-    assert.deepStrictEqual(json.end, {which: 0, value: 20});
+    assert.deepStrictEqual(json.start, {which: 0, value: '10'});
+    assert.deepStrictEqual(json.end, {which: 0, value: '20'});
     assert.ok(Range.fromJson(json).equals(range));
+  });
+
+  it('round_trip_preserves_the_constants', () => {
+    assert.ok(Range.fromJson(Range.TOTAL.toJson()).equals(Range.TOTAL));
+    assert.ok(
+      Range.fromJson(Range.HISTORICAL.toJson()).equals(Range.HISTORICAL));
+    assert.ok(
+      Range.fromJson(Range.REAL_TIME.toJson()).equals(Range.REAL_TIME));
   });
 
   it('round_trip_date_time', () => {

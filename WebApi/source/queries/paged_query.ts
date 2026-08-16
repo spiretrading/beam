@@ -16,8 +16,8 @@ export class PagedQuery<I, A> {
    * @param anchorType - The type of anchor to parse.
    * @param value - The JSON object to parse.
    */
-  public static fromJson<I, A>(indexType: any, anchorType: any,
-      value: any): PagedQuery<I, A> {
+  public static fromJson<I, A>(
+      indexType: any, anchorType: any, value: any): PagedQuery<I, A> {
     const query = new PagedQuery<I, A>(fromJson(indexType, value.index));
     query.snapshotLimit = SnapshotLimit.fromJson(value.snapshot_limit);
     if(value.anchor && value.anchor.is_initialized) {

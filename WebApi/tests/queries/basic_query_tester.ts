@@ -42,7 +42,7 @@ describe('BasicQuery', () => {
 
   it('to_string', () => {
     const query = new BasicQuery<number>(5);
-    query.range = new Range(new Sequence(1), new Sequence(9));
+    query.range = new Range(new Sequence(1n), new Sequence(9n));
     query.snapshotLimit = SnapshotLimit.fromTail(1);
     assert.strictEqual(
       query.toString(), '(5 (1 9) (TAIL 1) BREAK_QUERY true)');

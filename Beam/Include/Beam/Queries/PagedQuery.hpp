@@ -1,5 +1,6 @@
 #ifndef BEAM_PAGED_QUERY_HPP
 #define BEAM_PAGED_QUERY_HPP
+#include <algorithm>
 #include <ostream>
 #include <boost/optional/optional.hpp>
 #include "Beam/Queries/FilteredQuery.hpp"
@@ -94,7 +95,7 @@ namespace Beam {
 
   template<typename I, typename A>
   void PagedQuery<I, A>::set_offset(int offset) {
-    m_offset = offset;
+    m_offset = std::max(0, offset);
   }
 
   template<typename I, typename A>
@@ -105,6 +106,9 @@ namespace Beam {
     Beam::Shuttle<FilteredQuery>()(shuttle, *this, version);
     shuttle.shuttle("anchor", m_anchor);
     shuttle.shuttle("offset", m_offset);
+    if constexpr(IsReceiver<S>) {
+      m_offset = std::max(0, m_offset);
+    }
   }
 }
 

@@ -23,5 +23,7 @@ TEST_SUITE("IndexedQuery") {
     REQUIRE(query.get_offset() == 0);
     query.set_offset(50);
     REQUIRE(query.get_offset() == 50);
+    query.set_offset(-1);
+    REQUIRE(query.get_offset() == 0);
   }
 }

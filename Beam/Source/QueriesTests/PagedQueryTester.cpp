@@ -17,4 +17,11 @@ TEST_SUITE("IndexedQuery") {
     query.set_anchor("Hello world");
     REQUIRE(query.get_anchor() == std::string("Hello world"));
   }
+
+  TEST_CASE("set_offset") {
+    auto query = PagedQuery<int, std::string>();
+    REQUIRE(query.get_offset() == 0);
+    query.set_offset(50);
+    REQUIRE(query.get_offset() == 50);
+  }
 }

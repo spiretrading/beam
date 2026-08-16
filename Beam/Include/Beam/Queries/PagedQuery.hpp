@@ -27,6 +27,9 @@ namespace Beam {
       /** The type of anchor to use. */
       using Anchor = A;
 
+      /** Constructs a PagedQuery with no anchor and no offset. */
+      PagedQuery() noexcept;
+
       /** Returns the anchor. */
       const boost::optional<Anchor>& get_anchor() const;
 
@@ -36,6 +39,12 @@ namespace Beam {
       /** Sets the anchor. */
       void set_anchor(const Anchor& anchor);
 
+      /** Returns the number of values to skip from the anchor. */
+      int get_offset() const;
+
+      /** Sets the number of values to skip from the anchor. */
+      void set_offset(int offset);
+
     protected:
       template<IsShuttle S>
       void shuttle(S& shuttle, unsigned int version);
@@ -43,6 +52,7 @@ namespace Beam {
     private:
       friend struct DataShuttle;
       boost::optional<Anchor> m_anchor;
+      int m_offset;
   };
 
   template<typename I, typename A>
@@ -51,8 +61,15 @@ namespace Beam {
     if(query.get_anchor()) {
       out << *query.get_anchor() << ' ';
     }
+    if(query.get_offset() != 0) {
+      out << query.get_offset() << ' ';
+    }
     return out << query.get_filter() << ')';
   }
+
+  template<typename I, typename A>
+  PagedQuery<I, A>::PagedQuery() noexcept
+    : m_offset(0) {}
 
   template<typename I, typename A>
   const boost::optional<typename PagedQuery<I, A>::Anchor>&
@@ -71,12 +88,23 @@ namespace Beam {
   }
 
   template<typename I, typename A>
+  int PagedQuery<I, A>::get_offset() const {
+    return m_offset;
+  }
+
+  template<typename I, typename A>
+  void PagedQuery<I, A>::set_offset(int offset) {
+    m_offset = offset;
+  }
+
+  template<typename I, typename A>
   template<IsShuttle S>
   void PagedQuery<I, A>::shuttle(S& shuttle, unsigned int version) {
     Beam::Shuttle<IndexedQuery<I>>()(shuttle, *this, version);
     Beam::Shuttle<SnapshotLimitedQuery>()(shuttle, *this, version);
     Beam::Shuttle<FilteredQuery>()(shuttle, *this, version);
     shuttle.shuttle("anchor", m_anchor);
+    shuttle.shuttle("offset", m_offset);
   }
 }
 

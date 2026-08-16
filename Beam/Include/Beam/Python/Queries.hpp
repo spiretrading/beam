@@ -92,7 +92,9 @@ namespace Beam::Python {
       SnapshotLimitedQuery, FilteredQuery>(module, name.data()).
       def_property("anchor", &PagedQuery<I, A>::get_anchor,
         pybind11::overload_cast<const boost::optional<A>&>(
-          &PagedQuery<I, A>::set_anchor));
+          &PagedQuery<I, A>::set_anchor)).
+      def_property("offset", &PagedQuery<I, A>::get_offset,
+        &PagedQuery<I, A>::set_offset);
     export_default_methods(query);
   }
 
@@ -328,6 +330,7 @@ namespace Beam::Python {
       query.set_anchor(std::move(anchor));
     }
     query.set_snapshot_limit(std::forward<V>(value).get_snapshot_limit());
+    query.set_offset(std::forward<V>(value).get_offset());
     query.set_filter(std::forward<V>(value).get_filter());
     return pybind11::detail::make_caster<
       PagedQuery<pybind11::object, pybind11::object>>::cast(
@@ -357,6 +360,7 @@ namespace Beam::Python {
           std::move(anchor_caster)));
       }
       m_value->set_snapshot_limit(query.get_snapshot_limit());
+      m_value->set_offset(query.get_offset());
       m_value->set_filter(query.get_filter());
     } catch(const pybind11::cast_error&) {
       return false;

@@ -33,8 +33,8 @@ export class SnapshotLimit {
    * @param type - The direction to load from.
    * @param size - The maximum number of items to load.
    */
-  constructor(type: SnapshotLimit.Type = SnapshotLimit.Type.HEAD,
-      size: number = 0) {
+  constructor(
+      type: SnapshotLimit.Type = SnapshotLimit.Type.HEAD, size: number = 0) {
     this._type = type;
     this._size = size;
   }
@@ -47,6 +47,25 @@ export class SnapshotLimit {
   /** Returns the maximum number of items to load. */
   public get size(): number {
     return this._size;
+  }
+
+  /** Tests if two limits load the same number of items. */
+  public equals(other: SnapshotLimit): boolean {
+    if(!other) {
+      return false;
+    } else if(this._size === 0 || this._size === UNLIMITED_SIZE) {
+      return this._size === other._size;
+    }
+    return this._type === other._type && this._size === other._size;
+  }
+
+  public toString(): string {
+    if(this.equals(SnapshotLimit.NONE)) {
+      return 'None';
+    } else if(this.equals(SnapshotLimit.UNLIMITED)) {
+      return 'Unlimited';
+    }
+    return `(${typeToString(this._type)} ${this._size})`;
   }
 
   /** Converts this object to JSON. */
@@ -70,6 +89,17 @@ export namespace SnapshotLimit {
   }
 }
 
+const UNLIMITED_SIZE = 2147483647;
+
 (SnapshotLimit as any).NONE = new SnapshotLimit(SnapshotLimit.Type.HEAD, 0);
 (SnapshotLimit as any).UNLIMITED =
-  new SnapshotLimit(SnapshotLimit.Type.HEAD, 2147483647);
+  new SnapshotLimit(SnapshotLimit.Type.HEAD, UNLIMITED_SIZE);
+
+function typeToString(type: SnapshotLimit.Type): string {
+  if(type === SnapshotLimit.Type.HEAD) {
+    return 'HEAD';
+  } else if(type === SnapshotLimit.Type.TAIL) {
+    return 'TAIL';
+  }
+  return 'NONE';
+}

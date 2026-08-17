@@ -16,6 +16,7 @@
 #include "Beam/Queries/SetVariableExpression.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 #include "Beam/Queries/VariableExpression.hpp"
+#include "Beam/Sql/Conversions.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
 
 namespace Beam {
@@ -41,6 +42,13 @@ namespace Beam {
 
       /** Returns the current translation. */
       Viper::Expression& get_translation();
+
+      /**
+       * Translates a sub-expression.
+       * @param expression The sub-expression to translate.
+       * @return The translation of the <i>expression</i>.
+       */
+      Viper::Expression translate(const Expression& expression);
 
       void visit(const AndExpression& expression) override;
       void visit(const ConstantExpression& expression) override;
@@ -77,15 +85,19 @@ namespace Beam {
       m_expression(std::move(expression)) {}
 
   inline Viper::Expression SqlTranslator::make() {
-    m_expression.apply(*this);
-    return get_translation();
+    return translate(m_expression);
+  }
+
+  inline Viper::Expression SqlTranslator::translate(
+      const Expression& expression) {
+    m_translation = Viper::Expression();
+    expression.apply(*this);
+    return m_translation;
   }
 
   inline void SqlTranslator::visit(const AndExpression& expression) {
-    expression.get_left().apply(*this);
-    auto left = get_translation();
-    expression.get_right().apply(*this);
-    auto right = get_translation();
+    auto left = translate(expression.get_left());
+    auto right = translate(expression.get_right());
     get_translation() = left && right;
   }
 
@@ -105,6 +117,12 @@ namespace Beam {
       get_translation() = Viper::literal(value.as<std::string>());
     } else if(value.get_type() == typeid(boost::posix_time::ptime)) {
       get_translation() = Viper::literal(value.as<boost::posix_time::ptime>());
+    } else if(value.get_type() == typeid(boost::posix_time::time_duration)) {
+      get_translation() =
+        Viper::literal(value.as<boost::posix_time::time_duration>());
+    } else {
+      boost::throw_with_location(
+        ExpressionTranslationException("Constant type not supported."));
     }
   }
 
@@ -156,16 +174,12 @@ namespace Beam {
   }
 
   inline void SqlTranslator::visit(const NotExpression& expression) {
-    expression.get_operand().apply(*this);
-    auto translation = get_translation();
-    get_translation() = !translation;
+    get_translation() = !translate(expression.get_operand());
   }
 
   inline void SqlTranslator::visit(const OrExpression& expression) {
-    expression.get_left().apply(*this);
-    auto left = get_translation();
-    expression.get_right().apply(*this);
-    auto right = get_translation();
+    auto left = translate(expression.get_left());
+    auto right = translate(expression.get_right());
     get_translation() = left || right;
   }
 
@@ -193,10 +207,8 @@ namespace Beam {
       boost::throw_with_location(
         ExpressionTranslationException("Invalid parameters."));
     }
-    expression.get_parameters()[0].apply(*this);
-    auto left = get_translation();
-    expression.get_parameters()[1].apply(*this);
-    auto right = get_translation();
+    auto left = translate(expression.get_parameters()[0]);
+    auto right = translate(expression.get_parameters()[1]);
     get_translation() =
       std::forward<F>(translation)(std::move(left), std::move(right));
   }

@@ -65,6 +65,21 @@ TEST_SUITE("SqlTranslator") {
       translation.append_query(query);
       REQUIRE(query == "\"hello_world\"");
     }
+
+    SUBCASE("time_duration") {
+      auto duration = duration_from_string("01:30:00");
+      auto translation = make_sql_query("p", ConstantExpression(duration));
+      auto query = std::string();
+      translation.append_query(query);
+      REQUIRE(query == std::to_string(duration.total_microseconds()));
+    }
+  }
+
+  TEST_CASE("unsupported_constant_throws") {
+    auto value =
+      Value(std::make_shared<NativeValue<std::int16_t>>(std::int16_t(5)));
+    REQUIRE_THROWS_AS(make_sql_query("p", ConstantExpression(value)),
+      ExpressionTranslationException);
   }
 
   TEST_CASE("function_expressions") {

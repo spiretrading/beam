@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <ostream>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <boost/variant/get.hpp>
 #include <boost/variant/variant.hpp>
@@ -22,6 +23,14 @@ namespace Details {
   using JsonVariant = boost::variant<
     std::string, JsonNull, bool, double, JsonObject, std::vector<JsonValue>>;
 }
+
+  /**
+   * Whether an integer is too wide to be represented exactly by a JSON number.
+   * @tparam T The type to test.
+   */
+  template<typename T>
+  constexpr auto is_wide_integer =
+    std::is_integral_v<T> && sizeof(T) > sizeof(std::int32_t);
 
   /** Wraps a boost::variant over all JSON types. */
   class JsonValue : public Details::JsonVariant {

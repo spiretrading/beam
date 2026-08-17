@@ -5,8 +5,8 @@
 #include <string>
 #include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Json/JsonValue.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
-#include "Beam/Serialization/JsonTypes.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 

@@ -269,7 +269,7 @@ void Beam::Python::export_queries(pybind11::module& module) {
   export_queue_suite<ptime>(module, "DateTime");
   export_queue_suite<time_duration>(module, "TimeDuration");
   module.def("make_current_query", &make_current_query<object>);
-  module.def("make_latest_query", &make_real_time_query<object>);
+  module.def("make_latest_query", &make_latest_query<object>);
   module.def("make_real_time_query", &make_real_time_query<object>);
   register_exception<ExpressionTranslationException>(
     module, "ExpressionTranslationException");

@@ -9,7 +9,7 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/Json/JsonParser.hpp"
-#include "Beam/Serialization/JsonSender.hpp"
+#include "Beam/Serialization/JsonTypes.hpp"
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/Utilities/FixedString.hpp"

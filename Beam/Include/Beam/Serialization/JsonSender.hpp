@@ -6,6 +6,7 @@
 #include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
+#include "Beam/Serialization/JsonTypes.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 
@@ -36,15 +37,6 @@ namespace Details {
   }
 }
   template<IsConstBuffer> class JsonReceiver;
-
-  /**
-   * Whether an integer is too wide for a JSON number to represent exactly, in
-   * which case it is encoded as a JSON string.
-   * @tparam T The type to test.
-   */
-  template<typename T>
-  constexpr auto is_wide_integer =
-    std::is_integral_v<T> && sizeof(T) > sizeof(std::int32_t);
 
   /**
    * Implements a Sender using JSON.

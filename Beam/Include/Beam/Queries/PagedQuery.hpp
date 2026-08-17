@@ -29,7 +29,7 @@ namespace Beam {
       using Anchor = A;
 
       /** Constructs a PagedQuery with no anchor and no offset. */
-      PagedQuery() noexcept;
+      PagedQuery();
 
       /** Returns the anchor. */
       const boost::optional<Anchor>& get_anchor() const;
@@ -69,7 +69,7 @@ namespace Beam {
   }
 
   template<typename I, typename A>
-  PagedQuery<I, A>::PagedQuery() noexcept
+  PagedQuery<I, A>::PagedQuery()
     : m_offset(0) {}
 
   template<typename I, typename A>

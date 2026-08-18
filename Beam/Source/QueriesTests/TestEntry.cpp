@@ -19,9 +19,7 @@ void TestTranslator::visit(const MemberAccessExpression& expression) {
   if(expression.get_expression().get_type() == typeid(TestEntry)) {
     if(expression.get_name() == "value" &&
         expression.get_type() == typeid(int)) {
-      expression.get_expression().apply(*this);
-      auto instance =
-        static_pointer_cast<EvaluatorNode<TestEntry>>(get_evaluator());
+      auto instance = translate_operand<TestEntry>(expression.get_expression());
       set_evaluator(std::make_unique<MemberAccessEvaluatorNode<TestEntry, int>>(
         std::move(instance), &TestEntry::m_value));
     }

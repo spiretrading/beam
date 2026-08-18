@@ -33,9 +33,7 @@ namespace {
     }
 
     void visit(const MemberAccessExpression& expression) override {
-      expression.get_expression().apply(*this);
-      auto value =
-        static_pointer_cast<EvaluatorNode<TestEntry>>(get_evaluator());
+      auto value = translate_operand<TestEntry>(expression.get_expression());
       if(expression.get_name() == "is_special") {
         set_evaluator(make_function_evaluator_node(
           [special_values = m_special_values] (const TestEntry& entry) {

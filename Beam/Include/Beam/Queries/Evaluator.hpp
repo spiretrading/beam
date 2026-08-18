@@ -62,7 +62,7 @@ namespace Beam {
       const Expression& expression, Translator& translator) {
     translator.translate(expression);
     return std::make_unique<Evaluator>(
-      translator.get_evaluator(), translator.get_parameters());
+      translator.take_evaluator(), translator.get_parameters());
   }
 
   /**

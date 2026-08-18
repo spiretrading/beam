@@ -91,8 +91,8 @@ namespace Beam {
        */
       void translate(const Expression& expression);
 
-      /** Returns the EvaluatorNode that was last translated. */
-      std::unique_ptr<BaseEvaluatorNode> get_evaluator();
+      /** Takes ownership of the EvaluatorNode that was last translated. */
+      std::unique_ptr<BaseEvaluatorNode> take_evaluator();
 
       /** Returns the parameters that were translated. */
       const std::vector<BaseParameterEvaluatorNode*>& get_parameters() const;
@@ -110,6 +110,25 @@ namespace Beam {
        * @param evaluator The most recently translated evaluator.
        */
       void set_evaluator(std::unique_ptr<BaseEvaluatorNode> evaluator);
+
+      /**
+       * Translates a sub-expression, ensuring the evaluator it produces has
+       * the type the sub-expression declares.
+       * @param expression The sub-expression to translate.
+       * @return The evaluator that the <i>expression</i> translates to.
+       */
+      std::unique_ptr<BaseEvaluatorNode> translate_operand(
+        const Expression& expression);
+
+      /**
+       * Translates a sub-expression declared to evaluate to a given type.
+       * @param <T> The type the sub-expression is declared to evaluate to.
+       * @param expression The sub-expression to translate.
+       * @return The evaluator that the <i>expression</i> translates to.
+       */
+      template<typename T>
+      std::unique_ptr<EvaluatorNode<T>> translate_operand(
+        const Expression& expression);
 
       void visit(const AndExpression& expression) override;
       void visit(const ConstantExpression& expression) override;
@@ -136,10 +155,6 @@ namespace Beam {
       std::unordered_map<std::string, std::vector<VariableEntry>> m_variables;
 
       const VariableEntry& find_variable(const std::string& name) const;
-      std::unique_ptr<BaseEvaluatorNode> translate_operand(
-        const Expression& expression);
-      std::unique_ptr<EvaluatorNode<bool>> translate_boolean_operand(
-        const Expression& expression);
       template<typename Operation, int COUNT>
       void translate(const FunctionExpression& expression);
   };
@@ -177,7 +192,7 @@ namespace Beam {
 
   template<typename QueryTypes>
   std::unique_ptr<BaseEvaluatorNode>
-      EvaluatorTranslator<QueryTypes>::get_evaluator() {
+      EvaluatorTranslator<QueryTypes>::take_evaluator() {
     return std::move(m_evaluator);
   }
 
@@ -201,8 +216,8 @@ namespace Beam {
 
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::visit(const AndExpression& expression) {
-    auto left = translate_boolean_operand(expression.get_left());
-    auto right = translate_boolean_operand(expression.get_right());
+    auto left = translate_operand<bool>(expression.get_left());
+    auto right = translate_operand<bool>(expression.get_right());
     set_evaluator(
       std::make_unique<AndEvaluatorNode>(std::move(left), std::move(right)));
   }
@@ -277,14 +292,14 @@ namespace Beam {
 
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::visit(const NotExpression& expression) {
-    auto operand = translate_boolean_operand(expression.get_operand());
+    auto operand = translate_operand<bool>(expression.get_operand());
     set_evaluator(std::make_unique<NotEvaluatorNode>(std::move(operand)));
   }
 
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::visit(const OrExpression& expression) {
-    auto left = translate_boolean_operand(expression.get_left());
-    auto right = translate_boolean_operand(expression.get_right());
+    auto left = translate_operand<bool>(expression.get_left());
+    auto right = translate_operand<bool>(expression.get_right());
     set_evaluator(
       std::make_unique<OrEvaluatorNode>(std::move(left), std::move(right)));
   }
@@ -355,7 +370,7 @@ namespace Beam {
       EvaluatorTranslator<QueryTypes>::translate_operand(
         const Expression& expression) {
     expression.apply(*this);
-    auto evaluator = get_evaluator();
+    auto evaluator = take_evaluator();
     if(!evaluator || evaluator->get_type() != expression.get_type()) {
       boost::throw_with_location(
         ExpressionTranslationException("Expression type mismatch."));
@@ -364,11 +379,11 @@ namespace Beam {
   }
 
   template<typename QueryTypes>
-  std::unique_ptr<EvaluatorNode<bool>>
-      EvaluatorTranslator<QueryTypes>::translate_boolean_operand(
+  template<typename T>
+  std::unique_ptr<EvaluatorNode<T>>
+      EvaluatorTranslator<QueryTypes>::translate_operand(
         const Expression& expression) {
-    return static_pointer_cast<EvaluatorNode<bool>>(
-      translate_operand(expression));
+    return static_pointer_cast<EvaluatorNode<T>>(translate_operand(expression));
   }
 
   template<typename QueryTypes>

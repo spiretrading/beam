@@ -2,8 +2,12 @@
 #define BEAM_QUERY_EVALUATOR_HPP
 #include <array>
 #include <memory>
+#include <typeindex>
 #include <vector>
+#include <boost/optional/optional.hpp>
+#include <boost/throw_exception.hpp>
 #include "Beam/Queries/EvaluatorTranslator.hpp"
+#include "Beam/Queries/TypeCompatibilityException.hpp"
 
 namespace Beam {
 
@@ -44,11 +48,16 @@ namespace Beam {
       Result eval(const P1& p1, const P2& p2);
 
     private:
+      struct ParameterEntry {
+        const void* m_value = nullptr;
+        boost::optional<std::type_index> m_type;
+      };
       std::unique_ptr<BaseEvaluatorNode> m_evaluator;
-      std::array<const void*, MAX_EVALUATOR_PARAMETERS> m_parameters;
+      std::array<ParameterEntry, MAX_EVALUATOR_PARAMETERS> m_parameters;
 
       Evaluator(const Evaluator&) = delete;
       Evaluator& operator =(const Evaluator&) = delete;
+      void check_parameter(int index, std::type_index type) const;
   };
 
   /**
@@ -81,9 +90,19 @@ namespace Beam {
   inline Evaluator::Evaluator(std::unique_ptr<BaseEvaluatorNode> evaluator,
       const std::vector<BaseParameterEvaluatorNode*>& parameters)
       : m_evaluator(std::move(evaluator)) {
-    m_parameters.fill(nullptr);
     for(auto& node : parameters) {
-      node->set_parameter(&m_parameters[node->get_index()]);
+      auto& entry = m_parameters[node->get_index()];
+      node->set_parameter(&entry.m_value);
+      entry.m_type = node->get_type();
+    }
+  }
+
+  inline void Evaluator::check_parameter(
+      int index, std::type_index type) const {
+    auto& entry = m_parameters[index];
+    if(entry.m_type && *entry.m_type != type) {
+      boost::throw_with_location(
+        TypeCompatibilityException("Parameter type mismatch."));
     }
   }
 
@@ -94,14 +113,17 @@ namespace Beam {
 
   template<typename Result, typename Parameter>
   Result Evaluator::eval(const Parameter& parameter) {
-    m_parameters[0] = &parameter;
+    check_parameter(0, typeid(Parameter));
+    m_parameters[0].m_value = &parameter;
     return this->eval<Result>();
   }
 
   template<typename Result, typename P1, typename P2>
   Result Evaluator::eval(const P1& p1, const P2& p2) {
-    m_parameters[0] = &p1;
-    m_parameters[1] = &p2;
+    check_parameter(0, typeid(P1));
+    check_parameter(1, typeid(P2));
+    m_parameters[0].m_value = &p1;
+    m_parameters[1].m_value = &p2;
     return this->eval<Result>();
   }
 

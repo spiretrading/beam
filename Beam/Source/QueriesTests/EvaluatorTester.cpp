@@ -242,6 +242,26 @@ TEST_SUITE("Evaluator") {
     REQUIRE_THROWS_AS(translate(parameter), ExpressionTranslationException);
   }
 
+  TEST_CASE("mismatched_parameter_type") {
+    SUBCASE("first_parameter") {
+      auto evaluator = translate(
+        ParameterExpression(0, typeid(int)) == ConstantExpression(0));
+      REQUIRE_THROWS_AS(
+        evaluator->eval<bool>(std::string()), TypeCompatibilityException);
+    }
+    SUBCASE("second_parameter") {
+      auto evaluator = translate(ParameterExpression(0, typeid(int)) ==
+        ParameterExpression(1, typeid(int)));
+      REQUIRE_THROWS_AS(
+        evaluator->eval<bool>(0, std::string()), TypeCompatibilityException);
+    }
+    SUBCASE("matching_parameter") {
+      auto evaluator = translate(
+        ParameterExpression(0, typeid(int)) == ConstantExpression(0));
+      REQUIRE(evaluator->eval<bool>(0));
+    }
+  }
+
   TEST_CASE("mismatched_expression_type") {
     SUBCASE("function") {
       auto expression = FunctionExpression(EQUALS_NAME, typeid(int),

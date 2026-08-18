@@ -116,10 +116,10 @@ namespace Beam {
       const ReduceExpression& expression) {
     auto translator = make_translator();
     auto evaluator = Beam::translate(expression.get_reducer(), *translator);
-    expression.get_series().apply(*this);
+    auto series = translate_operand(expression.get_series());
     m_evaluator.reset(instantiate<ReduceEvaluatorNodeTranslator<NativeTypes>>(
       expression.get_reducer().get_type())(std::move(evaluator),
-        std::move(std::move(m_evaluator)), expression.get_initial_value()));
+        std::move(series), expression.get_initial_value()));
   }
 }
 

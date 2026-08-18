@@ -241,4 +241,44 @@ TEST_SUITE("Evaluator") {
     auto parameter = ParameterExpression(1, typeid(bool));
     REQUIRE_THROWS_AS(translate(parameter), ExpressionTranslationException);
   }
+
+  TEST_CASE("mismatched_expression_type") {
+    SUBCASE("function") {
+      auto expression = FunctionExpression(EQUALS_NAME, typeid(int),
+        {ConstantExpression(0), ConstantExpression(0)});
+      REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
+    SUBCASE("and_operand") {
+      auto operand = FunctionExpression(ADDITION_NAME, typeid(bool),
+        {ConstantExpression(1), ConstantExpression(2)});
+      REQUIRE_THROWS_AS(translate(operand && ConstantExpression(true)),
+        ExpressionTranslationException);
+    }
+    SUBCASE("or_operand") {
+      auto operand = FunctionExpression(ADDITION_NAME, typeid(bool),
+        {ConstantExpression(1), ConstantExpression(2)});
+      REQUIRE_THROWS_AS(translate(operand || ConstantExpression(false)),
+        ExpressionTranslationException);
+    }
+    SUBCASE("not_operand") {
+      auto operand = FunctionExpression(ADDITION_NAME, typeid(bool),
+        {ConstantExpression(1), ConstantExpression(2)});
+      REQUIRE_THROWS_AS(translate(!operand), ExpressionTranslationException);
+    }
+    SUBCASE("reduce_series") {
+      auto reducer = ParameterExpression(0, typeid(int)) +
+        ParameterExpression(1, typeid(int));
+      auto series = FunctionExpression(EQUALS_NAME, typeid(int),
+        {ConstantExpression(0), ConstantExpression(0)});
+      auto expression = ReduceExpression(reducer, series, Value(0));
+      REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
+    SUBCASE("set_variable_value") {
+      auto value = FunctionExpression(ADDITION_NAME, typeid(std::string),
+        {ConstantExpression(1), ConstantExpression(2)});
+      auto expression = GlobalVariableDeclarationExpression("v",
+        ConstantExpression(std::string()), SetVariableExpression("v", value));
+      REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
+  }
 }

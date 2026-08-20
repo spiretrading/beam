@@ -37,6 +37,15 @@ describe('FunctionExpression', () => {
       new FunctionExpression('==', QueryType.BOOL, [PARAMETER])));
   });
 
+  it('parameters_are_copied_in_and_out', () => {
+    const source = [PARAMETER, FIVE];
+    const expression = new FunctionExpression('==', QueryType.BOOL, source);
+    source.push(FIVE);
+    assert.strictEqual(expression.parameters.length, 2);
+    expression.parameters.push(FIVE);
+    assert.strictEqual(expression.parameters.length, 2);
+  });
+
   it('to_string', () => {
     assert.strictEqual(
       new FunctionExpression('==', QueryType.BOOL, [PARAMETER, FIVE]).

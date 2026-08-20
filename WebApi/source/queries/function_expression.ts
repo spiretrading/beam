@@ -21,7 +21,7 @@ export class FunctionExpression extends Expression {
     super();
     this._name = name;
     this._type = type;
-    this._parameters = parameters;
+    this._parameters = parameters.slice();
   }
 
   /** Returns the name of the function to apply. */
@@ -31,7 +31,7 @@ export class FunctionExpression extends Expression {
 
   /** Returns the parameters to apply the function to. */
   public get parameters(): Expression[] {
-    return this._parameters;
+    return this._parameters.slice();
   }
 
   public get type(): QueryType {

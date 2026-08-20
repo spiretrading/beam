@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
@@ -57,7 +58,8 @@ TEST_SUITE("Value") {
     test_query_round_trip_shuttle(Value('a'));
     test_query_round_trip_shuttle(Value(123));
     test_query_round_trip_shuttle(Value(3.14));
-    test_query_round_trip_shuttle(Value(std::uint64_t(18446744073709551615)));
+    test_query_round_trip_shuttle(
+      Value(std::numeric_limits<std::uint64_t>::max()));
     test_query_round_trip_shuttle(Value("hello"));
     test_query_round_trip_shuttle(
       Value(time_from_string("2020-01-02 03:04:05")));

@@ -1,5 +1,7 @@
 import { fromJson, toJson } from '../serialization';
-import { makeAllValuesFilter } from './filter';
+import { ConstantExpression } from './constant_expression';
+import { Expression } from './expression';
+import { checkFilter } from './filtered_query';
 import { InterruptionPolicy } from './interruption_policy';
 import { Range } from './range';
 import { SnapshotLimit } from './snapshot_limit';
@@ -19,6 +21,7 @@ export class BasicQuery<T> {
     query.range = Range.fromJson(value.range);
     query.snapshotLimit = SnapshotLimit.fromJson(value.snapshot_limit);
     query.interruptionPolicy = value.interruption_policy;
+    query.filter = Expression.fromJson(value.filter.expression);
     return query;
   }
 
@@ -65,6 +68,7 @@ export class BasicQuery<T> {
     this._range = Range.EMPTY;
     this._snapshotLimit = SnapshotLimit.NONE;
     this._interruptionPolicy = InterruptionPolicy.BREAK_QUERY;
+    this._filter = ConstantExpression.TRUE;
   }
 
   /** Returns the index. */
@@ -103,9 +107,18 @@ export class BasicQuery<T> {
     this._interruptionPolicy = value;
   }
 
+  /** Returns the filter applied to the values returned. */
+  public get filter(): Expression {
+    return this._filter;
+  }
+
+  public set filter(value: Expression) {
+    this._filter = checkFilter(value);
+  }
+
   public toString(): string {
     return `(${this._index} ${this._range} ${this._snapshotLimit} ` +
-      `${InterruptionPolicy[this._interruptionPolicy]} true)`;
+      `${InterruptionPolicy[this._interruptionPolicy]} ${this._filter})`;
   }
 
   /** Converts this object to JSON. */
@@ -115,7 +128,9 @@ export class BasicQuery<T> {
       range: this._range.toJson(),
       snapshot_limit: this._snapshotLimit.toJson(),
       interruption_policy: this._interruptionPolicy,
-      filter: makeAllValuesFilter()
+      filter: {
+        expression: this._filter.toJson()
+      }
     };
   }
 
@@ -123,4 +138,5 @@ export class BasicQuery<T> {
   private _range: Range;
   private _snapshotLimit: SnapshotLimit;
   private _interruptionPolicy: InterruptionPolicy;
+  private _filter: Expression;
 }

@@ -76,6 +76,22 @@ describe('BasicQuery', () => {
       restored.interruptionPolicy, query.interruptionPolicy);
   });
 
+  it('equals', () => {
+    const query = BasicQuery.makeCurrentQuery(5);
+    assert.ok(query.equals(BasicQuery.makeCurrentQuery(5)));
+    assert.ok(!query.equals(BasicQuery.makeCurrentQuery(6)));
+    assert.ok(!query.equals(BasicQuery.makeLatestQuery(5)));
+    assert.ok(!query.equals(null));
+    const interrupted = BasicQuery.makeCurrentQuery(5);
+    interrupted.interruptionPolicy = InterruptionPolicy.BREAK_QUERY;
+    assert.ok(!query.equals(interrupted));
+    const filtered = BasicQuery.makeCurrentQuery(5);
+    filtered.filter = ConstantExpression.FALSE;
+    assert.ok(!query.equals(filtered));
+    assert.ok(query.equals(BasicQuery.fromJson<number>(Number,
+      JSON.parse(JSON.stringify(query.toJson())))));
+  });
+
   it('round_trips_a_filter', () => {
     const query = new BasicQuery<number>(5);
     query.filter = ConstantExpression.FALSE;

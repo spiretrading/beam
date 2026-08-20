@@ -70,6 +70,37 @@ describe('PagedQuery', () => {
     assert.strictEqual(restored.offset, 0);
   });
 
+  it('equals', () => {
+    const query = new PagedQuery<number, number>(5);
+    query.snapshotLimit = SnapshotLimit.fromTail(25);
+    const other = new PagedQuery<number, number>(5);
+    other.snapshotLimit = SnapshotLimit.fromTail(25);
+    assert.ok(query.equals(other));
+    assert.ok(!query.equals(null));
+    other.offset = 3;
+    assert.ok(!query.equals(other));
+    other.offset = 0;
+    other.filter = ConstantExpression.FALSE;
+    assert.ok(!query.equals(other));
+    other.filter = ConstantExpression.TRUE;
+    other.snapshotLimit = SnapshotLimit.fromHead(25);
+    assert.ok(!query.equals(other));
+  });
+
+  it('equals_compares_an_absent_anchor', () => {
+    const query = new PagedQuery<number, number>(5);
+    const anchored = new PagedQuery<number, number>(5);
+    anchored.anchor = 7;
+    assert.ok(!query.equals(anchored));
+    assert.ok(!anchored.equals(query));
+    const other = new PagedQuery<number, number>(5);
+    other.anchor = 7;
+    assert.ok(anchored.equals(other));
+    other.anchor = 8;
+    assert.ok(!anchored.equals(other));
+    assert.ok(query.equals(new PagedQuery<number, number>(5)));
+  });
+
   it('round_trips_a_filter', () => {
     const query = new PagedQuery<number, number>(5);
     query.filter = ConstantExpression.FALSE;

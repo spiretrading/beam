@@ -1,3 +1,4 @@
+import { equals } from '../comparators';
 import { fromJson, toJson } from '../serialization';
 import { ConstantExpression } from './constant_expression';
 import { Expression } from './expression';
@@ -21,7 +22,7 @@ export class BasicQuery<T> {
     query.range = Range.fromJson(value.range);
     query.snapshotLimit = SnapshotLimit.fromJson(value.snapshot_limit);
     query.interruptionPolicy = value.interruption_policy;
-    query.filter = Expression.fromJson(value.filter.expression);
+    query.filter = Expression.nestedFromJson(value.filter);
     return query;
   }
 
@@ -116,6 +117,15 @@ export class BasicQuery<T> {
     this._filter = checkFilter(value);
   }
 
+  /** Tests if two queries are equivalent. */
+  public equals(other: BasicQuery<T>): boolean {
+    return other && equals(this._index, other._index) &&
+      this._range.equals(other._range) &&
+      this._snapshotLimit.equals(other._snapshotLimit) &&
+      this._interruptionPolicy === other._interruptionPolicy &&
+      this._filter.equals(other._filter);
+  }
+
   public toString(): string {
     return `(${this._index} ${this._range} ${this._snapshotLimit} ` +
       `${InterruptionPolicy[this._interruptionPolicy]} ${this._filter})`;
@@ -128,9 +138,7 @@ export class BasicQuery<T> {
       range: this._range.toJson(),
       snapshot_limit: this._snapshotLimit.toJson(),
       interruption_policy: this._interruptionPolicy,
-      filter: {
-        expression: this._filter.toJson()
-      }
+      filter: Expression.nestedToJson(this._filter)
     };
   }
 

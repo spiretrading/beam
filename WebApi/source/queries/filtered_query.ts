@@ -7,7 +7,7 @@ export class FilteredQuery {
 
   /** Constructs a FilteredQuery from a JSON object. */
   public static fromJson(value: any): FilteredQuery {
-    return new FilteredQuery(Expression.fromJson(value.filter.expression));
+    return new FilteredQuery(Expression.nestedFromJson(value.filter));
   }
 
   /**
@@ -39,9 +39,7 @@ export class FilteredQuery {
   /** Converts this object to JSON. */
   public toJson(): any {
     return {
-      filter: {
-        expression: this._filter.toJson()
-      }
+      filter: Expression.nestedToJson(this._filter)
     };
   }
 

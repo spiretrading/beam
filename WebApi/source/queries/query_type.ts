@@ -1,27 +1,32 @@
-/** Lists the types that a query expression can evaluate to. */
-export enum QueryType {
+/**
+ * The type that a query value or expression evaluates to, named as it is
+ * registered by the service it is sent to.
+ */
+export type QueryType = string;
+
+export namespace QueryType {
 
   /** A boolean value. */
-  BOOL = 'bool',
+  export const BOOL: QueryType = 'bool';
 
   /** A single character. */
-  CHAR = 'char',
+  export const CHAR: QueryType = 'char';
 
   /** A signed 32-bit integer. */
-  INT = 'int',
+  export const INT: QueryType = 'int';
 
   /** A double precision floating point value. */
-  DECIMAL = 'double',
+  export const DECIMAL: QueryType = 'double';
 
   /** An unsigned 64-bit identifier. */
-  ID = 'uint64',
+  export const ID: QueryType = 'uint64';
 
   /** A sequence of characters. */
-  STRING = 'string',
+  export const STRING: QueryType = 'string';
 
   /** A point in time. */
-  DATE_TIME = 'boost.posix_time.ptime',
+  export const DATE_TIME: QueryType = 'boost.posix_time.ptime';
 
   /** A length of time. */
-  DURATION = 'boost.posix_time.time_duration'
+  export const DURATION: QueryType = 'boost.posix_time.time_duration';
 }

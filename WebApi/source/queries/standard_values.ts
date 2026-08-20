@@ -1,4 +1,4 @@
-import { DateTime } from '../definitions';
+import { DateTime, Duration } from '../definitions';
 import { QueryType } from './query_type';
 import { NativeValue, Value } from './value';
 
@@ -199,6 +199,35 @@ export class DateTimeValue extends NativeValue<DateTime> {
   }
 }
 
+/** Stores a length of time. */
+export class DurationValue extends NativeValue<Duration> {
+
+  /** Constructs a DurationValue from a JSON object. */
+  public static fromJson(value: any): DurationValue {
+    return new DurationValue(Duration.fromJson(value.value));
+  }
+
+  /**
+   * Constructs a DurationValue.
+   * @param value - The value to store.
+   */
+  constructor(value: Duration) {
+    super(value);
+  }
+
+  public get type(): QueryType {
+    return QueryType.DURATION;
+  }
+
+  protected get name(): string {
+    return DURATION_NAME;
+  }
+
+  protected valueToJson(): any {
+    return this.value.toJson();
+  }
+}
+
 const BOOL_NAME = 'Beam.Queries.BoolValue';
 const CHAR_NAME = 'Beam.Queries.CharValue';
 const INT_NAME = 'Beam.Queries.IntValue';
@@ -206,6 +235,7 @@ const DECIMAL_NAME = 'Beam.Queries.DecimalValue';
 const ID_NAME = 'Beam.Queries.IdValue';
 const STRING_NAME = 'Beam.Queries.StringValue';
 const DATE_TIME_NAME = 'Beam.Queries.DateTimeValue';
+const DURATION_NAME = 'Beam.Queries.DurationValue';
 
 Value.register(BOOL_NAME, BoolValue.fromJson);
 Value.register(CHAR_NAME, CharValue.fromJson);
@@ -214,3 +244,4 @@ Value.register(DECIMAL_NAME, DecimalValue.fromJson);
 Value.register(ID_NAME, IdValue.fromJson);
 Value.register(STRING_NAME, StringValue.fromJson);
 Value.register(DATE_TIME_NAME, DateTimeValue.fromJson);
+Value.register(DURATION_NAME, DurationValue.fromJson);

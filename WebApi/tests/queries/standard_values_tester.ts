@@ -1,9 +1,10 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
-import { DateTime } from '../../source/definitions';
+import { DateTime, Duration } from '../../source/definitions';
 import { QueryType } from '../../source/queries/query_type';
-import { BoolValue, CharValue, DateTimeValue, DecimalValue, IdValue,
-  IntValue, StringValue } from '../../source/queries/standard_values';
+import { BoolValue, CharValue, DateTimeValue, DecimalValue, DurationValue,
+  IdValue, IntValue, StringValue } from
+  '../../source/queries/standard_values';
 import { Value } from '../../source/queries/value';
 
 describe('StandardValues', () => {
@@ -16,6 +17,8 @@ describe('StandardValues', () => {
     assert.strictEqual(new StringValue('a').type, QueryType.STRING);
     assert.strictEqual(
       new DateTimeValue(DateTime.NOT_A_DATE_TIME).type, QueryType.DATE_TIME);
+    assert.strictEqual(
+      new DurationValue(Duration.ZERO).type, QueryType.DURATION);
   });
 
   it('to_string', () => {
@@ -38,13 +41,18 @@ describe('StandardValues', () => {
       new DateTimeValue(DateTime.POS_INFIN)));
     assert.ok(!new DateTimeValue(DateTime.POS_INFIN).equals(
       new DateTimeValue(DateTime.NEG_INFIN)));
+    assert.ok(new DurationValue(Duration.HOUR).equals(
+      new DurationValue(Duration.HOUR)));
+    assert.ok(!new DurationValue(Duration.HOUR).equals(
+      new DurationValue(Duration.MINUTE)));
   });
 
   it('round_trip', () => {
     const values = [new BoolValue(true), new BoolValue(false),
       new CharValue('a'), new IntValue(-5), new DecimalValue(1.5),
       new IdValue(18446744073709551615n), new StringValue('hello'),
-      new DateTimeValue(DateTime.fromJson('20200102T030405'))];
+      new DateTimeValue(DateTime.fromJson('20200102T030405')),
+      new DurationValue(Duration.fromJson('01:30:00'))];
     for(const value of values) {
       const json = JSON.parse(JSON.stringify(value.toJson()));
       const restored = Value.fromJson(json);
@@ -68,6 +76,8 @@ describe('StandardValues', () => {
       new StringValue('a').toJson().__type, 'Beam.Queries.StringValue');
     assert.strictEqual(new DateTimeValue(DateTime.POS_INFIN).toJson().__type,
       'Beam.Queries.DateTimeValue');
+    assert.strictEqual(new DurationValue(Duration.HOUR).toJson().__type,
+      'Beam.Queries.DurationValue');
   });
 
   it('sends_wide_integers_as_strings', () => {
@@ -85,7 +95,7 @@ describe('StandardValues', () => {
 
   it('rejects_an_unregistered_value', () => {
     assert.throws(
-      () => Value.fromJson({__type: 'Beam.Queries.DurationValue', value: '1'}),
+      () => Value.fromJson({__type: 'Beam.Queries.ObjectValue', value: 1}),
       TypeError);
   });
 });

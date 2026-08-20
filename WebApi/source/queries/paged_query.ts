@@ -1,5 +1,8 @@
+import { equals } from '../comparators';
 import { fromJson, toJson } from '../serialization';
-import { makeAllValuesFilter } from './filter';
+import { ConstantExpression } from './constant_expression';
+import { Expression } from './expression';
+import { checkFilter } from './filtered_query';
 import { SnapshotLimit } from './snapshot_limit';
 
 /**
@@ -20,6 +23,7 @@ export class PagedQuery<I, A> {
       indexType: any, anchorType: any, value: any): PagedQuery<I, A> {
     const query = new PagedQuery<I, A>(fromJson(indexType, value.index));
     query.snapshotLimit = SnapshotLimit.fromJson(value.snapshot_limit);
+    query.filter = Expression.nestedFromJson(value.filter);
     if(value.anchor && value.anchor.is_initialized) {
       query.anchor = fromJson(anchorType, value.anchor.value);
     }
@@ -34,6 +38,7 @@ export class PagedQuery<I, A> {
   constructor(index: I) {
     this._index = index;
     this._snapshotLimit = SnapshotLimit.NONE;
+    this._filter = ConstantExpression.TRUE;
     this._anchor = null as A;
     this._offset = 0;
   }
@@ -56,6 +61,15 @@ export class PagedQuery<I, A> {
     this._snapshotLimit = value;
   }
 
+  /** Returns the filter applied to the values returned. */
+  public get filter(): Expression {
+    return this._filter;
+  }
+
+  public set filter(value: Expression) {
+    this._filter = checkFilter(value);
+  }
+
   /** Returns the anchor, or null if the query has no anchor. */
   public get anchor(): A {
     return this._anchor;
@@ -74,6 +88,15 @@ export class PagedQuery<I, A> {
     this._offset = Math.max(0, value);
   }
 
+  /** Tests if two queries are equivalent. */
+  public equals(other: PagedQuery<I, A>): boolean {
+    return other && equals(this._index, other._index) &&
+      this._snapshotLimit.equals(other._snapshotLimit) &&
+      this._filter.equals(other._filter) &&
+      anchorEquals(this._anchor, other._anchor) &&
+      this._offset === other._offset;
+  }
+
   public toString(): string {
     const anchor = (() => {
       if(this._anchor === null || this._anchor === undefined) {
@@ -87,7 +110,8 @@ export class PagedQuery<I, A> {
       }
       return `${this._offset} `;
     })();
-    return `(${this._index} ${this._snapshotLimit} ${anchor}${offset}true)`;
+    return `(${this._index} ${this._snapshotLimit} ${anchor}${offset}` +
+      `${this._filter})`;
   }
 
   /** Converts this object to JSON. */
@@ -95,7 +119,7 @@ export class PagedQuery<I, A> {
     return {
       index: toJson(this._index),
       snapshot_limit: this._snapshotLimit.toJson(),
-      filter: makeAllValuesFilter(),
+      filter: Expression.nestedToJson(this._filter),
       anchor: anchorToJson(this._anchor),
       offset: this._offset
     };
@@ -103,8 +127,18 @@ export class PagedQuery<I, A> {
 
   private _index: I;
   private _snapshotLimit: SnapshotLimit;
+  private _filter: Expression;
   private _anchor: A;
   private _offset: number;
+}
+
+function anchorEquals(left: any, right: any): boolean {
+  if(left === null || left === undefined) {
+    return right === null || right === undefined;
+  } else if(right === null || right === undefined) {
+    return false;
+  }
+  return equals(left, right);
 }
 
 function anchorToJson(anchor: any): any {

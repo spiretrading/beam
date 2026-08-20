@@ -23,7 +23,8 @@ namespace Beam {
     (DecimalValue, "Beam.Queries.DecimalValue"),
     (IdValue, "Beam.Queries.IdValue"),
     (StringValue, "Beam.Queries.StringValue"),
-    (DateTimeValue, "Beam.Queries.DateTimeValue"));
+    (DateTimeValue, "Beam.Queries.DateTimeValue"),
+    (DurationValue, "Beam.Queries.DurationValue"));
 
   BEAM_REGISTER_TYPES(register_expression_types,
     (AndExpression, "Beam.Queries.AndExpression"),

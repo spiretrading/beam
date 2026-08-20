@@ -1,4 +1,6 @@
+#include <cstdint>
 #include <string>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ShuttleQueryTypes.hpp"
 #include "Beam/Queries/Value.hpp"
@@ -7,6 +9,7 @@
 
 using namespace Beam;
 using namespace Beam::Tests;
+using namespace boost::posix_time;
 
 TEST_SUITE("Value") {
   TEST_CASE("construct_from_int") {
@@ -46,8 +49,18 @@ TEST_SUITE("Value") {
   }
 
   TEST_CASE("stream") {
-    auto value = Value(123);
-    REQUIRE(to_string(value) == "123");
-    test_query_round_trip_shuttle(value);
+    REQUIRE(to_string(Value(123)) == "123");
+  }
+
+  TEST_CASE("shuttle") {
+    test_query_round_trip_shuttle(Value(true));
+    test_query_round_trip_shuttle(Value('a'));
+    test_query_round_trip_shuttle(Value(123));
+    test_query_round_trip_shuttle(Value(3.14));
+    test_query_round_trip_shuttle(Value(std::uint64_t(18446744073709551615)));
+    test_query_round_trip_shuttle(Value("hello"));
+    test_query_round_trip_shuttle(
+      Value(time_from_string("2020-01-02 03:04:05")));
+    test_query_round_trip_shuttle(Value(duration_from_string("01:30:00")));
   }
 }

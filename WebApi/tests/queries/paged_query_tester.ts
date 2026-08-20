@@ -1,7 +1,10 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
+import { ConstantExpression } from
+  '../../source/queries/constant_expression';
 import { PagedQuery } from '../../source/queries/paged_query';
 import { SnapshotLimit } from '../../source/queries/snapshot_limit';
+import { IntValue } from '../../source/queries/standard_values';
 import { DirectoryEntry } from '../../source/service_locator/directory_entry';
 
 describe('PagedQuery', () => {
@@ -67,10 +70,58 @@ describe('PagedQuery', () => {
     assert.strictEqual(restored.offset, 0);
   });
 
-  it('ignores_a_received_filter', () => {
+  it('equals', () => {
+    const query = new PagedQuery<number, number>(5);
+    query.snapshotLimit = SnapshotLimit.fromTail(25);
+    const other = new PagedQuery<number, number>(5);
+    other.snapshotLimit = SnapshotLimit.fromTail(25);
+    assert.ok(query.equals(other));
+    assert.ok(!query.equals(null));
+    other.offset = 3;
+    assert.ok(!query.equals(other));
+    other.offset = 0;
+    other.filter = ConstantExpression.FALSE;
+    assert.ok(!query.equals(other));
+    other.filter = ConstantExpression.TRUE;
+    other.snapshotLimit = SnapshotLimit.fromHead(25);
+    assert.ok(!query.equals(other));
+  });
+
+  it('equals_compares_an_absent_anchor', () => {
+    const query = new PagedQuery<number, number>(5);
+    const anchored = new PagedQuery<number, number>(5);
+    anchored.anchor = 7;
+    assert.ok(!query.equals(anchored));
+    assert.ok(!anchored.equals(query));
+    const other = new PagedQuery<number, number>(5);
+    other.anchor = 7;
+    assert.ok(anchored.equals(other));
+    other.anchor = 8;
+    assert.ok(!anchored.equals(other));
+    assert.ok(query.equals(new PagedQuery<number, number>(5)));
+  });
+
+  it('round_trips_a_filter', () => {
+    const query = new PagedQuery<number, number>(5);
+    query.filter = ConstantExpression.FALSE;
+    const restored =
+      PagedQuery.fromJson<number, number>(Number, Number, query.toJson());
+    assert.ok(restored.filter.equals(ConstantExpression.FALSE));
+    assert.strictEqual(restored.toString(), '(5 None false)');
+  });
+
+  it('rejects_a_filter_that_is_not_boolean', () => {
+    const query = new PagedQuery<number, number>(5);
+    assert.throws(() => query.filter = new ConstantExpression(new IntValue(1)),
+      TypeError);
+    assert.ok(query.filter.equals(ConstantExpression.TRUE));
+  });
+
+  it('rejects_an_unregistered_filter', () => {
     const json = new PagedQuery<number, number>(5).toJson();
     json.filter = {expression: {__type: 'Beam.Queries.NotExpression'}};
-    assert.strictEqual(
-      PagedQuery.fromJson<number, number>(Number, Number, json).index, 5);
+    assert.throws(
+      () => PagedQuery.fromJson<number, number>(Number, Number, json),
+      TypeError);
   });
 });

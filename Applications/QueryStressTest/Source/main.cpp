@@ -181,7 +181,7 @@ namespace {
   template<typename ContainerType>
   void DataServlet<ContainerType>::on_end_data_query(
       ServiceProtocolClient& client, int index, int id) {
-    m_subscriptions.end(index, id);
+    m_subscriptions.end(index, client, id);
   }
 
   template<typename ContainerType>

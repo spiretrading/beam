@@ -12,8 +12,8 @@ using namespace boost::posix_time;
 using namespace Viper;
 
 namespace {
-  using DataStore = SqlDataStore<
-    Sqlite3::Connection, Row<TestEntry>, Row<std::string>, SqlTranslator>;
+  using DataStore = SqlDataStore<Sqlite3::Connection, Row<TestEntry>,
+    Row<std::string>, SqlTranslator<QueryTypes>>;
 
   const auto PATH = "file:memdb?mode=memory&cache=shared";
 
@@ -53,8 +53,8 @@ TEST_SUITE("SqlDataStore") {
     auto make_embedded_index_row = [] {
       return Row<int>().add_column("value");
     };
-    using EmbeddedDataStore = SqlDataStore<
-      Sqlite3::Connection, Row<TestEntry>, Row<int>, SqlTranslator>;
+    using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection,
+      Row<TestEntry>, Row<int>, SqlTranslator<QueryTypes>>;
     auto reader_pool = DatabaseConnectionPool<Sqlite3::Connection>(1,
       [] {
         auto connection = std::make_unique<Sqlite3::Connection>(PATH);

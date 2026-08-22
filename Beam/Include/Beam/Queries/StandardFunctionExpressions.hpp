@@ -16,15 +16,20 @@ namespace Details {
     { a < a } -> std::convertible_to<bool>;
   }> {};
 
+  template<typename A1, typename A2>
+  inline constexpr auto is_compatible_v = std::is_same_v<A1, A2> ||
+    (std::is_same_v<A1, int> && std::is_same_v<A2, double>) ||
+    (std::is_same_v<A1, double> && std::is_same_v<A2, int>);
+
   template<typename TypeList, std::size_t I, std::size_t J, std::size_t Size,
     template<typename, typename> class HasOperation>
   struct generate_pairs_impl {
     using current_type1 = boost::mp11::mp_at_c<TypeList, I>;
     using current_type2 = boost::mp11::mp_at_c<TypeList, J>;
-    using next_pairs = typename std::conditional_t<J + 1 < Size,
-      generate_pairs_impl<TypeList, I, J + 1, Size, HasOperation>,
+    using next_pairs = typename std::conditional_t<
+      J + 1 < Size, generate_pairs_impl<TypeList, I, J + 1, Size, HasOperation>,
       std::conditional_t<I + 1 < Size,
-        generate_pairs_impl<TypeList, I + 1, I + 1, Size, HasOperation>,
+        generate_pairs_impl<TypeList, I + 1, 0, Size, HasOperation>,
         std::type_identity<boost::mp11::mp_list<>>>>::type;
     using type = std::conditional_t<
       HasOperation<current_type1, current_type2>::value,
@@ -136,6 +141,7 @@ namespace Details {
   struct AdditionExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() + std::declval<A2>() };
     }> {};
 
@@ -196,6 +202,7 @@ namespace Details {
   struct SubtractionExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() - std::declval<A2>() };
     }> {};
 
@@ -256,6 +263,7 @@ namespace Details {
   struct MultiplicationExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
+      requires Details::is_compatible_v<A1, A2>;
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
       { std::declval<A1>() * std::declval<A2>() };
@@ -322,6 +330,7 @@ namespace Details {
       requires !std::is_same_v<A2, bool>;
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() / std::declval<A2>() };
     }> {};
 
@@ -378,6 +387,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() < std::declval<A2>() };
     }> {};
 
@@ -434,6 +444,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() <= std::declval<A2>() };
     }> {};
 
@@ -488,7 +499,7 @@ namespace Details {
   struct EqualsExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires std::is_same_v<A1, A2>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() == std::declval<A2>() };
     }> {};
 
@@ -543,7 +554,7 @@ namespace Details {
   struct NotEqualsExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires std::is_same_v<A1, A2>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() != std::declval<A2>() };
     }> {};
 
@@ -600,6 +611,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
+      requires Details::is_compatible_v<A1, A2>;
       { std::declval<A1>() >= std::declval<A2>() };
     }> {};
 
@@ -656,6 +668,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
+      requires Details::is_compatible_v<A1, A2>;
       { (std::declval<A1>() > std::declval<A2>()) };
     }> {};
 

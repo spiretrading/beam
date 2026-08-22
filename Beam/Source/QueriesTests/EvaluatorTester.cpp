@@ -93,6 +93,31 @@ TEST_SUITE("Evaluator") {
         translate(ConstantExpression(2.5) < ConstantExpression(1));
       REQUIRE(!evaluator->eval<bool>());
     }
+
+    SUBCASE("equals") {
+      auto evaluator =
+        translate(ConstantExpression(1) == ConstantExpression(1.0));
+      REQUIRE(evaluator->eval<bool>());
+    }
+
+    SUBCASE("equals_reversed") {
+      auto evaluator =
+        translate(ConstantExpression(1.0) == ConstantExpression(1));
+      REQUIRE(evaluator->eval<bool>());
+    }
+
+    SUBCASE("not_equals_reversed") {
+      auto evaluator =
+        translate(ConstantExpression(2.5) != ConstantExpression(1));
+      REQUIRE(evaluator->eval<bool>());
+    }
+
+    SUBCASE("unsupported") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
+      auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
+      REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
   }
 
   TEST_CASE("less_than_or_equal_expression") {

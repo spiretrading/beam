@@ -215,6 +215,14 @@ TEST_SUITE("SqlTranslator") {
       translation.append_query(query);
       REQUIRE(query == "(2.500000 < 1)");
     }
+
+    SUBCASE("unsupported") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
+      auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression), ExpressionTranslationException);
+    }
   }
 
   TEST_CASE("not_expression") {

@@ -1,4 +1,5 @@
 #include <doctest/doctest.h>
+#include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/SqlTranslator.hpp"
 
 using namespace Beam;
@@ -192,6 +193,30 @@ TEST_SUITE("SqlTranslator") {
     }
   }
 
+  TEST_CASE("mixed_operand_types") {
+    SUBCASE("promoted") {
+      auto parameters =
+        std::vector<Expression>{ConstantExpression(1), ConstantExpression(2.5)};
+      auto expression =
+        FunctionExpression(LESS_NAME, typeid(bool), parameters);
+      auto translation = make_sql_query("p", expression);
+      auto query = std::string();
+      translation.append_query(query);
+      REQUIRE(query == "(1 < 2.500000)");
+    }
+
+    SUBCASE("reversed") {
+      auto parameters =
+        std::vector<Expression>{ConstantExpression(2.5), ConstantExpression(1)};
+      auto expression =
+        FunctionExpression(LESS_NAME, typeid(bool), parameters);
+      auto translation = make_sql_query("p", expression);
+      auto query = std::string();
+      translation.append_query(query);
+      REQUIRE(query == "(2.500000 < 1)");
+    }
+  }
+
   TEST_CASE("not_expression") {
     auto translation =
       make_sql_query("p", NotExpression(ConstantExpression(true)));
@@ -209,11 +234,48 @@ TEST_SUITE("SqlTranslator") {
   }
 
   TEST_CASE("parameter") {
-    auto expression = ParameterExpression(0, typeid(int));
-    auto translation = make_sql_query("my_table", expression);
-    auto query = std::string();
-    translation.append_query(query);
-    REQUIRE(query == "my_table");
+    SUBCASE("valid") {
+      auto expression = ParameterExpression(0, typeid(int));
+      auto translation = make_sql_query("my_table", expression);
+      auto query = std::string();
+      translation.append_query(query);
+      REQUIRE(query == "my_table");
+    }
+
+    SUBCASE("index_out_of_range") {
+      auto expression =
+        ParameterExpression(MAX_EVALUATOR_PARAMETERS, typeid(int));
+      REQUIRE_THROWS_AS(
+        make_sql_query("my_table", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("negative_index") {
+      auto expression = ParameterExpression(-1, typeid(int));
+      REQUIRE_THROWS_AS(
+        make_sql_query("my_table", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("type_mismatch") {
+      auto left = std::vector<Expression>{
+        ParameterExpression(0, typeid(int)), ConstantExpression(1)};
+      auto right = std::vector<Expression>{
+        ParameterExpression(0, typeid(std::string)),
+        ConstantExpression(std::string("hello"))};
+      auto expression = AndExpression(
+        FunctionExpression(EQUALS_NAME, typeid(bool), left),
+        FunctionExpression(EQUALS_NAME, typeid(bool), right));
+      REQUIRE_THROWS_AS(
+        make_sql_query("my_table", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("missing") {
+      auto parameters = std::vector<Expression>{
+        ParameterExpression(1, typeid(int)), ConstantExpression(1)};
+      auto expression =
+        FunctionExpression(EQUALS_NAME, typeid(bool), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("my_table", expression), ExpressionTranslationException);
+    }
   }
 
   TEST_CASE("unsupported_function_throws") {
@@ -230,6 +292,55 @@ TEST_SUITE("SqlTranslator") {
       FunctionExpression(ADDITION_NAME, typeid(int), parameters);
     REQUIRE_THROWS_AS(
       make_sql_query("p", expression), ExpressionTranslationException);
+  }
+
+  TEST_CASE("mismatched_expression_type_throws") {
+    SUBCASE("function") {
+      auto parameters =
+        std::vector<Expression>{ConstantExpression(1), ConstantExpression(2)};
+      auto expression =
+        FunctionExpression(ADDITION_NAME, typeid(std::string), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("comparison") {
+      auto parameters =
+        std::vector<Expression>{ConstantExpression(1), ConstantExpression(2)};
+      auto expression =
+        FunctionExpression(EQUALS_NAME, typeid(int), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("operand") {
+      auto parameters =
+        std::vector<Expression>{ConstantExpression(1), ConstantExpression(2)};
+      auto operand =
+        FunctionExpression(ADDITION_NAME, typeid(bool), parameters);
+      REQUIRE_THROWS_AS(make_sql_query("p", NotExpression(operand)),
+        ExpressionTranslationException);
+    }
+  }
+
+  TEST_CASE("incompatible_operand_types_throws") {
+    SUBCASE("equals") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::string("hello"))};
+      auto expression =
+        FunctionExpression(EQUALS_NAME, typeid(bool), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("addition") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::string("hello"))};
+      auto expression =
+        FunctionExpression(ADDITION_NAME, typeid(int), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression), ExpressionTranslationException);
+    }
   }
 
   TEST_CASE("visiting_unhandled_virtual_expression_throws") {

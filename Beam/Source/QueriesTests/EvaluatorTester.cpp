@@ -81,6 +81,20 @@ TEST_SUITE("Evaluator") {
     REQUIRE(!evaluator_equal->eval<bool>());
   }
 
+  TEST_CASE("mixed_operand_types") {
+    SUBCASE("promoted") {
+      auto evaluator =
+        translate(ConstantExpression(1) < ConstantExpression(2.5));
+      REQUIRE(evaluator->eval<bool>());
+    }
+
+    SUBCASE("reversed") {
+      auto evaluator =
+        translate(ConstantExpression(2.5) < ConstantExpression(1));
+      REQUIRE(!evaluator->eval<bool>());
+    }
+  }
+
   TEST_CASE("less_than_or_equal_expression") {
     auto evaluator_equal =
       translate(ConstantExpression(1) <= ConstantExpression(1));

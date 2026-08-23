@@ -235,8 +235,7 @@ TEST_SUITE("SqlTranslator") {
         "p", ConstantExpression(finish) - ConstantExpression(start));
       translation.append_query(query);
       REQUIRE(query == "((" + std::to_string(to_sql_timestamp(finish)) +
-        " * 1000) - (" + std::to_string(to_sql_timestamp(start)) +
-        " * 1000))");
+        " - " + std::to_string(to_sql_timestamp(start)) + ") * 1000)");
     }
 
     SUBCASE("difference_compared_to_duration") {
@@ -245,8 +244,8 @@ TEST_SUITE("SqlTranslator") {
         make_sql_query("p", difference > ConstantExpression(second));
       translation.append_query(query);
       REQUIRE(query == "(((" + std::to_string(to_sql_timestamp(finish)) +
-        " * 1000) - (" + std::to_string(to_sql_timestamp(start)) +
-        " * 1000)) > " + std::to_string(second.total_microseconds()) + ")");
+        " - " + std::to_string(to_sql_timestamp(start)) + ") * 1000) > " +
+        std::to_string(second.total_microseconds()) + ")");
     }
 
     SUBCASE("sum") {

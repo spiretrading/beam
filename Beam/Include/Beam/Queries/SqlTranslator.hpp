@@ -8,7 +8,6 @@
 #include <type_traits>
 #include <typeindex>
 #include <boost/callable_traits/return_type.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/Expressions/Expressions.hpp>
@@ -40,18 +39,67 @@ namespace Beam {
     std::type_index m_type;
   };
 
+  /** The number of microseconds used to represent a millisecond. */
+  constexpr auto MICROSECONDS_PER_MILLISECOND = std::int64_t(1000);
+
   /**
-   * Returns the type that a function's operands translate to.
-   * @tparam F The function translator to evaluate.
+   * Translates an operation on two operands into an SQL expression.
+   * @tparam F The function translator whose operation is applied.
+   * @tparam T0 The type of the left hand operand.
+   * @tparam T1 The type of the right hand operand.
+   */
+  template<typename F, typename T0, typename T1>
+  struct SqlOperation {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return typename F::template Operation<
+        Viper::Expression, Viper::Expression>()(
+          std::move(left), std::move(right));
+    }
+  };
+
+  template<typename V>
+  struct SqlOperation<AdditionExpressionTranslator<V>,
+      boost::posix_time::ptime, boost::posix_time::time_duration> {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return left + right / Viper::literal(MICROSECONDS_PER_MILLISECOND);
+    }
+  };
+
+  template<typename V>
+  struct SqlOperation<SubtractionExpressionTranslator<V>,
+      boost::posix_time::ptime, boost::posix_time::ptime> {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return (left - right) * Viper::literal(MICROSECONDS_PER_MILLISECOND);
+    }
+  };
+
+  template<typename V>
+  struct SqlOperation<SubtractionExpressionTranslator<V>,
+      boost::posix_time::ptime, boost::posix_time::time_duration> {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return left - right / Viper::literal(MICROSECONDS_PER_MILLISECOND);
+    }
+  };
+
+  /**
+   * Applies a function translator's SQL operation to its operands.
+   * @tparam F The function translator to apply.
    */
   template<typename F>
-  struct FunctionTypeTranslator {
+  struct SqlOperationTranslator {
     using type = typename F::type;
 
     template<typename... Args>
-    std::type_index operator ()() const {
-      return typeid(std::remove_cvref_t<boost::callable_traits::return_type_t<
-        typename F::template Operation<Args...>>>);
+    SqlTranslation operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return SqlTranslation(
+        SqlOperation<F, Args...>()(std::move(left), std::move(right)),
+        typeid(std::remove_cvref_t<boost::callable_traits::return_type_t<
+          typename F::template Operation<Args...>>>));
     }
   };
 
@@ -118,10 +166,8 @@ namespace Beam {
         m_parameters;
       int m_max_parameter;
 
-      static Viper::Expression convert_time_unit(
-        Viper::Expression term, std::type_index from, std::type_index to);
-      template<typename T, typename F>
-      void translate(const FunctionExpression& expression, F&& translation);
+      template<typename T>
+      void translate(const FunctionExpression& expression);
   };
 
   /**
@@ -206,55 +252,25 @@ namespace Beam {
   template<typename Q>
   void SqlTranslator<Q>::visit(const FunctionExpression& expression) {
     if(expression.get_name() == ADDITION_NAME) {
-      translate<AdditionExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left + right;
-        });
+      translate<AdditionExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == SUBTRACTION_NAME) {
-      translate<SubtractionExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left - right;
-        });
+      translate<SubtractionExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == MULTIPLICATION_NAME) {
-      translate<MultiplicationExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left * right;
-        });
+      translate<MultiplicationExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == DIVISION_NAME) {
-      translate<DivisionExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left / right;
-        });
+      translate<DivisionExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == LESS_NAME) {
-      translate<LessExpressionTranslator<ComparableTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left < right;
-        });
+      translate<LessExpressionTranslator<ComparableTypes>>(expression);
     } else if(expression.get_name() == LESS_EQUALS_NAME) {
-      translate<LessEqualsExpressionTranslator<ComparableTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left <= right;
-        });
+      translate<LessEqualsExpressionTranslator<ComparableTypes>>(expression);
     } else if(expression.get_name() == EQUALS_NAME) {
-      translate<EqualsExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left == right;
-        });
+      translate<EqualsExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == NOT_EQUALS_NAME) {
-      translate<NotEqualsExpressionTranslator<NativeTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left != right;
-        });
+      translate<NotEqualsExpressionTranslator<NativeTypes>>(expression);
     } else if(expression.get_name() == GREATER_EQUALS_NAME) {
-      translate<GreaterEqualsExpressionTranslator<ComparableTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left >= right;
-        });
+      translate<GreaterEqualsExpressionTranslator<ComparableTypes>>(expression);
     } else if(expression.get_name() == GREATER_NAME) {
-      translate<GreaterExpressionTranslator<ComparableTypes>>(expression,
-        [] (auto&& left, auto&& right) {
-          return left > right;
-        });
+      translate<GreaterExpressionTranslator<ComparableTypes>>(expression);
     } else {
       boost::throw_with_location(
         ExpressionTranslationException("Function not supported."));
@@ -309,42 +325,21 @@ namespace Beam {
   }
 
   template<typename Q>
-  Viper::Expression SqlTranslator<Q>::convert_time_unit(
-      Viper::Expression term, std::type_index from, std::type_index to) {
-    const auto MICROSECONDS_PER_MILLISECOND = 1000;
-    if(from == typeid(boost::posix_time::ptime) &&
-        to == typeid(boost::posix_time::time_duration)) {
-      return term * Viper::literal(MICROSECONDS_PER_MILLISECOND);
-    } else if(from == typeid(boost::posix_time::time_duration) &&
-        to == typeid(boost::posix_time::ptime)) {
-      return term / Viper::literal(MICROSECONDS_PER_MILLISECOND);
-    }
-    return term;
-  }
-
-  template<typename Q>
-  template<typename T, typename F>
-  void SqlTranslator<Q>::translate(
-      const FunctionExpression& expression, F&& translation) {
+  template<typename T>
+  void SqlTranslator<Q>::translate(const FunctionExpression& expression) {
     if(expression.get_parameters().size() != 2) {
       boost::throw_with_location(
         ExpressionTranslationException("Invalid parameters."));
     }
     auto left = translate(expression.get_parameters()[0]);
     auto right = translate(expression.get_parameters()[1]);
-    auto type = [&] {
-      try {
-        return instantiate<FunctionTypeTranslator<T>>(
-          left.m_type, right.m_type)();
-      } catch(const std::invalid_argument&) {
-        std::throw_with_nested(
-          ExpressionTranslationException("Type mismatch."));
-      }
-    }();
-    set_translation(std::forward<F>(translation)(
-      convert_time_unit(std::move(left.m_expression), left.m_type, type),
-      convert_time_unit(std::move(right.m_expression), right.m_type, type)),
-      type);
+    try {
+      m_translation =
+        instantiate<SqlOperationTranslator<T>>(left.m_type, right.m_type)(
+          std::move(left.m_expression), std::move(right.m_expression));
+    } catch(const std::invalid_argument&) {
+      std::throw_with_nested(ExpressionTranslationException("Type mismatch."));
+    }
   }
 }
 

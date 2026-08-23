@@ -3,6 +3,7 @@
 #include <concepts>
 #include <string>
 #include <type_traits>
+#include <typeindex>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/mp11.hpp>
@@ -11,11 +12,6 @@
 
 namespace Beam {
 namespace Details {
-  template<class T>
-  struct has_less : std::bool_constant<requires (const T& a) {
-    { a < a } -> std::convertible_to<bool>;
-  }> {};
-
   template<typename A1, typename A2, typename T, typename U>
   inline constexpr auto is_pair_v =
     (std::is_same_v<A1, T> && std::is_same_v<A2, U>) ||
@@ -62,6 +58,14 @@ namespace Details {
   struct make_parameter_list {
     using type = typename generate_pairs<T, HasOperation>::type;
   };
+
+  inline std::type_index get_promotion(
+      const Expression& left, const Expression& right) {
+    if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
+      return typeid(double);
+    }
+    return left.get_type();
+  }
 }
 
   /** The name used for the addition function. */
@@ -108,13 +112,8 @@ namespace Details {
    */
   inline FunctionExpression operator +(
       const Expression& left, const Expression& right) {
-    auto type = [&] {
-      if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
-        return std::type_index(typeid(double));
-      }
-      return left.get_type();
-    }();
-    return FunctionExpression(ADDITION_NAME, type, {left, right});
+    return FunctionExpression(
+      ADDITION_NAME, Details::get_promotion(left, right), {left, right});
   }
 
   /**
@@ -170,13 +169,11 @@ namespace Details {
   inline FunctionExpression operator -(
       const Expression& left, const Expression& right) {
     auto type = [&] {
-      if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
-        return std::type_index(typeid(double));
-      } else if(left.get_type() == typeid(boost::posix_time::ptime) &&
+      if(left.get_type() == typeid(boost::posix_time::ptime) &&
           right.get_type() == typeid(boost::posix_time::ptime)) {
         return std::type_index(typeid(boost::posix_time::time_duration));
       }
-      return left.get_type();
+      return Details::get_promotion(left, right);
     }();
     return FunctionExpression(SUBTRACTION_NAME, type, {left, right});
   }
@@ -233,13 +230,8 @@ namespace Details {
    */
   inline FunctionExpression operator *(
       const Expression& left, const Expression& right) {
-    auto type = [&] {
-      if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
-        return std::type_index(typeid(double));
-      }
-      return left.get_type();
-    }();
-    return FunctionExpression(MULTIPLICATION_NAME, type, {left, right});
+    return FunctionExpression(
+      MULTIPLICATION_NAME, Details::get_promotion(left, right), {left, right});
   }
 
   /**
@@ -296,13 +288,8 @@ namespace Details {
    */
   inline FunctionExpression operator /(
       const Expression& left, const Expression& right) {
-    auto type = [&] {
-      if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
-        return std::type_index(typeid(double));
-      }
-      return left.get_type();
-    }();
-    return FunctionExpression(DIVISION_NAME, type, {left, right});
+    return FunctionExpression(
+      DIVISION_NAME, Details::get_promotion(left, right), {left, right});
   }
 
   /**
@@ -699,7 +686,8 @@ namespace Details {
    */
   inline FunctionExpression max(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(MAX_NAME, left.get_type(), {left, right});
+    return FunctionExpression(
+      MAX_NAME, Details::get_promotion(left, right), {left, right});
   }
 
   /**
@@ -730,16 +718,21 @@ namespace Details {
    */
   template<typename ValueTypes>
   struct MaxExpressionTranslator {
-    template<typename T>
-    using make_signature = boost::mp11::mp_list<T, T>;
+    template<typename A1, typename A2>
+    struct has_operation : std::bool_constant<requires {
+      requires Details::is_compatible_v<A1, A2>;
+      typename std::common_type_t<A1, A2>;
+      { std::declval<std::common_type_t<A1, A2>>() <
+        std::declval<std::common_type_t<A1, A2>>() } ->
+          std::convertible_to<bool>;
+    }> {};
 
-    using type = boost::mp11::mp_transform<make_signature,
-      boost::mp11::mp_copy_if<ValueTypes, Details::has_less>>;
+    using type = Details::make_parameter_list<ValueTypes, has_operation>::type;
 
     template<typename T0, typename T1>
     struct Operation {
-      T0 operator()(T0 left, T1 right) const {
-        return std::max(left, right);
+      std::common_type_t<T0, T1> operator()(T0 left, T1 right) const {
+        return std::max<std::common_type_t<T0, T1>>(left, right);
       }
     };
   };
@@ -752,7 +745,8 @@ namespace Details {
    */
   inline FunctionExpression min(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(MIN_NAME, left.get_type(), {left, right});
+    return FunctionExpression(
+      MIN_NAME, Details::get_promotion(left, right), {left, right});
   }
 
   /**
@@ -787,8 +781,8 @@ namespace Details {
 
     template<typename T0, typename T1>
     struct Operation {
-      T0 operator()(T0 left, T1 right) const {
-        return std::min(left, right);
+      std::common_type_t<T0, T1> operator()(T0 left, T1 right) const {
+        return std::min<std::common_type_t<T0, T1>>(left, right);
       }
     };
   };

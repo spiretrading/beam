@@ -212,6 +212,12 @@ TEST_SUITE("Evaluator") {
     auto max_double =
       translate(max(ConstantExpression(1.5), ConstantExpression(2.25)));
     REQUIRE(max_double->eval<double>() == 2.25);
+    auto max_mixed =
+      translate(max(ConstantExpression(1), ConstantExpression(2.5)));
+    REQUIRE(max_mixed->eval<double>() == 2.5);
+    auto max_mixed_reversed =
+      translate(max(ConstantExpression(2.5), ConstantExpression(1)));
+    REQUIRE(max_mixed_reversed->eval<double>() == 2.5);
   }
 
   TEST_CASE("min_expression") {
@@ -227,6 +233,12 @@ TEST_SUITE("Evaluator") {
     auto min_double =
       translate(min(ConstantExpression(1.5), ConstantExpression(2.25)));
     REQUIRE(min_double->eval<double>() == 1.5);
+    auto min_mixed =
+      translate(min(ConstantExpression(1), ConstantExpression(2.5)));
+    REQUIRE(min_mixed->eval<double>() == 1.0);
+    auto min_mixed_reversed =
+      translate(min(ConstantExpression(2.5), ConstantExpression(1)));
+    REQUIRE(min_mixed_reversed->eval<double>() == 1.0);
   }
 
   TEST_CASE("parameter_expression") {

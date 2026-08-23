@@ -1,7 +1,9 @@
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Evaluator.hpp"
 
 using namespace Beam;
+using namespace boost::posix_time;
 
 TEST_SUITE("Evaluator") {
   TEST_CASE("constant_expression") {
@@ -117,6 +119,30 @@ TEST_SUITE("Evaluator") {
         ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
       auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
+  }
+
+  TEST_CASE("time_arithmetic") {
+    auto start = time_from_string("2020-01-02 00:00:00");
+    auto finish = time_from_string("2020-01-02 00:00:02");
+    auto second = duration_from_string("00:00:01");
+    SUBCASE("difference") {
+      auto evaluator =
+        translate(ConstantExpression(finish) - ConstantExpression(start));
+      REQUIRE(evaluator->eval<time_duration>() == seconds(2));
+    }
+
+    SUBCASE("difference_compared_to_duration") {
+      auto difference = ConstantExpression(finish) - ConstantExpression(start);
+      auto evaluator = translate(difference > ConstantExpression(second));
+      REQUIRE(evaluator->eval<bool>());
+    }
+
+    SUBCASE("sum") {
+      auto evaluator =
+        translate(ConstantExpression(start) + ConstantExpression(second));
+      REQUIRE(evaluator->eval<ptime>() ==
+        time_from_string("2020-01-02 00:00:01"));
     }
   }
 

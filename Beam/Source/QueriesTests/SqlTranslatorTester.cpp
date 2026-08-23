@@ -225,6 +225,39 @@ TEST_SUITE("SqlTranslator") {
     }
   }
 
+  TEST_CASE("time_arithmetic") {
+    auto start = time_from_string("2020-01-02 00:00:00");
+    auto finish = time_from_string("2020-01-02 00:00:02");
+    auto second = duration_from_string("00:00:01");
+    auto query = std::string();
+    SUBCASE("difference") {
+      auto translation = make_sql_query(
+        "p", ConstantExpression(finish) - ConstantExpression(start));
+      translation.append_query(query);
+      REQUIRE(query == "((" + std::to_string(to_sql_timestamp(finish)) +
+        " * 1000) - (" + std::to_string(to_sql_timestamp(start)) +
+        " * 1000))");
+    }
+
+    SUBCASE("difference_compared_to_duration") {
+      auto difference = ConstantExpression(finish) - ConstantExpression(start);
+      auto translation =
+        make_sql_query("p", difference > ConstantExpression(second));
+      translation.append_query(query);
+      REQUIRE(query == "(((" + std::to_string(to_sql_timestamp(finish)) +
+        " * 1000) - (" + std::to_string(to_sql_timestamp(start)) +
+        " * 1000)) > " + std::to_string(second.total_microseconds()) + ")");
+    }
+
+    SUBCASE("sum") {
+      auto translation = make_sql_query(
+        "p", ConstantExpression(start) + ConstantExpression(second));
+      translation.append_query(query);
+      REQUIRE(query == "(" + std::to_string(to_sql_timestamp(start)) + " + (" +
+        std::to_string(second.total_microseconds()) + " / 1000))");
+    }
+  }
+
   TEST_CASE("not_expression") {
     auto translation =
       make_sql_query("p", NotExpression(ConstantExpression(true)));

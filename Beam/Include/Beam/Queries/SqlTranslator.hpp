@@ -118,6 +118,8 @@ namespace Beam {
         m_parameters;
       int m_max_parameter;
 
+      static Viper::Expression convert_time_unit(
+        Viper::Expression term, std::type_index from, std::type_index to);
       template<typename T, typename F>
       void translate(const FunctionExpression& expression, F&& translation);
   };
@@ -307,6 +309,20 @@ namespace Beam {
   }
 
   template<typename Q>
+  Viper::Expression SqlTranslator<Q>::convert_time_unit(
+      Viper::Expression term, std::type_index from, std::type_index to) {
+    const auto MICROSECONDS_PER_MILLISECOND = 1000;
+    if(from == typeid(boost::posix_time::ptime) &&
+        to == typeid(boost::posix_time::time_duration)) {
+      return term * Viper::literal(MICROSECONDS_PER_MILLISECOND);
+    } else if(from == typeid(boost::posix_time::time_duration) &&
+        to == typeid(boost::posix_time::ptime)) {
+      return term / Viper::literal(MICROSECONDS_PER_MILLISECOND);
+    }
+    return term;
+  }
+
+  template<typename Q>
   template<typename T, typename F>
   void SqlTranslator<Q>::translate(
       const FunctionExpression& expression, F&& translation) {
@@ -326,7 +342,9 @@ namespace Beam {
       }
     }();
     set_translation(std::forward<F>(translation)(
-      std::move(left.m_expression), std::move(right.m_expression)), type);
+      convert_time_unit(std::move(left.m_expression), left.m_type, type),
+      convert_time_unit(std::move(right.m_expression), right.m_type, type)),
+      type);
   }
 }
 

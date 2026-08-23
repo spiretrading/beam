@@ -16,10 +16,16 @@ namespace Details {
     { a < a } -> std::convertible_to<bool>;
   }> {};
 
+  template<typename A1, typename A2, typename T, typename U>
+  inline constexpr auto is_pair_v =
+    (std::is_same_v<A1, T> && std::is_same_v<A2, U>) ||
+    (std::is_same_v<A1, U> && std::is_same_v<A2, T>);
+
   template<typename A1, typename A2>
   inline constexpr auto is_compatible_v = std::is_same_v<A1, A2> ||
-    (std::is_same_v<A1, int> && std::is_same_v<A2, double>) ||
-    (std::is_same_v<A1, double> && std::is_same_v<A2, int>);
+    is_pair_v<A1, A2, int, double> ||
+    is_pair_v<A1, A2, boost::posix_time::ptime,
+      boost::posix_time::time_duration>;
 
   template<typename TypeList, std::size_t I, std::size_t J, std::size_t Size,
     template<typename, typename> class HasOperation>
@@ -166,6 +172,9 @@ namespace Details {
     auto type = [&] {
       if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
         return std::type_index(typeid(double));
+      } else if(left.get_type() == typeid(boost::posix_time::ptime) &&
+          right.get_type() == typeid(boost::posix_time::ptime)) {
+        return std::type_index(typeid(boost::posix_time::time_duration));
       }
       return left.get_type();
     }();

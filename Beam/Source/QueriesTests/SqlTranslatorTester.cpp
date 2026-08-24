@@ -226,9 +226,29 @@ TEST_SUITE("SqlTranslator") {
       REQUIRE(query == "(2.500000 < 1)");
     }
 
-    SUBCASE("unsupported") {
+    SUBCASE("signed_and_unsigned") {
       auto parameters = std::vector<Expression>{
         ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
+      auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
+      auto translation = make_sql_query("p", expression);
+      auto query = std::string();
+      Viper::Sqlite3::build_query(translation, query);
+      REQUIRE(query == "(1 < 2)");
+    }
+
+    SUBCASE("signed_and_unsigned_arithmetic") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
+      auto expression =
+        FunctionExpression(ADDITION_NAME, typeid(std::uint64_t), parameters);
+      REQUIRE_THROWS_AS(
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
+    }
+
+    SUBCASE("unsupported") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::string("2"))};
       auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(
         make_sql_query("p", expression),

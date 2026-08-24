@@ -1,6 +1,7 @@
 #ifndef BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #define BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #include <concepts>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <tuple>
@@ -16,6 +17,15 @@
 
 namespace Beam {
 namespace Details {
+  template<typename T0, typename T1, typename T, typename U>
+  inline constexpr auto is_pair_v =
+    (std::is_same_v<T0, T> && std::is_same_v<T1, U>) ||
+    (std::is_same_v<T0, U> && std::is_same_v<T1, T>);
+
+  template<typename T0, typename T1>
+  inline constexpr auto is_mixed_integer_v =
+    is_pair_v<T0, T1, int, std::uint64_t>;
+
   template<typename TypeList, std::size_t I, std::size_t J, std::size_t Size,
     template<typename, typename> class HasOperation>
   struct generate_pairs_impl {
@@ -106,12 +116,14 @@ namespace Details {
   struct is_compatible_operand<double, int> : std::true_type {};
 
   template<>
-  struct is_compatible_operand<boost::posix_time::ptime,
-    boost::posix_time::time_duration> : std::true_type {};
+  struct is_compatible_operand<int, std::uint64_t> : std::true_type {};
 
   template<>
-  struct is_compatible_operand<boost::posix_time::time_duration,
-    boost::posix_time::ptime> : std::true_type {};
+  struct is_compatible_operand<std::uint64_t, int> : std::true_type {};
+
+  template<>
+  struct is_compatible_operand<boost::posix_time::ptime,
+    boost::posix_time::time_duration> : std::true_type {};
 
   /**
    * Whether two types may be used as the operands of a single operation.
@@ -201,6 +213,7 @@ namespace Details {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
       requires is_compatible_operand_v<A1, A2>;
+      requires !Details::is_mixed_integer_v<A1, A2>;
       { std::declval<A1>() + std::declval<A2>() };
     }> {};
 
@@ -257,6 +270,7 @@ namespace Details {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
       requires is_compatible_operand_v<A1, A2>;
+      requires !Details::is_mixed_integer_v<A1, A2>;
       { std::declval<A1>() - std::declval<A2>() };
     }> {};
 
@@ -314,6 +328,7 @@ namespace Details {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
       requires is_compatible_operand_v<A1, A2>;
+      requires !Details::is_mixed_integer_v<A1, A2>;
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
       { std::declval<A1>() * std::declval<A2>() };
@@ -376,6 +391,7 @@ namespace Details {
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
       requires is_compatible_operand_v<A1, A2>;
+      requires !Details::is_mixed_integer_v<A1, A2>;
       { std::declval<A1>() / std::declval<A2>() };
     }> {};
 
@@ -441,7 +457,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left < right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_less(left, right);
+        } else {
+          return left < right;
+        }
       }
     };
   };
@@ -498,7 +518,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left <= right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_less_equal(left, right);
+        } else {
+          return left <= right;
+        }
       }
     };
   };
@@ -553,7 +577,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left == right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_equal(left, right);
+        } else {
+          return left == right;
+        }
       }
     };
   };
@@ -608,7 +636,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left != right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_not_equal(left, right);
+        } else {
+          return left != right;
+        }
       }
     };
   };
@@ -665,7 +697,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left >= right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_greater_equal(left, right);
+        } else {
+          return left >= right;
+        }
       }
     };
   };
@@ -722,7 +758,11 @@ namespace Details {
     template<typename T0, typename T1>
     struct Operation {
       decltype(auto) operator()(T0 left, T1 right) const {
-        return left > right;
+        if constexpr(Details::is_mixed_integer_v<T0, T1>) {
+          return std::cmp_greater(left, right);
+        } else {
+          return left > right;
+        }
       }
     };
   };
@@ -770,6 +810,7 @@ namespace Details {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
       requires is_compatible_operand_v<A1, A2>;
+      requires !Details::is_mixed_integer_v<A1, A2>;
       typename std::common_type_t<A1, A2>;
       { std::declval<std::common_type_t<A1, A2>>() <
         std::declval<std::common_type_t<A1, A2>>() } ->

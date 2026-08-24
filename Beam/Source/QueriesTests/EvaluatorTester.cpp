@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <limits>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Evaluator.hpp"
@@ -34,6 +36,15 @@ TEST_SUITE("Evaluator") {
     REQUIRE(!evaluator_false->eval<bool>());
     auto evaluator_true = translate(!ConstantExpression(false));
     REQUIRE(evaluator_true->eval<bool>());
+  }
+
+  TEST_CASE("signed_and_unsigned_comparison") {
+    REQUIRE(translate(ConstantExpression(-1) <
+      ConstantExpression(std::uint64_t(5)))->eval<bool>());
+    REQUIRE(!translate(ConstantExpression(-1) == ConstantExpression(
+      std::numeric_limits<std::uint64_t>::max()))->eval<bool>());
+    REQUIRE(translate(ConstantExpression(13) ==
+      ConstantExpression(std::uint64_t(13)))->eval<bool>());
   }
 
   TEST_CASE("addition_expression") {
@@ -114,9 +125,17 @@ TEST_SUITE("Evaluator") {
       REQUIRE(evaluator->eval<bool>());
     }
 
-    SUBCASE("unsupported") {
+    SUBCASE("signed_and_unsigned_arithmetic") {
       auto parameters = std::vector<Expression>{
         ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
+      auto expression =
+        FunctionExpression(ADDITION_NAME, typeid(std::uint64_t), parameters);
+      REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    }
+
+    SUBCASE("unsupported") {
+      auto parameters = std::vector<Expression>{
+        ConstantExpression(1), ConstantExpression(std::string("2"))};
       auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
     }

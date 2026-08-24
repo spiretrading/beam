@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
@@ -155,7 +156,9 @@ TEST_SUITE("FunctionExpression") {
         ConstantExpression(second)).get_type() == typeid(ptime));
     }
 
-    SUBCASE("unregistered") {
+    SUBCASE("signed_and_unsigned") {
+      REQUIRE((ConstantExpression(1) <
+        ConstantExpression(std::uint64_t(2))).get_type() == typeid(bool));
       REQUIRE((ConstantExpression(1) +
         ConstantExpression(std::uint64_t(2))).get_type() == typeid(int));
     }

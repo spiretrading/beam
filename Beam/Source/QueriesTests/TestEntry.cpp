@@ -10,9 +10,12 @@ std::ostream& Beam::Tests::operator <<(
   return out << '(' << entry.m_value << ' ' << entry.m_timestamp << ')';
 }
 
+TestTranslator::TestTranslator()
+  : EvaluatorTranslator<TestQueryTypes>(typeid(TestEntry)) {}
+
 std::unique_ptr<EvaluatorTranslator<TestQueryTypes>>
-    TestTranslator::make_translator() const {
-  return std::make_unique<TestTranslator>();
+    TestTranslator::make_translator(std::type_index type) const {
+  return std::make_unique<TestTranslator>(type);
 }
 
 void TestTranslator::visit(const MemberAccessExpression& expression) {

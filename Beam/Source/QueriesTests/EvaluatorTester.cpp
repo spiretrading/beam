@@ -263,7 +263,7 @@ TEST_SUITE("Evaluator") {
   TEST_CASE("parameter_expression") {
     auto equals = ParameterExpression(0, typeid(bool)) ==
       ParameterExpression(1, typeid(bool));
-    auto evaluator = translate(equals);
+    auto evaluator = translate(equals, typeid(bool));
     REQUIRE(evaluator->eval<bool>(false, false));
     REQUIRE(!evaluator->eval<bool>(false, true));
     REQUIRE(!evaluator->eval<bool>(true, false));
@@ -276,7 +276,7 @@ TEST_SUITE("Evaluator") {
     auto initial_value = Value(0);
     auto reducer =
       ReduceExpression(sum, ParameterExpression(0, typeid(int)), initial_value);
-    auto evaluator = translate(reducer);
+    auto evaluator = translate(reducer, typeid(int));
     REQUIRE(evaluator->eval<int>(1) == 1);
     REQUIRE(evaluator->eval<int>(1) == 2);
     REQUIRE(evaluator->eval<int>(2) == 4);
@@ -311,18 +311,21 @@ TEST_SUITE("Evaluator") {
     {
       auto parameter =
         ParameterExpression(MAX_EVALUATOR_PARAMETERS, typeid(bool));
-      REQUIRE_THROWS_AS(translate(parameter), ExpressionTranslationException);
+      REQUIRE_THROWS_AS(translate(parameter, typeid(bool)),
+        ExpressionTranslationException);
     }
     {
       auto parameter = ParameterExpression(-1, typeid(bool));
-      REQUIRE_THROWS_AS(translate(parameter), ExpressionTranslationException);
+      REQUIRE_THROWS_AS(translate(parameter, typeid(bool)),
+        ExpressionTranslationException);
     }
   }
 
   TEST_CASE("type_check") {
     auto expression = ParameterExpression(0, typeid(int)) ==
       ParameterExpression(1, typeid(std::string));
-    REQUIRE_THROWS_AS(translate(expression), ExpressionTranslationException);
+    REQUIRE_THROWS_AS(translate(expression, typeid(int)),
+      ExpressionTranslationException);
   }
 
   TEST_CASE("mismatched_type_parameter_expressions") {
@@ -330,30 +333,34 @@ TEST_SUITE("Evaluator") {
       ParameterExpression(1, typeid(int));
     auto right = ParameterExpression(0, typeid(double)) ==
       ParameterExpression(1, typeid(double));
-    REQUIRE_THROWS_AS(translate(left || right), ExpressionTranslationException);
+    REQUIRE_THROWS_AS(translate(left || right, typeid(int)),
+      ExpressionTranslationException);
   }
 
   TEST_CASE("parameter_expression_gap") {
     auto parameter = ParameterExpression(1, typeid(bool));
-    REQUIRE_THROWS_AS(translate(parameter), ExpressionTranslationException);
+    REQUIRE_THROWS_AS(translate(parameter, typeid(bool)),
+      ExpressionTranslationException);
   }
 
   TEST_CASE("mismatched_parameter_type") {
     SUBCASE("first_parameter") {
       auto evaluator = translate(
-        ParameterExpression(0, typeid(int)) == ConstantExpression(0));
+        ParameterExpression(0, typeid(int)) == ConstantExpression(0),
+        typeid(int));
       REQUIRE_THROWS_AS(
         evaluator->eval<bool>(std::string()), TypeCompatibilityException);
     }
     SUBCASE("second_parameter") {
       auto evaluator = translate(ParameterExpression(0, typeid(int)) ==
-        ParameterExpression(1, typeid(int)));
+        ParameterExpression(1, typeid(int)), typeid(int));
       REQUIRE_THROWS_AS(
         evaluator->eval<bool>(0, std::string()), TypeCompatibilityException);
     }
     SUBCASE("matching_parameter") {
       auto evaluator = translate(
-        ParameterExpression(0, typeid(int)) == ConstantExpression(0));
+        ParameterExpression(0, typeid(int)) == ConstantExpression(0),
+        typeid(int));
       REQUIRE(evaluator->eval<bool>(0));
     }
   }

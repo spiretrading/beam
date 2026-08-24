@@ -80,7 +80,8 @@ namespace Beam {
   template<typename... Args>
   LocalDataStore<Q, V, T>::LocalDataStore(const Args&... args)
     : m_translator([=] (const auto& expression) {
-        return translate<EvaluatorTranslatorFilter>(expression, args...);
+        return translate<EvaluatorTranslatorFilter>(
+          expression, typeid(Value), args...);
       }) {}
 
   template<typename Q, typename V, typename T>

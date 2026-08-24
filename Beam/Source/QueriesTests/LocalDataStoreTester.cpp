@@ -24,12 +24,13 @@ namespace {
   struct CustomTranslator : EvaluatorTranslator<CustomQueryTypes> {
     std::vector<int> m_special_values;
 
-    CustomTranslator(std::vector<int> special_values)
-      : m_special_values(std::move(special_values)) {}
+    CustomTranslator(std::type_index type, std::vector<int> special_values)
+      : EvaluatorTranslator<CustomQueryTypes>(type),
+        m_special_values(std::move(special_values)) {}
 
     std::unique_ptr<EvaluatorTranslator<CustomQueryTypes>>
-        make_translator() const override {
-      return std::make_unique<CustomTranslator>(m_special_values);
+        make_translator(std::type_index type) const override {
+      return std::make_unique<CustomTranslator>(type, m_special_values);
     }
 
     void visit(const MemberAccessExpression& expression) override {

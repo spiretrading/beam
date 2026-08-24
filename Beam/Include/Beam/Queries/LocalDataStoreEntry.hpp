@@ -87,7 +87,8 @@ namespace Beam {
   template<typename Q, typename V, typename T>
   LocalDataStoreEntry<Q, V, T>::LocalDataStoreEntry()
     : m_translator([] (const auto& expression) {
-        return translate<EvaluatorTranslatorFilter>(expression);
+        return translate<EvaluatorTranslatorFilter>(
+          expression, typeid(Value));
       }) {}
 
   template<typename Q, typename V, typename T>

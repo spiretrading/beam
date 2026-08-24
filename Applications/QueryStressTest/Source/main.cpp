@@ -166,8 +166,8 @@ namespace {
   void DataServlet<ContainerType>::on_data_request(
       RequestToken<ServiceProtocolClient, QueryDataService>& request,
       const DataQuery& query) {
-    auto filter =
-      translate<EvaluatorTranslator<QueryTypes>>(query.get_filter());
+    auto filter = translate<EvaluatorTranslator<QueryTypes>>(
+      query.get_filter(), typeid(Data));
     auto result = DataQueryResult();
     result.m_id = m_subscriptions.init(query.get_index(), request.get_client(),
       query.get_range(), std::move(filter));

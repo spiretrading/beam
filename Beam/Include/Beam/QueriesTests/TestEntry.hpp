@@ -42,8 +42,12 @@ namespace Beam::Tests {
   /** Translates test Expressions into EvaluatorNodes for testing purposes. */
   class TestTranslator : public EvaluatorTranslator<TestQueryTypes> {
     public:
+      using EvaluatorTranslator<TestQueryTypes>::EvaluatorTranslator;
+
+      TestTranslator();
+
       std::unique_ptr<EvaluatorTranslator<TestQueryTypes>>
-        make_translator() const override;
+        make_translator(std::type_index type) const override;
 
     protected:
       void visit(const MemberAccessExpression& expression) override;

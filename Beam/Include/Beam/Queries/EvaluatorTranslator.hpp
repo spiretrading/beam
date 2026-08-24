@@ -58,6 +58,18 @@ namespace Beam {
       using ComparableTypes = typename QueryTypes::ComparableTypes;
 
       /**
+       * Constructs an EvaluatorTranslator for an Expression evaluated without
+       * a parameter.
+       */
+      EvaluatorTranslator();
+
+      /**
+       * Constructs an EvaluatorTranslator.
+       * @param type The type of value the parameters are bound to.
+       */
+      explicit EvaluatorTranslator(std::type_index type);
+
+      /**
        * Translates an Expression.
        * @param expression The Expression to translate.
        */
@@ -72,8 +84,11 @@ namespace Beam {
       /**
        * Creates a new instance of this translator, typically used for
        * sub-expressions.
+       * @param type The type of value the sub-expression's parameters are
+       *        bound to.
        */
-      virtual std::unique_ptr<EvaluatorTranslator> make_translator() const;
+      virtual std::unique_ptr<EvaluatorTranslator> make_translator(
+        std::type_index type) const;
 
     protected:
 
@@ -122,6 +137,7 @@ namespace Beam {
 
         VariableEntry(void* address, std::type_index type);
       };
+      std::type_index m_type;
       std::unique_ptr<BaseEvaluatorNode> m_evaluator;
       std::vector<BaseParameterEvaluatorNode*> m_parameters;
       std::unordered_map<std::string, std::vector<VariableEntry>> m_variables;
@@ -136,6 +152,14 @@ namespace Beam {
     void* address, std::type_index type)
     : m_address(address),
       m_type(type) {}
+
+  template<typename QueryTypes>
+  EvaluatorTranslator<QueryTypes>::EvaluatorTranslator()
+    : EvaluatorTranslator(typeid(void)) {}
+
+  template<typename QueryTypes>
+  EvaluatorTranslator<QueryTypes>::EvaluatorTranslator(std::type_index type)
+    : m_type(type) {}
 
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::translate(
@@ -176,8 +200,9 @@ namespace Beam {
 
   template<typename QueryTypes>
   std::unique_ptr<EvaluatorTranslator<QueryTypes>>
-      EvaluatorTranslator<QueryTypes>::make_translator() const {
-    return std::make_unique<EvaluatorTranslator>();
+      EvaluatorTranslator<QueryTypes>::make_translator(
+        std::type_index type) const {
+    return std::make_unique<EvaluatorTranslator>(type);
   }
 
   template<typename QueryTypes>
@@ -283,6 +308,10 @@ namespace Beam {
         expression.get_index() >= MAX_EVALUATOR_PARAMETERS) {
       boost::throw_with_location(
         ExpressionTranslationException("Too many parameters."));
+    }
+    if(expression.get_type() != m_type) {
+      boost::throw_with_location(
+        ExpressionTranslationException("Parameter type mismatch."));
     }
     m_evaluator.reset(instantiate<
       ParameterEvaluatorNodeTranslator<NativeTypes>>(expression.get_type())(

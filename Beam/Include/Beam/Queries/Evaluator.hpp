@@ -66,7 +66,9 @@ namespace Beam {
    * @param translator The EvaluatorTranslator to use.
    * @return An Evaluator representing the translated <i>expression</i>.
    */
-  template<typename Translator>
+  template<typename Translator> requires requires(Translator& translator) {
+    translator.take_evaluator();
+  }
   std::unique_ptr<Evaluator> translate(
       const Expression& expression, Translator& translator) {
     translator.translate(expression);
@@ -136,7 +138,7 @@ namespace Beam {
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::visit(
       const ReduceExpression& expression) {
-    auto translator = make_translator();
+    auto translator = make_translator(expression.get_reducer().get_type());
     auto evaluator = Beam::translate(expression.get_reducer(), *translator);
     auto series = translate_operand(expression.get_series());
     m_evaluator.reset(instantiate<ReduceEvaluatorNodeTranslator<NativeTypes>>(

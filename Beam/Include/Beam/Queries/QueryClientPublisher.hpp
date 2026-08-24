@@ -141,7 +141,8 @@ namespace Beam {
       const Query& query, ScopedQueueWriter<SequencedValue<Value>> queue) {
     if(query.get_range().get_end() == Sequence::LAST) {
       m_query_routines.spawn([=, this, queue = std::move(queue)] () mutable {
-        auto filter = translate<EvaluatorTranslator>(query.get_filter());
+        auto filter = translate<EvaluatorTranslator>(
+          query.get_filter(), typeid(Value));
         auto publisher = std::make_shared<Publisher>(
           query, std::move(filter), std::move(queue));
         auto& publisher_list = m_publishers.get(query.get_index());

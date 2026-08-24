@@ -8,7 +8,6 @@
 #include <string>
 #include <type_traits>
 #include <typeindex>
-#include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/Expressions/Expressions.hpp>
 #include "Beam/Queries/AndExpression.hpp"
@@ -189,9 +188,11 @@ namespace Details {
       /**
        * Constructs an SqlTranslator.
        * @param parameter The parameter/table name.
+       * @param type The type of value the expression filters.
        * @param expression The Expression to translate.
        */
-      SqlTranslator(std::string parameter, Expression expression);
+      SqlTranslator(std::string parameter, std::type_index type,
+        Expression expression);
 
       /** Returns the SQL expression. */
       Viper::Expression make();
@@ -226,10 +227,10 @@ namespace Details {
 
     private:
       Viper::Expression m_parameter;
+      std::type_index m_type;
       Expression m_expression;
       SqlTranslation m_translation;
-      std::array<boost::optional<std::type_index>, MAX_EVALUATOR_PARAMETERS>
-        m_parameters;
+      std::array<bool, MAX_EVALUATOR_PARAMETERS> m_parameters;
       int m_max_parameter;
 
       template<typename T>
@@ -239,21 +240,26 @@ namespace Details {
   /**
    * Translates a query expression into an SQL expression.
    * @param parameter The parameter/table name.
+   * @param type The type of value the expression filters.
    * @param expression The query expression to translate.
    * @return The SQL expression.
    */
   template<typename Translator = SqlTranslator<QueryTypes>>
-  auto make_sql_query(std::string parameter, Expression expression) {
-    auto translator = Translator(std::move(parameter), std::move(expression));
+  auto make_sql_query(
+      std::string parameter, std::type_index type, Expression expression) {
+    auto translator =
+      Translator(std::move(parameter), type, std::move(expression));
     return translator.make();
   }
 
   template<typename Q>
   SqlTranslator<Q>::SqlTranslator(
-    std::string parameter, Expression expression)
+    std::string parameter, std::type_index type, Expression expression)
     : m_parameter(Viper::sym(std::move(parameter))),
+      m_type(type),
       m_expression(std::move(expression)),
       m_translation(Viper::Expression(), typeid(void)),
+      m_parameters(),
       m_max_parameter(-1) {}
 
   template<typename Q>
@@ -368,12 +374,11 @@ namespace Details {
       boost::throw_with_location(
         ExpressionTranslationException("Too many parameters."));
     }
-    auto& check = m_parameters[expression.get_index()];
-    if(check && check != expression.get_type()) {
+    if(expression.get_type() != m_type) {
       boost::throw_with_location(
         ExpressionTranslationException("Parameter type mismatch."));
     }
-    check = expression.get_type();
+    m_parameters[expression.get_index()] = true;
     m_max_parameter = std::max(m_max_parameter, expression.get_index());
     set_translation(m_parameter, expression.get_type());
   }

@@ -129,7 +129,8 @@ namespace Beam {
         subset_query.set_snapshot_limit(
           SnapshotLimit::Type::TAIL, remaining_limit);
         auto filter =
-          make_sql_query<Translator>(table, subset_query.get_filter());
+          make_sql_query<Translator>(table, typeid(typename Type::Value),
+            subset_query.get_filter());
         auto range = make_range_expression(subset_query.get_range());
         auto limit = std::min(
           MAX_READS_PER_QUERY, subset_query.get_snapshot_limit().get_size());
@@ -162,7 +163,8 @@ namespace Beam {
             SnapshotLimit::Type::HEAD, remaining_limit);
         }
         auto filter =
-          make_sql_query<Translator>(table, subset_query.get_filter());
+          make_sql_query<Translator>(table, typeid(typename Type::Value),
+            subset_query.get_filter());
         auto range = make_range_expression(subset_query.get_range());
         auto limit = std::min(
           MAX_READS_PER_QUERY, subset_query.get_snapshot_limit().get_size());

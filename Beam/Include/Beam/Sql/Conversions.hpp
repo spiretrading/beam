@@ -9,6 +9,24 @@
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Utilities/FixedString.hpp"
 
+namespace Beam {
+
+  /**
+   * The multiplier applied to a value to produce its SQL representation.
+   * @tparam T The type whose SQL representation is scaled.
+   */
+  template<typename T>
+  inline constexpr auto sql_scale_v = std::int64_t(1);
+
+  template<>
+  inline constexpr auto sql_scale_v<boost::posix_time::ptime> =
+    std::int64_t(1000);
+
+  template<>
+  inline constexpr auto sql_scale_v<boost::posix_time::time_duration> =
+    std::int64_t(1000000);
+}
+
 namespace Viper {
   template<>
   inline const auto native_to_data_type_v<boost::posix_time::time_duration> =

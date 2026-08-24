@@ -1,28 +1,21 @@
 #ifndef BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #define BEAM_STANDARD_FUNCTION_EXPRESSIONS_HPP
 #include <concepts>
+#include <map>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <typeindex>
 #include <utility>
+#include <boost/callable_traits/return_type.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/mp11.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
+#include "Beam/Queries/QueryTypes.hpp"
 
 namespace Beam {
 namespace Details {
-  template<typename A1, typename A2, typename T, typename U>
-  inline constexpr auto is_pair_v =
-    (std::is_same_v<A1, T> && std::is_same_v<A2, U>) ||
-    (std::is_same_v<A1, U> && std::is_same_v<A2, T>);
-
-  template<typename A1, typename A2>
-  inline constexpr auto is_compatible_v = std::is_same_v<A1, A2> ||
-    is_pair_v<A1, A2, int, double> ||
-    is_pair_v<A1, A2, boost::posix_time::ptime,
-      boost::posix_time::time_duration>;
-
   template<typename TypeList, std::size_t I, std::size_t J, std::size_t Size,
     template<typename, typename> class HasOperation>
   struct generate_pairs_impl {
@@ -49,8 +42,7 @@ namespace Details {
   template<typename TypeList, template<typename, typename> class HasOperation>
   struct generate_pairs {
     static constexpr auto size = boost::mp11::mp_size<TypeList>::value;
-    using type = std::conditional_t<size == 0,
-      boost::mp11::mp_list<>,
+    using type = std::conditional_t<size == 0, boost::mp11::mp_list<>,
       typename generate_pairs_impl<TypeList, 0, 0, size, HasOperation>::type>;
   };
 
@@ -59,14 +51,76 @@ namespace Details {
     using type = typename generate_pairs<T, HasOperation>::type;
   };
 
-  inline std::type_index get_promotion(
+  template<typename F, typename T0, typename T1>
+  using operation_result_t =
+    std::remove_cvref_t<boost::callable_traits::return_type_t<
+      typename F::template Operation<T0, T1>>>;
+
+  using PromotionKey =
+    std::tuple<std::string, std::type_index, std::type_index>;
+
+  inline auto& get_promotions() {
+    static auto promotions = std::map<PromotionKey, std::type_index>();
+    return promotions;
+  }
+
+  template<typename F>
+  void register_promotion(const std::string& name) {
+    boost::mp11::mp_for_each<typename F::type>([&] (auto operands) {
+      using Left = boost::mp11::mp_first<decltype(operands)>;
+      using Right = boost::mp11::mp_second<decltype(operands)>;
+      get_promotions().insert_or_assign(
+        PromotionKey(name, typeid(Left), typeid(Right)),
+        std::type_index(typeid(operation_result_t<F, Left, Right>)));
+    });
+  }
+
+  inline std::type_index get_promotion(const std::string& name,
       const Expression& left, const Expression& right) {
-    if(left.get_type() == typeid(int) && right.get_type() == typeid(double)) {
-      return typeid(double);
+    auto& promotions = get_promotions();
+    auto i = promotions.find(
+      PromotionKey(name, left.get_type(), right.get_type()));
+    if(i == promotions.end()) {
+      return left.get_type();
     }
-    return left.get_type();
+    return i->second;
   }
 }
+
+  /**
+   * Specifies whether two types may be used as the operands of a single
+   * operation.
+   * @tparam T The type of the left hand operand.
+   * @tparam U The type of the right hand operand.
+   */
+  template<typename T, typename U>
+  struct is_compatible_operand : std::false_type {};
+
+  template<typename T>
+  struct is_compatible_operand<T, T> : std::true_type {};
+
+  template<>
+  struct is_compatible_operand<int, double> : std::true_type {};
+
+  template<>
+  struct is_compatible_operand<double, int> : std::true_type {};
+
+  template<>
+  struct is_compatible_operand<boost::posix_time::ptime,
+    boost::posix_time::time_duration> : std::true_type {};
+
+  template<>
+  struct is_compatible_operand<boost::posix_time::time_duration,
+    boost::posix_time::ptime> : std::true_type {};
+
+  /**
+   * Whether two types may be used as the operands of a single operation.
+   * @tparam T The type of the left hand operand.
+   * @tparam U The type of the right hand operand.
+   */
+  template<typename T, typename U>
+  inline constexpr auto is_compatible_operand_v =
+    is_compatible_operand<T, U>::value;
 
   /** The name used for the addition function. */
   inline const auto ADDITION_NAME = std::string("+");
@@ -112,8 +166,8 @@ namespace Details {
    */
   inline FunctionExpression operator +(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(
-      ADDITION_NAME, Details::get_promotion(left, right), {left, right});
+    return FunctionExpression(ADDITION_NAME,
+      Details::get_promotion(ADDITION_NAME, left, right), {left, right});
   }
 
   /**
@@ -146,7 +200,7 @@ namespace Details {
   struct AdditionExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() + std::declval<A2>() };
     }> {};
 
@@ -168,14 +222,8 @@ namespace Details {
    */
   inline FunctionExpression operator -(
       const Expression& left, const Expression& right) {
-    auto type = [&] {
-      if(left.get_type() == typeid(boost::posix_time::ptime) &&
-          right.get_type() == typeid(boost::posix_time::ptime)) {
-        return std::type_index(typeid(boost::posix_time::time_duration));
-      }
-      return Details::get_promotion(left, right);
-    }();
-    return FunctionExpression(SUBTRACTION_NAME, type, {left, right});
+    return FunctionExpression(SUBTRACTION_NAME,
+      Details::get_promotion(SUBTRACTION_NAME, left, right), {left, right});
   }
 
   /**
@@ -208,7 +256,7 @@ namespace Details {
   struct SubtractionExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() - std::declval<A2>() };
     }> {};
 
@@ -230,8 +278,9 @@ namespace Details {
    */
   inline FunctionExpression operator *(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(
-      MULTIPLICATION_NAME, Details::get_promotion(left, right), {left, right});
+    return FunctionExpression(MULTIPLICATION_NAME,
+      Details::get_promotion(MULTIPLICATION_NAME, left, right),
+      {left, right});
   }
 
   /**
@@ -264,7 +313,7 @@ namespace Details {
   struct MultiplicationExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
       { std::declval<A1>() * std::declval<A2>() };
@@ -288,8 +337,8 @@ namespace Details {
    */
   inline FunctionExpression operator /(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(
-      DIVISION_NAME, Details::get_promotion(left, right), {left, right});
+    return FunctionExpression(DIVISION_NAME,
+      Details::get_promotion(DIVISION_NAME, left, right), {left, right});
   }
 
   /**
@@ -326,7 +375,7 @@ namespace Details {
       requires !std::is_same_v<A2, bool>;
       requires !std::is_same_v<A1, boost::posix_time::time_duration>;
       requires !std::is_same_v<A2, boost::posix_time::time_duration>;
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() / std::declval<A2>() };
     }> {};
 
@@ -383,7 +432,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() < std::declval<A2>() };
     }> {};
 
@@ -440,7 +489,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() <= std::declval<A2>() };
     }> {};
 
@@ -495,7 +544,7 @@ namespace Details {
   struct EqualsExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() == std::declval<A2>() };
     }> {};
 
@@ -550,7 +599,7 @@ namespace Details {
   struct NotEqualsExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() != std::declval<A2>() };
     }> {};
 
@@ -607,7 +656,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { std::declval<A1>() >= std::declval<A2>() };
     }> {};
 
@@ -664,7 +713,7 @@ namespace Details {
     struct has_operation : std::bool_constant<requires {
       requires !std::is_same_v<A1, bool>;
       requires !std::is_same_v<A2, bool>;
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       { (std::declval<A1>() > std::declval<A2>()) };
     }> {};
 
@@ -686,8 +735,8 @@ namespace Details {
    */
   inline FunctionExpression max(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(
-      MAX_NAME, Details::get_promotion(left, right), {left, right});
+    return FunctionExpression(MAX_NAME,
+      Details::get_promotion(MAX_NAME, left, right), {left, right});
   }
 
   /**
@@ -720,7 +769,7 @@ namespace Details {
   struct MaxExpressionTranslator {
     template<typename A1, typename A2>
     struct has_operation : std::bool_constant<requires {
-      requires Details::is_compatible_v<A1, A2>;
+      requires is_compatible_operand_v<A1, A2>;
       typename std::common_type_t<A1, A2>;
       { std::declval<std::common_type_t<A1, A2>>() <
         std::declval<std::common_type_t<A1, A2>>() } ->
@@ -745,8 +794,8 @@ namespace Details {
    */
   inline FunctionExpression min(
       const Expression& left, const Expression& right) {
-    return FunctionExpression(
-      MIN_NAME, Details::get_promotion(left, right), {left, right});
+    return FunctionExpression(MIN_NAME,
+      Details::get_promotion(MIN_NAME, left, right), {left, right});
   }
 
   /**
@@ -786,6 +835,35 @@ namespace Details {
       }
     };
   };
+
+  /**
+   * Registers the type that each standard function produces for the operands
+   * it accepts.
+   * @tparam Q The types whose operations are registered.
+   * @return <code>true</code>.
+   */
+  template<typename Q>
+  bool register_promotions() {
+    using NativeTypes = typename Q::NativeTypes;
+    using ComparableTypes = typename Q::ComparableTypes;
+    Details::register_promotion<AdditionExpressionTranslator<NativeTypes>>(
+      ADDITION_NAME);
+    Details::register_promotion<SubtractionExpressionTranslator<NativeTypes>>(
+      SUBTRACTION_NAME);
+    Details::register_promotion<
+      MultiplicationExpressionTranslator<NativeTypes>>(MULTIPLICATION_NAME);
+    Details::register_promotion<DivisionExpressionTranslator<NativeTypes>>(
+      DIVISION_NAME);
+    Details::register_promotion<MaxExpressionTranslator<ComparableTypes>>(
+      MAX_NAME);
+    Details::register_promotion<MinExpressionTranslator<ComparableTypes>>(
+      MIN_NAME);
+    return true;
+  }
+
+namespace Details {
+  inline const auto STANDARD_PROMOTIONS = register_promotions<QueryTypes>();
+}
 }
 
 #endif

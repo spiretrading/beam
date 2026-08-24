@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeindex>
-#include <boost/callable_traits/return_type.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include <Viper/Expressions/Expressions.hpp>
@@ -28,6 +28,49 @@
 #include "Beam/Utilities/Instantiate.hpp"
 
 namespace Beam {
+namespace Details {
+  inline Viper::Expression rescale(Viper::Expression value,
+      std::int64_t numerator, std::int64_t denominator) {
+    auto divisor = std::gcd(numerator, denominator);
+    numerator /= divisor;
+    denominator /= divisor;
+    if(numerator != 1) {
+      value = std::move(value) * Viper::literal(numerator);
+    }
+    if(denominator != 1) {
+      value = std::move(value) / Viper::literal(denominator);
+    }
+    return value;
+  }
+
+  template<typename F>
+  Viper::Expression apply_operation(
+      Viper::Expression left, Viper::Expression right) {
+    return typename F::template Operation<Viper::Expression,
+      Viper::Expression>()(std::move(left), std::move(right));
+  }
+
+  template<typename T0, typename T1>
+  Viper::Expression apply_scaled(std::int64_t scale, auto operation,
+      Viper::Expression left, Viper::Expression right) {
+    if constexpr(sql_scale_v<T0> == sql_scale_v<T1>) {
+      return rescale(
+        operation(std::move(left), std::move(right)), scale, sql_scale_v<T0>);
+    } else {
+      return operation(rescale(std::move(left), scale, sql_scale_v<T0>),
+        rescale(std::move(right), scale, sql_scale_v<T1>));
+    }
+  }
+
+  template<typename F, typename T0, typename T1>
+  struct ScaledSqlOperation {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return apply_scaled<T0, T1>(sql_scale_v<operation_result_t<F, T0, T1>>,
+        apply_operation<F>, std::move(left), std::move(right));
+    }
+  };
+}
 
   /** Stores an SQL expression and the type it evaluates to. */
   struct SqlTranslation {
@@ -39,9 +82,6 @@ namespace Beam {
     std::type_index m_type;
   };
 
-  /** The number of microseconds used to represent a millisecond. */
-  constexpr auto MICROSECONDS_PER_MILLISECOND = std::int64_t(1000);
-
   /**
    * Translates an operation on two operands into an SQL expression.
    * @tparam F The function translator whose operation is applied.
@@ -52,36 +92,43 @@ namespace Beam {
   struct SqlOperation {
     Viper::Expression operator ()(
         Viper::Expression left, Viper::Expression right) const {
-      return typename F::template Operation<
-        Viper::Expression, Viper::Expression>()(
-          std::move(left), std::move(right));
+      return Details::apply_scaled<T0, T1>(
+        std::max(sql_scale_v<T0>, sql_scale_v<T1>),
+        Details::apply_operation<F>, std::move(left), std::move(right));
     }
   };
 
-  template<typename V>
-  struct SqlOperation<AdditionExpressionTranslator<V>,
-      boost::posix_time::ptime, boost::posix_time::time_duration> {
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<AdditionExpressionTranslator<V>, T0, T1> :
+    Details::ScaledSqlOperation<AdditionExpressionTranslator<V>, T0, T1> {};
+
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<SubtractionExpressionTranslator<V>, T0, T1> :
+    Details::ScaledSqlOperation<SubtractionExpressionTranslator<V>, T0, T1> {};
+
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<MultiplicationExpressionTranslator<V>, T0, T1> {
     Viper::Expression operator ()(
         Viper::Expression left, Viper::Expression right) const {
-      return left + right / Viper::literal(MICROSECONDS_PER_MILLISECOND);
+      return Details::rescale(
+        Details::apply_operation<MultiplicationExpressionTranslator<V>>(
+          std::move(left), std::move(right)),
+        sql_scale_v<Details::operation_result_t<
+          MultiplicationExpressionTranslator<V>, T0, T1>>,
+        sql_scale_v<T0> * sql_scale_v<T1>);
     }
   };
 
-  template<typename V>
-  struct SqlOperation<SubtractionExpressionTranslator<V>,
-      boost::posix_time::ptime, boost::posix_time::ptime> {
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<DivisionExpressionTranslator<V>, T0, T1> {
     Viper::Expression operator ()(
         Viper::Expression left, Viper::Expression right) const {
-      return (left - right) * Viper::literal(MICROSECONDS_PER_MILLISECOND);
-    }
-  };
-
-  template<typename V>
-  struct SqlOperation<SubtractionExpressionTranslator<V>,
-      boost::posix_time::ptime, boost::posix_time::time_duration> {
-    Viper::Expression operator ()(
-        Viper::Expression left, Viper::Expression right) const {
-      return left - right / Viper::literal(MICROSECONDS_PER_MILLISECOND);
+      return Details::rescale(
+        Details::apply_operation<DivisionExpressionTranslator<V>>(
+          std::move(left), std::move(right)),
+        sql_scale_v<Details::operation_result_t<
+          DivisionExpressionTranslator<V>, T0, T1>> * sql_scale_v<T1>,
+        sql_scale_v<T0>);
     }
   };
 
@@ -89,7 +136,9 @@ namespace Beam {
   struct SqlOperation<MaxExpressionTranslator<V>, T0, T1> {
     Viper::Expression operator ()(
         Viper::Expression left, Viper::Expression right) const {
-      return Viper::greatest(std::move(left), std::move(right));
+      return Details::apply_scaled<T0, T1>(sql_scale_v<
+        Details::operation_result_t<MaxExpressionTranslator<V>, T0, T1>>,
+        Viper::greatest, std::move(left), std::move(right));
     }
   };
 
@@ -97,7 +146,9 @@ namespace Beam {
   struct SqlOperation<MinExpressionTranslator<V>, T0, T1> {
     Viper::Expression operator ()(
         Viper::Expression left, Viper::Expression right) const {
-      return Viper::least(std::move(left), std::move(right));
+      return Details::apply_scaled<T0, T1>(sql_scale_v<
+        Details::operation_result_t<MinExpressionTranslator<V>, T0, T1>>,
+        Viper::least, std::move(left), std::move(right));
     }
   };
 
@@ -114,8 +165,7 @@ namespace Beam {
         Viper::Expression left, Viper::Expression right) const {
       return SqlTranslation(
         SqlOperation<F, Args...>()(std::move(left), std::move(right)),
-        typeid(std::remove_cvref_t<boost::callable_traits::return_type_t<
-          typename F::template Operation<Args...>>>));
+        typeid(Details::operation_result_t<F, Args...>));
     }
   };
 

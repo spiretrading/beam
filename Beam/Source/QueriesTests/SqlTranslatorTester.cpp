@@ -302,6 +302,14 @@ TEST_SUITE("SqlTranslator") {
       Viper::Sqlite3::build_query(nested, query);
       REQUIRE(query == "MAX(MAX(1, 2), 3)");
     }
+
+    SUBCASE("mixed_operands") {
+      auto mixed = make_sql_query(
+        "p", max(ConstantExpression(1), ConstantExpression(2.5)));
+      auto query = std::string();
+      Viper::Sqlite3::build_query(mixed, query);
+      REQUIRE(query == "MAX(1, 2.500000)");
+    }
   }
 
   TEST_CASE("not_expression") {

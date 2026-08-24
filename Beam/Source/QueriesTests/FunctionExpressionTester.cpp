@@ -1,9 +1,11 @@
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/FunctionExpression.hpp"
 #include "Beam/Queries/StandardFunctionExpressions.hpp"
 
 using namespace Beam;
+using namespace boost::posix_time;
 
 namespace {
   template<typename T>
@@ -127,5 +129,35 @@ TEST_SUITE("FunctionExpression") {
       MIN_NAME, typeid(int), std::vector{45, 46});
     require_standard_function(min(47, ConstantExpression(48)),
       MIN_NAME, typeid(int), std::vector{47, 48});
+  }
+
+  TEST_CASE("promoted_operand_types") {
+    SUBCASE("numeric") {
+      REQUIRE((ConstantExpression(1) + ConstantExpression(2.0)).get_type() ==
+        typeid(double));
+      REQUIRE((ConstantExpression(1.0) - ConstantExpression(2)).get_type() ==
+        typeid(double));
+      REQUIRE(max(ConstantExpression(1), ConstantExpression(2.0)).get_type() ==
+        typeid(double));
+      REQUIRE(min(ConstantExpression(1.0), ConstantExpression(2)).get_type() ==
+        typeid(double));
+    }
+
+    SUBCASE("time") {
+      auto start = time_from_string("2020-01-02 00:00:00");
+      auto finish = time_from_string("2020-01-02 00:00:02");
+      auto second = duration_from_string("00:00:01");
+      REQUIRE((ConstantExpression(finish) -
+        ConstantExpression(start)).get_type() == typeid(time_duration));
+      REQUIRE((ConstantExpression(start) +
+        ConstantExpression(second)).get_type() == typeid(ptime));
+      REQUIRE((ConstantExpression(start) -
+        ConstantExpression(second)).get_type() == typeid(ptime));
+    }
+
+    SUBCASE("unregistered") {
+      REQUIRE((ConstantExpression(1) +
+        ConstantExpression(std::uint64_t(2))).get_type() == typeid(int));
+    }
   }
 }

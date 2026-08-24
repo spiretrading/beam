@@ -37,8 +37,8 @@ namespace Beam {
 
     private:
       template<typename V, typename I>
-      using DataStore = SqlDataStore<
-        SqlConnection<Viper::MySql::Connection>, V, I, SqlTranslator>;
+      using DataStore = SqlDataStore<SqlConnection<Viper::MySql::Connection>,
+        V, I, SqlTranslator<QueryTypes>>;
       DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>
         m_reader_pool;
       DatabaseConnectionPool<SqlConnection<Viper::MySql::Connection>>

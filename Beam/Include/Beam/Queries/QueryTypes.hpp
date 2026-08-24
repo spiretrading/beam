@@ -27,7 +27,7 @@ namespace Beam {
       std::uint64_t, std::string, boost::posix_time::ptime,
       boost::posix_time::time_duration>;
 
-    /** Lists all value types. */
+    /** Lists the types that can be used as a constant. */
     using ValueTypes = boost::mp11::mp_list<bool, char, int, double,
       std::uint64_t, std::string, boost::posix_time::ptime,
       boost::posix_time::time_duration>;

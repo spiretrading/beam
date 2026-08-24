@@ -1,16 +1,31 @@
 #include <cstdint>
 #include <limits>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/mp11.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Queries/Evaluator.hpp"
 
 using namespace Beam;
 using namespace boost::posix_time;
 
+namespace {
+  struct NarrowQueryTypes {
+    using NativeTypes = QueryTypes::NativeTypes;
+    using ValueTypes = boost::mp11::mp_list<bool>;
+    using ComparableTypes = QueryTypes::ComparableTypes;
+  };
+}
+
 TEST_SUITE("Evaluator") {
   TEST_CASE("constant_expression") {
     auto evaluator = translate(ConstantExpression(123));
     REQUIRE(evaluator->eval<int>() == 123);
+  }
+
+  TEST_CASE("constant_restricted_to_value_types") {
+    auto translator = EvaluatorTranslator<NarrowQueryTypes>();
+    REQUIRE_THROWS_AS(translator.translate(ConstantExpression(123)),
+      ExpressionTranslationException);
   }
 
   TEST_CASE("and_expression") {

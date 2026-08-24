@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -48,7 +49,7 @@ namespace Beam {
   class EvaluatorTranslator : protected ExpressionVisitor {
     public:
 
-      /** Lists all value types. */
+      /** Lists the types that can be used as a constant. */
       using ValueTypes = typename QueryTypes::ValueTypes;
 
       /** Lists all native types. */
@@ -222,8 +223,14 @@ namespace Beam {
   template<typename QueryTypes>
   void EvaluatorTranslator<QueryTypes>::visit(
       const ConstantExpression& expression) {
-    m_evaluator.reset(instantiate<ConstantEvaluatorNodeTranslator<NativeTypes>>(
-      expression.get_value().get_type())(expression));
+    try {
+      m_evaluator.reset(
+        instantiate<ConstantEvaluatorNodeTranslator<ValueTypes>>(
+          expression.get_value().get_type())(expression));
+    } catch(const std::invalid_argument&) {
+      std::throw_with_nested(
+        ExpressionTranslationException("Constant type not supported."));
+    }
   }
 
   template<typename QueryTypes>

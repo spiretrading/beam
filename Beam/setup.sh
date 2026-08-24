@@ -48,7 +48,7 @@ main() {
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "76d3876dff8307602a827a7e2edcc2bed7885390"
+    "6ec46d0e41980d1a138af52b0527e9aeb9c9e162"
   install_dependencies || return 1
   install_repos || return 1
   commit

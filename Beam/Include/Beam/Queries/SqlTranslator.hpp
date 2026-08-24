@@ -85,6 +85,22 @@ namespace Beam {
     }
   };
 
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<MaxExpressionTranslator<V>, T0, T1> {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return Viper::greatest(std::move(left), std::move(right));
+    }
+  };
+
+  template<typename V, typename T0, typename T1>
+  struct SqlOperation<MinExpressionTranslator<V>, T0, T1> {
+    Viper::Expression operator ()(
+        Viper::Expression left, Viper::Expression right) const {
+      return Viper::least(std::move(left), std::move(right));
+    }
+  };
+
   /**
    * Applies a function translator's SQL operation to its operands.
    * @tparam F The function translator to apply.
@@ -183,7 +199,8 @@ namespace Beam {
   }
 
   template<typename Q>
-  SqlTranslator<Q>::SqlTranslator(std::string parameter, Expression expression)
+  SqlTranslator<Q>::SqlTranslator(
+    std::string parameter, Expression expression)
     : m_parameter(Viper::sym(std::move(parameter))),
       m_expression(std::move(expression)),
       m_translation(Viper::Expression(), typeid(void)),
@@ -271,6 +288,10 @@ namespace Beam {
       translate<GreaterEqualsExpressionTranslator<ComparableTypes>>(expression);
     } else if(expression.get_name() == GREATER_NAME) {
       translate<GreaterExpressionTranslator<ComparableTypes>>(expression);
+    } else if(expression.get_name() == MAX_NAME) {
+      translate<MaxExpressionTranslator<ComparableTypes>>(expression);
+    } else if(expression.get_name() == MIN_NAME) {
+      translate<MinExpressionTranslator<ComparableTypes>>(expression);
     } else {
       boost::throw_with_location(
         ExpressionTranslationException("Function not supported."));

@@ -1,4 +1,6 @@
 #include <doctest/doctest.h>
+#include <Viper/MySql/QueryBuilder.hpp>
+#include <Viper/Sqlite3/QueryBuilder.hpp>
 #include "Beam/Queries/EvaluatorTranslator.hpp"
 #include "Beam/Queries/SqlTranslator.hpp"
 
@@ -11,67 +13,74 @@ TEST_SUITE("SqlTranslator") {
     auto translation = make_sql_query(
       "p", ConstantExpression(true) && ConstantExpression(false));
     auto query = std::string();
-    translation.append_query(query);
+    Viper::Sqlite3::build_query(translation, query);
     REQUIRE(query == "(1 AND 0)");
   }
 
   TEST_CASE("constant_expression") {
     SUBCASE("bool") {
-      auto translation = make_sql_query("p", ConstantExpression(true));
+      auto translation =
+        make_sql_query("p", ConstantExpression(true));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "1");
     }
 
     SUBCASE("char") {
-      auto translation = make_sql_query("p", ConstantExpression('x'));
+      auto translation =
+        make_sql_query("p", ConstantExpression('x'));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "\"x\"");
     }
 
     SUBCASE("int") {
       auto translation = make_sql_query("p", ConstantExpression(7));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "7");
     }
 
     SUBCASE("uint64_t") {
       auto value = std::uint64_t(1234567890123ull);
-      auto translation = make_sql_query("p", ConstantExpression(value));
+      auto translation =
+        make_sql_query("p", ConstantExpression(value));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "1234567890123");
     }
 
     SUBCASE("double") {
-      auto translation = make_sql_query("p", ConstantExpression(3.14));
+      auto translation =
+        make_sql_query("p", ConstantExpression(3.14));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "3.140000");
     }
 
     SUBCASE("posix_time") {
       auto time = time_from_string("2020-01-02 00:00:00");
-      auto translation = make_sql_query("p", ConstantExpression(time));
+      auto translation =
+        make_sql_query("p", ConstantExpression(time));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == std::to_string(to_sql_timestamp(time)));
     }
 
     SUBCASE("string") {
-      auto translation = make_sql_query("p", ConstantExpression("hello_world"));
+      auto translation =
+        make_sql_query("p", ConstantExpression("hello_world"));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "\"hello_world\"");
     }
 
     SUBCASE("time_duration") {
       auto duration = duration_from_string("01:30:00");
-      auto translation = make_sql_query("p", ConstantExpression(duration));
+      auto translation =
+        make_sql_query("p", ConstantExpression(duration));
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == std::to_string(duration.total_microseconds()));
     }
   }
@@ -79,7 +88,8 @@ TEST_SUITE("SqlTranslator") {
   TEST_CASE("unsupported_constant_throws") {
     auto value =
       Value(std::make_shared<NativeValue<std::int16_t>>(std::int16_t(5)));
-    REQUIRE_THROWS_AS(make_sql_query("p", ConstantExpression(value)),
+    REQUIRE_THROWS_AS(
+      make_sql_query("p", ConstantExpression(value)),
       ExpressionTranslationException);
   }
 
@@ -91,7 +101,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(ADDITION_NAME, typeid(int), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(1 + 2)");
     }
 
@@ -102,7 +112,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(SUBTRACTION_NAME, typeid(int), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(5 - 3)");
     }
 
@@ -113,7 +123,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(MULTIPLICATION_NAME, typeid(int), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(5 * 3)");
     }
 
@@ -124,7 +134,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(DIVISION_NAME, typeid(int), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(6 / 2)");
     }
 
@@ -134,7 +144,7 @@ TEST_SUITE("SqlTranslator") {
       auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(1 < 2)");
     }
 
@@ -145,7 +155,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(LESS_EQUALS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(2 <= 2)");
     }
 
@@ -155,7 +165,7 @@ TEST_SUITE("SqlTranslator") {
       auto expression = FunctionExpression(EQUALS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(1 = 1)");
     }
 
@@ -166,7 +176,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(NOT_EQUALS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(1 <> 2)");
     }
 
@@ -177,7 +187,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(GREATER_EQUALS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(5 >= 4)");
     }
 
@@ -188,7 +198,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(GREATER_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(5 > 4)");
     }
   }
@@ -201,7 +211,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(LESS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(1 < 2.500000)");
     }
 
@@ -212,7 +222,7 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(LESS_NAME, typeid(bool), parameters);
       auto translation = make_sql_query("p", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(2.500000 < 1)");
     }
 
@@ -221,7 +231,8 @@ TEST_SUITE("SqlTranslator") {
         ConstantExpression(1), ConstantExpression(std::uint64_t(2))};
       auto expression = FunctionExpression(LESS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("p", expression), ExpressionTranslationException);
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
     }
   }
 
@@ -233,16 +244,16 @@ TEST_SUITE("SqlTranslator") {
     SUBCASE("difference") {
       auto translation = make_sql_query(
         "p", ConstantExpression(finish) - ConstantExpression(start));
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "((" + std::to_string(to_sql_timestamp(finish)) +
         " - " + std::to_string(to_sql_timestamp(start)) + ") * 1000)");
     }
 
     SUBCASE("difference_compared_to_duration") {
       auto difference = ConstantExpression(finish) - ConstantExpression(start);
-      auto translation =
-        make_sql_query("p", difference > ConstantExpression(second));
-      translation.append_query(query);
+      auto comparison = difference > ConstantExpression(second);
+      auto translation = make_sql_query("p", comparison);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(((" + std::to_string(to_sql_timestamp(finish)) +
         " - " + std::to_string(to_sql_timestamp(start)) + ") * 1000) > " +
         std::to_string(second.total_microseconds()) + ")");
@@ -251,9 +262,45 @@ TEST_SUITE("SqlTranslator") {
     SUBCASE("sum") {
       auto translation = make_sql_query(
         "p", ConstantExpression(start) + ConstantExpression(second));
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "(" + std::to_string(to_sql_timestamp(start)) + " + (" +
         std::to_string(second.total_microseconds()) + " / 1000))");
+    }
+  }
+
+  TEST_CASE("min_max_expressions") {
+    auto translation =
+      make_sql_query("p", max(ConstantExpression(1), ConstantExpression(2)));
+    SUBCASE("sqlite3_greatest") {
+      auto query = std::string();
+      Viper::Sqlite3::build_query(translation, query);
+      REQUIRE(query == "MAX(1, 2)");
+    }
+
+    SUBCASE("mysql_greatest") {
+      auto query = std::string();
+      Viper::MySql::build_query(translation, query);
+      REQUIRE(query == "GREATEST(1, 2)");
+    }
+
+    SUBCASE("least") {
+      auto least_translation =
+        make_sql_query("p", min(ConstantExpression(1), ConstantExpression(2)));
+      auto sqlite = std::string();
+      Viper::Sqlite3::build_query(least_translation, sqlite);
+      REQUIRE(sqlite == "MIN(1, 2)");
+      auto mysql = std::string();
+      Viper::MySql::build_query(least_translation, mysql);
+      REQUIRE(mysql == "LEAST(1, 2)");
+    }
+
+    SUBCASE("nested") {
+      auto nested = make_sql_query(
+        "p", max(max(ConstantExpression(1), ConstantExpression(2)),
+          ConstantExpression(3)));
+      auto query = std::string();
+      Viper::Sqlite3::build_query(nested, query);
+      REQUIRE(query == "MAX(MAX(1, 2), 3)");
     }
   }
 
@@ -261,7 +308,7 @@ TEST_SUITE("SqlTranslator") {
     auto translation =
       make_sql_query("p", NotExpression(ConstantExpression(true)));
     auto query = std::string();
-    translation.append_query(query);
+    Viper::Sqlite3::build_query(translation, query);
     REQUIRE(query == "(NOT 1)");
   }
 
@@ -269,7 +316,7 @@ TEST_SUITE("SqlTranslator") {
     auto translation = make_sql_query(
       "p", ConstantExpression(true) || ConstantExpression(false));
     auto query = std::string();
-    translation.append_query(query);
+    Viper::Sqlite3::build_query(translation, query);
     REQUIRE(query == "(1 OR 0)");
   }
 
@@ -278,7 +325,7 @@ TEST_SUITE("SqlTranslator") {
       auto expression = ParameterExpression(0, typeid(int));
       auto translation = make_sql_query("my_table", expression);
       auto query = std::string();
-      translation.append_query(query);
+      Viper::Sqlite3::build_query(translation, query);
       REQUIRE(query == "my_table");
     }
 
@@ -286,13 +333,15 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         ParameterExpression(MAX_EVALUATOR_PARAMETERS, typeid(int));
       REQUIRE_THROWS_AS(
-        make_sql_query("my_table", expression), ExpressionTranslationException);
+        make_sql_query("my_table", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("negative_index") {
       auto expression = ParameterExpression(-1, typeid(int));
       REQUIRE_THROWS_AS(
-        make_sql_query("my_table", expression), ExpressionTranslationException);
+        make_sql_query("my_table", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("type_mismatch") {
@@ -305,7 +354,8 @@ TEST_SUITE("SqlTranslator") {
         FunctionExpression(EQUALS_NAME, typeid(bool), left),
         FunctionExpression(EQUALS_NAME, typeid(bool), right));
       REQUIRE_THROWS_AS(
-        make_sql_query("my_table", expression), ExpressionTranslationException);
+        make_sql_query("my_table", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("missing") {
@@ -314,7 +364,8 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         FunctionExpression(EQUALS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("my_table", expression), ExpressionTranslationException);
+        make_sql_query("my_table", expression),
+          ExpressionTranslationException);
     }
   }
 
@@ -323,7 +374,8 @@ TEST_SUITE("SqlTranslator") {
       std::vector<Expression>{ConstantExpression(1), ConstantExpression(2)};
     auto expression = FunctionExpression("unknown", typeid(int), parameters);
     REQUIRE_THROWS_AS(
-      make_sql_query("p", expression), ExpressionTranslationException);
+      make_sql_query("p", expression),
+        ExpressionTranslationException);
   }
 
   TEST_CASE("invalid_parameter_count_throws") {
@@ -331,7 +383,8 @@ TEST_SUITE("SqlTranslator") {
     auto expression =
       FunctionExpression(ADDITION_NAME, typeid(int), parameters);
     REQUIRE_THROWS_AS(
-      make_sql_query("p", expression), ExpressionTranslationException);
+      make_sql_query("p", expression),
+        ExpressionTranslationException);
   }
 
   TEST_CASE("mismatched_expression_type_throws") {
@@ -341,7 +394,8 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         FunctionExpression(ADDITION_NAME, typeid(std::string), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("p", expression), ExpressionTranslationException);
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("comparison") {
@@ -350,7 +404,8 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         FunctionExpression(EQUALS_NAME, typeid(int), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("p", expression), ExpressionTranslationException);
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("operand") {
@@ -370,7 +425,8 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         FunctionExpression(EQUALS_NAME, typeid(bool), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("p", expression), ExpressionTranslationException);
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
     }
 
     SUBCASE("addition") {
@@ -379,7 +435,8 @@ TEST_SUITE("SqlTranslator") {
       auto expression =
         FunctionExpression(ADDITION_NAME, typeid(int), parameters);
       REQUIRE_THROWS_AS(
-        make_sql_query("p", expression), ExpressionTranslationException);
+        make_sql_query("p", expression),
+          ExpressionTranslationException);
     }
   }
 
@@ -394,6 +451,7 @@ TEST_SUITE("SqlTranslator") {
       }
     };
     REQUIRE_THROWS_AS(
-      make_sql_query("p", TestVirtual()), ExpressionTranslationException);
+      make_sql_query("p", TestVirtual()),
+      ExpressionTranslationException);
   }
 }

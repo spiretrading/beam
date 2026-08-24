@@ -54,7 +54,8 @@ TEST_SUITE("SqlDataStore") {
       return Row<int>().add_column("value");
     };
     using EmbeddedDataStore = SqlDataStore<Sqlite3::Connection,
-      Row<TestEntry>, Row<int>, SqlTranslator<QueryTypes>>;
+      Row<TestEntry>, Row<int>,
+      SqlTranslator<QueryTypes>>;
     auto reader_pool = DatabaseConnectionPool<Sqlite3::Connection>(1,
       [] {
         auto connection = std::make_unique<Sqlite3::Connection>(PATH);

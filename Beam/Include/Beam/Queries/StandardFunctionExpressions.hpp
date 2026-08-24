@@ -61,10 +61,10 @@ namespace Details {
     using type = typename generate_pairs<T, HasOperation>::type;
   };
 
-  template<typename F, typename T0, typename T1>
+  template<typename F, typename... T>
   using operation_result_t =
     std::remove_cvref_t<boost::callable_traits::return_type_t<
-      typename F::template Operation<T0, T1>>>;
+      typename F::template Operation<T...>>>;
 
   using PromotionKey =
     std::tuple<std::string, std::type_index, std::type_index>;

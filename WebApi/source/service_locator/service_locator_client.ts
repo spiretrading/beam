@@ -3,6 +3,13 @@ import {DirectoryEntry} from '.';
 /** Client used to access service locator services. */
 export abstract class ServiceLocatorClient {
 
+  /** Finds an account with a given name.
+   * @param name - The name of the account to find.
+   * @return The account with the given name, or DirectoryEntry.INVALID if no
+   *         such account exists.
+   */
+  public abstract findAccount(name: string): Promise<DirectoryEntry>;
+
   /** Loads the directory entry representing the account currently logged
    *  in. */
   public abstract loadCurrentAccount(): Promise<DirectoryEntry>;
@@ -11,8 +18,7 @@ export abstract class ServiceLocatorClient {
    * @param id - The id of the directory entry to load.
    * @return The directory entry with the specified id.
    */
-  public abstract loadDirectoryEntryFromId(
-    id: number): Promise<DirectoryEntry>;
+  public abstract loadDirectoryEntryFromId(id: number): Promise<DirectoryEntry>;
 
   /** Logs into the service locator.
    * @param username - The username.

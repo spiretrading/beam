@@ -11,6 +11,14 @@ export class HttpServiceLocatorClient extends ServiceLocatorClient {
     this._account = DirectoryEntry.INVALID;
   }
 
+  public async findAccount(name: string): Promise<DirectoryEntry> {
+    let response = await Services.post('/api/service_locator/find_account',
+      {
+        name: name
+      });
+    return DirectoryEntry.fromJson(response);
+  }
+
   public async loadCurrentAccount(): Promise<DirectoryEntry> {
     if(!this._account.equals(DirectoryEntry.INVALID)) {
       return this._account;
@@ -54,8 +62,8 @@ export class HttpServiceLocatorClient extends ServiceLocatorClient {
     }
   }
 
-  public async storePassword(account: DirectoryEntry,
-      password: string): Promise<void> {
+  public async storePassword(account: DirectoryEntry, password: string):
+      Promise<void> {
     await Services.post('/api/service_locator/store_password',
       {
         account: account.toJson(),

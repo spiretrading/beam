@@ -1,3 +1,4 @@
+#include <Aspen/CommitFlag.hpp>
 #include <Aspen/Constant.hpp>
 #include <Aspen/Queue.hpp>
 #include <Aspen/Shared.hpp>
@@ -26,23 +27,26 @@ TEST_SUITE("CurrentTimeReactor") {
     auto trigger = Aspen::Trigger([&] {
       commits.push(true);
     });
-    Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto time = time_from_string("2025-01-15 10:30:00");
     auto client = FixedTimeClient(time);
     auto pulse = Aspen::Shared<Aspen::Queue<int>>();
     auto reactor = current_time_reactor(&client, pulse);
     REQUIRE(reactor.commit(0) == State::NONE);
+    flag.clear();
     pulse->push(1);
     commits.pop();
     REQUIRE(reactor.commit(1) == State::EVALUATED);
     REQUIRE(reactor.eval() == time);
     auto updated_time = time_from_string("2025-01-15 11:00:00");
     client.set(updated_time);
+    flag.clear();
     pulse->push(2);
     commits.pop();
     REQUIRE(reactor.commit(2) == State::EVALUATED);
     REQUIRE(reactor.eval() == updated_time);
-    Trigger::set_trigger(nullptr);
   }
 
   TEST_CASE("current_time_with_constant_pulse") {
@@ -58,29 +62,33 @@ TEST_SUITE("CurrentTimeReactor") {
     auto trigger = Aspen::Trigger([&] {
       commits.push(true);
     });
-    Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto initial_time = time_from_string("2025-01-15 09:00:00");
     auto client = FixedTimeClient(initial_time);
     auto pulse = Aspen::Shared<Aspen::Queue<int>>();
     auto reactor = current_time_reactor(&client, pulse);
     REQUIRE(reactor.commit(0) == State::NONE);
+    flag.clear();
     pulse->push(0);
     commits.pop();
     REQUIRE(reactor.commit(1) == State::EVALUATED);
     REQUIRE(reactor.eval() == initial_time);
     auto updated_time = time_from_string("2025-01-15 15:00:00");
     client.set(updated_time);
+    flag.clear();
     pulse->push(1);
     commits.pop();
     REQUIRE(reactor.commit(2) == State::EVALUATED);
     REQUIRE(reactor.eval() == updated_time);
     auto final_time = time_from_string("2025-01-15 18:00:00");
     client.set(final_time);
+    flag.clear();
     pulse->push(2);
     commits.pop();
     REQUIRE(reactor.commit(3) == State::EVALUATED);
     REQUIRE(reactor.eval() == final_time);
-    Trigger::set_trigger(nullptr);
   }
 
   TEST_CASE("current_time_with_unique_ptr") {

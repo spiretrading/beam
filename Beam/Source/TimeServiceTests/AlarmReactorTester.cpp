@@ -1,3 +1,4 @@
+#include <Aspen/CommitFlag.hpp>
 #include <Aspen/Constant.hpp>
 #include <Aspen/Queue.hpp>
 #include <Aspen/Trigger.hpp>
@@ -18,7 +19,9 @@ TEST_SUITE("AlarmReactor") {
     auto trigger = Aspen::Trigger([&] {
       commits.push(true);
     });
-    Aspen::Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto start_time = time_from_string("2020-01-01 12:00:00");
     auto time_client = FixedTimeClient(start_time);
     auto expiry = time_from_string("2020-02-01 12:00:00");
@@ -31,10 +34,10 @@ TEST_SUITE("AlarmReactor") {
     REQUIRE(reactor.commit(0) == State::CONTINUE_EVALUATED);
     REQUIRE(reactor.eval() == 0);
     REQUIRE(reactor.commit(1) == State::NONE);
+    flag.clear();
     timer->trigger();
     commits.pop();
     REQUIRE(reactor.commit(2) == State::EVALUATED);
     REQUIRE(reactor.eval() == 1);
-    Trigger::set_trigger(nullptr);
   }
 }

@@ -1,3 +1,4 @@
+#include <Aspen/CommitFlag.hpp>
 #include <Aspen/Trigger.hpp>
 #include <doctest/doctest.h>
 #include "Beam/TimeService/TimerReactor.hpp"
@@ -14,7 +15,9 @@ TEST_SUITE("TimerReactor") {
     auto trigger = Trigger([&] {
       commits.push(true);
     });
-    Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto timer = std::shared_ptr<TriggerTimer>();
     auto timer_factory = [&] (auto duration) {
       timer = std::make_shared<TriggerTimer>();
@@ -24,10 +27,10 @@ TEST_SUITE("TimerReactor") {
     REQUIRE(reactor.commit(0) == State::CONTINUE_EVALUATED);
     REQUIRE(reactor.eval() == 0);
     REQUIRE(reactor.commit(1) == State::NONE);
+    flag.clear();
     timer->trigger();
     commits.pop();
     REQUIRE(reactor.commit(2) == State::EVALUATED);
     REQUIRE(reactor.eval() == 1);
-    Trigger::set_trigger(nullptr);
   }
 }

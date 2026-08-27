@@ -1,4 +1,5 @@
 #include <string>
+#include <Aspen/CommitFlag.hpp>
 #include <Aspen/Constant.hpp>
 #include <Aspen/Queue.hpp>
 #include <Aspen/Trigger.hpp>
@@ -16,7 +17,9 @@ TEST_SUITE("QueryReactor") {
     auto trigger = Aspen::Trigger([&] {
       commits.push(true);
     });
-    Aspen::Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto submission_count = 0;
     auto submission = [&] (const auto& query, auto queue) {
       ++submission_count;
@@ -39,6 +42,7 @@ TEST_SUITE("QueryReactor") {
       if(is_complete(state)) {
         break;
       } else if(!has_continuation(state)) {
+        flag.clear();
         commits.pop();
       }
       state = reactor.commit(sequence);
@@ -46,7 +50,6 @@ TEST_SUITE("QueryReactor") {
     }
     REQUIRE(submission_count == 1);
     REQUIRE(received_values == std::vector{100, 200, 300});
-    Aspen::Trigger::set_trigger(nullptr);
   }
 
   TEST_CASE("query_reactor_empty_result") {
@@ -54,7 +57,9 @@ TEST_SUITE("QueryReactor") {
     auto trigger = Aspen::Trigger([&] {
       commits.push(true);
     });
-    Aspen::Trigger::set_trigger(trigger);
+    auto flag = CommitFlag();
+    flag.set_trigger(&trigger);
+    auto scope = CommitFlagScope(flag);
     auto submission = [&] (const auto& query, auto queue) {
       REQUIRE(query.get_index() == 42);
       queue->close();
@@ -69,11 +74,11 @@ TEST_SUITE("QueryReactor") {
       if(is_complete(state)) {
         break;
       } else if(!has_continuation(state)) {
+        flag.clear();
         commits.pop();
       }
       state = reactor.commit(sequence);
       ++sequence;
     }
-    Aspen::Trigger::set_trigger(nullptr);
   }
 }

@@ -34,7 +34,7 @@ namespace {
       std::rethrow_exception(e);
     } catch(const error_already_set& error) {
       return error.value();
-    } catch(const PythonException& error) {
+    } catch(const Beam::Python::PythonException& error) {
       return error.to_python();
     } catch(const PipeBrokenException& error) {
       return (*pipe_broken_exception)(error.what());
@@ -60,7 +60,8 @@ void Beam::Python::export_base_queue(pybind11::module& module) {
       if(!PyExceptionInstance_Check(exception.ptr())) {
         throw pybind11::type_error("close() requires an exception instance.");
       }
-      auto e = std::make_exception_ptr(PythonException(exception));
+      auto e =
+        std::make_exception_ptr(Beam::Python::PythonException(exception));
       auto release = GilRelease();
       self.close(e);
     }).
@@ -108,8 +109,8 @@ void Beam::Python::export_queues(pybind11::module& module) {
       if(e) {
         std::rethrow_exception(e);
       }
-    } catch(const PythonException& exception) {
-      auto instance = exception.to_python();
+    } catch(const Beam::Python::PythonException& e) {
+      auto instance = e.to_python();
       PyErr_SetObject(
         reinterpret_cast<PyObject*>(Py_TYPE(instance.ptr())), instance.ptr());
     }

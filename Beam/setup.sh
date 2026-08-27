@@ -15,18 +15,6 @@ main() {
     "https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip" \
     "b885403cb13d490bebe90f25fad7150b88857f7acf3bd8b9ca1cec04c9ec8a51" \
     "build_cryptopp"
-  add_dependency "openssl-3.6.0" \
-    "https://github.com/openssl/openssl/releases/download/openssl-3.6.0/openssl-3.6.0.tar.gz" \
-    "b6a5f44b7eb69e3fa35dbf15524405b44837a481d43d81daddde3ff21fcbb8e9" \
-    "build_openssl"
-  add_dependency "mariadb-connector-c-3.4.9" \
-    "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.9.zip" \
-    "2342f6e58907f7431b5ccafb8b8e744b6b0e64174d72395d2330576b8a535fb6" \
-    "build_mariadb"
-  add_dependency "sqlite-amalgamation-3510200" \
-    "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip" \
-    "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec" \
-    "build_sqlite"
   add_dependency "tclap-1.4.0-rc2" \
     "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" \
     "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
@@ -44,11 +32,12 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "ca15c76178a9f883758ef7d6e13ce4839e8d7930" \
+    "018b392adb7bb8f8e5d3a175e67bfcd0a958c78f" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "6ec46d0e41980d1a138af52b0527e9aeb9c9e162"
+    "29422ddd26901f3100a44e5f8148c7bb98c02826" \
+    "build_viper"
   install_dependencies || return 1
   install_repos || return 1
   commit
@@ -59,40 +48,6 @@ build_cryptopp() {
   cores=$(get_core_count)
   make -j "$cores" || return 1
   make install PREFIX="$ROOT/cryptopp890" || return 1
-}
-
-build_openssl() {
-  local cores
-  cores=$(get_core_count)
-  popd > /dev/null
-  mv "openssl-3.6.0" "openssl-3.6.0-build"
-  pushd "openssl-3.6.0-build" > /dev/null
-  export LDFLAGS=-ldl
-  ./config no-shared threads -fPIC -ldl --prefix="$ROOT/openssl-3.6.0" ||
-    return 1
-  make -j "$cores" || return 1
-  make test || return 1
-  make install || return 1
-  unset LDFLAGS
-  popd > /dev/null
-  rm -rf "openssl-3.6.0-build"
-  pushd "openssl-3.6.0" > /dev/null
-}
-
-build_mariadb() {
-  local cores
-  cores=$(get_core_count)
-  export OPENSSL_ROOT_DIR="$ROOT/openssl-3.6.0"
-  cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=./mariadb \
-    -DCLIENT_PLUGIN_CACHING_SHA2_PASSWORD=STATIC . || return 1
-  make -j "$cores" || return 1
-  make install || return 1
-  unset OPENSSL_ROOT_DIR
-}
-
-build_sqlite() {
-  gcc -c -O2 -o sqlite3.lib -DSQLITE_USE_URI=1 -fPIC sqlite3.c || return 1
 }
 
 build_yaml_cpp() {
@@ -125,8 +80,14 @@ build_boost() {
   export BOOST_BUILD_PATH=$(pwd -P)
   ./bootstrap.sh || return 1
   ./b2 -j"$cores" --prefix="$ROOT/boost_1_91_0" \
-    cxxflags="-std=c++20 -fPIC" install || return 1
+    cxxflags="-std=c++23 -fPIC" install || return 1
   unset BOOST_BUILD_PATH
+}
+
+build_viper() {
+  pushd "$ROOT" > /dev/null
+  ./viper/setup.sh || { popd > /dev/null; return 1; }
+  popd > /dev/null
 }
 
 build_aspen() {

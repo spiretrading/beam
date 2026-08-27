@@ -13,12 +13,6 @@ set(CRYPTOPP_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/x64/Output/Debug/cryptlib.lib")
 set(CRYPTOPP_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/cryptopp890/x64/Output/Release/cryptlib.lib")
-set(MYSQL_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/include")
-set(MYSQL_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/libmariadb/Debug/mariadbclient.lib")
-set(MYSQL_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/mariadb-connector-c-3.4.9/libmariadb/Release/mariadbclient.lib")
 set(OPEN_SSL_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/include")
 set(OPEN_SSL_BASE_LIBRARY_DEBUG_PATH
@@ -29,12 +23,6 @@ set(OPEN_SSL_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib/libssl.lib")
 set(OPEN_SSL_LIBRARY_OPTIMIZED_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/openssl-3.6.0/lib/libssl.lib")
-set(SQLITE_INCLUDE_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200")
-set(SQLITE_LIBRARY_DEBUG_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3d.lib")
-set(SQLITE_LIBRARY_OPTIMIZED_PATH
-  "${PROJECT_BINARY_DIR}/Dependencies/sqlite-amalgamation-3510200/sqlite3.lib")
 set(YAML_INCLUDE_PATH "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/include")
 set(YAML_LIBRARY_DEBUG_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/yaml-cpp/build/Debug/yaml-cppd.lib")

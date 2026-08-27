@@ -11,18 +11,10 @@ CALL :AddDependency "cryptopp890" ^
   "https://github.com/weidai11/cryptopp/archive/b524266.zip" ^
   "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" ^
   ":BuildCryptopp"
-CALL :AddDependency "mariadb-connector-c-3.4.9" ^
-  "https://github.com/mariadb-corporation/mariadb-connector-c/archive/refs/tags/v3.4.9.zip" ^
-  "2342f6e58907f7431b5ccafb8b8e744b6b0e64174d72395d2330576b8a535fb6" ^
-  ":BuildMariaDB"
 CALL :AddDependency "openssl-3.6.0" ^
   "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.6.0.zip" ^
   "273d989d1157f0bd494054e1b799b6bdba39d4acaff6dfcb8db02656f1b454dd" ^
   ":BuildOpenSSL"
-CALL :AddDependency "sqlite-amalgamation-3510200" ^
-  "https://www.sqlite.org/2026/sqlite-amalgamation-3510200.zip" ^
-  "6e2a845a493026bdbad0618b2b5a0cf48584faab47384480ed9f592d912f23ec" ^
-  ":BuildSQLite"
 CALL :AddDependency "tclap-1.4.0-rc2" ^
   "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" ^
   "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
@@ -40,11 +32,12 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "ca15c76178a9f883758ef7d6e13ce4839e8d7930" ^
+  "018b392adb7bb8f8e5d3a175e67bfcd0a958c78f" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "6ec46d0e41980d1a138af52b0527e9aeb9c9e162"
+  "29422ddd26901f3100a44e5f8148c7bb98c02826" ^
+  ":BuildViper"
 SET "PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin"
 CALL :InstallDependencies || EXIT /B 1
 CALL :InstallRepos || EXIT /B 1
@@ -74,27 +67,6 @@ COPY ..\*.h cryptopp
 POPD
 EXIT /B 0
 
-:BuildMariaDB
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./mariadb ^
-  -DCLIENT_PLUGIN_CACHING_SHA2_PASSWORD=STATIC . || EXIT /B 1
-PUSHD libmariadb
-powershell -Command "(Get-Content mariadbclient.vcxproj) -replace " ^
-  "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
-  "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
-  "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
-  "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
-  "Set-Content mariadbclient.vcxproj" || (POPD & EXIT /B 1)
-powershell -Command "(Get-Content mariadb_obj.vcxproj) -replace " ^
-  "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
-  "'<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>' -replace " ^
-  "'<RuntimeLibrary>MultiThreaded</RuntimeLibrary>', " ^
-  "'<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>' | " ^
-  "Set-Content mariadb_obj.vcxproj" || (POPD & EXIT /B 1)
-POPD
-cmake --build . --target mariadbclient --config Debug || EXIT /B 1
-cmake --build . --target mariadbclient --config Release || EXIT /B 1
-EXIT /B 0
-
 :BuildOpenSSL
 POPD
 MOVE "!FOLDER!" "!FOLDER!-build"
@@ -107,15 +79,6 @@ nmake install
 POPD
 RD /S /Q "!FOLDER!-build"
 PUSHD "!FOLDER!"
-EXIT /B 0
-
-:BuildSQLite
-cl /c /Zi /MDd /DSQLITE_USE_URI=1 sqlite3.c || EXIT /B 1
-lib sqlite3.obj || EXIT /B 1
-COPY sqlite3.lib sqlite3d.lib
-DEL sqlite3.obj
-cl /c /O2 /MD /DSQLITE_USE_URI=1 sqlite3.c || EXIT /B 1
-lib sqlite3.obj || EXIT /B 1
 EXIT /B 0
 
 :BuildYamlCpp
@@ -153,8 +116,14 @@ PUSHD tools\build
 CALL bootstrap.bat vc145 || (POPD & EXIT /B 1)
 POPD
 tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_91_0" ^
-  --build-type=complete address-model=64 context-impl=winfib ^
+  --build-type=complete address-model=64 context-impl=winfib cxxstd=latest ^
   toolset=msvc-14.5 link=static runtime-link=shared install || EXIT /B 1
+EXIT /B 0
+
+:BuildViper
+PUSHD "!ROOT!"
+CALL "!ROOT!\viper\setup.bat" || (POPD & EXIT /B 1)
+POPD
 EXIT /B 0
 
 :BuildAspen
@@ -187,7 +156,7 @@ SET "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 FOR /F "usebackq delims=" %%i IN (` ^
     "!VSWHERE!" -prerelease -latest -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
-    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=amd64
+    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64
   )
 )
 EXIT /B 0

@@ -117,7 +117,8 @@ CALL bootstrap.bat vc145 || (POPD & EXIT /B 1)
 POPD
 tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_91_0" ^
   --build-type=complete address-model=64 context-impl=winfib cxxstd=latest ^
-  toolset=msvc-14.5 link=static runtime-link=shared install || EXIT /B 1
+  define=_WIN32_WINNT=0x0A00 toolset=msvc-14.5 link=static ^
+  runtime-link=shared install || EXIT /B 1
 EXIT /B 0
 
 :BuildViper

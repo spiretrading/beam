@@ -32,6 +32,7 @@ TEST_SUITE("QueryReactor") {
     auto query = make_current_query(std::string("test_index"));
     auto reactor = query_reactor<int>(submission, query);
     auto sequence = 0;
+    flag.clear();
     auto state = reactor.commit(sequence);
     ++sequence;
     auto received_values = std::vector<int>();
@@ -42,9 +43,9 @@ TEST_SUITE("QueryReactor") {
       if(is_complete(state)) {
         break;
       } else if(!has_continuation(state)) {
-        flag.clear();
         commits.pop();
       }
+      flag.clear();
       state = reactor.commit(sequence);
       ++sequence;
     }
@@ -67,6 +68,7 @@ TEST_SUITE("QueryReactor") {
     auto query = make_current_query(42);
     auto reactor = query_reactor<std::string>(submission, query);
     auto sequence = 0;
+    flag.clear();
     auto state = reactor.commit(sequence);
     ++sequence;
     while(true) {
@@ -74,9 +76,9 @@ TEST_SUITE("QueryReactor") {
       if(is_complete(state)) {
         break;
       } else if(!has_continuation(state)) {
-        flag.clear();
         commits.pop();
       }
+      flag.clear();
       state = reactor.commit(sequence);
       ++sequence;
     }

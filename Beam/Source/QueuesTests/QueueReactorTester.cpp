@@ -61,6 +61,7 @@ TEST_SUITE("QueueReactor") {
     auto values = std::vector<int>();
     auto sequence = 1;
     while(true) {
+      flag.clear();
       auto state = reactor.commit(sequence);
       ++sequence;
       if(has_evaluation(state)) {
@@ -70,7 +71,6 @@ TEST_SUITE("QueueReactor") {
         break;
       }
       if(!has_continuation(state)) {
-        flag.clear();
         commits.pop();
       }
     }
@@ -95,6 +95,7 @@ TEST_SUITE("QueueReactor") {
     auto values = std::vector<int>();
     auto sequence = 1;
     while(true) {
+      flag.clear();
       auto state = reactor.commit(sequence);
       ++sequence;
       if(has_evaluation(state)) {
@@ -110,7 +111,6 @@ TEST_SUITE("QueueReactor") {
         break;
       }
       if(!has_continuation(state)) {
-        flag.clear();
         commits.pop();
       }
     }

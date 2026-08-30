@@ -190,7 +190,7 @@ TEST_SUITE("QueryClientPublisher") {
 
   TEST_CASE("publish_removes_broken_publisher") {
     auto fixture = Fixture();
-    auto end_query_received = false;
+    auto end_queries = std::make_shared<Queue<bool>>();
     auto& client = *fixture.m_server_client;
     QueryService::add_slot(out(client.get_slots()),
       [] (auto& protocol_client, const TestQuery& received_query) {
@@ -205,7 +205,7 @@ TEST_SUITE("QueryClientPublisher") {
       [&] (auto& sender, const std::string& index, int id) {
         REQUIRE(index == "IndexF");
         REQUIRE(id == 15);
-        end_query_received = true;
+        end_queries->push(true);
       });
     client.spawn_message_handler();
     auto query = TestQuery();
@@ -215,15 +215,44 @@ TEST_SUITE("QueryClientPublisher") {
     fixture.m_publisher.submit(query, queue);
     auto snapshot_value = queue->pop();
     REQUIRE(snapshot_value.get_value().m_value == 800);
+    flush_pending_routines();
     queue->close();
     fixture.m_publisher.publish(SequencedValue(IndexedValue(
       TestEntry(900, time_from_string("2024-01-15 10:30:01")),
       std::string("IndexF")), Beam::Sequence(2)));
-    flush_pending_routines();
-    REQUIRE(end_query_received);
+    REQUIRE(end_queries->pop());
     fixture.m_publisher.publish(SequencedValue(IndexedValue(
       TestEntry(1000, time_from_string("2024-01-15 10:30:02")),
       std::string("IndexF")), Beam::Sequence(3)));
+  }
+
+  TEST_CASE("submit_ends_query_on_broken_queue") {
+    auto fixture = Fixture();
+    auto end_queries = std::make_shared<Queue<bool>>();
+    auto queue = std::make_shared<Queue<SequencedTestEntry>>();
+    auto& client = *fixture.m_server_client;
+    QueryService::add_slot(out(client.get_slots()),
+      [&] (auto& protocol_client, const TestQuery& received_query) {
+        queue->close();
+        auto result = QueryResult<SequencedTestEntry>();
+        result.m_id = 21;
+        result.m_snapshot.push_back(SequencedValue(
+          TestEntry(500, time_from_string("2024-01-15 10:30:00")),
+          Beam::Sequence(1)));
+        return result;
+      });
+    add_message_slot<EndQueryMessage>(out(client.get_slots()),
+      [&] (auto& sender, const std::string& index, int id) {
+        REQUIRE(index == "IndexG");
+        REQUIRE(id == 21);
+        end_queries->push(true);
+      });
+    client.spawn_message_handler();
+    auto query = TestQuery();
+    query.set_index("IndexG");
+    query.set_range(Range::TOTAL);
+    fixture.m_publisher.submit(query, queue);
+    REQUIRE(end_queries->pop());
   }
 
   TEST_CASE("close_breaks_all_queues") {

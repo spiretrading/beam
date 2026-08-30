@@ -146,6 +146,8 @@ namespace Beam {
         auto publisher = std::make_shared<Publisher>(
           query, std::move(filter), std::move(queue));
         auto& publisher_list = m_publishers.get(query.get_index());
+        auto client = std::shared_ptr<ServiceProtocolClient>();
+        auto id = -1;
         try {
           publisher->begin_snapshot();
           publisher_list.push_back(publisher);
@@ -158,8 +160,9 @@ namespace Beam {
               return true;
             });
           if(send_request) {
-            auto client = m_client_handler->get_client();
+            client = m_client_handler->get_client();
             auto result = client->template send_request<QueryService>(query);
+            id = result.m_id;
             publisher->push_snapshot(
               result.m_snapshot.begin(), result.m_snapshot.end());
             publisher->end_snapshot(result.m_id);
@@ -167,6 +170,12 @@ namespace Beam {
         } catch(const std::exception&) {
           publisher->close();
           publisher_list.erase(publisher);
+          if(client && id != -1) {
+            try {
+              send_record_message<EndQueryMessage>(
+                *client, query.get_index(), id);
+            } catch(const std::exception&) {}
+          }
         }
       });
     } else {
@@ -233,15 +242,23 @@ namespace Beam {
     for(auto& disconnected_publisher : disconnected_publishers) {
       auto& publisher_list = *std::get<0>(disconnected_publisher);
       auto& publisher = std::get<1>(disconnected_publisher);
+      auto query = Query();
+      auto id = -1;
       try {
-        auto query = publisher->begin_recovery();
+        query = publisher->begin_recovery();
         auto result = client.template send_request<QueryService>(query);
+        id = result.m_id;
         publisher->push_snapshot(
           result.m_snapshot.begin(), result.m_snapshot.end());
         publisher->end_recovery(result.m_id);
       } catch(const std::exception&) {
         publisher->close();
         publisher_list.erase(publisher);
+        if(id != -1) {
+          try {
+            send_record_message<EndQueryMessage>(client, query.get_index(), id);
+          } catch(const std::exception&) {}
+        }
       }
     }
   }

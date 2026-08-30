@@ -78,9 +78,7 @@ namespace Beam {
 
   inline void TriggerTimer::cancel() {
     auto lock = boost::lock_guard(m_mutex);
-    if(m_state == 0) {
-      m_state = 1;
-    } else if(m_state == 1) {
+    if(m_state == 1) {
       m_result = Timer::Result::CANCELED;
       publish();
     } else if(m_state == 2) {

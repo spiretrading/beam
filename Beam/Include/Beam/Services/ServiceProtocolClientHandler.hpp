@@ -136,6 +136,11 @@ namespace Beam {
         if(m_client) {
           return m_client;
         }
+        if(!m_open_state.is_open()) {
+          auto releaser = release(lock);
+          client->close();
+          continue;
+        }
         m_client = std::move(client);
         try {
           m_reconnect_handler(m_client);

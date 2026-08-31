@@ -5,6 +5,7 @@
 #include "Beam/Python/AbstractQueue.hpp"
 #include "Beam/Python/GilLock.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/PythonFunction.hpp"
 #include "Beam/Python/QueueReader.hpp"
 #include "Beam/Python/QueueWriter.hpp"
 #include "Beam/Queues/Queue.hpp"
@@ -139,8 +140,15 @@ namespace Beam::Python {
     }
     auto binding = pybind11::class_<
       T, TrampolineQueueWriter<T>, std::shared_ptr<T>, BaseQueue>(
-        module, name.c_str(), pybind11::multiple_inheritance()).
-      def("push", pybind11::overload_cast<const typename T::Target&>(&T::push));
+        module, name.c_str(), pybind11::multiple_inheritance());
+    if constexpr(std::is_same_v<typename T::Target, std::function<void ()>>) {
+      binding.def("push", [] (T& self, const PythonFunction<void ()>& task) {
+        self.push(task);
+      });
+    } else {
+      binding.def(
+        "push", pybind11::overload_cast<const typename T::Target&>(&T::push));
+    }
     if constexpr(!std::is_same_v<typename T::Target, pybind11::object>) {
       binding.def(pybind11::init(
         [] (std::shared_ptr<QueueWriter<pybind11::object>> queue) {

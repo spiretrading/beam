@@ -48,6 +48,7 @@ namespace Beam::Python {
   inline GilRelease::~GilRelease() {
     if(m_has_gil) {
       PyEval_RestoreThread(m_state);
+      update_stack_protection();
     }
   }
 }

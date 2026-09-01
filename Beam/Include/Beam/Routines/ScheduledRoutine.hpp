@@ -32,6 +32,15 @@ namespace Details {
       std::size_t get_context_id() const;
 
       /**
+       * Returns the lowest address of the stack this Routine runs on, or
+       * <code>nullptr</code> if it has not yet been allocated.
+       */
+      void* get_stack_base() const;
+
+      /** Returns the size of the stack this Routine runs on. */
+      std::size_t get_stack_extent() const;
+
+      /**
        * Continues execution of this Routine from its last defer point or from
        * the beginning if it has not yet executed.
        */
@@ -53,9 +62,19 @@ namespace Details {
       void resume() override;
 
     private:
+      struct StackAllocator {
+        boost::context::fixedsize_stack m_allocator;
+        ScheduledRoutine* m_routine;
+
+        StackAllocator(std::size_t size, ScheduledRoutine& routine) noexcept;
+        boost::context::stack_context allocate();
+        void deallocate(boost::context::stack_context& context);
+      };
       friend class Details::Scheduler;
       bool m_is_pending_resume;
       std::size_t m_stack_size;
+      void* m_stack_base;
+      std::size_t m_stack_extent;
       std::size_t m_context_id;
       boost::context::continuation m_continuation;
       boost::context::continuation m_parent;
@@ -75,6 +94,32 @@ namespace Details {
     return m_context_id;
   }
 
+  inline void* ScheduledRoutine::get_stack_base() const {
+    return m_stack_base;
+  }
+
+  inline std::size_t ScheduledRoutine::get_stack_extent() const {
+    return m_stack_extent;
+  }
+
+  inline ScheduledRoutine::StackAllocator::StackAllocator(
+    std::size_t size, ScheduledRoutine& routine) noexcept
+    : m_allocator(size),
+      m_routine(&routine) {}
+
+  inline boost::context::stack_context
+      ScheduledRoutine::StackAllocator::allocate() {
+    auto context = m_allocator.allocate();
+    m_routine->m_stack_base = static_cast<char*>(context.sp) - context.size;
+    m_routine->m_stack_extent = context.size;
+    return context;
+  }
+
+  inline void ScheduledRoutine::StackAllocator::deallocate(
+      boost::context::stack_context& context) {
+    m_allocator.deallocate(context);
+  }
+
 #ifndef BEAM_USE_DLL
   BEAM_EMIT_DLL inline void ScheduledRoutine::advance() {
     Details::CurrentRoutineGlobal::get() = this;
@@ -82,7 +127,7 @@ namespace Details {
     if(get_state() == State::PENDING) {
       set(State::RUNNING);
       m_continuation = boost::context::callcc(std::allocator_arg,
-        boost::context::fixedsize_stack(m_stack_size),
+        StackAllocator(m_stack_size, *this),
         [this] (boost::context::continuation&& parent) {
           return initialize(std::move(parent));
         });
@@ -97,7 +142,9 @@ namespace Details {
   inline ScheduledRoutine::ScheduledRoutine(
       std::size_t stack_size, std::size_t context_id) noexcept
       : m_is_pending_resume(false),
-        m_stack_size(stack_size) {
+        m_stack_size(stack_size),
+        m_stack_base(nullptr),
+        m_stack_extent(0) {
     if(context_id == -1) {
       m_context_id = get_id() % boost::thread::hardware_concurrency();
     } else {

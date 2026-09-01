@@ -49,9 +49,11 @@ namespace {
 void Beam::Python::export_base_publisher(pybind11::module& module) {
   class_<BasePublisher, std::shared_ptr<BasePublisher>>(
     module, "BasePublisher").
-    def("apply", static_cast<void (BasePublisher::*)(
-      const std::function<void ()>&) const>(&BasePublisher::with),
-      call_guard<GilRelease>());
+    def("apply",
+      [] (const BasePublisher& self, const PythonFunction<void ()>& f) {
+        auto release = GilRelease();
+        self.with(f);
+      });
 }
 
 void Beam::Python::export_base_queue(pybind11::module& module) {
@@ -146,20 +148,17 @@ void Beam::Python::export_task_queue(pybind11::module& module) {
     AbstractQueue<std::function<void ()>>>(module, "TaskQueue").
     def(pybind11::init()).
     def("get_slot",
-      [] (TaskQueue& self, std::function<void (const object&)> slot) {
-        auto queue = self.get_slot(std::move(slot));
+      [] (TaskQueue& self, const PythonFunction<void (const object&)>& slot) {
+        auto queue = self.get_slot<object>(slot);
         return make_strong_to_python_queue_writer(std::move(queue));
       }).
     def("get_slot",
-      [] (TaskQueue& self, std::function<void (const object&)> slot,
-          std::function<void (const object&)> break_slot) {
-        auto queue = self.get_slot(std::move(slot),
-          std::function<void (const std::exception_ptr&)>(
-            [break_slot = std::move(break_slot)] (
-                const std::exception_ptr& e) {
-              auto lock = GilLock();
-              break_slot(to_python_exception(e));
-            }));
+      [] (TaskQueue& self, const PythonFunction<void (const object&)>& slot,
+          const PythonFunction<void (const object&)>& break_slot) {
+        auto queue = self.get_slot<object>(slot,
+          [=] (const std::exception_ptr& e) {
+            break_slot(to_python_exception(e));
+          });
         return make_strong_to_python_queue_writer(std::move(queue));
       }).
     def("pop", &TaskQueue::pop, call_guard<GilRelease>());

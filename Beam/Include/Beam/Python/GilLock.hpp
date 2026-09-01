@@ -1,6 +1,7 @@
 #ifndef BEAM_PYTHON_GIL_LOCK_HPP
 #define BEAM_PYTHON_GIL_LOCK_HPP
 #include <pybind11/pybind11.h>
+#include "Beam/Python/StackProtection.hpp"
 
 namespace Beam::Python {
 
@@ -34,10 +35,12 @@ namespace Beam::Python {
     if(!m_has_gil) {
       m_state = PyGILState_Ensure();
     }
+    update_stack_protection();
   }
 
   inline GilLock::~GilLock() noexcept {
     if(!m_has_gil) {
+      reset_stack_protection();
       PyGILState_Release(m_state);
     }
   }

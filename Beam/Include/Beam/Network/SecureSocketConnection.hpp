@@ -11,6 +11,7 @@
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/SecureSocketOptions.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -174,7 +175,7 @@ namespace Beam {
       throw;
     } catch(const std::exception&) {
       close();
-      std::throw_with_nested(ConnectException("Unable to open socket."));
+      throw_nested_with_location(ConnectException("Unable to open socket."));
     }
     m_socket->m_is_open = true;
   }

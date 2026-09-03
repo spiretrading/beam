@@ -164,19 +164,35 @@ namespace Details {
   }
 
   /**
+   * Throws an exception nesting the exception currently being handled within
+   * it, recording the location of the throw.
+   * @param e The outer exception.
+   * @param location The location of the throw.
+   */
+  template<typename E> requires
+    std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
+  [[noreturn]] void throw_nested_with_location(E&& e,
+      const std::source_location& location = std::source_location::current()) {
+    boost::throw_with_location(Details::NestedException<std::remove_cvref_t<E>>(
+      std::forward<E>(e)), location);
+  }
+
+  /**
    * Calls a function and if it throws an exception, nests the exception within
    * another.
    * @param f The function to call.
    * @param e The outer exception used if <i>f</i> throws.
+   * @param location The location of the throw.
    * @return The result of f.
    */
   template<std::invocable<> F, typename E> requires
     std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
-  decltype(auto) try_or_nest(F&& f, E&& e) {
+  decltype(auto) try_or_nest(F&& f, E&& e,
+      const std::source_location& location = std::source_location::current()) {
     try {
       return std::forward<F>(f)();
     } catch(...) {
-      std::throw_with_nested(std::forward<E>(e));
+      throw_nested_with_location(std::forward<E>(e), location);
     }
   }
 
@@ -186,31 +202,19 @@ namespace Details {
    * the outer exception and the currently thrown exception representing the
    * inner/nested exception.
    * @param e The outer exception.
+   * @param location The location of the throw.
    * @return The std::exception_ptr representing an std::nested_exception.
    */
   template<typename E> requires
     std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
-  std::exception_ptr nest_current_exception(E&& e) {
+  std::exception_ptr nest_current_exception(E&& e,
+      const std::source_location& location = std::source_location::current()) {
     try {
-      std::throw_with_nested(std::forward<E>(e));
+      throw_nested_with_location(std::forward<E>(e), location);
     } catch(...) {
       return std::current_exception();
     }
     return std::exception_ptr();
-  }
-
-  /**
-   * Throws an exception nesting the exception currently being handled within
-   * it, recording the location of the throw.
-   * @param e The outer exception.
-   * @param location The location of the throw.
-   */
-  template<typename E> requires
-    std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
-  [[noreturn]] void throw_nested_with_location(
-      E&& e, const std::source_location& location) {
-    boost::throw_with_location(Details::NestedException<std::remove_cvref_t<E>>(
-      std::forward<E>(e)), location);
   }
 
   template<typename T>

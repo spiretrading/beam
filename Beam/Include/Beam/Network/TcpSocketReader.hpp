@@ -6,6 +6,7 @@
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Routines/Async.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -67,7 +68,7 @@ namespace Beam {
       return result;
     } catch(const std::exception&) {
       m_socket->end_read_operation();
-      std::throw_with_nested(EndOfFileException());
+      throw_nested_with_location(EndOfFileException());
     }
   }
 

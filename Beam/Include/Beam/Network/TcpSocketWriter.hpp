@@ -9,6 +9,7 @@
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/TaskRunner.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -50,7 +51,7 @@ namespace Beam {
       m_socket->end_write_operation();
     } catch(const std::exception&) {
       m_socket->end_write_operation();
-      std::throw_with_nested(EndOfFileException());
+      throw_nested_with_location(EndOfFileException());
     }
   }
 

@@ -11,6 +11,7 @@
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/ServiceThreadPool.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -90,11 +91,11 @@ namespace Beam {
         boost::throw_with_location(
           SocketException(e.code().value(), e.code().message()));
       } catch(const std::exception&) {
-        std::throw_with_nested(ConnectException("Unable to open server."));
+        throw_nested_with_location(ConnectException("Unable to open server."));
       }
     } catch(const std::exception&) {
       close();
-      std::throw_with_nested(ConnectException("Unable to open server."));
+      throw_nested_with_location(ConnectException("Unable to open server."));
     }
   }
 

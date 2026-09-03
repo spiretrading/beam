@@ -7,6 +7,7 @@
 #include "Beam/Serialization/JsonReceiver.hpp"
 #include "Beam/Serialization/JsonSender.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/WebServices/WebSessionDataStore.hpp"
 #include "Beam/WebServices/SqlDefinitions.hpp"
 
@@ -112,7 +113,12 @@ namespace Beam {
   template<std::invocable<> F>
   decltype(auto) SqlWebSessionDataStore<C>::with_transaction(F&& transaction) {
     auto lock = std::lock_guard(m_mutex);
-    return Viper::transaction(*m_connection, std::forward<F>(transaction));
+    try {
+      return Viper::transaction(*m_connection, std::forward<F>(transaction));
+    } catch(const Viper::ExecuteException& e) {
+      throw_nested_with_location(
+        WebSessionDataStoreException(), e.get_location());
+    }
   }
 
   template<typename C>

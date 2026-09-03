@@ -2,8 +2,10 @@
 #define BEAM_REPORT_EXCEPTION_HPP
 #include <exception>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <boost/exception/diagnostic_information.hpp>
+#include <boost/throw_exception.hpp>
 
 namespace Beam {
 namespace Details {
@@ -20,6 +22,15 @@ namespace Details {
     return output;
   }
 
+  inline std::string make_location_report(const std::exception& e) {
+    auto location = boost::get_throw_location(e);
+    if(location.line() == 0) {
+      return std::string();
+    }
+    return "thrown at: " + std::string(location.file_name()) + ":" +
+      std::to_string(location.line()) + "\n";
+  }
+
   inline std::string make_exception_report(
       const std::exception_ptr& e, int level) {
     auto report = [&] {
@@ -27,7 +38,8 @@ namespace Details {
         std::rethrow_exception(e);
       } catch(const std::exception& e) {
         return std::string(2 * level, ' ') +
-          indent(boost::diagnostic_information(e), level);
+          indent(boost::diagnostic_information(e) + make_location_report(e),
+            level);
       }
       return std::string();
     }();
@@ -46,7 +58,7 @@ namespace Details {
 
   inline void report_current_exception(const std::exception& e, int level) {
     std::cerr << std::string(2 * level, ' ') <<
-      boost::diagnostic_information(e) << std::endl;
+      boost::diagnostic_information(e) << make_location_report(e) << std::endl;
     try {
       std::rethrow_if_nested(e);
     } catch(const std::exception& e) {

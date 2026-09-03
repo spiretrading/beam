@@ -8,6 +8,7 @@
 #include "Beam/ServiceLocator/ServiceLocatorDataStoreException.hpp"
 #include "Beam/ServiceLocator/SqlDefinitions.hpp"
 #include "Beam/Threading/Mutex.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -540,7 +541,12 @@ namespace Beam {
   decltype(auto) SqlServiceLocatorDataStore<C>::with_transaction(
       F&& transaction) {
     auto lock = std::lock_guard(m_mutex);
-    return Viper::transaction(*m_connection, std::forward<F>(transaction));
+    try {
+      return Viper::transaction(*m_connection, std::forward<F>(transaction));
+    } catch(const Viper::ExecuteException& e) {
+      throw_nested_with_location(
+        ServiceLocatorDataStoreException(), e.get_location());
+    }
   }
 
   template<typename C>

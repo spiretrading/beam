@@ -3,11 +3,20 @@
 #include <concepts>
 #include <exception>
 #include <iostream>
+#include <source_location>
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <boost/throw_exception.hpp>
 
 namespace Beam {
+namespace Details {
+  template<typename E>
+  struct NestedException : E, std::nested_exception {
+    explicit NestedException(E e)
+      : E(std::move(e)) {}
+  };
+}
 
   /**
    * Stores a value that could potentially result in an exception.
@@ -188,6 +197,20 @@ namespace Beam {
       return std::current_exception();
     }
     return std::exception_ptr();
+  }
+
+  /**
+   * Throws an exception nesting the exception currently being handled within
+   * it, recording the location of the throw.
+   * @param e The outer exception.
+   * @param location The location of the throw.
+   */
+  template<typename E> requires
+    std::is_base_of_v<std::exception, std::remove_cvref_t<E>>
+  [[noreturn]] void throw_nested_with_location(
+      E&& e, const std::source_location& location) {
+    boost::throw_with_location(Details::NestedException<std::remove_cvref_t<E>>(
+      std::forward<E>(e)), location);
   }
 
   template<typename T>

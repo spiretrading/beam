@@ -10,6 +10,7 @@
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -136,7 +137,7 @@ namespace Beam {
       throw;
     }
   } catch(const std::exception&) {
-    std::throw_with_nested(
+    throw_nested_with_location(
       ConnectException("Failed to login to service locator."));
   }
 
@@ -162,7 +163,7 @@ namespace Beam {
       throw;
     }
   } catch(const std::exception&) {
-    std::throw_with_nested(
+    throw_nested_with_location(
       ConnectException("Failed to login to service locator."));
   }
 

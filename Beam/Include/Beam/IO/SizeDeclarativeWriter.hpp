@@ -8,6 +8,7 @@
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -61,7 +62,7 @@ namespace Beam {
         static_cast<std::uint32_t>(data.get_size())));
       append(buffer, data);
     } catch(const std::exception&) {
-      std::throw_with_nested(IOException());
+      throw_nested_with_location(IOException());
     }
     m_destination->write(std::move(buffer));
   }

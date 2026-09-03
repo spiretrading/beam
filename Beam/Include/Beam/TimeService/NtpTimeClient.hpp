@@ -209,7 +209,7 @@ namespace Beam {
       throw;
     }
   } catch(const std::exception&) {
-    std::throw_with_nested(ConnectException("Unable to open NTP service."));
+    throw_nested_with_location(ConnectException("Unable to open NTP service."));
   }
 
   template<typename C, typename T> requires

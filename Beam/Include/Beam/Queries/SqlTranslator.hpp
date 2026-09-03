@@ -24,6 +24,7 @@
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Sql/Conversions.hpp"
 #include "Beam/Sql/PosixTimeToSqlDateTime.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/Instantiate.hpp"
 
 namespace Beam {
@@ -414,7 +415,8 @@ namespace Details {
         instantiate<SqlOperationTranslator<T>>(left.m_type, right.m_type)(
           std::move(left.m_expression), std::move(right.m_expression));
     } catch(const std::invalid_argument&) {
-      std::throw_with_nested(ExpressionTranslationException("Type mismatch."));
+      throw_nested_with_location(
+        ExpressionTranslationException("Type mismatch."));
     }
   }
 }

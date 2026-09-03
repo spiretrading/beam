@@ -6,6 +6,7 @@
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -64,7 +65,7 @@ namespace Beam {
     try {
       m_encoder->encode(data, out(output));
     } catch(const std::exception&) {
-      std::throw_with_nested(IOException("Encoder failed."));
+      throw_nested_with_location(IOException("Encoder failed."));
     }
     m_destination->write(output);
   }

@@ -8,6 +8,7 @@
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/UidService/UidClient.hpp"
 #include "Beam/UidService/UidServices.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -54,7 +55,7 @@ namespace Beam {
             m_block_size(10) {
     register_uid_services(out(m_client_handler.get_slots()));
   } catch(const std::exception&) {
-    std::throw_with_nested(
+    throw_nested_with_location(
       ConnectException("Failed to connect to the UID server."));
   }
 

@@ -5,6 +5,7 @@
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -75,7 +76,7 @@ namespace Beam {
     try {
       return m_adapter(m_connection->accept());
     } catch(const std::exception&) {
-      std::throw_with_nested(IOException());
+      throw_nested_with_location(IOException());
     }
   }
 

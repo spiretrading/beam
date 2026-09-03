@@ -9,6 +9,7 @@
 #include "Beam/Services/ServiceProtocolServer.hpp"
 #include "Beam/Services/ServiceProtocolServlet.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -97,7 +98,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
     m_servlet->register_services(out(m_protocol_server.get_slots()));
     m_is_open.get_eval().set();
   } catch(const std::exception&) {
-    std::throw_with_nested(ConnectException("Failed to open server."));
+    throw_nested_with_location(ConnectException("Failed to open server."));
   }
 
   template<typename M, typename C, typename S, typename E, typename T,

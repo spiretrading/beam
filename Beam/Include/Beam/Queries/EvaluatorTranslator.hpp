@@ -37,6 +37,7 @@
 #include "Beam/Queries/VariableExpression.hpp"
 #include "Beam/Queries/WriteEvaluatorNode.hpp"
 #include "Beam/Utilities/Casts.hpp"
+#include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/Instantiate.hpp"
 
 namespace Beam {
@@ -228,7 +229,7 @@ namespace Beam {
         instantiate<ConstantEvaluatorNodeTranslator<ValueTypes>>(
           expression.get_value().get_type())(expression));
     } catch(const std::invalid_argument&) {
-      std::throw_with_nested(
+      throw_nested_with_location(
         ExpressionTranslationException("Constant type not supported."));
     }
   }
@@ -430,11 +431,12 @@ namespace Beam {
             expression.get_parameters()[2].get_type(),
             expression.get_parameters()[3].get_type())(std::move(parameters)));
       } else {
-        std::throw_with_nested(
+        throw_nested_with_location(
           ExpressionTranslationException("Type mismatch."));
       }
     } catch(const std::invalid_argument&) {
-      std::throw_with_nested(ExpressionTranslationException("Type mismatch."));
+      throw_nested_with_location(
+        ExpressionTranslationException("Type mismatch."));
     }
   }
 }

@@ -11,7 +11,6 @@ namespace Details {
   inline auto is_running_condition = std::condition_variable();
 
   inline void ctrl_handler(int sig) {
-    std::cout << "Done." << std::endl;
     auto lock = std::lock_guard(is_running_mutex);
     is_running = false;
     is_running_condition.notify_all();

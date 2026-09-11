@@ -393,6 +393,12 @@ namespace Beam::Python {
   void export_suffix_buffer(pybind11::module& module);
 
   /**
+   * Exports the SyncWriter class.
+   * @param module The module to export to.
+   */
+  void export_sync_writer(pybind11::module& module);
+
+  /**
    * Exports a Writer type and related free functions.
    * @param module The module to export to.
    * @param name The name of the class to export.

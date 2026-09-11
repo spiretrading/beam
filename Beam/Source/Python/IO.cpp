@@ -27,6 +27,7 @@
 #include "Beam/IO/SizeDeclarativeWriter.hpp"
 #include "Beam/IO/StaticBuffer.hpp"
 #include "Beam/IO/SuffixBuffer.hpp"
+#include "Beam/IO/SyncWriter.hpp"
 #include "Beam/Python/GilRelease.hpp"
 #include "Beam/Python/ToPythonChannel.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
@@ -278,6 +279,11 @@ void Beam::Python::export_suffix_buffer(module& module) {
     }), keep_alive<1, 2>());
 }
 
+void Beam::Python::export_sync_writer(module& module) {
+  export_writer<ToPythonWriter<SyncWriter<Writer>>>(module, "SyncWriter").
+    def(pybind11::init<Writer>());
+}
+
 void Beam::Python::export_io(module& module) {
   channel = std::make_unique<class_<Channel>>(
     export_channel<Channel>(module, "Channel"));
@@ -315,6 +321,7 @@ void Beam::Python::export_io(module& module) {
   export_stdin_reader(module);
   export_stdout_writer(module);
   export_suffix_buffer(module);
+  export_sync_writer(module);
   io_exception = register_exception<IOException>(module, "IOException");
   connect_exception = register_exception<ConnectException>(
     module, "ConnectException", io_exception.ptr());

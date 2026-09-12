@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <atomic>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -5,6 +8,13 @@
 #include "Beam/Threading/Sync.hpp"
 
 using namespace Beam;
+
+namespace {
+  template<typename T, typename U>
+  concept HasExchange = requires(T& value) {
+    { value.exchange(std::declval<U>()) } -> std::same_as<typename T::Value>;
+  };
+}
 
 TEST_SUITE("Sync") {
   TEST_CASE("construct_and_load") {
@@ -16,6 +26,58 @@ TEST_SUITE("Sync") {
     auto sync = Sync(0);
     sync = 99;
     REQUIRE(sync.load() == 99);
+  }
+
+  TEST_CASE("exchange") {
+    auto sync = Sync(42);
+    REQUIRE(sync.exchange(99) == 42);
+    REQUIRE(sync.load() == 99);
+  }
+
+  TEST_CASE("exchange_ownership") {
+    auto sync = Sync(std::make_unique<int>(42));
+    auto previous = sync.exchange(std::make_unique<int>(99));
+    REQUIRE(previous);
+    REQUIRE(*previous == 42);
+    previous = sync.exchange(nullptr);
+    REQUIRE(previous);
+    REQUIRE(*previous == 99);
+    REQUIRE(sync.with([&] (const auto& value) { return !value; }));
+  }
+
+  TEST_CASE("exchange_constraints") {
+    REQUIRE(HasExchange<Sync<int>, int>);
+    REQUIRE(HasExchange<Sync<std::shared_ptr<int>>, std::nullptr_t>);
+    REQUIRE(HasExchange<Sync<std::unique_ptr<int>>, std::unique_ptr<int>>);
+    REQUIRE(!HasExchange<Sync<int>, std::string>);
+    REQUIRE(!HasExchange<Sync<const int>, int>);
+    REQUIRE(!HasExchange<const Sync<int>, int>);
+    REQUIRE(!HasExchange<Sync<std::atomic<int>>, int>);
+    REQUIRE(!HasExchange<Sync<std::unique_ptr<int>>, std::unique_ptr<int>&>);
+  }
+
+  TEST_CASE("concurrent_exchanges") {
+    constexpr auto THREAD_COUNT = 4;
+    constexpr auto EXCHANGES_PER_THREAD = 25;
+    auto sync = Sync(0);
+    auto values = std::vector<int>(THREAD_COUNT * EXCHANGES_PER_THREAD + 1);
+    auto threads = std::vector<std::thread>();
+    for(auto i = 0; i != THREAD_COUNT; ++i) {
+      threads.emplace_back([&] (int index) {
+        for(auto j = 0; j != EXCHANGES_PER_THREAD; ++j) {
+          auto value = index * EXCHANGES_PER_THREAD + j + 1;
+          values[value - 1] = sync.exchange(value);
+        }
+      }, i);
+    }
+    for(auto& thread : threads) {
+      thread.join();
+    }
+    values.back() = sync.load();
+    std::ranges::sort(values);
+    for(auto i = 0; i <= THREAD_COUNT * EXCHANGES_PER_THREAD; ++i) {
+      REQUIRE(values[i] == i);
+    }
   }
 
   TEST_CASE("copy_construct_from_sync") {

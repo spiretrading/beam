@@ -2,6 +2,7 @@
 #define BEAM_SYNC_HPP
 #include <shared_mutex>
 #include <type_traits>
+#include <utility>
 #include <variant>
 #include <boost/thread/mutex.hpp>
 #include "Beam/Threading/LockRelease.hpp"
@@ -114,6 +115,14 @@ namespace Details {
 
       /** Returns a copy of the value. */
       T load() const;
+
+      /**
+       * Atomically replaces the value and returns its previous value.
+       * @param value The replacement value.
+       */
+      template<typename U> requires
+        std::is_move_constructible_v<T> && std::is_assignable_v<T&, U&&>
+      T exchange(U&& value);
 
       /**
        * Acquire Sync's value in a synchronized manner.
@@ -274,6 +283,14 @@ namespace Details {
   typename Sync<T, M>::Value Sync<T, M>::load() const {
     auto lock = ReadLock(m_mutex);
     return m_value;
+  }
+
+  template<typename T, typename M>
+  template<typename U> requires
+    std::is_move_constructible_v<T> && std::is_assignable_v<T&, U&&>
+  T Sync<T, M>::exchange(U&& value) {
+    auto lock = WriteLock(m_mutex);
+    return std::exchange(m_value, std::forward<U>(value));
   }
 
   template<typename T, typename M>

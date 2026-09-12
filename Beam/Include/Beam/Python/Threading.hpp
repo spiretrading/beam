@@ -34,14 +34,20 @@ namespace Beam::Python {
    */
   template<typename T>
   void export_sync(pybind11::module& module, std::string_view name) {
-    pybind11::class_<Sync<T>>(module, name.data()).
-      def(pybind11::init()).
+    auto sync = pybind11::class_<Sync<T>>(module, name.data());
+    sync.def(pybind11::init()).
       def(pybind11::init<const T&>()).
       def("load", &Sync<T>::load).
       def("apply",
         [] (Sync<T>& self, const std::function<pybind11::object (T&)>& f) {
           return self.with(f);
         }, pybind11::call_guard<GilRelease>());
+    if constexpr(std::is_move_constructible_v<T> &&
+        std::is_assignable_v<T&, T&&>) {
+      sync.def("exchange", [] (Sync<T>& self, T value) {
+        return self.exchange(std::move(value));
+      });
+    }
     module.def("apply",
       [] (Sync<T>& sync, const std::function<pybind11::object (T&)>& f) {
         return with(sync, f);

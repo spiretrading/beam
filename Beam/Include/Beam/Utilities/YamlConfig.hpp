@@ -47,6 +47,11 @@ namespace Beam {
       value.initialize();
       auto stream = std::stringstream(symbol);
       stream >> *value;
+      auto is_valid = !stream.fail();
+      stream >> std::ws;
+      BEAM_ASSERT_MESSAGE(is_valid && stream.eof(), "Config error at line " <<
+        (node.Mark().line + 1) << ", column " << (node.Mark().column + 1) <<
+        ":\n\tInvalid value specified." << std::endl);
       return *value;
     }
   };
@@ -137,6 +142,25 @@ namespace Beam {
   }
 
   /**
+   * Extracts a required value within an inclusive range.
+   * @param node The YAML node to extract from.
+   * @param name The name of the value to extract.
+   * @param minimum The minimum permitted value.
+   * @param maximum The maximum permitted value.
+   * @return The value with the specified <i>name</i>.
+   */
+  template<std::totally_ordered T>
+  T extract(const YAML::Node& node, const std::string& name, const T& minimum,
+      const T& maximum) {
+    auto value = extract<T>(node, name);
+    BEAM_ASSERT_MESSAGE(minimum <= value && value <= maximum,
+      "Config error at line " << (node[name].Mark().line + 1) <<
+      ", column " << (node[name].Mark().column + 1) <<
+      ":\n\tValue out of range: " << name << std::endl);
+    return value;
+  }
+
+  /**
    * Extracts an optional value from a YAML node or returns a default value.
    * @param node The YAML node to extract from.
    * @param name The name of the value to extract.
@@ -151,6 +175,28 @@ namespace Beam {
       return d;
     }
     return extract<T>(node, name);
+  }
+
+  /**
+   * Extracts an optional value or its default within an inclusive range.
+   * @param node The YAML node to extract from.
+   * @param name The name of the value to extract.
+   * @param default_value The value to use if the named value is not found.
+   * @param minimum The minimum permitted value.
+   * @param maximum The maximum permitted value.
+   * @return The named value or its default, validated against the range.
+   */
+  template<std::totally_ordered T>
+  T extract(const YAML::Node& node, const std::string& name,
+      const T& default_value, const T& minimum, const T& maximum) {
+    if(node[name]) {
+      return extract<T>(node, name, minimum, maximum);
+    }
+    BEAM_ASSERT_MESSAGE(minimum <= default_value && default_value <= maximum,
+      "Config error at line " << (node.Mark().line + 1) << ", column " <<
+      (node.Mark().column + 1) <<
+      ":\n\tDefault value out of range: " << name << std::endl);
+    return default_value;
   }
 
   /**

@@ -33,6 +33,87 @@ TEST_SUITE("YamlConfig") {
       auto value = extract<int>(node);
       REQUIRE(value == -123);
     }
+
+    SUBCASE("whitespace") {
+      auto node = YAML::Node(" \t123 \n");
+      REQUIRE(extract<int>(node) == 123);
+    }
+  }
+
+  TEST_CASE("extract_invalid_int") {
+    for(auto source : {"1.5", "1junk", "", "   ", "invalid",
+        "999999999999999999999999"}) {
+      CAPTURE(std::string_view(source));
+      auto node = YAML::Node(source);
+      REQUIRE_THROWS_AS(extract<int>(node), AssertionException);
+    }
+  }
+
+  TEST_CASE("extract_range") {
+    auto node = YAML::Load("value: 5");
+    for(auto value : {1, 5, 10}) {
+      node["value"] = value;
+      REQUIRE(extract<int>(node, "value", 1, 10) == value);
+    }
+    for(auto value : {0, 11}) {
+      node["value"] = value;
+      REQUIRE_THROWS_AS(
+        extract<int>(node, "value", 1, 10), AssertionException);
+    }
+    node["value"] = 5;
+    REQUIRE(extract<int>(node, "value", 5, 5) == 5);
+    REQUIRE_THROWS_AS(
+      extract<int>(node, "value", 10, 1), AssertionException);
+    node["value"] = "5junk";
+    REQUIRE_THROWS_AS(
+      extract<int>(node, "value", 1, 10), AssertionException);
+    node.remove("value");
+    REQUIRE_THROWS_AS(
+      extract<int>(node, "value", 1, 10), AssertionException);
+  }
+
+  TEST_CASE("extract_default_range") {
+    auto node = YAML::Load("value: 5");
+    SUBCASE("supplied") {
+      for(auto value : {1, 5, 10}) {
+        node["value"] = value;
+        REQUIRE(extract<int>(node, "value", 7, 1, 10) == value);
+      }
+      for(auto value : {0, 11}) {
+        node["value"] = value;
+        REQUIRE_THROWS_AS(
+          extract<int>(node, "value", 7, 1, 10), AssertionException);
+      }
+      node["value"] = 5;
+      REQUIRE(extract<int>(node, "value", 0, 1, 10) == 5);
+      REQUIRE(extract<int>(node, "value", 5, 5, 5) == 5);
+      REQUIRE_THROWS_AS(
+        extract<int>(node, "value", 5, 10, 1), AssertionException);
+    }
+    SUBCASE("missing") {
+      node.remove("value");
+      for(auto value : {1, 5, 10}) {
+        REQUIRE(extract<int>(node, "value", value, 1, 10) == value);
+      }
+      for(auto value : {0, 11}) {
+        REQUIRE_THROWS_AS(
+          extract<int>(node, "value", value, 1, 10), AssertionException);
+      }
+      REQUIRE(extract<int>(node, "value", 5, 5, 5) == 5);
+      REQUIRE_THROWS_AS(
+        extract<int>(node, "value", 5, 10, 1), AssertionException);
+    }
+    SUBCASE("malformed") {
+      for(auto value : {"5junk", "5.5", ""}) {
+        CAPTURE(std::string_view(value));
+        node["value"] = value;
+        REQUIRE_THROWS_AS(
+          extract<int>(node, "value", 5, 1, 10), AssertionException);
+      }
+      node["value"] = YAML::Node(YAML::NodeType::Null);
+      REQUIRE_THROWS_AS(
+        extract<int>(node, "value", 5, 1, 10), AssertionException);
+    }
   }
 
   TEST_CASE("extract_double") {
@@ -52,6 +133,15 @@ TEST_SUITE("YamlConfig") {
       auto node = YAML::Load("1.23e-4");
       auto value = extract<double>(node);
       REQUIRE(value == doctest::Approx(1.23e-4));
+    }
+  }
+
+  TEST_CASE("extract_invalid_double") {
+    for(auto source : {"3.14junk", "3.14.1", "1e", "1e9999", "invalid",
+        "", "   "}) {
+      CAPTURE(std::string_view(source));
+      auto node = YAML::Node(source);
+      REQUIRE_THROWS_AS(extract<double>(node), AssertionException);
     }
   }
 

@@ -2,7 +2,6 @@
 #define BEAM_SHARED_BUFFER_HPP
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <stdexcept>
@@ -71,10 +70,8 @@ namespace Beam {
     if(m_capacity == 0) {
       return;
     }
-    m_data.reset(static_cast<char*>(std::malloc(m_capacity)), &std::free);
-    if(!m_data) {
-      boost::throw_with_location(std::bad_alloc());
-    }
+    auto data = std::make_shared_for_overwrite<char[]>(m_capacity);
+    m_data = std::shared_ptr<char>(std::move(data), data.get());
   }
 
   inline SharedBuffer::SharedBuffer(const void* data, std::size_t size)
@@ -181,12 +178,9 @@ namespace Beam {
       m_capacity = 0;
       return;
     }
-    auto new_data = static_cast<char*>(std::malloc(size));
-    if(!new_data) {
-      boost::throw_with_location(std::bad_alloc());
-    }
-    std::memcpy(new_data, m_data.get(), m_size);
-    m_data.reset(new_data, &std::free);
+    auto data = std::make_shared_for_overwrite<char[]>(size);
+    std::memcpy(data.get(), m_data.get(), m_size);
+    m_data = std::shared_ptr<char>(std::move(data), data.get());
     m_capacity = size;
   }
 }

@@ -33,6 +33,28 @@ TEST_SUITE("SharedBuffer") {
     REQUIRE(b.get_data()[0] == 'X');
   }
 
+  TEST_CASE("shared_growth") {
+    auto buffer = SharedBuffer();
+    SUBCASE("initial_size") {
+      buffer = SharedBuffer(3);
+      buffer.write(0, "abc", 3);
+    }
+    SUBCASE("copied_data") {
+      buffer = from<SharedBuffer>("abc");
+    }
+    auto original = buffer;
+    REQUIRE(buffer.get_data() == original.get_data());
+    append(buffer, "defgh", 5);
+    REQUIRE(buffer == "abcdefgh");
+    REQUIRE(original == "abc");
+    auto copy = buffer;
+    buffer = SharedBuffer();
+    REQUIRE(copy == "abcdefgh");
+    copy.write(0, "X", 1);
+    REQUIRE(copy == "Xbcdefgh");
+    REQUIRE(original == "abc");
+  }
+
   TEST_CASE("move") {
     auto original = SharedBuffer("xyz", 3);
     auto moved = SharedBuffer(std::move(original));

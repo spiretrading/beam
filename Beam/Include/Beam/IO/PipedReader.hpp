@@ -56,13 +56,10 @@ namespace Beam {
 
   template<IsBuffer R>
   std::size_t PipedReader::read(Out<R> destination, std::size_t size) {
-    while(true) {
-      try {
-        return m_reader.read(out(destination), size);
-      } catch(const EndOfFileException&) {
-        m_reader = m_messages->pop();
-      }
+    while(!m_reader.poll()) {
+      m_reader = m_messages->pop();
     }
+    return m_reader.read(out(destination), size);
   }
 
   inline PipedWriter::PipedWriter(Ref<PipedReader> destination)

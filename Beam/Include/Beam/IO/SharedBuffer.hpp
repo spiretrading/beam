@@ -40,6 +40,13 @@ namespace Beam {
       SharedBuffer(const SharedBuffer&) = default;
       SharedBuffer(SharedBuffer&& buffer) noexcept;
 
+      /**
+       * Returns a copy-on-write view of a byte range.
+       * @param offset The first byte of the range.
+       * @param size The number of bytes in the range.
+       */
+      SharedBuffer slice(std::size_t offset, std::size_t size) const;
+
       const char* get_data() const;
       std::size_t get_size() const;
       char* get_mutable_data();
@@ -92,6 +99,22 @@ namespace Beam {
         m_data(std::move(buffer.m_data)) {
     buffer.m_size = 0;
     buffer.m_capacity = 0;
+  }
+
+  inline SharedBuffer SharedBuffer::slice(
+      std::size_t offset, std::size_t size) const {
+    if(offset > m_size || size > m_size - offset) {
+      boost::throw_with_location(
+        std::out_of_range("Buffer slice out of range."));
+    }
+    auto slice = SharedBuffer();
+    if(size == 0) {
+      return slice;
+    }
+    slice.m_size = size;
+    slice.m_capacity = size;
+    slice.m_data = std::shared_ptr<char>(m_data, m_data.get() + offset);
+    return slice;
   }
 
   inline const char* SharedBuffer::get_data() const {

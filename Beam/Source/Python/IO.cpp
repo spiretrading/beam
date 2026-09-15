@@ -232,7 +232,8 @@ void Beam::Python::export_shared_buffer(module& module) {
     def(pybind11::init([] (bytes data) {
       auto view = static_cast<std::string_view>(data);
       return SharedBuffer(view.data(), view.size());
-    }));
+    })).
+    def("slice", &SharedBuffer::slice);
 }
 
 void Beam::Python::export_size_declarative_reader(module& module) {

@@ -55,6 +55,54 @@ TEST_SUITE("SharedBuffer") {
     REQUIRE(original == "abc");
   }
 
+  TEST_CASE("slice") {
+    auto buffer = from<SharedBuffer>("abcdef");
+    auto slice = buffer.slice(1, 3);
+    REQUIRE(slice == "bcd");
+    REQUIRE(slice.get_data() == buffer.get_data() + 1);
+    SUBCASE("write") {
+      slice.write(0, "X", 1);
+      REQUIRE(slice == "Xcd");
+      REQUIRE(buffer == "abcdef");
+    }
+    SUBCASE("mutable_data") {
+      slice.get_mutable_data()[0] = 'X';
+      REQUIRE(slice == "Xcd");
+      REQUIRE(buffer == "abcdef");
+    }
+    SUBCASE("growth") {
+      append(slice, "xyz", 3);
+      REQUIRE(slice == "bcdxyz");
+      REQUIRE(buffer == "abcdef");
+    }
+    SUBCASE("source_mutation") {
+      buffer.write(1, "X", 1);
+      REQUIRE(slice == "bcd");
+      REQUIRE(buffer == "aXcdef");
+    }
+    SUBCASE("nested_lifetime") {
+      auto nested = slice.slice(1, 2);
+      slice = SharedBuffer();
+      buffer = SharedBuffer();
+      REQUIRE(nested == "cd");
+      append(nested, "xyz", 3);
+      REQUIRE(nested == "cdxyz");
+    }
+    SUBCASE("empty") {
+      auto empty = buffer.slice(buffer.get_size(), 0);
+      REQUIRE(empty.get_size() == 0);
+      REQUIRE(!empty.get_data());
+      REQUIRE(SharedBuffer().slice(0, 0).get_size() == 0);
+      append(empty, "x", 1);
+      REQUIRE(empty == "x");
+    }
+    SUBCASE("bounds") {
+      REQUIRE_THROWS_AS(buffer.slice(7, 0), std::out_of_range);
+      REQUIRE_THROWS_AS(buffer.slice(6, 1), std::out_of_range);
+      REQUIRE_THROWS_AS(buffer.slice(2, buffer.get_size()), std::out_of_range);
+    }
+  }
+
   TEST_CASE("move") {
     auto original = SharedBuffer("xyz", 3);
     auto moved = SharedBuffer(std::move(original));

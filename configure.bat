@@ -2,7 +2,7 @@
 SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "EXIT_STATUS=0"
-SET "ARGS=%*"
+CALL :ParseArgs %* || EXIT /B 1
 IF NOT EXIST configure.bat (
   >configure.bat ECHO @ECHO OFF
   >>configure.bat ECHO CALL "%~dp0configure.bat" %%*
@@ -28,6 +28,41 @@ CALL :Configure Applications\WebSocketEchoServer %*
 EXIT /B !EXIT_STATUS!
 ENDLOCAL
 
+:ParseArgs
+SET "DEPENDENCIES=!ROOT!\Beam\Dependencies"
+SET "ARGS="
+SET "IS_DEPENDENCY="
+:ParseArgsLoop
+SET "ARG=%~1"
+IF "!ARG!"=="" (
+  IF "!IS_DEPENDENCY!"=="1" (
+    ECHO Error: -DD requires a path argument.
+    EXIT /B 1
+  )
+  GOTO ParseArgsDone
+)
+IF "!IS_DEPENDENCY!"=="1" (
+  SET "DEPENDENCIES=!ARG!"
+  SET "IS_DEPENDENCY="
+) ELSE IF "!ARG!"=="-DD" (
+  SET "IS_DEPENDENCY=1"
+) ELSE IF "!ARG:~0,4!"=="-DD=" (
+  SET "DEPENDENCIES=!ARG:~4!"
+  IF "!DEPENDENCIES!"=="" (
+    ECHO Error: -DD requires a path argument.
+    EXIT /B 1
+  )
+) ELSE (
+  SET ARGS=!ARGS! "%~1"
+)
+SHIFT
+GOTO ParseArgsLoop
+:ParseArgsDone
+FOR %%D IN ("!DEPENDENCIES!") DO (
+  SET "DEPENDENCIES=%%~fD"
+)
+EXIT /B 0
+
 :Configure
 IF NOT EXIST "%~1" (
   MD "%~1" || (
@@ -39,7 +74,7 @@ PUSHD "%~1" || (
   SET "EXIT_STATUS=1"
   EXIT /B 1
 )
-CALL "%~dp0%~1\configure.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS!
+CALL "%~dp0%~1\configure.bat" -DD="!DEPENDENCIES!" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD
 EXIT /B 0

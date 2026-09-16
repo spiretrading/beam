@@ -11,7 +11,7 @@ IF NOT EXIST build.bat (
   >build.bat ECHO @ECHO OFF
   >>build.bat ECHO CALL "%~dp0build.bat" %%*
 )
-SET "ARGS=%*"
+CALL :ParseArgs %* || EXIT /B 1
 SET "FIRST_ARG=%~1"
 SET "PARALLEL=1"
 IF /I "!FIRST_ARG!" == "clean" SET "PARALLEL=0"
@@ -69,6 +69,41 @@ RD /S /Q "!BUILD_TEMP!"
 EXIT /B !EXIT_STATUS!
 ENDLOCAL
 
+:ParseArgs
+SET "DEPENDENCIES=!ROOT!\Beam\Dependencies"
+SET "ARGS="
+SET "IS_DEPENDENCY="
+:ParseArgsLoop
+SET "ARG=%~1"
+IF "!ARG!"=="" (
+  IF "!IS_DEPENDENCY!"=="1" (
+    ECHO Error: -DD requires a path argument.
+    EXIT /B 1
+  )
+  GOTO ParseArgsDone
+)
+IF "!IS_DEPENDENCY!"=="1" (
+  SET "DEPENDENCIES=!ARG!"
+  SET "IS_DEPENDENCY="
+) ELSE IF "!ARG!"=="-DD" (
+  SET "IS_DEPENDENCY=1"
+) ELSE IF "!ARG:~0,4!"=="-DD=" (
+  SET "DEPENDENCIES=!ARG:~4!"
+  IF "!DEPENDENCIES!"=="" (
+    ECHO Error: -DD requires a path argument.
+    EXIT /B 1
+  )
+) ELSE (
+  SET ARGS=!ARGS! "%~1"
+)
+SHIFT
+GOTO ParseArgsLoop
+:ParseArgsDone
+FOR %%D IN ("!DEPENDENCIES!") DO (
+  SET "DEPENDENCIES=%%~fD"
+)
+EXIT /B 0
+
 :Build
 SET "PROJECT=%~1"
 IF NOT EXIST "!PROJECT!" (
@@ -82,7 +117,7 @@ PUSHD "!PROJECT!" || (
   EXIT /B 1
 )
 CALL "!DIRECTORY!!PROJECT!\build.bat" ^
-  -DD="!ROOT!\Beam\Dependencies" !ARGS!
+  -DD="!DEPENDENCIES!" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD
 EXIT /B 0
@@ -101,5 +136,5 @@ IF NOT EXIST "!PROJECT!" (
   )
 )
 >"!BUILD_TEMP!\!PROJECT_NAME!.running" ECHO !PROJECT_NAME!
-START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
+START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!DEPENDENCIES!" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
 EXIT /B 0

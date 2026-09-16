@@ -1,6 +1,7 @@
 #!/bin/bash
 APPLICATION="ServiceLocator"
 PID_FILE="pid.lock"
+trap 'exit 1' HUP INT TERM
 
 wait_for_termination() {
   local deadline=$((SECONDS + 300))
@@ -9,7 +10,7 @@ wait_for_termination() {
   local status
   while((SECONDS < deadline)); do
     status=0
-    ./check.sh > /dev/null || status=$?
+    ./check.sh -p "$pid" > /dev/null || status=$?
     if((status == 1)); then
       return 0
     elif((status != 0)); then
@@ -29,10 +30,9 @@ if [[ ! -f "$PID_FILE" ]]; then
 fi
 pid=$(<"$PID_FILE")
 status=0
-./check.sh > /dev/null || status=$?
+./check.sh -p "$pid" > /dev/null || status=$?
 if((status == 1)); then
-  rm -f "$PID_FILE"
-  exit $?
+  exit 0
 elif((status != 0)); then
   exit "$status"
 fi
@@ -46,7 +46,7 @@ if((status == 2)); then
   exit 1
 elif((status != 0)); then
   status=0
-  ./check.sh > /dev/null || status=$?
+  ./check.sh -p "$pid" > /dev/null || status=$?
   if((status == 0)); then
     if ! kill -SIGKILL "$pid" 2> /dev/null || ! wait_for_termination; then
       echo "Error: Unable to terminate $APPLICATION (pid $pid)." >&2
@@ -60,4 +60,4 @@ elif((status != 0)); then
     exit "$status"
   fi
 fi
-rm -f "$PID_FILE"
+exit 0

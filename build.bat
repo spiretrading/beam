@@ -72,9 +72,15 @@ ENDLOCAL
 :Build
 SET "PROJECT=%~1"
 IF NOT EXIST "!PROJECT!" (
-  MD "!PROJECT!"
+  MD "!PROJECT!" || (
+    SET "EXIT_STATUS=1"
+    EXIT /B 1
+  )
 )
-PUSHD "!PROJECT!"
+PUSHD "!PROJECT!" || (
+  SET "EXIT_STATUS=1"
+  EXIT /B 1
+)
 CALL "!DIRECTORY!!PROJECT!\build.bat" ^
   -DD="!ROOT!\Beam\Dependencies" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
@@ -89,8 +95,11 @@ IF !PARALLEL! EQU 0 (
 SET "PROJECT=%~1"
 SET "PROJECT_NAME=%~n1"
 IF NOT EXIST "!PROJECT!" (
-  MD "!PROJECT!"
+  MD "!PROJECT!" || (
+    SET "EXIT_STATUS=1"
+    EXIT /B 1
+  )
 )
 >"!BUILD_TEMP!\!PROJECT_NAME!.running" ECHO !PROJECT_NAME!
-START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" & ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
+START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
 EXIT /B 0

@@ -30,9 +30,15 @@ ENDLOCAL
 
 :Configure
 IF NOT EXIST "%~1" (
-  MD "%~1"
+  MD "%~1" || (
+    SET "EXIT_STATUS=1"
+    EXIT /B 1
+  )
 )
-PUSHD "%~1"
+PUSHD "%~1" || (
+  SET "EXIT_STATUS=1"
+  EXIT /B 1
+)
 CALL "%~dp0%~1\configure.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD

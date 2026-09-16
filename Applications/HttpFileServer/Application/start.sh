@@ -2,12 +2,25 @@
 APPLICATION="HttpFileServer"
 CONFIG_FILE="config.yml"
 LOG_DIR="./logs"
-START_LOCK=".start.lock"
-if ! mkdir "$START_LOCK" 2> /dev/null; then
-  echo "Error: Startup is locked by $START_LOCK." >&2
-  exit 1
+LOCK_CONFLICT=75
+platform=$(uname -s) || exit 1
+if [[ "$platform" == "Linux" ]]; then
+  lock_command=(flock -n -E "$LOCK_CONFLICT")
+else
+  lock_command=(lockf -s -t 0)
 fi
-trap 'rmdir "$START_LOCK"' EXIT
+has_lock_conflict=false
+if command -v "${lock_command[0]}" > /dev/null &&
+    { exec 9>> .instance.lock; } 2> /dev/null; then
+  lock_status=0
+  "${lock_command[@]}" 9 2> /dev/null || lock_status=$?
+  if((lock_status != 0)); then
+    exec 9>&-
+    if((lock_status == LOCK_CONFLICT)); then
+      has_lock_conflict=true
+    fi
+  fi
+fi
 trap 'exit 1' HUP INT TERM
 pid=""
 status=0
@@ -16,6 +29,9 @@ if((status == 0)); then
   pid=$(<pid.lock)
 elif((status != 1)); then
   exit "$status"
+elif $has_lock_conflict; then
+  echo "Error: $APPLICATION is already starting or running." >&2
+  exit 1
 fi
 if [[ ! -f "$APPLICATION" || ! -x "$APPLICATION" ]]; then
   echo "Error: $APPLICATION is missing or not executable." >&2
@@ -25,7 +41,6 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
   echo "Error: $CONFIG_FILE does not exist." >&2
   exit 1
 fi
-platform=$(uname -s) || exit 1
 if [[ "$platform" == "Linux" ]]; then
   listener_command=ss
 else
@@ -80,11 +95,10 @@ is_listening() {
 deadline=$((SECONDS + 30))
 while((SECONDS < deadline)); do
   status=0
-  ./check.sh > /dev/null || status=$?
+  ./check.sh -p "$pid" > /dev/null || status=$?
   if((status == 1)); then
     if ! kill -0 "$pid" 2> /dev/null; then
       wait "$pid" 2> /dev/null
-      rm -f pid.lock
       echo "Error: $APPLICATION exited during startup; see $log_name." >&2
       exit 1
     fi

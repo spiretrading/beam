@@ -28,7 +28,7 @@ main() {
   export -f build_function
   export DIRECTORY
   export ROOT
-  parallel -j"$jobs" --no-notice build_function "$@" ::: "${targets[@]}"
+  parallel -j"$jobs" --no-notice --quote build_function "$@" ::: "${targets[@]}"
 }
 
 resolve_paths() {

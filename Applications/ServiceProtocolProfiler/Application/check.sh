@@ -3,6 +3,7 @@ APPLICATION="ServiceProtocolProfiler"
 PID_FILE="pid.lock"
 SHOW_RUNNING=false
 FORCE_REPORT=false
+existing_pid=""
 
 is_process_running() {
   local pid=$1
@@ -58,25 +59,29 @@ is_process_running() {
 
 usage() {
   cat <<EOF
-Usage: $0 [-a] [-f] [-h]
+Usage: $0 [-a] [-f] [-h] [-p pid]
 
 Options:
   -a   Report only when $APPLICATION is running (silent otherwise)
   -f   Always report status (running or not)
   -h   Show this help
+  -p   Check a specific PID
 EOF
 }
 
-while getopts "afh" opt; do
+while getopts "afhp:" opt; do
   case "$opt" in
     a) SHOW_RUNNING=true ;;
     f) FORCE_REPORT=true ;;
     h) usage; exit 0 ;;
+    p) existing_pid=$OPTARG ;;
     *) usage; exit 1 ;;
   esac
 done
-if [[ -f "$PID_FILE" ]]; then
+if [[ -z "$existing_pid" && -f "$PID_FILE" ]]; then
   existing_pid=$(<"$PID_FILE")
+fi
+if [[ -n "$existing_pid" ]]; then
   status=0
   is_process_running "$existing_pid" || status=$?
   if((status == 0)); then

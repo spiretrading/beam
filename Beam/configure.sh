@@ -197,6 +197,7 @@ check_directory_hash() {
 
 run_cmake() {
   if [[ "$RUN_CMAKE" == "1" ]]; then
+    rm -f CMakeFiles/cmake_hash.txt || return 1
     BEAM_SKIP_CMAKE=1 cmake -S "$DIRECTORY" \
       -DCMAKE_BUILD_TYPE="$CONFIG" -DD="$DEPENDENCIES" || return 1
   fi

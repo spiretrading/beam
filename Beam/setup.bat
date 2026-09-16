@@ -3,15 +3,17 @@ SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 CALL :CheckCache "beam"
 IF ERRORLEVEL 1 EXIT /B 0
-CALL :SetupVSEnvironment
+CALL :SetupVSEnvironment || EXIT /B 1
+SET "PERL_URL=https://github.com/StrawberryPerl/Perl-Dist-Strawberry"
+SET "PERL_URL=!PERL_URL!/releases/download/SP_54201_64bit"
 CALL :AddDependency "Strawberry" ^
-  "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit-portable.zip" ^
-  "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71"
+  "!PERL_URL!/strawberry-perl-5.42.0.1-64bit-portable.zip" ^
+  "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71" "" 0
 CALL :AddDependency "cryptopp890" ^
   "https://github.com/weidai11/cryptopp/archive/b524266.zip" ^
   "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" ^
   ":BuildCryptopp"
-CALL :AddDependency "openssl-3.6.0" ^
+CALL :AddDependency "openssl-3.6.0-build" ^
   "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.6.0.zip" ^
   "273d989d1157f0bd494054e1b799b6bdba39d4acaff6dfcb8db02656f1b454dd" ^
   ":BuildOpenSSL"
@@ -32,13 +34,15 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "018b392adb7bb8f8e5d3a175e67bfcd0a958c78f" ^
+  "3ad5ff6a3ae9ea43ee612646c351ef2b01879957" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "59d77dd8953352979287ceba1b1ff43610143897" ^
+  "87d832d3b041e8b92b6817ea8072548ee7d5ca7a" ^
   ":BuildViper"
-SET "PATH=!PATH!;!ROOT!\Strawberry\perl\site\bin;!ROOT!\Strawberry\perl\bin;!ROOT!\Strawberry\c\bin"
+SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
+SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
+SET "PATH=!PATH!;!ROOT!\Strawberry\c\bin"
 CALL :InstallDependencies || EXIT /B 1
 CALL :InstallRepos || EXIT /B 1
 CALL :Commit
@@ -60,38 +64,40 @@ msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v145 /p:Platform=x64 ^
   /p:Configuration=Debug cryptlib.vcxproj || EXIT /B 1
 msbuild /t:Build /p:UseEnv=True /p:PlatformToolset=v145 /p:Platform=x64 ^
   /p:Configuration=Release cryptlib.vcxproj || EXIT /B 1
-MD include
-PUSHD include
-MD cryptopp
-COPY ..\*.h cryptopp
-POPD
+IF NOT EXIST include\cryptopp MD include\cryptopp || EXIT /B 1
+COPY /Y *.h include\cryptopp >NUL || EXIT /B 1
 EXIT /B 0
 
 :BuildOpenSSL
-POPD
-MOVE "!FOLDER!" "!FOLDER!-build"
-PUSHD "!FOLDER!-build"
+SETLOCAL
 perl Configure VC-WIN64A no-asm no-shared no-tests ^
-  --prefix="!ROOT!\openssl-3.6.0" --openssldir="!ROOT!\openssl-3.6.0"
+  --prefix="!ROOT!\openssl-3.6.0" ^
+  --openssldir="!ROOT!\openssl-3.6.0" || (ENDLOCAL & EXIT /B 1)
 SET "CL=/MP"
-nmake
-nmake install
-POPD
-RD /S /Q "!FOLDER!-build"
-PUSHD "!FOLDER!"
+nmake || (ENDLOCAL & EXIT /B 1)
+nmake install || (ENDLOCAL & EXIT /B 1)
+ENDLOCAL
 EXIT /B 0
 
 :BuildYamlCpp
-MD build
-PUSHD build
-cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. || (POPD & EXIT /B 1)
-cmake --build . --target ALL_BUILD --config Debug
-cmake --build . --target ALL_BUILD --config Release
-POPD
+SETLOCAL
+SET "CMAKE_GENERATOR="
+SET "CMAKE_GENERATOR_PLATFORM="
+SET "CMAKE_GENERATOR_TOOLSET="
+SET "CMAKE_GENERATOR_INSTANCE="
+cmake --fresh -S . -B build -A x64 -DYAML_CPP_BUILD_TESTS=OFF ^
+  -DYAML_CPP_BUILD_TOOLS=OFF || (ENDLOCAL & EXIT /B 1)
+FOR %%C IN (Debug Release) DO (
+  cmake --build build --target yaml-cpp --config %%C || (
+    ENDLOCAL
+    EXIT /B 1
+  )
+)
+ENDLOCAL
 EXIT /B 0
 
 :BuildZlib
-PUSHD contrib\vstudio\vc17
+PUSHD contrib\vstudio\vc17 || EXIT /B 1
 powershell -Command "(Get-Content zlibstat.vcxproj) -replace " ^
   "'ZLIB_WINAPI;', '' -replace " ^
   "'<RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>', " ^
@@ -112,7 +118,7 @@ IF "%NUMBER_OF_PROCESSORS%"=="" (
 ) ELSE (
   SET "BJAM_PROCESSORS=-j%NUMBER_OF_PROCESSORS%"
 )
-PUSHD tools\build
+PUSHD tools\build || EXIT /B 1
 CALL bootstrap.bat vc145 || (POPD & EXIT /B 1)
 POPD
 tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_91_0" ^
@@ -122,15 +128,15 @@ tools\build\b2 !BJAM_PROCESSORS! --prefix="!ROOT!\boost_1_91_0" ^
 EXIT /B 0
 
 :BuildViper
-PUSHD "!ROOT!"
+PUSHD "!ROOT!" || EXIT /B 1
 CALL "!ROOT!\viper\setup.bat" || (POPD & EXIT /B 1)
 POPD
 EXIT /B 0
 
 :BuildAspen
-CALL configure.bat -DD="!ROOT!" || EXIT /B 1
-CALL build.bat Debug || EXIT /B 1
-CALL build.bat Release || EXIT /B 1
+CALL "!ROOT!\aspen\configure.bat" -DD="!ROOT!" || EXIT /B 1
+CALL "!ROOT!\aspen\build.bat" Debug || EXIT /B 1
+CALL "!ROOT!\aspen\build.bat" Release || EXIT /B 1
 EXIT /B 0
 
 :CheckCache
@@ -154,11 +160,21 @@ EXIT /B 0
 
 :SetupVSEnvironment
 SET "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+SET "VS_FOUND="
 FOR /F "usebackq delims=" %%i IN (` ^
-    "!VSWHERE!" -prerelease -latest -property installationPath`) DO (
+    "!VSWHERE!" -prerelease -latest -products * ^
+      -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 ^
+      -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
-    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64
+    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64 || (
+      EXIT /B 1
+    )
+    SET "VS_FOUND=1"
   )
+)
+IF NOT DEFINED VS_FOUND (
+  ECHO Error: Visual Studio C++ build tools were not found.
+  EXIT /B 1
 )
 EXIT /B 0
 
@@ -168,6 +184,7 @@ SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].NAME=%~1"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].URL=%~2"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].HASH=%~3"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].BUILD=%~4"
+SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].STRIP=%~5"
 SET /A NEXT_DEPENDENCY_INDEX+=1
 EXIT /B 0
 
@@ -185,7 +202,8 @@ SET "I=0"
 :InstallDependenciesLoop
 IF NOT DEFINED DEPENDENCIES[%I%].NAME EXIT /B 0
 CALL :DownloadAndExtract "!DEPENDENCIES[%I%].NAME!" "!DEPENDENCIES[%I%].URL!" ^
-  "!DEPENDENCIES[%I%].HASH!" "!DEPENDENCIES[%I%].BUILD!" || EXIT /B 1
+  "!DEPENDENCIES[%I%].HASH!" "!DEPENDENCIES[%I%].BUILD!" ^
+  "!DEPENDENCIES[%I%].STRIP!" || EXIT /B 1
 SET /A I+=1
 GOTO InstallDependenciesLoop
 
@@ -203,12 +221,20 @@ SET "FOLDER=%~1"
 SET "URL=%~2"
 SET "EXPECTED_HASH=%~3"
 SET "BUILD_LABEL=%~4"
+SET "STRIP=%~5"
+IF NOT DEFINED STRIP SET "STRIP=1"
 SET "ACTUAL_HASH="
 FOR /F "tokens=* delims=/" %%A IN ("!URL!") DO (
   SET "ARCHIVE=%%~nxA"
 )
-IF EXIST "!FOLDER!" (
-  EXIT /B 0
+SET "CACHED_HASH="
+IF EXIST "!FOLDER!\.beam_build_complete" (
+  SET /P CACHED_HASH=<"!FOLDER!\.beam_build_complete"
+  IF "!CACHED_HASH!"=="!EXPECTED_HASH!" EXIT /B 0
+)
+IF EXIST "!FOLDER!\.beam_extract_complete" (
+  SET /P CACHED_HASH=<"!FOLDER!\.beam_extract_complete"
+  IF "!CACHED_HASH!"=="!EXPECTED_HASH!" GOTO BuildDependency
 )
 IF NOT EXIST "!ARCHIVE!" (
   curl -fsL -o "!ARCHIVE!" "!URL!" || EXIT /B 1
@@ -219,46 +245,24 @@ FOR /F "skip=1 tokens=*" %%H IN ('certutil -hashfile "!ARCHIVE!" SHA256') DO (
 SET "ACTUAL_HASH=!ACTUAL_HASH: =!"
 IF /I NOT "!ACTUAL_HASH!"=="!EXPECTED_HASH!" (
   ECHO Error: SHA256 mismatch for !ARCHIVE!.
-  ECHO   Expected: !EXPECTED_HASH!
-  ECHO   Actual:   !ACTUAL_HASH!
   DEL /F /Q "!ARCHIVE!"
-  SET "ACTUAL_HASH="
   EXIT /B 1
 )
-SET "ACTUAL_HASH="
-MD "!FOLDER!" || EXIT /B 1
-tar -xf "!ARCHIVE!" -C "!FOLDER!"
-IF ERRORLEVEL 1 (
-  RD /S /Q "!FOLDER!" >NUL 2>NUL
-  EXIT /B 1
+IF NOT EXIST "!FOLDER!" (
+  MD "!FOLDER!" || EXIT /B 1
 )
-SET "DIR_COUNT=0"
-SET "FILE_COUNT=0"
-SET "SINGLE_DIR="
-FOR /D %%D IN ("!FOLDER!\*") DO (
-  SET /A DIR_COUNT+=1
-  SET "SINGLE_DIR=%%~nxD"
-)
-FOR %%F IN ("!FOLDER!\*") DO (
-  SET /A FILE_COUNT+=1
-)
-IF "!DIR_COUNT!"=="1" IF "!FILE_COUNT!"=="0" (
-  FOR /F "delims=" %%D IN ('DIR /AD /B "!FOLDER!\!SINGLE_DIR!" 2^>NUL') DO (
-    MOVE "!FOLDER!\!SINGLE_DIR!\%%D" "!FOLDER!" >NUL
-  )
-  FOR /F "delims=" %%F IN ('DIR /A-D /B "!FOLDER!\!SINGLE_DIR!" 2^>NUL') DO (
-    MOVE "!FOLDER!\!SINGLE_DIR!\%%F" "!FOLDER!" >NUL
-  )
-  RD /S /Q "!FOLDER!\!SINGLE_DIR!" 2>NUL
-)
+tar -xf "!ARCHIVE!" --strip-components=!STRIP! -C "!FOLDER!" || EXIT /B 1
+(ECHO !EXPECTED_HASH!) >"!FOLDER!\.beam_extract_complete" || EXIT /B 1
+:BuildDependency
 IF DEFINED BUILD_LABEL (
-  PUSHD "!FOLDER!"
+  PUSHD "!FOLDER!" || EXIT /B 1
   CALL !BUILD_LABEL!
   SET "BUILD_RESULT=!ERRORLEVEL!"
   POPD
   IF NOT "!BUILD_RESULT!"=="0" EXIT /B !BUILD_RESULT!
 )
-DEL /F /Q "!ARCHIVE!"
+(ECHO !EXPECTED_HASH!) >"!FOLDER!\.beam_build_complete" || EXIT /B 1
+IF EXIST "!ARCHIVE!" DEL /F /Q "!ARCHIVE!"
 EXIT /B 0
 
 :CloneOrUpdateRepo
@@ -266,35 +270,37 @@ SET "REPO_NAME=%~1"
 SET "REPO_URL=%~2"
 SET "REPO_COMMIT=%~3"
 SET "BUILD_LABEL=%~4"
-SET "NEEDS_BUILD=0"
+SET "IS_NEW_REPO="
 IF NOT EXIST "!REPO_NAME!" (
-  git clone "!REPO_URL!" "!REPO_NAME!"
-  IF ERRORLEVEL 1 (
-    RD /S /Q "!REPO_NAME!" >NUL
-    EXIT /B 1
-  )
-  PUSHD "!REPO_NAME!"
-  git checkout "!REPO_COMMIT!"
-  POPD
-  SET "NEEDS_BUILD=1"
-) ELSE (
-  PUSHD "!REPO_NAME!"
-  git merge-base --is-ancestor "!REPO_COMMIT!" HEAD
-  IF ERRORLEVEL 1 (
-    git checkout master
-    git pull
-    git checkout "!REPO_COMMIT!"
-    SET "NEEDS_BUILD=1"
-  )
-  POPD
+  git clone "!REPO_URL!" "!REPO_NAME!" || EXIT /B 1
+  SET "IS_NEW_REPO=1"
 )
-IF "!NEEDS_BUILD!"=="1" (
+PUSHD "!REPO_NAME!" || EXIT /B 1
+IF DEFINED IS_NEW_REPO (
+  git checkout "!REPO_COMMIT!" || (POPD & EXIT /B 1)
+)
+git merge-base --is-ancestor "!REPO_COMMIT!" HEAD >NUL 2>NUL
+IF ERRORLEVEL 1 (
+  git fetch origin || (POPD & EXIT /B 1)
+  git checkout "!REPO_COMMIT!" || (POPD & EXIT /B 1)
+)
+SET "REPO_HEAD="
+FOR /F %%H IN ('git rev-parse HEAD') DO (
+  SET "REPO_HEAD=%%H"
+)
+IF NOT DEFINED REPO_HEAD (POPD & EXIT /B 1)
+SET "BUILD_HASH=!REPO_HEAD! !SETUP_HASH!"
+SET "CACHED_HASH="
+IF EXIST .beam_build_complete (
+  SET /P CACHED_HASH=<.beam_build_complete
+)
+IF NOT "!CACHED_HASH!"=="!BUILD_HASH!" (
   IF DEFINED BUILD_LABEL (
-    PUSHD "!REPO_NAME!"
     CALL !BUILD_LABEL!
     SET "BUILD_RESULT=!ERRORLEVEL!"
-    POPD
-    IF NOT "!BUILD_RESULT!"=="0" EXIT /B !BUILD_RESULT!
+    IF NOT "!BUILD_RESULT!"=="0" (POPD & EXIT /B !BUILD_RESULT!)
   )
+  (ECHO !BUILD_HASH!) >.beam_build_complete || (POPD & EXIT /B 1)
 )
+POPD
 EXIT /B 0

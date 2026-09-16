@@ -11,8 +11,9 @@ REPOS=()
 main() {
   resolve_paths
   check_cache "beam" || exit 0
+  local cryptopp_url="https://github.com/weidai11/cryptopp/archive/refs/tags"
   add_dependency "cryptopp890" \
-    "https://github.com/weidai11/cryptopp/archive/refs/tags/CRYPTOPP_8_9_0.zip" \
+    "$cryptopp_url/CRYPTOPP_8_9_0.zip" \
     "b885403cb13d490bebe90f25fad7150b88857f7acf3bd8b9ca1cec04c9ec8a51" \
     "build_cryptopp"
   add_dependency "tclap-1.4.0-rc2" \
@@ -32,11 +33,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "018b392adb7bb8f8e5d3a175e67bfcd0a958c78f" \
+    "3ad5ff6a3ae9ea43ee612646c351ef2b01879957" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "59d77dd8953352979287ceba1b1ff43610143897" \
+    "87d832d3b041e8b92b6817ea8072548ee7d5ca7a" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -53,14 +54,10 @@ build_cryptopp() {
 build_yaml_cpp() {
   local cores
   cores=$(get_core_count)
-  mkdir -p build || return 1
-  pushd build > /dev/null
-  cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON .. ||
-    { popd > /dev/null; return 1; }
-  cmake --build . --config Debug -j "$cores" || { popd > /dev/null; return 1; }
-  cmake --build . --config Release -j "$cores" ||
-    { popd > /dev/null; return 1; }
-  popd > /dev/null
+  cmake --fresh -S . -B build -G "Unix Makefiles" \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DYAML_CPP_BUILD_TESTS=OFF -DYAML_CPP_BUILD_TOOLS=OFF || return 1
+  cmake --build build --target yaml-cpp --parallel "$cores" || return 1
 }
 
 build_zlib() {
@@ -85,7 +82,7 @@ build_boost() {
 }
 
 build_viper() {
-  pushd "$ROOT" > /dev/null
+  pushd "$ROOT" > /dev/null || return 1
   ./viper/setup.sh || { popd > /dev/null; return 1; }
   popd > /dev/null
 }
@@ -175,57 +172,48 @@ download_and_extract() {
   local expected_hash="$3"
   local build_func="$4"
   local archive="${url##*/}"
-  if [[ -d "$folder" ]]; then
+  if [[ -f "$folder/.beam_build_complete" ]] &&
+      [[ "$(< "$folder/.beam_build_complete")" == "$expected_hash" ]]; then
     return 0
   fi
-  if [[ ! -f "$archive" ]]; then
-    curl -fsSL -o "$archive" "$url" || return 1
+  if [[ ! -f "$folder/.beam_extract_complete" ]] ||
+      [[ "$(< "$folder/.beam_extract_complete")" != "$expected_hash" ]]; then
+    if [[ ! -f "$archive" ]]; then
+      curl -fsSL -o "$archive" "$url" || return 1
+    fi
+    local actual_hash
+    actual_hash=$(sha256 "$archive") || return 1
+    if [[ "$actual_hash" != "$expected_hash" ]]; then
+      echo "Error: SHA256 mismatch for $archive."
+      rm -f "$archive"
+      return 1
+    fi
+    mkdir -p "$folder" || return 1
+    if [[ "$archive" == *.zip ]]; then
+      local archive_directory
+      archive_directory=$(unzip -Z -1 "$archive" | sed -n '1s,/.*,,p') ||
+        return 1
+      if [[ -z "$archive_directory" || "$archive_directory" == "." ||
+          "$archive_directory" == ".." ]]; then
+        echo "Error: Invalid archive directory."
+        return 1
+      fi
+      unzip -qo "$archive" -d "$folder" || return 1
+      cp -R "$folder/$archive_directory/." "$folder/" || return 1
+      rm -r "$folder/$archive_directory" || return 1
+    else
+      tar -xf "$archive" --strip-components=1 -C "$folder" || return 1
+    fi
+    echo "$expected_hash" > "$folder/.beam_extract_complete" || return 1
   fi
-  local actual_hash
-  actual_hash=$(sha256 "$archive")
-  if [[ "$actual_hash" != "$expected_hash" ]]; then
-    echo "Error: SHA256 mismatch for $archive."
-    echo "  Expected: $expected_hash"
-    echo "  Actual:   $actual_hash"
-    rm -f "$archive"
-    return 1
-  fi
-  mkdir -p "$folder" || return 1
-  if [[ "$archive" == *.zip ]]; then
-    unzip -q "$archive" -d "$folder" || { rm -rf "$folder"; return 1; }
-  else
-    tar -xf "$archive" -C "$folder" || { rm -rf "$folder"; return 1; }
-  fi
-  flatten_directory "$folder"
   if [[ -n "$build_func" ]]; then
-    pushd "$folder" > /dev/null
+    pushd "$folder" > /dev/null || return 1
     $build_func || { popd > /dev/null; return 1; }
     popd > /dev/null
   fi
-  rm -f "$archive"
-}
-
-flatten_directory() {
-  local folder="$1"
-  local dir_count=0
-  local file_count=0
-  local single_dir=""
-  for d in "$folder"/*/; do
-    if [[ -d "$d" ]]; then
-      ((dir_count += 1))
-      single_dir="$d"
-    fi
-  done
-  for f in "$folder"/*; do
-    if [[ -f "$f" ]]; then
-      ((file_count += 1))
-    fi
-  done
-  if [[ "$dir_count" -eq 1 ]] && [[ "$file_count" -eq 0 ]]; then
-    shopt -s dotglob
-    mv "$single_dir"* "$folder/" 2>/dev/null || true
-    shopt -u dotglob
-    rmdir "$single_dir" 2>/dev/null || true
+  echo "$expected_hash" > "$folder/.beam_build_complete" || return 1
+  if [[ -f "$archive" ]]; then
+    rm -f "$archive" || return 1
   fi
 }
 
@@ -234,28 +222,31 @@ clone_or_update_repo() {
   local repo_url="$2"
   local repo_commit="$3"
   local build_func="$4"
-  local needs_build=0
+  local is_new_repo=0
   if [[ ! -d "$repo_name" ]]; then
-    git clone "$repo_url" "$repo_name" || { rm -rf "$repo_name"; return 1; }
-    pushd "$repo_name" > /dev/null
-    git checkout "$repo_commit"
-    popd > /dev/null
-    needs_build=1
-  else
-    pushd "$repo_name" > /dev/null
-    if ! git merge-base --is-ancestor "$repo_commit" HEAD; then
-      git checkout master
-      git pull
-      git checkout "$repo_commit"
-      needs_build=1
+    git clone "$repo_url" "$repo_name" || return 1
+    is_new_repo=1
+  fi
+  pushd "$repo_name" > /dev/null || return 1
+  if [[ "$is_new_repo" -eq 1 ]]; then
+    git checkout "$repo_commit" || { popd > /dev/null; return 1; }
+  fi
+  if ! git merge-base --is-ancestor "$repo_commit" HEAD; then
+    git fetch origin || { popd > /dev/null; return 1; }
+    git checkout "$repo_commit" || { popd > /dev/null; return 1; }
+  fi
+  local repo_head
+  repo_head=$(git rev-parse HEAD) || { popd > /dev/null; return 1; }
+  local build_hash="$repo_head $SETUP_HASH"
+  if [[ ! -f .beam_build_complete ]] ||
+      [[ "$(< .beam_build_complete)" != "$build_hash" ]]; then
+    if [[ -n "$build_func" ]]; then
+      $build_func || { popd > /dev/null; return 1; }
     fi
-    popd > /dev/null
+    echo "$build_hash" > .beam_build_complete ||
+      { popd > /dev/null; return 1; }
   fi
-  if [[ "$needs_build" == "1" ]] && [[ -n "$build_func" ]]; then
-    pushd "$repo_name" > /dev/null
-    $build_func || { popd > /dev/null; return 1; }
-    popd > /dev/null
-  fi
+  popd > /dev/null
 }
 
 main "$@"

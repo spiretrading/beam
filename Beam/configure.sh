@@ -1,20 +1,26 @@
 #!/bin/bash
 set -o errexit
 set -o pipefail
-ROOT=""
 DIRECTORY=""
+ROOT=""
 SCRIPT_DIR=""
 DEPENDENCIES=""
 CONFIG=""
 RUN_CMAKE=""
+HASH_FILES=()
+HASH_VALUES=()
 
 main() {
   resolve_paths
   create_forwarding_scripts
   parse_args "$@"
   setup_dependencies || return 1
+  if [[ "${BEAM_SKIP_CMAKE:-}" == "1" ]]; then
+    return 0
+  fi
   check_hashes || return 1
   run_cmake || return 1
+  commit_hashes || return 1
   run_version
 }
 
@@ -25,8 +31,8 @@ resolve_paths() {
     source="$(readlink "$source")"
     [[ $source != /* ]] && source="$dir/$source"
   done
-  SCRIPT_DIR="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
-  DIRECTORY="$SCRIPT_DIR"
+  DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  SCRIPT_DIR="$DIRECTORY"
   ROOT="$(pwd -P)"
 }
 
@@ -74,6 +80,27 @@ parse_args() {
     esac
     shift
   done
+  if [[ -z "$CONFIG" ]]; then
+    if [[ -f "CMakeFiles/config.txt" ]]; then
+      CONFIG=$(< "CMakeFiles/config.txt")
+    else
+      CONFIG="Release"
+    fi
+  fi
+  shopt -s nocasematch
+  case "$CONFIG" in
+    release) CONFIG="Release" ;;
+    debug) CONFIG="Debug" ;;
+    relwithdebinfo) CONFIG="RelWithDebInfo" ;;
+    minsizerel) CONFIG="MinSizeRel" ;;
+    *)
+      shopt -u nocasematch
+      echo "Error: Invalid configuration \"$CONFIG\"."
+      return 1
+      ;;
+  esac
+  shopt -u nocasematch
+  DIRECTORY="$(cd "$DIRECTORY" && pwd -P)" || return 1
   if [[ -z "$DEPENDENCIES" ]]; then
     DEPENDENCIES="$ROOT/Dependencies"
   fi
@@ -83,14 +110,21 @@ setup_dependencies() {
   if [[ ! -d "$DEPENDENCIES" ]]; then
     mkdir -p "$DEPENDENCIES" || return 1
   fi
-  pushd "$DEPENDENCIES" > /dev/null
+  DEPENDENCIES="$(cd "$DEPENDENCIES" && pwd -P)" || return 1
+  if [[ -e "$ROOT/Dependencies" ]] &&
+      [[ ! "$ROOT/Dependencies" -ef "$DEPENDENCIES" ]] &&
+      [[ ! -L "$ROOT/Dependencies" ]]; then
+    echo "Error: $ROOT/Dependencies exists and is not a symbolic link."
+    return 1
+  fi
+  pushd "$DEPENDENCIES" > /dev/null || return 1
   "$SCRIPT_DIR/setup.sh" || { popd > /dev/null; return 1; }
   popd > /dev/null
-  if [[ "$DEPENDENCIES" != "$ROOT/Dependencies" ]]; then
-    if [[ -e "Dependencies" ]]; then
-      rm -rf Dependencies || return 1
+  if [[ ! "$ROOT/Dependencies" -ef "$DEPENDENCIES" ]]; then
+    if [[ -L "$ROOT/Dependencies" ]]; then
+      rm "$ROOT/Dependencies" || return 1
     fi
-    ln -s "$DEPENDENCIES" Dependencies || return 1
+    ln -s "$DEPENDENCIES" "$ROOT/Dependencies" || return 1
   fi
 }
 
@@ -98,96 +132,82 @@ md5hash() {
   if command -v md5sum >/dev/null; then
     md5sum | cut -d" " -f1
   else
-    md5 | cut -d" " -f4
+    md5 -r | cut -d" " -f1
   fi
 }
 
 check_hashes() {
+  if [[ ! -f "CMakeCache.txt" ]]; then
+    RUN_CMAKE=1
+  fi
   if [[ ! -d "CMakeFiles" ]]; then
     mkdir -p CMakeFiles || return 1
     RUN_CMAKE=1
   fi
-  check_config
   check_cmake_hash
-  if [[ -d "$DIRECTORY/Include" ]]; then
-    check_directory_hash "$DIRECTORY/Include" "CMakeFiles/hpp_hash.txt"
-  fi
-  if [[ -d "$DIRECTORY/Source" ]]; then
-    check_directory_hash "$DIRECTORY/Source" "CMakeFiles/cpp_hash.txt"
-  fi
-}
-
-check_config() {
-  if [[ -f "CMakeFiles/config.txt" ]]; then
-    local cached_config
-    cached_config=$(< "CMakeFiles/config.txt")
-    if [[ "$cached_config" != "$CONFIG" ]]; then
-      RUN_CMAKE=1
-    fi
-  else
-    RUN_CMAKE=1
-  fi
-  if [[ "$RUN_CMAKE" == "1" ]]; then
-    echo "$CONFIG" > "CMakeFiles/config.txt"
-  fi
+  check_file_hash "$CONFIG" "CMakeFiles/config.txt"
+  check_file_hash "$DEPENDENCIES" "CMakeFiles/dependencies.txt"
+  check_directory_hash "$DIRECTORY/Include" "CMakeFiles/hpp_hash.txt"
+  check_directory_hash "$DIRECTORY/Source" "CMakeFiles/cpp_hash.txt"
 }
 
 check_cmake_hash() {
-  local temp_file="$ROOT/temp_$$.txt"
-  cat "$DIRECTORY/CMakeLists.txt" > "$temp_file"
-  if [[ -d "$DIRECTORY/Config" ]]; then
-    for f in "$DIRECTORY/Config"/*.cmake; do
-      [[ -f "$f" ]] && cat "$f" >> "$temp_file"
-    done
-    find "$DIRECTORY/Config" -name "CMakeLists.txt" -type f -print0 |
-      sort -z | xargs -0 cat >> "$temp_file" 2>/dev/null || true
-  fi
-  check_file_hash "$temp_file" "CMakeFiles/cmake_hash.txt"
+  local current_hash
+  current_hash=$( (
+    cat "$DIRECTORY/CMakeLists.txt"
+    if [[ -d "$DIRECTORY/Config" ]]; then
+      for f in "$DIRECTORY/Config"/*.cmake; do
+        [[ -f "$f" ]] && cat "$f"
+      done
+      find "$DIRECTORY/Config" -name "CMakeLists.txt" -type f | sort |
+        while IFS= read -r file; do
+          cat "$file" || return 1
+        done
+    fi
+  ) | md5hash)
+  check_file_hash "$current_hash" "CMakeFiles/cmake_hash.txt"
 }
 
 check_file_hash() {
-  local file="$1"
+  local current_hash="$1"
   local hash_file="$2"
-  local current_hash
-  current_hash=$(md5hash < "$file")
-  rm -f "$file"
   if [[ -f "$hash_file" ]]; then
     local cached_hash
     cached_hash=$(< "$hash_file")
-    if [[ "$cached_hash" != "$current_hash" ]]; then
+    if [[ "$current_hash" != "$cached_hash" ]]; then
       RUN_CMAKE=1
     fi
   else
     RUN_CMAKE=1
   fi
-  if [[ "$RUN_CMAKE" == "1" ]]; then
-    echo "$current_hash" > "$hash_file"
-  fi
+  HASH_FILES+=("$hash_file")
+  HASH_VALUES+=("$current_hash")
 }
 
 check_directory_hash() {
   local dir="$1"
   local hash_file="$2"
+  if [[ ! -d "$dir" ]]; then
+    return 0
+  fi
   local current_hash
   current_hash=$(find "$dir" -type f | sort | md5hash)
-  if [[ -f "$hash_file" ]]; then
-    local cached_hash
-    cached_hash=$(< "$hash_file")
-    if [[ "$cached_hash" != "$current_hash" ]]; then
-      RUN_CMAKE=1
-    fi
-  else
-    RUN_CMAKE=1
-  fi
-  if [[ "$RUN_CMAKE" == "1" ]]; then
-    echo "$current_hash" > "$hash_file"
-  fi
+  check_file_hash "$current_hash" "$hash_file"
 }
 
 run_cmake() {
   if [[ "$RUN_CMAKE" == "1" ]]; then
-    cmake -S "$DIRECTORY" -DCMAKE_BUILD_TYPE="$CONFIG" -DD="$DEPENDENCIES" ||
-      return 1
+    BEAM_SKIP_CMAKE=1 cmake -S "$DIRECTORY" \
+      -DCMAKE_BUILD_TYPE="$CONFIG" -DD="$DEPENDENCIES" || return 1
+  fi
+}
+
+commit_hashes() {
+  if [[ "$RUN_CMAKE" == "1" ]]; then
+    local i
+    for ((i = 0; i < ${#HASH_FILES[@]}; ++i)); do
+      printf '%s\n' "${HASH_VALUES[i]}" > "${HASH_FILES[i]}" || return 1
+    done
   fi
 }
 

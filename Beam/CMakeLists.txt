@@ -13,19 +13,27 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
+if(CMAKE_CONFIGURATION_TYPES AND
+    NOT "MinSizeRel" IN_LIST CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES};MinSizeRel"
+    CACHE STRING "Available build configurations." FORCE)
+endif()
 if(WIN32)
   set(configure_script
-    cmd /c "CALL ${CMAKE_SOURCE_DIR}/configure.bat -DD=${D}")
+    cmd /c CALL "${CMAKE_SOURCE_DIR}/configure.bat" -DD "${D}"
+    "${CMAKE_BUILD_TYPE}")
 elseif(UNIX)
   set(configure_script "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
     "${CMAKE_BUILD_TYPE}")
 endif()
-execute_process(COMMAND ${configure_script}
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" -E env "BEAM_SKIP_CMAKE=1" ${configure_script}
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" RESULT_VARIABLE configure_result
   OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
 if(NOT configure_result EQUAL 0)
-  message(FATAL_ERROR "Configuration script failed with error:\n${configure_error}\nOutput:\n${configure_output}")
+  message(FATAL_ERROR "Configuration script failed with error:\n"
+    "${configure_error}\nOutput:\n${configure_output}")
 endif()
 include(Config/dependencies.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
@@ -33,7 +41,6 @@ include_directories(SYSTEM ${ASPEN_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
 include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
 include_directories(SYSTEM ${DOCTEST_INCLUDE_PATH})
-include_directories(SYSTEM ${LUA_INCLUDE_PATH})
 include_directories(SYSTEM ${MYSQL_INCLUDE_PATH})
 include_directories(SYSTEM ${OPEN_SSL_INCLUDE_PATH})
 include_directories(SYSTEM ${SQLITE_INCLUDE_PATH})
@@ -63,6 +70,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
   add_compile_options($<$<CONFIG:Release>:-pthreads>)
 endif()
+include(Config/targets.cmake)
 add_subdirectory(Config/Beam)
 add_subdirectory(Config/Codecs)
 add_subdirectory(Config/Collections)
@@ -85,3 +93,4 @@ add_subdirectory(Config/TimeService)
 add_subdirectory(Config/UidService)
 add_subdirectory(Config/Utilities)
 add_subdirectory(Config/WebServices)
+beam_configure_clean()

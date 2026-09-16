@@ -17,7 +17,13 @@ endif()
 target_compile_options(Python PRIVATE
   $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-fvisibility=hidden>)
 if(UNIX)
-  set_target_properties(Python PROPERTIES PREFIX "" INSTALL_RPATH "$ORIGIN")
+  set_target_properties(Python PROPERTIES PREFIX "")
+  if(APPLE)
+    set_target_properties(Python PROPERTIES
+      SUFFIX ".so" INSTALL_RPATH "@loader_path")
+  else()
+    set_target_properties(Python PROPERTIES INSTALL_RPATH "$ORIGIN")
+  endif()
 endif()
 target_link_libraries(Python
   debug ${ASPEN_PYTHON_LIBRARY_DEBUG_PATH}
@@ -38,24 +44,11 @@ target_link_libraries(Python
   optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
   debug ${ZLIB_LIBRARY_DEBUG_PATH}
   optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
-if(UNIX)
-  target_link_libraries(Python
-    debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH})
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_libraries(Python debug stdc++exp)
-  endif()
+target_link_libraries(Python BeamRoutines)
+if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(Python debug stdc++exp)
 endif()
 if(WIN32)
   target_link_libraries(Python bcrypt crypt32 Secur32 shlwapi Ws2_32)
 endif()
-install(TARGETS Python CONFIGURATIONS Debug
-  DESTINATION ${LIB_INSTALL_DIRECTORY}/Debug)
-install(TARGETS Python CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION ${LIB_INSTALL_DIRECTORY}/Release)
+beam_install_target(Python "${LIB_INSTALL_DIRECTORY}")

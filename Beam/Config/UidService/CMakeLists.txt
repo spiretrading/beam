@@ -5,20 +5,6 @@ set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(UidServiceTests
   debug ${SQLITE_LIBRARY_DEBUG_PATH}
   optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH})
-if(UNIX)
-  target_link_libraries(UidServiceTests
-    debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
-    pthread rt)
-endif()
+target_link_libraries(UidServiceTests BeamRoutines)
 add_custom_command(TARGET UidServiceTests POST_BUILD COMMAND UidServiceTests)
-install(TARGETS UidServiceTests CONFIGURATIONS Debug
-  DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)
-install(TARGETS UidServiceTests CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION ${TEST_INSTALL_DIRECTORY}/Release)
+beam_install_target(UidServiceTests "${TEST_INSTALL_DIRECTORY}")

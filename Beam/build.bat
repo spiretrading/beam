@@ -2,7 +2,7 @@
 SETLOCAL EnableDelayedExpansion
 SET "DIRECTORY=%~dp0"
 SET "ROOT=%cd%"
-CALL :ParseArgs %*
+CALL :ParseArgs %* || EXIT /B 1
 IF /I "!CONFIG!"=="clean" (
   CALL :CleanBuild "clean"
   EXIT /B !ERRORLEVEL!
@@ -32,7 +32,7 @@ IF "!ARG!"=="" (
     ECHO Error: -D requires a path argument.
     EXIT /B 1
   )
-  EXIT /B 0
+  GOTO ParseArgsDone
 )
 IF "!IS_DEPENDENCY!"=="1" (
   SET "DEPENDENCIES=!ARG!"
@@ -67,16 +67,32 @@ IF "!IS_DEPENDENCY!"=="1" (
   SHIFT
   GOTO ParseArgsLoop
 )
+
+:ParseArgsDone
+FOR %%D IN ("!DIRECTORY!\.") DO (
+  SET "DIRECTORY=%%~fD\"
+)
 EXIT /B 0
 
 :CleanBuild
 SET "CLEAN_ERROR=0"
 IF "%~1"=="reset" (
-  RD /S /Q Dependencies 2>NUL
-  git clean -ffxd || SET "CLEAN_ERROR=1"
+  git rev-parse --show-toplevel >NUL 2>NUL
+  IF ERRORLEVEL 1 (
+    cmake -DBUILD_DIRECTORY:PATH="!ROOT!" ^
+      -DSOURCE_DIRECTORY:PATH="!DIRECTORY!." -P "%~dp0Config\reset.cmake"
+    EXIT /B !ERRORLEVEL!
+  )
+  git clean -ffxd -- . || SET "CLEAN_ERROR=1"
 ) ELSE (
-  git clean -ffxd -e "*Dependencies*" || SET "CLEAN_ERROR=1"
-  DEL "Dependencies\cache_files\beam.txt" >NUL 2>&1
+  IF NOT EXIST "!ROOT!\CMakeCache.txt" EXIT /B 0
+  IF NOT EXIST "!ROOT!\CMakeFiles\beam_clean_*.cmake" (
+    ECHO Error: Run configure.bat before cleaning this build.
+    EXIT /B 1
+  )
+  FOR %%F IN ("!ROOT!\CMakeFiles\beam_clean_*.cmake") DO (
+    cmake -P "%%F" || SET "CLEAN_ERROR=1"
+  )
 )
 EXIT /B !CLEAN_ERROR!
 
@@ -101,14 +117,14 @@ IF /I "!CONFIG!"=="release" (
   EXIT /B 1
 )
 IF NOT "!DEPENDENCIES!"=="" (
-  CALL "!DIRECTORY!configure.bat" -DD="!DEPENDENCIES!"
+  CALL "!DIRECTORY!configure.bat" "!CONFIG!" -DD="!DEPENDENCIES!"
 ) ELSE (
-  CALL "!DIRECTORY!configure.bat"
+  CALL "!DIRECTORY!configure.bat" "!CONFIG!"
 )
 EXIT /B !ERRORLEVEL!
 
 :RunBuild
-cmake --build "!ROOT!" --target INSTALL --config "!CONFIG!" --parallel ^
-  || EXIT /B 1
+cmake --build "!ROOT!" --config "!CONFIG!" --parallel || EXIT /B 1
+cmake --install "!ROOT!" --config "!CONFIG!" || EXIT /B 1
 >"CMakeFiles\config.txt" ECHO !CONFIG!
 EXIT /B 0

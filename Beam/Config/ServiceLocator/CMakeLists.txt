@@ -15,24 +15,10 @@ target_link_libraries(ServiceLocatorTests
   optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
   optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
-if(UNIX)
-  target_link_libraries(ServiceLocatorTests
-    debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
-    pthread rt)
-endif()
+target_link_libraries(ServiceLocatorTests BeamRoutines)
 if(WIN32)
   target_link_libraries(ServiceLocatorTests Bcrypt crypt32 Secur32.Lib shlwapi)
 endif()
 add_custom_command(TARGET ServiceLocatorTests
   POST_BUILD COMMAND ServiceLocatorTests)
-install(TARGETS ServiceLocatorTests CONFIGURATIONS Debug
-  DESTINATION ${TEST_INSTALL_DIRECTORY}/Debug)
-install(TARGETS ServiceLocatorTests CONFIGURATIONS Release RelWithDebInfo
-  DESTINATION ${TEST_INSTALL_DIRECTORY}/Release)
+beam_install_target(ServiceLocatorTests "${TEST_INSTALL_DIRECTORY}")

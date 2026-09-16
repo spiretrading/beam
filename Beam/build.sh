@@ -3,23 +3,48 @@ set -o errexit
 set -o pipefail
 DIRECTORY=""
 ROOT=""
+SCRIPT_DIR=""
 DEPENDENCIES=""
 CONFIG=""
+
+get_job_count() {
+  local cores mem jobs
+  if [[ -f /proc/cpuinfo ]]; then
+    cores=$(grep -c "processor" /proc/cpuinfo)
+  else
+    cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+  fi
+  if [[ -f /proc/meminfo ]]; then
+    mem=$(awk '/MemTotal/ {print int($2 / 4194304)}' /proc/meminfo)
+  else
+    mem=$(sysctl -n hw.memsize 2>/dev/null |
+      awk '{print int($1 / 4294967296)}' || echo 4)
+  fi
+  cores=$((cores - 2))
+  [[ $cores -lt 1 ]] && cores=1
+  [[ $mem -lt 1 ]] && mem=1
+  jobs=$((cores < mem ? cores : mem))
+  echo "$jobs"
+}
 
 main() {
   resolve_paths
   parse_args "$@"
-  local config_lower="${CONFIG,,}"
-  if [[ "$config_lower" == "clean" ]]; then
+  shopt -s nocasematch
+  if [[ "$CONFIG" == "clean" ]]; then
+    shopt -u nocasematch
     clean_build "clean"
-    return "$?"
+    return $?
   fi
-  if [[ "$config_lower" == "reset" ]]; then
+  if [[ "$CONFIG" == "reset" ]]; then
+    shopt -u nocasematch
     clean_build "reset"
-    return "$?"
+    return $?
   fi
+  shopt -u nocasematch
   configure || return 1
   run_build
+  return $?
 }
 
 resolve_paths() {
@@ -30,6 +55,7 @@ resolve_paths() {
     [[ $source != /* ]] && source="$dir/$source"
   done
   DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
+  SCRIPT_DIR="$DIRECTORY"
   ROOT="$(pwd -P)"
 }
 
@@ -71,14 +97,29 @@ parse_args() {
 }
 
 clean_build() {
-  local mode="$1"
-  if [[ "$mode" == "reset" ]]; then
-    rm -rf Dependencies
-    git clean -ffxd
+  local clean_type="$1"
+  local clean_error=0
+  if [[ "$clean_type" == "reset" ]]; then
+    if ! git rev-parse --show-toplevel > /dev/null 2>&1; then
+      cmake -DBUILD_DIRECTORY:PATH="$ROOT" \
+        -DSOURCE_DIRECTORY:PATH="$DIRECTORY" -P "$SCRIPT_DIR/Config/reset.cmake"
+      return $?
+    fi
+    git clean -ffxd -- . || clean_error=1
   else
-    git clean -ffxd -e "*Dependencies*"
-    rm -f "Dependencies/cache_files/beam.txt"
+    if [[ ! -f "$ROOT/CMakeCache.txt" ]]; then
+      return 0
+    fi
+    local scripts=("$ROOT"/CMakeFiles/beam_clean_*.cmake)
+    if [[ ! -f "${scripts[0]}" ]]; then
+      echo "Error: Run configure.sh before cleaning this build."
+      return 1
+    fi
+    for script in "${scripts[@]}"; do
+      cmake -P "$script" || clean_error=1
+    done
   fi
+  return "$clean_error"
 }
 
 configure() {
@@ -89,17 +130,27 @@ configure() {
       CONFIG="Release"
     fi
   fi
-  local config_lower="${CONFIG,,}"
-  case "$config_lower" in
-    release)        CONFIG="Release" ;;
-    debug)          CONFIG="Debug" ;;
-    relwithdebinfo) CONFIG="RelWithDebInfo" ;;
-    minsizerel)     CONFIG="MinSizeRel" ;;
+  shopt -s nocasematch
+  case "$CONFIG" in
+    release)
+      CONFIG="Release"
+      ;;
+    debug)
+      CONFIG="Debug"
+      ;;
+    relwithdebinfo)
+      CONFIG="RelWithDebInfo"
+      ;;
+    minsizerel)
+      CONFIG="MinSizeRel"
+      ;;
     *)
+      shopt -u nocasematch
       echo "Error: Invalid configuration \"$CONFIG\"."
       return 1
       ;;
   esac
+  shopt -u nocasematch
   if [[ -n "$DEPENDENCIES" ]]; then
     "$DIRECTORY/configure.sh" "$CONFIG" -DD="$DEPENDENCIES"
   else
@@ -110,29 +161,9 @@ configure() {
 run_build() {
   local jobs
   jobs=$(get_job_count)
-  cmake --build "$ROOT" --target install --config "$CONFIG" \
-    --parallel "$jobs" || return 1
+  cmake --build "$ROOT" --config "$CONFIG" --parallel "$jobs" || return 1
+  cmake --install "$ROOT" --config "$CONFIG" || return 1
   echo "$CONFIG" > "CMakeFiles/config.txt"
-}
-
-get_job_count() {
-  local cores mem jobs
-  if [[ -f /proc/cpuinfo ]]; then
-    cores=$(grep -c "processor" /proc/cpuinfo)
-  else
-    cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
-  fi
-  if [[ -f /proc/meminfo ]]; then
-    mem=$(awk '/MemTotal/ {print int($2 / 4194304)}' /proc/meminfo)
-  else
-    mem=$(sysctl -n hw.memsize 2>/dev/null |
-      awk '{print int($1 / 4294967296)}' || echo 4)
-  fi
-  ((cores -= 2))
-  [[ $cores -lt 1 ]] && cores=1
-  [[ $mem -lt 1 ]] && mem=1
-  jobs=$((cores < mem ? cores : mem))
-  echo "$jobs"
 }
 
 main "$@"

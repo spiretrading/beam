@@ -22,8 +22,10 @@ IF "!PYTHON_PATH!"=="" (
   ECHO Error: Unable to retrieve Python user-site path.
   EXIT /B 1
 )
+SET "ASPEN_CONFIG=Release"
+IF "!CONFIG!"=="Debug" SET "ASPEN_CONFIG=Debug"
 PUSHD "..\Beam\Dependencies\aspen" || EXIT /B 1
-CALL install_python.bat %*
+CALL install_python.bat "!ASPEN_CONFIG!"
 SET "INSTALL_RESULT=!ERRORLEVEL!"
 POPD
 IF NOT "!INSTALL_RESULT!"=="0" EXIT /B !INSTALL_RESULT!

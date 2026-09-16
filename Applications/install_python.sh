@@ -15,8 +15,12 @@ case "$config" in
 esac
 shopt -u nocasematch
 python_directory=$(python3 -m site --user-site)
+aspen_config="Release"
+if [[ "$config" == "Debug" ]]; then
+  aspen_config="Debug"
+fi
 pushd ../Beam/Dependencies/aspen
-./install_python.sh "$@"
+./install_python.sh "$aspen_config"
 popd
 mkdir -p "$python_directory"
 cp "../Beam/Libraries/$config/beam.so" "$python_directory"

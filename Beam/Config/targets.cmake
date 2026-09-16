@@ -32,7 +32,9 @@ endfunction()
 
 function(beam_configure_clean)
   get_property(targets GLOBAL PROPERTY BEAM_BUILD_TARGETS)
-  list(APPEND targets Beam)
+  if(TARGET Beam)
+    list(APPEND targets Beam)
+  endif()
   get_property(clean_outputs GLOBAL PROPERTY BEAM_INSTALLED_OUTPUTS)
   set(clean_tracking_directories)
   foreach(target IN LISTS targets)
@@ -64,7 +66,8 @@ function(beam_configure_clean)
       endif()
     endif()
   endforeach()
-  configure_file(Config/clean.cmake CMakeFiles/clean.cmake.in @ONLY)
+  configure_file("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clean.cmake"
+    CMakeFiles/clean.cmake.in @ONLY)
   file(GENERATE
     OUTPUT "${PROJECT_BINARY_DIR}/CMakeFiles/beam_clean_$<CONFIG>.cmake"
     INPUT "${PROJECT_BINARY_DIR}/CMakeFiles/clean.cmake.in")

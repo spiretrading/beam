@@ -2,35 +2,27 @@
 SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "DIRECTORY=%~dp0"
-CALL :CreateForwardingScripts
 CALL :ParseArgs %* || EXIT /B 1
+CALL :CreateForwardingScripts || EXIT /B 1
 CALL :SetupDependencies || EXIT /B 1
+CALL :RunVersion || EXIT /B 1
 IF "!BEAM_SKIP_CMAKE!"=="1" EXIT /B 0
 CALL :CheckHashes || EXIT /B 1
 CALL :RunCMake || EXIT /B 1
 CALL :CommitHashes || EXIT /B 1
-IF EXIST "!DIRECTORY!version.bat" (
-  FOR %%F IN ("!DIRECTORY!version.bat") DO (
-    SET "DIR_VERSION=%%~fF"
-  )
-  FOR %%F IN ("%~dp0version.bat") DO (
-    SET "SCRIPT_VERSION=%%~fF"
-  )
-  IF /I NOT "!DIR_VERSION!"=="!SCRIPT_VERSION!" (
-    CALL "!DIRECTORY!version.bat" || EXIT /B 1
-  )
-)
 EXIT /B 0
 ENDLOCAL
 
 :CreateForwardingScripts
 IF NOT EXIST build.bat (
   >build.bat ECHO @ECHO OFF
-  >>build.bat ECHO CALL "%~dp0build.bat" %%*
+  >>build.bat ECHO CALL "!DIRECTORY!build.bat" %%*
+  IF ERRORLEVEL 1 EXIT /B 1
 )
 IF NOT EXIST configure.bat (
   >configure.bat ECHO @ECHO OFF
-  >>configure.bat ECHO CALL "%~dp0configure.bat" %%*
+  >>configure.bat ECHO CALL "!DIRECTORY!configure.bat" %%*
+  IF ERRORLEVEL 1 EXIT /B 1
 )
 EXIT /B 0
 
@@ -218,6 +210,20 @@ EXIT /B 0
 IF "!RUN_CMAKE!"=="1" (
   FOR %%F IN (!HASH_FILES!) DO (
     (ECHO !HASH[%%F]!) >"%%F" || EXIT /B 1
+  )
+)
+EXIT /B 0
+
+:RunVersion
+IF EXIST "!DIRECTORY!version.bat" (
+  FOR %%F IN ("!DIRECTORY!version.bat") DO (
+    SET "DIR_VERSION=%%~fF"
+  )
+  FOR %%F IN ("%~dp0version.bat") DO (
+    SET "SCRIPT_VERSION=%%~fF"
+  )
+  IF /I NOT "!DIR_VERSION!"=="!SCRIPT_VERSION!" (
+    CALL "!DIRECTORY!version.bat" || EXIT /B 1
   )
 )
 EXIT /B 0

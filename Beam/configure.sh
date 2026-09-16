@@ -12,16 +12,16 @@ HASH_VALUES=()
 
 main() {
   resolve_paths
-  create_forwarding_scripts
-  parse_args "$@"
+  parse_args "$@" || return 1
+  create_forwarding_scripts || return 1
   setup_dependencies || return 1
+  run_version || return 1
   if [[ "${BEAM_SKIP_CMAKE:-}" == "1" ]]; then
     return 0
   fi
   check_hashes || return 1
   run_cmake || return 1
   commit_hashes || return 1
-  run_version
 }
 
 resolve_paths() {
@@ -38,10 +38,14 @@ resolve_paths() {
 
 create_forwarding_scripts() {
   if [[ ! -f "build.sh" ]]; then
-    ln -s "$DIRECTORY/build.sh" build.sh
+    printf '#!/bin/bash\nexec %q "$@"\n' "$DIRECTORY/build.sh" > build.sh ||
+      return 1
+    chmod +x build.sh || return 1
   fi
   if [[ ! -f "configure.sh" ]]; then
-    ln -s "$DIRECTORY/configure.sh" configure.sh
+    printf '#!/bin/bash\nexec %q "$@"\n' "$DIRECTORY/configure.sh" \
+      > configure.sh || return 1
+    chmod +x configure.sh || return 1
   fi
 }
 

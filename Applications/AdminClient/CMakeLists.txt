@@ -13,21 +13,30 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
+if(CMAKE_CONFIGURATION_TYPES AND
+    NOT "MinSizeRel" IN_LIST CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES};MinSizeRel"
+    CACHE STRING "Available build configurations." FORCE)
+endif()
 if(WIN32)
   set(configure_script
-    cmd /c "CALL ${CMAKE_SOURCE_DIR}/configure.bat -DD=${D}")
+    cmd /c CALL "${CMAKE_SOURCE_DIR}/configure.bat" -DD "${D}"
+    "${CMAKE_BUILD_TYPE}")
 elseif(UNIX)
   set(configure_script "${CMAKE_SOURCE_DIR}/configure.sh" "-DD=${D}"
     "${CMAKE_BUILD_TYPE}")
 endif()
-execute_process(COMMAND ${configure_script}
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" -E env "BEAM_SKIP_CMAKE=1" ${configure_script}
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" RESULT_VARIABLE configure_result
   OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error
   OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_STRIP_TRAILING_WHITESPACE)
 if(NOT configure_result EQUAL 0)
-  message(FATAL_ERROR "Configuration script failed with error:\n${configure_error}\nOutput:\n${configure_output}")
+  message(FATAL_ERROR "Configuration script failed with error:\n"
+    "${configure_error}\nOutput:\n${configure_output}")
 endif()
 include(../../Beam/Config/dependencies.cmake)
+include(../../Beam/Config/targets.cmake)
 include_directories(${BEAM_INCLUDE_PATH})
 include_directories(SYSTEM ${BOOST_INCLUDE_PATH})
 include_directories(SYSTEM ${CRYPTOPP_INCLUDE_PATH})
@@ -55,7 +64,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
   add_compile_options($<$<CONFIG:Release>:-pthreads>)
 endif()
 include_directories("${PROJECT_BINARY_DIR}")
-file(GLOB_RECURSE header_files "${PROJECT_BINARY_DIR}/*.hpp")
+set(header_files "${PROJECT_BINARY_DIR}/Version.hpp")
 file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(AdminClient ${header_files} ${source_files})
 target_compile_definitions(AdminClient PRIVATE YAML_CPP_STATIC_DEFINE)
@@ -69,19 +78,12 @@ target_link_libraries(AdminClient
   optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
   debug ${YAML_LIBRARY_DEBUG_PATH}
   optimized ${YAML_LIBRARY_OPTIMIZED_PATH})
-if(UNIX)
-  target_link_libraries(AdminClient
-    debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
-    dl pthread rt)
-endif()
+target_link_libraries(AdminClient BeamRoutines)
 if(WIN32)
   target_link_libraries(AdminClient Crypt32.lib)
 endif()
 install(TARGETS AdminClient DESTINATION "${PROJECT_BINARY_DIR}/Application")
+set_property(GLOBAL APPEND PROPERTY BEAM_BUILD_TARGETS AdminClient)
+set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
+  "${PROJECT_BINARY_DIR}/Application/$<TARGET_FILE_NAME:AdminClient>")
+beam_configure_clean()

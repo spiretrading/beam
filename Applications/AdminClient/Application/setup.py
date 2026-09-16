@@ -1,7 +1,8 @@
 import argparse
 import importlib.util
+import json
 import os
-import shutil
+from string import Template
 
 try:
   spec = importlib.util.spec_from_file_location('setup_utils',
@@ -23,18 +24,18 @@ def main():
   parser.add_argument('-u', '--username', type=str, help='Username.',
     default='root')
   parser.add_argument('-p', '--password', type=str, help='Password.',
-    default='""')
+    default='')
   args = parser.parse_args()
   variables = {}
   variables['username'] = args.username
-  variables['service_locator_address'] = '%s' % args.address
+  variables['service_locator_address'] = args.address
   variables['admin_password'] = args.password
-  shutil.copy('config.default.yml', 'config.yml')
-  with open('config.yml', 'r+') as file:
-    source = setup_utils.translate(file.read(), variables)
-    file.seek(0)
+  with open('config.default.yml', encoding='utf-8') as file:
+    source = Template(file.read()).substitute(
+      {key: json.dumps(value, ensure_ascii=False)
+        for key, value in variables.items()})
+  with open('config.yml', 'w', encoding='utf-8') as file:
     file.write(source)
-    file.truncate()
 
 
 if __name__ == '__main__':

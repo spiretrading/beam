@@ -5,15 +5,15 @@ IF "!APP_NAME!"=="" (
   ECHO Error: Application name required.
   EXIT /B 1
 )
-IF NOT EXIST Version.hpp (
-  COPY NUL Version.hpp >NUL
-)
+SET "VERSION="
 FOR /F "usebackq tokens=*" %%a IN (
-    `git --git-dir=%~dp0../.git rev-list --count --first-parent HEAD`) DO (
+    `git -C "%~dp0.." rev-list --count --first-parent HEAD`) DO (
   SET "VERSION=%%a"
 )
-FINDSTR "!VERSION!" Version.hpp >NUL
+IF NOT DEFINED VERSION EXIT /B 1
+FINDSTR /L /X /C:"#define !APP_NAME!_VERSION \"!VERSION!\"" ^
+  Version.hpp >NUL 2>&1
 IF ERRORLEVEL 1 (
-  >Version.hpp ECHO #define !APP_NAME!_VERSION "!VERSION!"
+  (ECHO #define !APP_NAME!_VERSION "!VERSION!") >Version.hpp || EXIT /B 1
 )
 EXIT /B 0

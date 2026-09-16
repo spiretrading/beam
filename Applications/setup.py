@@ -78,7 +78,7 @@ def main():
   arg_vars = vars(parser.parse_args())
   admin_client_arg_vars = arg_vars.copy()
   admin_client_arg_vars['username'] = 'root'
-  admin_client_arg_vars['password'] = '""'
+  admin_client_arg_vars['password'] = ''
   setup_application('AdminClient', admin_client_arg_vars, 'address', 'username',
     'password')
   setup_application('ClientTemplate', arg_vars, 'local')

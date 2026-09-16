@@ -83,6 +83,8 @@ if(WIN32)
   target_link_libraries(AdminClient Crypt32.lib)
 endif()
 install(TARGETS AdminClient DESTINATION "${PROJECT_BINARY_DIR}/Application")
+install(FILES Application/config.default.yml Application/setup.py
+  ../Python/setup_utils.py DESTINATION "${PROJECT_BINARY_DIR}/Application")
 set_property(GLOBAL APPEND PROPERTY BEAM_BUILD_TARGETS AdminClient)
 set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
   "${PROJECT_BINARY_DIR}/Application/$<TARGET_FILE_NAME:AdminClient>")

@@ -1,19 +1,18 @@
 import argparse
 import importlib.util
 import json
-import os
+from pathlib import Path
 from string import Template
 
-try:
-  spec = importlib.util.spec_from_file_location('setup_utils',
-    os.path.join('..', '..', 'Python', 'setup_utils.py'))
-  setup_utils = importlib.util.module_from_spec(spec)
-  spec.loader.exec_module(setup_utils)
-except FileNotFoundError:
-  spec = importlib.util.spec_from_file_location('setup_utils',
-    os.path.join('..', 'Python', 'setup_utils.py'))
-  setup_utils = importlib.util.module_from_spec(spec)
-  spec.loader.exec_module(setup_utils)
+directory = Path(__file__).resolve().parent
+helper_path = directory / 'setup_utils.py'
+if not helper_path.is_file():
+  helper_path = directory / '..' / '..' / 'Python' / 'setup_utils.py'
+  if not helper_path.is_file():
+    helper_path = directory / '..' / 'Python' / 'setup_utils.py'
+spec = importlib.util.spec_from_file_location('setup_utils', helper_path)
+setup_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(setup_utils)
 
 
 def main():
@@ -30,7 +29,7 @@ def main():
   variables['username'] = args.username
   variables['service_locator_address'] = args.address
   variables['admin_password'] = args.password
-  with open('config.default.yml', encoding='utf-8') as file:
+  with open(directory / 'config.default.yml', encoding='utf-8') as file:
     source = Template(file.read()).substitute(
       {key: json.dumps(value, ensure_ascii=False)
         for key, value in variables.items()})

@@ -46,7 +46,9 @@ IF !PARALLEL! EQU 0 (
 )
 :WaitLoop
 SET "RUNNING=0"
-FOR %%F IN ("!BUILD_TEMP!\*.running") DO SET "RUNNING=1"
+FOR %%F IN ("!BUILD_TEMP!\*.running") DO (
+  SET "RUNNING=1"
+)
 IF !RUNNING! EQU 1 (
   timeout /t 1 /nobreak >NUL
   GOTO WaitLoop
@@ -73,7 +75,8 @@ IF NOT EXIST "!PROJECT!" (
   MD "!PROJECT!"
 )
 PUSHD "!PROJECT!"
-CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!ROOT!\Beam\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
+CALL "!DIRECTORY!!PROJECT!\build.bat" ^
+  -DD="!ROOT!\Beam\Dependencies" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD
 EXIT /B 0

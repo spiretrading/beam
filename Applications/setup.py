@@ -17,7 +17,7 @@ except FileNotFoundError:
 def make_sub_args(arg_vars, *args):
   sub_args = []
   for arg in args:
-    if arg_vars[arg]:
+    if arg_vars[arg] is not None:
       sub_args += ['--' + arg, arg_vars[arg]]
   return sub_args
 

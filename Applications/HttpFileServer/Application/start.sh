@@ -2,10 +2,18 @@
 APPLICATION="HttpFileServer"
 CONFIG_FILE="config.yml"
 LOG_DIR="./logs"
+START_LOCK=".start.lock"
+if ! mkdir "$START_LOCK" 2> /dev/null; then
+  echo "Error: Startup is locked by $START_LOCK." >&2
+  exit 1
+fi
+trap 'rmdir "$START_LOCK"' EXIT
+trap 'exit 1' HUP INT TERM
+pid=""
 status=0
 ./check.sh > /dev/null || status=$?
 if((status == 0)); then
-  exit 0
+  pid=$(<pid.lock)
 elif((status != 1)); then
   exit "$status"
 fi
@@ -29,7 +37,7 @@ for dependency in yq "$listener_command"; do
     exit 1
   fi
 done
-interface=$(yq -r '.interface // empty' "$CONFIG_FILE") || exit 1
+interface=$(yq -r '.interface // ""' "$CONFIG_FILE") || exit 1
 port=${interface##*:}
 if [[ "$interface" != *:* || ! "$port" =~ ^[0-9]{1,5}$ ]]; then
   echo "Error: $CONFIG_FILE must specify an interface with a TCP port." >&2
@@ -40,19 +48,22 @@ if((port < 1 || port > 65535)); then
   echo "Error: Invalid TCP port in $CONFIG_FILE." >&2
   exit 1
 fi
-mkdir -p "$LOG_DIR" || exit 1
-for existing_log in srv_*.log; do
-  if [[ -f "$existing_log" ]]; then
-    mv "$existing_log" "$LOG_DIR" || exit 1
-  fi
-done
-log_name="srv_$(date '+%Y%m%d_%H_%M_%S').log"
-: > "$log_name" || exit 1
-{
-  ./"$APPLICATION" > "$log_name" 2>&1 &
-  pid=$!
-  echo "$pid"
-} > pid.lock || exit 1
+log_name="srv_*.log"
+if [[ -z "$pid" ]]; then
+  mkdir -p "$LOG_DIR" || exit 1
+  for existing_log in srv_*.log; do
+    if [[ -f "$existing_log" ]]; then
+      mv "$existing_log" "$LOG_DIR" || exit 1
+    fi
+  done
+  log_name="srv_$(date '+%Y%m%d_%H_%M_%S').log"
+  : > "$log_name" || exit 1
+  {
+    ./"$APPLICATION" > "$log_name" 2>&1 &
+    pid=$!
+    echo "$pid"
+  } > pid.lock || exit 1
+fi
 
 is_listening() {
   local sockets
@@ -72,7 +83,7 @@ while((SECONDS < deadline)); do
   ./check.sh > /dev/null || status=$?
   if((status == 1)); then
     if ! kill -0 "$pid" 2> /dev/null; then
-      wait "$pid"
+      wait "$pid" 2> /dev/null
       rm -f pid.lock
       echo "Error: $APPLICATION exited during startup; see $log_name." >&2
       exit 1

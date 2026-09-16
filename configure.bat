@@ -2,6 +2,7 @@
 SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "EXIT_STATUS=0"
+SET "ARGS=%*"
 IF NOT EXIST configure.bat (
   >configure.bat ECHO @ECHO OFF
   >>configure.bat ECHO CALL "%~dp0configure.bat" %%*
@@ -32,7 +33,7 @@ IF NOT EXIST "%~1" (
   MD "%~1"
 )
 PUSHD "%~1"
-CALL "%~dp0%~1\configure.bat" -DD="!ROOT!\Beam\Dependencies" %~2 %~3 %~4 %~5 %~6 %~7
+CALL "%~dp0%~1\configure.bat" -DD="!ROOT!\Beam\Dependencies" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD
 EXIT /B 0

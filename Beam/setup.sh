@@ -34,11 +34,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "d2386dedea4291fadd49c96bdb779debf3d85d3f" \
+    "ea4d6f0a950ba462412e113ab2eaa061000e7aec" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "e01d830e0fd63f66ac72b8d2e7f7531011617894" \
+    "2b17b9769bcf888f3a7df2105f14626869effef0" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1

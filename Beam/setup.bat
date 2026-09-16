@@ -38,11 +38,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "d2386dedea4291fadd49c96bdb779debf3d85d3f" ^
+  "ea4d6f0a950ba462412e113ab2eaa061000e7aec" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "e01d830e0fd63f66ac72b8d2e7f7531011617894" ^
+  "2b17b9769bcf888f3a7df2105f14626869effef0" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"

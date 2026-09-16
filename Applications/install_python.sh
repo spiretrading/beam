@@ -1,4 +1,6 @@
 #!/bin/bash
+set -o errexit
+set -o pipefail
 if [ "$1" == "" ]; then
   config="Release"
 else

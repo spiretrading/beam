@@ -1,12 +1,19 @@
 @ECHO OFF
 SETLOCAL EnableDelayedExpansion
-SET "ROOT=%cd%"
-CALL :CheckCache "beam"
-IF ERRORLEVEL 1 EXIT /B 0
-IF EXIST "cache_files\!CACHE_NAME!.txt" (
-  DEL /F /Q "cache_files\!CACHE_NAME!.txt"
-  IF EXIST "cache_files\!CACHE_NAME!.txt" EXIT /B 1
+FOR /F "delims==" %%V IN ('SET DEPENDENCIES[ 2^>NUL') DO (
+  SET "%%V="
 )
+SET "NEXT_DEPENDENCY_INDEX=0"
+FOR /F "delims==" %%V IN ('SET REPOS[ 2^>NUL') DO (
+  SET "%%V="
+)
+SET "NEXT_REPO_INDEX=0"
+SET "SETUP_HASH="
+FOR /F "skip=1" %%H IN ('certutil -hashfile "%~dp0setup.bat" SHA256') DO (
+  IF NOT DEFINED SETUP_HASH SET "SETUP_HASH=%%H"
+)
+IF NOT DEFINED SETUP_HASH EXIT /B 1
+SET "ROOT=%cd%"
 CALL :SetupVSEnvironment || EXIT /B 1
 SET "PERL_URL=https://github.com/StrawberryPerl/Perl-Dist-Strawberry"
 SET "PERL_URL=!PERL_URL!/releases/download/SP_54201_64bit"
@@ -38,19 +45,18 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "2c7e46e52a16d5b986bd99b5e58a13ffd3f3c832" ^
+  "47db1db57b3241a907e9f1bce53bee9321c845b0" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "68fee2f03710cd889252b514ade087f52b276018" ^
+  "1d4313b856a1eb945a0e98e467293b556cd4c7c8" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
 SET "PATH=!PATH!;!ROOT!\Strawberry\c\bin"
 CALL :InstallDependencies || EXIT /B 1
 CALL :InstallRepos || EXIT /B 1
-CALL :Commit
-EXIT /B !ERRORLEVEL!
+EXIT /B 0
 ENDLOCAL
 
 :BuildCryptopp
@@ -143,25 +149,6 @@ CALL "!ROOT!\aspen\build.bat" Debug || EXIT /B 1
 CALL "!ROOT!\aspen\build.bat" Release || EXIT /B 1
 EXIT /B 0
 
-:CheckCache
-SET "CACHE_NAME=%~1"
-SET "SETUP_HASH="
-FOR /F "skip=1" %%H IN ('certutil -hashfile "%~dp0setup.bat" SHA256') DO (
-  IF NOT DEFINED SETUP_HASH SET "SETUP_HASH=%%H"
-)
-IF EXIST "cache_files\!CACHE_NAME!.txt" (
-  SET /P CACHED_HASH=<"cache_files\!CACHE_NAME!.txt"
-  IF "!SETUP_HASH!"=="!CACHED_HASH!" EXIT /B 1
-)
-EXIT /B 0
-
-:Commit
-IF NOT EXIST cache_files (
-  MD cache_files || EXIT /B 1
-)
->"cache_files\!CACHE_NAME!.txt" ECHO !SETUP_HASH!
-EXIT /B 0
-
 :SetupVSEnvironment
 SET "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 SET "VS_FOUND="
@@ -183,7 +170,6 @@ IF NOT DEFINED VS_FOUND (
 EXIT /B 0
 
 :AddDependency
-IF NOT DEFINED NEXT_DEPENDENCY_INDEX SET "NEXT_DEPENDENCY_INDEX=0"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].NAME=%~1"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].URL=%~2"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].HASH=%~3"
@@ -193,7 +179,6 @@ SET /A NEXT_DEPENDENCY_INDEX+=1
 EXIT /B 0
 
 :AddRepo
-IF NOT DEFINED NEXT_REPO_INDEX SET "NEXT_REPO_INDEX=0"
 SET "REPOS[%NEXT_REPO_INDEX%].NAME=%~1"
 SET "REPOS[%NEXT_REPO_INDEX%].URL=%~2"
 SET "REPOS[%NEXT_REPO_INDEX%].COMMIT=%~3"
@@ -318,6 +303,12 @@ IF NOT "!CACHED_HASH!"=="!BUILD_HASH!" (
     IF NOT "!BUILD_RESULT!"=="0" (POPD & EXIT /B !BUILD_RESULT!)
   )
   (ECHO !BUILD_HASH!) >.beam_build_complete || (POPD & EXIT /B 1)
+) ELSE (
+  PUSHD "!ROOT!" || (POPD & EXIT /B 1)
+  CALL "!ROOT!\!REPO_NAME!\setup.bat"
+  SET "BUILD_RESULT=!ERRORLEVEL!"
+  POPD
+  IF NOT "!BUILD_RESULT!"=="0" (POPD & EXIT /B !BUILD_RESULT!)
 )
 POPD
 EXIT /B 0

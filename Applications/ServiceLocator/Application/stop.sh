@@ -36,7 +36,7 @@ if((status == 1)); then
 elif((status != 0)); then
   exit "$status"
 fi
-if ! kill -SIGINT "$pid" 2> /dev/null; then
+if ! kill -SIGTERM "$pid" 2> /dev/null; then
   echo "Error: Unable to signal $APPLICATION (pid $pid)." >&2
   exit 1
 fi

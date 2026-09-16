@@ -3,15 +3,13 @@ set -o errexit
 set -o pipefail
 DIRECTORY=""
 ROOT=""
-CACHE_NAME=""
 SETUP_HASH=""
 DEPENDENCIES=()
 REPOS=()
 
 main() {
   resolve_paths
-  check_cache "beam" || exit 0
-  rm -f "cache_files/$CACHE_NAME.txt" || return 1
+  SETUP_HASH=$(sha256 "$DIRECTORY/setup.sh") || return 1
   local cryptopp_url="https://github.com/weidai11/cryptopp/archive/refs/tags"
   add_dependency "cryptopp890" \
     "$cryptopp_url/CRYPTOPP_8_9_0.zip" \
@@ -34,15 +32,14 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "2c7e46e52a16d5b986bd99b5e58a13ffd3f3c832" \
+    "47db1db57b3241a907e9f1bce53bee9321c845b0" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "68fee2f03710cd889252b514ade087f52b276018" \
+    "1d4313b856a1eb945a0e98e467293b556cd4c7c8" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
-  commit
 }
 
 build_cryptopp() {
@@ -115,26 +112,6 @@ resolve_paths() {
   done
   DIRECTORY="$(cd -P "$(dirname "$source")" >/dev/null && pwd -P)"
   ROOT="$(pwd -P)"
-}
-
-check_cache() {
-  CACHE_NAME="$1"
-  SETUP_HASH=$(sha256 "$DIRECTORY/setup.sh")
-  if [[ -f "cache_files/$CACHE_NAME.txt" ]]; then
-    local cached_hash
-    cached_hash=$(cat "cache_files/$CACHE_NAME.txt")
-    if [[ "$SETUP_HASH" == "$cached_hash" ]]; then
-      return 1
-    fi
-  fi
-  return 0
-}
-
-commit() {
-  if [[ ! -d "cache_files" ]]; then
-    mkdir -p cache_files || return 1
-  fi
-  echo "$SETUP_HASH" > "cache_files/$CACHE_NAME.txt"
 }
 
 add_dependency() {
@@ -250,6 +227,9 @@ clone_or_update_repo() {
       $build_func || { popd > /dev/null; return 1; }
     fi
     echo "$build_hash" > .beam_build_complete ||
+      { popd > /dev/null; return 1; }
+  else
+    (cd "$ROOT" && "./$repo_name/setup.sh") ||
       { popd > /dev/null; return 1; }
   fi
   popd > /dev/null

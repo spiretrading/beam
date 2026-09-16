@@ -1,17 +1,13 @@
 import argparse
 import importlib.util
 import os
+from pathlib import Path
 
-try:
-  spec = importlib.util.spec_from_file_location('setup_utils',
-    os.path.join('..', 'Python', 'setup_utils.py'))
-  setup_utils = importlib.util.module_from_spec(spec)
-  spec.loader.exec_module(setup_utils)
-except FileNotFoundError:
-  spec = importlib.util.spec_from_file_location('setup_utils',
-    os.path.join('Python', 'setup_utils.py'))
-  setup_utils = importlib.util.module_from_spec(spec)
-  spec.loader.exec_module(setup_utils)
+directory = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('setup_utils',
+  directory / 'Python' / 'setup_utils.py')
+setup_utils = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(setup_utils)
 
 
 def make_sub_args(arg_vars, *args):
@@ -77,6 +73,8 @@ def main():
     required=False)
   arg_vars = vars(parser.parse_args())
   admin_client_arg_vars = arg_vars.copy()
+  if admin_client_arg_vars['address'] is None and arg_vars['local'] is not None:
+    admin_client_arg_vars['address'] = arg_vars['local'] + ':20000'
   admin_client_arg_vars['username'] = 'root'
   admin_client_arg_vars['password'] = ''
   setup_application('AdminClient', admin_client_arg_vars, 'address', 'username',

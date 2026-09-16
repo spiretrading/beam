@@ -50,7 +50,7 @@ FOR %%F IN ("!BUILD_TEMP!\*.running") DO (
   SET "RUNNING=1"
 )
 IF !RUNNING! EQU 1 (
-  timeout /t 1 /nobreak >NUL
+  waitfor /T 1 BeamBuildDelay >NUL 2>&1
   GOTO WaitLoop
 )
 FOR %%F IN ("!BUILD_TEMP!\*.log") DO (

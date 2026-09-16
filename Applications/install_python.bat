@@ -22,9 +22,11 @@ IF "!PYTHON_PATH!"=="" (
   ECHO Error: Unable to retrieve Python user-site path.
   EXIT /B 1
 )
-PUSHD ..\Beam\Dependencies\aspen
+PUSHD "..\Beam\Dependencies\aspen" || EXIT /B 1
 CALL install_python.bat %*
+SET "INSTALL_RESULT=!ERRORLEVEL!"
 POPD
+IF NOT "!INSTALL_RESULT!"=="0" EXIT /B !INSTALL_RESULT!
 IF NOT EXIST "!PYTHON_PATH!" (
   MKDIR "!PYTHON_PATH!"
   IF ERRORLEVEL 1 (

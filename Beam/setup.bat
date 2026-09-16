@@ -34,11 +34,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "3ad5ff6a3ae9ea43ee612646c351ef2b01879957" ^
+  "5f69ce4a2d740f20b4ca8b8347928a0db39d15c1" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "87d832d3b041e8b92b6817ea8072548ee7d5ca7a" ^
+  "0b7f215d756c21aaaf009bbda015e0a204017c70" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -220,6 +220,7 @@ GOTO InstallReposLoop
 SET "FOLDER=%~1"
 SET "URL=%~2"
 SET "EXPECTED_HASH=%~3"
+SET "BUILD_HASH=!EXPECTED_HASH! !SETUP_HASH!"
 SET "BUILD_LABEL=%~4"
 SET "STRIP=%~5"
 IF NOT DEFINED STRIP SET "STRIP=1"
@@ -230,7 +231,7 @@ FOR /F "tokens=* delims=/" %%A IN ("!URL!") DO (
 SET "CACHED_HASH="
 IF EXIST "!FOLDER!\.beam_build_complete" (
   SET /P CACHED_HASH=<"!FOLDER!\.beam_build_complete"
-  IF "!CACHED_HASH!"=="!EXPECTED_HASH!" EXIT /B 0
+  IF "!CACHED_HASH!"=="!BUILD_HASH!" EXIT /B 0
 )
 IF EXIST "!FOLDER!\.beam_extract_complete" (
   SET /P CACHED_HASH=<"!FOLDER!\.beam_extract_complete"
@@ -261,7 +262,7 @@ IF DEFINED BUILD_LABEL (
   POPD
   IF NOT "!BUILD_RESULT!"=="0" EXIT /B !BUILD_RESULT!
 )
-(ECHO !EXPECTED_HASH!) >"!FOLDER!\.beam_build_complete" || EXIT /B 1
+(ECHO !BUILD_HASH!) >"!FOLDER!\.beam_build_complete" || EXIT /B 1
 IF EXIST "!ARCHIVE!" DEL /F /Q "!ARCHIVE!"
 EXIT /B 0
 

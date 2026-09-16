@@ -33,11 +33,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "3ad5ff6a3ae9ea43ee612646c351ef2b01879957" \
+    "5f69ce4a2d740f20b4ca8b8347928a0db39d15c1" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "87d832d3b041e8b92b6817ea8072548ee7d5ca7a" \
+    "0b7f215d756c21aaaf009bbda015e0a204017c70" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -170,10 +170,11 @@ download_and_extract() {
   local folder="$1"
   local url="$2"
   local expected_hash="$3"
+  local build_hash="$expected_hash $SETUP_HASH"
   local build_func="$4"
   local archive="${url##*/}"
   if [[ -f "$folder/.beam_build_complete" ]] &&
-      [[ "$(< "$folder/.beam_build_complete")" == "$expected_hash" ]]; then
+      [[ "$(< "$folder/.beam_build_complete")" == "$build_hash" ]]; then
     return 0
   fi
   if [[ ! -f "$folder/.beam_extract_complete" ]] ||
@@ -211,7 +212,7 @@ download_and_extract() {
     $build_func || { popd > /dev/null; return 1; }
     popd > /dev/null
   fi
-  echo "$expected_hash" > "$folder/.beam_build_complete" || return 1
+  echo "$build_hash" > "$folder/.beam_build_complete" || return 1
   if [[ -f "$archive" ]]; then
     rm -f "$archive" || return 1
   fi

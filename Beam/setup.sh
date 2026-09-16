@@ -11,6 +11,7 @@ REPOS=()
 main() {
   resolve_paths
   check_cache "beam" || exit 0
+  rm -f "cache_files/$CACHE_NAME.txt" || return 1
   local cryptopp_url="https://github.com/weidai11/cryptopp/archive/refs/tags"
   add_dependency "cryptopp890" \
     "$cryptopp_url/CRYPTOPP_8_9_0.zip" \
@@ -33,11 +34,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "5f69ce4a2d740f20b4ca8b8347928a0db39d15c1" \
+    "4c899f67aa54b5d07147147817174a2b5b2e8d9d" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "0b7f215d756c21aaaf009bbda015e0a204017c70" \
+    "4199dd36779b7b7bd33f4d66740cb6874ec380f3" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -177,8 +178,10 @@ download_and_extract() {
       [[ "$(< "$folder/.beam_build_complete")" == "$build_hash" ]]; then
     return 0
   fi
+  rm -f "$folder/.beam_build_complete" || return 1
   if [[ ! -f "$folder/.beam_extract_complete" ]] ||
       [[ "$(< "$folder/.beam_extract_complete")" != "$expected_hash" ]]; then
+    rm -f "$folder/.beam_extract_complete" || return 1
     if [[ ! -f "$archive" ]]; then
       curl -fsSL -o "$archive" "$url" || return 1
     fi
@@ -234,6 +237,7 @@ clone_or_update_repo() {
   fi
   if ! git merge-base --is-ancestor "$repo_commit" HEAD; then
     git fetch origin || { popd > /dev/null; return 1; }
+    rm -f .beam_build_complete || { popd > /dev/null; return 1; }
     git checkout "$repo_commit" || { popd > /dev/null; return 1; }
   fi
   local repo_head
@@ -241,6 +245,7 @@ clone_or_update_repo() {
   local build_hash="$repo_head $SETUP_HASH"
   if [[ ! -f .beam_build_complete ]] ||
       [[ "$(< .beam_build_complete)" != "$build_hash" ]]; then
+    rm -f .beam_build_complete || { popd > /dev/null; return 1; }
     if [[ -n "$build_func" ]]; then
       $build_func || { popd > /dev/null; return 1; }
     fi

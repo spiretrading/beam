@@ -3,6 +3,10 @@ SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 CALL :CheckCache "beam"
 IF ERRORLEVEL 1 EXIT /B 0
+IF EXIST "cache_files\!CACHE_NAME!.txt" (
+  DEL /F /Q "cache_files\!CACHE_NAME!.txt"
+  IF EXIST "cache_files\!CACHE_NAME!.txt" EXIT /B 1
+)
 CALL :SetupVSEnvironment || EXIT /B 1
 SET "PERL_URL=https://github.com/StrawberryPerl/Perl-Dist-Strawberry"
 SET "PERL_URL=!PERL_URL!/releases/download/SP_54201_64bit"
@@ -34,11 +38,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "5f69ce4a2d740f20b4ca8b8347928a0db39d15c1" ^
+  "4c899f67aa54b5d07147147817174a2b5b2e8d9d" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "0b7f215d756c21aaaf009bbda015e0a204017c70" ^
+  "4199dd36779b7b7bd33f4d66740cb6874ec380f3" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -232,10 +236,14 @@ SET "CACHED_HASH="
 IF EXIST "!FOLDER!\.beam_build_complete" (
   SET /P CACHED_HASH=<"!FOLDER!\.beam_build_complete"
   IF "!CACHED_HASH!"=="!BUILD_HASH!" EXIT /B 0
+  DEL /F /Q "!FOLDER!\.beam_build_complete"
+  IF EXIST "!FOLDER!\.beam_build_complete" EXIT /B 1
 )
 IF EXIST "!FOLDER!\.beam_extract_complete" (
   SET /P CACHED_HASH=<"!FOLDER!\.beam_extract_complete"
   IF "!CACHED_HASH!"=="!EXPECTED_HASH!" GOTO BuildDependency
+  DEL /F /Q "!FOLDER!\.beam_extract_complete"
+  IF EXIST "!FOLDER!\.beam_extract_complete" EXIT /B 1
 )
 IF NOT EXIST "!ARCHIVE!" (
   curl -fsL -o "!ARCHIVE!" "!URL!" || EXIT /B 1
@@ -283,6 +291,10 @@ IF DEFINED IS_NEW_REPO (
 git merge-base --is-ancestor "!REPO_COMMIT!" HEAD >NUL 2>NUL
 IF ERRORLEVEL 1 (
   git fetch origin || (POPD & EXIT /B 1)
+  IF EXIST .beam_build_complete (
+    DEL /F /Q .beam_build_complete
+    IF EXIST .beam_build_complete (POPD & EXIT /B 1)
+  )
   git checkout "!REPO_COMMIT!" || (POPD & EXIT /B 1)
 )
 SET "REPO_HEAD="
@@ -296,6 +308,10 @@ IF EXIST .beam_build_complete (
   SET /P CACHED_HASH=<.beam_build_complete
 )
 IF NOT "!CACHED_HASH!"=="!BUILD_HASH!" (
+  IF EXIST .beam_build_complete (
+    DEL /F /Q .beam_build_complete
+    IF EXIST .beam_build_complete (POPD & EXIT /B 1)
+  )
   IF DEFINED BUILD_LABEL (
     CALL !BUILD_LABEL!
     SET "BUILD_RESULT=!ERRORLEVEL!"

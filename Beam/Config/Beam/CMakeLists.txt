@@ -70,5 +70,7 @@ file(GLOB header_files ${codecs_header_files} ${collections_header_files}
   ${uid_service_header_files} ${utilities_header_files}
   ${web_services_header_files})
 add_library(Beam ${header_files} ${source_files})
+beam_configure_target(Beam)
+set_property(GLOBAL APPEND PROPERTY BEAM_BUILD_TARGETS Beam)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Beam PROPERTIES LINKER_LANGUAGE CXX OUTPUT_NAME Beam)

@@ -43,8 +43,11 @@ main() {
   fi
   shopt -u nocasematch
   configure || return 1
-  run_build
-  return $?
+  generated_files begin || return 1
+  local build_error=0
+  run_build || build_error=$?
+  generated_files end || return 1
+  return "$build_error"
 }
 
 resolve_paths() {
@@ -99,27 +102,37 @@ parse_args() {
 clean_build() {
   local clean_type="$1"
   local clean_error=0
-  if [[ "$clean_type" == "reset" ]]; then
-    if ! git rev-parse --show-toplevel > /dev/null 2>&1; then
-      cmake -DBUILD_DIRECTORY:PATH="$ROOT" \
-        -DSOURCE_DIRECTORY:PATH="$DIRECTORY" -P "$SCRIPT_DIR/Config/reset.cmake"
-      return $?
-    fi
-    git clean -ffxd -- . || clean_error=1
-  else
-    if [[ ! -f "$ROOT/CMakeCache.txt" ]]; then
-      return 0
-    fi
-    local scripts=("$ROOT"/CMakeFiles/beam_clean_*.cmake)
+  if [[ -f "$ROOT/CMakeCache.txt" ]]; then
+    local scripts=("$ROOT"/CMakeFiles/clean_*.cmake)
     if [[ ! -f "${scripts[0]}" ]]; then
-      echo "Error: Run configure.sh before cleaning this build."
+      CONFIG=""
+      configure || return 1
+      scripts=("$ROOT"/CMakeFiles/clean_*.cmake)
+    fi
+    if [[ ! -f "${scripts[0]}" ]]; then
+      echo "Error: Configuration did not generate cleanup scripts."
       return 1
     fi
+    generated_files begin || return 1
     for script in "${scripts[@]}"; do
       cmake -P "$script" || clean_error=1
     done
+    generated_files end || return 1
+  fi
+  if [[ "$clean_error" == "0" ]]; then
+    generated_files clean || clean_error=1
+  fi
+  if [[ "$clean_error" == "0" && "$clean_type" == "reset" ]]; then
+    cmake -DBUILD_DIRECTORY:PATH="$ROOT" \
+      -P "$SCRIPT_DIR/Config/reset.cmake" || clean_error=1
   fi
   return "$clean_error"
+}
+
+generated_files() {
+  cmake -DBUILD_DIRECTORY:PATH="$ROOT" \
+    -DDEPENDENCIES_DIRECTORY:PATH="$DEPENDENCIES" -DACTION="$1" \
+    -P "$SCRIPT_DIR/Config/generated_files.cmake"
 }
 
 configure() {

@@ -3,6 +3,8 @@ file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/Python/*.cpp)
 include_directories(SYSTEM ${PYBIND11_INCLUDE_PATH})
 include_directories(SYSTEM ${PYTHON_INCLUDE_PATH})
 add_library(Python SHARED ${header_files} ${source_files})
+beam_configure_target(Python DEPENDENCIES
+  ASPEN_PYTHON CRYPTOPP MYSQL OPEN_SSL OPEN_SSL_BASE PYTHON SQLITE YAML ZLIB)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(Python PROPERTIES OUTPUT_NAME beam)
 target_compile_definitions(
@@ -21,34 +23,27 @@ if(UNIX)
   if(APPLE)
     set_target_properties(Python PROPERTIES
       SUFFIX ".so" INSTALL_RPATH "@loader_path")
+    target_link_options(Python PRIVATE "LINKER:-undefined,dynamic_lookup")
   else()
     set_target_properties(Python PROPERTIES INSTALL_RPATH "$ORIGIN")
   endif()
 endif()
-target_link_libraries(Python
-  debug ${ASPEN_PYTHON_LIBRARY_DEBUG_PATH}
-  optimized ${ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH}
-  debug ${CRYPTOPP_LIBRARY_DEBUG_PATH}
-  optimized ${CRYPTOPP_LIBRARY_OPTIMIZED_PATH}
-  debug ${MYSQL_LIBRARY_DEBUG_PATH}
-  optimized ${MYSQL_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH}
-  debug ${PYTHON_LIBRARY_DEBUG_PATH}
-  optimized ${PYTHON_LIBRARY_OPTIMIZED_PATH}
-  debug ${SQLITE_LIBRARY_DEBUG_PATH}
-  optimized ${SQLITE_LIBRARY_OPTIMIZED_PATH}
-  debug ${YAML_LIBRARY_DEBUG_PATH}
-  optimized ${YAML_LIBRARY_OPTIMIZED_PATH}
-  debug ${ZLIB_LIBRARY_DEBUG_PATH}
-  optimized ${ZLIB_LIBRARY_OPTIMIZED_PATH})
-target_link_libraries(Python BeamRoutines)
+target_link_libraries(Python PUBLIC BeamRoutines)
 if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(Python debug stdc++exp)
+  target_link_libraries(Python PUBLIC debug stdc++exp)
 endif()
 if(WIN32)
-  target_link_libraries(Python bcrypt crypt32 Secur32 shlwapi Ws2_32)
+  target_link_libraries(Python PUBLIC bcrypt crypt32 Secur32 shlwapi Ws2_32)
 endif()
 beam_install_target(Python "${LIB_INSTALL_DIRECTORY}")
+string(CONCAT aspen_library
+  "$<$<CONFIG:Debug>:${ASPEN_PYTHON_LIBRARY_DEBUG_PATH}>"
+  "$<$<NOT:$<CONFIG:Debug>>:${ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH}>")
+if(WIN32)
+  set(aspen_library
+    "$<PATH:REPLACE_EXTENSION,LAST_ONLY,${aspen_library},.pyd>")
+endif()
+install(FILES "${aspen_library}"
+  DESTINATION "${LIB_INSTALL_DIRECTORY}/$<CONFIG>")
+set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
+  "${LIB_INSTALL_DIRECTORY}/$<CONFIG>/$<PATH:GET_FILENAME,${aspen_library}>")

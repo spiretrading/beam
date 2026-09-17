@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/ParsersTests/*.cpp)
 add_executable(ParsersTests ${header_files} ${source_files})
-target_link_libraries(ParsersTests BeamRoutines)
+beam_configure_target(ParsersTests)
+target_link_libraries(ParsersTests PUBLIC BeamRoutines)
 add_custom_command(TARGET ParsersTests POST_BUILD COMMAND ParsersTests)
 beam_install_target(ParsersTests "${TEST_INSTALL_DIRECTORY}")

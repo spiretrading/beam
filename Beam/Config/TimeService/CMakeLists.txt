@@ -2,15 +2,11 @@ file(GLOB_RECURSE
   header_files ${BEAM_INCLUDE_PATH}/Beam/TimeServiceTests/*.hpp)
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/TimeServiceTests/*.cpp)
 add_executable(TimeServiceTests ${header_files} ${source_files})
+beam_configure_target(TimeServiceTests DEPENDENCIES OPEN_SSL OPEN_SSL_BASE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
-target_link_libraries(TimeServiceTests
-  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH})
 if(WIN32)
-  target_link_libraries(TimeServiceTests crypt32)
+  target_link_libraries(TimeServiceTests PUBLIC crypt32)
 endif()
-target_link_libraries(TimeServiceTests BeamRoutines)
+target_link_libraries(TimeServiceTests PUBLIC BeamRoutines)
 add_custom_command(TARGET TimeServiceTests POST_BUILD COMMAND TimeServiceTests)
 beam_install_target(TimeServiceTests "${TEST_INSTALL_DIRECTORY}")

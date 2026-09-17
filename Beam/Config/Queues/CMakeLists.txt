@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/QueuesTests/*.cpp)
 add_executable(QueuesTests ${header_files} ${source_files})
-target_link_libraries(QueuesTests BeamRoutines)
+beam_configure_target(QueuesTests)
+target_link_libraries(QueuesTests PUBLIC BeamRoutines)
 add_custom_command(TARGET QueuesTests POST_BUILD COMMAND QueuesTests)
 beam_install_target(QueuesTests "${TEST_INSTALL_DIRECTORY}")

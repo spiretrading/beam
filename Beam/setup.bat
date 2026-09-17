@@ -45,11 +45,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "31c8af4665a820887eaaf04a3973321c532ac8f3" ^
+  "a8e19e4247d00a6b513c35f85e16451aba934beb" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "c1771efb3eb43bf8fa1309bd6f5b400846e525dd" ^
+  "51abbf45b35f19e2993ef67906b959969e3c0c57" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -245,7 +245,8 @@ IF /I NOT "!ACTUAL_HASH!"=="!EXPECTED_HASH!" (
 IF NOT EXIST "!FOLDER!" (
   MD "!FOLDER!" || EXIT /B 1
 )
-tar -xf "!ARCHIVE!" --strip-components=!STRIP! -C "!FOLDER!" || EXIT /B 1
+cmake -DARCHIVE:FILEPATH="!ARCHIVE!" -DDESTINATION:PATH="!FOLDER!" ^
+  -DSTRIP_COMPONENTS=!STRIP! -P "%~dp0Config\extract.cmake" || EXIT /B 1
 (ECHO !EXPECTED_HASH!) >"!FOLDER!\.beam_extract_complete" || EXIT /B 1
 :BuildDependency
 IF DEFINED BUILD_LABEL (

@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/JsonTests/*.cpp)
 add_executable(JsonTests ${source_files})
-target_link_libraries(JsonTests BeamRoutines)
+beam_configure_target(JsonTests)
+target_link_libraries(JsonTests PUBLIC BeamRoutines)
 add_custom_command(TARGET JsonTests POST_BUILD COMMAND JsonTests)
 beam_install_target(JsonTests "${TEST_INSTALL_DIRECTORY}")

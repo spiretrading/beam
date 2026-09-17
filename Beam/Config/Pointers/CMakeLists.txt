@@ -1,4 +1,5 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/PointersTests/*.cpp)
 add_executable(PointersTests ${source_files})
+beam_configure_target(PointersTests)
 add_custom_command(TARGET PointersTests POST_BUILD COMMAND PointersTests)
 beam_install_target(PointersTests "${TEST_INSTALL_DIRECTORY}")

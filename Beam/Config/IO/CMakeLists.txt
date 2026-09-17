@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/IOTests/*.cpp)
 add_executable(IOTests ${source_files})
-target_link_libraries(IOTests BeamRoutines)
+beam_configure_target(IOTests)
+target_link_libraries(IOTests PUBLIC BeamRoutines)
 add_custom_command(TARGET IOTests POST_BUILD COMMAND IOTests)
 beam_install_target(IOTests "${TEST_INSTALL_DIRECTORY}")

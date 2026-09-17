@@ -1,5 +1,6 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/CollectionsTests/*.cpp)
 add_executable(CollectionsTests ${source_files})
-target_link_libraries(CollectionsTests BeamRoutines)
+beam_configure_target(CollectionsTests)
+target_link_libraries(CollectionsTests PUBLIC BeamRoutines)
 add_custom_command(TARGET CollectionsTests POST_BUILD COMMAND CollectionsTests)
 beam_install_target(CollectionsTests "${TEST_INSTALL_DIRECTORY}")

@@ -1,18 +1,16 @@
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/NetworkTests/*.cpp)
 add_executable(NetworkTests ${source_files})
-target_link_libraries(NetworkTests BeamRoutines)
+beam_configure_target(NetworkTests)
+target_link_libraries(NetworkTests PUBLIC BeamRoutines)
 add_custom_command(TARGET NetworkTests POST_BUILD COMMAND NetworkTests)
 beam_install_target(NetworkTests "${TEST_INSTALL_DIRECTORY}")
 file(GLOB_RECURSE
   functional_source_files ${BEAM_SOURCE_PATH}/NetworkFunctionalTests/*.cpp)
 add_executable(NetworkFunctionalTests ${functional_source_files})
-target_link_libraries(NetworkFunctionalTests
-  debug ${OPEN_SSL_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_LIBRARY_OPTIMIZED_PATH}
-  debug ${OPEN_SSL_BASE_LIBRARY_DEBUG_PATH}
-  optimized ${OPEN_SSL_BASE_LIBRARY_OPTIMIZED_PATH})
-target_link_libraries(NetworkFunctionalTests BeamRoutines)
+beam_configure_target(NetworkFunctionalTests DEPENDENCIES
+  OPEN_SSL OPEN_SSL_BASE)
+target_link_libraries(NetworkFunctionalTests PUBLIC BeamRoutines)
 if(WIN32)
-  target_link_libraries(NetworkFunctionalTests crypt32)
+  target_link_libraries(NetworkFunctionalTests PUBLIC crypt32)
 endif()
 beam_install_target(NetworkFunctionalTests "${TEST_INSTALL_DIRECTORY}")

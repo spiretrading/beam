@@ -12,8 +12,11 @@ IF /I "!CONFIG!"=="reset" (
   EXIT /B !ERRORLEVEL!
 )
 CALL :Configure || EXIT /B 1
+CALL :GeneratedFiles begin || EXIT /B 1
 CALL :RunBuild
-EXIT /B !ERRORLEVEL!
+SET "BUILD_ERROR=!ERRORLEVEL!"
+CALL :GeneratedFiles end || EXIT /B 1
+EXIT /B !BUILD_ERROR!
 ENDLOCAL
 
 :ParseArgs
@@ -76,25 +79,37 @@ EXIT /B 0
 
 :CleanBuild
 SET "CLEAN_ERROR=0"
-IF "%~1"=="reset" (
-  git rev-parse --show-toplevel >NUL 2>NUL
-  IF ERRORLEVEL 1 (
-    cmake -DBUILD_DIRECTORY:PATH="!ROOT!" ^
-      -DSOURCE_DIRECTORY:PATH="!DIRECTORY!." -P "%~dp0Config\reset.cmake"
-    EXIT /B !ERRORLEVEL!
-  )
-  git clean -ffxd -- . || SET "CLEAN_ERROR=1"
-) ELSE (
-  IF NOT EXIST "!ROOT!\CMakeCache.txt" EXIT /B 0
-  IF NOT EXIST "!ROOT!\CMakeFiles\beam_clean_*.cmake" (
-    ECHO Error: Run configure.bat before cleaning this build.
-    EXIT /B 1
-  )
-  FOR %%F IN ("!ROOT!\CMakeFiles\beam_clean_*.cmake") DO (
-    cmake -P "%%F" || SET "CLEAN_ERROR=1"
-  )
+IF NOT EXIST "!ROOT!\CMakeCache.txt" (
+  GOTO CleanConfiguration
+)
+IF NOT EXIST "!ROOT!\CMakeFiles\clean_*.cmake" (
+  SET "CONFIG="
+  CALL :Configure || EXIT /B 1
+)
+IF NOT EXIST "!ROOT!\CMakeFiles\clean_*.cmake" (
+  ECHO Error: Configuration did not generate cleanup scripts.
+  EXIT /B 1
+)
+CALL :GeneratedFiles begin || EXIT /B 1
+FOR %%F IN ("!ROOT!\CMakeFiles\clean_*.cmake") DO (
+  cmake -P "%%F" || SET "CLEAN_ERROR=1"
+)
+CALL :GeneratedFiles end || EXIT /B 1
+:CleanConfiguration
+IF !CLEAN_ERROR! EQU 0 (
+  CALL :GeneratedFiles clean || SET "CLEAN_ERROR=1"
+)
+IF !CLEAN_ERROR! EQU 0 IF "%~1"=="reset" (
+  cmake -DBUILD_DIRECTORY:PATH="!ROOT!" ^
+    -P "%~dp0Config\reset.cmake" || SET "CLEAN_ERROR=1"
 )
 EXIT /B !CLEAN_ERROR!
+
+:GeneratedFiles
+cmake -DBUILD_DIRECTORY:PATH="!ROOT!" ^
+  -DDEPENDENCIES_DIRECTORY:PATH="!DEPENDENCIES!" -DACTION=%1 ^
+  -P "%~dp0Config\generated_files.cmake"
+EXIT /B !ERRORLEVEL!
 
 :Configure
 IF "!CONFIG!"=="" (

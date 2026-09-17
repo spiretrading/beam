@@ -5,10 +5,11 @@
     "sourceMap": false,
     "outDir": null,
     "noEmit": true,
+    "rootDir": ".",
     "types": ["node"]
   },
   "include": [
     "./source/**/*.ts",
     "./tests/**/*.ts"
-  ],
+  ]
 }

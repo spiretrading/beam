@@ -360,6 +360,7 @@ ASALocalRun/
 package-lock.json
 .vscode/
 .build_hash.txt
+.build_state.json
 mod_time.txt
 WebApi/library/
 node_modules/

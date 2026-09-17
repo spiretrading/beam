@@ -40,6 +40,17 @@ def discover_executables(target, exclude):
     raise ValueError(f"Invalid path: {target}")
 
 
+def kill_process(process):
+    try:
+        if IS_WINDOWS:
+            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            process.kill()
+    except OSError:
+        pass
+
+
 def start_stress(executables, thread_count):
     stop = False
     failed = False
@@ -49,10 +60,7 @@ def start_stress(executables, thread_count):
         nonlocal stop
         stop = True
         for process in processes.values():
-            try:
-                process.kill()
-            except OSError:
-                pass
+            kill_process(process)
     def handle_sigint(signum, frame):
         with stop_lock:
             request_stop()
@@ -81,7 +89,7 @@ def start_stress(executables, thread_count):
                 return
             with stop_lock:
                 if stop:
-                    process.kill()
+                    kill_process(process)
                     process.communicate()
                     return
                 processes[idx] = process

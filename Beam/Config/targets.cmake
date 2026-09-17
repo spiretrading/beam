@@ -65,14 +65,14 @@ function(beam_configure_target target)
 endfunction()
 
 function(beam_install_target target directory)
-  install(TARGETS ${target} DESTINATION "${directory}/$<CONFIG>")
+  install(TARGETS ${target} DESTINATION "${directory}")
   set_property(GLOBAL APPEND PROPERTY BEAM_BUILD_TARGETS ${target})
   set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
-    "${directory}/$<CONFIG>/$<TARGET_FILE_NAME:${target}>")
+    "${directory}/$<TARGET_FILE_NAME:${target}>")
   get_target_property(type ${target} TYPE)
   if(type STREQUAL "SHARED_LIBRARY")
     set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
-      "${directory}/$<CONFIG>/$<TARGET_LINKER_FILE_NAME:${target}>")
+      "${directory}/$<TARGET_LINKER_FILE_NAME:${target}>")
   endif()
 endfunction()
 

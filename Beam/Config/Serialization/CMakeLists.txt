@@ -10,4 +10,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 add_custom_command(TARGET SerializationTests
   POST_BUILD COMMAND SerializationTests)
-beam_install_target(SerializationTests "${TEST_INSTALL_DIRECTORY}")
+beam_install_target(SerializationTests "${TEST_INSTALL_DIRECTORY}/$<CONFIG>")

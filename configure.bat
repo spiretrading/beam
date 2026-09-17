@@ -3,14 +3,7 @@ SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "EXIT_STATUS=0"
 CALL :ParseArgs %* || EXIT /B 1
-IF NOT EXIST configure.bat (
-  >configure.bat ECHO @ECHO OFF
-  >>configure.bat ECHO CALL "%~dp0configure.bat" %%*
-)
-IF NOT EXIST build.bat (
-  >build.bat ECHO @ECHO OFF
-  >>build.bat ECHO CALL "%~dp0build.bat" %%*
-)
+CALL :CreateForwardingScripts || EXIT /B 1
 CALL :Configure Beam %*
 CALL :Configure WebApi %*
 CALL :Configure Applications\AdminClient %*
@@ -77,4 +70,29 @@ PUSHD "%~1" || (
 CALL "%~dp0%~1\configure.bat" -DD="!DEPENDENCIES!" !ARGS!
 IF ERRORLEVEL 1 SET "EXIT_STATUS=1"
 POPD
+EXIT /B 0
+
+:CreateForwardingScripts
+FOR %%S IN (configure build) DO (
+  IF NOT EXIST %%S.bat (
+    >%%S.bat ECHO @ECHO OFF
+    >>%%S.bat ECHO CALL "%~dp0%%S.bat" %%*
+    IF ERRORLEVEL 1 EXIT /B 1
+  )
+)
+IF NOT EXIST Applications MD Applications || EXIT /B 1
+IF NOT EXIST Applications\install_python.bat (
+  >Applications\install_python.bat ECHO @ECHO OFF
+  >>Applications\install_python.bat ECHO CALL ^
+    "%~dp0Applications\install_python.bat" %%*
+  IF ERRORLEVEL 1 EXIT /B 1
+)
+FOR %%S IN (setup stress_test) DO (
+  IF NOT EXIST Applications\%%S.py (
+    >Applications\%%S.py ECHO import runpy
+    >>Applications\%%S.py ECHO runpy.run_path(^
+      r"%~dp0Applications\%%S.py", run_name='__main__'^)
+    IF ERRORLEVEL 1 EXIT /B 1
+  )
+)
 EXIT /B 0

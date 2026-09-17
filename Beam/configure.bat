@@ -5,8 +5,10 @@ SET "DIRECTORY=%~dp0"
 CALL :ParseArgs %* || EXIT /B 1
 CALL :CreateForwardingScripts || EXIT /B 1
 CALL :SetupDependencies || EXIT /B 1
-CALL :RunVersion || EXIT /B 1
-IF "!BEAM_SKIP_CMAKE!"=="1" EXIT /B 0
+IF "!BEAM_SKIP_CMAKE!"=="1" (
+  CALL :RunVersion
+  EXIT /B !ERRORLEVEL!
+)
 CALL :GeneratedFiles begin || EXIT /B 1
 CALL :ConfigureBuild
 SET "CONFIGURE_ERROR=!ERRORLEVEL!"
@@ -15,6 +17,7 @@ EXIT /B !CONFIGURE_ERROR!
 ENDLOCAL
 
 :ConfigureBuild
+CALL :RunVersion || EXIT /B 1
 CALL :CheckHashes || EXIT /B 1
 CALL :RunCMake || EXIT /B 1
 CALL :CommitHashes || EXIT /B 1
@@ -185,6 +188,9 @@ IF EXIST "!DIRECTORY!Source" (
   CALL :CheckFileHash "!TEMP_FILE!" "CMakeFiles\cpp_hash.txt"
 )
 TYPE "!DIRECTORY!CMakeLists.txt" > "!TEMP_FILE!"
+FOR %%F IN ("%~dp0Config\*.cmake") DO (
+  TYPE "%%F" >> "!TEMP_FILE!"
+)
 IF EXIST "!DIRECTORY!Config" (
   FOR %%F IN ("!DIRECTORY!Config\*.cmake") DO (
     TYPE "%%F" >> "!TEMP_FILE!"

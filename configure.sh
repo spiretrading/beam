@@ -71,12 +71,26 @@ parse_args() {
 }
 
 create_forwarding_scripts() {
-  if [[ ! -f "configure.sh" ]]; then
-    ln -s "$DIRECTORY/configure.sh" configure.sh
+  for script in configure build; do
+    if [[ ! -f "$script.sh" ]]; then
+      printf '#!/bin/bash\nexec %q "$@"\n' "$DIRECTORY/$script.sh" \
+        > "$script.sh" || return 1
+      chmod +x "$script.sh" || return 1
+    fi
+  done
+  mkdir -p Applications || return 1
+  if [[ ! -f Applications/install_python.sh ]]; then
+    printf '#!/bin/bash\nexec %q "$@"\n' \
+      "$DIRECTORY/Applications/install_python.sh" \
+      > Applications/install_python.sh || return 1
+    chmod +x Applications/install_python.sh || return 1
   fi
-  if [[ ! -f "build.sh" ]]; then
-    ln -s "$DIRECTORY/build.sh" build.sh
-  fi
+  for script in setup stress_test; do
+    if [[ ! -f "Applications/$script.py" ]]; then
+      ln -s "$DIRECTORY/Applications/$script.py" "Applications/$script.py" ||
+        return 1
+    fi
+  done
 }
 
 configure_target() {

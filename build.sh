@@ -5,12 +5,12 @@ DIRECTORY=""
 ROOT=""
 DEPENDENCIES=""
 ARGS=()
+CONFIG=""
 
 main() {
   resolve_paths
   parse_args "$@" || return 1
   create_forwarding_scripts
-  build_function "${ARGS[@]}" "Beam"
   local targets=(
     "WebApi"
     "Applications/AdminClient"
@@ -26,6 +26,20 @@ main() {
     "Applications/UidServer"
     "Applications/WebSocketEchoServer"
   )
+  shopt -s nocasematch
+  if [[ "$CONFIG" == "clean" || "$CONFIG" == "reset" ]]; then
+    shopt -u nocasematch
+    local status=0
+    for target in "${targets[@]}"; do
+      build_function "${ARGS[@]}" "$target" || status=1
+    done
+    if [[ "$status" == "0" ]]; then
+      build_function "${ARGS[@]}" "Beam" || status=1
+    fi
+    return "$status"
+  fi
+  shopt -u nocasematch
+  build_function "${ARGS[@]}" "Beam"
   local jobs
   jobs=$(get_job_count)
   export -f build_function
@@ -67,6 +81,7 @@ parse_args() {
       fi
     else
       ARGS+=("$arg")
+      CONFIG="$arg"
     fi
     shift
   done
@@ -76,12 +91,26 @@ parse_args() {
 }
 
 create_forwarding_scripts() {
-  if [[ ! -f "configure.sh" ]]; then
-    ln -s "$DIRECTORY/configure.sh" configure.sh
+  for script in configure build; do
+    if [[ ! -f "$script.sh" ]]; then
+      printf '#!/bin/bash\nexec %q "$@"\n' "$DIRECTORY/$script.sh" \
+        > "$script.sh" || return 1
+      chmod +x "$script.sh" || return 1
+    fi
+  done
+  mkdir -p Applications || return 1
+  if [[ ! -f Applications/install_python.sh ]]; then
+    printf '#!/bin/bash\nexec %q "$@"\n' \
+      "$DIRECTORY/Applications/install_python.sh" \
+      > Applications/install_python.sh || return 1
+    chmod +x Applications/install_python.sh || return 1
   fi
-  if [[ ! -f "build.sh" ]]; then
-    ln -s "$DIRECTORY/build.sh" build.sh
-  fi
+  for script in setup stress_test; do
+    if [[ ! -f "Applications/$script.py" ]]; then
+      ln -s "$DIRECTORY/Applications/$script.py" "Applications/$script.py" ||
+        return 1
+    fi
+  done
 }
 
 build_function() {
@@ -110,7 +139,7 @@ get_job_count() {
     mem=$(sysctl -n hw.memsize 2>/dev/null |
       awk '{print int($1 / 4294967296)}' || echo 4)
   fi
-  ((cores -= 2))
+  cores=$((cores - 2))
   [[ $cores -lt 1 ]] && cores=1
   [[ $mem -lt 1 ]] && mem=1
   jobs=$((cores < mem ? cores : mem))

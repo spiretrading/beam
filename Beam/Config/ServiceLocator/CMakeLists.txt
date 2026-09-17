@@ -13,4 +13,4 @@ if(WIN32)
 endif()
 add_custom_command(TARGET ServiceLocatorTests
   POST_BUILD COMMAND ServiceLocatorTests)
-beam_install_target(ServiceLocatorTests "${TEST_INSTALL_DIRECTORY}")
+beam_install_target(ServiceLocatorTests "${TEST_INSTALL_DIRECTORY}/$<CONFIG>")

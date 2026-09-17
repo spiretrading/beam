@@ -15,9 +15,9 @@ main() {
   parse_args "$@" || return 1
   create_forwarding_scripts || return 1
   setup_dependencies || return 1
-  run_version || return 1
   if [[ "${BEAM_SKIP_CMAKE:-}" == "1" ]]; then
-    return 0
+    run_version
+    return $?
   fi
   generated_files begin || return 1
   local configure_error=0
@@ -27,6 +27,7 @@ main() {
 }
 
 configure_build() {
+  run_version || return 1
   check_hashes || return 1
   run_cmake || return 1
   commit_hashes || return 1
@@ -188,6 +189,9 @@ check_cmake_hash() {
   local current_hash
   current_hash=$( (
     cat "$DIRECTORY/CMakeLists.txt"
+    for file in "$SCRIPT_DIR/Config"/*.cmake; do
+      [[ -f "$file" ]] && cat "$file"
+    done
     if [[ -d "$DIRECTORY/Config" ]]; then
       for f in "$DIRECTORY/Config"/*.cmake; do
         [[ -f "$f" ]] && cat "$f"

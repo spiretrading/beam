@@ -3,27 +3,17 @@ SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "DIRECTORY=%~dp0"
 SET "EXIT_STATUS=0"
-IF NOT EXIST configure.bat (
-  >configure.bat ECHO @ECHO OFF
-  >>configure.bat ECHO CALL "%~dp0configure.bat" %%*
-)
-IF NOT EXIST build.bat (
-  >build.bat ECHO @ECHO OFF
-  >>build.bat ECHO CALL "%~dp0build.bat" %%*
-)
+CALL :CreateForwardingScripts || EXIT /B 1
 CALL :ParseArgs %* || EXIT /B 1
-SET "FIRST_ARG=%~1"
 SET "PARALLEL=1"
-IF /I "!FIRST_ARG!" == "clean" SET "PARALLEL=0"
-IF /I "!FIRST_ARG!" == "reset" SET "PARALLEL=0"
-CALL :Build Beam %*
-IF !EXIT_STATUS! NEQ 0 (
-  EXIT /B !EXIT_STATUS!
+IF /I "!CONFIG!" == "clean" SET "PARALLEL=0"
+IF /I "!CONFIG!" == "reset" SET "PARALLEL=0"
+IF !PARALLEL! EQU 1 (
+  CALL :Build Beam %*
+  IF !EXIT_STATUS! NEQ 0 EXIT /B !EXIT_STATUS!
 )
 CALL :Build WebApi %*
-IF !EXIT_STATUS! NEQ 0 (
-  EXIT /B !EXIT_STATUS!
-)
+IF !EXIT_STATUS! NEQ 0 EXIT /B !EXIT_STATUS!
 IF !PARALLEL! EQU 1 (
   SET "BUILD_TEMP=!ROOT!\_build_tmp"
   IF EXIST "!BUILD_TEMP!" RD /S /Q "!BUILD_TEMP!"
@@ -42,6 +32,7 @@ CALL :BuildApp Applications\ServletTemplate %*
 CALL :BuildApp Applications\UidServer %*
 CALL :BuildApp Applications\WebSocketEchoServer %*
 IF !PARALLEL! EQU 0 (
+  IF !EXIT_STATUS! EQU 0 CALL :Build Beam %*
   EXIT /B !EXIT_STATUS!
 )
 :WaitLoop
@@ -72,6 +63,7 @@ ENDLOCAL
 :ParseArgs
 SET "DEPENDENCIES=!ROOT!\Beam\Dependencies"
 SET "ARGS="
+SET "CONFIG="
 SET "IS_DEPENDENCY="
 :ParseArgsLoop
 SET "ARG=%~1"
@@ -95,6 +87,7 @@ IF "!IS_DEPENDENCY!"=="1" (
   )
 ) ELSE (
   SET ARGS=!ARGS! "%~1"
+  SET "CONFIG=!ARG!"
 )
 SHIFT
 GOTO ParseArgsLoop
@@ -137,4 +130,29 @@ IF NOT EXIST "!PROJECT!" (
 )
 >"!BUILD_TEMP!\!PROJECT_NAME!.running" ECHO !PROJECT_NAME!
 START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!DEPENDENCIES!" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
+EXIT /B 0
+
+:CreateForwardingScripts
+FOR %%S IN (configure build) DO (
+  IF NOT EXIST %%S.bat (
+    >%%S.bat ECHO @ECHO OFF
+    >>%%S.bat ECHO CALL "%~dp0%%S.bat" %%*
+    IF ERRORLEVEL 1 EXIT /B 1
+  )
+)
+IF NOT EXIST Applications MD Applications || EXIT /B 1
+IF NOT EXIST Applications\install_python.bat (
+  >Applications\install_python.bat ECHO @ECHO OFF
+  >>Applications\install_python.bat ECHO CALL ^
+    "%~dp0Applications\install_python.bat" %%*
+  IF ERRORLEVEL 1 EXIT /B 1
+)
+FOR %%S IN (setup stress_test) DO (
+  IF NOT EXIST Applications\%%S.py (
+    >Applications\%%S.py ECHO import runpy
+    >>Applications\%%S.py ECHO runpy.run_path(^
+      r"%~dp0Applications\%%S.py", run_name='__main__'^)
+    IF ERRORLEVEL 1 EXIT /B 1
+  )
+)
 EXIT /B 0

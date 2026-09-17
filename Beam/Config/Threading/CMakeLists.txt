@@ -4,4 +4,4 @@ beam_configure_target(ThreadingTests DEPENDENCIES CRYPTOPP)
 target_link_libraries(ThreadingTests PUBLIC BeamRoutines)
 add_custom_command(TARGET ThreadingTests
   POST_BUILD COMMAND ThreadingTests)
-beam_install_target(ThreadingTests "${TEST_INSTALL_DIRECTORY}")
+beam_install_target(ThreadingTests "${TEST_INSTALL_DIRECTORY}/$<CONFIG>")

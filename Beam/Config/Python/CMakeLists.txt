@@ -35,7 +35,7 @@ endif()
 if(WIN32)
   target_link_libraries(Python PUBLIC bcrypt crypt32 Secur32 shlwapi Ws2_32)
 endif()
-beam_install_target(Python "${LIB_INSTALL_DIRECTORY}")
+beam_install_target(Python "${LIB_INSTALL_DIRECTORY}/$<CONFIG>")
 string(CONCAT aspen_library
   "$<$<CONFIG:Debug>:${ASPEN_PYTHON_LIBRARY_DEBUG_PATH}>"
   "$<$<NOT:$<CONFIG:Debug>>:${ASPEN_PYTHON_LIBRARY_OPTIMIZED_PATH}>")

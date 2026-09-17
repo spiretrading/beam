@@ -1,34 +1,34 @@
 @ECHO OFF
 SETLOCAL EnableDelayedExpansion
-SET CONFIG=%~1
-IF "!CONFIG!"=="" SET CONFIG=Release
-SET VALID_CONFIG=0
-IF /I "!CONFIG!"=="release" SET VALID_CONFIG=1 & SET CONFIG=Release
-IF /I "!CONFIG!"=="debug" SET VALID_CONFIG=1 & SET CONFIG=Debug
-IF /I "!CONFIG!"=="relwithdebinfo" (
-  SET VALID_CONFIG=1
-  SET CONFIG=RelWithDebInfo
-)
-IF /I "!CONFIG!"=="minsizerel" SET VALID_CONFIG=1 & SET CONFIG=MinSizeRel
-IF "!VALID_CONFIG!"=="0" (
+SET "DIRECTORY=%cd%\..\Beam\Libraries"
+SET "CONFIG=%~1"
+IF "!CONFIG!"=="" SET "CONFIG=Release"
+IF /I "!CONFIG!"=="release" (
+  SET "CONFIG=Release"
+) ELSE IF /I "!CONFIG!"=="debug" (
+  SET "CONFIG=Debug"
+) ELSE IF /I "!CONFIG!"=="relwithdebinfo" (
+  SET "CONFIG=RelWithDebInfo"
+) ELSE IF /I "!CONFIG!"=="minsizerel" (
+  SET "CONFIG=MinSizeRel"
+) ELSE (
   ECHO Error: Invalid configuration "!CONFIG!".
   EXIT /B 1
 )
-SET PYTHON_PATH=
-FOR /F "delims=" %%i IN ('python -m site --user-site 2^>NUL') DO (
-  SET PYTHON_PATH=%%i
+FOR %%F IN (aspen.pyd beam.pyd) DO (
+  IF NOT EXIST "!DIRECTORY!\!CONFIG!\%%F" (
+    ECHO Error: Source file "!DIRECTORY!\!CONFIG!\%%F" not found.
+    EXIT /B 1
+  )
+)
+SET "PYTHON_PATH="
+FOR /F "delims=" %%P IN ('python -m site --user-site 2^>NUL') DO (
+  SET "PYTHON_PATH=%%P"
 )
 IF "!PYTHON_PATH!"=="" (
   ECHO Error: Unable to retrieve Python user-site path.
   EXIT /B 1
 )
-SET "ASPEN_CONFIG=Release"
-IF "!CONFIG!"=="Debug" SET "ASPEN_CONFIG=Debug"
-PUSHD "..\Beam\Dependencies\aspen" || EXIT /B 1
-CALL install_python.bat "!ASPEN_CONFIG!"
-SET "INSTALL_RESULT=!ERRORLEVEL!"
-POPD
-IF NOT "!INSTALL_RESULT!"=="0" EXIT /B !INSTALL_RESULT!
 IF NOT EXIST "!PYTHON_PATH!" (
   MKDIR "!PYTHON_PATH!"
   IF ERRORLEVEL 1 (
@@ -36,13 +36,11 @@ IF NOT EXIST "!PYTHON_PATH!" (
     EXIT /B 1
   )
 )
-IF NOT EXIST "..\Beam\Libraries\!CONFIG!\beam.pyd" (
-  ECHO Error: Source file "..\Beam\Libraries\!CONFIG!\beam.pyd" not found.
-  EXIT /B 1
-)
-COPY "..\Beam\Libraries\!CONFIG!\beam.pyd" "!PYTHON_PATH!" >NUL
-IF ERRORLEVEL 1 (
-  ECHO Error: Failed to copy "beam.pyd" to "!PYTHON_PATH!".
-  EXIT /B 1
+FOR %%F IN (aspen.pyd beam.pyd) DO (
+  COPY /Y "!DIRECTORY!\!CONFIG!\%%F" "!PYTHON_PATH!\" >NUL
+  IF ERRORLEVEL 1 (
+    ECHO Error: Failed to copy "%%F" to "!PYTHON_PATH!".
+    EXIT /B 1
+  )
 )
 EXIT /B 0

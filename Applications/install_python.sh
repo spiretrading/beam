@@ -14,13 +14,22 @@ case "$config" in
     ;;
 esac
 shopt -u nocasematch
-python_directory=$(python3 -m site --user-site)
-aspen_config="Release"
-if [[ "$config" == "Debug" ]]; then
-  aspen_config="Debug"
+directory="$(pwd -P)/../Beam/Libraries/$config"
+for file in aspen.so beam.so; do
+  if [[ ! -f "$directory/$file" ]]; then
+    echo "Error: Source file \"$directory/$file\" not found."
+    exit 1
+  fi
+done
+python_directory=$(python3 -m site --user-site 2>/dev/null) || {
+  echo "Error: Unable to retrieve Python user-site path."
+  exit 1
+}
+if [[ -z "$python_directory" ]]; then
+  echo "Error: Unable to retrieve Python user-site path."
+  exit 1
 fi
-pushd ../Beam/Dependencies/aspen
-./install_python.sh "$aspen_config"
-popd
 mkdir -p "$python_directory"
-cp "../Beam/Libraries/$config/beam.so" "$python_directory"
+for file in aspen.so beam.so; do
+  cp "$directory/$file" "$python_directory/"
+done

@@ -106,6 +106,6 @@ function(beam_configure_clean)
   configure_file("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clean.cmake"
     CMakeFiles/clean.cmake.in @ONLY)
   file(GENERATE
-    OUTPUT "${PROJECT_BINARY_DIR}/CMakeFiles/clean_$<CONFIG>.cmake"
+    OUTPUT "${PROJECT_BINARY_DIR}/CMakeFiles/clean_outputs_$<CONFIG>.cmake"
     INPUT "${PROJECT_BINARY_DIR}/CMakeFiles/clean.cmake.in")
 endfunction()

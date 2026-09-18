@@ -8,11 +8,6 @@ FOR /F "delims==" %%V IN ('SET REPOS[ 2^>NUL') DO (
   SET "%%V="
 )
 SET "NEXT_REPO_INDEX=0"
-SET "SETUP_HASH="
-FOR /F "skip=1" %%H IN ('certutil -hashfile "%~dp0setup.bat" SHA256') DO (
-  IF NOT DEFINED SETUP_HASH SET "SETUP_HASH=%%H"
-)
-IF NOT DEFINED SETUP_HASH EXIT /B 1
 SET "ROOT=%cd%"
 SET "CACHE_DIRECTORY=!ROOT!\cache_files\beam"
 IF NOT EXIST "!CACHE_DIRECTORY!" (
@@ -23,37 +18,37 @@ SET "PERL_URL=https://github.com/StrawberryPerl/Perl-Dist-Strawberry"
 SET "PERL_URL=!PERL_URL!/releases/download/SP_54201_64bit"
 CALL :AddDependency "Strawberry" ^
   "!PERL_URL!/strawberry-perl-5.42.0.1-64bit-portable.zip" ^
-  "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71" "" 0
+  "a1cde185656cf307b51670eed69f648b9eff15b5c518cb136e027c628e650b71" 1 "" 0
 CALL :AddDependency "cryptopp890" ^
   "https://github.com/weidai11/cryptopp/archive/b524266.zip" ^
-  "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" ^
+  "51959987cc4d22289525b916dfc1b7239a956c2b903f9fa41ef4cde6e49a016a" 1 ^
   ":BuildCryptopp"
 CALL :AddDependency "openssl-3.6.0-build" ^
   "https://github.com/openssl/openssl/archive/refs/tags/openssl-3.6.0.zip" ^
-  "273d989d1157f0bd494054e1b799b6bdba39d4acaff6dfcb8db02656f1b454dd" ^
+  "273d989d1157f0bd494054e1b799b6bdba39d4acaff6dfcb8db02656f1b454dd" 1 ^
   ":BuildOpenSSL"
 CALL :AddDependency "tclap-1.4.0-rc2" ^
   "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" ^
-  "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
+  "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7" 1
 CALL :AddDependency "yaml-cpp" ^
   "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.zip" ^
-  "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" ^
+  "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" 1 ^
   ":BuildYamlCpp"
 CALL :AddDependency "zlib-1.3.1.2" ^
   "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip" ^
-  "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" ^
+  "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" 1 ^
   ":BuildZlib"
 CALL :AddDependency "boost_1_91_0" ^
   "https://archives.boost.io/release/1.91.0/source/boost_1_91_0.zip" ^
-  "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" ^
+  "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" 1 ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "71e301a1b6329ecd5a0c6069121b2fe8c099929b" ^
+  "3c1162940beac30dee68ebd6a10a512267306247" 1 ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "6d3f11e68f3e6a1a97538420ce5044f5efd1578c" ^
+  "647e7bc1c2a269cf27854f52ef4d89c5cb1e7269" 1 ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -177,8 +172,9 @@ EXIT /B 0
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].NAME=%~1"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].URL=%~2"
 SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].HASH=%~3"
-SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].BUILD=%~4"
-SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].STRIP=%~5"
+SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].REVISION=%~4"
+SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].BUILD=%~5"
+SET "DEPENDENCIES[%NEXT_DEPENDENCY_INDEX%].STRIP=%~6"
 SET /A NEXT_DEPENDENCY_INDEX+=1
 EXIT /B 0
 
@@ -186,7 +182,8 @@ EXIT /B 0
 SET "REPOS[%NEXT_REPO_INDEX%].NAME=%~1"
 SET "REPOS[%NEXT_REPO_INDEX%].URL=%~2"
 SET "REPOS[%NEXT_REPO_INDEX%].COMMIT=%~3"
-SET "REPOS[%NEXT_REPO_INDEX%].BUILD=%~4"
+SET "REPOS[%NEXT_REPO_INDEX%].REVISION=%~4"
+SET "REPOS[%NEXT_REPO_INDEX%].BUILD=%~5"
 SET /A NEXT_REPO_INDEX+=1
 EXIT /B 0
 
@@ -195,8 +192,8 @@ SET "I=0"
 :InstallDependenciesLoop
 IF NOT DEFINED DEPENDENCIES[%I%].NAME EXIT /B 0
 CALL :DownloadAndExtract "!DEPENDENCIES[%I%].NAME!" "!DEPENDENCIES[%I%].URL!" ^
-  "!DEPENDENCIES[%I%].HASH!" "!DEPENDENCIES[%I%].BUILD!" ^
-  "!DEPENDENCIES[%I%].STRIP!" || EXIT /B 1
+  "!DEPENDENCIES[%I%].HASH!" "!DEPENDENCIES[%I%].REVISION!" ^
+  "!DEPENDENCIES[%I%].BUILD!" "!DEPENDENCIES[%I%].STRIP!" || EXIT /B 1
 SET /A I+=1
 GOTO InstallDependenciesLoop
 
@@ -205,7 +202,8 @@ SET "I=0"
 :InstallReposLoop
 IF NOT DEFINED REPOS[%I%].NAME EXIT /B 0
 CALL :CloneOrUpdateRepo "!REPOS[%I%].NAME!" "!REPOS[%I%].URL!" ^
-  "!REPOS[%I%].COMMIT!" "!REPOS[%I%].BUILD!" || EXIT /B 1
+  "!REPOS[%I%].COMMIT!" "!REPOS[%I%].REVISION!" ^
+  "!REPOS[%I%].BUILD!" || EXIT /B 1
 SET /A I+=1
 GOTO InstallReposLoop
 
@@ -214,9 +212,9 @@ SET "FOLDER=%~1"
 SET "BUILD_MARKER=!CACHE_DIRECTORY!\!FOLDER!.build_complete"
 SET "URL=%~2"
 SET "EXPECTED_HASH=%~3"
-SET "BUILD_HASH=!EXPECTED_HASH! !SETUP_HASH!"
-SET "BUILD_LABEL=%~4"
-SET "STRIP=%~5"
+SET "BUILD_HASH=!EXPECTED_HASH! windows-%~4"
+SET "BUILD_LABEL=%~5"
+SET "STRIP=%~6"
 IF NOT DEFINED STRIP SET "STRIP=1"
 SET "ACTUAL_HASH="
 FOR /F "tokens=* delims=/" %%A IN ("!URL!") DO (
@@ -275,7 +273,8 @@ SET "REPO_NAME=%~1"
 SET "BUILD_MARKER=!CACHE_DIRECTORY!\!REPO_NAME!.build_complete"
 SET "REPO_URL=%~2"
 SET "REPO_COMMIT=%~3"
-SET "BUILD_LABEL=%~4"
+SET "BUILD_REVISION=%~4"
+SET "BUILD_LABEL=%~5"
 SET "IS_NEW_REPO="
 IF NOT EXIST "!REPO_NAME!" (
   IF EXIST "!BUILD_MARKER!" (
@@ -303,7 +302,7 @@ FOR /F %%H IN ('git rev-parse HEAD') DO (
   SET "REPO_HEAD=%%H"
 )
 IF NOT DEFINED REPO_HEAD (POPD & EXIT /B 1)
-SET "BUILD_HASH=!REPO_HEAD! !SETUP_HASH!"
+SET "BUILD_HASH=!REPO_HEAD! windows-!BUILD_REVISION!"
 SET "CACHED_HASH="
 IF EXIST "!BUILD_MARKER!" (
   SET /P CACHED_HASH=<"!BUILD_MARKER!"

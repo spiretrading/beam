@@ -4,7 +4,6 @@ set -o pipefail
 DIRECTORY=""
 ROOT=""
 CACHE_DIRECTORY=""
-SETUP_HASH=""
 DEPENDENCIES=()
 REPOS=()
 
@@ -12,34 +11,33 @@ main() {
   resolve_paths
   CACHE_DIRECTORY="$ROOT/cache_files/beam"
   mkdir -p "$CACHE_DIRECTORY" || return 1
-  SETUP_HASH=$(sha256 "$DIRECTORY/setup.sh") || return 1
   local cryptopp_url="https://github.com/weidai11/cryptopp/archive/refs/tags"
   add_dependency "cryptopp890" \
     "$cryptopp_url/CRYPTOPP_8_9_0.zip" \
-    "b885403cb13d490bebe90f25fad7150b88857f7acf3bd8b9ca1cec04c9ec8a51" \
+    "b885403cb13d490bebe90f25fad7150b88857f7acf3bd8b9ca1cec04c9ec8a51" 1 \
     "build_cryptopp"
   add_dependency "tclap-1.4.0-rc2" \
     "https://downloads.sourceforge.net/project/tclap/tclap-1.4.0-rc2.tar.bz2" \
-    "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7"
+    "ca52ce5badc477aeda59866601aad85c55e014c5400c15ed13e21fe7d0c1c5f7" 1
   add_dependency "yaml-cpp" \
     "https://github.com/jbeder/yaml-cpp/archive/refs/tags/yaml-cpp-0.9.0.zip" \
-    "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" \
+    "1c22709eb1fcde200c87ef4e878ce2c9477cc05eae84ebf1f72ec5b356468fee" 1 \
     "build_yaml_cpp"
   add_dependency "zlib-1.3.1.2" \
     "https://github.com/madler/zlib/archive/refs/tags/v1.3.1.2.zip" \
-    "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" \
+    "2ae5dfd8a1df6cffff4b0cde7cde73f2986aefbaaddc22cc1a36537b0e948afc" 1 \
     "build_zlib"
   add_dependency "boost_1_91_0" \
     "https://archives.boost.io/release/1.91.0/source/boost_1_91_0.zip" \
-    "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" \
+    "69c6f32fbda3c478fb310ec251e6699e5e584dbc71afb5425c2f6e98c9540a77" 1 \
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "71e301a1b6329ecd5a0c6069121b2fe8c099929b" \
+    "3c1162940beac30dee68ebd6a10a512267306247" 1 \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "6d3f11e68f3e6a1a97538420ce5044f5efd1578c" \
+    "647e7bc1c2a269cf27854f52ef4d89c5cb1e7269" 1 \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -121,29 +119,33 @@ add_dependency() {
   local name="$1"
   local url="$2"
   local hash="$3"
-  local build="${4:-}"
-  DEPENDENCIES+=("$name|$url|$hash|$build")
+  local revision="$4"
+  local build="${5:-}"
+  DEPENDENCIES+=("$name|$url|$hash|$revision|$build")
 }
 
 add_repo() {
   local name="$1"
   local url="$2"
   local commit="$3"
-  local build="${4:-}"
-  REPOS+=("$name|$url|$commit|$build")
+  local revision="$4"
+  local build="${5:-}"
+  REPOS+=("$name|$url|$commit|$revision|$build")
 }
 
 install_dependencies() {
   for dep in "${DEPENDENCIES[@]}"; do
-    IFS='|' read -r name url hash build <<< "$dep"
-    download_and_extract "$name" "$url" "$hash" "$build" || return 1
+    IFS='|' read -r name url hash revision build <<< "$dep"
+    download_and_extract "$name" "$url" "$hash" "$revision" "$build" ||
+      return 1
   done
 }
 
 install_repos() {
   for repo in "${REPOS[@]}"; do
-    IFS='|' read -r name url commit build <<< "$repo"
-    clone_or_update_repo "$name" "$url" "$commit" "$build" || return 1
+    IFS='|' read -r name url commit revision build <<< "$repo"
+    clone_or_update_repo "$name" "$url" "$commit" "$revision" "$build" ||
+      return 1
   done
 }
 
@@ -152,8 +154,8 @@ download_and_extract() {
   local build_marker="$CACHE_DIRECTORY/$folder.build_complete"
   local url="$2"
   local expected_hash="$3"
-  local build_hash="$expected_hash $SETUP_HASH"
-  local build_func="$4"
+  local build_hash="$expected_hash posix-$4"
+  local build_func="$5"
   local archive="${url##*/}"
   if [[ -d "$folder" && -f "$build_marker" ]] &&
       [[ "$(< "$build_marker")" == "$build_hash" ]]; then
@@ -210,7 +212,8 @@ clone_or_update_repo() {
   local build_marker="$CACHE_DIRECTORY/$repo_name.build_complete"
   local repo_url="$2"
   local repo_commit="$3"
-  local build_func="$4"
+  local revision="$4"
+  local build_func="$5"
   local is_new_repo=0
   if [[ ! -d "$repo_name" ]]; then
     rm -f "$build_marker" || return 1
@@ -228,7 +231,7 @@ clone_or_update_repo() {
   fi
   local repo_head
   repo_head=$(git rev-parse HEAD) || { popd > /dev/null; return 1; }
-  local build_hash="$repo_head $SETUP_HASH"
+  local build_hash="$repo_head posix-$revision"
   if [[ ! -f "$build_marker" ]] ||
       [[ "$(< "$build_marker")" != "$build_hash" ]]; then
     rm -f "$build_marker" || { popd > /dev/null; return 1; }

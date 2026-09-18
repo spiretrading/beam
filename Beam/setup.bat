@@ -45,11 +45,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "a8e19e4247d00a6b513c35f85e16451aba934beb" ^
+  "fec90eaa799a45384bc6d7f5e3103552f30cff3e" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "51abbf45b35f19e2993ef67906b959969e3c0c57" ^
+  "a6392847258d0278bc408bccfa1f213f2ab71c01" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -157,7 +157,7 @@ FOR /F "usebackq delims=" %%i IN (` ^
       -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 ^
       -property installationPath`) DO (
   IF EXIST "%%i\Common7\Tools\vsdevcmd.bat" (
-    CALL "%%i\Common7\Tools\vsdevcmd.bat" -arch=x64 -host_arch=x64 || (
+    CALL "%%i\Common7\Tools\vsdevcmd.bat" -no_logo -arch=x64 -host_arch=x64 || (
       EXIT /B 1
     )
     SET "VS_FOUND=1"

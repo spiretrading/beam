@@ -35,11 +35,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "636e129b0e7f0ecb69a95924bbc5bbeb6d3137c4" \
+    "2fd3dd5ad32a7936a41a895806714acd0c7b0ebb" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "340f1d325253cc310f00abae10eac183738a1209" \
+    "955b013ef66386e8b9a5656d472604eb213e8319" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -164,7 +164,10 @@ download_and_extract() {
       [[ "$(< "$folder/.beam_extract_complete")" != "$expected_hash" ]]; then
     rm -f "$folder/.beam_extract_complete" || return 1
     if [[ ! -f "$archive" ]]; then
-      curl -fsSL -o "$archive" "$url" || return 1
+      curl -fsSL -o "$archive" "$url" || {
+        rm -f "$archive"
+        return 1
+      }
     fi
     local actual_hash
     actual_hash=$(sha256 "$archive") || return 1

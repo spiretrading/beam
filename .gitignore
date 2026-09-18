@@ -24,6 +24,10 @@ CMakeFiles
 CMakeScripts
 Testing
 Makefile
+build.ninja
+build-*.ninja
+.ninja_deps
+.ninja_log
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
@@ -383,3 +387,10 @@ Applications/ServiceProtocolProfiler/ServiceProtocolProfiler
 Applications/ServletTemplate/ServletTemplate
 Applications/UidServer/UidServer
 Applications/WebSocketEchoServer/WebSocketEchoServer
+
+# Generated project outputs
+Beam/Config/Python/**/beam.exp
+Beam/Config/Python/**/beam.pyd
+Beam/Libraries/*/aspen.pyd
+Beam/Libraries/*/beam.pyd
+Beam/Tests/*/*Tests

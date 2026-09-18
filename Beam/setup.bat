@@ -49,11 +49,11 @@ CALL :AddDependency "boost_1_91_0" ^
   ":BuildBoost"
 CALL :AddRepo "aspen" ^
   "https://www.github.com/spiretrading/aspen" ^
-  "636e129b0e7f0ecb69a95924bbc5bbeb6d3137c4" ^
+  "2fd3dd5ad32a7936a41a895806714acd0c7b0ebb" ^
   ":BuildAspen"
 CALL :AddRepo "viper" ^
   "https://www.github.com/spiretrading/viper" ^
-  "340f1d325253cc310f00abae10eac183738a1209" ^
+  "955b013ef66386e8b9a5656d472604eb213e8319" ^
   ":BuildViper"
 SET "PATH=!ROOT!\Strawberry\perl\bin;!PATH!"
 SET "PATH=!ROOT!\Strawberry\perl\site\bin;!PATH!"
@@ -238,7 +238,10 @@ IF EXIST "!FOLDER!\.beam_extract_complete" (
   IF EXIST "!FOLDER!\.beam_extract_complete" EXIT /B 1
 )
 IF NOT EXIST "!ARCHIVE!" (
-  curl -fsL -o "!ARCHIVE!" "!URL!" || EXIT /B 1
+  curl -fsL -o "!ARCHIVE!" "!URL!" || (
+    IF EXIST "!ARCHIVE!" DEL /F /Q "!ARCHIVE!"
+    EXIT /B 1
+  )
 )
 FOR /F "skip=1 tokens=*" %%H IN ('certutil -hashfile "!ARCHIVE!" SHA256') DO (
   IF NOT DEFINED ACTUAL_HASH SET "ACTUAL_HASH=%%H"

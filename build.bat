@@ -16,8 +16,8 @@ CALL :Build WebApi %*
 IF !EXIT_STATUS! NEQ 0 EXIT /B !EXIT_STATUS!
 IF !PARALLEL! EQU 1 (
   SET "BUILD_TEMP=!ROOT!\_build_tmp"
-  IF EXIST "!BUILD_TEMP!" RD /S /Q "!BUILD_TEMP!"
-  MD "!BUILD_TEMP!"
+  IF EXIST "!BUILD_TEMP!" RD /S /Q "!BUILD_TEMP!" || GOTO BuildError
+  MD "!BUILD_TEMP!" || GOTO BuildError
 )
 CALL :BuildApp Applications\AdminClient %*
 CALL :BuildApp Applications\ClientTemplate %*
@@ -59,6 +59,9 @@ FOR %%F IN ("!BUILD_TEMP!\*.failed") DO (
 RD /S /Q "!BUILD_TEMP!"
 EXIT /B !EXIT_STATUS!
 ENDLOCAL
+
+:BuildError
+EXIT /B 1
 
 :ParseArgs
 SET "DEPENDENCIES=!ROOT!\Beam\Dependencies"
@@ -128,8 +131,14 @@ IF NOT EXIST "!PROJECT!" (
     EXIT /B 1
   )
 )
->"!BUILD_TEMP!\!PROJECT_NAME!.running" ECHO !PROJECT_NAME!
-START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!DEPENDENCIES!" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1
+>"!BUILD_TEMP!\!PROJECT_NAME!.running" ECHO !PROJECT_NAME! || (
+  SET "EXIT_STATUS=1"
+  EXIT /B 1
+)
+START /B cmd /c "PUSHD "!ROOT!\!PROJECT!" && CALL "!DIRECTORY!!PROJECT!\build.bat" -DD="!DEPENDENCIES!" !ARGS! && DEL "!BUILD_TEMP!\!PROJECT_NAME!.running" || (ECHO failed > "!BUILD_TEMP!\!PROJECT_NAME!.failed" & DEL "!BUILD_TEMP!\!PROJECT_NAME!.running")" >"!BUILD_TEMP!\!PROJECT_NAME!.log" 2>&1 || (
+  SET "EXIT_STATUS=1"
+  DEL "!BUILD_TEMP!\!PROJECT_NAME!.running"
+)
 EXIT /B 0
 
 :CreateForwardingScripts

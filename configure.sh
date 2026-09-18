@@ -10,8 +10,11 @@ main() {
   resolve_paths
   parse_args "$@" || return 1
   create_forwarding_scripts
+  unset BEAM_SETUP_DIRECTORY
+  configure_target "Beam" "${ARGS[@]}" || return 1
+  BEAM_SETUP_DIRECTORY="$(cd "$DEPENDENCIES" && pwd -P)" || return 1
+  export BEAM_SETUP_DIRECTORY
   local targets=(
-    "Beam"
     "WebApi"
     "Applications/AdminClient"
     "Applications/ClientTemplate"
@@ -97,10 +100,11 @@ configure_target() {
   local target="$1"
   shift
   if [[ ! -d "$target" ]]; then
-    mkdir -p "$target"
+    mkdir -p "$target" || return 1
   fi
-  pushd "$target" > /dev/null
-  "$DIRECTORY/$target/configure.sh" -DD="$DEPENDENCIES" "$@"
+  pushd "$target" > /dev/null || return 1
+  "$DIRECTORY/$target/configure.sh" -DD="$DEPENDENCIES" "$@" ||
+    { popd > /dev/null; return 1; }
   popd > /dev/null
 }
 

@@ -2,9 +2,12 @@
 SETLOCAL EnableDelayedExpansion
 SET "ROOT=%cd%"
 SET "EXIT_STATUS=0"
+SET "BEAM_SETUP_DIRECTORY="
 CALL :ParseArgs %* || EXIT /B 1
 CALL :CreateForwardingScripts || EXIT /B 1
 CALL :Configure Beam %*
+IF NOT "!EXIT_STATUS!"=="0" EXIT /B 1
+SET "BEAM_SETUP_DIRECTORY=!DEPENDENCIES!"
 CALL :Configure WebApi %*
 CALL :Configure Applications\AdminClient %*
 CALL :Configure Applications\ClientTemplate %*

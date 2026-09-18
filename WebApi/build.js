@@ -181,11 +181,14 @@ function npm(args) {
 function build() {
   configure();
   const dependencies = hash(['package.json', 'package-lock.json']);
-  if(state.dependencies != dependencies || !inspect('node_modules')) {
+  const packages = Object.keys(
+    JSON.parse(fs.readFileSync('package.json', 'utf8')).devDependencies);
+  if(state.dependencies != dependencies || packages.some(name =>
+      !inspect(path.join('node_modules', name, 'package.json')))) {
     delete state.dependencies;
     delete state.build;
     save();
-    npm(['ci']);
+    npm(['ci', '--include=dev']);
     state.dependencies = dependencies;
     save();
   }
@@ -219,7 +222,6 @@ function build() {
 
 function clean(reset) {
   delete state.build;
-  record();
   remove(state.generated);
   if(reset) {
     for(const name of ['node_modules', 'Dependencies']) {
@@ -256,7 +258,10 @@ function main() {
   }
   if(inspect(stateFile)) {
     state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
-    record();
+    if(state.snapshot) {
+      delete state.snapshot;
+      save();
+    }
   }
   if(command == 'configure') {
     configure();

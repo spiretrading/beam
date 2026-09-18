@@ -3,12 +3,15 @@ set -o errexit
 set -o pipefail
 DIRECTORY=""
 ROOT=""
+CACHE_DIRECTORY=""
 SETUP_HASH=""
 DEPENDENCIES=()
 REPOS=()
 
 main() {
   resolve_paths
+  CACHE_DIRECTORY="$ROOT/cache_files/beam"
+  mkdir -p "$CACHE_DIRECTORY" || return 1
   SETUP_HASH=$(sha256 "$DIRECTORY/setup.sh") || return 1
   local cryptopp_url="https://github.com/weidai11/cryptopp/archive/refs/tags"
   add_dependency "cryptopp890" \
@@ -32,11 +35,11 @@ main() {
     "build_boost"
   add_repo "aspen" \
     "https://www.github.com/spiretrading/aspen" \
-    "7906ffd6789b9b4d9d4a53cca74e8849e31f952b" \
+    "636e129b0e7f0ecb69a95924bbc5bbeb6d3137c4" \
     "build_aspen"
   add_repo "viper" \
     "https://www.github.com/spiretrading/viper" \
-    "4e2b4be726e6802b3e92179b3af2651cc1099e2b" \
+    "340f1d325253cc310f00abae10eac183738a1209" \
     "build_viper"
   install_dependencies || return 1
   install_repos || return 1
@@ -146,16 +149,17 @@ install_repos() {
 
 download_and_extract() {
   local folder="$1"
+  local build_marker="$CACHE_DIRECTORY/$folder.build_complete"
   local url="$2"
   local expected_hash="$3"
   local build_hash="$expected_hash $SETUP_HASH"
   local build_func="$4"
   local archive="${url##*/}"
-  if [[ -f "$folder/.beam_build_complete" ]] &&
-      [[ "$(< "$folder/.beam_build_complete")" == "$build_hash" ]]; then
+  if [[ -d "$folder" && -f "$build_marker" ]] &&
+      [[ "$(< "$build_marker")" == "$build_hash" ]]; then
     return 0
   fi
-  rm -f "$folder/.beam_build_complete" || return 1
+  rm -f "$build_marker" || return 1
   if [[ ! -f "$folder/.beam_extract_complete" ]] ||
       [[ "$(< "$folder/.beam_extract_complete")" != "$expected_hash" ]]; then
     rm -f "$folder/.beam_extract_complete" || return 1
@@ -192,7 +196,7 @@ download_and_extract() {
     $build_func || { popd > /dev/null; return 1; }
     popd > /dev/null
   fi
-  echo "$build_hash" > "$folder/.beam_build_complete" || return 1
+  echo "$build_hash" > "$build_marker" || return 1
   if [[ -f "$archive" ]]; then
     rm -f "$archive" || return 1
   fi
@@ -200,11 +204,13 @@ download_and_extract() {
 
 clone_or_update_repo() {
   local repo_name="$1"
+  local build_marker="$CACHE_DIRECTORY/$repo_name.build_complete"
   local repo_url="$2"
   local repo_commit="$3"
   local build_func="$4"
   local is_new_repo=0
   if [[ ! -d "$repo_name" ]]; then
+    rm -f "$build_marker" || return 1
     git clone "$repo_url" "$repo_name" || return 1
     is_new_repo=1
   fi
@@ -214,19 +220,19 @@ clone_or_update_repo() {
   fi
   if ! git merge-base --is-ancestor "$repo_commit" HEAD; then
     git fetch origin || { popd > /dev/null; return 1; }
-    rm -f .beam_build_complete || { popd > /dev/null; return 1; }
+    rm -f "$build_marker" || { popd > /dev/null; return 1; }
     git checkout "$repo_commit" || { popd > /dev/null; return 1; }
   fi
   local repo_head
   repo_head=$(git rev-parse HEAD) || { popd > /dev/null; return 1; }
   local build_hash="$repo_head $SETUP_HASH"
-  if [[ ! -f .beam_build_complete ]] ||
-      [[ "$(< .beam_build_complete)" != "$build_hash" ]]; then
-    rm -f .beam_build_complete || { popd > /dev/null; return 1; }
+  if [[ ! -f "$build_marker" ]] ||
+      [[ "$(< "$build_marker")" != "$build_hash" ]]; then
+    rm -f "$build_marker" || { popd > /dev/null; return 1; }
     if [[ -n "$build_func" ]]; then
       $build_func || { popd > /dev/null; return 1; }
     fi
-    echo "$build_hash" > .beam_build_complete ||
+    echo "$build_hash" > "$build_marker" ||
       { popd > /dev/null; return 1; }
   else
     (cd "$ROOT" && "./$repo_name/setup.sh") ||

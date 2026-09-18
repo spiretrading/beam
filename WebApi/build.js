@@ -53,7 +53,8 @@ function record() {
   }
   const previous = new Set(state.snapshot);
   state.generated = [...new Set([...state.generated,
-    ...outputs().filter(filename => !previous.has(filename))])];
+    ...outputs().filter(filename => !previous.has(filename))])].filter(
+      filename => inspect(path.join(root, filename)));
   delete state.snapshot;
   save();
 }
@@ -207,8 +208,6 @@ function build() {
   delete state.build;
   save();
   remove(generated);
-  state.generated = state.generated.filter(filename =>
-    !generated.includes(filename));
   state.snapshot = outputs();
   save();
   try {

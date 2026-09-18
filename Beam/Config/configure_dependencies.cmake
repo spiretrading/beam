@@ -9,7 +9,10 @@ function(fingerprint result)
     "${source_directory}/Config/extract.cmake"
     "${dependencies_directory}/*/.beam_*_complete"
     "${dependencies_directory}/*/.aspen_*_complete"
-    "${dependencies_directory}/*/.viper_*_complete")
+    "${dependencies_directory}/*/.viper_*_complete"
+    "${dependencies_directory}/cache_files/aspen/*.build_complete"
+    "${dependencies_directory}/cache_files/viper/*.build_complete"
+    "${dependencies_directory}/cache_files/beam/*.build_complete")
   list(APPEND inputs "${CMAKE_CURRENT_FUNCTION_LIST_FILE}")
   set(revisions)
   foreach(repository aspen viper)

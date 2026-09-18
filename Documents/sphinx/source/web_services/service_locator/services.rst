@@ -9,5 +9,5 @@ Beam Web Services
   :type username: string
   :param password: The account's password.
   :type password: string
-  :statuscode 200: :json:object:`beam.service_locator.DirectoryEntry`
+  :statuscode 200: :py:class:`beam.service_locator.DirectoryEntry`
     The directory entry of the account that logged in.

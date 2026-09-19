@@ -140,11 +140,11 @@ void Beam::Python::export_buffer_writer(module& module) {
 void Beam::Python::export_local_client_channel(module& module) {
   export_channel<ToPythonChannel<LocalClientChannel>>(
     module, "LocalClientChannel").
-    def(pybind11::init(
-      [] (const std::string& name, LocalServerConnection& server) {
-        return std::make_unique<ToPythonChannel<LocalClientChannel>>(
-          name, server);
-      }), keep_alive<1, 3>());
+    def(pybind11::init([] (const std::string& name,
+        ToPythonServerConnection<LocalServerConnection>& server) {
+      return std::make_unique<ToPythonChannel<LocalClientChannel>>(
+        name, server.get());
+    }), keep_alive<1, 3>());
 }
 
 void Beam::Python::export_local_connection(module& module) {

@@ -5,7 +5,52 @@
 
 using namespace Beam;
 
+namespace {
+  struct DatagramReader {
+    std::array<const char*, 2> m_buffers;
+    std::size_t m_count = 0;
+
+    bool poll() const {
+      return m_count != m_buffers.size();
+    }
+
+    template<IsBuffer B>
+    std::size_t read(Out<B> destination) {
+      return read(destination, std::size_t(65535));
+    }
+
+    template<IsBuffer B>
+    std::size_t read(Out<B> destination, std::size_t size) {
+      if(!poll()) {
+        throw EndOfFileException();
+      }
+      auto capacity = destination->grow(size);
+      auto character = static_cast<char>('A' + m_count);
+      destination->write(0, &character, sizeof(character));
+      destination->shrink(capacity - sizeof(character));
+      m_buffers[m_count++] = destination->get_data();
+      return sizeof(character);
+    }
+  };
+}
+
 TEST_SUITE("QueuedReader") {
+  TEST_CASE("receive_buffer_reuse") {
+    auto source = DatagramReader();
+    auto reader = QueuedReader(&source);
+    reader.poll();
+    flush_pending_routines();
+    REQUIRE(source.m_count == source.m_buffers.size());
+    REQUIRE(source.m_buffers[0] == source.m_buffers[1]);
+    auto buffer = SharedBuffer();
+    REQUIRE(reader.read(out(buffer)) == 1);
+    REQUIRE(buffer == "A");
+    reset(buffer);
+    REQUIRE(reader.read(out(buffer)) == 1);
+    REQUIRE(buffer == "B");
+    REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
+  }
+
   TEST_CASE("read") {
     auto reader = QueuedReader(BufferReader(from<SharedBuffer>("world")));
     auto buffer = SharedBuffer();

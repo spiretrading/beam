@@ -80,7 +80,8 @@ namespace Beam {
     try {
       while(true) {
         m_reader->read(out(buffer));
-        m_queued_writer.write(buffer);
+        m_queued_writer.write(
+          SharedBuffer(buffer.get_data(), buffer.get_size()));
         reset(buffer);
       }
     } catch(const std::exception&) {

@@ -1,11 +1,78 @@
 #ifndef BEAM_PYTHON_DATE_TIME_HPP
 #define BEAM_PYTHON_DATE_TIME_HPP
+#include <concepts>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <datetime.h>
 #include "Beam/Python/BasicTypeCaster.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace pybind11::detail {
+  template<typename T> requires
+    std::same_as<T, boost::gregorian::greg_day> ||
+    std::same_as<T, boost::gregorian::greg_month> ||
+    std::same_as<T, boost::gregorian::greg_weekday> ||
+    std::same_as<T, boost::gregorian::greg_year>
+  struct type_caster<T> : Beam::Python::BasicTypeCaster<T> {
+    static constexpr auto name = pybind11::detail::_("int");
+    static handle cast(T value, return_value_policy policy, handle parent) {
+      return type_caster<unsigned short>::cast(
+        static_cast<unsigned short>(value), policy, parent);
+    }
+
+    bool load(handle source, bool convert) {
+      auto value = type_caster<unsigned short>();
+      if(!value.load(source, convert)) {
+        return false;
+      }
+      this->m_value.emplace(cast_op<unsigned short>(value));
+      return true;
+    }
+  };
+
+  template<>
+  struct type_caster<boost::gregorian::date>
+      : Beam::Python::BasicTypeCaster<boost::gregorian::date> {
+    static constexpr auto name = pybind11::detail::_("datetime.date");
+    static handle cast(boost::gregorian::date value,
+        return_value_policy policy, handle parent) {
+      if(!PyDateTimeAPI) {
+        PyDateTime_IMPORT;
+      }
+      if(value.is_not_a_date()) {
+        return none().release();
+      } else if(value.is_neg_infinity()) {
+        return PyDate_FromDate(1, 1, 1);
+      } else if(value.is_pos_infinity()) {
+        return PyDate_FromDate(9999, 12, 31);
+      }
+      return PyDate_FromDate(value.year(), value.month(), value.day());
+    }
+
+    bool load(handle source, bool) {
+      if(!PyDateTimeAPI) {
+        PyDateTime_IMPORT;
+      }
+      if(source.is_none()) {
+        m_value.emplace(boost::date_time::not_a_date_time);
+        return true;
+      }
+      if(!PyDate_Check(source.ptr())) {
+        return false;
+      }
+      auto year = PyDateTime_GET_YEAR(source.ptr());
+      auto month = PyDateTime_GET_MONTH(source.ptr());
+      auto day = PyDateTime_GET_DAY(source.ptr());
+      if(year == 1 && month == 1 && day == 1) {
+        m_value.emplace(boost::date_time::neg_infin);
+      } else if(year == 9999 && month == 12 && day == 31) {
+        m_value.emplace(boost::date_time::pos_infin);
+      } else {
+        m_value.emplace(year, month, day);
+      }
+      return true;
+    }
+  };
+
   template<>
   struct type_caster<boost::posix_time::time_duration>
       : Beam::Python::BasicTypeCaster<boost::posix_time::time_duration> {

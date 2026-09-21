@@ -1,4 +1,5 @@
 #include "Beam/Python/TimeService.hpp"
+#include <sstream>
 #include <Aspen/Conversions.hpp>
 #include <Aspen/Python/Box.hpp>
 #include <Aspen/Python/Reactor.hpp>
@@ -196,5 +197,13 @@ void Beam::Python::export_trigger_timer(pybind11::module& module) {
 }
 
 void Beam::Python::export_tz_database(pybind11::module& module) {
-  class_<tz_database>(module, "TimeZoneDatabase");
+  class_<tz_database>(module, "TimeZoneDatabase").
+    def(pybind11::init()).
+    def(pybind11::init<const tz_database&>()).
+    def(pybind11::init([] (const std::string& source) {
+      auto database = tz_database();
+      auto stream = std::stringstream(source);
+      database.load_from_stream(stream);
+      return database;
+    }));
 }

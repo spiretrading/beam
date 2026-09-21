@@ -38,6 +38,9 @@ void Beam::Python::export_utilities(module& module) {
 
 void Beam::Python::export_yaml(pybind11::module& module) {
   class_<YAML::Node>(module, "YamlNode");
+  module.def("parse_yaml", [] (const std::string& source) {
+    return YAML::Load(source);
+  });
   module.def("load_yaml", [] (std::string_view path) {
     return std::make_unique<YAML::Node>(load_file(path));
   });

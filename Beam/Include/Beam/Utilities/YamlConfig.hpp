@@ -1,11 +1,14 @@
 #ifndef BEAM_YAML_CONFIG_HPP
 #define BEAM_YAML_CONFIG_HPP
+#include <algorithm>
+#include <charconv>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <sstream>
 #include <type_traits>
 #include <vector>
 #include <boost/algorithm/string/trim.hpp>
@@ -27,6 +30,223 @@
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
+namespace Details {
+  inline std::string decode_yaml_pointer(std::string_view fragment) {
+    auto pointer = std::string();
+    for(auto i = std::size_t(0); i != fragment.size(); ++i) {
+      if(fragment[i] != '%') {
+        pointer += fragment[i];
+      } else {
+        if(fragment.size() - i < 3) {
+          throw std::runtime_error("Invalid JSON Pointer percent escape.");
+        }
+        auto value = unsigned();
+        auto begin = fragment.data() + i + 1;
+        auto result = std::from_chars(begin, begin + 2, value, 16);
+        if(result.ec != std::errc() || result.ptr != begin + 2) {
+          throw std::runtime_error("Invalid JSON Pointer percent escape.");
+        }
+        pointer += static_cast<char>(value);
+        i += 2;
+      }
+    }
+    return pointer;
+  }
+
+  inline YAML::Node select_yaml_node(
+      YAML::Node node, std::string_view pointer) {
+    if(pointer.empty()) {
+      return node;
+    }
+    if(pointer.front() != '/') {
+      throw std::runtime_error("JSON Pointer must begin with '/'.");
+    }
+    auto begin = std::size_t(1);
+    while(true) {
+      auto end = pointer.find('/', begin);
+      if(end == std::string_view::npos) {
+        end = pointer.size();
+      }
+      auto token = std::string();
+      for(auto i = begin; i != end; ++i) {
+        if(pointer[i] != '~') {
+          token += pointer[i];
+        } else {
+          ++i;
+          if(i == end || (pointer[i] != '0' && pointer[i] != '1')) {
+            throw std::runtime_error("Invalid JSON Pointer '~' escape.");
+          }
+          if(pointer[i] == '0') {
+            token += '~';
+          } else {
+            token += '/';
+          }
+        }
+      }
+      if(node.IsMap()) {
+        auto selected = YAML::Node(YAML::NodeType::Undefined);
+        for(auto entry : node) {
+          if(entry.first.IsScalar() && entry.first.Scalar() == token) {
+            if(selected.IsDefined()) {
+              throw std::runtime_error("Ambiguous JSON Pointer key: " + token);
+            }
+            selected.reset(entry.second);
+          }
+        }
+        if(!selected.IsDefined()) {
+          throw std::runtime_error("JSON Pointer key not found: " + token);
+        }
+        node.reset(selected);
+      } else if(node.IsSequence()) {
+        auto index = std::size_t();
+        auto result = std::from_chars(
+          token.data(), token.data() + token.size(), index);
+        if(token.empty() || (token.size() > 1 && token.front() == '0') ||
+            result.ec != std::errc() ||
+            result.ptr != token.data() + token.size() || index >= node.size()) {
+          throw std::runtime_error("Invalid JSON Pointer index: " + token);
+        }
+        node.reset(std::as_const(node)[index]);
+      } else {
+        throw std::runtime_error("JSON Pointer traverses a scalar or null.");
+      }
+      if(end == pointer.size()) {
+        return node;
+      }
+      begin = end + 1;
+    }
+  }
+
+  inline YAML::Node merge_yaml_nodes(const YAML::Node& defaults,
+      const YAML::Node& overrides,
+      std::vector<std::pair<YAML::Node, YAML::Node>>& ancestors) {
+    if(std::any_of(ancestors.begin(), ancestors.end(), [&] (const auto& pair) {
+        return pair.first.is(defaults) && pair.second.is(overrides);
+      })) {
+      throw std::runtime_error("Circular YAML mapping merge.");
+    }
+    ancestors.emplace_back(defaults, overrides);
+    auto merged = YAML::Clone(defaults);
+    for(auto entry : overrides) {
+      auto key = entry.first.as<std::string>();
+      auto inherited = defaults[key];
+      auto value = YAML::Node();
+      if(inherited && inherited.IsMap() && entry.second.IsMap()) {
+        value = merge_yaml_nodes(inherited, entry.second, ancestors);
+      } else {
+        value = YAML::Clone(entry.second);
+      }
+      merged.remove(key);
+      merged[key] = value;
+    }
+    ancestors.pop_back();
+    return merged;
+  }
+
+  template<typename L>
+  class YamlConfigLoader {
+    public:
+      explicit YamlConfigLoader(L loader) noexcept(
+        std::is_nothrow_move_constructible_v<L>)
+        : m_loader(std::move(loader)) {}
+
+      YAML::Node load(const std::filesystem::path& path,
+          std::string_view fragment) {
+        try {
+          auto file = std::filesystem::absolute(path).lexically_normal();
+          auto pointer = decode_yaml_pointer(fragment);
+          auto identity = std::pair(
+            std::filesystem::weakly_canonical(file), pointer);
+          if(std::find(m_paths.begin(), m_paths.end(), identity) !=
+              m_paths.end()) {
+            throw std::runtime_error("Circular YAML include.");
+          }
+          m_paths.push_back(identity);
+          try {
+            auto node = select_yaml_node(m_loader(file), pointer);
+            auto ancestors = std::vector<YAML::Node>();
+            resolve(node, file, ancestors);
+            m_paths.pop_back();
+            return node;
+          } catch(...) {
+            m_paths.pop_back();
+            throw;
+          }
+        } catch(const std::exception& e) {
+          auto message = std::stringstream();
+          message << "Unable to load YAML \"" << path.string();
+          if(!fragment.empty()) {
+            message << '#' << fragment;
+          }
+          message << "\":\n" << e.what();
+          boost::throw_with_location(std::runtime_error(message.str()));
+        }
+      }
+
+    private:
+      L m_loader;
+      std::vector<std::pair<std::filesystem::path, std::string>> m_paths;
+
+      void resolve(YAML::Node node, const std::filesystem::path& path,
+          std::vector<YAML::Node>& ancestors) {
+        if(node.Tag() == "!include") {
+          if(!node.IsScalar() || node.Scalar().empty()) {
+            throw std::runtime_error("!include requires a nonempty path.");
+          }
+          auto reference = node.Scalar();
+          auto separator = reference.find('#');
+          auto file = path;
+          if(separator != 0) {
+            file = path.parent_path() / reference.substr(0, separator);
+          }
+          auto fragment = std::string_view();
+          if(separator != std::string::npos) {
+            fragment = std::string_view(reference).substr(separator + 1);
+          }
+          node = load(file, fragment);
+        } else if(node.IsMap() || node.IsSequence()) {
+          if(std::any_of(ancestors.begin(), ancestors.end(),
+              [&] (const auto& ancestor) { return node.is(ancestor); })) {
+            return;
+          }
+          ancestors.push_back(node);
+          if(node.IsMap()) {
+            auto source = YAML::Node(YAML::NodeType::Undefined);
+            for(auto entry : node) {
+              resolve(entry.second, path, ancestors);
+              if(entry.first.IsScalar() && entry.first.Scalar() == "<<" &&
+                  (entry.first.Tag() == "?" ||
+                    entry.first.Tag() == "tag:yaml.org,2002:merge")) {
+                if(source.IsDefined()) {
+                  throw std::runtime_error("Multiple YAML merge keys.");
+                }
+                source.reset(entry.second);
+              }
+            }
+            if(source.IsDefined()) {
+              if(!source.IsMap()) {
+                throw std::runtime_error(
+                  "YAML merge source must be a mapping.");
+              }
+              if(std::any_of(ancestors.begin(), ancestors.end(),
+                  [&] (const auto& ancestor) { return source.is(ancestor); })) {
+                throw std::runtime_error("Circular YAML mapping merge.");
+              }
+              node.remove("<<");
+              auto merges =
+                std::vector<std::pair<YAML::Node, YAML::Node>>();
+              node = merge_yaml_nodes(source, node, merges);
+            }
+          } else {
+            for(auto i = std::size_t(0); i != node.size(); ++i) {
+              resolve(node[i], path, ancestors);
+            }
+          }
+          ancestors.pop_back();
+        }
+      }
+  };
+}
 
   /**
    * Template used to parse a value from a YAML node.
@@ -62,21 +282,14 @@ namespace Beam {
    * @return The YAML Node represented by the file at the specified <i>path</i>.
    */
   inline YAML::Node load_file(std::string_view path) {
-    auto config_stream = std::ifstream(path.data());
-    if(!config_stream.good()) {
-      auto message = std::stringstream();
-      message << "YAML file not found: " << path << '\n';
-      boost::throw_with_location(std::runtime_error(message.str()));
-    }
-    try {
-      return YAML::Load(config_stream);
-    } catch(const YAML::ParserException& e) {
-      auto message = std::stringstream();
-      message << "Invalid YAML in file \"" << path << "\" at line " <<
-        (e.mark.line + 1) << ", " << "column " << (e.mark.column + 1) << ": " <<
-        e.msg << '\n';
-      boost::throw_with_location(std::runtime_error(message.str()));
-    }
+    auto loader = Details::YamlConfigLoader([] (const auto& path) {
+      auto stream = std::ifstream(path);
+      if(!stream.good()) {
+        throw std::runtime_error("YAML file not found: " + path.string());
+      }
+      return YAML::Load(stream);
+    });
+    return loader.load(std::filesystem::path(path), "");
   }
 
   /**

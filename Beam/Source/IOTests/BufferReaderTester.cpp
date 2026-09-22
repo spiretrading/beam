@@ -5,6 +5,29 @@
 using namespace Beam;
 
 TEST_SUITE("BufferReader") {
+  TEST_CASE("shared_buffer_transfer") {
+    auto source = from<SharedBuffer>("abcdef");
+    auto reader = BufferReader(source);
+    auto offset = std::size_t(0);
+    SUBCASE("whole") {}
+    SUBCASE("remainder") {
+      auto prefix = SharedBuffer();
+      REQUIRE(reader.read(out(prefix), 2) == 2);
+      REQUIRE(prefix == "ab");
+      offset = 2;
+    }
+    auto destination = SharedBuffer();
+    REQUIRE(reader.read(out(destination)) == source.get_size() - offset);
+    REQUIRE(destination.get_data() == source.get_data() + offset);
+    REQUIRE_FALSE(reader.poll());
+    REQUIRE_THROWS_AS(reader.read(out(destination)), EndOfFileException);
+    reader = BufferReader(SharedBuffer());
+    source = SharedBuffer();
+    REQUIRE(destination == std::string_view("abcdef").substr(offset));
+    append(destination, "gh", 2);
+    REQUIRE(destination == std::string_view("abcdefgh").substr(offset));
+  }
+
   TEST_CASE("create_empty") {
     auto reader = BufferReader(from<SharedBuffer>(""));
     auto buffer = SharedBuffer();
@@ -54,6 +77,18 @@ TEST_SUITE("BufferReader") {
     REQUIRE(b == std::string("abcd"));
     REQUIRE(reader.poll());
     REQUIRE(reader_copy.poll());
+  }
+
+  TEST_CASE("shared_buffer_mutation") {
+    auto reader = BufferReader(from<SharedBuffer>("abcdef"));
+    auto copy = reader;
+    auto destination = SharedBuffer();
+    REQUIRE(reader.read(out(destination)) == 6);
+    destination.write(0, "X", 1);
+    auto original = SharedBuffer();
+    REQUIRE(copy.read(out(original)) == 6);
+    REQUIRE(original == "abcdef");
+    REQUIRE(destination == "Xbcdef");
   }
 
   TEST_CASE("end_of_file_after_consumed") {

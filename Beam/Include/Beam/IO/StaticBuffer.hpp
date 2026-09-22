@@ -55,7 +55,9 @@ namespace Beam {
   template<std::size_t N>
   StaticBuffer<N>::StaticBuffer(const void* data, std::size_t size) noexcept
       : m_size(std::min(size, N)) {
-    std::memcpy(m_data.data(), data, size);
+    if(m_size != 0) {
+      std::memcpy(m_data.data(), data, m_size);
+    }
   }
 
   template<std::size_t N>

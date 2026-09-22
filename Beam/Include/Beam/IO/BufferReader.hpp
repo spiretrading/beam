@@ -4,6 +4,7 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/Reader.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 
 namespace Beam {
 
@@ -70,6 +71,20 @@ namespace Beam {
   std::size_t BufferReader<B>::read(Out<R> destination, std::size_t size) {
     if(m_remaining_size == 0 || !m_cursor) {
       boost::throw_with_location(EndOfFileException());
+    }
+    if constexpr(std::same_as<B, SharedBuffer> &&
+        std::same_as<R, SharedBuffer>) {
+      if(destination->get_size() == 0 && size >= m_remaining_size) {
+        if(m_remaining_size == m_source.get_size()) {
+          *destination = std::move(m_source);
+        } else {
+          *destination = m_source.slice(
+            m_source.get_size() - m_remaining_size, m_remaining_size);
+          m_source = SharedBuffer();
+        }
+        m_cursor = nullptr;
+        return std::exchange(m_remaining_size, 0);
+      }
     }
     auto read_size =
       append_up_to(*destination, m_cursor, std::min(size, m_remaining_size));

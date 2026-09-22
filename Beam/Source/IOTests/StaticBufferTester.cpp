@@ -5,6 +5,21 @@
 using namespace Beam;
 
 TEST_SUITE("StaticBuffer") {
+  TEST_CASE("oversized_source") {
+    struct Storage {
+      StaticBuffer<8> m_buffer;
+      std::array<char, 8> m_guard;
+    };
+    auto storage = Storage();
+    storage.m_guard.fill('X');
+    auto source = std::string("abcdefghijklmnop");
+    std::destroy_at(&storage.m_buffer);
+    std::construct_at(&storage.m_buffer, source.data(), source.size());
+    REQUIRE(storage.m_buffer == "abcdefgh");
+    REQUIRE(std::string_view(storage.m_guard.data(), storage.m_guard.size()) ==
+      "XXXXXXXX");
+  }
+
   TEST_CASE("default_construct") {
     auto buffer = StaticBuffer<16>();
     REQUIRE(buffer.get_size() == 0);
@@ -71,3 +86,5 @@ TEST_SUITE("StaticBuffer") {
     REQUIRE(other == buffer);
   }
 }
+#include <array>
+#include <memory>

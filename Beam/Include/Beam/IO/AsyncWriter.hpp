@@ -72,7 +72,7 @@ namespace Beam {
   template<IsConstBuffer B>
   void AsyncWriter<W>::write(B&& data) {
     try {
-      m_tasks.push([=, data = std::move(data), this] {
+      m_tasks.push([=, data = std::forward<B>(data), this] {
         try {
           m_destination->write(data);
         } catch(const std::exception&) {

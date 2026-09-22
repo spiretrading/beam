@@ -4,6 +4,27 @@
 using namespace Beam;
 
 TEST_SUITE("SharedBuffer") {
+  TEST_CASE("capacity") {
+    SUBCASE("empty") {
+      auto buffer = SharedBuffer(0);
+      REQUIRE(buffer.get_size() == 0);
+      REQUIRE(!buffer.get_data());
+    }
+    SUBCASE("rounded") {
+      auto buffer = from<SharedBuffer>("abcde");
+      auto data = buffer.get_data();
+      append(buffer, "fgh", 3);
+      REQUIRE(buffer.get_data() == data);
+      REQUIRE(buffer == "abcdefgh");
+      append(buffer, "i", 1);
+      REQUIRE(buffer == "abcdefghi");
+    }
+    SUBCASE("overflow") {
+      auto size = std::numeric_limits<std::size_t>::max();
+      REQUIRE_THROWS_AS(SharedBuffer(size).get_size(), std::bad_alloc);
+    }
+  }
+
   TEST_CASE("default") {
     auto buffer = SharedBuffer();
     REQUIRE(buffer.get_size() == 0);
@@ -144,3 +165,4 @@ TEST_SUITE("SharedBuffer") {
     REQUIRE(buffer.get_size() == before + 3);
   }
 }
+#include <limits>

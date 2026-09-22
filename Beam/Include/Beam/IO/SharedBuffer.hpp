@@ -1,8 +1,10 @@
 #ifndef BEAM_SHARED_BUFFER_HPP
 #define BEAM_SHARED_BUFFER_HPP
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <boost/throw_exception.hpp>
@@ -62,7 +64,6 @@ namespace Beam {
       std::size_t m_capacity;
       std::shared_ptr<char> m_data;
 
-      static std::size_t next_power_of_two(std::size_t n);
       static std::size_t ceil_power_of_two(std::size_t n);
       void reallocate(std::size_t size);
   };
@@ -175,24 +176,14 @@ namespace Beam {
     return *this;
   }
 
-  inline std::size_t SharedBuffer::next_power_of_two(std::size_t n) {
-    auto next = std::size_t(1);
-    auto last = next;
-    while(next < n) {
-      next *= 2;
-      if(next < last) {
-        boost::throw_with_location(std::bad_alloc());
-      }
-      last = next;
-    }
-    return next;
-  }
-
   inline std::size_t SharedBuffer::ceil_power_of_two(std::size_t n) {
-    if((n & (n - 1)) == 0) {
-      return n;
+    if(n == 0) {
+      return 0;
     }
-    return next_power_of_two(n);
+    if(n > std::bit_floor(std::numeric_limits<std::size_t>::max())) {
+      boost::throw_with_location(std::bad_alloc());
+    }
+    return std::bit_ceil(n);
   }
 
   inline void SharedBuffer::reallocate(std::size_t size) {

@@ -23,6 +23,7 @@ TEST_SUITE("AsyncWriter") {
         AsyncWriter(std::make_unique<BufferWriter<SharedBuffer>>(Ref(buffer)));
       auto source = from<SharedBuffer>("abc");
       writer.write(source);
+      REQUIRE(source == "abc");
     }
     REQUIRE(buffer == "abc");
   }

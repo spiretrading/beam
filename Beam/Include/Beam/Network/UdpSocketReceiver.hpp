@@ -1,21 +1,21 @@
 #ifndef BEAM_UDP_SOCKET_RECEIVER_HPP
 #define BEAM_UDP_SOCKET_RECEIVER_HPP
+#include <cstdint>
+#include <deque>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/UdpSocketOptions.hpp"
 #include "Beam/Pointers/Out.hpp"
-#include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
-  /** Receives UDP datagrams. */
+  /** Buffers UDP datagrams after the first receive or poll. */
   class UdpSocketReceiver {
     public:
 
@@ -28,6 +28,9 @@ namespace Beam {
         std::shared_ptr<Details::UdpSocketEntry> socket);
 
       ~UdpSocketReceiver();
+
+      /** Returns whether a datagram is available. */
+      bool poll() const;
 
       /**
        * Receives a DatagramPacket.
@@ -50,30 +53,39 @@ namespace Beam {
         Out<R> destination, std::size_t size, Out<IpAddress> address);
 
     private:
-      mutable Mutex m_mutex;
-      bool m_is_open;
-      bool m_is_deadline_pending;
-      ConditionVariable m_is_complete_condition;
-      UdpSocketOptions m_options;
-      std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      boost::asio::basic_waitable_timer<boost::chrono::steady_clock> m_deadline;
+      struct State {
+        UdpSocketOptions m_options;
+        std::shared_ptr<Details::UdpSocketEntry> m_socket;
+        SharedBuffer m_buffer;
+        boost::asio::ip::udp::endpoint m_sender;
+        std::deque<DatagramPacket<SharedBuffer>> m_packets;
+        std::exception_ptr m_exception;
+        ConditionVariable m_is_available;
+        boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
+          m_deadline;
+        std::uint64_t m_deadline_id;
+
+        State(const UdpSocketOptions& options,
+          std::shared_ptr<Details::UdpSocketEntry> socket);
+      };
+      std::shared_ptr<State> m_state;
 
       UdpSocketReceiver(const UdpSocketReceiver&) = delete;
       UdpSocketReceiver& operator =(const UdpSocketReceiver&) = delete;
-      void check_deadline(const boost::system::error_code& error);
+      static void start(const std::shared_ptr<State>& state);
+      static void on_read(const std::shared_ptr<State>& state,
+        const boost::system::error_code& error, std::size_t size);
+      static void on_deadline(const std::shared_ptr<State>& state,
+        std::uint64_t id, const boost::system::error_code& error);
   };
 
   inline UdpSocketReceiver::UdpSocketReceiver(const UdpSocketOptions& options,
-    std::shared_ptr<Details::UdpSocketEntry> socket)
-    : m_is_open(true),
-      m_is_deadline_pending(false),
-      m_options(options),
-      m_socket(std::move(socket)),
-      m_deadline(*m_socket->m_io_context) {
+      std::shared_ptr<Details::UdpSocketEntry> socket)
+      : m_state(std::make_shared<State>(options, std::move(socket))) {
     auto error_code = boost::system::error_code();
     auto buffer_size = boost::asio::socket_base::receive_buffer_size(
-      static_cast<int>(m_options.m_receive_buffer_size));
-    m_socket->m_socket.set_option(buffer_size, error_code);
+      static_cast<int>(options.m_receive_buffer_size));
+    m_state->m_socket->m_socket.set_option(buffer_size, error_code);
     if(error_code) {
       boost::throw_with_location(
         SocketException(error_code.value(), error_code.message()));
@@ -81,15 +93,28 @@ namespace Beam {
   }
 
   inline UdpSocketReceiver::~UdpSocketReceiver() {
-    auto lock = boost::unique_lock(m_mutex);
-    if(m_is_deadline_pending) {
-      return;
+    m_state->m_socket->close();
+    auto lock = std::lock_guard(m_state->m_socket->m_mutex);
+    ++m_state->m_deadline_id;
+    m_state->m_deadline.cancel();
+  }
+
+  inline bool UdpSocketReceiver::poll() const {
+    auto lock = std::lock_guard(m_state->m_socket->m_mutex);
+    if(!m_state->m_socket->m_is_open ||
+        !m_state->m_socket->m_socket.is_open()) {
+      return false;
     }
-    m_is_open = false;
-    m_deadline.cancel();
-    while(m_is_deadline_pending) {
-      m_is_complete_condition.wait(lock);
+    auto is_available = !m_state->m_packets.empty();
+    if(!is_available) {
+      auto error = boost::system::error_code();
+      is_available =
+        m_state->m_socket->m_socket.available(error) != 0 && !error;
     }
+    if(!m_state->m_socket->m_is_read_pending && !m_state->m_exception) {
+      start(m_state);
+    }
+    return is_available;
   }
 
   template<IsBuffer R>
@@ -101,70 +126,124 @@ namespace Beam {
   template<IsBuffer R>
   std::size_t UdpSocketReceiver::receive(
       Out<R> destination, std::size_t size, Out<IpAddress> address) {
-    auto available_size =
-      destination->grow(std::min(m_options.m_max_datagram_size, size));
-    auto read_result = Async<std::size_t>();
-    auto sender_end = boost::asio::ip::udp::endpoint();
-    {
-      auto lock = boost::lock_guard(m_socket->m_mutex);
-      if(!m_socket->m_is_open) {
-        boost::throw_with_location(EndOfFileException());
-      }
-      m_socket->m_is_read_pending = true;
-      m_socket->m_socket.async_receive_from(
-        boost::asio::buffer(get_mutable_suffix(*destination, available_size),
-          available_size), sender_end,
-        [&] (const auto& error, auto read_size) {
-          if(error) {
-            read_result.get_eval().set_exception(
-              SocketException(error.value(), error.message()));
-            return;
-          }
-          *address = IpAddress(
-            sender_end.address().to_string(), sender_end.port());
-          read_result.get_eval().set(read_size);
-        });
-    }
-    auto has_timeout = m_options.m_timeout != boost::posix_time::pos_infin;
-    if(has_timeout) {
-      auto lock = boost::lock_guard(m_mutex);
-      m_is_deadline_pending = true;
-      m_deadline.expires_after(
-        boost::chrono::microseconds(m_options.m_timeout.total_microseconds()));
-      m_deadline.async_wait(
-        std::bind_front(&UdpSocketReceiver::check_deadline, this));
-    }
+    auto state = m_state;
     try {
-      auto result = read_result.get();
-      if(has_timeout) {
-        m_deadline.cancel();
+      auto packet = [&] {
+        auto lock = std::unique_lock(state->m_socket->m_mutex);
+        if(!state->m_socket->m_is_open ||
+            !state->m_socket->m_socket.is_open()) {
+          boost::throw_with_location(EndOfFileException());
+        }
+        if(!state->m_socket->m_is_read_pending && !state->m_exception) {
+          start(state);
+        }
+        auto has_timeout =
+          state->m_options.m_timeout != boost::posix_time::pos_infin;
+        if(state->m_packets.empty() && !state->m_exception && has_timeout) {
+          auto id = ++state->m_deadline_id;
+          state->m_deadline.expires_after(boost::chrono::microseconds(
+            state->m_options.m_timeout.total_microseconds()));
+          state->m_deadline.async_wait([=] (const auto& error) {
+            on_deadline(state, id, error);
+          });
+        }
+        while(state->m_packets.empty() && !state->m_exception &&
+            state->m_socket->m_is_open) {
+          state->m_is_available.wait(lock);
+        }
+        if(has_timeout) {
+          ++state->m_deadline_id;
+          state->m_deadline.cancel();
+        }
+        if(!state->m_socket->m_is_open ||
+            !state->m_socket->m_socket.is_open()) {
+          boost::throw_with_location(EndOfFileException());
+        }
+        if(state->m_packets.empty()) {
+          std::rethrow_exception(std::exchange(state->m_exception, {}));
+        }
+        auto packet = std::move(state->m_packets.front());
+        state->m_packets.pop_front();
+        return packet;
+      }();
+      auto& data = packet.get_data();
+      size = std::min(size, state->m_options.m_max_datagram_size);
+      if constexpr(std::same_as<R, SharedBuffer>) {
+        if(destination->get_size() == 0 && data.get_size() <= size) {
+          size = data.get_size();
+          *destination = std::move(data);
+          *address = packet.get_address();
+          return size;
+        }
       }
-      m_socket->end_read_operation();
-      destination->shrink(available_size - result);
-      return result;
+      auto available = destination->grow(std::min(size, data.get_size()));
+      if(available != 0) {
+        destination->write(
+          destination->get_size() - available, data.get_data(), available);
+      }
+      *address = packet.get_address();
+      return available;
     } catch(const std::exception&) {
-      m_socket->end_read_operation();
       throw_nested_with_location(EndOfFileException());
     }
   }
 
-  inline void UdpSocketReceiver::check_deadline(
+  inline UdpSocketReceiver::State::State(const UdpSocketOptions& options,
+    std::shared_ptr<Details::UdpSocketEntry> socket)
+    : m_options(options),
+      m_socket(std::move(socket)),
+      m_buffer(options.m_max_datagram_size),
+      m_deadline(*m_socket->m_io_context),
+      m_deadline_id(0) {}
+
+  inline void UdpSocketReceiver::start(const std::shared_ptr<State>& state) {
+    state->m_socket->m_socket.async_receive_from(
+      boost::asio::buffer(
+        state->m_buffer.get_mutable_data(), state->m_buffer.get_size()),
+      state->m_sender, [=] (const auto& error, auto size) {
+        on_read(state, error, size);
+      });
+    state->m_socket->m_is_read_pending = true;
+  }
+
+  inline void UdpSocketReceiver::on_read(const std::shared_ptr<State>& state,
+      const boost::system::error_code& error, std::size_t size) {
+    auto lock = std::lock_guard(state->m_socket->m_mutex);
+    state->m_socket->m_is_read_pending = false;
+    ++state->m_deadline_id;
+    try {
+      if(error) {
+        boost::throw_with_location(
+          SocketException(error.value(), error.message()));
+      }
+      if(state->m_socket->m_is_open) {
+        state->m_packets.emplace_back(
+          SharedBuffer(state->m_buffer.get_data(), size),
+          IpAddress(state->m_sender.address().to_string(),
+            state->m_sender.port()));
+        start(state);
+      }
+    } catch(const std::exception&) {
+      state->m_exception = std::current_exception();
+    }
+    state->m_is_available.notify_all();
+    if(!state->m_socket->m_is_open) {
+      state->m_socket->m_is_pending_condition.notify_all();
+    }
+  }
+
+  inline void UdpSocketReceiver::on_deadline(
+      const std::shared_ptr<State>& state, std::uint64_t id,
       const boost::system::error_code& error) {
-    {
-      auto lock = boost::lock_guard(m_mutex);
-      m_is_deadline_pending = false;
-      if(!m_is_open) {
-        m_is_complete_condition.notify_one();
-        return;
-      }
+    auto lock = std::lock_guard(state->m_socket->m_mutex);
+    if(error == boost::asio::error::operation_aborted ||
+        id != state->m_deadline_id || !state->m_socket->m_is_open) {
+      return;
     }
-    if(error != boost::asio::error::operation_aborted) {
-      auto error_code = boost::system::error_code();
-      {
-        auto lock = boost::lock_guard(m_socket->m_mutex);
-        m_socket->m_socket.close(error_code);
-      }
-    }
+    state->m_exception = std::make_exception_ptr(EndOfFileException());
+    auto close_error = boost::system::error_code();
+    state->m_socket->m_socket.close(close_error);
+    state->m_is_available.notify_all();
   }
 }
 

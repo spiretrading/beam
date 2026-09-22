@@ -32,11 +32,16 @@ namespace Beam {
       void send(const DatagramPacket<R>& packet);
 
     private:
+      friend class MulticastSocketWriter;
+      friend class UdpSocketWriter;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
       TaskRunner m_tasks;
 
       UdpSocketSender(const UdpSocketSender&) = delete;
       UdpSocketSender& operator =(const UdpSocketSender&) = delete;
+      template<IsConstBuffer R>
+      void send(
+        const R& data, const boost::asio::ip::udp::endpoint& destination);
   };
 
   inline UdpSocketSender::UdpSocketSender(const UdpSocketOptions& options,
@@ -45,25 +50,31 @@ namespace Beam {
 
   template<IsConstBuffer R>
   void UdpSocketSender::send(const DatagramPacket<R>& packet) {
+    auto destination = boost::asio::ip::udp::endpoint(
+      boost::asio::ip::make_address(packet.get_address().get_host()),
+      packet.get_address().get_port());
+    send(packet.get_data(), destination);
+  }
+
+  template<IsConstBuffer R>
+  void UdpSocketSender::send(
+      const R& data, const boost::asio::ip::udp::endpoint& destination) {
     auto write_result = Async<void>();
     m_socket->begin_write_operation();
     m_tasks.add([&] {
-      auto destination_end = boost::asio::ip::udp::endpoint(
-        boost::asio::ip::make_address(packet.get_address().get_host()),
-        packet.get_address().get_port());
       m_socket->m_socket.async_send_to(boost::asio::buffer(
-        packet.get_data().get_data(), packet.get_data().get_size()),
-        destination_end, [&] (const auto& error, auto write_size) {
+        data.get_data(), data.get_size()),
+        destination, [&] (const auto& error, auto write_size) {
         if(error) {
-          write_result .get_eval().set_exception(
+          write_result.get_eval().set_exception(
             SocketException(error.value(), error.message()));
           return;
         }
-        write_result .get_eval().set();
+        write_result.get_eval().set();
       });
     });
     try {
-      write_result .get();
+      write_result.get();
       m_socket->end_write_operation();
     } catch(const std::exception&) {
       m_socket->end_write_operation();

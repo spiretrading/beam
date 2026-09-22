@@ -314,7 +314,8 @@ void Beam::Python::export_udp_socket_receiver(module& module) {
 
 void Beam::Python::export_udp_socket_sender(module& module) {
   class_<UdpSocketSender>(module, "UdpSocketSender").
-    def("send", &UdpSocketSender::send<SharedBuffer>, call_guard<GilRelease>());
+    def("send", overload_cast<const DatagramPacket<SharedBuffer>&>(
+      &UdpSocketSender::send<SharedBuffer>), call_guard<GilRelease>());
 }
 
 void Beam::Python::export_udp_socket_writer(module& module) {

@@ -25,16 +25,7 @@ namespace Beam {
   };
 
   inline bool MulticastSocketReader::poll() const {
-    auto command = boost::asio::socket_base::bytes_readable(true);
-    {
-      auto lock = boost::lock_guard(m_socket->m_socket->m_mutex);
-      try {
-        m_socket->m_socket->m_socket.io_control(command);
-      } catch(const std::exception&) {
-        return false;
-      }
-    }
-    return command.get() > 0;
+    return m_socket->get_receiver().poll();
   }
 
   template<IsBuffer R>

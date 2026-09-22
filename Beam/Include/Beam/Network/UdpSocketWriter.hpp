@@ -16,6 +16,7 @@ namespace Beam {
     private:
       friend class UdpSocketChannel;
       std::shared_ptr<UdpSocket> m_socket;
+      boost::asio::ip::udp::endpoint m_destination;
 
       UdpSocketWriter(std::shared_ptr<UdpSocket> socket);
       UdpSocketWriter(const UdpSocketWriter&) = delete;
@@ -24,11 +25,14 @@ namespace Beam {
 
   template<IsConstBuffer T>
   void UdpSocketWriter::write(const T& data) {
-    m_socket->get_sender().send(DatagramPacket(data, m_socket->get_address()));
+    m_socket->get_sender().send(data, m_destination);
   }
 
   inline UdpSocketWriter::UdpSocketWriter(std::shared_ptr<UdpSocket> socket)
-    : m_socket(std::move(socket)) {}
+    : m_socket(std::move(socket)),
+      m_destination(
+        boost::asio::ip::make_address(m_socket->get_address().get_host()),
+          m_socket->get_address().get_port()) {}
 }
 
 #endif

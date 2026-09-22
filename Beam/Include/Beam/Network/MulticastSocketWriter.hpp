@@ -16,7 +16,7 @@ namespace Beam {
     private:
       friend class MulticastSocketChannel;
       std::shared_ptr<MulticastSocket> m_socket;
-      IpAddress m_destination;
+      boost::asio::ip::udp::endpoint m_destination;
 
       MulticastSocketWriter(
         std::shared_ptr<MulticastSocket> socket, IpAddress destination);
@@ -26,13 +26,14 @@ namespace Beam {
 
   template<IsConstBuffer T>
   void MulticastSocketWriter::write(const T& data) {
-    m_socket->get_sender().send(DatagramPacket(data, m_destination));
+    m_socket->get_sender().send(data, m_destination);
   }
 
   inline MulticastSocketWriter::MulticastSocketWriter(
     std::shared_ptr<MulticastSocket> socket, IpAddress destination)
     : m_socket(std::move(socket)),
-      m_destination(std::move(destination)) {}
+      m_destination(boost::asio::ip::make_address(
+        destination.get_host()), destination.get_port()) {}
 }
 
 #endif

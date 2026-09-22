@@ -29,6 +29,7 @@ namespace Beam {
   inline UdpSocketOptions::UdpSocketOptions() noexcept
     : m_timeout(boost::posix_time::pos_infin),
       m_ttl(-1),
+      m_enable_loopback(true),
       m_max_datagram_size(2 * 1024),
       m_receive_buffer_size(8 * 1024) {}
 }

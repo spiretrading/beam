@@ -2,6 +2,7 @@
 #define BEAM_UDP_SOCKET_HPP
 #include <string>
 #include <boost/asio/ip/udp.hpp>
+#include <boost/asio/ip/unicast.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
@@ -133,38 +134,31 @@ namespace Beam {
     try {
       auto error_code = boost::system::error_code();
       auto resolver = boost::asio::ip::udp::resolver(*m_socket->m_io_context);
-      auto ends = resolver.resolve(
+      auto ends = resolver.resolve(boost::asio::ip::udp::v4(),
         m_address.get_host(), std::to_string(m_address.get_port()), error_code);
       if(error_code) {
         boost::throw_with_location(
           SocketException(error_code.value(), error_code.message()));
       }
-      auto is_address_resolved = false;
-      for(auto& end : ends) {
-        auto address = end.host_name();
-        if(!address.empty()) {
-          auto ip_addresses = resolver.resolve(boost::asio::ip::udp::v4(),
-            address, std::to_string(m_address.get_port()));
-          if(ip_addresses.empty()) {
-            m_address = IpAddress(address, m_address.get_port());
-          } else {
-            m_address = IpAddress(
-              ip_addresses.begin()->endpoint().address().to_string(),
-              m_address.get_port());
-          }
-          is_address_resolved = true;
-          break;
-        }
-      }
-      if(!is_address_resolved) {
+      if(ends.empty()) {
         boost::throw_with_location(
           ConnectException("Unable to resolve IP address."));
       }
+      m_address = IpAddress(
+        ends.begin()->endpoint().address().to_string(), m_address.get_port());
       m_socket->m_socket.set_option(
         boost::asio::ip::udp::socket::reuse_address(true), error_code);
       if(error_code) {
         boost::throw_with_location(
           SocketException(error_code.value(), error_code.message()));
+      }
+      if(options.m_ttl >= 0) {
+        m_socket->m_socket.set_option(
+          boost::asio::ip::unicast::hops(options.m_ttl), error_code);
+        if(error_code) {
+          boost::throw_with_location(
+            SocketException(error_code.value(), error_code.message()));
+        }
       }
       if(interface) {
         m_socket->m_socket.bind(boost::asio::ip::udp::endpoint(

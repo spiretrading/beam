@@ -160,9 +160,10 @@ namespace Beam {
         if(!state->m_socket->m_is_read_pending && !state->m_exception) {
           start(state);
         }
-        auto has_timeout =
-          state->m_options.m_timeout != boost::posix_time::pos_infin;
-        if(state->m_packets.empty() && !state->m_exception && has_timeout) {
+        auto is_deadline_started =
+          state->m_packets.empty() && !state->m_exception &&
+            state->m_options.m_timeout != boost::posix_time::pos_infin;
+        if(is_deadline_started) {
           auto id = ++state->m_deadline_id;
           state->m_deadline.expires_after(boost::chrono::microseconds(
             state->m_options.m_timeout.total_microseconds()));
@@ -174,7 +175,7 @@ namespace Beam {
             state->m_socket->m_is_open) {
           state->m_is_available.wait(lock);
         }
-        if(has_timeout) {
+        if(is_deadline_started) {
           ++state->m_deadline_id;
           state->m_deadline.cancel();
         }

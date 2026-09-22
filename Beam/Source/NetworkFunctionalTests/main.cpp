@@ -12,6 +12,24 @@ using namespace boost;
 using namespace boost::posix_time;
 
 TEST_SUITE("UdpSocket") {
+  TEST_CASE("address_resolution") {
+    auto socket = UdpSocket(IpAddress("localhost", 15000));
+    REQUIRE(socket.get_address() == IpAddress("127.0.0.1", 15000));
+  }
+
+  TEST_CASE("ttl") {
+    auto address = IpAddress("127.0.0.1", 15000);
+    auto options = UdpSocketOptions();
+    SUBCASE("valid") {
+      options.m_ttl = 1;
+      REQUIRE_NOTHROW(UdpSocket(address, options));
+    }
+    SUBCASE("invalid") {
+      options.m_ttl = 256;
+      REQUIRE_THROWS_AS(UdpSocket(address, options), ConnectException);
+    }
+  }
+
   TEST_CASE("basic_send_receive") {
     auto server_address = IpAddress("127.0.0.1", 15000);
     auto client_address = IpAddress("127.0.0.1", 15001);

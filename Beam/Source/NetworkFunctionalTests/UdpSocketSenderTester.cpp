@@ -112,8 +112,9 @@ TEST_SUITE("UdpSocketSender") {
       });
     }
     flush_pending_routines();
-    REQUIRE(socket->m_pending_writes == 2);
+    auto pending_writes = socket->m_pending_writes;
     auto is_closed = std::atomic_bool(false);
+    auto is_closed_before_completion = false;
     auto closer = RoutineHandler();
     SUBCASE("completion") {}
     SUBCASE("close") {
@@ -122,11 +123,13 @@ TEST_SUITE("UdpSocketSender") {
         is_closed = true;
       });
       flush_pending_routines();
-      REQUIRE_FALSE(is_closed);
+      is_closed_before_completion = is_closed;
     }
     context.run();
     writers.wait();
     closer.wait();
+    REQUIRE(pending_writes == 2);
+    REQUIRE_FALSE(is_closed_before_completion);
     REQUIRE(socket->m_pending_writes == 0);
     for(auto i = 0; i < 2; ++i) {
       auto error = results.pop();

@@ -6,7 +6,7 @@
 #include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
+#include "Beam/Network/UdpSocketReceiverConcept.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/Expect.hpp"
 

@@ -3,7 +3,7 @@
 #include <memory>
 #include <boost/asio/io_context.hpp>
 #include <boost/thread/thread.hpp>
-#include "Beam/Network/UdpSocketReceiver.hpp"
+#include "Beam/Network/UdpSocketReceiverConcept.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 

@@ -1,6 +1,5 @@
 #ifndef BEAM_UDP_SOCKET_RECEIVER_HPP
 #define BEAM_UDP_SOCKET_RECEIVER_HPP
-#include <concepts>
 #include <cstdint>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
@@ -9,26 +8,12 @@
 #include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketOptions.hpp"
+#include "Beam/Network/UdpSocketReceiverConcept.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
-
-  /** Concept satisfied by UDP datagram receivers. */
-  template<typename T>
-  concept IsUdpSocketReceiver = std::constructible_from<T,
-    const UdpSocketOptions&, std::shared_ptr<Details::UdpSocketEntry>> &&
-    requires(T& receiver) {
-      { std::as_const(receiver).poll() } -> std::same_as<bool>;
-      { receiver.receive(
-        out(std::declval<SharedBuffer&>()), std::size_t(0)) } ->
-          std::same_as<std::size_t>;
-      { receiver.receive(
-        out(std::declval<DatagramPacket<SharedBuffer>&>())) } ->
-          std::same_as<std::size_t>;
-    };
 
   /** Receives UDP datagrams on demand. */
   class UdpSocketReceiver {

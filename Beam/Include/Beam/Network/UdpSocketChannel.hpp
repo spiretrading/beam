@@ -9,26 +9,30 @@
 
 namespace Beam {
 
-  /** Implements the Channel interface using a UDP socket. */
-  class UdpSocketChannel {
+  /**
+   * Implements the Channel interface using a UDP socket.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocketChannel {
     public:
       using Identifier = SocketIdentifier;
-      using Connection = UdpSocketConnection;
-      using Reader = UdpSocketReader;
-      using Writer = UdpSocketWriter;
+      using Connection = BasicUdpSocketConnection<R>;
+      using Reader = BasicUdpSocketReader<R>;
+      using Writer = BasicUdpSocketWriter<R>;
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        */
-      explicit UdpSocketChannel(const IpAddress& address);
+      explicit BasicUdpSocketChannel(const IpAddress& address);
 
       /**
        * Constructs a UdpSocketChannel.
        * @param address The address to open.
        * @param options The options to apply to the socket.
        */
-      UdpSocketChannel(
+      BasicUdpSocketChannel(
         const IpAddress& address, const UdpSocketOptions& options);
 
       /**
@@ -36,7 +40,8 @@ namespace Beam {
        * @param address The address to open.
        * @param interface The interface to use.
        */
-      UdpSocketChannel(const IpAddress& address, const IpAddress& interface);
+      BasicUdpSocketChannel(
+        const IpAddress& address, const IpAddress& interface);
 
       /**
        * Constructs a UdpSocketChannel.
@@ -44,7 +49,8 @@ namespace Beam {
        * @param interface The interface to use.
        * @param options The options to apply to the socket.
        */
-      UdpSocketChannel(const IpAddress& address, const IpAddress& interface,
+      BasicUdpSocketChannel(
+        const IpAddress& address, const IpAddress& interface,
         const UdpSocketOptions& options);
 
       const Identifier& get_identifier() const;
@@ -54,48 +60,67 @@ namespace Beam {
 
     private:
       Identifier m_identifier;
-      std::shared_ptr<UdpSocket> m_socket;
+      std::shared_ptr<BasicUdpSocket<R>> m_socket;
       Connection m_connection;
       Reader m_reader;
       Writer m_writer;
 
-      UdpSocketChannel(const UdpSocketChannel&) = delete;
-      UdpSocketChannel& operator =(const UdpSocketChannel&) = delete;
+      BasicUdpSocketChannel(const BasicUdpSocketChannel&) = delete;
+      BasicUdpSocketChannel& operator =(const BasicUdpSocketChannel&) = delete;
   };
 
-  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address)
-    : UdpSocketChannel(address, UdpSocketOptions()) {}
+  /** The on-demand UdpSocketChannel type. */
+  using UdpSocketChannel = BasicUdpSocketChannel<UdpSocketReceiver>;
 
-  inline UdpSocketChannel::UdpSocketChannel(
+  /** The buffered UdpSocketChannel type. */
+  using BufferedUdpSocketChannel =
+    BasicUdpSocketChannel<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketChannel<R>::BasicUdpSocketChannel(const IpAddress& address)
+    : BasicUdpSocketChannel<R>(address, UdpSocketOptions()) {}
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketChannel<R>::BasicUdpSocketChannel(
     const IpAddress& address, const UdpSocketOptions& options)
-    : UdpSocketChannel(address, IpAddress("0.0.0.0", 0), options) {}
+    : BasicUdpSocketChannel<R>(address, IpAddress("0.0.0.0", 0), options) {}
 
-  inline UdpSocketChannel::UdpSocketChannel(
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketChannel<R>::BasicUdpSocketChannel(
     const IpAddress& address, const IpAddress& interface)
-    : UdpSocketChannel(address, interface, UdpSocketOptions()) {}
+    : BasicUdpSocketChannel<R>(address, interface, UdpSocketOptions()) {}
 
-  inline UdpSocketChannel::UdpSocketChannel(const IpAddress& address,
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketChannel<R>::BasicUdpSocketChannel(const IpAddress& address,
     const IpAddress& interface, const UdpSocketOptions& options)
     : m_identifier(address),
-      m_socket(std::make_shared<UdpSocket>(address, interface, options)),
+      m_socket(
+        std::make_shared<BasicUdpSocket<R>>(address, interface, options)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket) {}
 
-  inline const UdpSocketChannel::Identifier&
-      UdpSocketChannel::get_identifier() const {
+  template<IsUdpSocketReceiver R>
+  const typename BasicUdpSocketChannel<R>::Identifier&
+      BasicUdpSocketChannel<R>::get_identifier() const {
     return m_identifier;
   }
 
-  inline UdpSocketChannel::Connection& UdpSocketChannel::get_connection() {
+  template<IsUdpSocketReceiver R>
+  typename BasicUdpSocketChannel<R>::Connection&
+      BasicUdpSocketChannel<R>::get_connection() {
     return m_connection;
   }
 
-  inline UdpSocketChannel::Reader& UdpSocketChannel::get_reader() {
+  template<IsUdpSocketReceiver R>
+  typename BasicUdpSocketChannel<R>::Reader&
+      BasicUdpSocketChannel<R>::get_reader() {
     return m_reader;
   }
 
-  inline UdpSocketChannel::Writer& UdpSocketChannel::get_writer() {
+  template<IsUdpSocketReceiver R>
+  typename BasicUdpSocketChannel<R>::Writer&
+      BasicUdpSocketChannel<R>::get_writer() {
     return m_writer;
   }
 }

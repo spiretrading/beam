@@ -7,10 +7,10 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Network/BufferedUdpSocketReceiver.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/ServiceThreadPool.hpp"
@@ -19,29 +19,33 @@
 
 namespace Beam {
 
-  /** Implements a UDP socket. */
-  class UdpSocket {
+  /**
+   * Implements a UDP socket.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocket {
     public:
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        */
-      explicit UdpSocket(const IpAddress& address);
+      explicit BasicUdpSocket(const IpAddress& address);
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        * @param options The options to apply to this socket.
        */
-      UdpSocket(const IpAddress& address, const UdpSocketOptions& options);
+      BasicUdpSocket(const IpAddress& address, const UdpSocketOptions& options);
 
       /**
        * Constructs a UdpSocket.
        * @param address The address to send to.
        * @param interface The interface to use.
        */
-      UdpSocket(const IpAddress& address, const IpAddress& interface);
+      BasicUdpSocket(const IpAddress& address, const IpAddress& interface);
 
       /**
        * Constructs a UdpSocket.
@@ -49,16 +53,16 @@ namespace Beam {
        * @param interface The interface to use.
        * @param options The options to apply to this socket.
        */
-      UdpSocket(const IpAddress& address, const IpAddress& interface,
+      BasicUdpSocket(const IpAddress& address, const IpAddress& interface,
         const UdpSocketOptions& options);
 
-      ~UdpSocket();
+      ~BasicUdpSocket();
 
       /** Returns the IpAddress to send and receive from. */
       const IpAddress& get_address() const;
 
       /** Returns the socket's receiver. */
-      UdpSocketReceiver& get_receiver();
+      R& get_receiver();
 
       /** Returns the socket's sender. */
       UdpSocketSender& get_sender();
@@ -66,23 +70,30 @@ namespace Beam {
       void close();
 
     private:
-      friend class UdpSocketReader;
       IpAddress m_address;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      boost::optional<UdpSocketReceiver> m_receiver;
+      boost::optional<R> m_receiver;
       boost::optional<UdpSocketSender> m_sender;
       OpenState m_open_state;
 
-      UdpSocket(const UdpSocket&) = delete;
-      UdpSocket& operator =(const UdpSocket&) = delete;
+      BasicUdpSocket(const BasicUdpSocket&) = delete;
+      BasicUdpSocket& operator =(const BasicUdpSocket&) = delete;
       void open(
         boost::optional<IpAddress> interface, const UdpSocketOptions& options);
   };
 
-  inline UdpSocket::UdpSocket(const IpAddress& address)
-    : UdpSocket(address, UdpSocketOptions()) {}
+  /** The on-demand UdpSocket type. */
+  using UdpSocket = BasicUdpSocket<UdpSocketReceiver>;
 
-  inline UdpSocket::UdpSocket(
+  /** The buffered UdpSocket type. */
+  using BufferedUdpSocket = BasicUdpSocket<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocket<R>::BasicUdpSocket(const IpAddress& address)
+    : BasicUdpSocket<R>(address, UdpSocketOptions()) {}
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocket<R>::BasicUdpSocket(
       const IpAddress& address, const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
@@ -91,11 +102,13 @@ namespace Beam {
     open(boost::none, options);
   }
 
-  inline UdpSocket::UdpSocket(
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocket<R>::BasicUdpSocket(
     const IpAddress& address, const IpAddress& interface)
-    : UdpSocket(address, interface, UdpSocketOptions()) {}
+    : BasicUdpSocket<R>(address, interface, UdpSocketOptions()) {}
 
-  inline UdpSocket::UdpSocket(const IpAddress& address,
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocket<R>::BasicUdpSocket(const IpAddress& address,
       const IpAddress& interface, const UdpSocketOptions& options)
       : m_address(address),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
@@ -105,23 +118,28 @@ namespace Beam {
     open(interface, options);
   }
 
-  inline UdpSocket::~UdpSocket() {
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocket<R>::~BasicUdpSocket() {
     close();
   }
 
-  inline const IpAddress& UdpSocket::get_address() const {
+  template<IsUdpSocketReceiver R>
+  const IpAddress& BasicUdpSocket<R>::get_address() const {
     return m_address;
   }
 
-  inline UdpSocketReceiver& UdpSocket::get_receiver() {
+  template<IsUdpSocketReceiver R>
+  R& BasicUdpSocket<R>::get_receiver() {
     return *m_receiver;
   }
 
-  inline UdpSocketSender& UdpSocket::get_sender() {
+  template<IsUdpSocketReceiver R>
+  UdpSocketSender& BasicUdpSocket<R>::get_sender() {
     return *m_sender;
   }
 
-  inline void UdpSocket::close() {
+  template<IsUdpSocketReceiver R>
+  void BasicUdpSocket<R>::close() {
     if(m_open_state.set_closing()) {
       return;
     }
@@ -129,7 +147,8 @@ namespace Beam {
     m_open_state.close();
   }
 
-  inline void UdpSocket::open(
+  template<IsUdpSocketReceiver R>
+  void BasicUdpSocket<R>::open(
       boost::optional<IpAddress> interface, const UdpSocketOptions& options) {
     try {
       auto error_code = boost::system::error_code();

@@ -17,19 +17,19 @@ namespace Beam::Python {
   void export_ip_address(pybind11::module& module);
 
   /**
-   * Exports the MulticastSocket class.
+   * Exports MulticastSocket and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_multicast_socket(pybind11::module& module);
 
   /**
-   * Exports the MulticastSocketChannel class.
+   * Exports MulticastSocketChannel and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_multicast_socket_channel(pybind11::module& module);
 
   /**
-   * Exports the MulticastSocketConnection class.
+   * Exports MulticastSocketConnection and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_multicast_socket_connection(pybind11::module& module);
@@ -41,13 +41,13 @@ namespace Beam::Python {
   void export_multicast_socket_options(pybind11::module& module);
 
   /**
-   * Exports the MulticastSocketReader class.
+   * Exports MulticastSocketReader and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_multicast_socket_reader(pybind11::module& module);
 
   /**
-   * Exports the MulticastSocketWriter class.
+   * Exports MulticastSocketWriter and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_multicast_socket_writer(pybind11::module& module);
@@ -131,19 +131,19 @@ namespace Beam::Python {
   void export_tcp_socket_writer(pybind11::module& module);
 
   /**
-   * Exports the UdpSocket class.
+   * Exports UdpSocket and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket(pybind11::module& module);
 
   /**
-   * Exports the UdpSocketChannel class.
+   * Exports UdpSocketChannel and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket_channel(pybind11::module& module);
 
   /**
-   * Exports the UdpSocketConnection class.
+   * Exports UdpSocketConnection and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket_connection(pybind11::module& module);
@@ -155,13 +155,13 @@ namespace Beam::Python {
   void export_udp_socket_options(pybind11::module& module);
 
   /**
-   * Exports the UdpSocketReader class.
+   * Exports UdpSocketReader and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket_reader(pybind11::module& module);
 
   /**
-   * Exports the UdpSocketReceiver class.
+   * Exports UdpSocketReceiver and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket_receiver(pybind11::module& module);
@@ -173,7 +173,7 @@ namespace Beam::Python {
   void export_udp_socket_sender(pybind11::module& module);
 
   /**
-   * Exports the UdpSocketWriter class.
+   * Exports UdpSocketWriter and its buffered counterpart.
    * @param module The module to export to.
    */
   void export_udp_socket_writer(pybind11::module& module);

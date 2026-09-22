@@ -30,11 +30,12 @@ TEST_SUITE("UdpSocket") {
     }
   }
 
-  TEST_CASE("basic_send_receive") {
+  TEST_CASE_TEMPLATE("basic_send_receive", T,
+      UdpSocketChannel, BufferedUdpSocketChannel) {
     auto server_address = IpAddress("127.0.0.1", 15000);
     auto client_address = IpAddress("127.0.0.1", 15001);
-    auto client_channel = UdpSocketChannel(server_address, client_address);
-    auto server_channel = UdpSocketChannel(client_address, server_address);
+    auto client_channel = T(server_address, client_address);
+    auto server_channel = T(client_address, server_address);
     auto message = std::string("hello from client");
     auto send_buffer = SharedBuffer(message.data(), message.size());
     client_channel.get_writer().write(send_buffer);
@@ -366,15 +367,16 @@ TEST_SUITE("TcpSocket") {
 }
 
 TEST_SUITE("MulticastSocket") {
-  TEST_CASE("join_group_and_simple_send_receive") {
+  TEST_CASE_TEMPLATE("join_group_and_simple_send_receive", T,
+      MulticastSocketChannel, BufferedMulticastSocketChannel) {
     auto group = IpAddress("239.255.0.1", 16000);
     auto interface = IpAddress("127.0.0.1", 0);
     auto options = MulticastSocketOptions();
     options.m_enable_loopback = true;
     options.m_max_datagram_size = 4096;
     options.m_receive_buffer_size = 8192;
-    auto listener = MulticastSocketChannel(group, interface, options);
-    auto sender = MulticastSocketChannel(group, interface, options);
+    auto listener = T(group, interface, options);
+    auto sender = T(group, interface, options);
     auto message = std::string("multicast hello");
     auto send_buffer = from<SharedBuffer>(message);
     sender.get_writer().write(send_buffer);

@@ -2,36 +2,61 @@
 #define BEAM_UDP_SOCKET_READER_HPP
 #include "Beam/IO/Reader.hpp"
 #include "Beam/Network/UdpSocket.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
 
 namespace Beam {
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocketChannel;
 
-  /** Implements the Reader interface for a UdpReceiver. */
-  class UdpSocketReader {
+  /**
+   * Implements the Reader interface for a UDP socket.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocketReader {
     public:
       bool poll() const;
-      template<IsBuffer R>
-      std::size_t read(Out<R> destination, std::size_t size = -1);
+      template<IsBuffer B>
+      std::size_t read(Out<B> destination);
+      template<IsBuffer B>
+      std::size_t read(Out<B> destination, std::size_t size);
 
     private:
-      friend class UdpSocketChannel;
-      std::shared_ptr<UdpSocket> m_socket;
+      friend class BasicUdpSocketChannel<R>;
+      std::shared_ptr<BasicUdpSocket<R>> m_socket;
 
-      UdpSocketReader(std::shared_ptr<UdpSocket> socket);
-      UdpSocketReader(const UdpSocketReader&) = delete;
-      UdpSocketReader& operator =(const UdpSocketReader&) = delete;
+      explicit BasicUdpSocketReader(std::shared_ptr<BasicUdpSocket<R>> socket);
+      BasicUdpSocketReader(const BasicUdpSocketReader&) = delete;
+      BasicUdpSocketReader& operator =(const BasicUdpSocketReader&) = delete;
   };
 
-  inline bool UdpSocketReader::poll() const {
+  /** The on-demand UdpSocketReader type. */
+  using UdpSocketReader = BasicUdpSocketReader<UdpSocketReceiver>;
+
+  /** The buffered UdpSocketReader type. */
+  using BufferedUdpSocketReader =
+    BasicUdpSocketReader<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  bool BasicUdpSocketReader<R>::poll() const {
     return m_socket->get_receiver().poll();
   }
 
-  template<IsBuffer R>
-  std::size_t UdpSocketReader::read(Out<R> destination, std::size_t size) {
-    return m_socket->get_receiver().receive(out(destination), size, nullptr);
+  template<IsUdpSocketReceiver R>
+  template<IsBuffer B>
+  std::size_t BasicUdpSocketReader<R>::read(Out<B> destination) {
+    return read(out(destination), std::size_t(-1));
   }
 
-  inline UdpSocketReader::UdpSocketReader(std::shared_ptr<UdpSocket> socket)
+  template<IsUdpSocketReceiver R>
+  template<IsBuffer B>
+  std::size_t BasicUdpSocketReader<R>::read(
+      Out<B> destination, std::size_t size) {
+    return m_socket->get_receiver().receive(out(destination), size);
+  }
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketReader<R>::BasicUdpSocketReader(
+    std::shared_ptr<BasicUdpSocket<R>> socket)
     : m_socket(std::move(socket)) {}
 }
 

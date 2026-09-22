@@ -9,26 +9,30 @@
 
 namespace Beam {
 
-  /** Implements the Channel interface using a multicast socket. */
-  class MulticastSocketChannel {
+  /**
+   * Implements the Channel interface using a multicast socket.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicMulticastSocketChannel {
     public:
       using Identifier = SocketIdentifier;
-      using Connection = MulticastSocketConnection;
-      using Reader = MulticastSocketReader;
-      using Writer = MulticastSocketWriter;
+      using Connection = BasicMulticastSocketConnection<R>;
+      using Reader = BasicMulticastSocketReader<R>;
+      using Writer = BasicMulticastSocketWriter<R>;
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        */
-      explicit MulticastSocketChannel(const IpAddress& group);
+      explicit BasicMulticastSocketChannel(const IpAddress& group);
 
       /**
        * Constructs a MulticastSocketChannel.
        * @param group The group to join.
        * @param options The options to apply to the socket.
        */
-      MulticastSocketChannel(
+      BasicMulticastSocketChannel(
         const IpAddress& group, const MulticastSocketOptions& options);
 
       /**
@@ -36,7 +40,7 @@ namespace Beam {
        * @param group The group to join.
        * @param interface The interface to use.
        */
-      MulticastSocketChannel(
+      BasicMulticastSocketChannel(
         const IpAddress& group, const IpAddress& interface);
 
       /**
@@ -45,7 +49,8 @@ namespace Beam {
        * @param interface The interface to use.
        * @param options The options to apply to the socket.
        */
-      MulticastSocketChannel(const IpAddress& group, const IpAddress& interface,
+      BasicMulticastSocketChannel(
+        const IpAddress& group, const IpAddress& interface,
         const MulticastSocketOptions& options);
 
       const Identifier& get_identifier() const;
@@ -55,54 +60,75 @@ namespace Beam {
 
     private:
       Identifier m_identifier;
-      std::shared_ptr<MulticastSocket> m_socket;
+      std::shared_ptr<BasicMulticastSocket<R>> m_socket;
       Connection m_connection;
       Reader m_reader;
       Writer m_writer;
 
-      MulticastSocketChannel(const MulticastSocketChannel&) = delete;
-      MulticastSocketChannel& operator =(
-        const MulticastSocketChannel&) = delete;
+      BasicMulticastSocketChannel(const BasicMulticastSocketChannel&) = delete;
+      BasicMulticastSocketChannel& operator =(
+        const BasicMulticastSocketChannel&) = delete;
   };
 
-  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group)
-    : MulticastSocketChannel(group, MulticastSocketOptions()) {}
+  /** The on-demand MulticastSocketChannel type. */
+  using MulticastSocketChannel = BasicMulticastSocketChannel<UdpSocketReceiver>;
 
-  inline MulticastSocketChannel::MulticastSocketChannel(
+  /** The buffered MulticastSocketChannel type. */
+  using BufferedMulticastSocketChannel =
+    BasicMulticastSocketChannel<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocketChannel<R>::BasicMulticastSocketChannel(
+    const IpAddress& group)
+    : BasicMulticastSocketChannel<R>(group, MulticastSocketOptions()) {}
+
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocketChannel<R>::BasicMulticastSocketChannel(
     const IpAddress& group, const MulticastSocketOptions& options)
     : m_identifier(group),
-      m_socket(std::make_shared<MulticastSocket>(group, options)),
+      m_socket(std::make_shared<BasicMulticastSocket<R>>(group, options)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket, group) {}
 
-  inline MulticastSocketChannel::MulticastSocketChannel(
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocketChannel<R>::BasicMulticastSocketChannel(
     const IpAddress& group, const IpAddress& interface)
-    : MulticastSocketChannel(group, interface, MulticastSocketOptions()) {}
+    : BasicMulticastSocketChannel<R>(
+        group, interface, MulticastSocketOptions()) {}
 
-  inline MulticastSocketChannel::MulticastSocketChannel(const IpAddress& group,
-    const IpAddress& interface, const MulticastSocketOptions& options)
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocketChannel<R>::BasicMulticastSocketChannel(
+    const IpAddress& group, const IpAddress& interface,
+    const MulticastSocketOptions& options)
     : m_identifier(group),
-      m_socket(std::make_shared<MulticastSocket>(group, interface, options)),
+      m_socket(
+        std::make_shared<BasicMulticastSocket<R>>(group, interface, options)),
       m_connection(m_socket),
       m_reader(m_socket),
       m_writer(m_socket, group) {}
 
-  inline const MulticastSocketChannel::Identifier&
-      MulticastSocketChannel::get_identifier() const {
+  template<IsUdpSocketReceiver R>
+  const typename BasicMulticastSocketChannel<R>::Identifier&
+      BasicMulticastSocketChannel<R>::get_identifier() const {
     return m_identifier;
   }
 
-  inline MulticastSocketChannel::Connection&
-      MulticastSocketChannel::get_connection() {
+  template<IsUdpSocketReceiver R>
+  typename BasicMulticastSocketChannel<R>::Connection&
+      BasicMulticastSocketChannel<R>::get_connection() {
     return m_connection;
   }
 
-  inline MulticastSocketChannel::Reader& MulticastSocketChannel::get_reader() {
+  template<IsUdpSocketReceiver R>
+  typename BasicMulticastSocketChannel<R>::Reader&
+      BasicMulticastSocketChannel<R>::get_reader() {
     return m_reader;
   }
 
-  inline MulticastSocketChannel::Writer& MulticastSocketChannel::get_writer() {
+  template<IsUdpSocketReceiver R>
+  typename BasicMulticastSocketChannel<R>::Writer&
+      BasicMulticastSocketChannel<R>::get_writer() {
     return m_writer;
   }
 }

@@ -3,15 +3,18 @@
 #include <memory>
 #include <boost/asio/io_context.hpp>
 #include <boost/thread/thread.hpp>
+#include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
 namespace Beam {
-  class MulticastSocket;
+  template<IsUdpSocketReceiver R>
+  class BasicMulticastSocket;
   class SecureSocketChannel;
   class TcpServerSocket;
   class TcpSocketChannel;
-  class UdpSocket;
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocket;
 
   /** Wraps a list of ASIO worker threads. */
   class BEAM_EXPORT_DLL ServiceThreadPool :
@@ -20,11 +23,13 @@ namespace Beam {
       ~ServiceThreadPool();
 
     private:
-      friend class Beam::MulticastSocket;
+      template<IsUdpSocketReceiver R>
+      friend class BasicMulticastSocket;
       friend class Beam::SecureSocketChannel;
       friend class Beam::TcpServerSocket;
       friend class Beam::TcpSocketChannel;
-      friend class Beam::UdpSocket;
+      template<IsUdpSocketReceiver R>
+      friend class BasicUdpSocket;
       friend class LiveTimer;
       friend class Singleton<ServiceThreadPool>;
       boost::asio::io_context m_service;

@@ -4,33 +4,51 @@
 #include "Beam/Network/UdpSocket.hpp"
 
 namespace Beam {
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocketChannel;
 
-  /** Provides a Connection interface for a UdpSocket. */
-  class UdpSocketConnection {
+  /**
+   * Provides a Connection interface for a UDP socket.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicUdpSocketConnection {
     public:
-      ~UdpSocketConnection();
+      ~BasicUdpSocketConnection();
 
       void close();
 
     private:
-      friend class UdpSocketChannel;
-      std::shared_ptr<UdpSocket> m_socket;
+      friend class BasicUdpSocketChannel<R>;
+      std::shared_ptr<BasicUdpSocket<R>> m_socket;
 
-      UdpSocketConnection(std::shared_ptr<UdpSocket> socket);
-      UdpSocketConnection(const UdpSocketConnection&) = delete;
-      UdpSocketConnection& operator =(const UdpSocketConnection&) = delete;
+      explicit BasicUdpSocketConnection(
+        std::shared_ptr<BasicUdpSocket<R>> socket);
+      BasicUdpSocketConnection(const BasicUdpSocketConnection&) = delete;
+      BasicUdpSocketConnection& operator =(
+        const BasicUdpSocketConnection&) = delete;
   };
 
-  inline UdpSocketConnection::~UdpSocketConnection() {
+  /** The on-demand UdpSocketConnection type. */
+  using UdpSocketConnection = BasicUdpSocketConnection<UdpSocketReceiver>;
+
+  /** The buffered UdpSocketConnection type. */
+  using BufferedUdpSocketConnection =
+    BasicUdpSocketConnection<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketConnection<R>::~BasicUdpSocketConnection() {
     close();
   }
 
-  inline void UdpSocketConnection::close() {
+  template<IsUdpSocketReceiver R>
+  void BasicUdpSocketConnection<R>::close() {
     m_socket->close();
   }
 
-  inline UdpSocketConnection::UdpSocketConnection(
-    std::shared_ptr<UdpSocket> socket)
+  template<IsUdpSocketReceiver R>
+  BasicUdpSocketConnection<R>::BasicUdpSocketConnection(
+    std::shared_ptr<BasicUdpSocket<R>> socket)
     : m_socket(std::move(socket)) {}
 }
 

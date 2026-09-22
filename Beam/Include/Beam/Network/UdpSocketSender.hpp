@@ -6,7 +6,7 @@
 #include "Beam/Network/DatagramPacket.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketOptions.hpp"
+#include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
@@ -31,8 +31,10 @@ namespace Beam {
       void send(const DatagramPacket<R>& packet);
 
     private:
-      friend class MulticastSocketWriter;
-      friend class UdpSocketWriter;
+      template<IsUdpSocketReceiver R>
+      friend class BasicMulticastSocketWriter;
+      template<IsUdpSocketReceiver R>
+      friend class BasicUdpSocketWriter;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
 
       UdpSocketSender(const UdpSocketSender&) = delete;

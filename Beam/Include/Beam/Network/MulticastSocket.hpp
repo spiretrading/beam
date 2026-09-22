@@ -7,11 +7,11 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/OpenState.hpp"
+#include "Beam/Network/BufferedUdpSocketReceiver.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/MulticastSocketOptions.hpp"
 #include "Beam/Network/NetworkDetails.hpp"
 #include "Beam/Network/SocketException.hpp"
-#include "Beam/Network/UdpSocketReceiver.hpp"
 #include "Beam/Network/UdpSocketSender.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/ServiceThreadPool.hpp"
@@ -20,21 +20,25 @@
 
 namespace Beam {
 
-  /** Implements a UDP socket used to join a multicast group. */
-  class MulticastSocket {
+  /**
+   * Implements a UDP socket used to join a multicast group.
+   * @tparam R The datagram receiver.
+   */
+  template<IsUdpSocketReceiver R>
+  class BasicMulticastSocket {
     public:
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
        */
-      explicit MulticastSocket(const IpAddress& group);
+      explicit BasicMulticastSocket(const IpAddress& group);
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
        */
-      MulticastSocket(
+      BasicMulticastSocket(
         const IpAddress& group, const MulticastSocketOptions& options);
 
       /**
@@ -42,23 +46,23 @@ namespace Beam {
        * @param group The multicast group to join.
        * @param interface The interface to listen on.
        */
-      MulticastSocket(const IpAddress& group, const IpAddress& interface);
+      BasicMulticastSocket(const IpAddress& group, const IpAddress& interface);
 
       /**
        * Constructs a MulticastSocket.
        * @param group The multicast group to join.
        * @param interface The interface to listen on.
        */
-      MulticastSocket(const IpAddress& group, const IpAddress& interface,
+      BasicMulticastSocket(const IpAddress& group, const IpAddress& interface,
         const MulticastSocketOptions& options);
 
-      ~MulticastSocket();
+      ~BasicMulticastSocket();
 
       /** Returns the multicast group to join. */
       const IpAddress& get_group() const;
 
       /** Returns the socket's receiver. */
-      UdpSocketReceiver& get_receiver();
+      R& get_receiver();
 
       /** Returns the socket's sender. */
       UdpSocketSender& get_sender();
@@ -66,31 +70,41 @@ namespace Beam {
       void close();
 
     private:
-      friend class MulticastSocketReader;
       IpAddress m_group;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      boost::optional<UdpSocketReceiver> m_receiver;
+      boost::optional<R> m_receiver;
       boost::optional<UdpSocketSender> m_sender;
       OpenState m_open_state;
 
-      MulticastSocket(const MulticastSocket&) = delete;
-      MulticastSocket& operator =(const MulticastSocket&) = delete;
+      BasicMulticastSocket(const BasicMulticastSocket&) = delete;
+      BasicMulticastSocket& operator =(const BasicMulticastSocket&) = delete;
       void open(
         const IpAddress& interface, const MulticastSocketOptions& options);
   };
 
-  inline MulticastSocket::MulticastSocket(const IpAddress& group)
-    : MulticastSocket(group, MulticastSocketOptions()) {}
+  /** The on-demand MulticastSocket type. */
+  using MulticastSocket = BasicMulticastSocket<UdpSocketReceiver>;
 
-  inline MulticastSocket::MulticastSocket(
+  /** The buffered MulticastSocket type. */
+  using BufferedMulticastSocket =
+    BasicMulticastSocket<BufferedUdpSocketReceiver>;
+
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocket<R>::BasicMulticastSocket(const IpAddress& group)
+    : BasicMulticastSocket<R>(group, MulticastSocketOptions()) {}
+
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocket<R>::BasicMulticastSocket(
     const IpAddress& group, const MulticastSocketOptions& options)
-    : MulticastSocket(group, IpAddress("0.0.0.0", 0), options) {}
+    : BasicMulticastSocket<R>(group, IpAddress("0.0.0.0", 0), options) {}
 
-  inline MulticastSocket::MulticastSocket(
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocket<R>::BasicMulticastSocket(
     const IpAddress& group, const IpAddress& interface)
-    : MulticastSocket(group, interface, MulticastSocketOptions()) {}
+    : BasicMulticastSocket<R>(group, interface, MulticastSocketOptions()) {}
 
-  inline MulticastSocket::MulticastSocket(const IpAddress& group,
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocket<R>::BasicMulticastSocket(const IpAddress& group,
       const IpAddress& interface, const MulticastSocketOptions& options)
       : m_group(group),
         m_socket(std::make_shared<Details::UdpSocketEntry>(
@@ -99,23 +113,28 @@ namespace Beam {
     open(interface, options);
   }
 
-  inline MulticastSocket::~MulticastSocket() {
+  template<IsUdpSocketReceiver R>
+  BasicMulticastSocket<R>::~BasicMulticastSocket() {
     close();
   }
 
-  inline const IpAddress& MulticastSocket::get_group() const {
+  template<IsUdpSocketReceiver R>
+  const IpAddress& BasicMulticastSocket<R>::get_group() const {
     return m_group;
   }
 
-  inline UdpSocketReceiver& MulticastSocket::get_receiver() {
+  template<IsUdpSocketReceiver R>
+  R& BasicMulticastSocket<R>::get_receiver() {
     return *m_receiver;
   }
 
-  inline UdpSocketSender& MulticastSocket::get_sender() {
+  template<IsUdpSocketReceiver R>
+  UdpSocketSender& BasicMulticastSocket<R>::get_sender() {
     return *m_sender;
   }
 
-  inline void MulticastSocket::close() {
+  template<IsUdpSocketReceiver R>
+  void BasicMulticastSocket<R>::close() {
     if(m_open_state.set_closing()) {
       return;
     }
@@ -123,7 +142,8 @@ namespace Beam {
     m_open_state.close();
   }
 
-  inline void MulticastSocket::open(
+  template<IsUdpSocketReceiver R>
+  void BasicMulticastSocket<R>::open(
       const IpAddress& interface, const MulticastSocketOptions& options) {
     try {
       auto error_code = boost::system::error_code();

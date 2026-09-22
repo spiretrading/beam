@@ -8,7 +8,6 @@
 #include "Beam/Network/SocketException.hpp"
 #include "Beam/Network/UdpSocketOptions.hpp"
 #include "Beam/Routines/Async.hpp"
-#include "Beam/Threading/TaskRunner.hpp"
 #include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
@@ -35,7 +34,6 @@ namespace Beam {
       friend class MulticastSocketWriter;
       friend class UdpSocketWriter;
       std::shared_ptr<Details::UdpSocketEntry> m_socket;
-      TaskRunner m_tasks;
 
       UdpSocketSender(const UdpSocketSender&) = delete;
       UdpSocketSender& operator =(const UdpSocketSender&) = delete;
@@ -60,19 +58,25 @@ namespace Beam {
   void UdpSocketSender::send(
       const R& data, const boost::asio::ip::udp::endpoint& destination) {
     auto write_result = Async<void>();
-    m_socket->begin_write_operation();
-    m_tasks.add([&] {
-      m_socket->m_socket.async_send_to(boost::asio::buffer(
-        data.get_data(), data.get_size()),
-        destination, [&] (const auto& error, auto write_size) {
-        if(error) {
-          write_result.get_eval().set_exception(
-            SocketException(error.value(), error.message()));
-          return;
-        }
-        write_result.get_eval().set();
-      });
-    });
+    try {
+      auto lock = std::lock_guard(m_socket->m_mutex);
+      if(!m_socket->m_is_open) {
+        boost::throw_with_location(EndOfFileException());
+      }
+      m_socket->m_socket.async_send_to(
+        boost::asio::buffer(data.get_data(), data.get_size()), destination,
+        [&] (const auto& error, auto write_size) {
+          if(error) {
+            write_result.get_eval().set_exception(
+              SocketException(error.value(), error.message()));
+            return;
+          }
+          write_result.get_eval().set();
+        });
+      ++m_socket->m_pending_writes;
+    } catch(const std::exception&) {
+      throw_nested_with_location(EndOfFileException());
+    }
     try {
       write_result.get();
       m_socket->end_write_operation();

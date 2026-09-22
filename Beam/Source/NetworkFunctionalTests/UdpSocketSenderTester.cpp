@@ -1,6 +1,9 @@
+#include <atomic>
 #include <doctest/doctest.h>
 #include "Beam/Network/MulticastSocketChannel.hpp"
 #include "Beam/Network/UdpSocketChannel.hpp"
+#include "Beam/Queues/Queue.hpp"
+#include "Beam/Routines/RoutineHandlerGroup.hpp"
 
 using namespace Beam;
 
@@ -84,5 +87,85 @@ TEST_SUITE("UdpSocketSender") {
       REQUIRE(size == buffer.get_size());
       REQUIRE(received == buffer);
     }
+  }
+
+  TEST_CASE("pending_writes") {
+    auto context = boost::asio::io_context();
+    auto socket = std::make_shared<Details::UdpSocketEntry>(
+      context, context, boost::asio::ip::udp::v4());
+    socket->m_is_open = true;
+    auto receiver = boost::asio::ip::udp::socket(context,
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::address_v4::loopback(), 0));
+    auto sender = UdpSocketSender(UdpSocketOptions(), socket);
+    auto address = IpAddress("127.0.0.1", receiver.local_endpoint().port());
+    auto results = Queue<std::exception_ptr>();
+    auto writers = RoutineHandlerGroup();
+    for(auto i = 0; i < 2; ++i) {
+      writers.spawn([&] {
+        try {
+          sender.send(DatagramPacket(from<SharedBuffer>("data"), address));
+          results.push({});
+        } catch(const std::exception&) {
+          results.push(std::current_exception());
+        }
+      });
+    }
+    flush_pending_routines();
+    REQUIRE(socket->m_pending_writes == 2);
+    auto is_closed = std::atomic_bool(false);
+    auto closer = RoutineHandler();
+    SUBCASE("completion") {}
+    SUBCASE("close") {
+      closer = spawn([&] {
+        socket->close();
+        is_closed = true;
+      });
+      flush_pending_routines();
+      REQUIRE_FALSE(is_closed);
+    }
+    context.run();
+    writers.wait();
+    closer.wait();
+    REQUIRE(socket->m_pending_writes == 0);
+    for(auto i = 0; i < 2; ++i) {
+      auto error = results.pop();
+      if(is_closed && error) {
+        REQUIRE_THROWS_AS(std::rethrow_exception(error), EndOfFileException);
+      } else {
+        REQUIRE_FALSE(error);
+      }
+    }
+    socket->close();
+    REQUIRE_THROWS_AS(sender.send(
+      DatagramPacket(from<SharedBuffer>("closed"), address)),
+      EndOfFileException);
+    REQUIRE(socket->m_pending_writes == 0);
+  }
+
+  TEST_CASE("initiation_failure") {
+    struct InvalidBuffer {
+      const char* get_data() const {
+        throw std::runtime_error("Unavailable data.");
+      }
+
+      std::size_t get_size() const {
+        return 1;
+      }
+    };
+    auto context = boost::asio::io_context();
+    auto socket = std::make_shared<Details::UdpSocketEntry>(
+      context, context, boost::asio::ip::udp::v4());
+    socket->m_socket.bind(boost::asio::ip::udp::endpoint(
+      boost::asio::ip::address_v4::loopback(), 0));
+    socket->m_is_open = true;
+    auto sender = UdpSocketSender(UdpSocketOptions(), socket);
+    auto address =
+      IpAddress("127.0.0.1", socket->m_socket.local_endpoint().port());
+    REQUIRE_THROWS_AS(sender.send(DatagramPacket(InvalidBuffer(), address)),
+      EndOfFileException);
+    REQUIRE(socket->m_pending_writes == 0);
+    socket->close();
+    REQUIRE_FALSE(socket->m_is_open);
   }
 }

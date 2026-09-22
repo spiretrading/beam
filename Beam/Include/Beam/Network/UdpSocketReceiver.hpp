@@ -53,12 +53,18 @@ namespace Beam {
         Out<R> destination, std::size_t size, Out<IpAddress> address);
 
     private:
+      friend class MulticastSocketReader;
+      friend class UdpSocketReader;
+      struct Packet {
+        SharedBuffer m_data;
+        boost::asio::ip::udp::endpoint m_sender;
+      };
       struct State {
         UdpSocketOptions m_options;
         std::shared_ptr<Details::UdpSocketEntry> m_socket;
         SharedBuffer m_buffer;
         boost::asio::ip::udp::endpoint m_sender;
-        std::deque<DatagramPacket<SharedBuffer>> m_packets;
+        std::deque<Packet> m_packets;
         std::exception_ptr m_exception;
         ConditionVariable m_is_available;
         boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
@@ -72,6 +78,9 @@ namespace Beam {
 
       UdpSocketReceiver(const UdpSocketReceiver&) = delete;
       UdpSocketReceiver& operator =(const UdpSocketReceiver&) = delete;
+      template<IsBuffer R>
+      std::size_t receive(
+        Out<R> destination, std::size_t size, IpAddress* address);
       static void start(const std::shared_ptr<State>& state);
       static void on_read(const std::shared_ptr<State>& state,
         const boost::system::error_code& error, std::size_t size);
@@ -126,6 +135,20 @@ namespace Beam {
   template<IsBuffer R>
   std::size_t UdpSocketReceiver::receive(
       Out<R> destination, std::size_t size, Out<IpAddress> address) {
+    return receive(out(destination), size, address.get());
+  }
+
+  inline UdpSocketReceiver::State::State(const UdpSocketOptions& options,
+    std::shared_ptr<Details::UdpSocketEntry> socket)
+    : m_options(options),
+      m_socket(std::move(socket)),
+      m_buffer(options.m_max_datagram_size),
+      m_deadline(*m_socket->m_io_context),
+      m_deadline_id(0) {}
+
+  template<IsBuffer R>
+  std::size_t UdpSocketReceiver::receive(
+      Out<R> destination, std::size_t size, IpAddress* address) {
     auto state = m_state;
     try {
       auto packet = [&] {
@@ -166,13 +189,16 @@ namespace Beam {
         state->m_packets.pop_front();
         return packet;
       }();
-      auto& data = packet.get_data();
+      if(address) {
+        *address = IpAddress(
+          packet.m_sender.address().to_string(), packet.m_sender.port());
+      }
+      auto& data = packet.m_data;
       size = std::min(size, state->m_options.m_max_datagram_size);
       if constexpr(std::same_as<R, SharedBuffer>) {
         if(destination->get_size() == 0 && data.get_size() <= size) {
           size = data.get_size();
           *destination = std::move(data);
-          *address = packet.get_address();
           return size;
         }
       }
@@ -181,20 +207,11 @@ namespace Beam {
         destination->write(
           destination->get_size() - available, data.get_data(), available);
       }
-      *address = packet.get_address();
       return available;
     } catch(const std::exception&) {
       throw_nested_with_location(EndOfFileException());
     }
   }
-
-  inline UdpSocketReceiver::State::State(const UdpSocketOptions& options,
-    std::shared_ptr<Details::UdpSocketEntry> socket)
-    : m_options(options),
-      m_socket(std::move(socket)),
-      m_buffer(options.m_max_datagram_size),
-      m_deadline(*m_socket->m_io_context),
-      m_deadline_id(0) {}
 
   inline void UdpSocketReceiver::start(const std::shared_ptr<State>& state) {
     state->m_socket->m_socket.async_receive_from(
@@ -218,15 +235,16 @@ namespace Beam {
       }
       if(state->m_socket->m_is_open) {
         state->m_packets.emplace_back(
-          SharedBuffer(state->m_buffer.get_data(), size),
-          IpAddress(state->m_sender.address().to_string(),
-            state->m_sender.port()));
+          SharedBuffer(state->m_buffer.get_data(), size), state->m_sender);
         start(state);
       }
     } catch(const std::exception&) {
       state->m_exception = std::current_exception();
     }
-    state->m_is_available.notify_all();
+    if(state->m_packets.size() == 1 || state->m_exception ||
+        !state->m_socket->m_is_open) {
+      state->m_is_available.notify_all();
+    }
     if(!state->m_socket->m_is_open) {
       state->m_socket->m_is_pending_condition.notify_all();
     }

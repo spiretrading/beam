@@ -73,7 +73,7 @@ namespace Beam {
     : m_identifier(group),
       m_socket(std::make_shared<MulticastSocket>(group, options)),
       m_connection(m_socket),
-      m_reader(m_socket, group),
+      m_reader(m_socket),
       m_writer(m_socket, group) {}
 
   inline MulticastSocketChannel::MulticastSocketChannel(
@@ -85,7 +85,7 @@ namespace Beam {
     : m_identifier(group),
       m_socket(std::make_shared<MulticastSocket>(group, interface, options)),
       m_connection(m_socket),
-      m_reader(m_socket, group),
+      m_reader(m_socket),
       m_writer(m_socket, group) {}
 
   inline const MulticastSocketChannel::Identifier&

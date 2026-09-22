@@ -286,4 +286,28 @@ TEST_SUITE("UdpSocketReceiver") {
     reader.wait();
     REQUIRE(packet.get_data() == "next");
   }
+
+  TEST_CASE("senders") {
+    auto fixture = Fixture();
+    auto second_sender = boost::asio::ip::udp::socket(fixture.m_context,
+      boost::asio::ip::udp::endpoint(
+        boost::asio::ip::address_v4::loopback(), 0));
+    fixture.m_receiver->poll();
+    fixture.send("first");
+    REQUIRE(fixture.m_context.run_one() == 1);
+    auto second = std::string_view("second");
+    second_sender.send_to(boost::asio::buffer(second.data(), second.size()),
+      fixture.m_socket->m_socket.local_endpoint());
+    REQUIRE(fixture.m_context.run_one() == 1);
+    auto packet = DatagramPacket<SharedBuffer>();
+    REQUIRE(fixture.m_receiver->receive(out(packet)) == 5);
+    REQUIRE(packet.get_data() == "first");
+    REQUIRE(packet.get_address() == IpAddress("127.0.0.1",
+      fixture.m_sender.local_endpoint().port()));
+    reset(packet.get_data());
+    REQUIRE(fixture.m_receiver->receive(out(packet)) == second.size());
+    REQUIRE(packet.get_data() == second);
+    REQUIRE(packet.get_address() ==
+      IpAddress("127.0.0.1", second_sender.local_endpoint().port()));
+  }
 }

@@ -28,9 +28,7 @@ namespace Beam {
 
   template<IsBuffer R>
   std::size_t UdpSocketReader::read(Out<R> destination, std::size_t size) {
-    auto address = m_socket->get_address();
-    return m_socket->get_receiver().receive(
-      out(destination), size, out(address));
+    return m_socket->get_receiver().receive(out(destination), size, nullptr);
   }
 
   inline UdpSocketReader::UdpSocketReader(std::shared_ptr<UdpSocket> socket)

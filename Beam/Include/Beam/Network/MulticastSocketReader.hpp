@@ -16,10 +16,8 @@ namespace Beam {
     private:
       friend class MulticastSocketChannel;
       std::shared_ptr<MulticastSocket> m_socket;
-      IpAddress m_destination;
 
-      MulticastSocketReader(
-        std::shared_ptr<MulticastSocket> socket, IpAddress destination);
+      explicit MulticastSocketReader(std::shared_ptr<MulticastSocket> socket);
       MulticastSocketReader(const MulticastSocketReader&) = delete;
       MulticastSocketReader& operator =(const MulticastSocketReader&) = delete;
   };
@@ -31,14 +29,12 @@ namespace Beam {
   template<IsBuffer R>
   std::size_t MulticastSocketReader::read(
       Out<R> destination, std::size_t size) {
-    return m_socket->get_receiver().receive(
-      out(destination), size, out(m_destination));
+    return m_socket->get_receiver().receive(out(destination), size, nullptr);
   }
 
   inline MulticastSocketReader::MulticastSocketReader(
-    std::shared_ptr<MulticastSocket> socket, IpAddress destination)
-    : m_socket(std::move(socket)),
-      m_destination(std::move(destination)) {}
+    std::shared_ptr<MulticastSocket> socket)
+    : m_socket(std::move(socket)) {}
 }
 
 #endif

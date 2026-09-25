@@ -36,4 +36,20 @@ TEST_SUITE("SizeDeclarativeDecoder") {
     REQUIRE(decode_size == expected_decode_size);
     REQUIRE(decoded_buffer == decoded_message);
   }
+
+  TEST_CASE("size_mismatch") {
+    auto declared_size = std::uint32_t();
+    SUBCASE("smaller") {
+      declared_size = 4;
+    }
+    SUBCASE("larger") {
+      declared_size = 6;
+    }
+    auto encoded = SharedBuffer();
+    append(encoded, native_to_big(declared_size));
+    append(encoded, "hello", 5);
+    auto decoder = SizeDeclarativeDecoder<ReverseDecoder>();
+    auto decoded = SharedBuffer();
+    REQUIRE_THROWS_AS(decoder.decode(encoded, out(decoded)), DecoderException);
+  }
 }

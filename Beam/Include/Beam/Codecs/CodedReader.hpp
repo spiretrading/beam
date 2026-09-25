@@ -82,34 +82,35 @@ namespace Beam {
   template<typename R, typename D> requires
     IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
   void CodedReader<R, D>::read() {
-    if(m_reader.poll()) {
-      return;
-    }
-    try {
-      m_source->read(out(m_source_buffer));
-    } catch(const std::exception&) {
-      m_writer.close(std::current_exception());
-      return;
-    }
-    if constexpr(in_place_support_v<Decoder>) {
+    while(!m_reader.poll()) {
       try {
-        m_decoder->decode(m_source_buffer, out(m_source_buffer));
+        m_source->read(out(m_source_buffer));
       } catch(const std::exception&) {
-        m_writer.close(nest_current_exception(IOException("Decoder failed.")));
+        m_writer.close(std::current_exception());
         return;
       }
-      m_writer.write(m_source_buffer);
-      reset(m_source_buffer);
-    } else {
-      try {
-        m_decoder->decode(m_source_buffer, out(m_decoder_buffer));
-      } catch(const std::exception&) {
-        m_writer.close(nest_current_exception(IOException("Decoder failed.")));
-        return;
+      if constexpr(in_place_support_v<Decoder>) {
+        try {
+          m_decoder->decode(m_source_buffer, out(m_source_buffer));
+        } catch(const std::exception&) {
+          m_writer.close(
+            nest_current_exception(IOException("Decoder failed.")));
+          return;
+        }
+        m_writer.write(m_source_buffer);
+        reset(m_source_buffer);
+      } else {
+        try {
+          m_decoder->decode(m_source_buffer, out(m_decoder_buffer));
+        } catch(const std::exception&) {
+          m_writer.close(
+            nest_current_exception(IOException("Decoder failed.")));
+          return;
+        }
+        m_writer.write(m_decoder_buffer);
+        reset(m_decoder_buffer);
+        reset(m_source_buffer);
       }
-      m_writer.write(m_decoder_buffer);
-      reset(m_decoder_buffer);
-      reset(m_source_buffer);
     }
   }
 }

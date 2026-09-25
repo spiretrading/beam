@@ -9,6 +9,7 @@
 #include "Beam/IO/SuffixBuffer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
   template<typename E> requires IsEncoder<dereference_t<E>>
@@ -66,13 +67,26 @@ namespace Beam {
       sizeof(native_length));
     auto original_length =
       static_cast<std::size_t>(boost::endian::big_to_native(native_length));
-    auto available_size = reserve(*destination, original_length);
-    if(available_size < original_length) {
-      boost::throw_with_location(
-        DecoderException("Destination size too small."));
+    try {
+      auto available_size = reserve(*destination, original_length);
+      if(available_size < original_length) {
+        boost::throw_with_location(
+          DecoderException("Destination size too small."));
+      }
+      auto decoded_size = m_decoder->decode(
+        suffix(Ref(source), sizeof(native_length)), out(destination));
+      if(decoded_size != original_length) {
+        boost::throw_with_location(DecoderException(
+          "Decoded size does not match declared size. decoded_size=" +
+          std::to_string(decoded_size)));
+      }
+      return decoded_size;
+    } catch(const DecoderException&) {
+      throw_nested_with_location(DecoderException(
+        "Unable to decode size-declared data. encoded_size=" +
+        std::to_string(source.get_size() - sizeof(native_length)) +
+        " declared_size=" + std::to_string(original_length)));
     }
-    return m_decoder->decode(
-      suffix(Ref(source), sizeof(native_length)), out(destination));
   }
 }
 

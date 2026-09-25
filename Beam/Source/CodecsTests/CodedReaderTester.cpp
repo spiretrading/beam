@@ -3,6 +3,8 @@
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Codecs/CodedReader.hpp"
+#include "Beam/Codecs/ZLibDecoder.hpp"
+#include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/CodecsTests/ReverseDecoder.hpp"
 
 using namespace Beam;
@@ -14,6 +16,30 @@ TEST_SUITE("CodedReader") {
       CodedReader(BufferReader(from<SharedBuffer>("")), ReverseDecoder());
     auto buffer = SharedBuffer();
     REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
+  }
+
+  TEST_CASE("empty_decoded_block") {
+    auto source = PipedReader();
+    auto writer = PipedWriter(Ref(source));
+    auto encoder = ZLibEncoder();
+    auto encoded = SharedBuffer();
+    encoder.encode(SharedBuffer(), out(encoded));
+    writer.write(encoded);
+    auto reader = CodedReader(&source, ZLibDecoder());
+    auto buffer = SharedBuffer();
+    SUBCASE("end_of_file") {
+      writer.close();
+      REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
+    }
+    SUBCASE("following_block") {
+      reset(encoded);
+      encoder.encode(from<SharedBuffer>("hello"), out(encoded));
+      writer.write(encoded);
+      writer.close();
+      REQUIRE(reader.read(out(buffer)) == 5);
+      REQUIRE(buffer == "hello");
+      REQUIRE_THROWS_AS(reader.read(out(buffer)), EndOfFileException);
+    }
   }
 
   TEST_CASE("single_byte") {

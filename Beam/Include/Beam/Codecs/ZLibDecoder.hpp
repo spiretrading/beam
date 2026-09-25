@@ -1,6 +1,8 @@
 #ifndef BEAM_ZLIB_DECODER_HPP
 #define BEAM_ZLIB_DECODER_HPP
 #include <limits>
+#include <sstream>
+#include <boost/scope/scope_exit.hpp>
 #include <boost/throw_exception.hpp>
 #include <zlib.h>
 #include "Beam/Codecs/Decoder.hpp"
@@ -32,52 +34,75 @@ namespace Beam {
       boost::throw_with_location(
         DecoderException("Source size too large for zlib."));
     }
-    const auto MAX_FACTOR = std::size_t(1032);
-    reserve(*destination, 10 * source_size);
-    if(destination->get_size() < 10 * source_size) {
-      boost::throw_with_location(DecoderException("Insufficient space."));
-    }
-    while(destination->get_size() < MAX_FACTOR * source_size) {
-      auto destination_size = destination->get_size();
-      auto stream = z_stream();
-      stream.zalloc = Z_NULL;
-      stream.zfree = Z_NULL;
-      stream.opaque = Z_NULL;
-      stream.avail_in = static_cast<uInt>(source_size);
-      stream.avail_out = static_cast<uInt>(std::min<std::size_t>(
-        destination_size, std::numeric_limits<uInt>::max()));
-      stream.next_in =
-        const_cast<Bytef*>(reinterpret_cast<const Bytef*>(source.get_data()));
-      stream.next_out =
-        reinterpret_cast<Bytef*>(destination->get_mutable_data());
-      auto result = inflateInit(&stream);
-      if(result == Z_OK) {
-        result = inflate(&stream, Z_FINISH);
-        if(result == Z_STREAM_END) {
-          result = inflateEnd(&stream);
-        }
+    auto maximum_size = [&] {
+      constexpr auto MAX_FACTOR = std::size_t(1032);
+      if(source_size > std::numeric_limits<std::size_t>::max() / MAX_FACTOR) {
+        return std::numeric_limits<std::size_t>::max();
       }
-      if(result == Z_OK) {
-        auto produced = static_cast<std::size_t>(stream.total_out);
+      return MAX_FACTOR * source_size;
+    }();
+    reserve(*destination, std::min(source_size, maximum_size / 10) * 10);
+    auto stream = z_stream();
+    stream.avail_in = static_cast<uInt>(source_size);
+    stream.next_in =
+      const_cast<Bytef*>(reinterpret_cast<const Bytef*>(source.get_data()));
+    auto produced = std::size_t(0);
+    auto result = inflateInit(&stream);
+    auto fail = [&] (const char* reason) {
+      auto message = std::ostringstream();
+      message << reason << " zlib_result=" << result;
+      if(stream.msg) {
+        message << " zlib_message=" << stream.msg;
+      }
+      message << " compressed_size=" << source_size << " consumed=" <<
+        source_size - stream.avail_in << " produced=" << produced <<
+        " destination_size=" << destination->get_size();
+      boost::throw_with_location(DecoderException(message.str()));
+    };
+    if(result != Z_OK) {
+      fail("Unable to initialize zlib decoder.");
+    }
+    auto cleanup = boost::scope::scope_exit([&] {
+      inflateEnd(&stream);
+    });
+    while(true) {
+      auto destination_size = std::min(destination->get_size(), maximum_size);
+      if(produced == destination_size) {
+        if(destination_size == maximum_size) {
+          fail("Zlib decompression limit exceeded.");
+        }
+        auto growth = std::min(std::max(destination_size, std::size_t(1024)),
+          maximum_size - destination_size);
+        if(destination->grow(growth) == 0) {
+          fail("Insufficient space for decompressed data.");
+        }
+        destination_size = std::min(destination->get_size(), maximum_size);
+      }
+      auto output_size = static_cast<uInt>(std::min<std::size_t>(
+        destination_size - produced, std::numeric_limits<uInt>::max()));
+      stream.avail_out = output_size;
+      stream.next_out = reinterpret_cast<Bytef*>(
+        destination->get_mutable_data() + produced);
+      result = inflate(&stream, Z_FINISH);
+      produced += output_size - stream.avail_out;
+      if(result == Z_STREAM_END) {
         destination->shrink(destination->get_size() - produced);
         return produced;
       }
-      if(result == Z_BUF_ERROR) {
-        auto grow_by = std::max<std::size_t>(destination->get_size(), 1024u);
-        auto available_size = destination->grow(grow_by);
-        if(available_size < grow_by) {
-          boost::throw_with_location(DecoderException("Insufficient space."));
-        }
-      } else if(result == Z_MEM_ERROR) {
-        boost::throw_with_location(DecoderException("Insufficient memory."));
+      if(result == Z_MEM_ERROR) {
+        fail("Insufficient memory for zlib decoder.");
       } else if(result == Z_DATA_ERROR) {
-        boost::throw_with_location(
-          DecoderException("The compressed data was corrupted."));
-      } else {
-        boost::throw_with_location(DecoderException("Unknown error."));
+        fail("The compressed data was corrupted.");
+      } else if(result != Z_OK && result != Z_BUF_ERROR) {
+        fail("Unable to decompress zlib data.");
+      }
+      if(stream.avail_out != 0) {
+        if(stream.avail_in == 0) {
+          fail("The compressed data was truncated.");
+        }
+        fail("Zlib decoder made no progress.");
       }
     }
-    boost::throw_with_location(DecoderException("Unknown error."));
   }
 }
 

@@ -1,11 +1,13 @@
 #ifndef BEAM_MESSAGE_PROTOCOL_HPP
 #define BEAM_MESSAGE_PROTOCOL_HPP
 #include <cstdint>
+#include <sstream>
 #include <utility>
 #include <boost/endian.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Decoder.hpp"
+#include "Beam/Codecs/DecoderException.hpp"
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
@@ -22,6 +24,7 @@
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/ShuttleClone.hpp"
 #include "Beam/Services/Message.hpp"
+#include "Beam/Utilities/Expect.hpp"
 
 namespace Beam {
 
@@ -242,6 +245,14 @@ namespace Beam {
         reset(m_decoder_buffer);
       }
       return message;
+    } catch(const DecoderException&) {
+      auto message = std::ostringstream();
+      message << "Unable to decode message. channel=" <<
+        m_channel->get_identifier() << " encoded_size=" <<
+        m_receive_buffer.get_size();
+      reset(m_receive_buffer);
+      reset(m_decoder_buffer);
+      throw_nested_with_location(DecoderException(message.str()));
     } catch(const std::exception&) {
       reset(m_receive_buffer);
       reset(m_decoder_buffer);

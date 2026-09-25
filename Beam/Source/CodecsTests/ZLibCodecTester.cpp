@@ -2,6 +2,7 @@
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/StaticBuffer.hpp"
 
 using namespace Beam;
 
@@ -26,5 +27,88 @@ TEST_SUITE("ZLibCodec") {
     auto decoded_buffer = SharedBuffer();
     auto decoded_size = decoder.decode(encoded_buffer, out(decoded_buffer));
     REQUIRE(decoded_buffer == message);
+  }
+
+  TEST_CASE("high_compression") {
+    auto text = std::string(1024 * 1024, 'x');
+    auto message = SharedBuffer(text.data(), text.size());
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    auto decoded = SharedBuffer();
+    REQUIRE(ZLibDecoder().decode(encoded, out(decoded)) == message.get_size());
+    REQUIRE(decoded == message);
+  }
+
+  TEST_CASE("oversized_destination") {
+    auto message = from<SharedBuffer>("hello world");
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    auto decoded = SharedBuffer(1024 * 1024);
+    REQUIRE(ZLibDecoder().decode(encoded, out(decoded)) == message.get_size());
+    REQUIRE(decoded == message);
+  }
+
+  TEST_CASE("fixed_destination") {
+    auto message = from<SharedBuffer>("hello world");
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    SUBCASE("exact_size") {
+      auto decoded = StaticBuffer<11>();
+      REQUIRE(
+        ZLibDecoder().decode(encoded, out(decoded)) == message.get_size());
+      REQUIRE(decoded == message);
+    }
+    SUBCASE("insufficient_space") {
+      auto decoded = StaticBuffer<10>();
+      REQUIRE_THROWS_AS(
+        ZLibDecoder().decode(encoded, out(decoded)), DecoderException);
+    }
+  }
+
+  TEST_CASE("invalid_data") {
+    auto message = from<SharedBuffer>("hello world");
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    auto invalid = encoded;
+    SUBCASE("truncated_header") {
+      invalid.shrink(invalid.get_size() - 1);
+    }
+    SUBCASE("truncated_payload") {
+      invalid.shrink(invalid.get_size() / 2);
+    }
+    SUBCASE("truncated_checksum") {
+      invalid.shrink(1);
+    }
+    SUBCASE("invalid_checksum") {
+      invalid.get_mutable_data()[invalid.get_size() - 1] ^= 1;
+    }
+    auto decoder = ZLibDecoder();
+    auto decoded = SharedBuffer();
+    REQUIRE_THROWS_AS(decoder.decode(invalid, out(decoded)), DecoderException);
+    REQUIRE(decoded.get_size() <= 10 * invalid.get_size());
+    REQUIRE(decoder.decode(encoded, out(decoded)) == message.get_size());
+    REQUIRE(decoded == message);
+  }
+
+  TEST_CASE("error_diagnostics") {
+    auto message = from<SharedBuffer>("hello world");
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    encoded.get_mutable_data()[encoded.get_size() - 1] ^= 1;
+    auto decoded = SharedBuffer();
+    auto report = [&] {
+      try {
+        ZLibDecoder().decode(encoded, out(decoded));
+      } catch(const DecoderException& e) {
+        return std::string(e.what());
+      }
+      return std::string();
+    }();
+    REQUIRE(report.contains("zlib_result=" + std::to_string(Z_DATA_ERROR)));
+    REQUIRE(report.contains("zlib_message="));
+    REQUIRE(report.contains(
+      "compressed_size=" + std::to_string(encoded.get_size())));
+    REQUIRE(report.contains("consumed="));
+    REQUIRE(report.contains("produced=11"));
   }
 }

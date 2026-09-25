@@ -47,8 +47,11 @@ namespace Beam::Python {
       def("__repr__", [name = std::string(name)] (const D& self) {
         return "<" + name + ">";
       });
-    export_default_methods(decoder_class);
-    if constexpr(!std::is_same_v<D, Decoder>) {
+    if constexpr(std::is_same_v<D, Decoder>) {
+      decoder_class.def(
+        pybind11::init<const Decoder&>(), pybind11::keep_alive<1, 2>());
+    } else {
+      export_default_methods(decoder_class);
       get_exported_decoder().def(
         pybind11::init<D*>(), pybind11::keep_alive<1, 2>());
       pybind11::implicitly_convertible<D, Decoder>();

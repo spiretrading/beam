@@ -26,17 +26,18 @@ namespace Beam {
 
   template<IsConstBuffer S, IsBuffer T>
   std::size_t NullDecoder::decode(const S& source, Out<T> destination) {
-    auto available_size = reserve(*destination, source.get_size());
-    if(available_size < source.get_size()) {
+    auto source_size = source.get_size();
+    auto available_size = reserve(*destination, source_size);
+    if(available_size < source_size) {
       boost::throw_with_location(DecoderException(
         "The destination was not large enough to hold the decoded data."));
     }
-    if(source.get_data() == destination->get_data()) {
-      return source.get_size();
+    if(source_size != 0 && source.get_data() != destination->get_data()) {
+      std::memcpy(
+        destination->get_mutable_data(), source.get_data(), source_size);
     }
-    std::memcpy(
-      destination->get_mutable_data(), source.get_data(), source.get_size());
-    return source.get_size();
+    destination->shrink(destination->get_size() - source_size);
+    return source_size;
   }
 }
 

@@ -1,5 +1,6 @@
 #include <limits>
 #include <doctest/doctest.h>
+#include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -51,6 +52,21 @@ TEST_SUITE("SizeDeclarativeDecoder") {
     auto expected_decode_size = decoded_message.get_size();
     REQUIRE(decode_size == expected_decode_size);
     REQUIRE(decoded_buffer == decoded_message);
+  }
+
+  TEST_CASE("reused_destination") {
+    auto message = SharedBuffer();
+    SUBCASE("empty") {}
+    SUBCASE("shorter") {
+      message = from<SharedBuffer>("hi");
+    }
+    auto encoded = SharedBuffer();
+    append(encoded, native_to_big<std::uint32_t>(message.get_size()));
+    append(encoded, message);
+    auto decoder = SizeDeclarativeDecoder<NullDecoder>();
+    auto decoded = from<SharedBuffer>("abcdef");
+    REQUIRE(decoder.decode(encoded, out(decoded)) == message.get_size());
+    REQUIRE(decoded == message);
   }
 
   TEST_CASE("size_mismatch") {

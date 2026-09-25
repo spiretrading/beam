@@ -39,6 +39,20 @@ TEST_SUITE("NullDecoder") {
     REQUIRE(buffer == from<SharedBuffer>("hello"));
   }
 
+  TEST_CASE("reused_destination") {
+    auto destination = from<SharedBuffer>("abcdef");
+    auto source = SharedBuffer();
+    SUBCASE("empty") {}
+    SUBCASE("shorter") {
+      source = from<SharedBuffer>("hi");
+    }
+    SUBCASE("shared_prefix") {
+      source = destination.slice(0, 2);
+    }
+    REQUIRE(NullDecoder().decode(source, out(destination)) == source.get_size());
+    REQUIRE(destination == source);
+  }
+
   TEST_CASE("decode_shared_prefix") {
     auto decoder = NullDecoder();
     auto source = from<SharedBuffer>("abcdef");

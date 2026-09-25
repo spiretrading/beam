@@ -47,3 +47,14 @@ install(FILES "${aspen_library}"
   DESTINATION "${LIB_INSTALL_DIRECTORY}/$<CONFIG>")
 set_property(GLOBAL APPEND PROPERTY BEAM_INSTALLED_OUTPUTS
   "${LIB_INSTALL_DIRECTORY}/$<CONFIG>/$<PATH:GET_FILENAME,${aspen_library}>")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_command(TARGET Python POST_BUILD
+  COMMAND "${CMAKE_COMMAND}" -E make_directory
+    "${LIB_INSTALL_DIRECTORY}/$<CONFIG>"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "$<TARGET_FILE:Python>" "${aspen_library}"
+    "${LIB_INSTALL_DIRECTORY}/$<CONFIG>"
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tester.py"
+    --config "$<CONFIG>"
+  WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
+  VERBATIM)

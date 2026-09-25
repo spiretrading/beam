@@ -10,6 +10,7 @@
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
 #include "Beam/Python/IO.hpp"
+#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
 #include "Beam/Python/ToPythonWriter.hpp"
 
@@ -48,9 +49,18 @@ void Beam::Python::export_codecs(module& module) {
 }
 
 void Beam::Python::export_coded_reader(module& module) {
-  export_reader<ToPythonReader<CodedReader<Reader, Decoder>>>(
-    module, "CodedReader").
-    def(pybind11::init<Reader, Decoder>());
+  using PythonReader = ToPythonReader<
+    CodedReader<std::shared_ptr<Reader>, std::shared_ptr<Decoder>>>;
+  export_reader<PythonReader>(module, "CodedReader").
+    def(pybind11::init([] (Reader& source, Decoder& decoder) {
+      auto source_owner = std::make_shared<SharedObject>(
+        cast(&source, return_value_policy::reference));
+      auto decoder_owner = std::make_shared<SharedObject>(
+        cast(&decoder, return_value_policy::reference));
+      return std::make_unique<PythonReader>(
+        std::shared_ptr<Reader>(std::move(source_owner), &source),
+        std::shared_ptr<Decoder>(std::move(decoder_owner), &decoder));
+    }));
 }
 
 void Beam::Python::export_coded_writer(module& module) {
@@ -68,9 +78,17 @@ void Beam::Python::export_null_encoder(module& module) {
 }
 
 void Beam::Python::export_size_declarative_decoder(module& module) {
-  export_decoder<SizeDeclarativeDecoder<Decoder>>(
-    module, "SizeDeclarativeDecoder").
-    def(pybind11::init<Decoder>());
+  struct PythonDecoder : SizeDeclarativeDecoder<std::shared_ptr<Decoder>> {
+    explicit PythonDecoder(std::shared_ptr<Beam::Decoder> decoder)
+      : SizeDeclarativeDecoder(std::move(decoder)) {}
+  };
+  export_decoder<PythonDecoder>(module, "SizeDeclarativeDecoder").
+    def(pybind11::init([] (Decoder& decoder) {
+      auto owner = std::make_shared<SharedObject>(
+        cast(&decoder, return_value_policy::reference));
+      return PythonDecoder(
+        std::shared_ptr<Decoder>(std::move(owner), &decoder));
+    }));
 }
 
 void Beam::Python::export_size_declarative_encoder(module& module) {

@@ -47,7 +47,7 @@ namespace Beam {
        * @param destination The destination of the decoded <i>source</i>.
        */
       template<IsConstBuffer S, IsBuffer B>
-      std::size_t decode(const S source, Out<B> destination);
+      std::size_t decode(const S& source, Out<B> destination);
 
     private:
       struct VirtualDecoder {
@@ -80,7 +80,7 @@ namespace Beam {
         std::forward<T>(decoder))) {}
 
   template<IsConstBuffer S, IsBuffer B>
-  std::size_t Decoder::decode(const S source, Out<B> destination) {
+  std::size_t Decoder::decode(const S& source, Out<B> destination) {
     return m_decoder->decode(source, *destination);
   }
 

@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <random>
 #include <doctest/doctest.h>
 #include "Beam/Codecs/ZLibDecoder.hpp"
 #include "Beam/Codecs/ZLibEncoder.hpp"
@@ -5,6 +7,17 @@
 #include "Beam/IO/StaticBuffer.hpp"
 
 using namespace Beam;
+
+namespace {
+  struct RecordingBuffer : SharedBuffer {
+    std::size_t m_maximum_size = 0;
+
+    std::size_t grow(std::size_t size) {
+      m_maximum_size = std::max(m_maximum_size, get_size() + size);
+      return SharedBuffer::grow(size);
+    }
+  };
+}
 
 TEST_SUITE("ZLibCodec") {
   TEST_CASE("empty_message") {
@@ -46,6 +59,26 @@ TEST_SUITE("ZLibCodec") {
     auto decoded = SharedBuffer(1024 * 1024);
     REQUIRE(ZLibDecoder().decode(encoded, out(decoded)) == message.get_size());
     REQUIRE(decoded == message);
+  }
+
+  TEST_CASE("destination_growth") {
+    auto generator = std::mt19937(123);
+    auto message = SharedBuffer(64 * 1024);
+    for(auto i = std::size_t(0); i != message.get_size(); ++i) {
+      message.get_mutable_data()[i] = static_cast<char>(generator() & 0xFF);
+    }
+    auto encoded = SharedBuffer();
+    ZLibEncoder().encode(message, out(encoded));
+    auto decoded = RecordingBuffer();
+    auto maximum_size = 2 * message.get_size();
+    SUBCASE("empty") {}
+    SUBCASE("preallocated") {
+      reserve(decoded, message.get_size());
+      maximum_size = message.get_size();
+    }
+    REQUIRE(ZLibDecoder().decode(encoded, out(decoded)) == message.get_size());
+    REQUIRE(decoded == message);
+    REQUIRE(decoded.m_maximum_size <= maximum_size);
   }
 
   TEST_CASE("fixed_destination") {

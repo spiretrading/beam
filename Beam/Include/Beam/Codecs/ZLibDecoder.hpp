@@ -16,7 +16,7 @@ namespace Beam {
   class ZLibDecoder {
     public:
       template<IsConstBuffer S, IsBuffer B>
-      std::size_t decode(const S source, Out<B> destination);
+      std::size_t decode(const S& source, Out<B> destination);
   };
 
   template<>
@@ -25,7 +25,7 @@ namespace Beam {
   };
 
   template<IsConstBuffer S, IsBuffer B>
-  std::size_t ZLibDecoder::decode(const S source, Out<B> destination) {
+  std::size_t ZLibDecoder::decode(const S& source, Out<B> destination) {
     auto source_size = source.get_size();
     if(source_size == 0) {
       reset(*destination);
@@ -41,7 +41,9 @@ namespace Beam {
       }
       return MAX_FACTOR * source_size;
     }();
-    reserve(*destination, std::min(source_size, maximum_size / 10) * 10);
+    if(destination->get_size() == 0) {
+      reserve(*destination, source_size);
+    }
     auto stream = z_stream();
     stream.avail_in = static_cast<uInt>(source_size);
     stream.next_in =

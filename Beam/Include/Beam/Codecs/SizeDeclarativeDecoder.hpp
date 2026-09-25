@@ -39,7 +39,7 @@ namespace Beam {
       explicit SizeDeclarativeDecoder(DF&& decoder);
 
       template<IsConstBuffer S, IsBuffer B>
-      std::size_t decode(const S source, Out<B> destination);
+      std::size_t decode(const S& source, Out<B> destination);
 
     private:
       local_ptr_t<D> m_decoder;
@@ -58,7 +58,7 @@ namespace Beam {
   template<typename D> requires IsDecoder<dereference_t<D>>
   template<IsConstBuffer S, IsBuffer B>
   std::size_t SizeDeclarativeDecoder<D>::decode(
-      const S source, Out<B> destination) {
+      const S& source, Out<B> destination) {
     if(source.get_size() < sizeof(std::uint32_t)) {
       boost::throw_with_location(DecoderException("Source size too small."));
     }

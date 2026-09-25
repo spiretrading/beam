@@ -38,4 +38,15 @@ TEST_SUITE("NullDecoder") {
     REQUIRE(decoded_size == buffer.get_size());
     REQUIRE(buffer == from<SharedBuffer>("hello"));
   }
+
+  TEST_CASE("decode_shared_prefix") {
+    auto decoder = NullDecoder();
+    auto source = from<SharedBuffer>("abcdef");
+    auto destination = source.slice(0, 3);
+    auto decoded_size = decoder.decode(source, out(destination));
+    REQUIRE(decoded_size == source.get_size());
+    REQUIRE(destination.get_size() == decoded_size);
+    REQUIRE(destination == source);
+    REQUIRE(source == "abcdef");
+  }
 }

@@ -68,11 +68,6 @@ namespace Beam {
     auto original_length =
       static_cast<std::size_t>(boost::endian::big_to_native(native_length));
     try {
-      auto available_size = reserve(*destination, original_length);
-      if(available_size < original_length) {
-        boost::throw_with_location(
-          DecoderException("Destination size too small."));
-      }
       auto decoded_size = m_decoder->decode(
         suffix(Ref(source), sizeof(native_length)), out(destination));
       if(decoded_size != original_length) {

@@ -1,6 +1,8 @@
 #ifndef BEAM_UDP_SOCKET_RECEIVER_HPP
 #define BEAM_UDP_SOCKET_RECEIVER_HPP
 #include <cstdint>
+#include <boost/asio/bind_cancellation_slot.hpp>
+#include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
@@ -65,6 +67,7 @@ namespace Beam {
         boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
           m_deadline;
         std::uint64_t m_deadline_id;
+        boost::asio::cancellation_signal m_cancellation;
 
         State(const UdpSocketOptions& options,
           std::shared_ptr<Details::UdpSocketEntry> socket);
@@ -158,7 +161,9 @@ namespace Beam {
             !state->m_socket->m_socket.is_open()) {
           boost::throw_with_location(EndOfFileException());
         }
+        auto cancellation = boost::asio::cancellation_slot();
         if(has_timeout) {
+          cancellation = state->m_cancellation.slot();
           auto id = ++state->m_deadline_id;
           state->m_deadline.expires_after(boost::chrono::microseconds(
             state->m_options.m_timeout.total_microseconds()));
@@ -168,16 +173,18 @@ namespace Beam {
         }
         state->m_socket->m_socket.async_receive_from(boost::asio::buffer(
           get_mutable_suffix(*destination, available), available), sender,
-          [&, state] (const auto& error, auto size) {
-            auto lock = std::lock_guard(state->m_socket->m_mutex);
-            ++state->m_deadline_id;
-            if(error) {
-              result.get_eval().set_exception(
-                SocketException(error.value(), error.message()));
-            } else {
-              result.get_eval().set(size);
-            }
-          });
+          boost::asio::bind_cancellation_slot(cancellation,
+            [&, state] (const auto& error, auto size) {
+              auto lock = std::lock_guard(state->m_socket->m_mutex);
+              state->m_cancellation.slot().clear();
+              ++state->m_deadline_id;
+              if(error) {
+                result.get_eval().set_exception(
+                  SocketException(error.value(), error.message()));
+              } else {
+                result.get_eval().set(size);
+              }
+            }));
         state->m_socket->m_is_read_pending = true;
         is_read_pending = true;
       }
@@ -219,8 +226,7 @@ namespace Beam {
         id != state->m_deadline_id || !state->m_socket->m_is_open) {
       return;
     }
-    auto close_error = boost::system::error_code();
-    state->m_socket->m_socket.close(close_error);
+    state->m_cancellation.emit(boost::asio::cancellation_type::total);
   }
 }
 

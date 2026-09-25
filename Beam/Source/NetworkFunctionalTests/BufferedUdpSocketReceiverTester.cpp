@@ -166,6 +166,15 @@ TEST_SUITE("BufferedUdpSocketReceiver") {
     reader.wait();
     REQUIRE_THROWS_AS(results.pop(), EndOfFileException);
     REQUIRE_FALSE(fixture.m_receiver->poll());
+    REQUIRE(fixture.m_socket->m_socket.is_open());
+    fixture.send("next");
+    fixture.m_context.restart();
+    while(!fixture.m_receiver->poll()) {
+      fixture.m_context.run_one();
+    }
+    auto packet = DatagramPacket<SharedBuffer>();
+    REQUIRE(fixture.m_receiver->receive(out(packet)) == 4);
+    REQUIRE(packet.get_data() == "next");
   }
 
   TEST_CASE("idle_receiver") {

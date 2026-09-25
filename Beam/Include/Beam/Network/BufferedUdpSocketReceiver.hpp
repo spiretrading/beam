@@ -76,6 +76,7 @@ namespace Beam {
         boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
           m_deadline;
         std::uint64_t m_deadline_id;
+        bool m_is_timed_out;
 
         State(const UdpSocketOptions& options,
           std::shared_ptr<Details::UdpSocketEntry> socket);
@@ -165,7 +166,8 @@ namespace Beam {
       m_socket(std::move(socket)),
       m_buffer(options.m_max_datagram_size),
       m_deadline(*m_socket->m_io_context),
-      m_deadline_id(0) {}
+      m_deadline_id(0),
+      m_is_timed_out(false) {}
 
   inline void BufferedUdpSocketReceiver::start(
       const std::shared_ptr<State>& state) {
@@ -214,9 +216,7 @@ namespace Beam {
         id != state->m_deadline_id || !state->m_socket->m_is_open) {
       return;
     }
-    state->m_exception = std::make_exception_ptr(EndOfFileException());
-    auto close_error = boost::system::error_code();
-    state->m_socket->m_socket.close(close_error);
+    state->m_is_timed_out = true;
     state->m_is_available.notify_all();
   }
 
@@ -246,7 +246,7 @@ namespace Beam {
           });
         }
         while(state->m_packets.empty() && !state->m_exception &&
-            state->m_socket->m_is_open) {
+            !state->m_is_timed_out && state->m_socket->m_is_open) {
           state->m_is_available.wait(lock);
         }
         if(is_deadline_started) {
@@ -255,6 +255,9 @@ namespace Beam {
         }
         if(!state->m_socket->m_is_open ||
             !state->m_socket->m_socket.is_open()) {
+          boost::throw_with_location(EndOfFileException());
+        }
+        if(std::exchange(state->m_is_timed_out, false)) {
           boost::throw_with_location(EndOfFileException());
         }
         if(state->m_packets.empty()) {

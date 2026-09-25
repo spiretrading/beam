@@ -98,6 +98,48 @@ TEST_SUITE("UdpSocketReceiver") {
     REQUIRE_FALSE(fixture.m_socket->m_is_read_pending);
   }
 
+  TEST_CASE("receive_after_timeout") {
+    auto options = UdpSocketOptions();
+    options.m_timeout = boost::posix_time::milliseconds(50);
+    auto fixture = Fixture(options);
+    auto data = from<SharedBuffer>("prefix");
+    for(auto i = 0; i != 2; ++i) {
+      auto results = Queue<std::size_t>();
+      auto reader = RoutineHandler(spawn([&] {
+        try {
+          results.push(fixture.m_receiver->receive(out(data), 1024));
+        } catch(const std::exception&) {
+          results.close(std::current_exception());
+        }
+      }));
+      flush_pending_routines();
+      fixture.m_context.restart();
+      fixture.m_context.run();
+      reader.wait();
+      REQUIRE_THROWS_AS(results.pop(), EndOfFileException);
+      REQUIRE(data == "prefix");
+      REQUIRE_FALSE(fixture.m_socket->m_is_read_pending);
+      REQUIRE(fixture.m_socket->m_socket.is_open());
+    }
+    fixture.send("next");
+    auto results = Queue<std::size_t>();
+    auto reader = RoutineHandler(spawn([&] {
+      try {
+        results.push(fixture.m_receiver->receive(out(data), 1024));
+      } catch(const std::exception&) {
+        results.close(std::current_exception());
+      }
+    }));
+    flush_pending_routines();
+    fixture.m_context.restart();
+    fixture.m_context.run();
+    reader.wait();
+    REQUIRE(results.pop() == 4);
+    REQUIRE(data == "prefixnext");
+    REQUIRE_FALSE(fixture.m_socket->m_is_read_pending);
+    REQUIRE(fixture.m_socket->m_socket.is_open());
+  }
+
   TEST_CASE("receive_interruption") {
     auto options = UdpSocketOptions();
     SUBCASE("close") {}

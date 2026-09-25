@@ -82,6 +82,12 @@ TEST_SUITE("ZLibCodec") {
     SUBCASE("invalid_checksum") {
       invalid.get_mutable_data()[invalid.get_size() - 1] ^= 1;
     }
+    SUBCASE("trailing_bytes") {
+      append(invalid, from<SharedBuffer>("trailing bytes"));
+    }
+    SUBCASE("concatenated_streams") {
+      append(invalid, encoded);
+    }
     auto decoder = ZLibDecoder();
     auto decoded = SharedBuffer();
     REQUIRE_THROWS_AS(decoder.decode(invalid, out(decoded)), DecoderException);

@@ -86,6 +86,9 @@ namespace Beam {
       result = inflate(&stream, Z_FINISH);
       produced += output_size - stream.avail_out;
       if(result == Z_STREAM_END) {
+        if(stream.avail_in != 0) {
+          fail("The compressed data contains trailing bytes.");
+        }
         destination->shrink(destination->get_size() - produced);
         return produced;
       }

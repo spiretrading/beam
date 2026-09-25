@@ -44,7 +44,7 @@ TEST_SUITE("CodedReader") {
     }
   }
 
-  TEST_CASE("decoder_failure") {
+  TEST_CASE("read_failure") {
     auto operations = std::make_shared<TestReader::Queue>();
     auto source = TestReader(operations);
     auto reader = CodedReader(&source, ZLibDecoder());
@@ -52,10 +52,16 @@ TEST_SUITE("CodedReader") {
     auto routine = RoutineHandler(spawn([&] {
       REQUIRE_THROWS_AS(reader.read(out(buffer)), IOException);
       REQUIRE_THROWS_AS(reader.read(out(buffer)), IOException);
+      REQUIRE_FALSE(reader.poll());
     }));
     auto operation = operations->pop();
     auto& read = std::get<TestReader::ReadOperation>(*operation);
-    read.m_result.set(from<SharedBuffer>("invalid"));
+    SUBCASE("decoder") {
+      read.m_result.set(from<SharedBuffer>("invalid"));
+    }
+    SUBCASE("source") {
+      read.m_result.set(std::make_exception_ptr(IOException()));
+    }
     flush_pending_routines();
     auto unexpected_operation = operations->try_pop();
     source.close();

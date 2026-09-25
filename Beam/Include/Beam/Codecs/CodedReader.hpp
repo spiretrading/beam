@@ -47,6 +47,7 @@ namespace Beam {
       PipedWriter m_writer;
       SharedBuffer m_source_buffer;
       SharedBuffer m_decoder_buffer;
+      bool m_is_broken;
 
       CodedReader(const CodedReader&) = delete;
       CodedReader& operator =(const CodedReader&) = delete;
@@ -63,12 +64,13 @@ namespace Beam {
   CodedReader<R, D>::CodedReader(SF&& source, DF&& decoder)
     : m_source(std::forward<SF>(source)),
       m_decoder(std::forward<DF>(decoder)),
-      m_writer(Ref(m_reader)) {}
+      m_writer(Ref(m_reader)),
+      m_is_broken(false) {}
 
   template<typename R, typename D> requires
     IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
   bool CodedReader<R, D>::poll() const {
-    return m_reader.poll() || m_source->poll();
+    return m_reader.poll() || (!m_is_broken && m_source->poll());
   }
 
   template<typename R, typename D> requires
@@ -82,10 +84,11 @@ namespace Beam {
   template<typename R, typename D> requires
     IsReader<dereference_t<R>> && IsDecoder<dereference_t<D>>
   void CodedReader<R, D>::read() {
-    while(!m_reader.poll()) {
+    while(!m_is_broken && !m_reader.poll()) {
       try {
         m_source->read(out(m_source_buffer));
       } catch(const std::exception&) {
+        m_is_broken = true;
         m_writer.close(std::current_exception());
         return;
       }
@@ -93,6 +96,7 @@ namespace Beam {
         try {
           m_decoder->decode(m_source_buffer, out(m_source_buffer));
         } catch(const std::exception&) {
+          m_is_broken = true;
           m_writer.close(
             nest_current_exception(IOException("Decoder failed.")));
           return;
@@ -103,6 +107,7 @@ namespace Beam {
         try {
           m_decoder->decode(m_source_buffer, out(m_decoder_buffer));
         } catch(const std::exception&) {
+          m_is_broken = true;
           m_writer.close(
             nest_current_exception(IOException("Decoder failed.")));
           return;

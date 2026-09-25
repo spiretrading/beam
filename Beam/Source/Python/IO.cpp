@@ -328,4 +328,6 @@ void Beam::Python::export_io(module& module) {
     module, "ConnectException", io_exception.ptr());
   register_exception<EndOfFileException>(
     module, "EndOfFileException", io_exception.ptr());
+  auto test_module = module.def_submodule("tests");
+  export_test_reader(test_module);
 }

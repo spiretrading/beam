@@ -399,6 +399,12 @@ namespace Beam::Python {
   void export_sync_writer(pybind11::module& module);
 
   /**
+   * Exports the TestReader class.
+   * @param module The module to export to.
+   */
+  void export_test_reader(pybind11::module& module);
+
+  /**
    * Exports a Writer type and related free functions.
    * @param module The module to export to.
    * @param name The name of the class to export.

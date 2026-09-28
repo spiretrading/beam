@@ -1,4 +1,5 @@
 #include <atomic>
+#include <boost/scope/scope_exit.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/ServicesTests/ServiceClientFixture.hpp"
@@ -1694,15 +1695,21 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
       }
     }));
     ready.get();
-    fixture.close_server_side(*client);
-    registered.clear();
-    next_id = 0;
-    auto current = client->add("current", JsonObject());
-    if(remove_before_recovery) {
-      client->remove(current);
-    }
-    resume.get_eval().set();
-    flush_pending_routines();
+    auto current = [&] {
+      auto cleanup = scope::scope_exit([&] {
+        resume.get_eval().set();
+        flush_pending_routines();
+      });
+      fixture.close_server_side(*client);
+      flush_pending_routines();
+      registered.clear();
+      next_id = 0;
+      auto current = client->add("current", JsonObject());
+      if(remove_before_recovery) {
+        client->remove(current);
+      }
+      return current;
+    }();
     REQUIRE(previous_requests == 2);
     REQUIRE(current_requests == 1);
     if(!remove_before_recovery) {

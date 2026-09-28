@@ -11,6 +11,22 @@ using namespace boost;
 using namespace boost::posix_time;
 
 namespace {
+  struct TrackingClientBuilder : TestServiceProtocolClientBuilder {
+    ScopedQueueWriter<std::shared_ptr<Client>> m_clients;
+
+    TrackingClientBuilder(TestServiceProtocolClientBuilder builder,
+        ScopedQueueWriter<std::shared_ptr<Client>> clients)
+        : TestServiceProtocolClientBuilder(std::move(builder)),
+          m_clients(std::move(clients)) {}
+
+    std::shared_ptr<Client> make_client(const ServiceSlots<Client>& slots) {
+      auto client = std::shared_ptr<Client>(
+        TestServiceProtocolClientBuilder::make_client(slots));
+      m_clients.push(client);
+      return client;
+    }
+  };
+
   struct Fixture : ServiceClientFixture {
     using TestServiceLocatorClient =
       ProtocolServiceLocatorClient<TestServiceProtocolClientBuilder>;
@@ -89,6 +105,7 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     flush_pending_routines();
     auto tasks = RoutineHandlerGroup();
     auto queue = std::make_shared<Queue<AccountUpdate>>();
+    auto services = std::make_shared<Queue<ServiceUpdate>>();
     SUBCASE("lookup") {
       for(auto i = 0; i != 2; ++i) {
         tasks.spawn([&] {
@@ -99,6 +116,9 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     }
     SUBCASE("monitor") {
       client->monitor(queue);
+    }
+    SUBCASE("monitor_services") {
+      client->monitor("market_data_service", services);
     }
     flush_pending_routines();
     auto attempts = connection_attempts.load();
@@ -1077,6 +1097,619 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     REQUIRE(update.m_type == AccountUpdate::Type::ADDED);
     client->close();
     REQUIRE_THROWS_AS(queue->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("monitor_services") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto account = DirectoryEntry::make_account(12, "provider");
+    auto first = ServiceEntry("quotes", JsonObject(), 1, account);
+    auto second = ServiceEntry("quotes", JsonObject(), 2, account);
+    auto other = ServiceEntry("orders", JsonObject(), 3, account);
+    auto requests = 0;
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string& name) {
+        ++requests;
+        server_client = &request.get_client();
+        if(name == "quotes") {
+          send_record_message<ServiceAvailabilityMessage>(
+            request.get_client(), second, true);
+          send_record_message<ServiceAvailabilityMessage>(
+            request.get_client(), first, false);
+          request.set(std::vector{first});
+        } else {
+          REQUIRE(name == "orders");
+          request.set(std::vector{other});
+        }
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(first));
+    REQUIRE(queue->pop() == ServiceUpdate::add(second));
+    REQUIRE(queue->pop() == ServiceUpdate::remove(first));
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", duplicate);
+    REQUIRE(duplicate->pop() == ServiceUpdate::add(second));
+    REQUIRE(requests == 1);
+    auto separate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("orders", separate);
+    REQUIRE(separate->pop() == ServiceUpdate::add(other));
+    REQUIRE(requests == 2);
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, second, true);
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, first, false);
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, second, false);
+    REQUIRE(queue->pop() == ServiceUpdate::remove(second));
+    REQUIRE(duplicate->pop() == ServiceUpdate::remove(second));
+    REQUIRE(!separate->try_pop());
+    queue->close();
+    duplicate->close();
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, first, true);
+    flush_pending_routines();
+    auto replacement = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", replacement);
+    REQUIRE(replacement->pop() == ServiceUpdate::add(first));
+    REQUIRE(requests == 2);
+    client->close();
+    REQUIRE_THROWS_AS(replacement->pop(), PipeBrokenException);
+    REQUIRE_THROWS_AS(separate->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("monitor_services_empty_snapshot") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string& name) {
+        REQUIRE(name == "quotes");
+        request.set(std::vector<ServiceEntry>());
+        send_record_message<ServiceAvailabilityMessage>(
+          request.get_client(), service, true);
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+  }
+
+  TEST_CASE("monitor_services_reconnect") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto account = DirectoryEntry::make_account(12, "provider");
+    auto first = ServiceEntry("quotes", JsonObject(), 1, account);
+    auto second = ServiceEntry("quotes", JsonObject(), 2, account);
+    auto third = ServiceEntry("quotes", JsonObject(), 3, account);
+    auto fourth = ServiceEntry("quotes", JsonObject(), 4, account);
+    auto properties = JsonObject();
+    properties.set("scope", "new_scope");
+    auto replacement = ServiceEntry("quotes", properties, 2, account);
+    SUBCASE("properties_changed") {}
+    SUBCASE("account_changed") {
+      replacement = ServiceEntry("quotes", JsonObject(), 2,
+        DirectoryEntry::make_account(13, "replacement"));
+    }
+    SUBCASE("account_renamed") {
+      replacement = ServiceEntry("quotes", JsonObject(), 2,
+        DirectoryEntry::make_account(12, "renamed"));
+    }
+    auto requests = 0;
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string& name) {
+        REQUIRE(name == "quotes");
+        ++requests;
+        if(requests == 1) {
+          request.set(std::vector{first, second, third});
+        } else {
+          request.set(std::vector{replacement, third, fourth});
+          send_record_message<ServiceAvailabilityMessage>(
+            request.get_client(), third, false);
+        }
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(first));
+    REQUIRE(queue->pop() == ServiceUpdate::add(second));
+    REQUIRE(queue->pop() == ServiceUpdate::add(third));
+    fixture.close_server_side(*client);
+    REQUIRE(queue->pop() == ServiceUpdate::remove(first));
+    REQUIRE(queue->pop() == ServiceUpdate::remove(second));
+    auto update = queue->pop();
+    REQUIRE(update == ServiceUpdate::add(replacement));
+    REQUIRE(update.m_service.get_properties() == replacement.get_properties());
+    REQUIRE(update.m_service.get_account() == replacement.get_account());
+    REQUIRE(update.m_service.get_account().m_name ==
+      replacement.get_account().m_name);
+    REQUIRE(queue->pop() == ServiceUpdate::add(fourth));
+    REQUIRE(queue->pop() == ServiceUpdate::remove(third));
+    REQUIRE(requests == 2);
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", duplicate);
+    REQUIRE(duplicate->pop() == ServiceUpdate::add(replacement));
+    REQUIRE(duplicate->pop() == ServiceUpdate::add(fourth));
+    REQUIRE(requests == 2);
+    client->close();
+    REQUIRE_THROWS_AS(queue->pop(), PipeBrokenException);
+    REQUIRE_THROWS_AS(duplicate->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("monitor_services_replacement") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    auto properties = JsonObject();
+    properties.set("scope", "TSX");
+    auto replacement = ServiceEntry("quotes", properties, 1,
+      service.get_account());
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        server_client = &request.get_client();
+        request.set(std::vector{service});
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, replacement, true);
+    REQUIRE(queue->pop() == ServiceUpdate::remove(service));
+    REQUIRE(queue->pop() == ServiceUpdate::add(replacement));
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", duplicate);
+    REQUIRE(duplicate->pop() == ServiceUpdate::add(replacement));
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, service, false);
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, replacement, false);
+    REQUIRE(queue->pop() == ServiceUpdate::remove(replacement));
+    REQUIRE(duplicate->pop() == ServiceUpdate::remove(replacement));
+    client->close();
+    REQUIRE_THROWS_AS(queue->pop(), PipeBrokenException);
+    REQUIRE_THROWS_AS(duplicate->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("monitor_services_stale_connection") {
+    auto fixture = Fixture();
+    fixture.on_request<LoginService>(
+      [&] (auto& request, const std::string&, const std::string&) {
+        request.set(LoginServiceResult(
+          DirectoryEntry::make_account(1, "subscriber"), "session"));
+      });
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    auto marker = ServiceEntry("quotes", JsonObject(), 2,
+      service.get_account());
+    auto requests = 0;
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        ++requests;
+        request.set(std::vector{service});
+        if(requests == 2) {
+          send_record_message<ServiceAvailabilityMessage>(
+            request.get_client(), marker, true);
+        }
+      });
+    auto connections = std::make_shared<Queue<
+      std::shared_ptr<TrackingClientBuilder::Client>>>();
+    auto subscriber = std::make_unique<
+      ProtocolServiceLocatorClient<TrackingClientBuilder>>(
+        "subscriber", "password", TrackingClientBuilder(
+          TestServiceProtocolClientBuilder([&] {
+            return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
+              "subscriber", *fixture.m_server_connection);
+          }, [] {
+            return std::make_unique<TriggerTimer>();
+          }), connections));
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    subscriber->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    auto previous = connections->pop();
+    previous->close();
+    auto current = connections->pop();
+    REQUIRE(queue->pop() == ServiceUpdate::add(marker));
+    auto stale = RecordMessage<
+      ServiceAvailabilityMessage, TrackingClientBuilder::Client>(
+        service, false);
+    stale.emit(previous->get_slots().find(stale), Ref(*previous));
+    auto reference = std::weak_ptr(previous);
+    previous.reset();
+    REQUIRE(reference.expired());
+    auto removal = RecordMessage<
+      ServiceAvailabilityMessage, TrackingClientBuilder::Client>(marker, false);
+    removal.emit(current->get_slots().find(removal), Ref(*current));
+    REQUIRE(queue->pop() == ServiceUpdate::remove(marker));
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    subscriber->monitor("quotes", duplicate);
+    REQUIRE(duplicate->pop() == ServiceUpdate::add(service));
+    REQUIRE(requests == 2);
+    subscriber->close();
+    REQUIRE_THROWS_AS(queue->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("monitor_services_interrupted_subscription") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto requests = 0;
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string& name) {
+        ++requests;
+        if(requests == 1) {
+          request.get_client().close();
+        } else {
+          request.set(std::vector{service});
+        }
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    REQUIRE(requests == 2);
+  }
+
+  TEST_CASE("monitor_services_rejected_subscription") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string& name) {
+        request.set_exception(ServiceRequestException("Denied."));
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE_THROWS_AS(queue->pop(), ServiceRequestException);
+  }
+
+  TEST_CASE("monitor_services_resubscribe") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    auto snapshot = std::vector{service};
+    auto is_subscribed = false;
+    auto requests = 0;
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        server_client = &request.get_client();
+        ++requests;
+        is_subscribed = true;
+        request.set(snapshot);
+      });
+    auto unsubscribe = Async<void>();
+    auto resume = Async<void>();
+    fixture.on_request<UnsubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        unsubscribe.get();
+        is_subscribed = false;
+        resume.get();
+        request.set();
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    queue->close();
+    snapshot.clear();
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, service, false);
+    flush_pending_routines();
+    auto replacement = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", replacement);
+    snapshot.push_back(service);
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, service, true);
+    flush_pending_routines();
+    unsubscribe.get_eval().set();
+    flush_pending_routines();
+    snapshot.clear();
+    if(is_subscribed) {
+      send_record_message<ServiceAvailabilityMessage>(
+        *server_client, service, false);
+    }
+    resume.get_eval().set();
+    flush_pending_routines();
+    auto entries = std::vector<ServiceEntry>();
+    while(auto update = replacement->try_pop()) {
+      if(update->m_type == ServiceUpdate::Type::ADDED) {
+        entries.push_back(update->m_service);
+      } else {
+        std::erase(entries, update->m_service);
+      }
+    }
+    REQUIRE(entries.empty());
+    auto marker = ServiceEntry("quotes", JsonObject(), 2,
+      service.get_account());
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, marker, true);
+    flush_pending_routines();
+    REQUIRE((replacement->try_pop() == ServiceUpdate::add(marker)));
+    replacement->close();
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, marker, false);
+    flush_pending_routines();
+    fixture.close_server_side(*client);
+    flush_pending_routines();
+    REQUIRE(requests == 1);
+  }
+
+  TEST_CASE("monitor_services_reconnect_recovery_failure") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    auto marker = ServiceEntry("quotes", JsonObject(), 2,
+      service.get_account());
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        server_client = &request.get_client();
+        request.set(std::vector{service});
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    auto accounts = std::make_shared<Queue<AccountUpdate>>();
+    auto requests = 0;
+    auto disconnect = false;
+    auto monitor_accounts = false;
+    SUBCASE("registration_rejected") {}
+    SUBCASE("registration_interrupted") {
+      disconnect = true;
+    }
+    SUBCASE("accounts_rejected") {
+      monitor_accounts = true;
+    }
+    SUBCASE("accounts_interrupted") {
+      monitor_accounts = true;
+      disconnect = true;
+    }
+    if(monitor_accounts) {
+      fixture.on_request<MonitorAccountsService>([&] (auto& request) {
+        ++requests;
+        if(requests == 2) {
+          if(disconnect) {
+            request.get_client().close();
+          } else {
+            request.set_exception(ServiceRequestException("Denied."));
+          }
+        } else {
+          request.set(std::vector{service.get_account()});
+        }
+      });
+      client->monitor(accounts);
+      REQUIRE(accounts->pop() == AccountUpdate::add(service.get_account()));
+    } else {
+      fixture.on_request<RegisterService>(
+        [&] (auto& request, const std::string&, const JsonObject&) {
+          ++requests;
+          if(requests == 2) {
+            if(disconnect) {
+              request.get_client().close();
+            } else {
+              request.set_exception(ServiceRequestException("Denied."));
+            }
+          } else {
+            request.set(service);
+          }
+        });
+      client->add(service.get_name(), service.get_properties());
+    }
+    fixture.close_server_side(*client);
+    flush_pending_routines();
+    REQUIRE(requests >= 2);
+    if(disconnect) {
+      REQUIRE(requests == 3);
+    } else if(monitor_accounts) {
+      REQUIRE(accounts->is_broken());
+      REQUIRE_THROWS_AS(accounts->pop(), ServiceRequestException);
+    }
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, marker, true);
+    flush_pending_routines();
+    REQUIRE((queue->try_pop() == ServiceUpdate::add(marker)));
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", duplicate);
+    flush_pending_routines();
+    REQUIRE((duplicate->try_pop() == ServiceUpdate::add(service)));
+    REQUIRE((duplicate->try_pop() == ServiceUpdate::add(marker)));
+  }
+
+  TEST_CASE("monitor_services_reconnect_login_failure") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto service = ServiceEntry("quotes", JsonObject(), 1,
+      DirectoryEntry::make_account(12, "provider"));
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        request.set(std::vector{service});
+      });
+    fixture.on_request<MonitorAccountsService>([&] (auto& request) {
+      request.set(std::vector{service.get_account()});
+    });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    auto accounts = std::make_shared<Queue<AccountUpdate>>();
+    client->monitor(accounts);
+    REQUIRE(accounts->pop() == AccountUpdate::add(service.get_account()));
+    fixture.on_request<LoginService>(
+      [&] (auto& request, const std::string&, const std::string&) {
+        request.set_exception(
+          ServiceRequestException("Invalid username or password."));
+      });
+    fixture.close_server_side(*client);
+    flush_pending_routines();
+    REQUIRE(queue->is_broken());
+    REQUIRE_THROWS_AS(queue->pop(), ServiceRequestException);
+    REQUIRE(accounts->is_broken());
+    REQUIRE_THROWS_AS(accounts->pop(), ServiceRequestException);
+    auto replacement = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", replacement);
+    auto other = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("orders", other);
+    flush_pending_routines();
+    REQUIRE(replacement->is_broken());
+    REQUIRE_THROWS_AS(replacement->pop(), ServiceRequestException);
+    REQUIRE(other->is_broken());
+    REQUIRE_THROWS_AS(other->pop(), ServiceRequestException);
+    auto account_replacement = std::make_shared<Queue<AccountUpdate>>();
+    client->monitor(account_replacement);
+    flush_pending_routines();
+    REQUIRE(account_replacement->is_broken());
+    REQUIRE_THROWS_AS(account_replacement->pop(), ServiceRequestException);
+  }
+
+  TEST_CASE("monitor_closed_queue") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto account = DirectoryEntry::make_account(12, "provider");
+    auto service = ServiceEntry("quotes", JsonObject(), 1, account);
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        server_client = &request.get_client();
+        request.set(std::vector{service});
+      });
+    auto queue = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", queue);
+    REQUIRE(queue->pop() == ServiceUpdate::add(service));
+    SUBCASE("services") {
+      auto closed = std::make_shared<Queue<ServiceUpdate>>();
+      closed->close(std::runtime_error("Cancelled."));
+      client->monitor("quotes", closed);
+    }
+    SUBCASE("accounts") {
+      fixture.on_request<MonitorAccountsService>([&] (auto& request) {
+        request.set(std::vector{account});
+      });
+      auto accounts = std::make_shared<Queue<AccountUpdate>>();
+      client->monitor(accounts);
+      REQUIRE(accounts->pop() == AccountUpdate::add(account));
+      auto closed = std::make_shared<Queue<AccountUpdate>>();
+      closed->close(std::runtime_error("Cancelled."));
+      client->monitor(closed);
+    }
+    auto duplicate = std::make_shared<Queue<ServiceUpdate>>();
+    client->monitor("quotes", duplicate);
+    flush_pending_routines();
+    REQUIRE((duplicate->try_pop() == ServiceUpdate::add(service)));
+    send_record_message<ServiceAvailabilityMessage>(
+      *server_client, service, false);
+    flush_pending_routines();
+    REQUIRE((queue->try_pop() == ServiceUpdate::remove(service)));
+    REQUIRE((duplicate->try_pop() == ServiceUpdate::remove(service)));
+  }
+
+  TEST_CASE("monitor_accounts_recovery_retry") {
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto account = DirectoryEntry::make_account(12, "provider");
+    auto requests = 0;
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<MonitorAccountsService>([&] (auto& request) {
+      server_client = &request.get_client();
+      ++requests;
+      if(requests == 2) {
+        request.set_exception(ServiceRequestException("Unavailable."));
+      } else {
+        request.set(std::vector{account});
+      }
+    });
+    auto queue = std::make_shared<Queue<AccountUpdate>>();
+    client->monitor(queue);
+    REQUIRE(queue->pop() == AccountUpdate::add(account));
+    fixture.close_server_side(*client);
+    flush_pending_routines();
+    REQUIRE(queue->is_broken());
+    REQUIRE_THROWS_AS(queue->pop(), ServiceRequestException);
+    auto replacement = std::make_shared<Queue<AccountUpdate>>();
+    client->monitor(replacement);
+    flush_pending_routines();
+    REQUIRE((replacement->try_pop() == AccountUpdate::add(account)));
+    REQUIRE(!replacement->is_broken());
+    send_record_message<AccountUpdateMessage>(
+      *server_client, AccountUpdate::remove(account));
+    flush_pending_routines();
+    REQUIRE((replacement->try_pop() == AccountUpdate::remove(account)));
+    client->close();
+    REQUIRE_THROWS_AS(replacement->pop(), PipeBrokenException);
+  }
+
+  TEST_CASE("register_service_during_reconnect") {
+    auto remove_before_recovery = false;
+    SUBCASE("remove_after_recovery") {}
+    SUBCASE("remove_before_recovery") {
+      remove_before_recovery = true;
+    }
+    auto fixture = Fixture();
+    auto client = fixture.make_client();
+    auto account = DirectoryEntry::make_account(12, "provider");
+    auto registered = std::vector<ServiceEntry>();
+    auto previous_requests = 0;
+    auto current_requests = 0;
+    auto next_id = 0;
+    fixture.on_request<RegisterService>(
+      [&] (auto& request, const std::string& name,
+          const JsonObject& properties) {
+        if(name == "previous") {
+          ++previous_requests;
+        } else {
+          ++current_requests;
+        }
+        auto service = ServiceEntry(name, properties, ++next_id, account);
+        registered.push_back(service);
+        request.set(service);
+      });
+    fixture.on_request<UnregisterService>([&] (auto& request, int id) {
+      std::erase_if(registered, [&] (const auto& service) {
+        return service.get_id() == id;
+      });
+      request.set();
+    });
+    client->add("previous", JsonObject());
+    fixture.on_request<SubscribeAvailabilityService>(
+      [&] (auto& request, const std::string&) {
+        request.set(std::vector{
+          ServiceEntry("quotes", JsonObject(), 100, account)});
+      });
+    auto ready = Async<void>();
+    auto resume = Async<void>();
+    auto is_waiting = false;
+    client->monitor("quotes", callback<ServiceUpdate>([&] (const auto&) {
+      if(!is_waiting) {
+        is_waiting = true;
+        ready.get_eval().set();
+        resume.get();
+      }
+    }));
+    ready.get();
+    fixture.close_server_side(*client);
+    registered.clear();
+    next_id = 0;
+    auto current = client->add("current", JsonObject());
+    if(remove_before_recovery) {
+      client->remove(current);
+    }
+    resume.get_eval().set();
+    flush_pending_routines();
+    REQUIRE(previous_requests == 2);
+    REQUIRE(current_requests == 1);
+    if(!remove_before_recovery) {
+      REQUIRE(registered.size() == 2);
+      client->remove(current);
+    }
+    REQUIRE(registered.size() == 1);
+    REQUIRE(registered.front().get_name() == "previous");
+    client->close();
   }
 
   TEST_CASE("register_service_reconnect") {

@@ -263,7 +263,9 @@ namespace Beam {
     with(m_service_entry_listings, [&] (auto& listings) {
       for(auto& service : registered_services) {
         auto& listing = listings[service.get_name()];
-        std::erase(listing.m_entries, service);
+        std::erase_if(listing.m_entries, [&] (const auto& entry) {
+          return entry.get_id() == service.get_id();
+        });
         broadcast_record_message<
           ServiceLocatorServices::ServiceAvailabilityMessage>(
             listing.m_subscribers, service, false);
@@ -453,7 +455,9 @@ namespace Beam {
       [&] (auto& listings, auto& service_listings) {
         auto& entry = service_listings[service_id];
         auto& listing = listings[entry.get_name()];
-        std::erase(listing.m_entries, entry);
+        std::erase_if(listing.m_entries, [&] (const auto& service) {
+          return service.get_id() == entry.get_id();
+        });
         session.unregister_service(service_id);
         broadcast_record_message<
           ServiceLocatorServices::ServiceAvailabilityMessage>(

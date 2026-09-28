@@ -64,7 +64,10 @@ namespace Beam::Python {
       def("make_account", &T::make_account).
       def("make_directory", &T::make_directory).
       def("store_password", &T::store_password).
-      def("monitor", &T::monitor).
+      def("monitor", pybind11::overload_cast<ScopedQueueWriter<AccountUpdate>>(
+        &T::monitor)).
+      def("monitor", pybind11::overload_cast<
+        const std::string&, ScopedQueueWriter<ServiceUpdate>>(&T::monitor)).
       def("load_directory_entry",
         pybind11::overload_cast<const DirectoryEntry&, const std::string&>(
           &T::load_directory_entry)).
@@ -126,6 +129,9 @@ namespace Beam::Python {
 
   /** Exports the ServiceLocatorTestEnvironment class. */
   void export_service_locator_test_environment(pybind11::module& module);
+
+  /** Exports the ServiceUpdate struct. */
+  void export_service_update(pybind11::module& module);
 
   /** Exports the SqliteServiceLocatorDataStore class. */
   void export_sqlite_service_locator_data_store(pybind11::module& module);

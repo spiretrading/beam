@@ -1,5 +1,8 @@
 #ifndef BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
+#include <cstdint>
+#include <optional>
+#include <unordered_map>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
@@ -67,6 +70,8 @@ namespace Beam {
       void store_password(
         const DirectoryEntry& account, const std::string& password);
       void monitor(ScopedQueueWriter<AccountUpdate> queue);
+      void monitor(
+        const std::string& name, ScopedQueueWriter<ServiceUpdate> queue);
       DirectoryEntry load_directory_entry(
         const DirectoryEntry& root, const std::string& path);
       DirectoryEntry load_directory_entry(unsigned int id);
@@ -90,15 +95,29 @@ namespace Beam {
     private:
       using ServiceProtocolClient =
         typename ServiceProtocolClientBuilder::Client;
+      struct ServiceSubscription {
+        std::uint64_t m_generation = 0;
+        std::vector<ServiceEntry> m_snapshot;
+        QueueWriterPublisher<ServiceUpdate> m_publisher;
+      };
+      struct ServiceRegistration {
+        ServiceEntry m_service;
+        std::uint64_t m_generation;
+      };
       mutable boost::mutex m_mutex;
+      ServiceProtocolClient* m_connection;
+      std::uint64_t m_generation;
       std::string m_username;
       std::string m_password;
       ServiceProtocolClientHandler<B> m_client_handler;
       std::string m_session_id;
       DirectoryEntry m_account;
       std::vector<DirectoryEntry> m_account_update_snapshot;
-      QueueWriterPublisher<AccountUpdate> m_account_update_publisher;
-      SynchronizedVector<ServiceEntry> m_services;
+      std::optional<QueueWriterPublisher<AccountUpdate>>
+        m_account_update_publisher;
+      SynchronizedVector<ServiceRegistration> m_services;
+      std::unordered_map<std::string, ServiceSubscription> m_subscriptions;
+      std::exception_ptr m_exception;
       RoutineTaskQueue m_tasks;
       OpenState m_open_state;
 
@@ -106,22 +125,30 @@ namespace Beam {
         const ProtocolServiceLocatorClient&) = delete;
       ProtocolServiceLocatorClient& operator =(
         const ProtocolServiceLocatorClient&) = delete;
+      std::uint64_t get_generation(const ServiceProtocolClient& client) const;
       void login(ServiceProtocolClient& client);
       void login_from_session(ServiceProtocolClient& client,
         const std::string& session_id, unsigned int key);
+      void subscribe(const std::string& name, ServiceSubscription& subscription,
+        const std::shared_ptr<ServiceProtocolClient>& client);
       void on_reconnect(const std::shared_ptr<ServiceProtocolClient>& client);
       void on_account_update(
         ServiceProtocolClient& client, const AccountUpdate& update);
+      void on_service_availability(ServiceProtocolClient& client,
+        const ServiceEntry& service, bool is_available);
   };
 
   template<typename B>
   template<Initializes<B> BF>
   ProtocolServiceLocatorClient<B>::ProtocolServiceLocatorClient(
       std::string username, std::string password, BF&& client_builder)
-      try : m_username(std::move(username)),
+      try : m_connection(nullptr),
+            m_generation(0),
+            m_username(std::move(username)),
             m_password(std::move(password)),
             m_client_handler(std::forward<BF>(client_builder), std::bind_front(
-              &ProtocolServiceLocatorClient::on_reconnect, this)) {
+              &ProtocolServiceLocatorClient::on_reconnect, this)),
+            m_account_update_publisher(std::in_place) {
     ServiceLocatorServices::register_service_locator_services(
       out(m_client_handler.get_slots()));
     ServiceLocatorServices::register_service_locator_messages(
@@ -129,6 +156,9 @@ namespace Beam {
     add_message_slot<ServiceLocatorServices::AccountUpdateMessage>(
       out(m_client_handler.get_slots()),
       std::bind_front(&ProtocolServiceLocatorClient::on_account_update, this));
+    add_message_slot<ServiceLocatorServices::ServiceAvailabilityMessage>(
+      out(m_client_handler.get_slots()), std::bind_front(
+        &ProtocolServiceLocatorClient::on_service_availability, this));
     try {
       auto client = m_client_handler.get_client();
       login(*client);
@@ -145,9 +175,11 @@ namespace Beam {
   template<Initializes<B> BF>
   ProtocolServiceLocatorClient<B>::ProtocolServiceLocatorClient(
       const std::string& session_id, unsigned int key, BF&& client_builder)
-      try : m_client_handler(std::forward<BF>(client_builder),
-              std::bind_front(
-                &ProtocolServiceLocatorClient::on_reconnect, this)) {
+      try : m_connection(nullptr),
+            m_generation(0),
+            m_client_handler(std::forward<BF>(client_builder), std::bind_front(
+              &ProtocolServiceLocatorClient::on_reconnect, this)),
+            m_account_update_publisher(std::in_place) {
     ServiceLocatorServices::register_service_locator_services(
       out(m_client_handler.get_slots()));
     ServiceLocatorServices::register_service_locator_messages(
@@ -155,6 +187,9 @@ namespace Beam {
     add_message_slot<ServiceLocatorServices::AccountUpdateMessage>(
       out(m_client_handler.get_slots()),
       std::bind_front(&ProtocolServiceLocatorClient::on_account_update, this));
+    add_message_slot<ServiceLocatorServices::ServiceAvailabilityMessage>(
+      out(m_client_handler.get_slots()), std::bind_front(
+        &ProtocolServiceLocatorClient::on_service_availability, this));
     try {
       auto client = m_client_handler.get_client();
       login_from_session(*client, session_id, key);
@@ -227,9 +262,10 @@ namespace Beam {
       const std::string& name, const JsonObject& properties) {
     return service_or_throw_with_nested([&] {
       auto client = m_client_handler.get_client();
+      auto generation = get_generation(*client);
       auto service = client->template send_request<
         ServiceLocatorServices::RegisterService>(name, properties);
-      m_services.push_back(service);
+      m_services.push_back(ServiceRegistration(service, generation));
       return service;
     }, "Error registering service: " + name);
   }
@@ -238,10 +274,12 @@ namespace Beam {
   void ProtocolServiceLocatorClient<B>::remove(const ServiceEntry& service) {
     service_or_throw_with_nested([&] {
       auto client = m_client_handler.get_client();
+      auto generation = get_generation(*client);
       client->template send_request<ServiceLocatorServices::UnregisterService>(
         service.get_id());
-      m_services.erase_if([&] (const auto& s) {
-        return s.get_id() == service.get_id();
+      m_services.erase_if([&] (const auto& registration) {
+        return registration.m_generation == generation &&
+          registration.m_service.get_id() == service.get_id();
       });
     }, "Error unregistering service: " + service.get_name());
   }
@@ -303,13 +341,17 @@ namespace Beam {
       ScopedQueueWriter<AccountUpdate> queue) {
     m_tasks.push([this, queue =
         std::make_shared<ScopedQueueWriter<AccountUpdate>>(std::move(queue))] {
-      if(m_account_update_publisher.get_size() != 0) {
+      if(m_exception) {
+        queue->close(m_exception);
+        return;
+      }
+      if(m_account_update_publisher->get_size() != 0) {
         try {
           for(auto& account : m_account_update_snapshot) {
             queue->push(AccountUpdate::add(account));
           }
-          m_account_update_publisher.monitor(std::move(*queue));
-        } catch(const PipeBrokenException&) {}
+          m_account_update_publisher->monitor(std::move(*queue));
+        } catch(const std::exception&) {}
         return;
       }
       try {
@@ -320,9 +362,38 @@ namespace Beam {
         queue->close(make_nested_service_exception("monitor accounts failed."));
         return;
       }
-      m_account_update_publisher.monitor(std::move(*queue));
+      m_account_update_publisher->monitor(std::move(*queue));
       for(auto& account : m_account_update_snapshot) {
-        m_account_update_publisher.push(AccountUpdate::add(account));
+        m_account_update_publisher->push(AccountUpdate::add(account));
+      }
+    });
+  }
+
+  template<typename B>
+  void ProtocolServiceLocatorClient<B>::monitor(
+      const std::string& name, ScopedQueueWriter<ServiceUpdate> queue) {
+    m_tasks.push([=, this, queue =
+        std::make_shared<ScopedQueueWriter<ServiceUpdate>>(std::move(queue))] {
+      if(m_exception) {
+        queue->close(m_exception);
+        return;
+      }
+      auto& subscription = m_subscriptions[name];
+      try {
+        for(auto& service : subscription.m_snapshot) {
+          queue->push(ServiceUpdate::add(service));
+        }
+        subscription.m_publisher.monitor(std::move(*queue));
+      } catch(const std::exception&) {
+        return;
+      }
+      try {
+        subscribe(name, subscription, m_client_handler.get_client());
+      } catch(const IOException&) {
+      } catch(const std::exception&) {
+        subscription.m_publisher.close(
+          make_nested_service_exception("Error monitoring service: " + name));
+        m_subscriptions.erase(name);
       }
     });
   }
@@ -466,11 +537,22 @@ namespace Beam {
     if(m_open_state.set_closing()) {
       return;
     }
-    m_account_update_publisher.close();
     m_tasks.close();
     m_client_handler.close();
     m_tasks.wait();
+    m_account_update_publisher->close();
+    m_subscriptions.clear();
     m_open_state.close();
+  }
+
+  template<typename B>
+  std::uint64_t ProtocolServiceLocatorClient<B>::get_generation(
+      const ServiceProtocolClient& client) const {
+    auto lock = boost::lock_guard(m_mutex);
+    if(m_connection != &client) {
+      return 0;
+    }
+    return m_generation;
   }
 
   template<typename B>
@@ -480,6 +562,10 @@ namespace Beam {
     auto lock = boost::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;
+    if(m_generation == 0) {
+      m_connection = &client;
+      ++m_generation;
+    }
   }
 
   template<typename B>
@@ -491,30 +577,150 @@ namespace Beam {
     auto lock = boost::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;
+    if(m_generation == 0) {
+      m_connection = &client;
+      ++m_generation;
+    }
+  }
+
+  template<typename B>
+  void ProtocolServiceLocatorClient<B>::subscribe(const std::string& name,
+      ServiceSubscription& subscription,
+      const std::shared_ptr<ServiceProtocolClient>& client) {
+    auto generation = get_generation(*client);
+    if(generation == 0 || subscription.m_generation == generation) {
+      return;
+    }
+    auto snapshot = std::vector<ServiceEntry>();
+    try {
+      snapshot = client->template send_request<
+        ServiceLocatorServices::SubscribeAvailabilityService>(name);
+    } catch(const ServiceRequestException& exception) {
+      if(std::string(exception.what()) == "ServiceProtocolClient closed.") {
+        return;
+      }
+      throw;
+    }
+    for(auto& service : subscription.m_snapshot) {
+      if(!std::ranges::contains(snapshot, service)) {
+        subscription.m_publisher.push(ServiceUpdate::remove(service));
+      }
+    }
+    for(auto& service : snapshot) {
+      if(!std::ranges::contains(subscription.m_snapshot, service)) {
+        subscription.m_publisher.push(ServiceUpdate::add(service));
+      }
+    }
+    subscription.m_snapshot = std::move(snapshot);
+    subscription.m_generation = generation;
   }
 
   template<typename B>
   void ProtocolServiceLocatorClient<B>::on_reconnect(
       const std::shared_ptr<ServiceProtocolClient>& client) {
-    login(*client);
-    auto services = std::vector<ServiceEntry>();
-    m_services.swap(services);
+    {
+      auto lock = boost::lock_guard(m_mutex);
+      m_connection = client.get();
+      ++m_generation;
+    }
+    try {
+      login(*client);
+    } catch(const std::exception&) {
+      auto exception =
+        make_nested_service_exception("Error reconnecting to service locator.");
+      m_tasks.push([=, this] {
+        m_exception = exception;
+        m_account_update_publisher->close(exception);
+        for(auto& subscription :
+            m_subscriptions | boost::adaptors::map_values) {
+          subscription.m_publisher.close(exception);
+        }
+        m_subscriptions.clear();
+      });
+      throw;
+    }
     m_tasks.push([=, this] {
-      for(auto& service : services) {
-        add(service.get_name(), service.get_properties());
-      }
-      if(m_account_update_publisher.get_size() == 0) {
+      auto generation = get_generation(*client);
+      if(generation == 0) {
         return;
       }
-      auto client = m_client_handler.get_client();
-      auto accounts = client->template send_request<
-        ServiceLocatorServices::MonitorAccountsService>();
+      auto services = m_services.with([&] (auto& registrations) {
+        auto services = std::vector<ServiceRegistration>();
+        std::erase_if(registrations, [&] (const auto& registration) {
+          if(registration.m_generation >= generation) {
+            return false;
+          }
+          services.push_back(registration);
+          return true;
+        });
+        return services;
+      });
+      auto i = m_subscriptions.begin();
+      while(i != m_subscriptions.end()) {
+        if(i->second.m_publisher.get_size() == 0) {
+          i = m_subscriptions.erase(i);
+          continue;
+        }
+        try {
+          subscribe(i->first, i->second, client);
+          ++i;
+        } catch(const IOException&) {
+          ++i;
+        } catch(const std::exception&) {
+          i->second.m_publisher.close(make_nested_service_exception(
+            "Error monitoring service: " + i->first));
+          i = m_subscriptions.erase(i);
+        }
+      }
+      for(auto& service : services) {
+        try {
+          auto registration = client->template send_request<
+            ServiceLocatorServices::RegisterService>(
+              service.m_service.get_name(), service.m_service.get_properties());
+          m_services.push_back(
+            ServiceRegistration(std::move(registration), generation));
+        } catch(const IOException&) {
+          m_services.push_back(service);
+        } catch(const ServiceRequestException& exception) {
+          m_services.push_back(service);
+          if(std::string(exception.what()) != "ServiceProtocolClient closed.") {
+            std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+          }
+        } catch(const std::exception&) {
+          m_services.push_back(service);
+          std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+        }
+      }
+      if(m_account_update_publisher->get_size() == 0) {
+        return;
+      }
+      auto accounts = std::vector<DirectoryEntry>();
+      try {
+        accounts = client->template send_request<
+          ServiceLocatorServices::MonitorAccountsService>();
+      } catch(const IOException&) {
+        return;
+      } catch(const ServiceRequestException& exception) {
+        if(std::string(exception.what()) != "ServiceProtocolClient closed.") {
+          m_account_update_publisher->close(
+            make_nested_service_exception("Error monitoring accounts."));
+          m_account_update_publisher.emplace();
+          m_account_update_snapshot.clear();
+        }
+        return;
+      } catch(const std::exception&) {
+        m_account_update_publisher->close(
+          make_nested_service_exception("Error monitoring accounts."));
+        m_account_update_publisher.emplace();
+        m_account_update_snapshot.clear();
+        return;
+      }
       for(auto& account : accounts) {
         auto i = std::find(m_account_update_snapshot.begin(),
           m_account_update_snapshot.end(), account);
         if(i == m_account_update_snapshot.end()) {
           m_account_update_snapshot.push_back(account);
-          m_account_update_publisher.push(AccountUpdate::add(account));
+          m_account_update_publisher->push(AccountUpdate::add(account));
         }
       }
     });
@@ -533,12 +739,46 @@ namespace Beam {
           m_account_update_snapshot.erase(i);
         }
       }
-      m_account_update_publisher.push(update);
-      if(m_account_update_publisher.get_size() == 0) {
-        auto client = m_client_handler.get_client();
-        client->template send_request<
-          ServiceLocatorServices::UnmonitorAccountsService>();
+      m_account_update_publisher->push(update);
+      if(m_account_update_publisher->get_size() == 0) {
         m_account_update_snapshot = {};
+        try {
+          auto client = m_client_handler.get_client();
+          client->template send_request<
+            ServiceLocatorServices::UnmonitorAccountsService>();
+        } catch(const std::exception&) {}
+      }
+    });
+  }
+
+  template<typename B>
+  void ProtocolServiceLocatorClient<B>::on_service_availability(
+      ServiceProtocolClient& client, const ServiceEntry& service,
+      bool is_available) {
+    auto generation = get_generation(client);
+    if(generation == 0) {
+      return;
+    }
+    m_tasks.push([=, this] {
+      auto i = m_subscriptions.find(service.get_name());
+      if(i == m_subscriptions.end() || i->second.m_generation != generation) {
+        return;
+      }
+      auto& subscription = i->second;
+      auto entry = std::ranges::find(
+        subscription.m_snapshot, service.get_id(), &ServiceEntry::get_id);
+      if(is_available) {
+        if(entry == subscription.m_snapshot.end()) {
+          subscription.m_snapshot.push_back(service);
+          subscription.m_publisher.push(ServiceUpdate::add(service));
+        } else if(*entry != service) {
+          subscription.m_publisher.push(ServiceUpdate::remove(*entry));
+          *entry = service;
+          subscription.m_publisher.push(ServiceUpdate::add(service));
+        }
+      } else if(entry != subscription.m_snapshot.end() && *entry == service) {
+        subscription.m_publisher.push(ServiceUpdate::remove(*entry));
+        subscription.m_snapshot.erase(entry);
       }
     });
   }

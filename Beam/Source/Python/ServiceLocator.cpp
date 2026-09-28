@@ -150,8 +150,10 @@ void Beam::Python::export_service_locator(module& module) {
   export_permissions(module);
   export_service_entry(module);
   export_service_locator_application_definitions(module);
+  export_service_update(module);
   export_sqlite_service_locator_data_store(module);
   export_queue_suite<AccountUpdate>(module, "AccountUpdate");
+  export_queue_suite<ServiceUpdate>(module, "ServiceUpdate");
   register_exception<AuthenticationException>(
     module, "AuthenticationException", get_connect_exception());
   register_exception<NotLoggedInException>(
@@ -190,6 +192,19 @@ void Beam::Python::export_service_locator_application_definitions(
   module.def("add", &add<ServiceLocatorClient>, call_guard<GilRelease>());
 }
 
+void Beam::Python::export_service_update(module& module) {
+  auto outer = class_<ServiceUpdate>(module, "ServiceUpdate").
+    def(pybind11::init<ServiceEntry, ServiceUpdate::Type>()).
+    def_readwrite("service", &ServiceUpdate::m_service).
+    def_readwrite("type", &ServiceUpdate::m_type).
+    def_static("add", &ServiceUpdate::add).
+    def_static("remove", &ServiceUpdate::remove);
+  export_default_methods(outer);
+  enum_<ServiceUpdate::Type>(outer, "Type").
+    value("ADDED", ServiceUpdate::Type::ADDED).
+    value("REMOVED", ServiceUpdate::Type::REMOVED);
+}
+
 void Beam::Python::export_sqlite_service_locator_data_store(module& module) {
   using DataStore = ToPythonServiceLocatorDataStore<
     SqlServiceLocatorDataStore<SqlConnection<Viper::Sqlite3::Connection>>>;
@@ -203,6 +218,8 @@ void Beam::Python::export_sqlite_service_locator_data_store(module& module) {
 }
 
 void Beam::Python::export_service_locator_test_environment(module& module) {
+  export_service_locator_client<ToPythonServiceLocatorClient<
+    ServiceLocatorClient>>(module, "ServiceLocatorClient");
   class_<ServiceLocatorTestEnvironment, std::shared_ptr<ServiceLocatorTestEnvironment>>(
     module, "ServiceLocatorTestEnvironment").
     def(pybind11::init(&make_python_shared<ServiceLocatorTestEnvironment>),
@@ -214,15 +231,18 @@ void Beam::Python::export_service_locator_test_environment(module& module) {
     def("make_client",
       [] (ServiceLocatorTestEnvironment& self, std::string username,
           std::string password) {
-        return ToPythonServiceLocatorClient(
-          self.make_client(std::move(username), std::move(password)));
-      }, call_guard<GilRelease>()).
+        return std::make_unique<ToPythonServiceLocatorClient<
+          ServiceLocatorClient>>(
+            self.make_client(std::move(username), std::move(password)));
+      }, call_guard<GilRelease>(), keep_alive<0, 1>()).
     def("make_client",
       [] (ServiceLocatorTestEnvironment& self, const std::string& session_id,
           unsigned int key) {
-        return ToPythonServiceLocatorClient(self.make_client(session_id, key));
-      }, call_guard<GilRelease>()).
+        return std::make_unique<ToPythonServiceLocatorClient<
+          ServiceLocatorClient>>(self.make_client(session_id, key));
+      }, call_guard<GilRelease>(), keep_alive<0, 1>()).
     def("make_client", [] (ServiceLocatorTestEnvironment& self) {
-      return ToPythonServiceLocatorClient(self.make_client());
-    }, call_guard<GilRelease>());
+      return std::make_unique<ToPythonServiceLocatorClient<
+        ServiceLocatorClient>>(self.make_client());
+    }, call_guard<GilRelease>(), keep_alive<0, 1>());
 }

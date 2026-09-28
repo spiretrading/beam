@@ -143,6 +143,16 @@ namespace Beam::Tests {
         ScopedQueueWriter<AccountUpdate> m_queue;
       };
 
+      /** Records a call to monitor services by name. */
+      struct MonitorServicesOperation {
+
+        /** The service name passed. */
+        std::string m_name;
+
+        /** The queue receiving service updates. */
+        ScopedQueueWriter<ServiceUpdate> m_queue;
+      };
+
       /** Records a call to load_directory_entry. */
       struct LoadDirectoryEntryByPathOperation {
 
@@ -292,12 +302,13 @@ namespace Beam::Tests {
         AuthenticateSessionOperation, LocateOperation, AddOperation,
         RemoveServiceOperation, LoadAllAccountsOperation, FindAccountOperation,
         MakeAccountOperation, MakeDirectoryOperation, StorePasswordOperation,
-        MonitorOperation, LoadDirectoryEntryByPathOperation,
-        LoadDirectoryEntryByIdOperation, LoadParentsOperation,
-        LoadChildrenOperation, RemoveDirectoryEntryOperation,
-        AssociateOperation, DetachOperation, HasPermissionsOperation,
-        StorePermissionsOperation, LoadRegistrationTimeOperation,
-        LoadLastLoginTimeOperation, RenameOperation>;
+        MonitorOperation, MonitorServicesOperation,
+        LoadDirectoryEntryByPathOperation, LoadDirectoryEntryByIdOperation,
+        LoadParentsOperation, LoadChildrenOperation,
+        RemoveDirectoryEntryOperation, AssociateOperation, DetachOperation,
+        HasPermissionsOperation, StorePermissionsOperation,
+        LoadRegistrationTimeOperation, LoadLastLoginTimeOperation,
+        RenameOperation>;
 
       /** The type of Queue used to send and receive operations. */
       using Queue = Beam::Queue<std::shared_ptr<Operation>>;
@@ -333,6 +344,8 @@ namespace Beam::Tests {
       void store_password(
         const DirectoryEntry& account, const std::string& password);
       void monitor(ScopedQueueWriter<AccountUpdate> queue);
+      void monitor(
+        const std::string& name, ScopedQueueWriter<ServiceUpdate> queue);
       DirectoryEntry load_directory_entry(
         const DirectoryEntry& root, const std::string& path);
       DirectoryEntry load_directory_entry(unsigned int id);
@@ -450,6 +463,13 @@ namespace Beam::Tests {
       ScopedQueueWriter<AccountUpdate> queue) {
     m_operations.append_queue<MonitorOperation>(std::make_shared<Operation>(
       MonitorOperation(std::move(queue))));
+  }
+
+  inline void TestServiceLocatorClient::monitor(
+      const std::string& name, ScopedQueueWriter<ServiceUpdate> queue) {
+    m_operations.append_queue<MonitorServicesOperation>(
+      std::make_shared<Operation>(
+        MonitorServicesOperation(name, std::move(queue))));
   }
 
   inline DirectoryEntry TestServiceLocatorClient::load_directory_entry(

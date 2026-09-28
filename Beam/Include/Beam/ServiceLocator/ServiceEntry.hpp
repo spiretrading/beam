@@ -36,13 +36,7 @@ namespace Beam {
       /** Returns the account providing the service. */
       const DirectoryEntry& get_account() const;
 
-      /**
-       * Tests for equality.
-       * @param lhs The left hand side of the test.
-       * @return <code>true</code> iff <i>lhs</i> has the same id as
-       *         <i>this</i>.
-       */
-      bool operator ==(const ServiceEntry& lhs) const;
+      bool operator ==(const ServiceEntry& entry) const;
 
     private:
       friend struct DataShuttle;
@@ -84,8 +78,10 @@ namespace Beam {
     return m_account;
   }
 
-  inline bool ServiceEntry::operator ==(const ServiceEntry& lhs) const {
-    return m_id == lhs.m_id;
+  inline bool ServiceEntry::operator ==(const ServiceEntry& entry) const {
+    return m_id == entry.m_id && m_name == entry.m_name &&
+      m_properties == entry.m_properties && m_account == entry.m_account &&
+      m_account.m_name == entry.m_account.m_name;
   }
 
   template<IsShuttle S>

@@ -53,6 +53,8 @@ namespace Beam::Python {
       void store_password(
         const DirectoryEntry& account, const std::string& password);
       void monitor(ScopedQueueWriter<AccountUpdate> queue);
+      void monitor(
+        const std::string& name, ScopedQueueWriter<ServiceUpdate> queue);
       DirectoryEntry load_directory_entry(
         const DirectoryEntry& root, const std::string& path);
       DirectoryEntry load_directory_entry(unsigned int id);
@@ -205,6 +207,13 @@ namespace Beam::Python {
       ScopedQueueWriter<AccountUpdate> queue) {
     auto release = GilRelease();
     m_client->monitor(std::move(queue));
+  }
+
+  template<IsServiceLocatorClient C>
+  void ToPythonServiceLocatorClient<C>::monitor(
+      const std::string& name, ScopedQueueWriter<ServiceUpdate> queue) {
+    auto release = GilRelease();
+    m_client->monitor(name, std::move(queue));
   }
 
   template<IsServiceLocatorClient C>

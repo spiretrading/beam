@@ -22,6 +22,7 @@
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/ServiceLocator/Permissions.hpp"
 #include "Beam/ServiceLocator/ServiceEntry.hpp"
+#include "Beam/ServiceLocator/ServiceUpdate.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
 
 namespace Beam {
@@ -58,6 +59,9 @@ namespace Beam {
         std::declval<const std::string&>()) } -> std::same_as<void>;
     { client.monitor(std::declval<ScopedQueueWriter<AccountUpdate>>()) } ->
         std::same_as<void>;
+    { client.monitor(std::declval<const std::string&>(),
+        std::declval<ScopedQueueWriter<ServiceUpdate>>()) } ->
+          std::same_as<void>;
     { client.load_directory_entry(std::declval<const DirectoryEntry&>(),
         std::declval<const std::string&>()) } -> std::same_as<DirectoryEntry>;
     { client.load_directory_entry(std::declval<unsigned int>()) } ->
@@ -210,6 +214,16 @@ namespace Beam {
       void monitor(ScopedQueueWriter<AccountUpdate> queue);
 
       /**
+       * Monitors registrations for a service, publishing the initial entries
+       * as additions followed by changes. Reconnects reconcile a fresh listing.
+       * @param name The service name to monitor.
+       * @param queue Receives additions and removals until closed. Closed
+       *        queues are removed when a subsequent update detects them.
+       */
+      void monitor(
+        const std::string& name, ScopedQueueWriter<ServiceUpdate> queue);
+
+      /**
        * Loads a DirectoryEntry from a path.
        * @param root The root DirectoryEntry to begin searching from.
        * @param path The path of the DirectoryEntry to load.
@@ -332,6 +346,8 @@ namespace Beam {
         virtual void store_password(
           const DirectoryEntry&, const std::string&) = 0;
         virtual void monitor(ScopedQueueWriter<AccountUpdate>) = 0;
+        virtual void monitor(
+          const std::string&, ScopedQueueWriter<ServiceUpdate>) = 0;
         virtual DirectoryEntry load_directory_entry(
           const DirectoryEntry&, const std::string&) = 0;
         virtual DirectoryEntry load_directory_entry(unsigned int) = 0;
@@ -384,6 +400,8 @@ namespace Beam {
         void store_password(
           const DirectoryEntry& account, const std::string& password) override;
         void monitor(ScopedQueueWriter<AccountUpdate> queue) override;
+        void monitor(const std::string& name,
+          ScopedQueueWriter<ServiceUpdate> queue) override;
         DirectoryEntry load_directory_entry(
           const DirectoryEntry& root, const std::string& path) override;
         DirectoryEntry load_directory_entry(unsigned int id) override;
@@ -556,6 +574,11 @@ namespace Beam {
     m_client->monitor(std::move(queue));
   }
 
+  inline void ServiceLocatorClient::monitor(
+      const std::string& name, ScopedQueueWriter<ServiceUpdate> queue) {
+    m_client->monitor(name, std::move(queue));
+  }
+
   inline DirectoryEntry ServiceLocatorClient::load_directory_entry(
       const DirectoryEntry& root, const std::string& path) {
     return m_client->load_directory_entry(root, path);
@@ -714,6 +737,12 @@ namespace Beam {
   void ServiceLocatorClient::WrappedServiceLocatorClient<C>::monitor(
       ScopedQueueWriter<AccountUpdate> queue) {
     m_client->monitor(std::move(queue));
+  }
+
+  template<typename C>
+  void ServiceLocatorClient::WrappedServiceLocatorClient<C>::monitor(
+      const std::string& name, ScopedQueueWriter<ServiceUpdate> queue) {
+    m_client->monitor(name, std::move(queue));
   }
 
   template<typename C>

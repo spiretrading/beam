@@ -468,8 +468,8 @@ namespace Beam {
     }
     m_account_update_publisher.close();
     m_tasks.close();
-    m_tasks.wait();
     m_client_handler.close();
+    m_tasks.wait();
     m_open_state.close();
   }
 

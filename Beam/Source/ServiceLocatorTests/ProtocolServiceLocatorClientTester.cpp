@@ -1,4 +1,6 @@
+#include <atomic>
 #include <doctest/doctest.h>
+#include "Beam/Routines/RoutineHandlerGroup.hpp"
 #include "Beam/ServicesTests/ServiceClientFixture.hpp"
 #include "Beam/ServiceLocator/ProtocolServiceLocatorClient.hpp"
 
@@ -57,6 +59,58 @@ namespace {
 }
 
 TEST_SUITE("ProtocolServiceLocatorClient") {
+  TEST_CASE("close_during_reconnect") {
+    auto fixture = Fixture();
+    auto server_client = static_cast<
+      TestServiceProtocolServer::ServiceProtocolClient*>(nullptr);
+    fixture.on_request<LoginService>(
+      [&] (auto& request, const std::string& username,
+          const std::string& password) {
+        server_client = &request.get_client();
+        request.set(LoginServiceResult(
+          DirectoryEntry::make_account(1, username), "session"));
+      });
+    auto connection_attempts = std::atomic_int();
+    auto is_available = std::atomic_bool(true);
+    auto builder = TestServiceProtocolClientBuilder([&] {
+      ++connection_attempts;
+      if(!is_available) {
+        throw ConnectException("Unavailable.");
+      }
+      return std::make_unique<TestServiceProtocolClientBuilder::Channel>(
+        "test", *fixture.m_server_connection);
+    }, [] {
+      return std::make_unique<TriggerTimer>();
+    });
+    auto client = std::make_unique<Fixture::TestServiceLocatorClient>(
+      "user", "password", builder);
+    is_available = false;
+    server_client->close();
+    flush_pending_routines();
+    auto tasks = RoutineHandlerGroup();
+    auto queue = std::make_shared<Queue<AccountUpdate>>();
+    SUBCASE("lookup") {
+      for(auto i = 0; i != 2; ++i) {
+        tasks.spawn([&] {
+          REQUIRE_THROWS_AS(client->locate("market_data_relay_service"),
+            IOException);
+        });
+      }
+    }
+    SUBCASE("monitor") {
+      client->monitor(queue);
+    }
+    flush_pending_routines();
+    auto attempts = connection_attempts.load();
+    client->close();
+    tasks.wait();
+    flush_pending_routines();
+    REQUIRE(connection_attempts == attempts);
+    REQUIRE_THROWS_AS(client->locate("market_data_relay_service"),
+      IOException);
+    REQUIRE(connection_attempts == attempts);
+  }
+
   TEST_CASE("rejected_login") {
     auto fixture = Fixture();
     auto login_attempted = false;

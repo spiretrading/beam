@@ -152,14 +152,18 @@ namespace Beam {
         return m_client;
       } catch(const ConnectException&) {
         m_open_state.ensure_open();
-        auto reconnect_timer = std::shared_ptr(m_builder->make_timer());
-        m_reconnect_timer = reconnect_timer;
-        reconnect_timer->start();
+        if(!m_reconnect_timer) {
+          m_reconnect_timer = m_builder->make_timer();
+          m_reconnect_timer->start();
+        }
+        auto reconnect_timer = m_reconnect_timer;
         {
           auto releaser = release(lock);
           reconnect_timer->wait();
         }
-        m_reconnect_timer = nullptr;
+        if(m_reconnect_timer == reconnect_timer) {
+          m_reconnect_timer = nullptr;
+        }
       } catch(const std::exception&) {
         m_open_state.close();
         throw;

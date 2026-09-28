@@ -147,6 +147,22 @@ void Beam::Python::export_time_service(pybind11::module& module) {
   export_live_timer(module);
   export_timer_reactor(module);
   export_trigger_timer(module);
+  module.def("sleep_for", [] (time_duration duration) {
+    while(duration > seconds(0)) {
+      auto interval = duration;
+      if(interval > seconds(1)) {
+        interval = seconds(1);
+      }
+      {
+        auto release = GilRelease();
+        Beam::sleep_for(interval);
+      }
+      if(PyErr_CheckSignals() != 0) {
+        throw error_already_set();
+      }
+      duration -= interval;
+    }
+  });
   module.def("to_local_time", overload_cast<ptime>(&to_local_time));
   module.def("to_utc_time", overload_cast<ptime>(&to_utc_time));
   module.def("to_local_time", overload_cast<time_duration>(&to_local_time));

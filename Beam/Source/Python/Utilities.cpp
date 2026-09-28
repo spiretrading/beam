@@ -1,7 +1,9 @@
 #include "Beam/Python/Utilities.hpp"
 #include <fstream>
 #include <pybind11/operators.h>
+#include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Services/ApplicationDefinitions.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 
@@ -27,6 +29,27 @@ void Beam::Python::export_key_value_pair(module& module) {
 }
 
 void Beam::Python::export_utilities(module& module) {
+  auto connect_exception = object(module.attr("ConnectException"));
+  auto authentication_exception =
+    object(module.attr("AuthenticationException"));
+  module.def("connect", [=] (
+      function factory, pybind11::args args, pybind11::kwargs kwargs) {
+    auto sleep = function(pybind11::module::import("beam").attr("sleep_for"));
+    return Beam::connect([&] {
+      try {
+        return factory(*args, **kwargs);
+      } catch(const error_already_set& exception) {
+        if(exception.matches(authentication_exception) ||
+            !exception.matches(connect_exception)) {
+          throw;
+        }
+        throw ConnectException();
+      }
+    }, [&] (const boost::posix_time::time_duration& delay) {
+      sleep(delay);
+    });
+  }, "Calls a factory, retrying connection failures with delays up to 30 "
+    "seconds. Authentication errors and interruptions propagate.");
   export_expect<object>(module, "Expect");
   export_key_value_pair(module);
   export_yaml(module);

@@ -1,4 +1,5 @@
 #include "Beam/Python/ServiceLocator.hpp"
+#include <string_view>
 #include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
@@ -27,6 +28,7 @@ using namespace boost::posix_time;
 using namespace pybind11;
 
 namespace {
+  auto authentication_exception = object();
   auto service_locator_client = std::unique_ptr<class_<ServiceLocatorClient>>();
   auto service_locator_data_store =
     std::unique_ptr<class_<ServiceLocatorDataStore>>();
@@ -154,8 +156,28 @@ void Beam::Python::export_service_locator(module& module) {
   export_sqlite_service_locator_data_store(module);
   export_queue_suite<AccountUpdate>(module, "AccountUpdate");
   export_queue_suite<ServiceUpdate>(module, "ServiceUpdate");
-  register_exception<AuthenticationException>(
+  authentication_exception = register_exception<AuthenticationException>(
     module, "AuthenticationException", get_connect_exception());
+  register_local_exception_translator([] (std::exception_ptr exception) {
+    if(!exception) {
+      return;
+    }
+    try {
+      std::rethrow_exception(exception);
+    } catch(const ConnectException& exception) {
+      try {
+        std::rethrow_if_nested(exception);
+      } catch(const ServiceRequestException& exception) {
+        auto message = std::string_view(exception.what());
+        if(message == "Invalid username or password." ||
+            message == "Session not found.") {
+          PyErr_SetString(authentication_exception.ptr(), exception.what());
+          return;
+        }
+      } catch(const std::exception&) {}
+      throw;
+    }
+  });
   register_exception<NotLoggedInException>(
     module, "NotLoggedInException", get_io_exception());
   register_exception<ServiceLocatorDataStoreException>(

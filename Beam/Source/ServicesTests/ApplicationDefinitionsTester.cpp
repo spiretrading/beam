@@ -85,5 +85,35 @@ TEST_SUITE("ApplicationDefinitions") {
       REQUIRE(client == 2);
       REQUIRE(attempts == 2);
     }
+    SUBCASE("custom_wait") {
+      auto attempts = 0;
+      auto delays = std::vector<boost::posix_time::time_duration>();
+      auto result = connect([&] {
+        ++attempts;
+        if(attempts <= 32) {
+          throw ConnectException();
+        }
+        return attempts;
+      }, [&] (boost::posix_time::time_duration&& delay) {
+        delays.push_back(delay);
+      });
+      REQUIRE(result == 33);
+      REQUIRE(delays.size() == 32);
+      for(auto i = 0; i < 30; ++i) {
+        REQUIRE(delays[i] == boost::posix_time::seconds(i + 1));
+      }
+      REQUIRE(delays[30] == boost::posix_time::seconds(30));
+      REQUIRE(delays[31] == boost::posix_time::seconds(30));
+    }
+    SUBCASE("wait_interrupted") {
+      auto attempts = 0;
+      REQUIRE_THROWS_AS(connect([&] () -> int {
+        ++attempts;
+        throw ConnectException();
+      }, [] (auto delay) {
+        throw std::runtime_error("");
+      }), std::runtime_error);
+      REQUIRE(attempts == 1);
+    }
   }
 }

@@ -1,10 +1,8 @@
 #ifndef BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
 #define BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
-#include <chrono>
 #include <concepts>
 #include <string>
 #include <string_view>
-#include <thread>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -107,15 +105,16 @@ namespace Beam {
   };
 
   /**
-   * Retries connection failures until connected or shutdown is requested.
+   * Retries connection failures using a custom wait function.
    * @param factory The factory invoked as an lvalue on each attempt.
+   * @param wait Called with the retry delay; throw to stop retrying.
    * @return The connected client.
-   * @throws std::runtime_error If shutdown is requested between attempts.
    */
-  template<typename F> requires std::invocable<F&>
-  auto connect(F factory) {
-    auto delay = 1;
-    while(!received_kill_event()) {
+  template<typename F, typename W> requires
+    std::invocable<F&> && std::invocable<W&, boost::posix_time::time_duration>
+  auto connect(F factory, W wait) {
+    auto delay = boost::posix_time::seconds(1);
+    while(true) {
       try {
         return factory();
       } catch(const ConnectException& exception) {
@@ -127,15 +126,33 @@ namespace Beam {
             throw;
           }
         } catch(const std::exception&) {}
-        for(auto i = 0; i < delay && !received_kill_event(); ++i) {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-        if(delay < 30) {
-          ++delay;
+        wait(boost::posix_time::time_duration(delay));
+        if(delay < boost::posix_time::seconds(30)) {
+          delay += boost::posix_time::seconds(1);
         }
       }
     }
-    throw std::runtime_error("");
+  }
+
+  /**
+   * Retries connection failures until connected or shutdown is requested.
+   * @param factory The factory invoked as an lvalue on each attempt.
+   * @return The connected client.
+   * @throws std::runtime_error If shutdown is requested between attempts.
+   */
+  template<typename F> requires std::invocable<F&>
+  auto connect(F factory) {
+    return connect([&] {
+      if(received_kill_event()) {
+        throw std::runtime_error("");
+      }
+      return factory();
+    }, [] (const auto& delay) {
+      for(auto i = 0;
+          i < delay.total_seconds() && !received_kill_event(); ++i) {
+        sleep_for(boost::posix_time::seconds(1));
+      }
+    });
   }
 
   /**

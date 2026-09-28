@@ -216,7 +216,6 @@ int main() {
   auto count = std::atomic_int(0);
   routines.spawn([&] {
     while(!received_kill_event()) {
-      auto timer = LiveTimer(seconds(10));
       auto clients = std::rand() % 200;
       for(auto i = 0; i < clients; ++i) {
         routines.spawn([&] {
@@ -237,7 +236,6 @@ int main() {
             ServiceProtocolClientHandler<ApplicationClientBuilder>,
             QueryDataService, EndDataQueryMessage>(Ref(client_handler));
           publisher.add_message_handler<DataQueryMessage>();
-          auto timer = LiveTimer(milliseconds(100));
           auto duration = 10 * (std::rand() % 20);
           for(auto i = 0; i < duration; ++i) {
             auto query = DataQuery();
@@ -246,16 +244,14 @@ int main() {
             query.set_snapshot_limit(SnapshotLimit::from_tail(1000));
             auto queue = std::make_shared<Queue<Data>>();
             publisher.submit(query, queue);
-            timer.start();
-            timer.wait();
+            sleep_for(milliseconds(100));
           }
           --count;
           std::cout << "Stop: " << count << std::endl;
           client_handler.close();
         });
       }
-      timer.start();
-      timer.wait();
+      sleep_for(seconds(10));
     }
   });
   routines.wait();

@@ -40,6 +40,16 @@ namespace Beam {
       LiveTimer& operator =(const LiveTimer&) = delete;
   };
 
+  /**
+   * Suspends the current Routine or blocks the current thread for a duration.
+   * @param duration The amount of time to wait.
+   */
+  inline void sleep_for(boost::posix_time::time_duration duration) {
+    auto timer = LiveTimer(duration);
+    timer.start();
+    timer.wait();
+  }
+
   inline LiveTimer::LiveTimer(boost::posix_time::time_duration interval)
     : m_interval(interval),
       m_deadline_timer(ServiceThreadPool::get().get_context()),

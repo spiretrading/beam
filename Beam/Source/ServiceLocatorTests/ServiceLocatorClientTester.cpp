@@ -78,6 +78,20 @@ TEST_SUITE("ServiceLocatorClient") {
     REQUIRE_THROWS_AS(future.get(), ConnectException);
   }
 
+  TEST_CASE("locate_service_addresses_authentication_failure") {
+    auto operations = std::make_shared<TestServiceLocatorClient::Queue>();
+    auto client = TestServiceLocatorClient(
+      DirectoryEntry::ROOT_ACCOUNT, "session", operations);
+    auto future = std::async(std::launch::async, [&] {
+      return locate_service_addresses(client, "service");
+    });
+    auto operation = operations->pop();
+    auto& request =
+      std::get<TestServiceLocatorClient::LocateOperation>(*operation);
+    request.m_result.set(std::make_exception_ptr(AuthenticationException()));
+    REQUIRE_THROWS_AS(future.get(), AuthenticationException);
+  }
+
   TEST_CASE("locate_service_addresses_empty_list") {
     auto operations = std::make_shared<TestServiceLocatorClient::Queue>();
     auto account = DirectoryEntry::make_account(1, "test_user");

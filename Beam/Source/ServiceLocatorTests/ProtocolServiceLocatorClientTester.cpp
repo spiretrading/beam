@@ -140,10 +140,12 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
         REQUIRE(username == "test_user");
         REQUIRE(password == "wrong_password");
         login_attempted = true;
-        request.set_exception(ServiceRequestException("Invalid credentials"));
+        request.set_exception(
+          ServiceRequestException("Invalid username or password."));
       });
     REQUIRE_THROWS_AS(
-      fixture.make_client("test_user", "wrong_password"), ConnectException);
+      fixture.make_client("test_user", "wrong_password"),
+      AuthenticationException);
     REQUIRE(login_attempted);
   }
 
@@ -1547,23 +1549,23 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
     fixture.close_server_side(*client);
     flush_pending_routines();
     REQUIRE(queue->is_broken());
-    REQUIRE_THROWS_AS(queue->pop(), ServiceRequestException);
+    REQUIRE_THROWS_AS(queue->pop(), AuthenticationException);
     REQUIRE(accounts->is_broken());
-    REQUIRE_THROWS_AS(accounts->pop(), ServiceRequestException);
+    REQUIRE_THROWS_AS(accounts->pop(), AuthenticationException);
     auto replacement = std::make_shared<Queue<ServiceUpdate>>();
     client->monitor("quotes", replacement);
     auto other = std::make_shared<Queue<ServiceUpdate>>();
     client->monitor("orders", other);
     flush_pending_routines();
     REQUIRE(replacement->is_broken());
-    REQUIRE_THROWS_AS(replacement->pop(), ServiceRequestException);
+    REQUIRE_THROWS_AS(replacement->pop(), AuthenticationException);
     REQUIRE(other->is_broken());
-    REQUIRE_THROWS_AS(other->pop(), ServiceRequestException);
+    REQUIRE_THROWS_AS(other->pop(), AuthenticationException);
     auto account_replacement = std::make_shared<Queue<AccountUpdate>>();
     client->monitor(account_replacement);
     flush_pending_routines();
     REQUIRE(account_replacement->is_broken());
-    REQUIRE_THROWS_AS(account_replacement->pop(), ServiceRequestException);
+    REQUIRE_THROWS_AS(account_replacement->pop(), AuthenticationException);
   }
 
   TEST_CASE("monitor_closed_queue") {
@@ -1777,7 +1779,7 @@ TEST_SUITE("ProtocolServiceLocatorClient") {
         request.set_exception(ServiceRequestException("Session not found."));
       });
     REQUIRE_THROWS_AS(
-      fixture.make_session_client(session_id, key), ConnectException);
+      fixture.make_session_client(session_id, key), AuthenticationException);
     REQUIRE(login_attempted);
   }
 

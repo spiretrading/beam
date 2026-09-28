@@ -44,6 +44,7 @@ class TestConnect(unittest.TestCase):
         self.addCleanup(environment.close)
         for arguments, message in (
                 (('root', 'invalid'), 'Invalid username or password.'),
+                (('invalid', ''), 'Invalid username or password.'),
                 (('invalid', 123), 'Session not found.')):
             with self.subTest(arguments=arguments):
                 with patch('beam.sleep_for',

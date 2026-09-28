@@ -2,6 +2,7 @@
 #define BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/map.hpp>
@@ -34,6 +35,7 @@ namespace Beam {
        * @param username The username.
        * @param password The password.
        * @param client_builder Initializes the ServiceProtocolClientBuilder.
+       * @throws AuthenticationException If the username or password is invalid.
        */
       template<Initializes<B> BF>
       ProtocolServiceLocatorClient(
@@ -44,6 +46,7 @@ namespace Beam {
        * @param session_id The encrypted session id.
        * @param key The encryption key used to encode the session id.
        * @param client_builder Initializes the ServiceProtocolClientBuilder.
+       * @throws AuthenticationException If the session is invalid.
        */
       template<Initializes<B> BF>
       ProtocolServiceLocatorClient(
@@ -166,6 +169,8 @@ namespace Beam {
       close();
       throw;
     }
+  } catch(const AuthenticationException&) {
+    throw;
   } catch(const std::exception&) {
     throw_nested_with_location(
       ConnectException("Failed to login to service locator."));
@@ -197,6 +202,8 @@ namespace Beam {
       close();
       throw;
     }
+  } catch(const AuthenticationException&) {
+    throw;
   } catch(const std::exception&) {
     throw_nested_with_location(
       ConnectException("Failed to login to service locator."));
@@ -557,8 +564,18 @@ namespace Beam {
 
   template<typename B>
   void ProtocolServiceLocatorClient<B>::login(ServiceProtocolClient& client) {
-    auto result = client.template send_request<
-      ServiceLocatorServices::LoginService>(m_username, m_password);
+    auto result = [&] {
+      try {
+        return client.template send_request<
+          ServiceLocatorServices::LoginService>(m_username, m_password);
+      } catch(const ServiceRequestException& exception) {
+        if(std::string_view(exception.what()) ==
+            "Invalid username or password.") {
+          boost::throw_with_location(AuthenticationException(exception.what()));
+        }
+        throw;
+      }
+    }();
     auto lock = boost::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;
@@ -572,8 +589,17 @@ namespace Beam {
   void ProtocolServiceLocatorClient<B>::login_from_session(
       ServiceProtocolClient& client, const std::string& session_id,
       unsigned int key) {
-    auto result = client.template send_request<
-      ServiceLocatorServices::LoginFromSessionService>(session_id, key);
+    auto result = [&] {
+      try {
+        return client.template send_request<
+          ServiceLocatorServices::LoginFromSessionService>(session_id, key);
+      } catch(const ServiceRequestException& exception) {
+        if(std::string_view(exception.what()) == "Session not found.") {
+          boost::throw_with_location(AuthenticationException(exception.what()));
+        }
+        throw;
+      }
+    }();
     auto lock = boost::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;

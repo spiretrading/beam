@@ -46,6 +46,17 @@ TEST_SUITE("ServiceRequestException") {
     }
   }
 
+  TEST_CASE("service_or_throw_with_nested_preserves_authentication") {
+    try {
+      service_or_throw_with_nested([] {
+        throw AuthenticationException("Invalid username or password.");
+      }, "Service failed.");
+      REQUIRE(false);
+    } catch(const AuthenticationException& exception) {
+      REQUIRE(std::string(exception.what()) == "Invalid username or password.");
+    }
+  }
+
   TEST_CASE(
       "rethrow_nested_service_exception_wraps_service_request_exception") {
     try {

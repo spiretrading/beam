@@ -2,7 +2,6 @@
 #define BEAM_SERVICES_APPLICATION_DEFINITIONS_HPP
 #include <concepts>
 #include <string>
-#include <string_view>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -117,15 +116,9 @@ namespace Beam {
     while(true) {
       try {
         return factory();
-      } catch(const ConnectException& exception) {
-        try {
-          std::rethrow_if_nested(exception);
-        } catch(const ServiceRequestException& exception) {
-          if(std::string_view(exception.what()) ==
-              "Invalid username or password.") {
-            throw;
-          }
-        } catch(const std::exception&) {}
+      } catch(const AuthenticationException&) {
+        throw;
+      } catch(const ConnectException&) {
         wait(boost::posix_time::time_duration(delay));
         if(delay < boost::posix_time::seconds(30)) {
           delay += boost::posix_time::seconds(1);

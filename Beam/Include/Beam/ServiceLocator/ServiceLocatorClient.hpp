@@ -10,7 +10,6 @@
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Connection.hpp"
-#include "Beam/IO/ConnectException.hpp"
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Parsers/Parse.hpp"
@@ -460,6 +459,8 @@ namespace Beam {
     auto services = std::vector<ServiceEntry>();
     try {
       services = client.locate(name);
+    } catch(const AuthenticationException&) {
+      throw;
     } catch(const std::exception&) {
       boost::throw_with_location(
         ConnectException("No " + name + " services available."));

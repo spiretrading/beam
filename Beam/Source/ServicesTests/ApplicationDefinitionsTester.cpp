@@ -50,7 +50,7 @@ TEST_SUITE("ApplicationDefinitions") {
       auto attempts = 0;
       REQUIRE_THROWS_AS(connect([&] () -> int {
         ++attempts;
-        throw ServiceRequestException("Invalid username or password.");
+        throw ServiceRequestException("Request failed.");
       }), ServiceRequestException);
       REQUIRE(attempts == 1);
     }
@@ -61,12 +61,8 @@ TEST_SUITE("ApplicationDefinitions") {
         if(attempts != 1) {
           throw std::runtime_error("Unexpected retry.");
         }
-        try {
-          throw ServiceRequestException("Invalid username or password.");
-        } catch(const ServiceRequestException&) {
-          std::throw_with_nested(ConnectException());
-        }
-      }), ServiceRequestException);
+        throw AuthenticationException("Invalid username or password.");
+      }), AuthenticationException);
       REQUIRE(attempts == 1);
     }
     SUBCASE("connection_closed") {

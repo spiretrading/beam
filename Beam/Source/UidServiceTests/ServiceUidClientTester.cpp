@@ -19,6 +19,17 @@ namespace {
 }
 
 TEST_SUITE("ServiceUidClient") {
+  TEST_CASE("authentication_failure") {
+    auto builder = TestServiceProtocolClientBuilder([] () ->
+        std::unique_ptr<TestServiceProtocolClientBuilder::Channel> {
+      throw AuthenticationException();
+    }, [] {
+      return std::make_unique<TriggerTimer>();
+    });
+    REQUIRE_THROWS_AS(static_cast<void>(Fixture::TestUidClient(builder)),
+      AuthenticationException);
+  }
+
   TEST_CASE("single_uid_request") {
     auto fixture = Fixture();
     auto received_request = false;

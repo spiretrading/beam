@@ -5,6 +5,7 @@
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/IOException.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
+#include "Beam/ServiceLocator/AuthenticationException.hpp"
 
 namespace Beam {
 
@@ -47,6 +48,8 @@ namespace Beam {
   inline void rethrow_nested_service_exception(const std::string& message) {
     try {
       std::rethrow_exception(std::current_exception());
+    } catch(const AuthenticationException&) {
+      throw;
     } catch(const IOException&) {
       std::throw_with_nested(IOException(message));
     } catch(const ServiceRequestException&) {

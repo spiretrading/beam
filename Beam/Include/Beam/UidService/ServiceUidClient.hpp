@@ -54,6 +54,8 @@ namespace Beam {
             m_last_uid(0),
             m_block_size(10) {
     register_uid_services(out(m_client_handler.get_slots()));
+  } catch(const AuthenticationException&) {
+    throw;
   } catch(const std::exception&) {
     throw_nested_with_location(
       ConnectException("Failed to connect to the UID server."));

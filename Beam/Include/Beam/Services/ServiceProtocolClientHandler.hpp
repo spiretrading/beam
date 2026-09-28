@@ -150,6 +150,9 @@ namespace Beam {
           throw;
         }
         return m_client;
+      } catch(const AuthenticationException&) {
+        m_open_state.close();
+        throw;
       } catch(const ConnectException&) {
         m_open_state.ensure_open();
         if(!m_reconnect_timer) {

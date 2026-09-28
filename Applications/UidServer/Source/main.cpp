@@ -6,8 +6,8 @@
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
-#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/AuthenticationServletAdapter.hpp"
+#include "Beam/Services/ApplicationDefinitions.hpp"
 #include "Beam/Services/ServiceProtocolServletContainer.hpp"
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Sql/SqlConnection.hpp"
@@ -42,7 +42,7 @@ int main(int argc, const char** argv) {
       return ServiceConfiguration::parse(
         get_node(config, "server"), UID_SERVICE_NAME);
     }, std::runtime_error("Error parsing section 'server'."));
-    auto service_locator_client = ApplicationServiceLocatorClient(
+    auto service_locator_client = connect<ApplicationServiceLocatorClient>(
       ServiceLocatorClientConfig::parse(get_node(config, "service_locator")));
     auto server = UidServletContainer(init(&service_locator_client,
       init(make_sql_connection(MySql::Connection(
@@ -53,6 +53,9 @@ int main(int argc, const char** argv) {
     add(service_locator_client, service_config);
     wait_for_kill_event();
   } catch(...) {
+    if(received_kill_event()) {
+      return 0;
+    }
     report_current_exception();
     return -1;
   }

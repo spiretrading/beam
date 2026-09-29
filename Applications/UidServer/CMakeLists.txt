@@ -13,7 +13,7 @@ set(header_files "${PROJECT_BINARY_DIR}/Version.hpp")
 file(GLOB_RECURSE source_files Source/*.cpp)
 add_executable(UidServer ${header_files} ${source_files})
 beam_configure_target(UidServer DEPENDENCIES
-  BOOST CRYPTOPP MYSQL OPEN_SSL OPEN_SSL_BASE TCLAP VIPER YAML)
+  BOOST CRYPTOPP MYSQL OPEN_SSL OPEN_SSL_BASE TCLAP VIPER YAML ZLIB)
 target_compile_definitions(UidServer PRIVATE YAML_CPP_STATIC_DEFINE)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(UidServer PUBLIC BeamRoutines)

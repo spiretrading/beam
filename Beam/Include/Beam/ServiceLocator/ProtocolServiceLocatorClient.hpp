@@ -14,6 +14,7 @@
 #include "Beam/ServiceLocator/ServiceLocatorClient.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServices.hpp"
 #include "Beam/ServiceLocator/SessionEncryption.hpp"
+#include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
@@ -145,6 +146,7 @@ namespace Beam {
   template<Initializes<B> BF>
   ProtocolServiceLocatorClient<B>::ProtocolServiceLocatorClient(
       std::string username, std::string password, BF&& client_builder)
+BEAM_SUPPRESS_THIS_INITIALIZER()
       try : m_connection(nullptr),
             m_generation(0),
             m_username(std::move(username)),
@@ -152,6 +154,7 @@ namespace Beam {
             m_client_handler(std::forward<BF>(client_builder), std::bind_front(
               &ProtocolServiceLocatorClient::on_reconnect, this)),
             m_account_update_publisher(std::in_place) {
+BEAM_UNSUPPRESS_THIS_INITIALIZER()
     ServiceLocatorServices::register_service_locator_services(
       out(m_client_handler.get_slots()));
     ServiceLocatorServices::register_service_locator_messages(
@@ -180,11 +183,13 @@ namespace Beam {
   template<Initializes<B> BF>
   ProtocolServiceLocatorClient<B>::ProtocolServiceLocatorClient(
       const std::string& session_id, unsigned int key, BF&& client_builder)
+BEAM_SUPPRESS_THIS_INITIALIZER()
       try : m_connection(nullptr),
             m_generation(0),
             m_client_handler(std::forward<BF>(client_builder), std::bind_front(
               &ProtocolServiceLocatorClient::on_reconnect, this)),
             m_account_update_publisher(std::in_place) {
+BEAM_UNSUPPRESS_THIS_INITIALIZER()
     ServiceLocatorServices::register_service_locator_services(
       out(m_client_handler.get_slots()));
     ServiceLocatorServices::register_service_locator_messages(

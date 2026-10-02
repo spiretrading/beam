@@ -87,4 +87,7 @@ export namespace DirectoryEntry {
     /** A directory. */
     DIRECTORY = 1
   }
+
+  /** Represents the global directory. */
+  export const STAR_DIRECTORY = DirectoryEntry.makeDirectory(0, '*');
 }

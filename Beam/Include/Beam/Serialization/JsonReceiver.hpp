@@ -1,19 +1,23 @@
 #ifndef BEAM_JSON_RECEIVER_HPP
 #define BEAM_JSON_RECEIVER_HPP
 #include <charconv>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <deque>
 #include <optional>
+#include <string_view>
 #include <system_error>
 #include <type_traits>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Json/JsonObject.hpp"
 #include "Beam/Json/JsonParser.hpp"
 #include "Beam/Serialization/ReceiverMixin.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
 #include "Beam/Utilities/FixedString.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
   template<IsBuffer> class JsonSender;
@@ -70,6 +74,33 @@ namespace Beam {
   struct inverse<JsonReceiver<S>> {
     using type = JsonSender<S>;
   };
+
+  /**
+   * Converts JSON text to a value.
+   * @tparam T The type to deserialize.
+   * @param source The JSON text to deserialize.
+   * @return The deserialized value.
+   */
+  template<typename T>
+  T from_json(std::string_view source) {
+    using Value = T;
+    auto buffer = SharedBuffer(source.data(), source.size());
+    auto receiver = JsonReceiver<SharedBuffer>();
+    receiver.set(Ref(buffer));
+    return receive<Value>(receiver);
+  }
+
+  /**
+   * Converts a JSON value to a deserialized value.
+   * @tparam T The type to deserialize.
+   * @param value The JSON value to deserialize.
+   * @return The deserialized value.
+   */
+  template<typename T>
+  T from_json(const std::same_as<JsonValue> auto& value) {
+    using Value = T;
+    return from_json<Value>(to_string(value));
+  }
 
   template<IsConstBuffer S>
   void JsonReceiver<S>::set(Ref<const Source> source) {

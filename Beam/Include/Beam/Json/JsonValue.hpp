@@ -1,8 +1,12 @@
 #ifndef BEAM_JSON_VALUE_HPP
 #define BEAM_JSON_VALUE_HPP
+#include <array>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <ostream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -20,6 +24,45 @@ namespace Beam {
   };
 
 namespace Details {
+  inline void save_json_string(std::ostream& sink, const std::string& value) {
+    sink.put('"');
+    for(auto character : value) {
+      switch(character) {
+        case '"':
+          sink << "\\\"";
+          break;
+        case '\\':
+          sink << "\\\\";
+          break;
+        case '\b':
+          sink << "\\b";
+          break;
+        case '\f':
+          sink << "\\f";
+          break;
+        case '\n':
+          sink << "\\n";
+          break;
+        case '\r':
+          sink << "\\r";
+          break;
+        case '\t':
+          sink << "\\t";
+          break;
+        default:
+          auto byte = static_cast<unsigned char>(character);
+          if(byte < 0x20) {
+            auto digits = "0123456789abcdef";
+            sink << "\\u00" << digits[byte >> 4] << digits[byte & 0xf];
+          } else {
+            sink.put(character);
+          }
+          break;
+      }
+    }
+    sink.put('"');
+  }
+
   using JsonVariant = boost::variant<
     std::string, JsonNull, bool, double, JsonObject, std::vector<JsonValue>>;
 }
@@ -268,15 +311,18 @@ namespace Details {
         }
       },
       [&] (double value) {
-        auto temp = double();
-        if(std::modf(value, &temp) != 0) {
-          sink << std::to_string(value);
-        } else {
-          sink << static_cast<int>(value);
+        if(!std::isfinite(value)) {
+          throw std::invalid_argument("Non-finite JSON number.");
         }
+        auto buffer =
+          std::array<char, std::numeric_limits<double>::max_digits10 +
+            std::numeric_limits<double>::max_exponent10 + 3>();
+        auto result = std::to_chars(buffer.data(),
+          buffer.data() + buffer.size(), value, std::chars_format::fixed);
+        sink.write(buffer.data(), result.ptr - buffer.data());
       },
       [&] (const std::string& value) {
-        sink << '\"' << value + '\"';
+        Details::save_json_string(sink, value);
       },
       [&] (const JsonObject& value) {
         value.save(sink);

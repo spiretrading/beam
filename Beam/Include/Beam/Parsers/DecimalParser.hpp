@@ -1,8 +1,8 @@
 #ifndef BEAM_DECIMAL_PARSER_HPP
 #define BEAM_DECIMAL_PARSER_HPP
-#include <array>
 #include <cctype>
 #include <cstdlib>
+#include <string>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
@@ -40,21 +40,18 @@ namespace Beam {
       DECIMAL_DIGITS
     } state = START;
     auto context = SubParserStream<S>(source);
-    auto decimal_buffer = std::array<char, 64>();
-    auto count = std::size_t(0);
+    auto decimal_buffer = std::string();
     if(!context.read()) {
       return false;
     }
     if(context.peek() == '-') {
-      decimal_buffer[count] = '-';
-      ++count;
+      decimal_buffer += '-';
       if(!context.read()) {
         return false;
       }
     }
     if(std::isdigit(context.peek())) {
-      decimal_buffer[count] = context.peek();
-      ++count;
+      decimal_buffer += context.peek();
       state = INTEGER_DIGITS;
     } else {
       return false;
@@ -66,11 +63,9 @@ namespace Beam {
       }
       if(state == INTEGER_DIGITS) {
         if(std::isdigit(context.peek())) {
-          decimal_buffer[count] = context.peek();
-          ++count;
+          decimal_buffer += context.peek();
         } else if(context.peek() == '.') {
-          decimal_buffer[count] = '.';
-          ++count;
+          decimal_buffer += '.';
           state = START_DECIMAL;
         } else {
           context.undo();
@@ -79,16 +74,14 @@ namespace Beam {
         }
       } else if(state == START_DECIMAL) {
         if(std::isdigit(context.peek())) {
-          decimal_buffer[count] = context.peek();
-          ++count;
+          decimal_buffer += context.peek();
           state = DECIMAL_DIGITS;
         } else {
           break;
         }
       } else if(state == DECIMAL_DIGITS) {
         if(std::isdigit(context.peek())) {
-          decimal_buffer[count] = context.peek();
-          ++count;
+          decimal_buffer += context.peek();
         } else {
           context.undo();
           state = TERMINAL;
@@ -100,8 +93,7 @@ namespace Beam {
       return false;
     }
     context.accept();
-    decimal_buffer[count] = '\0';
-    value = std::strtod(decimal_buffer.data(), nullptr);
+    value = std::strtod(decimal_buffer.c_str(), nullptr);
     return true;
   }
 

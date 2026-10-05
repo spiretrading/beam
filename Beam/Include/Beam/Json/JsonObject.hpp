@@ -7,6 +7,7 @@
 #include <boost/optional/optional.hpp>
 
 namespace Beam {
+  template<typename T, typename Enable> struct Send;
   class JsonValue;
 
   /** Encapsulates an object represented using JSON. */
@@ -69,6 +70,7 @@ namespace Beam {
       bool operator !=(const JsonObject& object) const;
 
     private:
+      friend struct Send<JsonValue, void>;
       std::unordered_map<std::string, std::shared_ptr<JsonValue>> m_members;
   };
 
@@ -127,7 +129,8 @@ namespace Beam {
         sink << ',';
       }
       is_first_member = false;
-      sink << '\"' << member.first << "\":";
+      Details::save_json_string(sink, member.first);
+      sink.put(':');
       member.second->save(sink);
     }
     sink << '}';

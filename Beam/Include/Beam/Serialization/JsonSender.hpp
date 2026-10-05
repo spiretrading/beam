@@ -2,6 +2,7 @@
 #define BEAM_JSON_SENDER_HPP
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include "Beam/IO/SharedBuffer.hpp"
@@ -9,33 +10,9 @@
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SenderMixin.hpp"
 #include "Beam/Utilities/FixedString.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
-namespace Details {
-  inline std::string escape_json(const std::string& source) {
-    auto result = std::string();
-    for(auto c : source) {
-      if(c == '\\') {
-        result += "\\\\";
-      } else if(c == '\n') {
-        result += "\\n";
-      } else if(c == '\r') {
-        result += "\\r";
-      } else if(c == '\"') {
-        result += "\\\"";
-      } else if(c == '\b') {
-        result += "\\b";
-      } else if(c == '\f') {
-        result += "\\f";
-      } else if(c == '\t') {
-        result += "\\t";
-      } else {
-        result += c;
-      }
-    }
-    return result;
-  }
-}
   template<IsConstBuffer> class JsonReceiver;
 
   /**
@@ -66,6 +43,9 @@ namespace Details {
       template<IsConstBuffer T>
       void send(const char* name, const T& value);
       void send(const char* name, const std::string& value);
+      void send(const char* name, const JsonValue& value);
+      template<typename T>
+      void send(const char* name, const std::optional<T>& value);
       template<std::size_t N>
       void send(const char* name, const FixedString<N>& value);
       template<typename T>
@@ -195,20 +175,32 @@ namespace Details {
 
   template<IsBuffer S>
   void JsonSender<S>::send(const char* name, const std::string& value) {
+    send(name, JsonValue(value));
+  }
+
+  template<IsBuffer S>
+  void JsonSender<S>::send(const char* name, const JsonValue& value) {
     if(m_append_comma) {
       append(*m_sink, ',');
     }
     if(name) {
-      append(*m_sink, '\"');
-      append(*m_sink, name, std::strlen(name));
-      append(*m_sink, '\"');
+      auto encoded = to_string(JsonValue(name));
+      append(*m_sink, encoded.c_str(), encoded.size());
       append(*m_sink, ':');
     }
-    append(*m_sink, '\"');
-    auto escaped_value = Details::escape_json(value);
-    append(*m_sink, escaped_value.c_str(), escaped_value.size());
-    append(*m_sink, '\"');
+    auto encoded = to_string(value);
+    append(*m_sink, encoded.c_str(), encoded.size());
     m_append_comma = true;
+  }
+
+  template<IsBuffer S>
+  template<typename T>
+  void JsonSender<S>::send(const char* name, const std::optional<T>& value) {
+    if(value) {
+      send(name, *value);
+    } else if(!name) {
+      send(name, JsonValue());
+    }
   }
 
   template<IsBuffer S>

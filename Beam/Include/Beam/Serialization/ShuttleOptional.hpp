@@ -1,10 +1,37 @@
 #ifndef BEAM_SHUTTLE_OPTIONAL_HPP
 #define BEAM_SHUTTLE_OPTIONAL_HPP
+#include <optional>
 #include <boost/optional/optional.hpp>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 
 namespace Beam {
+  template<typename T>
+  struct Send<std::optional<T>> {
+    template<IsSender S>
+    void operator ()(S& sender, const std::optional<T>& value,
+        unsigned int version) const {
+      auto initialized = value.has_value();
+      sender.send("is_initialized", initialized);
+      if(value) {
+        sender.send("value", *value);
+      }
+    }
+  };
+
+  template<typename T>
+  struct Receive<std::optional<T>> {
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, std::optional<T>& value, unsigned int version) const {
+      if(receive<bool>(receiver, "is_initialized")) {
+        value.emplace(receive<T>(receiver, "value"));
+      } else {
+        value.reset();
+      }
+    }
+  };
+
   template<typename T>
   struct Send<boost::optional<T>> {
     template<IsSender S>

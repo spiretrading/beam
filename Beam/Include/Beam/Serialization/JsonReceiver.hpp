@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <optional>
 #include <system_error>
 #include <type_traits>
 #include <boost/throw_exception.hpp>
@@ -39,6 +40,9 @@ namespace Beam {
       template<IsBuffer T>
       void receive(const char* name, T& value);
       void receive(const char* name, std::string& value);
+      void receive(const char* name, JsonValue& value);
+      template<typename T>
+      void receive(const char* name, std::optional<T>& value);
       template<std::size_t N>
       void receive(const char* name, FixedString<N>& value);
       void start_structure(const char* name);
@@ -180,6 +184,44 @@ namespace Beam {
     } else {
       boost::throw_with_location(SerializationException("JSON type mismatch."));
     }
+  }
+
+  template<IsConstBuffer S>
+  void JsonReceiver<S>::receive(const char* name, JsonValue& value) {
+    auto storage = boost::optional<JsonValue>();
+    value = extract(name, storage);
+  }
+
+  template<IsConstBuffer S>
+  template<typename T>
+  void JsonReceiver<S>::receive(const char* name, std::optional<T>& value) {
+    auto field = false;
+    if(name && !m_aggregate_queue.empty()) {
+      if(auto object = boost::get<JsonObject>(&m_aggregate_queue.back())) {
+        if(!object->get(name)) {
+          value.reset();
+          return;
+        }
+        field = true;
+      }
+    }
+    auto storage = boost::optional<JsonValue>();
+    auto& json_value = extract(name, storage);
+    if(boost::get<JsonNull>(&json_value) &&
+        (!field || !std::is_same_v<T, JsonValue>)) {
+      value.reset();
+      return;
+    }
+    auto object = JsonObject();
+    object.set("value", json_value);
+    m_aggregate_queue.push_back(object);
+    try {
+      value.emplace(Beam::receive<T>(*this, "value"));
+    } catch(...) {
+      m_aggregate_queue.pop_back();
+      throw;
+    }
+    m_aggregate_queue.pop_back();
   }
 
   template<IsConstBuffer S>

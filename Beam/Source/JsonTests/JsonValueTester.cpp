@@ -1,0 +1,58 @@
+#include <cmath>
+#include <limits>
+#include <locale>
+#include <sstream>
+#include <doctest/doctest.h>
+#include "Beam/Json/JsonParser.hpp"
+#include "Beam/Parsers/Parse.hpp"
+#include "Beam/Utilities/ToString.hpp"
+
+using namespace Beam;
+using namespace boost;
+
+namespace {
+  struct DecimalComma : std::numpunct<char> {
+    char do_decimal_point() const override {
+      return ',';
+    }
+  };
+}
+
+TEST_SUITE("JsonValue") {
+  TEST_CASE("strings") {
+    auto value = JsonValue("Line one\n\"Line two\"\\file\t\b\f\r");
+    REQUIRE(to_string(value) ==
+      "\"Line one\\n\\\"Line two\\\"\\\\file\\t\\b\\f\\r\"");
+    REQUIRE(parse<JsonValue>(to_string(value)) == value);
+    auto object = JsonObject();
+    object.set("quoted\"name\\\n", value);
+    auto encoded = to_string(object);
+    REQUIRE(encoded == "{\"quoted\\\"name\\\\\\n\":" +
+      to_string(value) + "}");
+    REQUIRE(parse<JsonValue>(encoded) == JsonValue(object));
+    REQUIRE(to_string(JsonValue(std::string("\0\x01\x1f", 3))) ==
+      "\"\\u0000\\u0001\\u001f\"");
+  }
+
+  TEST_CASE("numbers") {
+    for(auto number : {0.0, -0.0, 0.000000125, 1.2345678901234567,
+        1234567890123.0, std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::denorm_min()}) {
+      auto encoded = to_string(JsonValue(number));
+      auto decoded = double();
+      auto result = std::from_chars(
+        encoded.data(), encoded.data() + encoded.size(), decoded);
+      REQUIRE(result.ec == std::errc());
+      REQUIRE(decoded == number);
+      REQUIRE(result.ptr == encoded.data() + encoded.size());
+    }
+    auto output = std::stringstream();
+    output.imbue(std::locale(std::locale::classic(), new DecimalComma()));
+    JsonValue(1.25).save(output);
+    REQUIRE(output.str() == "1.25");
+    REQUIRE_THROWS_AS(to_string(JsonValue(
+      std::numeric_limits<double>::infinity())), std::invalid_argument);
+    REQUIRE_THROWS_AS(to_string(JsonValue(
+      std::numeric_limits<double>::quiet_NaN())), std::invalid_argument);
+  }
+}

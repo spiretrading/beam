@@ -1,9 +1,29 @@
 #ifndef BEAM_SHUTTLE_CLONE_HPP
 #define BEAM_SHUTTLE_CLONE_HPP
-#include "Beam/Serialization/DataShuttle.hpp"
+#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/Serialization/BinaryReceiver.hpp"
+#include "Beam/Serialization/BinarySender.hpp"
 #include "Beam/Serialization/ShuttleUniquePtr.hpp"
 
 namespace Beam {
+
+  /**
+   * Constructs a value clone via binary serialization.
+   * @tparam T The type of value to clone.
+   * @param value The value to clone.
+   * @return An independent clone of the serialized value.
+   */
+  template<typename T>
+  T shuttle_clone(const T& value) {
+    using Value = T;
+    auto buffer = SharedBuffer();
+    auto sender = BinarySender<SharedBuffer>();
+    sender.set(Ref(buffer));
+    sender.send(value);
+    auto receiver = BinaryReceiver<SharedBuffer>();
+    receiver.set(Ref(buffer));
+    return receive<Value>(receiver);
+  }
 
   /**
    * Constructs a clone of a potentially polymorphic object via serialization.

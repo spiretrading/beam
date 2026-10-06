@@ -1,8 +1,10 @@
 #include <doctest/doctest.h>
+#include "Beam/SerializationTests/ValueShuttleTests.hpp"
 #include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/Uri.hpp"
 
 using namespace Beam;
+using namespace Beam::Tests;
 
 TEST_SUITE("Uri") {
   TEST_CASE("construct_empty") {
@@ -161,6 +163,25 @@ TEST_SUITE("Uri") {
     REQUIRE(uri.get_scheme().empty());
     REQUIRE(uri.get_hostname().empty());
     REQUIRE(uri.get_path() == "path/without/slash");
+  }
+
+  TEST_CASE("shuttle") {
+    auto uri = Uri("https://user:pass@example.com:8443/"
+      "path%20name?query=value&x=1#fragment");
+    test_round_trip_shuttle(uri, [&] (const auto& received) {
+      REQUIRE(to_string(received) == to_string(uri));
+    });
+    REQUIRE(to_json(uri) ==
+      "\"https://user:pass@example.com:8443/"
+      "path%20name?query=value&x=1#fragment\"");
+    auto relative = Uri("/reports/example%20report");
+    REQUIRE(to_json(relative) == "\"/reports/example%20report\"");
+    REQUIRE(
+      from_json<Uri>(to_json(relative)).get_path() == relative.get_path());
+    REQUIRE(to_json(Uri()) == "\"\"");
+    REQUIRE(to_string(from_json<Uri>(std::string_view("\"\""))).empty());
+    REQUIRE_THROWS_AS(from_json<Uri>(
+      std::string_view("\"http://example.com:99999\"")), MalformedUriException);
   }
 }
 

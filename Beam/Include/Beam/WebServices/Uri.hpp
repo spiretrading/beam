@@ -11,6 +11,9 @@
 #include <string_view>
 #include <unordered_map>
 #include <boost/throw_exception.hpp>
+#include "Beam/Serialization/Receiver.hpp"
+#include "Beam/Serialization/Sender.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 
@@ -330,6 +333,25 @@ namespace Beam {
   inline MalformedUriException::MalformedUriException(
     const std::string& message)
     : std::runtime_error(message) {}
+
+  template<>
+  inline constexpr auto is_structure<Uri> = false;
+
+  template<>
+  struct Send<Uri> {
+    template<IsSender S>
+    void operator ()(S& sender, const char* name, const Uri& value) const {
+      sender.send(name, to_string(value));
+    }
+  };
+
+  template<>
+  struct Receive<Uri> {
+    template<IsReceiver R>
+    void operator ()(R& receiver, const char* name, Uri& value) const {
+      value = Uri(receive<std::string>(receiver, name));
+    }
+  };
 }
 
 #endif

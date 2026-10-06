@@ -2,7 +2,6 @@
 #define BEAM_JSON_PARSER_HPP
 #include <sstream>
 #include <boost/throw_exception.hpp>
-#include <boost/variant/get.hpp>
 #include "Beam/IO/BufferReader.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Json/JsonObject.hpp"
@@ -25,10 +24,10 @@ namespace Beam {
       });
     auto key_value_pair_parser = tokenize(key_parser, ':', value_parser);
     object_parser.set(tokenize('{',
-        for_list(key_value_pair_parser, JsonObject(), ',',
-        [] (auto& object, const auto& value) {
-          object.set(std::get<0>(value), std::get<1>(value));
-        }), '}'));
+      for_list(key_value_pair_parser, JsonObject(), ',',
+      [] (auto& object, const auto& value) {
+        object.set(std::get<0>(value), std::get<1>(value));
+      }), '}'));
     array.set(tokenize('[', list(value_parser, ','), ']'));
     return value_parser;
   }();
@@ -59,11 +58,11 @@ namespace Beam {
       auto stream = ReaderParserStream(BufferReader(from<SharedBuffer>(data)));
       auto json_value = JsonValue();
       if(!json_p.read(stream, json_value) ||
-          !boost::get<JsonObject>(&json_value)) {
+          !std::get_if<JsonObject>(&json_value)) {
         boost::throw_with_location(
           SerializationException("Invalid JSON object."));
       }
-      value = boost::get<JsonObject>(json_value);
+      value = std::get<JsonObject>(json_value);
     }
   };
 }

@@ -16,11 +16,11 @@ TEST_SUITE("ShuttleClone") {
     auto value = std::vector<JsonValue>{object, JsonNull(), true, 1.5};
     auto clone = shuttle_clone(value);
     REQUIRE(clone == value);
-    boost::get<JsonObject>(clone.front())["name"] = std::string("clone");
-    REQUIRE(boost::get<std::string>(
-      boost::get<JsonObject>(value.front()).at("name")) == "original");
-    REQUIRE(boost::get<std::string>(
-      boost::get<JsonObject>(clone.front()).at("name")) == "clone");
+    std::get<JsonObject>(clone.front())["name"] = std::string("clone");
+    REQUIRE(std::get<std::string>(
+      std::get<JsonObject>(value.front()).at("name")) == "original");
+    REQUIRE(std::get<std::string>(
+      std::get<JsonObject>(clone.front()).at("name")) == "clone");
   }
 
   TEST_CASE("polymorphic_clone") {

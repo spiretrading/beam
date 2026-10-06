@@ -91,8 +91,7 @@ namespace Details {
   void send_std(S& sender, int which, const std::variant<Ts...>& value,
       std::index_sequence<Is...>) {
     auto handled = ((which == static_cast<int>(Is) && [&] {
-      using Type = std::variant_alternative_t<Is, std::variant<Ts...>>;
-      sender.send("value", std::get<Type>(value));
+      sender.send("value", std::get<Is>(value));
       return true;
     }()) || ...);
     if(!handled) {
@@ -107,7 +106,7 @@ namespace Details {
       using Type = std::variant_alternative_t<Is, std::variant<Ts...>>;
       auto received = Type();
       receiver.receive("value", received);
-      value = std::move(received);
+      value.template emplace<Is>(std::move(received));
       return true;
     }()) || ...);
     if(!handled) {
@@ -115,6 +114,15 @@ namespace Details {
     }
   }
 }
+
+  template<typename T>
+  struct Send<std::variant<T>> {
+    template<IsSender S>
+    void operator ()(
+        S& sender, const std::variant<T>& value, unsigned int version) const {
+      sender.send("value", std::get<0>(value));
+    }
+  };
 
   template<typename... Ts>
   struct Send<std::variant<Ts...>> {
@@ -125,6 +133,15 @@ namespace Details {
       sender.send("which", which);
       Details::send_std(
         sender, which, value, std::make_index_sequence<sizeof...(Ts)>());
+    }
+  };
+
+  template<typename T>
+  struct Receive<std::variant<T>> {
+    template<IsReceiver R>
+    void operator ()(
+        R& receiver, std::variant<T>& value, unsigned int version) const {
+      receiver.receive("value", std::get<0>(value));
     }
   };
 

@@ -1,8 +1,8 @@
 #include "Beam/Python/Json.hpp"
 #include <boost/lexical_cast.hpp>
 #include <pybind11/operators.h>
+#include <pybind11/stl.h>
 #include "Beam/Json/JsonObject.hpp"
-#include "Beam/Python/Variant.hpp"
 
 using namespace Beam;
 using namespace Beam::Python;

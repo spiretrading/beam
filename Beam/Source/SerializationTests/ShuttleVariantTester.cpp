@@ -9,6 +9,26 @@ using namespace Beam::Tests;
 using namespace boost;
 
 TEST_SUITE("ShuttleVariant") {
+  TEST_CASE_TEMPLATE("standard_compatibility", S,
+      BinarySender<SharedBuffer>, JsonSender<SharedBuffer>) {
+    auto serialize = [] (const auto& value) {
+      auto buffer = SharedBuffer();
+      auto sender = S();
+      sender.set(Ref(buffer));
+      sender.shuttle(value);
+      return std::string(buffer.get_data(), buffer.get_size());
+    };
+    REQUIRE(serialize(variant<int>(123)) ==
+      serialize(std::variant<int>(123)));
+    REQUIRE(serialize(variant<int, std::string>("hello")) ==
+      serialize(std::variant<int, std::string>("hello")));
+  }
+
+  TEST_CASE("duplicate_types") {
+    test_round_trip_shuttle(std::variant<int, std::string, int>(
+      std::in_place_index<2>, 123));
+  }
+
   TEST_CASE("single_type") {
     test_round_trip_shuttle(variant<int>(123));
   }

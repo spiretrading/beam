@@ -5,6 +5,7 @@
 #include <variant>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/variant.hpp>
+#include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
 
@@ -42,12 +43,12 @@ namespace Beam {
    * @param variant The variant to visit.
    * @param callables The callables to apply to the variant.
    */
-  template<typename V, typename... Ts>
+  template<typename V, typename... Ts> requires
+    IsSubclass<std::remove_cvref_t<V>, std::variant> ||
+    IsSubclass<std::remove_cvref_t<V>, boost::variant>
   decltype(auto) visit(V&& variant, Ts&&... callables) {
     auto visitor = make_overload_set(std::forward<Ts>(callables)...);
-    if constexpr(requires {
-        std::visit(std::move(visitor), std::forward<V>(variant));
-      }) {
+    if constexpr(IsSubclass<std::remove_cvref_t<V>, std::variant>) {
       return std::visit(std::move(visitor), std::forward<V>(variant));
     } else {
       return boost::apply_visitor(std::move(visitor), std::forward<V>(variant));

@@ -187,7 +187,7 @@ namespace Beam {
       }
       auto& service = services.front();
       return parse<std::vector<IpAddress>>(
-        boost::get<std::string>(service.get_properties().at("addresses")));
+        std::get<std::string>(service.get_properties().at("addresses")));
     }, ConnectException("Unable to connect to NTP service."));
     return make_live_ntp_time_client(ntp_pool);
   }

@@ -39,7 +39,6 @@
 #include "Beam/Python/ToPythonWriter.hpp"
 #include "Beam/Python/UidService.hpp"
 #include "Beam/Python/Utilities.hpp"
-#include "Beam/Python/Variant.hpp"
 #include "Beam/Python/WebServices.hpp"
 
 #endif

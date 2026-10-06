@@ -1,4 +1,5 @@
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <doctest/doctest.h>
 #include "Beam/Utilities/OverloadSet.hpp"

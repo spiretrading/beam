@@ -8,7 +8,7 @@
 namespace Beam {
 namespace Details {
   using SerializedJsonValue =
-    boost::variant<std::string, JsonNull, bool, double,
+    std::variant<std::string, JsonNull, bool, double,
       std::vector<std::pair<std::string, JsonValue>>, std::vector<JsonValue>>;
 }
 

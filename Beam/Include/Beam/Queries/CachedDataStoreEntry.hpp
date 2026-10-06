@@ -96,9 +96,9 @@ namespace Beam {
     sequenced_query.set_range(
       to_sequence(query.get_index(), query.get_range()));
     auto start =
-      normalize(boost::get<Sequence>(sequenced_query.get_range().get_start()));
+      normalize(std::get<Sequence>(sequenced_query.get_range().get_start()));
     auto end =
-      normalize(boost::get<Sequence>(sequenced_query.get_range().get_end()));
+      normalize(std::get<Sequence>(sequenced_query.get_range().get_end()));
     if(sequenced_query.get_snapshot_limit().get_type() ==
         SnapshotLimit::Type::HEAD) {
       return load_head(sequenced_query, start, end);
@@ -124,7 +124,7 @@ namespace Beam {
       const Index& index, const Range& range) {
     auto start = [&] {
       if(auto start =
-          boost::get<boost::posix_time::ptime>(&range.get_start())) {
+          std::get_if<boost::posix_time::ptime>(&range.get_start())) {
         auto start_query = Query();
         start_query.set_index(index);
         start_query.set_range(Range(*start, Sequence::LAST));
@@ -135,10 +135,10 @@ namespace Beam {
         }
         return matches.front().get_sequence();
       }
-      return boost::get<Sequence>(range.get_start());
+      return std::get<Sequence>(range.get_start());
     }();
     auto end = [&] {
-      if(auto end = boost::get<boost::posix_time::ptime>(&range.get_end())) {
+      if(auto end = std::get_if<boost::posix_time::ptime>(&range.get_end())) {
         auto end_query = Query();
         end_query.set_index(index);
         end_query.set_range(Range(Sequence::FIRST, *end));
@@ -149,7 +149,7 @@ namespace Beam {
         }
         return matches.front().get_sequence();
       }
-      return boost::get<Sequence>(range.get_end());
+      return std::get<Sequence>(range.get_end());
     }();
     return Range(start, end);
   }
@@ -207,7 +207,7 @@ namespace Beam {
         const Query& query, Sequence start, Sequence end) {
     auto matches = std::vector<SequencedValue>();
     auto subset_query = query;
-    auto subset_start = boost::get<Sequence>(query.get_range().get_start());
+    auto subset_start = std::get<Sequence>(query.get_range().get_start());
     auto remaining_limit = subset_query.get_snapshot_limit().get_size();
     for(auto ordinal = start.get_ordinal(); ordinal <= end.get_ordinal();
         ordinal += m_block_size) {
@@ -252,7 +252,7 @@ namespace Beam {
         const Query& query, Sequence start, Sequence end) {
     auto partitions = std::vector<std::vector<SequencedValue>>();
     auto subset_query = query;
-    auto subset_end = boost::get<Sequence>(query.get_range().get_end());
+    auto subset_end = std::get<Sequence>(query.get_range().get_end());
     auto remaining_limit = subset_query.get_snapshot_limit().get_size();
     for(auto ordinal = end.get_ordinal(); ordinal >= start.get_ordinal();
         ordinal -= m_block_size) {

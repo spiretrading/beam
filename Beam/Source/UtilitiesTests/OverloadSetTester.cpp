@@ -1,27 +1,21 @@
 #include <memory>
 #include <string>
-#include <boost/variant/variant.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Utilities/OverloadSet.hpp"
 
 using namespace Beam;
 
-namespace {
-  using BoostVariant = boost::variant<std::string>;
-  using StandardVariant = std::variant<std::string>;
-}
-
 TEST_SUITE("OverloadSet") {
-  TEST_CASE_TEMPLATE("named_callable", V, BoostVariant, StandardVariant) {
-    auto value = V(std::string("hello"));
+  TEST_CASE("named_callable") {
+    auto value = std::variant<std::string>("hello");
     auto callable = [] (const std::string& value) { return value.size(); };
     auto visitor = OverloadSet(callable);
     REQUIRE(visitor(std::string("hello")) == 5);
     REQUIRE(visit(value, callable) == 5);
   }
 
-  TEST_CASE_TEMPLATE("move_only_callable", V, BoostVariant, StandardVariant) {
-    auto value = V(std::string("hello"));
+  TEST_CASE("move_only_callable") {
+    auto value = std::variant<std::string>("hello");
     auto callable = [offset = std::make_unique<int>(3)] (
         const std::string& value) {
       return value.size() + *offset;
@@ -29,8 +23,8 @@ TEST_SUITE("OverloadSet") {
     REQUIRE(visit(value, std::move(callable)) == 8);
   }
 
-  TEST_CASE_TEMPLATE("variant_forwarding", V, BoostVariant, StandardVariant) {
-    auto value = V(std::string("hello"));
+  TEST_CASE("variant_forwarding") {
+    auto value = std::variant<std::string>("hello");
     auto& reference = visit(value,
       [] (std::string& value) -> std::string& { return value; });
     reference = "updated";

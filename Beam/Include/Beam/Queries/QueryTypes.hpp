@@ -2,9 +2,9 @@
 #define BEAM_QUERY_TYPES_HPP
 #include <cstdint>
 #include <string>
+#include <variant>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/mp11.hpp>
-#include <boost/variant/variant.hpp>
 #include "Beam/Queries/SequencedValue.hpp"
 
 namespace Beam {
@@ -13,7 +13,7 @@ namespace Beam {
   constexpr auto MAX_EVALUATOR_PARAMETERS = 2;
 
   /** A variant able to represent any query type. */
-  using QueryVariant = boost::variant<bool, char, int, double, std::uint64_t,
+  using QueryVariant = std::variant<bool, char, int, double, std::uint64_t,
     std::string, boost::posix_time::ptime, boost::posix_time::time_duration>;
 
   /** Wraps a QueryVariant into a SequencedValue. */

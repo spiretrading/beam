@@ -63,7 +63,7 @@ namespace Beam {
         std::size_t m_index;
       };
       boost::optional<ReaderParserStream<BufferReader<Source>>> m_parser_stream;
-      using AggregateType = boost::variant<JsonObject, Sequence>;
+      using AggregateType = std::variant<JsonObject, Sequence>;
       std::deque<AggregateType> m_aggregate_queue;
 
       const JsonValue& extract(
@@ -228,7 +228,7 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, std::optional<T>& value) {
     auto field = false;
     if(name && !m_aggregate_queue.empty()) {
-      if(auto object = boost::get<JsonObject>(&m_aggregate_queue.back())) {
+      if(auto object = std::get_if<JsonObject>(&m_aggregate_queue.back())) {
         if(!object->get(name)) {
           value.reset();
           return;
@@ -327,7 +327,7 @@ namespace Beam {
       }
       return *storage;
     } else if(auto aggregate =
-        boost::get<JsonObject>(&m_aggregate_queue.back()))  {
+        std::get_if<JsonObject>(&m_aggregate_queue.back()))  {
       if(name) {
         return aggregate->at(name);
       } else {
@@ -335,7 +335,7 @@ namespace Beam {
           SerializationException("Invalid JSON format."));
       }
     } else if(auto aggregate =
-        boost::get<Sequence>(&m_aggregate_queue.back())) {
+        std::get_if<Sequence>(&m_aggregate_queue.back())) {
       if(aggregate->m_index >= aggregate->m_list.size()) {
         boost::throw_with_location(
           SerializationException("JSON sequence out of range."));

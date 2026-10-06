@@ -12,7 +12,7 @@
 #include <vector>
 #include <boost/variant/get.hpp>
 #include <boost/variant/variant.hpp>
-#include "Beam/Utilities/VariantLambdaVisitor.hpp"
+#include "Beam/Utilities/OverloadSet.hpp"
 
 namespace Beam {
 
@@ -299,7 +299,7 @@ namespace Details {
     : Details::JsonVariant(value) {}
 
   inline void JsonValue::save(std::ostream& sink) const {
-    apply_variant_lambda_visitor(*this,
+    visit(*this,
       [&] (JsonNull value) {
         sink << "null";
       },

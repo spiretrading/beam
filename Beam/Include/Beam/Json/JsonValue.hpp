@@ -94,6 +94,8 @@ namespace Details {
        */
       JsonValue(const JsonValue& value);
 
+      JsonValue(JsonValue&&) noexcept = default;
+
       /**
        * Constructs a null value.
        * @param value The value to represent.
@@ -174,6 +176,8 @@ namespace Details {
        * @return <code>*this</code>
        */
       JsonValue& operator =(const JsonValue& value);
+
+      JsonValue& operator =(JsonValue&&) noexcept = default;
 
       /**
        * Assigns a null value.

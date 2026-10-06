@@ -17,6 +17,9 @@ namespace Beam {
       /** Constructs an empty JsonObject. */
       JsonObject() = default;
 
+      JsonObject(const JsonObject& object);
+      JsonObject(JsonObject&&) noexcept = default;
+
       /**
        * Returns a member of <code>this</code> JSON object, if the member has
        * not been initialized then it is added with a value of null.
@@ -69,6 +72,9 @@ namespace Beam {
        */
       bool operator !=(const JsonObject& object) const;
 
+      JsonObject& operator =(const JsonObject& object);
+      JsonObject& operator =(JsonObject&&) noexcept = default;
+
     private:
       friend struct Send<JsonValue, void>;
       std::unordered_map<std::string, std::shared_ptr<JsonValue>> m_members;
@@ -90,6 +96,13 @@ namespace Beam {
 #include "Beam/Json/JsonValue.hpp"
 
 namespace Beam {
+  inline JsonObject::JsonObject(const JsonObject& object) {
+    m_members.reserve(object.m_members.size());
+    for(auto& [name, value] : object.m_members) {
+      m_members.emplace(name, std::make_shared<JsonValue>(*value));
+    }
+  }
+
   inline JsonValue& JsonObject::operator [](const std::string& name) {
     auto i = m_members.find(name);
     if(i == m_members.end()) {
@@ -151,6 +164,15 @@ namespace Beam {
 
   inline bool JsonObject::operator !=(const JsonObject& object) const {
     return !(*this == object);
+  }
+
+  inline JsonObject& JsonObject::operator =(const JsonObject& object) {
+    if(this == &object) {
+      return *this;
+    }
+    auto copy = JsonObject(object);
+    m_members.swap(copy.m_members);
+    return *this;
   }
 }
 

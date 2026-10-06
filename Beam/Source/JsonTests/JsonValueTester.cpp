@@ -19,6 +19,54 @@ namespace {
 }
 
 TEST_SUITE("JsonValue") {
+  TEST_CASE("object_copy") {
+    auto original = get<JsonObject>(parse<JsonValue>(
+      R"({"name":"original","nested":{"count":1},"array":[{"count":2}]})"));
+    auto copy = JsonObject();
+    SUBCASE("constructor") {
+      auto constructed = JsonObject(original);
+      copy = std::move(constructed);
+    }
+    SUBCASE("assignment") {
+      copy.set("obsolete", true);
+      copy = original;
+      REQUIRE(!copy.get("obsolete"));
+    }
+    REQUIRE(copy == original);
+    copy.set("name", "copy");
+    get<JsonObject>(copy["nested"])["count"] = 10;
+    get<JsonObject>(get<std::vector<JsonValue>>(copy["array"])[0]).set(
+      "count", 20);
+    REQUIRE(original.at("name") == JsonValue("original"));
+    REQUIRE(
+      get<JsonObject>(original.at("nested")).at("count") == JsonValue(1));
+    REQUIRE(get<JsonObject>(get<std::vector<JsonValue>>(
+      original.at("array"))[0]).at("count") == JsonValue(2));
+    original["name"] = "changed";
+    REQUIRE(copy.at("name") == JsonValue("copy"));
+    copy = copy;
+    REQUIRE(copy.at("name") == JsonValue("copy"));
+  }
+
+  TEST_CASE("value_copy") {
+    auto original = parse<JsonValue>(R"({"array":[{"count":1}]})");
+    auto copy = JsonValue();
+    SUBCASE("constructor") {
+      auto constructed = JsonValue(original);
+      copy = std::move(constructed);
+    }
+    SUBCASE("assignment") {
+      copy = "replaced";
+      copy = original;
+    }
+    REQUIRE(copy == original);
+    auto& array = get<std::vector<JsonValue>>(get<JsonObject>(copy)["array"]);
+    get<JsonObject>(array[0])["count"] = 2;
+    REQUIRE(get<JsonObject>(get<std::vector<JsonValue>>(
+      get<JsonObject>(original).at("array"))[0]).at("count") == JsonValue(1));
+    REQUIRE(get<JsonObject>(array[0]).at("count") == JsonValue(2));
+  }
+
   TEST_CASE("strings") {
     auto value = JsonValue("Line one\n\"Line two\"\\file\t\b\f\r");
     REQUIRE(to_string(value) ==

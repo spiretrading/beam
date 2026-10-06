@@ -5,7 +5,6 @@
 #include "Beam/Utilities/OverloadSet.hpp"
 
 using namespace Beam;
-using namespace boost;
 
 namespace {
   using BoostVariant = boost::variant<std::string>;
@@ -47,7 +46,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("single_lambda_with_int") {
-    auto v = variant<int, double>(42);
+    auto v = std::variant<int, double>(42);
     auto result = visit(v,
       [] (int value) { return value * 2; },
       [] (double value) { return static_cast<int>(value * 2); });
@@ -55,7 +54,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("single_lambda_with_double") {
-    auto v = variant<int, double>(3.14);
+    auto v = std::variant<int, double>(3.14);
     auto result = visit(v,
       [] (int value) { return value * 2; },
       [] (double value) { return static_cast<int>(value * 2); });
@@ -63,7 +62,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("multiple_types_with_string") {
-    auto v = variant<int, double, std::string>("hello");
+    auto v = std::variant<int, double, std::string>("hello");
     auto result = visit(v,
       [] (int value) { return std::to_string(value); },
       [] (double value) { return std::to_string(value); },
@@ -72,7 +71,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("void_return_type") {
-    auto v = variant<int, std::string>(123);
+    auto v = std::variant<int, std::string>(123);
     auto called = false;
     auto value = 0;
     visit(v,
@@ -86,16 +85,16 @@ TEST_SUITE("OverloadSet") {
     auto visitor = make_overload_set(
       [] (int value) { return value * 3; },
       [] (double value) { return static_cast<int>(value * 3); });
-    auto v1 = variant<int, double>(10);
-    auto v2 = variant<int, double>(2.5);
-    auto result1 = apply_visitor(visitor, v1);
-    auto result2 = apply_visitor(visitor, v2);
+    auto v1 = std::variant<int, double>(10);
+    auto v2 = std::variant<int, double>(2.5);
+    auto result1 = std::visit(visitor, v1);
+    auto result2 = std::visit(visitor, v2);
     REQUIRE(result1 == 30);
     REQUIRE(result2 == 7);
   }
 
   TEST_CASE("visitor_with_const_reference") {
-    auto v = variant<std::string, int>("test");
+    auto v = std::variant<std::string, int>("test");
     auto result = visit(v,
       [] (const std::string& str) { return str.length(); },
       [] (int value) { return static_cast<std::size_t>(value); });
@@ -106,14 +105,14 @@ TEST_SUITE("OverloadSet") {
     auto visitor = make_overload_set(
       [] (int&& value) { return value + 1; },
       [] (double&& value) { return static_cast<int>(value + 1); });
-    auto v = variant<int, double>(10);
-    auto result = apply_visitor(visitor, v);
+    auto v = std::variant<int, double>(10);
+    auto result = std::visit(visitor, std::move(v));
     REQUIRE(result == 11);
   }
 
   TEST_CASE("nested_variant_visitation") {
-    using InnerVariant = variant<int, double>;
-    using OuterVariant = variant<InnerVariant, std::string>;
+    using InnerVariant = std::variant<int, double>;
+    using OuterVariant = std::variant<InnerVariant, std::string>;
     auto inner = InnerVariant(42);
     auto outer = OuterVariant(inner);
     auto result = visit(outer,
@@ -127,7 +126,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("visitor_preserves_value_category") {
-    auto v = variant<int, std::string>(100);
+    auto v = std::variant<int, std::string>(100);
     auto result = 0;
     visit(v,
       [&] (int value) { result = value; },
@@ -139,16 +138,16 @@ TEST_SUITE("OverloadSet") {
     auto visitor = make_overload_set(
       [] (int value) { return value + 10; },
       [] (double value) { return static_cast<int>(value + 10); });
-    auto v1 = variant<int, double>(5);
-    auto v2 = variant<int, double>(7.5);
-    auto result1 = apply_visitor(visitor, v1);
-    auto result2 = apply_visitor(visitor, v2);
+    auto v1 = std::variant<int, double>(5);
+    auto v2 = std::variant<int, double>(7.5);
+    auto result1 = std::visit(visitor, v1);
+    auto result2 = std::visit(visitor, v2);
     REQUIRE(result1 == 15);
     REQUIRE(result2 == 17);
   }
 
   TEST_CASE("empty_variant_handling") {
-    auto v = variant<int, double>();
+    auto v = std::variant<int, double>();
     auto result = visit(v,
       [] (int value) { return value; },
       [] (double value) { return static_cast<int>(value); });
@@ -156,7 +155,7 @@ TEST_SUITE("OverloadSet") {
   }
 
   TEST_CASE("visitor_with_exception_handling") {
-    auto v = variant<int, std::string>("test");
+    auto v = std::variant<int, std::string>("test");
     auto did_throw = false;
     try {
       visit(v,

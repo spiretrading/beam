@@ -29,8 +29,9 @@ namespace Beam {
   concept IsManagedPointer = is_managed_pointer_v<std::remove_cvref_t<T>>;
 
   /**
-   * If T can be dereferenced, yields the dereferenced type
-   * (with references removed). Otherwise yields T.
+   * Yields the dereferenced type with references removed and cv-qualifiers
+   * preserved. For non-dereferenceable types, removes cv-qualifiers and
+   * references from T.
    */
   template<typename T>
   struct dereference {
@@ -39,7 +40,7 @@ namespace Beam {
 
   template<IsDereferenceable T>
   struct dereference<T> {
-    using type = std::remove_cvref_t<decltype(*std::declval<T&>())>;
+    using type = std::remove_reference_t<decltype(*std::declval<T&>())>;
   };
 
   template<typename T>

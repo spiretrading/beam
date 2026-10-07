@@ -1,7 +1,18 @@
+#include <concepts>
 #include <doctest/doctest.h>
 #include "Beam/Pointers/Dereference.hpp"
 
 using namespace Beam;
+
+namespace {
+  class Pointer {
+    public:
+      int& operator *();
+      const int& operator *() const;
+      int* operator ->();
+      const int* operator ->() const;
+  };
+}
 
 TEST_SUITE("Dereference") {
   TEST_CASE("traits") {
@@ -17,6 +28,22 @@ TEST_SUITE("Dereference") {
     REQUIRE((std::is_same_v<dereference_t<int*>, int>));
     REQUIRE((std::is_same_v<dereference_t<std::unique_ptr<int>>, int>));
     REQUIRE((std::is_same_v<dereference_t<int>, int>));
+    REQUIRE((std::same_as<dereference_t<const int*>, const int>));
+    REQUIRE((std::same_as<dereference_t<volatile int*>, volatile int>));
+    REQUIRE((std::same_as<dereference_t<const volatile int*>,
+      const volatile int>));
+    REQUIRE((std::same_as<dereference_t<int* const&>, int>));
+    REQUIRE((std::same_as<dereference_t<const int* const&>, const int>));
+    REQUIRE((std::same_as<dereference_t<int* const*>, int* const>));
+    REQUIRE((std::same_as<dereference_t<std::unique_ptr<const int>>,
+      const int>));
+    REQUIRE((std::same_as<dereference_t<std::shared_ptr<const int>>,
+      const int>));
+    REQUIRE((std::same_as<dereference_t<const std::shared_ptr<int>&>, int>));
+    REQUIRE((std::same_as<dereference_t<const std::unique_ptr<int>&>, int>));
+    REQUIRE((std::same_as<dereference_t<Pointer>, int>));
+    REQUIRE((std::same_as<dereference_t<const Pointer&>, const int>));
+    REQUIRE((std::same_as<dereference_t<const int&>, int>));
   }
 
   TEST_CASE("fully_dereference_nested_unique_ptr") {

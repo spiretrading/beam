@@ -11,7 +11,6 @@
 #include <boost/mp11.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>
-#include <boost/variant/variant.hpp>
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/AndEvaluatorNode.hpp"
 #include "Beam/Queries/ConstantEvaluatorNode.hpp"

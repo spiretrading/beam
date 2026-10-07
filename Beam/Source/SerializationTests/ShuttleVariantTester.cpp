@@ -1,31 +1,30 @@
 #include <variant>
 #include <doctest/doctest.h>
-#include <boost/variant/variant.hpp>
 #include "Beam/Serialization/ShuttleVariant.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
-using namespace boost;
 
 TEST_SUITE("ShuttleVariant") {
-  TEST_CASE("single_type") {
-    test_round_trip_shuttle(variant<int>(123));
+  TEST_CASE("json_format") {
+    auto single = std::variant<int>(123);
+    auto single_json = std::string("{\"__version\":0,\"value\":123}");
+    REQUIRE(to_json(single) == single_json);
+    REQUIRE(from_json<std::variant<int>>(single_json) == single);
+    auto multiple = std::variant<int, std::string>("hello");
+    auto multiple_json = std::string(
+      "{\"__version\":0,\"which\":1,\"value\":\"hello\"}");
+    REQUIRE(to_json(multiple) == multiple_json);
+    REQUIRE(from_json<std::variant<int, std::string>>(multiple_json) ==
+      multiple);
   }
 
-  TEST_CASE("two_types") {
-    test_round_trip_shuttle(variant<int, std::string>(123));
-    test_round_trip_shuttle(variant<int, std::string>("hello"));
+  TEST_CASE("duplicate_types") {
+    test_round_trip_shuttle(std::variant<int, std::string, int>(
+      std::in_place_index<2>, 123));
   }
 
-  TEST_CASE("three_types") {
-    test_round_trip_shuttle(variant<int, std::string, double>(24));
-    test_round_trip_shuttle(variant<int, std::string, double>("hello"));
-    test_round_trip_shuttle(variant<int, std::string, double>(3.1415));
-  }
-}
-
-TEST_SUITE("ShuttleStdVariant") {
   TEST_CASE("single_type") {
     test_round_trip_shuttle(std::variant<int>(123));
   }

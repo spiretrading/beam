@@ -478,7 +478,7 @@ namespace Beam {
       std::uniform_int_distribution<std::size_t>(0, services.size() - 1);
     auto& service = services[distribution(generator)];
     auto addresses = parse<std::vector<IpAddress>>(
-      boost::get<std::string>(service.get_properties().at("addresses")));
+      std::get<std::string>(service.get_properties().at("addresses")));
     return addresses;
   }
 

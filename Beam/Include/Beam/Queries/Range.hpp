@@ -5,13 +5,13 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/functional/hash.hpp>
-#include <boost/variant.hpp>
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
 #include "Beam/Serialization/ShuttleDateTime.hpp"
 #include "Beam/Serialization/ShuttleVariant.hpp"
 #include "Beam/Utilities/HashPosixTimeTypes.hpp"
+#include "Beam/Utilities/OverloadSet.hpp"
 
 namespace Beam {
 
@@ -25,7 +25,7 @@ namespace Beam {
       /**
        * Stores a single end-point in a range as either a time or a Sequence.
        */
-      using Point = boost::variant<Sequence, boost::posix_time::ptime>;
+      using Point = std::variant<Sequence, boost::posix_time::ptime>;
 
       /** Returns an empty Range. */
       static const Range EMPTY;
@@ -144,10 +144,10 @@ namespace Beam {
   template<typename T>
   bool range_point_lesser_or_equal(
       const T& value, Range::Point point) noexcept {
-    if(auto sequence = boost::get<Sequence>(&point)) {
+    if(auto sequence = std::get_if<Sequence>(&point)) {
       return value.get_sequence() <= *sequence;
     }
-    auto& timestamp = boost::get<boost::posix_time::ptime>(point);
+    auto& timestamp = std::get<boost::posix_time::ptime>(point);
     return get_timestamp(value) <= timestamp;
   }
 
@@ -161,10 +161,10 @@ namespace Beam {
   template<typename T>
   bool range_point_greater_or_equal(
       const T& value, Range::Point point) noexcept {
-    if(auto sequence = boost::get<Sequence>(&point)) {
+    if(auto sequence = std::get_if<Sequence>(&point)) {
       return value.get_sequence() >= *sequence;
     }
-    auto& timestamp = boost::get<boost::posix_time::ptime>(point);
+    auto& timestamp = std::get<boost::posix_time::ptime>(point);
     return get_timestamp(value) >= timestamp;
   }
 
@@ -174,7 +174,11 @@ namespace Beam {
     } else if(range == Range::TOTAL) {
       return out << "Total";
     }
-    return out << '(' << range.get_start() << " " << range.get_end() << ')';
+    out << '(';
+    visit(range.get_start(), [&] (const auto& point) { out << point; });
+    out << " ";
+    visit(range.get_end(), [&] (const auto& point) { out << point; });
+    return out << ')';
   }
 
   inline std::size_t hash_value(const Range& range) {
@@ -185,8 +189,8 @@ namespace Beam {
   }
 
   inline bool operator ==(Range::Point range, Sequence sequence) noexcept {
-    return boost::get<const Sequence>(&range) &&
-      boost::get<Sequence>(range) == sequence;
+    return std::get_if<Sequence>(&range) &&
+      std::get<Sequence>(range) == sequence;
   }
 
   inline bool operator !=(Range::Point range, Sequence sequence) noexcept {
@@ -195,8 +199,8 @@ namespace Beam {
 
   inline bool operator ==(
       Range::Point range, boost::posix_time::ptime time) noexcept {
-    return boost::get<const boost::posix_time::ptime>(&range) &&
-      boost::get<boost::posix_time::ptime>(range) == time;
+    return std::get_if<boost::posix_time::ptime>(&range) &&
+      std::get<boost::posix_time::ptime>(range) == time;
   }
 
   inline bool operator !=(
@@ -246,7 +250,7 @@ namespace Beam {
   }
 
   inline bool Range::is_valid(Point point) noexcept {
-    if(auto time = boost::get<const boost::posix_time::ptime>(&point)) {
+    if(auto time = std::get_if<boost::posix_time::ptime>(&point)) {
       if(time->is_special()) {
         if(*time != boost::posix_time::pos_infin &&
             *time != boost::posix_time::neg_infin) {
@@ -258,7 +262,7 @@ namespace Beam {
   }
 
   inline Range::Point Range::validate(Point point) noexcept {
-    if(auto pointDate = boost::get<const boost::posix_time::ptime>(&point)) {
+    if(auto pointDate = std::get_if<boost::posix_time::ptime>(&point)) {
       if(*pointDate == boost::posix_time::neg_infin) {
         return Sequence::FIRST;
       } else if(*pointDate == boost::posix_time::pos_infin) {

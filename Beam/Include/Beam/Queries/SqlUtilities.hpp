@@ -22,8 +22,8 @@ namespace Beam {
    * @return The SQL expression testing within the <i>range</i>.
    */
   inline auto make_range_expression(const Range& range) {
-    auto start = boost::get<Sequence>(range.get_start()).get_ordinal();
-    auto end = boost::get<Sequence>(range.get_end()).get_ordinal();
+    auto start = std::get<Sequence>(range.get_start()).get_ordinal();
+    auto end = std::get<Sequence>(range.get_end()).get_ordinal();
     return Viper::sym("query_sequence") >= start &&
       Viper::sym("query_sequence") <= end;
   }
@@ -41,11 +41,11 @@ namespace Beam {
       const Viper::Expression& index,
       DatabaseConnectionPool<C>& connection_pool) {
     auto start = [&] {
-      if(auto start = boost::get<Sequence>(&query.get_range().get_start())) {
+      if(auto start = std::get_if<Sequence>(&query.get_range().get_start())) {
         return *start;
       }
       auto timestamp =
-        boost::get<boost::posix_time::ptime>(query.get_range().get_start());
+        std::get<boost::posix_time::ptime>(query.get_range().get_start());
       auto sequence = std::optional<std::uint64_t>();
       auto connection = connection_pool.load();
       connection->execute(Viper::select(
@@ -57,11 +57,11 @@ namespace Beam {
       return Sequence::LAST;
     }();
     auto end = [&] {
-      if(auto end = boost::get<Sequence>(&query.get_range().get_end())) {
+      if(auto end = std::get_if<Sequence>(&query.get_range().get_end())) {
         return *end;
       }
       auto timestamp =
-        boost::get<boost::posix_time::ptime>(query.get_range().get_end());
+        std::get<boost::posix_time::ptime>(query.get_range().get_end());
       auto sequence = std::optional<std::uint64_t>();
       auto connection = connection_pool.load();
       connection->execute(Viper::select(
@@ -118,8 +118,8 @@ namespace Beam {
       return records;
     }
     query = sanitize(std::move(query), table, index, connection_pool);
-    auto start = boost::get<Sequence>(query.get_range().get_start());
-    auto end = boost::get<Sequence>(query.get_range().get_end());
+    auto start = std::get<Sequence>(query.get_range().get_start());
+    auto end = std::get<Sequence>(query.get_range().get_end());
     auto remaining_limit = query.get_snapshot_limit().get_size();
     if(query.get_snapshot_limit().get_type() == SnapshotLimit::Type::TAIL) {
       auto partitions = std::vector<std::vector<Type>>();

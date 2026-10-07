@@ -8,7 +8,6 @@
 
 using namespace Beam;
 using namespace Beam::Tests;
-using namespace boost;
 
 namespace {
   class PrivateValue {
@@ -68,9 +67,9 @@ TEST_SUITE("JsonValueShuttle") {
     values.m_count = 0;
     auto buffer = from<SharedBuffer>(to_json(values));
     auto encoded = parse<JsonValue>(buffer);
-    auto& fields = get<JsonObject>(encoded);
+    auto& fields = std::get<JsonObject>(encoded);
     REQUIRE(!fields.get("missing"));
-    REQUIRE(get<JsonNull>(&fields.at("null")));
+    REQUIRE(std::get_if<JsonNull>(&fields.at("null")));
     REQUIRE(fields.at("value") == JsonValue(object));
     REQUIRE(fields.at("count") == 0);
     auto receiver = JsonReceiver<SharedBuffer>();
@@ -116,13 +115,13 @@ TEST_SUITE("JsonValueShuttle") {
       "\"\\u0000\\u0001\\u001f\\u007f\\u00e9\\u20ac\\ud83d\\ude00\"");
     auto expected = std::string("\0\x01\x1f\x7f", 4) +
       "\xc3\xa9\xe2\x82\xac\xf0\x9f\x98\x80";
-    REQUIRE(get<std::string>(parse<JsonValue>(encoded)) == expected);
+    REQUIRE(std::get<std::string>(parse<JsonValue>(encoded)) == expected);
     auto buffer = from<SharedBuffer>(to_json(JsonValue(expected)));
     auto receiver = JsonReceiver<SharedBuffer>();
     receiver.set(Ref(buffer));
     auto received = JsonValue();
     receiver.shuttle(received);
-    REQUIRE(get<std::string>(received) == expected);
+    REQUIRE(std::get<std::string>(received) == expected);
     auto source = to_parser_stream(encoded);
     REQUIRE(string_p.read(source));
     for(auto& encoded : {"\"\\u12\"", "\"\\uZZZZ\"", "\"\\uD800\"",

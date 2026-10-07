@@ -8,7 +8,6 @@
 #include "Beam/Python/Collections.hpp"
 #include "Beam/Python/DateTime.hpp"
 #include "Beam/Python/Queues.hpp"
-#include "Beam/Python/Variant.hpp"
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
 #include "Beam/Queries/ConstantExpression.hpp"

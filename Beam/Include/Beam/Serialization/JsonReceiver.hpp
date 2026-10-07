@@ -63,7 +63,7 @@ namespace Beam {
         std::size_t m_index;
       };
       boost::optional<ReaderParserStream<BufferReader<Source>>> m_parser_stream;
-      using AggregateType = boost::variant<JsonObject, Sequence>;
+      using AggregateType = std::variant<JsonObject, Sequence>;
       std::deque<AggregateType> m_aggregate_queue;
 
       const JsonValue& extract(
@@ -113,8 +113,8 @@ namespace Beam {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
     try {
-      value = boost::get<bool>(json_value);
-    } catch(const boost::bad_get&) {
+      value = std::get<bool>(json_value);
+    } catch(const std::bad_variant_access&) {
       boost::throw_with_location(SerializationException("JSON type mismatch."));
     }
   }
@@ -145,13 +145,13 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, char& value) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<std::string>(&json_value)) {
+    if(auto s = std::get_if<std::string>(&json_value)) {
       if(s->size() != 1) {
         boost::throw_with_location(
           SerializationException("Length out of range."));
       }
       value = s->front();
-    } else if(boost::get<double>(&json_value)) {
+    } else if(std::get_if<double>(&json_value)) {
       value = '\0';
     } else {
       boost::throw_with_location(SerializationException("JSON type mismatch."));
@@ -164,7 +164,7 @@ namespace Beam {
     if constexpr(is_wide_integer<T>) {
       auto storage = boost::optional<JsonValue>();
       auto& json_value = extract(name, storage);
-      if(auto s = boost::get<std::string>(&json_value)) {
+      if(auto s = std::get_if<std::string>(&json_value)) {
         auto result = T();
         auto end = s->data() + s->size();
         auto conversion = std::from_chars(s->data(), end, result);
@@ -173,7 +173,7 @@ namespace Beam {
             SerializationException("Value out of range."));
         }
         value = result;
-      } else if(auto number = boost::get<double>(&json_value)) {
+      } else if(auto number = std::get_if<double>(&json_value)) {
         value = static_cast<T>(*number);
       } else {
         boost::throw_with_location(
@@ -191,7 +191,7 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, T& value) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<double>(&json_value)) {
+    if(auto s = std::get_if<double>(&json_value)) {
       value = static_cast<T>(*s);
     } else {
       boost::throw_with_location(SerializationException("JSON type mismatch."));
@@ -210,7 +210,7 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, std::string& value) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<std::string>(&json_value)) {
+    if(auto s = std::get_if<std::string>(&json_value)) {
       value = std::move(*s);
     } else {
       boost::throw_with_location(SerializationException("JSON type mismatch."));
@@ -228,7 +228,7 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, std::optional<T>& value) {
     auto field = false;
     if(name && !m_aggregate_queue.empty()) {
-      if(auto object = boost::get<JsonObject>(&m_aggregate_queue.back())) {
+      if(auto object = std::get_if<JsonObject>(&m_aggregate_queue.back())) {
         if(!object->get(name)) {
           value.reset();
           return;
@@ -238,7 +238,7 @@ namespace Beam {
     }
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(boost::get<JsonNull>(&json_value) &&
+    if(std::get_if<JsonNull>(&json_value) &&
         (!field || !std::is_same_v<T, JsonValue>)) {
       value.reset();
       return;
@@ -260,7 +260,7 @@ namespace Beam {
   void JsonReceiver<S>::receive(const char* name, FixedString<N>& value) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<std::string>(&json_value)) {
+    if(auto s = std::get_if<std::string>(&json_value)) {
       if(s->size() > N) {
         boost::throw_with_location(
           SerializationException("Length out of range."));
@@ -275,7 +275,7 @@ namespace Beam {
   void JsonReceiver<S>::start_structure(const char* name) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<JsonObject>(&json_value)) {
+    if(auto s = std::get_if<JsonObject>(&json_value)) {
       if(!s->get("__version")) {
         const_cast<JsonObject&>(*s).set("__version", 0.0);
       }
@@ -294,7 +294,7 @@ namespace Beam {
   void JsonReceiver<S>::start_sequence(const char* name, int& size) {
     auto storage = boost::optional<JsonValue>();
     auto& json_value = extract(name, storage);
-    if(auto s = boost::get<std::vector<JsonValue>>(&json_value)) {
+    if(auto s = std::get_if<std::vector<JsonValue>>(&json_value)) {
       auto sequence = Sequence();
       sequence.m_list = std::move(*s);
       sequence.m_index = 0;
@@ -327,7 +327,7 @@ namespace Beam {
       }
       return *storage;
     } else if(auto aggregate =
-        boost::get<JsonObject>(&m_aggregate_queue.back()))  {
+        std::get_if<JsonObject>(&m_aggregate_queue.back()))  {
       if(name) {
         return aggregate->at(name);
       } else {
@@ -335,7 +335,7 @@ namespace Beam {
           SerializationException("Invalid JSON format."));
       }
     } else if(auto aggregate =
-        boost::get<Sequence>(&m_aggregate_queue.back())) {
+        std::get_if<Sequence>(&m_aggregate_queue.back())) {
       if(aggregate->m_index >= aggregate->m_list.size()) {
         boost::throw_with_location(
           SerializationException("JSON sequence out of range."));

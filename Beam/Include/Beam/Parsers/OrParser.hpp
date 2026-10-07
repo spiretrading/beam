@@ -1,8 +1,9 @@
 #ifndef BEAM_ORPARSER_HPP
 #define BEAM_ORPARSER_HPP
 #include <type_traits>
+#include <variant>
+#include <boost/mp11/algorithm.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/variant/variant.hpp>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/ParserTraits.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
@@ -18,12 +19,23 @@ namespace Details {
   };
 
   template<typename... L, typename R>
-  struct or_result<boost::variant<L...>, R> {
-    using type = boost::variant<L..., R>;
+  struct or_result<std::variant<L...>, R> {
+    using type = std::variant<L..., R>;
   };
 
   template<typename T1, typename T2>
   using or_result_t = typename or_result<T1, T2>::type;
+
+  template<typename V, typename T>
+  void assign_or_result(V& value, T&& source) {
+    if constexpr(is_instance_v<V, std::variant>) {
+      constexpr auto index =
+        boost::mp11::mp_find<V, std::remove_cvref_t<T>>::value;
+      value.template emplace<index>(std::forward<T>(source));
+    } else {
+      value = std::forward<T>(source);
+    }
+  }
 }
 
   /**
@@ -32,7 +44,7 @@ namespace Details {
    *   a) void if both L and R result in a void.
    *   b) A boost::optional of L's result if R results in a void.
    *   c) A boost::optional of R's result if L results in a void.
-   *   d) A boost::variant of L's result and R's result.
+   *   d) An std::variant of L's result and R's result.
    * @tparam L The parser that must match to the left.
    * @tparam R The parser that must match to the right.
    */
@@ -194,7 +206,7 @@ namespace Details {
       using RightParser = R;
       using Result = std::conditional_t<std::same_as<
         parser_result_t<LeftParser>, parser_result_t<RightParser>>,
-        parser_result_t<LeftParser>, boost::variant<
+        parser_result_t<LeftParser>, std::variant<
           parser_result_t<LeftParser>, parser_result_t<RightParser>>>;
 
       OrParser(LeftParser left, RightParser right)
@@ -260,13 +272,20 @@ namespace Details {
           auto sub_value = parser_result_t<LeftParser>();
           if(m_left.read(context, sub_value)) {
             context.accept();
-            value = std::move(sub_value);
+            if constexpr(
+                is_instance_v<parser_result_t<LeftParser>, std::variant>) {
+              std::visit([&] (auto& sub_value) {
+                Details::assign_or_result(value, std::move(sub_value));
+              }, sub_value);
+            } else {
+              Details::assign_or_result(value, std::move(sub_value));
+            }
             return true;
           }
         }
         auto sub_value = parser_result_t<RightParser>();
         if(m_right.read(source, sub_value)) {
-          value = std::move(sub_value);
+          Details::assign_or_result(value, std::move(sub_value));
           return true;
         }
         return false;

@@ -94,12 +94,12 @@ namespace Beam {
     }
     auto cache = initialize_cache(query.get_index());
     if(auto start =
-        boost::get<boost::posix_time::ptime>(&query.get_range().get_start())) {
+        std::get_if<boost::posix_time::ptime>(&query.get_range().get_start())) {
       if(*start > cache->m_timestamp) {
         return cache->m_data_store.load(query);
       }
     } else if(auto start =
-        boost::get<Sequence>(&query.get_range().get_start())) {
+        std::get_if<Sequence>(&query.get_range().get_start())) {
       if(*start > cache->m_sequence) {
         return cache->m_data_store.load(query);
       }
@@ -107,9 +107,9 @@ namespace Beam {
     if(query.get_snapshot_limit().get_type() == SnapshotLimit::Type::TAIL) {
       auto size = cache->m_size.load();
       if(query.get_snapshot_limit().get_size() <= size) {
-        auto end = boost::get<Sequence>(&query.get_range().get_end());
+        auto end = std::get_if<Sequence>(&query.get_range().get_end());
         auto end_timestamp =
-          boost::get<boost::posix_time::ptime>(&query.get_range().get_end());
+          std::get_if<boost::posix_time::ptime>(&query.get_range().get_end());
         if(end && *end > cache->m_sequence ||
             end_timestamp && *end_timestamp > cache->m_timestamp) {
           auto result = cache->m_data_store.load(query);

@@ -8,7 +8,7 @@
 namespace Beam {
 namespace Details {
   using SerializedJsonValue =
-    boost::variant<std::string, JsonNull, bool, double,
+    std::variant<std::string, JsonNull, bool, double,
       std::vector<std::pair<std::string, JsonValue>>, std::vector<JsonValue>>;
 }
 
@@ -23,7 +23,7 @@ namespace Details {
     template<IsSender S>
     void operator ()(S& sender, const JsonValue& value,
         unsigned int version) const {
-      auto serialized = apply_variant_lambda_visitor(value,
+      auto serialized = visit(value,
         [&] (const JsonObject& object) {
           auto members = std::vector<std::pair<std::string, JsonValue>>();
           for(auto& [name, value] : object.m_members) {
@@ -44,7 +44,7 @@ namespace Details {
         R& receiver, JsonValue& value, unsigned int version) const {
       auto serialized = Details::SerializedJsonValue();
       receiver.shuttle("value", serialized);
-      value = apply_variant_lambda_visitor(serialized,
+      value = visit(serialized,
         [] (const std::vector<std::pair<std::string, JsonValue>>& members) {
           auto object = JsonObject();
           for(auto& [name, value] : members) {

@@ -10,9 +10,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-#include <boost/variant/get.hpp>
-#include <boost/variant/variant.hpp>
-#include "Beam/Utilities/VariantLambdaVisitor.hpp"
+#include "Beam/Utilities/OverloadSet.hpp"
 
 namespace Beam {
 
@@ -63,7 +61,7 @@ namespace Details {
     sink.put('"');
   }
 
-  using JsonVariant = boost::variant<
+  using JsonVariant = std::variant<
     std::string, JsonNull, bool, double, JsonObject, std::vector<JsonValue>>;
 }
 
@@ -75,7 +73,7 @@ namespace Details {
   constexpr auto is_wide_integer =
     std::is_integral_v<T> && sizeof(T) > sizeof(std::int32_t);
 
-  /** Wraps a boost::variant over all JSON types. */
+  /** Wraps a standard variant over all JSON types. */
   class JsonValue : public Details::JsonVariant {
     public:
 
@@ -247,20 +245,6 @@ namespace Details {
     return sink;
   }
 
-namespace Details {
-  struct JsonAssignmentVisitor : public boost::static_visitor<> {
-    JsonValue* m_self;
-
-    JsonAssignmentVisitor(JsonValue* self)
-      : m_self(self) {}
-
-    template<typename T>
-    void operator()(const T& value) const {
-      *m_self = value;
-    }
-  };
-}
-
   inline bool JsonNull::operator ==(JsonNull rhs) const {
     return true;
   }
@@ -271,9 +255,8 @@ namespace Details {
   inline JsonValue::JsonValue(const Details::JsonVariant& variant)
     : Details::JsonVariant(variant) {}
 
-  inline JsonValue::JsonValue(const JsonValue& value) {
-    *this = value;
-  }
+  inline JsonValue::JsonValue(const JsonValue& value)
+    : Details::JsonVariant(static_cast<const Details::JsonVariant&>(value)) {}
 
   inline JsonValue::JsonValue(JsonNull value) noexcept
     : Details::JsonVariant(value) {}
@@ -303,7 +286,7 @@ namespace Details {
     : Details::JsonVariant(value) {}
 
   inline void JsonValue::save(std::ostream& sink) const {
-    apply_variant_lambda_visitor(*this,
+    visit(*this,
       [&] (JsonNull value) {
         sink << "null";
       },
@@ -344,8 +327,8 @@ namespace Details {
   }
 
   inline bool JsonValue::operator ==(const JsonValue& value) const {
-    return Details::JsonVariant::operator ==(
-      static_cast<const Details::JsonVariant&>(value));
+    return static_cast<const Details::JsonVariant&>(*this) ==
+      static_cast<const Details::JsonVariant&>(value);
   }
 
   inline bool JsonValue::operator !=(const JsonValue& value) const {
@@ -356,7 +339,7 @@ namespace Details {
     if(this == &value) {
       return *this;
     }
-    boost::apply_visitor(Details::JsonAssignmentVisitor(this),
+    Details::JsonVariant::operator =(
       static_cast<const Details::JsonVariant&>(value));
     return *this;
   }

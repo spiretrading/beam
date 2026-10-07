@@ -32,6 +32,9 @@ namespace Beam {
       using Source = S;
       using ReceiverMixin<JsonReceiver>::ReceiverMixin;
 
+      /** Verifies that only trailing JSON whitespace remains unread. */
+      void validate_end();
+
       void set(Ref<const Source> source);
       void receive(const char* name, bool& value);
       void receive(const char* name, unsigned char& value);
@@ -84,10 +87,16 @@ namespace Beam {
   template<typename T>
   T from_json(std::string_view source) {
     using Value = T;
+    auto start = source.find_first_not_of(" \t\r\n");
+    if(start != std::string_view::npos) {
+      source.remove_prefix(start);
+    }
     auto buffer = SharedBuffer(source.data(), source.size());
     auto receiver = JsonReceiver<SharedBuffer>();
     receiver.set(Ref(buffer));
-    return receive<Value>(receiver);
+    auto value = receive<Value>(receiver);
+    receiver.validate_end();
+    return value;
   }
 
   /**
@@ -100,6 +109,22 @@ namespace Beam {
   T from_json(const std::same_as<JsonValue> auto& value) {
     using Value = T;
     return from_json<Value>(to_string(value));
+  }
+
+  template<IsConstBuffer S>
+  void JsonReceiver<S>::validate_end() {
+    if(!m_aggregate_queue.empty()) {
+      boost::throw_with_location(
+        SerializationException("Incomplete JSON value."));
+    }
+    while(m_parser_stream->read()) {
+      auto character = m_parser_stream->peek();
+      if(character != ' ' && character != '\t' && character != '\r' &&
+          character != '\n') {
+        boost::throw_with_location(
+          SerializationException("Unexpected trailing JSON input."));
+      }
+    }
   }
 
   template<IsConstBuffer S>

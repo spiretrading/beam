@@ -1,7 +1,6 @@
 #ifndef BEAM_DECIMAL_PARSER_HPP
 #define BEAM_DECIMAL_PARSER_HPP
-#include <cctype>
-#include <cstdlib>
+#include <charconv>
 #include <string>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
@@ -32,127 +31,74 @@ namespace Beam {
   template<typename F>
   template<IsParserStream S>
   bool DecimalParser<F>::read(S& source, Result& value) const {
-    enum {
-      START,
-      TERMINAL,
-      INTEGER_DIGITS,
-      START_DECIMAL,
-      DECIMAL_DIGITS
-    } state = START;
     auto context = SubParserStream<S>(source);
-    auto decimal_buffer = std::string();
+    auto buffer = std::string();
+    auto read_digits = [&] {
+      auto size = buffer.size();
+      while(context.read()) {
+        auto character = context.peek();
+        if(character < '0' || character > '9') {
+          context.undo();
+          break;
+        }
+        buffer += character;
+      }
+      return buffer.size() != size;
+    };
     if(!context.read()) {
       return false;
     }
     if(context.peek() == '-') {
-      decimal_buffer += '-';
-      if(!context.read()) {
-        return false;
-      }
-    }
-    if(std::isdigit(context.peek())) {
-      decimal_buffer += context.peek();
-      state = INTEGER_DIGITS;
+      buffer += '-';
     } else {
+      context.undo();
+    }
+    if(!read_digits()) {
       return false;
     }
-    while(state != TERMINAL) {
-      if(!context.read()) {
-        state = TERMINAL;
-        continue;
-      }
-      if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.peek())) {
-          decimal_buffer += context.peek();
-        } else if(context.peek() == '.') {
-          decimal_buffer += '.';
-          state = START_DECIMAL;
-        } else {
-          context.undo();
-          state = TERMINAL;
-          break;
+    if(context.read()) {
+      if(context.peek() == '.') {
+        buffer += '.';
+        if(!read_digits()) {
+          return false;
         }
-      } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.peek())) {
-          decimal_buffer += context.peek();
-          state = DECIMAL_DIGITS;
-        } else {
-          break;
-        }
-      } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.peek())) {
-          decimal_buffer += context.peek();
-        } else {
-          context.undo();
-          state = TERMINAL;
-          break;
-        }
+      } else {
+        context.undo();
       }
     }
-    if(state != TERMINAL) {
+    if(context.read()) {
+      if(context.peek() == 'e' || context.peek() == 'E') {
+        buffer += context.peek();
+        if(context.read()) {
+          if(context.peek() == '+' || context.peek() == '-') {
+            buffer += context.peek();
+          } else {
+            context.undo();
+          }
+        }
+        if(!read_digits()) {
+          return false;
+        }
+      } else {
+        context.undo();
+      }
+    }
+    auto result = Result();
+    auto end = buffer.data() + buffer.size();
+    auto conversion = std::from_chars(buffer.data(), end, result);
+    if(conversion.ec != std::errc() || conversion.ptr != end) {
       return false;
     }
+    value = result;
     context.accept();
-    value = std::strtod(decimal_buffer.c_str(), nullptr);
     return true;
   }
 
   template<typename F>
   template<IsParserStream S>
   bool DecimalParser<F>::read(S& source) const {
-    enum {
-      START,
-      TERMINAL,
-      INTEGER_DIGITS,
-      START_DECIMAL,
-      DECIMAL_DIGITS
-    } state = START;
-    auto context = SubParserStream<S>(source);
-    if(!context.read()) {
-      return false;
-    }
-    if(context.peek() == '-') {
-      if(!context.read()) {
-        return false;
-      }
-    }
-    if(std::isdigit(context.peek())) {
-      state = INTEGER_DIGITS;
-    } else {
-      return false;
-    }
-    while(context.read()) {
-      if(state == INTEGER_DIGITS) {
-        if(std::isdigit(context.peek())) {
-          continue;
-        } else if(context.peek() == '.') {
-          state = START_DECIMAL;
-        } else {
-          context.Undo();
-          state = TERMINAL;
-          break;
-        }
-      } else if(state == START_DECIMAL) {
-        if(std::isdigit(context.peek())) {
-          state = DECIMAL_DIGITS;
-        } else {
-          break;
-        }
-      } else if(state == DECIMAL_DIGITS) {
-        if(std::isdigit(context.peek())) {
-          continue;
-        } else {
-          context.undo();
-          state = TERMINAL;
-          break;
-        }
-      }
-    }
-    if(state != TERMINAL) {
-      return false;
-    }
-    context.accept();
-    return true;
+    auto value = Result();
+    return read(source, value);
   }
 }
 

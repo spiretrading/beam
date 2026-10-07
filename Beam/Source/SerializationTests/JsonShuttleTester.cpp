@@ -30,6 +30,32 @@ TEST_SUITE("JsonShuttle") {
       SerializationException);
   }
 
+  TEST_CASE("complete_json_input") {
+    REQUIRE(from_json<double>(" \t\r\n1e25 \t\r\n") == 1e25);
+    REQUIRE(from_json<std::vector<double>>("[1e25,-2E-3] \r\n") ==
+      std::vector<double>({1e25, -0.002}));
+    REQUIRE(std::get<JsonObject>(from_json<JsonValue>(R"({"value":1e25})")).
+      at("value") == JsonValue(1e25));
+    for(auto& text : {"1e", "1e+", "1e-", "1e25junk", "1e25 2",
+        "1e9999", "1e-9999", "1\v", "1\f", "truefalse", "[]{}",
+        "{} trailing", "\"text\" false"}) {
+      CAPTURE(text);
+      REQUIRE_THROWS_AS(from_json<JsonValue>(text), SerializationException);
+    }
+    auto source = from<SharedBuffer>("1e25 2");
+    auto receiver = JsonReceiver<SharedBuffer>();
+    receiver.set(Ref(source));
+    REQUIRE(receive<double>(receiver) == 1e25);
+    REQUIRE_THROWS_AS(receiver.validate_end(), SerializationException);
+    source = from<SharedBuffer>("1e25,rest");
+    auto stream = to_parser_stream(source);
+    auto value = JsonValue();
+    REQUIRE(json_p.read(stream, value));
+    REQUIRE(value == JsonValue(1e25));
+    REQUIRE(stream.read());
+    REQUIRE(stream.peek() == ',');
+  }
+
   TEST_CASE("shuttle_integer_beyond_double_precision") {
     auto value = std::int64_t(9007199254740993);
     auto buffer = SharedBuffer();

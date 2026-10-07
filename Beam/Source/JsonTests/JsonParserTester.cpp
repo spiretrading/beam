@@ -20,4 +20,17 @@ TEST_SUITE("JsonParser") {
     REQUIRE((*object)["a"] == 5);
     REQUIRE(to_string(*object) == "{\"a\":5}");
   }
+
+  TEST_CASE("exponents") {
+    auto value = parse<JsonValue>("1e25");
+    REQUIRE(std::get<double>(value) == 1e25);
+    value = parse<JsonValue>(R"({"values":[1e25,-1E+25,1.25e-3]})");
+    auto& values = std::get<std::vector<JsonValue>>(
+      std::get<JsonObject>(value).at("values"));
+    REQUIRE(values == std::vector<JsonValue>({1e25, -1e25, 0.00125}));
+    for(auto& text : {"[1e]", "[1e+]", R"({"value":1e-})",
+        "[1e9999]", "[1e-9999]"}) {
+      REQUIRE_THROWS_AS(parse<JsonValue>(text), ParserException);
+    }
+  }
 }

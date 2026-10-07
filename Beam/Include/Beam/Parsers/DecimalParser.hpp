@@ -2,11 +2,33 @@
 #define BEAM_DECIMAL_PARSER_HPP
 #include <charconv>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
 namespace Beam {
+
+  /**
+   * Converts a decimal token into a numeric value. Specialize this
+   * function for types requiring a custom decimal conversion.
+   * @tparam F The numeric data type to store the value in.
+   * @param text A syntactically valid decimal token.
+   * @param value Stores the converted value, unchanged on failure.
+   * @return True if the entire string was converted successfully.
+   */
+  template<typename F>
+  bool parse_decimal(std::string_view text, F& value) {
+    using Value = std::conditional_t<std::is_floating_point_v<F>, F, double>;
+    auto result = Value();
+    auto end = text.data() + text.size();
+    auto conversion = std::from_chars(text.data(), end, result);
+    if(conversion.ec != std::errc() || conversion.ptr != end) {
+      return false;
+    }
+    value = static_cast<F>(result);
+    return true;
+  }
 
   /**
    * Matches a decimal value.
@@ -84,15 +106,9 @@ namespace Beam {
         context.undo();
       }
     }
-    using Value =
-      std::conditional_t<std::is_floating_point_v<Result>, Result, double>;
-    auto result = Value();
-    auto end = buffer.data() + buffer.size();
-    auto conversion = std::from_chars(buffer.data(), end, result);
-    if(conversion.ec != std::errc() || conversion.ptr != end) {
+    if(!parse_decimal(buffer, value)) {
       return false;
     }
-    value = static_cast<Result>(result);
     context.accept();
     return true;
   }

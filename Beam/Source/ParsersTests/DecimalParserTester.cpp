@@ -6,6 +6,18 @@
 
 using namespace Beam;
 
+namespace {
+  struct DecimalValue {
+    double m_value;
+
+    DecimalValue() noexcept
+      : m_value(0) {}
+
+    explicit DecimalValue(double value) noexcept
+      : m_value(value) {}
+  };
+}
+
 TEST_SUITE("DecimalParser") {
   TEST_CASE("positive_decimal") {
     auto parser = DecimalParser<double>();
@@ -91,4 +103,22 @@ TEST_SUITE("DecimalParser") {
     REQUIRE(double_p.read(source, value));
     REQUIRE(value == std::numeric_limits<double>::denorm_min());
   }
+
+  TEST_CASE("custom_numeric_type") {
+    auto parser = DecimalParser<DecimalValue>();
+    auto source = to_parser_stream("-1.25e2,");
+    auto value = DecimalValue(7);
+    REQUIRE(parser.read(source, value));
+    REQUIRE(value.m_value == -125);
+    REQUIRE(source.read());
+    REQUIRE(source.peek() == ',');
+    source = to_parser_stream("1e9999");
+    REQUIRE(!parser.read(source, value));
+    REQUIRE(value.m_value == -125);
+    REQUIRE(source.read());
+    REQUIRE(source.peek() == '1');
+    source = to_parser_stream("3.5");
+    REQUIRE(parser.read(source));
+  }
+
 }

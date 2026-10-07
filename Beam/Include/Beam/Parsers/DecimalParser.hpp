@@ -2,6 +2,7 @@
 #define BEAM_DECIMAL_PARSER_HPP
 #include <charconv>
 #include <string>
+#include <type_traits>
 #include "Beam/Parsers/Parser.hpp"
 #include "Beam/Parsers/SubParserStream.hpp"
 
@@ -9,7 +10,7 @@ namespace Beam {
 
   /**
    * Matches a decimal value.
-   * @tparam F The floating point data type to store the value in.
+   * @tparam F The numeric data type to store the value in.
    */
   template<typename F>
   class DecimalParser {
@@ -83,13 +84,15 @@ namespace Beam {
         context.undo();
       }
     }
-    auto result = Result();
+    using Value =
+      std::conditional_t<std::is_floating_point_v<Result>, Result, double>;
+    auto result = Value();
     auto end = buffer.data() + buffer.size();
     auto conversion = std::from_chars(buffer.data(), end, result);
     if(conversion.ec != std::errc() || conversion.ptr != end) {
       return false;
     }
-    value = result;
+    value = static_cast<Result>(result);
     context.accept();
     return true;
   }

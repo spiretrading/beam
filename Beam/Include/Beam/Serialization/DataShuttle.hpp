@@ -1,5 +1,6 @@
 #ifndef BEAM_DATA_SHUTTLE_HPP
 #define BEAM_DATA_SHUTTLE_HPP
+#include <cstdint>
 #include <type_traits>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Buffer.hpp"
@@ -177,6 +178,24 @@ namespace Beam {
   };
 
   /**
+   * Shuttles an enum as a signed 32-bit integer unless specialized.
+   * @tparam T The enum type, scoped or unscoped.
+   */
+  template<typename T> requires std::is_enum_v<T>
+  struct Shuttle<T> {
+
+    /**
+     * Shuttles an enum value using its field name.
+     * @tparam S The sender or receiver type.
+     * @param shuttle The sender or receiver.
+     * @param name The field name, or null for an unnamed value.
+     * @param value The enum value.
+     */
+    template<IsShuttle S>
+    void operator ()(S& shuttle, const char* name, T& value) const;
+  };
+
+  /**
    * Shuttles a value and checks that it does not evaluate to
    * <code>nullptr</code>.
    * @tparam S The type of DataShuttle to use.
@@ -229,7 +248,11 @@ namespace Beam {
 
   template<IsSender S, typename T>
   void DataShuttle::send(S& sender, const char* name, const T& value) {
-    value.send(sender, name);
+    if constexpr(std::is_enum_v<T>) {
+      Shuttle<T>()(sender, name, const_cast<T&>(value));
+    } else {
+      value.send(sender, name);
+    }
   }
 
   template<IsReceiver R, typename T>
@@ -243,7 +266,11 @@ namespace Beam {
 
   template<IsReceiver R, typename T>
   void DataShuttle::receive(R& receiver, const char* name, T& value) {
-    value.receive(receiver, name);
+    if constexpr(std::is_enum_v<T>) {
+      Shuttle<T>()(receiver, name, value);
+    } else {
+      value.receive(receiver, name);
+    }
   }
 
   template<IsShuttle S, typename T>
@@ -261,6 +288,19 @@ namespace Beam {
   void Shuttle<T, Enabled>::operator ()(
       S& shuttle, T& value, unsigned int version) const {
     DataShuttle::shuttle(shuttle, value, version);
+  }
+
+  template<typename T> requires std::is_enum_v<T>
+  template<IsShuttle S>
+  void Shuttle<T>::operator ()(S& shuttle, const char* name, T& value) const {
+    auto base = std::int32_t();
+    if constexpr(IsSender<S>) {
+      base = static_cast<std::int32_t>(value);
+    }
+    shuttle.shuttle(name, base);
+    if constexpr(IsReceiver<S>) {
+      value = static_cast<T>(base);
+    }
   }
 }
 

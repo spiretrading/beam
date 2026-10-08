@@ -99,9 +99,7 @@ namespace Beam {
   template<typename T>
   void ReceiverMixin<R>::receive(const char* name, T& value) requires
       std::is_enum_v<T> {
-    auto base_value = std::int32_t();
-    self().receive(name, base_value);
-    value = static_cast<T>(base_value);
+    Receive<T>()(self(), name, value);
   }
 
   template<typename R>

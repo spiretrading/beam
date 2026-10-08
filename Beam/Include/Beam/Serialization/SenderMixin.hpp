@@ -113,7 +113,7 @@ namespace Beam {
   template<typename S>
   template<typename T> requires std::is_enum_v<T>
   void SenderMixin<S>::send(const char* name, T value) {
-    self().send(name, static_cast<std::int32_t>(value));
+    Send<T>()(self(), name, value);
   }
 
   template<typename S>

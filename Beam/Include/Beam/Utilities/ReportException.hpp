@@ -2,13 +2,12 @@
 #define BEAM_REPORT_EXCEPTION_HPP
 #include <exception>
 #include <format>
-#include <iostream>
 #include <source_location>
 #include <string>
 #include <string_view>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Utilities/ReportMessage.hpp"
 
 namespace Beam {
 namespace Details {
@@ -62,12 +61,6 @@ namespace Details {
     } catch(...) {}
     return report;
   }
-
-  inline std::string format_log_timestamp(boost::posix_time::ptime time) {
-    return std::format(
-      "{}.{:03}", boost::posix_time::to_iso_extended_string(time).substr(0, 19),
-      time.time_of_day().total_milliseconds() % 1000);
-  }
 }
 
   /**
@@ -99,9 +92,7 @@ namespace Details {
       return;
     }
     try {
-      auto time = boost::posix_time::microsec_clock::local_time();
-      auto report = Details::format_log_timestamp(time) +
-        " Uncaught exception thrown:\n";
+      auto report = std::string("Uncaught exception thrown:\n");
       if(!context.empty()) {
         report += "  " + Details::indent(context, 1) + "\n";
       }
@@ -110,11 +101,7 @@ namespace Details {
           location.file_name(), location.line());
       }
       report += "  " + Details::indent(make_exception_report(e), 1);
-      if(report.back() != '\n') {
-        report += '\n';
-      }
-      std::cerr.write(
-        report.data(), static_cast<std::streamsize>(report.size()));
+      report_message(report);
     } catch(...) {}
   }
 

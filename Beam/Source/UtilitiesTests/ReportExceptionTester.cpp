@@ -68,6 +68,32 @@ namespace {
 }
 
 TEST_SUITE("ReportException") {
+  TEST_CASE("report_message_output") {
+    using namespace boost::posix_time;
+    auto message = std::string();
+    SUBCASE("single_line") {
+      message = "Unknown compliance rule: example";
+    }
+    SUBCASE("multiple_lines") {
+      message = "Publication failed.\naccount=example";
+    }
+    SUBCASE("trailing_newline") {
+      message = "Unknown liquidity flag [CHIC]: ?\n";
+    }
+    auto before = microsec_clock::local_time();
+    auto output = capture_stderr([&] { report_message(message); });
+    auto after = microsec_clock::local_time();
+    REQUIRE(output.size() >= 24);
+    auto timestamp = from_iso_extended_string(output.substr(0, 23));
+    REQUIRE(timestamp >= before - milliseconds(1));
+    REQUIRE(timestamp <= after);
+    auto expected = " " + message;
+    if(expected.back() != '\n') {
+      expected += '\n';
+    }
+    REQUIRE(output.substr(23) == expected);
+  }
+
   TEST_CASE("log_timestamp") {
     using namespace boost::posix_time;
     auto time = time_from_string("2026-10-15 14:32:08.417999");

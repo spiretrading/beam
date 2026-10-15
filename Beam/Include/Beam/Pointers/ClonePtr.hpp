@@ -1,7 +1,8 @@
 #ifndef BEAM_CLONE_PTR_HPP
 #define BEAM_CLONE_PTR_HPP
-#include <ostream>
+#include <format>
 #include <memory>
+#include <ostream>
 #include <type_traits>
 #include <boost/optional/optional.hpp>
 #include "Beam/Serialization/Receiver.hpp"
@@ -98,14 +99,7 @@ namespace Beam {
       template<typename, typename> friend struct Receive;
       template<typename, typename> friend struct Send;
       std::unique_ptr<Type> m_object;
-
-      ClonePtr();
   };
-
-  template<typename T, typename TC>
-  std::ostream& operator <<(std::ostream& out, const ClonePtr<T, TC>& object) {
-    return out << *object;
-  }
 
   /**
    * Tests for equality using a value comparison.
@@ -315,16 +309,13 @@ namespace Beam {
     return m_object.get();
   }
 
-  template<typename T, typename C>
-  ClonePtr<T, C>::ClonePtr() {}
-
   template<typename T>
   void* CloneableMixin<T>::Clone() const {
     return new T(static_cast<const T&>(*this));
   }
 
   template<typename T, typename C>
-  struct IsStructure<ClonePtr<T, C>> : std::false_type {};
+  constexpr auto is_structure<ClonePtr<T, C>> = false;
 
   template<typename T, typename C>
   struct Send<ClonePtr<T, C>> {
@@ -343,6 +334,25 @@ namespace Beam {
       ShuttleNonNull(shuttle, name, value.m_object);
     }
   };
+}
+
+template<typename T, typename C> requires std::formattable<T, char>
+class std::formatter<Beam::ClonePtr<T, C>> : public std::formatter<T> {
+  public:
+    auto format(const Beam::ClonePtr<T, C>& value, auto& context) const {
+      return std::formatter<T>::format(*value, context);
+    }
+};
+
+namespace Beam {
+  template<typename T, typename C>
+  std::ostream& operator <<(std::ostream& out, const ClonePtr<T, C>& object) {
+    if constexpr(std::formattable<T, char>) {
+      return out << std::format("{}", object);
+    } else {
+      return out << *object;
+    }
+  }
 }
 
 #endif

@@ -46,7 +46,7 @@ namespace Beam {
   template<typename B>
   DatagramPacket(B&&, IpAddress) -> DatagramPacket<std::remove_cvref_t<B>>;
 
-  template<IsBuffer B>
+  template<IsConstBuffer B>
   std::ostream& operator <<(
       std::ostream& out, const DatagramPacket<B>& packet) {
     return out << packet.get_address() << ':' << packet.get_data();
@@ -80,5 +80,15 @@ namespace Beam {
     return m_address;
   }
 }
+
+template<Beam::IsConstBuffer B>
+class std::formatter<Beam::DatagramPacket<B>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::DatagramPacket<B>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("{}:{}", value.get_address(), value.get_data()), context);
+    }
+};
 
 #endif

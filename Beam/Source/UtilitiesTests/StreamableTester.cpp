@@ -21,6 +21,27 @@ namespace {
 }
 
 TEST_SUITE("Streamable") {
+  TEST_CASE("format_containers") {
+    auto values = std::vector{1, 2, 3};
+    REQUIRE(std::format("{}", Stream(values)) == "[1, 2, 3]");
+    REQUIRE(std::format("{:*>11}", Stream(values)) == "**[1, 2, 3]");
+    REQUIRE(std::format("{:.4}", Stream(values)) == "[1, ");
+    auto names = std::vector{std::string("one"), std::string("two")};
+    REQUIRE(std::format("{}", Stream(names)) == "[one, two]");
+    auto nested = std::map{std::pair(1, std::vector{2, 3})};
+    REQUIRE(std::format("{}", Stream(nested)) == "{1: [2, 3]}");
+    auto set = std::set{1, 2};
+    REQUIRE(std::format("{}", Stream(set)) == "{1, 2}");
+    auto unordered = std::unordered_map{std::pair(1, std::string("one"))};
+    REQUIRE(std::format("{}", Stream(unordered)) == "{1: one}");
+    auto unordered_set = std::unordered_set{42};
+    REQUIRE(std::format("{}", Stream(unordered_set)) == "{42}");
+    auto empty = std::vector<int>();
+    REQUIRE(std::format("{}", Stream(empty)) == "[]");
+    auto objects = std::vector{TestStreamable("test")};
+    REQUIRE(std::format("{}", Stream(objects)) == "[TestStreamable(test)]");
+  }
+
   TEST_CASE("format") {
     auto object = TestStreamable("test");
     auto& base = static_cast<const Streamable&>(object);

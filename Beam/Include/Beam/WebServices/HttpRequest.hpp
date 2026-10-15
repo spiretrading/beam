@@ -7,6 +7,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/WebServices/Cookie.hpp"
@@ -166,17 +167,8 @@ namespace Beam {
       mutable Sync<std::string> m_content_length;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& sink, ConnectionHeader connection_header) {
-    if(connection_header == ConnectionHeader::CLOSE) {
-      sink << "close";
-    } else if(connection_header == ConnectionHeader::KEEP_ALIVE) {
-      sink << "keep-alive";
-    } else {
-      sink << "Upgrade";
-    }
-    return sink;
-  }
+  std::ostream& operator <<(
+    std::ostream& sink, ConnectionHeader connection_header);
 
   inline std::ostream& operator <<(
       std::ostream& sink, const HttpRequest& request) {
@@ -389,6 +381,40 @@ namespace Beam {
     ss << *this;
     auto str = ss.str();
     append(*buffer, str.c_str(), str.size());
+  }
+}
+
+template<>
+class std::formatter<Beam::ConnectionHeader> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(Beam::ConnectionHeader value, auto& context) const {
+      auto name = [&] {
+        if(value == Beam::ConnectionHeader::CLOSE) {
+          return std::string_view("close");
+        } else if(value == Beam::ConnectionHeader::KEEP_ALIVE) {
+          return std::string_view("keep-alive");
+        }
+        return std::string_view("Upgrade");
+      }();
+      return std::formatter<std::string_view>::format(name, context);
+    }
+};
+
+template<>
+class std::formatter<Beam::HttpRequest> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::HttpRequest& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        Beam::to_string(value), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& sink, ConnectionHeader connection_header) {
+    return sink << std::format("{}", connection_header);
   }
 }
 

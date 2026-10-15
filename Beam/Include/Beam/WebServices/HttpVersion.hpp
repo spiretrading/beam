@@ -1,6 +1,8 @@
 #ifndef BEAM_HTTP_VERSION_HPP
 #define BEAM_HTTP_VERSION_HPP
+#include <format>
 #include <ostream>
+#include <string_view>
 
 namespace Beam {
 
@@ -32,18 +34,6 @@ namespace Beam {
       constexpr HttpVersion(int major, int minor) noexcept;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& sink, const HttpVersion& version) {
-    if(version == HttpVersion::version_1_1()) {
-      sink << "HTTP/1.1";
-    } else if(version == HttpVersion::version_1_0()) {
-      sink << "HTTP/1.0";
-    } else {
-      sink << "HTTP/" << version.get_major() << '.' << version.get_minor();
-    }
-    return sink;
-  }
-
   constexpr HttpVersion HttpVersion::version_1_0() noexcept {
     return HttpVersion(1, 0);
   }
@@ -66,6 +56,24 @@ namespace Beam {
   constexpr HttpVersion::HttpVersion(int major, int minor) noexcept
     : m_major(major),
       m_minor(minor) {}
+}
+
+template<>
+class std::formatter<Beam::HttpVersion> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::HttpVersion& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("HTTP/{}.{}", value.get_major(), value.get_minor()),
+        context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& sink, const HttpVersion& version) {
+    return sink << std::format("{}", version);
+  }
 }
 
 #endif

@@ -5,6 +5,18 @@
 using namespace Beam;
 
 TEST_SUITE("Buffer") {
+  TEST_CASE("format") {
+    auto shared = SharedBuffer("a\0b", 3);
+    auto buffer = Buffer(shared);
+    REQUIRE(std::format("{}", shared) == std::string("a\0b", 3));
+    REQUIRE(std::format("{}", buffer) == std::string("a\0b", 3));
+    REQUIRE(std::format("{:*>5}", buffer) == std::string("**a\0b", 5));
+    REQUIRE(std::format("{:.2}", shared) == std::string("a\0", 2));
+    REQUIRE(std::format("{}", SharedBuffer()).empty());
+    REQUIRE(std::format("{:*>3}", SharedBuffer()) == "***");
+    REQUIRE(to_string(buffer) == std::string("a\0b", 3));
+  }
+
   TEST_CASE("construct_in_place") {
     auto buffer = Buffer(std::in_place_type_t<SharedBuffer>(), "hello", 5);
     REQUIRE(buffer == "hello");

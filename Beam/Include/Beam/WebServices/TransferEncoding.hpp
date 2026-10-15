@@ -1,6 +1,8 @@
 #ifndef BEAM_TRANSFER_ENCODING_HPP
 #define BEAM_TRANSFER_ENCODING_HPP
+#include <format>
 #include <ostream>
+#include <string_view>
 
 namespace Beam {
 
@@ -25,22 +27,35 @@ namespace Beam {
     /** Identity encoding. */
     IDENTITY
   };
+}
 
+template<>
+class std::formatter<Beam::TransferEncoding> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(Beam::TransferEncoding value, auto& context) const {
+      auto name = [&] {
+        if(value == Beam::TransferEncoding::CHUNKED) {
+          return std::string_view("chunked");
+        } else if(value == Beam::TransferEncoding::COMPRESS) {
+          return std::string_view("compress");
+        } else if(value == Beam::TransferEncoding::DEFLATE) {
+          return std::string_view("deflate");
+        } else if(value == Beam::TransferEncoding::GZIP) {
+          return std::string_view("gzip");
+        } else if(value == Beam::TransferEncoding::IDENTITY) {
+          return std::string_view("identity");
+        }
+        return std::string_view("none");
+      }();
+      return std::formatter<std::string_view>::format(name, context);
+    }
+};
+
+namespace Beam {
   inline std::ostream& operator <<(
       std::ostream& sink, TransferEncoding encoding) {
-    if(encoding == TransferEncoding::CHUNKED) {
-      return (sink << "chunked");
-    } else if(encoding == TransferEncoding::COMPRESS) {
-      return (sink << "compress");
-    } else if(encoding == TransferEncoding::DEFLATE) {
-      return (sink << "deflate");
-    } else if(encoding == TransferEncoding::GZIP) {
-      return (sink << "gzip");
-    } else if(encoding == TransferEncoding::IDENTITY) {
-      return (sink << "identity");
-    } else {
-      return (sink << "none");
-    }
+    return sink << std::format("{}", encoding);
   }
 }
 

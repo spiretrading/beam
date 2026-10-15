@@ -3,6 +3,7 @@
 #include <array>
 #include <concepts>
 #include <cstdint>
+#include <format>
 #include <ostream>
 #include <string_view>
 #include <type_traits>
@@ -227,7 +228,6 @@ namespace Beam {
     return write_size;
   }
 
-
   /**
    * Extracts a value from a Buffer.
    * @tparam B The Buffer type.
@@ -345,7 +345,7 @@ namespace Beam {
    * @return A reference to <code>stream</code>.
    */
    std::ostream& operator <<(
-      std::ostream& stream, const IsBuffer auto& buffer) {
+      std::ostream& stream, const IsConstBuffer auto& buffer) {
     if(buffer.get_size() != 0) {
       stream.write(buffer.get_data(), buffer.get_size());
     }
@@ -517,5 +517,18 @@ namespace Beam {
     m_buffer->write(index, source, size);
   }
 }
+
+template<Beam::IsConstBuffer T>
+class std::formatter<T> : public std::formatter<std::string_view> {
+  public:
+    auto format(const T& value, auto& context) const {
+      if(value.get_size() == 0) {
+        return std::formatter<std::string_view>::format(
+          std::string_view(), context);
+      }
+      return std::formatter<std::string_view>::format(
+        std::string_view(value.get_data(), value.get_size()), context);
+    }
+};
 
 #endif

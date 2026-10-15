@@ -1,7 +1,9 @@
 #ifndef BEAM_HTTP_HEADER_HPP
 #define BEAM_HTTP_HEADER_HPP
+#include <format>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 namespace Beam {
 
@@ -27,11 +29,6 @@ namespace Beam {
       std::string m_value;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& sink, const HttpHeader& header) {
-    return sink << header.get_name() << ':' << ' ' << header.get_value();
-  }
-
   inline HttpHeader::HttpHeader(std::string name, std::string value) noexcept
     : m_name(std::move(name)),
       m_value(std::move(value)) {}
@@ -42,6 +39,23 @@ namespace Beam {
 
   inline const std::string& HttpHeader::get_value() const {
     return m_value;
+  }
+}
+
+template<>
+class std::formatter<Beam::HttpHeader> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::HttpHeader& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("{}: {}", value.get_name(), value.get_value()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& sink, const HttpHeader& header) {
+    return sink << std::format("{}", header);
   }
 }
 

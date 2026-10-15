@@ -242,4 +242,15 @@ namespace Beam {
   }
 }
 
+template<>
+class std::formatter<Beam::HttpResponse> :
+    public std::formatter<Beam::SharedBuffer> {
+  public:
+    auto format(const Beam::HttpResponse& value, auto& context) const {
+      auto buffer = Beam::SharedBuffer();
+      value.encode(Beam::out(buffer));
+      return std::formatter<Beam::SharedBuffer>::format(buffer, context);
+    }
+};
+
 #endif

@@ -1,7 +1,9 @@
 #ifndef BEAM_EMAIL_ADDRESS_HPP
 #define BEAM_EMAIL_ADDRESS_HPP
+#include <format>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 namespace Beam {
 
@@ -47,17 +49,6 @@ namespace Beam {
       std::string m_display_name;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& sink, const EmailAddress& address) {
-    if(!address.get_display_name().empty()) {
-      sink << address.get_display_name() << " <" << address.get_address() <<
-        '>';
-    } else {
-      sink << address.get_address();
-    }
-    return sink;
-  }
-
   inline EmailAddress::EmailAddress(std::string address) noexcept
     : m_address(std::move(address)) {}
 
@@ -91,6 +82,28 @@ namespace Beam {
       return {};
     }
     return m_address.substr(separator + 1);
+  }
+}
+
+template<>
+class std::formatter<Beam::EmailAddress> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::EmailAddress& value, auto& context) const {
+      if(value.get_display_name().empty()) {
+        return std::formatter<std::string_view>::format(
+          value.get_address(), context);
+      }
+      return std::formatter<std::string_view>::format(
+        std::format("{} <{}>", value.get_display_name(), value.get_address()),
+        context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& sink, const EmailAddress& address) {
+    return sink << std::format("{}", address);
   }
 }
 

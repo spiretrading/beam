@@ -1,9 +1,12 @@
 #ifndef BEAM_COOKIE_HPP
 #define BEAM_COOKIE_HPP
+#include <format>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 namespace Details {
@@ -184,5 +187,15 @@ namespace Details {
     m_is_http_only = is_http_only;
   }
 }
+
+template<>
+class std::formatter<Beam::Cookie> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::Cookie& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        Beam::to_string(value), context);
+    }
+};
 
 #endif

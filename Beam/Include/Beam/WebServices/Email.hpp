@@ -9,6 +9,7 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/optional/optional.hpp>
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/WebServices/EmailAddress.hpp"
 
 namespace Beam {
@@ -307,5 +308,15 @@ namespace Details {
     }
   }
 }
+
+template<>
+class std::formatter<Beam::Email> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::Email& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        Beam::to_string(value), context);
+    }
+};
 
 #endif

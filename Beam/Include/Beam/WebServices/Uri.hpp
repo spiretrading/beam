@@ -3,6 +3,7 @@
 #include <array>
 #include <cctype>
 #include <cstdint>
+#include <format>
 #include <limits>
 #include <ostream>
 #include <regex>
@@ -353,5 +354,15 @@ namespace Beam {
     }
   };
 }
+
+template<>
+class std::formatter<Beam::Uri> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::Uri& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        Beam::to_string(value), context);
+    }
+};
 
 #endif

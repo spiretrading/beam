@@ -1,7 +1,6 @@
 #ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #define BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #include <atomic>
-#include <iostream>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/thread/mutex.hpp>
@@ -211,14 +210,35 @@ namespace Beam {
               [&, message = std::move(message), slot = std::move(slot)] {
                 try {
                   message->emit(slot, Ref(client));
+                } catch(const EndOfFileException&) {
+                  client.close();
                 } catch(const std::exception&) {
+                  auto request = dynamic_cast<
+                    const ServiceMessage<ServiceProtocolClient>*>(
+                      message.get());
+                  auto id = std::optional<int>();
+                  if(request) {
+                    id = request->get_id();
+                  }
+                  report_service_exception(
+                    client, "dispatch_message", typeid(*message), id);
                   client.close();
                 }
               });
           } else {
             try {
               message->emit(slot, Ref(client));
+            } catch(const EndOfFileException&) {
+              client.close();
             } catch(const std::exception&) {
+              auto request = dynamic_cast<
+                const ServiceMessage<ServiceProtocolClient>*>(message.get());
+              auto id = std::optional<int>();
+              if(request) {
+                id = request->get_id();
+              }
+              report_service_exception(
+                client, "dispatch_message", typeid(*message), id);
               client.close();
             }
           }
@@ -449,7 +469,7 @@ namespace Beam {
         shutdown();
         return;
       } catch(const std::exception&) {
-        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+        report_service_exception(*this, "read_message");
         shutdown();
         return;
       }
@@ -476,7 +496,7 @@ namespace Beam {
           shutdown();
           return;
         } catch(const std::exception&) {
-          std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+          report_service_exception(*this, "queue_message");
           shutdown();
           return;
         }
@@ -502,7 +522,8 @@ namespace Beam {
     } catch(const EndOfFileException&) {
       return;
     } catch(const std::exception&) {
-      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      report_service_exception(*this, "send_heartbeat",
+        typeid(HeartbeatMessage<ServiceProtocolClient>), std::nullopt);
     }
   }
 }

@@ -170,21 +170,29 @@ namespace Beam {
       } catch(const EndOfFileException&) {
         break;
       } catch(const std::exception&) {
-        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+        BEAM_LOG_CURRENT_EXCEPTION("operation=accept_connection");
         continue;
       }
       auto client = std::make_shared<ServiceProtocolClient>(
         std::move(channel), &m_slots, m_timer_factory());
       clients.insert(client);
       client_routines.spawn([=, this, &clients] {
+        auto operation = std::string_view("accept_client");
         try {
           m_accept_slot(*client);
+          operation = "handle_messages";
           handle_messages_loop(*client);
+        } catch(const EndOfFileException&) {
         } catch(const std::exception&) {
-          std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+          report_service_exception(*client, operation);
         }
         clients.erase(client);
-        m_client_closed_slot(*client);
+        try {
+          m_client_closed_slot(*client);
+        } catch(const EndOfFileException&) {
+        } catch(const std::exception&) {
+          report_service_exception(*client, "close_client");
+        }
       });
     }
     auto pending_clients =

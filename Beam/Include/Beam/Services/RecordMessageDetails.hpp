@@ -1,15 +1,15 @@
 #ifndef BEAM_RECORD_MESSAGE_DETAILS_HPP
 #define BEAM_RECORD_MESSAGE_DETAILS_HPP
 #include <functional>
-#include <iostream>
 #include <tuple>
 #include <utility>
 #include <vector>
 #include <boost/pfr.hpp>
+#include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Services/Message.hpp"
+#include "Beam/Services/ReportServiceException.hpp"
 #include "Beam/Services/ServiceSlot.hpp"
-#include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam::Details {
   template<typename, typename>
@@ -64,15 +64,19 @@ namespace Beam::Details {
   void RecordMessageSlot<M>::invoke(
       Ref<typename RecordMessage::ServiceProtocolClient> client,
       const typename RecordMessage::Record& record) const {
+    auto operation = std::string_view("pre_hook");
     try {
       for(auto& pre_hook : m_pre_hooks) {
         pre_hook(*client.get());
       }
+      operation = "handle_message";
       std::apply([&] (const auto&... args) {
         m_slot(*client.get(), args...);
       }, boost::pfr::structure_tie(record));
+    } catch(const EndOfFileException&) {
     } catch(...) {
-      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      report_service_exception(
+        *client, operation, typeid(RecordMessage), std::nullopt);
     }
   }
 }

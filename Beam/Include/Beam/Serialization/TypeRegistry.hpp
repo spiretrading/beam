@@ -82,6 +82,9 @@ namespace Details {
       template<typename T>
       const TypeEntry& get_entry(const T& value) const;
 
+      /** Returns the TypeEntry for a specified type's RTTI. */
+      const TypeEntry& get_entry(const std::type_index& type) const;
+
       /**
        * Returns the TypeEntry with a given name.
        * @param name The name of the TypeEntry.
@@ -159,19 +162,19 @@ namespace Details {
   template<typename T>
   const TypeEntry<typename TypeRegistry<S>::Sender>&
       TypeRegistry<S>::get_entry() const {
-    auto type = std::type_index(typeid(T));
-    auto i = m_types.find(type);
-    if(i == m_types.end()) {
-      boost::throw_with_location(TypeNotFoundException(type.name()));
-    }
-    return i->second;
+    return get_entry(std::type_index(typeid(T)));
   }
 
   template<typename S>
   template<typename T>
   const TypeEntry<typename TypeRegistry<S>::Sender>&
       TypeRegistry<S>::get_entry(const T& value) const {
-    auto type = std::type_index(typeid(value));
+    return get_entry(std::type_index(typeid(value)));
+  }
+
+  template<typename S>
+  const TypeEntry<typename TypeRegistry<S>::Sender>&
+      TypeRegistry<S>::get_entry(const std::type_index& type) const {
     auto i = m_types.find(type);
     if(i == m_types.end()) {
       boost::throw_with_location(TypeNotFoundException(type.name()));

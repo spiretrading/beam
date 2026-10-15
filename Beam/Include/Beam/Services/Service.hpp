@@ -13,11 +13,13 @@
 #include <boost/preprocessor/tuple/pop_front.hpp>
 #include <boost/preprocessor/tuple/size.hpp>
 #include <boost/preprocessor/variadic/to_seq.hpp>
+#include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Serialization/ShuttleRecord.hpp"
 #include "Beam/Services/Message.hpp"
+#include "Beam/Services/ReportServiceException.hpp"
 #include "Beam/Services/RequestToken.hpp"
 #include "Beam/Services/ServiceRequestException.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
@@ -145,16 +147,21 @@ namespace Details {
   void ServiceRequestSlotImplementation<S, C>::invoke(
       int id, Ref<ServiceProtocolClient> client,
       const typename Request::Parameters& parameters) const {
+    auto operation = std::string_view("pre_hook");
     try {
       for(auto& pre_hook : m_pre_hooks) {
         pre_hook(*client.get());
       }
+      operation = "handle_request";
       auto token =
         RequestToken<ServiceProtocolClient, Service>(Ref(client), id);
       std::apply([&] (const auto&... args) {
         m_slot(token, args...);
       }, boost::pfr::structure_tie(parameters));
+    } catch(const EndOfFileException&) {
+      throw;
     } catch(const std::exception& e) {
+      report_service_exception(*client, operation, typeid(Request), id);
       client->send(Response(
         id, client->clone_exception(ServiceRequestException(e.what()))));
     }
@@ -345,16 +352,11 @@ namespace Details {
       const Details::slot_t<C, Service>& slot) {
     add_request_slot(service_slots,
       [slot] <typename T, typename... Args> (T& request, Args&&... args) {
-        try {
-          if constexpr(std::same_as<Return, void>) {
-            slot(request.get_client(), std::forward<Args>(args)...);
-            request.set();
-          } else {
-            request.set(
-              slot(request.get_client(), std::forward<Args>(args)...));
-          }
-        } catch(const std::exception& e) {
-          request.set_exception(ServiceRequestException(e.what()));
+        if constexpr(std::same_as<Return, void>) {
+          slot(request.get_client(), std::forward<Args>(args)...);
+          request.set();
+        } else {
+          request.set(slot(request.get_client(), std::forward<Args>(args)...));
         }
       });
   }

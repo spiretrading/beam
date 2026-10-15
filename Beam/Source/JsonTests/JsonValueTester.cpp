@@ -19,6 +19,26 @@ namespace {
 }
 
 TEST_SUITE("JsonValue") {
+  TEST_CASE("format") {
+    auto expected = std::string(
+      R"({"entries":[null,true,false,1.25,"line\n\"quoted\"",{"id":7}]})");
+    auto value = parse<JsonValue>(expected);
+    auto& object = get<JsonObject>(value);
+    REQUIRE(std::format("{}", value) == expected);
+    REQUIRE(std::format("{}", object) == expected);
+    REQUIRE(std::format("{:*>{}}", value, expected.size() + 2) ==
+      "**" + expected);
+    REQUIRE(std::format("{:*<{}}", object, expected.size() + 2) ==
+      expected + "**");
+    REQUIRE(std::format("{:.1}", value) == "{");
+    REQUIRE(std::format("{:.1}", object) == "{");
+    REQUIRE(std::format("{}", JsonObject()) == "{}");
+    REQUIRE(std::format("{}", JsonValue()) == "null");
+    REQUIRE(std::format("{}", JsonValue(0.000000125)) == "0.000000125");
+    REQUIRE_THROWS_AS(static_cast<void>(std::format("{}", JsonValue(
+      std::numeric_limits<double>::infinity()))), std::invalid_argument);
+  }
+
   TEST_CASE("object_copy") {
     auto original = get<JsonObject>(parse<JsonValue>(
       R"({"name":"original","nested":{"count":1},"array":[{"count":2}]})"));

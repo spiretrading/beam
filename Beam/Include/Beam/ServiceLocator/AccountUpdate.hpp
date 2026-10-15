@@ -40,19 +40,6 @@ namespace Beam {
     bool operator ==(const AccountUpdate&) const = default;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, AccountUpdate::Type type) {
-    if(type == AccountUpdate::Type::ADDED) {
-      return out << "ADDED";
-    }
-    return out << "DELETED";
-  }
-
-  inline std::ostream& operator <<(
-      std::ostream& out, const AccountUpdate& update) {
-    return out << '(' << update.m_account << ' ' << update.m_type << ')';
-  }
-
   inline AccountUpdate AccountUpdate::add(DirectoryEntry account) {
     return AccountUpdate(std::move(account), Type::ADDED);
   }
@@ -70,6 +57,43 @@ namespace Beam {
       shuttle.shuttle("type", value.m_type);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::AccountUpdate::Type> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(Beam::AccountUpdate::Type value, auto& context) const {
+      auto name = [&] {
+        if(value == Beam::AccountUpdate::Type::ADDED) {
+          return std::string_view("ADDED");
+        }
+        return std::string_view("DELETED");
+      }();
+      return std::formatter<std::string_view>::format(name, context);
+    }
+};
+
+template<>
+class std::formatter<Beam::AccountUpdate> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::AccountUpdate& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", value.m_account, value.m_type), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, AccountUpdate::Type type) {
+    return out << std::format("{}", type);
+  }
+
+  inline std::ostream& operator <<(
+      std::ostream& out, const AccountUpdate& update) {
+    return out << std::format("{}", update);
+  }
 }
 
 #endif

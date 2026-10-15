@@ -7,6 +7,23 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("AccountUpdate") {
+  TEST_CASE("format") {
+    REQUIRE(std::format("{}", AccountUpdate::Type::ADDED) == "ADDED");
+    REQUIRE(std::format("{}", AccountUpdate::Type::DELETED) == "DELETED");
+    REQUIRE(std::format("{:*>8}", AccountUpdate::Type::ADDED) == "***ADDED");
+    REQUIRE(std::format("{:.3}", AccountUpdate::Type::DELETED) == "DEL");
+    REQUIRE(
+      std::format("{}", static_cast<AccountUpdate::Type>(99)) == "DELETED");
+    auto account = DirectoryEntry::make_account(42, "alice");
+    auto addition = AccountUpdate::add(account);
+    auto removal = AccountUpdate::remove(account);
+    REQUIRE(std::format("{}", addition) == "((ACCOUNT 42 alice) ADDED)");
+    REQUIRE(std::format("{}", removal) == "((ACCOUNT 42 alice) DELETED)");
+    REQUIRE(std::format("{:*>28}", addition) == "**((ACCOUNT 42 alice) ADDED)");
+    REQUIRE(std::format("{:.9}", removal) == "((ACCOUNT");
+    REQUIRE(to_string(removal) == "((ACCOUNT 42 alice) DELETED)");
+  }
+
   TEST_CASE("make_add") {
     auto account = DirectoryEntry::make_account(42, "test_user");
     auto update = AccountUpdate::add(account);

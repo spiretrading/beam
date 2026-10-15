@@ -49,12 +49,6 @@ namespace Beam {
       void shuttle(S& shuttle, unsigned int version);
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const ServiceEntry& entry) {
-    return out << '(' << entry.get_name() << ' ' << entry.get_id() << ' ' <<
-      entry.get_account() << ' ' << entry.get_properties() << ')';
-  }
-
   inline ServiceEntry::ServiceEntry(std::string name, JsonObject properties,
     int id, DirectoryEntry account) noexcept
     : m_name(std::move(name)),
@@ -90,6 +84,24 @@ namespace Beam {
     shuttle.shuttle("properties", m_properties);
     shuttle.shuttle("id", m_id);
     shuttle.shuttle("account", m_account);
+  }
+}
+
+template<>
+class std::formatter<Beam::ServiceEntry> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::ServiceEntry& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {} {} {})", value.get_name(), value.get_id(),
+          value.get_account(), value.get_properties()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const ServiceEntry& entry) {
+    return out << std::format("{}", entry);
   }
 }
 

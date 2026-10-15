@@ -7,6 +7,22 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("ServiceEntry") {
+  TEST_CASE("format") {
+    auto properties = JsonObject();
+    properties.set("scope", "TSX");
+    auto entry = ServiceEntry(
+      "quotes", properties, 42, DirectoryEntry::make_account(12, "provider"));
+    auto expected =
+      std::string("(quotes 42 (ACCOUNT 12 provider) {\"scope\":\"TSX\"})");
+    REQUIRE(std::format("{}", entry) == expected);
+    REQUIRE(
+      std::format("{:*>{}}", entry, expected.size() + 2) == "**" + expected);
+    REQUIRE(std::format("{:.7}", entry) == "(quotes");
+    REQUIRE(to_string(entry) == expected);
+    REQUIRE(std::format("{}",
+      ServiceEntry("", JsonObject(), 0, DirectoryEntry())) == "( 0 NONE {})");
+  }
+
   TEST_CASE("constructor") {
     auto properties = JsonObject();
     properties.set("host", "192.168.1.100");

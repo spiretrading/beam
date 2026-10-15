@@ -4,10 +4,13 @@
 #include <charconv>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <limits>
 #include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 #include "Beam/Utilities/OverloadSet.hpp"
@@ -384,5 +387,16 @@ namespace Details {
     return *this;
   }
 }
+
+template<>
+class std::formatter<Beam::JsonValue> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::JsonValue& value, auto& context) const {
+      auto output = std::ostringstream();
+      value.save(output);
+      return std::formatter<std::string_view>::format(output.view(), context);
+    }
+};
 
 #endif

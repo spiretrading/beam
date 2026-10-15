@@ -7,6 +7,30 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("ServiceUpdate") {
+  TEST_CASE("format") {
+    REQUIRE(std::format("{}", ServiceUpdate::Type::ADDED) == "ADDED");
+    REQUIRE(std::format("{}", ServiceUpdate::Type::REMOVED) == "REMOVED");
+    REQUIRE(std::format("{:*>8}", ServiceUpdate::Type::ADDED) == "***ADDED");
+    REQUIRE(std::format("{:.3}", ServiceUpdate::Type::REMOVED) == "REM");
+    REQUIRE(
+      std::format("{}", static_cast<ServiceUpdate::Type>(99)) == "REMOVED");
+    auto properties = JsonObject();
+    properties.set("scope", "TSX");
+    auto service = ServiceEntry(
+      "quotes", properties, 42, DirectoryEntry::make_account(12, "provider"));
+    auto addition = ServiceUpdate::add(service);
+    auto removal = ServiceUpdate::remove(service);
+    auto expected = std::string(
+      "((quotes 42 (ACCOUNT 12 provider) {\"scope\":\"TSX\"}) ADDED)");
+    REQUIRE(std::format("{}", addition) == expected);
+    REQUIRE(std::format("{}", removal) ==
+      "((quotes 42 (ACCOUNT 12 provider) {\"scope\":\"TSX\"}) REMOVED)");
+    REQUIRE(
+      std::format("{:*<{}}", addition, expected.size() + 2) == expected + "**");
+    REQUIRE(std::format("{:.8}", removal) == "((quotes");
+    REQUIRE(to_string(addition) == expected);
+  }
+
   TEST_CASE("add_and_remove") {
     auto properties = JsonObject();
     properties.set("scope", "TSX");

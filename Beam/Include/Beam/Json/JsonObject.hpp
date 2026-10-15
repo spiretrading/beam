@@ -1,8 +1,11 @@
 #ifndef BEAM_JSON_OBJECT_HPP
 #define BEAM_JSON_OBJECT_HPP
+#include <format>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <boost/optional/optional.hpp>
 
@@ -175,5 +178,16 @@ namespace Beam {
     return *this;
   }
 }
+
+template<>
+class std::formatter<Beam::JsonObject> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::JsonObject& value, auto& context) const {
+      auto output = std::ostringstream();
+      value.save(output);
+      return std::formatter<std::string_view>::format(output.view(), context);
+    }
+};
 
 #endif

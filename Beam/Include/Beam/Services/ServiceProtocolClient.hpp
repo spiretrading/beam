@@ -49,6 +49,9 @@ namespace Beam {
       /** The type of MessageProtocol used to send and receive messages. */
       using MessageProtocol = M;
 
+      /** The type of channel identifier. */
+      using Identifier = typename MessageProtocol::Identifier;
+
       /** The type of ServiceSlots used. */
       using ServiceSlots = Beam::ServiceSlots<ServiceProtocolClient>;
 
@@ -79,6 +82,9 @@ namespace Beam {
       ServiceProtocolClient(CF&& channel, TF&& timer);
 
       ~ServiceProtocolClient();
+
+      /** Returns the channel's identifier. */
+      const Identifier& get_identifier() const;
 
       /** Returns the ServiceSlots. */
       const ServiceSlots& get_slots() const;
@@ -251,6 +257,13 @@ namespace Beam {
     IsTimer<dereference_t<T>>
   ServiceProtocolClient<M, T, P, S, V>::~ServiceProtocolClient() {
     close();
+  }
+
+  template<typename M, typename T, typename P, typename S, bool V> requires
+    IsTimer<dereference_t<T>>
+  const typename ServiceProtocolClient<M, T, P, S, V>::Identifier&
+      ServiceProtocolClient<M, T, P, S, V>::get_identifier() const {
+    return m_protocol.get_identifier();
   }
 
   template<typename M, typename T, typename P, typename S, bool V> requires

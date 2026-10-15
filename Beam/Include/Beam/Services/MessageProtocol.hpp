@@ -43,6 +43,9 @@ namespace Beam {
       /** The type of Channel to implement the protocol for. */
       using Channel = dereference_t<C>;
 
+      /** The type of channel identifier. */
+      using Identifier = typename Channel::Identifier;
+
       /** The type of Sender used for serialization. */
       using Sender = S;
 
@@ -70,6 +73,9 @@ namespace Beam {
         DF&& decoder);
 
       ~MessageProtocol();
+
+      /** Returns the channel's identifier. */
+      const Identifier& get_identifier() const;
 
       /**
        * Clones a value using this protocol's serializer.
@@ -146,6 +152,13 @@ namespace Beam {
     IsChannel<dereference_t<C>>
   MessageProtocol<C, S, E>::~MessageProtocol() {
     close();
+  }
+
+  template<typename C, IsSender S, IsEncoder E> requires
+    IsChannel<dereference_t<C>>
+  const typename MessageProtocol<C, S, E>::Identifier&
+      MessageProtocol<C, S, E>::get_identifier() const {
+    return m_channel->get_identifier();
   }
 
   template<typename C, IsSender S, IsEncoder E> requires

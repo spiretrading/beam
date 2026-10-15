@@ -35,11 +35,6 @@ namespace Beam {
       InterruptionPolicy m_interruption_policy;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const InterruptableQuery& query) {
-    return out << query.get_interruption_policy();
-  }
-
   inline InterruptableQuery::InterruptableQuery() noexcept
     : InterruptableQuery(InterruptionPolicy::BREAK_QUERY) {}
 
@@ -64,6 +59,23 @@ namespace Beam {
       shuttle.shuttle("interruption_policy", value.m_interruption_policy);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::InterruptableQuery> :
+    public std::formatter<Beam::InterruptionPolicy> {
+  public:
+    auto format(const Beam::InterruptableQuery& value, auto& context) const {
+      return std::formatter<Beam::InterruptionPolicy>::format(
+        value.get_interruption_policy(), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const InterruptableQuery& query) {
+    return out << std::format("{}", query);
+  }
 }
 
 #endif

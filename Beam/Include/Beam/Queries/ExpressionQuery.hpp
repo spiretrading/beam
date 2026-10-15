@@ -1,6 +1,8 @@
 #ifndef BEAM_EXPRESSION_QUERY_HPP
 #define BEAM_EXPRESSION_QUERY_HPP
+#include <format>
 #include <ostream>
+#include <string_view>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Expression.hpp"
 #include "Beam/Serialization/DataShuttle.hpp"
@@ -52,22 +54,6 @@ namespace Beam {
       Expression m_expression;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, ExpressionQuery::UpdatePolicy value) {
-    if(value == ExpressionQuery::UpdatePolicy::ALL) {
-      return out << "ALL";
-    } else if(value == ExpressionQuery::UpdatePolicy::CHANGE) {
-      return out << "CHANGE";
-    }
-    return out << "NONE";
-  }
-
-  inline std::ostream& operator <<(
-      std::ostream& out, const ExpressionQuery& query) {
-    return out << '(' << query.get_update_policy() << ' ' <<
-      query.get_expression() << ')';
-  }
-
   inline ExpressionQuery::ExpressionQuery()
     : m_update_policy(UpdatePolicy::ALL),
       m_expression(ConstantExpression(true)) {}
@@ -102,6 +88,47 @@ namespace Beam {
       shuttle.shuttle("expression", value.m_expression);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::ExpressionQuery::UpdatePolicy> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(
+        Beam::ExpressionQuery::UpdatePolicy value, auto& context) const {
+      auto name = [&] {
+        if(value == Beam::ExpressionQuery::UpdatePolicy::ALL) {
+          return std::string_view("ALL");
+        } else if(value == Beam::ExpressionQuery::UpdatePolicy::CHANGE) {
+          return std::string_view("CHANGE");
+        }
+        return std::string_view("NONE");
+      }();
+      return std::formatter<std::string_view>::format(name, context);
+    }
+};
+
+template<>
+class std::formatter<Beam::ExpressionQuery> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::ExpressionQuery& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", value.get_update_policy(),
+          value.get_expression()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, ExpressionQuery::UpdatePolicy value) {
+    return out << std::format("{}", value);
+  }
+
+  inline std::ostream& operator <<(
+      std::ostream& out, const ExpressionQuery& query) {
+    return out << std::format("{}", query);
+  }
 }
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef BEAM_FILTERED_QUERY_HPP
 #define BEAM_FILTERED_QUERY_HPP
+#include <format>
 #include <ostream>
+#include <string_view>
 #include <boost/throw_exception.hpp>
 #include "Beam/Queries/ConstantExpression.hpp"
 #include "Beam/Queries/Evaluator.hpp"
@@ -51,11 +53,6 @@ namespace Beam {
     }
   }
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const FilteredQuery& query) {
-    return out << query.get_filter();
-  }
-
   inline FilteredQuery::FilteredQuery()
     : FilteredQuery(ConstantExpression(true)) {}
 
@@ -94,6 +91,23 @@ namespace Beam {
       }
     }
   };
+}
+
+template<>
+class std::formatter<Beam::FilteredQuery> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::FilteredQuery& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("{}", value.get_filter()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const FilteredQuery& query) {
+    return out << std::format("{}", query);
+  }
 }
 
 #endif

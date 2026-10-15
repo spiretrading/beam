@@ -1,8 +1,10 @@
 #ifndef BEAM_SNAPSHOT_LIMIT_HPP
 #define BEAM_SNAPSHOT_LIMIT_HPP
 #include <algorithm>
+#include <format>
 #include <limits>
 #include <ostream>
+#include <string_view>
 #include <boost/throw_exception.hpp>
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Serialization/SerializationException.hpp"
@@ -73,25 +75,6 @@ namespace Beam {
       int m_size;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, SnapshotLimit::Type type) {
-    if(type == SnapshotLimit::Type::HEAD) {
-      return out << "HEAD";
-    } else if(type == SnapshotLimit::Type::TAIL) {
-      return out << "TAIL";
-    }
-    return out << "NONE";
-  }
-
-  inline std::ostream& operator <<(std::ostream& out, SnapshotLimit limit) {
-    if(limit == SnapshotLimit::NONE) {
-      return out << "None";
-    } else if(limit == SnapshotLimit::UNLIMITED) {
-      return out << "Unlimited";
-    }
-    return out << '(' << limit.get_type() << ' ' << limit.get_size() << ')';
-  }
-
   inline const SnapshotLimit SnapshotLimit::NONE =
     SnapshotLimit(SnapshotLimit::Type::HEAD, 0);
 
@@ -160,6 +143,49 @@ namespace Beam {
       }
     }
   };
+}
+
+template<>
+class std::formatter<Beam::SnapshotLimit::Type> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(Beam::SnapshotLimit::Type value, auto& context) const {
+      auto name = [&] {
+        if(value == Beam::SnapshotLimit::Type::HEAD) {
+          return std::string_view("HEAD");
+        } else if(value == Beam::SnapshotLimit::Type::TAIL) {
+          return std::string_view("TAIL");
+        }
+        return std::string_view("NONE");
+      }();
+      return std::formatter<std::string_view>::format(name, context);
+    }
+};
+
+template<>
+class std::formatter<Beam::SnapshotLimit> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(Beam::SnapshotLimit value, auto& context) const {
+      if(value == Beam::SnapshotLimit::NONE) {
+        return std::formatter<std::string_view>::format("None", context);
+      } else if(value == Beam::SnapshotLimit::UNLIMITED) {
+        return std::formatter<std::string_view>::format("Unlimited", context);
+      }
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", value.get_type(), value.get_size()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, SnapshotLimit::Type type) {
+    return out << std::format("{}", type);
+  }
+
+  inline std::ostream& operator <<(std::ostream& out, SnapshotLimit limit) {
+    return out << std::format("{}", limit);
+  }
 }
 
 #endif

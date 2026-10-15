@@ -39,11 +39,6 @@ namespace Beam {
       SnapshotLimit m_snapshot_limit;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const SnapshotLimitedQuery& query) {
-    return out << query.get_snapshot_limit();
-  }
-
   inline SnapshotLimitedQuery::SnapshotLimitedQuery(
     SnapshotLimit limit) noexcept
     : m_snapshot_limit(limit) {}
@@ -70,6 +65,23 @@ namespace Beam {
       shuttle.shuttle("snapshot_limit", value.m_snapshot_limit);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::SnapshotLimitedQuery> :
+    public std::formatter<Beam::SnapshotLimit> {
+  public:
+    auto format(const Beam::SnapshotLimitedQuery& value, auto& context) const {
+      return std::formatter<Beam::SnapshotLimit>::format(
+        value.get_snapshot_limit(), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const SnapshotLimitedQuery& query) {
+    return out << std::format("{}", query);
+  }
 }
 
 #endif

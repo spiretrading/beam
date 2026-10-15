@@ -2,6 +2,7 @@
 #define BEAM_SEQUENCE_HPP
 #include <climits>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <limits>
 #include <ostream>
@@ -179,10 +180,6 @@ namespace Beam {
     }
   }
 
-  inline std::ostream& operator <<(std::ostream& out, Sequence sequence) {
-    return out << sequence.get_ordinal();
-  }
-
   inline std::size_t hash_value(Sequence sequence) noexcept {
     return static_cast<std::size_t>(sequence.get_ordinal());
   }
@@ -231,6 +228,22 @@ namespace std {
       return Beam::hash_value(value);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::Sequence> :
+    public std::formatter<Beam::Sequence::Ordinal> {
+  public:
+    auto format(Beam::Sequence value, auto& context) const {
+      return std::formatter<Beam::Sequence::Ordinal>::format(
+        value.get_ordinal(), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(std::ostream& out, Sequence sequence) {
+    return out << std::format("{}", sequence);
+  }
 }
 
 #endif

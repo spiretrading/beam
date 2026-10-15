@@ -12,6 +12,7 @@
 #include "Beam/Serialization/ShuttleVariant.hpp"
 #include "Beam/Utilities/HashPosixTimeTypes.hpp"
 #include "Beam/Utilities/OverloadSet.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 namespace Beam {
 
@@ -168,19 +169,6 @@ namespace Beam {
     return get_timestamp(value) >= timestamp;
   }
 
-  inline std::ostream& operator <<(std::ostream& out, const Range& range) {
-    if(range == Range::EMPTY) {
-      return out << "Empty";
-    } else if(range == Range::TOTAL) {
-      return out << "Total";
-    }
-    out << '(';
-    visit(range.get_start(), [&] (const auto& point) { out << point; });
-    out << " ";
-    visit(range.get_end(), [&] (const auto& point) { out << point; });
-    return out << ')';
-  }
-
   inline std::size_t hash_value(const Range& range) {
     auto seed = std::size_t(0);
     boost::hash_combine(seed, std::hash<Range::Point>()(range.get_start()));
@@ -313,6 +301,36 @@ namespace std {
       return Beam::hash_value(value);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::Range> : public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::Range& value, auto& context) const {
+      if(value == Beam::Range::EMPTY) {
+        return std::formatter<std::string_view>::format("Empty", context);
+      } else if(value == Beam::Range::TOTAL) {
+        return std::formatter<std::string_view>::format("Total", context);
+      }
+      auto format_point = [] (const Beam::Range::Point& point) {
+        return Beam::visit(point,
+          [] (Beam::Sequence point) {
+            return std::format("{}", point);
+          },
+          [] (const boost::posix_time::ptime& point) {
+            return Beam::to_string(point);
+          });
+      };
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", format_point(value.get_start()),
+          format_point(value.get_end())), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(std::ostream& out, const Range& range) {
+    return out << std::format("{}", range);
+  }
 }
 
 #endif

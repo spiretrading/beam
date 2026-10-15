@@ -67,13 +67,6 @@ namespace Beam {
   }
 
   template<typename T>
-  std::ostream& operator <<(std::ostream& out, const BasicQuery<T>& query) {
-    return out << '(' << query.get_index() << ' ' << query.get_range() << ' ' <<
-      query.get_snapshot_limit() << ' ' << query.get_interruption_policy() <<
-      ' ' << query.get_filter() << ')';
-  }
-
-  template<typename T>
   template<IsShuttle S>
   void BasicQuery<T>::shuttle(S& shuttle, unsigned int version) {
     Beam::Shuttle<IndexedQuery<T>>()(shuttle, *this, version);
@@ -81,6 +74,32 @@ namespace Beam {
     Beam::Shuttle<SnapshotLimitedQuery>()(shuttle, *this, version);
     Beam::Shuttle<InterruptableQuery>()(shuttle, *this, version);
     Beam::Shuttle<FilteredQuery>()(shuttle, *this, version);
+  }
+}
+
+template<typename T> requires
+  std::formattable<T, char>
+class std::formatter<Beam::BasicQuery<T>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::BasicQuery<T>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {} {} {} {})", value.get_index(), value.get_range(),
+          value.get_snapshot_limit(), value.get_interruption_policy(),
+          value.get_filter()), context);
+    }
+};
+
+namespace Beam {
+  template<typename T>
+  std::ostream& operator <<(std::ostream& out, const BasicQuery<T>& query) {
+    if constexpr(std::formattable<T, char>) {
+      return out << std::format("{}", query);
+    } else {
+      return out << '(' << query.get_index() << ' ' << query.get_range() <<
+        ' ' << query.get_snapshot_limit() << ' ' <<
+        query.get_interruption_policy() << ' ' << query.get_filter() << ')';
+    }
   }
 }
 

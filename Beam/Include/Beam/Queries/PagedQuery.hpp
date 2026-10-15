@@ -57,18 +57,6 @@ namespace Beam {
   };
 
   template<typename I, typename A>
-  std::ostream& operator <<(std::ostream& out, const PagedQuery<I, A>& query) {
-    out << '(' << query.get_index() << ' ' << query.get_snapshot_limit() << ' ';
-    if(query.get_anchor()) {
-      out << *query.get_anchor() << ' ';
-    }
-    if(query.get_offset() != 0) {
-      out << query.get_offset() << ' ';
-    }
-    return out << query.get_filter() << ')';
-  }
-
-  template<typename I, typename A>
   PagedQuery<I, A>::PagedQuery()
     : m_offset(0) {}
 
@@ -108,6 +96,44 @@ namespace Beam {
     shuttle.shuttle("offset", m_offset);
     if constexpr(IsReceiver<S>) {
       m_offset = std::max(0, m_offset);
+    }
+  }
+}
+
+template<typename I, typename A> requires
+  std::formattable<I, char> && std::formattable<A, char>
+class std::formatter<Beam::PagedQuery<I, A>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::PagedQuery<I, A>& value, auto& context) const {
+      auto text = std::format("({} {} ",
+        value.get_index(), value.get_snapshot_limit());
+      if(value.get_anchor()) {
+        text += std::format("{} ", *value.get_anchor());
+      }
+      if(value.get_offset() != 0) {
+        text += std::format("{} ", value.get_offset());
+      }
+      text += std::format("{})", value.get_filter());
+      return std::formatter<std::string_view>::format(text, context);
+    }
+};
+
+namespace Beam {
+  template<typename I, typename A>
+  std::ostream& operator <<(std::ostream& out, const PagedQuery<I, A>& query) {
+    if constexpr(std::formattable<I, char> && std::formattable<A, char>) {
+      return out << std::format("{}", query);
+    } else {
+      out << '(' << query.get_index() << ' ' << query.get_snapshot_limit() <<
+        ' ';
+      if(query.get_anchor()) {
+        out << *query.get_anchor() << ' ';
+      }
+      if(query.get_offset() != 0) {
+        out << query.get_offset() << ' ';
+      }
+      return out << query.get_filter() << ')';
     }
   }
 }

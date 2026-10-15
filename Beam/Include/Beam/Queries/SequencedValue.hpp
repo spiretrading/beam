@@ -95,13 +95,6 @@ namespace Beam {
   };
 
   template<typename T>
-  inline std::ostream& operator <<(
-      std::ostream& out, const SequencedValue<T>& value) {
-    return out << '(' << value.get_value() << " " << value.get_sequence() <<
-      ')';
-  }
-
-  template<typename T>
   SequencedValue<T>::SequencedValue() noexcept(
     std::is_nothrow_default_constructible_v<T>)
     : m_value() {}
@@ -189,6 +182,31 @@ namespace Beam {
       shuttle.shuttle("sequence", value.m_sequence);
     }
   };
+}
+
+template<typename T> requires
+  std::formattable<T, char>
+class std::formatter<Beam::SequencedValue<T>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::SequencedValue<T>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", value.get_value(), value.get_sequence()),
+        context);
+    }
+};
+
+namespace Beam {
+  template<typename T>
+  inline std::ostream& operator <<(
+      std::ostream& out, const SequencedValue<T>& value) {
+    if constexpr(std::formattable<T, char>) {
+      return out << std::format("{}", value);
+    } else {
+      return out << '(' << value.get_value() << " " << value.get_sequence() <<
+        ')';
+    }
+  }
 }
 
 #endif

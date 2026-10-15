@@ -1,6 +1,8 @@
 #ifndef BEAM_QUERIES_VALUE_HPP
 #define BEAM_QUERIES_VALUE_HPP
+#include <format>
 #include <memory>
+#include <sstream>
 #include <typeindex>
 #include <boost/throw_exception.hpp>
 #include "Beam/Serialization/ShuttleSharedPtr.hpp"
@@ -208,5 +210,25 @@ namespace Beam {
     shuttle.shuttle("value", m_value);
   }
 }
+
+template<>
+class std::formatter<Beam::Value> : public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::Value& value, auto& context) const {
+      auto output = std::ostringstream();
+      output << value;
+      return std::formatter<std::string_view>::format(output.view(), context);
+    }
+};
+
+template<std::derived_from<Beam::VirtualValue> T>
+class std::formatter<T> : public std::formatter<std::string_view> {
+  public:
+    auto format(const T& value, auto& context) const {
+      auto output = std::ostringstream();
+      output << value;
+      return std::formatter<std::string_view>::format(output.view(), context);
+    }
+};
 
 #endif

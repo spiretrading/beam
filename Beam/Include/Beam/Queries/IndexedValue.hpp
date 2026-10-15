@@ -94,12 +94,6 @@ namespace Beam {
     }
   };
 
-  template<typename Value, typename Index>
-  inline std::ostream& operator <<(
-      std::ostream& out, const IndexedValue<Value, Index>& value) {
-    return out << '(' << value.get_index() << ' ' << value.get_value() << ')';
-  }
-
   template<typename V, typename I>
   IndexedValue<V, I>::IndexedValue() noexcept(
       std::is_nothrow_default_constructible_v<Value> &&
@@ -187,6 +181,30 @@ namespace Beam {
       shuttle.shuttle("index", value.m_index);
     }
   };
+}
+
+template<typename V, typename I> requires
+  std::formattable<V, char> && std::formattable<I, char>
+class std::formatter<Beam::IndexedValue<V, I>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::IndexedValue<V, I>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("({} {})", value.get_index(), value.get_value()), context);
+    }
+};
+
+namespace Beam {
+  template<typename Value, typename Index>
+  inline std::ostream& operator <<(
+      std::ostream& out, const IndexedValue<Value, Index>& value) {
+    if constexpr(std::formattable<Value, char> &&
+        std::formattable<Index, char>) {
+      return out << std::format("{}", value);
+    } else {
+      return out << '(' << value.get_index() << ' ' << value.get_value() << ')';
+    }
+  }
 }
 
 #endif

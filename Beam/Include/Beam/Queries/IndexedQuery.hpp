@@ -1,6 +1,8 @@
 #ifndef BEAM_INDEXED_QUERY_HPP
 #define BEAM_INDEXED_QUERY_HPP
+#include <format>
 #include <ostream>
+#include <string_view>
 #include "Beam/Serialization/DataShuttle.hpp"
 
 namespace Beam {
@@ -37,11 +39,6 @@ namespace Beam {
   };
 
   template<typename T>
-  std::ostream& operator <<(std::ostream& out, const IndexedQuery<T>& query) {
-    return out << query.get_index();
-  }
-
-  template<typename T>
   IndexedQuery<T>::IndexedQuery()
     : m_index() {}
 
@@ -67,6 +64,27 @@ namespace Beam {
       shuttle.shuttle("index", value.m_index);
     }
   };
+}
+
+template<typename T> requires std::formattable<T, char>
+class std::formatter<Beam::IndexedQuery<T>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::IndexedQuery<T>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("{}", value.get_index()), context);
+    }
+};
+
+namespace Beam {
+  template<typename T>
+  std::ostream& operator <<(std::ostream& out, const IndexedQuery<T>& query) {
+    if constexpr(std::formattable<T, char>) {
+      return out << std::format("{}", query);
+    } else {
+      return out << query.get_index();
+    }
+  }
 }
 
 #endif

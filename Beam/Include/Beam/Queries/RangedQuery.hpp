@@ -40,11 +40,6 @@ namespace Beam {
       Range m_range;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const RangedQuery& query) {
-    return out << query.get_range();
-  }
-
   inline RangedQuery::RangedQuery(Range range) noexcept
     : m_range(std::move(range)) {}
 
@@ -69,6 +64,22 @@ namespace Beam {
       shuttle.shuttle("range", value.m_range);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::RangedQuery> : public std::formatter<Beam::Range> {
+  public:
+    auto format(const Beam::RangedQuery& value, auto& context) const {
+      return std::formatter<Beam::Range>::format(
+        value.get_range(), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const RangedQuery& query) {
+    return out << std::format("{}", query);
+  }
 }
 
 #endif

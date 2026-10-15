@@ -11,9 +11,56 @@ namespace {
     APPLE,
     BANANA,
     CHERRY);
+
+  BEAM_BASIC_ENUM(Condition,
+    REGULAR,
+    OPEN);
+
+  std::ostream& operator <<(std::ostream& out, Condition::Type value) {
+    if(value == Condition::REGULAR) {
+      return out << "@";
+    } else if(value == Condition::OPEN) {
+      return out << "OPEN";
+    }
+    return out << "NONE";
+  }
+
+  BEAM_BASIC_ENUM(Number,
+    FIRST,
+    SECOND);
 }
 
 TEST_SUITE("EnumTester") {
+  TEST_CASE("format") {
+    REQUIRE(std::format("{}", Fruit::APPLE) == "APPLE");
+    REQUIRE(std::format("{}", Fruit(Fruit::BANANA)) == "BANANA");
+    REQUIRE(std::format("{:*>8}", Fruit::APPLE) == "***APPLE");
+    REQUIRE(std::format("{:*>8}", Fruit(Fruit::APPLE)) == "***APPLE");
+    REQUIRE(std::format("{:.3}", Fruit::CHERRY) == "CHE");
+    REQUIRE(std::format("{:.3}", Fruit(Fruit::CHERRY)) == "CHE");
+    REQUIRE(std::format("{}", Fruit::NONE) == "NONE");
+    REQUIRE(std::format("{}", Fruit()) == "NONE");
+    REQUIRE(std::format("{}", static_cast<Fruit::Type>(99)) == "NONE");
+    REQUIRE(std::format("{}", Fruit(99)) == "NONE");
+    REQUIRE(std::format("{}", Fruit(-2)) == "NONE");
+    REQUIRE(to_string(Fruit::APPLE) == "APPLE");
+    REQUIRE(to_string(Fruit(Fruit::BANANA)) == "BANANA");
+    REQUIRE(to_string(Fruit(99)) == "NONE");
+  }
+
+  TEST_CASE("format_basic_enum") {
+    REQUIRE(std::format("{}", Condition::REGULAR) == "@");
+    REQUIRE(std::format("{}", Condition(Condition::REGULAR)) == "@");
+    REQUIRE(std::format("{:*>8}", Condition::OPEN) == "****OPEN");
+    REQUIRE(std::format("{:.2}", Condition(Condition::OPEN)) == "OP");
+    REQUIRE(std::format("{}", Condition()) == "NONE");
+    REQUIRE(to_string(Condition::REGULAR) == "@");
+    REQUIRE(to_string(Condition(Condition::REGULAR)) == "@");
+    REQUIRE(std::format("{}", Number::FIRST) == "0");
+    REQUIRE(std::format("{}", Number(Number::SECOND)) == "1");
+    REQUIRE(std::format("{}", Number()) == "-1");
+  }
+
   TEST_CASE("default_value") {
     auto value = Fruit();
     REQUIRE(value == Fruit::Type::NONE);

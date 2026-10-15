@@ -2,6 +2,7 @@
 #define BEAM_ENUM_HPP
 #include <array>
 #include <cstdint>
+#include <format>
 #include <ostream>
 #include <string_view>
 #include <type_traits>
@@ -14,6 +15,7 @@
 #include <boost/preprocessor/variadic/to_seq.hpp>
 #include "Beam/Serialization/Receiver.hpp"
 #include "Beam/Serialization/Sender.hpp"
+#include "Beam/Utilities/ToString.hpp"
 
 #define BEAM_ENUM_STRINGIZE_EACH(r, data, elem) BOOST_PP_STRINGIZE(elem)
 
@@ -23,6 +25,10 @@
       NONE = -1,                                                               \
       __VA_ARGS__                                                              \
     };                                                                         \
+                                                                               \
+    friend auto get_enum_members(Type) {                                       \
+      return ::std::type_identity<BOOST_PP_CAT(name, EnumMembers)>();          \
+    }                                                                          \
                                                                                \
     auto operator <=>(const BOOST_PP_CAT(name, EnumMembers)& rhs) const =      \
       default;                                                                 \
@@ -37,6 +43,10 @@
       NONE = -1,                                                               \
       __VA_ARGS__                                                              \
     };                                                                         \
+                                                                               \
+    friend auto get_enum_members(Type) {                                       \
+      return ::std::type_identity<BOOST_PP_CAT(name, EnumMembers)>();           \
+    }                                                                          \
                                                                                \
     auto operator <=>(const BOOST_PP_CAT(name, EnumMembers)& rhs) const =      \
       default;                                                                 \
@@ -62,14 +72,7 @@
                                                                                \
   inline std::ostream& operator <<(                                            \
       std::ostream& out, BOOST_PP_CAT(name, EnumMembers)::Type value) {        \
-    if(value == BOOST_PP_CAT(name, EnumMembers)::Type::NONE) {                 \
-      return out << "NONE";                                                    \
-    }                                                                          \
-    auto i = static_cast<std::size_t>(static_cast<int>(value));                \
-    if(i < BOOST_PP_CAT(name, EnumMembers)::NAMES.size()) {                    \
-      return out << BOOST_PP_CAT(name, EnumMembers)::NAMES[i];                 \
-    }                                                                          \
-    return out << "NONE";                                                      \
+    return out << ::std::format("{}", value);                                  \
   }
 
 namespace Beam {
@@ -220,5 +223,44 @@ namespace std {
     }
   };
 }
+
+namespace Beam::Details {
+  template<typename T>
+  concept IsGeneratedEnum = std::is_enum_v<T> && requires(T value) {
+    typename decltype(get_enum_members(value))::type;
+  };
+}
+
+template<Beam::Details::IsGeneratedEnum T>
+class std::formatter<T> : public std::formatter<std::string_view> {
+  public:
+    auto format(T value, auto& context) const {
+      using Members = typename decltype(get_enum_members(value))::type;
+      if constexpr(requires { Members::NAMES; }) {
+        auto name = [&] {
+          auto index = static_cast<std::size_t>(value);
+          if(index < Members::NAMES.size()) {
+            return Members::NAMES[index];
+          }
+          return std::string_view("NONE");
+        }();
+        return std::formatter<std::string_view>::format(name, context);
+      } else {
+        return std::formatter<std::string_view>::format(
+          Beam::to_string(value), context);
+      }
+    }
+};
+
+template<typename T, std::size_t N> requires
+  std::formattable<typename T::Type, char>
+class std::formatter<Beam::Enum<T, N>> :
+    public std::formatter<typename T::Type> {
+  public:
+    auto format(Beam::Enum<T, N> value, auto& context) const {
+      return std::formatter<typename T::Type>::format(
+        static_cast<typename T::Type>(value), context);
+    }
+};
 
 #endif

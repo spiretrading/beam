@@ -14,6 +14,15 @@ namespace {
 }
 
 TEST_SUITE("EnumSet") {
+  TEST_CASE("format") {
+    REQUIRE(std::format("{}", EnumSet<Color>()) == "000");
+    auto set = EnumSet<Color>::from_bitmask(0b101);
+    REQUIRE(std::format("{}", set) == "101");
+    REQUIRE(std::format("{:*>6}", set) == "***101");
+    REQUIRE(std::format("{:.2}", set) == "10");
+    REQUIRE(to_string(set) == "101");
+  }
+
   TEST_CASE("default_construct_is_empty") {
     auto set = EnumSet<Color>();
     REQUIRE(set.get_bitset().none());

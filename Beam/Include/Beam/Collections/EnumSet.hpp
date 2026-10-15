@@ -83,11 +83,6 @@ namespace Beam {
   };
 
   template<typename T>
-  std::ostream& operator <<(std::ostream& out, const EnumSet<T>& set) {
-    return out << set.get_bitset();
-  }
-
-  template<typename T>
   EnumSet<T> operator &(const EnumSet<T>& lhs, const EnumSet<T>& rhs) {
     return EnumSet<T>(lhs.get_bitset() & rhs.get_bitset());
   }
@@ -179,6 +174,23 @@ namespace Beam {
         receive<std::bitset<EnumSet<T>::Type::COUNT>>(receiver, name));
     }
   };
+}
+
+template<typename T>
+class std::formatter<Beam::EnumSet<T>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::EnumSet<T>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        value.get_bitset().to_string(), context);
+    }
+};
+
+namespace Beam {
+  template<typename T>
+  std::ostream& operator <<(std::ostream& out, const EnumSet<T>& set) {
+    return out << std::format("{}", set);
+  }
 }
 
 #endif

@@ -71,6 +71,7 @@ TEST_SUITE("ReportException") {
   TEST_CASE("report_message_output") {
     using namespace boost::posix_time;
     auto message = std::string();
+    SUBCASE("empty") {}
     SUBCASE("single_line") {
       message = "Unknown compliance rule: example";
     }
@@ -79,6 +80,9 @@ TEST_SUITE("ReportException") {
     }
     SUBCASE("trailing_newline") {
       message = "Unknown liquidity flag [CHIC]: ?\n";
+    }
+    SUBCASE("trailing_newlines") {
+      message = "Publication failed.\n\n";
     }
     auto before = microsec_clock::local_time();
     auto output = capture_stderr([&] { report_message(message); });

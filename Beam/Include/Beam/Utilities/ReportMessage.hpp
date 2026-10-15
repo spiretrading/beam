@@ -2,6 +2,7 @@
 #define BEAM_REPORT_MESSAGE_HPP
 #include <format>
 #include <iostream>
+#include <print>
 #include <string>
 #include <string_view>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -23,13 +24,11 @@ namespace Details {
   inline void report_message(std::string_view message) {
     try {
       auto time = boost::posix_time::microsec_clock::local_time();
-      auto report = Details::format_log_timestamp(time) + " " +
-        std::string(message);
-      if(report.back() != '\n') {
-        report += '\n';
+      if(message.ends_with('\n')) {
+        message.remove_suffix(1);
       }
-      std::cerr.write(
-        report.data(), static_cast<std::streamsize>(report.size()));
+      std::println(
+        std::cerr, "{} {}", Details::format_log_timestamp(time), message);
     } catch(...) {}
   }
 }

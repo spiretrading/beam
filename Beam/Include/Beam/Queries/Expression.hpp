@@ -1,7 +1,5 @@
 #ifndef BEAM_QUERIES_EXPRESSION_HPP
 #define BEAM_QUERIES_EXPRESSION_HPP
-#include <format>
-#include <sstream>
 #include <typeindex>
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/Utilities/Streamable.hpp"
@@ -116,26 +114,5 @@ namespace Beam {
   template<IsShuttle S>
   void VirtualExpression::shuttle(S& shuttle, unsigned int version) {}
 }
-
-template<>
-class std::formatter<Beam::Expression> :
-    public std::formatter<std::string_view> {
-  public:
-    auto format(const Beam::Expression& value, auto& context) const {
-      auto output = std::ostringstream();
-      value.to_stream(output);
-      return std::formatter<std::string_view>::format(output.view(), context);
-    }
-};
-
-template<std::derived_from<Beam::VirtualExpression> T>
-class std::formatter<T> : public std::formatter<std::string_view> {
-  public:
-    auto format(const T& value, auto& context) const {
-      auto output = std::ostringstream();
-      output << value;
-      return std::formatter<std::string_view>::format(output.view(), context);
-    }
-};
 
 #endif

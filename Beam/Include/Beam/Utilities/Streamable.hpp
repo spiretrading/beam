@@ -1,9 +1,12 @@
 #ifndef BEAM_STREAMABLE_HPP
 #define BEAM_STREAMABLE_HPP
+#include <concepts>
+#include <format>
 #include <map>
 #include <ostream>
 #include <set>
 #include <sstream>
+#include <string_view>
 #include <typeinfo>
 #include <unordered_map>
 #include <unordered_set>
@@ -142,5 +145,15 @@ namespace Beam {
     return out << '}';
   }
 }
+
+template<std::derived_from<Beam::Streamable> T>
+class std::formatter<T> : public std::formatter<std::string_view> {
+  public:
+    auto format(const T& value, auto& context) const {
+      auto output = std::ostringstream();
+      output << static_cast<const Beam::Streamable&>(value);
+      return std::formatter<std::string_view>::format(output.view(), context);
+    }
+};
 
 #endif

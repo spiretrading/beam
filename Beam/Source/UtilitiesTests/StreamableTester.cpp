@@ -21,6 +21,22 @@ namespace {
 }
 
 TEST_SUITE("Streamable") {
+  TEST_CASE("format") {
+    auto object = TestStreamable("test");
+    auto& base = static_cast<const Streamable&>(object);
+    auto expected = std::string("TestStreamable(test)");
+    REQUIRE(std::format("{}", object) == expected);
+    REQUIRE(std::format("{}", base) == expected);
+    REQUIRE(
+      std::format("{:*>{}}", object, expected.size() + 2) == "**" + expected);
+    REQUIRE(
+      std::format("{:*<{}}", base, expected.size() + 2) == expected + "**");
+    REQUIRE(std::format("{:.5}", object) == "TestS");
+    REQUIRE(std::format("{:.5}", base) == "TestS");
+    REQUIRE(to_string(object) == expected);
+    REQUIRE(std::format("{}", Streamable()) == to_string(Streamable()));
+  }
+
   TEST_CASE("streamable_to_stream") {
     auto object = TestStreamable("test");
     REQUIRE(to_string(object) == "TestStreamable(test)");

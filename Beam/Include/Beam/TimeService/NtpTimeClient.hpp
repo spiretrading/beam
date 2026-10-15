@@ -324,7 +324,7 @@ namespace Beam {
     try {
       synchronize();
     } catch(const std::exception&) {
-      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      BEAM_LOG_CURRENT_EXCEPTION();
     }
     m_timer->start();
   }

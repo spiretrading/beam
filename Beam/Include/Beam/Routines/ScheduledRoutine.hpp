@@ -200,7 +200,7 @@ namespace Details {
     } catch(const boost::context::detail::forced_unwind&) {
       throw;
     } catch(...) {
-      std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+      BEAM_LOG_CURRENT_EXCEPTION();
     }
     set(State::COMPLETE);
     return std::move(m_parent);

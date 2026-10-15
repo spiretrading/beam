@@ -3,7 +3,6 @@
 #include <exception>
 #include <format>
 #include <iostream>
-#include <mutex>
 #include <source_location>
 #include <string>
 #include <string_view>
@@ -89,8 +88,7 @@ namespace Details {
 
   /**
    * Prints a timestamped exception report to stderr, including nested causes.
-   * Reports do not interleave with one another. Reporting failures are
-   * suppressed.
+   * Reporting failures are suppressed.
    * @param e The exception to report, or an empty pointer to report nothing.
    * @param context Additional context, or an empty string.
    * @param location The reporting location, or an empty source location.
@@ -115,8 +113,6 @@ namespace Details {
       if(report.back() != '\n') {
         report += '\n';
       }
-      static auto mutex = std::mutex();
-      auto lock = std::lock_guard(mutex);
       std::cerr.write(
         report.data(), static_cast<std::streamsize>(report.size()));
     } catch(...) {}

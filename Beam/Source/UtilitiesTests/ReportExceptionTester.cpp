@@ -1,4 +1,5 @@
 #include <barrier>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -17,6 +18,16 @@ namespace {
     protected:
       std::streamsize xsputn(const char*, std::streamsize) override {
         throw std::runtime_error("write failed");
+      }
+  };
+
+  class SynchronizedBuffer : public std::stringbuf {
+    private:
+      mutable std::mutex m_mutex;
+
+      std::streamsize xsputn(const char* data, std::streamsize size) override {
+        auto lock = std::lock_guard(m_mutex);
+        return std::stringbuf::xsputn(data, size);
       }
   };
 
@@ -43,12 +54,12 @@ namespace {
   template<typename F>
   std::string capture_stderr(F function) {
     auto original_buffer = std::cerr.rdbuf();
-    auto stream = std::stringstream();
-    std::cerr.rdbuf(stream.rdbuf());
+    auto buffer = SynchronizedBuffer();
+    std::cerr.rdbuf(&buffer);
     try {
       function();
       std::cerr.rdbuf(original_buffer);
-      return stream.str();
+      return buffer.str();
     } catch(...) {
       std::cerr.rdbuf(original_buffer);
       throw;

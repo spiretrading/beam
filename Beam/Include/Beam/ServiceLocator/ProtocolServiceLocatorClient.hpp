@@ -715,11 +715,11 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
         } catch(const ServiceRequestException& exception) {
           m_services.push_back(service);
           if(std::string(exception.what()) != "ServiceProtocolClient closed.") {
-            std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+            BEAM_LOG_CURRENT_EXCEPTION();
           }
         } catch(const std::exception&) {
           m_services.push_back(service);
-          std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+          BEAM_LOG_CURRENT_EXCEPTION();
         }
       }
       if(m_account_update_publisher->get_size() == 0) {

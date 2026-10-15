@@ -146,7 +146,7 @@ namespace Details {
       } catch(const EndOfFileException&) {
         break;
       } catch(const std::exception&) {
-        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+        BEAM_LOG_CURRENT_EXCEPTION();
         continue;
       }
       clients.insert(channel);

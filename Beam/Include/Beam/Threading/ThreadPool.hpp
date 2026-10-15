@@ -197,7 +197,7 @@ namespace Beam {
         try {
           m_task->run();
         } catch(...) {
-          std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+          BEAM_LOG_CURRENT_EXCEPTION();
         }
         delete m_task;
         m_task = nullptr;

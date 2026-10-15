@@ -227,7 +227,7 @@ namespace Beam {
       if(m_exception_handler) {
         m_exception_handler(std::current_exception());
       } else {
-        std::cout << BEAM_REPORT_CURRENT_EXCEPTION() << std::flush;
+        BEAM_LOG_CURRENT_EXCEPTION();
       }
     }
     {

@@ -9,6 +9,16 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("FixedString") {
+  TEST_CASE("format") {
+    auto value = FixedString<5>("abcdef");
+    REQUIRE(std::format("{}", value) == "abcde");
+    REQUIRE(std::format("{:_<8}", value) == "abcde___");
+    REQUIRE(std::format("{:.3}", value) == "abc");
+    REQUIRE(std::format("{}", FixedString<0>("ignored")).empty());
+    REQUIRE(std::format("{}", FixedString<5>()).empty());
+    REQUIRE(to_string(value) == "abcde");
+  }
+
   TEST_CASE("default_construct") {
     auto str = FixedString<10>();
     REQUIRE(str.is_empty());

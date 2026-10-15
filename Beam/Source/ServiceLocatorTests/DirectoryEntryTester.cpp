@@ -8,6 +8,27 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 TEST_SUITE("DirectoryEntry") {
+  TEST_CASE("format") {
+    auto account = DirectoryEntry::make_account(42, "alice");
+    REQUIRE(std::format("{}", account) == "(ACCOUNT 42 alice)");
+    REQUIRE(std::format("{:>20}", account) == "  (ACCOUNT 42 alice)");
+    REQUIRE(std::format("{}", DirectoryEntry::make_directory(7, "group")) ==
+      "(DIRECTORY 7 group)");
+    REQUIRE(std::format("{}", DirectoryEntry::make_directory(7)) ==
+      "(DIRECTORY 7)");
+    REQUIRE(std::format("{}", DirectoryEntry::make_account(42)) ==
+      "(ACCOUNT 42)");
+    REQUIRE(std::format("{}", DirectoryEntry()) == "NONE");
+    REQUIRE(std::format("{}",
+      DirectoryEntry(DirectoryEntry::Type::NONE, 7, "ignored")) == "NONE");
+    REQUIRE(std::format("{}", DirectoryEntry::make_account(-1, "ignored")) ==
+      "NONE");
+    auto unknown = DirectoryEntry(DirectoryEntry::Type(99), 7, "unknown");
+    REQUIRE(std::format("{}", unknown) == "(NONE 7 unknown)");
+    REQUIRE(to_string(account) == "(ACCOUNT 42 alice)");
+    REQUIRE(to_string(unknown) == "(NONE 7 unknown)");
+  }
+
   TEST_CASE("make_account") {
     auto entry = DirectoryEntry::make_account(42, "test_account");
     REQUIRE(entry.m_type == DirectoryEntry::Type::ACCOUNT);

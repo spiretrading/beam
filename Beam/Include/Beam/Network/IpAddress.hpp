@@ -2,6 +2,7 @@
 #define BEAM_IP_ADDRESS_HPP
 #include <array>
 #include <cstdint>
+#include <format>
 #include <ostream>
 #include <string>
 #include <boost/endian.hpp>
@@ -65,10 +66,6 @@ namespace Beam {
   template<>
   inline const auto default_parser<IpAddress> = ip_address_p;
 
-  inline std::ostream& operator <<(std::ostream& out, const IpAddress& source) {
-    return out << source.get_host() << ':' << source.get_port();
-  }
-
   inline std::string IpAddress::int_to_string(std::uint32_t address) {
     address = boost::endian::native_to_big(address);
     const auto OCTET_COUNT = 4;
@@ -108,6 +105,22 @@ namespace Beam {
 
   inline unsigned short IpAddress::get_port() const {
     return m_port;
+  }
+}
+
+template<>
+class std::formatter<Beam::IpAddress> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::IpAddress& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        std::format("{}:{}", value.get_host(), value.get_port()), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(std::ostream& out, const IpAddress& source) {
+    return out << std::format("{}", source);
   }
 }
 

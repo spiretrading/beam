@@ -1,5 +1,6 @@
 #ifndef BEAM_DIRECTORY_ENTRY_HPP
 #define BEAM_DIRECTORY_ENTRY_HPP
+#include <format>
 #include <ostream>
 #include <string>
 #include <tuple>
@@ -106,18 +107,6 @@ namespace Details {
     bool operator ==(const DirectoryEntry& rhs) const;
   };
 
-  inline std::ostream& operator <<(
-      std::ostream& out, const DirectoryEntry& entry) {
-    if(entry.m_type == DirectoryEntry::Type::NONE || entry.m_id == -1) {
-      return out << "NONE";
-    }
-    out << '(' << entry.m_type << ' ' << entry.m_id;
-    if(!entry.m_name.empty()) {
-      out << ' ' << entry.m_name;
-    }
-    return out << ')';
-  }
-
   inline std::size_t hash_value(const DirectoryEntry& value) {
     return value.m_id;
   }
@@ -188,6 +177,37 @@ namespace std {
       return hash_value(value);
     }
   };
+}
+
+template<>
+class std::formatter<Beam::DirectoryEntry> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::DirectoryEntry& value, auto& context) const {
+      if(value.m_type == Beam::DirectoryEntry::Type::NONE || value.m_id == -1) {
+        return std::formatter<std::string_view>::format("NONE", context);
+      }
+      auto type = [&] {
+        auto index = static_cast<std::size_t>(value.m_type);
+        if(index < Beam::DirectoryEntry::Type::NAMES.size()) {
+          return Beam::DirectoryEntry::Type::NAMES[index];
+        }
+        return std::string_view("NONE");
+      }();
+      if(value.m_name.empty()) {
+        return std::formatter<std::string_view>::format(
+          std::format("({} {})", type, value.m_id), context);
+      }
+      return std::formatter<std::string_view>::format(
+        std::format("({} {} {})", type, value.m_id, value.m_name), context);
+    }
+};
+
+namespace Beam {
+  inline std::ostream& operator <<(
+      std::ostream& out, const DirectoryEntry& entry) {
+    return out << std::format("{}", entry);
+  }
 }
 
 #endif

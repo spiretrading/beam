@@ -5,6 +5,14 @@
 using namespace Beam;
 
 TEST_SUITE("SocketIdentifier") {
+  TEST_CASE("format") {
+    auto identifier = SocketIdentifier(IpAddress("127.0.0.1", 8080));
+    REQUIRE(std::format("{}", identifier) == "127.0.0.1:8080");
+    REQUIRE(std::format("{:*>18}", identifier) == "****127.0.0.1:8080");
+    REQUIRE(std::format("{}", SocketIdentifier()) == ":0");
+    REQUIRE(to_string(identifier) == "127.0.0.1:8080");
+  }
+
   TEST_CASE("default_constructor") {
     auto identifier = SocketIdentifier();
     REQUIRE(to_string(identifier) == ":0");

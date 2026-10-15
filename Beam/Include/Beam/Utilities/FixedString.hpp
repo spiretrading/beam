@@ -4,6 +4,7 @@
 #include <array>
 #include <compare>
 #include <cstring>
+#include <format>
 #include <ostream>
 #include <string_view>
 
@@ -83,11 +84,6 @@ namespace Beam {
     private:
       std::array<char, N + 1> m_data;
   };
-
-  template<std::size_t N>
-  std::ostream& operator <<(std::ostream& sink, const FixedString<N>& value) {
-    return sink << value.get_data();
-  }
 
   template<std::size_t L, std::size_t R>
   auto operator <=>(
@@ -307,6 +303,23 @@ namespace std {
       return Beam::hash_value(value);
     }
   };
+}
+
+template<std::size_t N>
+class std::formatter<Beam::FixedString<N>> :
+    public std::formatter<std::string_view> {
+  public:
+    auto format(const Beam::FixedString<N>& value, auto& context) const {
+      return std::formatter<std::string_view>::format(
+        value.get_data(), context);
+    }
+};
+
+namespace Beam {
+  template<std::size_t N>
+  std::ostream& operator <<(std::ostream& sink, const FixedString<N>& value) {
+    return sink << std::format("{}", value);
+  }
 }
 
 #endif

@@ -5,6 +5,16 @@
 using namespace Beam;
 
 TEST_SUITE("IpAddressTester.cpp") {
+  TEST_CASE("format") {
+    auto address = IpAddress("127.0.0.1", 8080);
+    REQUIRE(std::format("{}", address) == "127.0.0.1:8080");
+    REQUIRE(std::format("{:>18}", address) == "    127.0.0.1:8080");
+    REQUIRE(
+      std::format("{}", IpAddress("localhost", 65535)) == "localhost:65535");
+    REQUIRE(std::format("{}", IpAddress()) == ":0");
+    REQUIRE(to_string(address) == "127.0.0.1:8080");
+  }
+
   TEST_CASE("parser") {
     REQUIRE(
       parse<IpAddress>("192.168.0.1:1234") == IpAddress("192.168.0.1", 1234));

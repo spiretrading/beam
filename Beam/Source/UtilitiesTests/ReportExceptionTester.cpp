@@ -1,5 +1,8 @@
+#include <barrier>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 #include <doctest/doctest.h>
 #include "Beam/Utilities/ReportException.hpp"
 
@@ -8,6 +11,13 @@ using namespace Beam;
 namespace {
   struct CustomException : std::runtime_error {
     using std::runtime_error::runtime_error;
+  };
+
+  class FailingBuffer : public std::streambuf {
+    protected:
+      std::streamsize xsputn(const char*, std::streamsize) override {
+        throw std::runtime_error("write failed");
+      }
   };
 
   void throw_nested_exception() {
@@ -47,6 +57,154 @@ namespace {
 }
 
 TEST_SUITE("ReportException") {
+  TEST_CASE("log_timestamp") {
+    using namespace boost::posix_time;
+    auto time = time_from_string("2026-10-15 14:32:08.417999");
+    REQUIRE(Details::format_log_timestamp(time) == "2026-10-15T14:32:08.417");
+    REQUIRE(Details::format_log_timestamp(
+      time_from_string("2026-01-01 00:00:00")) == "2026-01-01T00:00:00.000");
+  }
+
+  TEST_CASE("exception_report_output") {
+    using namespace boost::posix_time;
+    auto exception = std::exception_ptr();
+    try {
+      try {
+        boost::throw_with_location(std::runtime_error("inner failure"));
+      } catch(...) {
+        std::throw_with_nested(std::runtime_error("outer failure"));
+      }
+    } catch(...) {
+      exception = std::current_exception();
+    }
+    auto location = std::source_location::current();
+    auto before = microsec_clock::local_time();
+    auto output = capture_stderr([&] {
+      report_exception(exception, "client=test\noperation=read", location);
+    });
+    auto after = microsec_clock::local_time();
+    REQUIRE(output.size() > 23);
+    auto timestamp = from_iso_extended_string(output.substr(0, 23));
+    REQUIRE(timestamp >= before - milliseconds(1));
+    REQUIRE(timestamp <= after);
+    auto expected = " Uncaught exception thrown:\n"
+      "  client=test\n  operation=read\n" +
+      std::format("  reported at: {}:{}\n",
+        location.file_name(), location.line()) +
+      "  " + Details::indent(make_exception_report(exception), 1);
+    if(expected.back() != '\n') {
+      expected += '\n';
+    }
+    REQUIRE(output.substr(23) == expected);
+    REQUIRE(output.find("thrown at: ") != std::string::npos);
+    REQUIRE(capture_stderr([] {
+      report_exception(std::exception_ptr());
+    }).empty());
+    try {
+      std::rethrow_exception(exception);
+    } catch(...) {
+      auto line = 0;
+      output = capture_stderr([&] {
+        line = __LINE__ + 1;
+        BEAM_LOG_CURRENT_EXCEPTION("request=17");
+      });
+      REQUIRE(make_exception_report() == make_exception_report(exception));
+      REQUIRE(output.find("  request=17\n") != std::string::npos);
+      REQUIRE(output.find(std::format("  reported at: {}:{}\n",
+        __FILE__, line)) != std::string::npos);
+      output = capture_stderr([] {
+        BEAM_LOG_CURRENT_EXCEPTION();
+      });
+      REQUIRE(output.find("reported at: ") != std::string::npos);
+    }
+  }
+
+  TEST_CASE("concurrent_exception_reports") {
+    auto exceptions = std::vector<std::exception_ptr>();
+    auto expected = std::vector<std::string>();
+    for(auto i = 0; i < 8; ++i) {
+      try {
+        try {
+          throw std::runtime_error(std::format("inner {}", i));
+        } catch(...) {
+          std::throw_with_nested(
+            std::runtime_error(std::format("outer {}", i)));
+        }
+      } catch(...) {
+        exceptions.push_back(std::current_exception());
+      }
+      auto report = std::format(
+        " Uncaught exception thrown:\n  {}\n  ", i) +
+        Details::indent(make_exception_report(exceptions.back()), 1);
+      if(report.back() != '\n') {
+        report += '\n';
+      }
+      expected.push_back(report);
+    }
+    auto barrier = std::barrier(8);
+    auto output = capture_stderr([&] {
+      auto threads = std::vector<std::jthread>();
+      for(auto i = std::size_t(0); i < exceptions.size(); ++i) {
+        threads.emplace_back([&, i] {
+          barrier.arrive_and_wait();
+          for(auto j = 0; j < 16; ++j) {
+            report_exception(exceptions[i], std::to_string(i),
+              std::source_location());
+          }
+        });
+      }
+    });
+    auto counts = std::vector<int>(exceptions.size());
+    auto position = std::size_t(0);
+    while(position < output.size()) {
+      REQUIRE(output.size() - position >= 23);
+      auto match = false;
+      for(auto i = std::size_t(0); i < expected.size(); ++i) {
+        if(output.compare(
+            position + 23, expected[i].size(), expected[i]) == 0) {
+          ++counts[i];
+          position += 23 + expected[i].size();
+          match = true;
+          break;
+        }
+      }
+      REQUIRE(match);
+    }
+    for(auto count : counts) {
+      REQUIRE(count == 16);
+    }
+  }
+
+  TEST_CASE("exception_report_output_failure") {
+    auto buffer = FailingBuffer();
+    auto original_buffer = std::cerr.rdbuf(&buffer);
+    auto original_exceptions = std::cerr.exceptions();
+    std::cerr.exceptions(std::ios::badbit | std::ios::failbit);
+    auto failure = std::exception_ptr();
+    auto report = std::string();
+    try {
+      throw std::runtime_error("original failure");
+    } catch(...) {
+      try {
+        report_current_exception();
+      } catch(...) {
+        failure = std::current_exception();
+      }
+      report = make_exception_report();
+    }
+    auto failed = std::cerr.bad();
+    std::cerr.exceptions(original_exceptions);
+    std::cerr.rdbuf(original_buffer);
+    REQUIRE(failed);
+    REQUIRE(!failure);
+    REQUIRE(report.find("original failure") != std::string::npos);
+    auto output = capture_stderr([] {
+      report_exception(
+        std::make_exception_ptr(std::runtime_error("recovered")));
+    });
+    REQUIRE(output.find("recovered") != std::string::npos);
+  }
+
   TEST_CASE("make_exception_report_with_exception_ptr") {
     auto exception = std::exception_ptr();
     try {

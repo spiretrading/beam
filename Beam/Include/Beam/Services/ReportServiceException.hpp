@@ -1,7 +1,7 @@
 #ifndef BEAM_REPORT_SERVICE_EXCEPTION_HPP
 #define BEAM_REPORT_SERVICE_EXCEPTION_HPP
+#include <format>
 #include <optional>
-#include <sstream>
 #include <typeindex>
 #include "Beam/Utilities/ReportException.hpp"
 
@@ -20,17 +20,16 @@ namespace Beam {
       const std::source_location& location = std::source_location::current()) {
     auto exception = std::current_exception();
     try {
-      auto context = std::ostringstream();
-      context << "client=" << client.get_identifier() <<
-        " operation=" << operation;
+      auto context = std::format(
+        "client={} operation={}", client.get_identifier(), operation);
       if(message) {
-        context << " message=" <<
-          client.get_slots().get_registry().get_entry(*message).get_name();
+        context += std::format(" message={}",
+          client.get_slots().get_registry().get_entry(*message).get_name());
       }
       if(request) {
-        context << " request=" << *request;
+        context += std::format(" request={}", *request);
       }
-      report_exception(exception, context.str(), location);
+      report_exception(exception, context, location);
     } catch(...) {
       report_exception(exception, operation, location);
     }

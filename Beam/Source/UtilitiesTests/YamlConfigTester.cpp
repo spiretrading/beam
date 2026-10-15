@@ -23,6 +23,14 @@ namespace {
 }
 
 TEST_SUITE("YamlConfig") {
+  TEST_CASE("parser_exception") {
+    auto node = YAML::Load("first: 0\nsecond: invalid");
+    auto exception = make_yaml_parser_exception(
+      "Expected an integer.", node["second"].Mark());
+    REQUIRE(std::string(exception.what()) ==
+      "Parser error at line 2, column 9: Expected an integer.\n");
+  }
+
   TEST_CASE("include") {
     SUBCASE("root") {
       auto node = load_yaml({

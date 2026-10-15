@@ -1,7 +1,7 @@
 #ifndef BEAM_ZLIB_DECODER_HPP
 #define BEAM_ZLIB_DECODER_HPP
+#include <format>
 #include <limits>
-#include <sstream>
 #include <boost/scope/scope_exit.hpp>
 #include <boost/throw_exception.hpp>
 #include <zlib.h>
@@ -51,15 +51,15 @@ namespace Beam {
     auto produced = std::size_t(0);
     auto result = inflateInit(&stream);
     auto fail = [&] (const char* reason) {
-      auto message = std::ostringstream();
-      message << reason << " zlib_result=" << result;
+      auto message = std::format("{} zlib_result={}", reason, result);
       if(stream.msg) {
-        message << " zlib_message=" << stream.msg;
+        message += std::format(" zlib_message={}", stream.msg);
       }
-      message << " compressed_size=" << source_size << " consumed=" <<
-        source_size - stream.avail_in << " produced=" << produced <<
-        " destination_size=" << destination->get_size();
-      boost::throw_with_location(DecoderException(message.str()));
+      message += std::format(
+        " compressed_size={} consumed={} produced={} destination_size={}",
+        source_size, source_size - stream.avail_in, produced,
+        destination->get_size());
+      boost::throw_with_location(DecoderException(message));
     };
     if(result != Z_OK) {
       fail("Unable to initialize zlib decoder.");

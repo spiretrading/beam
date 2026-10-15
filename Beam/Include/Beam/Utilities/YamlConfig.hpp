@@ -4,6 +4,7 @@
 #include <charconv>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iterator>
 #include <sstream>
@@ -173,13 +174,12 @@ namespace Details {
             throw;
           }
         } catch(const std::exception& e) {
-          auto message = std::stringstream();
-          message << "Unable to load YAML \"" << path.string();
+          auto source = path.string();
           if(!fragment.empty()) {
-            message << '#' << fragment;
+            source += std::format("#{}", fragment);
           }
-          message << "\":\n" << e.what();
-          boost::throw_with_location(std::runtime_error(message.str()));
+          boost::throw_with_location(std::runtime_error(
+            std::format("Unable to load YAML \"{}\":\n{}", source, e.what())));
         }
       }
 
@@ -323,10 +323,9 @@ namespace Details {
    */
   inline std::runtime_error make_yaml_parser_exception(
       std::string_view message, const YAML::Mark& mark) {
-    auto ss = std::stringstream();
-    ss << "Parser error at line " << (mark.line + 1) << ", " << "column " <<
-      (mark.column + 1) << ": " << message << "\n";
-    return std::runtime_error(ss.str());
+    return std::runtime_error(
+      std::format("Parser error at line {}, column {}: {}\n", mark.line + 1,
+        mark.column + 1, message));
   }
 
   /**

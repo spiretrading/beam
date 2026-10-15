@@ -98,7 +98,7 @@ TEST_SUITE("ServiceProtocolClient") {
       "request_diagnostics", T, std::false_type, std::true_type) {
     using Server =
       ServiceProtocolServer<LocalServerConnection*, BinarySender<SharedBuffer>,
-      NullEncoder, std::unique_ptr<TriggerTimer>, NullSession, T::value>;
+        NullEncoder, std::unique_ptr<TriggerTimer>, NullSession, T::value>;
     auto operation = std::string("handle_request");
     auto output = capture_stderr([&] {
       auto connection = LocalServerConnection();

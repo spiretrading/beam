@@ -1,8 +1,9 @@
 #include <chrono>
 #include <condition_variable>
+#include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <mutex>
+#include <print>
 #include <string>
 #include <thread>
 #define DOCTEST_CONFIG_IMPLEMENT
@@ -26,7 +27,8 @@
       is_done_condition.wait(lock, [&] { return is_done; });                   \
     } else if(!is_done_condition.wait_for(                                     \
         lock, std::chrono::seconds(timeout), [&] { return is_done; })) {       \
-      std::cout << "Status: TIMEOUT (" << argv[0] << ")" << std::endl;         \
+      std::println("Status: TIMEOUT ({})", argv[0]);                           \
+      std::fflush(stdout);                                                     \
       std::quick_exit(1);                                                      \
     }                                                                          \
     thread.join();                                                             \

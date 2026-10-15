@@ -1,6 +1,7 @@
 #ifndef BEAM_STANDARD_OUT_EMAIL_CLIENT_HPP
 #define BEAM_STANDARD_OUT_EMAIL_CLIENT_HPP
 #include <iostream>
+#include <print>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/WebServices/EmailClient.hpp"
 
@@ -26,7 +27,8 @@ namespace Beam {
   inline void StandardOutEmailClient::send(const Email& email) {
     m_open_state.ensure_open();
     if(m_open_state.is_open()) {
-      std::cout << email << std::flush;
+      std::print(std::cout, "{}", email);
+      std::cout.flush();
     }
   }
 

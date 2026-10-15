@@ -1,5 +1,5 @@
-#include <iostream>
-#include <boost/format.hpp>
+#include <cstdio>
+#include <print>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -15,6 +15,7 @@
 #include "Beam/TimeService/TriggerTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "ServiceProtocolProfiler/Services.hpp"
 #include "Version.hpp"
@@ -54,8 +55,9 @@ namespace {
             auto timestamp = microsec_clock::universal_time();
             ++counter;
             if(counter % 100000 == 0) {
-              std::cout << boost::format("Server: %1% %2%\n") % &client %
-                timestamp << std::flush;
+              std::println("Server: {} {}", static_cast<const void*>(&client),
+                to_string(timestamp));
+              std::fflush(stdout);
             }
           }
         } catch(const ServiceRequestException&) {
@@ -75,9 +77,9 @@ namespace {
       send_record_message<EchoMessage>(client, timestamp, "hello world");
       ++counter;
       if(counter % 100000 == 0) {
-        std::cout <<
-          boost::format("Client: %1% %2%\n") % &channel % timestamp <<
-          std::flush;
+        std::println("Client: {} {}", static_cast<const void*>(&channel),
+          to_string(timestamp));
+        std::fflush(stdout);
       }
       defer();
     }

@@ -1,5 +1,6 @@
+#include <cstdio>
 #include <fstream>
-#include <iostream>
+#include <print>
 #include <boost/functional/factory.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
@@ -16,6 +17,7 @@
 #include "Beam/TimeService/LiveTimer.hpp"
 #include "Beam/Utilities/ApplicationInterrupt.hpp"
 #include "Beam/Utilities/Expect.hpp"
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "Version.hpp"
 
@@ -71,7 +73,8 @@ int main(int argc, const char** argv) {
     register_servlet_template_services(out(client.get_slots()));
     register_servlet_template_messages(out(client.get_slots()));
     auto result = client.send_request<EchoService>(message, rate);
-    std::cout << result << std::endl;
+    std::println("{}", result);
+    std::fflush(stdout);
     auto counter = 0;
     while(!received_kill_event()) {
       try {
@@ -80,7 +83,8 @@ int main(int argc, const char** argv) {
               client.read_message())) {
           ++counter;
           if(counter % rate == 0) {
-            std::cout << message->get_record().timestamp << std::endl;
+            std::println("{}", to_string(message->get_record().timestamp));
+            std::fflush(stdout);
           }
         }
       } catch(...) {

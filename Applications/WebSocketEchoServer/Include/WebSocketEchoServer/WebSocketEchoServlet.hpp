@@ -1,6 +1,5 @@
 #ifndef BEAM_WEB_SOCKET_ECHO_SERVLET_HPP
 #define BEAM_WEB_SOCKET_ECHO_SERVLET_HPP
-#include <iostream>
 #include <vector>
 #include <Beam/IO/OpenState.hpp>
 #include <Beam/WebServices/HttpRequestSlot.hpp>
@@ -67,7 +66,6 @@ namespace Beam {
       while(true) {
         auto buffer = SharedBuffer();
         channel->get_reader().read(out(buffer));
-        std::cout << buffer << std::endl;
         channel->get_writer().write(buffer);
       }
     });

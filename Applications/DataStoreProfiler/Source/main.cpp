@@ -1,8 +1,10 @@
 #include <cmath>
-#include <iostream>
+#include <cstdio>
+#include <print>
 #include <boost/optional/optional.hpp>
 #include "Beam/Sql/MySqlConfig.hpp"
 #include "Beam/Utilities/Expect.hpp"
+#include "Beam/Utilities/ToString.hpp"
 #include "Beam/Utilities/YamlConfig.hpp"
 #include "DataStoreProfiler/AsyncDataStore.hpp"
 #include "DataStoreProfiler/BufferedDataStore.hpp"
@@ -84,8 +86,8 @@ namespace {
     auto end = microsec_clock::universal_time();
     auto elapsed = end - start;
     auto rate = config.m_iterations / elapsed.total_seconds();
-    std::cout << "profile_writes: " << (end - start) << " " << rate <<
-      std::endl;
+    std::println("profile_writes: {} {}", to_string(elapsed), rate);
+    std::fflush(stdout);
   }
 
   template<typename DataStore>
@@ -111,13 +113,14 @@ namespace {
     auto end = microsec_clock::universal_time();
     auto elapsed = end - start;
     auto rate = config.m_iterations / elapsed.total_seconds();
-    std::cout << "profile_reads: " << (end - start) << " " << rate <<
-      std::endl;
+    std::println("profile_reads: {} {}", to_string(elapsed), rate);
+    std::fflush(stdout);
   }
 
   void profile_buffered_data_store(
       const MySqlConfig& mysql_config, const ProfileConfig& profile_config) {
-    std::cout << "BufferedDataStore" << std::endl;
+    std::println("BufferedDataStore");
+    std::fflush(stdout);
     {
       auto mysql_data_store = MySqlProfileDataStore(
         mysql_config.m_address, mysql_config.m_schema, mysql_config.m_username,
@@ -138,7 +141,8 @@ namespace {
 
   void profile_async_data_store(
       const MySqlConfig& mysql_config, const ProfileConfig& profile_config) {
-    std::cout << "AsyncDataStore" << std::endl;
+    std::println("AsyncDataStore");
+    std::fflush(stdout);
     {
       auto mysql_data_store = MySqlProfileDataStore(
         mysql_config.m_address, mysql_config.m_schema, mysql_config.m_username,

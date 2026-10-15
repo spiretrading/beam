@@ -1,5 +1,6 @@
 #include <cctype>
 #include <iostream>
+#include <print>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -87,35 +88,36 @@ namespace {
   }
 
   void print_help() {
-    std::cout << "Available commands:\n\n";
-    std::cout << "  mkacc <name> <password>\n";
-    std::cout << "    Create a new account in the current directory\n\n";
-    std::cout << "  password <path> <password>\n";
-    std::cout << "    Set the password for an account\n\n";
-    std::cout << "  mkdir <name>\n";
-    std::cout << "    Create a new directory in the current directory\n\n";
-    std::cout << "  chmod <account> <path> <permissions>\n";
-    std::cout << "    Set permissions for an account on a path, given as\n";
-    std::cout << "    the letters R (read), M (move) and A (administrate)\n";
-    std::cout << "    preceded by + or -\n\n";
-    std::cout << "  associate <account>\n";
-    std::cout << "    Associate an account with the current directory\n\n";
-    std::cout << "  detach <path>\n";
-    std::cout << "    Detach a child from the current directory\n\n";
-    std::cout << "  cd <path>\n";
-    std::cout << "    Change to a different directory\n\n";
-    std::cout << "  lch\n";
-    std::cout << "    List children of the current directory\n\n";
-    std::cout << "  lpr\n";
-    std::cout << "    List parents of the current directory\n\n";
-    std::cout << "  del <path>\n";
-    std::cout << "    Delete a directory entry\n\n";
-    std::cout << "  locate <service>\n";
-    std::cout << "    Locate a service by name\n\n";
-    std::cout << "  help\n";
-    std::cout << "    Display this help message\n\n";
-    std::cout << "  exit\n";
-    std::cout << "    Exit the application\n" << std::endl;
+    std::print(
+      "Available commands:\n\n"
+      "  mkacc <name> <password>\n"
+      "    Create a new account in the current directory\n\n"
+      "  password <path> <password>\n"
+      "    Set the password for an account\n\n"
+      "  mkdir <name>\n"
+      "    Create a new directory in the current directory\n\n"
+      "  chmod <account> <path> <permissions>\n"
+      "    Set permissions for an account on a path, given as\n"
+      "    the letters R (read), M (move) and A (administrate)\n"
+      "    preceded by + or -\n\n"
+      "  associate <account>\n"
+      "    Associate an account with the current directory\n\n"
+      "  detach <path>\n"
+      "    Detach a child from the current directory\n\n"
+      "  cd <path>\n"
+      "    Change to a different directory\n\n"
+      "  lch\n"
+      "    List children of the current directory\n\n"
+      "  lpr\n"
+      "    List parents of the current directory\n\n"
+      "  del <path>\n"
+      "    Delete a directory entry\n\n"
+      "  locate <service>\n"
+      "    Locate a service by name\n\n"
+      "  help\n"
+      "    Display this help message\n\n"
+      "  exit\n"
+      "    Exit the application\n\n");
   }
 }
 
@@ -136,7 +138,7 @@ int main(int argc, const char** argv) {
       return service_locator_client.load_parents(current_directory);
     }, std::runtime_error("Unable to load the home directory's parents."));
     while(!received_kill_event()) {
-      std::cout << ">>> ";
+      std::print(std::cout, ">>> ");
       auto input = std::string();
       std::getline(std::cin, input);
       auto tokens = tokenize(input);
@@ -189,8 +191,7 @@ int main(int argc, const char** argv) {
                 return "";
               }
             }();
-            std::cout << "\t" << type << "\t" << child.m_id << "\t" <<
-              child.m_name << std::endl;
+            std::println("\t{}\t{}\t{}", type, child.m_id, child.m_name);
           }
         } else if(tokens[0] == "lpr") {
           parents = service_locator_client.load_parents(current_directory);
@@ -202,8 +203,7 @@ int main(int argc, const char** argv) {
                 return "";
               }
             }();
-            std::cout << "\t" << type << "\t" << parent.m_id << "\t" <<
-              parent.m_name << std::endl;
+            std::println("\t{}\t{}\t{}", type, parent.m_id, parent.m_name);
           }
         } else if(tokens[0] == "del") {
           auto path =
@@ -211,18 +211,16 @@ int main(int argc, const char** argv) {
           service_locator_client.remove(path);
         } else if(tokens[0] == "locate") {
           for(auto& service : service_locator_client.locate(tokens.at(1))) {
-            std::cout << service.get_name() << " " << service.get_id() << "\n";
-            std::cout << service.get_account().m_name << " " <<
-              service.get_account().m_id << "\n";
-            service.get_properties().save(std::cout);
-            std::cout << std::endl;
+            std::println("{} {}\n{} {}\n{}", service.get_name(),
+              service.get_id(), service.get_account().m_name,
+              service.get_account().m_id, service.get_properties());
           }
         } else if(tokens[0] == "help") {
           print_help();
         } else if(tokens[0] == "exit") {
           break;
         } else {
-          std::cout << "Unknown command." << std::endl;
+          std::println("Unknown command.");
         }
       } catch(const std::exception&) {
         report_current_exception();

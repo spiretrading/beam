@@ -1,6 +1,7 @@
 #include <atomic>
+#include <cstdio>
 #include <cstdlib>
-#include <iostream>
+#include <print>
 #include <random>
 #include <string>
 #include <boost/date_time.hpp>
@@ -220,7 +221,8 @@ int main() {
       for(auto i = 0; i < clients; ++i) {
         routines.spawn([&] {
           ++count;
-          std::cout << "Start: " << count << std::endl;
+          std::println("Start: {}", count.load());
+          std::fflush(stdout);
           auto client_handler = ApplicationClientHandler(init(
             [&] {
               return std::make_unique<LocalClientChannel>("dummy", server);
@@ -247,7 +249,8 @@ int main() {
             sleep_for(milliseconds(100));
           }
           --count;
-          std::cout << "Stop: " << count << std::endl;
+          std::println("Stop: {}", count.load());
+          std::fflush(stdout);
           client_handler.close();
         });
       }
@@ -257,5 +260,6 @@ int main() {
   routines.wait();
   servlet.close();
   routines.wait();
-  std::cout << "Done" << std::endl;
+  std::println("Done");
+  std::fflush(stdout);
 }

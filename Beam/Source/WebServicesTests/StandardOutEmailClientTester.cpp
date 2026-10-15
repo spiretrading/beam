@@ -1,7 +1,9 @@
+#include <boost/date_time/posix_time/time_parsers.hpp>
 #include <doctest/doctest.h>
 #include "Beam/WebServices/StandardOutEmailClient.hpp"
 
 using namespace Beam;
+using namespace boost::posix_time;
 
 namespace {
   struct CoutRedirect {
@@ -27,14 +29,16 @@ TEST_SUITE("StandardOutEmailClient") {
     auto client = StandardOutEmailClient();
     auto email = Email(EmailAddress("sender@example.com"),
       EmailAddress("recipient@example.com"));
+    email.set_date(time_from_string("2026-10-15 09:30:00"));
     email.set_subject("Test Subject");
     email.add_body("Test Body");
     client.send(email);
     auto output = redirect.get_output();
-    REQUIRE(output.find("From: sender@example.com") != std::string::npos);
-    REQUIRE(output.find("To: recipient@example.com") != std::string::npos);
-    REQUIRE(output.find("Subject: Test Subject") != std::string::npos);
-    REQUIRE(output.find("Test Body") != std::string::npos);
+    REQUIRE(output ==
+      "From: sender@example.com\r\nDate: Thu, 15 Oct 2026 09:30:00 +0000\r\n"
+      "To: recipient@example.com\r\nSubject: Test Subject\r\n"
+      "Mime-Version: 1.0\r\nContent-Type: text/plain\r\n\r\n"
+      "Test Body\r\n.\r\n");
   }
 
   TEST_CASE("send_multiple_emails") {

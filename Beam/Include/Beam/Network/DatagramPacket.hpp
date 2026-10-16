@@ -87,7 +87,8 @@ class std::formatter<Beam::DatagramPacket<B>> :
   public:
     auto format(const Beam::DatagramPacket<B>& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("{}:{}", value.get_address(), value.get_data()), context);
+        std::format(context.locale(), "{}:{}", value.get_address(),
+          value.get_data()), context);
     }
 };
 

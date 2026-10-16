@@ -72,7 +72,7 @@
                                                                                \
   inline std::ostream& operator <<(                                            \
       std::ostream& out, BOOST_PP_CAT(name, EnumMembers)::Type value) {        \
-    return out << ::std::format("{}", value);                                  \
+    return out << ::std::format(out.getloc(), "{}", value);                    \
   }
 
 namespace Beam {
@@ -246,8 +246,10 @@ class std::formatter<T> : public std::formatter<std::string_view> {
         }();
         return std::formatter<std::string_view>::format(name, context);
       } else {
-        return std::formatter<std::string_view>::format(
-          Beam::to_string(value), context);
+        auto output = std::ostringstream();
+        output.imbue(context.locale());
+        output << value;
+        return std::formatter<std::string_view>::format(output.view(), context);
       }
     }
 };

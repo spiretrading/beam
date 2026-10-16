@@ -1,3 +1,4 @@
+#include <locale>
 #include <doctest/doctest.h>
 #include "Beam/Collections/Enum.hpp"
 #include "Beam/SerializationTests/ValueShuttleTests.hpp"
@@ -7,6 +8,17 @@ using namespace Beam;
 using namespace Beam::Tests;
 
 namespace {
+  class Grouping : public std::numpunct<char> {
+    protected:
+      char do_thousands_sep() const override {
+        return '_';
+      }
+
+      std::string do_grouping() const override {
+        return "\3";
+      }
+  };
+
   BEAM_ENUM(Fruit,
     APPLE,
     BANANA,
@@ -31,6 +43,13 @@ namespace {
 }
 
 TEST_SUITE("EnumTester") {
+  TEST_CASE("locale") {
+    auto locale = std::locale(std::locale::classic(), new Grouping());
+    REQUIRE(std::format(locale, "{}", Number(1234)) == "1_234");
+    REQUIRE(std::format(locale, "{}", static_cast<Number::Type>(1234)) ==
+      "1_234");
+  }
+
   TEST_CASE("format") {
     REQUIRE(std::format("{}", Fruit::APPLE) == "APPLE");
     REQUIRE(std::format("{}", Fruit(Fruit::BANANA)) == "BANANA");

@@ -1,3 +1,4 @@
+#include <locale>
 #include <doctest/doctest.h>
 #include "Beam/Queries/AndExpression.hpp"
 #include "Beam/Queries/BasicQuery.hpp"
@@ -20,6 +21,17 @@ using namespace Beam;
 using namespace boost::posix_time;
 
 namespace {
+  class Grouping : public std::numpunct<char> {
+    protected:
+      char do_thousands_sep() const override {
+        return '_';
+      }
+
+      std::string do_grouping() const override {
+        return "\3";
+      }
+  };
+
   struct StreamValue {
     int m_value;
 
@@ -51,6 +63,13 @@ namespace {
         return out << "streamed";
       }
   };
+
+  class NumberExpression : public StreamExpression {
+    protected:
+      std::ostream& to_stream(std::ostream& out) const override {
+        return out << "value:" << 1234;
+      }
+  };
 }
 
 template<>
@@ -58,7 +77,7 @@ class std::formatter<FormattedValue> : public std::formatter<std::string_view> {
   public:
     auto format(const FormattedValue& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("value:{}", value.m_value), context);
+        std::format(context.locale(), "value:{:L}", value.m_value), context);
     }
 };
 
@@ -73,6 +92,36 @@ namespace {
 }
 
 TEST_SUITE("QueryFormat") {
+  TEST_CASE("locale") {
+    auto locale = std::locale(std::locale::classic(), new Grouping());
+    auto test = [&] (const auto& value, const std::string& expected) {
+      REQUIRE(std::format(locale, "{}", value) == expected);
+      auto output = std::ostringstream();
+      output.imbue(locale);
+      output << value;
+      REQUIRE(output.str() == expected);
+    };
+    auto value = FormattedValue(1234);
+    test(IndexedQuery(value), "value:1_234");
+    test(IndexedValue(value, value), "(value:1_234 value:1_234)");
+    test(SequencedValue(IndexedValue(value, value), Sequence(42)),
+      "((value:1_234 value:1_234) 42)");
+    auto query = make_current_query(value);
+    query.set_filter(NumberExpression());
+    test(query, "(value:1_234 Total (TAIL 1) IGNORE_CONTINUE value:1_234)");
+    auto paged = PagedQuery<FormattedValue, FormattedValue>();
+    paged.set_index(value);
+    paged.set_anchor(value);
+    test(paged, "(value:1_234 None value:1_234 true)");
+    test(FilteredQuery(NumberExpression()), "value:1_234");
+    test(ExpressionQuery(NumberExpression()), "(ALL value:1_234)");
+    locale = std::locale(locale, new time_facet("%Y"));
+    auto range = Range(time_from_string("2026-10-15 09:30:00"),
+      time_from_string("2027-10-15 09:30:00"));
+    test(range, "(2026 2027)");
+    test(RangedQuery(range), "(2026 2027)");
+  }
+
   TEST_CASE("format_dependencies") {
     test_format(Value(true), "true");
     test_format(Value('a'), "a");

@@ -78,7 +78,7 @@ class std::formatter<Beam::RangedQuery> : public std::formatter<Beam::Range> {
 namespace Beam {
   inline std::ostream& operator <<(
       std::ostream& out, const RangedQuery& query) {
-    return out << std::format("{}", query);
+    return out << std::format(out.getloc(), "{}", query);
   }
 }
 

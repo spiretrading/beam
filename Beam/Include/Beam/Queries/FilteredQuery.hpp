@@ -99,14 +99,14 @@ class std::formatter<Beam::FilteredQuery> :
   public:
     auto format(const Beam::FilteredQuery& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("{}", value.get_filter()), context);
+        std::format(context.locale(), "{}", value.get_filter()), context);
     }
 };
 
 namespace Beam {
   inline std::ostream& operator <<(
       std::ostream& out, const FilteredQuery& query) {
-    return out << std::format("{}", query);
+    return out << std::format(out.getloc(), "{}", query);
   }
 }
 

@@ -49,7 +49,8 @@ class std::formatter<Beam::KeyValuePair<K, V>> :
   public:
     auto format(const Beam::KeyValuePair<K, V>& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("({} {})", value.m_key, value.m_value), context);
+        std::format(context.locale(), "({} {})", value.m_key, value.m_value),
+        context);
     }
 };
 
@@ -57,7 +58,7 @@ namespace Beam {
   template<typename K, typename V>
   std::ostream& operator <<(std::ostream& out, const KeyValuePair<K, V>& pair) {
     if constexpr(std::formattable<K, char> && std::formattable<V, char>) {
-      return out << std::format("{}", pair);
+      return out << std::format(out.getloc(), "{}", pair);
     } else {
       return out << '(' << pair.m_key << ' ' << pair.m_value << ')';
     }

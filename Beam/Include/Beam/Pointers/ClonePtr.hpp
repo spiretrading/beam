@@ -348,7 +348,7 @@ namespace Beam {
   template<typename T, typename C>
   std::ostream& operator <<(std::ostream& out, const ClonePtr<T, C>& object) {
     if constexpr(std::formattable<T, char>) {
-      return out << std::format("{}", object);
+      return out << std::format(out.getloc(), "{}", object);
     } else {
       return out << *object;
     }

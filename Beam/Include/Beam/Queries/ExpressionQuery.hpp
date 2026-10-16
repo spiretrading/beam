@@ -114,7 +114,7 @@ class std::formatter<Beam::ExpressionQuery> :
   public:
     auto format(const Beam::ExpressionQuery& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("({} {})", value.get_update_policy(),
+        std::format(context.locale(), "({} {})", value.get_update_policy(),
           value.get_expression()), context);
     }
 };
@@ -122,12 +122,12 @@ class std::formatter<Beam::ExpressionQuery> :
 namespace Beam {
   inline std::ostream& operator <<(
       std::ostream& out, ExpressionQuery::UpdatePolicy value) {
-    return out << std::format("{}", value);
+    return out << std::format(out.getloc(), "{}", value);
   }
 
   inline std::ostream& operator <<(
       std::ostream& out, const ExpressionQuery& query) {
-    return out << std::format("{}", query);
+    return out << std::format(out.getloc(), "{}", query);
   }
 }
 

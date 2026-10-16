@@ -190,7 +190,8 @@ class std::formatter<Beam::IndexedValue<V, I>> :
   public:
     auto format(const Beam::IndexedValue<V, I>& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("({} {})", value.get_index(), value.get_value()), context);
+        std::format(context.locale(), "({} {})", value.get_index(),
+          value.get_value()), context);
     }
 };
 
@@ -200,7 +201,7 @@ namespace Beam {
       std::ostream& out, const IndexedValue<Value, Index>& value) {
     if constexpr(std::formattable<Value, char> &&
         std::formattable<Index, char>) {
-      return out << std::format("{}", value);
+      return out << std::format(out.getloc(), "{}", value);
     } else {
       return out << '(' << value.get_index() << ' ' << value.get_value() << ')';
     }

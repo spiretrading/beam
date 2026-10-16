@@ -312,24 +312,28 @@ class std::formatter<Beam::Range> : public std::formatter<std::string_view> {
       } else if(value == Beam::Range::TOTAL) {
         return std::formatter<std::string_view>::format("Total", context);
       }
-      auto format_point = [] (const Beam::Range::Point& point) {
+      auto format_point = [&] (const Beam::Range::Point& point) {
         return Beam::visit(point,
-          [] (Beam::Sequence point) {
-            return std::format("{}", point);
+          [&] (Beam::Sequence point) {
+            return std::format(context.locale(), "{}", point);
           },
-          [] (const boost::posix_time::ptime& point) {
-            return Beam::to_string(point);
+          [&] (const boost::posix_time::ptime& point) {
+            auto output = std::ostringstream();
+            output.imbue(context.locale());
+            output << point;
+            return output.str();
           });
       };
       return std::formatter<std::string_view>::format(
-        std::format("({} {})", format_point(value.get_start()),
-          format_point(value.get_end())), context);
+        std::format(context.locale(), "({} {})",
+          format_point(value.get_start()), format_point(value.get_end())),
+        context);
     }
 };
 
 namespace Beam {
   inline std::ostream& operator <<(std::ostream& out, const Range& range) {
-    return out << std::format("{}", range);
+    return out << std::format(out.getloc(), "{}", range);
   }
 }
 

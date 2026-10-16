@@ -151,6 +151,7 @@ class std::formatter<T> : public std::formatter<std::string_view> {
   public:
     auto format(const T& value, auto& context) const {
       auto output = std::ostringstream();
+      output.imbue(context.locale());
       output << static_cast<const Beam::Streamable&>(value);
       return std::formatter<std::string_view>::format(output.view(), context);
     }
@@ -162,6 +163,7 @@ class std::formatter<Beam::Stream<T>> :
   public:
     auto format(const Beam::Stream<T>& value, auto& context) const {
       auto output = std::ostringstream();
+      output.imbue(context.locale());
       output << value;
       return std::formatter<std::string_view>::format(output.view(), context);
     }

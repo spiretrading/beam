@@ -191,8 +191,8 @@ class std::formatter<Beam::SequencedValue<T>> :
   public:
     auto format(const Beam::SequencedValue<T>& value, auto& context) const {
       return std::formatter<std::string_view>::format(
-        std::format("({} {})", value.get_value(), value.get_sequence()),
-        context);
+        std::format(context.locale(), "({} {})", value.get_value(),
+          value.get_sequence()), context);
     }
 };
 
@@ -201,7 +201,7 @@ namespace Beam {
   inline std::ostream& operator <<(
       std::ostream& out, const SequencedValue<T>& value) {
     if constexpr(std::formattable<T, char>) {
-      return out << std::format("{}", value);
+      return out << std::format(out.getloc(), "{}", value);
     } else {
       return out << '(' << value.get_value() << " " << value.get_sequence() <<
         ')';

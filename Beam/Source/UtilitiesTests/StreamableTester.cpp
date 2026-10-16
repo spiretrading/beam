@@ -1,10 +1,31 @@
+#include <locale>
 #include <doctest/doctest.h>
+#include "Beam/Pointers/ClonePtr.hpp"
+#include "Beam/Utilities/KeyValuePair.hpp"
 #include "Beam/Utilities/Streamable.hpp"
 #include "Beam/Utilities/ToString.hpp"
 
 using namespace Beam;
 
 namespace {
+  class Grouping : public std::numpunct<char> {
+    protected:
+      char do_thousands_sep() const override {
+        return '_';
+      }
+
+      std::string do_grouping() const override {
+        return "\3";
+      }
+  };
+
+  class Number : public Streamable {
+    protected:
+      std::ostream& to_stream(std::ostream& out) const override {
+        return out << 1234;
+      }
+  };
+
   class TestStreamable : public Streamable {
     public:
       TestStreamable(std::string name)
@@ -21,6 +42,26 @@ namespace {
 }
 
 TEST_SUITE("Streamable") {
+  TEST_CASE("locale") {
+    auto locale = std::locale(std::locale::classic(), new Grouping());
+    auto number = Number();
+    REQUIRE(std::format(locale, "{}", number) == "1_234");
+    auto values = std::vector{number};
+    REQUIRE(std::format(locale, "{}", Stream(values)) == "[1_234]");
+    auto pair = KeyValuePair(std::string("number"), number);
+    REQUIRE(std::format(locale, "{}", pair) == "(number 1_234)");
+    auto output = std::ostringstream();
+    output.imbue(locale);
+    output << pair;
+    REQUIRE(output.str() == "(number 1_234)");
+    auto clone = [] (const Number& value) { return new Number(value); };
+    auto pointer = ClonePtr<Number, decltype(clone)>(number);
+    REQUIRE(std::format(locale, "{}", pointer) == "1_234");
+    output.str("");
+    output << pointer;
+    REQUIRE(output.str() == "1_234");
+  }
+
   TEST_CASE("format_containers") {
     auto values = std::vector{1, 2, 3};
     REQUIRE(std::format("{}", Stream(values)) == "[1, 2, 3]");

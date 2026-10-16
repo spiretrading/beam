@@ -110,7 +110,7 @@ namespace Beam {
     out << '{';
     for(auto i = value.begin(); i != value.end(); ++i) {
       out << Stream(i->first) << ": " << Stream(i->second);
-      if(i != std::prev(value.end())) {
+      if(std::next(i) != value.end()) {
         out << ", ";
       }
     }
@@ -138,7 +138,7 @@ namespace Beam {
     out << '{';
     for(auto i = value.begin(); i != value.end(); ++i) {
       out << Stream(*i);
-      if(i != std::prev(value.end())) {
+      if(std::next(i) != value.end()) {
         out << ", ";
       }
     }

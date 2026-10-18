@@ -139,19 +139,6 @@ namespace Details {
   }
 #endif
 
-  inline ScheduledRoutine::ScheduledRoutine(
-      std::size_t stack_size, std::size_t context_id) noexcept
-      : m_is_pending_resume(false),
-        m_stack_size(stack_size),
-        m_stack_base(nullptr),
-        m_stack_extent(0) {
-    if(context_id == -1) {
-      m_context_id = get_id() % boost::thread::hardware_concurrency();
-    } else {
-      m_context_id = context_id;
-    }
-  }
-
 #ifndef BEAM_USE_DLL
   BEAM_DISABLE_OPTIMIZATIONS
   BEAM_EMIT_DLL inline void ScheduledRoutine::defer() {

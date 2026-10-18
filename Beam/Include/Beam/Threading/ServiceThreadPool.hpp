@@ -1,8 +1,9 @@
 #ifndef BEAM_SERVICE_THREAD_POOL_HPP
 #define BEAM_SERVICE_THREAD_POOL_HPP
+#include <algorithm>
 #include <memory>
+#include <thread>
 #include <boost/asio/io_context.hpp>
-#include <boost/thread/thread.hpp>
 #include "Beam/Network/UdpSocketReceiverConcept.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 #include "Beam/Utilities/Singleton.hpp"
@@ -36,7 +37,7 @@ namespace Beam {
       boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
         m_work;
       std::size_t m_thread_count;
-      std::unique_ptr<boost::thread[]> m_threads;
+      std::unique_ptr<std::thread[]> m_threads;
 
       ServiceThreadPool();
       ServiceThreadPool(const ServiceThreadPool&) = delete;
@@ -53,12 +54,22 @@ namespace Beam {
 
   inline ServiceThreadPool::ServiceThreadPool()
       : m_work(boost::asio::make_work_guard(m_service)),
-        m_thread_count(boost::thread::hardware_concurrency()),
-        m_threads(std::make_unique<boost::thread[]>(m_thread_count)) {
-    for(auto i = std::size_t(0); i < m_thread_count; ++i) {
-      m_threads[i] = boost::thread([this] {
-        m_service.run();
-      });
+        m_thread_count(std::max(1u, std::thread::hardware_concurrency())),
+        m_threads(std::make_unique<std::thread[]>(m_thread_count)) {
+    try {
+      for(auto i = std::size_t(0); i < m_thread_count; ++i) {
+        m_threads[i] = std::thread([this] {
+          m_service.run();
+        });
+      }
+    } catch(...) {
+      m_service.stop();
+      for(auto i = std::size_t(0); i < m_thread_count; ++i) {
+        if(m_threads[i].joinable()) {
+          m_threads[i].join();
+        }
+      }
+      throw;
     }
   }
 

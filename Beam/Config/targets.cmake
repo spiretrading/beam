@@ -8,8 +8,6 @@ if(UNIX)
     optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_DATE_TIME_LIBRARY_OPTIMIZED_PATH}
-    debug ${BOOST_THREAD_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_THREAD_LIBRARY_OPTIMIZED_PATH}
     Threads::Threads ${CMAKE_DL_LIBS})
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(BeamRoutines INTERFACE rt)

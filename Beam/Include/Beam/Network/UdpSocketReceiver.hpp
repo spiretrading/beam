@@ -5,6 +5,7 @@
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/chrono/system_clocks.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/DatagramPacket.hpp"

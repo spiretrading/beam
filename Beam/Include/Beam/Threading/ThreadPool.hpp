@@ -7,9 +7,10 @@
 #include <cstdint>
 #include <deque>
 #include <iostream>
+#include <memory>
 #include <mutex>
+#include <thread>
 #include <type_traits>
-#include <boost/thread/thread.hpp>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Utilities/BeamWorkaround.hpp"
 #include "Beam/Utilities/DllExport.hpp"
@@ -17,6 +18,9 @@
 #include "Beam/Utilities/Singleton.hpp"
 
 namespace Beam {
+namespace Tests {
+  struct ThreadPoolTester;
+}
 
   /** Implements a thread pool for running Tasks. */
   class BEAM_EXPORT_DLL ThreadPool : public Singleton<ThreadPool> {
@@ -43,6 +47,7 @@ namespace Beam {
 
     private:
       friend class Singleton<ThreadPool>;
+      friend struct Tests::ThreadPoolTester;
       struct TaskThread;
       struct BaseTask {
         virtual ~BaseTask() = default;
@@ -72,11 +77,10 @@ namespace Beam {
         ThreadPool* m_thread_pool;
         BaseTask* m_task;
         bool m_available;
-        bool m_stopped;
-        boost::thread m_thread;
+        std::thread m_thread;
         std::condition_variable m_task_available_condition;
 
-        TaskThread(ThreadPool& thread_pool);
+        TaskThread(ThreadPool& thread_pool, BaseTask& task);
 
         bool set_task(BaseTask& task);
         void run();
@@ -97,9 +101,9 @@ namespace Beam {
       ThreadPool();
       ThreadPool(const ThreadPool&) = delete;
       ThreadPool& operator =(const ThreadPool&) = delete;
-      void queue(BaseTask& task);
+      void queue(std::unique_ptr<BaseTask> task);
       bool add(TaskThread& task_thread);
-      void remove(TaskThread& task_thread);
+      bool remove(TaskThread& task_thread);
   };
 
   /**
@@ -152,12 +156,12 @@ namespace Beam {
     Invoker<F, R>()(m_function, std::move(m_result));
   }
 
-  inline ThreadPool::TaskThread::TaskThread(ThreadPool& thread_pool)
+  inline ThreadPool::TaskThread::TaskThread(
+      ThreadPool& thread_pool, BaseTask& task)
       : m_thread_pool(&thread_pool),
-        m_task(nullptr),
-        m_available(true),
-        m_stopped(false) {
-    m_thread = boost::thread([this] {
+        m_task(&task),
+        m_available(true) {
+    m_thread = std::thread([this] {
       run();
     });
   }
@@ -180,17 +184,15 @@ namespace Beam {
         if(!m_task) {
           auto wait_time = std::chrono::seconds(LOWER_BOUND_WAIT_TIME +
             rand() % (UPPER_BOUND_WAIT_TIME - LOWER_BOUND_WAIT_TIME));
-          if(!m_available ||
-              (m_task_available_condition.wait_for(lock, wait_time) ==
-                std::cv_status::timeout && !m_task) || !m_available) {
-            m_available = false;
-            auto stopped = m_stopped;
+          m_task_available_condition.wait_for(lock, wait_time, [&] {
+            return m_task || !m_available;
+          });
+          if(!m_task || !m_available) {
             lock.unlock();
-            if(!stopped) {
-              m_thread_pool->remove(*this);
+            if(m_thread_pool->remove(*this)) {
+              break;
             }
-            delete this;
-            return;
+            continue;
           }
         }
         assert(m_available);
@@ -203,16 +205,17 @@ namespace Beam {
         m_task = nullptr;
       }
       if(!m_thread_pool->add(*this)) {
-        delete this;
-        return;
+        m_thread_pool->remove(*this);
+        break;
       }
     }
+    m_thread.detach();
+    delete this;
   }
 
   inline void ThreadPool::TaskThread::stop() {
     auto lock = std::lock_guard(m_mutex);
     m_available = false;
-    m_stopped = true;
     m_task = nullptr;
     m_task_available_condition.notify_all();
   }
@@ -226,13 +229,13 @@ namespace Beam {
       task_thread->stop();
       m_threads.pop_back();
     }
-    if(m_active_threads != 0) {
-      m_threads_finished_condition.wait(lock);
-    }
+    m_threads_finished_condition.wait(lock, [&] {
+      return m_running_threads == 0;
+    });
   }
 
   inline ThreadPool::ThreadPool()
-    : m_max_thread_count(boost::thread::hardware_concurrency()),
+    : m_max_thread_count(std::max(1u, std::thread::hardware_concurrency())),
       m_running_threads(0),
       m_active_threads(0),
       m_queued_count(0),
@@ -251,8 +254,8 @@ namespace Beam {
   template<std::invocable<> F, typename R> requires
     std::convertible_to<std::invoke_result_t<F>, R>
   void ThreadPool::queue(F&& function, Eval<R> result) {
-    auto task = new Task<F, R>(std::forward<F>(function), std::move(result));
-    queue(*task);
+    queue(std::make_unique<Task<F, R>>(
+      std::forward<F>(function), std::move(result)));
   }
 
   inline void ThreadPool::wait_until_idle() {
@@ -262,25 +265,27 @@ namespace Beam {
     }
   }
 
-  inline void ThreadPool::queue(BaseTask& task) {
+  inline void ThreadPool::queue(std::unique_ptr<BaseTask> task) {
     auto lock = std::lock_guard(m_mutex);
     ++m_queued_count;
     auto is_thread_found = false;
     while(!is_thread_found) {
       if(m_threads.empty() && m_running_threads < m_max_thread_count) {
-        auto task_thread = new TaskThread(*this);
-        task_thread->set_task(task);
+        new TaskThread(*this, *task);
+        task.release();
         ++m_active_threads;
         ++m_running_threads;
         return;
       } else if(!m_tasks.empty() || m_threads.empty()) {
-        m_tasks.push_back(&task);
+        m_tasks.push_back(task.get());
+        task.release();
         return;
       }
       auto task_thread = m_threads.front();
       m_threads.pop_front();
-      is_thread_found = task_thread->set_task(task);
+      is_thread_found = task_thread->set_task(*task);
       if(is_thread_found) {
+        task.release();
         ++m_active_threads;
       }
     }
@@ -290,7 +295,6 @@ namespace Beam {
     auto lock = std::lock_guard(m_mutex);
     if(m_max_thread_count == 0) {
       --m_active_threads;
-      --m_running_threads;
       if(m_active_threads == 0) {
         m_threads_finished_condition.notify_all();
       }
@@ -307,21 +311,29 @@ namespace Beam {
     auto task = m_tasks.front();
     if(!task_thread.set_task(*task)) {
       --m_active_threads;
-      --m_running_threads;
       return false;
     }
     m_tasks.pop_front();
     return true;
   }
 
-  inline void ThreadPool::remove(TaskThread& task_thread) {
+  inline bool ThreadPool::remove(TaskThread& task_thread) {
     auto lock = std::lock_guard(m_mutex);
+    auto thread_lock = std::lock_guard(task_thread.m_mutex);
+    if(task_thread.m_task) {
+      return false;
+    }
+    task_thread.m_available = false;
     --m_running_threads;
     auto i = std::find(m_threads.begin(), m_threads.end(), &task_thread);
     if(i != m_threads.end()) {
       *i = m_threads.back();
       m_threads.pop_back();
     }
+    if(m_running_threads == 0) {
+      m_threads_finished_condition.notify_all();
+    }
+    return true;
   }
 }
 

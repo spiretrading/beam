@@ -11,7 +11,6 @@
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/DllExport.hpp"
-#include <boost/thread.hpp>
 
 namespace Beam {
 namespace Details {

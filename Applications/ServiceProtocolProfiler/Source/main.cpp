@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cstdio>
 #include <print>
+#include <thread>
 #include "Beam/Codecs/SizeDeclarativeDecoder.hpp"
 #include "Beam/Codecs/SizeDeclarativeEncoder.hpp"
 #include "Beam/Codecs/ZLibDecoder.hpp"
@@ -93,7 +95,7 @@ int main(int argc, const char** argv) {
       parse_command_line(argc, argv, "1.0-r" SERVICE_PROTOCOL_PROFILER_VERSION
         "\nCopyright (C) 2026 Spire Trading Inc.");
     auto client_count = extract<int>(config, "clients",
-      static_cast<int>(boost::thread::hardware_concurrency()));
+      static_cast<int>(std::max(1u, std::thread::hardware_concurrency())));
     auto server = LocalServerConnection();
     auto routines = RoutineHandlerGroup();
     routines.spawn([&] {

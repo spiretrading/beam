@@ -1,15 +1,16 @@
 #ifndef BEAM_SCHEDULER_HPP
 #define BEAM_SCHEDULER_HPP
+#include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <boost/thread/thread.hpp>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/ReportException.hpp"
@@ -101,7 +102,7 @@ namespace Details {
       friend class Beam::ScheduledRoutine;
       friend void resume(ScheduledRoutine*& routine);
       std::size_t m_thread_count;
-      std::unique_ptr<boost::thread[]> m_threads;
+      std::unique_ptr<std::thread[]> m_threads;
       Sync<RoutineIds> m_routine_ids;
       std::unique_ptr<Context[]> m_contexts;
       std::atomic_size_t m_busy_count;
@@ -119,14 +120,19 @@ namespace Details {
     : m_is_running(true) {}
 
   inline Scheduler::Scheduler()
-      : m_thread_count(boost::thread::hardware_concurrency()),
-        m_threads(std::make_unique<boost::thread[]>(m_thread_count)),
+      : m_thread_count(std::max(1u, std::thread::hardware_concurrency())),
+        m_threads(std::make_unique<std::thread[]>(m_thread_count)),
         m_contexts(std::make_unique<Context[]>(m_thread_count)),
         m_busy_count(0) {
-    for(auto i = std::size_t(0); i < m_thread_count; ++i) {
-      m_threads[i] = boost::thread([=, this] {
-        run(m_contexts[i]);
-      });
+    try {
+      for(auto i = std::size_t(0); i < m_thread_count; ++i) {
+        m_threads[i] = std::thread([=, this] {
+          run(m_contexts[i]);
+        });
+      }
+    } catch(...) {
+      stop();
+      throw;
     }
   }
 
@@ -241,7 +247,9 @@ namespace Details {
       context.m_pending_routines_available_condition.notify_all();
     }
     for(auto i = std::size_t(0); i != m_thread_count; ++i) {
-      m_threads[i].join();
+      if(m_threads[i].joinable()) {
+        m_threads[i].join();
+      }
     }
     for(auto i = std::size_t(0); i != m_thread_count; ++i) {
       auto& context = m_contexts[i];
@@ -344,6 +352,19 @@ namespace Details {
 
   inline void wait(Routine::Id id) {
     Details::Scheduler::get().wait(id);
+  }
+
+  inline ScheduledRoutine::ScheduledRoutine(
+      std::size_t stack_size, std::size_t context_id) noexcept
+      : m_is_pending_resume(false),
+        m_stack_size(stack_size),
+        m_stack_base(nullptr),
+        m_stack_extent(0) {
+    if(context_id == -1) {
+      m_context_id = get_id() % Details::Scheduler::get().get_thread_count();
+    } else {
+      m_context_id = context_id;
+    }
   }
 
   inline void ScheduledRoutine::resume() {

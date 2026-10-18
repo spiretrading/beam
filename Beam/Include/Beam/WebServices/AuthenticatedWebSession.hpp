@@ -1,7 +1,6 @@
 #ifndef BEAM_AUTHENTICATED_WEB_SESSION_HPP
 #define BEAM_AUTHENTICATED_WEB_SESSION_HPP
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Serialization/DataShuttle.hpp"
 #include "Beam/ServiceLocator/DirectoryEntry.hpp"
 #include "Beam/WebServices/WebSession.hpp"
@@ -39,7 +38,7 @@ namespace Beam {
 
     private:
       friend struct DataShuttle;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       DirectoryEntry m_account;
 
       AuthenticatedWebSession() noexcept;
@@ -50,29 +49,29 @@ namespace Beam {
     : WebSession(std::move(id)) {}
 
   inline bool AuthenticatedWebSession::is_logged_in() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_account.m_id != -1;
   }
 
   inline DirectoryEntry AuthenticatedWebSession::get_account() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_account;
   }
 
   inline void AuthenticatedWebSession::set_account(DirectoryEntry account) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     assert(m_account.m_id == -1);
     m_account = std::move(account);
   }
 
   inline void AuthenticatedWebSession::reset_account() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_account = {};
   }
 
   template<IsShuttle S>
   void AuthenticatedWebSession::shuttle(S& shuttle, unsigned int version) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     WebSession::shuttle(shuttle, version);
     shuttle.shuttle("account", m_account);
   }

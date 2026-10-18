@@ -1,6 +1,6 @@
 #ifndef BEAM_OPTIONAL_LOCK_HPP
 #define BEAM_OPTIONAL_LOCK_HPP
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 namespace Beam {
 
@@ -9,7 +9,7 @@ namespace Beam {
    * @tparam A <code>true</code> iff the mutex should be acquired.
    * @tparam M The type of mutex to acquire.
    */
-  template<bool A, typename M = boost::mutex>
+  template<bool A, typename M = std::mutex>
   class OptionalLock {};
 
   template<typename M>
@@ -26,7 +26,7 @@ namespace Beam {
       OptionalLock(M& mutex);
 
     private:
-      boost::lock_guard<Mutex> m_lock;
+      std::lock_guard<Mutex> m_lock;
 
       OptionalLock(const OptionalLock&) = delete;
       OptionalLock& operator =(const OptionalLock&) = delete;

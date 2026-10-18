@@ -1,7 +1,7 @@
 #ifndef BEAM_SESSION_CACHED_DATA_STORE_ENTRY_HPP
 #define BEAM_SESSION_CACHED_DATA_STORE_ENTRY_HPP
 #include <atomic>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
@@ -63,7 +63,7 @@ namespace Beam {
 
         DataStoreEntry(boost::posix_time::ptime timestamp, Sequence sequence);
       };
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       local_ptr_t<D> m_data_store;
       int m_block_size;
       CallOnce<Mutex> m_initializer;
@@ -131,7 +131,7 @@ namespace Beam {
     auto cache = initialize_cache(value->get_index());
     auto size = cache->m_size.load();
     if(size > 2 * m_block_size) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       auto data = cache->m_data_store.load_all();
       auto reference_value = data[m_block_size - 1];
       data.erase(data.begin(), data.begin() + m_block_size);
@@ -162,7 +162,7 @@ namespace Beam {
           get_timestamp(*data.back()), data.back().get_sequence());
       }
     });
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_cache;
   }
 }

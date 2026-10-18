@@ -5,10 +5,10 @@
 #include <deque>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <type_traits>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/thread/locks.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/TimedConditionVariable.hpp"
@@ -161,7 +161,7 @@ namespace Beam {
   template<typename T, typename B> requires std::invocable<B> &&
     std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   void ResourcePool<T, B>::reset() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_objects.size() != m_current_count) {
       m_is_available_condition.wait(lock);
     }
@@ -176,7 +176,7 @@ namespace Beam {
     std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   ScopedResource<typename ResourcePool<T, B>::Type,
       typename ResourcePool<T, B>::Builder> ResourcePool<T, B>::load() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     auto is_unconditionally_waiting = false;
     while(m_objects.empty()) {
       if(is_unconditionally_waiting || m_current_count >= m_max_count) {
@@ -206,7 +206,7 @@ namespace Beam {
     std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   boost::optional<ScopedResource<typename ResourcePool<T, B>::Type,
       typename ResourcePool<T, B>::Builder>> ResourcePool<T, B>::try_load() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_objects.empty()) {
       return boost::none;
     }
@@ -218,7 +218,7 @@ namespace Beam {
   template<typename T, typename B> requires std::invocable<B> &&
     std::convertible_to<std::invoke_result_t<B>, std::unique_ptr<T>>
   void ResourcePool<T, B>::add(std::unique_ptr<Type> object) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_objects.push_back(std::move(object));
     m_is_available_condition.notify_one();
   }

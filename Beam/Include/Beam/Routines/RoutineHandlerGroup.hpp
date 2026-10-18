@@ -1,7 +1,7 @@
 #ifndef BEAM_ROUTINE_HANDLER_GROUP_HPP
 #define BEAM_ROUTINE_HANDLER_GROUP_HPP
+#include <mutex>
 #include <vector>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Routines/RoutineHandler.hpp"
 
 namespace Beam {
@@ -36,7 +36,7 @@ namespace Beam {
       void wait();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::vector<RoutineHandler> m_routines;
   };
 
@@ -45,7 +45,7 @@ namespace Beam {
   }
 
   inline void RoutineHandlerGroup::add(RoutineHandler&& handler) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_routines.push_back(std::move(handler));
   }
 
@@ -61,7 +61,7 @@ namespace Beam {
   inline void RoutineHandlerGroup::wait() {
     auto routines = std::vector<RoutineHandler>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       routines.swap(m_routines);
     }
   }

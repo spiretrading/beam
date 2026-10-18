@@ -1,9 +1,9 @@
 #ifndef BEAM_ASYNC_HPP
 #define BEAM_ASYNC_HPP
 #include <exception>
+#include <mutex>
 #include <variant>
 #include <boost/call_traits.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 
@@ -69,7 +69,7 @@ namespace Beam {
 
     private:
       friend class Eval<Type>;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       SuspendedRoutineQueue m_suspended_routines;
       std::variant<std::monostate, Type, std::exception_ptr> m_result;
 
@@ -95,7 +95,7 @@ namespace Beam {
 
     private:
       friend class Eval<Type>;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       SuspendedRoutineQueue m_suspended_routines;
       std::variant<
         std::monostate, std::monostate, std::exception_ptr> m_result;

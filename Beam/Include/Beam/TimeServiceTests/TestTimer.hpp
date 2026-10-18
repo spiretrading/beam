@@ -29,7 +29,7 @@ namespace Beam::Tests {
 
     private:
       friend class TimeServiceTestEnvironment;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
       TimeServiceTestEnvironment* m_environment;
       bool m_has_started;

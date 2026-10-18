@@ -123,7 +123,7 @@ namespace Beam {
   std::shared_ptr<typename ServiceProtocolClientHandler<B>::Client>
       ServiceProtocolClientHandler<B>::get_client() {
     while(true) {
-      auto lock = boost::unique_lock(m_mutex);
+      auto lock = std::unique_lock(m_mutex);
       if(m_client) {
         return m_client;
       }
@@ -180,7 +180,7 @@ namespace Beam {
       return;
     }
     auto [client, reconnect_timer] = [&] {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       return std::tuple(std::exchange(m_client, nullptr),
         std::exchange(m_reconnect_timer, nullptr));
     }();
@@ -207,7 +207,7 @@ namespace Beam {
           }
         }
       } catch(const std::exception&) {
-        auto lock = boost::lock_guard(m_mutex);
+        auto lock = std::lock_guard(m_mutex);
         if(client == m_client) {
           m_client = nullptr;
         }

@@ -1,12 +1,12 @@
 #ifndef BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
 #define BEAM_PROTOCOL_SERVICE_LOCATOR_CLIENT_HPP
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
@@ -108,7 +108,7 @@ namespace Beam {
         ServiceEntry m_service;
         std::uint64_t m_generation;
       };
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       ServiceProtocolClient* m_connection;
       std::uint64_t m_generation;
       std::string m_username;
@@ -221,20 +221,20 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
 
   template<typename B>
   DirectoryEntry ProtocolServiceLocatorClient<B>::get_account() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_account;
   }
 
   template<typename B>
   std::string ProtocolServiceLocatorClient<B>::get_session_id() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_session_id;
   }
 
   template<typename B>
   std::string ProtocolServiceLocatorClient<B>::get_encrypted_session_id(
       unsigned int key) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return compute_sha(std::to_string(key) + m_session_id);
   }
 
@@ -560,7 +560,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
   template<typename B>
   std::uint64_t ProtocolServiceLocatorClient<B>::get_generation(
       const ServiceProtocolClient& client) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_connection != &client) {
       return 0;
     }
@@ -581,7 +581,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
         throw;
       }
     }();
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;
     if(m_generation == 0) {
@@ -605,7 +605,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
         throw;
       }
     }();
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_account = result.account;
     m_session_id = result.session_id;
     if(m_generation == 0) {
@@ -650,7 +650,7 @@ BEAM_UNSUPPRESS_THIS_INITIALIZER()
   void ProtocolServiceLocatorClient<B>::on_reconnect(
       const std::shared_ptr<ServiceProtocolClient>& client) {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_connection = client.get();
       ++m_generation;
     }

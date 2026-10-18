@@ -1,7 +1,7 @@
 #ifndef BEAM_SERVICE_UID_CLIENT_HPP
 #define BEAM_SERVICE_UID_CLIENT_HPP
-#include <boost/thread/mutex.hpp>
 #include <cstdint>
+#include <mutex>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
@@ -37,7 +37,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       Beam::ServiceProtocolClientHandler<B> m_client_handler;
       std::uint64_t m_next_uid;
       std::uint64_t m_last_uid;
@@ -68,7 +68,7 @@ namespace Beam {
 
   template<typename B>
   std::uint64_t ServiceUidClient<B>::load_next_uid() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_next_uid > m_last_uid) {
       if(m_next_uid == m_last_uid + 1) {
         ++m_next_uid;

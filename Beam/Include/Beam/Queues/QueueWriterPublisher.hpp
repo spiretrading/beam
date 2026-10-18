@@ -1,8 +1,8 @@
 #ifndef BEAM_QUEUE_WRITER_PUBLISHER_HPP
 #define BEAM_QUEUE_WRITER_PUBLISHER_HPP
 #include <memory>
+#include <mutex>
 #include <vector>
-#include <boost/thread/locks.hpp>
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
@@ -42,19 +42,19 @@ namespace Beam {
 
   template<typename T>
   int QueueWriterPublisher<T>::get_size() const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return static_cast<int>(m_queues.size());
   }
 
   template<typename T>
   void QueueWriterPublisher<T>::with(const std::function<void ()>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f();
   }
 
   template<typename T>
   void QueueWriterPublisher<T>::push(const Target& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_queues.begin();
     while(i != m_queues.end()) {
       auto& queue = *i;
@@ -74,7 +74,7 @@ namespace Beam {
 
   template<typename T>
   void QueueWriterPublisher<T>::close(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_exception = e;
     for(auto& queue : m_queues) {
       queue.close(e);
@@ -84,7 +84,7 @@ namespace Beam {
 
   template<typename T>
   void QueueWriterPublisher<T>::monitor(ScopedQueueWriter<Target> queue) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_exception) {
       queue.close(m_exception);
     } else {

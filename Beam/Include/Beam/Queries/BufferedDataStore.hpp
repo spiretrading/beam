@@ -4,9 +4,8 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <vector>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -86,7 +85,7 @@ namespace Beam {
     private:
       using ReserveDataStore =
         LocalDataStore<Query, Value, EvaluatorTranslatorFilter>;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       local_ptr_t<D> m_data_store;
       ExceptionHandler m_exception_handler;
       std::size_t m_buffer_size;
@@ -134,7 +133,7 @@ namespace Beam {
       BufferedDataStore<D, E>::load(const Query& query) {
     auto buffer = std::shared_ptr<ReserveDataStore>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       buffer = m_flushed_data_store;
     }
     auto matches = std::vector<SequencedValue>();
@@ -171,7 +170,7 @@ namespace Beam {
 
   template<typename D, typename E>
   void BufferedDataStore<D, E>::store(const IndexedValue& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     ++m_buffer_count;
     m_data_store_buffer->store(value);
     test_flush();
@@ -179,7 +178,7 @@ namespace Beam {
 
   template<typename D, typename E>
   void BufferedDataStore<D, E>::store(const std::vector<IndexedValue>& values) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_buffer_count += values.size();
     m_data_store_buffer->store(values);
     test_flush();
@@ -213,7 +212,7 @@ namespace Beam {
   void BufferedDataStore<D, E>::flush() {
     auto data_size = std::make_shared<ReserveDataStore>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       data_size.swap(m_data_store_buffer);
     }
     try {
@@ -221,7 +220,7 @@ namespace Beam {
     } catch(...) {
       {
         auto failed = data_size->load_all();
-        auto lock = boost::lock_guard(m_mutex);
+        auto lock = std::lock_guard(m_mutex);
         m_data_store_buffer->store(failed);
       }
       if(m_exception_handler) {
@@ -231,7 +230,7 @@ namespace Beam {
       }
     }
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_flushed_data_store = m_data_store_buffer;
     }
   }

@@ -80,7 +80,7 @@ namespace Beam {
 
   template<typename K, typename V>
   void TablePublisher<K, V>::erase(const Key& key) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_table.find(key);
     if(i == m_table.end()) {
       return;
@@ -92,7 +92,7 @@ namespace Beam {
 
   template<typename K, typename V>
   void TablePublisher<K, V>::erase(const Key& key, const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_table.find(key);
     if(i == m_table.end()) {
       return;
@@ -104,27 +104,27 @@ namespace Beam {
   template<typename K, typename V>
   void TablePublisher<K, V>::with(
       const std::function<void (boost::optional<const Snapshot&>)>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f(m_table);
   }
 
   template<typename K, typename V>
   void TablePublisher<K, V>::monitor(ScopedQueueWriter<Type> queue,
       Out<boost::optional<Snapshot>> snapshot) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     *snapshot = m_table;
     m_publisher.monitor(std::move(queue));
   }
 
   template<typename K, typename V>
   void TablePublisher<K, V>::with(const std::function<void ()>& f) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     f();
   }
 
   template<typename K, typename V>
   void TablePublisher<K, V>::monitor(ScopedQueueWriter<Type> queue) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     for(auto& i : m_table) {
       queue.push(Type(i.first, i.second));
     }
@@ -133,21 +133,21 @@ namespace Beam {
 
   template<typename K, typename V>
   void TablePublisher<K, V>::push(const Type& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_table[value.m_key] = value.m_value;
     m_publisher.push(value);
   }
 
   template<typename K, typename V>
   void TablePublisher<K, V>::push(Type&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_table[value.m_key] = value.m_value;
     m_publisher.push(std::move(value));
   }
 
   template<typename K, typename V>
   void TablePublisher<K, V>::close(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_publisher.close(e);
   }
 }

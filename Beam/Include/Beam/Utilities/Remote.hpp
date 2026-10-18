@@ -3,8 +3,8 @@
 #include <atomic>
 #include <exception>
 #include <functional>
+#include <mutex>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Threading/PreferredConditionVariable.hpp"
 
@@ -15,7 +15,7 @@ namespace Beam {
    * @tparam T The type of value to load.
    * @tparam M The type of mutex used to synchronize the initialization.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class Remote {
     public:
 
@@ -106,7 +106,7 @@ namespace Beam {
     if(m_is_available) {
       return *m_value;
     }
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(!m_is_available && !m_is_loading) {
       m_is_loading = true;
       m_initialization_exception = nullptr;

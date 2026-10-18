@@ -48,7 +48,7 @@ namespace Beam {
   }
 
   inline void TriggerTimer::trigger() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_result = Timer::Result::EXPIRED;
     if(m_state == 0) {
       m_state = 2;
@@ -58,7 +58,7 @@ namespace Beam {
   }
 
   inline void TriggerTimer::fail() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_result = Timer::Result::FAIL;
     if(m_state == 0) {
       m_state = 2;
@@ -68,7 +68,7 @@ namespace Beam {
   }
 
   inline void TriggerTimer::start() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_state == 0) {
       m_state = 1;
     } else if(m_state == 2) {
@@ -77,7 +77,7 @@ namespace Beam {
   }
 
   inline void TriggerTimer::cancel() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_state == 1) {
       m_result = Timer::Result::CANCELED;
       publish();
@@ -87,7 +87,7 @@ namespace Beam {
   }
 
   inline void TriggerTimer::wait() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_state != 0) {
       m_trigger.wait(lock);
     }

@@ -3,8 +3,8 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
@@ -107,7 +107,7 @@ namespace Beam {
     std::invocable<const typename QueueWriter<T>::Target&> F,
     std::invocable<const std::exception_ptr&> B>
   void CallbackQueueWriter<T, F, B>::push(const Target& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
@@ -118,7 +118,7 @@ namespace Beam {
     std::invocable<const typename QueueWriter<T>::Target&> F,
     std::invocable<const std::exception_ptr&> B>
   void CallbackQueueWriter<T, F, B>::push(Target&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_exception) {
       std::rethrow_exception(m_exception);
     }
@@ -130,7 +130,7 @@ namespace Beam {
     std::invocable<const std::exception_ptr&> B>
   void CallbackQueueWriter<T, F, B>::close(const std::exception_ptr& e) {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_exception) {
         return;
       }

@@ -1,10 +1,10 @@
 #ifndef BEAM_SYNC_HPP
 #define BEAM_SYNC_HPP
+#include <mutex>
 #include <shared_mutex>
 #include <type_traits>
 #include <utility>
 #include <variant>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Threading/LockRelease.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
@@ -44,7 +44,7 @@ namespace Details {
    * @tparam T The type of value to store.
    * @tparam M The type of mutex to use.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class Sync {
     public:
 

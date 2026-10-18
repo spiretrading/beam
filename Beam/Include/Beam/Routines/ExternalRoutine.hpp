@@ -1,7 +1,7 @@
 #ifndef BEAM_EXTERNAL_ROUTINE_HPP
 #define BEAM_EXTERNAL_ROUTINE_HPP
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
+#include <condition_variable>
+#include <mutex>
 #include "Beam/Routines/Routine.hpp"
 
 namespace Beam {
@@ -23,8 +23,8 @@ namespace Beam {
       void resume() override;
 
     private:
-      mutable boost::mutex m_mutex;
-      mutable boost::condition_variable m_suspended_condition;
+      mutable std::mutex m_mutex;
+      mutable std::condition_variable m_suspended_condition;
       bool m_is_pending_resume;
   };
 
@@ -46,7 +46,7 @@ namespace Beam {
   }
 
   inline void ExternalRoutine::suspend() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     set(State::SUSPENDED);
     if(m_is_pending_resume) {
       m_is_pending_resume = false;
@@ -58,7 +58,7 @@ namespace Beam {
   }
 
   inline void ExternalRoutine::resume() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(get_state() == State::PENDING_SUSPEND) {
       m_is_pending_resume = true;
       return;

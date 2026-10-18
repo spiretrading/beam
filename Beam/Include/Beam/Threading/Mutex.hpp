@@ -1,7 +1,6 @@
 #ifndef BEAM_MUTEX_HPP
 #define BEAM_MUTEX_HPP
-#include <boost/thread/lock_types.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/LockRelease.hpp"
@@ -29,7 +28,7 @@ namespace Beam {
       void unlock();
 
     private:
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       int m_counter;
       SuspendedRoutineQueue m_suspended_routines;
 
@@ -47,7 +46,7 @@ namespace Beam {
 #endif
 
   inline void Mutex::lock() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
       auto routine = SuspendedRoutineNode();
@@ -59,7 +58,7 @@ namespace Beam {
   }
 
   inline bool Mutex::try_lock() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_counter > 0) {
       return false;
     }
@@ -70,7 +69,7 @@ namespace Beam {
   inline void Mutex::unlock() {
     auto routine = static_cast<Routine*>(nullptr);
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       --m_counter;
       if(m_counter == 0) {
         return;

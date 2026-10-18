@@ -4,8 +4,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
@@ -151,7 +150,7 @@ namespace Details {
     private:
       using ReserveDataStore =
         LocalDataStore<Query, Value, EvaluatorTranslatorFilter>;
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       local_ptr_t<D> m_data_store;
       ExceptionHandler m_exception_handler;
       std::shared_ptr<ReserveDataStore> m_current_data_store;
@@ -197,7 +196,7 @@ namespace Details {
   std::vector<typename AsyncDataStore<D, E>::SequencedValue>
       AsyncDataStore<D, E>::load(const Query& query) {
     auto [current_data_store, flushed_data_store] = [&] {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       return std::tuple(m_current_data_store, m_flushed_data_store);
     }();
     if(query.get_snapshot_limit().get_type() == SnapshotLimit::Type::HEAD) {
@@ -213,14 +212,14 @@ namespace Details {
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::store(const IndexedValue& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_current_data_store->store(value);
     test_flush();
   }
 
   template<typename D, typename E>
   void AsyncDataStore<D, E>::store(const std::vector<IndexedValue>& values) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_current_data_store->store(values);
     test_flush();
   }
@@ -248,7 +247,7 @@ namespace Details {
   template<typename D, typename E>
   void AsyncDataStore<D, E>::flush() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_flushed_data_store.swap(m_current_data_store);
       m_is_flushing = false;
     }
@@ -257,7 +256,7 @@ namespace Details {
     } catch(...) {
       {
         auto failed = m_flushed_data_store->load_all();
-        auto lock = boost::lock_guard(m_mutex);
+        auto lock = std::lock_guard(m_mutex);
         m_current_data_store->store(failed);
       }
       if(m_exception_handler) {
@@ -268,7 +267,7 @@ namespace Details {
     }
     auto new_data_store = std::make_shared<ReserveDataStore>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_flushed_data_store = std::move(new_data_store);
     }
   }

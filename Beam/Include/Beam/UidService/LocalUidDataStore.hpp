@@ -48,7 +48,7 @@ namespace Beam {
 
   template<std::invocable<> F>
   decltype(auto) LocalUidDataStore::with_transaction(F&& transaction) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return std::forward<F>(transaction)();
   }
 

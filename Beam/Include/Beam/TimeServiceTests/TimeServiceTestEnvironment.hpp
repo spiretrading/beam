@@ -62,7 +62,7 @@ namespace Beam::Tests {
       TimeServiceTestEnvironment& operator =(
         const TimeServiceTestEnvironment&) = delete;
       void locked_set(
-        boost::posix_time::ptime time, boost::unique_lock<Mutex>& lock);
+        boost::posix_time::ptime time, std::unique_lock<Mutex>& lock);
       void add(TestTimeClient* client);
       void remove(TestTimeClient* client);
       void add(TestTimer* timer);
@@ -94,14 +94,14 @@ namespace Beam::Tests {
         TimeServiceTestEnvironmentException("Invalid date/time."));
     }
     flush_pending_routines();
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     locked_set(time, lock);
   }
 
   inline void TimeServiceTestEnvironment::advance(
       boost::posix_time::time_duration duration) {
     flush_pending_routines();
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_current_time == boost::posix_time::not_a_date_time) {
       m_current_time = boost::posix_time::ptime(
         boost::gregorian::date(2016, 8, 14), boost::posix_time::seconds(0));
@@ -110,7 +110,7 @@ namespace Beam::Tests {
   }
 
   inline boost::posix_time::ptime TimeServiceTestEnvironment::get_time() const {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     return m_current_time;
   }
 
@@ -127,7 +127,7 @@ namespace Beam::Tests {
   }
 
   inline void TimeServiceTestEnvironment::locked_set(
-      boost::posix_time::ptime time, boost::unique_lock<Mutex>& lock) {
+      boost::posix_time::ptime time, std::unique_lock<Mutex>& lock) {
     if(m_current_time != boost::posix_time::not_a_date_time &&
         m_current_time >= time) {
       return;
@@ -190,7 +190,7 @@ namespace Beam::Tests {
       return;
     }
     auto entry = TimerEntry(timer, timer->m_interval);
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_timers.push_back(entry);
     m_next_trigger = std::min(m_next_trigger, timer->m_interval);
   }
@@ -213,7 +213,7 @@ namespace Beam::Tests {
 
   inline void TestTimer::start() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_has_started) {
         return;
       }
@@ -225,7 +225,7 @@ namespace Beam::Tests {
 
   inline void TestTimer::cancel() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(!m_has_started) {
         return;
       }
@@ -245,7 +245,7 @@ namespace Beam::Tests {
 
   inline void TestTimer::trigger() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_has_started = false;
     }
     m_timer.trigger();
@@ -253,7 +253,7 @@ namespace Beam::Tests {
 
   inline void TestTimer::fail() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_has_started = false;
     }
     m_timer.fail();

@@ -1,8 +1,7 @@
 #ifndef BEAM_SERVICE_RESULT_HPP
 #define BEAM_SERVICE_RESULT_HPP
 #include <exception>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Routines/Async.hpp"
 
 namespace Beam::Tests {
@@ -54,7 +53,7 @@ namespace Beam::Tests {
       void set(const std::exception_ptr& e) override;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       bool m_is_set;
       Eval<Result> m_result;
   };
@@ -83,7 +82,7 @@ namespace Beam::Tests {
       void set(const std::exception_ptr& e) override;
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       bool m_is_set;
       Eval<Result> m_result;
   };
@@ -95,7 +94,7 @@ namespace Beam::Tests {
 
   template<typename T>
   void ServiceResult<T>::set(const Result& result) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_set) {
       return;
     }
@@ -105,7 +104,7 @@ namespace Beam::Tests {
 
   template<typename T>
   void ServiceResult<T>::set(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_set) {
       return;
     }
@@ -118,7 +117,7 @@ namespace Beam::Tests {
       m_result(std::move(result)) {}
 
   inline void ServiceResult<void>::set() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_set) {
       return;
     }
@@ -127,7 +126,7 @@ namespace Beam::Tests {
   }
 
   inline void ServiceResult<void>::set(const std::exception_ptr& e) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_set) {
       return;
     }

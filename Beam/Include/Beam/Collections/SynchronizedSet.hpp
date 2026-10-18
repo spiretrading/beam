@@ -1,11 +1,10 @@
 #ifndef BEAM_SYNCHRONIZED_SET_HPP
 #define BEAM_SYNCHRONIZED_SET_HPP
 #include <concepts>
+#include <mutex>
 #include <unordered_set>
 #include <utility>
 #include <boost/optional/optional.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -15,7 +14,7 @@ namespace Beam {
    * @tparam T The type of set to wrap.
    * @tparam M The type of mutex used for synchronization.
    */
-  template<typename T, typename M = boost::mutex>
+  template<typename T, typename M = std::mutex>
   class SynchronizedSet {
     public:
 
@@ -137,46 +136,46 @@ namespace Beam {
    * @param K The set's key.
    * @param M The type of mutex used to synchronized this container.
    */
-  template<typename K, typename M = boost::mutex>
+  template<typename K, typename M = std::mutex>
   using SynchronizedUnorderedSet = SynchronizedSet<std::unordered_set<K>, M>;
 
   template<typename T, typename M>
   template<typename U, typename V> requires std::constructible_from<
     typename T::value_type, const typename U::value_type&>
   SynchronizedSet<T, M>::SynchronizedSet(const SynchronizedSet<U, V>& set) {
-    auto lock = boost::lock_guard(set.m_mutex);
+    auto lock = std::lock_guard(set.m_mutex);
     m_set.insert(m_set.end(), set.m_set.begin(), set.m_set.end());
   }
 
   template<typename T, typename M>
   SynchronizedSet<T, M>::SynchronizedSet(const SynchronizedSet& set) {
-    auto lock = boost::lock_guard(set.m_mutex);
+    auto lock = std::lock_guard(set.m_mutex);
     m_set = set.m_set;
   }
 
   template<typename T, typename M>
   SynchronizedSet<T, M>::SynchronizedSet(SynchronizedSet&& set) {
-    auto lock = boost::lock_guard(set.m_mutex);
+    auto lock = std::lock_guard(set.m_mutex);
     m_set = std::move(set.m_set);
   }
 
   template<typename T, typename M>
   bool SynchronizedSet<T, M>::contains(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.find(value) != m_set.end();
   }
 
   template<typename T, typename M>
   typename SynchronizedSet<T, M>::Value
       SynchronizedSet<T, M>::get(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return *m_set.insert(value).first;
   }
 
   template<typename T, typename M>
   template<IsConstructibleTo<typename T::value_type> V>
   bool SynchronizedSet<T, M>::insert(V&& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.emplace(std::forward<V>(value)).second;
   }
 
@@ -184,14 +183,14 @@ namespace Beam {
   template<typename... Args> requires
     std::constructible_from<typename T::value_type, Args...>
   bool SynchronizedSet<T, M>::emplace(Args&&... args) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return m_set.emplace(std::forward<Args>(args)...).second;
   }
 
   template<typename T, typename M>
   boost::optional<typename SynchronizedSet<T, M>::Value>
       SynchronizedSet<T, M>::try_load(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_set.find(value);
     if(i == m_set.end()) {
       return boost::none;
@@ -202,7 +201,7 @@ namespace Beam {
   template<typename T, typename M>
   boost::optional<const typename SynchronizedSet<T, M>::Value&>
       SynchronizedSet<T, M>::find(const Value& value) const {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto i = m_set.find(value);
     if(i == m_set.end()) {
       return boost::none;
@@ -213,7 +212,7 @@ namespace Beam {
   template<typename T, typename M>
   template<std::invocable F>
   void SynchronizedSet<T, M>::test_and_set(const Value& value, F&& f) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_set.find(value) != m_set.end()) {
       return;
     }
@@ -223,7 +222,7 @@ namespace Beam {
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::update(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     auto entry = m_set.insert(value);
     if(entry.second) {
       return;
@@ -235,7 +234,7 @@ namespace Beam {
   template<typename T, typename M>
   template<typename Self, IsInvocableLike<Self, typename T::value_type> F>
   void SynchronizedSet<T, M>::for_each(this Self&& self, F f) {
-    auto lock = boost::lock_guard(self.m_mutex);
+    auto lock = std::lock_guard(self.m_mutex);
     if constexpr(std::is_const_v<std::remove_reference_t<Self>> ||
         std::is_lvalue_reference_v<Self>) {
       for(auto& value : self.m_set) {
@@ -252,27 +251,27 @@ namespace Beam {
   void SynchronizedSet<T, M>::clear() {
     auto set = Set();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       set.swap(m_set);
     }
   }
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::erase(const Value& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_set.erase(value);
   }
 
   template<typename T, typename M>
   void SynchronizedSet<T, M>::swap(Set& set) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     m_set.swap(set);
   }
 
   template<typename T, typename M>
   template<typename Self, IsInvocableLike<Self, T> F>
   decltype(auto) SynchronizedSet<T, M>::with(this Self&& self, F&& f) {
-    auto lock = boost::lock_guard(self.m_mutex);
+    auto lock = std::lock_guard(self.m_mutex);
     return std::forward<F>(f)(std::forward<Self>(self).m_set);
   }
 }

@@ -60,7 +60,7 @@ namespace Beam {
   }
 
   inline void LiveTimer::start() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_pending) {
       return;
     }
@@ -68,7 +68,7 @@ namespace Beam {
     m_deadline_timer.expires_after(
       std::chrono::microseconds(m_interval.total_microseconds()));
     m_deadline_timer.async_wait([this] (const auto& error) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(error) {
         m_publisher.push(Timer::Result::CANCELED);
       } else {
@@ -80,7 +80,7 @@ namespace Beam {
   }
 
   inline void LiveTimer::cancel() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     if(m_is_pending) {
       m_deadline_timer.cancel();
       while(m_is_pending) {
@@ -90,7 +90,7 @@ namespace Beam {
   }
 
   inline void LiveTimer::wait() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_is_pending) {
       m_trigger.wait(lock);
     }

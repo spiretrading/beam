@@ -2,7 +2,7 @@
 #define BEAM_CALL_ONCE_HPP
 #include <atomic>
 #include <concepts>
-#include <boost/thread/locks.hpp>
+#include <mutex>
 
 namespace Beam {
 
@@ -51,7 +51,7 @@ namespace Beam {
     if(m_is_initialized.load(std::memory_order_acquire)) {
       return false;
     }
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     if(m_is_initialized.load(std::memory_order_acquire)) {
       return false;
     }

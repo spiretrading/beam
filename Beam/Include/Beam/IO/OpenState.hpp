@@ -3,7 +3,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
@@ -48,7 +48,7 @@ namespace Beam {
         CLOSING,
         CLOSED
       };
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::atomic<State> m_state;
       ConditionVariable m_closing_condition;
 
@@ -91,7 +91,7 @@ namespace Beam {
     if(expected == State::CLOSED) {
       return true;
     }
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_state != State::CLOSED) {
       m_closing_condition.wait(lock);
     }
@@ -100,7 +100,7 @@ namespace Beam {
 
   inline void OpenState::close() {
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       if(m_state.exchange(State::CLOSED) == State::CLOSED) {
         return;
       }

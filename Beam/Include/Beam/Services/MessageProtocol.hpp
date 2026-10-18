@@ -2,9 +2,9 @@
 #define BEAM_MESSAGE_PROTOCOL_HPP
 #include <cstdint>
 #include <format>
+#include <mutex>
 #include <utility>
 #include <boost/endian.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
@@ -115,7 +115,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       OpenState m_open_state;
       local_ptr_t<C> m_channel;
       AsyncWriter<typename Channel::Writer*> m_writer;
@@ -165,7 +165,7 @@ namespace Beam {
     IsChannel<dereference_t<C>>
   template<typename T>
   std::unique_ptr<T> MessageProtocol<C, S, E>::clone(const T& value) {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     return shuttle_clone(value, m_sender, m_receiver);
   }
 
@@ -177,7 +177,7 @@ namespace Beam {
     append(*buffer, std::uint32_t(0));
     auto serialization_buffer = B();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_sender.set(Ref(serialization_buffer));
       m_sender.send(&message);
     }
@@ -199,7 +199,7 @@ namespace Beam {
       append(encoder_buffer, std::uint32_t(0));
     }
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_sender.set(Ref(sender_buffer));
       m_sender.send(message);
     }

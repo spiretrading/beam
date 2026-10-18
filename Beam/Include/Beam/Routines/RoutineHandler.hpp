@@ -63,7 +63,7 @@ namespace Details {
   inline void flush_pending_routines() {
     auto& scheduler = Details::Scheduler::get();
     auto& thread_pool = ThreadPool::get();
-    auto lock = boost::lock_guard(Details::FlushMutex::get());
+    auto lock = std::lock_guard(Details::FlushMutex::get());
     auto target = [] {
       if(dynamic_cast<ScheduledRoutine*>(Details::CurrentRoutineGlobal::get())) {
         return 1;

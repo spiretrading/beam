@@ -1,14 +1,14 @@
 #ifndef BEAM_SCHEDULER_HPP
 #define BEAM_SCHEDULER_HPP
 #include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <iostream>
+#include <mutex>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Threading/Sync.hpp"
@@ -89,11 +89,11 @@ namespace Details {
 
     private:
       struct Context {
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
         bool m_is_running;
         std::deque<ScheduledRoutine*> m_pending_routines;
         std::unordered_set<ScheduledRoutine*> m_suspended_routines;
-        boost::condition_variable m_pending_routines_available_condition;
+        std::condition_variable m_pending_routines_available_condition;
 
         Context();
       };
@@ -105,7 +105,7 @@ namespace Details {
       Sync<RoutineIds> m_routine_ids;
       std::unique_ptr<Context[]> m_contexts;
       std::atomic_size_t m_busy_count;
-      boost::mutex m_idle_mutex;
+      std::mutex m_idle_mutex;
       std::vector<Eval<void>> m_idle_evals;
 
       void queue(ScheduledRoutine& routine);
@@ -140,7 +140,7 @@ namespace Details {
 
   inline bool Scheduler::has_pending_routines(std::size_t context_id) const {
     auto& context = m_contexts[context_id];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     return !context.m_pending_routines.empty();
   }
 
@@ -154,7 +154,7 @@ namespace Details {
 
   inline void Scheduler::notify_when_idle(Eval<void> idle) {
     {
-      auto lock = boost::lock_guard(m_idle_mutex);
+      auto lock = std::lock_guard(m_idle_mutex);
       if(m_busy_count != 0) {
         m_idle_evals.push_back(std::move(idle));
         return;
@@ -196,7 +196,7 @@ namespace Details {
 
   inline void Scheduler::queue(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.get_context_id()];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     context.m_pending_routines.push_back(&routine);
     if(context.m_pending_routines.size() == 1) {
       context.m_pending_routines_available_condition.notify_all();
@@ -206,7 +206,7 @@ namespace Details {
   inline void Scheduler::suspend(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.get_context_id()];
     {
-      auto lock = boost::lock_guard(context.m_mutex);
+      auto lock = std::lock_guard(context.m_mutex);
       routine.set(Routine::State::SUSPENDED);
       if(routine.is_pending_resume()) {
         routine.set_pending_resume(false);
@@ -221,7 +221,7 @@ namespace Details {
 
   inline void Scheduler::resume(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.get_context_id()];
-    auto lock = boost::lock_guard(context.m_mutex);
+    auto lock = std::lock_guard(context.m_mutex);
     auto i = context.m_suspended_routines.find(&routine);
     if(i == context.m_suspended_routines.end()) {
       routine.set_pending_resume(true);
@@ -236,7 +236,7 @@ namespace Details {
   inline void Scheduler::stop() {
     for(auto i = std::size_t(0); i != m_thread_count; ++i) {
       auto& context = m_contexts[i];
-      auto lock = boost::lock_guard(context.m_mutex);
+      auto lock = std::lock_guard(context.m_mutex);
       context.m_is_running = false;
       context.m_pending_routines_available_condition.notify_all();
     }
@@ -245,7 +245,7 @@ namespace Details {
     }
     for(auto i = std::size_t(0); i != m_thread_count; ++i) {
       auto& context = m_contexts[i];
-      auto lock = boost::lock_guard(context.m_mutex);
+      auto lock = std::lock_guard(context.m_mutex);
     }
   }
 
@@ -253,7 +253,7 @@ namespace Details {
     while(true) {
       auto routine = static_cast<ScheduledRoutine*>(nullptr);
       {
-        auto lock = boost::unique_lock(context.m_mutex);
+        auto lock = std::unique_lock(context.m_mutex);
         while(context.m_pending_routines.empty()) {
           if(!context.m_is_running && context.m_pending_routines.empty() &&
               context.m_suspended_routines.empty()) {
@@ -285,7 +285,7 @@ namespace Details {
     }
     auto idle_evals = std::vector<Eval<void>>();
     {
-      auto lock = boost::lock_guard(m_idle_mutex);
+      auto lock = std::lock_guard(m_idle_mutex);
       idle_evals.swap(m_idle_evals);
     }
     for(auto& idle : idle_evals) {

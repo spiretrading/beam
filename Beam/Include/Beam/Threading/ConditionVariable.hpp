@@ -1,7 +1,6 @@
 #ifndef BEAM_CONDITION_VARIABLE_HPP
 #define BEAM_CONDITION_VARIABLE_HPP
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/Sync.hpp"
 
@@ -28,7 +27,7 @@ namespace Beam {
       void notify_all();
 
     private:
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       SuspendedRoutineQueue m_suspended_routines;
 
       ConditionVariable(const ConditionVariable&) = delete;
@@ -37,17 +36,17 @@ namespace Beam {
 
   template<typename... Lock>
   void ConditionVariable::wait(Lock&... lock) {
-    auto self_lock = boost::unique_lock(m_mutex);
+    auto self_lock = std::unique_lock(m_mutex);
     suspend(out(m_suspended_routines), lock..., self_lock);
   }
 
   inline void ConditionVariable::notify_one() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     resume_front(out(m_suspended_routines));
   }
 
   inline void ConditionVariable::notify_all() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     resume(out(m_suspended_routines));
   }
 }

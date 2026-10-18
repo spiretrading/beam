@@ -29,7 +29,7 @@ namespace Beam {
   inline bool SecureSocketReader::poll() const {
     auto command = boost::asio::socket_base::bytes_readable(true);
     {
-      auto lock = boost::lock_guard(m_socket->m_mutex);
+      auto lock = std::lock_guard(m_socket->m_mutex);
       try {
         m_socket->m_socket.lowest_layer().io_control(command);
       } catch(const std::exception&) {

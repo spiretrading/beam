@@ -113,7 +113,7 @@ namespace Beam {
         Range m_range;
         std::unique_ptr<Evaluator> m_filter;
         std::vector<Value> m_write_log;
-        boost::mutex m_mutex;
+        std::mutex m_mutex;
 
         SubscriptionEntry(int id, ServiceProtocolClient& client,
           const Range& range, std::unique_ptr<Evaluator> filter);
@@ -186,7 +186,7 @@ namespace Beam {
     }
     auto& entry = **subscription;
     m_initializing_subscriptions.erase(result.m_id);
-    auto lock = boost::lock_guard(entry.m_mutex);
+    auto lock = std::lock_guard(entry.m_mutex);
     if(result.m_snapshot.empty()) {
       result.m_snapshot.swap(entry.m_write_log);
     } else {
@@ -255,7 +255,7 @@ namespace Beam {
         if(is_excluded) {
           continue;
         }
-        auto lock = boost::lock_guard(entry->m_mutex);
+        auto lock = std::lock_guard(entry->m_mutex);
         if((entry->m_range.get_start() == Sequence::PRESENT ||
             range_point_greater_or_equal(value, entry->m_range.get_start())) &&
               range_point_lesser_or_equal(value, entry->m_range.get_end()) &&

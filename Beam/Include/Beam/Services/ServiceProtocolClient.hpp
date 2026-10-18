@@ -1,9 +1,9 @@
 #ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #define BEAM_SERVICE_PROTOCOL_CLIENT_HPP
 #include <atomic>
+#include <mutex>
 #include <unordered_map>
 #include <boost/range/adaptor/map.hpp>
-#include <boost/thread/mutex.hpp>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/OpenState.hpp"
@@ -151,7 +151,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable boost::mutex m_mutex;
+      mutable std::mutex m_mutex;
       Mutex m_open_mutex;
       Mutex m_read_mutex;
       typename P::template apply<ServiceSlots>::type m_slots;
@@ -355,14 +355,14 @@ namespace Beam {
     auto request = typename Service::template Request<ServiceProtocolClient>(
       request_id, parameters);
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_pending_requests.insert(std::pair(request_id, &result_eval));
     }
     open();
     try {
       m_protocol.send(&request);
     } catch(const std::exception&) {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       m_pending_requests.erase(request_id);
       throw;
     }
@@ -405,7 +405,7 @@ namespace Beam {
     }
     shutdown();
     {
-      auto lock = boost::lock_guard(m_read_mutex);
+      auto lock = std::lock_guard(m_read_mutex);
       m_read_loop.wait();
     }
     m_message_handler.wait();
@@ -419,7 +419,7 @@ namespace Beam {
     if(m_is_reading) {
       return;
     }
-    auto lock = boost::lock_guard(m_open_mutex);
+    auto lock = std::lock_guard(m_open_mutex);
     if(m_is_reading.exchange(true)) {
       return;
     }
@@ -427,7 +427,7 @@ namespace Beam {
     m_timer_loop =
       spawn(std::bind_front(&ServiceProtocolClient::timer_loop, this));
     {
-      auto lock = boost::lock_guard(m_read_mutex);
+      auto lock = std::lock_guard(m_read_mutex);
       m_read_loop =
         spawn(std::bind_front(&ServiceProtocolClient::read_loop, this));
     }
@@ -437,7 +437,7 @@ namespace Beam {
     IsTimer<dereference_t<T>>
   void ServiceProtocolClient<M, T, P, S, V>::shutdown() {
     {
-      auto lock = boost::lock_guard(m_open_mutex);
+      auto lock = std::lock_guard(m_open_mutex);
       m_is_reading = true;
       m_protocol.close();
       m_messages.close(EndOfFileException());
@@ -445,7 +445,7 @@ namespace Beam {
     }
     auto pending_requests = std::unordered_map<int, BaseEval*>();
     {
-      auto lock = boost::lock_guard(m_mutex);
+      auto lock = std::lock_guard(m_mutex);
       pending_requests.swap(m_pending_requests);
     }
     for(auto& eval : pending_requests | boost::adaptors::map_values) {
@@ -477,7 +477,7 @@ namespace Beam {
         dynamic_cast<ServiceMessage<ServiceProtocolClient>*>(message.get());
       if(service_message && service_message->is_response()) {
         auto eval = [&] {
-          auto lock = boost::lock_guard(m_mutex);
+          auto lock = std::lock_guard(m_mutex);
           auto i = m_pending_requests.find(service_message->get_id());
           if(i != m_pending_requests.end()) {
             auto eval = i->second;

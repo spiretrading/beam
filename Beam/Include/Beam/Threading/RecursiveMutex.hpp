@@ -1,8 +1,7 @@
 #ifndef BEAM_RECURSIVE_MUTEX_HPP
 #define BEAM_RECURSIVE_MUTEX_HPP
 #include <cstdint>
-#include <boost/thread/lock_types.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
 #include "Beam/Threading/LockRelease.hpp"
@@ -30,7 +29,7 @@ namespace Beam {
       void unlock();
 
     private:
-      boost::mutex m_mutex;
+      std::mutex m_mutex;
       int m_counter;
       int m_depth;
       Routine* m_owner;
@@ -53,7 +52,7 @@ namespace Beam {
 
   inline void RecursiveMutex::lock() {
     auto current = SuspendedRoutineNode();
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
       if(current.m_routine != m_owner) {
@@ -69,7 +68,7 @@ namespace Beam {
 
   inline bool RecursiveMutex::try_lock() {
     auto current = &get_current_routine();
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     ++m_counter;
     if(m_counter > 1) {
       if(current != m_owner) {
@@ -83,7 +82,7 @@ namespace Beam {
   }
 
   inline void RecursiveMutex::unlock() {
-    auto lock = boost::lock_guard(m_mutex);
+    auto lock = std::lock_guard(m_mutex);
     --m_depth;
     if(m_depth == 0) {
       m_owner = nullptr;

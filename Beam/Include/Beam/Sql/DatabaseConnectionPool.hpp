@@ -3,7 +3,7 @@
 #include <concepts>
 #include <deque>
 #include <memory>
-#include <boost/thread/locks.hpp>
+#include <mutex>
 #include "Beam/Sql/ScopedDatabaseConnection.hpp"
 #include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/Threading/Mutex.hpp"
@@ -68,7 +68,7 @@ namespace Beam {
   template<typename C>
   ScopedDatabaseConnection<typename DatabaseConnectionPool<C>::Connection>
       DatabaseConnectionPool<C>::load() {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     while(m_connections.empty()) {
       m_connection_available_condition.wait(lock);
     }
@@ -80,7 +80,7 @@ namespace Beam {
 
   template<typename C>
   void DatabaseConnectionPool<C>::add(std::unique_ptr<Connection> connection) {
-    auto lock = boost::unique_lock(m_mutex);
+    auto lock = std::unique_lock(m_mutex);
     m_connections.push_back(std::move(connection));
     m_connection_available_condition.notify_all();
   }

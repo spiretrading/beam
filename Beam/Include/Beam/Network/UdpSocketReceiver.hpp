@@ -5,7 +5,6 @@
 #include <boost/asio/cancellation_signal.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/chrono/system_clocks.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
@@ -65,8 +64,7 @@ namespace Beam {
       struct State {
         UdpSocketOptions m_options;
         std::shared_ptr<Details::UdpSocketEntry> m_socket;
-        boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
-          m_deadline;
+        boost::asio::steady_timer m_deadline;
         std::uint64_t m_deadline_id;
         boost::asio::cancellation_signal m_cancellation;
 
@@ -166,7 +164,7 @@ namespace Beam {
         if(has_timeout) {
           cancellation = state->m_cancellation.slot();
           auto id = ++state->m_deadline_id;
-          state->m_deadline.expires_after(boost::chrono::microseconds(
+          state->m_deadline.expires_after(std::chrono::microseconds(
             state->m_options.m_timeout.total_microseconds()));
           state->m_deadline.async_wait([=] (const auto& error) {
             on_deadline(state, id, error);

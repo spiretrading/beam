@@ -7,9 +7,6 @@ set(BOOST_INCLUDE_PATH
   "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/include/")
 set(BOOST_DEBUG_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/lib")
 set(BOOST_OPTIMIZED_PATH "${PROJECT_BINARY_DIR}/Dependencies/boost_1_91_0/lib")
-set(BOOST_CHRONO_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_chrono.a")
-set(BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH
-  "${BOOST_OPTIMIZED_PATH}/libboost_chrono.a")
 set(BOOST_CONTEXT_LIBRARY_DEBUG_PATH "${BOOST_DEBUG_PATH}/libboost_context.a")
 set(BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH
   "${BOOST_OPTIMIZED_PATH}/libboost_context.a")

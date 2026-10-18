@@ -4,7 +4,6 @@
 #include <deque>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
-#include <boost/chrono/system_clocks.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/DatagramPacket.hpp"
@@ -74,8 +73,7 @@ namespace Beam {
         std::deque<Packet> m_packets;
         std::exception_ptr m_exception;
         ConditionVariable m_is_available;
-        boost::asio::basic_waitable_timer<boost::chrono::steady_clock>
-          m_deadline;
+        boost::asio::steady_timer m_deadline;
         std::uint64_t m_deadline_id;
         bool m_is_timed_out;
 
@@ -240,7 +238,7 @@ namespace Beam {
             state->m_options.m_timeout != boost::posix_time::pos_infin;
         if(is_deadline_started) {
           auto id = ++state->m_deadline_id;
-          state->m_deadline.expires_after(boost::chrono::microseconds(
+          state->m_deadline.expires_after(std::chrono::microseconds(
             state->m_options.m_timeout.total_microseconds()));
           state->m_deadline.async_wait([=] (const auto& error) {
             on_deadline(state, id, error);

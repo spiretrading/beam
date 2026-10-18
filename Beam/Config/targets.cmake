@@ -2,8 +2,6 @@ add_library(BeamRoutines INTERFACE)
 if(UNIX)
   find_package(Threads REQUIRED)
   target_link_libraries(BeamRoutines INTERFACE
-    debug ${BOOST_CHRONO_LIBRARY_DEBUG_PATH}
-    optimized ${BOOST_CHRONO_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_CONTEXT_LIBRARY_DEBUG_PATH}
     optimized ${BOOST_CONTEXT_LIBRARY_OPTIMIZED_PATH}
     debug ${BOOST_DATE_TIME_LIBRARY_DEBUG_PATH}

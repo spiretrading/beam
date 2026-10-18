@@ -1,9 +1,9 @@
 #ifndef BEAM_NTP_TIME_CLIENT_HPP
 #define BEAM_NTP_TIME_CLIENT_HPP
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <vector>
-#include <boost/chrono/system_clocks.hpp>
 #include <boost/endian.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/Channel.hpp"
@@ -74,7 +74,7 @@ namespace Beam {
     private:
       struct Origin {
         boost::posix_time::ptime m_start_time;
-        boost::chrono::steady_clock::time_point m_start;
+        std::chrono::steady_clock::time_point m_start;
       };
       std::vector<std::unique_ptr<Channel>> m_sources;
       local_ptr_t<T> m_timer;
@@ -224,8 +224,8 @@ namespace Beam {
     m_open_state.ensure_open();
     auto time = with(m_origin, [&] (const auto& origin) {
       return origin.m_start_time + boost::posix_time::microseconds(
-        (boost::chrono::steady_clock::now().time_since_epoch() -
-        origin.m_start.time_since_epoch()).count() / 1000);
+        std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - origin.m_start).count());
     });
     return truncate(time, boost::posix_time::milliseconds(1));
   }
@@ -311,7 +311,7 @@ namespace Beam {
     with(m_origin, [&] (auto& origin) {
       origin.m_start_time =
         boost::posix_time::microsec_clock::universal_time() + average_offset;
-      origin.m_start = boost::chrono::steady_clock::now();
+      origin.m_start = std::chrono::steady_clock::now();
     });
   }
 

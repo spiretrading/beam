@@ -2,7 +2,6 @@
 #define BEAM_EXPRESSION_SUBSCRIPTIONS_HPP
 #include <memory>
 #include <vector>
-#include <boost/atomic/atomic.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/throw_exception.hpp>

@@ -67,7 +67,7 @@ namespace {
     (EndDataQueryMessage, "EndDataQueryMessage", (int, index), (int, id)));
 
   template<typename ContainerType>
-  class DataServlet : private boost::noncopyable {
+  class DataServlet {
     public:
       using Container = ContainerType;
       using ServiceProtocolClient = typename Container::ServiceProtocolClient;
@@ -99,6 +99,8 @@ namespace {
       OpenState m_open_state;
       RoutineTaskQueue m_tasks;
 
+      DataServlet(const DataServlet&) = delete;
+      DataServlet& operator =(const DataServlet&) = delete;
       void on_data_request(
         RequestToken<ServiceProtocolClient, QueryDataService>& request,
         const DataQuery& query);

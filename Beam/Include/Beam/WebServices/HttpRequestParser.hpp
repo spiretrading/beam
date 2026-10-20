@@ -1,5 +1,6 @@
 #ifndef BEAM_HTTP_REQUEST_PARSER_HPP
 #define BEAM_HTTP_REQUEST_PARSER_HPP
+#include <algorithm>
 #include <cstring>
 #include <deque>
 #include <string>
@@ -17,7 +18,7 @@
 
 namespace Beam {
 
-  /** Parses an HTTP request. */
+  /** Parses HTTP requests. */
   class HttpRequestParser {
     public:
 
@@ -34,6 +35,7 @@ namespace Beam {
       boost::optional<HttpRequest> get_next_request();
 
     private:
+      static constexpr auto MAX_REQUEST_LINE_SIZE = std::size_t(8192);
       enum class ParserState {
         REQUEST_LINE,
         HEADERS,
@@ -69,8 +71,15 @@ namespace Beam {
       m_body_bytes_read(0) {}
 
   inline void HttpRequestParser::feed(std::string_view source) {
-    m_buffer.append(source);
-    parse();
+    while(!source.empty() && m_state != ParserState::ERR) {
+      auto size = source.size();
+      if(m_state == ParserState::REQUEST_LINE) {
+        size = std::min(size, MAX_REQUEST_LINE_SIZE - m_buffer.size());
+      }
+      m_buffer.append(source.substr(0, size));
+      source.remove_prefix(size);
+      parse();
+    }
   }
 
   inline boost::optional<HttpRequest> HttpRequestParser::get_next_request() {
@@ -114,6 +123,13 @@ namespace Beam {
   inline void HttpRequestParser::parse_request_line() {
     auto line_end = find_line_end();
     if(line_end == std::string::npos) {
+      if(m_buffer.size() >= MAX_REQUEST_LINE_SIZE) {
+        m_state = ParserState::ERR;
+      }
+      return;
+    }
+    if(line_end > MAX_REQUEST_LINE_SIZE - 2) {
+      m_state = ParserState::ERR;
       return;
     }
     auto line = std::string_view(m_buffer.data(), line_end);

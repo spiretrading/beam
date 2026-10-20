@@ -114,6 +114,57 @@ TEST_SUITE("Uri") {
 
   TEST_CASE("port_overflow_throws") {
     REQUIRE_THROWS_AS(Uri("http://example.com:99999"), MalformedUriException);
+    REQUIRE_THROWS_AS(Uri("http://example.com:" + std::string(1000, '9')),
+      MalformedUriException);
+  }
+
+  TEST_CASE("components") {
+    auto empty = Uri("");
+    REQUIRE(empty.get_path().empty());
+    auto relative = Uri("?key=value#section_1");
+    REQUIRE(relative.get_path().empty());
+    REQUIRE(relative.get_query() == "key=value");
+    REQUIRE(relative.get_fragment() == "section_1");
+    auto authority = Uri("//user:pass@host:65535/path?q=v#section");
+    REQUIRE(authority.get_scheme().empty());
+    REQUIRE(authority.get_username() == "user");
+    REQUIRE(authority.get_password() == "pass");
+    REQUIRE(authority.get_hostname() == "host");
+    REQUIRE(authority.get_port() == 65535);
+    REQUIRE(authority.get_path() == "/path");
+    REQUIRE(authority.get_query() == "q=v");
+    REQUIRE(authority.get_fragment() == "section");
+    auto credentials = Uri("http://:@host");
+    REQUIRE(credentials.get_username().empty());
+    REQUIRE(credentials.get_password().empty());
+    REQUIRE(credentials.get_hostname() == "host");
+    auto hostname = Uri("http://host#section");
+    REQUIRE(hostname.get_hostname() == "host#section");
+    REQUIRE(hostname.get_fragment().empty());
+    auto path = Uri("http://host:abc/path");
+    REQUIRE(path.get_hostname() == "host");
+    REQUIRE(path.get_path() == ":abc/path");
+    auto repeated_slash = Uri("http://host:123//path");
+    REQUIRE(repeated_slash.get_hostname() == "host");
+    REQUIRE(repeated_slash.get_port() == 12);
+    REQUIRE(repeated_slash.get_path() == "3//path");
+    for(auto source : {"/?", "/?#section", "/path#bad-fragment", "////"}) {
+      CAPTURE(source);
+      REQUIRE_THROWS_AS(static_cast<void>(Uri(source)), MalformedUriException);
+    }
+  }
+
+  TEST_CASE("long_components") {
+    auto component = std::string(100000, 'a');
+    auto uri = Uri(component + "://" + component + ":" + component + "@" +
+      component + "/" + component + "?" + component + "#" + component);
+    REQUIRE(uri.get_scheme() == component);
+    REQUIRE(uri.get_username() == component);
+    REQUIRE(uri.get_password() == component);
+    REQUIRE(uri.get_hostname() == component);
+    REQUIRE(uri.get_path() == "/" + component);
+    REQUIRE(uri.get_query() == component);
+    REQUIRE(uri.get_fragment() == component);
   }
 
   TEST_CASE("stream_simple") {

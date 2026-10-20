@@ -1,12 +1,12 @@
 #ifndef BEAM_URI_HPP
 #define BEAM_URI_HPP
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdint>
 #include <format>
 #include <limits>
 #include <ostream>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -247,42 +247,146 @@ namespace Beam {
   inline Uri::Uri(const char* source)
     : Uri(std::string_view(source)) {}
 
-  inline Uri::Uri(const char* first, const char* last) {
-    static const auto URI_PATTERN = std::regex(
-      "^((\\w+):)?(\\/\\/(((\\w*):(\\w*)@)?"
-      "([^\\/\\?:]*)(:(\\d+))?))?(\\/?([^\\/\\?#][^\\?#]*)"
-      "?)?(\\?([^#]+))?(#(\\w*))?");
-    static const auto SCHEME_CAPTURE = 2;
-    static const auto USERNAME_CAPTURE = 6;
-    static const auto PASSWORD_CAPTURE = 7;
-    static const auto HOSTNAME_CAPTURE = 8;
-    static const auto PORT_CAPTURE = 10;
-    static const auto PATHNAME_CAPTURE = 11;
-    static const auto QUERY_CAPTURE = 14;
-    static const auto FRAGMENT_CAPTURE = 16;
-    auto matcher = std::cmatch();
-    if(!std::regex_match(first, last, matcher, URI_PATTERN)) {
+  inline Uri::Uri(const char* first, const char* last)
+      : m_port(0) {
+    auto source = std::string_view(first, last);
+    auto is_word = [] (auto c) {
+      return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+    };
+    auto scheme = std::string_view();
+    auto username = std::string_view();
+    auto password = std::string_view();
+    auto hostname = std::string_view();
+    auto port_text = std::string_view();
+    auto path = std::string_view();
+    auto query = std::string_view();
+    auto fragment = std::string_view();
+    auto parse_tail = [&] (std::string_view tail) {
+      if(tail.starts_with("//")) {
+        return false;
+      }
+      auto end = std::min(tail.find_first_of("?#"), tail.size());
+      path = tail.substr(0, end);
+      query = std::string_view();
+      fragment = std::string_view();
+      tail.remove_prefix(end);
+      if(tail.starts_with('?')) {
+        tail.remove_prefix(1);
+        end = std::min(tail.find('#'), tail.size());
+        if(end == 0) {
+          return false;
+        }
+        query = tail.substr(0, end);
+        tail.remove_prefix(end);
+      }
+      if(tail.starts_with('#')) {
+        tail.remove_prefix(1);
+        if(!std::ranges::all_of(tail, is_word)) {
+          return false;
+        }
+        fragment = tail;
+      }
+      return true;
+    };
+    auto parse_authority = [&] (std::string_view authority) {
+      auto end = std::min(authority.find_first_of("/?:"), authority.size());
+      hostname = authority.substr(0, end);
+      port_text = std::string_view();
+      auto tail = authority.substr(end);
+      if(tail.starts_with(':')) {
+        auto port_end = std::size_t(1);
+        while(port_end < tail.size() &&
+            tail[port_end] >= '0' && tail[port_end] <= '9') {
+          ++port_end;
+        }
+        if(port_end > 1) {
+          port_text = tail.substr(1, port_end - 1);
+          if(parse_tail(tail.substr(port_end))) {
+            return true;
+          }
+          if(port_end > 2) {
+            port_text.remove_suffix(1);
+            return parse_tail(tail.substr(port_end - 1));
+          }
+          port_text = std::string_view();
+        }
+      }
+      if(parse_tail(tail)) {
+        return true;
+      }
+      if(end != 0) {
+        hostname.remove_suffix(1);
+        return parse_tail(authority.substr(end - 1));
+      }
+      return false;
+    };
+    auto parse = [&] (std::string_view remainder) {
+      username = std::string_view();
+      password = std::string_view();
+      hostname = std::string_view();
+      port_text = std::string_view();
+      if(!remainder.starts_with("//")) {
+        return parse_tail(remainder);
+      }
+      remainder.remove_prefix(2);
+      auto username_end = std::size_t(0);
+      while(username_end < remainder.size() &&
+          is_word(remainder[username_end])) {
+        ++username_end;
+      }
+      if(username_end < remainder.size() && remainder[username_end] == ':') {
+        auto password_end = username_end + 1;
+        while(password_end < remainder.size() &&
+            is_word(remainder[password_end])) {
+          ++password_end;
+        }
+        if(password_end < remainder.size() && remainder[password_end] == '@') {
+          username = remainder.substr(0, username_end);
+          password = remainder.substr(
+            username_end + 1, password_end - username_end - 1);
+          if(parse_authority(remainder.substr(password_end + 1))) {
+            return true;
+          }
+          username = std::string_view();
+          password = std::string_view();
+        }
+      }
+      return parse_authority(remainder);
+    };
+    auto scheme_end = std::size_t(0);
+    while(scheme_end < source.size() && is_word(source[scheme_end])) {
+      ++scheme_end;
+    }
+    auto matched = false;
+    if(scheme_end != 0 && scheme_end < source.size() &&
+        source[scheme_end] == ':') {
+      scheme = source.substr(0, scheme_end);
+      matched = parse(source.substr(scheme_end + 1));
+    }
+    if(!matched) {
+      scheme = std::string_view();
+      matched = parse(source);
+    }
+    if(!matched) {
       boost::throw_with_location(
         MalformedUriException("URI is not well formed."));
     }
-    if(matcher[PORT_CAPTURE].str().empty()) {
-      m_port = 0;
-    } else {
-      auto port = std::stoul(matcher[PORT_CAPTURE].str());
+    auto port = std::size_t(0);
+    for(auto c : port_text) {
+      port = port * 10 + (c - '0');
       if(port > std::numeric_limits<unsigned short>::max()) {
         boost::throw_with_location(
           MalformedUriException("URI is not well formed."));
-      } else {
-        m_port = static_cast<unsigned short>(port);
       }
     }
-    m_scheme = matcher[SCHEME_CAPTURE];
-    m_username = matcher[USERNAME_CAPTURE];
-    m_password = matcher[PASSWORD_CAPTURE];
-    m_hostname = matcher[HOSTNAME_CAPTURE];
-    m_path = matcher[PATHNAME_CAPTURE];
-    m_query = matcher[QUERY_CAPTURE];
-    m_fragment = matcher[FRAGMENT_CAPTURE];
+    m_port = static_cast<unsigned short>(port);
+    m_scheme = scheme;
+    m_username = username;
+    m_password = password;
+    m_hostname = hostname;
+    m_path = path;
+    m_query = query;
+    m_fragment = fragment;
   }
 
   inline const std::string& Uri::get_scheme() const {

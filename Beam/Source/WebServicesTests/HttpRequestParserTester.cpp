@@ -1,10 +1,76 @@
 #include <boost/optional/optional_io.hpp>
 #include <doctest/doctest.h>
+#include "Beam/Routines/Scheduler.hpp"
 #include "Beam/WebServices/HttpRequestParser.hpp"
 
 using namespace Beam;
 
 TEST_SUITE("HttpRequestParser") {
+  TEST_CASE("long_query_in_routine") {
+    auto query = "unix:" + std::string(7701, 'A') + "|http://example.com/";
+    auto result = Async<HttpRequest>();
+    auto routine = spawn([&] {
+      auto parser = HttpRequestParser();
+      parser.feed("GET /?" + query + " HTTP/1.1\r\n"
+        "Host: example.com\r\nConnection: close\r\n\r\n");
+      return parser.get_next_request().value();
+    }, result.get_eval());
+    auto request = result.get();
+    wait(routine);
+    REQUIRE(request.get_uri().get_path() == "/");
+    REQUIRE(request.get_uri().get_query() == query);
+    REQUIRE(request.get_special_headers().m_host == "example.com");
+  }
+
+  TEST_CASE("request_line_limit") {
+    auto line = "GET /" + std::string(8192 - 16, 'a') + " HTTP/1.1\r\n";
+    REQUIRE(line.size() == 8192);
+    SUBCASE("complete") {
+      auto parser = HttpRequestParser();
+      parser.feed(line + "\r\nGET /next HTTP/1.1\r\n\r\n");
+      auto request = parser.get_next_request();
+      REQUIRE(request);
+      REQUIRE(request->get_uri().get_path().size() == 8192 - 15);
+      request = parser.get_next_request();
+      REQUIRE(request);
+      REQUIRE(request->get_uri().get_path() == "/next");
+    }
+    SUBCASE("split_terminator") {
+      auto parser = HttpRequestParser();
+      parser.feed(std::string_view(line).substr(0, line.size() - 1));
+      REQUIRE(!parser.get_next_request());
+      parser.feed("\n\r\n");
+      REQUIRE(parser.get_next_request());
+    }
+    SUBCASE("oversized") {
+      auto parser = HttpRequestParser();
+      line.insert(5, "a");
+      parser.feed(line + "\r\n");
+      REQUIRE_THROWS_AS(parser.get_next_request(), InvalidHttpRequestException);
+    }
+    SUBCASE("incomplete") {
+      auto parser = HttpRequestParser();
+      parser.feed("GET /");
+      parser.feed(std::string(8192 - 6, 'a'));
+      REQUIRE(!parser.get_next_request());
+      parser.feed("a");
+      REQUIRE_THROWS_AS(parser.get_next_request(), InvalidHttpRequestException);
+      parser.feed(" HTTP/1.1\r\n\r\n");
+      REQUIRE_THROWS_AS(parser.get_next_request(), InvalidHttpRequestException);
+    }
+    SUBCASE("pipelined_after_body") {
+      auto parser = HttpRequestParser();
+      auto body = std::string(10000, 'b');
+      parser.feed("POST / HTTP/1.1\r\nContent-Length: 10000\r\n");
+      line.insert(5, "a");
+      parser.feed("\r\n" + body + line + "\r\n");
+      auto request = parser.get_next_request();
+      REQUIRE(request);
+      REQUIRE(request->get_body() == body);
+      REQUIRE_THROWS_AS(parser.get_next_request(), InvalidHttpRequestException);
+    }
+  }
+
   TEST_CASE("parse_simple_get") {
     auto parser = HttpRequestParser();
     parser.feed("GET /path HTTP/1.1\r\n\r\n");

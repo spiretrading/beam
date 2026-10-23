@@ -2,7 +2,6 @@
 #define BEAM_SERVICE_LOCATOR_SERVLET_HPP
 #include <algorithm>
 #include <atomic>
-#include <mutex>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -62,8 +61,7 @@ namespace Beam {
         std::unordered_map<DirectoryEntry, DirectoryEntryMonitorEntry>;
       using Sessions = std::unordered_map<std::string, ServiceProtocolClient*>;
       local_ptr_t<D> m_data_store;
-      SynchronizedVector<ServiceProtocolClient*, std::mutex>
-        m_account_update_subscribers;
+      SynchronizedVector<ServiceProtocolClient*> m_account_update_subscribers;
       Sync<Sessions> m_sessions;
       Sync<ServiceListings> m_service_listings;
       Sync<ServiceEntryListings> m_service_entry_listings;

@@ -16,6 +16,7 @@ namespace Beam {
 namespace Details {
   struct BEAM_EXPORT_DLL CurrentRoutineGlobal {
     static Routine*& get();
+    static bool& is_scheduled();
   };
 
   struct BEAM_EXPORT_DLL NextId {
@@ -25,6 +26,11 @@ namespace Details {
 #ifndef BEAM_USE_DLL
   BEAM_EMIT_DLL inline Routine*& CurrentRoutineGlobal::get() {
     static thread_local auto value = static_cast<Routine*>(nullptr);
+    return value;
+  }
+
+  BEAM_EMIT_DLL inline bool& CurrentRoutineGlobal::is_scheduled() {
+    static thread_local auto value = false;
     return value;
   }
 
@@ -100,8 +106,6 @@ namespace Details {
 
     private:
       using WaitResults = std::vector<Eval<void>>;
-      friend class Mutex;
-      friend class RecursiveMutex;
       friend void defer();
       friend void suspend();
       template<typename HeadLock, typename... TailLocks>

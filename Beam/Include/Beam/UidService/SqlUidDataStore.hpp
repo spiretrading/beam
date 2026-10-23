@@ -1,9 +1,9 @@
 #ifndef BEAM_SQL_UID_DATA_STORE_HPP
 #define BEAM_SQL_UID_DATA_STORE_HPP
 #include <memory>
+#include <mutex>
 #include <Viper/Viper.hpp>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/SqlDefinitions.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
@@ -35,7 +35,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::unique_ptr<Connection> m_connection;
       OpenState m_open_state;
   };

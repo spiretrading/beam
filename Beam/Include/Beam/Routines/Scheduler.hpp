@@ -13,6 +13,7 @@
 #include <vector>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Threading/Sync.hpp"
+#include "Beam/Threading/WindowsMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
@@ -124,6 +125,9 @@ namespace Details {
         m_threads(std::make_unique<std::thread[]>(m_thread_count)),
         m_contexts(std::make_unique<Context[]>(m_thread_count)),
         m_busy_count(0) {
+    #if defined(_MSC_VER) && defined(_DLL)
+      WindowsMutex::initialize();
+    #endif
     try {
       for(auto i = std::size_t(0); i < m_thread_count; ++i) {
         m_threads[i] = std::thread([=, this] {

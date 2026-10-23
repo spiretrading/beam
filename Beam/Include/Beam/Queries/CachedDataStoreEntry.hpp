@@ -1,12 +1,12 @@
 #ifndef BEAM_CACHED_DATA_STORE_ENTRY_HPP
 #define BEAM_CACHED_DATA_STORE_ENTRY_HPP
+#include <mutex>
 #include "Beam/Collections/SynchronizedList.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Threading/CallOnce.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 
@@ -58,7 +58,7 @@ namespace Beam {
       struct DataStoreEntry {
         Sequence m_sequence;
         LocalDataStoreEntry m_data_store;
-        CallOnce<Mutex> m_initializer;
+        CallOnce<std::mutex> m_initializer;
 
         DataStoreEntry(Sequence sequence);
       };

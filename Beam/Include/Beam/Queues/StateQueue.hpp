@@ -1,10 +1,10 @@
 #ifndef BEAM_STATE_QUEUE_HPP
 #define BEAM_STATE_QUEUE_HPP
+#include <condition_variable>
 #include <mutex>
 #include <boost/optional/optional.hpp>
 #include "Beam/Queues/AbstractQueue.hpp"
 #include "Beam/Queues/PipeBrokenException.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
 
@@ -33,7 +33,7 @@ namespace Beam {
 
     private:
       mutable std::mutex m_mutex;
-      mutable ConditionVariable m_is_available_condition;
+      mutable std::condition_variable m_is_available_condition;
       boost::optional<Target> m_value;
       std::exception_ptr m_break_exception;
 

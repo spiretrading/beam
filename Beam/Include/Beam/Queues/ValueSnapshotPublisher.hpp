@@ -1,11 +1,11 @@
 #ifndef BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
 #define BEAM_VALUE_SNAPSHOT_PUBLISHER_HPP
 #include <functional>
+#include <mutex>
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -81,7 +81,7 @@ namespace Beam {
       using SnapshotPublisher<V, S>::with;
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       InitializationFunction m_initialize;
       FilteredUpdateFunction m_update;
       LocalPtr<Snapshot> m_snapshot;

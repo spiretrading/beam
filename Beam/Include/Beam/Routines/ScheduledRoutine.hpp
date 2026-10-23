@@ -133,8 +133,10 @@ namespace Details {
         });
     } else {
       set(State::RUNNING);
+      Details::CurrentRoutineGlobal::is_scheduled() = true;
       m_continuation = m_continuation.resume();
     }
+    Details::CurrentRoutineGlobal::is_scheduled() = false;
     Details::CurrentRoutineGlobal::get() = nullptr;
   }
 #endif
@@ -142,6 +144,7 @@ namespace Details {
 #ifndef BEAM_USE_DLL
   BEAM_DISABLE_OPTIMIZATIONS
   BEAM_EMIT_DLL inline void ScheduledRoutine::defer() {
+    Details::CurrentRoutineGlobal::is_scheduled() = false;
     Details::CurrentRoutineGlobal::get() = nullptr;
 #ifdef BEAM_ENABLE_STACK_PRINT
 #ifndef NDEBUG
@@ -158,6 +161,7 @@ namespace Details {
 
 #ifndef BEAM_USE_DLL
   BEAM_EMIT_DLL inline void ScheduledRoutine::suspend() {
+    Details::CurrentRoutineGlobal::is_scheduled() = false;
     Details::CurrentRoutineGlobal::get() = nullptr;
     set(State::PENDING_SUSPEND);
 #ifdef BEAM_ENABLE_STACK_PRINT
@@ -182,6 +186,7 @@ namespace Details {
   inline boost::context::continuation ScheduledRoutine::initialize(
       boost::context::continuation&& parent) {
     m_parent = std::move(parent);
+    Details::CurrentRoutineGlobal::is_scheduled() = true;
     try {
       execute();
     } catch(const boost::context::detail::forced_unwind&) {

@@ -1,12 +1,12 @@
 #ifndef BEAM_SQL_WEB_SESSION_DATA_STORE_HPP
 #define BEAM_SQL_WEB_SESSION_DATA_STORE_HPP
+#include <mutex>
 #include <boost/throw_exception.hpp>
 #include <Viper/Viper.hpp>
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Serialization/JsonReceiver.hpp"
 #include "Beam/Serialization/JsonSender.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/Expect.hpp"
 #include "Beam/WebServices/WebSessionDataStore.hpp"
 #include "Beam/WebServices/SqlDefinitions.hpp"
@@ -43,7 +43,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::unique_ptr<Connection> m_connection;
       JsonSender<SharedBuffer> m_sender;
       JsonReceiver<SharedBuffer> m_receiver;

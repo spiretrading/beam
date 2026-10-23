@@ -72,7 +72,7 @@ namespace Beam {
         boost::asio::ip::udp::endpoint m_sender;
         std::deque<Packet> m_packets;
         std::exception_ptr m_exception;
-        ConditionVariable m_is_available;
+        std::condition_variable m_is_available;
         boost::asio::steady_timer m_deadline;
         std::uint64_t m_deadline_id;
         bool m_is_timed_out;

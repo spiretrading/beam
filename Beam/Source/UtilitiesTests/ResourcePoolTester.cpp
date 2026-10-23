@@ -83,6 +83,18 @@ TEST_SUITE("ResourcePool") {
     REQUIRE(Resource::construction_count == 1);
   }
 
+  TEST_CASE("load_timeout_growth") {
+    auto count = 0;
+    auto pool = ResourcePool(milliseconds(0), [&] {
+      return std::make_unique<Resource>(++count);
+    }, 1, 2);
+    auto first = pool.load();
+    auto second = pool.load();
+    REQUIRE(first->value == 1);
+    REQUIRE(second->value == 2);
+    REQUIRE(count == 2);
+  }
+
   TEST_CASE("try_load_returns_resource_when_available") {
     auto pool =
       ResourcePool(seconds(1), [] { return std::make_unique<Resource>(123); });

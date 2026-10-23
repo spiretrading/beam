@@ -5,6 +5,7 @@
 #include <iostream>
 #include "Beam/Queues/CallbackQueue.hpp"
 #include "Beam/Queues/Queue.hpp"
+#include "Beam/Routines/Scheduler.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam {

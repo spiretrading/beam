@@ -1,12 +1,11 @@
 #ifndef BEAM_DATABASE_CONNECTION_POOL_HPP
 #define BEAM_DATABASE_CONNECTION_POOL_HPP
 #include <concepts>
+#include <condition_variable>
 #include <deque>
 #include <memory>
 #include <mutex>
 #include "Beam/Sql/ScopedDatabaseConnection.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 
@@ -41,9 +40,9 @@ namespace Beam {
 
     private:
       friend class ScopedDatabaseConnection<Connection>;
-      Mutex m_mutex;
+      std::mutex m_mutex;
       std::deque<std::unique_ptr<Connection>> m_connections;
-      ConditionVariable m_connection_available_condition;
+      std::condition_variable m_connection_available_condition;
 
       DatabaseConnectionPool(const DatabaseConnectionPool&) = delete;
       DatabaseConnectionPool& operator =(

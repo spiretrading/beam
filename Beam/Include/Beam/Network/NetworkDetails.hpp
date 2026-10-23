@@ -1,5 +1,6 @@
 #ifndef BEAM_NETWORK_DETAILS_HPP
 #define BEAM_NETWORK_DETAILS_HPP
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -8,20 +9,18 @@
 #include <boost/asio/ip/udp.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam::Details {
   template<typename S>
   struct SocketEntry {
     using Socket = S;
-    mutable Mutex m_mutex;
+    mutable std::mutex m_mutex;
     boost::asio::io_context* m_io_context;
     Socket m_socket;
     bool m_is_open;
     bool m_is_read_pending;
     int m_pending_writes;
-    ConditionVariable m_is_pending_condition;
+    std::condition_variable m_is_pending_condition;
 
     template<typename... Args>
     SocketEntry(boost::asio::io_context& ioContext, Args&&... args)
@@ -76,14 +75,14 @@ namespace Beam::Details {
 
   struct SecureSocketEntry {
     using Socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
-    Mutex m_mutex;
+    std::mutex m_mutex;
     boost::asio::io_context* m_io_context;
     boost::asio::ssl::context m_context;
     Socket m_socket;
     bool m_is_open;
     bool m_is_read_pending;
     int m_pending_writes;
-    ConditionVariable m_is_pending_condition;
+    std::condition_variable m_is_pending_condition;
 
     template<typename... Args>
     SecureSocketEntry(boost::asio::io_context& ioContext, Args&&... args)

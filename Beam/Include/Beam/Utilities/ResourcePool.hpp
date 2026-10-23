@@ -2,6 +2,7 @@
 #define BEAM_RESOURCE_POOL_HPP
 #include <algorithm>
 #include <concepts>
+#include <condition_variable>
 #include <deque>
 #include <limits>
 #include <memory>
@@ -9,9 +10,8 @@
 #include <type_traits>
 #include <utility>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/optional/optional.hpp>
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/TimedConditionVariable.hpp"
 
 namespace Beam {
   template<typename T, typename B> requires std::invocable<B> &&
@@ -110,14 +110,14 @@ namespace Beam {
 
     private:
       friend class Beam::ScopedResource<Type, Builder>;
-      Mutex m_mutex;
-      boost::posix_time::time_duration m_timeout;
+      std::mutex m_mutex;
+      std::chrono::microseconds m_timeout;
       Builder m_builder;
       std::size_t m_min_count;
       std::size_t m_max_count;
       std::size_t m_current_count;
       std::deque<std::unique_ptr<Type>> m_objects;
-      TimedConditionVariable m_is_available_condition;
+      std::condition_variable m_is_available_condition;
 
       ResourcePool(const ResourcePool&) = delete;
       ResourcePool& operator =(const ResourcePool&) = delete;
@@ -148,7 +148,7 @@ namespace Beam {
   template<typename BF> requires std::constructible_from<B, BF>
   ResourcePool<T, B>::ResourcePool(boost::posix_time::time_duration timeout,
       BF&& builder, std::size_t min_count, std::size_t max_count)
-      : m_timeout(timeout),
+      : m_timeout(timeout.total_microseconds()),
         m_builder(std::forward<BF>(builder)),
         m_min_count(std::max<std::size_t>(1, min_count)),
         m_max_count(std::max(m_min_count, max_count)),
@@ -182,17 +182,15 @@ namespace Beam {
       if(is_unconditionally_waiting || m_current_count >= m_max_count) {
         m_is_available_condition.wait(lock);
       } else {
-        try {
-          m_is_available_condition.timed_wait(m_timeout, lock);
-        } catch(const TimeoutException&) {
-          if(m_objects.empty() && m_current_count < m_max_count) {
-            try {
-              auto scoped_object = ScopedResource(Ref(*this), m_builder());
-              ++m_current_count;
-              return scoped_object;
-            } catch(const std::exception&) {
-              is_unconditionally_waiting = true;
-            }
+        auto is_available = m_is_available_condition.wait_for(
+          lock, m_timeout, [&] { return !m_objects.empty(); });
+        if(!is_available && m_current_count < m_max_count) {
+          try {
+            auto scoped_object = ScopedResource(Ref(*this), m_builder());
+            ++m_current_count;
+            return scoped_object;
+          } catch(const std::exception&) {
+            is_unconditionally_waiting = true;
           }
         }
       }

@@ -7,7 +7,6 @@
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Sequence.hpp"
 #include "Beam/Threading/CallOnce.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 
@@ -66,7 +65,7 @@ namespace Beam {
       mutable std::mutex m_mutex;
       local_ptr_t<D> m_data_store;
       int m_block_size;
-      CallOnce<Mutex> m_initializer;
+      CallOnce<std::mutex> m_initializer;
       std::shared_ptr<DataStoreEntry> m_cache;
 
       std::shared_ptr<DataStoreEntry> initialize_cache(const Index& index);

@@ -6,7 +6,6 @@
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Queries/LocalDataStoreEntry.hpp"
 #include "Beam/Queries/Sequence.hpp"
-#include "Beam/Threading/CallOnce.hpp"
 
 namespace Beam {
 
@@ -58,7 +57,7 @@ namespace Beam {
       struct DataStoreEntry {
         Sequence m_sequence;
         LocalDataStoreEntry m_data_store;
-        CallOnce<std::mutex> m_initializer;
+        std::once_flag m_initializer;
 
         DataStoreEntry(Sequence sequence);
       };
@@ -189,7 +188,7 @@ namespace Beam {
         }
         return i->get();
       });
-    data_store->m_initializer.call([&] {
+    std::call_once(data_store->m_initializer, [&] {
       auto query = Query();
       query.set_index(m_index);
       query.set_range(

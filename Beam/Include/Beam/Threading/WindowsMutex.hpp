@@ -18,8 +18,8 @@ namespace Beam::Details {
     public:
 
       /**
-       * Enables routine-aware mutexes and untimed condition variable waits
-       * in loaded modules using this MSVC CRT.
+       * Enables routine-aware mutexes, untimed condition variable waits, and
+       * one-time initialization in loaded modules using this MSVC CRT.
        * Must be called before dispatching routines.
        */
       static void initialize();
@@ -45,6 +45,17 @@ namespace Beam::Details {
         SRWLOCK m_mutex = SRWLOCK_INIT;
         ConditionWaiter* m_waiters = nullptr;
       };
+      struct OnceWaiter {
+        PINIT_ONCE m_once;
+        Routine* m_routine;
+        OnceWaiter* m_next;
+        CONDITION_VARIABLE m_notification;
+        bool m_is_notified;
+      };
+      struct OnceBucket {
+        SRWLOCK m_mutex = SRWLOCK_INIT;
+        OnceWaiter* m_waiters = nullptr;
+      };
       struct State {
         decltype(&_Mtx_lock) m_lock = reinterpret_cast<decltype(&_Mtx_lock)>(
           GetProcAddress(get_runtime(), "_Mtx_lock"));
@@ -68,8 +79,17 @@ namespace Beam::Details {
           reinterpret_cast<decltype(&WakeAllConditionVariable)>(
             GetProcAddress(GetModuleHandleW(L"kernel32.dll"),
               "WakeAllConditionVariable"));
+        decltype(&InitOnceBeginInitialize) m_begin =
+          reinterpret_cast<decltype(&InitOnceBeginInitialize)>(
+            GetProcAddress(GetModuleHandleW(L"kernel32.dll"),
+              "InitOnceBeginInitialize"));
+        decltype(&InitOnceComplete) m_complete =
+          reinterpret_cast<decltype(&InitOnceComplete)>(
+            GetProcAddress(GetModuleHandleW(L"kernel32.dll"),
+              "InitOnceComplete"));
         std::array<Bucket, 64> m_buckets;
         std::array<ConditionBucket, 64> m_conditions;
+        std::array<OnceBucket, 64> m_initializers;
       };
       class Guard {
         public:
@@ -86,6 +106,7 @@ namespace Beam::Details {
       static PSRWLOCK get_lock(_Mtx_t mutex);
       static Bucket& get_bucket(PSRWLOCK mutex);
       static ConditionBucket& get_bucket(PCONDITION_VARIABLE condition);
+      static OnceBucket& get_bucket(PINIT_ONCE once);
       static Routine* pop(Bucket& bucket, PSRWLOCK mutex);
       static _Thrd_result acquire(_Mtx_t mutex, Routine& routine);
       static _Thrd_result __cdecl lock(_Mtx_t mutex) noexcept;
@@ -99,6 +120,10 @@ namespace Beam::Details {
       static void notify(PCONDITION_VARIABLE condition, bool all) noexcept;
       static void WINAPI notify_one(PCONDITION_VARIABLE condition) noexcept;
       static void WINAPI notify_all(PCONDITION_VARIABLE condition) noexcept;
+      static BOOL WINAPI begin(PINIT_ONCE once, DWORD flags, PBOOL pending,
+        PVOID* context) noexcept;
+      static BOOL WINAPI complete(
+        PINIT_ONCE once, DWORD flags, PVOID context) noexcept;
       static void patch(HMODULE module);
   };
 }
@@ -112,7 +137,7 @@ namespace Beam::Details {
       auto& state = get_state();
       if(!state.m_lock || !state.m_try_lock || !state.m_unlock ||
           !state.m_wait || !state.m_sleep || !state.m_notify_one ||
-          !state.m_notify_all) {
+          !state.m_notify_all || !state.m_begin || !state.m_complete) {
         throw std::system_error(ERROR_PROC_NOT_FOUND, std::system_category());
       }
       auto module = HMODULE();
@@ -211,6 +236,12 @@ namespace Beam::Details {
       PCONDITION_VARIABLE condition) {
     auto& buckets = get_state().m_conditions;
     return buckets[(reinterpret_cast<std::uintptr_t>(condition) >> 3) %
+      buckets.size()];
+  }
+
+  inline WindowsMutex::OnceBucket& WindowsMutex::get_bucket(PINIT_ONCE once) {
+    auto& buckets = get_state().m_initializers;
+    return buckets[(reinterpret_cast<std::uintptr_t>(once) >> 3) %
       buckets.size()];
   }
 
@@ -458,6 +489,87 @@ namespace Beam::Details {
     notify(condition, true);
   }
 
+  inline BOOL WINAPI WindowsMutex::begin(
+      PINIT_ONCE once, DWORD flags, PBOOL pending, PVOID* context) noexcept {
+    auto& state = get_state();
+    if(flags != 0 || is_entered()) {
+      return state.m_begin(once, flags, pending, context);
+    }
+    if(state.m_begin(once, INIT_ONCE_CHECK_ONLY, pending, context)) {
+      return TRUE;
+    }
+    auto routine = get_routine();
+    auto guard = Guard();
+    auto& bucket = get_bucket(once);
+    AcquireSRWLockExclusive(&bucket.m_mutex);
+    while(true) {
+      if(!InterlockedCompareExchangePointer(&once->Ptr, nullptr, nullptr) ||
+          state.m_begin(once, INIT_ONCE_CHECK_ONLY, pending, context) ||
+          state.m_begin(once, INIT_ONCE_ASYNC, pending, context)) {
+        auto result = state.m_begin(once, flags, pending, context);
+        ReleaseSRWLockExclusive(&bucket.m_mutex);
+        return result;
+      }
+      auto waiter = OnceWaiter(
+        once, routine, bucket.m_waiters, CONDITION_VARIABLE(), false);
+      bucket.m_waiters = &waiter;
+      if(routine) {
+        routine->pending_suspend();
+        ReleaseSRWLockExclusive(&bucket.m_mutex);
+        is_entered() = false;
+        routine->suspend();
+        is_entered() = true;
+        AcquireSRWLockExclusive(&bucket.m_mutex);
+      } else {
+        while(!waiter.m_is_notified) {
+          if(!state.m_sleep(
+              &waiter.m_notification, &bucket.m_mutex, INFINITE, 0)) {
+            std::terminate();
+          }
+        }
+      }
+    }
+  }
+
+  inline BOOL WINAPI WindowsMutex::complete(
+      PINIT_ONCE once, DWORD flags, PVOID context) noexcept {
+    auto guard = Guard();
+    auto& state = get_state();
+    auto& bucket = get_bucket(once);
+    auto routines = static_cast<OnceWaiter*>(nullptr);
+    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto result = state.m_complete(once, flags, context);
+    auto error = GetLastError();
+    if(result) {
+      auto entry = &bucket.m_waiters;
+      while(*entry) {
+        auto waiter = *entry;
+        if(waiter->m_once != once) {
+          entry = &waiter->m_next;
+          continue;
+        }
+        *entry = waiter->m_next;
+        waiter->m_is_notified = true;
+        if(waiter->m_routine) {
+          waiter->m_next = routines;
+          routines = waiter;
+        } else {
+          state.m_notify_one(&waiter->m_notification);
+        }
+      }
+    }
+    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    while(routines) {
+      auto routine = routines->m_routine;
+      routines = routines->m_next;
+      routine->resume();
+    }
+    if(!result) {
+      SetLastError(error);
+    }
+    return result;
+  }
+
   inline void WindowsMutex::patch(HMODULE module) {
     auto base = reinterpret_cast<unsigned char*>(module);
     auto dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
@@ -491,6 +603,10 @@ namespace Beam::Details {
           replacement = reinterpret_cast<void*>(&notify_one);
         } else if(target == reinterpret_cast<void*>(state.m_notify_all)) {
           replacement = reinterpret_cast<void*>(&notify_all);
+        } else if(target == reinterpret_cast<void*>(state.m_begin)) {
+          replacement = reinterpret_cast<void*>(&begin);
+        } else if(target == reinterpret_cast<void*>(state.m_complete)) {
+          replacement = reinterpret_cast<void*>(&complete);
         }
         if(replacement) {
           auto protection = DWORD();

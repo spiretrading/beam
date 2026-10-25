@@ -782,7 +782,10 @@ namespace Beam::Details {
       for(auto& descriptor : descriptors) {
         if((descriptor.revents & POLLIN) != 0) {
           auto value = std::uint64_t();
-          static_cast<void>(::read(descriptor.fd, &value, sizeof(value)));
+          if(::read(descriptor.fd, &value, sizeof(value)) == -1 &&
+              errno != EAGAIN && errno != EINTR) {
+            std::terminate();
+          }
         }
       }
     }

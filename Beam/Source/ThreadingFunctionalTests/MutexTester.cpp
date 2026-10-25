@@ -52,7 +52,7 @@ TEST_SUITE("Mutex") {
     REQUIRE(order == std::array{0, 1, 2});
   }
 
-  TEST_CASE_TEMPLATE("native_handoff_reservation", T, std::mutex,
+  TEST_CASE_TEMPLATE("native_handoff_progress", T, std::mutex,
       std::recursive_mutex) {
     auto mutex = T();
     auto lock = std::unique_lock(mutex);
@@ -68,16 +68,18 @@ TEST_SUITE("Mutex") {
     }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
     ready.get();
     lock.unlock();
-    auto barged = mutex.try_lock();
-    if(barged) {
+    auto is_acquired = mutex.try_lock();
+    if(is_acquired) {
       mutex.unlock();
+      lock.lock();
+      lock.unlock();
     }
     release.store(true);
     release.notify_one();
     result.get();
     wait(waiter);
     wait(witness);
-    REQUIRE(!barged);
+    REQUIRE(is_acquired);
   }
 
   TEST_CASE_TEMPLATE("same_context_contention", T, std::mutex,

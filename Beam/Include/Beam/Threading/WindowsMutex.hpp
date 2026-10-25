@@ -448,16 +448,7 @@ namespace Beam::Details {
       routine = get_routine();
     }
     if(!routine) {
-      auto result = get_state().m_lock(mutex);
-      auto state = reinterpret_cast<std::uintptr_t>(
-        std::atomic_ref(mutex->_Critical_section._Unused).load(
-          std::memory_order_acquire));
-      if(result != _Thrd_result::_Success || mutex->_Count > 1 ||
-          (state & HAS_WAITERS) == 0) {
-        return result;
-      }
-      unlock(mutex);
-      return lock(mutex, nullptr);
+      return get_state().m_lock(mutex);
     }
     auto result = acquire(mutex, *routine);
     if(result != _Thrd_result::_Busy) {
@@ -472,16 +463,7 @@ namespace Beam::Details {
       routine = get_routine();
     }
     if(!routine) {
-      auto result = get_state().m_try_lock(mutex);
-      auto state = reinterpret_cast<std::uintptr_t>(
-        std::atomic_ref(mutex->_Critical_section._Unused).load(
-          std::memory_order_acquire));
-      if(result != _Thrd_result::_Success || mutex->_Count > 1 ||
-          (state & HAS_WAITERS) == 0) {
-        return result;
-      }
-      unlock(mutex);
-      return _Thrd_result::_Busy;
+      return get_state().m_try_lock(mutex);
     }
     return acquire(mutex, *routine);
   }

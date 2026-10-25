@@ -123,6 +123,79 @@ TEST_SUITE("ConditionVariable") {
     REQUIRE(received);
   }
 
+#if defined(__linux__) && defined(__GLIBC__) && defined(__x86_64__)
+  TEST_CASE_TEMPLATE("same_context_timed_wait", T, std::condition_variable,
+      std::condition_variable_any) {
+    auto use_system_clock = false;
+    SUBCASE("steady_clock") {}
+    SUBCASE("system_clock") {
+      use_system_clock = true;
+    }
+    auto condition = T();
+    auto mutex = std::mutex();
+    auto ready = Async<void>();
+    auto result = Async<bool>();
+    auto value = 0;
+    auto consumer = spawn([&] {
+      auto lock = std::unique_lock(mutex);
+      ready.get_eval().set();
+      auto received = [&] {
+        if(use_system_clock) {
+          return condition.wait_until(lock, system_clock::now() + seconds(5),
+            [&] { return value == 42; });
+        }
+        return condition.wait_until(lock, steady_clock::now() + seconds(5),
+          [&] { return value == 42; });
+      }();
+      auto timed_out = [&] {
+        if(use_system_clock) {
+          return !condition.wait_until(
+            lock, system_clock::now() + milliseconds(1), [] { return false; });
+        }
+        return !condition.wait_until(
+          lock, steady_clock::now() + milliseconds(1), [] { return false; });
+      }();
+      return received && timed_out && lock.owns_lock();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, result.get_eval());
+    ready.get();
+    auto producer = spawn([&] {
+      auto lock = std::lock_guard(mutex);
+      value = 42;
+      condition.notify_one();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    auto received = result.get();
+    wait(consumer);
+    wait(producer);
+    REQUIRE(received);
+  }
+
+  TEST_CASE_TEMPLATE("timed_notification_race", T, std::condition_variable,
+      std::condition_variable_any) {
+    for(auto i = 0; i != 50; ++i) {
+      auto condition = T();
+      auto mutex = std::mutex();
+      auto ready = Async<void>();
+      auto result = Async<bool>();
+      auto consumer = spawn([&] {
+        auto lock = std::unique_lock(mutex);
+        ready.get_eval().set();
+        condition.wait_until(lock, steady_clock::now() + microseconds(100));
+        return lock.owns_lock();
+      }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, result.get_eval());
+      ready.get();
+      auto producer = std::thread([&] {
+        std::this_thread::sleep_for(microseconds(50 * (i % 3)));
+        auto lock = std::lock_guard(mutex);
+        condition.notify_one();
+      });
+      auto owns_lock = result.get();
+      producer.join();
+      wait(consumer);
+      REQUIRE(owns_lock);
+    }
+  }
+#endif
+
   TEST_CASE_TEMPLATE("mixed_notify_all", T, std::condition_variable,
       std::condition_variable_any) {
     auto condition = T();

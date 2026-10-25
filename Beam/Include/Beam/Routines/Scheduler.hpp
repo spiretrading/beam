@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 #include "Beam/Routines/FunctionRoutine.hpp"
+#include "Beam/Threading/LinuxMutex.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/WindowsMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
@@ -127,6 +128,8 @@ namespace Details {
         m_busy_count(0) {
     #if defined(_MSC_VER) && defined(_DLL)
       WindowsMutex::initialize();
+    #elif defined(__linux__) && defined(__GLIBC__) && defined(__x86_64__)
+      LinuxMutex::initialize();
     #endif
     try {
       for(auto i = std::size_t(0); i < m_thread_count; ++i) {

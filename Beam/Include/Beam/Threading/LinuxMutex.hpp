@@ -554,7 +554,7 @@ namespace Beam::Details {
     if(routine) {
       if(deadline) {
         auto value = std::uint64_t(1);
-        if(write(runtime.m_event, &value, sizeof(value)) == -1 &&
+        if(::write(runtime.m_event, &value, sizeof(value)) == -1 &&
             errno != EAGAIN) {
           std::terminate();
         }
@@ -782,7 +782,7 @@ namespace Beam::Details {
       for(auto& descriptor : descriptors) {
         if((descriptor.revents & POLLIN) != 0) {
           auto value = std::uint64_t();
-          static_cast<void>(read(descriptor.fd, &value, sizeof(value)));
+          static_cast<void>(::read(descriptor.fd, &value, sizeof(value)));
         }
       }
     }

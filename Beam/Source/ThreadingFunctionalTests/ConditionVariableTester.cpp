@@ -93,6 +93,36 @@ TEST_SUITE("ConditionVariable") {
     wait(witness);
   }
 
+  TEST_CASE_TEMPLATE("routine_timed_wait", T, std::condition_variable,
+      std::condition_variable_any) {
+    auto condition = T();
+    auto mutex = std::mutex();
+    auto ready = Async<void>();
+    auto result = Async<bool>();
+    auto value = 0;
+    auto consumer = spawn([&] {
+      auto lock = std::unique_lock(mutex);
+      ready.get_eval().set();
+      auto received = condition.wait_for(lock, seconds(5), [&] {
+        return value == 42;
+      });
+      auto timed_out = !condition.wait_for(lock, milliseconds(1), [] {
+        return false;
+      });
+      return received && timed_out && lock.owns_lock();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, result.get_eval());
+    ready.get();
+    auto producer = std::thread([&] {
+      auto lock = std::lock_guard(mutex);
+      value = 42;
+      condition.notify_one();
+    });
+    producer.join();
+    auto received = result.get();
+    wait(consumer);
+    REQUIRE(received);
+  }
+
   TEST_CASE_TEMPLATE("mixed_notify_all", T, std::condition_variable,
       std::condition_variable_any) {
     auto condition = T();

@@ -8,6 +8,78 @@
 using namespace Beam;
 
 TEST_SUITE("Mutex") {
+  TEST_CASE_TEMPLATE("fifo_handoff", T, std::mutex, std::recursive_mutex) {
+    auto mutex = T();
+    auto acquired = Async<void>();
+    auto release = Async<void>();
+    auto results = std::array<Async<int>, 3>();
+    auto routines = std::array<Routine::Id, 3>();
+    auto count = 0;
+    auto barged = false;
+    routines[2] = spawn([&] {
+      auto lock = std::unique_lock(mutex);
+      acquired.get_eval().set();
+      release.get();
+      if constexpr(std::is_same_v<T, std::recursive_mutex>) {
+        mutex.lock();
+        mutex.unlock();
+      }
+      lock.unlock();
+      barged = mutex.try_lock();
+      if(barged) {
+        mutex.unlock();
+      }
+      lock.lock();
+      return count++;
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, results[2].get_eval());
+    acquired.get();
+    for(auto i = 0; i != 2; ++i) {
+      routines[i] = spawn([&] {
+        auto lock = std::lock_guard(mutex);
+        return count++;
+      }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, results[i].get_eval());
+    }
+    auto releaser = spawn([&] {
+      release.get_eval().set();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    auto order = std::array<int, 3>();
+    for(auto i = 0; i != 3; ++i) {
+      order[i] = results[i].get();
+      wait(routines[i]);
+    }
+    wait(releaser);
+    REQUIRE(!barged);
+    REQUIRE(order == std::array{0, 1, 2});
+  }
+
+  TEST_CASE_TEMPLATE("native_handoff_reservation", T, std::mutex,
+      std::recursive_mutex) {
+    auto mutex = T();
+    auto lock = std::unique_lock(mutex);
+    auto ready = Async<void>();
+    auto release = std::atomic_bool(false);
+    auto result = Async<void>();
+    auto waiter = spawn([&] {
+      auto lock = std::lock_guard(mutex);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, result.get_eval());
+    auto witness = spawn([&] {
+      ready.get_eval().set();
+      release.wait(false);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    ready.get();
+    lock.unlock();
+    auto barged = mutex.try_lock();
+    if(barged) {
+      mutex.unlock();
+    }
+    release.store(true);
+    release.notify_one();
+    result.get();
+    wait(waiter);
+    wait(witness);
+    REQUIRE(!barged);
+  }
+
   TEST_CASE_TEMPLATE("same_context_contention", T, std::mutex,
       std::recursive_mutex) {
     auto mutex = T();

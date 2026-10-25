@@ -2,6 +2,7 @@
 #define BEAM_WINDOWS_MUTEX_HPP
 #if defined(_MSC_VER) && defined(_DLL)
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <system_error>
@@ -25,12 +26,18 @@ namespace Beam::Details {
       static void initialize();
 
     private:
+      static constexpr auto LOCKED = std::uintptr_t(1);
+      static constexpr auto HAS_WAITERS = std::uintptr_t(2);
       struct Waiter {
         PSRWLOCK m_mutex;
         Routine* m_routine;
+        DWORD m_thread;
         Waiter* m_next;
+        CONDITION_VARIABLE m_notification;
+        std::atomic_bool m_is_notified;
+        bool m_is_suspended;
       };
-      struct Bucket {
+      struct alignas(64) Bucket {
         SRWLOCK m_mutex = SRWLOCK_INIT;
         Waiter* m_waiters = nullptr;
       };
@@ -107,8 +114,14 @@ namespace Beam::Details {
       static Bucket& get_bucket(PSRWLOCK mutex);
       static ConditionBucket& get_bucket(PCONDITION_VARIABLE condition);
       static OnceBucket& get_bucket(PINIT_ONCE once);
-      static Routine* pop(Bucket& bucket, PSRWLOCK mutex);
+      static std::uintptr_t enter(_Mtx_t mutex);
+      static void leave(_Mtx_t mutex, std::uintptr_t state);
+      static Routine* notify(Bucket& bucket, PSRWLOCK mutex);
+      static bool is_recursive_owner(_Mtx_t mutex, Routine& routine);
       static _Thrd_result acquire(_Mtx_t mutex, Routine& routine);
+      static _Thrd_result acquire(
+        _Mtx_t mutex, Routine* routine, std::uintptr_t& state, bool selected);
+      static _Thrd_result lock(_Mtx_t mutex, Routine* routine);
       static _Thrd_result __cdecl lock(_Mtx_t mutex) noexcept;
       static _Thrd_result __cdecl try_lock(_Mtx_t mutex) noexcept;
       static _Thrd_result __cdecl unlock(_Mtx_t mutex) noexcept;
@@ -143,7 +156,8 @@ namespace Beam::Details {
       auto module = HMODULE();
       if(!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
           GET_MODULE_HANDLE_EX_FLAG_PIN,
-          reinterpret_cast<LPCSTR>(&lock), &module)) {
+          reinterpret_cast<LPCSTR>(
+            static_cast<decltype(&_Mtx_lock)>(&lock)), &module)) {
         throw std::system_error(GetLastError(), std::system_category());
       }
       auto snapshot = CreateToolhelp32Snapshot(
@@ -245,93 +259,257 @@ namespace Beam::Details {
       buckets.size()];
   }
 
-  inline Routine* WindowsMutex::pop(Bucket& bucket, PSRWLOCK mutex) {
-    auto waiter = &bucket.m_waiters;
-    while(*waiter) {
-      if((*waiter)->m_mutex == mutex) {
-        auto routine = (*waiter)->m_routine;
-        *waiter = (*waiter)->m_next;
-        return routine;
+  inline std::uintptr_t WindowsMutex::enter(_Mtx_t mutex) {
+    static_assert(std::atomic_ref<void*>::is_always_lock_free);
+    static_assert(alignof(Routine) > (LOCKED | HAS_WAITERS));
+    auto state = std::atomic_ref(mutex->_Critical_section._Unused);
+    auto value = state.load(std::memory_order_relaxed);
+    while(true) {
+      auto bits = reinterpret_cast<std::uintptr_t>(value);
+      if((bits & LOCKED) == 0 && state.compare_exchange_weak(value,
+          reinterpret_cast<void*>(bits | LOCKED), std::memory_order_acquire,
+          std::memory_order_relaxed)) {
+        return bits;
       }
-      waiter = &(*waiter)->m_next;
+      YieldProcessor();
+      value = state.load(std::memory_order_relaxed);
+    }
+  }
+
+  inline void WindowsMutex::leave(_Mtx_t mutex, std::uintptr_t state) {
+    std::atomic_ref(mutex->_Critical_section._Unused).store(
+      reinterpret_cast<void*>(state), std::memory_order_release);
+  }
+
+  inline Routine* WindowsMutex::notify(Bucket& bucket, PSRWLOCK mutex) {
+    for(auto waiter = bucket.m_waiters; waiter; waiter = waiter->m_next) {
+      if(waiter->m_mutex == mutex) {
+        if(!waiter->m_is_notified.load(std::memory_order_relaxed)) {
+          waiter->m_is_notified.store(true, std::memory_order_release);
+          if(waiter->m_is_suspended) {
+            if(waiter->m_routine) {
+              return waiter->m_routine;
+            }
+            get_state().m_notify_one(&waiter->m_notification);
+          }
+        }
+        break;
+      }
     }
     return nullptr;
   }
 
-  inline _Thrd_result WindowsMutex::acquire(
+  inline bool WindowsMutex::is_recursive_owner(
       _Mtx_t mutex, Routine& routine) {
-    auto owner = mutex->_Critical_section._Unused;
-    if(owner && owner != &routine) {
+    if((mutex->_Type & _Mtx_recursive) == 0) {
+      return false;
+    }
+    auto state = reinterpret_cast<std::uintptr_t>(
+      std::atomic_ref(mutex->_Critical_section._Unused).load(
+        std::memory_order_relaxed));
+    return (state & ~(LOCKED | HAS_WAITERS)) ==
+      reinterpret_cast<std::uintptr_t>(&routine);
+  }
+
+  inline _Thrd_result WindowsMutex::acquire(_Mtx_t mutex, Routine& routine) {
+    if(is_recursive_owner(mutex, routine)) {
+      ++mutex->_Count;
+      return _Thrd_result::_Success;
+    }
+    auto owner = reinterpret_cast<std::uintptr_t>(&routine);
+    auto expected = static_cast<void*>(nullptr);
+    if(!std::atomic_ref(mutex->_Critical_section._Unused).
+        compare_exchange_strong(expected,
+          reinterpret_cast<void*>(owner | LOCKED),
+          std::memory_order_acquire, std::memory_order_relaxed)) {
       return _Thrd_result::_Busy;
+    }
+    if(!TryAcquireSRWLockExclusive(get_lock(mutex))) {
+      leave(mutex, 0);
+      return _Thrd_result::_Busy;
+    }
+    mutex->_Thread_id = static_cast<long>(GetCurrentThreadId());
+    mutex->_Count = 1;
+    leave(mutex, owner);
+    return _Thrd_result::_Success;
+  }
+
+  inline _Thrd_result WindowsMutex::acquire(
+      _Mtx_t mutex, Routine* routine, std::uintptr_t& state, bool selected) {
+    auto owner = reinterpret_cast<Routine*>(state & ~HAS_WAITERS);
+    if(owner && owner != routine) {
+      return _Thrd_result::_Busy;
+    }
+    if((state & HAS_WAITERS) != 0 && !selected) {
+      if(owner != routine || mutex->_Count == 0 ||
+          mutex->_Thread_id != static_cast<long>(GetCurrentThreadId())) {
+        return _Thrd_result::_Busy;
+      }
     }
     auto result = get_state().m_try_lock(mutex);
     if(result == _Thrd_result::_Success) {
-      mutex->_Critical_section._Unused = &routine;
+      state = reinterpret_cast<std::uintptr_t>(routine) |
+        (state & HAS_WAITERS);
     }
     return result;
+  }
+
+  inline _Thrd_result WindowsMutex::lock(_Mtx_t mutex, Routine* routine) {
+    auto waiter = Waiter(get_lock(mutex), routine, GetCurrentThreadId(),
+      nullptr, CONDITION_VARIABLE(), false, false);
+    auto guard = Guard();
+    auto& bucket = get_bucket(get_lock(mutex));
+    auto state = enter(mutex);
+    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto result = acquire(mutex, routine, state, false);
+    if(result != _Thrd_result::_Busy) {
+      leave(mutex, state);
+      ReleaseSRWLockExclusive(&bucket.m_mutex);
+      return result;
+    }
+    auto entry = &bucket.m_waiters;
+    auto should_spin = mutex->_Thread_id != static_cast<long>(waiter.m_thread);
+    while(*entry) {
+      if((*entry)->m_mutex == get_lock(mutex) &&
+          (*entry)->m_thread == waiter.m_thread) {
+        should_spin = false;
+      }
+      entry = &(*entry)->m_next;
+    }
+    *entry = &waiter;
+    state |= HAS_WAITERS;
+    while(true) {
+      waiter.m_is_notified.store(false, std::memory_order_relaxed);
+      waiter.m_is_suspended = false;
+      leave(mutex, state);
+      auto should_suspend = true;
+      if(should_spin) {
+        ReleaseSRWLockExclusive(&bucket.m_mutex);
+        for(auto i = 0; i != 4096; ++i) {
+          if(waiter.m_is_notified.load(std::memory_order_acquire)) {
+            break;
+          }
+          YieldProcessor();
+        }
+        should_suspend = !waiter.m_is_notified.load(std::memory_order_acquire);
+        if(should_suspend) {
+          AcquireSRWLockExclusive(&bucket.m_mutex);
+          should_suspend =
+            !waiter.m_is_notified.load(std::memory_order_relaxed);
+          if(!should_suspend) {
+            ReleaseSRWLockExclusive(&bucket.m_mutex);
+          }
+        }
+      }
+      if(should_suspend) {
+        waiter.m_is_suspended = true;
+        if(routine) {
+          routine->pending_suspend();
+          ReleaseSRWLockExclusive(&bucket.m_mutex);
+          is_entered() = false;
+          routine->suspend();
+          is_entered() = true;
+        } else {
+          while(!waiter.m_is_notified.load(std::memory_order_relaxed)) {
+            get_state().m_sleep(
+              &waiter.m_notification, &bucket.m_mutex, INFINITE, 0);
+          }
+          ReleaseSRWLockExclusive(&bucket.m_mutex);
+        }
+      }
+      state = enter(mutex);
+      AcquireSRWLockExclusive(&bucket.m_mutex);
+      result = acquire(mutex, routine, state, true);
+      if(result == _Thrd_result::_Busy) {
+        continue;
+      }
+      entry = &bucket.m_waiters;
+      auto has_waiters = false;
+      while(*entry) {
+        if(*entry == &waiter) {
+          *entry = waiter.m_next;
+        } else {
+          has_waiters |= (*entry)->m_mutex == get_lock(mutex);
+          entry = &(*entry)->m_next;
+        }
+      }
+      if(!has_waiters) {
+        state &= ~HAS_WAITERS;
+      }
+      leave(mutex, state);
+      ReleaseSRWLockExclusive(&bucket.m_mutex);
+      return result;
+    }
   }
 
   inline _Thrd_result __cdecl WindowsMutex::lock(_Mtx_t mutex) noexcept {
-    if(is_entered()) {
-      return get_state().m_lock(mutex);
+    auto routine = static_cast<Routine*>(nullptr);
+    if(!is_entered()) {
+      routine = get_routine();
     }
-    auto routine = get_routine();
     if(!routine) {
-      return get_state().m_lock(mutex);
-    }
-    auto guard = Guard();
-    auto& bucket = get_bucket(get_lock(mutex));
-    while(true) {
-      AcquireSRWLockExclusive(&bucket.m_mutex);
-      auto result = acquire(mutex, *routine);
-      if(result != _Thrd_result::_Busy) {
-        ReleaseSRWLockExclusive(&bucket.m_mutex);
+      auto result = get_state().m_lock(mutex);
+      auto state = reinterpret_cast<std::uintptr_t>(
+        std::atomic_ref(mutex->_Critical_section._Unused).load(
+          std::memory_order_acquire));
+      if(result != _Thrd_result::_Success || mutex->_Count > 1 ||
+          (state & HAS_WAITERS) == 0) {
         return result;
       }
-      auto waiter = Waiter(get_lock(mutex), routine, bucket.m_waiters);
-      bucket.m_waiters = &waiter;
-      routine->pending_suspend();
-      ReleaseSRWLockExclusive(&bucket.m_mutex);
-      is_entered() = false;
-      routine->suspend();
-      is_entered() = true;
+      unlock(mutex);
+      return lock(mutex, nullptr);
     }
+    auto result = acquire(mutex, *routine);
+    if(result != _Thrd_result::_Busy) {
+      return result;
+    }
+    return lock(mutex, routine);
   }
 
   inline _Thrd_result __cdecl WindowsMutex::try_lock(_Mtx_t mutex) noexcept {
-    if(is_entered()) {
-      return get_state().m_try_lock(mutex);
+    auto routine = static_cast<Routine*>(nullptr);
+    if(!is_entered()) {
+      routine = get_routine();
     }
-    auto routine = get_routine();
     if(!routine) {
-      return get_state().m_try_lock(mutex);
+      auto result = get_state().m_try_lock(mutex);
+      auto state = reinterpret_cast<std::uintptr_t>(
+        std::atomic_ref(mutex->_Critical_section._Unused).load(
+          std::memory_order_acquire));
+      if(result != _Thrd_result::_Success || mutex->_Count > 1 ||
+          (state & HAS_WAITERS) == 0) {
+        return result;
+      }
+      unlock(mutex);
+      return _Thrd_result::_Busy;
     }
-    auto guard = Guard();
-    auto& bucket = get_bucket(get_lock(mutex));
-    AcquireSRWLockExclusive(&bucket.m_mutex);
-    auto result = acquire(mutex, *routine);
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
-    return result;
+    return acquire(mutex, *routine);
   }
 
   inline _Thrd_result __cdecl WindowsMutex::unlock(_Mtx_t mutex) noexcept {
+    if(mutex->_Count > 1) {
+      --mutex->_Count;
+      return _Thrd_result::_Success;
+    }
+    auto state = enter(mutex);
+    mutex->_Thread_id = -1;
+    mutex->_Count = 0;
+    ReleaseSRWLockExclusive(get_lock(mutex));
+    state &= HAS_WAITERS;
+    if(state == 0) {
+      leave(mutex, state);
+      return _Thrd_result::_Success;
+    }
     auto guard = Guard();
     auto& bucket = get_bucket(get_lock(mutex));
-    auto routine = static_cast<Routine*>(nullptr);
     AcquireSRWLockExclusive(&bucket.m_mutex);
-    auto is_released = mutex->_Count == 1;
-    if(is_released) {
-      mutex->_Critical_section._Unused = nullptr;
-    }
-    auto result = get_state().m_unlock(mutex);
-    if(is_released) {
-      routine = pop(bucket, get_lock(mutex));
-    }
+    auto routine = notify(bucket, get_lock(mutex));
+    leave(mutex, state);
     ReleaseSRWLockExclusive(&bucket.m_mutex);
     if(routine) {
       routine->resume();
     }
-    return result;
+    return _Thrd_result::_Success;
   }
 
   inline _Thrd_result __cdecl WindowsMutex::wait(
@@ -367,22 +545,21 @@ namespace Beam::Details {
     waiter.m_next = bucket.m_waiters;
     bucket.m_waiters = &waiter;
     ReleaseSRWLockExclusive(&bucket.m_mutex);
-    auto& mutex_bucket = get_bucket(mutex);
-    AcquireSRWLockExclusive(&mutex_bucket.m_mutex);
     if(owner) {
-      owner->_Critical_section._Unused = nullptr;
-      owner->_Thread_id = -1;
-      --owner->_Count;
-    }
-    if((flags & CONDITION_VARIABLE_LOCKMODE_SHARED) != 0) {
-      ReleaseSRWLockShared(mutex);
+      unlock(owner);
     } else {
-      ReleaseSRWLockExclusive(mutex);
-    }
-    auto next = pop(mutex_bucket, mutex);
-    ReleaseSRWLockExclusive(&mutex_bucket.m_mutex);
-    if(next) {
-      next->resume();
+      auto& mutex_bucket = get_bucket(mutex);
+      AcquireSRWLockExclusive(&mutex_bucket.m_mutex);
+      if((flags & CONDITION_VARIABLE_LOCKMODE_SHARED) != 0) {
+        ReleaseSRWLockShared(mutex);
+      } else {
+        ReleaseSRWLockExclusive(mutex);
+      }
+      auto next = notify(mutex_bucket, mutex);
+      ReleaseSRWLockExclusive(&mutex_bucket.m_mutex);
+      if(next) {
+        next->resume();
+      }
     }
     if(routine) {
       is_entered() = false;
@@ -589,7 +766,8 @@ namespace Beam::Details {
         auto target = reinterpret_cast<void*>(thunk->u1.Function);
         auto replacement = static_cast<void*>(nullptr);
         if(target == reinterpret_cast<void*>(state.m_lock)) {
-          replacement = reinterpret_cast<void*>(&lock);
+          replacement = reinterpret_cast<void*>(
+            static_cast<decltype(&_Mtx_lock)>(&lock));
         } else if(target == reinterpret_cast<void*>(state.m_try_lock)) {
           replacement = reinterpret_cast<void*>(&try_lock);
         } else if(target == reinterpret_cast<void*>(state.m_unlock)) {

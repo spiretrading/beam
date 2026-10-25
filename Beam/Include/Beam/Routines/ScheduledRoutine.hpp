@@ -200,4 +200,8 @@ namespace Details {
 #endif
 }
 
+#if defined(_MSC_VER) && !defined(BEAM_USE_DLL)
+  #pragma optimize("", on)
+#endif
+
 #endif

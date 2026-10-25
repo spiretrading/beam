@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <doctest/doctest.h>
 #include "Beam/Queues/Queue.hpp"
 #include "Beam/Queues/TablePublisher.hpp"

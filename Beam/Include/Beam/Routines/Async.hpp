@@ -118,7 +118,7 @@ namespace Beam {
        * Sets an exception to be returned.
        * @param e The exception to set.
        */
-      template<typename E>
+      template<std::derived_from<std::exception> E>
       void set_exception(const E& e);
 
       /**

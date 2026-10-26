@@ -151,7 +151,7 @@ namespace Beam {
     resume(out(m_suspended_routines));
   }
 
-  template<typename E>
+  template<std::derived_from<std::exception> E>
   void BaseEval::set_exception(const E& e) {
     set_exception(std::make_exception_ptr(e));
   }

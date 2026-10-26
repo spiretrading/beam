@@ -6,6 +6,7 @@
 #include <boost/call_traits.hpp>
 #include "Beam/Pointers/Ref.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.hpp"
+#include "Beam/Threading/NativeMutex.hpp"
 
 namespace Beam {
   template<typename> class Eval;
@@ -95,7 +96,7 @@ namespace Beam {
 
     private:
       friend class Eval<Type>;
-      mutable std::mutex m_mutex;
+      mutable NativeMutex m_mutex;
       SuspendedRoutineQueue m_suspended_routines;
       std::variant<
         std::monostate, std::monostate, std::exception_ptr> m_result;

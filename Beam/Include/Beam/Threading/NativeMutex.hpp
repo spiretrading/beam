@@ -21,11 +21,7 @@ namespace Beam {
     public:
 
       /** Constructs an unlocked mutex. */
-      #ifdef _WIN32
-        NativeMutex() noexcept;
-      #else
-        NativeMutex();
-      #endif
+      NativeMutex() noexcept;
 
       ~NativeMutex();
 
@@ -73,13 +69,9 @@ namespace Beam {
     inline NativeMutex::NativeMutex() noexcept
       : m_mutex() {}
   #else
-    inline NativeMutex::NativeMutex()
-        : m_mutex() {
+    inline NativeMutex::NativeMutex() noexcept
+        : m_mutex(PTHREAD_MUTEX_INITIALIZER) {
       get_functions();
-      auto result = pthread_mutex_init(&m_mutex, nullptr);
-      if(result != 0) {
-        throw std::system_error(result, std::generic_category());
-      }
     }
   #endif
 

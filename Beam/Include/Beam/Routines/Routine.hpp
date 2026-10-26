@@ -118,7 +118,7 @@ namespace Details {
       friend void resume(Out<Sync<Container>>);
       State m_state;
       Id m_id;
-      Sync<WaitResults> m_wait_results;
+      Sync<WaitResults, NativeMutex> m_wait_results;
   };
 
   /** Returns the currently executing Routine. */

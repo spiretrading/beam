@@ -7,12 +7,10 @@
   #define BOOST_USE_WINFIB
 #endif
 #if defined _MSC_VER
-  #define BEAM_DISABLE_OPTIMIZATIONS __pragma(optimize( "", off ))
   #define other beam_other
   #include <boost/context/continuation.hpp>
   #undef other
 #else
-  #define BEAM_DISABLE_OPTIMIZATIONS
   #include <boost/context/continuation.hpp>
 #endif
 #include "Beam/Pointers/Ref.hpp"
@@ -144,7 +142,6 @@ namespace Details {
 #endif
 
 #ifndef BEAM_USE_DLL
-  BEAM_DISABLE_OPTIMIZATIONS
   BEAM_EMIT_DLL inline void ScheduledRoutine::defer() {
     Details::CurrentRoutineGlobal::get() = nullptr;
 #ifdef BEAM_ENABLE_STACK_PRINT

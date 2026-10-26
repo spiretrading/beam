@@ -1,5 +1,6 @@
 #include <array>
 #include <cstdint>
+#include <latch>
 #include <doctest/doctest.h>
 #ifdef WIN32
   #include <windows.h>
@@ -7,6 +8,19 @@
 #include "Beam/Routines/Scheduler.hpp"
 
 using namespace Beam;
+using namespace Beam::Tests;
+
+namespace Beam::Tests {
+  struct SchedulerTester {
+    static auto& get_idle_mutex(Details::Scheduler& scheduler) {
+      return scheduler.m_idle_mutex;
+    }
+
+    static auto& get_idle_evals(Details::Scheduler& scheduler) {
+      return scheduler.m_idle_evals;
+    }
+  };
+}
 
 namespace {
   struct StackBounds {
@@ -37,6 +51,35 @@ namespace {
 }
 
 TEST_SUITE("Scheduler") {
+  TEST_CASE("idle_notification_after_new_work") {
+    auto scheduler = Details::Scheduler();
+    auto idle = Async<void>();
+    scheduler.notify_when_idle(idle.get_eval());
+    idle.get();
+    auto lock = std::unique_lock(SchedulerTester::get_idle_mutex(scheduler));
+    scheduler.spawn([] {}, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    while(!scheduler.is_idle()) {
+      std::this_thread::yield();
+    }
+    auto started = std::latch(1);
+    auto release = std::latch(1);
+    scheduler.spawn([&] {
+      started.count_down();
+      release.wait();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    SchedulerTester::get_idle_evals(scheduler).push_back(idle.get_eval());
+    lock.unlock();
+    started.wait();
+    lock.lock();
+    auto is_pending = !SchedulerTester::get_idle_evals(scheduler).empty();
+    lock.unlock();
+    release.count_down();
+    idle.get();
+    scheduler.stop();
+    REQUIRE(is_pending);
+    REQUIRE(scheduler.is_idle());
+  }
+
   TEST_CASE("stack_bounds") {
     auto stack_size = Details::Scheduler::DEFAULT_STACK_SIZE;
     SUBCASE("default_size") {}

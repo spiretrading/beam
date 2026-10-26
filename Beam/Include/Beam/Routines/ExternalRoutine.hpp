@@ -49,6 +49,7 @@ namespace Beam {
     set(State::SUSPENDED);
     if(m_is_pending_resume) {
       m_is_pending_resume = false;
+      set(State::RUNNING);
       return;
     }
     while(get_state() == State::SUSPENDED) {

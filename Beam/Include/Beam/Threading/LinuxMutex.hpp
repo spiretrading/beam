@@ -8,7 +8,6 @@
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
-#include <mutex>
 #include <system_error>
 #include <dlfcn.h>
 #include <elf.h>
@@ -19,6 +18,7 @@
 #include <sys/mman.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
+#include "Beam/Threading/NativeConditionVariable.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam {
@@ -43,7 +43,7 @@ namespace Beam::Details {
         void* m_key;
         Routine* m_routine;
         Waiter* m_next;
-        pthread_cond_t m_notification;
+        NativeConditionVariable m_notification;
         std::atomic_bool m_is_notified;
         bool m_is_suspended;
         pid_t m_thread;
@@ -53,14 +53,19 @@ namespace Beam::Details {
         bool m_is_timed;
 
         Waiter(void* key, Routine* routine);
-        ~Waiter();
+      };
+      template<clockid_t C>
+      struct Clock {
+        static constexpr auto is_steady = C == CLOCK_MONOTONIC;
+        static std::chrono::time_point<Clock,
+          std::chrono::duration<long double>> now();
       };
       struct ActiveOnce {
         pthread_once_t* m_once;
         ActiveOnce* m_next;
       };
       struct alignas(64) Bucket {
-        pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+        NativeMutex m_mutex = NativeMutex();
         Waiter* m_waiters = nullptr;
         ActiveOnce* m_initializers = nullptr;
       };
@@ -107,7 +112,8 @@ namespace Beam::Details {
       static Bucket& get_bucket(std::array<Bucket, 64>& buckets, void* key);
       static std::uintptr_t enter(pthread_mutex_t* mutex);
       static void leave(pthread_mutex_t* mutex, std::uintptr_t state);
-      static void suspend(Waiter& waiter, Bucket& bucket);
+      static void suspend(Waiter& waiter,
+        std::unique_lock<NativeMutex>& bucket_lock);
       static Routine* notify(Bucket& bucket, void* key);
       static int acquire(pthread_mutex_t* mutex, Routine& routine);
       static int acquire(pthread_mutex_t* mutex, Routine* routine,
@@ -188,8 +194,16 @@ namespace Beam::Details {
       m_deadline(),
       m_is_timed(false) {}
 
-  inline LinuxMutex::Waiter::~Waiter() {
-    pthread_cond_destroy(&m_notification);
+  template<clockid_t C>
+  std::chrono::time_point<LinuxMutex::Clock<C>,
+      std::chrono::duration<long double>> LinuxMutex::Clock<C>::now() {
+    auto time = timespec();
+    if(clock_gettime(C, &time) != 0) {
+      throw std::system_error(errno, std::generic_category());
+    }
+    return std::chrono::time_point<Clock, std::chrono::duration<long double>>(
+      std::chrono::duration<long double>(time.tv_sec) +
+        std::chrono::nanoseconds(time.tv_nsec));
   }
 
   template<typename T>
@@ -273,20 +287,20 @@ namespace Beam::Details {
       reinterpret_cast<__pthread_list_t*>(state), std::memory_order_release);
   }
 
-  inline void LinuxMutex::suspend(Waiter& waiter, Bucket& bucket) {
-    auto& state = get_state();
+  inline void LinuxMutex::suspend(Waiter& waiter,
+      std::unique_lock<NativeMutex>& bucket_lock) {
     waiter.m_is_suspended = true;
     if(waiter.m_routine) {
       waiter.m_routine->pending_suspend();
-      state.m_unlock(&bucket.m_mutex);
+      bucket_lock.unlock();
       is_entered() = false;
       waiter.m_routine->suspend();
       is_entered() = true;
-      state.m_lock(&bucket.m_mutex);
+      bucket_lock.lock();
     } else {
-      while(!waiter.m_is_notified.load(std::memory_order_relaxed)) {
-        state.m_wait(&waiter.m_notification, &bucket.m_mutex);
-      }
+      waiter.m_notification.wait(bucket_lock, [&] {
+        return waiter.m_is_notified.load(std::memory_order_relaxed);
+      });
     }
   }
 
@@ -299,7 +313,7 @@ namespace Beam::Details {
             if(waiter->m_routine) {
               return waiter->m_routine;
             }
-            get_state().m_notify_one(&waiter->m_notification);
+            waiter->m_notification.notify_one();
           }
         }
         break;
@@ -359,11 +373,10 @@ namespace Beam::Details {
     auto& runtime = get_state();
     auto& bucket = get_bucket(runtime.m_mutexes, mutex);
     auto state = enter(mutex);
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto result = acquire(mutex, routine, state, false);
     if(result != EBUSY) {
       leave(mutex, state);
-      runtime.m_unlock(&bucket.m_mutex);
       return result;
     }
     auto entry = &bucket.m_waiters;
@@ -382,21 +395,21 @@ namespace Beam::Details {
       waiter.m_is_suspended = false;
       leave(mutex, state);
       if(should_spin) {
-        runtime.m_unlock(&bucket.m_mutex);
+        bucket_lock.unlock();
         for(auto i = 0; i != 4096; ++i) {
           if(waiter.m_is_notified.load(std::memory_order_acquire)) {
             break;
           }
           __builtin_ia32_pause();
         }
-        runtime.m_lock(&bucket.m_mutex);
+        bucket_lock.lock();
       }
       if(!waiter.m_is_notified.load(std::memory_order_relaxed)) {
-        suspend(waiter, bucket);
+        suspend(waiter, bucket_lock);
       }
-      runtime.m_unlock(&bucket.m_mutex);
+      bucket_lock.unlock();
       state = enter(mutex);
-      runtime.m_lock(&bucket.m_mutex);
+      bucket_lock.lock();
       result = acquire(mutex, routine, state, true);
       if(result == EBUSY) {
         continue;
@@ -415,7 +428,6 @@ namespace Beam::Details {
         state &= ~HAS_WAITERS;
       }
       leave(mutex, state);
-      runtime.m_unlock(&bucket.m_mutex);
       return result;
     }
   }
@@ -466,10 +478,10 @@ namespace Beam::Details {
     }
     auto guard = Guard();
     auto& bucket = get_bucket(runtime.m_mutexes, mutex);
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto routine = notify(bucket, mutex);
     leave(mutex, state);
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     if(routine) {
       routine->resume();
     }
@@ -543,13 +555,13 @@ namespace Beam::Details {
       waiter.m_deadline = *deadline;
       waiter.m_is_timed = true;
     }
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     waiter.m_next = bucket.m_waiters;
     bucket.m_waiters = &waiter;
     if(routine) {
       routine->pending_suspend();
     }
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     unlock(mutex);
     if(routine) {
       if(deadline) {
@@ -565,14 +577,31 @@ namespace Beam::Details {
       is_entered() = true;
       return waiter.m_result;
     }
-    runtime.m_lock(&bucket.m_mutex);
+    bucket_lock.lock();
     while(!waiter.m_is_notified.load(std::memory_order_relaxed)) {
       auto result = 0;
-      if(deadline) {
-        result = runtime.m_clock_wait(
-          &waiter.m_notification, &bucket.m_mutex, clock, deadline);
-      } else {
-        result = runtime.m_wait(&waiter.m_notification, &bucket.m_mutex);
+      try {
+        if(deadline) {
+          auto expires = std::chrono::duration<long double>(deadline->tv_sec) +
+            std::chrono::nanoseconds(deadline->tv_nsec);
+          auto status = std::cv_status();
+          if(clock == CLOCK_MONOTONIC) {
+            status = waiter.m_notification.wait_until(bucket_lock,
+              std::chrono::time_point<Clock<CLOCK_MONOTONIC>,
+                decltype(expires)>(expires));
+          } else {
+            status = waiter.m_notification.wait_until(bucket_lock,
+              std::chrono::time_point<Clock<CLOCK_REALTIME>,
+                decltype(expires)>(expires));
+          }
+          if(status == std::cv_status::timeout) {
+            result = ETIMEDOUT;
+          }
+        } else {
+          waiter.m_notification.wait(bucket_lock);
+        }
+      } catch(const std::system_error& error) {
+        result = error.code().value();
       }
       if(result != 0 &&
           !waiter.m_is_notified.load(std::memory_order_relaxed)) {
@@ -585,7 +614,7 @@ namespace Beam::Details {
         break;
       }
     }
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     lock(mutex);
     return waiter.m_result;
   }
@@ -595,7 +624,7 @@ namespace Beam::Details {
     auto& runtime = get_state();
     auto& bucket = get_bucket(runtime.m_conditions, condition);
     auto routines = static_cast<Waiter*>(nullptr);
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto entry = &bucket.m_waiters;
     while(*entry) {
       auto waiter = *entry;
@@ -609,7 +638,7 @@ namespace Beam::Details {
         waiter->m_next = routines;
         routines = waiter;
       } else {
-        runtime.m_notify_one(&waiter->m_notification);
+        waiter->m_notification.notify_one();
       }
       if(!all) {
         break;
@@ -621,7 +650,7 @@ namespace Beam::Details {
     } else {
       result = runtime.m_notify_one(condition);
     }
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     while(routines) {
       auto routine = routines->m_routine;
       routines = routines->m_next;
@@ -651,7 +680,7 @@ namespace Beam::Details {
     auto routine = get_routine();
     auto guard = Guard();
     auto& bucket = get_bucket(runtime.m_initializers, flag);
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     while(true) {
       auto active = bucket.m_initializers;
       while(active && active->m_once != flag) {
@@ -663,11 +692,11 @@ namespace Beam::Details {
       auto waiter = Waiter(flag, routine);
       waiter.m_next = bucket.m_waiters;
       bucket.m_waiters = &waiter;
-      suspend(waiter, bucket);
+      suspend(waiter, bucket_lock);
     }
     auto active = ActiveOnce(flag, bucket.m_initializers);
     bucket.m_initializers = &active;
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     std::__once_callable = callable;
     std::__once_call = call;
     is_entered() = false;
@@ -684,9 +713,8 @@ namespace Beam::Details {
   }
 
   inline void LinuxMutex::complete(ActiveOnce& active, Bucket& bucket) {
-    auto& runtime = get_state();
     auto routines = static_cast<Waiter*>(nullptr);
-    runtime.m_lock(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto initializer = &bucket.m_initializers;
     while(*initializer != &active) {
       initializer = &(*initializer)->m_next;
@@ -705,10 +733,10 @@ namespace Beam::Details {
         waiter->m_next = routines;
         routines = waiter;
       } else {
-        runtime.m_notify_one(&waiter->m_notification);
+        waiter->m_notification.notify_one();
       }
     }
-    runtime.m_unlock(&bucket.m_mutex);
+    bucket_lock.unlock();
     while(routines) {
       auto routine = routines->m_routine;
       routines = routines->m_next;
@@ -734,7 +762,7 @@ namespace Beam::Details {
       auto pending = std::array<bool, 2>();
       for(auto& bucket : runtime.m_conditions) {
         auto routines = static_cast<Waiter*>(nullptr);
-        runtime.m_lock(&bucket.m_mutex);
+        auto bucket_lock = std::unique_lock(bucket.m_mutex);
         auto entry = &bucket.m_waiters;
         while(*entry) {
           auto waiter = *entry;
@@ -762,7 +790,7 @@ namespace Beam::Details {
           }
           entry = &waiter->m_next;
         }
-        runtime.m_unlock(&bucket.m_mutex);
+        bucket_lock.unlock();
         while(routines) {
           auto routine = routines->m_routine;
           routines = routines->m_next;

@@ -4,10 +4,10 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <system_error>
 #include <Windows.h>
 #include <TlHelp32.h>
+#include "Beam/Threading/NativeConditionVariable.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
 namespace Beam {
@@ -33,34 +33,34 @@ namespace Beam::Details {
         Routine* m_routine;
         DWORD m_thread;
         Waiter* m_next;
-        CONDITION_VARIABLE m_notification;
+        NativeConditionVariable m_notification;
         std::atomic_bool m_is_notified;
         bool m_is_suspended;
       };
       struct alignas(64) Bucket {
-        SRWLOCK m_mutex = SRWLOCK_INIT;
+        NativeMutex m_mutex = NativeMutex();
         Waiter* m_waiters = nullptr;
       };
       struct ConditionWaiter {
         PCONDITION_VARIABLE m_condition;
         Routine* m_routine;
         ConditionWaiter* m_next;
-        CONDITION_VARIABLE m_notification;
+        NativeConditionVariable m_notification;
         bool m_is_notified;
       };
       struct ConditionBucket {
-        SRWLOCK m_mutex = SRWLOCK_INIT;
+        NativeMutex m_mutex = NativeMutex();
         ConditionWaiter* m_waiters = nullptr;
       };
       struct OnceWaiter {
         PINIT_ONCE m_once;
         Routine* m_routine;
         OnceWaiter* m_next;
-        CONDITION_VARIABLE m_notification;
+        NativeConditionVariable m_notification;
         bool m_is_notified;
       };
       struct OnceBucket {
-        SRWLOCK m_mutex = SRWLOCK_INIT;
+        NativeMutex m_mutex = NativeMutex();
         OnceWaiter* m_waiters = nullptr;
       };
       struct State {
@@ -290,7 +290,7 @@ namespace Beam::Details {
             if(waiter->m_routine) {
               return waiter->m_routine;
             }
-            get_state().m_notify_one(&waiter->m_notification);
+            waiter->m_notification.notify_one();
           }
         }
         break;
@@ -356,15 +356,14 @@ namespace Beam::Details {
 
   inline _Thrd_result WindowsMutex::lock(_Mtx_t mutex, Routine* routine) {
     auto waiter = Waiter(get_lock(mutex), routine, GetCurrentThreadId(),
-      nullptr, CONDITION_VARIABLE(), false, false);
+      nullptr, NativeConditionVariable(), false, false);
     auto guard = Guard();
     auto& bucket = get_bucket(get_lock(mutex));
     auto state = enter(mutex);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto result = acquire(mutex, routine, state, false);
     if(result != _Thrd_result::_Busy) {
       leave(mutex, state);
-      ReleaseSRWLockExclusive(&bucket.m_mutex);
       return result;
     }
     auto entry = &bucket.m_waiters;
@@ -384,7 +383,7 @@ namespace Beam::Details {
       leave(mutex, state);
       auto should_suspend = true;
       if(should_spin) {
-        ReleaseSRWLockExclusive(&bucket.m_mutex);
+        bucket_lock.unlock();
         for(auto i = 0; i != 4096; ++i) {
           if(waiter.m_is_notified.load(std::memory_order_acquire)) {
             break;
@@ -393,11 +392,11 @@ namespace Beam::Details {
         }
         should_suspend = !waiter.m_is_notified.load(std::memory_order_acquire);
         if(should_suspend) {
-          AcquireSRWLockExclusive(&bucket.m_mutex);
+          bucket_lock.lock();
           should_suspend =
             !waiter.m_is_notified.load(std::memory_order_relaxed);
           if(!should_suspend) {
-            ReleaseSRWLockExclusive(&bucket.m_mutex);
+            bucket_lock.unlock();
           }
         }
       }
@@ -405,20 +404,19 @@ namespace Beam::Details {
         waiter.m_is_suspended = true;
         if(routine) {
           routine->pending_suspend();
-          ReleaseSRWLockExclusive(&bucket.m_mutex);
+          bucket_lock.unlock();
           is_entered() = false;
           routine->suspend();
           is_entered() = true;
         } else {
-          while(!waiter.m_is_notified.load(std::memory_order_relaxed)) {
-            get_state().m_sleep(
-              &waiter.m_notification, &bucket.m_mutex, INFINITE, 0);
-          }
-          ReleaseSRWLockExclusive(&bucket.m_mutex);
+          waiter.m_notification.wait(bucket_lock, [&] {
+            return waiter.m_is_notified.load(std::memory_order_relaxed);
+          });
+          bucket_lock.unlock();
         }
       }
       state = enter(mutex);
-      AcquireSRWLockExclusive(&bucket.m_mutex);
+      bucket_lock.lock();
       result = acquire(mutex, routine, state, true);
       if(result == _Thrd_result::_Busy) {
         continue;
@@ -437,7 +435,6 @@ namespace Beam::Details {
         state &= ~HAS_WAITERS;
       }
       leave(mutex, state);
-      ReleaseSRWLockExclusive(&bucket.m_mutex);
       return result;
     }
   }
@@ -484,10 +481,10 @@ namespace Beam::Details {
     }
     auto guard = Guard();
     auto& bucket = get_bucket(get_lock(mutex));
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto routine = notify(bucket, get_lock(mutex));
     leave(mutex, state);
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    bucket_lock.unlock();
     if(routine) {
       routine->resume();
     }
@@ -516,29 +513,28 @@ namespace Beam::Details {
       routine = get_routine();
     }
     auto guard = Guard();
-    auto& state = get_state();
     auto& bucket = get_bucket(condition);
     auto waiter = ConditionWaiter(
-      condition, routine, nullptr, CONDITION_VARIABLE(), false);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+      condition, routine, nullptr, NativeConditionVariable(), false);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     if(routine) {
       routine->pending_suspend();
     }
     waiter.m_next = bucket.m_waiters;
     bucket.m_waiters = &waiter;
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    bucket_lock.unlock();
     if(owner) {
       unlock(owner);
     } else {
       auto& mutex_bucket = get_bucket(mutex);
-      AcquireSRWLockExclusive(&mutex_bucket.m_mutex);
+      auto mutex_lock = std::unique_lock(mutex_bucket.m_mutex);
       if((flags & CONDITION_VARIABLE_LOCKMODE_SHARED) != 0) {
         ReleaseSRWLockShared(mutex);
       } else {
         ReleaseSRWLockExclusive(mutex);
       }
       auto next = notify(mutex_bucket, mutex);
-      ReleaseSRWLockExclusive(&mutex_bucket.m_mutex);
+      mutex_lock.unlock();
       if(next) {
         next->resume();
       }
@@ -553,29 +549,22 @@ namespace Beam::Details {
       is_entered() = true;
       return TRUE;
     }
-    auto started = GetTickCount64();
-    auto remaining = timeout;
+    auto deadline = std::chrono::steady_clock::now() +
+      std::chrono::milliseconds(timeout);
     auto error = DWORD(ERROR_SUCCESS);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
-    while(!waiter.m_is_notified) {
-      if(!state.m_sleep(
-          &waiter.m_notification, &bucket.m_mutex, remaining, 0)) {
-        error = GetLastError();
-        if(!waiter.m_is_notified) {
-          break;
-        }
+    bucket_lock.lock();
+    try {
+      if(timeout == INFINITE) {
+        waiter.m_notification.wait(bucket_lock, [&] {
+          return waiter.m_is_notified;
+        });
+      } else if(!waiter.m_notification.wait_until(bucket_lock, deadline, [&] {
+          return waiter.m_is_notified;
+        })) {
+        error = ERROR_TIMEOUT;
       }
-      if(waiter.m_is_notified) {
-        break;
-      }
-      if(timeout != INFINITE) {
-        auto elapsed = GetTickCount64() - started;
-        if(elapsed >= timeout) {
-          error = ERROR_TIMEOUT;
-          break;
-        }
-        remaining = timeout - static_cast<DWORD>(elapsed);
-      }
+    } catch(const std::system_error& exception) {
+      error = exception.code().value();
     }
     if(!waiter.m_is_notified) {
       auto entry = &bucket.m_waiters;
@@ -586,7 +575,7 @@ namespace Beam::Details {
     } else {
       error = ERROR_SUCCESS;
     }
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    bucket_lock.unlock();
     if((flags & CONDITION_VARIABLE_LOCKMODE_SHARED) != 0) {
       AcquireSRWLockShared(mutex);
     } else {
@@ -605,7 +594,7 @@ namespace Beam::Details {
     auto& state = get_state();
     auto& bucket = get_bucket(condition);
     auto routines = static_cast<ConditionWaiter*>(nullptr);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto entry = &bucket.m_waiters;
     while(*entry) {
       auto waiter = *entry;
@@ -619,7 +608,7 @@ namespace Beam::Details {
         waiter->m_next = routines;
         routines = waiter;
       } else {
-        state.m_notify_one(&waiter->m_notification);
+        waiter->m_notification.notify_one();
       }
       if(!all) {
         break;
@@ -630,7 +619,7 @@ namespace Beam::Details {
     } else {
       state.m_notify_one(condition);
     }
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    bucket_lock.unlock();
     while(routines) {
       auto routine = routines->m_routine;
       routines = routines->m_next;
@@ -660,32 +649,27 @@ namespace Beam::Details {
     auto routine = get_routine();
     auto guard = Guard();
     auto& bucket = get_bucket(once);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     while(true) {
       if(!InterlockedCompareExchangePointer(&once->Ptr, nullptr, nullptr) ||
           state.m_begin(once, INIT_ONCE_CHECK_ONLY, pending, context) ||
           state.m_begin(once, INIT_ONCE_ASYNC, pending, context)) {
-        auto result = state.m_begin(once, flags, pending, context);
-        ReleaseSRWLockExclusive(&bucket.m_mutex);
-        return result;
+        return state.m_begin(once, flags, pending, context);
       }
       auto waiter = OnceWaiter(
-        once, routine, bucket.m_waiters, CONDITION_VARIABLE(), false);
+        once, routine, bucket.m_waiters, NativeConditionVariable(), false);
       bucket.m_waiters = &waiter;
       if(routine) {
         routine->pending_suspend();
-        ReleaseSRWLockExclusive(&bucket.m_mutex);
+        bucket_lock.unlock();
         is_entered() = false;
         routine->suspend();
         is_entered() = true;
-        AcquireSRWLockExclusive(&bucket.m_mutex);
+        bucket_lock.lock();
       } else {
-        while(!waiter.m_is_notified) {
-          if(!state.m_sleep(
-              &waiter.m_notification, &bucket.m_mutex, INFINITE, 0)) {
-            std::terminate();
-          }
-        }
+        waiter.m_notification.wait(bucket_lock, [&] {
+          return waiter.m_is_notified;
+        });
       }
     }
   }
@@ -696,7 +680,7 @@ namespace Beam::Details {
     auto& state = get_state();
     auto& bucket = get_bucket(once);
     auto routines = static_cast<OnceWaiter*>(nullptr);
-    AcquireSRWLockExclusive(&bucket.m_mutex);
+    auto bucket_lock = std::unique_lock(bucket.m_mutex);
     auto result = state.m_complete(once, flags, context);
     auto error = GetLastError();
     if(result) {
@@ -713,11 +697,11 @@ namespace Beam::Details {
           waiter->m_next = routines;
           routines = waiter;
         } else {
-          state.m_notify_one(&waiter->m_notification);
+          waiter->m_notification.notify_one();
         }
       }
     }
-    ReleaseSRWLockExclusive(&bucket.m_mutex);
+    bucket_lock.unlock();
     while(routines) {
       auto routine = routines->m_routine;
       routines = routines->m_next;

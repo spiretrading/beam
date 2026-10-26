@@ -3,12 +3,11 @@
 #include <atomic>
 #include <cassert>
 #include <cstdint>
-#include <tuple>
 #include <vector>
 #include "Beam/Routines/Async.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
-#include "Beam/Threading/LockRelease.hpp"
+#include "Beam/Threading/Releaser.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/DllExport.hpp"
 
@@ -158,7 +157,7 @@ namespace Details {
   void suspend(Out<Routine*> routine, HeadLock& head, TailLocks&... tail) {
     *routine = &get_current_routine();
     get_current_routine().pending_suspend();
-    auto releases = std::tuple(release(head), release(tail)...);
+    auto releases = reverse_release(head, tail...);
     suspend();
   }
 

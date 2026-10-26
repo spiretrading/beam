@@ -2,10 +2,8 @@
 #define BEAM_SCHEDULER_HPP
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <deque>
 #include <iostream>
-#include <mutex>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
@@ -13,6 +11,7 @@
 #include <vector>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Threading/LinuxMutex.hpp"
+#include "Beam/Threading/NativeConditionVariable.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Threading/WindowsMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
@@ -92,11 +91,11 @@ namespace Details {
 
     private:
       struct Context {
-        std::mutex m_mutex;
+        NativeMutex m_mutex;
         bool m_is_running;
         std::deque<ScheduledRoutine*> m_pending_routines;
         std::unordered_set<ScheduledRoutine*> m_suspended_routines;
-        std::condition_variable m_pending_routines_available_condition;
+        NativeConditionVariable m_pending_routines_available_condition;
 
         Context();
       };
@@ -105,10 +104,10 @@ namespace Details {
       friend void resume(ScheduledRoutine*& routine);
       std::size_t m_thread_count;
       std::unique_ptr<std::thread[]> m_threads;
-      Sync<RoutineIds> m_routine_ids;
+      Sync<RoutineIds, NativeMutex> m_routine_ids;
       std::unique_ptr<Context[]> m_contexts;
       std::atomic_size_t m_busy_count;
-      std::mutex m_idle_mutex;
+      NativeMutex m_idle_mutex;
       std::vector<Eval<void>> m_idle_evals;
 
       void queue(ScheduledRoutine& routine);

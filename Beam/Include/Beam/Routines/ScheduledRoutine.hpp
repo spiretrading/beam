@@ -73,6 +73,7 @@ namespace Details {
       };
       friend class Details::Scheduler;
       bool m_is_pending_resume;
+      bool m_is_suspended;
       std::size_t m_stack_size;
       void* m_stack_base;
       std::size_t m_stack_extent;

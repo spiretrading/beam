@@ -9,7 +9,6 @@
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 #include "Beam/Routines/FunctionRoutine.hpp"
 #include "Beam/Threading/Sync.hpp"
@@ -97,7 +96,7 @@ namespace Details {
         std::mutex m_mutex;
         bool m_is_running;
         std::deque<ScheduledRoutine*> m_pending_routines;
-        std::unordered_set<ScheduledRoutine*> m_suspended_routines;
+        std::size_t m_suspended_count;
         std::condition_variable m_pending_routines_available_condition;
 
         Context();
@@ -122,7 +121,8 @@ namespace Details {
   };
 
   inline Scheduler::Context::Context()
-    : m_is_running(true) {}
+    : m_is_running(true),
+      m_suspended_count(0) {}
 
   inline Scheduler::Scheduler()
       : m_thread_count(std::max(1u, std::thread::hardware_concurrency())),
@@ -225,7 +225,8 @@ namespace Details {
         context.m_pending_routines_available_condition.notify_all();
         return;
       }
-      context.m_suspended_routines.insert(&routine);
+      routine.m_is_suspended = true;
+      ++context.m_suspended_count;
     }
     decrement_busy_count();
   }
@@ -233,12 +234,12 @@ namespace Details {
   inline void Scheduler::resume(ScheduledRoutine& routine) {
     auto& context = m_contexts[routine.get_context_id()];
     auto lock = std::lock_guard(context.m_mutex);
-    auto i = context.m_suspended_routines.find(&routine);
-    if(i == context.m_suspended_routines.end()) {
+    if(!routine.m_is_suspended) {
       routine.set_pending_resume(true);
       return;
     }
-    context.m_suspended_routines.erase(i);
+    routine.m_is_suspended = false;
+    --context.m_suspended_count;
     ++m_busy_count;
     context.m_pending_routines.push_back(&routine);
     context.m_pending_routines_available_condition.notify_all();
@@ -269,7 +270,7 @@ namespace Details {
         auto lock = std::unique_lock(context.m_mutex);
         while(context.m_pending_routines.empty()) {
           if(!context.m_is_running && context.m_pending_routines.empty() &&
-              context.m_suspended_routines.empty()) {
+              context.m_suspended_count == 0) {
             return;
           }
           context.m_pending_routines_available_condition.wait(lock);
@@ -365,6 +366,7 @@ namespace Details {
   inline ScheduledRoutine::ScheduledRoutine(
       std::size_t stack_size, std::size_t context_id) noexcept
       : m_is_pending_resume(false),
+        m_is_suspended(false),
         m_stack_size(stack_size),
         m_stack_base(nullptr),
         m_stack_extent(0) {

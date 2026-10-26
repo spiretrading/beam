@@ -1,4 +1,7 @@
+#include <array>
+#include <atomic>
 #include <latch>
+#include <vector>
 #include <doctest/doctest.h>
 #include "Beam/Routines/Scheduler.hpp"
 
@@ -18,6 +21,58 @@ namespace Beam::Tests {
 }
 
 TEST_SUITE("Scheduler") {
+  TEST_CASE("suspend_resume") {
+    auto& scheduler = Details::Scheduler::get();
+    auto routines = std::array<Routine*, 3>();
+    auto ids = std::vector<Routine::Id>();
+    auto completed = std::atomic_int();
+    for(auto& routine : routines) {
+      ids.push_back(spawn([&] {
+        routine = &get_current_routine();
+        suspend();
+        suspend();
+        ++completed;
+      }, Details::Scheduler::DEFAULT_STACK_SIZE, 0));
+    }
+    auto busy_counts = std::array<std::size_t, 2>();
+    for(auto& count : busy_counts) {
+      auto idle = Async<void>();
+      scheduler.notify_when_idle(idle.get_eval());
+      idle.get();
+      count = scheduler.get_busy_count();
+      for(auto i = routines.rbegin(); i != routines.rend(); ++i) {
+        (*i)->resume();
+      }
+    }
+    for(auto id : ids) {
+      wait(id);
+    }
+    REQUIRE(completed == routines.size());
+    for(auto count : busy_counts) {
+      REQUIRE(count == 0);
+    }
+  }
+
+  TEST_CASE("early_resume") {
+    auto routine = static_cast<Routine*>(nullptr);
+    auto pending = std::latch(1);
+    auto release = std::latch(1);
+    auto completed = false;
+    auto id = spawn([&] {
+      routine = &get_current_routine();
+      routine->pending_suspend();
+      pending.count_down();
+      release.wait();
+      suspend();
+      completed = true;
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    pending.wait();
+    routine->resume();
+    release.count_down();
+    wait(id);
+    REQUIRE(completed);
+  }
+
   TEST_CASE("idle_notification_after_new_work") {
     auto scheduler = Details::Scheduler();
     auto idle = Async<void>();

@@ -1,15 +1,79 @@
 #include <array>
 #include <atomic>
+#include <cstdlib>
 #include <latch>
+#include <memory>
+#include <new>
 #include <vector>
+#include <boost/config.hpp>
 #include <doctest/doctest.h>
 #include "Beam/Routines/Scheduler.hpp"
 
 using namespace Beam;
 using namespace Beam::Tests;
 
+namespace {
+  thread_local auto allocations_until_failure = -1;
+
+  class AllocationFailureFunction {
+    public:
+      AllocationFailureFunction(
+        std::shared_ptr<int> value, int allocations) noexcept;
+      AllocationFailureFunction(
+        const AllocationFailureFunction& function) noexcept;
+
+      void operator ()() const;
+
+    private:
+      std::shared_ptr<int> m_value;
+      int m_allocations;
+  };
+
+  AllocationFailureFunction::AllocationFailureFunction(
+    std::shared_ptr<int> value, int allocations) noexcept
+    : m_value(std::move(value)),
+      m_allocations(allocations) {}
+
+  AllocationFailureFunction::AllocationFailureFunction(
+      const AllocationFailureFunction& function) noexcept
+      : m_value(function.m_value),
+        m_allocations(function.m_allocations) {
+    allocations_until_failure = m_allocations;
+  }
+
+  void AllocationFailureFunction::operator ()() const {
+    ++*m_value;
+  }
+}
+
+BOOST_NOINLINE void* operator new(std::size_t size) {
+  if(allocations_until_failure == 0) {
+    allocations_until_failure = -1;
+    throw std::bad_alloc();
+  }
+  if(allocations_until_failure > 0) {
+    --allocations_until_failure;
+  }
+  if(auto memory = std::malloc(std::max(size, std::size_t(1)))) {
+    return memory;
+  }
+  throw std::bad_alloc();
+}
+
+BOOST_NOINLINE void operator delete(void* memory) noexcept {
+  std::free(memory);
+}
+
+BOOST_NOINLINE void operator delete(void* memory, std::size_t) noexcept {
+  std::free(memory);
+}
+
 namespace Beam::Tests {
   struct SchedulerTester {
+    static auto& get_routine_ids(Details::Scheduler& scheduler) {
+      return scheduler.m_routine_ids;
+    }
+
     static auto& get_idle_mutex(Details::Scheduler& scheduler) {
       return scheduler.m_idle_mutex;
     }
@@ -21,6 +85,51 @@ namespace Beam::Tests {
 }
 
 TEST_SUITE("Scheduler") {
+  TEST_CASE("spawn_allocation_failure") {
+    auto allocations = 0;
+    SUBCASE("registration") {}
+    SUBCASE("queue") {
+      allocations = 1;
+    }
+    auto scheduler = Details::Scheduler();
+    auto limit = std::size_t(1024);
+    with(SchedulerTester::get_routine_ids(scheduler), [&] (auto& ids) {
+      ids.reserve(limit + 1);
+    });
+    auto started = std::latch(1);
+    auto release = std::latch(1);
+    scheduler.spawn([&] {
+      started.count_down();
+      release.wait();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    started.wait();
+    auto failed = false;
+    auto resource = std::weak_ptr<int>();
+    for(auto i = std::size_t(0); i != limit && !failed; ++i) {
+      auto value = std::make_shared<int>();
+      resource = value;
+      auto function = AllocationFailureFunction(value, allocations);
+      try {
+        scheduler.spawn(function, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+      } catch(const std::bad_alloc&) {
+        failed = true;
+      }
+      allocations_until_failure = -1;
+    }
+    release.count_down();
+    scheduler.stop();
+    auto routine_count = with(
+      SchedulerTester::get_routine_ids(scheduler), [] (const auto& ids) {
+        return ids.size();
+      });
+    CAPTURE(scheduler.get_busy_count());
+    CAPTURE(routine_count);
+    REQUIRE(failed);
+    REQUIRE(resource.expired());
+    REQUIRE(scheduler.is_idle());
+    REQUIRE(routine_count == 0);
+  }
+
   TEST_CASE("suspend_resume") {
     auto& scheduler = Details::Scheduler::get();
     auto routines = std::array<Routine*, 3>();

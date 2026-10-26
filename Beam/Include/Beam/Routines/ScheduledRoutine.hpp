@@ -214,4 +214,8 @@ namespace Details {
   #pragma optimize("", on)
 #endif
 
+#ifndef BEAM_FUNCTION_ROUTINE_HPP
+  #include "Beam/Routines/Scheduler.hpp"
+#endif
+
 #endif

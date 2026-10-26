@@ -58,4 +58,6 @@ namespace Beam {
   }
 }
 
+#include "Beam/Routines/Scheduler.hpp"
+
 #endif

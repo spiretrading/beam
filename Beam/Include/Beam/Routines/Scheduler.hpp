@@ -26,6 +26,10 @@
 #endif
 
 namespace Beam {
+namespace Tests {
+  struct SchedulerTester;
+}
+
 namespace Details {
 
   /** Schedules the execution of Routines across multiple threads. */
@@ -101,6 +105,7 @@ namespace Details {
       };
       using RoutineIds = std::unordered_map<Routine::Id, ScheduledRoutine*>;
       friend class Beam::ScheduledRoutine;
+      friend struct Tests::SchedulerTester;
       friend void resume(ScheduledRoutine*& routine);
       std::size_t m_thread_count;
       std::unique_ptr<std::thread[]> m_threads;
@@ -300,6 +305,9 @@ namespace Details {
     auto idle_evals = std::vector<Eval<void>>();
     {
       auto lock = std::lock_guard(m_idle_mutex);
+      if(m_busy_count != 0) {
+        return;
+      }
       idle_evals.swap(m_idle_evals);
     }
     for(auto& idle : idle_evals) {

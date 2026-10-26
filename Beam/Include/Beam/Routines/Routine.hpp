@@ -215,6 +215,8 @@ namespace Details {
 #include "Beam/Routines/ExternalRoutine.hpp"
 #include "Beam/Routines/SuspendedRoutineQueue.inl"
 #include "Beam/Routines/Async.inl"
-#include "Beam/Routines/Scheduler.hpp"
+#ifndef BEAM_SCHEDULED_ROUTINE_HPP
+  #include "Beam/Routines/Scheduler.hpp"
+#endif
 
 #endif

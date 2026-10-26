@@ -205,4 +205,8 @@ namespace Details {
 #endif
 }
 
+#ifndef BEAM_FUNCTION_ROUTINE_HPP
+  #include "Beam/Routines/Scheduler.hpp"
+#endif
+
 #endif

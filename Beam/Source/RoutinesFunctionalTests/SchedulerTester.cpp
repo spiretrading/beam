@@ -1,6 +1,7 @@
 #include <array>
 #include <cstdint>
 #include <latch>
+#include <stdexcept>
 #include <doctest/doctest.h>
 #ifdef WIN32
   #include <windows.h>
@@ -23,6 +24,25 @@ namespace Beam::Tests {
 }
 
 namespace {
+  class ThrowingCopy {
+    public:
+      explicit ThrowingCopy(bool& is_called) noexcept
+        : m_is_called(&is_called) {}
+
+      ThrowingCopy(const ThrowingCopy&) {
+        throw std::runtime_error("copy failed");
+      }
+
+      ThrowingCopy(ThrowingCopy&&) noexcept = default;
+
+      void operator ()() const {
+        *m_is_called = true;
+      }
+
+    private:
+      bool* m_is_called;
+  };
+
   struct StackBounds {
     std::uintptr_t m_base;
     std::size_t m_extent;
@@ -51,6 +71,22 @@ namespace {
 }
 
 TEST_SUITE("Scheduler") {
+  TEST_CASE("spawn_copy_exception") {
+    auto scheduler = Details::Scheduler();
+    auto is_called = false;
+    auto function = ThrowingCopy(is_called);
+    auto stack_size = Details::Scheduler::DEFAULT_STACK_SIZE;
+    REQUIRE(!noexcept(FunctionRoutine(function, stack_size, 0)));
+    REQUIRE_THROWS_AS(
+      scheduler.spawn(function, stack_size, 0), std::runtime_error);
+    REQUIRE(!is_called);
+    REQUIRE(scheduler.is_idle());
+    REQUIRE(noexcept(FunctionRoutine(std::move(function), stack_size, 0)));
+    scheduler.spawn(std::move(function), stack_size, 0);
+    scheduler.stop();
+    REQUIRE(is_called);
+  }
+
   TEST_CASE("idle_notification_after_new_work") {
     auto scheduler = Details::Scheduler();
     auto idle = Async<void>();

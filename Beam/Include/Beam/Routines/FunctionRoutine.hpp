@@ -1,5 +1,6 @@
 #ifndef BEAM_FUNCTION_ROUTINE_HPP
 #define BEAM_FUNCTION_ROUTINE_HPP
+#include <type_traits>
 #include <boost/optional.hpp>
 #include <boost/throw_exception.hpp>
 #include "Beam/Routines/ScheduledRoutine.hpp"
@@ -23,7 +24,8 @@ namespace Beam {
        */
       template<typename FF>
       FunctionRoutine(
-        FF&& function, std::size_t stack_size, std::size_t context_id) noexcept;
+        FF&& function, std::size_t stack_size, std::size_t context_id) noexcept(
+          std::is_nothrow_constructible_v<F, FF&&>);
 
     protected:
       void execute() override;
@@ -39,9 +41,10 @@ namespace Beam {
   template<typename F>
   template<typename FF>
   FunctionRoutine<F>::FunctionRoutine(
-    FF&& function, std::size_t stack_size, std::size_t context_id) noexcept
+    FF&& function, std::size_t stack_size, std::size_t context_id) noexcept(
+      std::is_nothrow_constructible_v<F, FF&&>)
     : ScheduledRoutine(stack_size, context_id),
-      m_function(std::forward<FF>(function)) {}
+      m_function(boost::in_place_init, std::forward<FF>(function)) {}
 
   template<typename F>
   void FunctionRoutine<F>::execute() {

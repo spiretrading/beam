@@ -56,6 +56,22 @@ TEST_SUITE("JsonShuttle") {
     REQUIRE(stream.peek() == ',');
   }
 
+  TEST_CASE("missing_field") {
+    auto buffer = from<SharedBuffer>("{}");
+    auto receiver = JsonReceiver<SharedBuffer>();
+    receiver.set(Ref(buffer));
+    receiver.start_structure(nullptr);
+    auto optional = std::optional<std::string>("previous");
+    receiver.shuttle("filename", optional);
+    REQUIRE(!optional);
+    auto value = std::string();
+    REQUIRE_THROWS_WITH_AS(receiver.shuttle("filename", value),
+      doctest::Contains("\"filename\""), SerializationException);
+    REQUIRE_THROWS_WITH_AS(from_json<ClassWithShuttleMethod>(
+      R"({"a":"x","c":1})"), doctest::Contains("\"b\""),
+      SerializationException);
+  }
+
   TEST_CASE("shuttle_integer_beyond_double_precision") {
     auto value = std::int64_t(9007199254740993);
     auto buffer = SharedBuffer();

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <format>
 #include <optional>
 #include <string_view>
 #include <system_error>
@@ -354,7 +355,11 @@ namespace Beam {
     } else if(auto aggregate =
         std::get_if<JsonObject>(&m_aggregate_queue.back()))  {
       if(name) {
-        return aggregate->at(name);
+        if(auto value = aggregate->get(name)) {
+          return *value;
+        }
+        boost::throw_with_location(SerializationException(
+          std::format("Missing required JSON field \"{}\".", name)));
       } else {
         boost::throw_with_location(
           SerializationException("Invalid JSON format."));

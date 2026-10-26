@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stacktrace>
 #ifdef WIN32
+  #include <windows.h>
   #define BOOST_USE_WINFIB
 #endif
 #if defined _MSC_VER
@@ -110,8 +111,10 @@ namespace Details {
   inline boost::context::stack_context
       ScheduledRoutine::StackAllocator::allocate() {
     auto context = m_allocator.allocate();
+#ifndef WIN32
     m_routine->m_stack_base = static_cast<char*>(context.sp) - context.size;
     m_routine->m_stack_extent = context.size;
+#endif
     return context;
   }
 
@@ -186,6 +189,13 @@ namespace Details {
   inline boost::context::continuation ScheduledRoutine::initialize(
       boost::context::continuation&& parent) {
     m_parent = std::move(parent);
+#ifdef WIN32
+    auto base = ULONG_PTR();
+    auto end = ULONG_PTR();
+    GetCurrentThreadStackLimits(&base, &end);
+    m_stack_base = reinterpret_cast<void*>(base);
+    m_stack_extent = end - base;
+#endif
     Details::CurrentRoutineGlobal::is_scheduled() = true;
     try {
       execute();

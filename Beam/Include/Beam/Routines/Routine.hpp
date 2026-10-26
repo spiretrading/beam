@@ -139,7 +139,7 @@ namespace Details {
    * Suspends the currently running Routine.
    * @param routine Stores the Routine being suspended.
    */
-  inline void Suspend(Out<Routine*> routine) {
+  inline void suspend(Out<Routine*> routine) {
     *routine = &get_current_routine();
     suspend();
   }
@@ -171,8 +171,8 @@ namespace Details {
   }
 
   inline Routine::Routine() noexcept
-    : m_id(++Details::NextId::get()),
-      m_state(State::PENDING) {}
+    : m_state(State::PENDING),
+      m_id(++Details::NextId::get()) {}
 
   inline Routine::~Routine() {
     with(m_wait_results, [&] (auto& results) {

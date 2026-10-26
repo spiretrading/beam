@@ -1,3 +1,5 @@
+#include <array>
+#include <stdexcept>
 #include <doctest/doctest.h>
 #include "Beam/Routines/Async.hpp"
 
@@ -62,6 +64,15 @@ namespace {
     }
   };
 
+  class ThrowingCopy {
+    public:
+      ThrowingCopy() = default;
+
+      ThrowingCopy(const ThrowingCopy&) {
+        throw std::runtime_error("copy failed");
+      }
+  };
+
   template<typename T>
   int test_suspension(auto publish, auto read) {
     auto async = Async<T>();
@@ -88,6 +99,29 @@ namespace {
 }
 
 TEST_SUITE("Async") {
+  TEST_CASE("spawn_result_copy_exception") {
+    auto value = ThrowingCopy();
+    auto async = Async<ThrowingCopy>();
+    auto eval = async.get_eval();
+    auto results = std::array<Async<void>, 2>();
+    auto consumers = std::array<Routine::Id, 2>();
+    for(auto i = std::size_t(0); i != consumers.size(); ++i) {
+      consumers[i] = spawn([&] {
+        async.get();
+      }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, results[i].get_eval());
+    }
+    auto producer = spawn([&] () -> const ThrowingCopy& {
+      return value;
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0, std::move(eval));
+    for(auto& result : results) {
+      REQUIRE_THROWS_AS(result.get(), std::runtime_error);
+    }
+    wait(producer);
+    for(auto consumer : consumers) {
+      wait(consumer);
+    }
+  }
+
   TEST_CASE("emplace_preserves_address") {
     auto async = Async<AddressValue>();
     async.get_eval().emplace();

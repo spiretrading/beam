@@ -63,7 +63,11 @@ namespace Details {
     private:
       struct StackAllocator {
         boost::context::fixedsize_stack m_allocator;
+#ifdef WIN32
+        std::size_t m_size;
+#else
         ScheduledRoutine* m_routine;
+#endif
 
         StackAllocator(std::size_t size, ScheduledRoutine& routine) noexcept;
         boost::context::stack_context allocate();
@@ -105,7 +109,11 @@ namespace Details {
   inline ScheduledRoutine::StackAllocator::StackAllocator(
     std::size_t size, ScheduledRoutine& routine) noexcept
     : m_allocator(size),
+#ifdef WIN32
+      m_size(size) {}
+#else
       m_routine(&routine) {}
+#endif
 
   inline boost::context::stack_context
       ScheduledRoutine::StackAllocator::allocate() {
@@ -119,6 +127,9 @@ namespace Details {
 
   inline void ScheduledRoutine::StackAllocator::deallocate(
       boost::context::stack_context& context) {
+#ifdef WIN32
+    context.size = m_size;
+#endif
     m_allocator.deallocate(context);
   }
 
@@ -128,11 +139,24 @@ namespace Details {
     m_is_pending_resume = false;
     if(get_state() == State::PENDING) {
       set(State::RUNNING);
+      auto function = [this] (boost::context::continuation&& parent) {
+        return initialize(std::move(parent));
+      };
+#ifdef WIN32
+      using Record = boost::context::detail::capture_record<
+        boost::context::continuation, StackAllocator, decltype(function)>;
+      constexpr auto alignment = std::size_t(256);
+      auto allocator = StackAllocator(sizeof(Record) + alignment - 1, *this);
+      auto context = allocator.allocate();
+      auto storage =
+        boost::context::preallocated(context.sp, context.size, context);
+      storage.sctx.size = m_stack_size;
+      m_continuation = boost::context::callcc(
+        std::allocator_arg, storage, std::move(allocator), std::move(function));
+#else
       m_continuation = boost::context::callcc(std::allocator_arg,
-        StackAllocator(m_stack_size, *this),
-        [this] (boost::context::continuation&& parent) {
-          return initialize(std::move(parent));
-        });
+        StackAllocator(m_stack_size, *this), std::move(function));
+#endif
     } else {
       set(State::RUNNING);
       m_continuation = m_continuation.resume();

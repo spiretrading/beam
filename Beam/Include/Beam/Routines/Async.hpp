@@ -2,6 +2,7 @@
 #define BEAM_ASYNC_HPP
 #include <exception>
 #include <mutex>
+#include <type_traits>
 #include <variant>
 #include <boost/call_traits.hpp>
 #include "Beam/Pointers/Ref.hpp"
@@ -69,8 +70,10 @@ namespace Beam {
       void reset();
 
     private:
+      using Mutex =
+        std::conditional_t<std::is_scalar_v<Type>, NativeMutex, std::mutex>;
       friend class Eval<Type>;
-      mutable std::mutex m_mutex;
+      mutable Mutex m_mutex;
       SuspendedRoutineQueue m_suspended_routines;
       std::variant<std::monostate, Type, std::exception_ptr> m_result;
 

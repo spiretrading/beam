@@ -64,7 +64,8 @@ namespace Details {
     auto& thread_pool = ThreadPool::get();
     auto lock = std::lock_guard(Details::FlushMutex::get());
     auto target = [] {
-      if(dynamic_cast<ScheduledRoutine*>(Details::CurrentRoutineGlobal::get())) {
+      if(dynamic_cast<ScheduledRoutine*>(
+          Details::CurrentRoutineGlobal::get())) {
         return 1;
       }
       return 0;

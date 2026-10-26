@@ -194,14 +194,24 @@ namespace Details {
   template<typename F>
   Routine::Id Scheduler::spawn(
       F&& f, std::size_t stack_size, std::size_t context_id) {
-    auto routine =
-      new FunctionRoutine(std::forward<F>(f), stack_size, context_id);
+    auto routine = std::make_unique<FunctionRoutine<std::remove_cvref_t<F>>>(
+      std::forward<F>(f), stack_size, context_id);
     auto id = routine->get_id();
     with(m_routine_ids, [&] (auto& ids) {
-      ids.insert(std::pair(id, routine));
+      ids.insert(std::pair(id, routine.get()));
     });
     ++m_busy_count;
-    queue(*routine);
+    try {
+      queue(*routine);
+    } catch(...) {
+      with(m_routine_ids, [&] (auto& ids) {
+        ids.erase(id);
+      });
+      routine.reset();
+      decrement_busy_count();
+      throw;
+    }
+    routine.release();
     return id;
   }
 

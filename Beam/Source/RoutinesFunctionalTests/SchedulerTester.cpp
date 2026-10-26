@@ -182,6 +182,31 @@ TEST_SUITE("Scheduler") {
     REQUIRE(completed);
   }
 
+  TEST_CASE("defer_order") {
+    auto order = std::vector<int>();
+    auto started = std::latch(1);
+    auto release = std::latch(1);
+    auto first = spawn([&] {
+      started.count_down();
+      release.wait();
+      order.push_back(1);
+      defer();
+      order.push_back(3);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    started.wait();
+    auto second = spawn([&] {
+      order.push_back(2);
+      defer();
+      order.push_back(4);
+      defer();
+      order.push_back(5);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    release.count_down();
+    wait(first);
+    wait(second);
+    REQUIRE(order == std::vector({1, 2, 3, 4, 5}));
+  }
+
   TEST_CASE("idle_notification_after_new_work") {
     auto scheduler = Details::Scheduler();
     auto idle = Async<void>();

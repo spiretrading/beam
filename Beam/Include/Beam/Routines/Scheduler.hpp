@@ -79,8 +79,8 @@ namespace Details {
        * Spawns a Routine from a callable object.
        * @param f The callable object to run within the Routine.
        * @param stack_size The size of the stack to allocate for the Routine.
-       * @param context_id The specific context id to run the Routine in, or
-       *        set to the number of threads to assign it an arbitrary context.
+       * @param context_id The specific context id to run the Routine in, or -1
+       *        to assign it an arbitrary context.
        * @return A unique ID used to identify the Routine.
        */
       template<typename F>

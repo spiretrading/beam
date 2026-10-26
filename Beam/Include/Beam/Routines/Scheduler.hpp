@@ -232,7 +232,6 @@ namespace Details {
       if(routine.is_pending_resume()) {
         routine.set_pending_resume(false);
         context.m_pending_routines.push_back(&routine);
-        context.m_pending_routines_available_condition.notify_all();
         return;
       }
       routine.m_is_suspended = true;
@@ -298,7 +297,8 @@ namespace Details {
       } else if(routine->get_state() == Routine::State::PENDING_SUSPEND) {
         suspend(*routine);
       } else {
-        queue(*routine);
+        auto lock = std::lock_guard(context.m_mutex);
+        context.m_pending_routines.push_back(routine);
       }
     }
   }

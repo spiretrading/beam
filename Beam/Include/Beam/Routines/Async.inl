@@ -53,10 +53,7 @@ namespace Beam {
   template<typename T>
   template<typename R>
   void Async<T>::set(R&& result) {
-    auto lock = std::lock_guard(m_mutex);
-    assert(get_state() == State::PENDING);
-    m_result.template emplace<1>(std::forward<R>(result));
-    resume(out(m_suspended_routines));
+    emplace(std::forward<R>(result));
   }
 
   template<typename T>
@@ -64,7 +61,13 @@ namespace Beam {
   void Async<T>::emplace(A&&... args) {
     auto lock = std::lock_guard(m_mutex);
     assert(get_state() == State::PENDING);
-    m_result.template emplace<1>(std::forward<A>(args)...);
+    try {
+      m_result.template emplace<1>(std::forward<A>(args)...);
+    } catch(...) {
+      m_result.template emplace<2>(std::current_exception());
+      resume(out(m_suspended_routines));
+      throw;
+    }
     resume(out(m_suspended_routines));
   }
 

@@ -7,7 +7,49 @@
 
 using namespace Beam;
 
+namespace {
+  class ThrowingConversion {
+    public:
+      operator int() const {
+        throw std::runtime_error("conversion failed");
+      }
+  };
+
+  class ThrowingValue {
+    public:
+      explicit ThrowingValue(const ThrowingConversion&) {
+        throw std::runtime_error("construction failed");
+      }
+  };
+}
+
 TEST_SUITE("Async") {
+  TEST_CASE_TEMPLATE("completion_exception", T, int, ThrowingValue) {
+    auto async = Async<T>();
+    auto eval = async.get_eval();
+    auto emplace = false;
+    SUBCASE("set") {}
+    SUBCASE("emplace") {
+      emplace = true;
+    }
+    auto exception = std::exception_ptr();
+    try {
+      if(emplace) {
+        eval.emplace(ThrowingConversion());
+      } else {
+        eval.set(ThrowingConversion());
+      }
+    } catch(const std::runtime_error&) {
+      exception = std::current_exception();
+      eval.set_exception(exception);
+    }
+    REQUIRE(exception);
+    REQUIRE(async.get_state() == BaseAsync::State::EXCEPTION);
+    REQUIRE(async.get_exception());
+    REQUIRE_THROWS_AS(async.get(), std::runtime_error);
+    REQUIRE(eval.is_empty());
+  }
+
   TEST_CASE("set_and_get_value") {
     auto async = Async<int>();
     auto eval = async.get_eval();

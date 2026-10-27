@@ -306,7 +306,8 @@ namespace Details {
   }
 
   inline void Scheduler::decrement_busy_count() {
-    if(--m_busy_count != 0) {
+    auto busy_count = --m_busy_count;
+    if(busy_count != 0) {
       return;
     }
     auto idle_evals = std::vector<Eval<void>>();

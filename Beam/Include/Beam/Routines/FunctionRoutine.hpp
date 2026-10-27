@@ -15,6 +15,9 @@ namespace Beam {
   class FunctionRoutine final : public ScheduledRoutine {
     public:
 
+      /** The type of the callable object to run. */
+      using Function = F;
+
       /**
        * Constructs a FunctionRoutine.
        * @param function The callable object to run.
@@ -25,13 +28,13 @@ namespace Beam {
       template<typename FF>
       FunctionRoutine(
         FF&& function, std::size_t stack_size, std::size_t context_id) noexcept(
-          std::is_nothrow_constructible_v<F, FF&&>);
+          std::is_nothrow_constructible_v<Function, FF&&>);
 
     protected:
       void execute() override;
 
     private:
-      boost::optional<F> m_function;
+      boost::optional<Function> m_function;
   };
 
   template<typename F>
@@ -42,7 +45,7 @@ namespace Beam {
   template<typename FF>
   FunctionRoutine<F>::FunctionRoutine(
     FF&& function, std::size_t stack_size, std::size_t context_id) noexcept(
-      std::is_nothrow_constructible_v<F, FF&&>)
+      std::is_nothrow_constructible_v<Function, FF&&>)
     : ScheduledRoutine(stack_size, context_id),
       m_function(boost::in_place_init, std::forward<FF>(function)) {}
 

@@ -257,7 +257,9 @@ namespace Details {
     --context.m_suspended_count;
     ++m_busy_count;
     context.m_pending_routines.push_back(&routine);
-    context.m_pending_routines_available_condition.notify_all();
+    if(context.m_pending_routines.size() == 1) {
+      context.m_pending_routines_available_condition.notify_all();
+    }
   }
 
   inline void Scheduler::stop() {

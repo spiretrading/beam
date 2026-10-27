@@ -162,6 +162,35 @@ TEST_SUITE("Scheduler") {
     }
   }
 
+  TEST_CASE("resume_pending_context") {
+    auto routine = static_cast<Routine*>(nullptr);
+    auto order = std::vector<int>();
+    auto resumed = spawn([&] {
+      routine = &get_current_routine();
+      suspend();
+      order.push_back(2);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    auto idle = Async<void>();
+    Details::Scheduler::get().notify_when_idle(idle.get_eval());
+    idle.get();
+    auto started = std::latch(1);
+    auto release = std::latch(1);
+    auto blocker = spawn([&] {
+      started.count_down();
+      release.wait();
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    started.wait();
+    auto pending = spawn([&] {
+      order.push_back(1);
+    }, Details::Scheduler::DEFAULT_STACK_SIZE, 0);
+    routine->resume();
+    release.count_down();
+    wait(blocker);
+    wait(pending);
+    wait(resumed);
+    REQUIRE(order == std::vector({1, 2}));
+  }
+
   TEST_CASE("early_resume") {
     auto routine = static_cast<Routine*>(nullptr);
     auto pending = std::latch(1);

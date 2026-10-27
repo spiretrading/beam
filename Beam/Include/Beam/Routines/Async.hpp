@@ -177,7 +177,7 @@ namespace Beam {
       friend class Async<Type>;
       Async<Type>* m_async;
 
-      Eval(Ref<Async<Type>> async);
+      Eval(Ref<Async<Type>> async) noexcept;
   };
 
   template<>
@@ -199,7 +199,7 @@ namespace Beam {
       friend class Async<Type>;
       Async<Type>* m_async;
 
-      Eval(Ref<Async<Type>> async);
+      Eval(Ref<Async<Type>> async) noexcept;
   };
 }
 

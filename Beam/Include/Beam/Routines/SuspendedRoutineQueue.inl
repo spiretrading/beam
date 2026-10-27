@@ -13,8 +13,7 @@ namespace Beam {
     suspend();
   }
 
-  template<typename... Lock>
-  void resume_front(Out<SuspendedRoutineQueue> routines) {
+  inline void resume_front(Out<SuspendedRoutineQueue> routines) {
     if(routines->empty()) {
       return;
     }
@@ -23,8 +22,7 @@ namespace Beam {
     resume(routine);
   }
 
-  template<typename... Lock>
-  void resume(Out<SuspendedRoutineQueue> routines) {
+  inline void resume(Out<SuspendedRoutineQueue> routines) {
     auto resumed_routines = SuspendedRoutineQueue();
     resumed_routines.swap(*routines);
     for(auto& routine : resumed_routines) {

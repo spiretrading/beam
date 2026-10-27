@@ -4,9 +4,9 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
-#include "Beam/Routines/Async.hpp"
 #include "Beam/Pointers/Out.hpp"
 #include "Beam/Pointers/Ref.hpp"
+#include "Beam/Routines/Async.hpp"
 #include "Beam/Threading/Releaser.hpp"
 #include "Beam/Threading/Sync.hpp"
 #include "Beam/Utilities/DllExport.hpp"
@@ -34,8 +34,8 @@ namespace Details {
   }
 
   BEAM_EMIT_DLL inline std::atomic_uint64_t& NextId::get() {
-    static auto m_value = std::atomic_uint64_t();
-    return m_value;
+    static auto value = std::atomic_uint64_t();
+    return value;
   }
 #endif
 }
@@ -109,12 +109,7 @@ namespace Details {
       friend void suspend();
       template<typename HeadLock, typename... TailLocks>
       friend void suspend(Out<Routine*>, HeadLock&, TailLocks&...);
-      template<typename Container, typename... Lock>
-      friend void suspend(Out<Sync<Container>> suspendedRoutines,
-        Lock&... lock);
       friend void resume(Routine*&);
-      template<typename Container>
-      friend void resume(Out<Sync<Container>>);
       State m_state;
       Id m_id;
       Sync<WaitResults, NativeMutex> m_wait_results;

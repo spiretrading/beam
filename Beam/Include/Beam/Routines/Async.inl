@@ -17,14 +17,6 @@ namespace Beam {
   }
 
   template<typename T>
-  const std::exception_ptr& Async<T>::get_exception() const {
-    if(auto exception = std::get_if<2>(&m_result)) {
-      return *exception;
-    }
-    return BaseAsync::NONE_EXCEPTION;
-  }
-
-  template<typename T>
   typename boost::call_traits<typename Async<T>::Type>::reference
       Async<T>::get() {
     auto lock = std::unique_lock(m_mutex);
@@ -35,6 +27,14 @@ namespace Beam {
       std::rethrow_exception(std::get<2>(m_result));
     }
     return std::get<1>(m_result);
+  }
+
+  template<typename T>
+  const std::exception_ptr& Async<T>::get_exception() const {
+    if(auto exception = std::get_if<2>(&m_result)) {
+      return *exception;
+    }
+    return BaseAsync::NONE_EXCEPTION;
   }
 
   template<typename T>
@@ -102,13 +102,6 @@ namespace Beam {
     return Eval<void>(Ref(*this));
   }
 
-  inline const std::exception_ptr& Async<void>::get_exception() const {
-    if(auto exception = std::get_if<2>(&m_result)) {
-      return *exception;
-    }
-    return BaseAsync::NONE_EXCEPTION;
-  }
-
   inline void Async<void>::get() {
     auto lock = std::unique_lock(m_mutex);
     while(get_state() == State::PENDING) {
@@ -117,6 +110,13 @@ namespace Beam {
     if(get_state() == State::EXCEPTION) {
       std::rethrow_exception(std::get<2>(m_result));
     }
+  }
+
+  inline const std::exception_ptr& Async<void>::get_exception() const {
+    if(auto exception = std::get_if<2>(&m_result)) {
+      return *exception;
+    }
+    return BaseAsync::NONE_EXCEPTION;
   }
 
   inline BaseAsync::State Async<void>::get_state() const {
@@ -210,7 +210,7 @@ namespace Beam {
   }
 
   template<typename T>
-  Eval<T>::Eval(Ref<Async<Type>> async)
+  Eval<T>::Eval(Ref<Async<Type>> async) noexcept
     : m_async(async.get()) {}
 
   inline Eval<void>::Eval() noexcept
@@ -257,7 +257,7 @@ namespace Beam {
     return *this;
   }
 
-  inline Eval<void>::Eval(Ref<Async<Type>> async)
+  inline Eval<void>::Eval(Ref<Async<Type>> async) noexcept
     : m_async(async.get()) {}
 }
 

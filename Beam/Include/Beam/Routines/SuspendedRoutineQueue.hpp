@@ -7,13 +7,14 @@ namespace Beam {
   class Routine;
 
   /** Stores an intrusive node to the current Routine. */
-  struct SuspendedRoutineNode : public boost::intrusive::list_base_hook<> {
+  class SuspendedRoutineNode : public boost::intrusive::list_base_hook<> {
+    public:
 
-    /** The suspended routine. */
-    Routine* m_routine;
+      /** The suspended routine. */
+      Routine* m_routine;
 
-    /** Constructs a SuspendedRoutineNode representing the current Routine. */
-    SuspendedRoutineNode() noexcept;
+      /** Constructs a SuspendedRoutineNode representing the current Routine. */
+      SuspendedRoutineNode() noexcept;
   };
 
   /** An intrusive linked list of suspended Routines. */
@@ -31,14 +32,12 @@ namespace Beam {
    * Resumes the first Routine found in a queue of suspended Routines.
    * @param routines Stores the Routines being suspended.
    */
-  template<typename... Lock>
   void resume_front(Out<SuspendedRoutineQueue> routines);
 
   /**
    * Resumes all Routines found in a queue of suspended Routines.
    * @param routines Stores the Routines being suspended.
    */
-  template<typename... Lock>
   void resume(Out<SuspendedRoutineQueue> routines);
 }
 

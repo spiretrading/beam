@@ -23,7 +23,7 @@ namespace Details {
   class Scheduler;
 }
 
-  /* Implements a Routine that executes within a Scheduler. */
+  /** Implements a Routine that executes within a Scheduler. */
   class BEAM_EXPORT_CLASS ScheduledRoutine : public Routine {
     public:
 

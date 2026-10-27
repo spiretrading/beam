@@ -27,6 +27,16 @@ namespace Beam {
       bool m_is_pending_resume;
   };
 
+  inline Routine& get_current_routine() {
+    auto routine = Details::CurrentRoutineGlobal::get();
+    if(!routine) {
+      thread_local auto external_routine = std::make_unique<ExternalRoutine>();
+      routine = external_routine.get();
+      Details::CurrentRoutineGlobal::get() = routine;
+    }
+    return *routine;
+  }
+
   inline ExternalRoutine::ExternalRoutine()
     : m_is_pending_resume(false) {}
 
@@ -66,16 +76,6 @@ namespace Beam {
     assert(get_state() == State::SUSPENDED);
     set(State::RUNNING);
     m_suspended_condition.notify_one();
-  }
-
-  inline Routine& get_current_routine() {
-    auto routine = Details::CurrentRoutineGlobal::get();
-    if(!routine) {
-      thread_local auto external_routine = std::make_unique<ExternalRoutine>();
-      routine = external_routine.get();
-      Details::CurrentRoutineGlobal::get() = routine;
-    }
-    return *routine;
   }
 }
 

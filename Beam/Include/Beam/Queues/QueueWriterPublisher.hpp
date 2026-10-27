@@ -6,7 +6,6 @@
 #include "Beam/Queues/PipeBrokenException.hpp"
 #include "Beam/Queues/Publisher.hpp"
 #include "Beam/Queues/ScopedQueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
 
@@ -35,7 +34,7 @@ namespace Beam {
       using Publisher<T>::with;
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::exception_ptr m_exception;
       mutable std::vector<ScopedQueueWriter<Target>> m_queues;
   };

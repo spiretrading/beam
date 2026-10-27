@@ -1,8 +1,7 @@
 #ifndef BEAM_EXTERNAL_ROUTINE_HPP
 #define BEAM_EXTERNAL_ROUTINE_HPP
-#include <condition_variable>
-#include <mutex>
 #include "Beam/Routines/Routine.hpp"
+#include "Beam/Threading/NativeConditionVariable.hpp"
 
 namespace Beam {
 
@@ -11,7 +10,7 @@ namespace Beam {
     public:
 
       /** Constructs an ExternalRoutine. */
-      ExternalRoutine() noexcept;
+      ExternalRoutine();
 
       ~ExternalRoutine() override;
 
@@ -23,8 +22,8 @@ namespace Beam {
       void resume() override;
 
     private:
-      mutable std::mutex m_mutex;
-      mutable std::condition_variable m_suspended_condition;
+      mutable NativeMutex m_mutex;
+      mutable NativeConditionVariable m_suspended_condition;
       bool m_is_pending_resume;
   };
 
@@ -38,7 +37,7 @@ namespace Beam {
     return *routine;
   }
 
-  inline ExternalRoutine::ExternalRoutine() noexcept
+  inline ExternalRoutine::ExternalRoutine()
     : m_is_pending_resume(false) {}
 
   inline ExternalRoutine::~ExternalRoutine() {

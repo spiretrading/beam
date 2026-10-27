@@ -152,8 +152,8 @@ namespace Beam {
 
     private:
       mutable std::mutex m_mutex;
-      Mutex m_open_mutex;
-      Mutex m_read_mutex;
+      std::mutex m_open_mutex;
+      std::mutex m_read_mutex;
       typename P::template apply<ServiceSlots>::type m_slots;
       MessageProtocol m_protocol;
       local_ptr_t<T> m_timer;

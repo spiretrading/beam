@@ -1,9 +1,9 @@
 #ifndef BEAM_STATE_PUBLISHER_HPP
 #define BEAM_STATE_PUBLISHER_HPP
+#include <mutex>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -43,7 +43,7 @@ namespace Beam {
       using SnapshotPublisher<T, T>::with;
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       boost::optional<Type> m_value;
       QueueWriterPublisher<Type> m_publisher;
   };

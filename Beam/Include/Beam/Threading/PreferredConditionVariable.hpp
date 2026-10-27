@@ -2,9 +2,6 @@
 #define BEAM_PREFERRED_CONDITION_VARIABLE_HPP
 #include <condition_variable>
 #include <mutex>
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 
 namespace Beam {
 
@@ -25,16 +22,6 @@ namespace Beam {
   template<>
   struct preferred_condition_variable<std::mutex> {
     using type = std::condition_variable;
-  };
-
-  template<>
-  struct preferred_condition_variable<Mutex> {
-    using type = ConditionVariable;
-  };
-
-  template<>
-  struct preferred_condition_variable<RecursiveMutex> {
-    using type = ConditionVariable;
   };
 }
 

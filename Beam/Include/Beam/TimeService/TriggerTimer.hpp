@@ -1,8 +1,8 @@
 #ifndef BEAM_TRIGGER_TIMER_HPP
 #define BEAM_TRIGGER_TIMER_HPP
+#include <condition_variable>
+#include <mutex>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/TimeService/Timer.hpp"
 
 namespace Beam {
@@ -29,11 +29,11 @@ namespace Beam {
       const Publisher<Timer::Result>& get_publisher() const;
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       int m_state;
       Timer::Result m_result;
       QueueWriterPublisher<Timer::Result> m_publisher;
-      ConditionVariable m_trigger;
+      std::condition_variable m_trigger;
 
       TriggerTimer(const TriggerTimer&) = delete;
       TriggerTimer& operator =(const TriggerTimer&) = delete;

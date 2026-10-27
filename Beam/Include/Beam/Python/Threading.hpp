@@ -10,19 +10,19 @@
 namespace Beam::Python {
 
   /**
-   * Exports the ConditionVariable class.
+   * Exports std::condition_variable.
    * @param module The module to export to.
    */
   void export_condition_variable(pybind11::module& module);
 
   /**
-   * Exports the Mutex class.
+   * Exports std::mutex.
    * @param module The module to export to.
    */
   void export_mutex(pybind11::module& module);
 
   /**
-   * Exports the RecursiveMutex class.
+   * Exports std::recursive_mutex.
    * @param module The module to export to.
    */
   void export_recursive_mutex(pybind11::module& module);
@@ -70,12 +70,6 @@ namespace Beam::Python {
    * @param module The module to export to.
    */
   void export_thread_pool(pybind11::module& module);
-
-  /**
-   * Exports the TimedConditionVariable class.
-   * @param module The module to export to.
-   */
-  void export_timed_condition_variable(pybind11::module& module);
 
   /**
    * Exports the Threading namespace.

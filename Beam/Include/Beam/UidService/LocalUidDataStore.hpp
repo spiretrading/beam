@@ -1,7 +1,7 @@
 #ifndef BEAM_LOCAL_UID_DATA_STORE_HPP
 #define BEAM_LOCAL_UID_DATA_STORE_HPP
+#include <mutex>
 #include "Beam/IO/OpenState.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/UidService/UidDataStore.hpp"
 
 namespace Beam {
@@ -22,7 +22,7 @@ namespace Beam {
       void close();
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       std::uint64_t m_next_uid;
       OpenState m_open_state;
   };

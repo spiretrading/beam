@@ -2,11 +2,11 @@
 #define BEAM_OPEN_STATE_HPP
 #include <atomic>
 #include <cassert>
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <boost/throw_exception.hpp>
 #include "Beam/IO/EndOfFileException.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 
 namespace Beam {
 
@@ -50,7 +50,7 @@ namespace Beam {
       };
       mutable std::mutex m_mutex;
       std::atomic<State> m_state;
-      ConditionVariable m_closing_condition;
+      std::condition_variable m_closing_condition;
 
       OpenState(const OpenState&) = delete;
       OpenState& operator =(const OpenState&) = delete;

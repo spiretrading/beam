@@ -6,7 +6,6 @@
 #include <mutex>
 #include <boost/optional/optional.hpp>
 #include "Beam/Queues/QueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 
 namespace Beam {
@@ -61,7 +60,7 @@ namespace Beam {
         Callback m_callback;
         BreakCallback m_on_break;
       };
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::exception_ptr m_exception;
       boost::optional<Callbacks> m_callbacks;
   };

@@ -1,5 +1,6 @@
 #ifndef BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
 #define BEAM_SERVICE_PROTOCOL_CLIENT_HANDLER_HPP
+#include <mutex>
 #include <utility>
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/ConnectException.hpp"
@@ -10,7 +11,6 @@
 #include "Beam/Services/ServiceProtocolClientBuilder.hpp"
 #include "Beam/Services/ServiceSlots.hpp"
 #include "Beam/Threading/LockRelease.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -68,7 +68,7 @@ namespace Beam {
       void close();
 
     private:
-      RecursiveMutex m_mutex;
+      std::recursive_mutex m_mutex;
       local_ptr_t<B> m_builder;
       ServiceSlots<Client> m_slots;
       ReconnectHandler m_reconnect_handler;

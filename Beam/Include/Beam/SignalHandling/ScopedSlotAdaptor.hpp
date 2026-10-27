@@ -1,23 +1,23 @@
 #ifndef BEAM_SCOPED_SLOT_ADAPTOR_HPP
 #define BEAM_SCOPED_SLOT_ADAPTOR_HPP
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <boost/throw_exception.hpp>
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Threading/Sync.hpp"
 
 namespace Beam {
 namespace Details {
   template<typename F>
   struct ScopedSlot {
-    std::shared_ptr<Sync<bool, RecursiveMutex>> m_is_alive;
+    std::shared_ptr<Sync<bool, std::recursive_mutex>> m_is_alive;
     F m_slot;
 
     template<typename SF>
     ScopedSlot(
-      std::shared_ptr<Sync<bool, RecursiveMutex>> keep_alive, SF&& slot)
+      std::shared_ptr<Sync<bool, std::recursive_mutex>> keep_alive, SF&& slot)
       : m_is_alive(std::move(keep_alive)),
         m_slot(std::forward<SF>(slot)) {}
 
@@ -54,11 +54,11 @@ namespace Details {
       Details::ScopedSlot<std::remove_cvref_t<F>> make_slot(F&& slot) const;
 
     private:
-      std::shared_ptr<Sync<bool, RecursiveMutex>> m_is_alive;
+      std::shared_ptr<Sync<bool, std::recursive_mutex>> m_is_alive;
   };
 
   inline ScopedSlotAdaptor::ScopedSlotAdaptor()
-    : m_is_alive(std::make_shared<Sync<bool, RecursiveMutex>>(true)) {}
+    : m_is_alive(std::make_shared<Sync<bool, std::recursive_mutex>>(true)) {}
 
   inline ScopedSlotAdaptor::~ScopedSlotAdaptor() {
     *m_is_alive = false;

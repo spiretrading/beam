@@ -5,7 +5,6 @@
 #include "Beam/IO/Writer.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
-#include "Beam/Threading/Mutex.hpp"
 
 namespace Beam {
 
@@ -31,7 +30,7 @@ namespace Beam {
       void write(const T& data);
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       local_ptr_t<W> m_destination;
   };
 

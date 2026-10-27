@@ -1,21 +1,20 @@
 #ifndef BEAM_ROUTINE_HANDLER_HPP
 #define BEAM_ROUTINE_HANDLER_HPP
 #include <atomic>
+#include <mutex>
 #include "Beam/Routines/Routine.hpp"
 #include "Beam/Routines/Scheduler.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/ThreadPool.hpp"
 
 namespace Beam {
 namespace Details {
   struct BEAM_EXPORT_DLL FlushMutex {
-    static Mutex& get();
+    static std::mutex& get();
   };
 
 #ifndef BEAM_USE_DLL
-  BEAM_EMIT_DLL inline Mutex& FlushMutex::get() {
-    static auto mutex = Mutex();
+  BEAM_EMIT_DLL inline std::mutex& FlushMutex::get() {
+    static auto mutex = std::mutex();
     return mutex;
   }
 #endif
@@ -65,7 +64,8 @@ namespace Details {
     auto& thread_pool = ThreadPool::get();
     auto lock = std::lock_guard(Details::FlushMutex::get());
     auto target = [] {
-      if(dynamic_cast<ScheduledRoutine*>(Details::CurrentRoutineGlobal::get())) {
+      if(dynamic_cast<ScheduledRoutine*>(
+          Details::CurrentRoutineGlobal::get())) {
         return 1;
       }
       return 0;

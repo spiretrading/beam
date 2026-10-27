@@ -1,11 +1,11 @@
 #ifndef BEAM_SERVICE_UID_CLIENT_HPP
 #define BEAM_SERVICE_UID_CLIENT_HPP
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include "Beam/IO/OpenState.hpp"
 #include "Beam/Pointers/Dereference.hpp"
 #include "Beam/Services/ServiceProtocolClientHandler.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
 #include "Beam/UidService/UidClient.hpp"
 #include "Beam/UidService/UidServices.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -42,7 +42,7 @@ namespace Beam {
       std::uint64_t m_next_uid;
       std::uint64_t m_last_uid;
       std::uint64_t m_block_size;
-      mutable ConditionVariable m_uids_available_condition;
+      mutable std::condition_variable m_uids_available_condition;
       OpenState m_open_state;
   };
 

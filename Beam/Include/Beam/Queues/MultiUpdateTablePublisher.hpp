@@ -1,11 +1,11 @@
 #ifndef BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
 #define BEAM_MULTI_UPDATE_TABLE_PUBLISHER_HPP
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/KeyValuePair.hpp"
 
 namespace Beam {
@@ -61,7 +61,7 @@ namespace Beam {
         std::vector<KeyValuePair<K, V>>, std::unordered_map<K, V>>::with;
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       std::unordered_map<Key, Value> m_table;
       QueueWriterPublisher<Type> m_publisher;
   };

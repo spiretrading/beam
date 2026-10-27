@@ -1,10 +1,10 @@
 #ifndef BEAM_LIVE_TIMER_HPP
 #define BEAM_LIVE_TIMER_HPP
+#include <condition_variable>
+#include <mutex>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/system/system_error.hpp>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
-#include "Beam/Threading/ConditionVariable.hpp"
-#include "Beam/Threading/Mutex.hpp"
 #include "Beam/Threading/ServiceThreadPool.hpp"
 #include "Beam/TimeService/Timer.hpp"
 
@@ -29,12 +29,12 @@ namespace Beam {
       const Publisher<Timer::Result>& get_publisher() const;
 
     private:
-      mutable Mutex m_mutex;
+      mutable std::mutex m_mutex;
       boost::posix_time::time_duration m_interval;
       boost::asio::steady_timer m_deadline_timer;
       bool m_is_pending;
       QueueWriterPublisher<Timer::Result> m_publisher;
-      ConditionVariable m_trigger;
+      std::condition_variable m_trigger;
 
       LiveTimer(const LiveTimer&) = delete;
       LiveTimer& operator =(const LiveTimer&) = delete;

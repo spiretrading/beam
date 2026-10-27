@@ -1,11 +1,11 @@
 #ifndef BEAM_SEQUENCE_PUBLISHER_HPP
 #define BEAM_SEQUENCE_PUBLISHER_HPP
+#include <mutex>
 #include <vector>
 #include "Beam/Queues/QueueWriterPublisher.hpp"
 #include "Beam/Queues/QueueWriter.hpp"
 #include "Beam/Queues/SnapshotPublisher.hpp"
 #include "Beam/Queues/WeakQueueWriter.hpp"
-#include "Beam/Threading/RecursiveMutex.hpp"
 #include "Beam/Utilities/TypeTraits.hpp"
 
 namespace Beam {
@@ -45,7 +45,7 @@ namespace Beam {
       using SnapshotPublisher<T, S>::with;
 
     private:
-      mutable RecursiveMutex m_mutex;
+      mutable std::recursive_mutex m_mutex;
       Snapshot m_sequence;
       QueueWriterPublisher<Type> m_publisher;
   };

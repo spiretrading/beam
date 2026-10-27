@@ -59,16 +59,31 @@ namespace Beam {
   template<typename T>
   template<typename... A>
   void Async<T>::emplace(A&&... args) {
-    auto lock = std::lock_guard(m_mutex);
-    assert(get_state() == State::PENDING);
-    try {
-      m_result.template emplace<1>(std::forward<A>(args)...);
-    } catch(...) {
-      m_result.template emplace<2>(std::current_exception());
+    if constexpr(std::is_same_v<Mutex, NativeMutex>) {
+      auto result = [&] {
+        try {
+          return Type(std::forward<A>(args)...);
+        } catch(...) {
+          set_exception(std::current_exception());
+          throw;
+        }
+      }();
+      auto lock = std::lock_guard(m_mutex);
+      assert(get_state() == State::PENDING);
+      m_result.template emplace<1>(std::as_const(result));
       resume(out(m_suspended_routines));
-      throw;
+    } else {
+      auto lock = std::lock_guard(m_mutex);
+      assert(get_state() == State::PENDING);
+      try {
+        m_result.template emplace<1>(std::forward<A>(args)...);
+      } catch(...) {
+        m_result.template emplace<2>(std::current_exception());
+        resume(out(m_suspended_routines));
+        throw;
+      }
+      resume(out(m_suspended_routines));
     }
-    resume(out(m_suspended_routines));
   }
 
   template<typename T>

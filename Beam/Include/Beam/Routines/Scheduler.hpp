@@ -2,16 +2,17 @@
 #define BEAM_SCHEDULER_HPP
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <deque>
 #include <iostream>
-#include <mutex>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
 #include "Beam/Routines/FunctionRoutine.hpp"
+#include "Beam/Threading/LinuxMutex.hpp"
+#include "Beam/Threading/NativeConditionVariable.hpp"
 #include "Beam/Threading/Sync.hpp"
+#include "Beam/Threading/WindowsMutex.hpp"
 #include "Beam/Utilities/ReportException.hpp"
 #include "Beam/Utilities/Singleton.hpp"
 
@@ -93,11 +94,11 @@ namespace Details {
 
     private:
       struct Context {
-        std::mutex m_mutex;
+        NativeMutex m_mutex;
         bool m_is_running;
         std::deque<ScheduledRoutine*> m_pending_routines;
         std::size_t m_suspended_count;
-        std::condition_variable m_pending_routines_available_condition;
+        NativeConditionVariable m_pending_routines_available_condition;
 
         Context();
       };
@@ -107,10 +108,10 @@ namespace Details {
       friend void resume(ScheduledRoutine*& routine);
       std::size_t m_thread_count;
       std::unique_ptr<std::thread[]> m_threads;
-      Sync<RoutineIds> m_routine_ids;
+      Sync<RoutineIds, NativeMutex> m_routine_ids;
       std::unique_ptr<Context[]> m_contexts;
       std::atomic_size_t m_busy_count;
-      std::mutex m_idle_mutex;
+      NativeMutex m_idle_mutex;
       std::vector<Eval<void>> m_idle_evals;
 
       void queue(ScheduledRoutine& routine);
@@ -129,6 +130,11 @@ namespace Details {
         m_threads(std::make_unique<std::thread[]>(m_thread_count)),
         m_contexts(std::make_unique<Context[]>(m_thread_count)),
         m_busy_count(0) {
+    #if defined(_MSC_VER) && defined(_DLL)
+      WindowsMutex::initialize();
+    #elif defined(__linux__) && defined(__GLIBC__) && defined(__x86_64__)
+      LinuxMutex::initialize();
+    #endif
     try {
       for(auto i = std::size_t(0); i < m_thread_count; ++i) {
         m_threads[i] = std::thread([=, this] {

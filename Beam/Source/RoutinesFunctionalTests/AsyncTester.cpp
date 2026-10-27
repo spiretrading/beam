@@ -99,6 +99,27 @@ namespace {
 }
 
 TEST_SUITE("Async") {
+  TEST_CASE("spawn_const_callable") {
+    auto function = [value = 0] () mutable {
+      return ++value;
+    };
+    auto result = Async<int>();
+    auto stack_size = Details::Scheduler::DEFAULT_STACK_SIZE;
+    auto id = Routine::Id();
+    SUBCASE("spawn") {
+      id = spawn(std::as_const(function), result.get_eval());
+    }
+    SUBCASE("stack_size") {
+      id = spawn(std::as_const(function), stack_size, result.get_eval());
+    }
+    SUBCASE("context") {
+      id = spawn(std::as_const(function), stack_size, 0, result.get_eval());
+    }
+    REQUIRE(result.get() == 1);
+    wait(id);
+    REQUIRE(function() == 1);
+  }
+
   TEST_CASE("spawn_result_copy_exception") {
     auto value = ThrowingCopy();
     auto async = Async<ThrowingCopy>();

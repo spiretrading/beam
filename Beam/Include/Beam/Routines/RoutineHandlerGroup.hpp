@@ -29,7 +29,7 @@ namespace Beam {
       void add(Routine::Id id);
 
       /** Spawns a Routine and adds it to this group. */
-      template<typename F>
+      template<typename F> requires std::invocable<std::decay_t<F>&>
       void spawn(F&& f);
 
       /** Waits for the completion of all Routines in this group. */
@@ -53,7 +53,7 @@ namespace Beam {
     add(RoutineHandler(id));
   }
 
-  template<typename F>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   void RoutineHandlerGroup::spawn(F&& f) {
     add(Beam::spawn(std::forward<F>(f)));
   }

@@ -36,7 +36,7 @@ namespace Beam {
 
   template<typename F>
   FunctionRoutine(F&&, std::size_t, std::size_t) ->
-    FunctionRoutine<std::remove_cvref_t<F>>;
+    FunctionRoutine<std::decay_t<F>>;
 
   template<typename F>
   template<typename FF>

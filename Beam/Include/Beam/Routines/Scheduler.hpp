@@ -82,7 +82,7 @@ namespace Details {
        *        to assign it an arbitrary context.
        * @return A unique ID used to identify the Routine.
        */
-      template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+      template<typename F> requires std::invocable<std::decay_t<F>&>
       Routine::Id spawn(F&& f, std::size_t stack_size, std::size_t context_id);
 
       /**
@@ -191,10 +191,10 @@ namespace Details {
     }
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id Scheduler::spawn(
       F&& f, std::size_t stack_size, std::size_t context_id) {
-    auto routine = std::make_unique<FunctionRoutine<std::remove_cvref_t<F>>>(
+    auto routine = std::make_unique<FunctionRoutine<std::decay_t<F>>>(
       std::forward<F>(f), stack_size, context_id);
     auto id = routine->get_id();
     with(m_routine_ids, [&] (auto& ids) {
@@ -321,28 +321,29 @@ namespace Details {
   }
 }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id spawn(F&& f, std::size_t stack_size, std::size_t context_id) {
     return Details::Scheduler::get().spawn(
       std::forward<F>(f), stack_size, context_id);
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id spawn(F&& f, std::size_t stack_size) {
     return spawn(std::forward<F>(f), stack_size, static_cast<std::size_t>(-1));
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id spawn(F&& f) {
     return spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE);
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id spawn(F&& f, std::size_t stack_size, std::size_t context_id,
-      Eval<std::remove_cvref_t<decltype(f())>> result) {
+      Eval<
+        std::remove_cvref_t<std::invoke_result_t<std::decay_t<F>&>>> result) {
     return spawn(
       [f = std::forward<F>(f), result = std::move(result)] () mutable {
-        using Result = std::remove_cvref_t<decltype(f())>;
+        using Result = typename decltype(result)::Type;
         try {
           if constexpr(std::is_same_v<Result, void>) {
             f();
@@ -356,15 +357,18 @@ namespace Details {
       }, stack_size, context_id);
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
+  template<typename F> requires std::invocable<std::decay_t<F>&>
   Routine::Id spawn(F&& f, std::size_t stack_size,
-      Eval<std::remove_cvref_t<decltype(f())>> result) {
+      Eval<
+        std::remove_cvref_t<std::invoke_result_t<std::decay_t<F>&>>> result) {
     return spawn(std::forward<F>(f), stack_size, static_cast<std::size_t>(-1),
       std::move(result));
   }
 
-  template<typename F> requires std::invocable<std::remove_cvref_t<F>&>
-  Routine::Id spawn(F&& f, Eval<std::remove_cvref_t<decltype(f())>> result) {
+  template<typename F> requires std::invocable<std::decay_t<F>&>
+  Routine::Id spawn(F&& f,
+      Eval<
+        std::remove_cvref_t<std::invoke_result_t<std::decay_t<F>&>>> result) {
     return spawn(std::forward<F>(f), Details::Scheduler::DEFAULT_STACK_SIZE,
       std::move(result));
   }

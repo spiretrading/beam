@@ -5,6 +5,12 @@
 using namespace Beam;
 
 namespace {
+  auto calls = 0;
+
+  void count_call() {
+    ++calls;
+  }
+
   class ThrowingCopy {
     public:
       explicit ThrowingCopy(bool& is_called) noexcept
@@ -26,6 +32,25 @@ namespace {
 }
 
 TEST_SUITE("FunctionRoutine") {
+  TEST_CASE("free_function") {
+    calls = 0;
+    auto stack_size = Details::Scheduler::DEFAULT_STACK_SIZE;
+    SUBCASE("construction") {
+      auto routine = FunctionRoutine(count_call, stack_size, 0);
+      routine.advance();
+    }
+    SUBCASE("spawn") {
+      wait(spawn(count_call));
+    }
+    SUBCASE("stack_size") {
+      wait(spawn(count_call, stack_size));
+    }
+    SUBCASE("context") {
+      wait(spawn(count_call, stack_size, 0));
+    }
+    REQUIRE(calls == 1);
+  }
+
   TEST_CASE("spawn_copy_exception") {
     auto scheduler = Details::Scheduler();
     auto is_called = false;

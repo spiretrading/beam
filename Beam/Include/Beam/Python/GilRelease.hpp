@@ -16,8 +16,9 @@ namespace Beam::Python {
       ~GilRelease();
 
     private:
-      bool m_has_gil;
       PyThreadState* m_state;
+      PyThreadState* m_binding_state;
+      pybind11::detail::loader_life_support* m_loader;
 
       GilRelease(const GilRelease&) = delete;
       GilRelease& operator =(const GilRelease&) = delete;
@@ -38,17 +39,27 @@ namespace Beam::Python {
       });
   }
 
-  inline GilRelease::GilRelease() noexcept {
-    m_has_gil = has_gil();
-    if(m_has_gil) {
+  inline GilRelease::GilRelease() noexcept
+      : m_state(nullptr),
+        m_binding_state(nullptr),
+        m_loader(nullptr) {
+    if(has_gil()) {
+      auto& internals = pybind11::detail::get_internals();
+      m_binding_state = internals.tstate.get();
+      m_loader = internals.loader_life_support_tls.get();
+      internals.tstate = nullptr;
+      internals.loader_life_support_tls = nullptr;
       m_state = PyEval_SaveThread();
     }
   }
 
   inline GilRelease::~GilRelease() {
-    if(m_has_gil) {
+    if(m_state) {
       PyEval_RestoreThread(m_state);
       update_stack_protection();
+      auto& internals = pybind11::detail::get_internals();
+      internals.tstate = m_binding_state;
+      internals.loader_life_support_tls = m_loader;
     }
   }
 }

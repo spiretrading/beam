@@ -1,5 +1,6 @@
 #ifndef BEAM_PYTHON_GIL_LOCK_HPP
 #define BEAM_PYTHON_GIL_LOCK_HPP
+#include <exception>
 #include <pybind11/pybind11.h>
 #include "Beam/Python/StackProtection.hpp"
 
@@ -15,8 +16,9 @@ namespace Beam::Python {
       ~GilLock();
 
     private:
-      bool m_has_gil;
-      PyGILState_STATE m_state;
+      PyThreadState* m_state;
+      PyThreadState* m_binding_state;
+      pybind11::detail::loader_life_support* m_loader;
 
       GilLock(const GilLock&) = delete;
       GilLock& operator =(const GilLock&) = delete;
@@ -30,18 +32,35 @@ namespace Beam::Python {
     return PyGILState_Check() != 0;
   }
 
-  inline GilLock::GilLock() noexcept {
-    m_has_gil = has_gil();
-    if(!m_has_gil) {
-      m_state = PyGILState_Ensure();
+  inline GilLock::GilLock() noexcept
+      : m_state(nullptr),
+        m_binding_state(nullptr),
+        m_loader(nullptr) {
+    if(!has_gil()) {
+      m_state = PyThreadState_New(PyInterpreterState_Main());
+      if(!m_state) {
+        std::terminate();
+      }
+      PyEval_RestoreThread(m_state);
+      update_stack_protection();
+      auto& internals = pybind11::detail::get_internals();
+      m_binding_state = internals.tstate.get();
+      m_loader = internals.loader_life_support_tls.get();
+      internals.tstate = m_state;
+      internals.loader_life_support_tls = nullptr;
+    } else {
+      update_stack_protection();
     }
-    update_stack_protection();
   }
 
   inline GilLock::~GilLock() noexcept {
-    if(!m_has_gil) {
+    if(m_state) {
+      PyThreadState_Clear(m_state);
+      auto& internals = pybind11::detail::get_internals();
+      internals.tstate = m_binding_state;
+      internals.loader_life_support_tls = m_loader;
       reset_stack_protection();
-      PyGILState_Release(m_state);
+      PyThreadState_DeleteCurrent();
     }
   }
 }

@@ -84,7 +84,7 @@ namespace Details {
       boost::context::continuation m_parent;
       #ifdef BEAM_ENABLE_STACK_PRINT
       #ifndef NDEBUG
-      std::string m_call_stack;
+      std::stacktrace m_call_stack;
       #endif
       #endif
 
@@ -173,7 +173,7 @@ namespace Details {
     Details::CurrentRoutineGlobal::get() = nullptr;
 #ifdef BEAM_ENABLE_STACK_PRINT
 #ifndef NDEBUG
-    m_call_stack = std::to_string(std::stacktrace::current());
+    m_call_stack = std::stacktrace::current();
 #endif
 #endif
     m_parent = m_parent.resume();
@@ -191,7 +191,7 @@ namespace Details {
     set(State::PENDING_SUSPEND);
 #ifdef BEAM_ENABLE_STACK_PRINT
 #ifndef NDEBUG
-    m_call_stack = std::to_string(std::stacktrace::current());
+    m_call_stack = std::stacktrace::current();
 #endif
 #endif
     m_parent = m_parent.resume();

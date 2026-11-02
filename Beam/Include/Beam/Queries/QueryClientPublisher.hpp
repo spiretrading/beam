@@ -186,7 +186,10 @@ namespace Beam {
           for(auto& value : result.m_snapshot) {
             queue.push(std::move(value));
           }
-        } catch(const std::exception&) {}
+        } catch(const std::exception&) {
+          queue.close(std::current_exception());
+          return;
+        }
         queue.close();
       });
     }

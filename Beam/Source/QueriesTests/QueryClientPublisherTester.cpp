@@ -134,6 +134,25 @@ TEST_SUITE("QueryClientPublisher") {
     REQUIRE_THROWS_AS(queue->pop(), PipeBrokenException);
   }
 
+  TEST_CASE("historical_query_failure") {
+    auto fixture = Fixture();
+    auto& client = *fixture.m_server_client;
+    QueryService::add_slot(out(client.get_slots()),
+      [] (auto&, const TestQuery&) -> QueryResult<SequencedTestEntry> {
+        throw ServiceRequestException("Query failed.");
+      });
+    client.spawn_message_handler();
+    auto query = TestQuery();
+    query.set_index("IndexA");
+    query.set_range(Range(Beam::Sequence(1), Beam::Sequence(10)));
+    auto sequenced = std::make_shared<Queue<SequencedTestEntry>>();
+    fixture.m_publisher.submit(query, sequenced);
+    REQUIRE_THROWS_AS(sequenced->pop(), ServiceRequestException);
+    auto values = std::make_shared<Queue<TestEntry>>();
+    fixture.m_publisher.submit(query, values);
+    REQUIRE_THROWS_AS(values->pop(), ServiceRequestException);
+  }
+
   TEST_CASE("submit_with_value_queue") {
     auto fixture = Fixture();
     auto& client = *fixture.m_server_client;

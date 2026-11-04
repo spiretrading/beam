@@ -1,5 +1,6 @@
 #ifndef BEAM_NATIVE_CONDITION_VARIABLE_HPP
 #define BEAM_NATIVE_CONDITION_VARIABLE_HPP
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -248,7 +249,12 @@ namespace Beam {
 
   inline const NativeConditionVariable::Functions&
       NativeConditionVariable::get_functions() {
+    static constinit auto cache = std::atomic<const Functions*>();
+    if(auto functions = cache.load(std::memory_order_acquire)) {
+      return *functions;
+    }
     static const auto functions = Functions();
+    cache.store(&functions, std::memory_order_release);
     return functions;
   }
 

@@ -85,6 +85,32 @@ namespace Beam::Tests {
 }
 
 TEST_SUITE("Scheduler") {
+  TEST_CASE("concurrent_initialization") {
+    auto initialize = [] () -> auto& {
+      static auto scheduler = Details::Scheduler();
+      return scheduler;
+    };
+    auto schedulers = std::array<Details::Scheduler*, 4>();
+    auto threads = std::array<std::thread, 4>();
+    auto ready = std::latch(threads.size());
+    auto start = std::latch(1);
+    for(auto i = std::size_t(0); i != threads.size(); ++i) {
+      threads[i] = std::thread([&, i] {
+        ready.count_down();
+        start.wait();
+        schedulers[i] = &initialize();
+      });
+    }
+    ready.wait();
+    start.count_down();
+    for(auto& thread : threads) {
+      thread.join();
+    }
+    for(auto scheduler : schedulers) {
+      REQUIRE(scheduler == &initialize());
+    }
+  }
+
   TEST_CASE("spawn_allocation_failure") {
     auto allocations = 0;
     SUBCASE("registration") {}

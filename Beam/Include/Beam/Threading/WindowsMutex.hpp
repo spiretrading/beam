@@ -153,6 +153,7 @@ namespace Beam::Details {
           !state.m_notify_all || !state.m_begin || !state.m_complete) {
         throw std::system_error(ERROR_PROC_NOT_FOUND, std::system_category());
       }
+      static_cast<void>(NativeConditionVariable());
       auto module = HMODULE();
       if(!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
           GET_MODULE_HANDLE_EX_FLAG_PIN,
@@ -215,7 +216,12 @@ namespace Beam::Details {
   }
 
   inline WindowsMutex::State& WindowsMutex::get_state() {
+    static constinit auto cache = std::atomic<State*>();
+    if(auto state = cache.load(std::memory_order_acquire)) {
+      return *state;
+    }
     static auto state = State();
+    cache.store(&state, std::memory_order_release);
     return state;
   }
 

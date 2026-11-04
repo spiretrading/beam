@@ -44,8 +44,7 @@ namespace Beam {
   };
 
   template<typename R>
-  SizeDeclarativeReader(R&&) ->
-    SizeDeclarativeReader<std::remove_cvref_t<R>>;
+  SizeDeclarativeReader(R&&) -> SizeDeclarativeReader<std::remove_cvref_t<R>>;
 
   template<typename R> requires IsReader<dereference_t<R>>
   template<Initializes<R> RF>

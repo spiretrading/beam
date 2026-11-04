@@ -49,6 +49,12 @@ namespace Beam::Python {
   BEAM_EXPORT_DLL const pybind11::object& get_io_exception();
 
   /**
+   * Exports the AES-GCM channel and its client and server configurations.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_channel(pybind11::module& module);
+
+  /**
    * Exports the AsyncWriter class.
    * @param module The module to export to.
    */
@@ -148,6 +154,12 @@ namespace Beam::Python {
    * @param module The module to export to.
    */
   void export_buffer_ref(pybind11::module& module);
+
+  /**
+   * Exports the BufferView class.
+   * @param module The module to export to.
+   */
+  void export_buffer_view(pybind11::module& module);
 
   /**
    * Exports the BufferWriter class.

@@ -17,6 +17,18 @@ namespace Beam::Python {
   BEAM_EXPORT_DLL pybind11::class_<Encoder>& get_exported_encoder();
 
   /**
+   * Exports the AesGcmDecoder class.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_decoder(pybind11::module& module);
+
+  /**
+   * Exports the AesGcmEncoder class.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_encoder(pybind11::module& module);
+
+  /**
    * Exports the Codecs namespace.
    * @param module The module to export to.
    */

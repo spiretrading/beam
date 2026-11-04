@@ -1,4 +1,5 @@
 #include "Beam/Python/Codecs.hpp"
+#include "Beam/Codecs/AesGcmDecoder.hpp"
 #include "Beam/Codecs/CodedReader.hpp"
 #include "Beam/Codecs/CodedWriter.hpp"
 #include "Beam/Codecs/DecoderException.hpp"
@@ -31,11 +32,35 @@ class_<Encoder>& Beam::Python::get_exported_encoder() {
   return *encoder;
 }
 
+void Beam::Python::export_aes_gcm_decoder(module& module) {
+  auto decoder = export_decoder<AesGcmDecoder>(module, "AesGcmDecoder").
+    def(pybind11::init([] (BufferRef key, BufferRef nonce) {
+      return std::make_unique<AesGcmDecoder>(key, nonce);
+    }));
+  decoder.attr("MAXIMUM_SIZE") = AesGcmDecoder::MAXIMUM_SIZE;
+  decoder.attr("TAG_SIZE") = AesGcmDecoder::TAG_SIZE;
+  decoder.attr("MAXIMUM_RECORDS") = AesGcmDecoder::MAXIMUM_RECORDS;
+}
+
+void Beam::Python::export_aes_gcm_encoder(module& module) {
+  auto encoder = export_encoder<AesGcmEncoder>(module, "AesGcmEncoder").
+    def(pybind11::init([] (BufferRef key, BufferRef nonce) {
+      return std::make_unique<AesGcmEncoder>(key, nonce);
+    }));
+  encoder.attr("KEY_SIZE") = AesGcmEncoder::KEY_SIZE;
+  encoder.attr("NONCE_SIZE") = AesGcmEncoder::NONCE_SIZE;
+  encoder.attr("MAXIMUM_SIZE") = AesGcmEncoder::MAXIMUM_SIZE;
+  encoder.attr("TAG_SIZE") = AesGcmEncoder::TAG_SIZE;
+  encoder.attr("MAXIMUM_RECORDS") = AesGcmEncoder::MAXIMUM_RECORDS;
+}
+
 void Beam::Python::export_codecs(module& module) {
   decoder = std::make_unique<class_<Decoder>>(
     export_decoder<Decoder>(module, "Decoder"));
   encoder = std::make_unique<class_<Encoder>>(
     export_encoder<Encoder>(module, "Encoder"));
+  export_aes_gcm_decoder(module);
+  export_aes_gcm_encoder(module);
   export_coded_reader(module);
   export_coded_writer(module);
   export_null_decoder(module);

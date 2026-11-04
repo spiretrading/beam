@@ -1,10 +1,13 @@
 #include "Beam/Python/IO.hpp"
 #include <iostream>
+#include <optional>
+#include "Beam/IO/AesGcmChannel.hpp"
 #include "Beam/IO/AsyncWriter.hpp"
 #include "Beam/IO/BasicChannel.hpp"
 #include "Beam/IO/BasicIStreamReader.hpp"
 #include "Beam/IO/BasicOStreamWriter.hpp"
 #include "Beam/IO/BufferReader.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/BufferWriter.hpp"
 #include "Beam/IO/ConnectException.hpp"
 #include "Beam/IO/EndOfFileException.hpp"
@@ -29,6 +32,7 @@
 #include "Beam/IO/SuffixBuffer.hpp"
 #include "Beam/IO/SyncWriter.hpp"
 #include "Beam/Python/GilRelease.hpp"
+#include "Beam/Python/SharedObject.hpp"
 #include "Beam/Python/ToPythonChannel.hpp"
 #include "Beam/Python/ToPythonConnection.hpp"
 #include "Beam/Python/ToPythonReader.hpp"
@@ -49,6 +53,27 @@ namespace {
   auto reader = std::unique_ptr<class_<Reader>>();
   auto server_connection = std::unique_ptr<class_<ServerConnection>>();
   auto writer = std::unique_ptr<class_<Writer>>();
+
+  auto make_buffer_view(buffer source, std::optional<std::size_t> size) {
+    auto memory = PyMemoryView_FromObject(source.ptr());
+    if(!memory) {
+      throw error_already_set();
+    }
+    auto owner = SharedObject(reinterpret_steal<object>(memory));
+    auto info = PyMemoryView_GET_BUFFER(memory);
+    if(!PyBuffer_IsContiguous(info, 'C')) {
+      throw value_error("BufferView requires contiguous memory.");
+    }
+    auto length = static_cast<std::size_t>(info->len);
+    if(size) {
+      if(*size > length) {
+        throw value_error("View size exceeds buffer size.");
+      }
+      length = *size;
+    }
+    return std::shared_ptr<BufferView>(new BufferView(info->buf, length),
+      [owner = std::move(owner)] (auto* view) { delete view; });
+  }
 }
 
 const object& Beam::Python::get_connect_exception() {
@@ -87,6 +112,34 @@ const object& Beam::Python::get_io_exception() {
   return io_exception;
 }
 
+void Beam::Python::export_aes_gcm_channel(module& module) {
+  class_<AesGcmClientConfig>(module, "AesGcmClientConfig").
+    def(pybind11::init<>()).
+    def(pybind11::init<std::string>()).
+    def(pybind11::init<const AesGcmClientConfig&>()).
+    def_readwrite("public_key", &AesGcmClientConfig::m_public_key);
+  class_<AesGcmServerConfig>(module, "AesGcmServerConfig").
+    def(pybind11::init<>()).
+    def(pybind11::init<std::string>()).
+    def(pybind11::init<const AesGcmServerConfig&>()).
+    def_readwrite("private_key", &AesGcmServerConfig::m_private_key);
+  using PythonChannel =
+    ToPythonChannel<AesGcmChannel<std::shared_ptr<Channel>>>;
+  export_channel<PythonChannel>(module, "AesGcmChannel").
+    def(pybind11::init([] (Channel& channel, const AesGcmClientConfig& config) {
+      auto owner = std::make_shared<SharedObject>(
+        cast(&channel, return_value_policy::reference));
+      return std::make_unique<PythonChannel>(
+        std::shared_ptr<Channel>(std::move(owner), &channel), config);
+    })).
+    def(pybind11::init([] (Channel& channel, const AesGcmServerConfig& config) {
+      auto owner = std::make_shared<SharedObject>(
+        cast(&channel, return_value_policy::reference));
+      return std::make_unique<PythonChannel>(
+        std::shared_ptr<Channel>(std::move(owner), &channel), config);
+    }));
+}
+
 void Beam::Python::export_async_writer(module& module) {
   export_writer<ToPythonWriter<AsyncWriter<Writer>>>(module, "AsyncWriter").
     def(pybind11::init<Writer>());
@@ -120,6 +173,37 @@ void Beam::Python::export_buffer_reader(module& module) {
 void Beam::Python::export_buffer_ref(module& module) {
   buffer_ref = std::make_unique<class_<BufferRef>>(
     export_buffer<BufferRef>(module, "Buffer"));
+}
+
+void Beam::Python::export_buffer_view(module& module) {
+  class_<BufferView, std::shared_ptr<BufferView>>(
+      module, "BufferView", buffer_protocol()).
+    def(pybind11::init([] (buffer source) {
+      return make_buffer_view(std::move(source), std::nullopt);
+    })).
+    def(pybind11::init([] (buffer source, std::size_t size) {
+      return make_buffer_view(std::move(source), size);
+    })).
+    def("__len__", &BufferView::get_size).
+    def("__bool__", [] (const BufferView& self) {
+      return !is_empty(self);
+    }).
+    def_property_readonly("size", &BufferView::get_size).
+    def("get_data", [] (const BufferView& self) {
+      return bytes(self.get_data(), self.get_size());
+    }).
+    def("is_empty", [] (const BufferView& self) {
+      return is_empty(self);
+    }).
+    def("__str__", &boost::lexical_cast<std::string, BufferView>).
+    def("__repr__", [] (const BufferView& self) {
+      return "<BufferView size=" + std::to_string(self.get_size()) + ">";
+    }).
+    def_buffer([] (const BufferView& self) {
+      return buffer_info(
+        reinterpret_cast<const unsigned char*>(self.get_data()),
+        static_cast<ssize_t>(self.get_size()), true);
+    });
 }
 
 void Beam::Python::export_buffer_writer(module& module) {
@@ -298,10 +382,12 @@ void Beam::Python::export_io(module& module) {
     export_server_connection<ServerConnection>(module, "ServerConnection"));
   writer =
     std::make_unique<class_<Writer>>(export_writer<Writer>(module, "Writer"));
+  export_aes_gcm_channel(module);
   export_async_writer(module);
   export_basic_channel(module);
   export_buffer_reader(module);
   export_buffer_ref(module);
+  export_buffer_view(module);
   export_buffer_writer(module);
   export_local_client_channel(module);
   export_local_connection(module);

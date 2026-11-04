@@ -24,11 +24,15 @@ def main():
     default='root')
   parser.add_argument('-p', '--password', type=str, help='Password.',
     default='')
+  parser.add_argument('--public_key', type=Path,
+    help='ServiceLocator public key PEM file.', required=True)
   args = parser.parse_args()
   variables = {}
   variables['username'] = args.username
   variables['service_locator_address'] = args.address
   variables['admin_password'] = args.password
+  variables['service_locator_public_key'] = args.public_key.read_text(
+    encoding='utf-8-sig')
   with open(directory / 'config.default.yml', encoding='utf-8') as file:
     source = Template(file.read()).substitute(
       {key: json.dumps(value, ensure_ascii=False)

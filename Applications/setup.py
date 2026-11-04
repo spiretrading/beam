@@ -41,7 +41,8 @@ def setup_server(server, arg_vars):
 
 def setup_server_with_mysql(server, arg_vars):
   setup_application(server, arg_vars, 'local', 'world', 'address', 'password',
-    'mysql_address', 'mysql_username', 'mysql_password', 'mysql_schema')
+    'public_key', 'mysql_address', 'mysql_username', 'mysql_password',
+    'mysql_schema')
 
 
 def setup_service_locator(arg_vars):
@@ -49,7 +50,8 @@ def setup_service_locator(arg_vars):
     arg_vars = arg_vars.copy()
     arg_vars['mysql_password'] = arg_vars['password']
   setup_application('ServiceLocator', arg_vars, 'local', 'world',
-    'mysql_address', 'mysql_username', 'mysql_password', 'mysql_schema')
+    'private_key', 'mysql_address', 'mysql_username', 'mysql_password',
+    'mysql_schema')
 
 
 def main():
@@ -61,6 +63,10 @@ def main():
     required=False)
   parser.add_argument('-a', '--address', type=str, help='Spire address.',
     required=False)
+  parser.add_argument('--public_key', type=str,
+    help='ServiceLocator public key PEM file.', required=True)
+  parser.add_argument('--private_key', type=str,
+    help='ServiceLocator private key PEM file.', required=True)
   parser.add_argument('-p', '--password', type=str, help='Password.',
     required=False)
   parser.add_argument('-ma', '--mysql_address', type=str, help='MySQL address.',
@@ -72,13 +78,15 @@ def main():
   parser.add_argument('-ms', '--mysql_schema', type=str, help='MySQL schema.',
     required=False)
   arg_vars = vars(parser.parse_args())
+  arg_vars['public_key'] = str(Path(arg_vars['public_key']).resolve())
+  arg_vars['private_key'] = str(Path(arg_vars['private_key']).resolve())
   admin_client_arg_vars = arg_vars.copy()
   if admin_client_arg_vars['address'] is None and arg_vars['local'] is not None:
     admin_client_arg_vars['address'] = arg_vars['local'] + ':20000'
   admin_client_arg_vars['username'] = 'root'
   admin_client_arg_vars['password'] = ''
   setup_application('AdminClient', admin_client_arg_vars, 'address', 'username',
-    'password')
+    'password', 'public_key')
   setup_application('ClientTemplate', arg_vars, 'local')
   setup_application_with_mysql('DataStoreProfiler', arg_vars)
   setup_application('HttpFileServer', arg_vars, 'local', 'world')

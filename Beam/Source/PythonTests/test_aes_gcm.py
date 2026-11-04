@@ -186,9 +186,12 @@ class TestAesGcmChannel(unittest.TestCase):
         self.assertIsNone(reference())
 
     def test_missing_public_key(self):
+        channel = beam.AesGcmChannel(beam.NullChannel(),
+            beam.AesGcmClientConfig(''))
         with self.assertRaises(beam.ConnectException):
-            beam.AesGcmChannel(beam.NullChannel(),
-                beam.AesGcmClientConfig(''))
+            channel.writer.write(b'payload')
+        with self.assertRaises(beam.ConnectException):
+            channel.reader.read(beam.SharedBuffer())
 
 
 if __name__ == '__main__':

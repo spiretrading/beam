@@ -141,7 +141,6 @@ TEST_SUITE("EncryptedServiceLocator") {
     auto keys = make_keys();
     REQUIRE_THROWS_AS(Fixture::Client("root", "", fixture.make_builder(
       AesGcmClientConfig(keys.m_public_key))), ConnectException);
-    REQUIRE(!fixture.m_accepted.try_pop());
     auto client = fixture.make_client();
     REQUIRE(client->get_account().m_name == "root");
   }

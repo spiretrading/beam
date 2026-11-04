@@ -1,4 +1,5 @@
 #include <atomic>
+#include <latch>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -186,6 +187,7 @@ namespace {
           try {
             m_server = std::make_unique<AesGcmChannel<FramedTransport*>>(
               &m_framed_server, server_config);
+            m_server->get_writer().write(SharedBuffer());
           } catch(...) {
             server_error = std::current_exception();
           }
@@ -193,6 +195,7 @@ namespace {
         try {
           m_client = std::make_unique<AesGcmChannel<FramedTransport*>>(
             &m_framed_client, client_config);
+          m_client->get_writer().write(SharedBuffer());
         } catch(...) {
           client_error = std::current_exception();
         }
@@ -214,6 +217,68 @@ namespace {
 }
 
 TEST_SUITE("AesGcmChannel") {
+  TEST_CASE("pending_handshake") {
+    auto session = Session();
+    auto& keys = get_keys();
+    session.m_client =
+      std::make_unique<AesGcmChannel<Session::FramedTransport*>>(
+        &session.m_framed_client, AesGcmClientConfig(keys.m_public_key));
+    REQUIRE(!session.m_client->get_reader().poll());
+    auto entered = std::latch(2);
+    auto received = SharedBuffer();
+    auto read_error = std::exception_ptr();
+    auto write_error = std::exception_ptr();
+    auto reading = std::jthread([&] {
+      entered.count_down();
+      auto result = try_call([&] {
+        session.m_client->get_reader().read(out(received));
+      });
+      read_error = result.get_exception();
+    });
+    auto writing = std::jthread([&] {
+      entered.count_down();
+      auto result = try_call([&] {
+        session.m_client->get_writer().write(from<SharedBuffer>("request"));
+      });
+      write_error = result.get_exception();
+    });
+    entered.wait();
+    SUBCASE("success") {
+      session.m_server =
+        std::make_unique<AesGcmChannel<Session::FramedTransport*>>(
+          &session.m_framed_server, AesGcmServerConfig(keys.m_private_key));
+      auto request = SharedBuffer();
+      session.m_server->get_reader().read(out(request));
+      REQUIRE(request == "request");
+      session.m_server->get_writer().write(from<SharedBuffer>("reply"));
+      reading.join();
+      writing.join();
+      REQUIRE(!read_error);
+      REQUIRE(!write_error);
+      REQUIRE(received == "reply");
+    }
+    SUBCASE("close") {
+      session.m_client->get_connection().close();
+      reading.join();
+      writing.join();
+      REQUIRE(read_error);
+      REQUIRE(write_error);
+      REQUIRE_THROWS_AS(std::rethrow_exception(read_error), EndOfFileException);
+      REQUIRE_THROWS_AS(
+        std::rethrow_exception(write_error), EndOfFileException);
+      REQUIRE(is_empty(received));
+    }
+  }
+
+  TEST_CASE("destroy_pending_handshake") {
+    auto session = Session();
+    auto& keys = get_keys();
+    auto client = std::make_unique<AesGcmChannel<Session::FramedTransport*>>(
+      &session.m_framed_client, AesGcmClientConfig(keys.m_public_key));
+    client.reset();
+    REQUIRE(session.m_client_transport.m_connection.m_is_closed);
+  }
+
   TEST_CASE("server_context") {
     auto& keys = get_keys();
     auto context = make_server_context(AesGcmServerConfig(keys.m_private_key));
@@ -243,12 +308,14 @@ TEST_SUITE("AesGcmChannel") {
       try {
         server = std::make_unique<AesGcmChannel<decltype(server_transport)*>>(
           &server_transport, AesGcmServerConfig(keys.m_private_key));
+        server->get_writer().write(SharedBuffer());
       } catch(...) {
         error = std::current_exception();
       }
     });
     auto client =
       AesGcmChannel(&client_transport, AesGcmClientConfig(keys.m_public_key));
+    client.get_writer().write(SharedBuffer());
     thread.join();
     REQUIRE(!error);
     reset(session.m_client_transport.m_writer.m_output);
@@ -363,8 +430,8 @@ TEST_SUITE("AesGcmChannel") {
     REQUIRE(server);
     REQUIRE(session.m_client_transport.m_connection.m_is_closed);
     REQUIRE(session.m_server_transport.m_connection.m_is_closed);
-    REQUIRE_THROWS_AS(std::rethrow_exception(client), ConnectException);
-    REQUIRE_THROWS_AS(std::rethrow_exception(server), ConnectException);
+    REQUIRE_THROWS_AS(std::rethrow_exception(client), IOException);
+    REQUIRE_THROWS_AS(std::rethrow_exception(server), IOException);
   }
 
   TEST_CASE("key_types") {
@@ -461,8 +528,10 @@ TEST_SUITE("AesGcmChannel") {
     auto session = Session();
     auto message = from<SharedBuffer>("invalid handshake contents");
     session.m_framed_client.get_writer().write(message);
-    REQUIRE_THROWS_AS(AesGcmChannel(&session.m_framed_server,
-      AesGcmServerConfig(keys.m_private_key)), ConnectException);
+    auto server = AesGcmChannel(&session.m_framed_server,
+      AesGcmServerConfig(keys.m_private_key));
+    REQUIRE_THROWS_AS(
+      server.get_writer().write(SharedBuffer()), ConnectException);
     REQUIRE(session.m_server_transport.m_connection.m_is_closed);
   }
 }

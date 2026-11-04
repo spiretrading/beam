@@ -76,6 +76,17 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyCGgsB9VhxVot/23wdzllUJnne4o
 }
 
 TEST_SUITE("ServiceLocatorEncryption") {
+  TEST_CASE("stalled_handshake") {
+    auto fixture = Fixture();
+    auto stalled = TcpSocketChannel(fixture.m_address);
+    auto client = ApplicationServiceLocatorClient(
+      "root", "", fixture.m_address, AesGcmClientConfig(PUBLIC_KEY));
+    REQUIRE(client.get_account().m_name == "root");
+    fixture.m_container->close();
+    auto buffer = SharedBuffer();
+    REQUIRE_THROWS_AS(stalled.get_reader().read(out(buffer)), IOException);
+  }
+
   TEST_CASE("application_login") {
     auto fixture = Fixture();
     auto encryption = AesGcmClientConfig(PUBLIC_KEY);
@@ -140,7 +151,6 @@ TEST_SUITE("ServiceLocatorEncryption") {
       REQUIRE_THROWS_AS(ApplicationServiceLocatorClient("root", "",
         fixture.m_address, encryption), ConnectException);
     }
-    REQUIRE(!fixture.m_accepted.try_pop());
     auto client = ApplicationServiceLocatorClient(
       "root", "", fixture.m_address, AesGcmClientConfig(PUBLIC_KEY));
     REQUIRE(client.get_account().m_name == "root");

@@ -4,11 +4,9 @@
 #include <string>
 #include <utility>
 #include "Beam/Codecs/AesGcmDecoder.hpp"
-#include "Beam/Codecs/AesGcmEncoder.hpp"
 #include "Beam/Codecs/CodedReader.hpp"
-#include "Beam/Codecs/CodedWriter.hpp"
 #include "Beam/IO/AesGcm.hpp"
-#include "Beam/IO/BufferView.hpp"
+#include "Beam/IO/AesGcmWriter.hpp"
 
 namespace Beam {
 
@@ -25,6 +23,14 @@ namespace Beam {
     /** The unencrypted private key in PEM format. */
     std::string m_private_key;
   };
+
+  /**
+   * Creates a server handshake context for AES-GCM channels.
+   * @param config The server credentials.
+   */
+  inline auto make_server_context(const AesGcmServerConfig& config) {
+    return Details::make_aes_gcm_context(config);
+  }
 
   /**
    * Implements a Channel using AES-256-GCM encryption and a pinned public key
@@ -48,7 +54,7 @@ namespace Beam {
       using Reader = CodedReader<typename Channel::Reader*, AesGcmDecoder>;
 
       /** The encrypted application writer. */
-      using Writer = CodedWriter<typename Channel::Writer*, AesGcmEncoder>;
+      using Writer = AesGcmWriter<typename Channel::Writer*>;
 
       /**
        * Establishes a client session, closing the transport on failure.
@@ -143,8 +149,8 @@ namespace Beam {
         init(BufferView(material.data() + receiving, 32),
           BufferView(material.data() + receiving + 32, 12)));
       m_writer.emplace(&m_channel->get_writer(),
-        init(BufferView(material.data() + sending, 32),
-          BufferView(material.data() + sending + 32, 12)));
+        BufferView(material.data() + sending, 32),
+        BufferView(material.data() + sending + 32, 12));
       auto confirm = [&] (std::string_view expected) {
         auto buffer = SharedBuffer();
         m_reader->read(out(buffer));

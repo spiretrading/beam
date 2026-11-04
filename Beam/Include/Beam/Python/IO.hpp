@@ -55,6 +55,12 @@ namespace Beam::Python {
   void export_aes_gcm_channel(pybind11::module& module);
 
   /**
+   * Exports the AesGcmWriter class.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_writer(pybind11::module& module);
+
+  /**
    * Exports the AsyncWriter class.
    * @param module The module to export to.
    */

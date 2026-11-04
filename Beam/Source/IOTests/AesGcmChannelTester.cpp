@@ -214,6 +214,17 @@ namespace {
 }
 
 TEST_SUITE("AesGcmChannel") {
+  TEST_CASE("server_context") {
+    auto& keys = get_keys();
+    auto context = make_server_context(AesGcmServerConfig(keys.m_private_key));
+    REQUIRE(context);
+    REQUIRE(SSL_CTX_get0_privatekey(context.get()));
+    for(auto key : {std::string(), std::string("invalid"), keys.m_public_key}) {
+      REQUIRE_THROWS_AS(
+        make_server_context(AesGcmServerConfig(key)), ConnectException);
+    }
+  }
+
   TEST_CASE("record_transport") {
     auto& keys = get_keys();
     auto session = Session();
@@ -293,20 +304,17 @@ TEST_SUITE("AesGcmChannel") {
   TEST_CASE("record_sizes") {
     auto session = Session();
     session.connect();
-    auto oversized =
-      from<SharedBuffer>(std::string(AesGcmEncoder::MAXIMUM_SIZE + 1, 'x'));
-    REQUIRE_THROWS_AS(
-      session.m_client->get_writer().write(oversized), IOException);
-    REQUIRE(!session.m_client_transport.m_connection.m_is_closed);
-    REQUIRE(session.m_client_transport.m_writer.m_output.get_size() == 0);
-    auto message =
-      from<SharedBuffer>(std::string(AesGcmEncoder::MAXIMUM_SIZE, 'x'));
     session.m_client->get_writer().write(SharedBuffer());
-    session.m_client->get_writer().write(message);
-    auto received = SharedBuffer();
-    read_exact(
-      session.m_server->get_reader(), out(received), message.get_size());
-    REQUIRE(received == message);
+    REQUIRE(session.m_client_transport.m_writer.m_output.get_size() == 0);
+    for(auto size : {AesGcmEncoder::MAXIMUM_SIZE,
+        AesGcmEncoder::MAXIMUM_SIZE + 1, std::size_t(70000)}) {
+      auto message = from<SharedBuffer>(std::string(size, 'x'));
+      session.m_client->get_writer().write(message);
+      auto received = SharedBuffer();
+      read_exact(
+        session.m_server->get_reader(), out(received), message.get_size());
+      REQUIRE(received == message);
+    }
   }
 
   TEST_CASE("session_keys") {

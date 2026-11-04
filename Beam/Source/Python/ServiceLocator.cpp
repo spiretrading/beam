@@ -170,9 +170,12 @@ void Beam::Python::export_service_locator_application_definitions(
     class_<ServiceLocatorClientConfig>(module, "ServiceLocatorClientConfig").
       def(pybind11::init<
         const IpAddress&, const std::string&, const std::string&>()).
+      def(pybind11::init<const IpAddress&, const std::string&,
+        const std::string&, AesGcmClientConfig>()).
       def_readwrite("address", &ServiceLocatorClientConfig::m_address).
       def_readwrite("username", &ServiceLocatorClientConfig::m_username).
       def_readwrite("password", &ServiceLocatorClientConfig::m_password).
+      def_readwrite("encryption", &ServiceLocatorClientConfig::m_encryption).
       def_static("parse", &ServiceLocatorClientConfig::parse);
   export_default_methods(client_config);
   auto service_config =
@@ -187,8 +190,11 @@ void Beam::Python::export_service_locator_application_definitions(
   export_service_locator_client<
     ToPythonServiceLocatorClient<ApplicationServiceLocatorClient>>(
       module, "ApplicationServiceLocatorClient").
-    def(pybind11::init<std::string, std::string, IpAddress>()).
-    def(pybind11::init<std::string, unsigned int, IpAddress>());
+    def(pybind11::init<std::string, std::string, IpAddress,
+      AesGcmClientConfig>()).
+    def(pybind11::init<std::string, unsigned int, IpAddress,
+      AesGcmClientConfig>()).
+    def(pybind11::init<ServiceLocatorClientConfig>());
   module.def("add", &add<ServiceLocatorClient>, call_guard<GilRelease>());
 }
 
@@ -220,8 +226,9 @@ void Beam::Python::export_sqlite_service_locator_data_store(module& module) {
 void Beam::Python::export_service_locator_test_environment(module& module) {
   export_service_locator_client<ToPythonServiceLocatorClient<
     ServiceLocatorClient>>(module, "ServiceLocatorClient");
-  class_<ServiceLocatorTestEnvironment, std::shared_ptr<ServiceLocatorTestEnvironment>>(
-    module, "ServiceLocatorTestEnvironment").
+  class_<ServiceLocatorTestEnvironment,
+    std::shared_ptr<ServiceLocatorTestEnvironment>>(
+      module, "ServiceLocatorTestEnvironment").
     def(pybind11::init(&make_python_shared<ServiceLocatorTestEnvironment>),
       call_guard<GilRelease>()).
     def(

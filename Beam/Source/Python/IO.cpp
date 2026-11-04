@@ -140,6 +140,17 @@ void Beam::Python::export_aes_gcm_channel(module& module) {
     }));
 }
 
+void Beam::Python::export_aes_gcm_writer(module& module) {
+  using PythonWriter = ToPythonWriter<AesGcmWriter<std::shared_ptr<Writer>>>;
+  export_writer<PythonWriter>(module, "AesGcmWriter").
+    def(pybind11::init([] (Writer& destination, BufferRef key, BufferRef nonce) {
+      auto owner = std::make_shared<SharedObject>(
+        cast(&destination, return_value_policy::reference));
+      return std::make_unique<PythonWriter>(
+        std::shared_ptr<Writer>(std::move(owner), &destination), key, nonce);
+    }));
+}
+
 void Beam::Python::export_async_writer(module& module) {
   export_writer<ToPythonWriter<AsyncWriter<Writer>>>(module, "AsyncWriter").
     def(pybind11::init<Writer>());
@@ -383,6 +394,7 @@ void Beam::Python::export_io(module& module) {
   writer =
     std::make_unique<class_<Writer>>(export_writer<Writer>(module, "Writer"));
   export_aes_gcm_channel(module);
+  export_aes_gcm_writer(module);
   export_async_writer(module);
   export_basic_channel(module);
   export_buffer_reader(module);

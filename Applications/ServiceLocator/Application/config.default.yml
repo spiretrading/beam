@@ -1,5 +1,6 @@
 ---
 interface: "$local_interface:20000"
+private_key: ""
 data_store:
   address: $mysql_address
   username: $mysql_username

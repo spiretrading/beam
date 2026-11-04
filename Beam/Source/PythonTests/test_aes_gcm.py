@@ -49,6 +49,25 @@ class TestAesGcmCodec(unittest.TestCase):
         self.assertEqual(decoded.get_data(), b'unchanged')
 
 
+class TestAesGcmWriter(unittest.TestCase):
+    def test_destination_lifetime(self):
+        destination = beam.NullWriter()
+        reference = weakref.ref(destination)
+        key = beam.SharedBuffer(bytes(32))
+        nonce = beam.SharedBuffer(bytes(12))
+        writer = beam.AesGcmWriter(destination, key, nonce)
+        del destination
+        gc.collect()
+        self.assertIsNotNone(reference())
+        writer.write(beam.SharedBuffer())
+        payload = bytes(i % 251 for i in range(70000))
+        writer.write(beam.SharedBuffer(payload))
+        writer.write(beam.SharedBuffer(b'next'))
+        del writer
+        gc.collect()
+        self.assertIsNone(reference())
+
+
 class TestAesGcmChannel(unittest.TestCase):
     def test_communication_and_transport_lifetime(self):
         for framed in (False, True):
@@ -106,6 +125,11 @@ class TestAesGcmChannel(unittest.TestCase):
             received = beam.SharedBuffer()
             self.assertEqual(client.reader.read(received), 14)
             self.assertEqual(received.get_data(), b'server message')
+            payload = bytes(i % 251 for i in range(70000))
+            client.writer.write(beam.SharedBuffer(payload))
+            received = beam.SharedBuffer()
+            beam.read_exact(peer.reader, received, len(payload))
+            self.assertEqual(received.get_data(), payload)
         finally:
             client.connection.close()
             peer.connection.close()

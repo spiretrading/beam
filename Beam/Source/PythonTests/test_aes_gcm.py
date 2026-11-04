@@ -19,6 +19,29 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEyCGgsB9VhxVot/23wdzllUJnne4o
 
 
 class TestAesGcmCodec(unittest.TestCase):
+    def test_readonly_buffers(self):
+        key = beam.BufferView(bytes(32))
+        nonce = beam.BufferView(bytes(12))
+        for erased in (False, True):
+            with self.subTest(erased=erased):
+                encoder = beam.AesGcmEncoder(key, nonce)
+                decoder = beam.AesGcmDecoder(key, nonce)
+                if erased:
+                    encoder = beam.Encoder(encoder)
+                    decoder = beam.Decoder(decoder)
+                encoded = beam.SharedBuffer()
+                encoder.encode(beam.BufferView(b'payload'), encoded)
+                decoded = beam.SharedBuffer()
+                decoder.decode(beam.BufferView(encoded.get_data()), decoded)
+                self.assertEqual(decoded.get_data(), b'payload')
+        encoder = beam.AesGcmEncoder(bytes(32), memoryview(bytes(12)))
+        encoded = beam.SharedBuffer()
+        encoder.encode(b'payload', encoded)
+        decoder = beam.AesGcmDecoder(key, nonce)
+        with self.assertRaises(TypeError):
+            decoder.decode(beam.BufferView(encoded.get_data()),
+                beam.BufferView(bytes(7)))
+
     def test_known_vector(self):
         key = beam.SharedBuffer(bytes(32))
         nonce = beam.SharedBuffer(bytes(12))
@@ -50,6 +73,30 @@ class TestAesGcmCodec(unittest.TestCase):
 
 
 class TestAesGcmWriter(unittest.TestCase):
+    def test_readonly_buffers(self):
+        key = beam.BufferView(bytes(32))
+        nonce = beam.BufferView(bytes(12))
+        listener = beam.LocalServerConnection()
+        transport = {}
+        thread = threading.Thread(target=lambda: transport.update(
+            peer=beam.ServerConnection(listener).accept()))
+        thread.start()
+        channel = beam.LocalClientChannel('writer', listener)
+        thread.join()
+        try:
+            writer = beam.AesGcmWriter(channel.writer, key, nonce)
+            writer.write(beam.BufferView(b'payload'))
+            encoded = beam.SharedBuffer()
+            transport['peer'].reader.read(encoded)
+            decoded = beam.SharedBuffer()
+            beam.AesGcmDecoder(key, nonce).decode(
+                beam.BufferView(encoded.get_data()), decoded)
+            self.assertEqual(decoded.get_data(), b'payload')
+        finally:
+            channel.connection.close()
+            transport['peer'].connection.close()
+            listener.close()
+
     def test_destination_lifetime(self):
         destination = beam.NullWriter()
         reference = weakref.ref(destination)

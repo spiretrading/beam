@@ -36,6 +36,9 @@ void Beam::Python::export_aes_gcm_decoder(module& module) {
   auto decoder = export_decoder<AesGcmDecoder>(module, "AesGcmDecoder").
     def(pybind11::init([] (BufferRef key, BufferRef nonce) {
       return std::make_unique<AesGcmDecoder>(key, nonce);
+    })).
+    def(pybind11::init([] (BufferView key, BufferView nonce) {
+      return std::make_unique<AesGcmDecoder>(key, nonce);
     }));
   decoder.attr("MAXIMUM_SIZE") = AesGcmDecoder::MAXIMUM_SIZE;
   decoder.attr("TAG_SIZE") = AesGcmDecoder::TAG_SIZE;
@@ -45,6 +48,9 @@ void Beam::Python::export_aes_gcm_decoder(module& module) {
 void Beam::Python::export_aes_gcm_encoder(module& module) {
   auto encoder = export_encoder<AesGcmEncoder>(module, "AesGcmEncoder").
     def(pybind11::init([] (BufferRef key, BufferRef nonce) {
+      return std::make_unique<AesGcmEncoder>(key, nonce);
+    })).
+    def(pybind11::init([] (BufferView key, BufferView nonce) {
       return std::make_unique<AesGcmEncoder>(key, nonce);
     }));
   encoder.attr("KEY_SIZE") = AesGcmEncoder::KEY_SIZE;

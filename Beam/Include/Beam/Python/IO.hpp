@@ -6,6 +6,7 @@
 #include <pybind11/pybind11.h>
 #include "Beam/IO/Buffer.hpp"
 #include "Beam/IO/BufferRef.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/IO/Channel.hpp"
 #include "Beam/IO/Connection.hpp"
 #include "Beam/IO/Reader.hpp"
@@ -435,6 +436,9 @@ namespace Beam::Python {
         self.write(SharedBuffer(view.data(), view.size()));
       }).
       def("write", [] (W& self, BufferRef buffer) {
+        self.write(buffer);
+      }).
+      def("write", [] (W& self, const BufferView& buffer) {
         self.write(buffer);
       }).
       def("__repr__", [name = std::string(name)] (const W& self) {

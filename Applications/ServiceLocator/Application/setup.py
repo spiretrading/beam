@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 from string import Template
 
@@ -24,6 +25,8 @@ def main():
     required=False)
   parser.add_argument('-a', '--address', type=str, help='Spire address.',
     required=False)
+  parser.add_argument('--private_key', type=Path,
+    help='ServiceLocator private key PEM file.', required=True)
   parser.add_argument('-ma', '--mysql_address', type=str, help='MySQL address.',
     default='127.0.0.1:3306')
   parser.add_argument('-mu', '--mysql_username', type=str,
@@ -44,12 +47,18 @@ def main():
   variables['mysql_username'] = args.mysql_username
   variables['mysql_password'] = args.mysql_password
   variables['mysql_schema'] = args.mysql_schema
+  variables['service_locator_private_key'] = args.private_key.read_text(
+    encoding='utf-8-sig')
   for key in ['mysql_address', 'mysql_username', 'mysql_password',
-      'mysql_schema']:
+      'mysql_schema', 'service_locator_private_key']:
     variables[key] = json.dumps(variables[key], ensure_ascii=False)
   with open(directory / 'config.default.yml', encoding='utf-8') as file:
     source = Template(file.read()).substitute(variables)
-  with open('config.yml', 'w', encoding='utf-8') as file:
+  with os.fdopen(os.open('config.yml', os.O_WRONLY | os.O_CREAT, 0o600),
+      'w', encoding='utf-8') as file:
+    if os.name == 'posix':
+      os.fchmod(file.fileno(), 0o600)
+    file.truncate(0)
     file.write(source)
 
 

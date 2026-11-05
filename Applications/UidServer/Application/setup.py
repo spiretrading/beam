@@ -24,6 +24,8 @@ def main():
     required=False)
   parser.add_argument('-a', '--address', type=str, help='Spire address.',
     required=False)
+  parser.add_argument('--public_key', type=Path,
+    help='ServiceLocator public key PEM file.', required=True)
   parser.add_argument('-p', '--password', type=str, help='Password.',
     required=True)
   parser.add_argument('-ma', '--mysql_address', type=str, help='MySQL address.',
@@ -43,6 +45,8 @@ def main():
     ('%s:20000' % variables['local_interface']) if args.address is None else \
     args.address
   variables['admin_password'] = args.password
+  variables['service_locator_public_key'] = args.public_key.read_text(
+    encoding='utf-8-sig')
   variables['mysql_address'] = args.mysql_address
   variables['mysql_username'] = args.mysql_username
   variables['mysql_password'] = \
@@ -50,7 +54,8 @@ def main():
     args.mysql_password
   variables['mysql_schema'] = args.mysql_schema
   for key in ['mysql_address', 'mysql_username', 'mysql_password',
-      'mysql_schema', 'service_locator_address', 'admin_password']:
+      'mysql_schema', 'service_locator_address', 'admin_password',
+      'service_locator_public_key']:
     variables[key] = json.dumps(variables[key], ensure_ascii=False)
   with open(directory / 'config.default.yml', encoding='utf-8') as file:
     source = Template(file.read()).substitute(variables)

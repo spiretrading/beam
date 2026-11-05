@@ -3,6 +3,7 @@
 #include <functional>
 #include <type_traits>
 #include "Beam/IO/Channel.hpp"
+#include "Beam/IO/IOException.hpp"
 #include "Beam/IO/ServerConnection.hpp"
 #include "Beam/Pointers/LocalPtr.hpp"
 #include "Beam/Utilities/Expect.hpp"
@@ -73,8 +74,9 @@ namespace Beam {
   template<IsServerConnection S, IsChannel C>
   std::unique_ptr<typename ChannelAdapterServerConnection<S, C>::Channel>
       ChannelAdapterServerConnection<S, C>::accept() {
+    auto channel = m_connection->accept();
     try {
-      return m_adapter(m_connection->accept());
+      return m_adapter(std::move(channel));
     } catch(const std::exception&) {
       throw_nested_with_location(IOException());
     }

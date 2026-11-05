@@ -8,7 +8,9 @@ file(GLOB_RECURSE
   functional_source_files ${BEAM_SOURCE_PATH}/NetworkFunctionalTests/*.cpp)
 add_executable(NetworkFunctionalTests ${functional_source_files})
 beam_configure_target(NetworkFunctionalTests DEPENDENCIES
-  OPEN_SSL OPEN_SSL_BASE)
+  CRYPTOPP OPEN_SSL OPEN_SSL_BASE YAML)
+target_compile_definitions(
+  NetworkFunctionalTests PRIVATE YAML_CPP_STATIC_DEFINE)
 target_link_libraries(NetworkFunctionalTests PUBLIC BeamRoutines)
 if(WIN32)
   target_link_libraries(NetworkFunctionalTests PUBLIC crypt32)

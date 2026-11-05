@@ -2,7 +2,10 @@
 #define BEAM_SERVICE_LOCATOR_APPLICATION_DEFINITIONS_HPP
 #include <string>
 #include <boost/lexical_cast.hpp>
-#include "Beam/IO/SharedBuffer.hpp"
+#include "Beam/IO/AesGcmChannel.hpp"
+#include "Beam/IO/SizeDeclarativeReader.hpp"
+#include "Beam/IO/SizeDeclarativeWriter.hpp"
+#include "Beam/IO/WrapperChannel.hpp"
 #include "Beam/Network/IpAddress.hpp"
 #include "Beam/Network/TcpSocketChannel.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
@@ -16,6 +19,15 @@
 #include "Beam/Utilities/YamlConfig.hpp"
 
 namespace Beam {
+
+  /**
+   * Composes framing and encryption for a ServiceLocator channel.
+   * @tparam C The underlying channel.
+   */
+  template<typename C> requires IsChannel<dereference_t<C>>
+  using ServiceLocatorChannel = AesGcmChannel<
+    WrapperChannel<C, SizeDeclarativeReader<typename dereference_t<C>::Reader*>,
+      SizeDeclarativeWriter<typename dereference_t<C>::Writer*>>>;
 
   /** Stores the configuration needed to connect a ServiceLocatorClient. */
   struct ServiceLocatorClientConfig {
@@ -34,6 +46,9 @@ namespace Beam {
 
     /** The password to login with. */
     std::string m_password;
+
+    /** The trusted ServiceLocator public key. */
+    AesGcmClientConfig m_encryption;
   };
 
   /** Stores the configuration for a service. */
@@ -59,33 +74,38 @@ namespace Beam {
   };
 
   class ApplicationServiceLocatorClient : public ProtocolServiceLocatorClient<
-      ServiceProtocolClientBuilder<
-        MessageProtocol<std::unique_ptr<TcpSocketChannel>,
-          BinarySender<SharedBuffer>>, LiveTimer>> {
+      ServiceProtocolClientBuilder<MessageProtocol<std::unique_ptr<
+        ServiceLocatorChannel<std::unique_ptr<TcpSocketChannel>>>,
+        BinarySender<SharedBuffer>>, LiveTimer>> {
     public:
       using ServiceProtocolClientBuilder =
         typename ProtocolServiceLocatorClient<
           Beam::ServiceProtocolClientBuilder<MessageProtocol<
-            std::unique_ptr<TcpSocketChannel>, BinarySender<SharedBuffer>>,
+            std::unique_ptr<ServiceLocatorChannel<
+              std::unique_ptr<TcpSocketChannel>>>, BinarySender<SharedBuffer>>,
             LiveTimer>>::ServiceProtocolClientBuilder;
 
       /**
-       * Constructs an ApplicationServiceLocatorClient.
+       * Constructs a client using a trusted server public key.
        * @param username The username to login with.
        * @param password The password to login with.
        * @param address The address of the ServiceLocator.
+       * @param encryption The server trust configuration.
        */
       ApplicationServiceLocatorClient(const std::string& username,
-        const std::string& password, const IpAddress& address);
+        const std::string& password, const IpAddress& address,
+        const AesGcmClientConfig& encryption);
 
       /**
-       * Constructs an ApplicationServiceLocatorClient from an existing session.
+       * Constructs a client from a session using a trusted server public key.
        * @param session_id The encrypted session id.
        * @param key The encryption key used to encode the session id.
        * @param address The address of the ServiceLocator.
+       * @param encryption The server trust configuration.
        */
       ApplicationServiceLocatorClient(const std::string& session_id,
-        unsigned int key, const IpAddress& address);
+        unsigned int key, const IpAddress& address,
+        const AesGcmClientConfig& encryption);
 
       /**
        * Constructs an ApplicationServiceLocatorClient from a configuration.
@@ -113,6 +133,7 @@ namespace Beam {
     config.m_address = extract<IpAddress>(node, "address");
     config.m_username = extract<std::string>(node, "username");
     config.m_password = extract<std::string>(node, "password");
+    config.m_encryption.m_public_key = extract<std::string>(node, "public_key");
     return config;
   }
 
@@ -131,22 +152,31 @@ namespace Beam {
 
   inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
     const std::string& username, const std::string& password,
-    const IpAddress& address)
+    const IpAddress& address, const AesGcmClientConfig& encryption)
     : ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>(
         username, password, ServiceProtocolClientBuilder(
           [=] {
-            return std::make_unique<TcpSocketChannel>(address);
+            auto channel = std::make_unique<TcpSocketChannel>(address);
+            auto reader = &channel->get_reader();
+            auto writer = &channel->get_writer();
+            return std::make_unique<ServiceProtocolClientBuilder::Channel>(
+              init(std::move(channel), init(reader), init(writer)), encryption);
           },
           [] {
             return std::make_unique<LiveTimer>(boost::posix_time::seconds(10));
           })) {}
 
   inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
-    const std::string& session_id, unsigned int key, const IpAddress& address)
+    const std::string& session_id, unsigned int key, const IpAddress& address,
+    const AesGcmClientConfig& encryption)
     : ProtocolServiceLocatorClient<ServiceProtocolClientBuilder>(
         session_id, key, ServiceProtocolClientBuilder(
           [=] {
-            return std::make_unique<TcpSocketChannel>(address);
+            auto channel = std::make_unique<TcpSocketChannel>(address);
+            auto reader = &channel->get_reader();
+            auto writer = &channel->get_writer();
+            return std::make_unique<ServiceProtocolClientBuilder::Channel>(
+              init(std::move(channel), init(reader), init(writer)), encryption);
           },
           [] {
             return std::make_unique<LiveTimer>(boost::posix_time::seconds(10));
@@ -155,7 +185,8 @@ namespace Beam {
   inline ApplicationServiceLocatorClient::ApplicationServiceLocatorClient(
     ServiceLocatorClientConfig config)
     : ApplicationServiceLocatorClient(std::move(config.m_username),
-        std::move(config.m_password), std::move(config.m_address)) {}
+        std::move(config.m_password), std::move(config.m_address),
+        config.m_encryption) {}
 }
 
 #endif

@@ -31,18 +31,14 @@ namespace Beam {
 
   /** The default type of SessionBuilder used. */
   template<IsServiceLocatorClient C = ProtocolServiceLocatorClient<
-    ServiceProtocolClientBuilder<
-      MessageProtocol<std::unique_ptr<TcpSocketChannel>,
-        BinarySender<SharedBuffer>>, LiveTimer>>>
+    ApplicationServiceLocatorClient::ServiceProtocolClientBuilder>>
   using DefaultSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     C, MessageProtocol<std::unique_ptr<TcpSocketChannel>,
       BinarySender<SharedBuffer>, NullEncoder>, LiveTimer>;
 
   /** A SessionBuilder that uses ZLib compression. */
   template<IsServiceLocatorClient C = ProtocolServiceLocatorClient<
-    ServiceProtocolClientBuilder<
-      MessageProtocol<std::unique_ptr<TcpSocketChannel>,
-        BinarySender<SharedBuffer>>, LiveTimer>>>
+    ApplicationServiceLocatorClient::ServiceProtocolClientBuilder>>
   using ZLibSessionBuilder = AuthenticatedServiceProtocolClientBuilder<
     C, MessageProtocol<std::unique_ptr<TcpSocketChannel>,
       BinarySender<SharedBuffer>, SizeDeclarativeEncoder<ZLibEncoder>>,

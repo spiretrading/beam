@@ -11,6 +11,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
       address: "192.168.1.100:8080"
       username: test_user
       password: test_password
+      public_key: test_public_key
     )");
     auto config = ServiceLocatorClientConfig::parse(yaml);
     REQUIRE(config.m_address.get_host() == "192.168.1.100");
@@ -24,6 +25,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
       address: "localhost:9000"
       username: admin
       password: admin123
+      public_key: test_public_key
     )");
     auto config = ServiceLocatorClientConfig::parse(yaml);
     REQUIRE(config.m_address.get_host() == "localhost");
@@ -32,11 +34,24 @@ TEST_SUITE("ServiceLocatorClientConfig") {
     REQUIRE(config.m_password == "admin123");
   }
 
+  TEST_CASE("parse_public_key") {
+    auto yaml = YAML::Load(R"(
+      address: "localhost:9000"
+      username: user
+      password: password
+      public_key: |
+        deployment public key
+    )");
+    auto config = ServiceLocatorClientConfig::parse(yaml);
+    REQUIRE(config.m_encryption.m_public_key == "deployment public key");
+  }
+
   TEST_CASE("parse_empty_username") {
     auto yaml = YAML::Load(R"(
       address: "10.0.0.1:5000"
       username: ""
       password: pass
+      public_key: test_public_key
     )");
     auto config = ServiceLocatorClientConfig::parse(yaml);
     REQUIRE(config.m_address.get_host() == "10.0.0.1");
@@ -50,6 +65,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
       address: "172.16.0.1:7000"
       username: user
       password: ""
+      public_key: test_public_key
     )");
     auto config = ServiceLocatorClientConfig::parse(yaml);
     REQUIRE(config.m_address.get_host() == "172.16.0.1");
@@ -63,6 +79,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
       address: "192.168.1.1:3000"
       username: "user@domain.com"
       password: "p@$$w0rd!"
+      public_key: test_public_key
     )");
     auto config = ServiceLocatorClientConfig::parse(yaml);
     REQUIRE(config.m_address.get_host() == "192.168.1.1");
@@ -75,6 +92,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
     auto yaml = YAML::Load(R"(
       username: test_user
       password: test_password
+      public_key: test_public_key
     )");
     REQUIRE_THROWS_AS(
       ServiceLocatorClientConfig::parse(yaml), std::runtime_error);
@@ -84,6 +102,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
     auto yaml = YAML::Load(R"(
       address: "192.168.1.100:8080"
       password: test_password
+      public_key: test_public_key
     )");
     REQUIRE_THROWS_AS(
       ServiceLocatorClientConfig::parse(yaml), std::runtime_error);
@@ -93,6 +112,7 @@ TEST_SUITE("ServiceLocatorClientConfig") {
     auto yaml = YAML::Load(R"(
       address: "192.168.1.100:8080"
       username: test_user
+      public_key: test_public_key
     )");
     REQUIRE_THROWS_AS(
       ServiceLocatorClientConfig::parse(yaml), std::runtime_error);
@@ -100,6 +120,16 @@ TEST_SUITE("ServiceLocatorClientConfig") {
 
   TEST_CASE("parse_empty_yaml") {
     auto yaml = YAML::Load("");
+    REQUIRE_THROWS_AS(
+      ServiceLocatorClientConfig::parse(yaml), std::runtime_error);
+  }
+
+  TEST_CASE("parse_missing_public_key") {
+    auto yaml = YAML::Load(R"(
+      address: "localhost:9000"
+      username: user
+      password: password
+    )");
     REQUIRE_THROWS_AS(
       ServiceLocatorClientConfig::parse(yaml), std::runtime_error);
   }

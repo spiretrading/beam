@@ -1,7 +1,7 @@
 file(GLOB_RECURSE header_files ${BEAM_INCLUDE_PATH}/Beam/CodecsTests/*.hpp)
 file(GLOB_RECURSE source_files ${BEAM_SOURCE_PATH}/CodecsTests/*.cpp)
 add_executable(CodecsTests ${header_files} ${source_files})
-beam_configure_target(CodecsTests DEPENDENCIES ZLIB)
+beam_configure_target(CodecsTests DEPENDENCIES CRYPTOPP ZLIB)
 set_source_files_properties(${header_files} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_link_libraries(CodecsTests PUBLIC BeamRoutines)
 add_custom_command(TARGET CodecsTests POST_BUILD COMMAND CodecsTests)

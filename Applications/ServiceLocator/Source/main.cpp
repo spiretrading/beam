@@ -2,10 +2,12 @@
 #include <Viper/MySql/Connection.hpp>
 #include "Beam/Codecs/NullDecoder.hpp"
 #include "Beam/Codecs/NullEncoder.hpp"
+#include "Beam/IO/ChannelAdapterServerConnection.hpp"
 #include "Beam/IO/SharedBuffer.hpp"
 #include "Beam/Network/TcpServerSocket.hpp"
 #include "Beam/Serialization/BinaryReceiver.hpp"
 #include "Beam/Serialization/BinarySender.hpp"
+#include "Beam/ServiceLocator/ApplicationDefinitions.hpp"
 #include "Beam/ServiceLocator/CachedServiceLocatorDataStore.hpp"
 #include "Beam/ServiceLocator/ServiceLocatorServlet.hpp"
 #include "Beam/ServiceLocator/SqlServiceLocatorDataStore.hpp"
@@ -24,10 +26,14 @@ using namespace boost::posix_time;
 using namespace Viper;
 
 namespace {
+  using EncryptedChannel =
+    ServiceLocatorChannel<std::unique_ptr<TcpSocketChannel>>;
+  using EncryptedServerConnection =
+    ChannelAdapterServerConnection<TcpServerSocket, EncryptedChannel>;
   using ServiceLocatorServletContainer = ServiceProtocolServletContainer<
     MetaServiceLocatorServlet<CachedServiceLocatorDataStore<
       SqlServiceLocatorDataStore<SqlConnection<MySql::Connection>>>>,
-    TcpServerSocket, BinarySender<SharedBuffer>, NullEncoder,
+    EncryptedServerConnection, BinarySender<SharedBuffer>, NullEncoder,
     std::shared_ptr<LiveTimer>>;
 }
 
@@ -36,6 +42,9 @@ int main(int argc, const char** argv) {
     auto config = parse_command_line(argc, argv, "1.0-r" SERVICE_LOCATOR_VERSION
       "\nCopyright (C) 2026 Spire Trading Inc.");
     auto interface = extract<IpAddress>(config, "interface");
+    auto encryption =
+      AesGcmServerConfig(extract<std::string>(config, "private_key"));
+    make_server_context(encryption);
     auto mysql_config = try_or_nest([&] {
       return MySqlConfig::parse(get_node(config, "data_store"));
     }, std::runtime_error("Error parsing section 'data_store'."));
@@ -43,7 +52,13 @@ int main(int argc, const char** argv) {
       init(init(init(make_sql_connection(MySql::Connection(
         mysql_config.m_address.get_host(), mysql_config.m_address.get_port(),
           mysql_config.m_username, mysql_config.m_password,
-          mysql_config.m_schema))))), interface,
+          mysql_config.m_schema))))),
+      init(interface, [=] (std::unique_ptr<TcpSocketChannel> channel) {
+        auto reader = &channel->get_reader();
+        auto writer = &channel->get_writer();
+        return std::make_unique<EncryptedChannel>(
+          init(std::move(channel), init(reader), init(writer)), encryption);
+      }),
       std::bind(factory<std::shared_ptr<LiveTimer>>(), seconds(10)));
     wait_for_kill_event();
   } catch(...) {

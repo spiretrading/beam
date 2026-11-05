@@ -4,6 +4,7 @@
 #include "Beam/Codecs/Decoder.hpp"
 #include "Beam/Codecs/Encoder.hpp"
 #include "Beam/IO/BufferRef.hpp"
+#include "Beam/IO/BufferView.hpp"
 #include "Beam/Python/Out.hpp"
 #include "Beam/Python/Utilities.hpp"
 #include "Beam/Utilities/DllExport.hpp"
@@ -15,6 +16,18 @@ namespace Beam::Python {
 
   /** Returns the exported Encoder class. */
   BEAM_EXPORT_DLL pybind11::class_<Encoder>& get_exported_encoder();
+
+  /**
+   * Exports the AesGcmDecoder class.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_decoder(pybind11::module& module);
+
+  /**
+   * Exports the AesGcmEncoder class.
+   * @param module The module to export to.
+   */
+  void export_aes_gcm_encoder(pybind11::module& module);
 
   /**
    * Exports the Codecs namespace.
@@ -44,6 +57,8 @@ namespace Beam::Python {
     auto decoder_class = pybind11::class_<D>(module, name.data()).
       def("decode", &D::template decode<BufferRef, BufferRef>,
         pybind11::arg("source"), pybind11::arg("destination")).
+      def("decode", &D::template decode<BufferView, BufferRef>,
+        pybind11::arg("source"), pybind11::arg("destination")).
       def("__repr__", [name = std::string(name)] (const D& self) {
         return "<" + name + ">";
       });
@@ -68,6 +83,8 @@ namespace Beam::Python {
   auto export_encoder(pybind11::module& module, std::string_view name) {
     auto encoder_class = pybind11::class_<E>(module, name.data()).
       def("encode", &E::template encode<BufferRef, BufferRef>,
+        pybind11::arg("source"), pybind11::arg("destination")).
+      def("encode", &E::template encode<BufferView, BufferRef>,
         pybind11::arg("source"), pybind11::arg("destination")).
       def("__repr__", [name = std::string(name)] (const E& self) {
         return "<" + name + ">";

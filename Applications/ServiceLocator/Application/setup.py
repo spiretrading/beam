@@ -1,6 +1,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 from string import Template
 
@@ -53,7 +54,11 @@ def main():
     variables[key] = json.dumps(variables[key], ensure_ascii=False)
   with open(directory / 'config.default.yml', encoding='utf-8') as file:
     source = Template(file.read()).substitute(variables)
-  with open('config.yml', 'w', encoding='utf-8') as file:
+  with os.fdopen(os.open('config.yml', os.O_WRONLY | os.O_CREAT, 0o600),
+      'w', encoding='utf-8') as file:
+    if os.name == 'posix':
+      os.fchmod(file.fileno(), 0o600)
+    file.truncate(0)
     file.write(source)
 
 

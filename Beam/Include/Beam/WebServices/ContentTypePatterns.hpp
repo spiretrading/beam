@@ -40,9 +40,26 @@ namespace Beam {
   inline ContentTypePatterns ContentTypePatterns::get_default_patterns() {
     auto patterns = ContentTypePatterns();
     patterns.add_extension("css", "text/css");
+    patterns.add_extension("csv", "text/csv");
+    patterns.add_extension("gif", "image/gif");
     patterns.add_extension("html", "text/html");
+    patterns.add_extension("ico", "image/vnd.microsoft.icon");
+    patterns.add_extension("jpeg", "image/jpeg");
+    patterns.add_extension("jpg", "image/jpeg");
     patterns.add_extension("js", "application/javascript");
+    patterns.add_extension("json", "application/json");
+    patterns.add_extension("markdown", "text/markdown");
+    patterns.add_extension("md", "text/markdown");
+    patterns.add_extension("mjs", "application/javascript");
+    patterns.add_extension("pdf", "application/pdf");
+    patterns.add_extension("png", "image/png");
     patterns.add_extension("svg", "image/svg+xml");
+    patterns.add_extension("txt", "text/plain");
+    patterns.add_extension("wasm", "application/wasm");
+    patterns.add_extension("webp", "image/webp");
+    patterns.add_extension("woff", "font/woff");
+    patterns.add_extension("woff2", "font/woff2");
+    patterns.add_extension("zip", "application/zip");
     return patterns;
   }
 

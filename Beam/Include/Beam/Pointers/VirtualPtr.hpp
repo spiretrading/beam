@@ -8,6 +8,9 @@ namespace Beam {
 
   /**
    * A smart pointer used for storing type erased values.
+   * Copies of inline objects borrow from an owner that must remain alive and
+   * unmoved. Copies of heap-backed objects share ownership. Moving a borrowed
+   * view preserves its borrowed status.
    * @tparam T The type to store.
    */
   template<typename T>

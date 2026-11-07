@@ -128,29 +128,31 @@ namespace Beam {
       m_ptr = nullptr;
       return;
     }
-    if(other.get_ownership() == VirtualPtr<U>::Ownership::SMALL) {
+    auto ownership = other.get_ownership();
+    if(ownership == VirtualPtr<U>::Ownership::SMALL) {
       new (&m_storage) Storage();
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
         (reinterpret_cast<const std::byte*>(static_cast<T*>(other.m_ptr)) -
           reinterpret_cast<const std::byte*>(&other.m_storage)));
-    } else if(other.get_ownership() == VirtualPtr<U>::Ownership::VIEW) {
+      other.m_ptr->~U();
+    } else if(ownership == VirtualPtr<U>::Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
     } else {
       new (&m_shared) std::shared_ptr<T>(std::move(other.m_shared));
       m_ptr = m_shared.get();
+      other.m_shared.~shared_ptr<U>();
     }
-    other = nullptr;
+    other.m_ptr = nullptr;
   }
 
   template<typename T>
   VirtualPtr<T>::VirtualPtr(const VirtualPtr& other) {
     if(!other) {
       m_ptr = nullptr;
-    } else if(other.get_ownership() == Ownership::VIEW ||
-        other.get_ownership() == Ownership::SMALL) {
+    } else if(other.get_ownership() != Ownership::SHARED) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
     } else {
@@ -165,21 +167,24 @@ namespace Beam {
       m_ptr = nullptr;
       return;
     }
-    if(other.get_ownership() == Ownership::SMALL) {
+    auto ownership = other.get_ownership();
+    if(ownership == Ownership::SMALL) {
       new (&m_storage) Storage();
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
         (reinterpret_cast<const std::byte*>(other.m_ptr) -
           reinterpret_cast<const std::byte*>(&other.m_storage)));
-    } else if(other.get_ownership() == Ownership::VIEW) {
+      other.m_ptr->~Type();
+    } else if(ownership == Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
     } else {
       new (&m_shared) std::shared_ptr<Type>(std::move(other.m_shared));
       m_ptr = m_shared.get();
+      other.m_shared.~shared_ptr<Type>();
     }
-    other = nullptr;
+    other.m_ptr = nullptr;
   }
 
   template<typename T>
@@ -202,9 +207,10 @@ namespace Beam {
     if(!m_ptr) {
       return;
     }
-    if(get_ownership() == Ownership::SMALL) {
+    auto ownership = get_ownership();
+    if(ownership == Ownership::SMALL) {
       m_ptr->~Type();
-    } else if(get_ownership() == Ownership::SHARED) {
+    } else if(ownership == Ownership::SHARED) {
       m_shared.~shared_ptr<Type>();
     }
     m_ptr = nullptr;
@@ -227,8 +233,7 @@ namespace Beam {
     }
     reset();
     if(other) {
-      if(other.get_ownership() == Ownership::VIEW ||
-          other.get_ownership() == Ownership::SMALL) {
+      if(other.get_ownership() != Ownership::SHARED) {
         new (&m_storage) Storage();
         m_ptr = other.m_ptr;
       } else {
@@ -246,28 +251,31 @@ namespace Beam {
       return *this;
     }
     if(m_ptr && m_ptr == other.m_ptr && get_ownership() == Ownership::SMALL) {
-      other.reset();
+      other.m_ptr = nullptr;
       return *this;
     }
     reset();
     if(!other) {
       return *this;
     }
-    if(other.get_ownership() == Ownership::SMALL) {
+    auto ownership = other.get_ownership();
+    if(ownership == Ownership::SMALL) {
       new (&m_storage) Storage();
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<Type*>(reinterpret_cast<std::byte*>(&m_storage) +
         (reinterpret_cast<const std::byte*>(other.m_ptr) -
           reinterpret_cast<const std::byte*>(&other.m_storage)));
-    } else if(other.get_ownership() == Ownership::VIEW) {
+      other.m_ptr->~Type();
+    } else if(ownership == Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
     } else {
       new (&m_shared) std::shared_ptr<Type>(std::move(other.m_shared));
       m_ptr = m_shared.get();
+      other.m_shared.~shared_ptr<Type>();
     }
-    other = nullptr;
+    other.m_ptr = nullptr;
     return *this;
   }
 

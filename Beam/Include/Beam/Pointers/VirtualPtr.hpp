@@ -130,7 +130,7 @@ namespace Beam {
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
-        (reinterpret_cast<const std::byte*>(other.m_ptr) -
+        (reinterpret_cast<const std::byte*>(static_cast<T*>(other.m_ptr)) -
           reinterpret_cast<const std::byte*>(&other.m_storage)));
     } else if(other.get_ownership() == VirtualPtr<U>::Ownership::VIEW) {
       new (&m_storage) Storage();

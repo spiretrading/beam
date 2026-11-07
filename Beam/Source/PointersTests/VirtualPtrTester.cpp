@@ -182,6 +182,20 @@ TEST_SUITE("VirtualPtr") {
     REQUIRE(ptr2->m_value == 99);
   }
 
+  TEST_CASE("converting_move_constructor_secondary_base") {
+    struct FirstBase {
+      int m_value;
+    };
+    struct Derived : FirstBase, SmallObject {};
+    static_assert(sizeof(Derived) <= 24);
+    static_assert(alignof(Derived) <= alignof(std::max_align_t));
+    auto derived = make_virtual_ptr<Derived>(FirstBase(17), SmallObject(42));
+    auto base = VirtualPtr<SmallObject>(std::move(derived));
+    REQUIRE(!derived);
+    REQUIRE(base);
+    REQUIRE(base->m_value == 42);
+  }
+
   TEST_CASE("copy_assignment_empty_to_empty") {
     auto ptr1 = VirtualPtr<int>();
     auto ptr2 = VirtualPtr<int>();

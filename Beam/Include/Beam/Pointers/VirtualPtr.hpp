@@ -219,7 +219,7 @@ namespace Beam {
 
   template<typename T>
   VirtualPtr<T>& VirtualPtr<T>::operator =(const VirtualPtr& other) {
-    if(this == &other) {
+    if(m_ptr == other.m_ptr) {
       return *this;
     }
     reset();
@@ -240,6 +240,10 @@ namespace Beam {
   VirtualPtr<typename VirtualPtr<T>::Type>&
       VirtualPtr<T>::operator=(VirtualPtr&& other) noexcept {
     if(this == &other) {
+      return *this;
+    }
+    if(m_ptr && m_ptr == other.m_ptr && get_ownership() == Ownership::SMALL) {
+      other.reset();
       return *this;
     }
     reset();

@@ -279,6 +279,20 @@ TEST_SUITE("VirtualPtr") {
     REQUIRE(ptr->m_value == 42);
   }
 
+  TEST_CASE("assignment_from_view") {
+    auto owner = make_virtual_ptr<SmallObject>(42);
+    auto view = owner;
+    SUBCASE("copy") {
+      owner = view;
+    }
+    SUBCASE("move") {
+      owner = std::move(view);
+      REQUIRE(!view);
+    }
+    REQUIRE(owner);
+    REQUIRE(owner->m_value == 42);
+  }
+
   TEST_CASE("reset_empty") {
     auto ptr = VirtualPtr<int>();
     ptr.reset();

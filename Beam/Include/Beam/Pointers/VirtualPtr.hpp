@@ -130,7 +130,7 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == VirtualPtr<U>::Ownership::SMALL) {
-      new (&m_storage) Storage();
+      new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
@@ -169,7 +169,7 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == Ownership::SMALL) {
-      new (&m_storage) Storage();
+      new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
@@ -260,7 +260,7 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == Ownership::SMALL) {
-      new (&m_storage) Storage();
+      new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<Type*>(reinterpret_cast<std::byte*>(&m_storage) +
@@ -285,7 +285,7 @@ namespace Beam {
     constexpr auto IS_SMALL =
       sizeof(Type) <= BUFFER_SIZE && alignof(Type) <= alignof(std::max_align_t);
     if constexpr(IS_SMALL) {
-      new (&m_storage) Storage();
+      new (&m_storage) Storage;
       new (&m_storage.m_buffer) Type(std::forward<Args>(args)...);
       m_storage.m_move = [] (Buffer& self, Buffer& source) {
         new (&self) Type(std::move(*reinterpret_cast<Type*>(&source)));

@@ -130,13 +130,14 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == VirtualPtr<U>::Ownership::SMALL) {
+      auto offset =
+        reinterpret_cast<const std::byte*>(static_cast<T*>(other.m_ptr)) -
+        reinterpret_cast<const std::byte*>(&other.m_storage);
       new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
-        (reinterpret_cast<const std::byte*>(static_cast<T*>(other.m_ptr)) -
-          reinterpret_cast<const std::byte*>(&other.m_storage)));
-      other.m_ptr->~U();
+        offset);
     } else if(ownership == VirtualPtr<U>::Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
@@ -169,13 +170,13 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == Ownership::SMALL) {
+      auto offset = reinterpret_cast<const std::byte*>(other.m_ptr) -
+        reinterpret_cast<const std::byte*>(&other.m_storage);
       new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<T*>(reinterpret_cast<std::byte*>(&m_storage) +
-        (reinterpret_cast<const std::byte*>(other.m_ptr) -
-          reinterpret_cast<const std::byte*>(&other.m_storage)));
-      other.m_ptr->~Type();
+        offset);
     } else if(ownership == Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
@@ -260,13 +261,13 @@ namespace Beam {
     }
     auto ownership = other.get_ownership();
     if(ownership == Ownership::SMALL) {
+      auto offset = reinterpret_cast<const std::byte*>(other.m_ptr) -
+        reinterpret_cast<const std::byte*>(&other.m_storage);
       new (&m_storage) Storage;
       other.m_storage.m_move(m_storage.m_buffer, other.m_storage.m_buffer);
       m_storage.m_move = other.m_storage.m_move;
       m_ptr = reinterpret_cast<Type*>(reinterpret_cast<std::byte*>(&m_storage) +
-        (reinterpret_cast<const std::byte*>(other.m_ptr) -
-          reinterpret_cast<const std::byte*>(&other.m_storage)));
-      other.m_ptr->~Type();
+        offset);
     } else if(ownership == Ownership::VIEW) {
       new (&m_storage) Storage();
       m_ptr = other.m_ptr;
@@ -288,7 +289,9 @@ namespace Beam {
       new (&m_storage) Storage;
       new (&m_storage.m_buffer) Type(std::forward<Args>(args)...);
       m_storage.m_move = [] (Buffer& self, Buffer& source) {
-        new (&self) Type(std::move(*reinterpret_cast<Type*>(&source)));
+        auto object = reinterpret_cast<Type*>(&source);
+        new (&self) Type(std::move(*object));
+        object->T::~T();
       };
       m_ptr = reinterpret_cast<Type*>(&m_storage.m_buffer);
     } else {

@@ -196,6 +196,49 @@ TEST_SUITE("VirtualPtr") {
     REQUIRE(base->m_value == 42);
   }
 
+  TEST_CASE("inline_move_destruction") {
+    class Base {
+      public:
+        virtual ~Base() = default;
+    };
+    class Derived final : public Base {
+      public:
+        int* m_destructions;
+
+        explicit Derived(int& destructions)
+          : m_destructions(&destructions) {}
+        Derived(Derived&&) = default;
+        ~Derived() override {
+          ++*m_destructions;
+        }
+    };
+    static_assert(sizeof(Derived) <= 24);
+    static_assert(alignof(Derived) <= alignof(std::max_align_t));
+    auto destructions = 0;
+    {
+      auto source = make_virtual_ptr<Derived>(destructions);
+      {
+        auto view = source;
+        auto moved_view = std::move(view);
+        REQUIRE(!view);
+        REQUIRE(moved_view.get() == source.get());
+      }
+      REQUIRE(destructions == 0);
+      auto base = VirtualPtr<Base>(std::move(source));
+      REQUIRE(!source);
+      REQUIRE(destructions == 1);
+      auto moved = std::move(base);
+      REQUIRE(!base);
+      REQUIRE(destructions == 2);
+      base = std::move(moved);
+      REQUIRE(!moved);
+      REQUIRE(destructions == 3);
+      base.reset();
+      REQUIRE(destructions == 4);
+    }
+    REQUIRE(destructions == 4);
+  }
+
   TEST_CASE("copy_assignment_empty_to_empty") {
     auto ptr1 = VirtualPtr<int>();
     auto ptr2 = VirtualPtr<int>();

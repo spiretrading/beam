@@ -9,4 +9,6 @@ export * from './queue';
 export * from './queue_reader';
 export * from './queue_writer';
 export * from './queue_writer_publisher';
+export * from './snapshot_publisher';
+export * from './table_publisher';
 export * from './work_queue';

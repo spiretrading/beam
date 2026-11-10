@@ -2,6 +2,7 @@ export * from './comparators';
 export * from './definitions';
 export * from './enum_set';
 export * from './io';
+export * from './key_value_pair';
 export * from './map';
 export * from './queries';
 export * from './queues';

@@ -117,6 +117,16 @@ export class BasicQuery<T> {
     this._filter = checkFilter(value);
   }
 
+  /** Returns a shallow copy of this query. */
+  public clone(): BasicQuery<T> {
+    const query = new BasicQuery(this._index);
+    query._range = this._range;
+    query._snapshotLimit = this._snapshotLimit;
+    query._interruptionPolicy = this._interruptionPolicy;
+    query._filter = this._filter;
+    return query;
+  }
+
   /** Tests if two queries are equivalent. */
   public equals(other: BasicQuery<T>): boolean {
     return other && equals(this._index, other._index) &&

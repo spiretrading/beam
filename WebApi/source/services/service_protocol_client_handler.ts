@@ -11,36 +11,68 @@ const RECONNECT_INTERVAL = 1000;
 export class ServiceProtocolClientHandler {
 
   /**
-   * Constructs a connection handler.
-   * @param builder - Creates a fresh, opened client. Connection failures must
-   * throw ConnectError. Other failures stop the handler.
+   * Constructs a connection handler for a WebSocket endpoint.
+   * @param serviceUrl - The service's WebSocket endpoint.
    */
-  constructor(builder: () => Promise<ServiceProtocolClient>);
+  constructor(serviceUrl: URL);
 
   /**
    * Constructs a connection handler with query recovery.
-   * @param builder - Creates a fresh, opened client.
-   * @param reconnectHandler - Recovers queries on a replacement client. Use
-   * this client directly. getClient waits until recovery finishes. A failure
-   * stops the handler.
+   * @param serviceUrl - The service's WebSocket endpoint.
+   * @param reconnectHandler - Recovers queries on the opened replacement
+   * client.
+   * Use this client directly. getClient waits until recovery finishes.
+   * A recovery failure stops the handler.
    */
-  constructor(builder: () => Promise<ServiceProtocolClient>,
+  constructor(serviceUrl: URL,
     reconnectHandler: (client: ServiceProtocolClient) => void | Promise<void>);
 
   /**
    * Constructs a connection handler with a retry delay.
-   * @param builder - Creates a fresh, opened client.
+   * @param serviceUrl - The service's WebSocket endpoint.
+   * @param reconnectHandler - Recovers queries on the opened replacement
+   * client.
+   * @param reconnectInterval - Milliseconds between failed connection attempts.
+   */
+  constructor(serviceUrl: URL,
+    reconnectHandler: (client: ServiceProtocolClient) => void | Promise<void>,
+    reconnectInterval: number);
+
+  /**
+   * Constructs a connection handler.
+   * @param builder - Creates a fresh, unopened client. Connection failures must
+   * throw ConnectError. Other failures stop the handler.
+   */
+  constructor(builder: () => ServiceProtocolClient);
+
+  /**
+   * Constructs a connection handler with query recovery.
+   * @param builder - Creates a fresh, unopened client.
+   * @param reconnectHandler - Recovers queries on a replacement client. Use
+   * this client directly. getClient waits until recovery finishes. A failure
+   * stops the handler.
+   */
+  constructor(builder: () => ServiceProtocolClient,
+    reconnectHandler: (client: ServiceProtocolClient) => void | Promise<void>);
+
+  /**
+   * Constructs a connection handler with a retry delay.
+   * @param builder - Creates a fresh, unopened client.
    * @param reconnectHandler - Recovers queries on a replacement client.
    * @param reconnectInterval - Milliseconds between failed connection attempts.
    */
-  constructor(builder: () => Promise<ServiceProtocolClient>,
+  constructor(builder: () => ServiceProtocolClient,
     reconnectHandler: (client: ServiceProtocolClient) => void | Promise<void>,
     reconnectInterval: number);
-  constructor(builder: () => Promise<ServiceProtocolClient>,
+  constructor(source: URL | (() => ServiceProtocolClient),
       reconnectHandler?:
         (client: ServiceProtocolClient) => void | Promise<void>,
       reconnectInterval?: number) {
-    this._builder = builder;
+    if(source instanceof URL) {
+      this._builder = () => new ServiceProtocolClient(source);
+    } else {
+      this._builder = source;
+    }
     this._reconnectHandler = reconnectHandler ?? (() => {});
     this._reconnectInterval = reconnectInterval ?? RECONNECT_INTERVAL;
     if(!Number.isFinite(this._reconnectInterval) ||
@@ -139,16 +171,18 @@ export class ServiceProtocolClientHandler {
 
   private async run(): Promise<void> {
     while(!this._exception) {
-      let client: ServiceProtocolClient;
+      let client: ServiceProtocolClient = null;
       try {
-        const building = this._builder();
-        building.then(client => {
-          if(this._exception) {
-            client.close();
-          }
-        }, () => {});
-        client = await Promise.race([building, this._closed]);
+        client = this._builder();
+        if(this._exception) {
+          client.close();
+          return;
+        }
+        this._candidate = client;
+        await Promise.race([client.open(), this._closed]);
       } catch(error) {
+        client?.close();
+        this._candidate = null;
         if(this._exception) {
           return;
         }
@@ -163,7 +197,6 @@ export class ServiceProtocolClientHandler {
         client.close();
         return;
       }
-      this._candidate = client;
       const reading = this.readMessages(client);
       try {
         if(this._hasConnected) {
@@ -223,7 +256,7 @@ export class ServiceProtocolClientHandler {
     }
   }
 
-  private _builder: () => Promise<ServiceProtocolClient>;
+  private _builder: () => ServiceProtocolClient;
   private _reconnectHandler:
     (client: ServiceProtocolClient) => void | Promise<void>;
   private _reconnectInterval: number;

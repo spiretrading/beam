@@ -6,6 +6,7 @@ import { ConnectError, Message, PipeBrokenError, Queue, ServiceProtocolClient,
 
 class TestWebSocket {
   public static instances: Queue<TestWebSocket>;
+  public url: string;
   public onopen: () => void;
   public onerror: () => void;
   public onclose: () => void;
@@ -14,6 +15,7 @@ class TestWebSocket {
   public isClosed: boolean;
 
   constructor(url: string) {
+    this.url = url;
     this.onopen = null;
     this.onerror = null;
     this.onclose = null;
@@ -97,12 +99,25 @@ describe('ServiceProtocolClientHandler', () => {
     globalThis.WebSocket = original;
   });
 
-  async function buildClient(): Promise<ServiceProtocolClient> {
+  function buildClient(): ServiceProtocolClient {
     const client = new ServiceProtocolClient(new URL('ws://localhost/test'));
     clients.push(client);
-    await client.open();
     return client;
   }
+
+  it('url_opens_and_closes_pending_connection', async () => {
+    const url = new URL('ws://localhost/endpoint');
+    const handler = new ServiceProtocolClientHandler(url);
+    handlers.push(handler);
+    const opening = handler.getClient();
+    const socket = await TestWebSocket.instances.pop();
+    assert.equal(socket.url, url.toString());
+    handler.close();
+    assert.ok(socket.isClosed);
+    await assert.rejects(opening, PipeBrokenError);
+    await setImmediate();
+    assert.equal(TestWebSocket.instances.tryPop(), null);
+  });
 
   it('concurrent_callers_and_message_dispatch', async () => {
     const handler = new ServiceProtocolClientHandler(buildClient);
@@ -127,8 +142,8 @@ describe('ServiceProtocolClientHandler', () => {
   it('reconnect_dispatches_during_recovery_without_replaying_requests',
       async () => {
     let recoveries = 0;
-    const handler = new ServiceProtocolClientHandler(buildClient,
-      async client => {
+    const handler = new ServiceProtocolClientHandler(
+      new URL('ws://localhost/test'), async client => {
         ++recoveries;
         await client.sendRequest(REQUEST);
       });
@@ -170,7 +185,7 @@ describe('ServiceProtocolClientHandler', () => {
   it('retry_connection_errors_and_stop_on_other_errors', async () => {
     let attempts = 0;
     const fatal = new Error('Authentication rejected.');
-    const handler = new ServiceProtocolClientHandler(async () => {
+    const handler = new ServiceProtocolClientHandler(() => {
       ++attempts;
       if(attempts <= 2) {
         throw new ConnectError();
@@ -195,7 +210,8 @@ describe('ServiceProtocolClientHandler', () => {
   });
 
   it('failed_socket_open_retries_and_close_ends_monitors', async () => {
-    const handler = new ServiceProtocolClientHandler(buildClient, () => {}, 0);
+    const handler = new ServiceProtocolClientHandler(
+      new URL('ws://localhost/test'), () => {}, 0);
     handlers.push(handler);
     const updates = new Queue<Update>();
     handler.monitor(Update, updates);
@@ -238,16 +254,16 @@ describe('ServiceProtocolClientHandler', () => {
     assert.equal(TestWebSocket.instances.tryPop(), null);
   });
 
-  it('close_during_construction_disposes_late_client', async () => {
+  it('close_during_open', async () => {
     const handler = new ServiceProtocolClientHandler(buildClient);
     handlers.push(handler);
     const opening = handler.getClient();
     const socket = await TestWebSocket.instances.pop();
     handler.close();
     await assert.rejects(opening, PipeBrokenError);
-    socket.onopen();
-    await setImmediate();
     assert.ok(socket.isClosed);
+    await setImmediate();
+    assert.equal(TestWebSocket.instances.tryPop(), null);
     await assert.rejects(handler.getClient(), PipeBrokenError);
     const updates = new Queue<Update>();
     handler.monitor(Update, updates);
@@ -256,7 +272,7 @@ describe('ServiceProtocolClientHandler', () => {
 
   it('close_cancels_retry_delay', async () => {
     let attempts = 0;
-    const handler = new ServiceProtocolClientHandler(async () => {
+    const handler = new ServiceProtocolClientHandler(() => {
       ++attempts;
       throw new ConnectError();
     }, () => {}, 60000);
@@ -310,10 +326,11 @@ describe('ServiceProtocolClientHandler', () => {
   });
 
   it('failed_send_does_not_leave_a_pending_request', async () => {
-    const opening = buildClient();
+    const client = buildClient();
+    const opening = client.open();
     const socket = await TestWebSocket.instances.pop();
     socket.onopen();
-    const client = await opening;
+    await opening;
     socket.isClosed = true;
     await assert.rejects(client.sendRequest(REQUEST), PipeBrokenError);
     client.close();

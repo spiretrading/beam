@@ -66,6 +66,8 @@ class TestClient extends ServiceProtocolClient {
     this._pending = new Set();
   }
 
+  public async open(): Promise<void> {}
+
   public async sendRequest<R>(request: ServiceRequest<R>): Promise<R> {
     if(this.isClosed) {
       throw new PipeBrokenError();
@@ -133,7 +135,7 @@ describe('QueryClientPublisher', () => {
 
   function makePublisher() {
     let publisher: QueryClientPublisher<DirectoryEntry, number>;
-    const handler = new ServiceProtocolClientHandler(async () => {
+    const handler = new ServiceProtocolClientHandler(() => {
       const client = new TestClient();
       created.push(client);
       return client;

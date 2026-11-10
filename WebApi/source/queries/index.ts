@@ -24,6 +24,7 @@ export * from './or_expression';
 export * from './paged_query';
 export * from './parameter_evaluator_node';
 export * from './parameter_expression';
+export * from './query_client_publisher';
 export * from './query_interrupted_error';
 export * from './query_result';
 export * from './query_type';

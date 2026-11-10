@@ -1,6 +1,7 @@
 export * from './comparators';
 export * from './definitions';
 export * from './enum_set';
+export * from './io';
 export * from './map';
 export * from './queries';
 export * from './queues';

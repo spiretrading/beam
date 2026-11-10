@@ -1,3 +1,4 @@
+import { ConnectError } from '../io/connect_error';
 import { PipeBrokenError } from '../queues/pipe_broken_error';
 import { Queue } from '../queues/queue';
 import { QueueWriter } from '../queues/queue_writer';
@@ -29,19 +30,23 @@ export class ServiceProtocolClient {
     this._pendingRequests = new Map();
     this._monitors = new Map();
     this._messages = new Queue<Message>();
+    this._rejectOpen = null;
   }
 
   /** Opens the WebSocket connection. */
   public open(): Promise<void> {
     return new Promise((resolve, reject) => {
+      this._rejectOpen = reject;
       this._socket = new WebSocket(this._url.toString());
       this._socket.binaryType = 'arraybuffer';
       this._socket.onopen = () => {
+        this._rejectOpen = null;
         this.startHeartbeat();
         resolve();
       };
       this._socket.onerror = () => {
-        reject(new ServiceError('Failed to connect.'));
+        reject(new ConnectError());
+        this.close();
       };
       this._socket.onclose = () => {
         this.onClose();
@@ -59,7 +64,10 @@ export class ServiceProtocolClient {
    */
   public close(): void {
     if(this._socket) {
+      this._socket.onopen = null;
+      this._socket.onerror = null;
       this._socket.onclose = null;
+      this._socket.onmessage = null;
       this._socket.close();
       this._socket = null;
     }
@@ -78,7 +86,12 @@ export class ServiceProtocolClient {
     const response = new Promise<ResponseMessage>((resolve, reject) => {
       this._pendingRequests.set(id, { resolve, reject });
     });
-    this.send(message);
+    try {
+      this.send(message);
+    } catch(error) {
+      this._pendingRequests.delete(id);
+      throw error;
+    }
     const result = await response;
     if(result.isException) {
       throw new ServiceError(result.result);
@@ -162,6 +175,8 @@ export class ServiceProtocolClient {
   }
 
   private onClose(): void {
+    this._rejectOpen?.(new ConnectError());
+    this._rejectOpen = null;
     this.stopHeartbeat();
     const error = new PipeBrokenError();
     for(const pending of this._pendingRequests.values()) {
@@ -189,4 +204,5 @@ export class ServiceProtocolClient {
     queue: QueueWriter<any>;
   }>;
   private _messages: Queue<Message>;
+  private _rejectOpen: (error: Error) => void;
 }

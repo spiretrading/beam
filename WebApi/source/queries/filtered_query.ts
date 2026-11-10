@@ -1,4 +1,5 @@
 import { ConstantExpression } from './constant_expression';
+import { Evaluator } from './evaluator';
 import { Expression } from './expression';
 import { QueryType } from './query_type';
 
@@ -56,4 +57,17 @@ export function checkFilter(filter: Expression): Expression {
     throw new TypeError('Filter is not boolean.');
   }
   return filter;
+}
+
+/**
+ * Tests whether a value passes a filter, returning false on evaluation errors.
+ * @param evaluator - The evaluator used as the filter.
+ * @param value - The value to filter.
+ */
+export function testFilter<T>(evaluator: Evaluator<boolean>, value: T): boolean {
+  try {
+    return evaluator.eval(value) === true;
+  } catch {
+    return false;
+  }
 }

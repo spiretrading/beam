@@ -1,6 +1,7 @@
 import { Expression } from './expression';
 import { FunctionExpression } from './function_expression';
 import { QueryType } from './query_type';
+import { getStandardFunctionType } from './standard_function_types';
 
 /** The name of the addition function. */
 export const ADDITION_NAME = '+';
@@ -146,7 +147,7 @@ export function makeGreater(
  */
 export function makeMax(
     left: Expression, right: Expression): FunctionExpression {
-  return new FunctionExpression(MAX_NAME, left.type, [left, right]);
+  return makeArithmetic(MAX_NAME, left, right);
 }
 
 /**
@@ -156,17 +157,12 @@ export function makeMax(
  */
 export function makeMin(
     left: Expression, right: Expression): FunctionExpression {
-  return new FunctionExpression(MIN_NAME, left.type, [left, right]);
+  return makeArithmetic(MIN_NAME, left, right);
 }
 
 function makeArithmetic(name: string, left: Expression, right: Expression):
     FunctionExpression {
-  const type = (() => {
-    if(left.type === QueryType.INT && right.type === QueryType.DECIMAL) {
-      return QueryType.DECIMAL;
-    }
-    return left.type;
-  })();
+  const type = getStandardFunctionType(name, left.type, right.type) ?? left.type;
   return new FunctionExpression(name, type, [left, right]);
 }
 
